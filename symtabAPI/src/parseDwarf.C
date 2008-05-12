@@ -466,13 +466,13 @@ int convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
       Dwarf_Signed listLength, 
       Symtab * objFile, 
-      vector<loc_t *>*& locs,
+      vector<loc_t *>*& locs, Address lowpc,
       long int * initialStackValue = NULL)
 #else
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
       Dwarf_Signed listLength, 
-      Symtab *, 
-      vector<loc_t *>*& locs,  
+      Symtab *,
+      vector<loc_t *>*& locs, Address lowpc, 
       long int * initialStackValue = NULL)
 #endif
 {
@@ -519,8 +519,8 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 
       /* There is only one location. */
       Dwarf_Locdesc *location = locationList[locIndex];
-      loc->lowPC = (Offset)location->ld_lopc;
-      loc->hiPC = (Offset)location->ld_hipc;
+      loc->lowPC = (Offset)location->ld_lopc + lowpc;
+      loc->hiPC = (Offset)location->ld_hipc + lowpc;
       Dwarf_Loc * locations = location->ld_s;
       for( unsigned int i = 0; i < location->ld_cents; i++ ) {
          /* Handle the literals w/o 32 case statements. */
@@ -534,10 +534,11 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
          if ( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
             /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
             dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile) );
-            loc->stClass = storageRegOffset;
+            //loc->stClass = storageRegOffset;
+            loc->stClass = storageReg;
             loc->refClass = storageNoRef;
             loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
-            loc->frameOffset = 0;
+            //loc->frameOffset = 0;
             isLocSet = true;
             break;
          }	
@@ -549,8 +550,6 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             loc->refClass = storageNoRef;
             loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
             opStack.push( locations[i].lr_number );
-            locs->push_back(loc);
-            continue;
          }
 
          switch( locations[i].lr_atom ) {
@@ -576,10 +575,11 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             case DW_OP_regx:
                /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
                dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile) );
-               loc->stClass = storageRegOffset;
+               //loc->stClass = storageRegOffset;
+               loc->stClass = storageReg;
                loc->refClass = storageNoRef;
                loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
-               loc->frameOffset = 0;
+               //loc->frameOffset = 0;
                isLocSet = true;
                break;
 
@@ -946,6 +946,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       Symtab * objFile,
       Dwarf_Off cuOffset,
       char **srcFiles,
+      Address lowpc,
       Symbol * currentFunction = NULL,
       typeCommon * currentCommonBlock = NULL,
       typeEnum *currentEnum = NULL,
@@ -1326,7 +1327,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
                //loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
                vector<loc_t *>* locs = new vector<loc_t *>;
-               bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, NULL);
+               bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
                deallocateLocationList( dbg, locationList, listLength );
 
                if ( ! decodedAddressOrOffset ) { break; }
@@ -1498,7 +1499,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
             //loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
             vector<loc_t *>* locs = new vector<loc_t *>;
-            bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, NULL);
+            bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
             deallocateLocationList( dbg, locationList, listLength );
 
             if ( ! decodedOffset ) {
@@ -1615,30 +1616,32 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             /* What's the type's name? */
             char * typeName;
             status = dwarf_diename( dieEntry, & typeName, NULL );
-            DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+            if(status == DW_DLV_OK){
+                //DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            /* How big is it? */
-            Dwarf_Attribute byteSizeAttr;
-            Dwarf_Unsigned byteSize;
-            status = dwarf_attr( dieEntry, DW_AT_byte_size, & byteSizeAttr, NULL );
-            DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-            status = dwarf_formudata( byteSizeAttr, & byteSize, NULL );
-            DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+                /* How big is it? */
+                Dwarf_Attribute byteSizeAttr;
+                Dwarf_Unsigned byteSize;
+                status = dwarf_attr( dieEntry, DW_AT_byte_size, & byteSizeAttr, NULL );
+                DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+                status = dwarf_formudata( byteSizeAttr, & byteSize, NULL );
+                DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            dwarf_dealloc( dbg, byteSizeAttr, DW_DLA_ATTR );
+                dwarf_dealloc( dbg, byteSizeAttr, DW_DLA_ATTR );
 
-            /* Generate the appropriate built-in type; since there's no
-               reliable way to distinguish between a built-in and a scalar,
-               we don't bother to try. */
-            std::string tName = convertCharToString(typeName);   
-            Type * baseType = new typeScalar( dieOffset, byteSize, tName );
-            assert( baseType != NULL );
+                /* Generate the appropriate built-in type; since there's no
+                   reliable way to distinguish between a built-in and a scalar,
+                   we don't bother to try. */
+                std::string tName = convertCharToString(typeName);   
+                Type * baseType = new typeScalar( dieOffset, byteSize, tName );
+                assert( baseType != NULL );
 
-            /* Add the basic type to our collection. */
-            dwarf_printf( "Adding base type '%s' (%lu) of size %lu to type collection %p\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize, module->getModuleTypes() );
-            baseType = module->getModuleTypes()->addOrUpdateType( baseType );
+                /* Add the basic type to our collection. */
+                dwarf_printf( "Adding base type '%s' (%lu) of size %lu to type collection %p\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize, module->getModuleTypes() );
+                baseType = module->getModuleTypes()->addOrUpdateType( baseType );
 
-            dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
+                dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
+            }
          } break;
 
       case DW_TAG_typedef: 
@@ -1927,7 +1930,7 @@ gracefully, that is, without an error. :)
             //loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
             vector<loc_t *>* locs = new vector<loc_t *>;
             long int baseAddress = 0;
-            bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, & baseAddress );
+            bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, & baseAddress );
             deallocateLocationList( dbg, locationList, listLength );
 
             if ( ! decodedAddress ) { break; }
@@ -1977,140 +1980,153 @@ gracefully, that is, without an error. :)
                currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
                dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
             } else {
-               /* An anonymous union [in a struct]. */
-               std::string fName = "[anonymous union]";
-               currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
+                /* An anonymous union [in a struct]. */
+                std::string fName = "[anonymous union]";
+                currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
             }
-         } break;
+		} break;
 
-      case DW_TAG_const_type:
-      case DW_TAG_packed_type:
-      case DW_TAG_volatile_type: 
-         {
-            char * typeName = NULL;
-            status = dwarf_diename( dieEntry, & typeName, NULL );
-            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		case DW_TAG_const_type:
+		case DW_TAG_packed_type:
+		case DW_TAG_volatile_type: {
+			char * typeName = NULL;
+			status = dwarf_diename( dieEntry, & typeName, NULL );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            /* Which type does it modify? */
-            Dwarf_Attribute typeAttribute;
-            status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+			/* Which type does it modify? */
+			Dwarf_Attribute typeAttribute;
+			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
 
-            int typeSize = 0;
-            Dwarf_Off typeOffset;
-            Type * typeModified = NULL;
-            if ( status == DW_DLV_NO_ENTRY ) {
-               /* Presumably, a pointer or reference to void. */
-               typeModified = module->getModuleTypes()->findType( "void" );
-            } else {			
-               status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-               //parsing_printf("%s/%d: %s/%d\n",
-               //			   __FILE__, __LINE__, typeName, typeOffset);
-               typeModified = module->getModuleTypes()->findOrCreateType( typeOffset );
-               typeSize = typeModified->getSize();
+			int typeSize = 0;
+			Dwarf_Off typeOffset;
+			Type * typeModified = NULL;
+			if( status == DW_DLV_NO_ENTRY ) {
+				/* Presumably, a pointer or reference to void. */
+				typeModified = module->getModuleTypes()->findType( "void" );
+				} else {			
+				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+				//parsing_printf("%s/%d: %s/%d\n",
+				//			   __FILE__, __LINE__, typeName, typeOffset);
+				typeModified = module->getModuleTypes()->findOrCreateType( typeOffset );
+				typeSize = typeModified->getSize();
 
-               dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-            } /* end if typeModified is not void */
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+				} /* end if typeModified is not void */
 
-            // I'm taking out the type qualifiers for right now
-            std::string tName = convertCharToString(typeName);
-
-            //			Type * modifierType = new Type( typeName, dieOffset, TypeAttrib, typeSize, typeModified, dieTag );
-            Type * modifierType = new typeTypedef(dieOffset, typeModified, tName);
-            assert( modifierType != NULL );
-            // //bperr ( "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
-            modifierType = module->getModuleTypes()->addOrUpdateType( modifierType );
-            dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
-         } break;
-
-      case DW_TAG_subroutine_type:
-         /* If the pointer specifies argument types, this DIE has
-            children of those types. */
-      case DW_TAG_ptr_to_member_type:
-      case DW_TAG_pointer_type:
-      case DW_TAG_reference_type: 
-         {
-            char * typeName = NULL;
-            status = dwarf_diename( dieEntry, & typeName, NULL );
-            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-            /* To which type does it point? */
-            Dwarf_Attribute typeAttribute;
-            status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-            Dwarf_Off typeOffset = 0;
-            Type * typePointedTo = NULL;
-            if ( status == DW_DLV_NO_ENTRY ) {
-               /* Presumably, a pointer or reference to void. */
-               typePointedTo = module->getModuleTypes()->findType("void");
-            } else {			
-               status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-               //parsing_printf("%s/%d: %s/%d\n",
-               //			   __FILE__, __LINE__, typeName, typeOffset);
-               typePointedTo = module->getModuleTypes()->findOrCreateType( typeOffset );
-
-               dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-            } /* end if typePointedTo is not void */
-
-            Type * indirectType = NULL;
-            std::string tName = convertCharToString(typeName);
-            switch ( dieTag ) {
-               case DW_TAG_subroutine_type:
-                  indirectType = new typeFunction(dieOffset, typePointedTo, tName);
-                  break;
-               case DW_TAG_ptr_to_member_type:
-               case DW_TAG_pointer_type:
-                  indirectType = new typePointer(dieOffset, typePointedTo, tName);
-                  break;
-               case DW_TAG_reference_type:
-                  indirectType = new typeRef(dieOffset, typePointedTo, tName);
-                  break;
+            string tName;
+            if(!typeName){
+                switch(dieTag){
+                    case DW_TAG_const_type:
+                        tName = "const " + typeModified->getName();
+                        break;
+                    case DW_TAG_packed_type:
+                        tName = "packed " + typeModified->getName();
+                        break;
+                    case DW_TAG_volatile_type:
+                        tName = "volatile " + typeModified->getName();
+                        break;
+                }
             }
+            else
+			    // I'm taking out the type qualifiers for right now
+                tName = convertCharToString(typeName);
 
-            assert( indirectType != NULL );
-            dwarf_printf( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
-            indirectType = module->getModuleTypes()->addOrUpdateType( indirectType );
+//			Type * modifierType = new Type( typeName, dieOffset, TypeAttrib, typeSize, typeModified, dieTag );
+			Type * modifierType = new typeTypedef(dieOffset, typeModified, tName);
+			assert( modifierType != NULL );
+			// //bperr ( "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
+			modifierType = module->getModuleTypes()->addOrUpdateType( modifierType );
+			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
+		} break;
 
-            dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
-         } break;
+		case DW_TAG_subroutine_type:
+			/* If the pointer specifies argument types, this DIE has
+			   children of those types. */
+		case DW_TAG_ptr_to_member_type:
+		case DW_TAG_pointer_type:
+		case DW_TAG_reference_type: {
+			char * typeName = NULL;
+			status = dwarf_diename( dieEntry, & typeName, NULL );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-      case DW_TAG_variant_part:
-         /* We don't support this (Pascal) type. */
-      case DW_TAG_string_type:
-         /* We don't support this (FORTRAN) type. */
-      default:
-         /* Nothing of interest. */
-         // //bperr ( "Entry %lu with tag 0x%x ignored.\n", (unsigned long)dieOffset, dieTag );
-         break;
-   } /* end dieTag switch */
+			/* To which type does it point? */
+			Dwarf_Attribute typeAttribute;
+			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-   /* Recurse to its child, if any. */
-   Dwarf_Die childDwarf;
-   status = dwarf_child( dieEntry, & childDwarf, NULL );
-   DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+			Dwarf_Off typeOffset = 0;
+			Type * typePointedTo = NULL;
+			if( status == DW_DLV_NO_ENTRY ) {
+				/* Presumably, a pointer or reference to void. */
+				typePointedTo = module->getModuleTypes()->findType("void");
+				} else {			
+				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+				//parsing_printf("%s/%d: %s/%d\n",
+				//			   __FILE__, __LINE__, typeName, typeOffset);
+				typePointedTo = module->getModuleTypes()->findOrCreateType( typeOffset );
 
-   if ( status == DW_DLV_OK && parsedChild == false ) {		
-      walkDwarvenTree( dbg, childDwarf, module, objFile, cuOffset, srcFiles, newFunction, newCommonBlock, newEnum, newEnclosure );
-   }
+				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+				} /* end if typePointedTo is not void */
 
-   /* Recurse to its first sibling, if any. */
-   Dwarf_Die siblingDwarf;
-   status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
-   DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+			Type * indirectType = NULL;
+			std::string tName = convertCharToString(typeName);
+			switch ( dieTag ) {
+			case DW_TAG_subroutine_type:
+			   indirectType = new typeFunction(dieOffset, typePointedTo, tName);
+			   break;
+			case DW_TAG_ptr_to_member_type:
+			case DW_TAG_pointer_type:
+			   indirectType = new typePointer(dieOffset, typePointedTo, tName);
+			   break;
+			case DW_TAG_reference_type:
+			   indirectType = new typeRef(dieOffset, typePointedTo, tName);
+			   break;
+			}
 
-   /* Deallocate the entry we just parsed. */
-   dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+			assert( indirectType != NULL );
+			dwarf_printf( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
+			indirectType = module->getModuleTypes()->addOrUpdateType( indirectType );
 
-   if ( status == DW_DLV_OK ) {
-      /* Do the tail-call optimization by hand. */
-      dieEntry = siblingDwarf;
-      goto tail_recursion;
-   }
+			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
+		} break;
 
-   /* When would we return false? :) */
-   return true;
+		case DW_TAG_variant_part:
+			/* We don't support this (Pascal) type. */
+		case DW_TAG_string_type:
+			/* We don't support this (FORTRAN) type. */
+		default:
+			/* Nothing of interest. */
+			// //bperr ( "Entry %lu with tag 0x%x ignored.\n", (unsigned long)dieOffset, dieTag );
+			break;
+		} /* end dieTag switch */
+
+	/* Recurse to its child, if any. */
+	Dwarf_Die childDwarf;
+	status = dwarf_child( dieEntry, & childDwarf, NULL );
+	DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+	
+	if( status == DW_DLV_OK && parsedChild == false ) {		
+		walkDwarvenTree( dbg, childDwarf, module, objFile, cuOffset, srcFiles, lowpc, newFunction, newCommonBlock, newEnum, newEnclosure );
+		}
+
+	/* Recurse to its first sibling, if any. */
+	Dwarf_Die siblingDwarf;
+	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+	DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+
+	/* Deallocate the entry we just parsed. */
+	dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+
+    if( status == DW_DLV_OK ) {
+        /* Do the tail-call optimization by hand. */
+        dieEntry = siblingDwarf;
+        goto tail_recursion;
+    }
+
+    /* When would we return false? :) */
+    return true;
 } /* end walkDwarvenTree() */
 
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
@@ -2175,6 +2191,20 @@ void Object::parseDwarfTypes( Symtab *objFile)
       status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
       DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring language attribute.\n", __FILE__, __LINE__ );
 
+//      /* Set the lowPC, if any. */
+//      Dwarf_Attribute lowPCAttribute;
+//      status = dwarf_attr( moduleDIE, DW_AT_low_pc, & lowPCAttribute, NULL );
+//      DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring language attribute.\n", __FILE__, __LINE__ );
+      
+      Dwarf_Addr lowPCdwarf = 0;
+      Address lowpc = 0;
+      status = dwarf_lowpc( moduleDIE, &lowPCdwarf, NULL );
+      if ( status == DW_DLV_OK)
+          lowpc = (Address)lowPCdwarf;
+//      status = dwarf_formaddr( lowPCAttribute, &lowPCdwarf, NULL );
+//      if(status == DW_DLV_OK)
+//          lowpc = (Address)lowPCdwarf;
+
       /* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
       if (!objFile->findModule(mod, moduleName)){
          std::string modName = moduleName;
@@ -2195,7 +2225,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
       status = dwarf_srcfiles(moduleDIE, &srcfiles,&cnt, NULL);
       DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring source file names.\n", __FILE__, __LINE__ );
 
-      if ( !walkDwarvenTree( dbg, moduleDIE, mod, objFile, cuOffset, srcfiles ) ) {
+      if ( !walkDwarvenTree( dbg, moduleDIE, mod, objFile, cuOffset, srcfiles, lowpc ) ) {
          //bpwarn ( "Error while parsing DWARF info for module '%s'.\n", moduleName );
          return;
       }
