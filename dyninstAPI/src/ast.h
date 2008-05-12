@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.106 2008/04/15 16:43:10 roundy Exp $
+// $Id: ast.h,v 1.107 2008/05/12 22:12:47 giri Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -56,6 +56,7 @@
 
 // The great experiment: boost shared_ptr libraries
 #include "boost/shared_ptr.hpp"
+#include "BPatch_type.h"
 
 class process;
 class AddressSpace;
@@ -65,7 +66,7 @@ class codeGen;
 class codeRange;
 class instruction;
 class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
-class BPatch_type;
+//class BPatch_type;
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
@@ -168,6 +169,8 @@ class AstNode {
         static AstNodePtr memoryNode(memoryType ot, int which);
 
         static AstNodePtr sequenceNode(pdvector<AstNodePtr > &sequence);
+        
+        static AstNodePtr variableNode(std::vector<AstNodePtr *>&ast_wrappers_, std::vector<std::pair<Offset, Offset> > *ranges = NULL);
 
         static AstNodePtr operatorNode(opCode ot, 
                                        AstNodePtr l = AstNodePtr(), 
@@ -232,6 +235,10 @@ class AstNode {
 
         // Perform whatever pre-processing steps are necessary.
         virtual bool initRegisters(codeGen &gen);
+        
+        // Select the appropriate Variable AST as part of pre-processing
+        // steps before code generation.
+        virtual void setVariableAST(codeGen &) {}
 
        unsigned getTreeSize();
 
@@ -373,6 +380,8 @@ class AstOperatorNode : public AstNode {
 
     // We override initRegisters in the case of writing to an original register.
     virtual bool initRegisters(codeGen &gen);
+    
+    virtual void setVariableAST(codeGen &gen);
 
  private:
 
@@ -422,6 +431,8 @@ class AstOperandNode : public AstNode {
     virtual bool canBeKept() const;
         
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    
+    virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
         
@@ -455,6 +466,7 @@ class AstCallNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const;
 
     void setConstFunc(bool val) { constFunc_ = val; }
@@ -514,6 +526,7 @@ class AstSequenceNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const;
 
  private:
@@ -524,6 +537,38 @@ class AstSequenceNode : public AstNode {
 
     AstSequenceNode() {};
     pdvector<AstNodePtr> sequence_;
+};
+
+class AstVariableNode : public AstNode {
+  public:
+    AstVariableNode(std::vector<AstNodePtr *>&ast_wrappers, std::vector<std::pair<Offset, Offset> >*ranges);
+
+    ~AstVariableNode() {}
+
+    virtual int costHelper(enum CostStyleType costStyle) const;	
+
+    virtual BPatch_type	  *checkType() { return getType(); }
+    virtual bool accessesParam();
+    virtual bool canBeKept() const;
+    virtual operandType getoType() const { return (*ast_wrappers_[index])->getoType(); };
+    virtual AstNodePtr operand() const { return (*ast_wrappers_[index])->operand(); }
+    virtual const void *getOValue() const { return (*ast_wrappers_[index])->getOValue(); };
+
+    virtual void setVariableAST(codeGen &gen);
+    virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual bool containsFuncCall() const;
+
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+
+    AstVariableNode() {};
+    std::vector<AstNodePtr *>ast_wrappers_;
+    std::vector<std::pair<Offset, Offset> > *ranges_;
+    unsigned index;
+
 };
 
 class instruction;
@@ -556,6 +601,7 @@ class AstInsnBranchNode : public AstInsnNode {
 
     virtual bool overrideBranchTarget(AstNodePtr t) { target_ = t; return true; }
     virtual bool containsFuncCall() const;
+    virtual void setVariableAST(codeGen &gen);
     
  protected:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -573,6 +619,7 @@ class AstInsnMemoryNode : public AstInsnNode {
     virtual bool overrideLoadAddr(AstNodePtr l) { load_ = l; return true; }
     virtual bool overrideStoreAddr(AstNodePtr s) { store_ = s; return true; }
     virtual bool containsFuncCall() const;
+    virtual void setVariableAST(codeGen &gen);
 
  protected:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -600,6 +647,7 @@ class AstMiniTrampNode : public AstNode {
     virtual bool accessesParam(void) { return ast_->accessesParam(); } 
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
     bool canBeKept() const;

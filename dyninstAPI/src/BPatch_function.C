@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.105 2008/04/11 23:29:59 legendre Exp $
+// $Id: BPatch_function.C,v 1.106 2008/05/12 22:12:42 giri Exp $
 
 #define BPATCH_FILE
 
@@ -606,10 +606,12 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
       BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
 
       ret->push_back(new BPatch_variableExpr(imgPtr->getAddressSpace(),
-					     (void *) lv->getFrameOffset(), 
-                                             lv->getRegister(), lv->getType(), 
-                                             lv->getStorageClass(), 
-                                             (*points)[0]));
+                        lv, lv->getType(), (*points)[0]));
+//      ret->push_back(new BPatch_variableExpr(imgPtr->getAddressSpace(),
+//					     (void *) lv->getFrameOffset(), 
+//                                             lv->getRegister(), lv->getType(), 
+//                                             lv->getStorageClass(), 
+//                                             (*points)[0]));
       return ret;
    } else {
       // finally check the global scope.

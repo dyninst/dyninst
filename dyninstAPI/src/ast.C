@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.206 2008/04/15 16:43:09 roundy Exp $
+// $Id: ast.C,v 1.207 2008/05/12 22:12:46 giri Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -118,6 +118,10 @@ AstNodePtr AstNode::operandNode(operandType ot, AstNodePtr ast) {
 
 AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
     return AstNodePtr(new AstSequenceNode(sequence));
+}
+
+AstNodePtr AstNode::variableNode(vector<AstNodePtr *>&ast_wrappers, vector<pair<Offset, Offset> >*ranges) {
+    return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
 }
 
 AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodePtr e) {
@@ -319,6 +323,11 @@ AstSequenceNode::AstSequenceNode(pdvector<AstNodePtr > &sequence) :
     for (unsigned i = 0; i < sequence.size(); i++) {
         sequence_.push_back(sequence[i]);
     }
+}
+
+AstVariableNode::AstVariableNode(vector<AstNodePtr *>&ast_wrappers, vector<pair<Offset, Offset> > *ranges) :
+    ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
+{
 }
 
 AstInsnNode::AstInsnNode(instruction *insn, Address addr) :
@@ -586,6 +595,7 @@ bool AstNode::generateCode(codeGen &gen,
 
     cleanUseCount();
     setUseCount();
+    setVariableAST(gen);
     ast_printf("====== Code Generation Start ===== \n");
     debugPrint();
     ast_printf("\n\n\n\n");
@@ -670,6 +680,7 @@ bool AstNode::generateCode_phase2(codeGen &, bool,
     if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
     if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
+    if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
     if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
     if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
@@ -727,7 +738,8 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
         if (!kids[i]->initRegisters(g))
             ret = false;
     }
-    
+
+#if !defined(arch_x86)
     // Override: if we're trying to save to an original
     // register, make sure it's saved on the stack.
     if (op == storeOp) {
@@ -738,7 +750,7 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
             r->liveState = registerSlot::live;
         }
     }
-
+#endif
     return ret;
 }
 
@@ -777,12 +789,16 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    if (roper->op != plusOp && roper->op != minusOp)
       return false;
    
-   AstOperandNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand.get());
-   AstOperandNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand.get());
-   if (!arithl && !arithr)
+   AstNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand.get());
+   AstNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand.get());
+   if(!arithl)
+      arithl = dynamic_cast<AstVariableNode *>(roper->loperand.get());
+   if(!arithr)
+      arithl = dynamic_cast<AstVariableNode *>(roper->roperand.get());
+   if (!arithl || !arithr)
       return false;
    
-   AstOperandNode *data_oper = NULL, *const_oper = NULL;
+   AstNode *data_oper = NULL, *const_oper = NULL;
    if (arithl->getoType() == DataAddr && arithr->getoType() == Constant &&
        laddr == (Address) arithl->getOValue())
    {
@@ -1542,6 +1558,13 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
     return true;
 }
 
+bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
+                                          Address &addr,
+                                          Register &retReg) {
+
+    return (*ast_wrappers_[index])->generateCode_phase2(gen, noCost, addr, retReg);
+}
+
 bool AstInsnNode::generateCode_phase2(codeGen &gen, bool,
                                       Address &, Register &) {
     assert(insn_);
@@ -1841,6 +1864,11 @@ int AstSequenceNode::costHelper(enum CostStyleType costStyle) const {
         total += sequence_[i]->costHelper(costStyle);
     }
 
+    return total;
+}
+
+int AstVariableNode::costHelper(enum CostStyleType costStyle) const{
+    int total = 0;
     return total;
 }
 
@@ -2152,6 +2180,7 @@ bool AstNode::accessesParam() {
     else if (dynamic_cast<AstCallNode *>(this)) fprintf(stderr, "callNode\n");
     else if (dynamic_cast<AstReplacementNode *>(this)) fprintf(stderr, "replacementNode\n");
     else if (dynamic_cast<AstSequenceNode *>(this)) fprintf(stderr, "seqNode\n");
+    else if (dynamic_cast<AstVariableNode *>(this)) fprintf(stderr, "varNode\n");
     else if (dynamic_cast<AstInsnNode *>(this)) fprintf(stderr, "insnNode\n");
     else if (dynamic_cast<AstMiniTrampNode *>(this)) fprintf(stderr, "miniTrampNode\n");
     else if (dynamic_cast<AstMemoryNode *>(this)) fprintf(stderr, "memoryNode\n");
@@ -2189,6 +2218,10 @@ bool AstSequenceNode::accessesParam() {
             return true;
     }
     return false;
+}
+
+bool AstVariableNode::accessesParam() {
+    return (*ast_wrappers_[index])->accessesParam();
 }
 
 // Our children may have incorrect useCounts (most likely they 
@@ -2265,6 +2298,10 @@ bool AstSequenceNode::canBeKept() const {
     return false;
 }
 
+bool AstVariableNode::canBeKept() const {
+    return (*ast_wrappers_[index])->canBeKept();
+}
+
 bool AstMiniTrampNode::canBeKept() const {
 	// Well... depends on the actual AST, doesn't it.
 	assert(ast_);
@@ -2335,8 +2372,61 @@ void AstSequenceNode::getChildren(pdvector<AstNodePtr > &children) {
         children.push_back(sequence_[i]);
 }
 
+void AstVariableNode::getChildren(pdvector<AstNodePtr > &children) {
+    (*ast_wrappers_[index])->getChildren(children);
+}
+
 void AstMiniTrampNode::getChildren(pdvector<AstNodePtr > &children) {
     children.push_back(ast_);
+}
+
+void AstOperatorNode::setVariableAST(codeGen &g) {
+    if(loperand) loperand->setVariableAST(g);
+    if(roperand) roperand->setVariableAST(g);
+    if(eoperand) eoperand->setVariableAST(g);
+}
+
+void AstOperandNode::setVariableAST(codeGen &g){
+    if(operand_) operand_->setVariableAST(g);
+}
+
+void AstCallNode::setVariableAST(codeGen &g){
+    for (unsigned i = 0; i < args_.size(); i++)
+        args_[i]->setVariableAST(g);
+}
+
+void AstSequenceNode::setVariableAST(codeGen &g) {
+    for (unsigned i = 0; i < sequence_.size(); i++)
+        sequence_[i]->setVariableAST(g);
+}
+
+void AstVariableNode::setVariableAST(codeGen &gen){
+    //fprintf(stderr, "Generating code for variable in function %s with start address 0x%lx at address 0x%lx\n",gen.func()->prettyName().c_str(), gen.func()->getAddress(),gen.point()->addr());
+    if(!ranges_)
+        return;
+    if(!gen.point())    //oneTimeCode. Set the AST at the beginning of the function??
+    {
+        index = 0;
+        return;
+    }
+    Address addr = gen.point()->addr();     //Offset of inst point from function base address
+    for(unsigned i=0; i< ranges_->size();i++){
+        if((*ranges_)[i].first<=addr && addr<(*ranges_)[i].second)
+            index = i;
+    }
+}
+
+void AstInsnBranchNode::setVariableAST(codeGen &g){
+    if(target_) target_->setVariableAST(g);
+}
+
+void AstInsnMemoryNode::setVariableAST(codeGen &g){
+    if(load_) load_->setVariableAST(g);
+    if(store_) store_->setVariableAST(g);
+}
+
+void AstMiniTrampNode::setVariableAST(codeGen &g){
+    if(ast_) ast_->setVariableAST(g);
 }
 
 bool AstNode::containsFuncCall() const { 
@@ -2373,6 +2463,10 @@ bool AstSequenceNode::containsFuncCall() const {
 		if (sequence_[i]->containsFuncCall()) return true;
 	}
 	return false;
+}
+
+bool AstVariableNode::containsFuncCall() const {
+    return (*ast_wrappers_[index])->containsFuncCall();
 }
 
 bool AstInsnMemoryNode::containsFuncCall() const {
@@ -2472,6 +2566,7 @@ void AstNode::debugPrint(unsigned level) {
     else if (dynamic_cast<AstCallNode *>(this)) type = "callNode";
     else if (dynamic_cast<AstReplacementNode *>(this)) type = "replacementNode";
     else if (dynamic_cast<AstSequenceNode *>(this)) type = "sequenceNode";
+    else if (dynamic_cast<AstVariableNode *>(this)) type = "variableNode";
     else if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";
     else if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
     else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";

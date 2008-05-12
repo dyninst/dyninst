@@ -556,18 +556,18 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
     if(!type)
         type = new BPatch_type(lVar->getType());
     type->incrRefCount();
-    storageClass = convertToBPatchStorage(lVar_); 
+    vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar_->getLocationLists();
+    if(!locs)
+   	    storageClass = BPatch_storageFrameOffset;
+    else
+        storageClass = convertToBPatchStorage((*locs)[0]);
     lVar->setUpPtr(this);
 }
 
-BPatch_storageClass BPatch_localVar::convertToBPatchStorage(localVar *lVar)
+BPatch_storageClass BPatch_localVar::convertToBPatchStorage(loc_t *loc)
 {
-   vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar->getLocationLists();
-   if(!locs)
-   	return BPatch_storageFrameOffset;
-   
-   Dyninst::SymtabAPI::storageClass stClass = (*locs)[0]->stClass;
-   storageRefClass refClass = (*locs)[0]->refClass;
+   Dyninst::SymtabAPI::storageClass stClass = loc->stClass;
+   storageRefClass refClass = loc->refClass;
    if((stClass == storageAddr) && (refClass == storageNoRef))
        return BPatch_storageAddr;
    else if((stClass == storageAddr) && (refClass == storageRef))
@@ -576,10 +576,14 @@ BPatch_storageClass BPatch_localVar::convertToBPatchStorage(localVar *lVar)
        return BPatch_storageReg;
    else if((stClass == storageReg) && (refClass == storageRef))
        return BPatch_storageRegRef;
-   else if((stClass == storageRegOffset) && ((*locs)[0]->reg == -1))
+   else if((stClass == storageRegOffset) && (loc->reg == -1))
        return BPatch_storageFrameOffset;
    else if((stClass == storageRegOffset))
    	return BPatch_storageRegOffset;
+}
+
+localVar *BPatch_localVar::getSymtabVar(){
+    return lVar;
 }
 				      
 const char *BPatch_localVar::getName() { 

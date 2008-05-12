@@ -470,7 +470,9 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
                         int in_register, BPatch_type *type, 
                         BPatch_storageClass storage = BPatch_storageAddr,
                         BPatch_point *scp = NULL);
-
+    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
+                        BPatch_localVar *lv, BPatch_type *type,
+                        BPatch_point *scp);
 
   public:
     //  BPatch_variableExpr::BPatch_variableExpr

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.106 2008/04/16 18:12:30 roundy Exp $
+// $Id: BPatch_snippet.C,v 1.107 2008/05/12 22:12:44 giri Exp $
 
 #define BPATCH_FILE
 
@@ -959,7 +959,15 @@ void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
     scope = NULL;
     isLocal = false;
 
-    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
+    vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
+    AstNodePtr *variableAst;
+
+//     ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
+    variableAst = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
+    (*variableAst)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    (*variableAst)->setType(type);
+    variableASTs->push_back(variableAst);
+    ast_wrapper = new AstNodePtr(AstNode::variableNode(*variableASTs));
 
     assert(BPatch::bpatch != NULL);
     (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1088,9 +1096,12 @@ BPatch_variableExpr::BPatch_variableExpr(//BPatch_process *in_process,
 					 BPatch_point *scp) :
   /*appProcess(in_process),*/ appAddSpace(in_addSpace), address(in_address)
 {
+    vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
+    AstNodePtr *variableAst;
+
     switch (in_storage) {
 	case BPatch_storageAddr:
-            ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
+        variableAst = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
 	    isLocal = false;
 	    break;
 	case BPatch_storageAddrRef:
@@ -1098,7 +1109,7 @@ BPatch_variableExpr::BPatch_variableExpr(//BPatch_process *in_process,
 	    isLocal = false;
 	    break;
 	case BPatch_storageReg:
-	    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)in_register));
+	    variableAst = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)in_register));
 	    isLocal = true;
 	    break;
 	case BPatch_storageRegRef:
@@ -1106,23 +1117,98 @@ BPatch_variableExpr::BPatch_variableExpr(//BPatch_process *in_process,
 	    isLocal = true;
 	    break;
 	case BPatch_storageRegOffset:
-	    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::RegOffset, 
+	    variableAst = new AstNodePtr(AstNode::operandNode(AstNode::RegOffset, 
                                        AstNode::operandNode(AstNode::DataAddr,
                                                             address)));
-	    (*ast_wrapper)->setOValue( (void *)(long int)in_register );
+	    (*variableAst)->setOValue( (void *)(long int)in_register );
 	    isLocal = true;
 	    break;
 	case BPatch_storageFrameOffset:
-            ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::FrameAddr, address));
+        variableAst = new AstNodePtr(AstNode::operandNode(AstNode::FrameAddr, address));
 	    isLocal = true;
 	    break;
     }
 
+    (*variableAst)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    (*variableAst)->setType(type);
+    variableASTs->push_back(variableAst);
+    ast_wrapper = new AstNodePtr(AstNode::variableNode(*variableASTs));
+//    ast_wrapper = variableAst;    
     assert(BPatch::bpatch != NULL);
     (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
 
     size = type->getSize();
     (*ast_wrapper)->setType(type);
+
+    scope = scp;
+}
+
+/*
+ * BPatch_variableExpr::BPatch_variableExpr
+ *
+ * Construct a snippet representing a variable of the given type at the given
+ * address.
+ *
+ * in_addSpace	The BPatch_addressSpace that the variable resides in.
+ * lv           The local variable handle
+ * type		    The type of the variable.
+ *
+ */
+BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
+                        BPatch_localVar *lv, BPatch_type *type, BPatch_point *scp):
+                    appAddSpace(in_addSpace)
+{
+    //Create Ast's for all members in the location list.
+    //This will likely be done only for local variables within a function
+    vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
+    vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
+    vector<Dyninst::SymtabAPI::loc_t *> *locs = lv->getSymtabVar()->getLocationLists();
+    for(unsigned i=0; i<locs->size(); i++){
+        AstNodePtr *variableAst;
+        BPatch_storageClass in_storage = lv->convertToBPatchStorage((*locs)[i]);
+        void *in_address = (void *)(*locs)[i]->frameOffset;
+        int in_register = (*locs)[i]->reg;
+        switch (in_storage) {
+            case BPatch_storageAddr:
+                variableAst = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, in_address));
+                isLocal = false;
+                address = in_address;
+                break;
+            case BPatch_storageAddrRef:
+                //assert( 0 ); // Not implemented yet.
+                continue;
+            case BPatch_storageReg:
+                variableAst = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)in_register));
+                isLocal = true;
+                break;
+            case BPatch_storageRegRef:
+                //assert( 0 ); // Not implemented yet.
+                continue;
+            case BPatch_storageRegOffset:
+                variableAst = new AstNodePtr(AstNode::operandNode(AstNode::RegOffset, 
+                            AstNode::operandNode(AstNode::DataAddr,
+                                in_address)));
+                (*variableAst)->setOValue( (void *)(long int)in_register );
+                isLocal = true;
+                break;
+            case BPatch_storageFrameOffset:
+                variableAst = new AstNodePtr(AstNode::operandNode(AstNode::FrameAddr, in_address));
+                isLocal = true;
+                break;
+        }
+        (*variableAst)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+        (*variableAst)->setType(type);
+        variableASTs->push_back(variableAst);
+        ranges->push_back(pair<Offset, Offset>((*locs)[i]->lowPC,(*locs)[i]->hiPC));
+    }
+    
+    ast_wrapper = new AstNodePtr(AstNode::variableNode(*variableASTs, ranges));
+    //    ast_wrapper = variableAst;    
+    assert(BPatch::bpatch != NULL);
+    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+
+    (*ast_wrapper)->setType(type);
+    size = type->getSize();
 
     scope = scp;
 }
@@ -1141,7 +1227,15 @@ BPatch_variableExpr::BPatch_variableExpr(/*BPatch_process *in_process,*/
                                          int in_size) :
     appAddSpace(in_addSpace), address(in_address), scope(NULL), isLocal(false)
 {
-    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
+
+    vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
+    AstNodePtr *variableAst;
+//    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
+    variableAst = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
+    (*variableAst)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    (*variableAst)->setType(BPatch::bpatch->type_Untyped);
+    variableASTs->push_back(variableAst);
+    ast_wrapper = new AstNodePtr(AstNode::variableNode(*variableASTs));
 
     assert(BPatch::bpatch != NULL);
     (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
