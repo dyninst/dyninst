@@ -503,8 +503,8 @@ typedef struct{
    storageRefClass refClass;
    int reg;
    long frameOffset;
-   Offset lowPC;
-   Offset hiPC;
+   Address lowPC;
+   Address hiPC;
 } loc_t;
 
 class DLLEXPORT localVar
