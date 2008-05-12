@@ -73,6 +73,9 @@ void pd_log_perror(const char *msg){
    errMsg = msg;
 };
 
+#include <stdarg.h>
+int symtab_printf(const char *format, ...);
+
 #if 0
 #if !defined(os_windows)
     //libxml2 functions
@@ -383,7 +386,7 @@ DLLEXPORT Offset Symtab::imageLength() const
 {
     return imageLen_;
 }
- 
+
 DLLEXPORT char* Symtab::image_ptr ()  const 
 {
    return code_ptr_;
@@ -1274,11 +1277,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     imageLen_ = linkedFile->code_len();
     dataLen_ = linkedFile->data_len();
     
-    codeValidStart_ = linkedFile->code_vldS();
-    codeValidEnd_ = linkedFile->code_vldE();
-    dataValidStart_ = linkedFile->data_vldS();
-    dataValidEnd_ = linkedFile->data_vldE();
-
     if (0 == imageLen_ || 0 == linkedFile->code_ptr()) {
         // for AIX, code_ptr()==NULL is normal behavior
 #if !defined(os_aix)
@@ -1497,11 +1495,6 @@ Symtab::Symtab(const Symtab& obj) :
     dataOffset_ = obj.dataOffset_;
     dataLen_ = obj.dataLen_;
 
-    codeValidStart_ = obj.codeValidStart_;
-    codeValidEnd_ = obj.codeValidEnd_;
-    dataValidStart_ = obj.dataValidStart_;
-    dataValidEnd_ = obj.dataValidEnd_;
-        
     isLineInfoValid_ = obj.isLineInfoValid_;
     isTypeInfoValid_ = obj.isTypeInfoValid_;
 
@@ -4195,6 +4188,8 @@ DLLEXPORT bool Region::isOffsetInRegion(const Offset &offset) const {
 }
 
 DLLEXPORT bool Region::isLoadable() const{
+    if(isLoadable_)
+        return true;
     return (memOff_ != 0);
 }
 

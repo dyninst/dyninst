@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.16 2008/04/07 22:32:54 giri Exp $
+ * $Id: Object.h,v 1.17 2008/05/12 22:12:52 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -89,11 +89,6 @@ public:
     DLLEXPORT char*       data_ptr () const;
     DLLEXPORT Offset           data_off () const;
     DLLEXPORT Offset           data_len () const;
-
-    DLLEXPORT Offset           code_vldS () const;
-    DLLEXPORT Offset           code_vldE () const;
-    DLLEXPORT Offset           data_vldS () const;
-    DLLEXPORT Offset           data_vldE () const;
 
     DLLEXPORT bool 	      is_aout  () const;
 

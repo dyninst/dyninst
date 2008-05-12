@@ -121,10 +121,10 @@ void SymtabTranslatorBin::symtab_start(Symtab &param, const char *)
 #if 0
   sd.translate(param.name_);
 #endif
-  sd.translate(param.codeValidStart_);
-  sd.translate(param.codeValidEnd_);
-  sd.translate(param.dataValidStart_);
-  sd.translate(param.dataValidEnd_);
+//  sd.translate(param.codeValidStart_);
+//  sd.translate(param.codeValidEnd_);
+//  sd.translate(param.dataValidStart_);
+//  sd.translate(param.dataValidEnd_);
   sd.translate(param.main_call_addr_);
   sd.translate(param.nativeCompiler);
   sd.translate(param.no_of_symbols);

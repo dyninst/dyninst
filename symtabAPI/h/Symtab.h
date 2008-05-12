@@ -348,7 +348,7 @@ class Symtab : public LookupInterface,
 	DLLEXPORT std::string name() const;
 
 	DLLEXPORT char *mem_image() const;
-	
+
 	DLLEXPORT Offset imageOffset() const;
 	DLLEXPORT Offset dataOffset() const;
 	DLLEXPORT Offset dataLength() const;
@@ -482,11 +482,6 @@ class Symtab : public LookupInterface,
    unsigned imageLen_;
    Offset dataOffset_;
    unsigned dataLen_;
-
-   Offset codeValidStart_;
-   Offset codeValidEnd_;
-   Offset dataValidStart_;
-   Offset dataValidEnd_;
 
    bool is_a_out;
    Offset main_call_addr_; // address of call to main()

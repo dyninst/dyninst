@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.21 2008/04/27 06:54:23 jaw Exp $
+// $Id: Object.C,v 1.22 2008/05/12 22:12:51 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -844,26 +844,6 @@ DLLEXPORT Offset AObject::data_off () const
 DLLEXPORT Offset AObject::data_len () const 
 { 
    return data_len_; 
-}
-
-DLLEXPORT Offset AObject::code_vldS() const 
-{ 
-   return code_vldS_; 
-}
-
-DLLEXPORT Offset AObject::code_vldE () const
-{ 
-   return code_vldE_;
-}
-
-DLLEXPORT Offset AObject::data_vldS() const 
-{
-   return data_vldS_; 
-}
-
-DLLEXPORT Offset AObject::data_vldE () const 
-{
-   return data_vldE_; 
 }
 
 DLLEXPORT bool AObject::is_aout() const 
