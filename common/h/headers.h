@@ -30,7 +30,7 @@
  */
 
 
-// $Id: headers.h,v 1.28 2008/05/09 00:25:37 jaw Exp $
+// $Id: headers.h,v 1.29 2008/05/12 22:12:56 giri Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -159,9 +159,9 @@ try_again:
       return RRVnoData;
    }
    if (bytes_read != sz) {
-      bperr("%s[%d]:  read wrong number of bytes! %d, not %d\n", 
-            FILE__, __LINE__, bytes_read, sz);
-      bperr("FIXME:  Need better logic to handle incomplete reads\n");
+      //bperr("%s[%d]:  read wrong number of bytes! %d, not %d\n", 
+      //      FILE__, __LINE__, bytes_read, sz);
+      //bperr("FIXME:  Need better logic to handle incomplete reads\n");
       return RRVinsufficientData;
    }
 
@@ -190,8 +190,8 @@ readReturnValue_t P_socketRead(PDSOCKET fd, T &it, ssize_t sz)
    }
 
    if (bytes_read != sz) {
-      bperr("%s[%d]:  read wrong number of bytes!\n", FILE__, __LINE__);
-      bperr("FIXME:  Need better logic to handle incomplete reads\n");
+      //bperr("%s[%d]:  read wrong number of bytes!\n", FILE__, __LINE__);
+      //bperr("FIXME:  Need better logic to handle incomplete reads\n");
       return RRVinsufficientData;
    }
 
