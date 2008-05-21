@@ -1246,7 +1246,9 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
     }
    	obj->addRegion(0, relplts, fbt.size()*sizeof(Elf32_Rel), ".rel.plt", Region::RT_REL, true);
     
-    vector<relocationEntry> newRels = newSecs[0]->getRelocations();
+    vector<relocationEntry> newRels;
+    if(newSecs.size())
+        newRels = newSecs[0]->getRelocations();
     
     Elf32_Rel *rels = (Elf32_Rel *)malloc(sizeof(Elf32_Rel) * (relocation_table.size()+newRels.size()));
     //reconstruct .rel
