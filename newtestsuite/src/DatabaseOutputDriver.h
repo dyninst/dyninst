@@ -20,6 +20,7 @@ class DatabaseOutputDriver : public TestOutputDriver {
 private:
   std::string dblogFilename;
   std::map<std::string, std::string> *attributes;
+  bool cantConnect;
   bool submittedResults;
   test_results_t result;
 

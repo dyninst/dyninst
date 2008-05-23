@@ -272,6 +272,9 @@ void DatabaseOutputDriver::finalizeOutput() {
 
   // 4. Get machine ID
   // FIXME This needs to be platform-independent
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX (255)
+#endif
   char hostname[HOST_NAME_MAX];
   if (gethostname(hostname, HOST_NAME_MAX)) {
     // TODO Handle error
