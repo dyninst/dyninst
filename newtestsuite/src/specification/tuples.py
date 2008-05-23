@@ -96,16 +96,20 @@ def parse_mutators(tuplestring):
 	return map(lambda x: dict(zip(('name','sources','libraries','platform','compiler'), x)), mutator_list)
 
 def parse_mutatees(tuplestring):
+	mutatee_labels = ('name', 'preprocessed_sources', 'raw_sources',
+					  'libraries', 'platform', 'abi', 'compiler',
+					  'optimization', 'groupable')
 	mutatee_list = parse_pllist(tuplestring)
-	return map(lambda x: dict(zip(('name','preprocessed_sources','raw_sources','libraries','platform','abi','compiler','optimization', 'groupable'), x)),
-			   mutatee_list)
+	return map(lambda x: dict(zip(mutatee_labels, x)), mutatee_list)
 
 def parse_tests(tuplestring):
 	test_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(('name','mutator','mutatee','platform','groupable'), x)), test_list)
 
 def parse_compilers(tuplestring):
-	compiler_tuple_labels = ('executable', 'defstring', 'platforms', 'presencevar', 'optimization', 'parameters', 'languages', 'flags', 'abiflags')
+	compiler_tuple_labels = ('executable', 'defstring', 'platforms',
+							 'presencevar', 'optimization', 'parameters',
+							 'languages', 'flags', 'abiflags')
 	compiler_list = parse_pllist(tuplestring)
 	compiler_dict = dict(map(lambda x: (x[0], dict(zip(compiler_tuple_labels,x[1:]))), compiler_list))
 	for c in compiler_dict:
@@ -131,6 +135,7 @@ def parse_rungroups(tuplestring):
 
 # I want this one to return a dictionary mapping the name of an exception type
 # to a list containing the names of its parameters
+# NOTE: This function is not used
 def parse_exception_types(tuplestring):
 	exception_type_list = parse_pllist(tuplestring)
 	exceptions = map(lambda et: [et[0], et[2]], exception_type_list)
@@ -139,6 +144,7 @@ def parse_exception_types(tuplestring):
 # I want this to return a dictionary mapping the name of a file to a dictionary
 # mapping each exception type applied to the file to that exception's
 # parameters
+# NOTE: This function is not used
 def parse_exceptions(tuplestring):
 	exception_list = parse_pllist(tuplestring)
 	# Collect the names of the files with exceptions
