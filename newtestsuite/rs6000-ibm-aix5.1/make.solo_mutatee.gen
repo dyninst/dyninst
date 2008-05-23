@@ -605,69 +605,69 @@ test_fork_9.mutatee_solo_g++_32_max: test_fork_9_mutatee_solo_g++_32_max.o mutat
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_g++_32_none: test_fork_9_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_g++_32_high: test_mem_1_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_1.mutatee_solo_g++_32_high: test_mem_1_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_g++_32_low: test_mem_1_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_1.mutatee_solo_g++_32_low: test_mem_1_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_g++_32_max: test_mem_1_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_1.mutatee_solo_g++_32_max: test_mem_1_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_g++_32_none: test_mem_1_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_1.mutatee_solo_g++_32_none: test_mem_1_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_g++_32_high: test_mem_2_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_2.mutatee_solo_g++_32_high: test_mem_2_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_g++_32_low: test_mem_2_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_2.mutatee_solo_g++_32_low: test_mem_2_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_g++_32_max: test_mem_2_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_2.mutatee_solo_g++_32_max: test_mem_2_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_g++_32_none: test_mem_2_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_2.mutatee_solo_g++_32_none: test_mem_2_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_g++_32_high: test_mem_3_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_3.mutatee_solo_g++_32_high: test_mem_3_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_g++_32_low: test_mem_3_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_3.mutatee_solo_g++_32_low: test_mem_3_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_g++_32_max: test_mem_3_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_3.mutatee_solo_g++_32_max: test_mem_3_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_g++_32_none: test_mem_3_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_3.mutatee_solo_g++_32_none: test_mem_3_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_g++_32_high: test_mem_4_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_4.mutatee_solo_g++_32_high: test_mem_4_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_g++_32_low: test_mem_4_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_4.mutatee_solo_g++_32_low: test_mem_4_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_g++_32_max: test_mem_4_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_4.mutatee_solo_g++_32_max: test_mem_4_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_g++_32_none: test_mem_4_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_4.mutatee_solo_g++_32_none: test_mem_4_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_g++_32_high: test_mem_5_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_5.mutatee_solo_g++_32_high: test_mem_5_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_g++_32_low: test_mem_5_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_5.mutatee_solo_g++_32_low: test_mem_5_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_g++_32_max: test_mem_5_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_5.mutatee_solo_g++_32_max: test_mem_5_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_g++_32_none: test_mem_5_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_5.mutatee_solo_g++_32_none: test_mem_5_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_g++_32_high: test_mem_6_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_6.mutatee_solo_g++_32_high: test_mem_6_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_g++_32_low: test_mem_6_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_6.mutatee_solo_g++_32_low: test_mem_6_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_g++_32_max: test_mem_6_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_6.mutatee_solo_g++_32_max: test_mem_6_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_g++_32_none: test_mem_6_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_6.mutatee_solo_g++_32_none: test_mem_6_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_g++_32_high: test_mem_7_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_7.mutatee_solo_g++_32_high: test_mem_7_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_g++_32_low: test_mem_7_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_7.mutatee_solo_g++_32_low: test_mem_7_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_g++_32_max: test_mem_7_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_7.mutatee_solo_g++_32_max: test_mem_7_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_g++_32_none: test_mem_7_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_7.mutatee_solo_g++_32_none: test_mem_7_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_g++_32_high: test_mem_8_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+test_mem_8.mutatee_solo_g++_32_high: test_mem_8_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_g++_32_low: test_mem_8_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+test_mem_8.mutatee_solo_g++_32_low: test_mem_8_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_g++_32_max: test_mem_8_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+test_mem_8.mutatee_solo_g++_32_max: test_mem_8_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_g++_32_none: test_mem_8_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_gcc_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+test_mem_8.mutatee_solo_g++_32_none: test_mem_8_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_g++_32_high: test_stack_1_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
@@ -1384,69 +1384,69 @@ test_fork_9.mutatee_solo_gcc_32_max: test_fork_9_mutatee_solo_gcc_32_max.o mutat
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_gcc_32_none: test_fork_9_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_gcc_32_high: test_mem_1_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_1.mutatee_solo_gcc_32_high: test_mem_1_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_gcc_32_low: test_mem_1_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_1.mutatee_solo_gcc_32_low: test_mem_1_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_gcc_32_max: test_mem_1_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_1.mutatee_solo_gcc_32_max: test_mem_1_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_1.mutatee_solo_gcc_32_none: test_mem_1_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_1.mutatee_solo_gcc_32_none: test_mem_1_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_gcc_32_high: test_mem_2_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_2.mutatee_solo_gcc_32_high: test_mem_2_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_gcc_32_low: test_mem_2_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_2.mutatee_solo_gcc_32_low: test_mem_2_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_gcc_32_max: test_mem_2_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_2.mutatee_solo_gcc_32_max: test_mem_2_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_2.mutatee_solo_gcc_32_none: test_mem_2_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_2.mutatee_solo_gcc_32_none: test_mem_2_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_gcc_32_high: test_mem_3_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_3.mutatee_solo_gcc_32_high: test_mem_3_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_gcc_32_low: test_mem_3_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_3.mutatee_solo_gcc_32_low: test_mem_3_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_gcc_32_max: test_mem_3_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_3.mutatee_solo_gcc_32_max: test_mem_3_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_3.mutatee_solo_gcc_32_none: test_mem_3_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_3.mutatee_solo_gcc_32_none: test_mem_3_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_gcc_32_high: test_mem_4_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_4.mutatee_solo_gcc_32_high: test_mem_4_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_gcc_32_low: test_mem_4_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_4.mutatee_solo_gcc_32_low: test_mem_4_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_gcc_32_max: test_mem_4_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_4.mutatee_solo_gcc_32_max: test_mem_4_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_4.mutatee_solo_gcc_32_none: test_mem_4_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_4.mutatee_solo_gcc_32_none: test_mem_4_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_gcc_32_high: test_mem_5_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_5.mutatee_solo_gcc_32_high: test_mem_5_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_gcc_32_low: test_mem_5_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_5.mutatee_solo_gcc_32_low: test_mem_5_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_gcc_32_max: test_mem_5_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_5.mutatee_solo_gcc_32_max: test_mem_5_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_5.mutatee_solo_gcc_32_none: test_mem_5_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_5.mutatee_solo_gcc_32_none: test_mem_5_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_gcc_32_high: test_mem_6_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_6.mutatee_solo_gcc_32_high: test_mem_6_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_gcc_32_low: test_mem_6_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_6.mutatee_solo_gcc_32_low: test_mem_6_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_gcc_32_max: test_mem_6_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_6.mutatee_solo_gcc_32_max: test_mem_6_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_6.mutatee_solo_gcc_32_none: test_mem_6_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_6.mutatee_solo_gcc_32_none: test_mem_6_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_gcc_32_high: test_mem_7_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_7.mutatee_solo_gcc_32_high: test_mem_7_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_gcc_32_low: test_mem_7_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_7.mutatee_solo_gcc_32_low: test_mem_7_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_gcc_32_max: test_mem_7_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_7.mutatee_solo_gcc_32_max: test_mem_7_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_7.mutatee_solo_gcc_32_none: test_mem_7_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_7.mutatee_solo_gcc_32_none: test_mem_7_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_gcc_32_high: test_mem_8_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_gcc_32_high.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+test_mem_8.mutatee_solo_gcc_32_high: test_mem_8_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_gcc_32_low: test_mem_8_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_gcc_32_low.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+test_mem_8.mutatee_solo_gcc_32_low: test_mem_8_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_gcc_32_max: test_mem_8_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_gcc_32_max.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+test_mem_8.mutatee_solo_gcc_32_max: test_mem_8_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-test_mem_8.mutatee_solo_gcc_32_none: test_mem_8_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+test_mem_8.mutatee_solo_gcc_32_none: test_mem_8_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_gcc_32_high: test_stack_1_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
@@ -2053,53 +2053,53 @@ test_fork_9.mutatee_solo_xlC_32_low: test_fork_9_mutatee_solo_xlC_32_low.o mutat
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 test_fork_9.mutatee_solo_xlC_32_none: test_fork_9_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_1.mutatee_solo_xlC_32_high: test_mem_1_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_1.mutatee_solo_xlC_32_high: test_mem_1_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_1.mutatee_solo_xlC_32_low: test_mem_1_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_1.mutatee_solo_xlC_32_low: test_mem_1_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_1.mutatee_solo_xlC_32_none: test_mem_1_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_1.mutatee_solo_xlC_32_none: test_mem_1_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_2.mutatee_solo_xlC_32_high: test_mem_2_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_2.mutatee_solo_xlC_32_high: test_mem_2_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_2.mutatee_solo_xlC_32_low: test_mem_2_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_2.mutatee_solo_xlC_32_low: test_mem_2_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_2.mutatee_solo_xlC_32_none: test_mem_2_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_2.mutatee_solo_xlC_32_none: test_mem_2_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_3.mutatee_solo_xlC_32_high: test_mem_3_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_3.mutatee_solo_xlC_32_high: test_mem_3_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_3.mutatee_solo_xlC_32_low: test_mem_3_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_3.mutatee_solo_xlC_32_low: test_mem_3_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_3.mutatee_solo_xlC_32_none: test_mem_3_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_3.mutatee_solo_xlC_32_none: test_mem_3_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_4.mutatee_solo_xlC_32_high: test_mem_4_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_4.mutatee_solo_xlC_32_high: test_mem_4_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_4.mutatee_solo_xlC_32_low: test_mem_4_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_4.mutatee_solo_xlC_32_low: test_mem_4_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_4.mutatee_solo_xlC_32_none: test_mem_4_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_4.mutatee_solo_xlC_32_none: test_mem_4_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_5.mutatee_solo_xlC_32_high: test_mem_5_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_5.mutatee_solo_xlC_32_high: test_mem_5_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_5.mutatee_solo_xlC_32_low: test_mem_5_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_5.mutatee_solo_xlC_32_low: test_mem_5_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_5.mutatee_solo_xlC_32_none: test_mem_5_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_5.mutatee_solo_xlC_32_none: test_mem_5_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_6.mutatee_solo_xlC_32_high: test_mem_6_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_6.mutatee_solo_xlC_32_high: test_mem_6_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_6.mutatee_solo_xlC_32_low: test_mem_6_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_6.mutatee_solo_xlC_32_low: test_mem_6_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_6.mutatee_solo_xlC_32_none: test_mem_6_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_6.mutatee_solo_xlC_32_none: test_mem_6_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_7.mutatee_solo_xlC_32_high: test_mem_7_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_7.mutatee_solo_xlC_32_high: test_mem_7_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_7.mutatee_solo_xlC_32_low: test_mem_7_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_7.mutatee_solo_xlC_32_low: test_mem_7_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_7.mutatee_solo_xlC_32_none: test_mem_7_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_7.mutatee_solo_xlC_32_none: test_mem_7_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_8.mutatee_solo_xlC_32_high: test_mem_8_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
+test_mem_8.mutatee_solo_xlC_32_high: test_mem_8_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_8.mutatee_solo_xlC_32_low: test_mem_8_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
+test_mem_8.mutatee_solo_xlC_32_low: test_mem_8_mutatee_solo_xlC_32_low.o mutatee_util_xlC_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_low.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_8.mutatee_solo_xlC_32_none: test_mem_8_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
+test_mem_8.mutatee_solo_xlC_32_none: test_mem_8_mutatee_solo_xlC_32_none.o mutatee_util_xlC_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlC_32_none.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 test_stack_1.mutatee_solo_xlC_32_high: test_stack_1_mutatee_solo_xlC_32_high.o mutatee_util_xlC_32_high.o mutatee_driver_solo_xlC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
@@ -2638,53 +2638,53 @@ test_fork_9.mutatee_solo_xlc_32_low: test_fork_9_mutatee_solo_xlc_32_low.o mutat
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 test_fork_9.mutatee_solo_xlc_32_none: test_fork_9_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_1.mutatee_solo_xlc_32_high: test_mem_1_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_1.mutatee_solo_xlc_32_high: test_mem_1_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_1.mutatee_solo_xlc_32_low: test_mem_1_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_1.mutatee_solo_xlc_32_low: test_mem_1_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_1.mutatee_solo_xlc_32_none: test_mem_1_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_1.mutatee_solo_xlc_32_none: test_mem_1_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_2.mutatee_solo_xlc_32_high: test_mem_2_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_2.mutatee_solo_xlc_32_high: test_mem_2_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_2.mutatee_solo_xlc_32_low: test_mem_2_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_2.mutatee_solo_xlc_32_low: test_mem_2_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_2.mutatee_solo_xlc_32_none: test_mem_2_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_2.mutatee_solo_xlc_32_none: test_mem_2_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_3.mutatee_solo_xlc_32_high: test_mem_3_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_3.mutatee_solo_xlc_32_high: test_mem_3_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_3.mutatee_solo_xlc_32_low: test_mem_3_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_3.mutatee_solo_xlc_32_low: test_mem_3_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_3.mutatee_solo_xlc_32_none: test_mem_3_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_3.mutatee_solo_xlc_32_none: test_mem_3_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_4.mutatee_solo_xlc_32_high: test_mem_4_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_4.mutatee_solo_xlc_32_high: test_mem_4_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_4.mutatee_solo_xlc_32_low: test_mem_4_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_4.mutatee_solo_xlc_32_low: test_mem_4_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_4.mutatee_solo_xlc_32_none: test_mem_4_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_4.mutatee_solo_xlc_32_none: test_mem_4_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_5.mutatee_solo_xlc_32_high: test_mem_5_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_5.mutatee_solo_xlc_32_high: test_mem_5_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_5.mutatee_solo_xlc_32_low: test_mem_5_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_5.mutatee_solo_xlc_32_low: test_mem_5_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_5.mutatee_solo_xlc_32_none: test_mem_5_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_5.mutatee_solo_xlc_32_none: test_mem_5_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_6.mutatee_solo_xlc_32_high: test_mem_6_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_6.mutatee_solo_xlc_32_high: test_mem_6_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_6.mutatee_solo_xlc_32_low: test_mem_6_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_6.mutatee_solo_xlc_32_low: test_mem_6_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_6.mutatee_solo_xlc_32_none: test_mem_6_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_6.mutatee_solo_xlc_32_none: test_mem_6_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_7.mutatee_solo_xlc_32_high: test_mem_7_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_7.mutatee_solo_xlc_32_high: test_mem_7_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_7.mutatee_solo_xlc_32_low: test_mem_7_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_7.mutatee_solo_xlc_32_low: test_mem_7_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_7.mutatee_solo_xlc_32_none: test_mem_7_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_7.mutatee_solo_xlc_32_none: test_mem_7_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_8.mutatee_solo_xlc_32_high: test_mem_8_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
+test_mem_8.mutatee_solo_xlc_32_high: test_mem_8_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_8.mutatee_solo_xlc_32_low: test_mem_8_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
+test_mem_8.mutatee_solo_xlc_32_low: test_mem_8_mutatee_solo_xlc_32_low.o mutatee_util_xlc_32_low.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_low.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-test_mem_8.mutatee_solo_xlc_32_none: test_mem_8_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_gcc_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
+test_mem_8.mutatee_solo_xlc_32_none: test_mem_8_mutatee_solo_xlc_32_none.o mutatee_util_xlc_32_none.o test6LS-power_ibm_as_32_none.o test_mem_util_xlc_32_none.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 test_stack_1.mutatee_solo_xlc_32_high: test_stack_1_mutatee_solo_xlc_32_high.o mutatee_util_xlc_32_high.o mutatee_driver_solo_xlc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
