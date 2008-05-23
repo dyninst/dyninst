@@ -30,7 +30,7 @@
                   mutatee_abi/1, platform_abi/2,
                   compiler_platform_abi_s/4, test_platform_abi/3,
                   restricted_amd64_abi/1, compiler_presence_def/2,
-				  restricted_abi_for_arch/3]).
+                  restricted_abi_for_arch/3, insane/2]).
 
 %%%%%%%%%%
 %
@@ -561,9 +561,9 @@ test('test1_40', 'test1_40', 'test1_40').
 test_description('test1_40', 'Verify that we can monitor call sites').
 % test1_40 should not run on Windows or IA64 Linux
 test_platform('test1_40', Platform) :-
-	platform(Platform),
-	\+ platform('ia64', 'linux', _, Platform),
-	\+ platform(_, 'windows', _, Platform).
+        platform(Platform),
+        \+ platform('ia64', 'linux', _, Platform),
+        \+ platform(_, 'windows', _, Platform).
 groupable_test('test1_40').
 mutator('test1_40', ['test1_40.C']).
 mutatee('test1_40', ['test1_40_mutatee.c']).
@@ -974,12 +974,12 @@ test_mem_mutatee_aux(P, Aux) :-
 
 % Convenience rule for checking platforms for test_mem_*
 test_mem_platform(Platform) :-
-	platform('sparc', 'solaris', _, Platform);
-	platform('power', 'aix', _, Platform);
-	platform('i386', 'linux', _, Platform);
-	platform('i386', 'windows', _, Platform);
-	platform('ia64', 'linux', _, Platform);
-	platform('x86_64', 'linux', _, Platform).
+        platform('sparc', 'solaris', _, Platform);
+        platform('power', 'aix', _, Platform);
+        platform('i386', 'linux', _, Platform);
+        platform('i386', 'windows', _, Platform);
+        platform('ia64', 'linux', _, Platform);
+        platform('x86_64', 'linux', _, Platform).
 
 % Special flags for asm files on Solaris
 spec_object_file(OFile, 'gcc', ['test6LS-sparc.S'], [], [],
@@ -989,10 +989,10 @@ spec_object_file(OFile, 'gcc', ['test6LS-sparc.S'], [], [],
                    'test6LS-sparc_gcc_32_high', 'test6LS-sparc_gcc_32_max']).
 
 spec_object_file(OFile, 'ibm_as', ['test6LS-power.s'], [], [], []) :-
-	current_platform(P),
-	platform('power', 'aix', _, P),
-	member(OFile, ['test6LS-power_gcc_32_none', 'test6LS-power_gcc_32_low',
-	               'test6LS-power_gcc_32_high', 'test6LS-power_gcc_32_max']).
+        current_platform(P),
+        platform('power', 'aix', _, P),
+        member(OFile, ['test6LS-power_gcc_32_none', 'test6LS-power_gcc_32_low',
+                       'test6LS-power_gcc_32_high', 'test6LS-power_gcc_32_max']).
 
 % test_mem_1, formerly test6_1
 test('test_mem_1', 'test_mem_1', 'test_mem_1').
@@ -1405,7 +1405,7 @@ optimization_for_mutatee('test_thread_7', GNU, Opt) :-
 optimization_for_mutatee('test_thread_7', NonGNU, Opt) :-
     comp_lang(NonGNU, 'c'),
     \+ member(NonGNU, ['gcc', 'g++']),
-    optimization_level(Opt).
+	compiler_opt_trans(NonGNU, Opt, _).
 % Mutatee needs to be linked with libpthread everywhere but on Windows
 mutatee_requires_libs('test_thread_7', Libs) :-
     current_platform(Platform),
@@ -1980,7 +1980,7 @@ mutatee('test_sparc_1', ['test_sparc_1_mutatee.c']).
 compiler_for_mutatee('test_sparc_1', 'gcc').
 optimization_for_mutatee('test_sparc_1', 'gcc', 'none').
 test_platform('test_sparc_1', Platform) :-
-	platform('sparc', _, _, Platform).
+        platform('sparc', _, _, Platform).
 test_runmode('test_sparc_1', 'both').
 test_start_state('test_sparc_1', 'stopped').
 groupable_test('test_sparc_1').
@@ -1992,7 +1992,7 @@ mutatee('test_sparc_2', ['test_sparc_2_mutatee.c']).
 compiler_for_mutatee('test_sparc_2', 'gcc').
 optimization_for_mutatee('test_sparc_2', 'gcc', 'none').
 test_platform('test_sparc_2', Platform) :-
-	platform('sparc', _, _, Platform).
+        platform('sparc', _, _, Platform).
 test_runmode('test_sparc_2', 'both').
 test_start_state('test_sparc_2', 'stopped').
 groupable_test('test_sparc_2').
@@ -2004,7 +2004,7 @@ mutatee('test_sparc_3', ['test_sparc_3_mutatee.c']).
 compiler_for_mutatee('test_sparc_3', 'gcc').
 optimization_for_mutatee('test_sparc_3', 'gcc', 'none').
 test_platform('test_sparc_3', Platform) :-
-	platform('sparc', _, _, Platform).
+        platform('sparc', _, _, Platform).
 test_runmode('test_sparc_3', 'both').
 test_start_state('test_sparc_3', 'stopped').
 groupable_test('test_sparc_3').
@@ -2016,7 +2016,7 @@ mutatee('test_sparc_4', ['test_sparc_4_mutatee.c']).
 compiler_for_mutatee('test_sparc_4', 'gcc').
 optimization_for_mutatee('test_sparc_4', 'gcc', 'none').
 test_platform('test_sparc_4', Platform) :-
-	platform('sparc', _, _, Platform).
+        platform('sparc', _, _, Platform).
 test_runmode('test_sparc_4', 'both').
 test_start_state('test_sparc_4', 'stopped').
 groupable_test('test_sparc_4').
@@ -2078,6 +2078,8 @@ platform(P) :- platform(_, _, _, P).
 
 % Mutatee ABI specifications
 % We're going to try out the new implementation idea here
+% NOTE: The parameter_values / whitelise / blacklist system has not been
+% implemented yet.
 parameter('mutatee_abi').
 parameter_values('mutatee_abi', Values) :-
     findall(V, mutatee_abi(V), Values_t),
@@ -2087,6 +2089,8 @@ mutatee_abi(64).
 
 % Platform ABI support
 % Testing out how this looks with whitelist clauses
+% NOTE: The parameter_values / whitelise / blacklist system has not been
+% implemented yet.
 whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
     platform_abi(Platform, ABI).
 
@@ -2111,9 +2115,10 @@ platform_abi('rs6000-ibm-aix64-5.2', 64).
 % Define restricted_amd64_abi as a convenience clause for
 % restricted_abi_for_arch
 restricted_abi_for_arch(Test, 'x86_64', 64) :-
-	restricted_amd64_abi(Test).
+        restricted_amd64_abi(Test).
 
 % object_suffix/2
+% Specifies the convention used for object files on a platform
 object_suffix(Platform, Suffix) :-
     platform(_, OS, _, Platform),
     (
@@ -2122,6 +2127,7 @@ object_suffix(Platform, Suffix) :-
     ).
 
 % library_prefix/2
+% Specifies the convention used for shared library prefixes on a platform
 library_prefix(Platform, Prefix) :-
     platform(_, OS, _, Platform),
     (
@@ -2130,6 +2136,7 @@ library_prefix(Platform, Prefix) :-
     ).
 
 % library_suffix/2
+% Specifies the convention used for shared library suffixes on a platform
 library_suffix(Platform, Suffix) :-
     platform(_, OS, _, Platform),
     (
@@ -2174,9 +2181,9 @@ aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
     platform(_, OS, _, Platform),
-	\+ member(OS, ['windows']).
+        \+ member(OS, ['windows']).
 aux_compiler_for_platform(Platform, 'power_asm', 'ibm_as') :-
-	platform('power', 'aix', _, Platform).
+        platform('power', 'aix', _, Platform).
 
 % mcomp_plat/2
 % mcomp_plat(?Compiler, ?Platform)
@@ -2210,6 +2217,23 @@ lang_ext('power_asm', '.s'). % On POWER/AIX
 lang_ext('masm_asm', '.asm').
 lang_ext('nasm_asm', '.asm').
 
+% lang_ext sanity checking
+% No platform should have compilers defined for multiple languages that share
+% the same extension.  e.g. POWER/AIX must not have compilers defined for both
+% att_asm and power_asm because they both use the '.s' extension for source
+% files
+insane('Too many compilers on platform P1 for extension P2',
+       [Platform, Extension]) :-
+	current_platform(Platform),
+	compiler_platform(Compiler1, Platform),
+	compiler_platform(Compiler2, Platform),
+	lang_ext(Language1, Extension),
+	lang_ext(Language2, Extension),
+	Language1 \= Language2,
+	comp_lang(Compiler1, Language1),
+	comp_lang(Compiler2, Language2).
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % COMPILER SPECIFICATIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2221,7 +2245,10 @@ comp_lang(Compiler, 'c') :-
     member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC']).
 comp_lang(Compiler, 'c++') :-
     member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC']).
-comp_lang('gcc', 'att_asm').
+comp_lang('gcc', 'att_asm') :-
+	% We don't use gcc for assembly files on AIX
+	current_platform(Platform),
+	\+ platform(_, 'aix', _, Platform).
 comp_lang('masm', 'masm_asm').
 
 % Mutatee Compiler Defns
@@ -2272,7 +2299,10 @@ compiler_define_string('g77', 'gnu_fc').
 % compiler_s/2 translates from the name of a compiler to the executable name
 % HACK I think we're already using the executable names as our atoms
 compiler_s(Comp, Comp) :-
-	\+ member(Comp, ['sun_cc', 'ibm_as']),
+    % The next line contains a list of compilers whose executable names are
+    % different from the name of the compiler that is used in this
+    % specification system.
+    \+ member(Comp, ['sun_cc', 'ibm_as']),
     findall(C, mutatee_comp(C), Me_comp),
     findall(C, mutator_comp(C), Mr_comp),
     findall(C, (member(C, Me_comp); member(C, Mr_comp)), All_comp),
@@ -2285,22 +2315,31 @@ compiler_s('sun_cc', 'cc').
 % FIXME(?) I think the Windows optimization strings should be with cap-O, not
 % zero
 % FIXME I'm also not sure that all these compilers default to no optimization
-% FIXME This is adding -O? optimization flags to any compilers that aren't
-% explicitly listed..
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'CC', 'xlc', 'xlC',
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'xlc', 'xlC',
                   'cxx', 'g77']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
-compiler_opt_trans('sun_cc', 'low', '').
+compiler_opt_trans(SunWorkshop, 'low', '-O') :-
+	member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'CC', 'xlc', 'xlC',
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'xlc', 'xlC',
                   'cxx', 'g77']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
-compiler_opt_trans('sun_cc', 'high', '').
-compiler_opt_trans(Comp, 'max', '-O3') :- Comp == 'gcc'; Comp == 'g++'; Comp == 'cc'; Comp == 'ccx';
-                                          Comp == 'CC'.
+compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
+	member(SunWorkshop, ['sun_cc', 'CC']).
+compiler_opt_trans(Comp, 'max', '-O3') :-
+	member(Comp, ['gcc', 'g++', 'cc', 'cxx']).
+compiler_opt_trans(SunWorkshop, 'max', '-xO5') :-
+	member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
+
+% Ensure that we're only defining translations for compilers that exist
+insane('P1 not defined as a compiler, but has optimization translation defined',
+	   [Compiler]) :-
+	compiler_opt_trans(Compiler, _, _),
+	\+ compiler_platform(Compiler, _).
+
 
 % Translation for parameter flags
 % partial_compile: compile to an object file rather than an executable
@@ -2376,7 +2415,7 @@ comp_lang('ibm_as', 'power_asm').
 compiler_s('ibm_as', 'as').
 compiler_define_string('ibm_as', 'ibm_as').
 compiler_platform('ibm_as', Platform) :-
-	platform('power', 'aix', _, Platform).
+    platform('power', 'aix', _, Platform).
 comp_std_flags_str('ibm_as', '').
 comp_mutatee_flags_str('ibm_as', '').
 mutatee_link_options('ibm_as', '').
@@ -2529,14 +2568,19 @@ mutatee_peers(M, P) :-
 %
 test_platform_abi(Test, Platform, ABI) :-
     test_platform(Test, Platform), platform_abi(Platform, ABI),
-	platform(Arch, OS, _, Platform),
-	(
-		% If restricted_abi_for_arch is specified, follow its restrictions
-		restricted_abi_for_arch(Test, Arch, ABI);
-		% If restricted_abi_for_arch is not specified, there are no
-		% restrictions
-		\+ restricted_abi_for_arch(Test, Arch, _) -> true
-	).
+        platform(Arch, OS, _, Platform),
+        (
+		    % If restricted_abi_for_arch is specified, follow its restrictions
+            restricted_abi_for_arch(Test, Arch, ABI);
+            % If restricted_abi_for_arch is not specified, there are no
+            % restrictions
+            \+ restricted_abi_for_arch(Test, Arch, _) -> true
+        ).
+
+% Sanity checking
+% Define
+% insane(Message) :- invalid condition.
+% to specify that build should fail if invalid condition is true.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SPEC EXCEPTION GLUE

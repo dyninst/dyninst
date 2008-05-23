@@ -1,4 +1,10 @@
+% Dyninst test suite specification compiler: tuple generator
+
 :- include('util.pl').
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% UTILITY FUNCTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % test_init/1
 % test_init(+Platform)
@@ -21,6 +27,10 @@ current_platform(Platform) :-
 % actually goes to the makefile generator: it will need to have the correct
 % strings to be inserted into the makefiles rather than the internal symbols
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% PLATFORM TUPLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % platform_tuple/5
 % Maps a platform name to the filename conventions and auxilliary compilers
 % for that platform
@@ -42,8 +52,15 @@ platform_tuple(Platform, ObjSuffix, LibPrefix, LibSuffix, AuxCompilers,
     findall(A, platform_abi(Platform, A), ABIs_t),
     sort(ABIs_t, ABIs).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% COMPILER TUPLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings,
                ParmStrings, Languages, StdFlags, ABIFlags) :-
+	% The next two lines ensure that we only return compilers that are used to
+    % build at least one mutator or mutatee, and we don't return the same
+    % compiler more than once.
     findall(C, (mutatee_comp(C); mutator_comp(C)), Cs),
     sort(Cs, Cs_q), !,
     member(Name, Cs_q),
@@ -79,6 +96,10 @@ compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings,
     ),
     true.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% LANGUAGE TUPLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Tuples for language specifications.
 % Right now it just maps language names to filename extensions
 language_tuple(Language, Extensions) :-
@@ -86,16 +107,32 @@ language_tuple(Language, Extensions) :-
     findall(E, lang_ext(Language, E), Es),
     sort(Es, Extensions).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MUTATOR TUPLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 mutator_tuple(Name, Sources, Libraries, Platform, Compiler) :-
+	% We don't want to produce duplicates here, so let's get a list of all
+	% the appropriate mutators and limit Name to members of that list
+	findall(M,
+	        (
+				% We're getting a list of all the mutators that are used for
+				% tests that run on this platform
+                test(TestName, M, _),
+				test_platform(TestName, Platform)
+			),
+			Ms),
+	sort(Ms, Ms_uniq), !, % We won't build the list again
+	member(Name, Ms_uniq),
     mutator(Name, Sources),
     mutator_requires_libs(Name, Explicit_libs),
     all_mutators_require_libs(Implicit_libs),
     findall(L, (member(L, Explicit_libs); member(L, Implicit_libs)), All_libs),
     % BUG(?) This doesn't maintain order of libraries, if link order matters..
     sort(All_libs, Libraries),
-    test_platform(Name, Platform),
     mcomp_plat(Compiler, Platform).
 
+% TODO Remove this term; it is not used
 mutator_tuple_s([Name, Sources, Libraries, Platform, Compiler],
                 [Name_s, Sources_s, Libraries_s, Platform_s, Compiler_s]) :-
     mutator_tuple(Name, Sources, Libraries, Platform, Compiler),
@@ -104,6 +141,10 @@ mutator_tuple_s([Name, Sources, Libraries, Platform, Compiler],
     Libraries = Libraries_s,
     Platform = Platform_s,
     compiler_s(Compiler, Compiler_s).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% MUTATEE TUPLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % This clause generates duplicates which are removed by the sort/2 call in
 % write_tuples.
@@ -166,6 +207,10 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
         )
     ).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% TEST AND RUNGROUP TUPLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % For mutatees, I should be using a (mutatee, compiler, optimization) tuple
 % instead of a simple mutatee name
 % test_tuple
@@ -217,18 +262,37 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     Ts_q \= [],
     Tests = Ts_q.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% EXCEPTION TUPLES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Exception tuples of this form are not used yet.  They are an avenue for
+% future development
 exception_tuple(Filename, ExceptionType, ParameterNames, Parameters) :-
     spec_exception(Filename, ExceptionType, Parameters),
     spec_exception_type(ExceptionType, ParameterCount, ParameterNames),
     length(ParameterNames, ParameterCount),
     length(Parameters, ParameterCount).
 
-% write_tuples/1
-% write_tuples(Filename)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% TUPLE OUTPUT
+%%%
+%%% The write_tuples term is what gets called to generate tuples for the
+%%% specification compiler.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% write_tuples/2
+% write_tuples(Filename, Platform)
 % Writes compiler, mutator, mutatee, and test tuple lists for the platform
 % Platform to the file specified in Filename
 write_tuples(Filename, Platform) :-
     nonvar(Filename), nonvar(Platform), % Sanity check
+	% Check insane/2 statements.  If sanity checks fail, abort
+	findall(Insanity, (insane(M, P), Insanity = [M, P]), Insanities),
+	sort(Insanities, Insanities_uniq),
+	\+ length(Insanities_uniq, 0) ->
+	    (write(Insanities_uniq), write('\n'), halt(-1));
+	% Sanity checks passed, so continue with the tuple generation
     open(Filename, write, Stream),
     findall([P, OS, LP, LS, AC, As], platform_tuple(P, OS, LP, LS, AC, As),
             Platforms),
