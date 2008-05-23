@@ -107,7 +107,7 @@ endif
 ### Main target
 ######################################################################
 
-all: testlibs mutators mutatees drivers
+all: testlibs mutators mutatees drivers output_drivers
 
 
 ######################################################################
@@ -283,6 +283,7 @@ clean: clean_solo_mutatees
 	$(RM) *.da *.bb. *.bbg 
 	$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so
 	$(RM) $(MUTATORS_SO)
+	$(RM) $(OUTPUT_DRIVERS)
 	$(RM) *.o
 	$(RM) test11
 	$(RM) imagefile
@@ -347,14 +348,14 @@ endif
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
-	echo "***OBJS_TEMPLATES***"
+#	echo "***OBJS_TEMPLATES***"
 	$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 test_lib_templates.o : ../src/test_lib_templates.C
 	$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
-	echo "***OBJS_LIBTESTSUITE***"
+#	echo "***OBJS_LIBTESTSUITE***"
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
@@ -595,7 +596,7 @@ $(TEST_DEST):
 #######################################################################
 
 $(OBJS_ALL_MUTATORS): %.o : %.C $(DEPENDDIR)/%.dep
-	echo "***OBJS_ALL_MUTATOR***"
+#	echo "***OBJS_ALL_MUTATOR***"
 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 # Generic build rule for generated files.  I'm not real happy with this, but
@@ -663,18 +664,26 @@ test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDD
 ### Output Drivers
 ######################################################################
 
+OUTPUT_DRIVERS =
+
 DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
-	@echo "***Using DatabaseOutputDriver rule***"
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../../../mysql-$(PLATFORM)/include ../src/$*.C
+#	@echo "***Using DatabaseOutputDriver rule***"
+	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I$(LIBMYSQLCLIENT_INC) ../src/$*.C
 
 DatabaseOutputDriver.so: DatabaseOutputDriver.o # $(DEPENDDIR)/DatabaseOutputDriver.dep
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L../../../mysql-$(PLATFORM)/lib -lmysqlclient -lz
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) $(LIBMYSQLCLIENT_LIB)/libmysqlclient.a -lz
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
 endif
 endif
 
+ifdef LIBMYSQLCLIENTDIR
+OUTPUT_DRIVERS += DatabaseOutputDriver.so
+endif
+
+.PHONY: output_drivers
+output_drivers: $(OUTPUT_DRIVERS)
 
 #######################################################################
 ###  Depends
@@ -729,11 +738,10 @@ $(DEPENDDIR)/test_driver_static.dep: test_driver.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) -DSTATIC_TEST_DRIVER $(DEPENDFLAGS) $*.o > $@
 
-# FIXME Change the -I...mysql stuff to something more general
 $(DEPS_MUTATORS): $(DEPENDDIR)/%.dep : %.C
-	@echo "***Using deps_mutators rule***"
+#	@echo "***Using deps_mutators rule***"
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) -I../../../mysql-$(PLATFORM)/include $(DEPENDFLAGS) $*.o > $@
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 $(DEPS_MUTATEES_GCC): $(DEPENDDIR)/test%.mutatee_gcc.dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
