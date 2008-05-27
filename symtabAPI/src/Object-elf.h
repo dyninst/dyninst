@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.18 2008/04/08 22:55:21 giri Exp $
+ * $Id: Object-elf.h,v 1.19 2008/05/27 20:44:40 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -48,7 +48,6 @@
 
 #include "Elf_X.h"
 
-#include <libelf.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -277,6 +276,8 @@ class Object : public AObject {
   Object(){}
   Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
   Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
+  Object(MappedFile *, std::string &member_name, Offset offset,	
+          void (*)(const char *) = log_msg, void *base = NULL, bool alloc_syms = true);
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);

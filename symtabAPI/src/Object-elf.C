@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.44 2008/04/22 04:39:27 jaw Exp $
+ * $Id: Object-elf.C,v 1.45 2008/05/27 20:44:39 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -482,6 +482,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
 	}
 	else if (strcmp(name, DYNSYM_NAME) == 0) {
+        is_dynamic_ = true;
 	    dynsym_scnp = scnp;
 	    dynsym_addr_ = scnp->sh_addr();
 	}
@@ -815,15 +816,16 @@ void Object::load_object(bool alloc_syms)
 
       // find code and data segments....
       find_code_and_data(elfHdr, txtaddr, dataddr);
-      if (!code_ptr_ || !code_len_) {
-         //bpfatal( "no text segment\n");
-         goto cleanup;
+      if(elfHdr.e_type() != ET_REL) {
+          if (!code_ptr_ || !code_len_) {
+              //bpfatal( "no text segment\n");
+              goto cleanup;
+          }
+          if (!data_ptr_ || !data_len_) {
+              //bpfatal( "no data segment\n");
+              goto cleanup;
+          }
       }
-      if (!data_ptr_ || !data_len_) {
-         //bpfatal( "no data segment\n");
-         goto cleanup;
-      }
-
       get_valid_memory_areas(elfHdr);
 
       //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
@@ -2557,6 +2559,56 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), bool alloc_syms)
             FILE__,__LINE__);
       log_elferror(err_func_, "ELF header failed integrity check");
    }
+   if( elfHdr.e_type() == 3 )
+      load_shared_object(alloc_syms);
+   else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
+      is_aout_ = true;
+      load_object(alloc_syms);
+   }    
+   else {
+      log_perror(err_func_,"Invalid filetype in Elf header");
+      return;
+   }
+#if defined(TIMED_PARSE)
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
+#endif
+}
+
+//Object constructor for archive members
+Object::Object(MappedFile *mf_, std::string &member_name, Offset offset,	
+        void (*err_func)(const char *), void *base, bool alloc_syms) :
+   AObject(mf_, err_func), 
+   EEL(false) {
+#if defined(TIMED_PARSE)
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
+#endif
+#if defined(os_solaris)
+   loadNativeDemangler();
+#endif    
+   is_aout_ = false;
+   did_open = false;
+   interpreter_name_ = NULL;
+   isStripped = false;
+    
+   elfHdr = *(((Elf_X *)base)->e_rand(offset));
+   Elf_Arhdr *archdr = elf_getarhdr(elfHdr.e_elfp());
+   assert(member_name == string(archdr->ar_name));
+
+   // ELF header: sanity check
+   //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
+   if (!elfHdr.isValid())  {
+      log_elferror(err_func_, "ELF header");
+      return;
+   }
+   assert(elfHdr.e_type() == ET_REL);
+   
    if( elfHdr.e_type() == 3 )
       load_shared_object(alloc_syms);
    else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {

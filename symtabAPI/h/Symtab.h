@@ -395,11 +395,8 @@ class Symtab : public LookupInterface,
 	static typeCollection *stdTypes;
 	
  protected:
-   Symtab(std::string filename, std::string member_name, Offset offset, bool &err);
-#if 0 
-	Symtab(char *mem_image, size_t size, std::string &member_name, 
-              Offset offset, bool &err);
-#endif
+   Symtab(std::string filename, std::string member_name, Offset offset, bool &err, void *base = NULL);
+   Symtab(char *img, size_t size, std::string member_name, Offset offset, bool &err, void *base = NULL);
 
    /***** Private Member Functions *****/
  private:

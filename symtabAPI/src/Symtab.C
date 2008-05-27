@@ -1201,9 +1201,10 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    defaultNamespacePrefix = "";
 }
 
-#if defined(os_aix)
+// Symtab constructor for archive members
+#if defined(os_aix) || defined(os_linux) || defined(os_solaris)
 Symtab::Symtab(std::string filename, std::string member_name, Offset offset, 
-                       bool &err) :
+                       bool &err, void *base) :
    member_name_(member_name), 
    member_offset_(offset),
    is_a_out(false),
@@ -1214,28 +1215,23 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    type_Error(NULL), 
    type_Untyped(NULL)
 {
-#if defined (os_windows)
-   extern void fixup_filename(std::string &);
-   fixup_filename(filename);
-#endif
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
-   Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror);
+   Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror, base);
    err = extractInfo(linkedFile);
    delete linkedFile;
    defaultNamespacePrefix = "";
 }
 #else
-Symtab::Symtab(std::string, std::string, Offset, bool &)
+Symtab::Symtab(std::string, std::string, Offset, bool &, void *base)
 {
     assert(0);
 }
 #endif
 
-#if 0 
-#if defined(os_aix)
-Symtab::Symtab(char *mem_image, size_t image_size, std::string &member_name,
-                       Offset offset, bool &err) :
+#if defined(os_aix) || defined(os_linux) || defined(os_solaris)
+Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
+                       Offset offset, bool &err, void *base) :
    member_name_(member_name), 
    is_a_out(false), 
    main_call_addr_(0),
@@ -1245,8 +1241,9 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string &member_name,
    type_Error(NULL), 
    type_Untyped(NULL)
 {
-    Object *linkedFile = new Object(mem_image, image_size, member_name, offset, 
-                                                           pd_log_perror);
+    mf = MappedFile::createMappedFile(mem_image, image_size);
+    assert(mf);
+    Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror, base);
     err = extractInfo(linkedFile);
     delete linkedFile;
     defaultNamespacePrefix = "";
@@ -1256,7 +1253,6 @@ Symtab::Symtab(char *, size_t, std::string &, Offset, bool &)
 {
     assert(0);
 }
-#endif
 #endif
 
 bool sort_reg_by_addr(const Region* a, const Region* b)
