@@ -65,19 +65,19 @@ class Archive{
 
 	static SymtabError getLastError();
 	static std::string printError(SymtabError serr);
-	std::string file(); 
 	~Archive();
 
  private:
  	Archive(std::string &filename, bool &err);
-#if 0 
 	Archive(char *mem_image, size_t image_size, bool &err);
-#endif
  
  private:
    MappedFile *mf;
- 	std::string filename_;
 	char *mem_image_;
+    //architecture specific data - 
+        //For ELF the elf pointer for the archive
+        //NONE as of now for xcoff
+    void *basePtr;
 	hash_map <std::string, Symtab *> membersByName;
     hash_map <std::string, Offset> memberToOffsetMapping;
 

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.25 2008/04/07 22:32:51 giri Exp $
+// $Id: Object-xcoff.C,v 1.26 2008/05/27 20:44:45 giri Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -1571,7 +1571,7 @@ Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std:
    parseFileLineInfo(li);
 }
 
-Object::Object(MappedFile *mf_, std::string &member_name, Offset offset, void (*err_func)(const char *)) :
+Object::Object(MappedFile *mf_, std::string &member_name, Offset offset, void (*err_func)(const char *), void *) :
    AObject(mf_, err_func), member_(member_name), offset_(offset)
 {    
    loadNativeDemangler();
