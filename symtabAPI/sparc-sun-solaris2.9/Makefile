@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2008/01/23 20:25:13 giri Exp $
+# $Id: Makefile,v 1.13 2008/05/27 20:44:57 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,6 +17,8 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../src/Object-elf.C \
+			../src/Archive.C \
+			../src/Archive-elf.C \
                 ../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \

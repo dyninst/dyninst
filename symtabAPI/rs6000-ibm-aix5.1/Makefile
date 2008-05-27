@@ -39,6 +39,7 @@ endif
 
 SRCS =		../src/Object-xcoff.C \
 		../src/Archive.C \
+		../src/Archive-xcoff.C \
 		../src/parseStab.C \
 		../src/addrtranslate.C \
 		../src/addrtranslate-aix.C
