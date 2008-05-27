@@ -729,41 +729,50 @@ class Elf_X_Phdr {
 
 // ------------------------------------------------------------------------
 // Class Elf_X simulates the Elf(32|64)_Ehdr structure.
+// Also works for ELF archives. 
 class Elf_X {
   public:
     Elf_X()
-	: elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL) { }
+	: elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), filedes(-1), isArchive(false) { }
 
-    Elf_X(int input, Elf_Cmd cmd)
-	: ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL) {
+    Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL)
+	: ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), filedes(input), isArchive(false) {
 
-	if (elf_version(EV_CURRENT) != EV_NONE) {
-	    elf_errno(); // Reset elf_errno to zero.
-	    elf = elf_begin(input, cmd, NULL);
-        int err;
-	    if ((err = elf_errno()) != 0)
-       	{
-	    	const char *msg = elf_errmsg(err);
-    		/* print msg */
-    		fprintf(stderr, "Error: Unable to open ELF file: %s\n", msg);
-	    }
-	    if (elf) {
-		if (elf_kind(elf) == ELF_K_ELF) {
-		    char *identp = elf_getident(elf, NULL);
-		    is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-		}
+        if (elf_version(EV_CURRENT) != EV_NONE) {
+            elf_errno(); // Reset elf_errno to zero.
+            if(ref)
+                elf = elf_begin(input, cmd, ref->e_elfp());
+            else
+                elf = elf_begin(input, cmd, NULL);
+            int err;
+            if ((err = elf_errno()) != 0)
+            {
+                const char *msg = elf_errmsg(err);
+                /* print msg */
+                fprintf(stderr, "Error: Unable to open ELF file: %s\n", msg);
+            }
+            if (elf) {
+                if (elf_kind(elf) == ELF_K_ELF) {
+                    char *identp = elf_getident(elf, NULL);
+                    is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+                }
+                else if(elf_kind(elf) == ELF_K_AR){
+                    char *identp = elf_getident(elf, NULL);
+                    is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+                    isArchive = true;
+                }
 
-		if (!is64) ehdr32 = elf32_getehdr(elf);
-		else	   ehdr64 = elf64_getehdr(elf);
+                if (!is64) ehdr32 = elf32_getehdr(elf);
+                else	   ehdr64 = elf64_getehdr(elf);
 
-		if (!is64) phdr32 = elf32_getphdr(elf);
-		else	   phdr64 = elf64_getphdr(elf);
-	    }
-	}
+                if (!is64) phdr32 = elf32_getphdr(elf);
+                else	   phdr64 = elf64_getphdr(elf);
+            }
+        }
     }
 
     Elf_X(char *mem_image, size_t mem_size)
-    	: ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL) {
+    	: ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), isArchive(false) {
 
 	if (elf_version(EV_CURRENT) != EV_NONE) {
 	    elf_errno(); // Reset elf_errno to zero.
@@ -825,6 +834,20 @@ class Elf_X {
     unsigned short e_shstrndx() const { return (!is64 ? ehdr32->e_shstrndx
 						      : ehdr64->e_shstrndx); }
 
+    Elf_X *e_next(Elf_X *ref) {
+        if(!isArchive)
+            return NULL;
+        Elf_Cmd cmd = elf_next(ref->e_elfp());
+        return new Elf_X(filedes, cmd, this);
+    }
+
+    Elf_X *e_rand(unsigned offset){
+        if(!isArchive)
+            return NULL;
+        elf_rand(elf, offset);
+        return new Elf_X(filedes, ELF_C_READ, this);
+    }
+
     // Write Interface
     void e_ident(unsigned char *input) { if (!is64) P_memcpy(ehdr32->e_ident, input, EI_NIDENT);
 					 else       P_memcpy(ehdr64->e_ident, input, EI_NIDENT); }
@@ -873,7 +896,9 @@ class Elf_X {
     Elf64_Ehdr *ehdr64;
     Elf32_Phdr *phdr32;
     Elf64_Phdr *phdr64;
+    int filedes;
     bool is64;
+    bool isArchive;
 };
 
 }//namespace SymtabAPI
