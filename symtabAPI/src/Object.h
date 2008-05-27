@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.17 2008/05/12 22:12:52 giri Exp $
+ * $Id: Object.h,v 1.18 2008/05/27 20:44:49 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -91,6 +91,7 @@ public:
     DLLEXPORT Offset           data_len () const;
 
     DLLEXPORT bool 	      is_aout  () const;
+    DLLEXPORT bool        isDynamic() const;
 
     DLLEXPORT unsigned	      no_of_sections () const;
     DLLEXPORT unsigned	      no_of_symbols  ()	const;
@@ -155,6 +156,7 @@ protected:
 //    Offset baseAddress_;
     
     bool is_aout_;
+    bool is_dynamic_;
 
     unsigned no_of_sections_;
     unsigned no_of_symbols_;

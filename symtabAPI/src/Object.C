@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.22 2008/05/12 22:12:51 giri Exp $
+// $Id: Object.C,v 1.23 2008/05/27 20:44:48 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -851,6 +851,11 @@ DLLEXPORT bool AObject::is_aout() const
    return is_aout_;  
 }
 
+DLLEXPORT bool AObject::isDynamic() const 
+{
+   return is_dynamic_;  
+}
+
 DLLEXPORT unsigned AObject::no_of_sections() const 
 { 
    return no_of_sections_; 
@@ -912,7 +917,7 @@ DLLEXPORT AObject::~AObject()
 DLLEXPORT AObject::AObject(MappedFile *mf_ , void (*err_func)(const char *)) 
 : mf(mf_), code_ptr_(0), code_off_(0),
    code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
-   loader_len_(0), deferredParse(false), err_func_(err_func),
+   loader_len_(0), is_dynamic_(false), deferredParse(false), err_func_(err_func),
    addressWidth_nbytes(4) 
 {
 }
@@ -922,7 +927,7 @@ DLLEXPORT AObject::AObject(const AObject &obj)
    code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
    code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
    data_off_(obj.data_off_), data_len_(obj.data_len_), 
-   loader_off_(obj.loader_off_), loader_len_(obj.loader_len_),
+   loader_off_(obj.loader_off_), loader_len_(obj.loader_len_), is_dynamic_(obj.is_dynamic_),
    deferredParse(false), err_func_(obj.err_func_), addressWidth_nbytes(4)
 {
 } 
@@ -944,6 +949,7 @@ DLLEXPORT AObject& AObject::operator=(const AObject &obj)
    err_func_  = obj.err_func_;
    loader_off_ = obj.loader_off_; 
    loader_len_ = obj.loader_len_;
+   is_dynamic_ = obj.is_dynamic_;
    addressWidth_nbytes = obj.addressWidth_nbytes;
    return *this;
 }
