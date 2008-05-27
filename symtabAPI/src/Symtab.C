@@ -1277,7 +1277,7 @@ bool Symtab::extractInfo(Object *linkedFile)
         // for AIX, code_ptr()==NULL is normal behavior
 #if !defined(os_aix)
        if (0 == linkedFile->code_ptr()) {
-          fprintf(stderr, "[%s][%d]WARNING: null code pointer in Symtab, possibly due to a missing .text section.\n",__FILE__,__LINE__);
+          //fprintf(stderr, "[%s][%d]WARNING: null code pointer in Symtab, possibly due to a missing .text section.\n",__FILE__,__LINE__);
           linkedFile->code_ptr_ = (char *) linkedFile->code_off();
        }
        else {

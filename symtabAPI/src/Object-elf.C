@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.45 2008/05/27 20:44:39 giri Exp $
+ * $Id: Object-elf.C,v 1.46 2008/05/27 21:11:11 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -570,7 +570,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
 
   if (!dataddr || !symscnp || !strscnp) {
-    fprintf(stderr, "[%s][%d]WARNING: One or more of text/bss/symbol/string sections not found in ELF binary\n",__FILE__,__LINE__);
+//    fprintf(stderr, "[%s][%d]WARNING: One or more of text/bss/symbol/string sections not found in ELF binary\n",__FILE__,__LINE__);
     log_elferror(err_func_, "no text/bss/symbol/string section");
     //return false;
   }
