@@ -197,10 +197,7 @@ class InstrucIter {
   /** return true iff the address is in the space represented by
    * the InstrucIter
    */
-  bool containsAddress(Address addr) { 
-      return ((addr >= base) && 
-              (addr < (base + range))); 
-  }
+  bool containsAddress(Address addr);
 
   /** method that returns the targets of a multi-branch instruction
    * it assumes the currentAddress of the handle instance points to the

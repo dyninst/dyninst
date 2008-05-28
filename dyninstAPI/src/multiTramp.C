@@ -39,7 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.82 2008/03/12 20:09:19 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -816,6 +815,8 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
 
     // Now that the CFG is right, we get insns
     updateInsnDict();
+
+    child->addOrigRange(this);
 
     // And we should not have been replacing a previous one and had a fork
     // hit...

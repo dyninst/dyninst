@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.717 2008/05/09 00:25:38 jaw Exp $
-
 #include <ctype.h>
 
 #if defined(i386_unknown_solaris2_5)
@@ -216,6 +214,8 @@ bool process::walkStackFromFrame(Frame startFrame,
 {
 #if !defined( arch_x86) && !defined(arch_x86_64)
   Address fpOld   = 0;
+#else
+  Address spOld = 0;
 #endif
   if (!isStopped())
       return false;
@@ -231,6 +231,10 @@ bool process::walkStackFromFrame(Frame startFrame,
     if (fpOld > currentFrame.getFP())
         return false;
     fpOld = currentFrame.getFP();
+#else
+    if (spOld > currentFrame.getSP())
+       return (stackWalk.size() != 0);
+    spOld = currentFrame.getSP();
 #endif
 
     stackWalk.push_back(currentFrame);
@@ -3651,7 +3655,7 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
        return false;
    }
    if (!dyn->handleIfDueToSharedObjectMapping(ev,changed_objs, is_new_object)) {
-       fprintf(stderr, "%s[%d]: change in mapping but no changed objs??\n", FILE__, __LINE__);
+       startup_printf("%s[%d]: change in mapping but no changed objs??\n", FILE__, __LINE__);
        return false;
    }
    // figure out how the list changed and either add or remove shared objects

@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.326 2008/04/25 20:51:56 roundy Exp $
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2078,7 +2076,8 @@ void *image::getPtrToData(Address offset) const {
 // return a pointer to the instruction at address adr
 void *image::getPtrToInstruction(Address offset) const 
 {
-   assert(isValidAddress(offset));
+   if (!isValidAddress(offset))
+      return NULL;
 
    if (isCode(offset)) {
       Region *reg = linkedFile->findEnclosingRegion(offset);

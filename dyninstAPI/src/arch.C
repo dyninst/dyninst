@@ -39,7 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.15 2008/03/12 20:09:03 legendre Exp $
 // Code generation
 
 //////////////////////////
@@ -82,7 +81,8 @@ codeGen::codeGen() :
     t_(NULL),
     addr_((Address)-1),
     ip_(NULL),
-    f_(NULL)
+    f_(NULL),
+    isPadded_(true)
 {}
 
 // size is in bytes
@@ -99,7 +99,8 @@ codeGen::codeGen(unsigned size) :
 	t_(NULL),
     addr_((Address)-1),
     ip_(NULL),
-    f_(NULL)
+    f_(NULL),
+    isPadded_(true)
 
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
@@ -129,12 +130,14 @@ codeGen::codeGen(const codeGen &g) :
 	t_(g.t_),
     addr_(g.addr_),
     ip_(g.ip_),
-    f_(g.f_)
+    f_(g.f_),
+    isPadded_(g.isPadded_)
 {
     if (size_ != 0) {
         assert(allocated_); 
-        buffer_ = (codeBuf_t *) malloc(size_+codeGenPadding);
-        memcpy(buffer_, g.buffer_, size_+codeGenPadding);
+	int bufferSize = size_ + isPadded_ ? codeGenPadding : 0;
+        buffer_ = (codeBuf_t *) malloc(bufferSize);
+        memcpy(buffer_, g.buffer_, bufferSize);
     }
     else
         buffer_ = NULL;
@@ -156,11 +159,16 @@ codeGen &codeGen::operator=(const codeGen &g) {
     allocated_ = g.allocated_;
     thr_ = g.thr_;
     lwp_ = g.lwp_;
+    isPadded_ = g.isPadded_;
+    int bufferSize = size_ + isPadded_ ? codeGenPadding : 0;
+    
 
     if (size_ != 0) {
         assert(allocated_); 
-        buffer_ = (codeBuf_t *) malloc(size_+codeGenPadding);
-        memcpy(buffer_, g.buffer_, size_+codeGenPadding);
+	        buffer_ = (codeBuf_t *) malloc(bufferSize);
+		//allocate(g.size_);
+	
+        memcpy(buffer_, g.buffer_, bufferSize);
     }
     else
         buffer_ = NULL;
@@ -174,7 +182,11 @@ void codeGen::allocate(unsigned size)
       buffer_ = NULL;
    }
    if (buffer_ == NULL)
+   {
       buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
+      isPadded_ = true;
+   }
+   
    size_ = size;
    offset_ = 0;
    allocated_ = true;
@@ -203,6 +215,7 @@ void codeGen::invalidate() {
     size_ = 0;
     offset_ = 0;
     allocated_ = false;
+    isPadded_ = false;
 }
 
 void codeGen::finalize() {
@@ -217,6 +230,7 @@ void codeGen::finalize() {
     codeBuf_t *newbuf = (codeBuf_t *)malloc(used());
     memcpy((void *)newbuf, (void *)buffer_, used());
     size_ = used(); // Don't use offset :D
+    isPadded_ = false;
 
     free(buffer_);
     buffer_ = newbuf;

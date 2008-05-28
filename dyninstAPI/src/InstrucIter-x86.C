@@ -70,13 +70,11 @@
  */
 bool InstrucIter::isALeaveInstruction()
 {
-  assert(getInsnPtr());
   return getInstruction().isLeave();
 }
 
 bool InstrucIter::isAReturnInstruction()
 {
-  assert(getInsnPtr());
   return getInstruction().isReturn();
 }
 
@@ -95,7 +93,6 @@ bool InstrucIter::isACondReturnInstruction()
 
 bool InstrucIter::isAIndirectJumpInstruction()
 {
-  assert(getInsnPtr());
   if((getInstruction().type() & IS_JUMP) && (getInstruction().type() & INDIR))
   {
     /* since there are two is_jump and indirect instructions
@@ -119,7 +116,6 @@ bool InstrucIter::isStackFramePreamble(int & /*unused*/)
 
 bool InstrucIter::isFramePush()
 {
-  assert(getInsnPtr());
   // test for
   // push %ebp (or push %rbp for 64-bit)
   return (getInstruction().size() == 1 && getInstruction().ptr()[0] == 0x55);
@@ -127,7 +123,6 @@ bool InstrucIter::isFramePush()
 
 bool InstrucIter::isFrameSetup()
 {
-  assert(getInsnPtr());
   //test for
   // movl %esp,%ebp
 
@@ -151,7 +146,6 @@ bool InstrucIter::isFrameSetup()
  */ 
 bool InstrucIter::isACondBranchInstruction()
 {
-  assert(getInsnPtr());
   if(getInstruction().type() & IS_JCC)
     return true;
   return false;
@@ -162,7 +156,6 @@ bool InstrucIter::isACondBranchInstruction()
  */
 bool InstrucIter::isAJumpInstruction()
 {
-  assert(getInsnPtr());
   getInstruction().setInstruction( (unsigned char *)instPtr );
   if((getInstruction().type() & IS_JUMP) &&
      !(getInstruction().type() & INDIR) && 
@@ -176,30 +169,25 @@ bool InstrucIter::isAJumpInstruction()
  */
 bool InstrucIter::isACallInstruction()
 {
-  assert(getInsnPtr());
   return getInstruction().isCall();
 }
 
 bool InstrucIter::isADynamicCallInstruction()
 {
-  assert(getInsnPtr());
   return getInstruction().isCall() && getInstruction().isIndir();
 }
 
 bool InstrucIter::isSyscall() {
-    assert(getInsnPtr());
     return getInstruction().isSysCallInsn();
 }
 
 bool InstrucIter::isANopInstruction()
 {
-  assert(getInsnPtr());
   return getInstruction().isNop();
 }
 
 bool InstrucIter::isAnAbortInstruction()
 {
-  assert(getInsnPtr());
   const unsigned char *ptr = getInstruction().op_ptr();
 
   // FIXME this all needs to be more general!
@@ -227,14 +215,12 @@ bool InstrucIter::isDelaySlot()
  */
 Address InstrucIter::getBranchTargetOffset()
 {
-  assert(getInsnPtr());
   // getTarget returns displacement+address parameter
   return getInstruction().getTarget(0);
 }
 
 Address InstrucIter::getBranchTargetAddress(bool *)
 {
-  assert(getInsnPtr());
   return getInstruction().getTarget(current);
 }
 
@@ -244,7 +230,6 @@ void initOpCodeInfo()
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-  assert(getInsnPtr());
   static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
   // TODO 16-bit registers
@@ -598,7 +583,6 @@ Address InstrucIter::peekPrev()
 }
 
 Address InstrucIter::peekNext() {
-  assert(getInsnPtr());
   Address tmp = current;
   tmp += getInstruction().size();
   return tmp;

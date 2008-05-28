@@ -45,6 +45,9 @@
 #define MIN_TRAP_TABLE_SIZE 256
 #define INDEX_INVALID UINT_MAX
 
+#include <vector>
+#include <set>
+
 class AddressSpace;
 class int_variable;
 
@@ -60,6 +63,12 @@ class trampTrapMappings {
  private:
 
    hash_map<Address, tramp_mapping_t> mapping;
+   std::set<tramp_mapping_t *> updated_mappings;
+
+   static void arrange_mapping(tramp_mapping_t &m, bool should_sort,
+                               std::vector<tramp_mapping_t*> &mappings_to_add,
+                               std::vector<tramp_mapping_t*> &mappings_to_update);
+
    bool needs_updating;
    AddressSpace *as;
 

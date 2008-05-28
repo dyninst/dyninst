@@ -40,7 +40,6 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.31 2008/03/12 20:09:04 legendre Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -240,6 +239,7 @@ class codeGen {
     Address addr_;
     instPoint *ip_;
     int_function *f_;
+    bool isPadded_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;

@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.13 2008/04/15 16:43:28 roundy Exp $
-
 #include "dynamiclinking.h"
 #include "process.h"
 #include "signalhandler.h"

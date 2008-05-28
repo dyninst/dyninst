@@ -41,7 +41,6 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.28 2008/03/12 20:09:11 legendre Exp $
  */
 
 #include "common/h/Vector.h"
@@ -256,9 +255,11 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
     pdvector<image_basicBlock *> WL;
     pdvector<image_edge *> sources;
     image_basicBlock *curBlk;
+    int depth = 0;
 
     bool foundMaxSwitch = false;
     bool foundCondBranch = false;
+    Address maxSwitchAddr = 0;
 
     WL.push_back(start);
 
@@ -278,6 +279,7 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
                 parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
                                 *iter);
                 maxSwitch = iter.getInstruction();
+		maxSwitchAddr = *iter;
                 foundMaxSwitch = true;
             }
             if( iter.getInstruction().type() & IS_JCC ) {
@@ -297,6 +299,10 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
             // look further back
             sources.clear();
             curBlk->getSources( sources );
+	    depth++;
+	    // We've seen depth 2 in libc et al
+	    if(depth > 2) return false;
+	    
             for(unsigned i=0;i<sources.size();i++)
             {
                 if(sources[i]->getType() == ET_CALL)

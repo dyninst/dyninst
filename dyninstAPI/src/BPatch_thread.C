@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.175 2008/05/08 21:52:17 legendre Exp $
-
 #define BPATCH_FILE
 
 #include "BPatch_thread.h"
@@ -662,4 +660,9 @@ void BPatch_thread::setDynThread(dyn_thread *thr)
 {
   llthread = thr;
   updated = false;
+}
+
+void BPatch_thread::markVisiblyStopped(bool new_state)
+{
+   proc->isVisiblyStopped = new_state;
 }

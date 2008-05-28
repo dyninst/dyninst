@@ -9,6 +9,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/signalgenerator.h"
+#include "dyninstAPI/h/BPatch_thread.h"
 
 CallbackManager *callback_manager = NULL;
 CallbackManager *getCBManager()
@@ -184,7 +185,9 @@ bool ErrorCallback::operator()(BPatchErrorLevel severity, int number,
 
 bool ForkCallback::execute_real(void) 
 {
+   par->markVisiblyStopped(true);
    cb(par, chld);
+   par->markVisiblyStopped(false);
    return true;
 }
 
@@ -199,7 +202,9 @@ bool ForkCallback::operator()(BPatch_thread *parent, BPatch_thread *child)
 
 bool ExecCallback::execute_real(void) 
 {
+   thread->markVisiblyStopped(true);
    cb(thread);
+   thread->markVisiblyStopped(false);
    return true;
 }
 
@@ -213,6 +218,7 @@ bool ExecCallback::operator()(BPatch_thread *thr)
 
 bool ExitCallback::execute_real(void) 
 {
+   thread->markVisiblyStopped(true);
    cb(thread, type);
    return true;
 }
@@ -259,7 +265,9 @@ bool OneTimeCodeCallback::operator()(BPatch_thread *thr, void *userData, void *r
 
 bool DynLibraryCallback::execute_real(void) 
 {
+   thread->markVisiblyStopped(true);
    cb(thread, mod, load_param);
+   thread->markVisiblyStopped(false);
    return true;
 }
 

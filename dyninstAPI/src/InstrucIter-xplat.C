@@ -68,12 +68,15 @@
 // IA64 has a bundle-oriented version defined in InstrucIter-ia64.C
 
 void InstrucIter::initializeInsn() {
-  if (!instructions_ || !instructions_->isValidAddress(current)) {
-    fprintf(stderr, "Error: addr 0x%lx is not valid!\n",
-	    current);
-    assert(0);
+  if (!instructions_ || !instructions_->isValidAddress(current))
+  {
+    instPtr = NULL;
+    return;
   }
+
   instPtr = instructions_->getPtrToInstruction(current);
+  if (!instPtr)
+     return;
 
   // ARGH 64-bit/32-bit...
 #if defined(arch_x86_64)
@@ -88,33 +91,13 @@ void InstrucIter::initializeInsn() {
   // so we allow it. If the value gets used then choke.
 }
 #endif
-#if 0
-// FIXME: should do an in-order iteration over basic blocks or something
-InstrucIter::InstrucIter(int_function* func) :
-  instructions_(func->proc()),
-  base(func->getAddress()),
-  range(func->getSize_NP()),
-  current(base) {
-  std::transform(func->blocks.begin(), func->blocks.end(), std::back_inserter(subIters), makeIter);
-  currentBlock = subIters.begin();
-}
-
-InstrucIter::InstrucIter(Address addr, int_function* func) :
-  instructions_(func->proc()),
-  base(addr),
-  range(func->getSize_NP()),
-  current(base) {
-  std::transform(func->blocks.begin(), func->blocks.end(), std::back_inserter(subIters), makeIter);
-  currentBlock = subIters.begin();
-  setCurrentAddress(addr);
-}
-#endif
 
 InstrucIter::InstrucIter(bblInstance* b) :
   instructions_(b->proc()),
   base(b->firstInsnAddr()),
   range(b->getSize()),
-  current(base) {
+  current(base)
+{
   assert(current >= base);
   assert(current < base+range);
   initializeInsn();
@@ -123,7 +106,8 @@ InstrucIter::InstrucIter(bblInstance* b) :
 InstrucIter::InstrucIter(image_basicBlock *b) :
   base(b->firstInsnOffset()),
   range(b->getSize()),
-  current(base) {
+  current(base)
+{
   assert(current >= base);
   // The range might be 0.
   if (range) {
@@ -149,7 +133,8 @@ InstrucIter::InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
   instructions_(bpBasicBlock->flowGraph->getAddSpace()->getAS()),
   base(bpBasicBlock->getStartAddress()),
   range(bpBasicBlock->size()),
-  current(base) {
+  current(base)
+{
   assert(current >= base);
   assert(current < base+range);
   initializeInsn();
@@ -159,7 +144,8 @@ InstrucIter::InstrucIter( CONST_EXPORT BPatch_parRegion* bpParRegion) :
   instructions_(bpParRegion->lowlevel_region()->intFunc()->proc()),  
   base(bpParRegion->getStartAddress()),
   range(bpParRegion->size()),
-  current(base) {
+  current(base)
+{
   assert(current >= base);
   assert(current < base+range);
   initializeInsn();
@@ -169,7 +155,8 @@ InstrucIter::InstrucIter( int_basicBlock *ibb) :
   instructions_(ibb->proc()),
   base( ibb->origInstance()->firstInsnAddr()),
   range( ibb->origInstance()->getSize()),
-  current(base) {
+  current(base)
+{
   assert(current >= base);
   assert(current < base+range);
   initializeInsn();
@@ -225,7 +212,8 @@ InstrucIter::InstrucIter (image_func *func) :
   // parsing, so calling getSize is
   // a bad idea as it may
   // trigger... parsing.
-  current(base) {
+  current(base)
+{
   assert(current >= base);
   initializeInsn();
 }
@@ -240,7 +228,8 @@ InstrucIter::InstrucIter(Address current, image_func *func) :
   // parsing, so calling getSize is
   // a bad idea as it may
   // trigger... parsing.
-  current(current) {
+  current(current)
+{
   // Removed assert, functions can have blocks ahead of their entry
   // point, other similar asserts in this file are not problematic
   // assert(current >= base);
@@ -255,7 +244,8 @@ InstrucIter::InstrucIter(Address current, image_parRegion *parR) :
   // parsing, so calling getSize is
   // a bad idea as it may
   // trigger... parsing.
-  current(current) {
+  current(current)
+{
   assert(current >= base);
   initializeInsn();
 }
@@ -353,3 +343,10 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
   return new BPatch_instruction(i, current);
 }
 
+bool InstrucIter::containsAddress(Address addr) { 
+  if ((range == 0) || ((long)range ==-1)) 
+     return true;
+
+   return ((addr >= base) && 
+           (addr < (base + range))); 
+}

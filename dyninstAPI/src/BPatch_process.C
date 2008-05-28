@@ -950,7 +950,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
     pcs.clear();
 
     if (!llproc->walkStacks(stacks)) {
-       fprintf(stderr, "%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
+       inst_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
        return false;
     }
 
@@ -1064,8 +1064,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
 
            point->optimizeBaseTramps(bir->when_[j]);
            if (!point->generateInst()) {
-               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: generate\n",
-                       FILE__, __LINE__);
+               bperr("ERROR: failed to insert instrumentation: generate\n");
                err = true;
                if (atomic && err) break;
            }
@@ -1088,8 +1087,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
            instPoint *point = bppoint->point;
              
            if (!point->installInst()) {
-               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: install\n",
-                      FILE__, __LINE__);
+              bperr("ERROR: failed to insert instrumentation: install\n");
               err = true;
            }
 
@@ -1140,8 +1138,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
            instPoint *point = bppoint->point;
              
           if (!point->linkInst(false)) {
-               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: link\n",
-                       FILE__, __LINE__);
+             bperr("ERROR: failed to insert instrumentation: link\n");
                err = true;
            }
 

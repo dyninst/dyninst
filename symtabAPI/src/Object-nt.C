@@ -29,8 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.27 2008/05/09 00:25:38 jaw Exp $
-
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
@@ -487,7 +485,7 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
 		symLinkage = Symbol::SL_UNKNOWN;
 	}
 	else if ((pSymInfo->Flags == SYMFLAG_EXPORT && 
-	    isText((Offset) pSymInfo->Address - baseAddr)) ||
+	    isText((Offset) pSymInfo->Address - (Offset)mf->base_addr())) ||
 	    !strcmp(pSymInfo->Name, "_loadsnstores"))
 	{
 		symType = Symbol::ST_FUNCTION;
@@ -769,7 +767,7 @@ bool Object::getCatchBlock(ExceptionBlock &b, Offset addr,
    return false; 
 }
 
-bool Object::isText( const Offset& addr ) const 
+bool Object::isText( const Offset addr ) const 
 {
    return( addr >= code_off_ && addr <= code_len_ );
 }

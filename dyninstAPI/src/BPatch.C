@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.186 2008/05/08 21:52:09 legendre Exp $
-
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
@@ -970,8 +968,6 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     BPatch_process *parent = getProcessByPid(parentPid);
     assert(parent);
 
-    parent->isVisiblyStopped = true;
-
     BPatch_process *child = new BPatch_process(childProc);
 
 #if defined(cap_async_events)
@@ -1001,7 +997,6 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
         }
     }
 
-    parent->isVisiblyStopped = false;
     child->isVisiblyStopped = false;
     forkexec_printf("BPatch: finished registering fork, parent %d, child %d\n",
                     parentPid, childPid);
@@ -1022,8 +1017,6 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
     BPatch_process *forking = getProcessByPid(forkingPid);
     assert(forking);
 
-    forking->isVisiblyStopped = true;
-
     signalNotificationFD();
 
     pdvector<CallbackBase *> cbs;
@@ -1036,7 +1029,6 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
         if (cb)
             (*cb)(forking->threads[0], NULL);
     }
-    forking->isVisiblyStopped = false;
 }
 
 
@@ -1115,7 +1107,6 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
 
    if (!process) return;
 
-   process->isVisiblyStopped = true;
    process->terminated = true;
 
 
@@ -1176,7 +1167,6 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
 
    bpprocess->setExitedViaSignal(signalnum);
    bpprocess->setUnreportedTermination(true);
-   bpprocess->isVisiblyStopped = true;
    bpprocess->terminated = true;
 
    signalNotificationFD();

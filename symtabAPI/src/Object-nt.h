@@ -31,8 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.21 2008/04/11 23:30:56 legendre Exp $
-************************************************************************/
+ ************************************************************************/
 
 
 
@@ -175,7 +174,7 @@ class Object : public AObject
 
     DLLEXPORT bool isForwarded( Offset addr );
     DLLEXPORT bool isEEL() const { return false; }
-    DLLEXPORT bool isText( const Offset& addr ) const; 
+    DLLEXPORT bool isText( const Offset addr ) const; 
     DLLEXPORT Offset get_base_addr() const { return (Offset)mf->base_addr();} 
     DLLEXPORT Module* GetCurrentModule( void )				    { return curModule; }
    

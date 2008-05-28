@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.19 2008/04/11 23:30:05 legendre Exp $
-
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "process.h"
@@ -1180,6 +1178,7 @@ void trampTrapMappings::addTrapMapping(Address from, Address to,
    m.mutatee_side = write_to_mutatee;
    mapping[from] = m;
 #if defined(cap_mutatee_traps)
+   updated_mappings.insert(& mapping[from]);
    if (write_to_mutatee && !existing_trap) {
       table_mutatee_size++;
    }
@@ -1248,6 +1247,20 @@ void trampTrapMappings::writeTrampVariable(const int_variable *var,
    assert(result);
 }
                   
+void trampTrapMappings::arrange_mapping(tramp_mapping_t &m, bool should_sort,
+                                        std::vector<tramp_mapping_t*> &mappings_to_add,
+                                        std::vector<tramp_mapping_t*> &mappings_to_update)
+{
+   if (!m.mutatee_side || (m.written && !should_sort))
+      return;
+   m.written = true;
+   if (should_sort || m.cur_index == INDEX_INVALID)
+      mappings_to_add.push_back(&m);
+   else if (m.cur_index != INDEX_INVALID)
+      mappings_to_update.push_back(&m);
+}
+
+
 void trampTrapMappings::flush() {
    if (!needs_updating)
       return;
@@ -1280,19 +1293,31 @@ void trampTrapMappings::flush() {
       table_used = 0; //We're rebuilding the table, nothing's used.
    }
 
+   /**
+    * Fill in the mappings_to_add and mappings_to_update vectors.
+    * As an optimization, we keep a list of the mappings that have
+    * changed in updated_mappings.  If we're not completly regenerating
+    * the table we'll get our trap list out of updated_mappings, 
+    * otherwise we'll get our change list out of the entire hash_map.
+    **/
    std::vector<tramp_mapping_t*> mappings_to_add;
    std::vector<tramp_mapping_t*> mappings_to_update;
+   if (should_sort) {
    hash_map<Address, tramp_mapping_t>::iterator i;
    for (i = mapping.begin(); i != mapping.end(); i++) {
-      tramp_mapping_t &m = (*i).second;
-      if (!m.mutatee_side || (m.written && !should_sort))
-         continue;
-      m.written = true;
-      if (should_sort || m.cur_index == INDEX_INVALID)
-         mappings_to_add.push_back(&m);
-      else if (m.cur_index != INDEX_INVALID)
-         mappings_to_update.push_back(&m);
+         arrange_mapping((*i).second, should_sort, 
+                         mappings_to_add, mappings_to_update);
    }
+   } 
+   else {
+      std::set<tramp_mapping_t *>::iterator i;
+      for (i = updated_mappings.begin(); i != updated_mappings.end(); i++) {
+         arrange_mapping(**i, should_sort, 
+                         mappings_to_add, mappings_to_update);
+      }
+   }
+   updated_mappings.clear();
+
    assert(mappings_to_add.size() + table_used == table_mutatee_size);
 
    for (unsigned k=0; k<mappings_to_add.size(); k++)

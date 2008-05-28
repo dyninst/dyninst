@@ -180,6 +180,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     bool addSharedObject(const char *name, const unsigned long loadaddr)
        { return proc->addSharedObject(name, loadaddr); }
 #endif
+    void markVisiblyStopped(bool new_state);
 
     //  BPatch_thread::getCallStack
     //  Returns a vector of BPatch_frame, representing the current call stack

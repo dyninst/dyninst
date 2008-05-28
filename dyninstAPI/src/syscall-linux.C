@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.19 2008/02/04 22:58:15 legendre Exp $
+// $Id: syscall-linux.C,v 1.20 2008/05/28 17:14:19 legendre Exp $
 
 #define FORK_FUNC "__libc_fork"
 #define EXEC_FUNC "execve"
@@ -69,6 +69,9 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
     // We don't copy the instMappings, but make new copies.
     if (parentSN->preForkInst) {
         preForkInst = new instMapping(parentSN->preForkInst, child);
+    }
+    if (parentSN->postForkInst) {
+        postForkInst = new instMapping(parentSN->postForkInst, child);
     }
     if (parentSN->preExecInst) {
         preExecInst = new instMapping(parentSN->preExecInst, child);

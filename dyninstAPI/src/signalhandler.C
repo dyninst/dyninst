@@ -906,7 +906,7 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
 {
    process *proc = ev.proc;
    if (!proc->handleChangeInSharedObjectMapping(ev)) {
-      fprintf(stderr, "%s[%d]:  setting event to NULL because handleChangeIn.. failed\n",
+      startup_printf("%s[%d]:  setting event to NULL because handleChangeIn.. failed\n",
               FILE__, __LINE__);
      ev.type = evtNullEvent;
      return false;

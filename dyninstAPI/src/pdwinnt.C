@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.184 2008/04/25 20:51:55 roundy Exp $
-
 #include "common/h/std_namesp.h"
 #include <iomanip>
 #include <string>
@@ -279,8 +277,11 @@ bool SignalGenerator::SuspendThreadFromEvent(LPDEBUG_EVENT ev, dyn_lwp *lwp) {
     else if (lwp) {
         hlwp = lwp->get_fd();
     }
+    else if (proc->getRepresentativeLWP()) {
+        hlwp = proc->getRepresentativeLWP()->get_fd();
+    }
     else {
-        hlwp = lwp->proc()->getRepresentativeLWP()->get_fd();
+		return false;
     }
 
     int result = SuspendThread(hlwp);
@@ -366,7 +367,6 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
         process. We just ignore the event here.  */
      ContinueDebugEvent(ev.info.dwProcessId, ev.info.dwThreadId, DBG_CONTINUE);
      ev.type = evtNullEvent;
-     fprintf(stderr, "%s[%d][%s]:  no process yet...\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
      events.push_back(ev);
      return true;
    }
@@ -425,7 +425,6 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
         ret = true;
         break;
      case CREATE_PROCESS_DEBUG_EVENT:
-        //ev.type = evtNullEvent;
         ev.type = evtProcessCreate;
         ret = true;
         break;
@@ -948,7 +947,7 @@ bool SignalGenerator::forkNewProcess()
     PROCESS_INFORMATION procInfo;
     if (CreateProcess(file_.c_str(), (char *)args.c_str(), 
 		      NULL, NULL, TRUE,
-		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE */ | CREATE_SUSPENDED ,
+		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE */ | CREATE_SUSPENDED | DEBUG_ONLY_THIS_PROCESS ,
 		      NULL, dir_ == "" ? NULL : dir_.c_str(), 
 		      &stinfo, &procInfo)) 
     {

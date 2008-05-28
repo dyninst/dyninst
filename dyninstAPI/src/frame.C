@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.22 2007/09/12 20:57:33 bernat Exp $
+// $Id: frame.C,v 1.23 2008/05/28 17:14:09 legendre Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -322,7 +322,7 @@ ostream & operator << ( ostream & s, Frame & f ) {
             s << "[ERROR!]";
             break;
 	}
-	s << " FP: 0x" << std::hex << f.getFP() << " PID: " << std::dec << f.getPID() << " "; 
+	s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getPID() << " "; 
 	if( f.getThread() ) {
    		s << "TID: " << f.getThread()->get_tid() << " ";
    		}
