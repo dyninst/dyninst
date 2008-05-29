@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.46 2008/05/27 21:11:11 giri Exp $
+ * $Id: Object-elf.C,v 1.47 2008/05/29 22:06:56 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1165,6 +1165,11 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
    const char *strs = strdata.get_string();
    for (unsigned i = 0; i < syms.count(); i++) {
       // skip undefined symbols
+      //If it is not a dynamic executable then we need undefined symbols
+      //in symtab section so that we can resolve symbol references. So 
+      //we parse & store undefined symbols only if there is no dynamic
+      //symbol table
+      if (is_dynamic_ && (syms.st_shndx(i) == SHN_UNDEF)) continue;
       if (syms.st_shndx(i) == SHN_UNDEF) continue;
       int etype = syms.ST_TYPE(i);
       int ebinding = syms.ST_BIND(i);
@@ -1176,6 +1181,9 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       unsigned ssize = syms.st_size(i);
       Offset saddr = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
+
+      //Get rid of weak symbols which are undefined 
+      if((slinkage == Symbol::SL_WEAK) && (secNumber == SHN_UNDEF)) continue;
       
       if (stype == Symbol::ST_UNKNOWN) continue;
       if (slinkage == Symbol::SL_UNKNOWN) continue;
