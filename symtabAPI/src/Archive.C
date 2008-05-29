@@ -121,3 +121,17 @@ bool Archive::isMemberInArchive(std::string member_name)
       return true;
    return false;
 }
+
+bool Archive::findMemberWithDefinition(Symtab *&obj, std::string name){
+    vector<Symtab *>members;
+    getAllMembers(members);
+
+    for(unsigned i=0; i<members.size();i++){
+        vector<Symbol *>syms;
+        if(members[i]->findSymbolByType(syms, name, Symbol::ST_UNKNOWN, true)){
+            obj = members[i];
+            return true;
+        }
+    }
+    return false;
+}

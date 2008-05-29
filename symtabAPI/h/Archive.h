@@ -62,6 +62,7 @@ class Archive{
 	bool getMember(Symtab *&img, std::string memberName);
 	bool getAllMembers(std::vector <Symtab *> &members);
 	bool isMemberInArchive(std::string member_name);
+    bool findMemberWithDefinition(Symtab *&obj, std::string name);
 
 	static SymtabError getLastError();
 	static std::string printError(SymtabError serr);
