@@ -271,6 +271,11 @@ class Symtab : public LookupInterface,
 	
 	DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
                                               Symbol::SymbolType sType);
+
+    // Return all undefined symbols in the binary. Currently used for finding
+    // the .o's in a static archive that have definitions of these symbols
+    DLLEXPORT bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
+
 	DLLEXPORT bool getAllModules(std::vector<Module *>&ret);
 
 	DLLEXPORT bool getCodeRegions(std::vector<Region *>&ret);

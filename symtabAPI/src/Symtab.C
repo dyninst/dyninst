@@ -554,7 +554,9 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
         
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
-        if (lookUp->getSec() == NULL && lookUp->isInDynSymtab()) {
+        // We also have undefined symbols for the static binary case.
+        if (lookUp->getSec() == NULL) {
+        //if (lookUp->getSec() == NULL && lookUp->isInDynSymtab()) {
             undefDynSyms[np] = lookUp;
             continue;
         }
@@ -987,6 +989,9 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) {
         newSymVers->push_back((*vers)[0]);
         newSym->setVersions(*newSymVers);
     }
+
+    //Check again. Is this an ok thing to do??
+    undefDynSyms[newSym->getPrettyName()] = newSym;
     return addSymbol(newSym, true);
 }
 
@@ -1672,6 +1677,17 @@ bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
     return false;
 }
 
+bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
+    unsigned size = ret.size();
+    map<string, Symbol *>::iterator it = undefDynSyms.begin();
+    for(;it!=undefDynSyms.end();it++)
+        ret.push_back(it->second);
+    if(ret.size()>size)
+        return true;
+    serr = No_Such_Symbol;
+    return false;
+}
+
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
     if(_mods.size()>0)
@@ -2149,14 +2165,14 @@ bool Symtab::isCode(const Offset where)  const
     while (last >= first) {
         Region *curreg = codeRegions_[(first + last) / 2];
         if (where >= curreg->getRegionAddr()
-            && where < (curreg->getRegionAddr()
+            && where <= (curreg->getRegionAddr()
                         + curreg->getDiskSize())) {
             return true;
         }
         else if (where < curreg->getRegionAddr()) {
             last = ((first + last) / 2) - 1;
         }
-        else if (where >= (curreg->getRegionAddr()
+        else if (where > (curreg->getRegionAddr()
                            + curreg->getMemSize())) {
             first = ((first + last) / 2) + 1;
         }
@@ -2174,7 +2190,7 @@ bool Symtab::isData(const Offset where)  const
     if(!dataRegions_.size())
         return false;
     for(unsigned i=0; i< dataRegions_.size(); i++){
-        if((where>=dataRegions_[i]->getRegionAddr()) && (where < (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
+        if((where>=dataRegions_[i]->getRegionAddr()) && (where <= (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
             return true;
     }
     return false;
