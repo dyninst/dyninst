@@ -62,6 +62,7 @@
 #include "BPatch_addressSpace.h"
 
 #include "BPatch_binaryEdit.h"
+#include "BPatch_image.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
 #include "callbacks.h"
@@ -72,6 +73,9 @@
 
 #include "ast.h"
 
+#include "sys/stat.h"
+
+bool BPatch_binaryEdit::topLevel = true;
 
 /*
  * BPatch_binaryEdit::BPatch_binaryEdit
@@ -117,8 +121,86 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
 
   image = new BPatch_image(this);
 
-    // Nothing else to do...
+  // ---  NEW CODE: OPEN ALL DEPENDENCIES  ---
 
+  BPatch_binaryEdit *depBinEdit;
+  char *libPathStr, *libPath, buffer[512];
+  std::vector<std::string> libPaths;
+  struct stat dummy;
+  Symtab *st;
+
+  // TODO: fix this... it's horribly un-thread-safe
+  bool openRecursively = topLevel;
+  topLevel = false;
+
+  // build list of library paths
+  libPathStr = getenv("LD_LIBRARY_PATH");
+  libPath = strtok(libPathStr, ":");
+  while (libPath != NULL) {
+	  libPaths.push_back(std::string(libPath));
+	  libPath = strtok(NULL, ":");
+  }
+  // TODO: add paths from /etc/ld.so.conf
+  libPaths.push_back("/usr/lib");
+  libPaths.push_back("/lib");
+  
+  // extract list of dependencies
+  Symtab::openFile(st, path);
+  std::vector<std::string> depends = st->getDependencies();
+
+  // for each dependency
+  int count = depends.size();
+  for (int i = 0; i < count; i++) {
+
+	  // find actual shared object file by searching all the lib paths
+	  bool found = false;
+	  for (int j = 0; !found && j < libPaths.size(); j++) {
+		  std::string fullPath = libPaths.at(j) + "/" + depends.at(i);
+
+		  // if we've found the file...
+		  if (stat(fullPath.c_str(), &dummy) == 0) {
+
+			  // get list of subdependencies
+			  Symtab *subst;
+			  Symtab::openFile(subst, fullPath.c_str());
+			  std::vector<std::string> subdepends = subst->getDependencies();
+
+			  // add any new dependencies to the main list
+			  for (int k = 0; k < subdepends.size(); k++) {
+				  bool found = false;
+				  for (int l = 0; !found && l < depends.size(); l++) {
+					  if (depends.at(l).compare(subdepends.at(k))==0) {
+						  found = true;
+					  }
+				  }
+				  if (!found) {
+					  depends.push_back(subdepends.at(k));
+					  count++;
+				  }
+			  }
+
+			  // open dependency and extract image (used for findFunction)
+			  depBinEdit = new BPatch_binaryEdit(fullPath.c_str());
+			  if (!depBinEdit) {
+				  creation_error = true;
+				  return;
+			  }
+			  depImages.push_back(new BPatch_image(depBinEdit));
+
+			  // add to list of dependencies in BinaryEdit object (used
+			  // for code generation)
+			  llBinEdit->addDependentBinEdit(BinaryEdit::openFile(fullPath.c_str()));
+
+			  found = true;
+		  }
+	  }
+	}
+
+	topLevel = true;
+}
+
+BPatch_image * BPatch_binaryEdit::getImageInt() {
+	return image;
 }
 
 void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
@@ -147,6 +229,8 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
    llBinEdit = NULL;
 
    assert(BPatch::bpatch != NULL);
+
+   // TODO: delete depImage objects?
 }
 
 bool BPatch_binaryEdit::writeFileInt(const char * outFile)
@@ -326,3 +410,32 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool atomic, bool *modified)
 {
     return true;
 }
+
+BPatch_Vector<BPatch_function*> *BPatch_binaryEdit::findFunctionInt(const char *name, 
+      BPatch_Vector<BPatch_function*> &funcs)
+{
+	image->findFunction(name, funcs, false);
+
+	// if we can't find it in this image, search all the dependencies
+	
+	// TODO: fix this so that we can get rid of depImages
+	//pdvector<BinaryEdit *>* depEdits = llBinEdit->getDependentBinEdits();
+	//pdvector<int_function *> foundIntFuncs;
+	//for (int i=0; funcs.size()==0 && i<depEdits->size(); i++) {
+		//(*depEdits)[i]->findFuncsByAll(name, foundIntFuncs);
+		//for (int j=0; j<foundIntFuncs.size(); j++) {
+			//if (foundIntFuncs[j]->isInstrumentable()) {
+				//BPatch_module *module = new BPatch_module(this, foundIntFuncs[j]->mod(), getImage());
+				//BPatch_function *func = findOrCreateBPFunc(foundIntFuncs[j], module);
+				//funcs.push_back(func);
+			//}
+		//}
+	//}
+		
+	for (int i=0; funcs.size()==0 && i<depImages.size(); i++) {
+		depImages.at(i)->findFunction(name, funcs, false);
+	}
+
+	return &funcs;
+}
+

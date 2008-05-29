@@ -91,7 +91,9 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     friend class AstMemoryNode;
 
     private:
+	static bool topLevel;
     BinaryEdit *llBinEdit;
+	std::vector<BPatch_image*> depImages;
     BPatch_binaryEdit(const char *path);
     bool creation_error;
 
@@ -112,6 +114,9 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     //  Destructor
     API_EXPORT_DTOR(_dtor, (),
     ~,BPatch_binaryEdit,());
+
+    API_EXPORT(Int, (),
+    BPatch_image *,getImage,());
 
     //  BPatch_binaryEdit::beginInsertionSet()
     //
@@ -137,6 +142,10 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
 
     API_EXPORT(Int, (atomic, modified),
                bool, finalizeInsertionSet, (bool atomic, bool *modified = NULL));
+
+    API_EXPORT(Int, (name, funcs),
+               BPatch_Vector<BPatch_function*> *, findFunction, 
+			   (const char *name, BPatch_Vector<BPatch_function*> &funcs));
                                        
 };    
 

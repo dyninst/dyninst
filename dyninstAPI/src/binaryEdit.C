@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.16 2008/04/07 22:32:40 giri Exp $
+// $Id: binaryEdit.C,v 1.17 2008/05/29 18:26:11 mlam Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -224,6 +224,8 @@ void BinaryEdit::deleteBinaryEdit() {
     deleteAddressSpace();
     highWaterMark_ = 0;
     lowWaterMark_ = 0;
+
+   // TODO: delete dependent binary edit and relocation objects?
 }
 
 BinaryEdit *BinaryEdit::openFile(const std::string &file) {
@@ -381,6 +383,18 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
     symObj->findRegion(newSec, ".dyninstInst");
     assert(newSec);
 
+	// Add dynamic symbol relocations
+	Symbol *referring, *newSymbol;
+	for (int i=0; i < dependentRelocations.size(); i++) {
+		Address to = dependentRelocations[i]->getAddress();
+		referring = dependentRelocations[i]->getReferring();
+		newSymbol = new Symbol(
+				referring->getName(), "DEFAULT_MODULE",
+				Symbol::ST_FUNCTION, Symbol::SL_UNKNOWN,
+				to, newSec, 8);
+		symObj->addSymbol(newSymbol, referring);
+		newSymbol->getSec()->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
+	}
 
     // Put in symbol table entries for known code
     pdvector<codeRange *> newCode;
@@ -753,5 +767,29 @@ bool BinaryEdit::initialize() {
     fprintf(stderr, "Tramp guard created at address 0x%lx\n", trampGuardBase_);
 
     return true;
+}
+
+void BinaryEdit::addDependentBinEdit(BinaryEdit *newBinEdit) {
+	dependentBinEdits.push_back(newBinEdit);
+}
+
+pdvector<BinaryEdit *>* BinaryEdit::getDependentBinEdits() {
+	return &dependentBinEdits;
+}
+
+void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
+	depRelocation *reloc = new depRelocation(to, referring);
+	dependentRelocations.push_back(reloc);
+}
+
+Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
+	Address retAddr = NULL;
+	for (int i=0; i < dependentRelocations.size(); i++) {
+		if (dependentRelocations[i]->getReferring() == referring) {
+			retAddr = dependentRelocations[i]->getAddress();
+			break;
+		}
+	}
+	return retAddr;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.9 2008/02/23 02:09:05 jaw Exp $
+// $Id: binaryEdit.h,v 1.10 2008/05/29 18:26:11 mlam Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -55,6 +55,7 @@
 class fileDescriptor;
 class int_function;
 class memoryTracker;
+class depRelocation;
 
 class BinaryEdit : public AddressSpace {
  public:
@@ -134,6 +135,14 @@ class BinaryEdit : public AddressSpace {
     
     virtual bool canUseTraps() { return false; }
 
+	void addDependentBinEdit(BinaryEdit *newBinEdit);
+
+	pdvector<BinaryEdit *>* getDependentBinEdits();
+
+	void addDependentRelocation(Address to, Symbol *referring);
+
+	Address getDependentRelocationAddr(Symbol *referring);
+
  private:
 
     Address highWaterMark_;
@@ -150,6 +159,21 @@ class BinaryEdit : public AddressSpace {
 
     codeRangeTree memoryTracking_;
 
+	pdvector<BinaryEdit *> dependentBinEdits;
+
+	std::vector<depRelocation *> dependentRelocations;
+
+};
+
+class depRelocation {
+	public:
+		depRelocation(Address a, Symbol *r) : to(a), referring(r) { }
+		Address getAddress() const { return to; }
+		Symbol *getReferring() const { return referring; }
+
+	private:
+		Address to;
+		Symbol *referring;
 };
 
 class memoryTracker : public codeRange {
