@@ -831,37 +831,37 @@ test_thread_8.mutatee_solo_g++_32_none: test_thread_8_mutatee_solo_g++_32_none.o
 
 # Generic rules for g++'s mutatees and varying optimization levels
 %_mutatee_solo_g++_32_high.o: %_solo_me.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O2 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 %_g++_32_high.o: ../src/%.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O2 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 %_mutatee_solo_g++_32_high.o: %_solo_me.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O2 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 %_g++_32_high.o: ../src/%.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O2 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 %_mutatee_solo_g++_32_max.o: %_solo_me.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O3 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 %_g++_32_max.o: ../src/%.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O3 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 %_mutatee_solo_g++_32_max.o: %_solo_me.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O3 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 %_g++_32_max.o: ../src/%.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O3 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 %_mutatee_solo_g++_32_none.o: %_solo_me.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src   -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -o $@ $<
 %_g++_32_none.o: ../src/%.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src   -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -o $@ $<
 %_mutatee_solo_g++_32_none.o: %_solo_me.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src   -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -o $@ $<
 %_g++_32_none.o: ../src/%.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src   -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -o $@ $<
 %_mutatee_solo_g++_32_low.o: %_solo_me.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O1 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 %_g++_32_low.o: ../src/%.c
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O1 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 %_mutatee_solo_g++_32_low.o: %_solo_me.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O1 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 %_g++_32_low.o: ../src/%.C
-	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -O1 -o $@ -c $<
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 
 # Rules for building the driver and utility objects
 mutatee_driver_solo_g++_32.o: ../src/mutatee_driver.c
@@ -1670,21 +1670,53 @@ test1_36F_mutatee_solo_gcc_none.o: test1_36F_solo_me.c
 
 # Generic rules for gcc's mutatees and varying optimization levels
 %_mutatee_solo_gcc_32_high.o: %_solo_me.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -O2 -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 %_gcc_32_high.o: ../src/%.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -O2 -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
+%_mutatee_solo_gcc_32_high.o: %_solo_me.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
+%_gcc_32_high.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
+%_mutatee_solo_gcc_32_high.o: %_solo_me.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
+%_gcc_32_high.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 %_mutatee_solo_gcc_32_max.o: %_solo_me.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -O3 -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 %_gcc_32_max.o: ../src/%.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -O3 -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
+%_mutatee_solo_gcc_32_max.o: %_solo_me.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
+%_gcc_32_max.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
+%_mutatee_solo_gcc_32_max.o: %_solo_me.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
+%_gcc_32_max.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 %_mutatee_solo_gcc_32_none.o: %_solo_me.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src   -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
 %_gcc_32_none.o: ../src/%.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src   -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
+%_mutatee_solo_gcc_32_none.o: %_solo_me.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
+%_gcc_32_none.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
+%_mutatee_solo_gcc_32_none.o: %_solo_me.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
+%_gcc_32_none.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
 %_mutatee_solo_gcc_32_low.o: %_solo_me.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -O1 -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 %_gcc_32_low.o: ../src/%.c
-	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -O1 -o $@ -c $<
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
+%_mutatee_solo_gcc_32_low.o: %_solo_me.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
+%_gcc_32_low.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
+%_mutatee_solo_gcc_32_low.o: %_solo_me.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
+%_gcc_32_low.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 
 # Rules for building the driver and utility objects
 mutatee_driver_solo_gcc_32.o: ../src/mutatee_driver.c
@@ -1697,6 +1729,7 @@ mutatee_util_gcc_32.o: ../src/mutatee_util.c
 ######################################################################
 
 ifdef PGI
+# We only want to build these targets if the compiler exists
 SOLO_MUTATEES_native_cxx = test1_1.mutatee_solo_pgCC_32_high test1_1.mutatee_solo_pgCC_32_low test1_1.mutatee_solo_pgCC_32_none test1_10.mutatee_solo_pgCC_32_high test1_10.mutatee_solo_pgCC_32_low test1_10.mutatee_solo_pgCC_32_none test1_11.mutatee_solo_pgCC_32_high test1_11.mutatee_solo_pgCC_32_low test1_11.mutatee_solo_pgCC_32_none test1_12.mutatee_solo_pgCC_32_high test1_12.mutatee_solo_pgCC_32_low test1_12.mutatee_solo_pgCC_32_none test1_13.mutatee_solo_pgCC_32_high test1_13.mutatee_solo_pgCC_32_low test1_13.mutatee_solo_pgCC_32_none test1_14.mutatee_solo_pgCC_32_high test1_14.mutatee_solo_pgCC_32_low test1_14.mutatee_solo_pgCC_32_none test1_15.mutatee_solo_pgCC_32_high test1_15.mutatee_solo_pgCC_32_low test1_15.mutatee_solo_pgCC_32_none test1_16.mutatee_solo_pgCC_32_high test1_16.mutatee_solo_pgCC_32_low test1_16.mutatee_solo_pgCC_32_none test1_17.mutatee_solo_pgCC_32_high test1_17.mutatee_solo_pgCC_32_low test1_17.mutatee_solo_pgCC_32_none test1_18.mutatee_solo_pgCC_32_high test1_18.mutatee_solo_pgCC_32_low test1_18.mutatee_solo_pgCC_32_none test1_19.mutatee_solo_pgCC_32_high test1_19.mutatee_solo_pgCC_32_low test1_19.mutatee_solo_pgCC_32_none test1_2.mutatee_solo_pgCC_32_high test1_2.mutatee_solo_pgCC_32_low test1_2.mutatee_solo_pgCC_32_none test1_20.mutatee_solo_pgCC_32_high test1_20.mutatee_solo_pgCC_32_low test1_20.mutatee_solo_pgCC_32_none test1_21.mutatee_solo_pgCC_32_high test1_21.mutatee_solo_pgCC_32_low test1_21.mutatee_solo_pgCC_32_none test1_22.mutatee_solo_pgCC_32_high test1_22.mutatee_solo_pgCC_32_low test1_22.mutatee_solo_pgCC_32_none test1_23.mutatee_solo_pgCC_32_high test1_23.mutatee_solo_pgCC_32_low test1_23.mutatee_solo_pgCC_32_none test1_24.mutatee_solo_pgCC_32_high test1_24.mutatee_solo_pgCC_32_low test1_24.mutatee_solo_pgCC_32_none test1_25.mutatee_solo_pgCC_32_high test1_25.mutatee_solo_pgCC_32_low test1_25.mutatee_solo_pgCC_32_none test1_26.mutatee_solo_pgCC_32_high test1_26.mutatee_solo_pgCC_32_low test1_26.mutatee_solo_pgCC_32_none test1_27.mutatee_solo_pgCC_32_high test1_27.mutatee_solo_pgCC_32_low test1_27.mutatee_solo_pgCC_32_none test1_28.mutatee_solo_pgCC_32_high test1_28.mutatee_solo_pgCC_32_low test1_28.mutatee_solo_pgCC_32_none test1_29.mutatee_solo_pgCC_32_high test1_29.mutatee_solo_pgCC_32_low test1_29.mutatee_solo_pgCC_32_none test1_3.mutatee_solo_pgCC_32_high test1_3.mutatee_solo_pgCC_32_low test1_3.mutatee_solo_pgCC_32_none test1_30.mutatee_solo_pgCC_32_high test1_30.mutatee_solo_pgCC_32_low test1_30.mutatee_solo_pgCC_32_none test1_31.mutatee_solo_pgCC_32_high test1_31.mutatee_solo_pgCC_32_low test1_31.mutatee_solo_pgCC_32_none test1_32.mutatee_solo_pgCC_32_high test1_32.mutatee_solo_pgCC_32_low test1_32.mutatee_solo_pgCC_32_none test1_33.mutatee_solo_pgCC_32_high test1_33.mutatee_solo_pgCC_32_low test1_33.mutatee_solo_pgCC_32_none test1_34.mutatee_solo_pgCC_32_high test1_34.mutatee_solo_pgCC_32_low test1_34.mutatee_solo_pgCC_32_none test1_35.mutatee_solo_pgCC_32_high test1_35.mutatee_solo_pgCC_32_low test1_35.mutatee_solo_pgCC_32_none test1_36.mutatee_solo_pgCC_32_high test1_36.mutatee_solo_pgCC_32_low test1_36.mutatee_solo_pgCC_32_none test1_37.mutatee_solo_pgCC_32_high test1_37.mutatee_solo_pgCC_32_low test1_37.mutatee_solo_pgCC_32_none test1_38.mutatee_solo_pgCC_32_high test1_38.mutatee_solo_pgCC_32_low test1_38.mutatee_solo_pgCC_32_none test1_39.mutatee_solo_pgCC_32_high test1_39.mutatee_solo_pgCC_32_low test1_39.mutatee_solo_pgCC_32_none test1_4.mutatee_solo_pgCC_32_high test1_4.mutatee_solo_pgCC_32_low test1_4.mutatee_solo_pgCC_32_none test1_40.mutatee_solo_pgCC_32_high test1_40.mutatee_solo_pgCC_32_low test1_40.mutatee_solo_pgCC_32_none test1_41.mutatee_solo_pgCC_32_high test1_41.mutatee_solo_pgCC_32_low test1_41.mutatee_solo_pgCC_32_none test1_5.mutatee_solo_pgCC_32_high test1_5.mutatee_solo_pgCC_32_low test1_5.mutatee_solo_pgCC_32_none test1_6.mutatee_solo_pgCC_32_high test1_6.mutatee_solo_pgCC_32_low test1_6.mutatee_solo_pgCC_32_none test1_7.mutatee_solo_pgCC_32_high test1_7.mutatee_solo_pgCC_32_low test1_7.mutatee_solo_pgCC_32_none test1_8.mutatee_solo_pgCC_32_high test1_8.mutatee_solo_pgCC_32_low test1_8.mutatee_solo_pgCC_32_none test1_9.mutatee_solo_pgCC_32_high test1_9.mutatee_solo_pgCC_32_low test1_9.mutatee_solo_pgCC_32_none test2_10.mutatee_solo_pgCC_32_high test2_10.mutatee_solo_pgCC_32_low test2_10.mutatee_solo_pgCC_32_none test2_11.mutatee_solo_pgCC_32_high test2_11.mutatee_solo_pgCC_32_low test2_11.mutatee_solo_pgCC_32_none test2_12.mutatee_solo_pgCC_32_high test2_12.mutatee_solo_pgCC_32_low test2_12.mutatee_solo_pgCC_32_none test2_13.mutatee_solo_pgCC_32_high test2_13.mutatee_solo_pgCC_32_low test2_13.mutatee_solo_pgCC_32_none test2_14.mutatee_solo_pgCC_32_high test2_14.mutatee_solo_pgCC_32_low test2_14.mutatee_solo_pgCC_32_none test2_5.mutatee_solo_pgCC_32_high test2_5.mutatee_solo_pgCC_32_low test2_5.mutatee_solo_pgCC_32_none test2_6.mutatee_solo_pgCC_32_high test2_6.mutatee_solo_pgCC_32_low test2_6.mutatee_solo_pgCC_32_none test2_7.mutatee_solo_pgCC_32_high test2_7.mutatee_solo_pgCC_32_low test2_7.mutatee_solo_pgCC_32_none test2_8.mutatee_solo_pgCC_32_high test2_8.mutatee_solo_pgCC_32_low test2_8.mutatee_solo_pgCC_32_none test3_1.mutatee_solo_pgCC_32_high test3_1.mutatee_solo_pgCC_32_low test3_1.mutatee_solo_pgCC_32_none test3_2.mutatee_solo_pgCC_32_high test3_2.mutatee_solo_pgCC_32_low test3_2.mutatee_solo_pgCC_32_none test3_3.mutatee_solo_pgCC_32_high test3_3.mutatee_solo_pgCC_32_low test3_3.mutatee_solo_pgCC_32_none test3_4.mutatee_solo_pgCC_32_high test3_4.mutatee_solo_pgCC_32_low test3_4.mutatee_solo_pgCC_32_none test3_5.mutatee_solo_pgCC_32_high test3_5.mutatee_solo_pgCC_32_low test3_5.mutatee_solo_pgCC_32_none test3_6.mutatee_solo_pgCC_32_high test3_6.mutatee_solo_pgCC_32_low test3_6.mutatee_solo_pgCC_32_none test3_7.mutatee_solo_pgCC_32_high test3_7.mutatee_solo_pgCC_32_low test3_7.mutatee_solo_pgCC_32_none test4_1.mutatee_solo_pgCC_32_high test4_1.mutatee_solo_pgCC_32_low test4_1.mutatee_solo_pgCC_32_none test4_2.mutatee_solo_pgCC_32_high test4_2.mutatee_solo_pgCC_32_low test4_2.mutatee_solo_pgCC_32_none test4_3.mutatee_solo_pgCC_32_high test4_3.mutatee_solo_pgCC_32_low test4_3.mutatee_solo_pgCC_32_none test4_3b.mutatee_solo_pgCC_32_high test4_3b.mutatee_solo_pgCC_32_low test4_3b.mutatee_solo_pgCC_32_none test4_4.mutatee_solo_pgCC_32_high test4_4.mutatee_solo_pgCC_32_low test4_4.mutatee_solo_pgCC_32_none test4_4b.mutatee_solo_pgCC_32_high test4_4b.mutatee_solo_pgCC_32_low test4_4b.mutatee_solo_pgCC_32_none test5_1.mutatee_solo_pgCC_32_high test5_1.mutatee_solo_pgCC_32_low test5_1.mutatee_solo_pgCC_32_none test5_2.mutatee_solo_pgCC_32_high test5_2.mutatee_solo_pgCC_32_low test5_2.mutatee_solo_pgCC_32_none test5_3.mutatee_solo_pgCC_32_high test5_3.mutatee_solo_pgCC_32_low test5_3.mutatee_solo_pgCC_32_none test5_4.mutatee_solo_pgCC_32_high test5_4.mutatee_solo_pgCC_32_low test5_4.mutatee_solo_pgCC_32_none test5_5.mutatee_solo_pgCC_32_high test5_5.mutatee_solo_pgCC_32_low test5_5.mutatee_solo_pgCC_32_none test5_6.mutatee_solo_pgCC_32_high test5_6.mutatee_solo_pgCC_32_low test5_6.mutatee_solo_pgCC_32_none test5_7.mutatee_solo_pgCC_32_high test5_7.mutatee_solo_pgCC_32_low test5_7.mutatee_solo_pgCC_32_none test5_8.mutatee_solo_pgCC_32_high test5_8.mutatee_solo_pgCC_32_low test5_8.mutatee_solo_pgCC_32_none test5_9.mutatee_solo_pgCC_32_high test5_9.mutatee_solo_pgCC_32_low test5_9.mutatee_solo_pgCC_32_none test_callback_1.mutatee_solo_pgCC_32_high test_callback_1.mutatee_solo_pgCC_32_low test_callback_1.mutatee_solo_pgCC_32_none test_callback_2.mutatee_solo_pgCC_32_high test_callback_2.mutatee_solo_pgCC_32_low test_callback_2.mutatee_solo_pgCC_32_none test_fork_10.mutatee_solo_pgCC_32_high test_fork_10.mutatee_solo_pgCC_32_low test_fork_10.mutatee_solo_pgCC_32_none test_fork_11.mutatee_solo_pgCC_32_high test_fork_11.mutatee_solo_pgCC_32_low test_fork_11.mutatee_solo_pgCC_32_none test_fork_12.mutatee_solo_pgCC_32_high test_fork_12.mutatee_solo_pgCC_32_low test_fork_12.mutatee_solo_pgCC_32_none test_fork_13.mutatee_solo_pgCC_32_high test_fork_13.mutatee_solo_pgCC_32_low test_fork_13.mutatee_solo_pgCC_32_none test_fork_5.mutatee_solo_pgCC_32_high test_fork_5.mutatee_solo_pgCC_32_low test_fork_5.mutatee_solo_pgCC_32_none test_fork_6.mutatee_solo_pgCC_32_high test_fork_6.mutatee_solo_pgCC_32_low test_fork_6.mutatee_solo_pgCC_32_none test_fork_7.mutatee_solo_pgCC_32_high test_fork_7.mutatee_solo_pgCC_32_low test_fork_7.mutatee_solo_pgCC_32_none test_fork_8.mutatee_solo_pgCC_32_high test_fork_8.mutatee_solo_pgCC_32_low test_fork_8.mutatee_solo_pgCC_32_none test_fork_9.mutatee_solo_pgCC_32_high test_fork_9.mutatee_solo_pgCC_32_low test_fork_9.mutatee_solo_pgCC_32_none test_mem_1.mutatee_solo_pgCC_32_high test_mem_1.mutatee_solo_pgCC_32_low test_mem_1.mutatee_solo_pgCC_32_none test_mem_2.mutatee_solo_pgCC_32_high test_mem_2.mutatee_solo_pgCC_32_low test_mem_2.mutatee_solo_pgCC_32_none test_mem_3.mutatee_solo_pgCC_32_high test_mem_3.mutatee_solo_pgCC_32_low test_mem_3.mutatee_solo_pgCC_32_none test_mem_4.mutatee_solo_pgCC_32_high test_mem_4.mutatee_solo_pgCC_32_low test_mem_4.mutatee_solo_pgCC_32_none test_mem_5.mutatee_solo_pgCC_32_high test_mem_5.mutatee_solo_pgCC_32_low test_mem_5.mutatee_solo_pgCC_32_none test_mem_6.mutatee_solo_pgCC_32_high test_mem_6.mutatee_solo_pgCC_32_low test_mem_6.mutatee_solo_pgCC_32_none test_mem_7.mutatee_solo_pgCC_32_high test_mem_7.mutatee_solo_pgCC_32_low test_mem_7.mutatee_solo_pgCC_32_none test_mem_8.mutatee_solo_pgCC_32_high test_mem_8.mutatee_solo_pgCC_32_low test_mem_8.mutatee_solo_pgCC_32_none test_stack_1.mutatee_solo_pgCC_32_high test_stack_1.mutatee_solo_pgCC_32_low test_stack_1.mutatee_solo_pgCC_32_none test_stack_2.mutatee_solo_pgCC_32_high test_stack_2.mutatee_solo_pgCC_32_low test_stack_2.mutatee_solo_pgCC_32_none test_stack_3.mutatee_solo_pgCC_32_high test_stack_3.mutatee_solo_pgCC_32_low test_stack_3.mutatee_solo_pgCC_32_none test_thread_1.mutatee_solo_pgCC_32_high test_thread_1.mutatee_solo_pgCC_32_low test_thread_1.mutatee_solo_pgCC_32_none test_thread_2.mutatee_solo_pgCC_32_high test_thread_2.mutatee_solo_pgCC_32_low test_thread_2.mutatee_solo_pgCC_32_none test_thread_3.mutatee_solo_pgCC_32_high test_thread_3.mutatee_solo_pgCC_32_low test_thread_3.mutatee_solo_pgCC_32_none test_thread_5.mutatee_solo_pgCC_32_high test_thread_5.mutatee_solo_pgCC_32_low test_thread_5.mutatee_solo_pgCC_32_none test_thread_6.mutatee_solo_pgCC_32_high test_thread_6.mutatee_solo_pgCC_32_low test_thread_6.mutatee_solo_pgCC_32_none test_thread_7.mutatee_solo_pgCC_32_high test_thread_7.mutatee_solo_pgCC_32_low test_thread_7.mutatee_solo_pgCC_32_none test_thread_8.mutatee_solo_pgCC_32_high test_thread_8.mutatee_solo_pgCC_32_low test_thread_8.mutatee_solo_pgCC_32_none 
 endif
 
@@ -2315,29 +2348,29 @@ test_thread_8.mutatee_solo_pgCC_32_none: test_thread_8_mutatee_solo_pgCC_32_none
 
 # Generic rules for pgCC's mutatees and varying optimization levels
 %_mutatee_solo_pgCC_32_high.o: %_solo_me.c
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O2 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -o $@ $<
 %_pgCC_32_high.o: ../src/%.c
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O2 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -o $@ $<
 %_mutatee_solo_pgCC_32_high.o: %_solo_me.C
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O2 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -o $@ $<
 %_pgCC_32_high.o: ../src/%.C
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O2 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O2 -o $@ $<
 %_mutatee_solo_pgCC_32_none.o: %_solo_me.c
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src   -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -o $@ $<
 %_pgCC_32_none.o: ../src/%.c
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src   -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -o $@ $<
 %_mutatee_solo_pgCC_32_none.o: %_solo_me.C
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src   -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -o $@ $<
 %_pgCC_32_none.o: ../src/%.C
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src   -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -o $@ $<
 %_mutatee_solo_pgCC_32_low.o: %_solo_me.c
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O1 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -o $@ $<
 %_pgCC_32_low.o: ../src/%.c
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O1 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -o $@ $<
 %_mutatee_solo_pgCC_32_low.o: %_solo_me.C
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O1 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -o $@ $<
 %_pgCC_32_low.o: ../src/%.C
-	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src  -O1 -o $@ -c $<
+	$(M_native_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O1 -o $@ $<
 
 # Rules for building the driver and utility objects
 mutatee_driver_solo_pgCC_32.o: ../src/mutatee_driver.c
@@ -2350,6 +2383,7 @@ mutatee_util_pgCC_32.o: ../src/mutatee_util.c
 ######################################################################
 
 ifdef PGI
+# We only want to build these targets if the compiler exists
 SOLO_MUTATEES_native_cc = test1_1.mutatee_solo_pgcc_32_high test1_1.mutatee_solo_pgcc_32_low test1_1.mutatee_solo_pgcc_32_none test1_10.mutatee_solo_pgcc_32_high test1_10.mutatee_solo_pgcc_32_low test1_10.mutatee_solo_pgcc_32_none test1_11.mutatee_solo_pgcc_32_high test1_11.mutatee_solo_pgcc_32_low test1_11.mutatee_solo_pgcc_32_none test1_12.mutatee_solo_pgcc_32_high test1_12.mutatee_solo_pgcc_32_low test1_12.mutatee_solo_pgcc_32_none test1_13.mutatee_solo_pgcc_32_high test1_13.mutatee_solo_pgcc_32_low test1_13.mutatee_solo_pgcc_32_none test1_14.mutatee_solo_pgcc_32_high test1_14.mutatee_solo_pgcc_32_low test1_14.mutatee_solo_pgcc_32_none test1_15.mutatee_solo_pgcc_32_high test1_15.mutatee_solo_pgcc_32_low test1_15.mutatee_solo_pgcc_32_none test1_16.mutatee_solo_pgcc_32_high test1_16.mutatee_solo_pgcc_32_low test1_16.mutatee_solo_pgcc_32_none test1_17.mutatee_solo_pgcc_32_high test1_17.mutatee_solo_pgcc_32_low test1_17.mutatee_solo_pgcc_32_none test1_18.mutatee_solo_pgcc_32_high test1_18.mutatee_solo_pgcc_32_low test1_18.mutatee_solo_pgcc_32_none test1_19.mutatee_solo_pgcc_32_high test1_19.mutatee_solo_pgcc_32_low test1_19.mutatee_solo_pgcc_32_none test1_2.mutatee_solo_pgcc_32_high test1_2.mutatee_solo_pgcc_32_low test1_2.mutatee_solo_pgcc_32_none test1_20.mutatee_solo_pgcc_32_high test1_20.mutatee_solo_pgcc_32_low test1_20.mutatee_solo_pgcc_32_none test1_21.mutatee_solo_pgcc_32_high test1_21.mutatee_solo_pgcc_32_low test1_21.mutatee_solo_pgcc_32_none test1_22.mutatee_solo_pgcc_32_high test1_22.mutatee_solo_pgcc_32_low test1_22.mutatee_solo_pgcc_32_none test1_23.mutatee_solo_pgcc_32_high test1_23.mutatee_solo_pgcc_32_low test1_23.mutatee_solo_pgcc_32_none test1_24.mutatee_solo_pgcc_32_high test1_24.mutatee_solo_pgcc_32_low test1_24.mutatee_solo_pgcc_32_none test1_25.mutatee_solo_pgcc_32_high test1_25.mutatee_solo_pgcc_32_low test1_25.mutatee_solo_pgcc_32_none test1_26.mutatee_solo_pgcc_32_high test1_26.mutatee_solo_pgcc_32_low test1_26.mutatee_solo_pgcc_32_none test1_27.mutatee_solo_pgcc_32_high test1_27.mutatee_solo_pgcc_32_low test1_27.mutatee_solo_pgcc_32_none test1_28.mutatee_solo_pgcc_32_high test1_28.mutatee_solo_pgcc_32_low test1_28.mutatee_solo_pgcc_32_none test1_29.mutatee_solo_pgcc_32_high test1_29.mutatee_solo_pgcc_32_low test1_29.mutatee_solo_pgcc_32_none test1_3.mutatee_solo_pgcc_32_high test1_3.mutatee_solo_pgcc_32_low test1_3.mutatee_solo_pgcc_32_none test1_30.mutatee_solo_pgcc_32_high test1_30.mutatee_solo_pgcc_32_low test1_30.mutatee_solo_pgcc_32_none test1_31.mutatee_solo_pgcc_32_high test1_31.mutatee_solo_pgcc_32_low test1_31.mutatee_solo_pgcc_32_none test1_32.mutatee_solo_pgcc_32_high test1_32.mutatee_solo_pgcc_32_low test1_32.mutatee_solo_pgcc_32_none test1_33.mutatee_solo_pgcc_32_high test1_33.mutatee_solo_pgcc_32_low test1_33.mutatee_solo_pgcc_32_none test1_34.mutatee_solo_pgcc_32_high test1_34.mutatee_solo_pgcc_32_low test1_34.mutatee_solo_pgcc_32_none test1_35.mutatee_solo_pgcc_32_high test1_35.mutatee_solo_pgcc_32_low test1_35.mutatee_solo_pgcc_32_none test1_36.mutatee_solo_pgcc_32_high test1_36.mutatee_solo_pgcc_32_low test1_36.mutatee_solo_pgcc_32_none test1_37.mutatee_solo_pgcc_32_high test1_37.mutatee_solo_pgcc_32_low test1_37.mutatee_solo_pgcc_32_none test1_38.mutatee_solo_pgcc_32_high test1_38.mutatee_solo_pgcc_32_low test1_38.mutatee_solo_pgcc_32_none test1_39.mutatee_solo_pgcc_32_high test1_39.mutatee_solo_pgcc_32_low test1_39.mutatee_solo_pgcc_32_none test1_4.mutatee_solo_pgcc_32_high test1_4.mutatee_solo_pgcc_32_low test1_4.mutatee_solo_pgcc_32_none test1_40.mutatee_solo_pgcc_32_high test1_40.mutatee_solo_pgcc_32_low test1_40.mutatee_solo_pgcc_32_none test1_41.mutatee_solo_pgcc_32_high test1_41.mutatee_solo_pgcc_32_low test1_41.mutatee_solo_pgcc_32_none test1_5.mutatee_solo_pgcc_32_high test1_5.mutatee_solo_pgcc_32_low test1_5.mutatee_solo_pgcc_32_none test1_6.mutatee_solo_pgcc_32_high test1_6.mutatee_solo_pgcc_32_low test1_6.mutatee_solo_pgcc_32_none test1_7.mutatee_solo_pgcc_32_high test1_7.mutatee_solo_pgcc_32_low test1_7.mutatee_solo_pgcc_32_none test1_8.mutatee_solo_pgcc_32_high test1_8.mutatee_solo_pgcc_32_low test1_8.mutatee_solo_pgcc_32_none test1_9.mutatee_solo_pgcc_32_high test1_9.mutatee_solo_pgcc_32_low test1_9.mutatee_solo_pgcc_32_none test2_10.mutatee_solo_pgcc_32_high test2_10.mutatee_solo_pgcc_32_low test2_10.mutatee_solo_pgcc_32_none test2_11.mutatee_solo_pgcc_32_high test2_11.mutatee_solo_pgcc_32_low test2_11.mutatee_solo_pgcc_32_none test2_12.mutatee_solo_pgcc_32_high test2_12.mutatee_solo_pgcc_32_low test2_12.mutatee_solo_pgcc_32_none test2_13.mutatee_solo_pgcc_32_high test2_13.mutatee_solo_pgcc_32_low test2_13.mutatee_solo_pgcc_32_none test2_14.mutatee_solo_pgcc_32_high test2_14.mutatee_solo_pgcc_32_low test2_14.mutatee_solo_pgcc_32_none test2_5.mutatee_solo_pgcc_32_high test2_5.mutatee_solo_pgcc_32_low test2_5.mutatee_solo_pgcc_32_none test2_6.mutatee_solo_pgcc_32_high test2_6.mutatee_solo_pgcc_32_low test2_6.mutatee_solo_pgcc_32_none test2_7.mutatee_solo_pgcc_32_high test2_7.mutatee_solo_pgcc_32_low test2_7.mutatee_solo_pgcc_32_none test2_8.mutatee_solo_pgcc_32_high test2_8.mutatee_solo_pgcc_32_low test2_8.mutatee_solo_pgcc_32_none test3_1.mutatee_solo_pgcc_32_high test3_1.mutatee_solo_pgcc_32_low test3_1.mutatee_solo_pgcc_32_none test3_2.mutatee_solo_pgcc_32_high test3_2.mutatee_solo_pgcc_32_low test3_2.mutatee_solo_pgcc_32_none test3_3.mutatee_solo_pgcc_32_high test3_3.mutatee_solo_pgcc_32_low test3_3.mutatee_solo_pgcc_32_none test3_4.mutatee_solo_pgcc_32_high test3_4.mutatee_solo_pgcc_32_low test3_4.mutatee_solo_pgcc_32_none test3_5.mutatee_solo_pgcc_32_high test3_5.mutatee_solo_pgcc_32_low test3_5.mutatee_solo_pgcc_32_none test3_6.mutatee_solo_pgcc_32_high test3_6.mutatee_solo_pgcc_32_low test3_6.mutatee_solo_pgcc_32_none test3_7.mutatee_solo_pgcc_32_high test3_7.mutatee_solo_pgcc_32_low test3_7.mutatee_solo_pgcc_32_none test4_1.mutatee_solo_pgcc_32_high test4_1.mutatee_solo_pgcc_32_low test4_1.mutatee_solo_pgcc_32_none test4_2.mutatee_solo_pgcc_32_high test4_2.mutatee_solo_pgcc_32_low test4_2.mutatee_solo_pgcc_32_none test4_3.mutatee_solo_pgcc_32_high test4_3.mutatee_solo_pgcc_32_low test4_3.mutatee_solo_pgcc_32_none test4_3b.mutatee_solo_pgcc_32_high test4_3b.mutatee_solo_pgcc_32_low test4_3b.mutatee_solo_pgcc_32_none test4_4.mutatee_solo_pgcc_32_high test4_4.mutatee_solo_pgcc_32_low test4_4.mutatee_solo_pgcc_32_none test4_4b.mutatee_solo_pgcc_32_high test4_4b.mutatee_solo_pgcc_32_low test4_4b.mutatee_solo_pgcc_32_none test_callback_1.mutatee_solo_pgcc_32_high test_callback_1.mutatee_solo_pgcc_32_low test_callback_1.mutatee_solo_pgcc_32_none test_callback_2.mutatee_solo_pgcc_32_high test_callback_2.mutatee_solo_pgcc_32_low test_callback_2.mutatee_solo_pgcc_32_none test_fork_10.mutatee_solo_pgcc_32_high test_fork_10.mutatee_solo_pgcc_32_low test_fork_10.mutatee_solo_pgcc_32_none test_fork_11.mutatee_solo_pgcc_32_high test_fork_11.mutatee_solo_pgcc_32_low test_fork_11.mutatee_solo_pgcc_32_none test_fork_12.mutatee_solo_pgcc_32_high test_fork_12.mutatee_solo_pgcc_32_low test_fork_12.mutatee_solo_pgcc_32_none test_fork_13.mutatee_solo_pgcc_32_high test_fork_13.mutatee_solo_pgcc_32_low test_fork_13.mutatee_solo_pgcc_32_none test_fork_5.mutatee_solo_pgcc_32_high test_fork_5.mutatee_solo_pgcc_32_low test_fork_5.mutatee_solo_pgcc_32_none test_fork_6.mutatee_solo_pgcc_32_high test_fork_6.mutatee_solo_pgcc_32_low test_fork_6.mutatee_solo_pgcc_32_none test_fork_7.mutatee_solo_pgcc_32_high test_fork_7.mutatee_solo_pgcc_32_low test_fork_7.mutatee_solo_pgcc_32_none test_fork_8.mutatee_solo_pgcc_32_high test_fork_8.mutatee_solo_pgcc_32_low test_fork_8.mutatee_solo_pgcc_32_none test_fork_9.mutatee_solo_pgcc_32_high test_fork_9.mutatee_solo_pgcc_32_low test_fork_9.mutatee_solo_pgcc_32_none test_mem_1.mutatee_solo_pgcc_32_high test_mem_1.mutatee_solo_pgcc_32_low test_mem_1.mutatee_solo_pgcc_32_none test_mem_2.mutatee_solo_pgcc_32_high test_mem_2.mutatee_solo_pgcc_32_low test_mem_2.mutatee_solo_pgcc_32_none test_mem_3.mutatee_solo_pgcc_32_high test_mem_3.mutatee_solo_pgcc_32_low test_mem_3.mutatee_solo_pgcc_32_none test_mem_4.mutatee_solo_pgcc_32_high test_mem_4.mutatee_solo_pgcc_32_low test_mem_4.mutatee_solo_pgcc_32_none test_mem_5.mutatee_solo_pgcc_32_high test_mem_5.mutatee_solo_pgcc_32_low test_mem_5.mutatee_solo_pgcc_32_none test_mem_6.mutatee_solo_pgcc_32_high test_mem_6.mutatee_solo_pgcc_32_low test_mem_6.mutatee_solo_pgcc_32_none test_mem_7.mutatee_solo_pgcc_32_high test_mem_7.mutatee_solo_pgcc_32_low test_mem_7.mutatee_solo_pgcc_32_none test_mem_8.mutatee_solo_pgcc_32_high test_mem_8.mutatee_solo_pgcc_32_low test_mem_8.mutatee_solo_pgcc_32_none test_stack_1.mutatee_solo_pgcc_32_high test_stack_1.mutatee_solo_pgcc_32_low test_stack_1.mutatee_solo_pgcc_32_none test_stack_2.mutatee_solo_pgcc_32_high test_stack_2.mutatee_solo_pgcc_32_low test_stack_2.mutatee_solo_pgcc_32_none test_stack_3.mutatee_solo_pgcc_32_high test_stack_3.mutatee_solo_pgcc_32_low test_stack_3.mutatee_solo_pgcc_32_none test_thread_1.mutatee_solo_pgcc_32_high test_thread_1.mutatee_solo_pgcc_32_low test_thread_1.mutatee_solo_pgcc_32_none test_thread_2.mutatee_solo_pgcc_32_high test_thread_2.mutatee_solo_pgcc_32_low test_thread_2.mutatee_solo_pgcc_32_none test_thread_3.mutatee_solo_pgcc_32_high test_thread_3.mutatee_solo_pgcc_32_low test_thread_3.mutatee_solo_pgcc_32_none test_thread_5.mutatee_solo_pgcc_32_high test_thread_5.mutatee_solo_pgcc_32_low test_thread_5.mutatee_solo_pgcc_32_none test_thread_6.mutatee_solo_pgcc_32_high test_thread_6.mutatee_solo_pgcc_32_low test_thread_6.mutatee_solo_pgcc_32_none test_thread_7.mutatee_solo_pgcc_32_high test_thread_7.mutatee_solo_pgcc_32_low test_thread_7.mutatee_solo_pgcc_32_none test_thread_8.mutatee_solo_pgcc_32_high test_thread_8.mutatee_solo_pgcc_32_low test_thread_8.mutatee_solo_pgcc_32_none 
 endif
 
@@ -2914,17 +2948,17 @@ test_thread_8.mutatee_solo_pgcc_32_none: test_thread_8_mutatee_solo_pgcc_32_none
 
 # Generic rules for pgcc's mutatees and varying optimization levels
 %_mutatee_solo_pgcc_32_high.o: %_solo_me.c
-	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src  -O2 -o $@ -c $<
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -o $@ $<
 %_pgcc_32_high.o: ../src/%.c
-	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src  -O2 -o $@ -c $<
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O2 -o $@ $<
 %_mutatee_solo_pgcc_32_none.o: %_solo_me.c
-	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src   -o $@ -c $<
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -o $@ $<
 %_pgcc_32_none.o: ../src/%.c
-	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src   -o $@ -c $<
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -o $@ $<
 %_mutatee_solo_pgcc_32_low.o: %_solo_me.c
-	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src  -O1 -o $@ -c $<
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -o $@ $<
 %_pgcc_32_low.o: ../src/%.c
-	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src  -O1 -o $@ -c $<
+	$(M_native_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O1 -o $@ $<
 
 # Rules for building the driver and utility objects
 mutatee_driver_solo_pgcc_32.o: ../src/mutatee_driver.c
@@ -2998,6 +3032,18 @@ test1_9F.mutatee_solo_g77_32_none: test1_9F_mutatee_solo_gcc_32_none.o mutatee_u
 
 
 # Generic rules for g77's mutatees and varying optimization levels
+%_mutatee_solo_g77_32_high.o: %_solo_me.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -o $@ $<
+%_g77_32_high.o: ../src/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -o $@ $<
+%_mutatee_solo_g77_32_none.o: %_solo_me.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -o $@ $<
+%_g77_32_none.o: ../src/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c   -o $@ $<
+%_mutatee_solo_g77_32_low.o: %_solo_me.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -o $@ $<
+%_g77_32_low.o: ../src/%.F
+	$(M_gnu_fc) $(SOLO_MUTATEE_DEFS) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -o $@ $<
 
 # Rules for building the driver and utility objects
 # (Skipped: driver and utility objects cannot be compiled with this compiler
@@ -3005,52 +3051,52 @@ test1_9F.mutatee_solo_g77_32_none: test1_9F_mutatee_solo_gcc_32_none.o mutatee_u
 # Generic rules for this platform's auxilliary compilers
 
 %_g77_32_high.o: ../src/%.F
-	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS)  -o $@ -c -O2 $<
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O2 -o $@ $<
 
 %_g77_32_none.o: ../src/%.F
-	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS)  -o $@ -c  $<
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c   -o $@ $<
 
 %_g77_32_low.o: ../src/%.F
-	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS)  -o $@ -c -O1 $<
+	$(M_gnu_fc) -g $(MUTATEE_G77_FFLAGS) -c  -O1 -o $@ $<
 
 %_gcc_32_high.o: ../src/%.c
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O2 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 
 %_gcc_32_max.o: ../src/%.c
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O3 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 
 %_gcc_32_none.o: ../src/%.c
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c  $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
 
 %_gcc_32_low.o: ../src/%.c
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O1 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 
 %_nasm_32_none.o: ../src/%.asm
-	$(M_nasm) -f elf -dPLATFORM=$(PLATFORM)   -o $@   $<
+	$(M_nasm) -f elf -dPLATFORM=$(PLATFORM)     -o $@ $<
 
 %_gcc_32_high.o: ../src/%.S
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O2 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 
 %_gcc_32_max.o: ../src/%.S
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O3 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 
 %_gcc_32_none.o: ../src/%.S
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c  $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
 
 %_gcc_32_low.o: ../src/%.S
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O1 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 
 %_gcc_32_high.o: ../src/%.s
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O2 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<
 
 %_gcc_32_max.o: ../src/%.s
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O3 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -o $@ $<
 
 %_gcc_32_none.o: ../src/%.s
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c  $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -o $@ $<
 
 %_gcc_32_low.o: ../src/%.s
-	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c -O1 $<
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 
 
 # Exceptional rules for mutatees compiled with nasm
@@ -3691,14 +3737,6 @@ test5_8_solo_me.C: ../src/test5_8_mutatee.C
 .INTERMEDIATE: test5_9_solo_me.C # Temporary file
 test5_9_solo_me.C: ../src/test5_9_mutatee.C
 	sed -e 's/@<testname>@/test5_9/g' -e 's/@<groupable>@/1/' < ../src/solo_mutatee_boilerplate.C > $@
-	cat $^ >> $@
-
-%_solo_me.c: ../src/%_mutatee.c
-	sed -e 's/@<testname>@/$*/g' -e 's/@<groupable>@/0/' < ../src/solo_mutatee_boilerplate.c > $@
-	cat $^ >> $@
-
-%_solo_me.C: ../src/%_mutatee.C
-	sed -e 's/@<testname>@/$*/g' -e 's/@<groupable>@/0/' < ../src/solo_mutatee_boilerplate.C > $@
 	cat $^ >> $@
 
 # And a rule to build all of the mutatees
