@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2008/05/08 20:53:16 cooksey Exp $
+# $Id: Makefile,v 1.4 2008/05/30 20:29:28 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -79,28 +79,3 @@ STRIP_SO = strip -g
 # force_default: solo_mutatees # FIXME This is a temporary entry
 
 include ../make.module.tmpl
-
-# These rules should build the specification-generated files if necessary
-# TO_SPEC = ../src/specification
-# TO_SRC ?= ../src
-
-# PROLOG_FILES = spec.pl test.pl makegen.pl util.pl
-
-# $(PROLOG_FILES): %: $(TO_SPEC)/%
-# 	cp -f $(TO_SPEC)/$* .
-
-# PYTHONPATH += $(TO_SPEC)
-
-# tuples: $(PROLOG_FILES)
-# 	gprolog --entry-goal "['spec.pl']" \
-# 		--entry-goal "test_init('$(PLATFORM)')" \
-# 		--entry-goal "write_tuples('tuples', '$(PLATFORM)')" \
-# 		--entry-goal "halt"
-
-# make.vars.gen: $(PROLOG_FILES) $(TO_SPEC)/makemake.py $(TO_SPEC)/tuples.py tuples
-# 	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_make_vars_gen('make.vars.gen', 'tuples')"
-
-# make.solo_mutatee.gen: $(PROLOG_FILES) $(TO_SPEC)/makemake.py $(TO_SPEC)/tuples.py tuples
-# 	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_make_solo_mutatee_gen('make.solo_mutatee.gen', 'tuples')"
-
-# include make.solo_mutatee.gen
