@@ -666,20 +666,23 @@ test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDD
 
 OUTPUT_DRIVERS =
 
+ifdef LIBMYSQLCLIENTDIR
+# Each platform needs a different set of flags for MySQL to link correctly
+MYSQLCLIENT_LIBFLAGS = $(shell $(LIBMYSQLCLIENTDIR)/bin/mysql_config --libs)
+OUTPUT_DRIVERS += DatabaseOutputDriver.so
+endif
+
 DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
 #	@echo "***Using DatabaseOutputDriver rule***"
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I$(LIBMYSQLCLIENT_INC) ../src/$*.C
 
+# FIXME DatabaseOutputDriver.so depends on libtestSuite
 DatabaseOutputDriver.so: DatabaseOutputDriver.o # $(DEPENDDIR)/DatabaseOutputDriver.dep
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) $(LIBMYSQLCLIENT_LIB)/libmysqlclient.a -lz
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MYSQLCLIENT_LIBFLAGS)
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
 endif
-endif
-
-ifdef LIBMYSQLCLIENTDIR
-OUTPUT_DRIVERS += DatabaseOutputDriver.so
 endif
 
 .PHONY: output_drivers
