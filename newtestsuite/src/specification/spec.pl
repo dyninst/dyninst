@@ -2181,7 +2181,9 @@ aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
     platform(_, OS, _, Platform),
-        \+ member(OS, ['windows']).
+	% AIX is excluded because both att_asm and power_asm use the '.s' extension
+	% and we can't have multiple compilers use the same extension on a platform
+	\+ member(OS, ['windows', 'aix']).
 aux_compiler_for_platform(Platform, 'power_asm', 'ibm_as') :-
         platform('power', 'aix', _, Platform).
 
@@ -2317,21 +2319,25 @@ compiler_s('sun_cc', 'cc').
 % FIXME I'm also not sure that all these compilers default to no optimization
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'xlc', 'xlC',
-                  'cxx', 'g77']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'low', '-O') :-
 	member(SunWorkshop, ['sun_cc', 'CC']).
+compiler_opt_trans(IBM, 'low', '-O') :-
+	member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'xlc', 'xlC',
-                  'cxx', 'g77']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
 	member(SunWorkshop, ['sun_cc', 'CC']).
+compiler_opt_trans(IBM, 'high', '-O3') :-
+	member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '-O3') :-
 	member(Comp, ['gcc', 'g++', 'cc', 'cxx']).
 compiler_opt_trans(SunWorkshop, 'max', '-xO5') :-
 	member(SunWorkshop, ['sun_cc', 'CC']).
+compiler_opt_trans(IBM, 'max', '-O5') :-
+	member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
 
 % Ensure that we're only defining translations for compilers that exist
