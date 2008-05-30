@@ -37,6 +37,8 @@ def replace_extension(name, ext):
 # Get the name of the language for the given file.  If more than one
 # is possible, I don't really know what to do...  Return a list of all
 # the possibilities with compilers on the current platform?
+# We should not ever get more than one language for a given extension.  We're
+# enforcing that in the tuple generator.
 def get_file_lang(filename):
 	ext = extension(filename)
 	langs = filter(lambda x: ext in x['extensions'], info['languages'])
@@ -72,12 +74,78 @@ def find_platform(pname):
 	else:
 		return plist[0]
 
+def find_language(lname):
+	llist = filter(lambda l: l['name'] == lname, info['languages'])
+	if len(llist) == 0:
+		return None
+	else:
+		return llist[0]
+
+# Returns a string containing the mutatee's compile-time options filename
+# component: a string of the form _<compiler>_<ABI>_<optimization>
+def mutatee_cto_component(mutatee):
+	compiler = info['compilers'][mutatee['compiler']]
+	return fullspec_cto_component(compiler,
+								  mutatee['abi'],
+								  mutatee['optimization'])
+
+# Returns a string containing the mutatee's compile-time options filename
+# component for mutatees compiled with an auxilliary compiler
+def auxcomp_cto_component(compiler, mutatee):
+	return fullspec_cto_component(compiler,
+								  mutatee['abi'],
+								  mutatee['optimization'])
+
+# Returns a string containing the mutatee's compile-time options filename
+# component for a fully specified set of build-time options
+def fullspec_cto_component(compiler, abi, optimization):
+	retval = "_%s_%s_%s" % (compiler['executable'],
+							abi,
+							optimization)
+	return retval
+
+# Returns a string containing the link-time options component for a fully-
+# specified set of link-time options
+# NOTE: There are currently no link-time options specified
+def fullspec_lto_component():
+	return ""
+
+# Returns a string containing the link-time options component for a mutatee's
+# filename
+# NOTE: There are currently no link-time options specified
+def mutatee_lto_component(mutatee):
+	return fullspec_lto_component()
+
+# Returns a string containing the link-time options component for a mutatee's
+# filename when the mutatee is compiled using an auxilliary compiler
+# NOTE: I think this function is pointless
+def auxcomp_lto_component(compiler, mutatee):
+	return fullspec_lto_component()
+
+# Returns a string containing the build-time options component for a fully-
+# specified set of build-time options
+def fullspec_bto_component(compiler, abi, optimization):
+	return "%s%s" % (fullspec_cto_component(compiler, abi, optimization),
+					 fullspec_lto_component())
+
+# Returns a string containing the build-time options component for a mutatee's
+# filename
+def mutatee_bto_component(mutatee):
+	return "%s%s" % (mutatee_cto_component(mutatee),
+					 mutatee_lto_component(mutatee))
+
+# Returns a string containing the build-time options component for a mutatee's
+# filename, when the mutatee is built using an auxilliary compiler
+# NOTE: I don't think this ever happens.
+def auxcomp_bto_component(compiler, mutatee):
+	return "%s%s" % (auxcomp_cto_component(compiler, mutatee),
+					 auxcomp_lto_component(compiler, mutatee))
+
 def mutatee_binary(mutatee):
 	# Returns standard name for the solo mutatee binary for this mutatee
-	return "%s.mutatee_solo_%s_%s_%s" % (mutatee['name'],
-										 info['compilers'][mutatee['compiler']]['executable'],
-										 mutatee['abi'],
-										 mutatee['optimization'])
+	return "%s.mutatee_solo%s" % (mutatee['name'],
+								  mutatee_bto_component(mutatee))
+
 #
 ######################################################################
 
@@ -88,6 +156,10 @@ def mutatee_binary(mutatee):
 #
 
 def print_mutators_list(out, mutator_dict):
+	platform = find_platform(os.environ.get('PLATFORM'))
+	LibSuffix = platform['filename_conventions']['library_suffix']
+	ObjSuffix = platform['filename_conventions']['object_suffix']
+
 	out.write("######################################################################\n")
 	out.write("# A list of all the mutators to be compiled\n")
 	out.write("######################################################################\n\n")
@@ -97,25 +169,23 @@ def print_mutators_list(out, mutator_dict):
 	out.write("\n\n")
 	out.write("OBJS_ALL_MUTATORS = ")
 	for m in mutator_dict:
-		out.write("%s.o " % (m['name']))
+		out.write("%s%s " % (m['name'], ObjSuffix))
 	out.write("\n\n")
 
 	# Now we'll print out a rule for each mutator..
 	for m in mutator_dict:
-		# FIXME Don't hardcode the '.so' or '.o' extension here
 		# FIXME Don't hardcode $(LIBTESTSUITE)
-		out.write("%s.so: " % (m['name']))
-		# TODO Loop through the files listed in this mutator's source list and
+		out.write("%s%s: " % (m['name'], LibSuffix))
+		# Loop through the files listed in this mutator's source list and
 		# add object files corresponding to each to the list of dependencies
 		for s in m['sources']:
 			# Print out the object file for this source file
-			# FIXME Don't use hardcoded '.o' extension
-			out.write("%s.o " % s[0:-len(extension(s))])
+			out.write("%s%s " % (s[0:-len(extension(s))], ObjSuffix))
 		out.write("$(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/%s.dep $(LIBTESTSUITE)\n" % (m['name']))
 
 		# FIXME Make this one better too.  Right now it's copied straight from
 		# make.module.tmpl
-		out.write("\t$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS)\n")
+		out.write("\t$(CXX) -o $@ -shared $(filter %%%s,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS)\n" % (ObjSuffix))
 		out.write("ifndef NO_OPT_FLAG\n")
 		out.write("ifdef STRIP_SO\n")
 		out.write("\t$(STRIP_SO) $@\n")
@@ -126,21 +196,23 @@ def print_mutators_list(out, mutator_dict):
 def write_make_mutators_gen(filename, tuplefile):
 	read_tuples(tuplefile)
 	mutator_dict = info['mutators']
+	platform = find_platform(os.environ.get('PLATFORM'))
+	LibSuffix = platform['filename_conventions']['library_suffix']
 	header = """
 # This file is automatically generated by the Dyninst testing system.
 # For more information, see core/testsuite/src/specification/makemake.py
 
 """
-	# FIXME Fix this so it doesn't hardcode the '.so' extension
 	rest = """
 # Create shared library names from the mutator test names
-MUTATORS_SO += $(addsuffix .so,$(MUTATORS))
+MUTATORS_SO += $(addsuffix %s,$(MUTATORS))
 
 # And a rule to build all of the libraries
 .PHONY: mutators
 mutators: $(MUTATORS_SO)
 
-"""
+""" % (LibSuffix)
+
 	out = open(filename, "w")
 	out.write(header)
 	print_mutators_list(out, mutator_dict)
@@ -212,10 +284,12 @@ def mutatee_filename(rungroup, compilers):
 	if rungroup['mutatee'] == 'none':
 		retval = ""
 	else:
-		retval = "%s.mutatee_solo_%s_%s_%s" % (rungroup['mutatee'],
-											   info['compilers'][rungroup['compiler']]['executable'],
-											   rungroup['abi'],
-											   rungroup['optimization'])
+		compiler = compilers[rungroup['compiler']]
+		mutatee = rungroup['mutatee']
+		bto = fullspec_bto_component(compiler,
+									 rungroup['abi'],
+									 rungroup['optimization'])
+		retval = "%s.mutatee_solo%s" % (mutatee, bto)
 	return retval
 
 # Return the name of the mutator for this test
@@ -242,6 +316,10 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   RunGroup *rg;
 """
 	out.write(header)
+
+	platform = find_platform(os.environ.get('PLATFORM'))
+	LibSuffix = platform['filename_conventions']['library_suffix']
+
 	# TODO Change these to get the string conversions from a tuple output
 	for group in rungroups:
 		compiler = info['compilers'][group['compiler']]
@@ -267,12 +345,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 		out.write(');\n')
 		for test in group['tests']:
 			# Set the tuple string for this test
-			# FIXME Need to account for MABI somehow.. Different compiler?
 			# (<test>, <mutatee compiler>, <mutatee optimization>, <create mode>)
 			# I need to get the mutator that this test maps to..
 			mutator = test_mutator(test)
 			ts = "{test: %s, mutator: %s, mutatee: %s, compiler: %s, mutatee_abi: %s, optimization: %s, run_mode: %s, grouped: %s}" % (test, mutator, group['mutatee'], group['compiler'], group['abi'], group['optimization'], group['run_mode'], 'false')
-			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s.so", "%s"));\n' % (test, mutator, mutator, ts))
+			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s%s", "%s"));\n' % (test, mutator, mutator, LibSuffix, ts))
 		out.write('  rg->index = group_count++;\n')
 		out.write('  tests.push_back(rg);\n')
 		# Close compiler presence #ifdef
@@ -282,109 +359,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 
 #
 ##########
-
-######################################################################
-# solo_mutatee_init.gen.c
-######################################################################
-#
-
-def write_solo_mutatee_init_gen(filename, tuplefile):
-	def tests(mutatee):
-		# Returns a list of the unique tests that use this mutatee
-		return uniq(reduce(lambda x, y: x + y,
-						   map(lambda r: r['tests'],
-							   filter(lambda r: r['mutatee'] == mutatee['name'],
-									  info['rungroups']))))
-	def testcount(mutatee):
-		# Returns the count of unique tests that use this mutatee
-		return len(uniq(reduce(lambda x, y: x + y,
-							   map(lambda r: r['tests'],
-								   filter(lambda r: r['mutatee'] == mutatee['name'],
-										  info['rungroups'])))))
-
-	header = """#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
-#include "mutatee_call_info.h"
-
-/* Allocate space in the info structure for size tests */
-int alloc_info(mutatee_info_t *info, int size) {
-  if (NULL == info) {
-    goto _alloc_info_unwind_none;
-  }
-
-  info->funcs = malloc(size * sizeof (mutatee_call_info_t));
-  if (NULL == info->funcs) {
-    goto _alloc_info_unwind_funcs;
-  }
-  info->runTest = malloc(size * sizeof (int));
-  if (NULL == info->runTest) {
-    goto _alloc_info_unwind_runTest;
-  }
-  info->passedTest = malloc(size * sizeof (int));
-  if (NULL == info->passedTest) {
-    goto _alloc_info_unwind_passedTest;
-  }
-
-  return 0; /* Success */
-
- _alloc_info_unwind_all:
-  free(info->passedTest);
- _alloc_info_unwind_passedTest:
-  free(info->runTest);
- _alloc_info_unwind_runTest:
-  free(info->funcs);
- _alloc_info_unwind_funcs:
- _alloc_info_unwind_none:
-  return -1; /* Error */
-}
-
-"""
-
-	out = open(filename, 'w')
-	read_tuples(tuplefile)
-	out.write(header)
-	out.write("/* External declarations for mutatee-side test functions */\n")
-	for m in uniq(map(lambda m: m['name'], info['mutatees'])):
-		out.write("extern int %s_mutateeTest();\n" % (m))
-	out.write("\n")
-	out.write("""/* Initialize the mutatee info structure */
-int init_tests(char *mutatee, mutatee_info_t *info) {
-  if ((NULL == mutatee) || (NULL == info)) {
-    return -1; /* Error */
-  }
-
-""")
-	for m in info['mutatees']:
-		n = mutatee_binary(m)
-		out.write("  if (0 == strcmp(mutatee, \"%s\")) {\n" % (n))
-		out.write("    /* set up info structure for %s */\n" % (n))
-		out.write("    if (alloc_info(info, 1)) {\n")
-		out.write("      return -1; /* Error */\n")
-		out.write("    }\n")
-		# This is the solo mutatee init file; I only need to be concerned about
-		# single-test mutatees
-		out.write("    info->funcs[0].testname = \"%s\";\n" % (m['name']))
-		out.write("    info->funcs[0].func = %s_mutateeTest;\n" % (m['name']))
-		out.write("    info->funcs[0].grouped = SOLO;\n")
-		out.write("    info->runTest[0] = 1;\n")
-		out.write("    info->passedTest[0] = 0;\n")
-		out.write("    info->size = 1;\n")
-		out.write("    info->groupable = ")
-		if (m['groupable'] == 'true'):
-			out.write("1;\n")
-		else:
-			out.write("0;\n")
-		out.write("    return 0;\n")
-		out.write("  } else")
-	out.write(" {\n")
-	out.write("    return -1;\n")
-	out.write("  }\n")
-	out.write("}\n")
-
-#
-######################################################################
 
 ######################################################################
 # make.solo_mutatee.gen
@@ -422,6 +396,7 @@ def print_mutatee_rules(out, mutatees, compiler):
 	out.write("######################################################################\n\n")
 	if compiler['presencevar'] != 'true':
 		out.write("ifdef %s\n" % (compiler['presencevar']))
+		out.write("# We only want to build these targets if the compiler exists\n")
 	out.write("SOLO_MUTATEES_%s = " % (compiler['defstring']))
 	for m in mut_names:
 		out.write("%s " % (m))
@@ -429,14 +404,12 @@ def print_mutatee_rules(out, mutatees, compiler):
 	if compiler['presencevar'] != 'true':
 		out.write("endif\n")
 	out.write("\n")
-	#out.write("# Define the mutatee compiler if it isn't already defined\n")
-	#out.write("# (This may not be necessary)\n")
-	#out.write("M_%s ?= %s\n\n" % (compiler['defstring'], compiler['executable']))
 	out.write("# Now a list of rules for compiling the mutatees with %s\n\n"
 			  % (mutatees[0]['compiler']))
 
 	pname = os.environ.get('PLATFORM')
 	platform = find_platform(pname)
+	ObjSuffix = platform['filename_conventions']['object_suffix']
 
 	# Write rules for building the mutatee executables from the object files
 	for (m, n) in zip(mutatees, mut_names):
@@ -449,10 +422,9 @@ def print_mutatee_rules(out, mutatees, compiler):
 			lang = filter(lambda l: extension(f) in l['extensions'],
 						  info['languages'])[0]['name']
 			if (lang in compiler['languages']):
-				out.write("%s " % (replace_extension(f, "_solo_%s_%s_%s.o"
-													 % (info['compilers'][m['compiler']]['executable'],
-														m['abi'],
-														m['optimization']))))
+				cto = mutatee_cto_component(m)
+				out.write("%s " % (replace_extension(f, "_solo%s%s"
+													 % (cto, ObjSuffix))))
 			else: # Preprocessed file compiled with auxilliary compiler
 				pname = os.environ.get('PLATFORM')
 				# TODO Check that we got a string..
@@ -460,9 +432,9 @@ def print_mutatee_rules(out, mutatees, compiler):
 				# TODO Check that we retrieved a platform object
 				aux_comp = platform['auxilliary_compilers'][lang]
 				# TODO Verify that we got a compiler
-				out.write("%s " % (replace_extension(f, "_solo_%s_%s_%s.o"
-													 % (aux_comp, m['abi'],
-														m['optimization']))))
+				cto = auxcomp_cto_component(info['compilers'][aux_comp], m)
+				out.write("%s " % (replace_extension(f, "_solo%s%s"
+													 % (cto, ObjSuffix))))
 		# TODO Let's grab the languages used in the preprocessed sources, and
 		# save them for later.  We use this to determine which raw sources get
 		# compiled with the same options as the preprocessed ones, in the case
@@ -484,53 +456,54 @@ def print_mutatee_rules(out, mutatees, compiler):
 			# m['compiler']
 			lang = get_file_lang(f)
 			if type(lang) == type([]):
-				# FIXME I need to handle this better.  On our Unix platforms,
-				# .s files can be assembled by multiple compilers, and can
-				# contain different assembly languages..
 				lang = lang[0] # BUG This may cause unexpected behavior if more
-				               # than one language was returned
+				               # than one language was returned, but more than
+							   # one language should never be returned
 			if lang['name'] in maincomp_langs:
 				# This file is compiled with the main compiler for this mutatee
-				out.write("%s " % (replace_extension(f, "_%s_%s_%s.o"
-													 % (info['compilers'][m['compiler']]['executable'],
-														m['abi'],
-														m['optimization']))))
+				cto = mutatee_cto_component(m)
+				out.write("%s " % (replace_extension(f, "%s%s"
+													 % (cto, ObjSuffix))))
 			else:
 				# This file is compiled with an auxilliary compiler
 				# Find the auxilliary compiler for this language on this
 				# platform
-				# BUG This assumes that there is only one possible auxilliary
+				# This assumes that there is only one possible auxilliary
 				# compiler for a language ending with the extension of interest
-				# on the platform
+				# on the platform.  This condition is enforced by sanity checks
+				# in the specification file.
 				aux_comp = platform['auxilliary_compilers'][lang['name']]
-				out.write("%s " % (replace_extension(f, '_%s_%s_none.o' %
-													 (aux_comp, m['abi']))))
-# 		for f in filter(lambda x: extension(x) not in ['.s', '.asm'], m['raw_sources']):
-# 			# List all the compiled raw source files
-# 			out.write("%s " % (replace_extension(f, "_%s_%s.o" % (m['compiler'], m['optimization']))))
-# 		# TODO Fix this to use the correct compiler.  This block can actually be
-# 		# removed / folded in to the block above once I remove the assumption
-# 		# that all the files are being compiled with the default "mutatee
-# 		# compiler" for this mutatee.
-# 		for f in filter(lambda x: extension(x) in ['.s', '.asm'], m['raw_sources']):
-# 			# Then list all the "compiled" assembly files
-# 			out.write("%s " % (replace_extension(f, '.o')))
+				cto = fullspec_cto_component(info['compilers'][aux_comp],
+											 m['abi'], 'none')
+				out.write("%s " % (replace_extension(f, '%s%s'
+													 % (cto, ObjSuffix))))
 		# FIXME Check whether the current compiler compiles C files and if not
 		# then use the aux compiler for this platform for the mutatee driver
 		# object.
 		if 'c' in info['compilers'][m['compiler']]['languages']:
-			out.write("mutatee_driver_solo_%s_%s.o\n" % (info['compilers'][m['compiler']]['executable'],
-														 m['abi']))
+			out.write("mutatee_driver_solo_%s_%s%s\n"
+					  % (info['compilers'][m['compiler']]['executable'],
+						 m['abi'], ObjSuffix))
 		else:
 			# Get the aux compiler for C on this platform and use it
 			aux_c = find_platform(os.environ.get('PLATFORM'))['auxilliary_compilers']['c']
-			out.write("mutatee_driver_solo_%s_%s.o\n" % (aux_c, m['abi']))
-		out.write("\t$(M_%s) -o $@ $(filter %%.o,$^) %s %s " % (compiler['defstring'], compiler['flags']['link'], compiler['abiflags'][platform['name']][m['abi']]))
+			aux_c = info['compilers'][aux_c]['executable']
+			out.write("mutatee_driver_solo_%s_%s%s\n"
+					  % (aux_c, m['abi'], ObjSuffix))
+		# Print the actions used to link the mutatee executable
+		out.write("\t$(M_%s) -o $@ $(filter %%%s,$^) %s %s "
+				  % (compiler['defstring'],
+					 ObjSuffix,
+					 compiler['flags']['link'],
+					 compiler['abiflags'][platform['name']][m['abi']]))
 		for l in m['libraries']:
 			# Need to include the required libraries on the command line
 			# FIXME Use a compiler-specific command-line flag instead of '-l'
 			out.write("-l%s " % (l))
 		out.write('\n')
+
+		# ***ADD NEW BUILD-TIME ACTIONS HERE***
+
 
 # Prints all the special object file compile rules for a given compiler
 # FIXME This doesn't deal with preprocessed files!
@@ -539,7 +512,7 @@ def print_special_object_rules(compiler, out):
 			  % (compiler))
 	objects = filter(lambda o: o['compiler'] == compiler, info['objects'])
 	for o in objects:
-		# TODO Print a rule to build this object file
+		# Print a rule to build this object file
 		# TODO Convert the main source file name to an object name
 		#  * Crap!  I don't know if this is a preprocessed file or not!
 		#  * This should be okay soon; I'm removing the proprocessing stage..
@@ -565,123 +538,74 @@ def print_special_object_rules(compiler, out):
 		out.write("\n")
 	out.write("\n")
 
-def print_generic_rules(c, out):
+
+# Produces a string of compiler flags for compiling mutatee object files with
+# the specified build-time options
+def object_flag_string(platform, compiler, abi, optimization):
+	return "%s %s %s %s %s" % (compiler['flags']['std'],
+							   compiler['flags']['mutatee'],
+							   compiler['parameters']['partial_compile'],
+							   compiler['abiflags'][platform['name']][abi],
+							   compiler['optimization'][optimization])
+
+
+# Prints pattern rules for mutatees
+def print_patterns(c, out):
 	out.write("\n# Generic rules for %s's mutatees and varying optimization levels\n" % (c))
 	compiler = info['compilers'][c]
 	platform = find_platform(os.environ.get('PLATFORM'))
+	ObjSuffix = platform['filename_conventions']['object_suffix']
 	for abi in platform['abis']:
 		for o in compiler['optimization']:
 			# Rules for compiling source files to .o files
-			# TODO Replace this code generation with language neutral code
-			# generation
-			if 'c' in compiler['languages']:
-				out.write("%%_mutatee_solo_%s_%s_%s.o: %%_solo_me.c\n"
-						  % (info['compilers'][c]['executable'], abi ,o))
-				out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s %s %s %s -o $@ -c $<\n"
-						  % (compiler['defstring'],
-							 compiler['flags']['std'],
-							 compiler['flags']['mutatee'],
-							 compiler['abiflags'][platform['name']][abi],
-							 compiler['optimization'][o]))
-				out.write("%%_%s_%s_%s.o: ../src/%%.c\n" % (info['compilers'][c]['executable'], abi, o))
-				out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s %s %s %s -o $@ -c $<\n"
-						  % (compiler['defstring'], compiler['flags']['std'],
-							 compiler['flags']['mutatee'],
-							 compiler['abiflags'][platform['name']][abi],
-							 compiler['optimization'][o]))
-			if 'c++' in compiler['languages']:
-				out.write("%%_mutatee_solo_%s_%s_%s.o: %%_solo_me.C\n"
-						  % (info['compilers'][c]['executable'], abi, o))
-				out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s %s %s %s -o $@ -c $<\n"
-						  % (compiler['defstring'], compiler['flags']['std'],
-							 compiler['flags']['mutatee'],
-							 compiler['abiflags'][platform['name']][abi],
-							 compiler['optimization'][o]))
-				out.write("%%_%s_%s_%s.o: ../src/%%.C\n" % (info['compilers'][c]['executable'], abi, o))
-				out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s %s %s %s -o $@ -c $<\n"
-						  % (compiler['defstring'], compiler['flags']['std'],
-							 compiler['flags']['mutatee'],
-							 compiler['abiflags'][platform['name']][abi],
-							 compiler['optimization'][o]))
+			cto = fullspec_cto_component(compiler, abi, o)
+
+			for l in compiler['languages']:
+				lang = find_language(l) # Get language dictionary from name
+				for e in lang['extensions']:
+					# FIXME This generates spurious lines for compilers that
+					# aren't used for this part of the mutatee build system
+					# like .s and .S files for gcc and Fortran files.
+					out.write("%%_mutatee_solo%s%s: %%_solo_me%s\n"
+							  % (cto, ObjSuffix, e))
+					out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
+							  % (compiler['defstring'],
+								 object_flag_string(platform, compiler,
+													abi, o)))
+					out.write("%%%s%s: ../src/%%%s\n"
+							  % (cto, ObjSuffix, e))
+					out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
+							  % (compiler['defstring'],
+								 object_flag_string(platform, compiler,
+													abi, o)))
 	out.write("\n")
 
-def write_make_solo_mutatee_gen(filename, tuplefile):
-	read_tuples(tuplefile)
-	compilers = info['compilers']
-	mutatees = info['mutatees']
-	out = open(filename, "w")
-	print_mutatee_comp_defs(out)
-	comps = collect_mutatee_comps(mutatees)
-	pname = os.environ.get('PLATFORM')
-	platform = find_platform(pname)
-	for c in comps:
-		muts = filter(lambda x: x['compiler'] == c, mutatees)
-		print_mutatee_rules(out, muts, compilers[c])
-		# Print rules for exceptional object files
-		print_special_object_rules(c, out)
-		print_generic_rules(c, out)
-		out.write("# Rules for building the driver and utility objects\n")
-		# TODO Replace this code generation with language neutral code
-		# generation
-		if 'c' in info['compilers'][c]['languages']:
-			for abi in platform['abis']:
-				out.write("mutatee_driver_solo_%s_%s.o: ../src/mutatee_driver.c\n" % (info['compilers'][c]['executable'], abi))
-				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n"
-						  % (compilers[c]['defstring'],
-							 compilers[c]['flags']['std'],
-							 compilers[c]['flags']['mutatee'],
-							 compilers[c]['abiflags'][platform['name']][abi]))
-				out.write("mutatee_util_%s_%s.o: ../src/mutatee_util.c\n"
-						  % (info['compilers'][c]['executable'], abi))
-				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n\n"
-						  % (compilers[c]['defstring'],
-							 compilers[c]['flags']['std'],
-							 compilers[c]['flags']['mutatee'],
-							 compilers[c]['abiflags'][platform['name']][abi]))
-		else:
-			out.write("# (Skipped: driver and utility objects cannot be compiled with this compiler\n")
 
-	# Pattern rules for all compilers supported on this platform
-	# TODO Make this handle all the auxilliary compiler for this platform
-	# I think we want a pattern rule for each compiler at each optimization
-	# level
+# Prints pattern rules for this platform's auxilliary compilers
+def print_aux_patterns(out, platform, comps):
+	# Pattern rules for auxilliary compilers supported on this platform
 	out.write("\n# Generic rules for this platform's auxilliary compilers\n\n")
 	aux_comps = platform['auxilliary_compilers']
 	for ac_lang in aux_comps:
 		compname = aux_comps[ac_lang]
 		comp = info['compilers'][compname]
-		# TODO print pattern rule(s) for this compiler
+		# Print pattern rule(s) for this compiler
 		# ac should be a map from a language to a compiler..
 		lang = filter(lambda l: l['name'] == ac_lang, info['languages'])[0]
 		for ext in lang['extensions']:
 			for abi in platform['abis']:
 				for o in comp['optimization']:
-					# FIXME Make this read the object extension from the
-					# platform tuple
-					out.write("%%_%s_%s_%s.o: ../src/%%%s\n"
-							  % (compname, abi,	o, ext))
+					cto = fullspec_cto_component(comp, abi, o)
+					out.write("%%%s%s: ../src/%%%s\n"
+							  % (cto,
+								 platform['filename_conventions']['object_suffix'],
+								 ext))
 					# FIXME Make this read the parameter flags from the
 					# compiler tuple (output file parameter flag)
-					out.write("\t$(M_%s) %s %s %s -o $@ %s %s $<\n\n"
+					out.write("\t$(M_%s) %s -o $@ $<\n\n"
 							  % (comp['defstring'],
-								 comp['flags']['std'],
-								 comp['flags']['mutatee'],
-								 comp['abiflags'][platform['name']][abi],
-								 comp['parameters']['partial_compile'],
-								 comp['optimization'][o]))
-# 	langs = map(lambda l: l['name'], info['languages'])
-# 	for l in filter(lambda l: compiler_count(l) == 1, langs):
-# 		# Print (a) pattern rule(s) for each of these languages
-# 		comp = filter(lambda c: l in info['compilers'][c]['languages'],
-# 					  info['compilers'])[0]
-# 		# FIXME I really want a map here instead of this ugly lookup
-# 		lang = filter(lambda x: x['name'] == l, info['languages'])[0]
-# 		for e in lang['extensions']:
-# 			# Print a pattern rule for this extension
-# 			# FIXME Make this read the object extension from platform tuple
-# 			out.write("%%.o: ../src/%%%s\n" % (e))
-# 			# FIXME Make this read the parameter flags from compiler tuple
-# 			out.write("\t%s %s -o $@ %s $<\n\n" % (comp, info['compilers'][comp]['flags']['std'], info['compilers'][comp]['parameters']['partial_compile']))
+								 object_flag_string(platform, comp,
+													abi, o)))
 
 	# Also want to generate rules for any non-standard objects built with
 	# auxilliary compilers..
@@ -691,10 +615,11 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 		if c not in comps:
 			print_special_object_rules(c, out)
 
-	# Now generate the rule for source munging and a rule to build all of the
-	# mutatees
-	# FIXME I need to rewrite the @<groupable>@ entity differently depending
-	# on which test I'm rewriting..
+
+# Prints the preprocessing stage of mutatee compilation
+def print_make_solo_mutatee_gen_preprocess(out):
+	# Now generate the rule for source munging and a rule to build all of
+	# the mutatees
  	out.write("# Generate the source file we'll use from user-written test source\n")
  	out.write("# and generic boilerplate\n")
 	# Rungroups are labelled as groupable or not..  They also map to a single
@@ -728,14 +653,11 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 		out.write("%s_solo_me%s: ../src/%s\n" % (basename, ext, sourcefile))
 		out.write("\tsed -e 's/@<testname>@/%s/g' -e 's/@<groupable>@/1/' < ../src/%s > $@\n" % (basename, boilerplate))
 		out.write("\tcat $^ >> $@\n\n")
-	# What's up with these next few lines?  Which files do they deal with that
-	# are neither in ng_sources or g_sources?
-	out.write("%_solo_me.c: ../src/%_mutatee.c\n")
-	out.write("\tsed -e 's/@<testname>@/$*/g' -e 's/@<groupable>@/0/' < ../src/solo_mutatee_boilerplate.c > $@\n")
-	out.write("\tcat $^ >> $@\n\n")
-	out.write("%_solo_me.C: ../src/%_mutatee.C\n")
-	out.write("\tsed -e 's/@<testname>@/$*/g' -e 's/@<groupable>@/0/' < ../src/solo_mutatee_boilerplate.C > $@\n")
-	out.write("\tcat $^ >> $@\n\n")
+
+
+# Prints the footer for make.solo_mutatee.gen
+def print_make_solo_mutatee_gen_footer(out, comps, platform):
+	compilers = info['compilers']
 	out.write("# And a rule to build all of the mutatees\n")
 	out.write(".PHONY: solo_mutatees\n")
 	out.write("solo_mutatees: ")
@@ -750,6 +672,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 	# Get a list of optimization levels we're using and delete the mutatee
 	# objects for each of them individually
 	objExt = platform['filename_conventions']['object_suffix']
+	# FIXME Get the actual list of optimization levels we support
 	for o in ['none', 'low', 'high', 'max']:
 		out.write("\t-$(RM) *_%s%s\n" % (o, objExt))
 	out.write("\n\n")
@@ -767,7 +690,57 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 			out.write("COMPILER_CONTROL_DEFS += -D%s\n" % (info['compilers'][c]['presencevar']))
 			out.write("endif\n")
 	out.write('\n')
-	
+
+
+# Main function for generating make.solo_mutatee.gen
+def write_make_solo_mutatee_gen(filename, tuplefile):
+	read_tuples(tuplefile)
+	compilers = info['compilers']
+	mutatees = info['mutatees']
+	out = open(filename, "w")
+	print_mutatee_comp_defs(out)
+	comps = collect_mutatee_comps(mutatees)
+	pname = os.environ.get('PLATFORM')
+	platform = find_platform(pname)
+	ObjSuffix = platform['filename_conventions']['object_suffix']
+	for c in comps:
+		# Generate a block of rules for mutatees produced by each compiler
+		muts = filter(lambda x: x['compiler'] == c, mutatees)
+		print_mutatee_rules(out, muts, compilers[c])
+		# Print rules for exceptional object files
+		print_special_object_rules(c, out)
+		print_patterns(c, out)
+		out.write("# Rules for building the driver and utility objects\n")
+		# TODO Replace this code generation with language neutral code
+		# generation
+		if 'c' in info['compilers'][c]['languages']:
+			for abi in platform['abis']:
+				out.write("mutatee_driver_solo_%s_%s%s: ../src/mutatee_driver.c\n" % (info['compilers'][c]['executable'], abi, ObjSuffix))
+				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n"
+						  % (compilers[c]['defstring'],
+							 compilers[c]['flags']['std'],
+							 compilers[c]['flags']['mutatee'],
+							 compilers[c]['abiflags'][platform['name']][abi]))
+				out.write("mutatee_util_%s_%s%s: ../src/mutatee_util.c\n"
+						  % (info['compilers'][c]['executable'],
+							 abi, ObjSuffix))
+				out.write("\t$(M_%s) %s %s %s -o $@ -c $<\n\n"
+						  % (compilers[c]['defstring'],
+							 compilers[c]['flags']['std'],
+							 compilers[c]['flags']['mutatee'],
+							 compilers[c]['abiflags'][platform['name']][abi]))
+		else:
+			out.write("# (Skipped: driver and utility objects cannot be compiled with this compiler\n")
+
+	# Print pattern rules for this platform's auxilliary compilers
+	print_aux_patterns(out, platform, comps)
+
+	# Print rules that do mutatee source file preprocessing
+	print_make_solo_mutatee_gen_preprocess(out)
+
+	# Print footer (list of targets, clean rules, compiler presence #defines)
+	print_make_solo_mutatee_gen_footer(out, comps, platform)
+
 	out.close()
 #
 ##########
