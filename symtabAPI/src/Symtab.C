@@ -2157,6 +2157,7 @@ bool Symtab::isValidOffset(const Offset where) const
  */
 bool Symtab::isCode(const Offset where)  const
 {
+    //    printf("isCode(%x)\n",where);
     if(!codeRegions_.size())
         return false;
     // search for "where" in codeRegions_ (code regions must not overlap)
@@ -2164,20 +2165,21 @@ bool Symtab::isCode(const Offset where)  const
     int last = codeRegions_.size() - 1;
     while (last >= first) {
         Region *curreg = codeRegions_[(first + last) / 2];
+        //        printf("  reg[%d] [%x %x]\n", (first+last)/2, curreg->getRegionAddr(), curreg->getRegionAddr() + curreg->getRegionSize());
         if (where >= curreg->getRegionAddr()
-            && where <= (curreg->getRegionAddr()
+            && where < (curreg->getRegionAddr()
                         + curreg->getDiskSize())) {
             return true;
         }
         else if (where < curreg->getRegionAddr()) {
             last = ((first + last) / 2) - 1;
         }
-        else if (where > (curreg->getRegionAddr()
+        else if (where >= (curreg->getRegionAddr()
                            + curreg->getMemSize())) {
             first = ((first + last) / 2) + 1;
         }
         else { // "where" is in the range: 
-               // [memOffset + diskSize , memOffset + memSize]
+               // [memOffset + diskSize , memOffset + memSize)
                // meaning that it's in an uninitialized data region 
             return false;
         }
