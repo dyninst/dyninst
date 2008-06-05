@@ -1186,7 +1186,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
     if(!obj->getAllNewRegions(newSecs))
     	log_elferror(err_func_, "No new sections to add");
 
-    if(dynsymbols.size() > 1)
+    if(dynsymbols.size() == 1)
         return true;
 
     //reconstruct .dynsym section
@@ -1209,7 +1209,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
         createDynamicSection(sec->getPtrToRawData(), sec->getDiskSize(), dynsecData, dynsecSize, dynsymbolNamesLength, dynsymbolStrs);
 #endif
    
-    if(!dynsymbolNamesLength || dynsymbols.size() == 1)
+    if(!dynsymbolNamesLength)
         return true; 
     --dynsymbolNamesLength;
     char *dynstr = (char *)malloc(dynsymbolNamesLength+1);

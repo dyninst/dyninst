@@ -1036,7 +1036,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     if(!obj->getAllNewRegions(newSecs))
     	log_elferror(err_func_, "No new sections to add");
 
-    if(dynsymbols.size() > 1)
+    if(dynsymbols.size() == 1)
         return true;
 
     //reconstruct .dynsym section
