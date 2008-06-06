@@ -25,7 +25,7 @@ class MappedFile {
 
    private:
 
-      MappedFile(std::string fullpath, bool &ok);
+      MappedFile(std::string fullpath_, bool &ok);
       MappedFile(void *loc, unsigned long size_, bool &ok);
       ~MappedFile();
       bool clean_up();

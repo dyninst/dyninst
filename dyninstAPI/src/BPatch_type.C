@@ -564,7 +564,7 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
     lVar->setUpPtr(this);
 }
 
-BPatch_storageClass BPatch_localVar::convertToBPatchStorage(loc_t *loc)
+BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::SymtabAPI::loc_t *loc)
 {
    Dyninst::SymtabAPI::storageClass stClass = loc->stClass;
    storageRefClass refClass = loc->refClass;

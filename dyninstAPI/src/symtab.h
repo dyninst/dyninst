@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.208 2008/04/15 16:43:40 roundy Exp $
+// $Id: symtab.h,v 1.209 2008/06/06 00:11:33 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -118,8 +118,8 @@ class instPoint;
 
 // File descriptor information
 class fileDescriptor {
-    static string emptyString;
  public:
+    static string emptyString;
     // Vector requires an empty constructor
     fileDescriptor();
 

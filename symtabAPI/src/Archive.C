@@ -46,7 +46,7 @@ std::vector<Archive *> Archive::allArchives;
 
 bool Archive::openArchive(Archive *&img, std::string filename)
 {
- 	bool err;
+ 	bool ok = false;
 	for (unsigned i=0;i<allArchives.size();i++)
 	{
       if (allArchives[i]->mf->pathname() == filename)
@@ -56,15 +56,17 @@ bool Archive::openArchive(Archive *&img, std::string filename)
       }
 	}
 
-	img = new Archive(filename ,err);
-	if (err)	// No errors
+	img = new Archive(filename ,ok);
+	if (ok)	// No errors
 		allArchives.push_back(img);	
 	else {
+      //fprintf(stderr, "%s[%d]:  error opening archive for %s\n", 
+      //      FILE__, __LINE__, filename.c_str());
       if (img)
          delete img;
 		img = NULL;
    }
-	return err;
+	return ok;
 }
 
 #if 0 
@@ -86,13 +88,30 @@ bool Archive::getMember(Symtab *&img, std::string member_name)
       errMsg = "Member Does not exist";
       return false;
    }	
+
    img = membersByName[member_name];
    if (img == NULL) {
       bool err;
-      if(mf->getFD() == -1)
-          img = new Symtab((char *)mf->base_addr(),mf->size(), member_name, memberToOffsetMapping[member_name], err, basePtr);
-      else
-          img = new Symtab(mf->pathname(),member_name, memberToOffsetMapping[member_name], err, basePtr);
+      if (mf->getFD() == -1) {
+          img = new Symtab((char *)mf->base_addr(),mf->size(), 
+                member_name, memberToOffsetMapping[member_name], err, basePtr);
+      }
+      else {
+         if (!mf) {
+            fprintf(stderr, "%s[%d]:  ERROR: mf has not been set\n", FILE__, __LINE__);
+            return false;
+         }
+         std::string pname = mf->pathname();
+         if (pname.length()) {
+            img = new Symtab(std::string(pname),member_name, memberToOffsetMapping[member_name], 
+                  err, basePtr);
+         }
+         else {
+            fprintf(stderr, "%s[%d]:  WARNING:  got mapped file with non existant path name\n", FILE__, __LINE__);
+            img = new Symtab(std::string(""),member_name, memberToOffsetMapping[member_name], 
+                  err, basePtr);
+         }
+      }
       membersByName[member_name] = img;
    }
    return true;
@@ -105,10 +124,12 @@ bool Archive::getAllMembers(std::vector <Symtab *> &members)
       if (iter->second == NULL) {
          bool err;
          string member_name = iter->first;
-         if(mf->getFD() == -1)
-             iter->second = new Symtab((char *)mf->base_addr(), mf->size(), member_name, memberToOffsetMapping[iter->first], err, basePtr);
+         if (mf->getFD() == -1)
+             iter->second = new Symtab((char *)mf->base_addr(), mf->size(), member_name, 
+                   memberToOffsetMapping[iter->first], err, basePtr);
          else
-             iter->second = new Symtab(mf->pathname(), member_name, memberToOffsetMapping[iter->first], err, basePtr);
+             iter->second = new Symtab(mf->pathname(), member_name, memberToOffsetMapping[iter->first], 
+                   err, basePtr);
       }
       members.push_back(iter->second);
    }

@@ -61,11 +61,13 @@ std::string Archive::printError(SymtabError serr)
 	}	
 }		
 		       
-Archive::Archive(std::string &filename, bool &err) :
+Archive::Archive(std::string &filename, bool &ok) :
    basePtr(NULL)
 {
    mf  = MappedFile::createMappedFile(filename);
    fileOpener *fo_ = fileOpener::openFile(mf->base_addr(), mf->size());
+   fo_->set_file(mf->filename());
+
 
 	assert(fo_);
 	unsigned char magic_number[2];
@@ -76,7 +78,7 @@ Archive::Archive(std::string &filename, bool &err) :
               filename.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
-		err = false;
+		ok = false;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
       MappedFile::closeMappedFile(mf);
       mf = NULL;
@@ -88,7 +90,7 @@ Archive::Archive(std::string &filename, bool &err) :
               filename.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
-		err = false;
+		ok = false;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
       MappedFile::closeMappedFile(mf);
       mf = NULL;
@@ -103,7 +105,8 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Not_An_Archive;
       sprintf(errorLine, "Not an Archive. Call Symtab::openFile"); 
 		errMsg = errorLine;
-		err = false;
+		ok = false;
+      //fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
       MappedFile::closeMappedFile(mf);
       mf = NULL;
 		return;
@@ -114,7 +117,8 @@ Archive::Archive(std::string &filename, bool &err) :
               filename.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
-		err = false;
+		ok = false;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
       MappedFile::closeMappedFile(mf);
       mf = NULL;
 		return;
@@ -130,7 +134,7 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Obj_Parsing;
 		errMsg = errorLine;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-		err = false;
+		ok = false;
 	}					     
 
    char magicNumber[SAIAMAG];
@@ -141,7 +145,7 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Obj_Parsing;
 		errMsg = errorLine;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-		err = false;
+		ok = false;
 	}	
 
    if (!strncmp(magicNumber, AIAMAG, SAIAMAG))
@@ -155,7 +159,7 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Obj_Parsing;
 		errMsg = errorLine;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-		err = false;
+		ok = false;
 	}	
     
    if (archive->read_arhdr())
@@ -165,41 +169,48 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Obj_Parsing;
 		errMsg = errorLine;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-		err = false;
+		ok = false;
 	}	
     
-	while (archive->next_offset !=0)
+   while (archive->next_offset !=0)
    {
       if (archive->read_mbrhdr())
-		{
-			sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-                 filename.c_str(), "Reading Member Header" );
-			serr = Obj_Parsing;
-			errMsg = errorLine;
-      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-			err = false;
-		}	
-					     
-		std::string member_name = archive->member_name;
-		bool err;
-		std::string::size_type len = member_name.length();
-		if((len >= 4)&&(member_name.substr(len-4,4) == ".imp" || member_name.substr(len-4,4) == ".exp"))
-			continue;
-        memberToOffsetMapping[member_name] = archive->aout_offset;
-        //Do it lazily
-		membersByName[member_name] = NULL;
-/*        
-		Symtab *memImg = new Symtab(filename ,member_name, archive->aout_offset, err);
-		membersByName[member_name] = memImg;
-*/
+      {
+         sprintf(errorLine, "Error parsing a.out file %s: %s \n",
+               filename.c_str(), "Reading Member Header" );
+         serr = Obj_Parsing;
+         errMsg = errorLine;
+         fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
+         ok = false;
+      }	
+
+      std::string member_name = archive->member_name;
+      bool err;
+      std::string::size_type len = member_name.length();
+      if ((len >= 4)&&(member_name.substr(len-4,4) == ".imp" || 
+               member_name.substr(len-4,4) == ".exp"))
+         continue;
+      memberToOffsetMapping[member_name] = archive->aout_offset;
+      //Do it lazily
+      membersByName[member_name] = NULL;
+      /*        
+                Symtab *memImg = new Symtab(filename ,member_name, archive->aout_offset, err);
+                membersByName[member_name] = memImg;
+       */
    } 	
+
+   //  why do we close the file mapping??  I must be missing something
+#if 0 
    if (mf)
       MappedFile::closeMappedFile(mf);
    delete archive;
    mf = NULL;
-	err = true;
+#endif
+
+   ok = true;
 }
 
+#if 0
 Archive::Archive(char *mem_image, size_t size, bool &err)
 {
     mf  = MappedFile::createMappedFile(mem_image, size);
@@ -318,6 +329,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     delete archive;
     err = true;
 }
+#endif
 
 Archive::~Archive()
 {

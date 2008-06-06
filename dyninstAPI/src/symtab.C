@@ -1177,7 +1177,6 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    SymtabError serr = Not_An_Archive;
 
    startup_printf("%s[%d]:  opening file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-   //fprintf(stderr, "%s[%d]:  opening file %s (or archive)\n", FILE__, __LINE__, file.c_str());
    if (!Archive::openArchive(archive, file))
    {
       err = true;
@@ -1201,14 +1200,19 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    {
       assert (archive);
       startup_printf("%s[%d]:  getting member\n", FILE__, __LINE__);
-      string member = desc_.member().c_str();
-      if (!archive->getMember(linkedFile, member))
-      {
-         startup_printf("%s[%d]:  getting member failed\n", FILE__, __LINE__);
-         err = true;
-         return;
+      string member = std::string(desc_.member());
+      if (member == fileDescriptor::emptyString) {
+         fprintf(stderr, "%s[%d]:  WARNING:  not asking for unnamed member\n", FILE__, __LINE__);
       }
-      startup_printf("%s[%d]:  got member\n", FILE__, __LINE__);
+      else {
+         if (!archive->getMember(linkedFile, member))
+         {
+            startup_printf("%s[%d]:  getting member failed\n", FILE__, __LINE__);
+            err = true;
+            return;
+         }
+         startup_printf("%s[%d]:  got member\n", FILE__, __LINE__);
+      }
    }
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
 #else

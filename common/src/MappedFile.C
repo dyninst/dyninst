@@ -28,7 +28,7 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 }
 
 MappedFile::MappedFile(std::string fullpath_, bool &ok) :
-   fullpath(std::string(fullpath_)),
+   fullpath(fullpath_),
    did_mmap(false),
    did_open(false),
    refCount(1)
@@ -305,10 +305,12 @@ bool MappedFile::close_file()
    return true;
 }
 
-std::string MappedFile::pathname() {
+std::string MappedFile::pathname() 
+{
 	return fullpath;
 }
 
-std::string MappedFile::filename() {
+std::string MappedFile::filename() 
+{
 	return extract_pathname_tail(fullpath);
 }

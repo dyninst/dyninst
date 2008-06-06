@@ -93,12 +93,14 @@ Archive::Archive(std::string &filename, bool &err) :
    err = true;
 }
 
+#if 0
 //For elf looks like we need a file descriptor for parsing archives
 //So return error unable to parse archive
 Archive::Archive(char *mem_image, size_t size, bool &err) : basePtr(NULL)
 {
     err = false;
 }
+#endif
 
 
 
