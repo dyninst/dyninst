@@ -1405,7 +1405,7 @@ optimization_for_mutatee('test_thread_7', GNU, Opt) :-
 optimization_for_mutatee('test_thread_7', NonGNU, Opt) :-
     comp_lang(NonGNU, 'c'),
     \+ member(NonGNU, ['gcc', 'g++']),
-	compiler_opt_trans(NonGNU, Opt, _).
+    compiler_opt_trans(NonGNU, Opt, _).
 % Mutatee needs to be linked with libpthread everywhere but on Windows
 mutatee_requires_libs('test_thread_7', Libs) :-
     current_platform(Platform),
@@ -2126,6 +2126,15 @@ object_suffix(Platform, Suffix) :-
         Suffix = '.o'
     ).
 
+% executable_suffix/2
+% Specifies the convention used for executable files on a platform
+executable_suffix(Platform, Suffix) :-
+    platform(_, OS, _, Platform),
+    (
+        OS = 'windows' -> Suffix = '.exe';
+        Suffix = ''
+    ).
+
 % library_prefix/2
 % Specifies the convention used for shared library prefixes on a platform
 library_prefix(Platform, Prefix) :-
@@ -2181,9 +2190,9 @@ aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
     platform(_, OS, _, Platform),
-	% AIX is excluded because both att_asm and power_asm use the '.s' extension
-	% and we can't have multiple compilers use the same extension on a platform
-	\+ member(OS, ['windows', 'aix']).
+    % AIX is excluded because both att_asm and power_asm use the '.s' extension
+    % and we can't have multiple compilers use the same extension on a platform
+    \+ member(OS, ['windows', 'aix']).
 aux_compiler_for_platform(Platform, 'power_asm', 'ibm_as') :-
         platform('power', 'aix', _, Platform).
 
@@ -2226,14 +2235,14 @@ lang_ext('nasm_asm', '.asm').
 % files
 insane('Too many compilers on platform P1 for extension P2',
        [Platform, Extension]) :-
-	current_platform(Platform),
-	compiler_platform(Compiler1, Platform),
-	compiler_platform(Compiler2, Platform),
-	lang_ext(Language1, Extension),
-	lang_ext(Language2, Extension),
-	Language1 \= Language2,
-	comp_lang(Compiler1, Language1),
-	comp_lang(Compiler2, Language2).
+    current_platform(Platform),
+    compiler_platform(Compiler1, Platform),
+    compiler_platform(Compiler2, Platform),
+    lang_ext(Language1, Extension),
+    lang_ext(Language2, Extension),
+    Language1 \= Language2,
+    comp_lang(Compiler1, Language1),
+    comp_lang(Compiler2, Language2).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2248,9 +2257,9 @@ comp_lang(Compiler, 'c') :-
 comp_lang(Compiler, 'c++') :-
     member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC']).
 comp_lang('gcc', 'att_asm') :-
-	% We don't use gcc for assembly files on AIX
-	current_platform(Platform),
-	\+ platform(_, 'aix', _, Platform).
+    % We don't use gcc for assembly files on AIX
+    current_platform(Platform),
+    \+ platform(_, 'aix', _, Platform).
 comp_lang('masm', 'masm_asm').
 
 % Mutatee Compiler Defns
@@ -2322,29 +2331,29 @@ compiler_opt_trans(Comp, 'low', '-O1') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'low', '-O') :-
-	member(SunWorkshop, ['sun_cc', 'CC']).
+    member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'low', '-O') :-
-	member(IBM, ['xlc', 'xlC']).
+    member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
-	member(SunWorkshop, ['sun_cc', 'CC']).
+    member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'high', '-O3') :-
-	member(IBM, ['xlc', 'xlC']).
+    member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '-O3') :-
-	member(Comp, ['gcc', 'g++', 'cc', 'cxx']).
+    member(Comp, ['gcc', 'g++', 'cc', 'cxx']).
 compiler_opt_trans(SunWorkshop, 'max', '-xO5') :-
-	member(SunWorkshop, ['sun_cc', 'CC']).
+    member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'max', '-O5') :-
-	member(IBM, ['xlc', 'xlC']).
+    member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
 
 % Ensure that we're only defining translations for compilers that exist
 insane('P1 not defined as a compiler, but has optimization translation defined',
-	   [Compiler]) :-
-	compiler_opt_trans(Compiler, _, _),
-	\+ compiler_platform(Compiler, _).
+       [Compiler]) :-
+    compiler_opt_trans(Compiler, _, _),
+    \+ compiler_platform(Compiler, _).
 
 
 % Translation for parameter flags
@@ -2543,11 +2552,16 @@ mutatee_requires_libs(Mutatee, []) :-
 % building an object file for the mutatee
 % TODO Create some kind of default optimization_for_mutatee rule
 
-% It makes more sense for run mode constraints to be by test rather than by
-% mutatee.
+% runmode/1
+% runmode(+RunMode)
+% Specifies the valid values for a test's run mode
+runmode('createProcess').
+runmode('useAttach').
+
 % test_runmode/2
 % test_runmode(?Test, ?Runmode)
-% The atom 'both' as Runmode means the test can be run in either useAttach or createProcess mode.
+% The atom 'both' as Runmode means the test can be run in either useAttach
+% or createProcess mode.
 test_runmode(Test, 'useAttach') :- test_runmode(Test, 'both').
 test_runmode(Test, 'createProcess') :- test_runmode(Test, 'both').
 
@@ -2576,7 +2590,7 @@ test_platform_abi(Test, Platform, ABI) :-
     test_platform(Test, Platform), platform_abi(Platform, ABI),
         platform(Arch, OS, _, Platform),
         (
-		    % If restricted_abi_for_arch is specified, follow its restrictions
+        % If restricted_abi_for_arch is specified, follow its restrictions
             restricted_abi_for_arch(Test, Arch, ABI);
             % If restricted_abi_for_arch is not specified, there are no
             % restrictions

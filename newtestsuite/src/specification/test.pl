@@ -36,10 +36,11 @@ current_platform(Platform) :-
 % for that platform
 % Platform, ObjSuffix, LibPrefix, and LibSuffix are strings
 % AuxCompilers is a map from language names to compiler names
-platform_tuple(Platform, ObjSuffix, LibPrefix, LibSuffix, AuxCompilers,
-               ABIs) :-
+platform_tuple(Platform, ObjSuffix, ExecSuffix,LibPrefix, LibSuffix,
+               AuxCompilers, ABIs) :-
     platform(_, _, _, Platform),
     object_suffix(Platform, ObjSuffix),
+    executable_suffix(Platform, ExecSuffix),
     library_prefix(Platform, LibPrefix),
     library_suffix(Platform, LibSuffix),
     % AuxCompilers defaults to an empty map if none were specified
@@ -58,7 +59,7 @@ platform_tuple(Platform, ObjSuffix, LibPrefix, LibSuffix, AuxCompilers,
 
 compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings,
                ParmStrings, Languages, StdFlags, ABIFlags) :-
-	% The next two lines ensure that we only return compilers that are used to
+    % The next two lines ensure that we only return compilers that are used to
     % build at least one mutator or mutatee, and we don't return the same
     % compiler more than once.
     findall(C, (mutatee_comp(C); mutator_comp(C)), Cs),
@@ -112,18 +113,18 @@ language_tuple(Language, Extensions) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 mutator_tuple(Name, Sources, Libraries, Platform, Compiler) :-
-	% We don't want to produce duplicates here, so let's get a list of all
-	% the appropriate mutators and limit Name to members of that list
-	findall(M,
-	        (
-				% We're getting a list of all the mutators that are used for
-				% tests that run on this platform
+    % We don't want to produce duplicates here, so let's get a list of all
+    % the appropriate mutators and limit Name to members of that list
+    findall(M,
+            (
+                % We're getting a list of all the mutators that are used for
+                % tests that run on this platform
                 test(TestName, M, _),
-				test_platform(TestName, Platform)
-			),
-			Ms),
-	sort(Ms, Ms_uniq), !, % We won't build the list again
-	member(Name, Ms_uniq),
+                test_platform(TestName, Platform)
+            ),
+            Ms),
+    sort(Ms, Ms_uniq), !, % We won't build the list again
+    member(Name, Ms_uniq),
     mutator(Name, Sources),
     mutator_requires_libs(Name, Explicit_libs),
     all_mutators_require_libs(Implicit_libs),
@@ -233,7 +234,8 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
          compiler_opt_trans(Compiler, Optimization, _))
     ),
     platform_abi(Platform, ABI),
-    member(RunMode, ['createProcess', 'useAttach']),
+    % Enumerate / verify values for run-time options
+        runmode(RunMode),
     member(StartState, ['stopped', 'running', 'selfstart']),
     member(Groupable, ['true', 'false']),
     (
@@ -287,14 +289,18 @@ exception_tuple(Filename, ExceptionType, ParameterNames, Parameters) :-
 % Platform to the file specified in Filename
 write_tuples(Filename, Platform) :-
     nonvar(Filename), nonvar(Platform), % Sanity check
-	% Check insane/2 statements.  If sanity checks fail, abort
-	findall(Insanity, (insane(M, P), Insanity = [M, P]), Insanities),
-	sort(Insanities, Insanities_uniq),
-	\+ length(Insanities_uniq, 0) ->
-	    (write(Insanities_uniq), write('\n'), halt(-1));
-	% Sanity checks passed, so continue with the tuple generation
+    % Check insane/2 statements.  If sanity checks fail, abort
+    findall(Insanity, (insane(M, P), Insanity = [M, P]), Insanities),
+    sort(Insanities, Insanities_uniq),
+    \+ length(Insanities_uniq, 0) ->
+            % At least one sanity check has failed.  Print all sanity checking
+            % error messages and exit.
+        (for_each(Insanities_uniq, [Fmt, Arg], format(Fmt, Arg)),
+         halt(-1));
+    % Sanity checks passed, so continue with the tuple generation
     open(Filename, write, Stream),
-    findall([P, OS, LP, LS, AC, As], platform_tuple(P, OS, LP, LS, AC, As),
+    findall([P, OS, ES, LP, LS, AC, As],
+            platform_tuple(P, OS, ES, LP, LS, AC, As),
             Platforms),
     write_term(Stream, Platforms, [quoted(true)]),
     write(Stream, '\n'),
@@ -325,12 +331,6 @@ write_tuples(Filename, Platform) :-
             RunGroups),
     write_term(Stream, RunGroups, [quoted(true)]),
     write(Stream, '\n'),
-%     findall([ET, PC, PL], spec_exception_type(ET, PC, PL), ExceptionTypes),
-%     write_term(Stream, ExceptionTypes, [quoted(true)]),
-%     write(Stream, '\n'),
-%     findall([F, ET, PN, Ps], exception_tuple(F, ET, PN, Ps), Exceptions),
-%     write_term(Stream, Exceptions, [quoted(true)]),
-%     write(Stream, '\n'),
     findall([M, C, S, IS, D, F], spec_object_file(M, C, S, IS, D, F), ObjectFiles),
     write_term(Stream, ObjectFiles, [quoted(true)]),
     write(Stream, '\n'),

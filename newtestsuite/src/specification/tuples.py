@@ -79,9 +79,10 @@ def parse_platforms(tuplestring):
 	plat_labels = ('name', 'filename_conventions', 'auxilliary_compilers',
 				   'abis')
 	def convert_tuple(ptup):
-		[pl, os, lp, ls, ac, as] = ptup
-		conv_labels = ('object_suffix', 'library_prefix', 'library_suffix')
-		fnconv = dict(zip(conv_labels, [os, lp, ls]))
+		[pl, os, es, lp, ls, ac, as] = ptup
+		conv_labels = ('object_suffix', 'executable_suffix',
+					   'library_prefix', 'library_suffix')
+		fnconv = dict(zip(conv_labels, [os, es, lp, ls]))
 		return [pl, fnconv, dict(ac), as]
 	plat_map = map(lambda x: dict(zip(plat_labels, convert_tuple(x))),
 				   plat_list)

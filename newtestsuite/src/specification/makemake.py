@@ -143,8 +143,11 @@ def auxcomp_bto_component(compiler, mutatee):
 
 def mutatee_binary(mutatee):
 	# Returns standard name for the solo mutatee binary for this mutatee
-	return "%s.mutatee_solo%s" % (mutatee['name'],
-								  mutatee_bto_component(mutatee))
+	platform = find_platform(os.environ.get('PLATFORM'))
+	es = platform['filename_conventions']['executable_suffix']
+	return "%s.mutatee_solo%s%s" % (mutatee['name'],
+									mutatee_bto_component(mutatee),
+									es)
 
 #
 ######################################################################
@@ -242,34 +245,13 @@ TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
 {
 }
 
-// Constructor for RunGroup, with an initial test specified
-RunGroup::RunGroup(char *mutatee_name, start_state_t state_init,
-                   create_mode_t attach_init, bool ex, TestInfo *test_init)
-  : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
-    customExecution(ex)
-{
-  tests.push_back(test_init);
-}
-
-// Constructor for RunGroup with no initial test specified
+// Constructor for RunGroup
 RunGroup::RunGroup(char *mutatee_name, start_state_t state_init,
                    create_mode_t attach_init, bool ex)
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
     customExecution(ex)
 {
 }
-
-// RunGroup's destructor clears its vector of tests
-RunGroup::~RunGroup() {
-//  while (tests.size() > 0) {
-//    delete tests[0];
-//    tests.erase(tests.begin());
-//  }
-}
-
-// We define one global variable to store the list of run groups that we'll run
-// std::vector<RunGroup *> tests;
-
 """
 	read_tuples(tuplefile)
 	compilers = info['compilers']
@@ -289,7 +271,9 @@ def mutatee_filename(rungroup, compilers):
 		bto = fullspec_bto_component(compiler,
 									 rungroup['abi'],
 									 rungroup['optimization'])
-		retval = "%s.mutatee_solo%s" % (mutatee, bto)
+		platform = find_platform(os.environ.get('PLATFORM'))
+		es = platform['filename_conventions']['executable_suffix']
+		retval = "%s.mutatee_solo%s%s" % (mutatee, bto, es)
 	return retval
 
 # Return the name of the mutator for this test
@@ -305,6 +289,20 @@ def test_mutator(testname):
 	else:
 		mrname = None
 	return mrname
+
+
+# Builds a text label for a test based on the run group's information
+# FIXME This is hardcoded to set grouped to false.  It needs to be fixed to
+# support the group mutatee optimization
+def build_label(test, mutator, rungroup):
+	label = "{test: %s, mutator: %s, grouped: false" % (test, mutator)
+	for n in rungroup:
+		# We've already dealt with tests and we don't handle groupable yet
+		if n not in ['tests', 'groupable']:
+			label = label + ", " + n + ": " + rungroup[n]
+	label = label + "}"
+	return label
+
 
 def print_initialize_mutatees(out, rungroups, compilers):
 	header = """
@@ -348,7 +346,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			# (<test>, <mutatee compiler>, <mutatee optimization>, <create mode>)
 			# I need to get the mutator that this test maps to..
 			mutator = test_mutator(test)
-			ts = "{test: %s, mutator: %s, mutatee: %s, compiler: %s, mutatee_abi: %s, optimization: %s, run_mode: %s, grouped: %s}" % (test, mutator, group['mutatee'], group['compiler'], group['abi'], group['optimization'], group['run_mode'], 'false')
+			ts = build_label(test, mutator, group)
 			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s%s", "%s"));\n' % (test, mutator, mutator, LibSuffix, ts))
 		out.write('  rg->index = group_count++;\n')
 		out.write('  tests.push_back(rg);\n')
