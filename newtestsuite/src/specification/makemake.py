@@ -51,7 +51,7 @@ def get_file_lang(filename):
 				   info['compilers'])
 	#  Get a list of all the languages supported by those compilers
 	supported_langs = map(lambda x: info['compilers'][x]['languages'],
-						  info['compilers'])
+						  comps)
 	supported_langs = reduce(lambda x,y:x+y, supported_langs)
 	supported_langs = uniq(supported_langs)
 	#  Remove all languages from langs that aren't in supported_langs
