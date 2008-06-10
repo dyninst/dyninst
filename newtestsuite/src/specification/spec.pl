@@ -2188,6 +2188,8 @@ aux_compiler_for_platform(Platform, 'fortran', 'g77') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
     platform('i386', 'linux', _, Platform).
+aux_compiler_for_platform(Platform, 'masm_asm', 'masm') :-
+    platform('i386', 'windows', _, Platform).
 aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
     platform(_, OS, _, Platform),
     % AIX is excluded because both att_asm and power_asm use the '.s' extension
@@ -2260,7 +2262,6 @@ comp_lang('gcc', 'att_asm') :-
     % We don't use gcc for assembly files on AIX
     current_platform(Platform),
     \+ platform(_, 'aix', _, Platform).
-comp_lang('masm', 'masm_asm').
 
 % Mutatee Compiler Defns
 % mutatee_comp(compiler name)
@@ -2313,7 +2314,7 @@ compiler_s(Comp, Comp) :-
     % The next line contains a list of compilers whose executable names are
     % different from the name of the compiler that is used in this
     % specification system.
-    \+ member(Comp, ['sun_cc', 'ibm_as']),
+    \+ member(Comp, ['sun_cc', 'ibm_as', 'masm']),
     findall(C, mutatee_comp(C), Me_comp),
     findall(C, mutator_comp(C), Mr_comp),
     findall(C, (member(C, Me_comp); member(C, Mr_comp)), All_comp),
@@ -2424,6 +2425,18 @@ mutatee_link_options('nasm', '').
 mutatee_comp('nasm'). % I think I want to reorganize so this isn't required
                       % for compilers that are only used for auxilliary files
 compiler_parm_trans('nasm', 'partial_compile', '').
+
+% ml (masm) for test_mem (WINDOWS)
+comp_lang('masm', 'masm_asm').
+compiler_s('masm', 'ml').
+compiler_define_string('masm', 'masm').
+compiler_platform('masm', Platform) :-
+  platform('i386', 'windows', _, Platform).
+comp_std_flags_str('masm', '| TODO: proper flags |').
+comp_mutatee_flags_str('masm', '').
+mutatee_link_options('masm', '').
+mutatee_comp('masm').
+compiler_parm_trans('masm', 'partial_compile', '').
 
 % as for test_mem
 comp_lang('ibm_as', 'power_asm').
