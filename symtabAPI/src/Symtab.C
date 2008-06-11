@@ -53,7 +53,7 @@
 #if !defined(os_windows)
 #include <dlfcn.h>
 #else
-#include "windows.h"
+#include <windows.h>
 #include <libxml/xmlversion.h>
 #undef LIBXML_ICONV_ENABLED
 #endif
@@ -1254,7 +1254,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
     defaultNamespacePrefix = "";
 }
 #else 
-Symtab::Symtab(char *, size_t, std::string &, Offset, bool &)
+Symtab::Symtab(char *, size_t, std::string , Offset, bool &, void *)
 {
     assert(0);
 }
