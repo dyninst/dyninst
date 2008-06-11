@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2007/12/04 18:05:15 legendre Exp $
+# $Id: Makefile,v 1.5 2008/06/11 22:48:22 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,7 +27,7 @@ CXXFLAGS	+= $(MYFLAGS)
 CFLAGS		+= $(MYFLAGS)
 TFLAGS		+= $(MYFLAGS) 
 
-SYSLIBS		= -ldl
+LIBS        = -ldl
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread
