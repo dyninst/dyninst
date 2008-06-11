@@ -501,15 +501,16 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
     //	if (desc.isSharedObject())
     //if(curModule->IsDll())
     //	 baseAddr = get_base_addr();
-	if( !isForwarded( ((Offset) pSymInfo->Address) - baseAddr ) )
-	{
-		pFile->AddSymbol( new Object::intSymbol( pSymInfo->Name,
-							pSymInfo->Address - get_base_addr(),
-							symType,
-							symLinkage,
-							pSymInfo->Size,
-                     findEnclosingRegion((Offset)(pSymInfo->Address - get_base_addr())) ));
-	} 
+    if( !isForwarded( ((Offset) pSymInfo->Address) - baseAddr ) )
+    {
+        pFile->AddSymbol( new Object::intSymbol
+                          ( pSymInfo->Name,
+                            pSymInfo->Address - get_base_addr(),
+                            symType,
+                            symLinkage,
+                            pSymInfo->Size,
+                            findEnclosingRegion((Offset)(pSymInfo->Address - get_base_addr())) ));
+    } 
 }
    
 BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
@@ -664,7 +665,7 @@ void Object::FindInterestingSections(bool alloc_syms)
    HANDLE mapAddr = mf->base_addr();
    peHdr = ImageNtHeader( mapAddr );
 
-   if (peHdr == NULL) {//KEVINTODO: add log message here
+   if (peHdr == NULL) {
       code_ptr_ = (char*)mapAddr;
       code_off_ = 0;
       HANDLE hFile = mf->getFileHandle();
@@ -694,10 +695,6 @@ void Object::FindInterestingSections(bool alloc_syms)
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
                                  sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
                                  peHdr->FileHeader.SizeOfOptionalHeader);
-   regions_.push_back(new Region(0, "PROGRAM_HEADER", // KEVINTODO: this is a vicious hack to get the PE Header in as a section
-                                0, 0x1000, 0, 0x1000, (char*)mapAddr,
-								getRegionPerms(IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_WRITE), 
-                                getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA)));
    bool foundText = false;
    for( unsigned int i = 0; i < nSections; i++ ) {
       // rawDataPtr should be set to be zero if the amount of raw data
