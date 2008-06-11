@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.274 2008/05/08 21:52:25 legendre Exp $
+// $Id: linux.C,v 1.275 2008/06/11 22:48:27 legendre Exp $
 
 #include <fstream>
+#include <string>
 
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
