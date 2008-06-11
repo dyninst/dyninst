@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Ident.C: build identification functions (for POSIX systems)
- * $Id: Ident.C,v 1.5 2008/05/09 00:25:38 jaw Exp $
+ * $Id: Ident.C,v 1.6 2008/06/11 22:48:17 legendre Exp $
 ************************************************************************/
 
 #include "common/h/Ident.h"
@@ -94,7 +94,6 @@ Ident::Ident (const char *Vstr, const char *expected_suite)
 
 Ident::~Ident() { }
 
-#if 0
 ostream& operator<< (ostream &os, const Ident &Id)
 {
 #if defined(notdef)
@@ -119,5 +118,4 @@ ostream& operator<< (ostream &os, const Ident &Id)
 
     return os << buf;
 }
-#endif
 

@@ -30,7 +30,7 @@
  */
 
 
-// $Id: String.C,v 1.37 2008/05/09 00:25:38 jaw Exp $
+// $Id: String.C,v 1.38 2008/06/11 22:48:18 legendre Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -657,13 +657,11 @@ string_ll::regexEquiv( const char *s, bool checkCase ) const {
 }
 
 
-#if 0
 ostream& operator<< (ostream &os, const string_ll &s) {
    if(s.str_ != NULL)
       os << s.str_;
    return os;
 }
-#endif
 
 //debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
 //   if(s.str_ != NULL)
