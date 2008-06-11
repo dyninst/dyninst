@@ -226,12 +226,12 @@ Object::intSymbol::DefineSymbol(hash_map<std::string,std::vector<Symbol *> >&all
 				const std::string& modName ) const
 {
     allSyms[GetName()].push_back(new Symbol(GetName(), 
-													modName,
-													(Symbol::SymbolType) GetType(),
-													(Symbol::SymbolLinkage) GetLinkage(),
-													(Offset)GetAddr(),
-													NULL,				// TODO there should be a section pointer here
-													GetSize()) );
+                                            modName,
+                                            (Symbol::SymbolType) GetType(),
+                                            (Symbol::SymbolLinkage) GetLinkage(),
+                                            (Offset)GetAddr(),
+                                            GetRegion(),
+                                            GetSize()) );
 }
 
 void
@@ -507,7 +507,8 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
 							pSymInfo->Address - get_base_addr(),
 							symType,
 							symLinkage,
-							pSymInfo->Size ) );
+							pSymInfo->Size,
+                     findEnclosingRegion((Offset)(pSymInfo->Address - get_base_addr())) ));
 	} 
 }
    
@@ -693,6 +694,10 @@ void Object::FindInterestingSections(bool alloc_syms)
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
                                  sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
                                  peHdr->FileHeader.SizeOfOptionalHeader);
+   regions_.push_back(new Region(0, "PROGRAM_HEADER", // KEVINTODO: this is a vicious hack to get the PE Header in as a section
+                                0, 0x1000, 0, 0x1000, (char*)mapAddr,
+								getRegionPerms(IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_WRITE), 
+                                getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA)));
    bool foundText = false;
    for( unsigned int i = 0; i < nSections; i++ ) {
       // rawDataPtr should be set to be zero if the amount of raw data
@@ -740,6 +745,30 @@ void Object::FindInterestingSections(bool alloc_syms)
       }
       pScnHdr += 1;
    }
+}
+
+// Assumes region list is sorted and regions don't overlap
+Region *Object::findEnclosingRegion(const Offset where)
+{
+    // search for "where" in regions (regions must not overlap)
+    int first = 0; 
+    int last = regions_.size() - 1;
+    while (last >= first) {
+        Region *curreg = regions_[(first + last) / 2];
+        if (where >= curreg->getRegionAddr()
+            && where < (curreg->getRegionAddr()
+                        + curreg->getRegionSize())) {
+            return curreg;
+        }
+        else if (where < curreg->getRegionAddr()) {
+            last = ((first + last) / 2) - 1;
+        }
+        else {/* where >= (cursec->getSecAddr()
+                           + cursec->getSecSize()) */
+            first = ((first + last) / 2) + 1;
+        }
+    }
+    return NULL;
 }
 
 bool Object::isForwarded( Offset addr )
