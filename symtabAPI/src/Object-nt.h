@@ -83,17 +83,20 @@ class Object : public AObject
             DWORD type;
             DWORD linkage;
             DWORD size;
+            Region *region;
 
 	public:
             intSymbol( std::string _name,
                        DWORD64 _addr,
                        DWORD _type,
                        DWORD _linkage,
-                       DWORD _size)
+                       DWORD _size,
+                       Region *_region)
                 : name(_name),
                 addr(_addr),
                 type(_type),
-                size(_size)
+                size(_size),
+                region(_region)
 		{}
 
             std::string GetName( void ) const          { return name; }
@@ -101,7 +104,7 @@ class Object : public AObject
             DWORD	GetSize( void ) const				{ return size; }
             DWORD	GetType( void ) const				{ return type; }
             DWORD	GetLinkage( void ) const			{ return linkage; }
-
+            Region *GetRegion( void ) const        { return region; }
             void	SetSize( DWORD cb )					{ size = cb; }
 
             void DefineSymbol( hash_map<std::string, std::vector< Symbol *> >& syms,
@@ -203,6 +206,7 @@ private:
     DLLEXPORT void    ParseSymbolInfo( bool );
     DLLEXPORT void    parseFileLineInfo(hash_map<std::string, LineInformation> &);
     DLLEXPORT void    FindInterestingSections( bool );
+    Region *          findEnclosingRegion(const Offset where);
 
     Offset baseAddr;     // location of this object in mutatee address space
 
