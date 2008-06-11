@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996-2007 Barton P. Miller
  * 
@@ -37,6 +36,12 @@
 #include <map>
 #include <stdexcept>
 #include <stdio.h>
+
+#if defined(os_windows)
+#include <libxml/xmlversion.h>
+#undef LIBXML_ICONV_ENABLED
+#endif
+
 #include <libxml/xmlwriter.h>
 
 #include "common/h/headers.h"
