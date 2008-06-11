@@ -323,19 +323,6 @@ struct intrensicTypes_ intrensicTypes[] = {
     { NULL,		0 },
 };
 
-static int findIntrensicType(const char *name)
-{
-    struct intrensicTypes_ *curr;
-
-    for (curr = intrensicTypes; curr->name; curr++) {
-	if (name && curr->name && !strcmp(name, curr->name)) {
-	    return curr->tid;
-	}
-    }
-
-    return 0;
-}
-
 #if 0
 /*
  * void BPatch_type::addField
@@ -580,6 +567,10 @@ BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::SymtabAPI::
        return BPatch_storageFrameOffset;
    else if((stClass == storageRegOffset))
    	return BPatch_storageRegOffset;
+   else {
+      assert(0);
+      return (BPatch_storageClass) -1;
+   }
 }
 
 localVar *BPatch_localVar::getSymtabVar(){
@@ -665,6 +656,7 @@ BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctionsInt()
   std::vector<Symbol *> *funcs = cBlk->getFunctions();
   if(!funcs)
       return NULL;   
+  assert(0);
 //Return BPatch_functions corresponding to Symbols in SymtabAPI
 //Lookup again from BPatch::bpatch with the name. Then return the BPatch_functions
 //TODO
