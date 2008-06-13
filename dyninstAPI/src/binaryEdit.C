@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.17 2008/05/29 18:26:11 mlam Exp $
+// $Id: binaryEdit.C,v 1.18 2008/06/13 20:06:25 mlam Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -225,7 +225,21 @@ void BinaryEdit::deleteBinaryEdit() {
     highWaterMark_ = 0;
     lowWaterMark_ = 0;
 
-   // TODO: delete dependent binary edit and relocation objects?
+    // TODO: is this cleanup necessary?
+
+    BinaryEdit *edit;
+    while (dependentBinEdits.size() > 0) {
+        edit = dependentBinEdits[0];
+        dependentBinEdits.erase(dependentBinEdits.begin());
+        delete edit;
+    }
+
+    depRelocation *rel;
+    while (dependentRelocations.size() > 0) {
+        rel = dependentRelocations[0];
+        dependentRelocations.erase(dependentRelocations.begin());
+        delete rel;
+    }
 }
 
 BinaryEdit *BinaryEdit::openFile(const std::string &file) {
@@ -773,7 +787,7 @@ void BinaryEdit::addDependentBinEdit(BinaryEdit *newBinEdit) {
 	dependentBinEdits.push_back(newBinEdit);
 }
 
-pdvector<BinaryEdit *>* BinaryEdit::getDependentBinEdits() {
+std::vector<BinaryEdit *>* BinaryEdit::getDependentBinEdits() {
 	return &dependentBinEdits;
 }
 

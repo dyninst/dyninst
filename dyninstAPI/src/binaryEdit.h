@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.10 2008/05/29 18:26:11 mlam Exp $
+// $Id: binaryEdit.h,v 1.11 2008/06/13 20:06:25 mlam Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -137,7 +137,7 @@ class BinaryEdit : public AddressSpace {
 
 	void addDependentBinEdit(BinaryEdit *newBinEdit);
 
-	pdvector<BinaryEdit *>* getDependentBinEdits();
+    std::vector<BinaryEdit *>* getDependentBinEdits();
 
 	void addDependentRelocation(Address to, Symbol *referring);
 
@@ -159,9 +159,9 @@ class BinaryEdit : public AddressSpace {
 
     codeRangeTree memoryTracking_;
 
-	pdvector<BinaryEdit *> dependentBinEdits;
+    std::vector<BinaryEdit *> dependentBinEdits;
 
-	std::vector<depRelocation *> dependentRelocations;
+    std::vector<depRelocation *> dependentRelocations;
 
 };
 

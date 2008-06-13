@@ -704,3 +704,12 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
     return false;
 }
 
+#if defined(cap_save_the_world)
+bool BPatch_addressSpace::loadLibraryInt(const char *libname, bool reload)
+#else
+bool BPatch_addressSpace::loadLibraryInt(const char *libname, bool)
+#endif
+{
+	return false;
+}
+

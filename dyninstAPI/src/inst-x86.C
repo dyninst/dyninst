@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.280 2008/05/29 18:26:11 mlam Exp $
+ * $Id: inst-x86.C,v 1.281 2008/06/13 20:06:25 mlam Exp $
  */
 #include <iomanip>
 
@@ -1264,56 +1264,56 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee)
 // std::string version that doesn't take a callee...
 
 bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
-	AddressSpace *addrSpace = gen.addrSpace();
-	BinaryEdit *binEdit = addrSpace->edit();
-	Address dest;
+    AddressSpace *addrSpace = gen.addrSpace();
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address dest;
 
-	// 1. find int_function reference in address space
-	pdvector<int_function *> funcs;
-	addrSpace->findFuncsByPretty(callee->prettyName(), funcs);
+    // 1. find int_function reference in address space
+    pdvector<int_function *> funcs;
+    addrSpace->findFuncsByPretty(callee->prettyName(), funcs);
 
-	// test to see if callee is in the current module
-	Symtab *dynsymObj;
-	Symbol *referring;
-	if (funcs.size() == 0) {
+    // test to see if callee is in the current module
+    Symtab *dynsymObj;
+    Symbol *referring;
+    if (funcs.size() == 0) {
 
-		// 2. find the Symbol corresponding to the int_function
-		pdvector<BinaryEdit *>* depEdits = binEdit->getDependentBinEdits();
-		for (int j=0; j<depEdits->size() && funcs.size() == 0; j++) {
-			(*depEdits)[j]->findFuncsByPretty(callee->prettyName(), funcs);
-			dynsymObj = (*depEdits)[j]->getAOut()->parse_img()->getObject();
-			for (int i=0; i<funcs.size(); i++) {
-				std::vector<Symbol *> retFuncs;
-				dynsymObj->findSymbolByType(retFuncs, funcs[i]->prettyName(), Symbol::ST_FUNCTION);
-				for (int j=0; j<retFuncs.size(); j++) {
-					referring = retFuncs[j];
-				}
-			}
-		}
+        // 2. find the Symbol corresponding to the int_function
+        std::vector<BinaryEdit *>* depEdits = binEdit->getDependentBinEdits();
+        for (int j=0; j<depEdits->size() && funcs.size() == 0; j++) {
+            (*depEdits)[j]->findFuncsByPretty(callee->prettyName(), funcs);
+            dynsymObj = (*depEdits)[j]->getAOut()->parse_img()->getObject();
+            for (int i=0; i<funcs.size(); i++) {
+                std::vector<Symbol *> retFuncs;
+                dynsymObj->findSymbolByType(retFuncs, funcs[i]->prettyName(), Symbol::ST_FUNCTION);
+                for (int j=0; j<retFuncs.size(); j++) {
+                    referring = retFuncs[j];
+                }
+            }
+        }
 
-		// have we added this relocation already?
-		dest = binEdit->getDependentRelocationAddr(referring);
+        // have we added this relocation already?
+        dest = binEdit->getDependentRelocationAddr(referring);
 
-		if (dest == NULL) {
-			// 3. inferiorMalloc addr location
-			dest = binEdit->inferiorMalloc(8);
+        if (dest == NULL) {
+            // 3. inferiorMalloc addr location
+            dest = binEdit->inferiorMalloc(8);
 
-			// 4. add write new relocation symbol/entry
-			binEdit->addDependentRelocation(dest, referring);
-		}
+            // 4. add write new relocation symbol/entry
+            binEdit->addDependentRelocation(dest, referring);
+        }
 
-		emitMovRMToReg(REGNUM_EAX, 0, dest, gen);                  // mov eax, *(addr)
-	
-	} else {
-		dest = callee->getAddress();
+        emitMovRMToReg(REGNUM_EAX, 0, dest, gen);                  // mov eax, *(addr)
 
-		emitMovImmToReg(REGNUM_EAX, dest, gen);                    // mov eax, addr
+    } else {
+        dest = callee->getAddress();
+
+        emitMovImmToReg(REGNUM_EAX, dest, gen);                    // mov eax, addr
     }
-   
-	// 6. emit call
-	emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
 
-	return true;
+    // 6. emit call
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+
+    return true;
 }
 /*
  * emit code for op(src1,src2, dest)

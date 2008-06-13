@@ -75,8 +75,6 @@
 
 #include "sys/stat.h"
 
-bool BPatch_binaryEdit::topLevel = true;
-
 /*
  * BPatch_binaryEdit::BPatch_binaryEdit
  *
@@ -91,7 +89,7 @@ bool BPatch_binaryEdit::topLevel = true;
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
+BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
    llBinEdit(NULL),
    creation_error(false)
@@ -121,82 +119,9 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
 
   image = new BPatch_image(this);
 
-  // ---  NEW CODE: OPEN ALL DEPENDENCIES  ---
-
-  BPatch_binaryEdit *depBinEdit;
-  char *libPathStr, *libPath, buffer[512];
-  std::vector<std::string> libPaths;
-  struct stat dummy;
-  Symtab *st;
-
-  // TODO: fix this... it's horribly un-thread-safe
-  bool openRecursively = topLevel;
-  topLevel = false;
-
-  // build list of library paths
-  libPathStr = getenv("LD_LIBRARY_PATH");
-  libPath = strtok(libPathStr, ":");
-  while (libPath != NULL) {
-	  libPaths.push_back(std::string(libPath));
-	  libPath = strtok(NULL, ":");
+  if (openDependencies && !openAllDependencies(path)) {
+      creation_error = true;
   }
-  // TODO: add paths from /etc/ld.so.conf
-  libPaths.push_back("/usr/lib");
-  libPaths.push_back("/lib");
-  
-  // extract list of dependencies
-  Symtab::openFile(st, path);
-  std::vector<std::string> depends = st->getDependencies();
-
-  // for each dependency
-  int count = depends.size();
-  for (int i = 0; i < count; i++) {
-
-	  // find actual shared object file by searching all the lib paths
-	  bool found = false;
-	  for (int j = 0; !found && j < libPaths.size(); j++) {
-		  std::string fullPath = libPaths.at(j) + "/" + depends.at(i);
-
-		  // if we've found the file...
-		  if (stat(fullPath.c_str(), &dummy) == 0) {
-
-			  // get list of subdependencies
-			  Symtab *subst;
-			  Symtab::openFile(subst, fullPath.c_str());
-			  std::vector<std::string> subdepends = subst->getDependencies();
-
-			  // add any new dependencies to the main list
-			  for (int k = 0; k < subdepends.size(); k++) {
-				  bool found = false;
-				  for (int l = 0; !found && l < depends.size(); l++) {
-					  if (depends.at(l).compare(subdepends.at(k))==0) {
-						  found = true;
-					  }
-				  }
-				  if (!found) {
-					  depends.push_back(subdepends.at(k));
-					  count++;
-				  }
-			  }
-
-			  // open dependency and extract image (used for findFunction)
-			  depBinEdit = new BPatch_binaryEdit(fullPath.c_str());
-			  if (!depBinEdit) {
-				  creation_error = true;
-				  return;
-			  }
-			  depImages.push_back(new BPatch_image(depBinEdit));
-
-			  // add to list of dependencies in BinaryEdit object (used
-			  // for code generation)
-			  llBinEdit->addDependentBinEdit(BinaryEdit::openFile(fullPath.c_str()));
-
-			  found = true;
-		  }
-	  }
-	}
-
-	topLevel = true;
 }
 
 BPatch_image * BPatch_binaryEdit::getImageInt() {
@@ -228,9 +153,15 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
    delete llBinEdit;
    llBinEdit = NULL;
 
-   assert(BPatch::bpatch != NULL);
+   // TODO: is this cleanup necessary?
+   BPatch_image *img;
+   while (depImages.size() > 0) {
+      img = depImages[0];
+      depImages.erase(depImages.begin());
+      delete img;
+   }
 
-   // TODO: delete depImage objects?
+   assert(BPatch::bpatch != NULL);
 }
 
 bool BPatch_binaryEdit::writeFileInt(const char * outFile)
@@ -414,28 +345,161 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool atomic, bool *modified)
 BPatch_Vector<BPatch_function*> *BPatch_binaryEdit::findFunctionInt(const char *name, 
       BPatch_Vector<BPatch_function*> &funcs)
 {
+    // look for the function in this image
 	image->findFunction(name, funcs, false);
 
 	// if we can't find it in this image, search all the dependencies
-	
-	// TODO: fix this so that we can get rid of depImages
-	//pdvector<BinaryEdit *>* depEdits = llBinEdit->getDependentBinEdits();
-	//pdvector<int_function *> foundIntFuncs;
-	//for (int i=0; funcs.size()==0 && i<depEdits->size(); i++) {
-		//(*depEdits)[i]->findFuncsByAll(name, foundIntFuncs);
-		//for (int j=0; j<foundIntFuncs.size(); j++) {
-			//if (foundIntFuncs[j]->isInstrumentable()) {
-				//BPatch_module *module = new BPatch_module(this, foundIntFuncs[j]->mod(), getImage());
-				//BPatch_function *func = findOrCreateBPFunc(foundIntFuncs[j], module);
-				//funcs.push_back(func);
-			//}
-		//}
-	//}
-		
-	for (int i=0; funcs.size()==0 && i<depImages.size(); i++) {
+	for (unsigned int i=0; funcs.size()==0 && i<depImages.size(); i++) {
 		depImages.at(i)->findFunction(name, funcs, false);
 	}
 
 	return &funcs;
+}
+
+#if defined(cap_save_the_world)
+bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool reload)
+#else
+bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool)
+#endif
+{
+    BPatch_binaryEdit *depBinEdit;
+
+#ifdef DEBUG_PRINT
+    fprintf(stdout, "DEBUG - opening/adding new library: %s\n", libname);
+#endif
+
+    // if we can find the file...
+    std::string* fullPath = resolveLibraryName(libname);
+    if (fullPath != NULL) {
+
+        // create binary edit object
+        BPatch_binaryEdit *binEdit = new BPatch_binaryEdit(fullPath->c_str(), false);
+        if (!binEdit) {
+            return false;
+        }
+
+        // extract image (used for findFunction)
+        depImages.push_back(new BPatch_image(binEdit));
+
+        // add to list of dependencies in BinaryEdit object (used
+        // for code generation)
+        llBinEdit->addDependentBinEdit(binEdit->llBinEdit);
+
+        delete fullPath;
+    }
+
+    return true;
+}
+
+std::string* BPatch_binaryEdit::resolveLibraryName(const std::string &filename)
+{
+    char *libPathStr, *libPath;
+    std::vector<std::string> libPaths;
+    struct stat dummy;
+    std::string* fullPath = NULL;
+    bool found = false;
+
+    // build list of library paths
+    
+    // prefer fully-qualified file paths
+    libPaths.push_back("");
+
+    // add paths from environment variables
+    libPathStr = getenv("LD_LIBRARY_PATH");
+    libPath = strtok(libPathStr, ":");
+    while (libPath != NULL) {
+        libPaths.push_back(std::string(libPath));
+        libPath = strtok(NULL, ":");
+    }
+    libPaths.push_back(std::string(getenv("PWD")));
+
+    // TODO: add paths from /etc/ld.so.conf ?
+
+    // add hard-coded paths
+    libPaths.push_back("/usr/local/lib");
+    libPaths.push_back("/usr/share/lib");
+    libPaths.push_back("/usr/lib");
+    libPaths.push_back("/lib");
+
+    // find actual shared object file by searching all the lib paths
+    for (unsigned int i = 0; !found && i < libPaths.size(); i++) {
+        fullPath = new std::string(libPaths.at(i) + "/" + filename);
+
+        // if we've found the file...
+        if (stat(fullPath->c_str(), &dummy) == 0) {
+            found = true;
+        } else {
+            delete fullPath;
+            fullPath = NULL;
+        }
+    }
+
+    return fullPath;
+}
+
+bool BPatch_binaryEdit::openAllDependencies(const char *path)
+{
+    // extract list of dependencies
+    BPatch_binaryEdit *depBinEdit;
+    Symtab *st = llBinEdit->getAOut()->parse_img()->getObject();
+    std::vector<std::string> depends = st->getDependencies();
+
+    // for each dependency
+    unsigned int count = depends.size();
+    for (unsigned int i = 0; i < count; i++) {
+
+#ifdef DEBUG_PRINT
+        fprintf(stdout, "DEBUG - opening new dependency: %s\n", depends.at(i).c_str());
+#endif
+
+        // if we can find the file...
+        std::string* fullPath = resolveLibraryName(depends.at(i));
+        if (fullPath != NULL) {
+
+            // get list of subdependencies
+            Symtab *subst;
+            Symtab::openFile(subst, fullPath->c_str());
+            std::vector<std::string> subdepends = subst->getDependencies();
+
+            // add any new dependencies to the main list
+            for (unsigned int k = 0; k < subdepends.size(); k++) {
+                bool found = false;
+                for (int l = 0; !found && l < depends.size(); l++) {
+                    if (depends.at(l).compare(subdepends.at(k))==0) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    depends.push_back(subdepends.at(k));
+                    count++;
+                }
+            }
+
+            // open dependency and extract image (used for findFunction)
+            depBinEdit = new BPatch_binaryEdit(fullPath->c_str(), false);
+            if (!depBinEdit) {
+                return false;
+            }
+            BPatch_image *img = new BPatch_image(depBinEdit);
+            depImages.push_back(img);
+
+#ifdef DEBUG_PRINT
+            // print all functions
+            BPatch_Vector<BPatch_function *> *allFuncs = img->getProcedures();
+            char buffer[512];
+            for (int i=0; i<allFuncs->size(); i++) {
+                (*allFuncs)[i]->getName(buffer,512);
+                fprintf(stdout,"        - %s\n", buffer);
+            }
+#endif
+
+            // add to list of dependencies in BinaryEdit object (used
+            // for code generation)
+            llBinEdit->addDependentBinEdit(depBinEdit->llBinEdit);
+
+            delete fullPath;
+        }
+    }
+    return true;
 }
 

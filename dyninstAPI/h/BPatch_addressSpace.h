@@ -318,6 +318,21 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
     API_EXPORT(Int, (regName, reg),
     bool, createRegister_NP, (std::string regName, BPatch_register &reg)); 
+
+    //  BPatch_addressSpace::loadLibrary
+    //  
+    //  Load a shared library into the mutatee's address space
+    //  Returns true if successful
+    //
+    //  the reload argument is used by save the world to determine
+    //  if this library should be reloaded by the mutated binary
+    //  when it starts up. this is up to the user because loading
+    //  an extra shared library could hide access to the 'correct'
+    //  function by redefining a function  
+
+    API_EXPORT_VIRT(Int, (libname, reload),
+    bool, loadLibrary,(const char *libname, bool reload = false));
+
 };
 
 #endif 

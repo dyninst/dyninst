@@ -519,19 +519,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
                            BPatchOneTimeCodeCallback cb = NULL));
                            
 
-    //  BPatch_process::loadLibrary
-    //  
-    //  Load a shared library into the mutatee's address space
-    //
-    //  the reload argument is used by save the world to determine
-    //  if this library should be reloaded by the mutated binary
-    //  when it starts up. this is up to the user because loading
-    //  an extra shared library could hide access to the 'correct'
-    //  function by redefining a function  
-
-    API_EXPORT(Int, (libname, reload),
-    bool,loadLibrary,(const char *libname, bool reload = false));
-
     // BPatch_process::setBeingDebuggedFlag
     //
     // This is a Windows only function that sets the user-space
@@ -553,6 +540,14 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     API_EXPORT(Int, (name, loadaddr),
     bool,addSharedObject,(const char *name, const unsigned long loadaddr));
 #endif
+
+	// BPatch_process::loadLibrary
+    //
+    //  Load a shared library into the mutatee's address space
+    //  Returns true if successful
+
+    API_EXPORT_VIRT(Int, (libname, reload),
+    bool, loadLibrary,(const char *libname, bool reload = false));
 
 };
 
