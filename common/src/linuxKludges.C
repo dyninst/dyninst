@@ -249,7 +249,6 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
 #endif
 
 static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address pagesize) {
-   assert(pagesize != 0);
    if (strict) {
        if (entry->prems != PREMS_PRIVATE)
          return false;
@@ -372,7 +371,8 @@ bool AuxvParser::readAuxvInfo()
         if (addr < entry->start || addr >= entry->end)
            continue;
 
-        if (couldBeVsyscallPage(entry, true, page_size)) {
+        if (dso_start == entry->start ||
+            couldBeVsyscallPage(entry, true, page_size)) {
            //We found a possible page using a strict check. 
            // This is really likely to be it.
            vsyscall_base = entry->start;
