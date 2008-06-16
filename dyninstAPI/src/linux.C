@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.275 2008/06/11 22:48:27 legendre Exp $
+// $Id: linux.C,v 1.276 2008/06/16 22:37:03 legendre Exp $
 
 #include <fstream>
 #include <string>
@@ -1650,9 +1650,55 @@ bool dyn_lwp::realLWP_attach_() {
    return true;
 }
 
+static bool is_control_stopped(int lwp)
+{
+ FILE *f = NULL;
+ char line[128];
+ char filename[32];
+ bool result = false;
+ char *sresult = NULL;
+ 
+ snprintf(filename, 32, "/proc/%d/status", lwp);
+ filename[31] = '\0';
+ 
+ f = fopen(filename, "r");
+ if (!f)
+ {
+    if (dyn_debug_startup) {
+       startup_printf("Error opening %s", filename);
+       perror("ERROR: Couldn't open file");
+    }
+    goto done;
+ }
+
+ while (!feof(f)) {
+    sresult = fgets(line, 128, f);
+    if (!sresult) {
+       if (dyn_debug_startup) {
+          startup_printf("Error reading from %s", filename);
+          perror("ERROR: Couldn't read from file");
+       }
+       goto done;
+    }
+    if (strncmp(line, "State:", 6) == 0) {
+       if (strstr(line, "T (stopped)"))
+          result = true;
+       goto done;
+    }
+ }
+
+
+ done:
+ if (f)
+    fclose(f);
+ return result;
+}
+
 bool dyn_lwp::representativeLWP_attach_() 
 {
    bool running = false;
+   int result;
+
    if( proc_->wasCreatedViaAttach() )
       running = proc_->isRunning_();
    
@@ -1676,14 +1722,51 @@ bool dyn_lwp::representativeLWP_attach_()
       assert(address_width);
       startup_printf("%s[%d]: process attach doing PT_ATTACH to %d\n",
                      FILE__, __LINE__, get_lwp_id());
-      if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, address_width, __FILE__, __LINE__) )
+      if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, 
+                          address_width, __FILE__, __LINE__) )
       {
-         startup_printf("%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, getPid());
+         startup_printf("%s[%d]:  ptrace attach to pid %d failing\n", 
+                        FILE__, __LINE__, getPid());
          perror( "dyn_lwp::representativeLWP_attach_() - PTRACE_ATTACH" );
          return false;
       }
       startup_printf("%s[%d]: attached via DBI\n", FILE__, __LINE__);
       proc_->sh->add_lwp_to_poll_list(this);
+
+      /**
+       * The following code is trying to deal with a bug on recent utrace 
+       * kernels (first appeared in Fedora Core 8, 9, and RHEL 5.2).  When 
+       * attaching to a process that is already control stopped, wait() will
+       * stop blocking and keep returning notice that 'signal 0' has been 
+       * delivered. 
+       *
+       * As per RedHat's suggestion, we're detecting when a process is control 
+       * stopped, then moving it into a tracing stop state by sending it a SIGSTOP
+       * and then moving it out of the control stop state with a PTRACE_CONT.
+       *
+       * The PTRACE_CONT will destroy the normal SIGSTOP you recieve after attaching
+       * to a process, but we've just put another SIGSTOP into the signal queue to 
+       * replace it.  
+       **/
+      if (is_control_stopped(get_lwp_id()))
+      {
+         startup_printf("[%s:%u] - Attached to already STOP'd process, %d.  Handling.\n",
+                        FILE__, __LINE__, get_lwp_id());
+         
+         result = lwp_kill(get_lwp_id(), SIGSTOP);
+         if (result == -1) {
+            startup_printf("[%s:%u] - ERROR.  Could not lwp_kill %d: %s\n", 
+                           FILE__, __LINE__, get_lwp_id(), strerror(errno));
+         }
+         else {
+            result = DBI_ptrace(PTRACE_CONT, get_lwp_id(), 0, 0, &ptrace_errno,
+                                address_width, FILE__, __LINE__);
+            if (result == -1) {
+               startup_printf("[%s:%u] - ERROR. Could not PTRACE_CONT: %s\n", 
+                              FILE__, __LINE__, strerror(ptrace_errno));
+            }
+         }
+      }
 
       int status = 0;
       int retval = 0;
@@ -1697,12 +1780,6 @@ bool dyn_lwp::representativeLWP_attach_()
       startup_printf("%s[%d]: waitpid return from %d of %d/%d\n",
                      FILE__, __LINE__, retval, WIFSTOPPED(status), WSTOPSIG(status));
       proc_->set_status(stopped);
-
-#if 0
-      if (!proc_->sh->registerLWP(get_lwp_id())) {
-         fprintf(stderr, "%s[%d]:  failed to register LWP here\n", FILE__, __LINE__);
-      }
-#endif
    }
 
    return true;
@@ -2272,6 +2349,22 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
             break;
          }
       }
+
+      if (WIFSTOPPED(status) && WSTOPSIG(status) == 0 && !event_owner) {
+        /**
+         * Kernel bug.  See the comment in dyn_lwp::representativeLWP_attach_()
+         * The code that handles this in attach will notice that the process
+         * is in a SIGSTOP'd state and try to clear that state, but we may
+         * be attached for a brief amount of time before we manage to clear
+         * that state.  In the meantime, we may recieve 'signal 0' notices.
+         * These aren't real signals, so we'll just drop them on the ground.
+         **/
+         startup_printf("[%s:%u] - Got a signal 0 from waitpid on %d\n",
+                        FILE__, __LINE__, result);
+         continue;
+      }
+
+
       if (me == event_owner || result == -1) {
          //We got an event for ourselves, Yea!  Let's go ahead and return it.
          //We broadcast here to let other people know that someone else needs
