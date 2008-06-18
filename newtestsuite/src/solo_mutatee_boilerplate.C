@@ -53,6 +53,16 @@ extern "C" {
 #include "mutatee_util.h"
 #include "solo_mutatee.h"
 
+/*
+ * These macros are needed for when the skeleton is filled in using #defines
+ * as the makefiles are being generated (two macros are defined to force
+ * macro expansion)
+ */
+#define _CONCAT(A, B)	A ## B
+#define CONCAT(A, B)	_CONCAT(A, B)
+#define _QUOTE(S)		#S
+#define QUOTE(S)		_QUOTE(S)
+
 /* This is kind of a hack:  test4_3 needs to have argc and argv available.  So
  * I'm making them global variables in the mutatee_driver and adding extern
  * references to them here.
@@ -65,13 +75,13 @@ extern char **gargv;
  * int <testname>_mutateeTest()
  */
 
-int @<testname>@_mutatee();
+int CONCAT(TEST_NAME, _mutatee());
 
 /* Also declare a global that holds the name of the test */
 
-static const char *testname = "@<testname>@";
+static const char *testname = QUOTE(TEST_NAME);
 
-int groupable_mutatee = @<groupable>@;
+int groupable_mutatee = GROUPABLE;
 
 /* The macro SOLO_MUTATEE(<testname>) (from solo.h) defines a few variables
  * that are required by the mutatee driver.  This macro needs to be called
@@ -80,7 +90,7 @@ int groupable_mutatee = @<groupable>@;
 
 /* SOLO_MUTATEE(@<testname>@); */
 mutatee_call_info_t mutatee_funcs[] = {
-  {"@<testname>@", @<testname>@_mutatee, SOLO, "@<label>@"}
+  {QUOTE(TEST_NAME), CONCAT(TEST_NAME, _mutatee), SOLO, "@<label>@"}
 };
 int runTest[1];
 int passedTest[1];
@@ -93,4 +103,4 @@ int MAX_TEST = 1;
 /* ******************************************************************** */
 /* *** Everything above this line should be automatically generated *** */
 /* ******************************************************************** */
-#line 1 "@<testname>@_mutatee.C"
+#include QUOTE(MUTATEE_SRC)
