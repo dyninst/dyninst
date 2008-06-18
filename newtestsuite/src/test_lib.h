@@ -96,10 +96,12 @@ TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage,
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 
 // New logging system
-/* TESTLIB_DLL_EXPORT (?) */ extern TestOutputDriver *output;
+extern TESTLIB_DLL_EXPORT TestOutputDriver * getOutput();
+extern TESTLIB_DLL_EXPORT void setOutput(TestOutputDriver * new_output);
+
 // loadOutputDriver loads an output driver plug-in and returns a pointer to
 // the output driver implemented by it.
-TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname);
+TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data);
 
 // Set up the log files for test library output
 TESTLIB_DLL_EXPORT void setOutputLog(FILE *log_fp);
@@ -130,9 +132,9 @@ TESTLIB_DLL_EXPORT void clearDBLog();
 // Mutatee PID registration, for cleaning up hung mutatees
 // TODO Check if these make any sense on Windows.  I suspect I'll need to
 // change them.
-void setPIDFilename(char *pfn);
-char *getPIDFilename();
-void registerPID(int pid);
+TESTLIB_DLL_EXPORT void setPIDFilename(char *pfn);
+TESTLIB_DLL_EXPORT char *getPIDFilename();
+TESTLIB_DLL_EXPORT void registerPID(int pid);
 
 
 //
@@ -297,7 +299,6 @@ TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *gro
 // TESTLIB_DLL_EXPORT BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool useAttach, test_data_t tests[], unsigned int num_tests, int oldtest, char *logfilename);
 
 TESTLIB_DLL_EXPORT void killMutatee(BPatch_thread *appThread);
-
 
 #endif
 

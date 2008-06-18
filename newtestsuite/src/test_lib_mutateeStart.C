@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_mutateeStart.C,v 1.2 2008/05/08 20:55:15 cooksey Exp $
+// $Id: test_lib_mutateeStart.C,v 1.3 2008/06/18 19:58:32 carl Exp $
 // Functions Dealing with mutatee Startup
 
 #include "test_lib.h"
@@ -136,7 +136,7 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname,
 				char *humanlogname)
 {
   std::vector<std::string> mutateeArgs;
-  output->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
+  getOutput()->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
   const char **child_argv = new const char *[8 + mutateeArgs.size()];
   if (NULL == child_argv) {
     return NULL;
@@ -174,7 +174,7 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
 				int debugPrint, char *pidfilename)
 {
   std::vector<std::string> mutateeArgs;
-  output->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
+  getOutput()->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
    BPatch_thread *appThread;
    const char **child_argv = new const char *[12 + (4 * group->tests.size())
 					      + mutateeArgs.size()];

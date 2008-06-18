@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.3 2008/05/08 20:55:13 cooksey Exp $
+// $Id: test_lib.C,v 1.4 2008/06/18 19:58:30 carl Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -85,7 +85,6 @@
 #define snprintf _snprintf
 #endif
 
-
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
@@ -97,14 +96,26 @@ int expectError = DYNINST_NO_ERROR;
 /* Control Debug printf statements */
 int debugPrint = 0;
 
-// New output logging system
-TestOutputDriver *output = NULL;
-
 // output logging
 FILE *outlog = NULL;
 FILE *errlog = NULL;
 char *outlogname = "-";
 char *errlogname = "-";
+
+TestOutputDriver * output = NULL;
+
+// windows has strange support for sharing variables across
+// a dll and a program, so here is a simple utility function to do that, since
+// FUNCTION definitions are easily shared.
+TestOutputDriver * getOutput() {
+	return output;
+}
+
+void setOutput(TestOutputDriver * new_output) {
+	if (output != NULL)
+		delete output;
+	output = new_output;
+}
 
 void setOutputLog(FILE *log_fp) {
   if (log_fp != NULL) {
@@ -153,14 +164,14 @@ char *getErrorLogFilename() {
 void logstatus(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  output->vlog(LOGINFO, fmt, args);
+  getOutput()->vlog(LOGINFO, fmt, args);
   va_end(args);
 }
 
 void logerror(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  output->vlog(LOGERR, fmt, args);
+  getOutput()->vlog(LOGERR, fmt, args);
   va_end(args);
 }
 
