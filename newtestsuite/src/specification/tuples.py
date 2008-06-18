@@ -76,14 +76,14 @@ def parse_qstring(qstring):
 
 def parse_platforms(tuplestring):
 	plat_list = parse_pllist(tuplestring)
-	plat_labels = ('name', 'filename_conventions', 'auxilliary_compilers',
+	plat_labels = ('name', 'filename_conventions', 'linker', 'auxilliary_compilers',
 				   'abis')
 	def convert_tuple(ptup):
-		[pl, os, es, lp, ls, ac, as] = ptup
+		[pl, os, es, lp, ls, l, ac, as] = ptup
 		conv_labels = ('object_suffix', 'executable_suffix',
 					   'library_prefix', 'library_suffix')
 		fnconv = dict(zip(conv_labels, [os, es, lp, ls]))
-		return [pl, fnconv, dict(ac), as]
+		return [pl, fnconv, l, dict(ac), as]
 	plat_map = map(lambda x: dict(zip(plat_labels, convert_tuple(x))),
 				   plat_list)
 	return plat_map

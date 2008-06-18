@@ -631,7 +631,10 @@ test_start_state('test2_5', 'stopped').
 
 test('test2_6', 'test2_6', 'test2_6').
 test_description('test2_6', 'Load a dynamically linked library from the mutatee').
-test_runs_everywhere('test2_6').
+% test2_6 doesn't run on Windows
+test_platform('test2_6', Platform) :-
+    platform(_, OS, _, Platform),
+    OS \= 'windows'.
 mutator('test2_6', ['test2_6.C']).
 mutatee('test2_6', ['test2_6_mutatee.c']).
 compiler_for_mutatee('test2_6', Compiler) :-
@@ -2178,6 +2181,16 @@ compiler_platform('xlC', 'rs6000-ibm-aix5.1').
 compiler_platform('sun_cc', Plat) :- platform(_, OS, _, Plat), OS = 'solaris'.
 compiler_platform('CC', Plat) :- platform(_, OS, _, Plat), OS = 'solaris'.
 
+% linker/2
+% linker(?Platform, ?Linker)
+% specifies the default linker to use for a given (platform, language) pair
+linker(Platform, Linker) :-
+    platform(_, OS, _, Platform),
+    (
+        OS = 'windows' -> Linker = 'link';
+        Linker = ''
+    ).
+
 % aux_compiler_for_platform/3
 % aux_compiler_for_platform(?Platform, ?Language, ?Compiler)
 % Specifies the default compiler to use for a given (platform, language) pair
@@ -2314,13 +2327,15 @@ compiler_s(Comp, Comp) :-
     % The next line contains a list of compilers whose executable names are
     % different from the name of the compiler that is used in this
     % specification system.
-    \+ member(Comp, ['sun_cc', 'ibm_as', 'masm']),
+    \+ member(Comp, ['sun_cc', 'ibm_as', 'masm', 'VC', 'VC++']),
     findall(C, mutatee_comp(C), Me_comp),
     findall(C, mutator_comp(C), Mr_comp),
     findall(C, (member(C, Me_comp); member(C, Mr_comp)), All_comp),
     sort(All_comp, Comps),
     member(Comp, Comps).
 compiler_s('sun_cc', 'cc').
+compiler_s('VC', 'cl').
+compiler_s('VC++', 'cl').
 
 % Translation for Optimization Level
 %compiler_opt_trans(compiler name, symbolic name, compiler argument).
@@ -2361,7 +2376,7 @@ insane('P1 not defined as a compiler, but has optimization translation defined',
 % partial_compile: compile to an object file rather than an executable
 compiler_parm_trans(Comp, 'partial_compile', '-c') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'sun_cc', 'CC',
-                  'xlc', 'xlC', 'cxx', 'g77']).
+                  'xlc', 'xlC', 'cxx', 'g77', 'VC', 'VC++']).
 
 % Mutator compiler defns
 mutator_comp('g++').
@@ -2375,9 +2390,11 @@ mutator_comp('xlC').
 mutatee_link_options('gcc', '$(MUTATEE_LDFLAGS_GNU)').
 mutatee_link_options('g++', '$(MUTATEE_LDFLAGS_GNU)').
 mutatee_link_options(Native_cc, '$(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
-    member(Native_cc, ['cc', 'sun_cc', 'xlc', 'pgcc', 'VC']).
+    member(Native_cc, ['cc', 'sun_cc', 'xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
-    member(Native_cxx, ['cxx', 'CC', 'xlC', 'pgCC', 'VC++']).
+    member(Native_cxx, ['cxx', 'CC', 'xlC', 'pgCC']).
+mutatee_link_options('VC', '$(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
+mutatee_link_options('VC++', '$(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
 
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
@@ -2404,10 +2421,10 @@ comp_mutatee_flags_str('cxx', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('xlC', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('pgCC', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 % FIXME What do I specify for the Windows compilers, if anything?
-comp_std_flags_str('VC', '').
-comp_std_flags_str('VC++', '').
-comp_mutatee_flags_str('VC', '').
-comp_mutatee_flags_str('VC++', '').
+comp_std_flags_str('VC', '-TC').
+comp_std_flags_str('VC++', '-TP').
+comp_mutatee_flags_str('VC', '$(CFLAGS)').
+comp_mutatee_flags_str('VC++', '$(CXXFLAGS_NORM)').
 
 % g77 flags
 comp_std_flags_str('g77', '-g').
@@ -2432,11 +2449,11 @@ compiler_s('masm', 'ml').
 compiler_define_string('masm', 'masm').
 compiler_platform('masm', Platform) :-
   platform('i386', 'windows', _, Platform).
-comp_std_flags_str('masm', '| TODO: proper flags |').
+comp_std_flags_str('masm', '-nologo').
 comp_mutatee_flags_str('masm', '').
 mutatee_link_options('masm', '').
 mutatee_comp('masm').
-compiler_parm_trans('masm', 'partial_compile', '').
+compiler_parm_trans('masm', 'partial_compile', '-c').
 
 % as for test_mem
 comp_lang('ibm_as', 'power_asm').

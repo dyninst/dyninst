@@ -31,18 +31,23 @@ current_platform(Platform) :-
 %%% PLATFORM TUPLES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% platform_tuple/5
+% platform_tuple/8
 % Maps a platform name to the filename conventions and auxilliary compilers
 % for that platform
-% Platform, ObjSuffix, LibPrefix, and LibSuffix are strings
+% Platform, ObjSuffix, ExecSuffix, LibPrefix, LibSuffix, and Linker are strings
 % AuxCompilers is a map from language names to compiler names
 platform_tuple(Platform, ObjSuffix, ExecSuffix,LibPrefix, LibSuffix,
-               AuxCompilers, ABIs) :-
+               Linker, AuxCompilers, ABIs) :-
     platform(_, _, _, Platform),
     object_suffix(Platform, ObjSuffix),
     executable_suffix(Platform, ExecSuffix),
     library_prefix(Platform, LibPrefix),
     library_suffix(Platform, LibSuffix),
+	% Linker defaults to an empty string if not specified
+	(
+		\+ linker(Platform, _) -> Linker = '';
+		linker(Platform, Linker)
+	),
     % AuxCompilers defaults to an empty map if none were specified
     (
         \+ aux_compiler_for_platform(Platform, _, _) -> AuxCompilers = [];
@@ -299,8 +304,8 @@ write_tuples(Filename, Platform) :-
          halt(-1));
     % Sanity checks passed, so continue with the tuple generation
     open(Filename, write, Stream),
-    findall([P, OS, ES, LP, LS, AC, As],
-            platform_tuple(P, OS, ES, LP, LS, AC, As),
+    findall([P, OS, ES, LP, LS, L, AC, As],
+            platform_tuple(P, OS, ES, LP, LS, L, AC, As),
             Platforms),
     write_term(Stream, Platforms, [quoted(true)]),
     write(Stream, '\n'),
