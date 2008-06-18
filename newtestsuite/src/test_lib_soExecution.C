@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.2 2008/05/08 20:55:16 cooksey Exp $
+// $Id: test_lib_soExecution.C,v 1.3 2008/06/18 19:58:50 carl Exp $
 
 #include <sstream>
 
@@ -53,7 +53,7 @@
 #include "TestMutator.h"
 #include "test_info_new.h"
 
-TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname) {
+TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
   std::stringstream fname;
   fname << odname << ".so";
 
@@ -63,9 +63,9 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname) {
     return NULL;
   }
 
-  TestOutputDriver *(*factory)();
+  TestOutputDriver *(*factory)(void *);
   dlerror();
-  factory = (TestOutputDriver *(*)()) dlsym(odhandle, "outputDriver_factory");
+  factory = (TestOutputDriver *(*)(void *)) dlsym(odhandle, "outputDriver_factory");
   char *errmsg = dlerror();
   if (errmsg != NULL) {
     // TODO Handle error
@@ -73,9 +73,9 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname) {
     return NULL;
   }
 
-  TestOutputDriver *retval = factory();
+  TestOutputDriver *retval = factory(data);
 
-  return retval; // FIXME Return the correct value
+  return retval;
 }
 
 bool getMutatorsForRunGroup(RunGroup *group,

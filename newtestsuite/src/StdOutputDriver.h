@@ -12,7 +12,7 @@ private:
   std::map<std::string, std::string> *attributes;
 
 public:
-  StdOutputDriver();
+  TESTLIB_DLL_EXPORT StdOutputDriver(void * data);
   ~StdOutputDriver();
 
   virtual void startNewTest(std::map<std::string, std::string> &attributes);

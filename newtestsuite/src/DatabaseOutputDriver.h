@@ -19,6 +19,7 @@
 class DatabaseOutputDriver : public TestOutputDriver {
 private:
   std::string dblogFilename;
+  std::string dblogFailedFilename;
   std::map<std::string, std::string> *attributes;
   bool cantConnect;
   bool submittedResults;
@@ -28,9 +29,10 @@ private:
   std::stringstream pretestLog;
 
   void failedResultSubmission(std::string message);
+  void initializeSQLFailure(std::string header, std::string message);
 
 public:
-  DatabaseOutputDriver();
+  DatabaseOutputDriver(void * data);
   ~DatabaseOutputDriver();
 
   virtual void startNewTest(std::map<std::string, std::string> &attrs);
@@ -44,5 +46,5 @@ public:
 };
 
 extern "C" {
-extern TEST_DLL_EXPORT TestOutputDriver *outputDriver_factory();
+extern TEST_DLL_EXPORT TestOutputDriver *outputDriver_factory(void * data);
 }
