@@ -1,0 +1,93 @@
+# 
+# Common makefile template for dyninst Tests.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 2008/06/18 20:17:36 carl Exp $
+#
+
+SUITE_NAME	= Dyninst
+RELEASE_NUM	= 4.2
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+DEST		= $(TO_CORE)\$(PROGRAM_DEST)\newtestsuite
+
+CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h /D_DEBUG /Zi
+CXXFLAGS_NORM = $(CXXFLAGS)
+CXXFLAGS     = $(CXXFLAGS) -DTESTLIB_DLL_BUILD
+CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
+
+LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
+
+SYSLIBS		= 
+
+LIBTESTSUITE = libtestSuite.dll
+SRCS_LIBTESTSUITE = ../src/test_lib.C \
+                    ../src/test_lib_dllExecution.C \
+                    ../src/test_lib_mutateeStart.C \
+                    ../src/Process_data.C \
+                    ../src/ParameterDict.C \
+                    ../src/TestData.C \
+                    ../src/Callbacks.C \
+					../src/TestMutator.C \
+					../src/TestOutputDriver.C \
+					../src/StdOutputDriver.C
+#					../src/test_lib_test7.C \
+#					../src/test_lib_test9.C \
+
+OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
+OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
+
+MUTATOR_LIBS = libdyninstAPI.lib libtestSuite.lib
+
+all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees output_drivers # libtestA.dll libtestB.dll
+
+
+UNCOMMON_INSTALL=true
+
+install: all
+	makeshift_die
+	-$(MKDIR) $(DEST)
+	for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
+LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
+LIBS    = libdyninstAPI.lib
+
+$(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE) $(LIBS)
+
+$(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
+
+test_info_new.gen.obj: test_info_new.gen.C
+	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
+test_driver.exe:  test_driver.obj test_lib.obj test_info_new.gen.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) test_driver.obj test_info_new.gen.obj $(MUTATOR_LIBS)
+
+test_driver.obj: ../src/test_driver.C
+	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -Dnative_cxx=_VC++.exe -c $**
+
+runTests.exe: runTests.obj runTests-utils-nt.obj
+	$(LINK) $(LDFLAGS) runTests.obj runTests-utils-nt.obj
+
+runTests.obj:  ../src/runTests.C ../src/runTests-utils-nt.C
+	$(CXX) $(CXXFLAGS_NORM) ../src/runTests.C ../src/runTests-utils-nt.C
+
+OUTPUT_DRIVERS =
+
+# comment this out if you don't have mysql
+#LIBMYSQLCLIENTDIR = P:\paradyn\packages\mysql-5.0\win32
+LIBMYSQLCLIENT_INC = P:\paradyn\packages\mysql-5.0\win32\include
+
+!ifdef LIBMYSQLCLIENTDIR
+MYSQLCLIENT_LIBFLAGS = P:\paradyn\packages\mysql-5.0\win32\lib\opt\mysqlclient.lib
+OUTPUT_DRIVERS = $(OUTPUT_DRIVERS) DatabaseOutputDriver.dll
+!endif
+
+DatabaseOutputDriver.obj: ../src/DatabaseOutputDriver.C
+	$(CXX) $(CXXFLAGS_NORM) -c -I../src/ -I$(LIBMYSQLCLIENT_INC) $**
+	
+DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
+	$(LINK) $(LDFLAGS) -DLL -out:$@ $(MUTATOR_LIBS) $(MYSQLCLIENT_LIBFLAGS)
+	
+.PHONY: output_drivers
+output_drivers: $(OUTPUT_DRIVERS)
