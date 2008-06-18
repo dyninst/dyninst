@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_7.C,v 1.2 2008/05/08 20:54:36 cooksey Exp $
+// $Id: test3_7.C,v 1.3 2008/06/18 19:58:25 carl Exp $
 /*
  * #Name: test3_7
  * #Desc: Tests asynchronous one-time codes
@@ -56,11 +56,12 @@
 #include "test_lib.h"
 //#include "test3.h"
 
+#define MAX_MUTATEES	32
+#define Mutatees		3
+
 #include "TestMutator.h"
 class test3_7_Mutator : public TestMutator {
   BPatch_exitType expectedSignal;
-  const unsigned int MAX_MUTATEES;
-  const unsigned int Mutatees;
   int debugPrint;
   char *pathname;
   BPatch *bpatch;
@@ -77,8 +78,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_7_factory() {
 }
 
 test3_7_Mutator::test3_7_Mutator()
-  : MAX_MUTATEES(32), Mutatees(3), pathname(NULL), bpatch(NULL),
-    TIMEOUT(120) {
+  : pathname(NULL), bpatch(NULL), TIMEOUT(120) {
 #if defined(os_windows)
   expectedSignal = ExitedNormally;
 #else

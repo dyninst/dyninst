@@ -64,7 +64,7 @@ static void parseLabel3(std::map<std::string, std::string> *attrs,
   }
 }
 
-std::map<std::string, std::string> *TestOutputDriver::getAttributesMap(TestInfo *test, RunGroup *group) {
+TESTLIB_DLL_EXPORT std::map<std::string, std::string> *TestOutputDriver::getAttributesMap(TestInfo *test, RunGroup *group) {
   if ((NULL == test) || (NULL == test->label)) {
     return NULL;
   }

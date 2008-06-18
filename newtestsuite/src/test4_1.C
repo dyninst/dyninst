@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_1.C,v 1.2 2008/05/08 20:54:37 cooksey Exp $
+// $Id: test4_1.C,v 1.3 2008/06/18 19:58:26 carl Exp $
 /*
  * #Name: test4_1
  * #Desc: Exit Callback
@@ -55,9 +55,10 @@
 
 #include "test_lib.h"
 
+#define MAX_TEST	4
+
 #include "TestMutator.h"
 class test4_1_Mutator : public TestMutator {
-  const unsigned int MAX_TEST;
   int debugPrint;
   BPatch *bpatch;
   char *pathname;
@@ -74,7 +75,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test4_1_factory() {
 }
 
 test4_1_Mutator::test4_1_Mutator()
-  : MAX_TEST(4), bpatch(NULL), pathname(NULL) {
+  : bpatch(NULL), pathname(NULL) {
 }
 
 static bool passedTest = false;

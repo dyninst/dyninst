@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_1.C,v 1.2 2008/05/08 20:54:30 cooksey Exp $
+// $Id: test3_1.C,v 1.3 2008/06/18 19:58:19 carl Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -56,11 +56,12 @@
 #include "test_lib.h"
 //#include "test3.h"
 
+#define MAX_MUTATEES	32
+
 #include "TestMutator.h"
 class test3_1_Mutator : public TestMutator {
   // These used to be static.  I don't think they need to be any more, now that
   // they're instance fields
-  const unsigned int MAX_MUTATEES;
   unsigned int Mutatees;
   int debugPrint;
 
@@ -78,7 +79,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_1_factory() {
   return new test3_1_Mutator();
 }
 
-test3_1_Mutator::test3_1_Mutator() : MAX_MUTATEES(32) {
+test3_1_Mutator::test3_1_Mutator() {
 #if defined(os_windows)
   expectedSignal = ExitedNormally;
 #else

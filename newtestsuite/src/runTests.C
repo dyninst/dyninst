@@ -1,3 +1,9 @@
+#ifdef os_windows
+//needed for Sleep
+#include <windows.h>
+#define sleep(x) Sleep(x * 1000)
+#endif
+
 #include <stdlib.h>
 #include <sstream>
 #include <string>
@@ -8,7 +14,6 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-#include <unistd.h>
 
 #include "runTests-utils.h"
 #include "error.h"

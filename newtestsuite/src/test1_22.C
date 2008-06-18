@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_22.C,v 1.1 2007/09/24 16:37:24 cooksey Exp $
+// $Id: test1_22.C,v 1.2 2008/06/18 19:58:18 carl Exp $
 /*
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
@@ -60,6 +60,10 @@
 // static int mutateeFortran;
 
 // static char libNameA[128], libNameB[128];
+
+#ifdef os_windows
+#define snprintf _snprintf
+#endif
 
 #include "TestMutator.h"
 

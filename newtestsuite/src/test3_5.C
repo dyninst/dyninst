@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_5.C,v 1.2 2008/05/08 20:54:34 cooksey Exp $
+// $Id: test3_5.C,v 1.3 2008/06/18 19:58:23 carl Exp $
 /*
  * #Name: test3_5
  * #Desc: sequential multiple-process management - abort
@@ -58,7 +58,6 @@
 
 #include "TestMutator.h"
 class test3_5_Mutator : public TestMutator {
-  const unsigned int MAX_MUTATEES;
   unsigned int Mutatees;
   int debugPrint;
   char *pathname;
@@ -75,7 +74,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_5_factory() {
 }
 
 test3_5_Mutator::test3_5_Mutator()
-  : MAX_MUTATEES(32), Mutatees(3), pathname(NULL), bpatch(NULL) {
+  : Mutatees(3), pathname(NULL), bpatch(NULL) {
 }
 
 //

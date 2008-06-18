@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_6.C,v 1.2 2008/05/08 20:54:35 cooksey Exp $
+// $Id: test3_6.C,v 1.3 2008/06/18 19:58:24 carl Exp $
 /*
  * #Name: test3_6
  * #Desc: Create processes (via standard OS methods, not BPatch::createProcess), process events, and kill them, no instrumentation
@@ -61,10 +61,11 @@
 #include "test_lib.h"
 //#include "test3.h"
 
+#define MAX_MUTATEES	32
+
 #include "TestMutator.h"
 class test3_6_Mutator : public TestMutator {
   BPatch_exitType expectedSignal;
-  const unsigned int MAX_MUTATEES;
   unsigned int Mutatees;
   int debugPrint;
   BPatch *bpatch;
@@ -81,7 +82,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_6_factory() {
 }
 
 test3_6_Mutator::test3_6_Mutator()
-  : MAX_MUTATEES(32), Mutatees(3), bpatch(NULL), pathname(NULL) {
+  : Mutatees(3), bpatch(NULL), pathname(NULL) {
 #if defined(os_windows)
   expectedSignal = ExitedNormally;
 #else

@@ -46,10 +46,18 @@
 #ifndef SOLO_DRIVER_H
 #define SOLO_DRIVER_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern mutatee_call_info_t mutatee_funcs[];
 extern int runTest[];
 extern int passedTest[];
 extern const unsigned int MAX_TEST;
 extern int groupable_mutatee;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

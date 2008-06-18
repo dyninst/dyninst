@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_2.C,v 1.2 2008/05/08 20:54:31 cooksey Exp $
+// $Id: test3_2.C,v 1.3 2008/06/18 19:58:20 carl Exp $
 /*
  * #Name: test3_2
  * #Desc: simultaneous multiple-process management - exit
@@ -56,9 +56,10 @@
 #include "test_lib.h"
 //#include "test3.h"
 
+#define MAX_MUTATEES	32
+
 #include "TestMutator.h"
 class test3_2_Mutator : public TestMutator {
-  const unsigned int MAX_MUTATEES;
   unsigned int Mutatees;
   int debugPrint;
   BPatch *bpatch;
@@ -75,7 +76,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_2_factory() {
 }
 
 test3_2_Mutator::test3_2_Mutator()
-  : MAX_MUTATEES(32), Mutatees(3), bpatch(NULL), pathname(NULL) {
+  : Mutatees(3), bpatch(NULL), pathname(NULL) {
 }
 
 //

@@ -28,7 +28,7 @@ public:
   // structures?  Then I wouldn't need to create a map here.  Maybe a
   // convenience method to transform those structures into a map, because
   // I'm pretty sure a map will be easier to produce output from.
-  static std::map<std::string, std::string> *getAttributesMap(TestInfo *test, RunGroup *group);
+  TESTLIB_DLL_EXPORT static std::map<std::string, std::string> *getAttributesMap(TestInfo *test, RunGroup *group);
 
   // Informs the output driver that any log messages or results should be
   // associated with the test passed in through the attributes parameter

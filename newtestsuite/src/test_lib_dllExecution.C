@@ -39,15 +39,43 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_dllExecution.C,v 1.1 2007/09/24 16:40:55 cooksey Exp $
+// $Id: test_lib_dllExecution.C,v 1.2 2008/06/18 19:58:28 carl Exp $
 #include "test_lib.h"
 #include "ParameterDict.h"
+#include "TestOutputDriver.h"
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
 
 typedef int (*mutatorM_t)(ParameterDict &);
 const char* ext = ".dll";
+
+TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
+	std::string fname (odname);
+	fname += ext;
+
+//	void *odhandle = dlopen(fname.str().c_str(), RTLD_NOW);
+	HINSTANCE odhandle = LoadLibrary(fname.c_str());
+	if (NULL == odhandle) {
+		fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, GetLastError());
+		return NULL;
+	}
+
+	typedef TestOutputDriver * (*odfactory_t)(void *);
+//TODO ?	dlerror();
+//	factory = (TestOutputDriver *(*)(void *)) dlsym(odhandle, "outputDriver_factory");
+	odfactory_t factory = (odfactory_t) GetProcAddress(odhandle, "outputDriver_factory");
+//	char *errmsg = dlerror();
+	if (factory == NULL) {
+		// TODO Handle error
+		fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, GetLastError());
+		return NULL;
+	}
+
+	TestOutputDriver *retval = factory(data);
+
+	return retval;
+}
 
 int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
 {
@@ -89,3 +117,66 @@ int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
    //printf("Ran test: %s\n", testLib.soname);
    return result;
 }
+
+bool getMutatorsForRunGroup(RunGroup * group,
+				std::vector<TestInfo *> &group_tests)
+{
+	for (int i = 0; i < group->tests.size(); i++) {
+		if (false == group->tests[i]->enabled) {
+			// Skip disabled tests
+			continue;
+		}
+
+//		char *fullSoPath;
+
+		TestInfo *test = group->tests[i];
+		std::string dllname = std::string(test->name) + std::string(ext);
+//		const char *soname = test->soname;
+//		fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
+
+//		if (!fullSoPath) {
+//			fprintf(stderr, "Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n",
+//			soname);
+//			return true; // Error
+//		}
+//		void *handle = dlopen(fullSoPath, RTLD_NOW);
+		HINSTANCE handle = LoadLibrary(dllname.c_str());
+//		::free(fullSoPath);
+		if (!handle) {
+			fprintf(stderr, "Error opening lib: %s\n", dllname.c_str());
+//			fprintf(stderr, "Error opening lib: %s\n", group->tests[i]->soname);
+//			fprintf(stderr, "%s\n", dlerror());
+			fprintf(stderr, "%s\n", GetLastError());
+			return true; // Error
+		}
+
+		typedef TestMutator *(*mutator_factory_t)();
+		char mutator_name[256];
+		const char *testname = test->mutator_name;
+		_snprintf(mutator_name, 256, "%s_factory", testname);
+//		mutator_factory_t factory = (mutator_factory_t) dlsym(handle,
+//		mutator_name);
+		mutator_factory_t factory = (mutator_factory_t)GetProcAddress(handle, mutator_name);
+		if (NULL == factory) {
+			fprintf(stderr, "Error funding function: %s, in %s\n", mutator_name,
+				dllname);
+			//			soname);
+//			fprintf(stderr, "%s\n", dlerror());
+			fprintf(stderr, "%s\n", GetLastError());
+//			dlclose(handle);
+			FreeLibrary(handle);
+			return true; // Error
+		}
+
+		TestMutator *mutator = factory();
+		if (NULL == mutator) {
+			fprintf(stderr, "Error creating new TestMutator for test %s\n",
+			test->name);
+		} else {
+			test->mutator = mutator;
+			group_tests.push_back(test);
+		}
+	}
+	return false; // No error
+}
+

@@ -4,7 +4,7 @@
 #include "test_lib.h"
 
 // Base class for the mutator part of a test
-class TestMutator {
+class TESTLIB_DLL_EXPORT TestMutator {
 public:
   BPatch_thread *appThread;
   // FIXME This field (appImage) probably isn't necessary.  It looks looks like
