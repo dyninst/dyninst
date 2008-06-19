@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_10.C,v 1.5 2006/10/11 21:53:19 cooksey Exp $
+// $Id: test2_10.C,v 1.6 2008/06/19 19:54:42 legendre Exp $
 /*
  * #Name: test2_10
  * #Desc: Dump image
@@ -67,53 +67,9 @@
 //
 static int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
 {
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(sparc_sun_sunos4_1_3) \
- && !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-
     logerror("Skipping test #10 (dump image)\n");
     logerror("    BPatch_thread::dumpImage not implemented on this platform\n");
     return 0;
-#else
-
-  if (thread->isTerminated()) {
-    logerror( "**Failed** test #10 (dump image)\n" );
-    logerror("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
-    return -1;
-  }
-
-    // dump image
-
-    if (access("myimage", F_OK) == 0) {
-	dprintf("File \"myimage\" exists.  Deleting it.\n");
-	if (unlink("myimage") != 0) {
-	    fprintf(stderr, "Couldn't delete the file \"myimage\".  Exiting.\n");
-            return -1;
-	}
-    }
-
-    clearError();
-    thread->dumpImage("myimage"); // FIXME deprecated function
-    int gotError = getError();
-    bool imageExists = (access("myimage", F_OK) == 0);
-    if (gotError || !imageExists) {
-	logerror("**Failed** test #10 (dump image)\n");
-	if (gotError)
-	    logerror("    error reported by dumpImage\n");
-	if (!imageExists)
-	    logerror("    the image file wasn't written\n");
-        return -1;
-    } else {
-    	logerror("Passed test #10 (dump image)\n");
-        	unlink("myimage");
-        return 0;
-    }
-#endif
 }
 
 extern "C" TEST_DLL_EXPORT int test2_10_mutatorMAIN(ParameterDict &param)
