@@ -351,18 +351,20 @@ bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
 
 
       //Get the file part of the filename. eg /lib/ld-2.3.4.so -> ld-2.3.4.so
-      char *filename = "";
+      char *filename = NULL;
+      bool matches_name = false;
       if (has_inode) {
          filename = strrchr(maps[i].path, '/');
          if (!filename)
             filename = maps[i].path;
          else
-            filename++;
-      }
-      //Check for format match of ld*.so* (don't get /etc/ld.so.cache)
-      bool matches_name = (strncmp("ld", filename, 2)==0 && 
-                           strstr(filename, ".so") && 
-                           !strstr(filename, ".cache"));
+            filename++; 
+
+         //Check for format match of ld*.so* (don't get /etc/ld.so.cache)
+         matches_name = (strncmp("ld", filename, 2)==0 && 
+                         strstr(filename, ".so") && 
+                         !strstr(filename, ".cache"));
+     }
 
       if (!matches_name) {
          continue;
@@ -515,7 +517,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
 
    do {
       string obj_name = link_elm->l_name();
-      Address text = link_elm->l_addr();
+      Address text = static_cast<Address>(link_elm->l_addr());
       if (obj_name == "" && text == 0) {
          continue;
       }
@@ -586,7 +588,7 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
     do {
 	// kludge: ignore the first entry
 	if (!first_time)
-	    (*link_addresses).push_back(link_elm->l_addr());
+      (*link_addresses).push_back(static_cast<Address>(link_elm->l_addr()));
 
 	first_time = false;
     } while (link_elm->load_next());
@@ -697,7 +699,7 @@ bool dynamic_linking::initialize() {
  * added/removed later on when we handle the exception
  */
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       unsigned int &change_type)
+                                                       unsigned int & /*change_type*/)
 {
     sharedLibHook *hook;
     assert(ev.lwp);

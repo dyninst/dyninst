@@ -136,7 +136,7 @@ const char *BPatch_type::getLow() const {
     rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);
     if(!rangetype)
         return NULL;
-    return (const char *)rangetype->getLow(); 
+    return (const char *)(long)rangetype->getLow(); 
 }
 
 bool BPatch_type::isCompatible(BPatch_type *otype) 
@@ -204,7 +204,7 @@ const char *BPatch_type::getHigh() const {
     rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);
     if(!rangetype)
         return NULL;
-    return (const char *)rangetype->getHigh(); 
+    return (const char *)(long)rangetype->getHigh(); 
 }
 
 BPatch_dataClass BPatch_type::convertToBPatchdataClass(dataClass type) {
@@ -660,5 +660,5 @@ BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctionsInt()
 //Return BPatch_functions corresponding to Symbols in SymtabAPI
 //Lookup again from BPatch::bpatch with the name. Then return the BPatch_functions
 //TODO
-
+  return NULL;
 }

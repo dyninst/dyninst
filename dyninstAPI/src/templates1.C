@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.82 2008/03/12 20:09:27 legendre Exp $
+//$Id: templates1.C,v 1.83 2008/06/19 19:53:48 legendre Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -95,7 +95,6 @@ template class pdvector<inferiorRPCinProgress *>;
 #include "common/src/List.C"
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-class Dyninst::SymtabAPI::Symbol;
 template class  dictionary_hash <Address, Symbol*>;
 template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
 

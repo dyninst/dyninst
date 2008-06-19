@@ -573,9 +573,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
               }
 	      }
 
-	      if (stabstr[cnt]);
-		//bperr("Parsing Error More Global Static info to Parse!!: %s\n",
-		//       &(stabstr[cnt]));
 	      break;
 	  }
 

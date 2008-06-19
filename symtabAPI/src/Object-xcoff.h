@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.21 2008/05/27 20:44:46 giri Exp $
+ * $Id: Object-xcoff.h,v 1.22 2008/06/19 19:54:17 legendre Exp $
 ************************************************************************/
 
 
@@ -47,7 +47,6 @@
 #include "symtabAPI/h/Symbol.h"
 #include "common/h/Types.h"
 
-#include <ext/hash_map>
 #include <string>
 #include <vector>
 
@@ -191,7 +190,7 @@ class Object : public AObject {
     Object&   operator= (const Object &);
     Object(){}	
     Object(MappedFile *, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
-    Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Region *> &, 
+    Object(MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, 
           void (*)(const char *) = log_msg, Offset off = 0);
     Object(MappedFile *, std::string &member_name, Offset offset,	
             void (*)(const char *) = log_msg, void *base = NULL);
@@ -223,10 +222,10 @@ class Object : public AObject {
     Offset getLoadAddress() const { return loadAddress_; }
     Offset getEntryAddress() const { return entryAddress_; }
     Offset getBaseAddress() const { return baseAddress_; }
-    void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
+    void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
     const char *interpreter_name() const { return NULL; }
 #if 0
-    hash_map<std::string, LineInformation > &getLineInfo() { 
+    dyn_hash_map<std::string, LineInformation > &getLineInfo() { 
     	parseFileLineInfo();
     	return lineInfo_; 
     }
@@ -243,8 +242,8 @@ private:
     void load_object(bool alloc_syms);
     void load_archive(bool is_aout, bool alloc_syms);
     void parse_aout(int offset, bool is_aout, bool alloc_syms);
-    void parseFileLineInfo(hash_map<std::string, LineInformation> &li);
-    void parseLineInformation(hash_map<std::string, LineInformation> &li, std::string * currentSourceFile,
+    void parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
+    void parseLineInformation(dyn_hash_map<std::string, LineInformation> &li, std::string * currentSourceFile,
                                 	char * symbolName,
                                 	SYMENT * sym,
                                  	Offset linesfdptr,
@@ -276,7 +275,7 @@ private:
     void *linesptr_;
     Offset linesfdptr_;
     bool is64_;
-    hash_map<std::string, LineInformation > lineInfo_;
+    dyn_hash_map<std::string, LineInformation > lineInfo_;
 };
 
 /* This class is only used in symtab.C; the only reason it's in

@@ -803,8 +803,8 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest,
   bundle.generate(gen);
 }
 
-void emitStorePreviousStackFrameRegister(Address register_num, Register source,
-										 codeGen &gen, int, bool) {
+void emitStorePreviousStackFrameRegister(Address /*register_num*/, Register /*source*/,
+										 codeGen &/*gen*/, int, bool) {
 	// TODO implement me...
 	assert(0);
 }
@@ -3245,7 +3245,7 @@ bool doNotOverflow( int /*value*/ ) {
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
 				 codeGen &gen,  bool /*noCost*/, registerSpace * rs, int size,
-				 const instPoint * location, AddressSpace * proc) {
+				 const instPoint * location, AddressSpace * /*proc*/) {
 
   switch( op ) {
   case storeOp: {

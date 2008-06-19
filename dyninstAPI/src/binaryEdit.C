@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.18 2008/06/13 20:06:25 mlam Exp $
+// $Id: binaryEdit.C,v 1.19 2008/06/19 19:53:11 legendre Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -367,13 +367,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
     // so skip it and see what we're talking about size-wise. Which should
     // be less than the highWaterMark, so we can double-check.
 
-    void *newSection = NULL;
-    unsigned newSectionSize = 0;
-
     // Next, make a new section. We have the following parameters:
     // Offset vaddr: we get this from Symtab - "first free address with sufficient space"
-    // void *data: newSection
-    // unsigned int dataSize: newSectionSize
     // std::string name: without reflection, ".dyninstInst"
     // unsigned long flags: these are a SymtabAPI abstraction. We're going with text|data because
     //    we might have both.
@@ -399,7 +394,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
 	// Add dynamic symbol relocations
 	Symbol *referring, *newSymbol;
-	for (int i=0; i < dependentRelocations.size(); i++) {
+	for (unsigned i=0; i < dependentRelocations.size(); i++) {
 		Address to = dependentRelocations[i]->getAddress();
 		referring = dependentRelocations[i]->getReferring();
 		newSymbol = new Symbol(
@@ -797,8 +792,8 @@ void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
 }
 
 Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
-	Address retAddr = NULL;
-	for (int i=0; i < dependentRelocations.size(); i++) {
+	Address retAddr = 0x0;
+	for (unsigned i=0; i < dependentRelocations.size(); i++) {
 		if (dependentRelocations[i]->getReferring() == referring) {
 			retAddr = dependentRelocations[i]->getAddress();
 			break;

@@ -1231,7 +1231,7 @@ void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
 void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
                                       unsigned)
 {
-   *((unsigned long *) buffer) = val;
+   *((unsigned long *)(void*) buffer) = val;
 }
 #endif
 
@@ -1266,7 +1266,7 @@ void trampTrapMappings::flush() {
       return;
 
    process *p = dynamic_cast<process *>(proc());
-   mapped_object *rtlib;
+   mapped_object *rtlib = NULL;
    if (p) {
       rtlib = p->runtime_lib;
    }
@@ -1284,7 +1284,7 @@ void trampTrapMappings::flush() {
    // we'll just append them to the end of the table.
    //
    //If we're sorting, then everytime we update we'll generate a whole new table
-  //If we're not sorting, then each update will just append to the end of the
+   //If we're not sorting, then each update will just append to the end of the
    // table.
    bool should_sort = (dynamic_cast<process *>(proc()) == NULL ||
                        table_mutatee_size > table_allocated);
@@ -1298,16 +1298,16 @@ void trampTrapMappings::flush() {
     * As an optimization, we keep a list of the mappings that have
     * changed in updated_mappings.  If we're not completly regenerating
     * the table we'll get our trap list out of updated_mappings, 
-    * otherwise we'll get our change list out of the entire hash_map.
+    * otherwise we'll get our change list out of the entire dyn_hash_map.
     **/
    std::vector<tramp_mapping_t*> mappings_to_add;
    std::vector<tramp_mapping_t*> mappings_to_update;
    if (should_sort) {
-   hash_map<Address, tramp_mapping_t>::iterator i;
-   for (i = mapping.begin(); i != mapping.end(); i++) {
+      dyn_hash_map<Address, tramp_mapping_t>::iterator i;
+      for (i = mapping.begin(); i != mapping.end(); i++) {
          arrange_mapping((*i).second, should_sort, 
                          mappings_to_add, mappings_to_update);
-   }
+      }
    } 
    else {
       std::set<tramp_mapping_t *>::iterator i;
@@ -1322,7 +1322,7 @@ void trampTrapMappings::flush() {
 
    for (unsigned k=0; k<mappings_to_add.size(); k++)
    {
-       mappings_to_add[k]->written = true;
+      mappings_to_add[k]->written = true;
    }
 
    //Sort the mappings (if needed) 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.66 2008/03/12 20:09:05 legendre Exp $
+// $Id: baseTramp.C,v 1.67 2008/06/19 19:53:10 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -486,7 +486,11 @@ bool baseTrampInstance::generateCodeOutlined(codeGen &gen,
 #include "BPatch_collections.h"
 bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                             Address baseInMutatee,
-                                            UNW_INFO_TYPE **unwindRegion) {
+                                            UNW_INFO_TYPE **
+#if defined(arch_ia64)
+                                            unwindRegion
+#endif
+                                            ) {
     if (!hasChanged() && generated_) {
         assert(gen.currAddr(baseInMutatee) == trampAddr_);
         gen.moveIndex(trampSize_);
@@ -559,7 +563,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
         else if (gen.thread()) {
             // Constant override...
             threadIndex = AstNode::operandNode(AstNode::Constant,
-                                               (void *)gen.thread()->get_index());
+                                               (void *)(long)gen.thread()->get_index());
         }
         else {
             // TODO: we can get clever with this, and have the generation of

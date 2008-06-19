@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: unix.h,v 1.5 2008/05/09 00:25:38 jaw Exp $
+/* $Id: unix.h,v 1.6 2008/06/19 19:53:52 legendre Exp $
  */
 
 #ifndef _UNIX_H_
@@ -145,7 +145,7 @@ typedef pthread_cond_t EventCond_t;
 #define SOCKLEN_T socklen_t 
 #endif
 
-#include <ext/hash_set>
+#include "dynutil/h/dyntypes.h"
 
 #ifndef INVALID_HANDLE_VALUE
 #define INVALID_HANDLE_VALUE -1

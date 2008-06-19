@@ -254,8 +254,8 @@ bool InstrucIter::hasMore()
 {
   if (instPtr == NULL) return false;
   
-  if ((range == 0) ||
-      ((long)range ==-1)) return true; // Unsafe iteration, but there is more
+  if (range == 0)
+      return true; // Unsafe iteration, but there is more
   
   if((current < (base + range )) &&
      (current >= base))
@@ -344,7 +344,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 }
 
 bool InstrucIter::containsAddress(Address addr) { 
-  if ((range == 0) || ((long)range ==-1)) 
+  if (range == 0)
      return true;
 
    return ((addr >= base) && 

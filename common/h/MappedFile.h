@@ -6,7 +6,7 @@
 #include "Types.h"
 
 class MappedFile {
-     static hash_map<std::string, MappedFile *> mapped_files;
+     static dyn_hash_map<std::string, MappedFile *> mapped_files;
 
    public:
       DLLEXPORT static MappedFile *createMappedFile(std::string fullpath_);

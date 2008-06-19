@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.30 2008/03/25 19:24:28 bernat Exp $
+ * $Id: emit-x86.h,v 1.31 2008/06/19 19:53:14 legendre Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -79,7 +79,7 @@ public:
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
-    bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen) { assert(0); return true; }
+    bool emitLoadRelative(registerSlot* /*dest*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); return true; }
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -93,7 +93,7 @@ public:
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
 
     void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
-    void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen) { assert(0); }
+    void emitStoreRelative(registerSlot* /*source*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); }
 
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
@@ -133,7 +133,7 @@ public:
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
-    bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) { assert(0); return true; }
+    bool emitMoveRegToReg(registerSlot* /*src*/, registerSlot* /*dest*/, codeGen& /*gen*/) { assert(0); return true; }
 
 
  protected:

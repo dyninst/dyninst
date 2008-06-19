@@ -68,7 +68,7 @@ class AddressLookup
  private:
    AddressTranslate *translator;
    AddressLookup(AddressTranslate *trans);
-   static hash_map<std::string, std::vector<Symbol *> > syms;
+   static dyn_hash_map<std::string, std::vector<Symbol *> > syms;
    int getSymsVector(std::string str);
    std::vector<Symbol *> *getSymsVector(LoadedLib *lib);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.9 2008/05/09 00:25:38 jaw Exp $
+// $Id: Annotatable.h,v 1.10 2008/06/19 19:53:53 legendre Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -54,17 +54,6 @@
 
 class DLLEXPORT_COMMON AnnotatableBase;
 
-#if !defined(_MSC_VER)
-namespace __gnu_cxx {
-   template<> struct hash<AnnotatableBase *> {
-      hash<char*> h;
-      unsigned operator()(const AnnotatableBase *b) const {
-         return ::Dyninst::addrHashCommon((Dyninst::Address)b);
-      };
-   };
-}
-#endif
-
 using std::vector;
 
 
@@ -75,8 +64,8 @@ class DLLEXPORT_COMMON AnnotatableBase
       ~AnnotatableBase() {
       }
       static int number;
-      static hash_map<std::string, int> annotationTypes;
-      static hash_map<std::string, int> metadataTypes;
+      static dyn_hash_map<std::string, int> annotationTypes;
+      static dyn_hash_map<std::string, int> metadataTypes;
       static int metadataNum;
 
    public:
@@ -106,8 +95,8 @@ class AnnotationSet {
    //typedef hash_map<char *, as_id_map_t*> obj_map_t;
    //typedef hash_map<AnnotatableBase *, as_id_map_t*> obj_map_t;
 
-   typedef hash_map<int, T*> as_id_map_t;
-   typedef hash_map<char *, as_id_map_t> obj_map_t;
+   typedef dyn_hash_map<int, T*> as_id_map_t;
+   typedef dyn_hash_map<char *, as_id_map_t> obj_map_t;
    static obj_map_t sets_by_obj;
 
    public:
@@ -199,18 +188,18 @@ class AnnotationSet {
    }
 };
 
-template< class T > hash_map<char *, hash_map<int, T*> >
+template< class T > dyn_hash_map<char *, dyn_hash_map<int, T*> >
 AnnotationSet< T >::sets_by_obj;
 
 #if 0
 class AnnotationTypeNameBase {
-   static hash_map<std::string, AnnotationTypeNameBase *> type_name_map;
+   static dyn_hash_map<std::string, AnnotationTypeNameBase *> type_name_map;
    std::string name;
    public:
    AnnotationTypeNameBase(std::string name_) :
       name(name_) 
    {
-      hash_map<std::string, AnnotationTypeNameBase *>::iterator iter;
+      dyn_hash_map<std::string, AnnotationTypeNameBase *>::iterator iter;
       iter = type_name_map.find(name);
       if (iter != type_name_map.end()) {
          fprintf(stderr, "%s[%d]:  WARNING:  already have entry for %s<->%p in map\n",

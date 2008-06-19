@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.289 2008/04/14 20:44:24 bernat Exp $
+ * $Id: inst-power.C,v 1.290 2008/06/19 19:53:23 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -1025,8 +1025,11 @@ unsigned restoreFPRegisters(codeGen &gen,
  * CTR, CR, XER, SPR0, FPSCR
  */
 unsigned saveSPRegisters(codeGen &gen,
-			 registerSpace * theRegSpace,
-                         int save_off)
+                         registerSpace * 
+#if defined(os_aix)
+                         theRegSpace
+#endif
+                         , int save_off)
 {
     unsigned num_saved = 0;
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
@@ -1080,8 +1083,11 @@ unsigned saveSPRegisters(codeGen &gen,
  */
 
 unsigned restoreSPRegisters(codeGen &gen,
-			    registerSpace *theRegSpace,
-                            int save_off)
+                            registerSpace *
+#if defined(os_aix)
+                            theRegSpace
+#endif
+                            , int save_off)
 {
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
     unsigned num_restored = 0;

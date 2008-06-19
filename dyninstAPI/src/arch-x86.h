@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.63 2008/04/11 23:30:12 legendre Exp $
+// $Id: arch-x86.h,v 1.64 2008/06/19 19:53:08 legendre Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -491,7 +491,7 @@ class ia32_prefixes
   unsigned char prfx[5];
   unsigned char opcode_prefix;
  public:
-  unsigned int const getCount() const { return count; }
+  unsigned int getCount() const { return count; }
   unsigned char getPrefix(unsigned char group) const { return prfx[group]; }
   bool rexW() const { return prfx[4] & 0x8; }
   bool rexR() const { return prfx[4] & 0x4; }

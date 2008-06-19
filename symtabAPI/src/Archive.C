@@ -119,7 +119,7 @@ bool Archive::getMember(Symtab *&img, std::string member_name)
 
 bool Archive::getAllMembers(std::vector <Symtab *> &members)
 {
-   hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
+   dyn_hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
    for (; iter!=membersByName.end();iter++) {
       if (iter->second == NULL) {
          bool err;

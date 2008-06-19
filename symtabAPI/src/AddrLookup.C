@@ -43,7 +43,7 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-hash_map<string, std::vector<Symbol *> > AddressLookup::syms;
+dyn_hash_map<string, std::vector<Symbol *> > AddressLookup::syms;
 
 AddressLookup *AddressLookup::createAddressLookup(PID pid, ProcessReader *reader)
 {

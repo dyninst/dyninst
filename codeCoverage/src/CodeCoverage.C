@@ -43,8 +43,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <limits.h>
 #include <pthread.h>
 #include <tcl.h>

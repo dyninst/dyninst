@@ -34,8 +34,14 @@ int my_yyinput(char *buf, int max_size);
 
 #endif
 
-
 static int yyinput(void);
+static void yyunput(int, char *);
+
+void yyunput_wrapper(int i, char *s)
+{
+  yyunput(i, s);
+}
+
 
 static int doubleQuote()
 {

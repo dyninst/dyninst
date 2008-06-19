@@ -146,7 +146,7 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
          } 
 #else
          if (0 != mkdir(dot_dyninst_dir.c_str(), S_IRWXU)) {
-            fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
+            fprintf(stderr, "%s[%d]:  failed to make %s: %s\n", FILE__, __LINE__, 
                   dot_dyninst_dir.c_str(), strerror(errno));
             return false;
          } 
@@ -183,7 +183,7 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
          } 
 #else
          if (0 != mkdir(path.c_str(), S_IRWXU)) {
-            fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
+            fprintf(stderr, "%s[%d]:  failed to make %s: %s\n", FILE__, __LINE__, 
                   path.c_str(), strerror(errno));
             return false;
          } 
@@ -217,7 +217,8 @@ bool SerDesBin::resolveCachePath(std::string full_file_path, std::string &cache_
    char *path_dir = getenv(CACHE_DIR_VAR); 
    if (!path_dir) {
       if (!getDefaultCacheDir(path)) {
-         fprintf(stderr, "%s[%d]:  weird, failed to make $HOME/.dyninst/caches\n");
+         fprintf(stderr, "%s[%d]:  weird, failed to make $HOME/.dyninst/caches\n",
+                 FILE__, __LINE__);
          return false;
       }
    }
@@ -355,7 +356,7 @@ void SerDesBin::writeHeaderPreamble(std::string full_file_path, std::string /*ca
   int rc = fwrite(&header, sizeof(cache_header_t), 1, f);
 
   if (1 != rc) 
-         SER_ERR("fwrite");
+     SER_ERR("fwrite");
   
 }
 
@@ -521,7 +522,7 @@ void SerDesBin::translate(Address &param, const char *tag)
   }
 
   if (noisy)
-     fprintf(stderr, "%s[%d]:  %sserialize %s=%p\n", FILE__, __LINE__,
+     fprintf(stderr, "%s[%d]:  %sserialize %s=%lx\n", FILE__, __LINE__,
            iomode_ == sd_serialize ? "" : "de", 
            tag ? tag : "no-tag", param);
 }

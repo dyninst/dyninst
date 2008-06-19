@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.21 2008/04/10 17:07:17 bernat Exp $
+// $Id: registerSpace.C,v 1.22 2008/06/19 19:53:36 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -169,7 +169,13 @@ registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
     return ret;
 }
 
-registerSpace *registerSpace::actualRegSpace(instPoint *iP, callWhen when) {
+registerSpace *registerSpace::actualRegSpace(instPoint *iP, 
+                                             callWhen 
+#if defined(cap_liveness)
+                                             when 
+#endif
+                                             ) 
+{
 #if defined(cap_liveness)
     if (BPatch::bpatch->livenessAnalysisOn()) {
         assert(iP);
@@ -427,7 +433,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
     return reg;
 }
 
-bool registerSpace::spillRegister(Register reg, codeGen &gen, bool noCost) {
+bool registerSpace::spillRegister(Register reg, codeGen &/*gen*/, bool /*noCost*/) {
     assert(!registers_[reg]->offLimits);
 
     assert(0 && "Unimplemented!");
@@ -455,9 +461,8 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 // "Save special purpose registers". We may want to define a "volatile"
 // later - something like "can be unintentionally nuked". For example,
 // x86 flags register. 
-bool registerSpace::saveVolatileRegisters(codeGen &gen) {
-
 #if defined(arch_x86_64) || defined(arch_x86)
+bool registerSpace::saveVolatileRegisters(codeGen &gen) {
     bool doWeSave = false; 
     if (addr_width == 8) {
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
@@ -494,14 +499,16 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
         }
     }
     
+}
 #else
+bool registerSpace::saveVolatileRegisters(codeGen &) {
     assert(0);
     return true;
-#endif
 }
+#endif
 
-bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
 #if defined(arch_x86_64) || defined(arch_x86)
+bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
     if (addr_width == 8) {
         bool doWeRestore = false;
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
@@ -532,11 +539,13 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
         else
             return false;
     }
+}
 #else
+bool registerSpace::restoreVolatileRegisters(codeGen &) {
     assert(0);
     return true;
-#endif
 }
+#endif
 
 
 // Free the specified register (decrement its refCount)
@@ -714,7 +723,12 @@ bool registerSpace::markReadOnly(Register) {
 bool registerSpace::readProgramRegister(codeGen &gen,
                                         Register source,
                                         Register destination,
-                                        unsigned size) {
+                                        unsigned 
+#if !defined(arch_power)
+                                        size
+#endif  
+) 
+{
 #if !defined(arch_x86_64) && !defined(arch_power)
     emitLoadPreviousStackFrameRegister((Address)source,
                                        destination,
@@ -779,7 +793,11 @@ bool registerSpace::readProgramRegister(codeGen &gen,
 bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register destination,
                                          Register source,
-                                         unsigned size) {
+                                         unsigned 
+#if !defined(arch_power)
+size
+#endif
+) {
 #if !defined(arch_x86_64) && !defined(arch_power)
     emitStorePreviousStackFrameRegister((Address) destination,
                                         source,
@@ -872,7 +890,7 @@ bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
     return true;
 }
 
-void registerSlot::debugPrint(char *prefix) {
+void registerSlot::debugPrint(const char *prefix) {
     if (!dyn_debug_regalloc) return;
 
 	if (prefix) fprintf(stderr, "%s", prefix);
@@ -900,14 +918,14 @@ void registerSpace::debugPrint() {
 	fprintf(stderr, "Register dump:");
 	fprintf(stderr, "=====GPRs=====\n");
 	for (unsigned i = 0; i < GPRs_.size(); i++) {
-            GPRs_[i]->debugPrint("\t");
-        }
+      GPRs_[i]->debugPrint("\t");
+   }
 	for (unsigned i = 0; i < FPRs_.size(); i++) {
-            FPRs_[i]->debugPrint("\t");
-        }
+      FPRs_[i]->debugPrint("\t");
+   }
 	for (unsigned i = 0; i < SPRs_.size(); i++) {
-            SPRs_[i]->debugPrint("\t");
-        }
+      SPRs_[i]->debugPrint("\t");
+   }
 }
 
 bool registerSpace::markKeptRegister(Register reg) {

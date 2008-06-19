@@ -461,8 +461,6 @@ bool rpcLWP::handleCompletedIRPC()
         }
     }
     if (retstate == RPC_RUN_WHEN_DONE)  {
-        fprintf(stderr, "Whoa, someone asking for a run\n");
-        while(1);
         return true;
     }
     return runProcess;

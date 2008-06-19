@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.118 2008/05/12 22:12:43 giri Exp $
+// $Id: BPatch_image.C,v 1.119 2008/06/19 19:52:51 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -1294,6 +1294,7 @@ bool reparseObject(BPatch_addressSpace *addSpace,
  * tables changes are immediately handled and the mapped object list
  * gets updated, so we don't need to search for them.
  */
+#if defined(os_linux) //search /proc for regions
 void findNewEnclosingRegions(BPatch_Vector<Address> &funcEntryAddrs, 
                           vector<Address> &regionStartVec, 
                           vector<Address> &regionEndVec, 
@@ -1301,7 +1302,6 @@ void findNewEnclosingRegions(BPatch_Vector<Address> &funcEntryAddrs,
                           vector<string*> &regionNames, 
                           process *proc)
 {
-#if defined(os_linux) //search /proc for regions
     vector<Address>::iterator curEntry;
     unsigned maps_size=0; 
     map_entries *maps = getLinuxMaps(proc->getPid(), maps_size);
@@ -1329,9 +1329,18 @@ void findNewEnclosingRegions(BPatch_Vector<Address> &funcEntryAddrs,
         }
         free(maps);
     }
-#endif
     return;
 }
+#else
+void findNewEnclosingRegions(BPatch_Vector<Address> &, 
+                             vector<Address> &,
+                             vector<Address> &,
+                             vector<vector<Address> > &,
+                             vector<string*> &,
+                             process *)
+{
+}
+#endif
 
 /* BPatch_image::parseNewFunctions
  *

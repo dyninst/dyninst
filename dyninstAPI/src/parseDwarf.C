@@ -2201,7 +2201,7 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 	 return reg_map[registr];
    }
 
-   Address calced_value = ((unsigned long) reg_map[target_reg]) + (offset_relevant ? offset : 0);
+   Address calced_value = ((Address) reg_map[target_reg]) + (Address) (offset_relevant ? offset : 0);
    if (registr != DW_FRAME_CFA_COL)
    {
 	 p->readDataSpace((caddr_t) calced_value, p->getAddressWidth(),
@@ -2288,9 +2288,9 @@ static bool getTextAndEHFrameStart(Elf *elf,
 	  else {	  
 		 shdr64 = elf64_getshdr(sec);
 		 sname = elf_strptr(elf, ehdr64->e_shstrndx, shdr64->sh_name);
-		 start = shdr64->sh_addr;
-		 offset = shdr64->sh_offset;
-		 size = shdr64->sh_size;
+		 start = static_cast<Address>(shdr64->sh_addr);
+		 offset = static_cast<unsigned>(shdr64->sh_offset);
+		 size = static_cast<unsigned>(shdr64->sh_size);
 	  }
 
       if (strstr(sname, ".text"))

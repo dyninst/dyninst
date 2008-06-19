@@ -362,20 +362,20 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
       ia32_locations loc;
       ia32_condition cond;
       ia32_instruction itmp(mac, &cond, &loc);
-      ia32_decode(IA32_FULL_DECODER, (unsigned char*)(ah.getInstruction().ptr()), itmp);
+      ia32_decode(IA32_FULL_DECODER, const_cast<unsigned char*>(ah.getInstruction().ptr()), itmp);
       int immediate;
       if(itmp.getEntry()->id == e_add)
       {
 	switch(loc.imm_size)
 	{
 	case 4:
-	  immediate = *(int*)(ah.getInstruction().ptr() + loc.imm_position);
+	  immediate = *(const int*)(ah.getInstruction().ptr() + loc.imm_position);
       parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (1)\n",thunkOffset+immediate,thunkOffset,immediate);
 	  thunkOffset += immediate;
       return true;
 	  break;
 	case 1:
-	  immediate = *(char*)(ah.getInstruction().ptr() + loc.imm_position);
+	  immediate = *(const char*)(ah.getInstruction().ptr() + loc.imm_position);
       parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (2)\n",thunkOffset+immediate,thunkOffset,immediate);
 	  thunkOffset += immediate;
       return true;
@@ -393,7 +393,7 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
       ia32_locations loc;
       ia32_condition cond;
       ia32_instruction itmp(mac, &cond, &loc);
-      ia32_decode(IA32_FULL_DECODER, (unsigned char*)(ah.getInstruction().ptr()), itmp);
+      ia32_decode(IA32_FULL_DECODER, const_cast<unsigned char*>(ah.getInstruction().ptr()), itmp);
 
       if(itmp.getEntry()->id == e_lea && 
 	 loc.modrm_rm == 0x05 && loc.modrm_mod == 0x00) // IP-relative
@@ -402,14 +402,14 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
 	switch(loc.disp_size)
 	{
 	case 4:
-	  immediate = *(int*)(ah.getInstruction().ptr() + loc.disp_position);
+	  immediate = *(const int*)(ah.getInstruction().ptr() + loc.disp_position);
 	  ah++;
 	  thunkOffset = *ah + immediate;
       parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (3)\n",thunkOffset,*ah,immediate);
       return true;
 	  break;
 	case 1:
-	  immediate = *(char*)(ah.getInstruction().ptr() + loc.disp_position);
+	  immediate = *(const char*)(ah.getInstruction().ptr() + loc.disp_position);
 	  ah++;
 	  thunkOffset = *ah + immediate;
       parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (4)\n",thunkOffset,*ah,immediate);
@@ -578,7 +578,7 @@ bool image_func::archGetMultipleJumpTargets(
         // sees on x86-64). thunkOffset is filled in with the /base address
         // of the jump table/. Full stop.
         Address thunkOffset = 0;
-        bool foundThunk = findThunkAndOffset(this, currBlk, thunkOffset);
+        findThunkAndOffset(this, currBlk, thunkOffset);
 	
         if( !foundMaxSwitch ) {
             parsing_printf("\tunable to fix max switch size\n");
@@ -617,7 +617,7 @@ bool image_func::archGetMultipleJumpTargets(
 
 bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 {
-    ExceptionBlock b;
+   ExceptionBlock b;
 //    Symtab obj = img()->getObject();
     if (img()->getObject()->findCatchBlock(b,a)) {
         catchStart = b.catchStart();

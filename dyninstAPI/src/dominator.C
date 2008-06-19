@@ -281,11 +281,10 @@ void dominatorCFG::performComputation() {
 
    for (i = 1; i < sorted_blocks.size(); i++) {
       dominatorBB *block = sorted_blocks[i];
-      if (block->immDom != block->semiDom)
-         if (block->immDom)
+      if (block->immDom != block->semiDom) {
+         if (block->immDom) 
             block->immDom = block->immDom->immDom;
-         else
-            block->immDom = NULL;
+      }
    }
 
    storeDominatorResults();

@@ -50,7 +50,7 @@ class Symtab;
  */
 class DLLEXPORT localVarCollection{
   
-  hash_map<std::string, localVar *> localVariablesByName;
+  dyn_hash_map<std::string, localVar *> localVariablesByName;
   vector<localVar *> localVars;
 
 public:
@@ -73,9 +73,9 @@ class DLLEXPORT typeCollection {
     friend class Object;
     friend class Module;
 
-    hash_map<std::string, Type *> typesByName;
-    hash_map<std::string, Type *> globalVarsByName;
-    hash_map<int, Type *> typesByID;
+    dyn_hash_map<std::string, Type *> typesByName;
+    dyn_hash_map<std::string, Type *> globalVarsByName;
+    dyn_hash_map<int, Type *> typesByID;
 
     ~typeCollection();
 
@@ -85,7 +85,7 @@ class DLLEXPORT typeCollection {
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
-    static hash_map< std::string, typeCollection * > fileToTypesMap;
+    static dyn_hash_map< std::string, typeCollection * > fileToTypesMap;
 
     // DWARF...
     bool dwarfParsed_;
@@ -133,8 +133,8 @@ public:
 
 class DLLEXPORT builtInTypeCollection {
    
-    hash_map<std::string, Type *> builtInTypesByName;
-    hash_map<int, Type *> builtInTypesByID;
+    dyn_hash_map<std::string, Type *> builtInTypesByName;
+    dyn_hash_map<int, Type *> builtInTypesByID;
 public:
 
     builtInTypeCollection();

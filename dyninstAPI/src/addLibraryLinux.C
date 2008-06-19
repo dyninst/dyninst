@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.21 2007/06/13 18:50:27 bernat Exp $ */
+/* $Id: addLibraryLinux.C,v 1.22 2008/06/19 19:53:03 legendre Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -546,7 +546,9 @@ int addLibrary::moveNoteShiftFollowingSectionsUp(char *libname){
 		memcpy(&(newElfFileSec[i]),&(newElfFileSec[i+1]),sizeof(Elf_element));
 
 		// if the sh_link points to something that was shifted, move it.
-		if( newElfFileSec[i].sec_hdr->sh_link > oldNoteSectionIndex && newElfFileSec[i].sec_hdr->sh_link< lastTextSegmentIndex){
+		if( newElfFileSec[i].sec_hdr->sh_link > (unsigned) oldNoteSectionIndex && 
+          newElfFileSec[i].sec_hdr->sh_link < (unsigned) lastTextSegmentIndex)
+      {
 			newElfFileSec[i].sec_hdr->sh_link--;
 		}
 	}

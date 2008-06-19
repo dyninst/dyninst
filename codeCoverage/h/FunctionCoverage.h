@@ -50,6 +50,7 @@
 #include "BPatch_snippet.h"
 #include "BPatch_thread.h"
 #include "BPatch_flowGraph.h"
+#include <fstream>
 
 class FunctionCoverage;
 
@@ -218,7 +219,7 @@ public:
 	  * @param cf file to print the results to
 	  * @param isInst flag whether the function is executed at all or not
 	  */
-	int printCoverageInformation(ofstream& cf);
+	int printCoverageInformation(std::ofstream& cf);
 
 	void addSourceFile(FileLineCoverage*);
 

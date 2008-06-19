@@ -1,7 +1,7 @@
 #include "common/h/MappedFile.h"
 #include "common/h/pathName.h"
 
-hash_map<std::string, MappedFile *> MappedFile::mapped_files;
+dyn_hash_map<std::string, MappedFile *> MappedFile::mapped_files;
 
 MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 {
@@ -74,7 +74,7 @@ void MappedFile::closeMappedFile(MappedFile *mf)
    //fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->pathname().c_str(), mf->refCount);
    mf->refCount--;
    if (mf->refCount <= 0) {
-      hash_map<std::string, MappedFile *>::iterator iter;
+      dyn_hash_map<std::string, MappedFile *>::iterator iter;
       iter = mapped_files.find(mf->pathname());
       if (iter != mapped_files.end()) {
          mapped_files.erase(iter);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.417 2008/04/16 18:12:32 roundy Exp $
+/* $Id: process.h,v 1.418 2008/06/19 19:53:35 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -141,9 +141,7 @@ class dyn_thread;
 class dyn_lwp;
 
 class Object;
-class Dyninst::SymtabAPI::relocationEntry;
 class fileDescriptor;
-class Dyninst::SymtabAPI::Symbol;
 class image;
 class mapped_object;
 class mapped_module;

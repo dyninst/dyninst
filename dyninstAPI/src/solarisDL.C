@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.53 2008/02/23 02:09:11 jaw Exp $
+// $Id: solarisDL.C,v 1.54 2008/06/19 19:53:44 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -388,7 +388,7 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
  * code, we'll worry about whether or not any libraries were
  * added/removed later on when we handle the exception
  */
-bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
+bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &,
                                                        unsigned int & /* change_type */) 
 {
    // multi-threaded: possible one of many threads hit the breakpoint

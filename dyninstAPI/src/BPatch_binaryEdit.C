@@ -337,7 +337,7 @@ void BPatch_binaryEdit::beginInsertionSetInt()
 }
 
 
-bool BPatch_binaryEdit::finalizeInsertionSetInt(bool atomic, bool *modified) 
+bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modified*/) 
 {
     return true;
 }
@@ -362,8 +362,6 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool reload)
 bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool)
 #endif
 {
-    BPatch_binaryEdit *depBinEdit;
-
 #ifdef DEBUG_PRINT
     fprintf(stdout, "DEBUG - opening/adding new library: %s\n", libname);
 #endif
@@ -437,7 +435,7 @@ std::string* BPatch_binaryEdit::resolveLibraryName(const std::string &filename)
     return fullPath;
 }
 
-bool BPatch_binaryEdit::openAllDependencies(const char *path)
+bool BPatch_binaryEdit::openAllDependencies(const char * /*path*/)
 {
     // extract list of dependencies
     BPatch_binaryEdit *depBinEdit;
@@ -464,9 +462,9 @@ bool BPatch_binaryEdit::openAllDependencies(const char *path)
             // add any new dependencies to the main list
             for (unsigned int k = 0; k < subdepends.size(); k++) {
                 bool found = false;
-                for (int l = 0; !found && l < depends.size(); l++) {
+                for (unsigned l = 0; !found && l < depends.size(); l++) {
                     if (depends.at(l).compare(subdepends.at(k))==0) {
-                        found = true;
+                       found = true;
                     }
                 }
                 if (!found) {

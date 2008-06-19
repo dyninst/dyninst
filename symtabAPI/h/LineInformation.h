@@ -111,7 +111,7 @@ class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, L
 			bool operator () ( const char * lhs, const char * rhs ) const;
 			};
 			
-		typedef __gnu_cxx::hash_set< const char *, __gnu_cxx::hash< const char * >, SourceLineCompare > SourceLineInternTable;
+		typedef dyn_hash_set< const char *, boost::hash< const char * >, SourceLineCompare > SourceLineInternTable;
 #else
 
 		struct SourceLineLess {

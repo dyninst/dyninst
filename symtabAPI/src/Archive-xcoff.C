@@ -185,7 +185,6 @@ Archive::Archive(std::string &filename, bool &ok) :
       }	
 
       std::string member_name = archive->member_name;
-      bool err;
       std::string::size_type len = member_name.length();
       if ((len >= 4)&&(member_name.substr(len-4,4) == ".imp" || 
                member_name.substr(len-4,4) == ".exp"))
@@ -333,7 +332,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
 
 Archive::~Archive()
 {
-   hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
+   dyn_hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
    for (; iter!=membersByName.end();iter++) {
       if (iter->second)
          delete (iter->second);

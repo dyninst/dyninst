@@ -3090,9 +3090,10 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning)
       }
    } else {
        // We whole-process pause....
-      if(status() == stopped)
+      if(status() == stopped) {
           if (wasRunning)
               *wasRunning = false;
+      }
       else {
           if (wasRunning)
               *wasRunning = true;
@@ -4562,7 +4563,7 @@ std::string process::getBootstrapStateAsString() const
    return "???";
 }
 
-char *processStateAsString(processState state) {
+const char *processStateAsString(processState state) {
     switch (state) {
     case neonatal:    return "neonatal";   break;
     case running:     return "running";    break;
@@ -4985,7 +4986,7 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
             fprintf(stderr, "Warning: failed to read data space\n");
             return false;
         }
-        struc.tid = (void *)temp;
+        struc.tid = (void *)(long)temp;
     }
     return true;
 }

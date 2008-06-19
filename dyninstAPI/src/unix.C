@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.239 2008/04/15 16:43:41 roundy Exp $
+// $Id: unix.C,v 1.240 2008/06/19 19:53:51 legendre Exp $
 
 #include <string>
 #include "common/h/headers.h"
@@ -430,7 +430,7 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
    ev.proc = proc;
    ev.lwp = proc->getRepresentativeLWP();
    ev.info  = pfds[0].revents;
-
+   
    if (ev.proc->status() == running) {
       ev.proc->set_status(stopped);
    }
@@ -956,7 +956,7 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
       unsigned ivar;
       for (ivar=0; ivar < num_entries &&
             strncmp(envs[ivar], var_name, strlen(var_name)) != 0;
-            ivar++);
+            ivar++) ;
       if (ivar == num_entries) {
          // Not found, append an entry to envs
          std::string ld_preload = std::string(var_name) + std::string("=") +
@@ -1506,6 +1506,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     //retrieve the registered signal handler address and trigger a
     //callback, if there is one
     assert(false); // for now
+    return false;
 }
 
 bool SignalGeneratorCommon::postSignalHandler() 

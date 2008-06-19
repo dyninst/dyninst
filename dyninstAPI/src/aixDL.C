@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.78 2008/02/23 02:09:04 jaw Exp $
+// $Id: aixDL.C,v 1.79 2008/06/19 19:53:05 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -74,7 +74,7 @@ bool dynamic_linking::installTracing() {
 
   AstNodePtr retval = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
   
-  char *loadfunc;
+  char *loadfunc = NULL;
   switch (proc->getAddressWidth()) {
     case 4: loadfunc = "load1"; break;
     case 8: loadfunc = "uload"; break;

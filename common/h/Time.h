@@ -377,7 +377,7 @@ class timeLength : public timeParent {
   friend DLLEXPORT const timeLength operator/(const timeLength a, const double b);
   friend DLLEXPORT const timeLength operator*(const double a, const timeLength b);
   friend DLLEXPORT const timeLength operator/(const double a, const timeLength b);
-  friend DLLEXPORT const double operator/(const timeLength a, const timeLength b);
+  friend DLLEXPORT double operator/(const timeLength a, const timeLength b);
   // non-member ==, !=, >, <, >=, <=  operators also defined for timeLength
 
  private:

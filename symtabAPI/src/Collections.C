@@ -52,7 +52,7 @@ using namespace Dyninst::SymtabAPI;
  */
 localVarCollection::~localVarCollection()
 {
-   hash_map<std::string, localVar *>::iterator li = localVariablesByName.begin();
+   dyn_hash_map<std::string, localVar *>::iterator li = localVariablesByName.begin();
        
    // delete localVariablesByName collection
    for(;li!=localVariablesByName.end();li++)
@@ -95,7 +95,7 @@ std::vector<localVar *> *localVarCollection::getAllVars() {
 }
   
 // Could be somewhere else... for DWARF-work.
-hash_map<std::string, typeCollection *> typeCollection::fileToTypesMap;
+dyn_hash_map<std::string, typeCollection *> typeCollection::fileToTypesMap;
 
 /*
  * Reference count
@@ -130,7 +130,7 @@ void typeCollection::freeTypeCollection(typeCollection *tc) {
     assert(tc);
     tc->refcount--;
     if (tc->refcount == 0) {
-        hash_map<std::string, typeCollection *>::iterator iter = fileToTypesMap.begin();
+        dyn_hash_map<std::string, typeCollection *>::iterator iter = fileToTypesMap.begin();
         for (; iter!= fileToTypesMap.end(); iter++) {
             if (iter->second == tc) {
                 fileToTypesMap.erase(iter->first);
@@ -376,7 +376,7 @@ void typeCollection::addGlobalVariable(std::string &name, Type *type) {
 }
 
 void typeCollection::clearNumberedTypes() {
-   for (hash_map<int, Type *>::iterator it = typesByID.begin();
+   for (dyn_hash_map<int, Type *>::iterator it = typesByID.begin();
         it != typesByID.end();
         it ++) {
       it->second->decrRefCount();
@@ -390,10 +390,10 @@ void typeCollection::clearNumberedTypes() {
  */
 std::vector<Type *> *typeCollection::getAllTypes() {
    std::vector<Type *> *typesVec = new std::vector<Type *>;
-   //for (hash_map<int, Type *>::iterator it = typesByID.begin();
+   //for (dyn_hash_map<int, Type *>::iterator it = typesByID.begin();
    //     it != typesByID.end();
    //     it ++) {
-   for (hash_map<string, Type *>::iterator it = typesByName.begin();
+   for (dyn_hash_map<string, Type *>::iterator it = typesByName.begin();
         it != typesByName.end();
         it ++) {
 	typesVec->push_back(it->second);
@@ -407,7 +407,7 @@ std::vector<Type *> *typeCollection::getAllTypes() {
 
 vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
     vector<pair<string, Type *> > *varsVec = new vector<pair<string, Type *> >;
-    for(hash_map<string, Type *>::iterator it = globalVarsByName.begin();
+    for(dyn_hash_map<string, Type *>::iterator it = globalVarsByName.begin();
         it != globalVarsByName.end(); it++) {
 	varsVec->push_back(pair<string, Type *>(it->first, it->second));
    }	
@@ -439,8 +439,8 @@ builtInTypeCollection::builtInTypeCollection()
  */
 builtInTypeCollection::~builtInTypeCollection()
 {
-    hash_map<std::string, Type *>::iterator bit = builtInTypesByName.begin();
-    hash_map<int, Type *>::iterator bitid = builtInTypesByID.begin();
+   dyn_hash_map<std::string, Type *>::iterator bit = builtInTypesByName.begin();
+   dyn_hash_map<int, Type *>::iterator bitid = builtInTypesByID.begin();
      
     // delete builtInTypesByName collection
     for(;bit!=builtInTypesByName.end();bit++)
@@ -490,7 +490,7 @@ void builtInTypeCollection::addBuiltInType(Type *type)
 
 std::vector<Type *> *builtInTypeCollection::getAllBuiltInTypes() {
    std::vector<Type *> *typesVec = new std::vector<Type *>;
-   for (hash_map<int, Type *>::iterator it = builtInTypesByID.begin();
+   for (dyn_hash_map<int, Type *>::iterator it = builtInTypesByID.begin();
         it != builtInTypesByID.end();
         it ++) {
 	typesVec->push_back(it->second);

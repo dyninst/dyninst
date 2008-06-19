@@ -302,9 +302,9 @@ bool BPatch_module::parseTypesIfNecessary()
 
    for (unsigned i=0; i<globalVars->size(); i++){
       if (!(*globalVars)[i].second->getUpPtr())
-         BPatch_type *type = new BPatch_type((*globalVars)[i].second);
+         new BPatch_type((*globalVars)[i].second);
       moduleTypes->addGlobalVariable((*globalVars)[i].first.c_str(), 
-            (BPatch_type *)(*globalVars)[i].second->getUpPtr());
+                                     (BPatch_type *)(*globalVars)[i].second->getUpPtr());
    }
    return true; 
 }

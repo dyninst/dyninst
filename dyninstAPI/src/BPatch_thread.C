@@ -648,7 +648,7 @@ bool BPatch_thread::getLineAndFile( unsigned long addr,
    if ( ! getSourceLines( addr, lines ) ) { return false; }
 	
    if ( lines.size() > 0 ) {
-      lineNo = lines[0].lineNumber();
+      lineNo = (unsigned short) lines[0].lineNumber();
       strncpy( fileName, lines[0].fileName(), length );
       return true;
    }

@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.19 2008/04/22 04:39:26 jaw Exp $
+// $Id: image-sparc.C,v 1.20 2008/06/19 19:53:20 legendre Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -420,7 +420,7 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
 
 // This parses the parent functions that generated outlined do/for, parallel constructs */
 bool image_func::parseOMPParent(image_parRegion * iPar, 
-      int /*desiredNum*/, int & currentSectionNum)
+                                int /*desiredNum*/, int & /*currentSectionNum*/)
 {
    Address funcBegin = getOffset();
    InstrucIter ah(funcBegin, this);

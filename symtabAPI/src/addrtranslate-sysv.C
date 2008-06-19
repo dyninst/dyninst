@@ -503,7 +503,7 @@ bool AddressTranslateSysV::refresh()
       if (!link_elm->l_name())
          continue;
       string obj_name(link_elm->l_name());
-      Address text = link_elm->l_addr();
+      Address text = (Address) link_elm->l_addr();
       if (obj_name == "" && !text)
          continue;
       if (!link_elm->is_valid())

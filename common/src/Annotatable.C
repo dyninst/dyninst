@@ -39,18 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.7 2008/04/07 22:32:36 giri Exp $
+// $Id: Annotatable.C,v 1.8 2008/06/19 19:52:36 legendre Exp $
 
 #include "common/h/headers.h"
 #include "dynutil/h/Annotatable.h"
+#include "dynutil/h/dyntypes.h"
 
 using namespace Dyninst;
 //template class pdvector<dictionary_hash<std::string, int> >::entry;
 
 int AnnotatableBase::number;
 int AnnotatableBase::metadataNum;
-hash_map<std::string, int> AnnotatableBase::annotationTypes;
-hash_map<std::string, int> AnnotatableBase::metadataTypes;
+dyn_hash_map<std::string, int> AnnotatableBase::annotationTypes;
+dyn_hash_map<std::string, int> AnnotatableBase::metadataTypes;
 
 DLLEXPORT AnnotatableBase::AnnotatableBase() 
 {

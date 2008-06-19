@@ -1143,7 +1143,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 {
   Address initialAddress = current;
   Address TOC_address = 0;
-  int TOC_register = 2;
+  unsigned TOC_register = 2;
   
   image* img = dynamic_cast<image*>(instructions_);
   process* proc = dynamic_cast<process*>(instructions_);
@@ -1216,7 +1216,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     while( hasPrev() ){
       check = getInstruction();
       if((*check).dform.op == CALop) {
-	int jumpAddressReg = (*check).dform.ra;
+         unsigned jumpAddressReg = (*check).dform.ra;
 	tableStartAddress = (*check).dform.d_or_si;
 	(*this)--;
 	check = getInstruction();
@@ -1233,7 +1233,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	}
       }
       else if((*check).dform.op == CAUop) {
-	int jumpAddressReg = (*check).dform.rt;
+         unsigned jumpAddressReg = (*check).dform.rt;
 	tableStartAddress = ((*check).dform.d_or_si * 0x10000) & 0xFFFF0000;
 	(*this)--;
 	check = getInstruction();
@@ -1700,8 +1700,6 @@ bool InstrucIter::isInterModuleCallSnippet(Address &info) {
 void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used,
                                                 std::set<Register> &defined) {
     // Register numbers are by the numbering in registerSpace::powerRegisters_t...
-
-    bool debug = false;
 
     if (isA_MX_Instruction()) {
         // Used and defined, by the comments.

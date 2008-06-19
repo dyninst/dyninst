@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.14 2008/04/27 06:54:23 jaw Exp $
+ * $Id: Symbol.h,v 1.15 2008/06/19 19:53:59 legendre Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -91,36 +91,19 @@ public:
         ST_FUNCTION,
         ST_OBJECT,
         ST_MODULE,
-	ST_NOTYPE
+        ST_NOTYPE
     };
 
-    static char *symbolType2Str(SymbolType t) {
-       switch(t) {
-          CASE_RETURN_STR(ST_UNKNOWN);
-          CASE_RETURN_STR(ST_FUNCTION);
-          CASE_RETURN_STR(ST_OBJECT);
-          CASE_RETURN_STR(ST_MODULE);
-          CASE_RETURN_STR(ST_NOTYPE);
-       }
-       return "invalid symbol type";
-    }
+    static const char *symbolType2Str(SymbolType t);
 
     enum SymbolLinkage {
        SL_UNKNOWN,
        SL_GLOBAL,
        SL_LOCAL,
-	SL_WEAK
+       SL_WEAK
     };
 
-    static char *symbolLinkage2Str(SymbolLinkage t) {
-       switch(t) {
-          CASE_RETURN_STR(SL_UNKNOWN);
-          CASE_RETURN_STR(SL_GLOBAL);
-          CASE_RETURN_STR(SL_LOCAL);
-          CASE_RETURN_STR(SL_WEAK);
-       }
-       return "invalid symbol linkage";
-    }
+    static const char *symbolLinkage2Str(SymbolLinkage t);
 
     enum SymbolTag {
        TAG_UNKNOWN,
@@ -129,15 +112,7 @@ public:
        TAG_INTERNAL
     };
 
-    static char *symbolTag2Str(SymbolTag t) {
-       switch(t) {
-          CASE_RETURN_STR(TAG_UNKNOWN);
-          CASE_RETURN_STR(TAG_USER);
-          CASE_RETURN_STR(TAG_LIBRARY);
-          CASE_RETURN_STR(TAG_INTERNAL);
-       }
-       return "invalid symbol tag";
-    }
+    static const char *symbolTag2Str(SymbolTag t);
 
     DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
     DLLEXPORT Symbol (unsigned);

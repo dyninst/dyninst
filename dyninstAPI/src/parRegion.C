@@ -157,7 +157,7 @@ Address image_parRegion::getClauseLoc(const char * key)
   if (clauses.find(key) != clauses.end())
     return clauses[key];
   else
-    return -1;
+    return 0;
 }
 
 

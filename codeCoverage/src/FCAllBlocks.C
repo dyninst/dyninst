@@ -42,8 +42,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 #include <CCcommon.h>
 #include <FCAllBlocks.h>

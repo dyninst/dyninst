@@ -497,7 +497,7 @@ void EventHandler<T>::setName(char *newIdStr)
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
 
-char *eventType2str(eventType x)
+const char *eventType2str(eventType x)
 {
   switch(x) {
   CASE_RETURN_STR(evtUndefined);

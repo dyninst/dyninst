@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.23 2008/05/27 20:44:48 giri Exp $
+// $Id: Object.C,v 1.24 2008/06/19 19:54:18 legendre Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -904,7 +904,7 @@ DLLEXPORT void * AObject::getErrFunc() const
    return (void *) err_func_; 
 }
 
-DLLEXPORT hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
+DLLEXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
 { 
    return &(symbols_);
 }

@@ -210,7 +210,7 @@ Object::Module::FindFile( std::string name )
 }
 
 void
-Object::File::DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& allSyms,
+Object::File::DefineSymbols( dyn_hash_map<std::string, std::vector< Symbol *> >& allSyms,
 				const std::string& modName ) const
 {
 	for( std::vector<Object::intSymbol*>::const_iterator iter = syms.begin(); iter != syms.end(); iter++ )
@@ -222,7 +222,7 @@ Object::File::DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& all
 }
 
 void
-Object::intSymbol::DefineSymbol(hash_map<std::string,std::vector<Symbol *> >&allSyms,
+Object::intSymbol::DefineSymbol(dyn_hash_map<std::string,std::vector<Symbol *> >&allSyms,
 				const std::string& modName ) const
 {
     allSyms[GetName()].push_back(new Symbol(GetName(), 
@@ -236,7 +236,7 @@ Object::intSymbol::DefineSymbol(hash_map<std::string,std::vector<Symbol *> >&all
 
 void
 Object::Module::DefineSymbols( const Object* obj,
-				hash_map<std::string, std::vector< Symbol *> > & syms ) const
+				dyn_hash_map<std::string, std::vector< Symbol *> > & syms ) const
 {
 	// define Paradyn/dyninst modules and symbols
 	if( !isDll )
@@ -827,7 +827,7 @@ Object::Object(MappedFile *mf_,
    ParseSymbolInfo(alloc_syms);
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
+Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li,
                std::vector<Region *> &, void (*err_func)(const char *))  :
    AObject(mf_, err_func),
    baseAddr(0),
@@ -847,7 +847,7 @@ DLLEXPORT ObjectType Object::objType() const
 }
 
 
-void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs)
+void Object::getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs)
 {
 	return;
 }
@@ -855,7 +855,7 @@ void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mo
 static SRCCODEINFO *last_srcinfo;
 BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
 {
-   hash_map< std::string, LineInformation> *lineInfo = (hash_map< std::string, LineInformation> *)param;
+   dyn_hash_map< std::string, LineInformation> *lineInfo = (dyn_hash_map< std::string, LineInformation> *)param;
    
    if (last_srcinfo && srcinfo) {
       //All the middle iterations.  Use the previous line information with the 
@@ -879,7 +879,7 @@ BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
   return TRUE;
 }
 
-void Object::parseFileLineInfo(hash_map<std::string, LineInformation> &li)
+void Object::parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li)
 {   
   int result;
   static Offset last_file = 0x0;

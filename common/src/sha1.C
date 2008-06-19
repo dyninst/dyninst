@@ -154,7 +154,7 @@ static unsigned char workspace[64];
     block = (CHAR64LONG16*)workspace;
     memcpy(block, buffer, 64);
 #else
-    block = (CHAR64LONG16*)buffer;
+    block = (CHAR64LONG16*)(void*)buffer;
 #endif
     /* Copy context->state[] to working vars */
     a = state[0];

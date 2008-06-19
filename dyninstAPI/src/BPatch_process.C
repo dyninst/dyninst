@@ -1235,7 +1235,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
        
        for (int j = one_stack.size()-1; j >= 0; j--) {
            // Are we in the "Active" (executing) frame?
-           bool active = (j == (unsigned)(one_stack.size()-1)) ? true : false;
+          bool active = (j == (((signed) one_stack.size()) -1)) ? true : false;
 
            Frame &frame = one_stack[j];
 
@@ -1254,7 +1254,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                    BPatch_point *bppoint = bir->points_[0];
                    instPoint *pt = bppoint->point;
                    assert(pt);
-                   char *point_type = "no type";
+                   const char *point_type = "no type";
                    switch(pt->getPointType()) {
                    case noneType: point_type = "noneType"; break;
                    case functionEntry: point_type = "funcEntry"; break;
@@ -1411,7 +1411,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                    }
                    
                    if (dyn_debug_catchup) {
-                       char *str_iPresult = "error";
+                       const char *str_iPresult = "error";
                        switch(location) {
                        case nowhere_l: str_iPresult = "nowhere_l"; break;
                        case beforePoint_l: str_iPresult = "beforePoint_l"; break;

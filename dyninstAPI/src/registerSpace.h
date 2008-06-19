@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.17 2008/03/25 19:24:40 bernat Exp $
+// $Id: registerSpace.h,v 1.18 2008/06/19 19:53:37 legendre Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -143,7 +143,7 @@ class registerSlot {
     // Default is just fine
     // registerSlot(const registerSlot &r)
 
-    void debugPrint(char *str = NULL);
+    void debugPrint(const char *str = NULL);
 
     // Don't want to use this...
     registerSlot() :

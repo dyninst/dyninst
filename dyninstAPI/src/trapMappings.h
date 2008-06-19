@@ -62,7 +62,7 @@ class trampTrapMappings {
    } tramp_mapping_t;
  private:
 
-   hash_map<Address, tramp_mapping_t> mapping;
+   dyn_hash_map<Address, tramp_mapping_t> mapping;
    std::set<tramp_mapping_t *> updated_mappings;
 
    static void arrange_mapping(tramp_mapping_t &m, bool should_sort,

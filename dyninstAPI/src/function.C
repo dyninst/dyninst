@@ -532,18 +532,20 @@ int_basicBlock *int_basicBlock::getFallthrough() const {
   ib_->getTargets(ib_outs);
   for (unsigned i = 0; i < ib_outs.size(); i++) {
     if (ib_outs[i]->getType() == ET_FALLTHROUGH ||
-	ib_outs[i]->getType() == ET_FUNLINK ||
-	ib_outs[i]->getType() == ET_COND_NOT_TAKEN)
+        ib_outs[i]->getType() == ET_FUNLINK ||
+        ib_outs[i]->getType() == ET_COND_NOT_TAKEN) 
+    {
       if (ib_outs[i]->getTarget()->containedIn(func()->ifunc())) {
-	// Get the int_basicBlock equivalent of that image_basicBlock
-	unsigned img_id = ib_outs[i]->getTarget()->id();
-	unsigned int_id = func()->blockIDmap[img_id];
-	return func()->blockList[int_id];
+        // Get the int_basicBlock equivalent of that image_basicBlock
+         unsigned img_id = ib_outs[i]->getTarget()->id();
+         unsigned int_id = func()->blockIDmap[img_id];
+         return func()->blockList[int_id];
       }
       else {
-	// Odd... fallthrough, but not in our function???
-	assert(0);
+        // Odd... fallthrough, but not in our function???
+        assert(0);
       }
+    }
   }
   
   return NULL;
@@ -972,33 +974,36 @@ unsigned bblInstance::getRelocInsnSize(Address addr) const {
   return 0;
 }
 
-void bblInstance::getOrigInstructionInfo(Address addr, void *&ptr, Address &origAddr, unsigned &origSize) const {
-  if (version_ > 0) {
-    fprintf(stderr, "getPtrToOrigInstruction 0x%lx, version %d\n",
-	    addr, version_);
-    for (unsigned i = 0; i < get_relocs().size(); i++) {
-      if (get_relocs()[i]->relocAddr == addr) {
-	fprintf(stderr, "... returning 0x%lx off entry %d\n",
-		 get_relocs()[i]->origAddr,i);
-	ptr = (void *) get_relocs()[i]->origPtr;
-	origAddr = get_relocs()[i]->origAddr;
-	if (i == (get_relocs().size()-1)) {
-	  origSize = blockEndAddr_ - get_relocs()[i]->relocAddr;
-	}
-	else
-	  origSize = get_relocs()[i+1]->relocAddr - get_relocs()[i]->relocAddr;
-	return;
+void bblInstance::getOrigInstructionInfo(Address addr, const void *&ptr, 
+                                         Address &origAddr, 
+                                         unsigned &origSize) const 
+{
+   if (version_ > 0) {
+      fprintf(stderr, "getPtrToOrigInstruction 0x%lx, version %d\n",
+              addr, version_);
+      for (unsigned i = 0; i < get_relocs().size(); i++) {
+         if (get_relocs()[i]->relocAddr == addr) {
+            fprintf(stderr, "... returning 0x%lx off entry %d\n",
+                    get_relocs()[i]->origAddr,i);
+            ptr = get_relocs()[i]->origPtr;
+            origAddr = get_relocs()[i]->origAddr;
+            if (i == (get_relocs().size()-1)) {
+               origSize = blockEndAddr_ - get_relocs()[i]->relocAddr;
+            }
+            else
+               origSize = get_relocs()[i+1]->relocAddr - get_relocs()[i]->relocAddr;
+            return;
+         }
       }
-    }
-    assert(0);
-    return;
-  }
-
-  // Must be handled by caller
-  ptr = NULL;
-  origAddr = 0;
-  origSize = 0;
-  return;
+      assert(0);
+      return;
+   }
+   
+   // Must be handled by caller
+   ptr = NULL;
+   origAddr = 0;
+   origSize = 0;
+   return;
 }
 
 unsigned &bblInstance::maxSize() {

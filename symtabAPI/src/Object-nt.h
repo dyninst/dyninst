@@ -107,7 +107,7 @@ class Object : public AObject
             Region *GetRegion( void ) const        { return region; }
             void	SetSize( DWORD cb )					{ size = cb; }
 
-            void DefineSymbol( hash_map<std::string, std::vector< Symbol *> >& syms,
+            void DefineSymbol( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
                                const std::string& modName ) const;
 	};
 
@@ -127,7 +127,7 @@ class Object : public AObject
                     syms.push_back( pSym );
 		}
 
-            void DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& syms,
+            void DefineSymbols( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
                                 const std::string& modName ) const;
             std::string GetName( void ) const		{ return name; }
             const std::vector<intSymbol*>& GetSymbols( void )	const		{ return syms; }
@@ -157,7 +157,7 @@ class Object : public AObject
             void AddFile( File* pFile )				{ files.push_back( pFile ); }
 
             void DefineSymbols( const Object* obj,
-                                hash_map<std::string, std::vector< Symbol *> > & syms ) const;
+                                dyn_hash_map<std::string, std::vector< Symbol *> > & syms ) const;
             void BuildSymbolMap( const Object* obj ) const; 
 
             std::string GetName( void ) const            { return name; }
@@ -169,7 +169,7 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
+    Object(MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
     DLLEXPORT Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
     DLLEXPORT Object(){};
   
@@ -194,17 +194,17 @@ class Object : public AObject
     DLLEXPORT Offset getTOCoffset() const { return 0; }
     DLLEXPORT ObjectType objType() const;
     DLLEXPORT const char *interpreter_name() const { return NULL; }
-    DLLEXPORT hash_map <std::string, LineInformation> &getLineInfo();
+    DLLEXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
     DLLEXPORT void parseTypeInfo(Symtab *obj);
    
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     DLLEXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
-    DLLEXPORT void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
+    DLLEXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
     DLLEXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
 
 private:
     DLLEXPORT void    ParseSymbolInfo( bool );
-    DLLEXPORT void    parseFileLineInfo(hash_map<std::string, LineInformation> &);
+    DLLEXPORT void    parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &);
     DLLEXPORT void    FindInterestingSections( bool );
     Region *          findEnclosingRegion(const Offset where);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.18 2008/03/25 19:24:37 bernat Exp $
+// $Id: linux-power.C,v 1.19 2008/06/19 19:53:26 legendre Exp $
 
 #include <string>
 #include <dlfcn.h>
@@ -102,7 +102,6 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 void calcVSyscallFrame(process *p)
 {
   assert(0);  //sunlung
-  void *result;
   unsigned dso_size;
   char *buffer;
 

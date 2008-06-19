@@ -70,13 +70,13 @@ class codeGen;
 typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForSignal,
                irpcNotReadyForIRPC } irpcState_t;
 
-char *irpcStateAsString(irpcState_t state);
+const char *irpcStateAsString(irpcState_t state);
 
 // RPC launch return type
 typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcBreakpointSet, 
                irpcError } irpcLaunchState_t;
 
-char *irpcLaunchStateAsString(irpcLaunchState_t state);
+const char *irpcLaunchStateAsString(irpcLaunchState_t state);
 
 
 // #defines because we can't use an internal header file in a BPatch header file...

@@ -172,7 +172,7 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid)
 {
    const unsigned char *ap = (const unsigned char*) inTraced; 
-   unsigned char *dp = (unsigned char*) inSelf;
+   unsigned char *dp = (unsigned char *) const_cast<void *>(inSelf);
    Address w = 0x0;               /* ptrace I/O buffer */
    int len = sizeof(void *);
    unsigned cnt;
@@ -248,7 +248,7 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
 #define AT_SYSINFO_EHDR 33
 #endif
 
-static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address pagesize) {
+static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address) {
    if (strict) {
        if (entry->prems != PREMS_PRIVATE)
          return false;
@@ -272,7 +272,8 @@ bool AuxvParser::readAuxvInfo()
    * auxv consists of a list of name/value pairs, ending with the AT_NULL
    * name.  There isn't a direct way to get the vsyscall info on Linux 2.4
    **/
-  char *buffer = NULL;
+  uint32_t *buffer32 = NULL;
+  uint64_t *buffer64 = NULL;
   unsigned pos = 0;
   Address dso_start = 0x0, text_start = 0x0;
   unsigned page_size = 0x0;
@@ -288,11 +289,12 @@ bool AuxvParser::readAuxvInfo()
    * On latter 2.6 kernels the AT_SYSINFO field isn't present,
    * so we have to resort to more "extreme" measures.
    **/
-  buffer = (char *) readAuxvFromProc();
-  if (!buffer) 
-     buffer = (char *) readAuxvFromStack();
-  if (!buffer)
+  buffer64 = (uint64_t *) readAuxvFromProc();
+  if (!buffer64) 
+     buffer64 = (uint64_t *) readAuxvFromStack();
+  if (!buffer64)
      return false;
+  buffer32 = (uint32_t *) buffer64;
   do {
      /**Fill in the auxv_entry structure.  We may have to do different
       * size reads depending on the address space.  No matter which
@@ -300,16 +302,16 @@ bool AuxvParser::readAuxvInfo()
       * involve a size shift up.
       **/
      if (addr_size == 4) {
-        auxv_entry.type = (unsigned long) *(uint32_t *) (buffer + pos);
-        pos += sizeof(uint32_t);
-        auxv_entry.value = (unsigned long) *(uint32_t *) (buffer + pos);
-        pos += sizeof(uint32_t);
+        auxv_entry.type = (unsigned long) buffer32[pos];
+        pos++;
+        auxv_entry.value = (unsigned long) buffer32[pos];
+        pos++;
      }
      else {
-        auxv_entry.type = *(unsigned long *) (buffer + pos);
-        pos += sizeof(long);
-        auxv_entry.value = *(unsigned long *) (buffer + pos);
-        pos += sizeof(long);
+        auxv_entry.type = (unsigned long) buffer64[pos];
+        pos++;
+        auxv_entry.value = (unsigned long) buffer64[pos];
+        pos++;
      }
      
      if (auxv_entry.type == AT_SYSINFO)
@@ -322,8 +324,8 @@ bool AuxvParser::readAuxvInfo()
         interpreter_base = auxv_entry.value;
   } while (auxv_entry.type != AT_NULL);
 
-  if (buffer)
-     free(buffer);
+  if (buffer64)
+     free(buffer64);
   if (!page_size)
      page_size = getpagesize();
   /**

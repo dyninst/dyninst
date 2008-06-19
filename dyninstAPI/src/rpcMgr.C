@@ -243,9 +243,9 @@ unsigned rpcMgr::postRPCtoDo(AstNodePtr action, bool noCost,
     // Stick it in the global listing as well
     allPostedRPCs_.push_back(theStruct);
 
-    inferiorrpc_printf("%s[%d]: Posting new RPC: seq %d, thr %u, lwp %u\n", FILE__, __LINE__, theStruct->id,
+    inferiorrpc_printf("%s[%d]: Posting new RPC: seq %d, thr %u, lwp %d\n", FILE__, __LINE__, theStruct->id,
                        thr ? thr->get_tid() : 0,
-                       lwp ? lwp->get_lwp_id() : -1);
+                       lwp ? (int) lwp->get_lwp_id() : -1);
 
     return theStruct->id;
 }
@@ -444,8 +444,8 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
 
        signal_printf("%s[%d]: reported active frame PC is 0x%lx; thread %d, lwp %d\n",
                      FILE__, __LINE__, activeFrame.getPC(), 
-                     activeFrame.getThread() ? activeFrame.getThread()->get_tid() : -1,
-                     activeFrame.getLWP() ? activeFrame.getLWP()->get_lwp_id() : -1);
+                     activeFrame.getThread() ? (int) activeFrame.getThread()->get_tid() : -1,
+                     activeFrame.getLWP() ? (int) activeFrame.getLWP()->get_lwp_id() : -1);
                     
        
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
@@ -1160,7 +1160,7 @@ irpcState_t rpcMgr::getRPCState(unsigned id) {
     return irpcNotValid;
 }
 
-char *irpcStateAsString(irpcState_t state) {
+const char *irpcStateAsString(irpcState_t state) {
     switch(state) {
     case irpcNotValid:
         return "IRPC Invalid";
@@ -1184,7 +1184,7 @@ char *irpcStateAsString(irpcState_t state) {
     return NULL;
 }
 
-char *irpcLaunchStateAsString(irpcLaunchState_t state) {
+const char *irpcLaunchStateAsString(irpcLaunchState_t state) {
     switch(state) {
     case irpcNoIRPC:
         return "No IRPC to run";

@@ -181,7 +181,7 @@ bool name2loc(const char *s, BPatch_procedureLocation &where,
     return true;
 }
 
-char *loc2name(BPatch_procedureLocation where, BPatch_callWhen when)
+const char *loc2name(BPatch_procedureLocation where, BPatch_callWhen when)
 {
     switch (where) {
       case BPatch_entry:
@@ -906,8 +906,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 
 	if (1 < found_funcs.size()) {
 	  printf("%s[%d]:  WARNING  :  %d functions called '%s'found.  Using the first\n", 
-		 __FILE__, __LINE__, 
-		 found_funcs.size(), argv[1]);
+            __FILE__, __LINE__,  (int) found_funcs.size(), argv[1]);
 	}
 	
 	points = found_funcs[0]->findPoint(where);
@@ -1361,7 +1360,7 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
 }
 
 #if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
-void printStackFrame(int index, BPatch_Vector<BPatch_frame> &callStack, char *funcName){
+void printStackFrame(int index, BPatch_Vector<BPatch_frame> &callStack, const char *funcName){
 
 	printf("#%d: (0x%p)\t%s (fp: 0x%p)\n", index, (void *)callStack[index].getPC(),funcName , (void *)callStack[index].getFP());
 
@@ -1376,7 +1375,7 @@ int whereUp(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 
 	appThread->getCallStack(callStack);
 
-	if(whereAmINow < (callStack.size()-1) ){
+	if((unsigned) whereAmINow < (callStack.size()-1) ){
 		whereAmINow++;
 	}
 
@@ -1439,7 +1438,7 @@ int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 {
 	BPatch_Vector<BPatch_frame> callStack;
 	char funcName [1024];
-	int index=0;
+	unsigned index=0;
 
    if (!appThread) {
      printf("no application to get stack for\n");
@@ -1460,7 +1459,7 @@ int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 	index = 1; 
 	while(index < callStack.size() -1){
 
-		if( (whereAmINow == -1 && index == 1) || ( whereAmINow == index ) ){
+		if( (whereAmINow == -1 && index == 1) || ( (unsigned) whereAmINow == index ) ){
 			printf(" --> ");
 			whereAmINow = index;
 		}else{
@@ -1694,7 +1693,7 @@ int whatisParam(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 
   if (pdfv.size() > 1) {
     printf("%s[%d]:  WARNING, found %d functions called %s, using the first\n",
-	   __FILE__, __LINE__, pdfv.size(), argv[3]);
+           __FILE__, __LINE__, (int) pdfv.size(), argv[3]);
   }
   
   BPatch_function * func = pdfv[0];
@@ -1810,7 +1809,7 @@ int whatisFunc(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 
   if (pdfv.size() > 1) {
     printf("%s[%d]:  WARNING, found %d functions called %s, using the first\n",
-	   __FILE__, __LINE__, pdfv.size(), argv[3]);
+           __FILE__, __LINE__, (int) pdfv.size(), argv[3]);
   }
   
   BPatch_function * func = pdfv[0];
@@ -2312,7 +2311,7 @@ int ShowParameters(int argc, TCLCONST char *argv[]) {
 
     if (bpfv.size() > 1) {
       printf("warning:  found %d functions called %s, picking the first\n", 
-	     bpfv.size(), argv[3]);
+             (int) bpfv.size(), argv[3]);
     }
 
     BPatch_function *fp = bpfv[0];
@@ -2344,7 +2343,7 @@ int ShowLocalVars(const char *funcName) {
 
   if (bpfv.size() > 1) {
     printf("warning:  found %d functions called %s, picking the first\n", 
-	   bpfv.size(), funcName);
+           (int) bpfv.size(), funcName);
   }
 
   BPatch_function *fp = bpfv[0];
@@ -2464,7 +2463,7 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char *argv[]
 
     if (bpfv.size() > 1) {
       printf("warning:  found %d functions called %s, picking the first\n", 
-	     bpfv.size(), argv[1]);
+             (int) bpfv.size(), argv[1]);
     }
 
     BPatch_function *fp = bpfv[0];
@@ -2510,7 +2509,7 @@ int repFunc(const char *name1, const char *name2) {
   
   if (bpfv.size() > 1) {
     printf("warning:  found %d functions called %s, picking the first\n", 
-	   bpfv.size(), name1);
+           (int) bpfv.size(), name1);
   }
   
   BPatch_function *func1 = bpfv[0];
@@ -2528,7 +2527,7 @@ int repFunc(const char *name1, const char *name2) {
   
   if (bpfv2.size() > 1) {
     printf("warning:  found %d functions called %s, picking the first\n", 
-	   bpfv2.size(), name2);
+           (int) bpfv2.size(), name2);
   }
   
   BPatch_function *func2 = bpfv2[0];
@@ -2569,7 +2568,7 @@ int repCall(const char *func1, const char *func2) {
   
   if (bpfv2.size() > 1) {
     printf("warning:  found %d functions called %s, picking the first\n", 
-	   bpfv2.size(), func2);
+           (int) bpfv2.size(), func2);
   }
 
   BPatch_function *newFunc = bpfv2[0];
@@ -2587,7 +2586,7 @@ int repCall(const char *func1, const char *func2) {
   if (1 < found_funcs.size()) {
     printf("%s[%d]:  WARNING  :  %d functions called '%s'found.  Using the first\n", 
 	   __FILE__, __LINE__, 
-	   found_funcs.size(), func1);
+           (int) found_funcs.size(), func1);
   }
     
   BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
@@ -2665,7 +2664,7 @@ int traceFunc(Tcl_Interp *interp, const char *name)
   
   if (bpfv2.size() > 1) {
     printf("warning:  found %d functions called %s, picking the first\n", 
-	   bpfv2.size(), name);
+           (int) bpfv2.size(), name);
   }
 
   BPatch_function *func = bpfv2[0];
@@ -2872,7 +2871,7 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     if (1 < found_funcs.size()) {
       printf("%s[%d]:  WARNING  :  %d functions called '%s'found.  Using the first\n", 
 	     __FILE__, __LINE__, 
-	     found_funcs.size(), argv[1]);
+             (int) found_funcs.size(), argv[1]);
     }
     
     BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);

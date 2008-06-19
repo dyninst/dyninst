@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.28 2008/02/23 02:09:09 jaw Exp $
+// $Id: mapped_module.C,v 1.29 2008/06/19 19:53:30 legendre Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/debug.h"
-#include "symtabAPI/src/Object.h"
 #include "process.h"
 #include <iomanip>
 #include <string>

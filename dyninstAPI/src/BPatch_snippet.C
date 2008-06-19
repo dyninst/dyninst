@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.107 2008/05/12 22:12:44 giri Exp $
+// $Id: BPatch_snippet.C,v 1.108 2008/06/19 19:52:55 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -655,7 +655,7 @@ void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
 
 void BPatch_constExpr::BPatch_constExprLongLong(long long value) 
 {
-    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *)value));
+   ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *)(long)value));
 
     assert(BPatch::bpatch != NULL);
     (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -902,7 +902,8 @@ void BPatch_retExpr::BPatch_retExprInt()
  */
 void BPatch_registerExpr::BPatch_registerExprInt(BPatch_register reg)
 {
-    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)reg.number_));
+    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, 
+                                                      (void *)(long)reg.number_));
     
     assert(BPatch::bpatch != NULL);
 
@@ -1109,7 +1110,8 @@ BPatch_variableExpr::BPatch_variableExpr(//BPatch_process *in_process,
 	    isLocal = false;
 	    break;
 	case BPatch_storageReg:
-	    variableAst = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)in_register));
+      variableAst = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, 
+                                                        (void *)(long)in_register));
 	    isLocal = true;
 	    break;
 	case BPatch_storageRegRef:
@@ -1178,7 +1180,8 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                 //assert( 0 ); // Not implemented yet.
                 continue;
             case BPatch_storageReg:
-                variableAst = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)in_register));
+                variableAst = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, 
+                                                                  (void *)(long)in_register));
                 isLocal = true;
                 break;
             case BPatch_storageRegRef:
@@ -1538,7 +1541,7 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
 
     // create callback ID argument
     int cb_id = process::getStopThreadCB_ID((Address)bp_cb); 
-    AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*) cb_id );
+    AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*)(long) cb_id );
     assert(BPatch::bpatch != NULL);
     BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
     assert(type != NULL);

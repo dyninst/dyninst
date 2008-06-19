@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.207 2008/05/12 22:12:46 giri Exp $
+// $Id: ast.C,v 1.208 2008/06/19 19:53:09 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -755,9 +755,9 @@ bool AstOperatorNode::initRegisters(codeGen &g) {
 }
 
 
+#if defined(arch_x86) || defined(arch_x86_64)
 bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost) 
 {
-#if defined(arch_x86) || defined(arch_x86_64)
    //Recognize the common case of 'a = a op constant' and try to 
    // generate optimized code for this case.
 
@@ -830,9 +830,13 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    roper->decUseCount(gen);
 
    return true;
-#endif
+}
+#else
+bool AstOperatorNode::generateOptimizedAssignment(codeGen &, bool) 
+{
    return false;   
 }
+#endif
 
 bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &retAddr,
@@ -1130,7 +1134,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             break;
         }
         case origRegister:
-            gen.rs()->writeProgramRegister(gen, (Register) loperand->getOValue(),
+           gen.rs()->writeProgramRegister(gen, (Register)(long)loperand->getOValue(),
                                            src1, getSize());
             //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
             //src1, gen, getSize(), noCost);
@@ -1276,7 +1280,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        retReg = (Register) (long) oValue;
        break;
    case origRegister:
-       gen.rs()->readProgramRegister(gen, (Register)oValue, retReg, size);
+      gen.rs()->readProgramRegister(gen, (Register)(long)oValue, retReg, size);
        //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
        //size, noCost);
        break;
@@ -1458,7 +1462,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
         assert(callee);
     }
-    bool clobbered = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
+    gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
     // We clobber in clobberAllFuncCall...
 
     // Monotonically increasing...
@@ -1867,7 +1871,7 @@ int AstSequenceNode::costHelper(enum CostStyleType costStyle) const {
     return total;
 }
 
-int AstVariableNode::costHelper(enum CostStyleType costStyle) const{
+int AstVariableNode::costHelper(enum CostStyleType /*costStyle*/) const{
     int total = 0;
     return total;
 }

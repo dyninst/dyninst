@@ -712,7 +712,7 @@ void Symtab::checkPPC64DescriptorSymbols(Object *linkedFile)
 //  setModuleLanguages is only called after modules have been defined.
 //  it attempts to set each module's language, information which is needed
 //  before names can be demangled.
-void Symtab::setModuleLanguages(hash_map<std::string, supportedLanguages> *mod_langs)
+void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs)
 {
    if (!mod_langs->size())
       return;  // cannot do anything here
@@ -1436,12 +1436,12 @@ bool Symtab::extractInfo(Object *linkedFile)
             
     // get Information on the language each modules is written in
     // (prior to making modules)
-    hash_map<std::string, supportedLanguages> mod_langs;
+    dyn_hash_map<std::string, supportedLanguages> mod_langs;
     linkedFile->getModuleLanguageInfo(&mod_langs);
     setModuleLanguages(&mod_langs);
 	
 #if 0
-    hash_map<std::string, supportedLanguages>::iterator lang_iter;
+    dyn_hash_map<std::string, supportedLanguages>::iterator lang_iter;
     for (lang_iter = mod_langs.begin(); lang_iter != mod_langs.end(); lang_iter++) {
        std::string modn = lang_iter->first;
        supportedLanguages l = lang_iter->second;
@@ -1563,7 +1563,7 @@ Symtab::Symtab(const Symtab& obj) :
 
 bool Symtab::findModule(Module *&ret, const std::string name)
 {
-   hash_map<std::string, Module *>::iterator loc;
+   dyn_hash_map<std::string, Module *>::iterator loc;
    loc = modsByFileName.find(name);
    if (loc != modsByFileName.end()) {
       ret = loc->second;
@@ -1996,7 +1996,7 @@ bool Symtab::findVarVectorByMangled(const std::string &name, std::vector<Symbol 
 bool Symtab::findFuncVectorByMangledRegex(const std::string &rexp, bool checkCase, std::vector<Symbol *>&ret)
 {
     unsigned start = ret.size();	
-    hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
+    dyn_hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
     for(iter = funcsByMangled.begin(); iter!=funcsByMangled.end(); iter++)
     {
         if(regexEquiv(rexp,iter->first,checkCase))
@@ -2016,7 +2016,7 @@ bool Symtab::findFuncVectorByMangledRegex(const std::string &rexp, bool checkCas
 bool Symtab::findFuncVectorByPrettyRegex(const std::string &rexp, bool checkCase, std::vector<Symbol *>&ret)
 {
     unsigned start = ret.size();
-    hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
+    dyn_hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
     for(iter = funcsByPretty.begin(); iter!=funcsByPretty.end(); iter++)
     {
         if(regexEquiv(rexp,iter->first,checkCase))
@@ -2036,7 +2036,7 @@ bool Symtab::findFuncVectorByPrettyRegex(const std::string &rexp, bool checkCase
 bool Symtab::findVarVectorByMangledRegex(const std::string &rexp, bool checkCase, std::vector<Symbol *>&ret)
 {
     unsigned start = ret.size();
-    hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
+    dyn_hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
     for(iter = varsByMangled.begin(); iter!=varsByMangled.end(); iter++)
     {
         if(regexEquiv(rexp,iter->first,checkCase))
@@ -2056,7 +2056,7 @@ bool Symtab::findVarVectorByMangledRegex(const std::string &rexp, bool checkCase
 bool Symtab::findVarVectorByPrettyRegex(const std::string &rexp, bool checkCase, std::vector<Symbol *>&ret)
 {
     unsigned start = ret.size();
-    hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
+    dyn_hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
     for(iter = varsByPretty.begin(); iter!=varsByPretty.end(); iter++)
     {
         if(regexEquiv(rexp,iter->first,checkCase))
@@ -2076,7 +2076,7 @@ bool Symtab::findVarVectorByPrettyRegex(const std::string &rexp, bool checkCase,
 bool Symtab::findModByRegex(const std::string &rexp, bool checkCase, std::vector<Symbol *>&ret)
 {
     unsigned start = ret.size();
-    hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
+    dyn_hash_map <std::string, std::vector<Symbol *>*>::iterator iter;
     for(iter = modsByName.begin(); iter!=modsByName.end(); iter++)
     {
         if(regexEquiv(rexp,iter->first,checkCase))
@@ -2702,9 +2702,9 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
     }
 }
 
+#if defined (cap_serialization)
 bool Symtab::exportXML(string file)
 {
-#if defined (cap_serialization)
    try {
       SymtabTranslatorXML trans(this, file);
       if ( serialize(*this, trans))
@@ -2715,15 +2715,17 @@ bool Symtab::exportXML(string file)
    }
 
    return false;
+}
 #else
+bool Symtab::exportXML(string) {
    fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
    return false;
-#endif
 }
+#endif
 
+#if defined (cap_serialization)
 bool Symtab::exportBin(string file)
 {
-#if defined (cap_serialization)
    try
    {
       bool verbose = false;
@@ -2741,15 +2743,17 @@ bool Symtab::exportBin(string file)
 
    fprintf(stderr, "%s[%d]:  error doing binary serialization\n", __FILE__, __LINE__);
    return false;
+}
 #else
+bool Symtab::exportBin(string) {
    fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
    return false;
-#endif
 }
+#endif
 
+#if defined (cap_serialization)
 Symtab *Symtab::importBin(std::string file)
 {
-#if defined (cap_serialization)
    MappedFile *mf= MappedFile::createMappedFile(file);
    if (!mf) {
       fprintf(stderr, "%s[%d]:  failed to map file %s\n", FILE__, __LINE__, file.c_str());
@@ -2780,11 +2784,13 @@ Symtab *Symtab::importBin(std::string file)
    fprintf(stderr, "%s[%d]:  error doing binary deserialization\n", __FILE__, __LINE__);
    delete st;
    return NULL;
+}
 #else
+Symtab *Symtab::importBin(std::string) {
    fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
    return NULL;
-#endif
 }
+#endif
 
 bool Symtab::openFile(Symtab *&obj, std::string filename)
 {
@@ -3082,7 +3088,7 @@ bool Symtab::addRegion(Region *sec)
 
 void Symtab::parseLineInformation()
 {
-   hash_map <std::string, LineInformation> *lineInfo = new hash_map <std::string, LineInformation>;
+   dyn_hash_map <std::string, LineInformation> *lineInfo = new dyn_hash_map <std::string, LineInformation>;
 #if defined(os_aix)
    Object *linkedFile = new Object(mf, *lineInfo, regions_, pd_log_perror, member_offset_);
 #else
@@ -3090,7 +3096,7 @@ void Symtab::parseLineInformation()
 #endif
 
    isLineInfoValid_ = true;	
-   hash_map <std::string, LineInformation>::iterator iter;
+   dyn_hash_map <std::string, LineInformation>::iterator iter;
 
    //fprintf(stderr, "%s[%d]:  after parse of line information, found info for mods:\n", FILE__, __LINE__);
    for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
@@ -4463,3 +4469,35 @@ int symtab_printf(const char *format, ...)
    
    return ret;
 }
+
+const char *Symbol::symbolType2Str(SymbolType t) {
+   switch(t) {
+      CASE_RETURN_STR(ST_UNKNOWN);
+      CASE_RETURN_STR(ST_FUNCTION);
+      CASE_RETURN_STR(ST_OBJECT);
+      CASE_RETURN_STR(ST_MODULE);
+      CASE_RETURN_STR(ST_NOTYPE);
+   }
+   return "invalid symbol type";
+}
+
+const char *Symbol::symbolLinkage2Str(SymbolLinkage t) {
+   switch(t) {
+      CASE_RETURN_STR(SL_UNKNOWN);
+      CASE_RETURN_STR(SL_GLOBAL);
+      CASE_RETURN_STR(SL_LOCAL);
+      CASE_RETURN_STR(SL_WEAK);
+   }
+   return "invalid symbol linkage";
+}
+
+const char *Symbol::symbolTag2Str(SymbolTag t) {
+   switch(t) {
+      CASE_RETURN_STR(TAG_UNKNOWN);
+      CASE_RETURN_STR(TAG_USER);
+      CASE_RETURN_STR(TAG_LIBRARY);
+      CASE_RETURN_STR(TAG_INTERNAL);
+   }
+   return "invalid symbol tag";
+}
+

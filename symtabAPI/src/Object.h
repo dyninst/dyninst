@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.18 2008/05/27 20:44:49 giri Exp $
+ * $Id: Object.h,v 1.19 2008/06/19 19:54:19 legendre Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -120,19 +120,19 @@ public:
     DLLEXPORT const std::ostream &dump_state_info(std::ostream &s);
 
     DLLEXPORT void * getErrFunc() const;
-    DLLEXPORT hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+    DLLEXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
 
 protected:
     DLLEXPORT virtual ~AObject();
     // explicitly protected
     DLLEXPORT AObject(MappedFile * , void (*err_func)(const char *));
-    DLLEXPORT AObject(MappedFile * , hash_map<std::string, LineInformation> &, void (*)(const char *)) {assert(0);}
+    DLLEXPORT AObject(MappedFile * , dyn_hash_map<std::string, LineInformation> &, void (*)(const char *)) {assert(0);}
     DLLEXPORT AObject(const AObject &obj);
     DLLEXPORT AObject&  operator= (const AObject &obj);
 
     MappedFile *mf;
     std::vector< Region *> regions_;
-    hash_map< std::string, std::vector< Symbol *> > symbols_;
+    dyn_hash_map< std::string, std::vector< Symbol *> > symbols_;
 
     char*   code_ptr_;
     Offset code_off_;
@@ -201,9 +201,9 @@ namespace SymtabAPI{
 
 class SymbolIter {
  private:
-   hash_map< std::string, std::vector< Symbol *> > *symbols;
+   dyn_hash_map< std::string, std::vector< Symbol *> > *symbols;
    unsigned int currentPositionInVector;
-   hash_map< std::string, std::vector< Symbol *> >::iterator symbolIterator;
+   dyn_hash_map< std::string, std::vector< Symbol *> >::iterator symbolIterator;
    
  public:
    SymbolIter( Object & obj );

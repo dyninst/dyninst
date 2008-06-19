@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.281 2008/06/13 20:06:25 mlam Exp $
+ * $Id: inst-x86.C,v 1.282 2008/06/19 19:53:24 legendre Exp $
  */
 #include <iomanip>
 
@@ -622,7 +622,7 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
 void emitJccR8(int condition_code, char jump_offset,
                codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = condition_code;
+    *insn++ = static_cast<unsigned char>(condition_code);
     *insn++ = jump_offset;
     SET_PTR(insn, gen);
 }
@@ -754,14 +754,14 @@ bool doNotOverflow(int)
 static inline unsigned char makeModRMbyte(unsigned Mod, unsigned Reg,
                                           unsigned RM)
 {
-   return ((Mod & 0x3) << 6) + ((Reg & 0x7) << 3) + (RM & 0x7);
+   return static_cast<unsigned char>(((Mod & 0x3) << 6) + ((Reg & 0x7) << 3) + (RM & 0x7));
 }
 
 // VG(7/30/02): Build the SIB byte of an instruction */
 static inline unsigned char makeSIBbyte(unsigned Scale, unsigned Index,
                                         unsigned Base)
 {
-  return ((Scale & 0x3) << 6) + ((Index & 0x7) << 3) + (Base & 0x7);
+   return static_cast<unsigned char>(((Scale & 0x3) << 6) + ((Index & 0x7) << 3) + (Base & 0x7));
 }
 
 /* 
@@ -847,7 +847,7 @@ void emitAddressingMode(Register base, Register index,
 /* emit a simple one-byte instruction */
 void emitSimpleInsn(unsigned op, codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = op;
+    *insn++ = static_cast<unsigned char>(op);
     SET_PTR(insn, gen);
 }
 
@@ -867,10 +867,10 @@ void emitOpRegReg(unsigned opcode, Register dest, Register src,
 {
     GET_PTR(insn, gen);
     if (opcode <= 0xFF)
-	*insn++ = opcode;
+       *insn++ = static_cast<unsigned char>(opcode);
     else {
-	*insn++ = opcode >> 8;
-	*insn++ = opcode & 0xFF;
+       *insn++ = static_cast<unsigned char>(opcode >> 8);
+       *insn++ = static_cast<unsigned char>(opcode & 0xFF);
     }
     // ModRM byte define the operands: Mod = 3, Reg = dest, RM = src
     *insn++ = makeModRMbyte(3, dest, src);
@@ -883,10 +883,10 @@ void emitOpRegRM(unsigned opcode, Register dest, Register base,
 {
     GET_PTR(insn, gen);
     if (opcode <= 0xff) {
-	*insn++ = opcode;
+       *insn++ = static_cast<unsigned char>(opcode);
     } else {
-	*insn++ = opcode >> 8;
-	*insn++ = opcode & 0xff;
+       *insn++ = static_cast<unsigned char>(opcode >> 8);
+       *insn++ = static_cast<unsigned char>(opcode & 0xff);
     }
     SET_PTR(insn, gen);
     emitAddressingMode(base, disp, dest, gen);
@@ -895,8 +895,8 @@ void emitOpRegRM(unsigned opcode, Register dest, Register base,
 // emit OP r/m, reg
 void emitOpRMReg(unsigned opcode, Register base, int disp,
                                Register src, codeGen &gen) {
-    GET_PTR(insn, gen);
-   *insn++ = opcode;
+   GET_PTR(insn, gen);
+   *insn++ = static_cast<unsigned char>(opcode);
    SET_PTR(insn, gen);
    emitAddressingMode(base, disp, src, gen);
 }
@@ -928,7 +928,7 @@ void emitOpRMImm(unsigned opcode1, unsigned opcode2,
 		 Register base, int disp, int imm,
 		 codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = opcode1;
+    *insn++ = static_cast<unsigned char>(opcode1);
     SET_PTR(insn, gen);
     emitAddressingMode(base, disp, opcode2, gen);
     REGET_PTR(insn, gen);
@@ -942,7 +942,7 @@ void emitOpRMImm8(unsigned opcode1, unsigned opcode2,
 		  Register base, int disp, char imm,
 		  codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = opcode1;
+    *insn++ = static_cast<unsigned char>(opcode1);
     SET_PTR(insn, gen);
     emitAddressingMode(base, disp, opcode2, gen);
     REGET_PTR(insn, gen);
@@ -955,7 +955,7 @@ void emitOpRegRMImm(unsigned opcode, Register dest,
 		    Register base, int disp, int imm,
 		    codeGen &gen) {
     GET_PTR(insn, gen);
-    *insn++ = opcode;
+    *insn++ = static_cast<unsigned char>(opcode);
     SET_PTR(insn, gen);
     emitAddressingMode(base, disp, dest, gen);
     REGET_PTR(insn, gen);
@@ -1033,7 +1033,7 @@ void emitMovMWToReg(Register dest, int disp, codeGen &gen)
 void emitMovImmToReg(Register dest, int imm, codeGen &gen)
 {
    GET_PTR(insn, gen);
-   *insn++ = 0xB8 + dest;
+   *insn++ = static_cast<unsigned char>(0xB8 + dest);
    *((int *)insn) = imm;
    insn += sizeof(int);
    SET_PTR(insn, gen);
@@ -1279,14 +1279,14 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
 
         // 2. find the Symbol corresponding to the int_function
         std::vector<BinaryEdit *>* depEdits = binEdit->getDependentBinEdits();
-        for (int j=0; j<depEdits->size() && funcs.size() == 0; j++) {
+        for (unsigned j=0; j<depEdits->size() && funcs.size() == 0; j++) {
             (*depEdits)[j]->findFuncsByPretty(callee->prettyName(), funcs);
             dynsymObj = (*depEdits)[j]->getAOut()->parse_img()->getObject();
-            for (int i=0; i<funcs.size(); i++) {
+            for (unsigned i=0; i<funcs.size(); i++) {
                 std::vector<Symbol *> retFuncs;
                 dynsymObj->findSymbolByType(retFuncs, funcs[i]->prettyName(), Symbol::ST_FUNCTION);
-                for (int j=0; j<retFuncs.size(); j++) {
-                    referring = retFuncs[j];
+                for (unsigned k=0; k<retFuncs.size(); k++) {
+                    referring = retFuncs[k];
                 }
             }
         }
@@ -1294,7 +1294,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
         // have we added this relocation already?
         dest = binEdit->getDependentRelocationAddr(referring);
 
-        if (dest == NULL) {
+        if (!dest) {
             // 3. inferiorMalloc addr location
             dest = binEdit->inferiorMalloc(8);
 
@@ -1563,7 +1563,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
            restoreGPRtoGPR(REGNUM_ECX, REGNUM_EAX, gen); // old ecx -> eax
            emitSubRegReg(REGNUM_EAX, REGNUM_ECX, gen); // eax = eax - ecx
            if(sc > 0)
-              emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
+              emitSHL(REGNUM_EAX, static_cast<unsigned char>(sc), gen); // shl eax, scale
 
            // mov (virtual reg) dest, eax
            emitMovRegToRM(REGNUM_EBP, -1*(dest<<2), REGNUM_EAX, gen);
@@ -1599,7 +1599,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
            restoreGPRtoGPR(REGNUM_ECX, REGNUM_EAX, gen); // old ecx -> eax
            emitSubRegReg(REGNUM_EAX, REGNUM_ECX, gen); // eax = eax - ecx
            if(sc > 0)
-              emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
+              emitSHL(REGNUM_EAX, static_cast<unsigned char>(sc), gen); // shl eax, scale
 
            // mov (virtual reg) dest, eax
            emitMovRegToRM(REGNUM_EBP, -1*(dest<<2), REGNUM_EAX, gen);
@@ -1615,7 +1615,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
       assert(rb < 8); 
       restoreGPRtoGPR(rb, REGNUM_EAX, gen);        // mov eax, [saved_rb]
       if(sc > 0)
-         emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
+         emitSHL(REGNUM_EAX, static_cast<unsigned char>(sc), gen); // shl eax, scale
 
       // mov (virtual reg) dest, eax
       emitMovRegToRM(REGNUM_EBP, -1*(dest<<2), REGNUM_EAX, gen);
@@ -2077,7 +2077,7 @@ bool EmitterIA32::emitPush(codeGen &gen, Register r) {
     }
     assert(r < 8);
 
-    *insn++ = 0x50 + r; // 0x50 is push EAX, and it increases from there.
+    *insn++ = static_cast<unsigned char>(0x50 + r); // 0x50 is push EAX, and it increases from there.
 
     SET_PTR(insn, gen);
     return true;
@@ -2086,7 +2086,7 @@ bool EmitterIA32::emitPush(codeGen &gen, Register r) {
 bool EmitterIA32::emitPop(codeGen &gen, Register r) {
     GET_PTR(insn, gen);
     assert(r < 8);
-    *insn++ = 0x58 + r;
+    *insn++ = static_cast<unsigned char>(0x58 + r);
     
     SET_PTR(insn, gen);
     return true;
@@ -2122,7 +2122,7 @@ void emitStorePreviousStackFrameRegister(Address register_num,
 // Second AST node: source of the call
 // This can handle indirect control transfers as well 
 bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
-                                     pdvector<AstNodePtr> &args)
+                                          pdvector<AstNodePtr> &args)
 {
    Register base_reg, index_reg;
    int displacement;
@@ -2141,113 +2141,116 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                           displacement, scale, Mod);
       switch(addr_mode){
 
-	  // casting first to long, then void* in calls to the AstNode
-	  // constructor below avoids a mess of compiler warnings on AMD64
-        case REGISTER_DIRECT:
-           {
-               args.push_back(AstNode::operandNode(AstNode::origRegister, (void *)(long)base_reg));
-               break;
-           }
-        case REGISTER_INDIRECT:
-           {
-               args.push_back(AstNode::operandNode(AstNode::DataIndir,
-                                                   AstNode::operandNode(AstNode::origRegister, 
-                                                                        (void *)(long)base_reg)));
-              break;
-           }
-        case REGISTER_INDIRECT_DISPLACED:
-           {
-               args.push_back(AstNode::operandNode(AstNode::DataIndir, 
-                                                   AstNode::operatorNode(plusOp,
-                                                                         AstNode::operandNode(AstNode::Constant,
-                                                                                              (void *)displacement),
-                                                                         AstNode::operandNode(AstNode::origRegister,
-                                                                                              (void *)(long)base_reg))));
-               break;
-           }
-        case DISPLACED:
-           {
-               args.push_back(AstNode::operandNode(AstNode::DataIndir,
-                                                   AstNode::operandNode(AstNode::Constant,
-                                                                        (void *)(long) displacement)));
-               break;
-           }
-        case SIB:
-           {
-              AstNodePtr effective_address;
-              if(index_reg != 4) { //We use a scaled index
-                 bool useBaseReg = true;
-                 if(Mod == 0 && base_reg == 5){
-                    cerr << "Inserting untested call site monitoring "
-                         << "instrumentation at address " << std::hex
-                         << callSite->addr() << std::dec << endl;
-                    useBaseReg = false;
-                 }
-
-                 AstNodePtr index = AstNode::operandNode(AstNode::origRegister, 
-                                                         (void *)(long) index_reg);
-                 AstNodePtr base = AstNode::operandNode(AstNode::origRegister,
-                                                        (void *)(long) base_reg);
-
-                 AstNodePtr disp = AstNode::operandNode(AstNode::Constant,
-                                                        (void *)(long) displacement);
+         // casting first to long, then void* in calls to the AstNode
+         // constructor below avoids a mess of compiler warnings on AMD64
+         case REGISTER_DIRECT:
+         {
+            args.push_back(AstNode::operandNode(AstNode::origRegister, (void *)(long)base_reg));
+            break;
+         }
+         case REGISTER_INDIRECT:
+         {
+            args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                AstNode::operandNode(AstNode::origRegister, 
+                                                                     (void *)(long)base_reg)));
+            break;
+         }
+         case REGISTER_INDIRECT_DISPLACED:
+         {
+            args.push_back(AstNode::operandNode(AstNode::DataIndir, 
+                              AstNode::operatorNode(plusOp,
+                                                    AstNode::operandNode(AstNode::Constant,
+                                                                         (void *)(long)displacement),
+                                                    AstNode::operandNode(AstNode::origRegister,
+                                                                         (void *)(long)base_reg))));
+            break;
+         }
+         case DISPLACED:
+         {
+            args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                AstNode::operandNode(AstNode::Constant,
+                                                                     (void *)(long) displacement)));
+            break;
+         }
+         case SIB:
+         {
+            AstNodePtr effective_address;
+            if(index_reg != 4) { //We use a scaled index
+               bool useBaseReg = true;
+               if(Mod == 0 && base_reg == 5){
+                  cerr << "Inserting untested call site monitoring "
+                       << "instrumentation at address " << std::hex
+                       << callSite->addr() << std::dec << endl;
+                  useBaseReg = false;
+               }
+               
+               AstNodePtr index = AstNode::operandNode(AstNode::origRegister, 
+                                                       (void *)(long) index_reg);
+               AstNodePtr base = AstNode::operandNode(AstNode::origRegister,
+                                                      (void *)(long) base_reg);
+               
+               AstNodePtr disp = AstNode::operandNode(AstNode::Constant,
+                                                      (void *)(long) displacement);
                  
-                 if(scale == 1){ //No need to do the multiplication
-                     if(useBaseReg){
-                         effective_address = AstNode::operatorNode(plusOp,
-                                                                   AstNode::operatorNode(plusOp,
-                                                                                         index,
-                                                                                         base),
-                                                                   disp);
-                     }
+               if(scale == 1){ //No need to do the multiplication
+                  if(useBaseReg){
+                     effective_address = AstNode::operatorNode(plusOp,
+                                                               AstNode::operatorNode(plusOp,
+                                                                                     index,
+                                                                                     base),
+                                                               disp);
+                  }
+                  else
+                     effective_address = AstNode::operatorNode(plusOp, index, disp);
+                  
+                  args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                      effective_address));
+                  
+               }
+               else {
+                  AstNodePtr scale_factor = AstNode::operandNode(AstNode::Constant, 
+                                                                 (void *)(long) scale);
+                  
+                  AstNodePtr index_scale_product = AstNode::operatorNode(timesOp,
+                                                                         index,
+                                                                         scale_factor);
+                  if(useBaseReg){
+                     effective_address = AstNode::operatorNode(
+                                                    plusOp,
+                                                    AstNode::operatorNode(plusOp,
+                                                                          index_scale_product,
+                                                                          base),
+                                                    disp);
+                  }
                      else
-                         effective_address = AstNode::operatorNode(plusOp, index, disp);
-                     
-                     args.push_back(AstNode::operandNode(AstNode::DataIndir,
-                                                         effective_address));
-                     
-                 }
-                 else {
-                     AstNodePtr scale_factor = AstNode::operandNode(AstNode::Constant, (void *)(long) scale);
-
-                     AstNodePtr index_scale_product = AstNode::operatorNode(timesOp,
-                                                                          index,
-                                                                          scale_factor);
-                     if(useBaseReg){
-                         effective_address = AstNode::operatorNode(plusOp,
-                                                                   AstNode::operatorNode(plusOp,
-                                                                                         index_scale_product,
-                                                                                         base),
-                                                                   disp);
-                     }
-                     else
-                         effective_address = AstNode::operatorNode(plusOp,
-                                                                   index_scale_product,
-                                                                   disp);
+                        effective_address = AstNode::operatorNode(plusOp,
+                                                                  index_scale_product,
+                                                                  disp);
                      args.push_back( AstNode::operandNode(AstNode::DataIndir,
                                                           effective_address));
-                 }
-              }
-              else { //We do not use a scaled index.
-                 args.push_back(AstNode::operandNode(AstNode::DataIndir,
-                                                     AstNode::operatorNode(plusOp,
-                                                                           AstNode::operandNode(AstNode::Constant,
-                                                                                                (void *)(long)displacement),
-                                                                           AstNode::operandNode(AstNode::origRegister,
-                                                                                                (void *)(long)base_reg))));
-
-                 
-              }
-           }
-           break;
-
-        default:
-	  cerr << "Unexpected addressing type " << addr_mode 
-	       << " in MonitorCallSite at addr:"
-	       << std::hex << callSite->addr() << std::dec
-	       << "The daemon declines the monitoring request of"
-	       << " this call site." << endl;
-           break;
+                  }
+               }
+               else { //We do not use a scaled index.
+                  args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                      AstNode::operatorNode(
+                                                         plusOp,
+                                                         AstNode::operandNode(
+                                                                 AstNode::Constant,
+                                                                 (void *)(long)displacement),
+                                                         AstNode::operandNode(
+                                                                 AstNode::origRegister,
+                                                                 (void *)(long)base_reg))));
+               }
+         }
+         break;
+         
+         default:
+            cerr << "Unexpected addressing type " << addr_mode 
+                 << " in MonitorCallSite at addr:"
+                 << std::hex << callSite->addr() << std::dec
+                 << "The daemon declines the monitoring request of"
+                 << " this call site." << endl;
+            break;
       }
       
       // Second AST
@@ -2258,8 +2261,9 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
       //Regular callees are statically determinable, so no need to
       //instrument them
       //return true;
-      fprintf(stderr, "%s[%d]:  FIXME,  dynamic call is statically determinable\n at address %p (%s)",
-	      __FILE__, __LINE__, (void *)callSite->addr(), callSite->func()->prettyName().c_str());
+      fprintf(stderr, "%s[%d]:  FIXME,  dynamic call is statically determinable\n"
+              "at address %p (%s)", FILE__, __LINE__, 
+              (void *)callSite->addr(), callSite->func()->prettyName().c_str());
       return false; // but we generate no args.
    }
    else {

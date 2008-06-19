@@ -112,7 +112,7 @@ typedef enum {
   evtLastEvent /* placeholder for the end of the list*/
 } eventType;
 
-char *eventType2str(eventType x); 
+const char *eventType2str(eventType x); 
 
 typedef Address eventAddress_t;
 

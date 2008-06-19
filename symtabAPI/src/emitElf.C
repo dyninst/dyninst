@@ -61,9 +61,9 @@ typedef struct
 
 bool libelfso0Flag;
 void setVersion(){
-    unsigned nEntries;
     libelfso0Flag = true;
 #if !defined(os_solaris)
+    unsigned nEntries;
     map_entries *maps = getLinuxMaps(getpid(), nEntries);
     for(unsigned i=0; i< nEntries; i++){
         if(strstr(maps[i].path, "libelf") && (strstr(maps[i].path,"1.so") ||strstr(maps[i].path,"so.1"))){
@@ -140,9 +140,13 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
    sym->st_value = symbol->getAddr();
    sym->st_size = symbol->getSize();
    sym->st_other = 0;
-   sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+   sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
    if(symbol->getSec())
-	sym->st_shndx = symbol->getSec()->getRegionNumber();
+#if defined(os_solaris)
+      sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
+#else
+      sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
+#endif
    else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
         sym->st_shndx = SHN_ABS;
    
@@ -167,9 +171,9 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
                    if(versionNames.find((*vers)[0]) == versionNames.end())
                        versionNames[(*vers)[0]] = 0;
                    if(verdefEntries.find((*vers)[0]) != verdefEntries.end())
-                        versionSymTable.push_back(verdefEntries[(*vers)[0]]);
+                      versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
                    else{
-                       versionSymTable.push_back(curVersionNum);
+                      versionSymTable.push_back((unsigned short) curVersionNum);
                        verdefEntries[(*vers)[0]] = curVersionNum;
                        curVersionNum++;
                    }
@@ -194,15 +198,15 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
                     if(verneedEntries.find(fileName) != verneedEntries.end())
                     {
                         if(verneedEntries[fileName].find((*vers)[0]) != verneedEntries[fileName].end())
-                            versionSymTable.push_back(verneedEntries[fileName][(*vers)[0]]);
+                           versionSymTable.push_back((unsigned short) verneedEntries[fileName][(*vers)[0]]);
                         else{
-                            versionSymTable.push_back(curVersionNum);
+                           versionSymTable.push_back((unsigned short) curVersionNum);
                             verneedEntries[fileName][(*vers)[0]] = curVersionNum;
                             curVersionNum++;
                         }
                     }
                     else{
-                        versionSymTable.push_back(curVersionNum);
+                       versionSymTable.push_back((unsigned short) curVersionNum);
                         verneedEntries[fileName][(*vers)[0]] = curVersionNum;
                         curVersionNum++;
                     }
@@ -222,9 +226,13 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
     	sym->st_value = symbol->getAddr();
     	sym->st_size = 0;
        	sym->st_other = 0;
-       	sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+       	sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
        	if(symbol->getSec())
-    	    sym->st_shndx = symbol->getSec()->getRegionNumber();
+#if defined(os_solaris)
+            sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
+#else
+            sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
+#endif
     	else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
     	    sym->st_shndx = SHN_ABS;
        	symbols.push_back(sym);
@@ -300,7 +308,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     oldEhdr = elf32_getehdr(oldElf);
     memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
     
-    newEhdr->e_shnum += newSecs.size();
+    newEhdr->e_shnum = (Elf32_Half) (newEhdr->e_shnum +  newSecs.size());
 
     // Find the end of text and data segments
     findSegmentEnds();
@@ -317,7 +325,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     
     Elf_Scn *scn = NULL, *newscn;
     Elf_Data *newdata = NULL, *olddata = NULL;
-    Elf32_Shdr *newshdr, *shdr;
+    Elf32_Shdr *newshdr, *shdr = NULL;
     
     unsigned scncount;
     for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
@@ -427,10 +435,6 @@ bool emitElf::driver(Symtab *obj, string fName){
             extraAlignSize += newOff - newshdr->sh_offset;
             newshdr->sh_offset = newOff;
         }
-	    /* DEBUG */
-    	fprintf(stderr, "Added Section %d(%s): secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-	                        scncount, name, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
-
 	    //Insert new loadable sections at the end of data segment			
     	if(shdr->sh_addr+shdr->sh_size == dataSegEnd){
 	        insertPoint = scncount;
@@ -461,7 +465,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     scn = NULL;
     for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++)
     	shdr = elf32_getshdr(scn);
-    newEhdr->e_shstrndx = scncount;
+    newEhdr->e_shstrndx = (Elf32_Half) scncount;
 
     // Move the section header to the end
     newEhdr->e_shoff =shdr->sh_offset+shdr->sh_size;
@@ -495,9 +499,9 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
     unsigned pgSize = getpagesize();
     Elf32_Phdr *tmp = oldPhdr;
     if(addNewSegmentFlag) {
-        if(firstNewLoadSec)
-            newEhdr->e_phnum= oldEhdr->e_phnum + 1;
-        else
+       if(firstNewLoadSec)
+          newEhdr->e_phnum= (Elf32_Half) (oldEhdr->e_phnum + 1);
+       else
     	    newEhdr->e_phnum= oldEhdr->e_phnum;
     }
     if(BSSExpandFlag)
@@ -538,10 +542,11 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
     	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
         		newPhdr->p_paddr = newPhdr->p_vaddr;
             }
-    	    if(tmp->p_type == PT_LOAD && tmp->p_flags == 6 || tmp->p_type == PT_NOTE || tmp->p_type == PT_INTERP)
+            if ((tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
+                tmp->p_type == PT_NOTE || 
+                tmp->p_type == PT_INTERP)
 	            newPhdr->p_offset += pgSize;
     	} 
-    	fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
 	    newPhdr++;
     	if(addNewSegmentFlag) {
 	        if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7) && firstNewLoadSec)
@@ -876,9 +881,6 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
     	    if(!firstNewLoadSec)
 	        	firstNewLoadSec = shdr;
             secNameIndex += newSecs[i]->getRegionName().size() + 1;
-	        /* DEBUG */
-            fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-                    newSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
             prevshdr = newshdr;
 	    }
 	    else
@@ -957,8 +959,6 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
     }
 
 
-    fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-            ".shstrtab", newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
     //elf_update(newElf, ELF_C_NULL);
 
     return true;
@@ -1082,10 +1082,6 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
         }
 	    
         //elf_update(newElf, ELF_C_NULL);
-        /* DEBUG */
-        fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-                nonLoadableSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
-	    
 	    prevshdr = newshdr;
     }	
     shdr = prevshdr;
@@ -1118,7 +1114,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
     sym->st_value = 0;
     sym->st_size = 0;
     sym->st_other = 0;
-    sym->st_info = ELF32_ST_INFO(elfSymBind(Symbol::SL_LOCAL), elfSymType (Symbol::ST_NOTYPE));
+    sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(Symbol::SL_LOCAL), elfSymType (Symbol::ST_NOTYPE));
     sym->st_shndx = SHN_ABS;
 
     symbols.push_back(sym);
@@ -1214,7 +1210,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
     --dynsymbolNamesLength;
     char *dynstr = (char *)malloc(dynsymbolNamesLength+1);
     cur=0;
-    hash_map<string, unsigned> dynSymNameMapping;
+    dyn_hash_map<string, unsigned> dynSymNameMapping;
     for(i=0;i<dynsymbolStrs.size();i++)
     {
         strcpy(&dynstr[cur],dynsymbolStrs[i].c_str());
@@ -1319,9 +1315,9 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
     unsigned curpos = 0;
     verneednum = 0;
     for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
-        Elf32_Verneed *verneed = (Elf32_Verneed *)(verneedSecData+curpos);
+       Elf32_Verneed *verneed = (Elf32_Verneed *)(void*)(verneedSecData+curpos);
         verneed->vn_version = 1;
-        verneed->vn_cnt = it->second.size();
+        verneed->vn_cnt = (Elf32_Half) it->second.size();
         verneed->vn_file = dynSymbolNamesLength;
         versionNames[it->first] = dynSymbolNamesLength;
         dynStrs.push_back(it->first);
@@ -1333,12 +1329,12 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
         if(curpos + verneed->vn_next == verneedSecSize)
             verneed->vn_next = 0;
         verneednum++;
-        unsigned i = 0;
+        int i = 0;
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
-            Elf32_Vernaux *vernaux = (Elf32_Vernaux *)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf32_Vernaux));
+           Elf32_Vernaux *vernaux = (Elf32_Vernaux *)(void*)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf32_Vernaux));
             vernaux->vna_hash = elfHash(iter->first.c_str());
             vernaux->vna_flags = 1;
-            vernaux->vna_other = iter->second;
+            vernaux->vna_other = (Elf32_Half) iter->second;
             vernaux->vna_name = versionNames[iter->first];
             if(i == verneed->vn_cnt-1)
                 vernaux->vna_next = 0;
@@ -1357,20 +1353,20 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
     verdefSecData = (char *)malloc(verdefSecSize);
     curpos = 0;
     for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++){
-        Elf32_Verdef *verdef = (Elf32_Verdef *)(verdefSecData+curpos);
+       Elf32_Verdef *verdef = (Elf32_Verdef *)(void*)(verdefSecData+curpos);
         verdef->vd_version = 1;
         verdef->vd_flags = 1;
-        verdef->vd_ndx = iter->second;
-        verdef->vd_cnt = verdauxEntries[iter->second].size();
+        verdef->vd_ndx = (Elf32_Half) iter->second;
+        verdef->vd_cnt = (Elf32_Half) verdauxEntries[iter->second].size();
         verdef->vd_hash = elfHash(iter->first.c_str());
         verdef->vd_aux = sizeof(Elf32_Verdef);
         verdef->vd_next = sizeof(Elf32_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf32_Verdaux);
         if(curpos + verdef->vd_next == verdefSecSize)
             verdef->vd_next = 0;
         for(unsigned i = 0; i< verdauxEntries[iter->second].size(); i++){
-            Elf32_Verdaux *verdaux = (Elf32_Verdaux *)(verdefSecData + curpos +verdef->vd_aux + i*sizeof(Elf32_Verdaux));
+           Elf32_Verdaux *verdaux = (Elf32_Verdaux *)(void*)(verdefSecData + curpos +verdef->vd_aux + i*sizeof(Elf32_Verdaux));
             verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
-            if(i == verdef->vd_cnt-1)
+            if(i == (unsigned) verdef->vd_cnt-1)
                 verdaux->vda_next = 0;
             else
                 verdaux->vda_next = sizeof(Elf32_Verdaux);

@@ -106,7 +106,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err) : basePtr(NULL)
 
 Archive::~Archive()
 {
-   hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
+   dyn_hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
    for (; iter!=membersByName.end();iter++) {
       if (iter->second)
          delete (iter->second);

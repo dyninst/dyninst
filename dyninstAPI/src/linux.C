@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.276 2008/06/16 22:37:03 legendre Exp $
+// $Id: linux.C,v 1.277 2008/06/19 19:53:27 legendre Exp $
 
 #include <fstream>
 #include <string>
@@ -97,7 +97,6 @@
 #include "symtabAPI/h/Symtab.h"
 
 //TODO: Remove the writeBack functions and get rid of this include
-#include "symtabAPI/src/Object.h"
 #ifdef PAPI
 #include "papi.h"
 #endif
@@ -631,7 +630,7 @@ static char getState(int pid)
   sstat[255] = '\0';
   status = sstat;
   
-  while (*status != '\0' && *(status++) != '(');
+  while (*status != '\0' && *(status++) != '(') ;
   while (*status != '\0' && paren_level != 0)
   {
     if (*status == '(') paren_level++;
@@ -1382,83 +1381,9 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 }
 
 
-bool process::dumpImage( std::string imageFileName ) 
+bool process::dumpImage( std::string ) 
 {
-	/* What we do is duplicate the original file,
-	   and replace the copy's .text section with
-	   the (presumably instrumented) in-memory
-	   executable image.  Note that we don't seem
-	   to be concerned with making sure that we
-	   actually grab the instrumentation code itself... */
-	
-	/* Acquire the filename. */
-   if (!mapped_objects.size()) {
-      return false;
-   }
-
-   string originalFileName = mapped_objects[0]->fullName();
-	
-	/* Use system() to execute the copy. */
-	//std::string copyCommand = "cp " + originalFileName + " " + imageFileName;
-        //system( copyCommand.c_str() );
-   if (P_copy(originalFileName.c_str(), imageFileName.c_str()) == -1) {
-       fprintf(stderr, "Failure in copying file %s to %s\n",
-              originalFileName.c_str(), imageFileName.c_str());
-       perror("error");
-       return false;
-   }
-
-   /* Open the copy so we can use libelf to find the .text section. */
-   int copyFD = P_open( imageFileName.c_str(), O_RDWR, 0 );
-   if( copyFD < 0 ) { return false; }
-   
-   /* Start up the elven widgetry. */
-   Elf_X elf( copyFD, ELF_C_READ );
-   if (!elf.isValid()) return false;
-   
-   /* Acquire the shared names pointer. */
-   Elf_X_Shdr elfSection = elf.get_shdr( elf.e_shstrndx() );
-   Elf_X_Data elfData = elfSection.get_data();
-   const char *sharedNames = elfData.get_string();
-
-   /* Iterate over the sections to find the text section's
-      offset, length, and base address. */
-   Address offset = 0;
-   Address length = 0;
-   Address baseAddr = 0;
-   
-   for( int i = 0; i < elf.e_shnum(); ++i ) {
-      elfSection = elf.get_shdr( i );
-      const char * name = (const char *) &sharedNames[ elfSection.sh_name() ];
-      
-      if( P_strcmp( name, ".text" ) == 0 ) {
-         offset = elfSection.sh_offset();
-         length = elfSection.sh_size();
-         baseAddr = elfSection.sh_addr();
-         break;
-      } /* end if we've found the text section */
-   } /* end iteration over sections */
-
-   /* Copy the code out of the mutatee. */
-   char * codeBuffer = (char *)malloc( length );
-   assert( codeBuffer != NULL );
-   
-   if( ! readTextSpace( (void *) baseAddr, length, codeBuffer ) ) {
-      free( codeBuffer );
-      elf.end();
-      P_close( copyFD );
-      return false;
-   }
-
-   /* Write that code to the image file. */
-   lseek( copyFD, offset, SEEK_SET );
-   write( copyFD, codeBuffer, length );
-
-   /* Clean up. */
-   free( codeBuffer );
-   elf.end();
-   P_close( copyFD );
-   return true;
+   return false;
 }
 
 //Returns true if the function is part of the PLT table

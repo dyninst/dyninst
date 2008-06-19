@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.19 2008/05/27 20:44:40 giri Exp $
+ * $Id: Object-elf.h,v 1.20 2008/06/19 19:54:13 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -275,7 +275,7 @@ class Object : public AObject {
  public:
   Object(){}
   Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
-  Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
+  Object(MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
   Object(MappedFile *, std::string &member_name, Offset offset,	
           void (*)(const char *) = log_msg, void *base = NULL, bool alloc_syms = true);
   Object(const Object &);
@@ -289,8 +289,8 @@ class Object : public AObject {
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   stab_entry * get_stab_info() const;
   const char * getFileName() const { return mf->filename().c_str(); }
-  void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
-  void parseFileLineInfo(hash_map<std::string, LineInformation> &li);
+  void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
+  void parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
   void parseTypeInfo(Symtab *obj);
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
@@ -428,11 +428,11 @@ class Object : public AObject {
 
   // It doesn't look like image's equivalent hashtable is built by
   // the time we need it, and it's hard to get to anyway.
-  hash_map< Offset, std::string > symbolNamesByAddr;
+  dyn_hash_map< Offset, std::string > symbolNamesByAddr;
 
   // Symbol version mappings. used to store symbol version names.
-  hash_map<unsigned, std::vector<std::string> >versionMapping;
-  hash_map<unsigned, std::string> versionFileNameMapping;
+  dyn_hash_map<unsigned, std::vector<std::string> >versionMapping;
+  dyn_hash_map<unsigned, std::string> versionFileNameMapping;
 
   std::vector<std::string> deps_;
 
@@ -446,8 +446,8 @@ class Object : public AObject {
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
   
-  void parseStabFileLineInfo(hash_map<std::string, LineInformation> &li);
-  void parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li);
+  void parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
+  void parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
 
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes(Symtab *obj);

@@ -125,7 +125,7 @@ func_call: IDENTIFIER '(' param_list ')'
 	return 1;
       }
       if (bpfv.size() > 1) {
-	printf("found %d references to  %s\n", bpfv.size(), $1);
+         printf("found %d references to  %s\n", (int) bpfv.size(), $1);
       }
 
       BPatch_function *func = bpfv[0];

@@ -41,11 +41,7 @@
 #if !defined(DLLEXPORT)
 #define DLLEXPORT __declspec(dllexport)
 #endif
-//On windows it is just hash_map otherwise its in ext/hash_map
-#include <hash_map>
 #include <set>
-
-using stdext::hash_map;
 
 #else
 #if !defined(DLLEXPORT)
@@ -53,21 +49,8 @@ using stdext::hash_map;
 #endif
 
 #include <regex.h>
-#include <ext/hash_map>
-#include <ext/hash_set>
 #include <string>
 
-#if 0
-using namespace __gnu_cxx;
-namespace __gnu_cxx {
-   template<> struct hash<std::string> {
-      hash<char*> h;  
-      unsigned operator()(const std::string &s) const {
-         return h(s.c_str());
-      };
-   };              
-}; //namespace
-#endif
 #endif
 namespace Dyninst{
 namespace SymtabAPI{

@@ -178,7 +178,7 @@ void SymtabTranslatorBin::symbol_end(Symbol &param, const char *)
       else {
          std::string dmname("DEFAULT_MODULE");
          if (!parent_symtab->findModule(default_module, dmname)) {
-            fprintf(stderr, "%s[%d]:  WARNING:  no module found for symbol %s, offset %p\n", FILE__, __LINE__, param.prettyNames[0].c_str(), mod_off);
+            fprintf(stderr, "%s[%d]:  WARNING:  no module found for symbol %s, offset %lx\n", FILE__, __LINE__, param.prettyNames[0].c_str(), mod_off);
             param.module_ = NULL;
          }
          else
@@ -204,8 +204,8 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
     vector<Symbol *> &unique_funcs = param.everyUniqueFunction;
 
     for (unsigned int i = 0; i < unique_funcs.size(); ++i) {
-      Symbol *f = unique_funcs[i];
 #if 0 // SERIALIZE
+      Symbol *f = unique_funcs[i];
       if (f->wasCreated()) {
          param.createdFunctions.push_back(f);
       }
@@ -240,7 +240,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
 
       //  add to funcsByPretty hash
       for (unsigned int j = 0; j < fpnames.size(); ++j) {
-        hash_map<string, std::vector<Symbol *> *> &pnhash = param.funcsByPretty;
+        dyn_hash_map<string, std::vector<Symbol *> *> &pnhash = param.funcsByPretty;
         std::vector<Symbol *> *namevecp = NULL;
         if (pnhash.find(fpnames[j]) == pnhash.end()) {
            namevecp = new std::vector <Symbol *>;
@@ -253,7 +253,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
 
       //  add to funcsByMangled hash
       for (unsigned int j = 0; j < fmnames.size(); ++j) {
-        hash_map<string, std::vector<Symbol *> *> &mnhash = param.funcsByMangled;
+        dyn_hash_map<string, std::vector<Symbol *> *> &mnhash = param.funcsByMangled;
         std::vector<Symbol *> *namevecp = NULL;
         if (mnhash.find(fmnames[j]) == mnhash.end()) {
            namevecp = new std::vector <Symbol *>;
@@ -275,7 +275,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
 
       //  add to varsByPretty
       for (unsigned int j = 0; j < vpnames.size(); ++j) {
-        hash_map<string, std::vector<Symbol *> *> &pnhash = param.varsByPretty;
+        dyn_hash_map<string, std::vector<Symbol *> *> &pnhash = param.varsByPretty;
         std::vector<Symbol *> *namevecp = NULL;
         if (pnhash.find(vpnames[j]) == pnhash.end()) {
            namevecp = new std::vector <Symbol *>;
@@ -312,7 +312,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
 
       //  add to varsByMangled
       for (unsigned int j = 0; j < vmnames.size(); ++j) {
-        hash_map<string, std::vector<Symbol *> *> &mnhash = param.varsByMangled;
+        dyn_hash_map<string, std::vector<Symbol *> *> &mnhash = param.varsByMangled;
         std::vector<Symbol *> *namevecp = NULL;
         if (mnhash.find(vmnames[j]) == mnhash.end()) {
            namevecp = new std::vector <Symbol *>;
@@ -341,7 +341,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
       }
 
       //  add to varsByAddr
-      hash_map<Offset, Symbol *>  &vba = param.varsByAddr;
+      dyn_hash_map<Offset, Symbol *>  &vba = param.varsByAddr;
       if (vba.find(v->getAddr()) == vba.end())
          vba[v->getAddr()] = v;
       else {
@@ -359,7 +359,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
        const std::vector<string> &mpnames = m->getAllPrettyNames();
 
        for (unsigned int j = 0; j < mpnames.size(); ++j) {
-          hash_map<string, vector<Symbol *> *>  &mba = param.modsByName;
+          dyn_hash_map<string, vector<Symbol *> *>  &mba = param.modsByName;
           std::vector<Symbol *> *namevecp = NULL;
           if (mba.find(mpnames[j]) == mba.end()) {
              namevecp = new std::vector <Symbol *>;
@@ -372,7 +372,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
     }
 }
 
-void SymtabTranslatorBin::rebuild_section_hash(Symtab &param)
+void SymtabTranslatorBin::rebuild_section_hash(Symtab &/*param*/)
 {
 #if 0
    vector<Section *> &sections_ = param.sections_;

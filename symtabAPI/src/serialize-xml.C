@@ -186,7 +186,7 @@ void SymtabTranslatorXML::translate(Symbol::SymbolTag &t, const char *tag)
 
 void SymtabTranslatorXML::translate(supportedLanguages &l, const char *tag) 
 {
-    char *lstr = NULL;
+    const char *lstr = NULL;
     switch (l) {
       case lang_Unknown: lstr = "lang_Unknown";
          break;

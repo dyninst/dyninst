@@ -43,8 +43,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 #include <limits.h>
 #include <pthread.h>
 #include <tcl.h>
@@ -55,6 +55,7 @@
 #include <FCUseDominator.h>
 #include <CCPreInstrument.h>
 
+using namespace std;
 /** constructor */
 CCPreInstrument::CCPreInstrument() : CodeCoverage() {}
 
@@ -184,7 +185,7 @@ int CCPreInstrument::run(){
   * whose source code is available will be instrumented 
   * this method always returns true.
   */
-bool CCPreInstrument::isInstrumented(int i){
+bool CCPreInstrument::isInstrumented(int){
 	return true;
 }
 

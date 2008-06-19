@@ -421,7 +421,7 @@ class Symtab : public LookupInterface,
 	bool symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_funcs);
 	bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 			       
-	void setModuleLanguages(hash_map<std::string, supportedLanguages> *mod_langs);
+	void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
 	Module *getOrCreateModule(const std::string &modName, 
                                  const Offset modAddr);
 	Module *newModule(const std::string &name, const Offset addr, supportedLanguages lang);
@@ -513,7 +513,7 @@ class Symtab : public LookupInterface,
    std::vector<Region *> regions_;
    std::vector<Region *> codeRegions_;
    std::vector<Region *> dataRegions_;
-   hash_map <Offset, Region *> regionsByEntryAddr;
+   dyn_hash_map <Offset, Region *> regionsByEntryAddr;
 
    //Point where new loadable sections will be inserted
    unsigned newSectionInsertPoint;
@@ -521,28 +521,28 @@ class Symtab : public LookupInterface,
    //symbols
    unsigned no_of_symbols;
 	
-   hash_map <Offset, std::vector<Symbol *> > funcsByEntryAddr;
+   dyn_hash_map <Offset, std::vector<Symbol *> > funcsByEntryAddr;
 	// note, a prettyName is not unique, it may map to a function appearing
    // in several modules.  Also only contains instrumentable functions....
-   hash_map <std::string, std::vector<Symbol *>*> funcsByPretty;
+   dyn_hash_map <std::string, std::vector<Symbol *>*> funcsByPretty;
    // Hash table holding functions by mangled name.
    // Should contain same functions as funcsByPretty....
-   hash_map <std::string, std::vector<Symbol *>*> funcsByMangled;
+   dyn_hash_map <std::string, std::vector<Symbol *>*> funcsByMangled;
    // A way to iterate over all the functions efficiently
    std::vector<Symbol *> everyUniqueFunction;
    // And the counterpart "ones that are there right away"
    std::vector<Symbol *> exportedFunctions;
 
-   hash_map <std::string, Module *> modsByFileName;
-   hash_map <std::string, Module *> modsByFullName;
+   dyn_hash_map <std::string, Module *> modsByFileName;
+   dyn_hash_map <std::string, Module *> modsByFullName;
    	
 	// Variables indexed by pretty (non-mangled) name
-   hash_map <std::string, std::vector <Symbol *> *> varsByPretty;
-   hash_map <std::string, std::vector <Symbol *> *> varsByMangled;
-   hash_map <Offset, Symbol *> varsByAddr;
+   dyn_hash_map <std::string, std::vector <Symbol *> *> varsByPretty;
+   dyn_hash_map <std::string, std::vector <Symbol *> *> varsByMangled;
+   dyn_hash_map <Offset, Symbol *> varsByAddr;
    std::vector<Symbol *> everyUniqueVariable;
    std::vector<Symbol *> modSyms;
-   hash_map <std::string, std::vector <Symbol *> *> modsByName;
+   dyn_hash_map <std::string, std::vector <Symbol *> *> modsByName;
    std::vector<Symbol *> notypeSyms;
    std::vector<Module *> _mods;
 

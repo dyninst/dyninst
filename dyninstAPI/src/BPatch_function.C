@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.106 2008/05/12 22:12:42 giri Exp $
+// $Id: BPatch_function.C,v 1.107 2008/06/19 19:52:50 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -1948,7 +1948,7 @@ void markEAXasWritten(bool isCall, int num_regs, int* writeArr) {
   // if a call instruction, mark eax as written by that call instruction
   if(isCall) {
     int k = 0;
-    for(; k<num_regs && writeArr[k] != -1; k++);
+    for(; k<num_regs && writeArr[k] != -1; k++) ;
     assert(k<num_regs);
     writeArr[k] = EAX;
     // TODO: if void func!
@@ -2002,14 +2002,16 @@ int getReadWriteSets(InstrucIter& iter, int** readArr, int** writeArr) {
 void BPatch_function::createDataDependenceGraph() 
 {
    Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a> &ddg = *this;
-   Annotatable<ParameterType *, formal_param_set_a> &formal_params = *this;
+   //   Annotatable<ParameterType *, formal_param_set_a> &formal_params = *this;
 
   unsigned i,j;
   BPatch_flowGraph* cfg = getCFG();
 
   int* readArr, *writeArr;
   // reg_offset is only used for sparc for save and restore instructions
+#if defined(arch_sparc)
   int reg_offset = 0;
+#endif
   // ******************** Initializations and collecting required objects **************************
 #if 0
   if(getAnnotation("DataDependenceGraph") != NULL)
@@ -2284,9 +2286,10 @@ void BPatch_function::createDataDependenceGraph()
 
 	// printf("Read\t");
 	// Iterate list for the registers that are read at this line
-	for(j=0; j<num_regs && readArr[j] != -1; j++) { // are we sure that the registers are gonna fill the start of array
-	  // printf("Reg %d\t",readArr[j]);
-	  register_check(readArr[j],copy_regs,node);
+	for(j=0; j<(unsigned)num_regs && readArr[j] != -1; j++) { 
+      // are we sure that the registers are gonna fill the start of array
+      // printf("Reg %d\t",readArr[j]);
+      register_check(readArr[j],copy_regs,node);
 	}
 	// printf("\n\n");
 	
@@ -2305,7 +2308,7 @@ void BPatch_function::createDataDependenceGraph()
 	delete memAcc;
 	//	printf("Write\t");
 	// Reading the registers that are written at this instruction
-	for(j=0; j<num_regs && writeArr[j] != -1; j++) { // are we sure that the registers are gonna fill the start of array
+	for(j=0; j<(unsigned)num_regs && writeArr[j] != -1; j++) { // are we sure that the registers are gonna fill the start of array
 	  // printf("Reg %d\t",writeArr[j]);
 	  handleWrittenRegister(node, writeArr[j], copy_regs);
 	}

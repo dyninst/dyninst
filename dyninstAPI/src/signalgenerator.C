@@ -59,7 +59,7 @@ unsigned signal_generator_counter = 0;
 eventLock SignalGeneratorCommon::global_wait_list_lock;
 pdvector<EventGate *> SignalGeneratorCommon::global_wait_list;
 
-char *processRunStateStr(processRunState_t runState) {
+const char *processRunStateStr(processRunState_t runState) {
     switch (runState) {
     case unsetRequest: return "unset";
     case stopRequest: return "stopped";

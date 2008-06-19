@@ -34,6 +34,7 @@
 
 #include <assert.h>
 #include "symutil.h"
+#include <vector>
 
 namespace Dyninst{
 namespace SymtabAPI{

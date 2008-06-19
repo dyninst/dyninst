@@ -800,7 +800,7 @@ pdmodule *image::findModule(const string &name, bool wildcard)
       //  if we want a substring, have to iterate over all module names
       //  this is ok b/c there are not usually more than a handful or so
       //
-      hash_map <string, pdmodule *>::iterator mi;
+      dyn_hash_map <string, pdmodule *>::iterator mi;
       string str; pdmodule *mod;
       std::string pds = name.c_str();
 
@@ -1485,7 +1485,7 @@ void pdmodule::dumpMangled(std::string &prefix) const
  * function creates a module to add the symbol to if none exists.  
  * If parseState_ == analyzed, triggers parsing of the function
  */
-image_func *image::addFunctionStub(Address functionEntryAddr, char *fName)
+image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
  {
      // get or create module
      pdmodule *mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());

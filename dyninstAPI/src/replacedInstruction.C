@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.10 2007/12/04 17:58:12 bernat Exp $
+// $Id: replacedInstruction.C,v 1.11 2008/06/19 19:53:38 legendre Exp $
 
 #include "multiTramp.h"
 #include "process.h"
@@ -82,7 +82,7 @@ replacedInstruction::~replacedInstruction() {
 
 bool replacedInstruction::generateCode(codeGen &gen,
                                        Address baseInMutatee,
-                                       UNW_INFO_TYPE **unwindInformation) {
+                                       UNW_INFO_TYPE **) {
     // Easy-peasy. 
     assert(ast_);
 
@@ -95,12 +95,10 @@ bool replacedInstruction::generateCode(codeGen &gen,
     registerSpace *localRegSpace = registerSpace::actualRegSpace(point(), callPreInsn);
     gen.setRegisterSpace(localRegSpace);
 
-    int cost = 0;
     unsigned start = gen.used();
     addrInMutatee_ = baseInMutatee + start;
 
     if (!ast_->generateCode(gen, true)) return false;
-    //ast_->generateTramp(proc(), point(), gen, &cost, false);
     size_ = gen.used() - start;
 
     gen.setRegisterSpace(NULL);

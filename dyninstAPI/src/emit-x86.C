@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.61 2008/03/25 19:24:27 bernat Exp $
+ * $Id: emit-x86.C,v 1.62 2008/06/19 19:53:13 legendre Exp $
  */
 
 #include <assert.h>
@@ -167,7 +167,7 @@ void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, c
 	    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 	}
 	// sal dest, result
-	emitOpRMImm8(0xC1, 4, REGNUM_EBP, -1*(dest*4), result, gen);
+	emitOpRMImm8(0xC1, 4, REGNUM_EBP, -1*(dest*4), static_cast<char>(result), gen);
     }
     else {
 	// imul REGNUM_EAX, -(src1*4)[ebp], src2imm
@@ -185,7 +185,7 @@ void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, cod
 	    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 	}
 	// sar dest, result
-	emitOpRMImm8(0xC1, 7, REGNUM_EBP, -1*(dest*4), result, gen);
+	emitOpRMImm8(0xC1, 7, REGNUM_EBP, -1*(dest*4), static_cast<unsigned char>(result), gen);
     }
     else {
 	// dest = src1 div src2imm
@@ -249,8 +249,8 @@ bool EmitterIA32::emitLoadRelative(Register dest, Address offset, Register /*bas
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
-void EmitterIA32::emitStoreRelative(Register src, Address offset, Register base, 
-                                    codeGen &gen)
+void EmitterIA32::emitStoreRelative(Register /*src*/, Address /*offset*/, 
+                                    Register /*base*/, codeGen &/*gen*/)
 {
     assert(0);
     return;
@@ -685,7 +685,7 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
    emitRex(is_64, NULL, NULL, &tmp_dest, gen);
    if (is_64) {
       GET_PTR(insn, gen);
-      *insn++ = 0xB8 + tmp_dest;
+      *insn++ = static_cast<unsigned char>(0xB8 + tmp_dest);
       *((long *)insn) = imm;
       insn += sizeof(long);
       SET_PTR(insn, gen);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.209 2008/06/06 00:11:33 jaw Exp $
+// $Id: symtab.h,v 1.210 2008/06/19 19:53:46 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -108,7 +108,6 @@ class image_variable;
 class image_parRegion;
 
 class Frame;
-class Dyninst::SymtabAPI::ExceptionBlock;
 
 class pdmodule;
 class module;
@@ -334,7 +333,7 @@ class image : public codeRange, public InstructionSource {
 
    void analyzeIfNeeded();
 
-   image_func* addFunctionStub(Address functionEntryAddr, char *name=NULL);
+   image_func* addFunctionStub(Address functionEntryAddr, const char *name=NULL);
 
 
  protected:
@@ -629,8 +628,8 @@ class image : public codeRange, public InstructionSource {
    //  it may sometimes be necessary to do a linear sort
    //  through excludedMods if searching for a module which
    //  was excluded....
-   hash_map <string, pdmodule *> modsByFileName;
-   hash_map <string, pdmodule*> modsByFullName;
+   dyn_hash_map <string, pdmodule *> modsByFileName;
+   dyn_hash_map <string, pdmodule*> modsByFullName;
 
    dictionary_hash<Address, std::string> *pltFuncs;
 

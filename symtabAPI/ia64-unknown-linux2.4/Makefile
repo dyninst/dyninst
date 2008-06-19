@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2008/05/27 20:44:51 giri Exp $
+# $Id: Makefile,v 1.9 2008/06/19 19:54:03 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -39,7 +39,7 @@ TFLAGS		+= $(MYFLAGS)
 
 SYSLIBS		= -ldl
 
-LIBS		= -L$(LIBDWARF_LIB) -L$(LIBELF_LIB) -R$(LIBDWARF_LIB):$(LIBELF_LIB)
+LIBS		= -L$(LIBDWARF_LIB) -L$(LIBELF_LIB) 
 ifdef LIBDWARFSTATIC
 LIBS    += -Wl,-Bstatic -ldwarf -Wl,-Bdynamic
 else

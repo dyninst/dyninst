@@ -46,7 +46,7 @@
 #ifdef sparc_sun_solaris2_4
 
 #include <string.h>
-#include <fstream.h>
+#include <fstream>
 #include <limits.h>
 #include <unistd.h>
 #include <sys/types.h>

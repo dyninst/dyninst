@@ -58,12 +58,21 @@ class Elf_X_Dyn {
    }
 
    // Read Interface
-   signed long d_tag(int i) const { return (!is64 ? dyn32[i].d_tag
-                                            : dyn64[i].d_tag); }
-   unsigned long d_val(int i) const { return (!is64 ? dyn32[i].d_un.d_val
-                                              : dyn64[i].d_un.d_val); }
-   unsigned long d_ptr(int i) const { return (!is64 ? dyn32[i].d_un.d_ptr
-                                              : dyn64[i].d_un.d_ptr); }
+      signed long d_tag(int i) const { 
+         return (!is64 ? 
+                 static_cast<signed long>(dyn32[i].d_tag) :
+                 static_cast<signed long>(dyn64[i].d_tag)); 
+      }
+      unsigned long d_val(int i) const { 
+         return (!is64 ? 
+                 static_cast<unsigned long>(dyn32[i].d_un.d_val) :
+                 static_cast<unsigned long>(dyn64[i].d_un.d_val)); 
+      }
+      unsigned long d_ptr(int i) const { 
+         return (!is64 ? 
+                 static_cast<unsigned long>(dyn32[i].d_un.d_ptr) :
+                 static_cast<unsigned long>(dyn64[i].d_un.d_ptr)); 
+      }
    
    // Write Interface
    void d_tag(int i, signed long input) { if (!is64) dyn32[i].d_tag = input;
@@ -140,33 +149,63 @@ class Elf_64_RegInfo : public Elf_X_RegInfo {
 // Class Elf_X_Rel simulates the Elf(32|64)_Rel structure.
 class Elf_X_Rel {
   public:
-    Elf_X_Rel()
-	: data(NULL), rel32(NULL), rel64(NULL), is64(false) { }
+   Elf_X_Rel() : 
+      data(NULL), 
+      rel32(NULL), 
+      rel64(NULL), 
+      is64(false) 
+   { }
 
-    Elf_X_Rel(bool is64_, Elf_Data *input)
-	: data(input), rel32(NULL), rel64(NULL), is64(is64_) {
-
-	if (input) {
-	    if (!is64) rel32 = (Elf32_Rel *)data->d_buf;
-	    else       rel64 = (Elf64_Rel *)data->d_buf;
-	}
-    }
+   Elf_X_Rel(bool is64_, Elf_Data *input)	: 
+      data(input), 
+      rel32(NULL), 
+      rel64(NULL), 
+      is64(is64_) 
+   {
+      if (input) {
+         if (!is64) 
+            rel32 = (Elf32_Rel *)data->d_buf;
+         else       
+            rel64 = (Elf64_Rel *)data->d_buf;
+      }
+   }
 
     // Read Interface
-    unsigned long r_offset(int i) const { return (!is64 ? rel32[i].r_offset
-							: rel64[i].r_offset); }
-    unsigned long r_info(int i) const { return (!is64 ? rel32[i].r_info
-						      : rel64[i].r_info); }
-    unsigned long R_SYM(int i) const { return (!is64 ? ELF32_R_SYM( rel32[i].r_info )
-						     : ELF64_R_SYM( rel64[i].r_info ) ); }
-    unsigned long R_TYPE(int i) const { return (!is64 ? ELF32_R_TYPE( rel32[i].r_info )
-						      : ELF64_R_TYPE( rel64[i].r_info ) ); };
+    unsigned long r_offset(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(rel32[i].r_offset) :
+               static_cast<unsigned long>(rel64[i].r_offset)); 
+    }
+    unsigned long r_info(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(rel32[i].r_info) :
+               static_cast<unsigned long>(rel64[i].r_info)); 
+    }
+    unsigned long R_SYM(int i) const { 
+       return (!is64 ?
+               static_cast<unsigned long>(ELF32_R_SYM(rel32[i].r_info)) :
+               static_cast<unsigned long>(ELF64_R_SYM( rel64[i].r_info))); 
+    }
+    unsigned long R_TYPE(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(ELF32_R_TYPE(rel32[i].r_info)) :
+               static_cast<unsigned long>(ELF64_R_TYPE( rel64[i].r_info))); 
+    };
 
     // Write Interface
-    void r_offset(int i, unsigned long input) { if (!is64) rel32[i].r_offset = input;
-						else       rel64[i].r_offset = input; }
-    void r_info(int i, unsigned long input) { if (!is64) rel32[i].r_info = input;
-					      else       rel64[i].r_info = input; }
+    void r_offset(int i, unsigned long input) { 
+       if (!is64) 
+          rel32[i].r_offset = input;
+       else       
+          rel64[i].r_offset = input; 
+    }
+
+    void r_info(int i, unsigned long input) { 
+       if (!is64) 
+          rel32[i].r_info = input;
+       else       
+          rel64[i].r_info = input; 
+    }
 
     // Meta-Info Interface
     unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Rel)
@@ -182,43 +221,82 @@ class Elf_X_Rel {
 
 // ------------------------------------------------------------------------
 // Class Elf_X_Rela simulates the Elf(32|64)_Rela structure.
-class Elf_X_Rela {
-  public:
-    Elf_X_Rela()
-	: data(NULL), rela32(NULL), rela64(NULL), is64(false) { }
+ class Elf_X_Rela {
+ public:
+   Elf_X_Rela() :
+      data(NULL), 
+      rela32(NULL), 
+      rela64(NULL), 
+      is64(false) 
+      { }
 
-    Elf_X_Rela(bool is64_, Elf_Data *input)
-	: data(input), rela32(NULL), rela64(NULL), is64(is64_) {
-
-	if (input) {
-	    if (!is64) rela32 = (Elf32_Rela *)data->d_buf;
-	    else       rela64 = (Elf64_Rela *)data->d_buf;
-	}
-    }
+   Elf_X_Rela(bool is64_, Elf_Data *input) : 
+      data(input), 
+      rela32(NULL), 
+      rela64(NULL), 
+      is64(is64_) 
+   {
+      if (input) {
+         if (!is64) 
+            rela32 = (Elf32_Rela *)data->d_buf;
+         else       
+            rela64 = (Elf64_Rela *)data->d_buf;
+      }
+   }
 
     // Read Interface
-    unsigned long r_offset(int i) const { return (!is64 ? rela32[i].r_offset
-							: rela64[i].r_offset); }
-    unsigned long r_info(int i) const { return (!is64 ? rela32[i].r_info
-						      : rela64[i].r_info); }
-    signed long r_addend(int i) const { return (!is64 ? rela32[i].r_addend
-						      : rela64[i].r_addend); }
-    unsigned long R_SYM(int i) const { return (!is64 ? ELF32_R_SYM( rela32[i].r_info )
-						     : ELF64_R_SYM( rela64[i].r_info ) ); }
-    unsigned long R_TYPE(int i) const { return (!is64 ? ELF32_R_TYPE( rela32[i].r_info )
-						      : ELF64_R_TYPE( rela64[i].r_info ) ); };
+   unsigned long r_offset(int i) const { 
+      return (!is64 ? 
+              static_cast<unsigned long>(rela32[i].r_offset) :
+              static_cast<unsigned long>(rela64[i].r_offset)); 
+   }
+   unsigned long r_info(int i) const { 
+      return (!is64 ? 
+              static_cast<unsigned long>(rela32[i].r_info) :
+              static_cast<unsigned long>(rela64[i].r_info));
+   }
+   
+   signed long r_addend(int i) const { 
+      return (!is64 ? 
+              static_cast<signed long>(rela32[i].r_addend) :
+              static_cast<signed long>(rela64[i].r_addend));
+   }
+   unsigned long R_SYM(int i) const { 
+      return (!is64 ? 
+              static_cast<unsigned long>(ELF32_R_SYM(rela32[i].r_info)) :
+              static_cast<unsigned long>(ELF64_R_SYM(rela64[i].r_info))); 
+   }
+   unsigned long R_TYPE(int i) const { 
+      return (!is64 ? 
+              static_cast<unsigned long>(ELF32_R_TYPE(rela32[i].r_info)) :
+              static_cast<unsigned long>(ELF64_R_TYPE(rela64[i].r_info))); 
+              };
 
     // Write Interface
-    void r_offset(int i, unsigned long input) { if (!is64) rela32[i].r_offset = input;
-						else       rela64[i].r_offset = input; }
-    void r_info(int i, unsigned long input) { if (!is64) rela32[i].r_info = input;
-					      else       rela64[i].r_info = input; }
-    void r_addend(int i, signed long input) { if (!is64) rela32[i].r_addend = input;
-					      else       rela64[i].r_addend = input; }
+    void r_offset(int i, unsigned long input) { 
+       if (!is64) 
+          rela32[i].r_offset = input;
+       else       
+          rela64[i].r_offset = input; 
+    }
+    void r_info(int i, unsigned long input) { 
+       if (!is64) 
+          rela32[i].r_info = input;
+       else       
+          rela64[i].r_info = input; 
+    }
+    void r_addend(int i, signed long input) { 
+       if (!is64) 
+          rela32[i].r_addend = input;
+       else       
+          rela64[i].r_addend = input; 
+    }
 
     // Meta-Info Interface
-    unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Rela)
-								: sizeof(Elf64_Rela))); }
+    unsigned long count() const { return (data->d_size / 
+                                          (!is64 ? sizeof(Elf32_Rela) :
+                                           sizeof(Elf64_Rela))); 
+    }
     bool isValid() const { return (rela32 || rela64); }
 
   protected:
@@ -232,49 +310,92 @@ class Elf_X_Rela {
 // Class Elf_X_Sym simulates the Elf(32|64)_Sym structure.
 class Elf_X_Sym {
   public:
-    Elf_X_Sym()
-	: data(NULL), sym32(NULL), sym64(NULL), is64(false) { }
+   Elf_X_Sym() : 
+      data(NULL), 
+      sym32(NULL), 
+      sym64(NULL), 
+      is64(false) 
+   { }
 
-    Elf_X_Sym(bool is64_, Elf_Data *input)
-	: data(input), sym32(NULL), sym64(NULL), is64(is64_) {
-
-	if (input) {
-	    if (!is64) sym32 = (Elf32_Sym *)data->d_buf;
-	    else       sym64 = (Elf64_Sym *)data->d_buf;
-	}
-    }
+   Elf_X_Sym(bool is64_, Elf_Data *input) :
+      data(input), 
+      sym32(NULL), 
+      sym64(NULL), 
+      is64(is64_) 
+   {
+      if (input) {
+         if (!is64) sym32 = (Elf32_Sym *)data->d_buf;
+         else       sym64 = (Elf64_Sym *)data->d_buf;
+      }
+   }
 
     // Read Interface
-    unsigned long st_name(int i) const { return (!is64 ? sym32[i].st_name
-						       : sym64[i].st_name); }
-    unsigned long st_value(int i) const { return (!is64 ? sym32[i].st_value
-							: sym64[i].st_value); }
-    unsigned long st_size(int i) const { return (!is64 ? sym32[i].st_size
-						       : sym64[i].st_size); }
-    unsigned char st_info(int i) const { return (!is64 ? sym32[i].st_info
-						       : sym64[i].st_info); }
-    unsigned char st_other(int i) const { return (!is64 ? sym32[i].st_other
-							: sym64[i].st_other); }
-    unsigned short st_shndx(int i) const { return (!is64 ? sym32[i].st_shndx
-							 : sym64[i].st_shndx); }
-    unsigned char ST_BIND(int i) const { return (!is64 ? ELF32_ST_BIND( sym32[i].st_info )
-						       : ELF64_ST_BIND( sym64[i].st_info )); }
-    unsigned char ST_TYPE(int i) const { return (!is64 ? ELF32_ST_TYPE( sym32[i].st_info )
-						       : ELF64_ST_TYPE( sym64[i].st_info )); }
+    unsigned long st_name(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(sym32[i].st_name) :
+               static_cast<unsigned long>(sym64[i].st_name));
+    }
+    unsigned long st_value(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(sym32[i].st_value) :
+               static_cast<unsigned long>(sym64[i].st_value)); 
+    }
+    unsigned long st_size(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(sym32[i].st_size) :
+               static_cast<unsigned long>(sym64[i].st_size));
+    }
+    unsigned char st_info(int i) const { 
+       return (!is64 ? 
+               sym32[i].st_info :
+               sym64[i].st_info); 
+    }
+    unsigned char st_other(int i) const { 
+       return (!is64 ? 
+               sym32[i].st_other :
+               sym64[i].st_other); 
+    }
+    unsigned short st_shndx(int i) const { 
+       return (!is64 ? 
+               sym32[i].st_shndx :
+               sym64[i].st_shndx); 
+    }
+    unsigned char ST_BIND(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned char>(ELF32_ST_BIND(sym32[i].st_info)) :
+               static_cast<unsigned char>(ELF64_ST_BIND(sym64[i].st_info))); 
+    }
+    unsigned char ST_TYPE(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned char>(ELF32_ST_TYPE(sym32[i].st_info)) :
+               static_cast<unsigned char>(ELF64_ST_TYPE(sym64[i].st_info))); 
+    }
 
     // Write Interface
-    void st_name(int i, unsigned long input) { if (!is64) sym32[i].st_name = input;
-					       else       sym64[i].st_name = input; }
-    void st_value(int i, unsigned long input) { if (!is64) sym32[i].st_value = input;
-						else       sym64[i].st_value = input; }
-    void st_size(int i, unsigned long input) { if (!is64) sym32[i].st_size = input;
-					       else       sym64[i].st_size = input; }
-    void st_info(int i, unsigned char input) { if (!is64) sym32[i].st_info = input;
-					       else       sym64[i].st_info = input; }
-    void st_other(int i, unsigned char input) { if (!is64) sym32[i].st_other = input;
-						else       sym64[i].st_other = input; }
-    void st_shndx(int i, unsigned short input) { if (!is64) sym32[i].st_shndx = input;
-						 else       sym64[i].st_shndx = input; }
+    void st_name(int i, unsigned long input) { 
+       if (!is64) sym32[i].st_name = input;
+       else       sym64[i].st_name = input; 
+    }
+    void st_value(int i, unsigned long input) { 
+       if (!is64) sym32[i].st_value = input;
+       else       sym64[i].st_value = input; 
+    }
+    void st_size(int i, unsigned long input) { 
+       if (!is64) sym32[i].st_size = input;
+       else       sym64[i].st_size = input; 
+    }
+    void st_info(int i, unsigned char input) { 
+       if (!is64) sym32[i].st_info = input;
+       else       sym64[i].st_info = input; 
+    }
+    void st_other(int i, unsigned char input) { 
+       if (!is64) sym32[i].st_other = input;
+       else       sym64[i].st_other = input; 
+    }
+    void st_shndx(int i, unsigned short input) { 
+       if (!is64) sym32[i].st_shndx = input;
+       else       sym64[i].st_shndx = input; 
+    }
 
     // Meta-Info Interface
     unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Sym)
@@ -603,26 +724,56 @@ class Elf_X_Shdr {
     }
 
     // Read Interface
-    unsigned long sh_name() const { return (!is64 ? shdr32->sh_name
-						  : shdr64->sh_name); }
-    unsigned long sh_type() const { return (!is64 ? shdr32->sh_type
-						  : shdr64->sh_type); }
-    unsigned long sh_flags() const { return (!is64 ? shdr32->sh_flags
-						   : shdr64->sh_flags); }
-    unsigned long sh_addr() const { return (!is64 ? shdr32->sh_addr
-						  : shdr64->sh_addr); }
-    unsigned long sh_offset() const { return (!is64 ? shdr32->sh_offset
-						    : shdr64->sh_offset); }
-    unsigned long sh_size() const { return (!is64 ? shdr32->sh_size
-						  : shdr64->sh_size); }
-    unsigned long sh_link() const { return (!is64 ? shdr32->sh_link
-						  : shdr64->sh_link); }
-    unsigned long sh_info() const { return (!is64 ? shdr32->sh_info
-						  : shdr64->sh_info); }
-    unsigned long sh_addralign() const { return (!is64 ? shdr32->sh_addralign
-						       : shdr64->sh_addralign); }
-    unsigned long sh_entsize() const { return (!is64 ? shdr32->sh_entsize
-						     : shdr64->sh_entsize); }
+    unsigned long sh_name() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_name) :
+               static_cast<unsigned long>(shdr64->sh_name)); 
+    }
+    unsigned long sh_type() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_type) :
+               static_cast<unsigned long>(shdr64->sh_type)); 
+    }
+    unsigned long sh_flags() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_flags) :
+               static_cast<unsigned long>(shdr64->sh_flags)); 
+    }
+    unsigned long sh_addr() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_addr) :
+               static_cast<unsigned long>(shdr64->sh_addr)); 
+    }
+    unsigned long sh_offset() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_offset) :
+               static_cast<unsigned long>(shdr64->sh_offset)); 
+    }
+    unsigned long sh_size() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_size) :
+               static_cast<unsigned long>(shdr64->sh_size)); 
+    }
+    unsigned long sh_link() const { 
+       return (!is64 ? 
+               shdr32->sh_link :
+               shdr64->sh_link); 
+    }
+    unsigned long sh_info() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_info) :
+               static_cast<unsigned long>(shdr64->sh_info)); 
+    }
+    unsigned long sh_addralign() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_addralign) :
+               static_cast<unsigned long>(shdr64->sh_addralign)); 
+    }
+    unsigned long sh_entsize() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_entsize) :
+               static_cast<unsigned long>(shdr64->sh_entsize)); 
+    }
 
     // Write Interface
     void sh_name(unsigned long input) { if (!is64) shdr32->sh_name = input;
@@ -684,22 +835,46 @@ class Elf_X_Phdr {
     }
 
     // Read Interface
-    unsigned long p_type() const { return (!is64 ? phdr32->p_type
-						 : phdr64->p_type); }
-    unsigned long p_offset() const { return (!is64 ? phdr32->p_offset
-						   : phdr64->p_offset); }
-    unsigned long p_vaddr() const { return (!is64 ? phdr32->p_vaddr
-						  : phdr64->p_vaddr); }
-    unsigned long p_paddr() const { return (!is64 ? phdr32->p_paddr
-						  : phdr64->p_paddr); }
-    unsigned long p_filesz() const { return (!is64 ? phdr32->p_filesz
-						   : phdr64->p_filesz); }
-    unsigned long p_memsz() const { return (!is64 ? phdr32->p_memsz
-						  : phdr64->p_memsz); }
-    unsigned long p_flags() const { return (!is64 ? phdr32->p_flags
-						  : phdr64->p_flags); }
-    unsigned long p_align() const { return (!is64 ? phdr32->p_align
-						  : phdr64->p_align); }
+    unsigned long p_type() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_type) :
+               static_cast<unsigned long>(phdr64->p_type)); 
+    }
+    unsigned long p_offset() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_offset) :
+               static_cast<unsigned long>(phdr64->p_offset)); 
+    }
+    unsigned long p_vaddr() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_vaddr) :
+               static_cast<unsigned long>(phdr64->p_vaddr)); 
+    }
+    unsigned long p_paddr() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_paddr) :
+               static_cast<unsigned long>(phdr64->p_paddr)); 
+    }
+    unsigned long p_filesz() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_filesz) :
+               static_cast<unsigned long>(phdr64->p_filesz)); 
+    }
+    unsigned long p_memsz() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_memsz) :
+               static_cast<unsigned long>(phdr64->p_memsz)); 
+    }
+    unsigned long p_flags() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_flags) :
+               static_cast<unsigned long>(phdr64->p_flags)); 
+    }
+    unsigned long p_align() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(phdr32->p_align) :
+               static_cast<unsigned long>(phdr64->p_align)); 
+    }
 
     // Write Interface
     void p_type(unsigned long input) { if (!is64) phdr32->p_type = input;
@@ -805,34 +980,76 @@ class Elf_X {
 
     // Read Interface
     Elf *e_elfp() const { return elf; }
-    unsigned char *e_ident() const { return (!is64 ? ehdr32->e_ident
-						   : ehdr64->e_ident); }
-    unsigned short e_type() const { return (!is64 ? ehdr32->e_type
-						  : ehdr64->e_type); }
-    unsigned short e_machine() const { return (!is64 ? ehdr32->e_machine
-						     : ehdr64->e_machine); }
-    unsigned long e_version() const { return (!is64 ? ehdr32->e_version
-						    : ehdr64->e_version); }
-    unsigned long e_entry() const { return (!is64 ? ehdr32->e_entry
-						  : ehdr64->e_entry); }
-    unsigned long e_phoff() const { return (!is64 ? ehdr32->e_phoff
-						  : ehdr64->e_phoff); }
-    unsigned long e_shoff() const { return (!is64 ? ehdr32->e_shoff
-						  : ehdr64->e_shoff); }
-    unsigned long e_flags() const { return (!is64 ? ehdr32->e_flags
-						  : ehdr64->e_flags); }
-    unsigned short e_ehsize() const { return (!is64 ? ehdr32->e_ehsize
-						    : ehdr64->e_ehsize); }
-    unsigned short e_phentsize() const { return (!is64 ? ehdr32->e_phentsize
-						       : ehdr64->e_phentsize); }
-    unsigned short e_phnum() const { return (!is64 ? ehdr32->e_phnum
-						   : ehdr64->e_phnum); }
-    unsigned short e_shentsize() const { return (!is64 ? ehdr32->e_shentsize
-						       : ehdr64->e_shentsize); }
-    unsigned short e_shnum() const { return (!is64 ? ehdr32->e_shnum
-						   : ehdr64->e_shnum); }
-    unsigned short e_shstrndx() const { return (!is64 ? ehdr32->e_shstrndx
-						      : ehdr64->e_shstrndx); }
+    unsigned char *e_ident() const { 
+       return (!is64 ? 
+               static_cast<unsigned char*>(ehdr32->e_ident) :
+               static_cast<unsigned char*>(ehdr64->e_ident)); 
+    }
+    unsigned short e_type() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_type) :
+               static_cast<unsigned short>(ehdr64->e_type)); 
+    }
+    unsigned short e_machine() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_machine) :
+               static_cast<unsigned short>(ehdr64->e_machine)); 
+    }
+    unsigned long e_version() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(ehdr32->e_version) :
+               static_cast<unsigned long>(ehdr64->e_version)); 
+    }
+    unsigned long e_entry() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(ehdr32->e_entry) :
+               static_cast<unsigned long>(ehdr64->e_entry)); 
+    }
+    unsigned long e_phoff() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(ehdr32->e_phoff) :
+               static_cast<unsigned long>(ehdr64->e_phoff)); 
+    }
+    unsigned long e_shoff() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(ehdr32->e_shoff) :
+               static_cast<unsigned long>(ehdr64->e_shoff)); 
+    }
+    unsigned long e_flags() const { 
+       return (!is64 ? 
+               static_cast<unsigned long>(ehdr32->e_flags) :
+               static_cast<unsigned long>(ehdr64->e_flags)); 
+    }
+    unsigned short e_ehsize() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_ehsize) :
+               static_cast<unsigned short>(ehdr64->e_ehsize)); 
+    }
+    unsigned short e_phentsize() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_phentsize) :
+               static_cast<unsigned short>(ehdr64->e_phentsize)); 
+    }
+    unsigned short e_phnum() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_phnum) :
+               static_cast<unsigned short>(ehdr64->e_phnum)); 
+    }
+    unsigned short e_shentsize() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_shentsize) :
+               static_cast<unsigned short>(ehdr64->e_shentsize)); 
+    }
+    unsigned short e_shnum() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_shnum) :
+               static_cast<unsigned short>(ehdr64->e_shnum)); 
+    }
+    unsigned short e_shstrndx() const { 
+       return (!is64 ? 
+               static_cast<unsigned short>(ehdr32->e_shstrndx) :
+               static_cast<unsigned short>(ehdr64->e_shstrndx)); 
+    }
 
     Elf_X *e_next(Elf_X *ref) {
         if(!isArchive)

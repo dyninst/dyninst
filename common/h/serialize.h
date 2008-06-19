@@ -65,8 +65,15 @@ DLLEXPORT bool &serializer_debug_flag();
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
 //  to the next (hopefully top-level) exception handler.
 
-#define SER_ERR(cmsg) if (serializer_debug_flag()) assert (0 && cmsg); \
-                      else throw SerializerError(FILE__, __LINE__, std::string(cmsg))
+#define SER_ERR(cmsg) \
+   do { \
+      if (serializer_debug_flag()) { \
+        fprintf(stderr, "%s", cmsg); \
+        assert (0); \
+      } else { \
+        throw SerializerError(FILE__, __LINE__, std::string(cmsg)); \
+      } \
+   } while (0)
 
 //  SER_CATCH("string") is mostly for debugging...  it is just a default catch-block
 //  that prints out a message and then throws another exception.  The idea is that,

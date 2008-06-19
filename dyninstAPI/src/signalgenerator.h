@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.20 2008/05/08 21:52:30 legendre Exp $
+/* $Id: signalgenerator.h,v 1.21 2008/06/19 19:53:43 legendre Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -58,7 +58,7 @@ class fileDescriptor;
 // Various "do we want this to stop or run" requests; tri-state
 // so that we can have "unset" as well as stop/run.
 typedef enum { unsetRequest, stopRequest, runRequest, ignoreRequest } processRunState_t;
-char *processRunStateStr(processRunState_t);
+const char *processRunStateStr(processRunState_t);
 
 class SignalGeneratorCommon : public EventHandler<EventRecord> {
  friend class process;

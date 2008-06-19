@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.35 2008/02/23 02:09:05 jaw Exp $
+// $Id: image-func.h,v 1.36 2008/06/19 19:53:19 legendre Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -122,7 +122,7 @@ class image_edge {
 
    void breakEdge();
 
-   char * getTypeString();
+   const char * getTypeString();
 
  private:
    image_basicBlock *source_;

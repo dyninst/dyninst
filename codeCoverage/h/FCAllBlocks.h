@@ -44,6 +44,7 @@
 
 #include <FunctionCoverage.h>
 
+using namespace std;
 /** class to represent a function in the executable
   * whose source code line information is available.
   * This class is instroduced for all basic block

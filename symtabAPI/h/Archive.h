@@ -39,7 +39,6 @@
 #include <assert.h>
 #include <vector>
 #include <string>
-#include <ext/hash_map>
  
 using namespace std;
 using namespace __gnu_cxx; 
@@ -79,8 +78,8 @@ class Archive{
         //For ELF the elf pointer for the archive
         //NONE as of now for xcoff
     void *basePtr;
-	hash_map <std::string, Symtab *> membersByName;
-    hash_map <std::string, Offset> memberToOffsetMapping;
+	dyn_hash_map <std::string, Symtab *> membersByName;
+    dyn_hash_map <std::string, Offset> memberToOffsetMapping;
 
 	// A vector of all Archive. Used to avoid duplicating
    // a Archive that already exists.

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.26 2008/05/27 20:44:45 giri Exp $
+// $Id: Object-xcoff.C,v 1.27 2008/06/19 19:54:16 legendre Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -712,7 +712,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    std::string name;
    unsigned long value;
    unsigned secno;
-   unsigned textSecNo, dataSecNo , loaderSecNo;
+   unsigned textSecNo = 0, dataSecNo = 0, loaderSecNo = 0;
    union auxent *aux = NULL;
    struct filehdr hdr;
    struct aouthdr aout;
@@ -1542,7 +1542,7 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), Offset offset, b
    load_object(alloc_syms); 
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std::vector<Region *> &, void (*err_func)(const char *), Offset offset) :
+Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li, std::vector<Region *> &, void (*err_func)(const char *), Offset offset) :
    AObject(mf_, err_func), offset_(offset)
 {    
    loadNativeDemangler();
@@ -1635,7 +1635,7 @@ bool parseCompilerType(Object *objPtr)
     for (int i=0;i<stab_nsyms;i++) {
         SYMENT *sym = (SYMENT *) (((char *) syms) + i * SYMESZ);
         char tempName[15];
-        char *compilerName;
+        char *compilerName = NULL;
 
         std::string name;
         if (sym->n_sclass == C_FILE) {
@@ -1694,7 +1694,7 @@ bool parseCompilerType(Object *objPtr)
 }
 
 // Moved to here from Dyn_Symtab.C
-void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *)
+void Object::getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *)
 {
 }
 
@@ -1721,7 +1721,7 @@ bool AObject::getSegments(vector<Segment> &/*segs*/) const
 /* FIXME: hack. */
 Offset trueBaseAddress = 0;
 
-void Object::parseFileLineInfo(hash_map<std::string, LineInformation> &li)
+void Object::parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li)
 {
     static set<std::string> haveParsedFileMap;
 
@@ -1860,7 +1860,7 @@ void Object::parseFileLineInfo(hash_map<std::string, LineInformation> &li)
     haveParsedFileMap.insert(mf->pathname());
 } /* end parseFileLineInfo() */
 
-void Object::parseLineInformation(hash_map<std::string,  LineInformation> &lineInfo_, std::string * currentSourceFile,
+void Object::parseLineInformation(dyn_hash_map<std::string,  LineInformation> &lineInfo_, std::string * currentSourceFile,
       char * symbolName,
       SYMENT * sym,
       Offset linesfdptr,

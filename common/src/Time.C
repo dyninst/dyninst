@@ -433,7 +433,7 @@ ostream& operator<<(ostream&s, relTimeStamp z) {
 }
 
 // timeLength / timeLength = double
-const double operator/(const timeLength a, const timeLength b) {
+double operator/(const timeLength a, const timeLength b) {
   assert(a.isInitialized() && b.isInitialized());
   return static_cast<double>(a.get_ns()) / static_cast<double>(b.get_ns());
 }
@@ -558,12 +558,12 @@ const timeLength operator-=(timeLength &t, timeLength tl) {
 // timeLength *=, /= double
 const timeLength operator*=(timeLength &t, double d) {
   assert(t.isInitialized());
-  t.assign(static_cast<int64_t>(t.get_ns() * d));
+  t.assign(static_cast<int64_t>(static_cast<double>(t.get_ns()) * d));
   return t;
 }
 const timeLength operator/=(timeLength &t, double d) {
   assert(t.isInitialized());
-  t.assign(static_cast<int64_t>(t.get_ns() / d));
+  t.assign(static_cast<int64_t>(static_cast<double>(t.get_ns()) / d));
   return t;
 }
 
@@ -609,21 +609,21 @@ const timeLength operator-(const timeLength a, const timeLength b) {
 // timeLength */ double = timeLength
 const timeLength operator*(const timeLength a, const double b) {
   assert(a.isInitialized());
-  return timeLength(static_cast<int64_t>(a.get_ns() * b));
+  return timeLength(static_cast<int64_t>(static_cast<double>(a.get_ns()) * b));
 }
 const timeLength operator/(const timeLength a, const double b) {
   assert(a.isInitialized());
-  return timeLength(static_cast<int64_t>(a.get_ns() / b));
+  return timeLength(static_cast<int64_t>(static_cast<double>(a.get_ns()) / b));
 }
 
 // double */ timeLength = timeLength
 const timeLength operator*(const double a, const timeLength b) {
   assert(b.isInitialized());
-  return timeLength(static_cast<int64_t>(a * b.get_ns()));
+  return timeLength(static_cast<int64_t>(a * static_cast<double>(b.get_ns())));
 }
 const timeLength operator/(const double a, const timeLength b) {
   assert(b.isInitialized());
-  return timeLength(static_cast<int64_t>(a / b.get_ns()));
+  return timeLength(static_cast<int64_t>(a / static_cast<double>(b.get_ns())));
 }
 
 // Be careful if writing * operators because Time is based at nanosecond
@@ -865,7 +865,7 @@ int64_t timeBase::cvtTo_bStd(int64_t ns) const {
 
 double  timeBase::cvtFrom_bStd(double ns) const {
   // eg. 1994, bStd -> b1970:  -6 yrs + 30 yrs = 24 yrs
-  return ns + ns2StdBaseMark;
+   return ns + static_cast<double>(ns2StdBaseMark);
 }
 
 int64_t timeBase::cvtFrom_bStd(int64_t ns) const {

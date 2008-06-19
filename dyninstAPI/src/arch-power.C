@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.27 2008/04/11 23:30:09 legendre Exp $
+ * $Id: arch-power.C,v 1.28 2008/06/19 19:53:06 legendre Exp $
  */
 
 #include "common/h/Types.h"
@@ -719,7 +719,7 @@ unsigned instruction::spaceToRelocate() const {
 }
 
 bool instruction::generate(codeGen &gen,
-                           AddressSpace *proc,
+                           AddressSpace * /*proc*/,
                            Address origAddr,
                            Address relocAddr,
                            patchTarget *fallthroughOverride,

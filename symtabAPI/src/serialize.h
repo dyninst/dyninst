@@ -66,7 +66,7 @@ class SymtabTranslatorBase {
 
       iomode_t iomode() {return getSD().iomode();}
 
-      virtual void annotation_start(const char *string_id, const char *tag = NULL) {}
+      virtual void annotation_start(const char * /*string_id*/, const char * /*tag*/ = NULL) {}
       virtual void annotation_end() {}
    protected:
       Symtab *parent_symtab;
@@ -95,12 +95,12 @@ class SymtabTranslatorBase {
       SymtabTranslatorBase(Symtab *parent_symtab_) :
          parent_symtab(parent_symtab_)
       {}
-      SymtabTranslatorBase(Symtab *parent_symtab_, bool doingInputFlag) :
+         SymtabTranslatorBase(Symtab *parent_symtab_, bool /*doingInputFlag*/) :
          parent_symtab(parent_symtab_)
       {}
       virtual ~SymtabTranslatorBase() {}
 
-      virtual bool translate_annotation(void *anno, const char *name) 
+      virtual bool translate_annotation(void * /*anno*/, const char * /*name*/) 
       {
 #if 0
          annotation_start(name);

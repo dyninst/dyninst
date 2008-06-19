@@ -200,7 +200,7 @@ typeRef *Type::getRefType(){
     return dynamic_cast<typeRef *>(this);
 }
 
-bool Type::isCompatible(Type * oType){
+bool Type::isCompatible(Type * /*oType*/){
    return true;
 }
 
@@ -226,10 +226,9 @@ typeEnum *typeEnum::create(std::string &name, std::vector< std::pair<std::string
    	typ->addConstant(constants[i]->first, constants[i]->second);
     
     if(obj)
-	obj->addType(typ);
-    else;
-    	//obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-	//Symtab::noObjTypes->push_back(typ); ??
+       obj->addType(typ);
+    //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+    //Symtab::noObjTypes->push_back(typ); ??
     return typ;	
 }
 
@@ -239,10 +238,9 @@ typeEnum *typeEnum::create(std::string &name, std::vector<std::string> &constNam
    for(unsigned i=0; i<constNames.size();i++)
    	typ->addConstant(constNames[i], i);
     if(obj)
-	obj->addType(typ);
-    else;
-    	//obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-	//Symtab::noObjTypes->push_back(typ); ??
+       obj->addType(typ);
+    //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+    //Symtab::noObjTypes->push_back(typ); ??
     return typ;	
 }	
 
@@ -319,9 +317,8 @@ typePointer *typePointer::create(std::string &name, Type *ptr, Symtab *obj)
 
    if(obj)
    	obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -335,9 +332,8 @@ typePointer *typePointer::create(std::string &name, Type *ptr, int size, Symtab 
 
    if(obj)
    	obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -404,9 +400,8 @@ typeFunction *typeFunction::create(std::string &name, Type *retType, std::vector
 	type->addParam(paramTypes[i]);
     if(obj)
         obj->addType(type);
-    else;
-        //obj->addType(type); TODO: declare a static container if obj is NULL and add to it.
-        //Symtab::noObjTypes->push_back(type); ??
+    //obj->addType(type); TODO: declare a static container if obj is NULL and add to it.
+    //Symtab::noObjTypes->push_back(type); ??
     return type;
 }
 
@@ -516,9 +511,6 @@ typeSubrange *typeSubrange::create(std::string &name, int size, int low, int hi,
 
    if(obj)
        obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
    return typ;
 }
 
@@ -566,9 +558,6 @@ typeArray *typeArray::create(std::string &name, Type *type, int low, int hi, Sym
    
    if(obj)
    	obj->addType(typ);
-   else;
-        //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -691,9 +680,8 @@ typeStruct *typeStruct::create(std::string &name, std::vector< std::pair<std::st
    }
    if(obj)
    	obj->addType(typ);
-   else;
-        //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -705,9 +693,8 @@ typeStruct *typeStruct::create(std::string &name, std::vector<Field *> &flds, Sy
    	typ->addField(flds[i]);
    if(obj)
    	obj->addType(typ);
-   else;
-        //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -827,9 +814,8 @@ typeUnion *typeUnion::create(std::string &name, std::vector< std::pair<std::stri
    	typ->addField(flds[i]->first, flds[i]->second, 0);
    if(obj)
    	obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -841,9 +827,8 @@ typeUnion *typeUnion::create(std::string &name, std::vector<Field *> &flds, Symt
    	typ->addField(flds[i]);
    if(obj)
    	obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -961,9 +946,8 @@ typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj){
    
    if(obj)
    	obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -1123,9 +1107,8 @@ typeTypedef *typeTypedef::create(std::string &name, Type *baseType, Symtab *obj)
 
    if(obj)
    	obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -1196,9 +1179,8 @@ typeRef *typeRef::create(std::string &name, Type *ref, Symtab *obj)
 
    if(obj)
    	obj->addType(typ);
-   else;
-       //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
-       //Symtab::noObjTypes->push_back(typ); ??
+   //obj->addType(typ); TODO: declare a static container if obj is NULL and add to it.
+   //Symtab::noObjTypes->push_back(typ); ??
 				   
    return typ;	
 }
@@ -1278,7 +1260,7 @@ std::vector<Field *> * fieldListType::getComponents() const
 
 std::vector<Field *> *fieldListType::getFields() const 
 {
-   return (std::vector<Field *> *)&fieldList;
+   return const_cast<std::vector<Field *> *>(&fieldList);
 }
 
 void fieldListType::fixupComponents() 

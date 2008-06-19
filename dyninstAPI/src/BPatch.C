@@ -812,7 +812,7 @@ void BPatch::formatErrorString(char *dst, int size,
 	*dst = '\0';
 }
 
-static char *lvl_str(BPatchErrorLevel lvl)
+static const char *lvl_str(BPatchErrorLevel lvl)
 {
   switch(lvl) {
     case BPatchFatal: return "--FATAL--";

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.9 2008/04/11 23:30:21 legendre Exp $
+// $Id: liveness.C,v 1.10 2008/06/19 19:53:29 legendre Exp $
 
 #if defined(cap_liveness)
 
@@ -290,7 +290,7 @@ void instPoint::calcLiveness() {
 
     // We know: 
     //    liveness in at the block level:
-    const bitArray &block_in = block()->llb()->getLivenessIn();
+    block()->llb()->getLivenessIn();
     //    liveness _out_ at the block level:
     const bitArray &block_out = block()->llb()->getLivenessOut();
 

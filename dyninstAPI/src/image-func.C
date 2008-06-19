@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.56 2008/05/08 21:52:23 legendre Exp $
+// $Id: image-func.C,v 1.57 2008/06/19 19:53:18 legendre Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -75,7 +75,7 @@ void image_edge::breakEdge()
     target_->removeSource(this);
 }
 
-char * image_edge::getTypeString()
+const char * image_edge::getTypeString()
 {
     switch(type_) {
         case ET_CALL:
@@ -123,6 +123,9 @@ image_func::image_func(const std::string &symbol,
 		       image *i) :
 //  startOffset_(offset),
 //  symTabSize_(symTabSize),
+#if defined(arch_ia64)
+  usedFPregs(NULL),
+#endif
   endOffset_(0),
   mod_(m),
   image_(i),
@@ -139,9 +142,6 @@ image_func::image_func(const std::string &symbol,
   containsSharedBlocks_(false),
   retStatus_(RS_UNSET),
   isTrap(false),
-#if defined(arch_ia64)
-  usedFPregs(NULL),
-#endif
   instLevel_(NORMAL),
   canBeRelocated_(true),
   needsRelocation_(false),
@@ -178,6 +178,9 @@ image_func::image_func(const std::string &symbol,
 }
 
 image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
+#if defined(arch_ia64)
+  usedFPregs(NULL),
+#endif
   sym_(symbol),
   mod_(m),
   image_(i),
@@ -193,9 +196,6 @@ image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
   containsSharedBlocks_(false),
   retStatus_(RS_UNSET),
   isTrap(false),
-#if defined(arch_ia64)
-  usedFPregs(NULL),
-#endif
   instLevel_(NORMAL),
   canBeRelocated_(true),
   needsRelocation_(false),

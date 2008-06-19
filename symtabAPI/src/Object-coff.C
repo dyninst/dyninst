@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-coff.C,v 1.5 2007/05/30 19:20:45 legendre Exp $
+// $Id: Object-coff.C,v 1.6 2008/06/19 19:54:11 legendre Exp $
 
 #include "common/h/Dictionary.h"
 #include "Object.h"
@@ -713,6 +713,6 @@ Object::Object(const Object& obj)
     load_object(false);
 }
 
-void Dyn_Symtab::getModuleLanguageInfo(hash_map<string, supportedLanguages> *)
+void Dyn_Symtab::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *)
 {
 }

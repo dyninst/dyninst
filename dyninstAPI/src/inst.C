@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.163 2008/02/23 02:09:07 jaw Exp $
+// $Id: inst.C,v 1.164 2008/06/19 19:53:25 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -138,7 +138,6 @@ Address relocatedInstruction::originalTarget() const {
 }
 
 void relocatedInstruction::overrideTarget(patchTarget *newTarget) {
-  static int count = 0;
   targetOverride_ = newTarget;
 }
 

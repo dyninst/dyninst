@@ -619,8 +619,6 @@ void threadExitWrapper(BPatch_process *p, BPatch_thread *t,
 
 bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int lwpid, dynthread_t tid, unsigned long stack_addr, unsigned long start_pc)
 {
-   bool thread_exists = (p->getThread(tid) != NULL);
-
    //Create the new BPatch_thread object
    async_printf("%s[%d]:  before createOrUpdateBPThread: pid = %d, " \
          "start_pc = %p, addr = %p, tid = %lu, index = %d, " \
@@ -733,11 +731,11 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                retval = P_socketRead<BPatch_newThreadEventRecord32>(ev.fd, call_rec_32);
                
                call_rec.ppid=call_rec_32.ppid;
-               call_rec.tid=(void*)call_rec_32.tid;
+               call_rec.tid=(void*)(long)call_rec_32.tid;
                call_rec.lwp=call_rec_32.lwp;
                call_rec.index=call_rec_32.index;
-               call_rec.stack_addr=(void*)call_rec_32.stack_addr;
-               call_rec.start_pc=(void*)call_rec_32.start_pc;
+               call_rec.stack_addr=(void*)(long)call_rec_32.stack_addr;
+               call_rec.start_pc=(void*)(long)call_rec_32.start_pc;
             } else {
                retval = P_socketRead<BPatch_newThreadEventRecord>(ev.fd, call_rec);
             }
@@ -840,8 +838,8 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                      sizeof(BPatch_dynamicCallRecord32));
 #endif
                retval = P_socketRead<BPatch_dynamicCallRecord32>(ev.fd, call_rec_32);
-               call_rec.call_site_addr = (void*)call_rec_32.call_site_addr;
-               call_rec.call_target = (void*)call_rec_32.call_target;
+               call_rec.call_site_addr = (void*)(long)call_rec_32.call_site_addr;
+               call_rec.call_target = (void*)(long)call_rec_32.call_target;
             }else
 #endif
 #if 0
@@ -861,7 +859,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                return false;
             }
 
-            Address callsite_addr = (Address) call_rec.call_site_addr;
             Address func_addr = (Address) call_rec.call_target;
 
             //  find the point that triggered this event

@@ -76,7 +76,7 @@ protected:
 	char* coverageFileName;
 
 	/** output file descriptor */
-	ofstream coverageFile;
+   std::ofstream coverageFile;
 
 	/** the time between intervals in seconds */
 	unsigned short deletionInterval;
@@ -222,11 +222,11 @@ public:
 	/** method that prints the tcl/tk command to create
 	  * global data structure to be used for menu/list creation
 	  */
-	void getTclTkMenuListCreation(ofstream& file);
+	void getTclTkMenuListCreation(std::ofstream& file);
  
 	/** method that retrieves all executed line information
 	  */
-	void getTclTkExecutedLines(ofstream& file);
+	void getTclTkExecutedLines(std::ofstream& file);
 
 	/** method that prints deletions and executed lines to a file
 	  */
@@ -236,7 +236,7 @@ public:
 	void setTclTkSupport(Tcl_Interp* interp,const char* statusBar);
 
 	/** method that prepares the file for menu creation for view only */
-	static int getTclTkMenuListForView(char* fN,ofstream& file);
+	static int getTclTkMenuListForView(char* fN,std::ofstream& file);
 
 	bool getTclStatusUpdateString(char* buffer,int length);
 

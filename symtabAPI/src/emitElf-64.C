@@ -527,7 +527,6 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
     if(dynamicSecData.find(tag) == dynamicSecData.end())
         return;
-    unsigned dtneeded = 1;
     
     switch(dynamicSecData[tag][0]->d_tag){
         case DT_STRSZ:
@@ -1064,7 +1063,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     --dynsymbolNamesLength;
     char *dynstr = (char *)malloc(dynsymbolNamesLength+1);
     cur=0;
-    hash_map<string, unsigned> dynSymNameMapping;
+    dyn_hash_map<string, unsigned> dynSymNameMapping;
     for(i=0;i<dynsymbolStrs.size();i++)
     {
         strcpy(&dynstr[cur],dynsymbolStrs[i].c_str());
@@ -1169,7 +1168,7 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
     unsigned curpos = 0;
     verneednum = 0;
     for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
-        Elf64_Verneed *verneed = (Elf64_Verneed *)(verneedSecData+curpos);
+       Elf64_Verneed *verneed = (Elf64_Verneed *)(void*)(verneedSecData+curpos);
         verneed->vn_version = 1;
         verneed->vn_cnt = it->second.size();
         verneed->vn_file = dynSymbolNamesLength;
@@ -1183,9 +1182,9 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
         if(curpos + verneed->vn_next == verneedSecSize)
             verneed->vn_next = 0;
         verneednum++;
-        unsigned i = 0;
+        int i = 0;
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
-            Elf64_Vernaux *vernaux = (Elf64_Vernaux *)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf64_Vernaux));
+           Elf64_Vernaux *vernaux = (Elf64_Vernaux *)(void*)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf64_Vernaux));
             vernaux->vna_hash = elfHash(iter->first.c_str());
             vernaux->vna_flags = 1;
             vernaux->vna_other = iter->second;
@@ -1207,7 +1206,7 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
     verdefSecData = (char *)malloc(verdefSecSize);
     curpos = 0;
     for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++){
-        Elf64_Verdef *verdef = (Elf64_Verdef *)(verdefSecData+curpos);
+       Elf64_Verdef *verdef = (Elf64_Verdef *)(void*)(verdefSecData+curpos);
         verdef->vd_version = 1;
         verdef->vd_flags = 1;
         verdef->vd_ndx = iter->second;
@@ -1218,9 +1217,9 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
         if(curpos + verdef->vd_next == verdefSecSize)
             verdef->vd_next = 0;
         for(unsigned i = 0; i< verdauxEntries[iter->second].size(); i++){
-            Elf64_Verdaux *verdaux = (Elf64_Verdaux *)(verdefSecData + curpos + verdef->vd_aux + i*sizeof(Elf64_Verdaux));
+           Elf64_Verdaux *verdaux = (Elf64_Verdaux *)(void*)(verdefSecData + curpos + verdef->vd_aux + i*sizeof(Elf64_Verdaux));
             verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
-            if(i == verdef->vd_cnt-1)
+            if((signed) i == verdef->vd_cnt-1)
                 verdaux->vda_next = 0;
             else
                 verdaux->vda_next = sizeof(Elf64_Verdaux);

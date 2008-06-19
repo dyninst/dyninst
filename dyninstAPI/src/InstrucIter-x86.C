@@ -938,7 +938,7 @@ bool InstrucIter::isFPWrite()
 }
 
 #define FPOS 16
-void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs)
+void InstrucIter::readWriteRegisters(int* /*readRegs*/, int* /*writeRegs*/)
 {
   // deprecating this; use getAllRegistersUsedAndDefined instead
   // start with doing nothing, then we'll go around removing it and converting the call sites and stuff

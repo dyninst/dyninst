@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.47 2008/05/29 22:06:56 giri Exp $
+ * $Id: Object-elf.C,v 1.48 2008/06/19 19:54:12 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -584,10 +584,10 @@ bool Object::is_offset_in_plt(Offset offset) const
   return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
 }
 
+#if !defined(os_solaris)
 void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                                                     Elf_X_Shdr *&dynstr_scnp)
 {
-  #if !defined(os_solaris)
     Elf_X_Data data = dyn_scnp->get_data();
     Elf_X_Dyn dyns = data.get_dyn();
     Elf_X_Shdr *rel_scnp;
@@ -605,8 +605,13 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                 break;
         }
     }
-  #endif
 }
+#else
+void Object::parseDynamic(Elf_X_Shdr *&, Elf_X_Shdr *&,
+                          Elf_X_Shdr *&)
+{
+}
+#endif
 
 /* parse relocations for the sections represented by DT_REL/DT_RELA in
  * the dynamic section. This section is the one we would want to emit
@@ -692,7 +697,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	    */
 	    next_plt_entry_addr += (0x10 * 3) + (functionDescriptorCount * 0x10);
 
-	    unsigned long long * bufferPtr = (unsigned long long*)elf_vaddr_to_ptr( next_plt_entry_addr );
+	    unsigned long long * bufferPtr = (unsigned long long*)(void *)const_cast<char *>(elf_vaddr_to_ptr(next_plt_entry_addr));
 	    if( bufferPtr[0] == 0 && bufferPtr[1] == 0 ) { next_plt_entry_addr += 0x10; }
 
 #elif defined(arch_x86) || defined(arch_x86_64)
@@ -1223,8 +1228,14 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 // parse_symbols(): populate "allsymbols"
 // Lazy parsing of dynamic symbol  & string tables
 // Parsing the dynamic symbols lazily would certainly not increase the overhead of the entire parse
-void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, Elf_X_Data &strdata,
-			   bool /*shared*/, string smodule)
+void Object::parse_dynamicSymbols (Elf_X_Shdr *&
+#if !defined(os_solaris)
+                                   dyn_scnp
+#endif 
+                                   , Elf_X_Data &symdata, 
+                                   Elf_X_Data &strdata,
+                                   bool /*shared*/, 
+                                   string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -1608,7 +1619,7 @@ void Object::override_weak_symbols(std::vector<Symbol *> &allsymbols) {
 #if defined(USES_DWARF_DEBUG)
 
 static string find_symbol(string name,
-              hash_map<string, std::vector< Symbol *> > &symbols)
+              dyn_hash_map<string, std::vector< Symbol *> > &symbols)
 {
   string name2;
 
@@ -1634,8 +1645,8 @@ static string find_symbol(string name,
 // same name, inserts sym under a versioned name (,v%d appended to the original
 // name)
 static void insertUniqdSymbol(Symbol *sym,
-                              hash_map<string, std::vector< Symbol *> > *syms,
-                              hash_map<Offset, string > *namesByAddr)
+                              dyn_hash_map<string, std::vector< Symbol *> > *syms,
+                              dyn_hash_map<Offset, string > *namesByAddr)
 {
     Offset symAddr = sym->getAddr();
     const string & symName = sym->getName();
@@ -1715,7 +1726,7 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
-void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, hash_map< string, std::vector< Symbol *> > & symbols, hash_map< Offset, string > & symbolNamesByAddr ) {
+void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, dyn_hash_map< string, std::vector< Symbol *> > & symbols, dyn_hash_map< Offset, string > & symbolNamesByAddr ) {
 	start: Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
@@ -1844,8 +1855,8 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 							assert( status == DW_DLV_OK );
 
 							// bperr( "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
-							if( symbolNamesByAddr.find(lowPC)!=symbolNamesByAddr.end()) {
-								string symName = symbolNamesByAddr[lowPC];
+							if( symbolNamesByAddr.find((Address)lowPC)!=symbolNamesByAddr.end()) {
+								string symName = symbolNamesByAddr[(Address)lowPC];
 								if( symbols.find(symName) != symbols.end() ) {
 									globalSymbol = symName;
 									}
@@ -2032,13 +2043,13 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 
 void fixSymbolsInModuleByRange(string &moduleName,
 			       Dwarf_Addr modLowPC, Dwarf_Addr modHighPC,
-			       hash_map<string, std::vector< Symbol *> > *symbols_)
+			       dyn_hash_map<string, std::vector< Symbol *> > *symbols_)
 {
     string symName;
     std::vector< Symbol *> syms;
     Symbol *sym;
     
-    hash_map< string, std::vector< Symbol *> >::iterator iter = symbols_->begin();
+    dyn_hash_map< string, std::vector< Symbol *> >::iterator iter = symbols_->begin();
     for(;iter!=symbols_->end();iter++)
     {
     	symName = iter->first;
@@ -2480,7 +2491,7 @@ stab_entry *Object::get_stab_info() const
    return new stab_entry_64();
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
+Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li,
      std::vector<Region *> &secs_, 
       void (*err_func)(const char *)) :
    AObject(mf_, err_func), 
@@ -2866,7 +2877,7 @@ void Object::get_valid_memory_areas(Elf_X &elf)
 // look for "pgCC_compiled." symbols.
 bool parseCompilerType(Object *objPtr)
 {
-   hash_map<string, std::vector<Symbol *> >*syms = objPtr->getAllSymbols();	
+   dyn_hash_map<string, std::vector<Symbol *> >*syms = objPtr->getAllSymbols();	
    if(syms->find("pgCC_compiled.") != syms->end())
       return true;
    return false;	
@@ -3028,7 +3039,7 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
    unsigned char lpstart_format, ttype_format, table_format;
    unsigned long value, table_end, region_start, region_size, 
                  catch_block, action;
-   int i, j;
+   long i, j;
 
    //For each FDE
    for (i = 0; i < fde_count; i++) {
@@ -3112,7 +3123,7 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
       const char *datap = data.get_string();
       int except_size = data.d_size();
 
-      j = except_ptr;
+      j = (long) except_ptr;
       if (j < 0 || j >= except_size) {
          //fprintf(stderr, "[%s:%u] - Bad j %d.  except_size = %d\n", __FILE__, __LINE__, j, except_size);
          continue;
@@ -3147,8 +3158,9 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
 
          if (catch_block == 0)
             continue;
-         ExceptionBlock eb(region_start + low_pc, region_size, 
-               catch_block + low_pc);
+         ExceptionBlock eb(static_cast<Dyninst::Offset>(region_start + low_pc), 
+                           region_size, 
+                           static_cast<Dyninst::Offset>(catch_block + low_pc));
          addresses.push_back(eb);
       }
    }
@@ -3305,7 +3317,7 @@ ObjectType Object::objType() const
    return obj_type_;
 }
 
-void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs)
+void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs)
 { 
    string working_module;
    char *ptr;
@@ -3333,7 +3345,8 @@ void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_lan
    //  next module entry, at which point we use any and all info we have to 
    //  make the most sensible guess
    supportedLanguages working_lang = lang_Unknown;
-   char *working_options = NULL, *working_name = NULL;
+   char *working_options = NULL;
+   const char *working_name = NULL;
    
    stab_entry *stabptr = NULL;
    const char *next_stabstr = NULL;
@@ -3362,7 +3375,7 @@ void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_lan
          //  There is possibly more useful information encoded somewhere around here, but I lack
          //  an immediate reference....
          if (working_name)
-            working_options = const_cast<char *> (stabptr->name(i)); 
+            working_options = const_cast<char *>(stabptr->name(i)); 
       }
       else if ((stabptr->type(i) == N_SO)  || (stabptr->type(i) == N_ENDM))
 		{ /* compilation source or file name */
@@ -3463,7 +3476,7 @@ void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_lan
 	{
       //  XXX  This code does not appear to be used anymore??  
       // go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
-      hash_map<string, supportedLanguages>::iterator iter = (*mod_langs).begin();
+      dyn_hash_map<string, supportedLanguages>::iterator iter = (*mod_langs).begin();
       string aname;
       supportedLanguages alang;
       for(;iter!=(*mod_langs).end();iter++)
@@ -3637,9 +3650,9 @@ const char *Object::interpreter_name() const
 
 /* Parse everything in the file on disk, and cache that we've done so,
    because our modules may not bear any relation to the name source files. */
-void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li) 
+void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
-   static hash_map< string, bool > haveParsedFileMap;
+   static dyn_hash_map< string, bool > haveParsedFileMap;
 
    /* We haven't parsed this file already, so iterate over its stab entries. */
 
@@ -3836,7 +3849,7 @@ void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li)
 } /* end parseStabFileLineInfo() */
 
 // Dwarf Debug Format parsing
-void Object::parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li) 
+void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
    Dwarf_Debug dbg;
    int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
@@ -3942,8 +3955,11 @@ void Object::parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li)
             }
 
                   //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, canonicalLineSource, previousLineNo, previousLineAddr, lineAddr);
-            li[canonicalLineSource].addLine(canonicalLineSource, previousLineNo, 
-                  previousLineColumn, previousLineAddr, lineAddr );
+            li[canonicalLineSource].addLine(canonicalLineSource, 
+                                            (unsigned int) previousLineNo, 
+                                            (unsigned int) previousLineColumn, 
+                                            (Dyninst::Offset) previousLineAddr, 
+                                            (Dyninst::Offset) lineAddr );
             /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
             //currentModule->lineInfo_.addLine(canonicalLineSource, previousLineNo, 
             //                                  previousLineColumn, previousLineAddr, lineAddr );
@@ -3990,7 +4006,7 @@ void Object::parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li)
    /* Note that we've parsed this file. */
 } /* end parseDwarfFileLineInfo() */
 
-void Object::parseFileLineInfo(hash_map<string, LineInformation> &li)
+void Object::parseFileLineInfo(dyn_hash_map<string, LineInformation> &li)
 {
    parseStabFileLineInfo(li);
    parseDwarfFileLineInfo(li);

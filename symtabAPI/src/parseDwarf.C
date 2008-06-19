@@ -98,7 +98,7 @@ int Register_DWARFtoMachineEnc64(int n)
 }
 
 #define DWARF_TO_MACHINE_ENC(n, proc) \
-   ((proc->getAddressWidth() == 4) ? Register_DWARFtoMachineEnc32(n) : Register_DWARFtoMachineEnc64(n))
+   ((proc->getAddressWidth() == 4) ? Register_DWARFtoMachineEnc32((int) n) : Register_DWARFtoMachineEnc64((int) n))
 #else
 #define DWARF_TO_MACHINE_ENC(n, proc) (n)
 #endif
@@ -296,7 +296,9 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
    } /* end if we found an upper bound or count. */
 
    /* Construct the range type. */
-   char * subrangeName = "{anonymous range}"; // type doesn't like NULL.
+   static char * subrangeName = NULL;
+   if (!subrangeName)
+      subrangeName = strdup("{anonymous range}");
    status = dwarf_diename( subrangeDIE, & subrangeName, NULL );
    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for name of subrange\n", __FILE__, __LINE__ );
    int dwarvenName = status;
@@ -432,11 +434,11 @@ int convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength
       }
    }
    else if ( location.lr_atom == DW_OP_regx ) {
-      registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number,
+      registerNumber = (int) DWARF_TO_MACHINE_ENC(location.lr_number,
             proc);
    }
    else if ( location.lr_atom == DW_OP_bregx ) {
-      registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number,
+      registerNumber = (int) DWARF_TO_MACHINE_ENC(location.lr_number,
             proc);
       if ( location.lr_number2 != 0 ) {
          /* Actually, we should be able whip up an AST node for this. */
@@ -549,7 +551,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             loc->stClass = storageRegOffset;
             loc->refClass = storageNoRef;
             loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
-            opStack.push( locations[i].lr_number );
+            opStack.push(static_cast<long int>(locations[i].lr_number)); 
          }
 
          switch( locations[i].lr_atom ) {
@@ -560,7 +562,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             case DW_OP_const8u:
             case DW_OP_constu:
                dwarf_printf( "pushing unsigned constant %lu\n", (unsigned long)locations[i].lr_number );
-               opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
+               opStack.push(static_cast<long int>(locations[i].lr_number));
                break;
 
             case DW_OP_const1s:
@@ -569,7 +571,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             case DW_OP_const8s:
             case DW_OP_consts:
                dwarf_printf( "pushing signed constant %ld\n", (signed long)(locations[i].lr_number) );
-               opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
+               opStack.push(static_cast<long int>(locations[i].lr_number));
                break;
 
             case DW_OP_regx:
@@ -578,7 +580,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                //loc->stClass = storageRegOffset;
                loc->stClass = storageReg;
                loc->refClass = storageNoRef;
-               loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
+               loc->reg = (int) DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
                //loc->frameOffset = 0;
                isLocSet = true;
                break;
@@ -588,16 +590,16 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                //if ( storageClass != NULL ) { * storageClass = storageFrameOffset; }
                loc->stClass = storageRegOffset;
                loc->refClass = storageNoRef;
-               opStack.push( locations[i].lr_number );
+               opStack.push(static_cast<long int>(locations[i].lr_number));
                break;
 
             case DW_OP_bregx:
                dwarf_printf( "setting storage class to register, regNum to %d\n", locations[i].lr_number );
                loc->stClass = storageRegOffset;
                loc->refClass = storageNoRef;
-               loc->reg = DWARF_TO_MACHINE_ENC( locations[i].lr_number, objFile );
+               loc->reg = (int) DWARF_TO_MACHINE_ENC( locations[i].lr_number, objFile );
                loc->frameOffset = 0;
-               opStack.push( locations[i].lr_number2 );
+               opStack.push(static_cast<long int>(locations[i].lr_number2));
                break;
 
             case DW_OP_dup:
@@ -730,7 +732,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                {
                   DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
                   long int first = opStack.top(); opStack.pop();
-                  opStack.push( first + locations[i].lr_number );
+                  opStack.push(static_cast<long int>(first + locations[i].lr_number));
                } break;
 
             case DW_OP_shl: 
@@ -820,7 +822,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             case DW_OP_skip: 
                {
                   int bytes = (int)(Dwarf_Signed)locations[i].lr_number;
-                  unsigned int target = locations[i].lr_offset + bytes;
+                  unsigned int target = (unsigned int) locations[i].lr_offset + bytes;
 
                   int j = i;
                   if ( bytes < 0 ) {
@@ -1048,12 +1050,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                break;
             } /* end if there's no name at all. */
 
-            if (strcmp(functionName, "ggPoint2") == 0) {
-               static volatile int foundit = 0;
-               fprintf(stderr, "Found it\n");
-               while (!foundit);
-            }
-
             /* Try to find the function by its mangled name. */
             Dwarf_Addr baseAddr = 0;
             std::vector< Symbol * > ret_funcs;
@@ -1069,7 +1065,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                if ( status == DW_DLV_OK ) {
                   /* The base addresses in DWARF appear to be image-relative. */
                   // Symbol * intFunction = objFile->findFuncByAddr( baseAddr );
-                  Offset absAddr = objFile->getBaseOffset() + baseAddr;
+                  Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
                   std::vector<Symbol *>funcs;
                   if (objFile->findFuncByEntryOffset(funcs, absAddr)){
                      functions.push_back(funcs[0]);
@@ -1163,7 +1159,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
                //parsing_printf("%s/%d: ret type %d\n",
                //			   __FILE__, __LINE__, typeOffset);
-               returnType = module->getModuleTypes()->findOrCreateType( typeOffset );
+               returnType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
                newFunction->setReturnType( returnType );
 
                dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1190,7 +1186,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                      leftMost = strrchr( demangledName, ':' ) + 1;
                }
                std::string fName = convertCharToString(leftMost);
-               typeFunction *funcType = new typeFunction( dieOffset, returnType, fName);
+               typeFunction *funcType = new typeFunction( (typeId_t) dieOffset, returnType, fName);
 
                currentEnclosure->addField( fName, funcType);
                free( demangledName );
@@ -1233,7 +1229,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             } else {
                commonBlockType = dynamic_cast<typeCommon *>(module->getModuleTypes()->findVariableType(cBName));
                if (commonBlockType == NULL) {
-                  commonBlockType = new typeCommon( dieOffset, cBName );
+                  commonBlockType = new typeCommon( (typeId_t) dieOffset, cBName );
                   assert( commonBlockType != NULL );
                   module->getModuleTypes()->addGlobalVariable( cBName, commonBlockType );
                }	
@@ -1297,7 +1293,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                /* The typeOffset forms a module-unique type identifier,
                   so the Type look-ups by it rather than name. */
                dwarf_printf( "%s/%d: %s/%d\n", __FILE__, __LINE__, variableName, typeOffset );
-               Type * variableType = module->getModuleTypes()->findOrCreateType( typeOffset );
+               Type * variableType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
                dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
                /* Tell Dyninst what this global's type is. */
@@ -1381,7 +1377,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
                /* The typeOffset forms a module-unique type identifier,
                   so the Type look-ups by it rather than name. */
-               Type * variableType = module->getModuleTypes()->findOrCreateType( typeOffset );
+               Type * variableType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
 
                dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
@@ -1429,7 +1425,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                   else
                      fileName = srcFiles[fileNameDeclVal-1];
                   std::string vName = convertCharToString(variableName);
-                  localVar * newVariable = new localVar( vName, variableType, fileName, variableLineNo);
+                  localVar * newVariable = new localVar( vName, variableType, fileName, (int) variableLineNo);
                   newVariable->setLocation(locs);
                   Annotatable<localVarCollection, symbol_variables_a, true> &varA = *currentFunction;
                   if (!varA.size()) {
@@ -1552,7 +1548,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             /* The typeOffset forms a module-unique type identifier,
                so the Type look-ups by it rather than name. */
             dwarf_printf( "%s[%d]: found formal parameter %s with type %ld\n", __FILE__, __LINE__, parameterName, typeOffset );
-            Type * parameterType = module->getModuleTypes()->findOrCreateType( typeOffset );
+            Type * parameterType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
 
             dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
@@ -1592,7 +1588,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             /* We now have the parameter's location, name, type, and line number.
                Tell Dyninst about it. */
             std::string pName = convertCharToString(parameterName);
-            localVar * newParameter = new localVar( pName, parameterType, fileName, parameterLineNo);
+            localVar * newParameter = new localVar( pName, parameterType, fileName, (int) parameterLineNo);
             assert( newParameter != NULL );
             newParameter->setLocation(locs);
 
@@ -1633,7 +1629,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                    reliable way to distinguish between a built-in and a scalar,
                    we don't bother to try. */
                 std::string tName = convertCharToString(typeName);   
-                Type * baseType = new typeScalar( dieOffset, byteSize, tName );
+                Type * baseType = new typeScalar( (typeId_t) dieOffset, (unsigned int) byteSize, tName );
                 assert( baseType != NULL );
 
                 /* Add the basic type to our collection. */
@@ -1669,7 +1665,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
                dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
-               referencedType = module->getModuleTypes()->findOrCreateType( typeOffset );
+               referencedType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
             }
             string tName;
             if(!definedName) {
@@ -1689,7 +1685,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                tName = convertCharToString(definedName);
             }
 
-            Type * typedefType = new typeTypedef( dieOffset, referencedType, tName);
+            Type * typedefType = new typeTypedef( (typeId_t) dieOffset, referencedType, tName);
             typedefType = module->getModuleTypes()->addOrUpdateType( typedefType );
 
             /* Sanity check: typedefs should not have children. */
@@ -1732,7 +1728,7 @@ gracefully, that is, without an error. :)
 
             //parsing_printf("%s/%d: %s/%d\n",
             //			   __FILE__, __LINE__, arrayName, typeOffset);
-            Type * elementType = module->getModuleTypes()->findOrCreateType( typeOffset );
+            Type * elementType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
 
             /* Find the range(s) of the elements. */
             Dwarf_Die firstRange;
@@ -1744,7 +1740,7 @@ gracefully, that is, without an error. :)
             /* The baseArrayType is an anonymous type with its own typeID.  Extract
                the information and add an array type for this DIE. */
             std::string aName = convertCharToString(arrayName);
-            Type * arrayType = new typeArray( dieOffset, baseArrayType->getBaseType(), baseArrayType->getLow(),
+            Type * arrayType = new typeArray( (typeId_t) dieOffset, baseArrayType->getBaseType(), baseArrayType->getLow(),
                   baseArrayType->getHigh(), aName);
             assert( arrayType != NULL );
             //setArraySize( arrayType, baseArrayType->getLow(), baseArrayType->getHigh() );
@@ -1772,7 +1768,7 @@ gracefully, that is, without an error. :)
             DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
             std::string tName = convertCharToString(typeName);
-            typeEnum* enumerationType = new typeEnum( dieOffset, tName);
+            typeEnum* enumerationType = new typeEnum( (typeId_t) dieOffset, tName);
             assert( enumerationType != NULL );
             enumerationType = dynamic_cast<typeEnum *>(module->getModuleTypes()->addOrUpdateType( enumerationType ));
             newEnum = enumerationType;
@@ -1795,7 +1791,7 @@ gracefully, that is, without an error. :)
 
             //parsing_printf("%s/%d: inherited %d\n",
             //			   __FILE__, __LINE__, scOffset);
-            Type * superClass = module->getModuleTypes()->findOrCreateType( scOffset );
+            Type * superClass = module->getModuleTypes()->findOrCreateType( (int) scOffset );
 
             /* Acquire the visibility, if any.  DWARF calls it accessibility
                to distinguish it from symbol table visibility. */
@@ -1852,10 +1848,10 @@ gracefully, that is, without an error. :)
             switch ( dieTag ) {
                case DW_TAG_structure_type: 
                case DW_TAG_class_type: 
-                  containingType = new typeStruct( dieOffset, tName);
+                  containingType = new typeStruct( (typeId_t) dieOffset, tName);
                   break;
                case DW_TAG_union_type: 
-                  containingType = new typeUnion( dieOffset, tName);
+                  containingType = new typeUnion( (typeId_t) dieOffset, tName);
                   break;
             }
 
@@ -1887,7 +1883,7 @@ gracefully, that is, without an error. :)
             }
 
             // //bperr ( "Adding enum '%s' (%ld) to enumeration '%s' (%d)\n", enumName, (signed long)enumValue, currentEnclosure->getName(), currentEnclosure->getID() );
-            currentEnum->addConstant( enumName, enumValue );
+            currentEnum->addConstant( enumName, (int) enumValue );
 
             dwarf_dealloc( dbg, enumName, DW_DLA_STRING );
          } break;
@@ -1911,7 +1907,7 @@ gracefully, that is, without an error. :)
 
             //parsing_printf("%s/%d: %s/%d\n",
             //			   __FILE__, __LINE__, memberName, typeOffset);
-            Type * memberType = module->getModuleTypes()->findOrCreateType( typeOffset );
+            Type * memberType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
 
             Dwarf_Attribute locationAttr;
             status = dwarf_attr( dieEntry, DW_AT_data_member_location, & locationAttr, NULL );
@@ -2008,7 +2004,7 @@ gracefully, that is, without an error. :)
 				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				//parsing_printf("%s/%d: %s/%d\n",
 				//			   __FILE__, __LINE__, typeName, typeOffset);
-				typeModified = module->getModuleTypes()->findOrCreateType( typeOffset );
+				typeModified = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
 				typeSize = typeModified->getSize();
 
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -2033,7 +2029,7 @@ gracefully, that is, without an error. :)
                 tName = convertCharToString(typeName);
 
 //			Type * modifierType = new Type( typeName, dieOffset, TypeAttrib, typeSize, typeModified, dieTag );
-			Type * modifierType = new typeTypedef(dieOffset, typeModified, tName);
+			Type * modifierType = new typeTypedef((typeId_t) dieOffset, typeModified, tName);
 			assert( modifierType != NULL );
 			// //bperr ( "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			modifierType = module->getModuleTypes()->addOrUpdateType( modifierType );
@@ -2065,7 +2061,7 @@ gracefully, that is, without an error. :)
 				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				//parsing_printf("%s/%d: %s/%d\n",
 				//			   __FILE__, __LINE__, typeName, typeOffset);
-				typePointedTo = module->getModuleTypes()->findOrCreateType( typeOffset );
+				typePointedTo = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
 
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				} /* end if typePointedTo is not void */
@@ -2074,14 +2070,14 @@ gracefully, that is, without an error. :)
 			std::string tName = convertCharToString(typeName);
 			switch ( dieTag ) {
 			case DW_TAG_subroutine_type:
-			   indirectType = new typeFunction(dieOffset, typePointedTo, tName);
+			   indirectType = new typeFunction((typeId_t) dieOffset, typePointedTo, tName);
 			   break;
 			case DW_TAG_ptr_to_member_type:
 			case DW_TAG_pointer_type:
-			   indirectType = new typePointer(dieOffset, typePointedTo, tName);
+			   indirectType = new typePointer((typeId_t) dieOffset, typePointedTo, tName);
 			   break;
 			case DW_TAG_reference_type:
-			   indirectType = new typeRef(dieOffset, typePointedTo, tName);
+			   indirectType = new typeRef((typeId_t) dieOffset, typePointedTo, tName);
 			   break;
 			}
 
@@ -2246,14 +2242,14 @@ void Object::parseDwarfTypes( Symtab *objFile)
    /* Fix type list. */
    typeCollection *moduleTypes = fixUnknownMod->getModuleTypes();
    assert(moduleTypes);
-   hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
+   dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
    for(;typeIter!=moduleTypes->typesByID.end();typeIter++){
       typeIter->second->fixupUnknowns(fixUnknownMod);
    } /* end iteratation over types. */
 
    /* Fix the types of variables. */   
    std::string variableName;
-   hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
+   dyn_hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
    for(;variableIter!=moduleTypes->globalVarsByName.end();variableIter++){ 
       if (variableIter->second->getDataClass() == dataUnknownType && 
             moduleTypes->findType( variableIter->second->getID() ) != NULL ) {

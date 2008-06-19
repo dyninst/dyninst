@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.79 2008/02/23 02:09:11 jaw Exp $
+// $Id: templates2.C,v 1.80 2008/06/19 19:53:49 legendre Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -60,7 +60,6 @@ template class pdvector<pdpair<std::string, pdvector<std::string> > >;
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-class Dyninst::SymtabAPI::Symbol;
 template class  dictionary_hash_iter <Address, Symbol*>;
 
 //template class  dictionary_hash_iter <instPoint*, unsigned>;

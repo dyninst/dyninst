@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.85 2008/05/08 21:52:19 legendre Exp $
+// $Id: arch-x86.C,v 1.86 2008/06/19 19:53:07 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2793,7 +2793,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 	  break;
 	case 0xD9: {
 	  unsigned char modrm = addr[0];
-	  unsigned char reg = (modrm >> 3) & 7;
+	  unsigned char reg = static_cast<unsigned char>((modrm >> 3) & 7);
 	  switch(reg) {
 	  case 0:
 	    mac->size = 4;
@@ -2831,7 +2831,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 	  break;
 	case 0xDB: {
 	  unsigned char modrm = addr[0];
-	  unsigned char reg = (modrm >> 3) & 7;
+	  unsigned char reg = static_cast<unsigned char>((modrm >> 3) & 7);
 	  switch(reg) {
 	  case 0:
 	    mac->size = dwordSzB;
@@ -2863,7 +2863,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 	  break;
 	case 0xDD: {
 	  unsigned char modrm = addr[0];
-	  unsigned char reg = (modrm >> 3) & 7;
+	  unsigned char reg = static_cast<unsigned char>((modrm >> 3) & 7);
 	  switch(reg) {
 	  case 0:
 	    mac->size = 8;
@@ -2898,7 +2898,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 	  break;
 	case 0xDF: {
 	  unsigned char modrm = addr[0];
-	  unsigned char reg = (modrm >> 3) & 7;
+	  unsigned char reg = static_cast<unsigned char>((modrm >> 3) & 7);
 	  switch(reg) {
 	  case 0:
 	    mac->size = wordSzB;
@@ -2943,9 +2943,9 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 #define MODRM_MOD(x) ((x) >> 6)
 #define MODRM_RM(x) ((x) & 7)
 #define MODRM_REG(x) (((x) & (7 << 3)) >> 3)
-#define MODRM_SET_MOD(x, y) ((x) |= ((y) << 6))
-#define MODRM_SET_RM(x, y) ((x) |= (y))
-#define MODRM_SET_REG(x, y) ((x) |= ((y) << 3))
+#define MODRM_SET_MOD(x, y) (x) = static_cast<unsigned char>((x) | ((y) << 6))
+#define MODRM_SET_RM(x, y) (x) = static_cast<unsigned char>((x) | (y))
+#define MODRM_SET_REG(x, y) (x) = static_cast<unsigned char>((x) | ((y) << 3))
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
@@ -2955,9 +2955,9 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
 {
  
   unsigned char modrm = addr[0];
-  unsigned char mod = MODRM_MOD(modrm);
-  unsigned char rm  = MODRM_RM(modrm);
-  unsigned char reg = MODRM_REG(modrm);
+  unsigned char mod = static_cast<unsigned char>(MODRM_MOD(modrm));
+  unsigned char rm  = static_cast<unsigned char>(MODRM_RM(modrm));
+  unsigned char reg = static_cast<unsigned char>(MODRM_REG(modrm));
   if (loc) {
      loc->modrm_byte = modrm;
      loc->modrm_mod = mod;
@@ -3115,7 +3115,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     switch(mod) {
     case 0: {
       /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) hassib && base == 5 */
-      unsigned char check5 = hassib ? base : rm;
+      unsigned char check5 = hassib ? static_cast<unsigned char>(base) : rm;
       if(macadr)
         switch (rm) {
         case 0:
@@ -3534,10 +3534,10 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
 #define REX_B(x) ((x) & 0x1)
 
 #define REX_INIT(x) ((x) = 0x40)
-#define REX_SET_W(x, v) ((x) |= ((v) ? 0x8 : 0))
-#define REX_SET_R(x, v) ((x) |= ((v) ? 0x4 : 0))
-#define REX_SET_X(x, v) ((x) |= ((v) ? 0x2 : 0))
-#define REX_SET_B(x, v) ((x) |= ((v) ? 0x1 : 0))
+#define REX_SET_W(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x8 : 0)))
+#define REX_SET_R(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x4 : 0)))
+#define REX_SET_X(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x2 : 0)))
+#define REX_SET_B(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x1 : 0)))
 
 bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
                      ia32_locations *loc)
@@ -3548,10 +3548,10 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
 
       if (loc) {
          loc->rex_byte = addr[0];
-         loc->rex_w = REX_W(addr[0]);
-         loc->rex_r = REX_R(addr[0]);
-         loc->rex_x = REX_X(addr[0]);
-         loc->rex_b = REX_B(addr[0]);
+         loc->rex_w = static_cast<unsigned char>(REX_W(addr[0]));
+         loc->rex_r = static_cast<unsigned char>(REX_R(addr[0]));
+         loc->rex_x = static_cast<unsigned char>(REX_X(addr[0]));
+         loc->rex_b = static_cast<unsigned char>(REX_B(addr[0]));
          loc->rex_position = pref.count - 1;
       }
       
@@ -3784,8 +3784,8 @@ bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
 
   if ((*origInsn >= 0x80) &&
       (*origInsn < 0x90)) {
-    *newInsn++ = *origInsn++ - 0x10;
-    return true;
+     *newInsn++ = static_cast<unsigned char>(*origInsn++ - 0x10);
+     return true;
   }
 
   if (*origInsn == 0xE3) {
@@ -3809,7 +3809,7 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
 
   if ((*origInsn >= 0x70) &&
       (*origInsn < 0x80)) {
-    *newInsn++ = *origInsn++ + 0x10;
+    *newInsn++ = static_cast<unsigned char>(*origInsn++ + 0x10);
     return true;
   }
 
@@ -4272,7 +4272,7 @@ void instruction::generatePush64(codeGen &gen, Address val)
 {
   GET_PTR(insn, gen);
   for (int i = 3; i >= 0; i--) {
-    short word = (short) (val >> (16 * i)) & 0xffff;
+    short word = static_cast<unsigned char>((val >> (16 * i)) & 0xffff);
     *insn++ = 0x66; // operand size override
     *insn++ = 0x68; // push immediate (16-bits b/c of prefix)
     *(short *)insn = word;
@@ -4956,14 +4956,14 @@ bool instruction::generate(codeGen &gen,
             // don't understand most of it -- bernat
             const unsigned char *ptr = firstInsn.ptr();
             unsigned char modrm = *(ptr + 1);
-            unsigned char reg = (modrm >> 3) & 0x3;
+            unsigned char reg = static_cast<unsigned char>((modrm >> 3) & 0x3);
             // Source register... 
             if ((modrm == 0x0c) || (modrm == 0x1c)) {
                // Check source register (%esp == 0x24)
                if ((*(ptr + 2) == 0x24)) {
                   // Okay, put the PC into the 'reg'
                   Address EIP = origAddr + size();
-                  *newInsn = 0xb8 + reg; // Opcode???
+                  *newInsn = static_cast<unsigned char>(0xb8 + reg); // Opcode???
                   newInsn++;
                   unsigned int *temp = (unsigned int *)newInsn;
                   *temp = EIP;
@@ -5388,7 +5388,7 @@ bool instruction::generateMem(codeGen &gen,
    if (loc.rex_position != -1 || (newreg & 8)) {
       //If there was no REX byte, and the high bit of the new register
       // is set, then we'll need to make a rex byte to encode that high bit.
-      loc.rex_b = newreg & 8;
+      loc.rex_b = static_cast<unsigned char>(newreg & 8);
       REX_INIT(new_rex);
       REX_SET_W(new_rex, loc.rex_w);
       REX_SET_R(new_rex, loc.rex_r);
@@ -5418,7 +5418,7 @@ bool instruction::generateMem(codeGen &gen,
     * Emit SIB byte
     **/
    if (emit_sib) {
-      *walker++ = new_sib;
+      *walker++ = static_cast<unsigned char>(new_sib);
    }
    
    /**
