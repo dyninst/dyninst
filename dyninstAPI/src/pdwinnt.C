@@ -49,7 +49,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.15 2006/07/07 00:01:03 jaw Exp $
+// $Id: inst-linux.C,v 1.16 2008/06/19 22:13:42 jaw Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -53,7 +53,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.

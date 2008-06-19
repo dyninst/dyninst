@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.30 2008/04/15 16:43:18 roundy Exp $
+// $Id: inst-winnt.C,v 1.31 2008/06/19 22:13:42 jaw Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -49,7 +49,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "dyninstAPI/src/instPoint.h"
 
 #ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001

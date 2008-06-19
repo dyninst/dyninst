@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.50 2008/04/15 16:43:20 roundy Exp $
+// $Id: instPoint.C,v 1.51 2008/06/19 22:13:42 jaw Exp $
 // instPoint code
 
 
@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -66,7 +66,6 @@
 #include "dyninstAPI/src/emit-x86.h"
 #endif
 
-#include "dyninstAPI/src/stats.h"
 
 unsigned int instPointBase::id_ctr = 1;
 

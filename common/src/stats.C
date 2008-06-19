@@ -41,18 +41,15 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.37 2008/02/23 02:09:11 jaw Exp $
+ * $Id: stats.C,v 1.1 2008/06/19 22:13:41 jaw Exp $
  */
 
 #include <sstream>
 #include <string>
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
+#include "stats.h"
+#include "dynutil/h/util.h"
 
+#if 0
 #include "dyninstAPI/src/stats.h"
 
 CntStatistic trampBytes;
@@ -83,11 +80,17 @@ void printDyninstStats()
                 insnGenerated.value());
     logLine(errorLine);
 }
+#endif
+
+StatContainer::StatContainer() 
+   //stats_(::Dyninst::hash)
+{
+}
 
 Statistic*
-StatContainer::operator[](std::string name) const
+StatContainer::operator[](std::string &name) 
 {
-    if(stats_.defines(name)) {
+    if (stats_.find(name) != stats_.end()) {
         return stats_[name];
     } else {
         return NULL;
@@ -115,7 +118,8 @@ StatContainer::add(std::string name, StatType type)
     stats_[name] = s;
 }
 
-void StatContainer::startTimer(std::string name) {
+void StatContainer::startTimer(std::string name) 
+{
     TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
     if (!timer) return;
     timer->start();
@@ -185,7 +189,7 @@ CntStatistic::operator=( long int v )
 }
 
 CntStatistic& 
-CntStatistic::operator=( const CntStatistic & v )
+CntStatistic::operator=(CntStatistic & v )
 {
     if( this != &v ) {
         cnt_ = v.cnt_;
@@ -201,7 +205,7 @@ CntStatistic::operator+=( long int v )
 }
 
 CntStatistic&
-CntStatistic::operator+=( const CntStatistic & v )
+CntStatistic::operator+=( CntStatistic & v )
 {
     cnt_ += v.cnt_;
     return *this;
@@ -216,7 +220,7 @@ CntStatistic::operator-=( long int v )
 }
 
 CntStatistic& 
-CntStatistic::operator-=( const CntStatistic & v)
+CntStatistic::operator-=( CntStatistic & v)
 {
     cnt_ -= v.cnt_;
     return *this;
@@ -236,7 +240,7 @@ CntStatistic::value()
 
 
 TimeStatistic& 
-TimeStatistic::operator=(const TimeStatistic & t)
+TimeStatistic::operator=(TimeStatistic & t)
 {
     if( this != &t ) {
         t_ = t.t_;
@@ -245,14 +249,14 @@ TimeStatistic::operator=(const TimeStatistic & t)
 }
 
 TimeStatistic& 
-TimeStatistic::operator+=(const TimeStatistic & t)
+TimeStatistic::operator+=(TimeStatistic & t)
 {
     t_ += t.t_;
     return *this;
 }
 
 TimeStatistic& 
-TimeStatistic::operator+(const TimeStatistic & t) const
+TimeStatistic::operator+(TimeStatistic & t) 
 {
     TimeStatistic * ret = new TimeStatistic;
     *ret = *this;
@@ -279,25 +283,25 @@ TimeStatistic::stop()
 }
 
 double 
-TimeStatistic::usecs() const
+TimeStatistic::usecs() 
 {
     return t_.usecs();
 }
 
 double 
-TimeStatistic::ssecs() const
+TimeStatistic::ssecs() 
 {
     return t_.ssecs();
 }
 
 double 
-TimeStatistic::wsecs() const
+TimeStatistic::wsecs() 
 {
     return t_.wsecs();
 }
 
 bool 
-TimeStatistic::is_running() const
+TimeStatistic::is_running() 
 {
     return t_.is_running();
 }

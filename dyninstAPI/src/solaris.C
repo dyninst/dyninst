@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.223 2008/04/15 16:43:37 roundy Exp $
+// $Id: solaris.C,v 1.224 2008/06/19 22:13:43 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "common/h/Types.h"
 #include <sys/ioctl.h>
 #include <fcntl.h>

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.139 2008/04/15 16:43:22 roundy Exp $
+// $Id: linux-x86.C,v 1.140 2008/06/19 22:13:42 jaw Exp $
 
 #include <fstream>
 #include <string>
@@ -64,7 +64,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/util.h" // getCurrWallTime

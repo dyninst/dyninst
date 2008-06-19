@@ -39,16 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: stats.h,v 1.13 2008/02/23 02:09:11 jaw Exp $
+// $Id: stats.h,v 1.1 2008/06/19 22:13:41 jaw Exp $
 
 #ifndef STATS_H
 #define STATS_H
 
 #include <string>
-#include "common/h/Dictionary.h"
-#include "common/h/Timer.h"
+//#include "Dictionary.h"
+#include "Timer.h"
 #include "dynutil/h/util.h"
 
+#if 0
 extern void printDyninstStats();
 
 class CntStatistic;
@@ -61,19 +62,20 @@ extern CntStatistic ptraceOtherOps;
 extern CntStatistic ptraceBytes;
 extern CntStatistic pointsUsed;
 
+#endif
 class StatContainer;  // All your class declarations are forward. 
 
-class Statistic  {
+class DLLEXPORT Statistic  {
  public:
-    virtual bool is_count() const { return false; }
-    virtual bool is_timer() const { return false; }
+    virtual bool is_count()  { return false; }
+    virtual bool is_timer()  { return false; }
     /* ... etc. */
 
     // dynamic_casts are a pain in the neck
     virtual long int value() { return 0; }
-    virtual double usecs() const { return 0; }
-    virtual double ssecs() const { return 0; }
-    virtual double wsecs() const { return 0; }
+    virtual double usecs()  { return 0; }
+    virtual double ssecs() { return 0; }
+    virtual double wsecs() { return 0; }
 
 
  protected:
@@ -88,7 +90,7 @@ class Statistic  {
     bool valid;
 };
 
-class CntStatistic : public Statistic {
+class DLLEXPORT CntStatistic : public Statistic {
  friend class StatContainer;
 
  protected:
@@ -106,7 +108,7 @@ class CntStatistic : public Statistic {
     { }
 
     // respond appropriately to type-of-stat requests
-    bool is_count() const { return true; }
+    bool is_count() { return true; }
 
     /** overloaded operators **/
     CntStatistic operator++( int );
@@ -116,13 +118,13 @@ class CntStatistic : public Statistic {
     CntStatistic& operator--();  
 
     CntStatistic& operator=( long int );
-    CntStatistic& operator=( const CntStatistic &);
+    CntStatistic& operator=( CntStatistic &);
 
     CntStatistic& operator+=( long int );
-    CntStatistic& operator+=( const CntStatistic &);
+    CntStatistic& operator+=( CntStatistic &);
     
     CntStatistic& operator-=( long int );
-    CntStatistic& operator-=( const CntStatistic &);
+    CntStatistic& operator-=(  CntStatistic &);
 
     // Return the value of this statistic
     long int operator*();
@@ -133,7 +135,7 @@ class CntStatistic : public Statistic {
 };
 
 /* Wraps the timer class */
-class TimeStatistic : public Statistic {
+class DLLEXPORT TimeStatistic : public Statistic {
  friend class StatContainer;
 
  protected:
@@ -146,21 +148,21 @@ class TimeStatistic : public Statistic {
         Statistic(NULL)
     {}
 
-    bool is_timer() const { return true; }
+    bool is_timer()  { return true; }
 
-    TimeStatistic& operator=(const TimeStatistic &);
-    TimeStatistic& operator+=(const TimeStatistic &);
-    TimeStatistic& operator+(const TimeStatistic &) const;
+    TimeStatistic& operator=( TimeStatistic &);
+    TimeStatistic& operator+=( TimeStatistic &);
+    TimeStatistic& operator+( TimeStatistic &) ;
 
     void clear();
     void start();
     void stop();
 
-    double usecs() const;
-    double ssecs() const;
-    double wsecs() const;
+    double usecs() ;
+    double ssecs() ;
+    double wsecs() ;
 
-    bool is_running() const;
+    bool is_running() ;
 
  private:
 
@@ -174,18 +176,20 @@ typedef enum {
 
 
 /* A container for a group of (one expects) mutually related statistics. */
-class StatContainer {
+class DLLEXPORT StatContainer {
  public:
-    StatContainer() :
-        stats_(::Dyninst::hash)
-    { }
+    StatContainer(); 
 
     /* Access or create a statistic indexed by the provided name.
      *
      * This operator may return null if the named statistic does
      * not exist.
      */
-    Statistic * operator[](std::string) const;
+    Statistic * operator[](std::string &);
+    Statistic * operator[](const char *s) {
+       std::string namestr(s);
+       return (*this)[namestr];
+    }
 
     // Create a new statistic of the given type indexed by name.
     // **This will replace any existing stat with the same index
@@ -193,8 +197,8 @@ class StatContainer {
     void add(std::string name, StatType type);
 
     // Access all of the existing statistics
-    const dictionary_hash< std::string, Statistic * > &
-    allStats() const { return stats_; }
+    hash_map< std::string, Statistic * > &
+    allStats() { return stats_; }
 
     // And some pass-through methods, encapsulated for
     // ease of use
@@ -205,7 +209,7 @@ class StatContainer {
     void addCounter(std::string, int);
 
  private:
-    dictionary_hash< std::string, Statistic * > stats_;
+    hash_map< std::string, Statistic * > stats_;
 
 };
 #endif

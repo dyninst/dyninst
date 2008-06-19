@@ -44,6 +44,7 @@
 #include "Annotatable.h"
 
 #include <stdarg.h>
+
 int symtab_printf(const char *format, ...);
 
 typedef struct {} user_funcs_a;

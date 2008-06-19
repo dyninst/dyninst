@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.40 2008/02/23 02:09:11 jaw Exp $
+// $Id: util.h,v 1.41 2008/06/19 22:13:43 jaw Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -52,6 +52,16 @@
 #include "common/h/headers.h"
 #include "common/h/Time.h"
 #include "common/h/Types.h"
+#include "common/h/stats.h"
+
+extern void printDyninstStats();
+extern CntStatistic insnGenerated;
+extern CntStatistic totalMiniTramps;
+extern CntStatistic trampBytes;
+extern CntStatistic ptraceOps;
+extern CntStatistic ptraceOtherOps;
+extern CntStatistic ptraceBytes;
+extern CntStatistic pointsUsed;
 
 bool waitForFileToExist(char *fname, int timeout_seconds);
 int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds);

@@ -39,15 +39,45 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.35 2008/02/20 08:31:07 jaw Exp $
+/* $Id: util.C,v 1.36 2008/06/19 22:13:43 jaw Exp $
  * util.C - support functions.
  */
 
 #include "common/h/headers.h"
 #include "common/h/Time.h"
 #include "dyninstAPI/src/util.h"
+#include "debug.h"
 
 using namespace Dyninst;
+CntStatistic trampBytes;
+CntStatistic pointsUsed;
+CntStatistic insnGenerated;
+CntStatistic totalMiniTramps;
+double timeCostLastChanged=0;
+// HTable<resourceListRec*> fociUsed;
+// HTable<metric*> metricsUsed;
+CntStatistic ptraceOtherOps, ptraceOps, ptraceBytes;
+
+void printDyninstStats()
+{
+   sprintf(errorLine, "    %ld total points used\n", pointsUsed.value());
+   logLine(errorLine);
+   sprintf(errorLine, "    %ld mini-tramps used\n", totalMiniTramps.value());
+   logLine(errorLine);
+   sprintf(errorLine, "    %ld tramp bytes\n", trampBytes.value());
+   logLine(errorLine);
+   sprintf(errorLine, "    %ld ptrace other calls\n", ptraceOtherOps.value());
+   logLine(errorLine);
+   sprintf(errorLine, "    %ld ptrace write calls\n",
+         ptraceOps.value()-ptraceOtherOps.value());
+   logLine(errorLine);
+   sprintf(errorLine, "    %ld ptrace bytes written\n", ptraceBytes.value());
+   logLine(errorLine);
+   sprintf(errorLine, "    %ld instructions generated\n",
+         insnGenerated.value());
+   logLine(errorLine);
+}
+
 // TIMING code
 
 #if defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
@@ -62,13 +92,13 @@ using namespace Dyninst;
 
 bool waitForFileToExist(char *fname, int timeout_seconds)
 {
-  int timeout = 0; // milliseconds
-  int sleep_increment = 10; // ms
-  int timeout_milliseconds = 1000 *timeout_seconds;
+   int timeout = 0; // milliseconds
+   int sleep_increment = 10; // ms
+   int timeout_milliseconds = 1000 *timeout_seconds;
 
-  struct stat statbuf;
-  
-  int err = 0;
+   struct stat statbuf;
+
+   int err = 0;
   while (0 != (err = stat(fname, &statbuf))) {
     if (err != ENOENT) {
       fprintf(stderr, "%s[%d]:  stat failed with %s\n", FILE__, __LINE__, strerror(errno));

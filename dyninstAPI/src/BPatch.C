@@ -52,7 +52,7 @@
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 #include "signalhandler.h"
-#include "stats.h"
+#include "common/h/stats.h"
 #include "BPatch.h"
 //#include "BPatch_typePrivate.h"
 #include "process.h"

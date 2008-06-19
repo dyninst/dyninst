@@ -45,7 +45,7 @@
 #include "dyninstAPI/src/instP.h" // initTramps
 #include "dyninstAPI/src/baseTramp.h" // irpc code
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/rpcMgr.h"

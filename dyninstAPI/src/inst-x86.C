@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.282 2008/06/19 19:53:24 legendre Exp $
+ * $Id: inst-x86.C,v 1.283 2008/06/19 22:13:42 jaw Exp $
  */
 #include <iomanip>
 
@@ -55,7 +55,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"

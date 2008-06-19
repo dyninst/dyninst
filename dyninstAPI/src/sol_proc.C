@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.122 2008/04/11 23:30:26 legendre Exp $
+// $Id: sol_proc.C,v 1.123 2008/06/19 22:13:43 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -59,7 +59,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "common/h/pathName.h" // for path name manipulation routines
 #include "dyninstAPI/src/sol_proc.h"
 #include "dyninstAPI/src/os.h"

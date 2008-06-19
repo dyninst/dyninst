@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.240 2008/06/19 19:53:51 legendre Exp $
+// $Id: unix.C,v 1.241 2008/06/19 22:13:43 jaw Exp $
 
 #include <string>
 #include "common/h/headers.h"
@@ -62,7 +62,7 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 
 
 // Forwarding a signal sets BPatch-level shtuff

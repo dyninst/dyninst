@@ -46,7 +46,7 @@
 #include "signalgenerator.h"
 #include "process.h"
 #include "eventgate.h"
-#include "stats.h"
+#include "common/h/stats.h"
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
 #include "symtabAPI/h/Symtab.h"

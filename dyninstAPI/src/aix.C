@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.245 2008/04/15 16:43:08 roundy Exp $
+// $Id: aix.C,v 1.246 2008/06/19 22:13:41 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -63,7 +63,7 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"

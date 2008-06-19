@@ -78,4 +78,7 @@ template class pdvector<FunctionCoverage*>;
 template class dictionary_hash<pdstring,FunctionCoverage*>;
 template class pdvector<dictionary_hash<pdstring,FunctionCoverage*>::entry>;
 
+class Statistic;
+#include <string>
+template class dictionary_hash<std::string, Statistic *>;
 /** end of the template class initialization */

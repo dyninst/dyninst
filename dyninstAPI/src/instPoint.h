@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.46 2008/04/15 16:43:21 roundy Exp $
+// $Id: instPoint.h,v 1.47 2008/06/19 22:13:42 jaw Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/arch.h" // instruction
 #include "dyninstAPI/src/codeRange.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/stats.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/bitArray.h"
 

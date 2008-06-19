@@ -89,7 +89,7 @@ extern int dyn_stats_instru;
 extern int dyn_stats_ptrace;
 extern int dyn_stats_parse;
 
-#include "stats.h"
+#include "common/h/stats.h"
 
 extern StatContainer stats_instru;
 extern StatContainer stats_ptrace;

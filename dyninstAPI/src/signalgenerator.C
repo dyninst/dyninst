@@ -47,7 +47,7 @@
 #include "dyn_thread.h"
 #include "callbacks.h"
 #include "function.h"
-#include "stats.h"
+#include "common/h/stats.h"
 #include "signalhandler.h"
 #include "signalgenerator.h"
 #include "mapped_object.h"
