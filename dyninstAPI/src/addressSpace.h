@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.8 2008/02/23 02:09:04 jaw Exp $
+// $Id: addressSpace.h,v 1.9 2008/06/20 22:00:04 legendre Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
@@ -226,6 +226,8 @@ class AddressSpace : public InstructionSource {
     // Find the code sequence containing an address
     // Note: fix the name....
     int_function *findFuncByAddr(Address addr);
+    bool findFuncsByAddr(Address addr, std::vector<int_function *> &funcs);
+
     int_basicBlock *findBasicBlockByAddr(Address addr);
     
     // And a lookup by "internal" function to find clones during fork...

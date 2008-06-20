@@ -246,6 +246,10 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     API_EXPORT(Int, (addr),
                BPatch_function *, findFunction,(unsigned long addr));
 
+    API_EXPORT(Int, (addr, funcs),
+               bool, findFunction,(Dyninst::Address addr, 
+                                   BPatch_Vector<BPatch_function *> &funcs));
+
     //  BPatch_image::findVariable
     //  
     //  Returns global variable matching <name> in the image.  NULL if not found.

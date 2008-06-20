@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.119 2008/06/19 19:52:51 legendre Exp $
+// $Id: BPatch_image.C,v 1.120 2008/06/20 22:00:02 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -773,6 +773,27 @@ BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
 
    return addSpace->findOrCreateBPFunc(ifunc,NULL);
 }
+
+bool BPatch_image::findFunctionInt(Dyninst::Address addr, 
+                                   BPatch_Vector<BPatch_function *> &funcs)
+{
+   std::vector<int_function *> ifuncs;
+   bool result;
+
+   result = addSpace->getAS()->findFuncsByAddr(addr, ifuncs);
+   if (!result)
+      return false;
+
+   assert(ifuncs.size());
+   for (unsigned i=0; i<ifuncs.size(); i++)
+   {
+      BPatch_function *bpfunc = addSpace->findOrCreateBPFunc(ifuncs[i], NULL);
+      funcs.push_back(bpfunc);
+   }
+
+   return true;
+}
+
 
 /*
  * BPatch_image::findVariable
