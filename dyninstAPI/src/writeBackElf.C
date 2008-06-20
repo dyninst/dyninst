@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.33 2007/09/19 21:55:14 giri Exp $ */
+/* $Id: writeBackElf.C,v 1.34 2008/06/20 22:00:05 legendre Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -136,14 +136,14 @@ writeBackElf::~writeBackElf(){
 	}
 	if(newElfNewData_d_buf){
 		if(MALLOC){
-			for(unsigned int i = 0;i<newElfNewData_d_buf_count;i++){
+			for(int i = 0;i<newElfNewData_d_buf_count;i++){
 				if( newElfNewData_d_buf[i] ){
 					free(newElfNewData_d_buf[i]);
 				}
 			}
 			free(newElfNewData_d_buf);
 		}else{
-			for(unsigned int i = 0;i<newElfNewData_d_buf_count;i++){
+			for(int i = 0;i<newElfNewData_d_buf_count;i++){
 				if( newElfNewData_d_buf[i] ){
 					delete [] (char*) newElfNewData_d_buf[i];
 				}
@@ -241,7 +241,7 @@ void writeBackElf::driver(){
 	Elf_Data *data = NULL, *newdata = NULL, *olddata = NULL;
 	//important data sections in the
         //new Elf that need updated
-        Elf_Data *textData, *symStrData, *dynStrData, *symTabData, *hashData, *dynsymData, *rodata, *dataData;
+        Elf_Data *textData, *symStrData, *dynStrData, *symTabData, *dynsymData, *dataData;
 
 	ehdr = elf32_getehdr(oldElf);
 	if(!(newEhdr = elf32_newehdr(newElf))){
@@ -323,7 +323,7 @@ void writeBackElf::driver(){
 		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".text")){
 			textData = newdata;
 			if(mutateeProcess){
-				mutateeProcess->readTextSpace((const void*) newsh->sh_addr, newdata->d_size, 
+				mutateeProcess->readTextSpace((const void*) (long) newsh->sh_addr, newdata->d_size, 
 														(void*)newdata->d_buf);
 				
 			}
