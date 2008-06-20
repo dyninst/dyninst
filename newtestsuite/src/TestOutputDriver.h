@@ -54,7 +54,7 @@ public:
 
   // Returns arguments to pass to the mutatee driver that cause it to invoke
   // its support for this output driver
-  virtual void getMutateeArgs(std::vector<std::string> &args);
+  TESTLIB_DLL_EXPORT virtual void getMutateeArgs(std::vector<std::string> &args);
 };
 
 #endif // TEST_OUTPUT_DRIVER_H

@@ -86,6 +86,6 @@ TESTLIB_DLL_EXPORT std::map<std::string, std::string> *TestOutputDriver::getAttr
   return retval;
 }
 
-void TestOutputDriver::getMutateeArgs(std::vector<std::string> &args) {
+TESTLIB_DLL_EXPORT void TestOutputDriver::getMutateeArgs(std::vector<std::string> &args) {
   args.clear();
 }
