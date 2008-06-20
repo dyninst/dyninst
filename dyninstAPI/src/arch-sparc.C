@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.32 2008/04/22 04:39:26 jaw Exp $
+ * $Id: arch-sparc.C,v 1.33 2008/06/20 21:45:12 bill Exp $
  */
 
 #include "common/h/Types.h"
@@ -614,8 +614,6 @@ bool instruction::generate(codeGen &gen,
          // Need to check the destination. Grab it with an InstrucIter
          InstrucIter callTarget(target, proc);
          instruction callInsn = callTarget.getInstruction();
-         callTarget++;
-         instruction nextInsn = callTarget.getInstruction();
          
          if (callInsn.isInsnType(RETLmask, RETLmatch)) {
             inst_printf("%s[%d]: Call to immediate return\n", FILE__, __LINE__);
@@ -627,6 +625,8 @@ bool instruction::generate(codeGen &gen,
             instruction::generateSetHi(gen, origAddr, REG_O(7));
             instruction::generateImm(gen, ORop3, REG_O(7),
                                      LOW10(origAddr), REG_O(7));
+	    callTarget++;
+	    instruction nextInsn = callTarget.getInstruction();
             if (nextInsn.valid()) {
                nextInsn.generate(gen);
             }
