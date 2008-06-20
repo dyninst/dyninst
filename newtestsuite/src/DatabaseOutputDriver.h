@@ -19,17 +19,16 @@
 class DatabaseOutputDriver : public TestOutputDriver {
 private:
   std::string dblogFilename;
-  std::string dblogFailedFilename;
+  std::string sqlLogFilename;
   std::map<std::string, std::string> *attributes;
-  bool cantConnect;
+  bool wroteLogHeader;
   bool submittedResults;
   test_results_t result;
 
   // Stores any output before startNewTest is first called
   std::stringstream pretestLog;
 
-  void failedResultSubmission(std::string message);
-  void initializeSQLFailure(std::string header, std::string message);
+  void writeSQLLog();
 
 public:
   DatabaseOutputDriver(void * data);

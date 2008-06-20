@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 2008/06/18 20:17:36 carl Exp $
+# $Id: nmake.module.tmpl,v 1.2 2008/06/20 19:15:50 carl Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -40,7 +40,7 @@ OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
 
 MUTATOR_LIBS = libdyninstAPI.lib libtestSuite.lib
 
-all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees output_drivers # libtestA.dll libtestB.dll
+all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll # libtestA.dll libtestB.dll
 
 
 UNCOMMON_INSTALL=true
@@ -72,22 +72,9 @@ runTests.exe: runTests.obj runTests-utils-nt.obj
 runTests.obj:  ../src/runTests.C ../src/runTests-utils-nt.C
 	$(CXX) $(CXXFLAGS_NORM) ../src/runTests.C ../src/runTests-utils-nt.C
 
-OUTPUT_DRIVERS =
-
-# comment this out if you don't have mysql
-#LIBMYSQLCLIENTDIR = P:\paradyn\packages\mysql-5.0\win32
-LIBMYSQLCLIENT_INC = P:\paradyn\packages\mysql-5.0\win32\include
-
-!ifdef LIBMYSQLCLIENTDIR
-MYSQLCLIENT_LIBFLAGS = P:\paradyn\packages\mysql-5.0\win32\lib\opt\mysqlclient.lib
-OUTPUT_DRIVERS = $(OUTPUT_DRIVERS) DatabaseOutputDriver.dll
-!endif
-
 DatabaseOutputDriver.obj: ../src/DatabaseOutputDriver.C
-	$(CXX) $(CXXFLAGS_NORM) -c -I../src/ -I$(LIBMYSQLCLIENT_INC) $**
+	$(CXX) $(CXXFLAGS_NORM) -c -I../src/ $**
 	
 DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
-	$(LINK) $(LDFLAGS) -DLL -out:$@ $(MUTATOR_LIBS) $(MYSQLCLIENT_LIBFLAGS)
-	
-.PHONY: output_drivers
-output_drivers: $(OUTPUT_DRIVERS)
+# Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
+	$(LINK) $(LDFLAGS) -DLL -out:$@ $(MUTATOR_LIBS) Advapi32.lib Ws2_32.lib $**

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.3 2008/06/18 19:58:29 carl Exp $
+// $Id: test_driver.C,v 1.4 2008/06/20 19:15:53 carl Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -1949,19 +1949,17 @@ int main(unsigned int argc, char *argv[]) {
       setPIDFilename(pidFilename);
     }
 	else if (strcmp(argv[i], "-dboutput") == 0) {
-		bool failedOutputFileFound = false;
-		std::stringstream failedOutputFile;
+		char * failedOutputFile = NULL;
 		//check if a failed output file is specified
 		if ((i + 1) < argc) {
 			if (argv[i+1][0] != '-' || argv[i+1][1] == '\0') {
 			//either it doesn't start with - or it's exactly -
 				i++;
-				failedOutputFile << argv[i];
-				failedOutputFileFound = true;
+				failedOutputFile = argv[i];
 			}
 		}
 
-		if (!failedOutputFileFound) {
+		if (NULL == failedOutputFile) {
 			//TODO insert proper value
 			time_t rawtime;
 			struct tm * timeinfo = (tm *)malloc(sizeof(struct tm));
@@ -1969,13 +1967,18 @@ int main(unsigned int argc, char *argv[]) {
 	 		time(&rawtime);
 			timeinfo = localtime(&rawtime);
 
-			failedOutputFile << std::string("failed_dblog-") << timeinfo->tm_year + 1900 << '-' <<
-									timeinfo->tm_mon + 1 << '-' << timeinfo->tm_mday;
-			
-			getOutput()->log(STDERR, "No 'failed log file' found, using default %s\n", failedOutputFile.str().c_str());
+			failedOutputFile = (char*)malloc(sizeof(char) * strlen("sql_dblog-xxxx-xx-xx0"));
+			if (failedOutputFile == NULL) {
+				fprintf(stderr, "[%s:%u] - Out of memory!\n", __FILE__, __LINE__);
+				// TODO Handle error;
+			}
+			sprintf(failedOutputFile, "sql_dblog-%4d-%02d-%02d",
+					timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday);
+
+			getOutput()->log(STDERR, "No 'SQL log file' found, using default %s\n", failedOutputFile);
 		}
 
-		std::string s_failedOutputFile = failedOutputFile.str();
+		std::string s_failedOutputFile (failedOutputFile);
 		TestOutputDriver *newoutput = loadOutputDriver("DatabaseOutputDriver", &s_failedOutputFile);
 
 		//make sure it loaded correctly before replacing default output
