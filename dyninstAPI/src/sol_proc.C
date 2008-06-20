@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.123 2008/06/19 22:13:43 jaw Exp $
+// $Id: sol_proc.C,v 1.124 2008/06/20 21:44:46 bill Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -274,10 +274,12 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith)
       command[1] = 0;
    }
 
-   // Continue the process the easy way
-busy_retry:
-   errno = 0;
-   if (write(ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
+  // Continue the process the easy way
+ busy_retry:
+  errno = 0;
+  signal_printf("[%s:%u] - LOW LEVEL continue happened\n", FILE__, __LINE__);
+	       
+  if (write(ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
       if (errno == EBUSY) {
          struct timeval slp;
          slp.tv_sec = 0;

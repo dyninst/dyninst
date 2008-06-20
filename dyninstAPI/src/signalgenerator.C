@@ -1314,7 +1314,7 @@ std::string SignalGeneratorCommon::createExecPath(std::string &file, std::string
   }
 #else
   if (dir.length() > 0) {
-     if (file[0] == ('/')) {
+     if (!(file[0] == ('/'))) {
          // file does not start  with a '/', so it is a relative pathname
          // we modify it to prepend the given directory
          if (dir[dir.length()-1 ] == ('/') ) {

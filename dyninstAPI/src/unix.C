@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.241 2008/06/19 22:13:43 jaw Exp $
+// $Id: unix.C,v 1.242 2008/06/20 21:44:51 bill Exp $
 
 #include <string>
 #include "common/h/headers.h"
@@ -147,7 +147,7 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
 {
 
    ev.info = GETREG_INFO(status.pr_reg);
-
+   signal_printf("%s[%d]: decodeProcStatus entry\n", FILE__, __LINE__);
    switch (status.pr_why) {
       case PR_SIGNALLED:
          ev.type = evtSignalled;
@@ -169,6 +169,7 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
          else
             ev.info = 0;
 #endif
+	 signal_printf("%s[%d]: decodeProcStatus got PR_SYSENTRY, calling decodeSyscall, errno = %d\n", FILE__, __LINE__, status.pr_errno);
          decodeSyscall(ev);
          break;
       case PR_SYSEXIT:
@@ -180,7 +181,23 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
          // left in pr_sysarg[0]. NOT IN MAN PAGE.
          ev.info = status.pr_sysarg[0];
 #endif
+	 signal_printf("%s[%d]: decodeProcStatus got PR_SYSEXIT, calling decodeSyscall, errno = %d\n", FILE__, __LINE__, status.pr_errno);
          decodeSyscall(ev);
+	 // Exec errors mean that we didn't actually get a new address space.
+	 // Therefore, we shouldn't treat a signal with an error code as an exec
+	 // (since those events are associated with the address space changes).
+	 // Furthermore, we can expect exec to do path searches--and every
+	 // failed path search will come back with error 2, ENOENT.
+	 // -- BW, 6/08
+	 if(status.pr_errno)
+	 {
+	   if(ev.what == procSysExec)
+	   {
+	     signal_printf("%s[%d]: exec got errno %d.  Treating as non-event.\n", FILE__, __LINE__, status.pr_errno);
+	     ev.type = evtNullEvent;
+	   }
+	 }
+	 
          break;
       case PR_REQUESTED:
          // Because we asked for it... for example:
@@ -244,7 +261,7 @@ bool SignalGenerator::decodeSyscall(EventRecord &ev)
    int pid = p->getPid();
 #endif
    int syscall = (int) ev.what;
-
+   
    if (syscall == SYSSET_MAP(SYS_fork, pid) ||
          syscall == SYSSET_MAP(SYS_fork1, pid) ||
          syscall == SYSSET_MAP(SYS_vfork, pid)) {
@@ -430,7 +447,9 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
    ev.proc = proc;
    ev.lwp = proc->getRepresentativeLWP();
    ev.info  = pfds[0].revents;
-   
+
+   signal_printf("[%s:%u] - GOT EVENT with info %lx\n", FILE__, __LINE__, ev.info);
+
    if (ev.proc->status() == running) {
       ev.proc->set_status(stopped);
    }
@@ -630,7 +649,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
    char buf[128];
    process *proc = ev.proc;
 
-  //fprintf(stderr, "%s[%d]:  SIGTRAP: %s\n", FILE__, __LINE__, ev.sprint_event(buf));
+   //fprintf(stderr, "%s[%d]:  SIGTRAP: %s\n", FILE__, __LINE__, ev.sprint_event(buf));
   if (decodeIfDueToProcessStartup(ev)) {
      signal_printf("%s[%d]:  decodeSigTrap for %s, state: %s\n",
                 FILE__, __LINE__, ev.sprint_event(buf), 
@@ -667,6 +686,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   // (4) Is this an instrumentation-based method of grabbing the exit
   // of a system call?
   if (ev.lwp->decodeSyscallTrap(ev)) {
+    signal_printf("[%s:%u] - Decided trap was a syscall\n", FILE__, __LINE__);
       // That sets all information....
       return true;
   }
