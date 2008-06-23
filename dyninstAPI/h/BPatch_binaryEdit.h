@@ -92,17 +92,8 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
 
     private:
     BinaryEdit *llBinEdit;
-	std::vector<BPatch_image*> depImages;
-    BPatch_binaryEdit(const char *path, bool openDependencies=true);
+    BPatch_binaryEdit(const char *path);
     bool creation_error;
-
-    // Resolve a dynamic library name to a full path
-    // Returns NULL if the library cannot be found
-	std::string* resolveLibraryName(const std::string &filename);
-
-    // Open all dependencies of a given object
-    // Returns true if successful
-    bool openAllDependencies(const char *path);
 
     public:
 
@@ -149,15 +140,6 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
 
     API_EXPORT(Int, (atomic, modified),
                bool, finalizeInsertionSet, (bool atomic, bool *modified = NULL));
-
-    // BPatch_binaryEdit::findFunction
-    //
-    // Find a function across this object and all shared library
-    // objects.
-    
-    API_EXPORT(Int, (name, funcs),
-               BPatch_Vector<BPatch_function*> *, findFunction, 
-			   (const char *name, BPatch_Vector<BPatch_function*> &funcs));
                                        
     // BPatch_binaryEdit::loadLibrary
     //

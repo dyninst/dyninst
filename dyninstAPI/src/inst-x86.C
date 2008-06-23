@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.283 2008/06/19 22:13:42 jaw Exp $
+ * $Id: inst-x86.C,v 1.284 2008/06/23 20:30:33 mlam Exp $
  */
 #include <iomanip>
 
@@ -1268,49 +1268,45 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
 
-    // 1. find int_function reference in address space
+    // find int_function reference in address space
+    // (refresh func_map)
     pdvector<int_function *> funcs;
-    addrSpace->findFuncsByPretty(callee->prettyName(), funcs);
+    addrSpace->findFuncsByPretty(callee->symTabName(), funcs);
 
-    // test to see if callee is in the current module
-    Symtab *dynsymObj;
-    Symbol *referring;
-    if (funcs.size() == 0) {
+    // test to see if callee is in a shared module
+    if (callee->obj()->isSharedLib() && binEdit != NULL) {
 
-        // 2. find the Symbol corresponding to the int_function
-        std::vector<BinaryEdit *>* depEdits = binEdit->getDependentBinEdits();
-        for (unsigned j=0; j<depEdits->size() && funcs.size() == 0; j++) {
-            (*depEdits)[j]->findFuncsByPretty(callee->prettyName(), funcs);
-            dynsymObj = (*depEdits)[j]->getAOut()->parse_img()->getObject();
-            for (unsigned i=0; i<funcs.size(); i++) {
-                std::vector<Symbol *> retFuncs;
-                dynsymObj->findSymbolByType(retFuncs, funcs[i]->prettyName(), Symbol::ST_FUNCTION);
-                for (unsigned k=0; k<retFuncs.size(); k++) {
-                    referring = retFuncs[k];
-                }
-            }
+        // find the Symbol corresponding to the int_function
+        std::vector<Symbol *> syms;
+        callee->obj()->parse_img()->getObject()->findSymbolByType(
+                syms, callee->symTabName(), Symbol::ST_FUNCTION);
+        if (syms.size() == 0) {
+            return false;
         }
+        Symbol *referring = syms[0];
 
         // have we added this relocation already?
         dest = binEdit->getDependentRelocationAddr(referring);
 
         if (!dest) {
-            // 3. inferiorMalloc addr location
+            // inferiorMalloc addr location
             dest = binEdit->inferiorMalloc(8);
 
-            // 4. add write new relocation symbol/entry
+            // add write new relocation symbol/entry
             binEdit->addDependentRelocation(dest, referring);
         }
 
+        // load eax with address from jump table
         emitMovRMToReg(REGNUM_EAX, 0, dest, gen);                  // mov eax, *(addr)
 
     } else {
         dest = callee->getAddress();
 
+        // load eax with function address
         emitMovImmToReg(REGNUM_EAX, dest, gen);                    // mov eax, addr
     }
 
-    // 6. emit call
+    // emit call
     emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
 
     return true;

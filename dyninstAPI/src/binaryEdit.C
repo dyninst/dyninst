@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.19 2008/06/19 19:53:11 legendre Exp $
+// $Id: binaryEdit.C,v 1.20 2008/06/23 20:30:33 mlam Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -226,14 +226,6 @@ void BinaryEdit::deleteBinaryEdit() {
     lowWaterMark_ = 0;
 
     // TODO: is this cleanup necessary?
-
-    BinaryEdit *edit;
-    while (dependentBinEdits.size() > 0) {
-        edit = dependentBinEdits[0];
-        dependentBinEdits.erase(dependentBinEdits.begin());
-        delete edit;
-    }
-
     depRelocation *rel;
     while (dependentRelocations.size() > 0) {
         rel = dependentRelocations[0];
@@ -287,6 +279,8 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file) {
 
     newBinaryEdit->initialize();
     
+    newBinaryEdit->openAllDependencies();
+
     return newBinaryEdit;
 }
 
@@ -295,8 +289,175 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
     desc = fileDescriptor(name.c_str(),
                           0, // code base address
                           0, // data base address
-                          true); // a.out
+                          false); // a.out
     return true;
+}
+
+std::string* BinaryEdit::resolveLibraryName(const std::string &filename)
+{
+    char *libPathStr, *libPath;
+    std::vector<std::string> libPaths;
+    struct stat dummy;
+    std::string* fullPath = NULL;
+    bool found = false;
+
+    // build list of library paths
+    
+    // prefer fully-qualified file paths
+    libPaths.push_back("");
+
+    // add paths from environment variables
+    libPathStr = getenv("LD_LIBRARY_PATH");
+    libPath = strtok(libPathStr, ":");
+    while (libPath != NULL) {
+        libPaths.push_back(std::string(libPath));
+        libPath = strtok(NULL, ":");
+    }
+    libPaths.push_back(std::string(getenv("PWD")));
+
+    // TODO: add paths from /etc/ld.so.conf ?
+
+    // add hard-coded paths
+    libPaths.push_back("/usr/local/lib");
+    libPaths.push_back("/usr/share/lib");
+    libPaths.push_back("/usr/lib");
+    libPaths.push_back("/lib");
+
+    // find actual shared object file by searching all the lib paths
+    for (unsigned int i = 0; !found && i < libPaths.size(); i++) {
+        fullPath = new std::string(libPaths.at(i) + "/" + filename);
+
+        // if we've found the file...
+        if (stat(fullPath->c_str(), &dummy) == 0) {
+            found = true;
+        } else {
+            delete fullPath;
+            fullPath = NULL;
+        }
+    }
+
+    return fullPath;
+}
+
+bool BinaryEdit::openAllDependencies()
+{
+    return openAllDependencies(getAOut()->parse_img()->getObject());
+}
+
+bool BinaryEdit::openAllDependencies(const std::string &file)
+{
+    Symtab *st;
+    bool result = false;
+    std::string* fullPath = resolveLibraryName(file);
+    if (fullPath != NULL) {
+        Symtab::openFile(st, fullPath->c_str());
+        result = openAllDependencies(st);
+    }
+    return result;
+}
+
+bool BinaryEdit::openAllDependencies(Symtab *st)
+{
+    // extract list of dependencies
+    std::vector<std::string> depends = st->getDependencies();
+
+    // for each dependency
+    unsigned int count = depends.size();
+    for (unsigned int i = 0; i < count; i++) {
+
+        fprintf(stdout, "DEBUG - opening new dependency: %s\n", depends.at(i).c_str());
+
+        // if we can find the file...
+        std::string* fullPath = resolveLibraryName(depends.at(i));
+        if (fullPath != NULL) {
+
+            // get list of subdependencies
+            Symtab *subst;
+            Symtab::openFile(subst, fullPath->c_str());
+            std::vector<std::string> subdepends = subst->getDependencies();
+
+            // add any new dependencies to the main list
+            for (unsigned int k = 0; k < subdepends.size(); k++) {
+                bool found = false;
+                for (unsigned int l = 0; !found && l < depends.size(); l++) {
+                    if (depends.at(l).compare(subdepends.at(k))==0) {
+                        found = true;
+                    }
+                }
+                if (!found) {
+                    depends.push_back(subdepends.at(k));
+                    count++;
+                }
+            }
+
+            mapped_object *bin = addSharedObject(fullPath);
+            if (bin == NULL) {
+                return false;
+            }
+
+            delete fullPath;
+        }
+    }
+    return true;
+}
+
+bool BinaryEdit::openSharedLibrary(const std::string &file, bool openDependencies)
+{
+    std::string* fullPath = resolveLibraryName(file);
+
+    mapped_object *bin = addSharedObject(fullPath);
+
+    delete fullPath;
+    if (bin == NULL) {
+        return false;
+    }
+
+    if (openDependencies) {
+        return openAllDependencies(bin->parse_img()->getObject());
+    }
+    return true;
+}
+
+mapped_object * BinaryEdit::addSharedObject(const std::string *fullPath)
+{
+    // make sure the executable exists
+    if (!OS::executableExists(*fullPath)) {
+        startup_printf("%s[%d]:  failed to read file %s\n", 
+                FILE__, __LINE__, fullPath->c_str());
+        std::string msg = std::string("Can't read executable file ") + 
+            (*fullPath) + (": ") + strerror(errno);
+        showErrorCallback(68, msg.c_str());
+        return NULL;
+    }
+
+    // check to make sure the module hasn't already been loaded
+    mapped_object *bin = NULL;
+    bool found = false;
+    for (unsigned int i = 0; i < mapped_objects.size(); i++) {
+        if (*fullPath == mapped_objects[i]->fullName()) {
+            bin = mapped_objects[i];
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+
+        fileDescriptor desc(fullPath->c_str(), 
+           0, 0,    // code and data base addresses
+           true);   // not a.out
+
+        bin = mapped_object::createMappedObject(desc, this);
+        if (!bin) {
+            startup_printf("%s[%d]: failed to create mapped object for %s\n",
+                          FILE__, __LINE__, fullPath->c_str());
+            return NULL;
+        }
+
+        mapped_objects.push_back(bin);
+    }
+
+    return bin;
 }
 
 #if 1
@@ -776,14 +937,6 @@ bool BinaryEdit::initialize() {
     fprintf(stderr, "Tramp guard created at address 0x%lx\n", trampGuardBase_);
 
     return true;
-}
-
-void BinaryEdit::addDependentBinEdit(BinaryEdit *newBinEdit) {
-	dependentBinEdits.push_back(newBinEdit);
-}
-
-std::vector<BinaryEdit *>* BinaryEdit::getDependentBinEdits() {
-	return &dependentBinEdits;
 }
 
 void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {

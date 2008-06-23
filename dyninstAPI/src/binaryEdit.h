@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.11 2008/06/13 20:06:25 mlam Exp $
+// $Id: binaryEdit.h,v 1.12 2008/06/23 20:30:33 mlam Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -135,12 +135,26 @@ class BinaryEdit : public AddressSpace {
     
     virtual bool canUseTraps() { return false; }
 
-	void addDependentBinEdit(BinaryEdit *newBinEdit);
+    // resolve a dynamic library name to a full path
+    // returns NULL if the library cannot be found
+    std::string* resolveLibraryName(const std::string &filename);
 
-    std::vector<BinaryEdit *>* getDependentBinEdits();
+    // open all dependencies of the current a.out
+    bool openAllDependencies();
+    
+    // open all dependencies of a given file
+    bool openAllDependencies(const std::string &file);
 
+    // open all dependencies of a given object
+    bool openAllDependencies(Symtab *st);
+
+    // open a shared library and (optionally) all its dependencies
+    bool openSharedLibrary(const std::string &file, bool openDependencies = true);
+
+    // add a shared library relocation
 	void addDependentRelocation(Address to, Symbol *referring);
 
+    // search for a shared library relocation
 	Address getDependentRelocationAddr(Symbol *referring);
 
  private:
@@ -159,7 +173,7 @@ class BinaryEdit : public AddressSpace {
 
     codeRangeTree memoryTracking_;
 
-    std::vector<BinaryEdit *> dependentBinEdits;
+    mapped_object * addSharedObject(const std::string *fullPath);
 
     std::vector<depRelocation *> dependentRelocations;
 

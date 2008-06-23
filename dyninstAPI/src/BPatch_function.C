@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.107 2008/06/19 19:52:50 legendre Exp $
+// $Id: BPatch_function.C,v 1.108 2008/06/23 20:30:33 mlam Exp $
 
 #define BPATCH_FILE
 
@@ -547,21 +547,27 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
 void BPatch_function::constructVarsAndParams(){
     if(varsAndParamsValid)
        return;
-    mod->parseTypesIfNecessary();
+    if (mod) {
+        mod->parseTypesIfNecessary();
+    }
 
     //Check flag to see if vars & params are already constructed
     std::vector<localVar *>vars;
     if(lowlevel_func()->ifunc()->symbol()->getLocalVariables(vars)) {
         for(unsigned i = 0; i< vars.size(); i++) 
 	    {
-	        vars[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
+            if (mod) {
+                vars[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
+            }
 	        localVariables->addLocalVar(new BPatch_localVar(vars[i]));
 	    }    
     }
     std::vector<localVar *>parameters;
     if(lowlevel_func()->ifunc()->symbol()->getParams(parameters)) {
         for(unsigned i = 0; i< parameters.size(); i++) {
-	        parameters[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
+            if (mod) {
+                parameters[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
+            }
 	        BPatch_localVar *lparam = new BPatch_localVar(parameters[i]);
     	    funcParameters->addLocalVar(lparam);
 	        params.push_back(lparam);
