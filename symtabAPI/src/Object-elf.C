@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.48 2008/06/19 19:54:12 legendre Exp $
+ * $Id: Object-elf.C,v 1.49 2008/06/23 18:45:41 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -68,6 +68,18 @@ using namespace std;
 #endif
 #include <iostream>
 #include <iomanip>
+
+#include <fstream>
+#include <sys/stat.h>
+#include <boost/crc.hpp>
+#include <boost/assign/list_of.hpp>
+#include <boost/assign/std/set.hpp>
+#include <boost/assign/std/vector.hpp>
+
+using boost::crc_32_type;
+using namespace boost::assign;
+
+#include <libgen.h>
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
@@ -262,6 +274,11 @@ const char* RO_DATA_NAME     = ".ro_data";  // mips
 const char* DYNAMIC_NAME     = ".dynamic";
 const char* EH_FRAME_NAME    = ".eh_frame";
 const char* EXCEPT_NAME      = ".gcc_except_table";
+const char* DEBUGLINK_NAME   = ".gnu_debuglink";
+const char* BUILD_ID_NAME    = ".note.gnu.build-id";
+
+set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
+                                       (string(STRTAB_NAME));
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
@@ -334,6 +351,32 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
    txtaddr = 0;
 
+   set<string> sectionsInOriginalBinary;
+   bool debugInfoValid = true;
+
+   if(mfForDebugInfo->getFD() != -1)
+      elfHdrForDebugInfo = Elf_X(mfForDebugInfo->getFD(), ELF_C_READ);
+   else
+      elfHdrForDebugInfo = Elf_X((char *)mfForDebugInfo->base_addr(), mfForDebugInfo->size());
+   if(!elfHdrForDebugInfo.isValid()) {
+      log_elferror(err_func_, "Elf header");
+      fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
+      debugInfoValid = false;
+   }
+   else if(!pdelf_check_ehdr(elfHdrForDebugInfo)) {
+      fprintf(stderr, "%s[%d]:  Warning: Elf ehdr failed integrity check\n", FILE__, __LINE__);
+      log_elferror(err_func_, "ELF header failed integrity check");
+      debugInfoValid = false;
+   }
+
+
+   const char *shnamesForDebugInfo = pdelf_get_shnames(elfHdrForDebugInfo);
+   if (shnamesForDebugInfo == NULL) {
+      fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+      log_elferror(err_func_, ".shstrtab section");
+      //return false;
+   }
+
 #if defined(TIMED_PARSE)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
@@ -341,15 +384,35 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
    Elf_X_Shdr *scnp;
 
-   for (int i = 0; i < elfHdr.e_shnum(); ++i) {
-      scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-      if (! scnp->isValid()) { // section is malformed
-         continue; 
-      } 
+   for (int i = 0; i < elfHdr.e_shnum() + elfHdrForDebugInfo.e_shnum(); ++i) {
+      const char *name;
+
+      if(i < elfHdr.e_shnum()) {
+         scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
+         if (! scnp->isValid()) { // section is malformed
+            continue; 
+         } 
+         name = &shnames[scnp->sh_name()];
+         sectionsInOriginalBinary.insert(string(name));
+      }
+      else {
+         if(!debugInfoValid || mfForDebugInfo == mf || hasDwarfInfo())
+            break;
+         scnp = new Elf_X_Shdr(elfHdrForDebugInfo.get_shdr(i - elfHdr.e_shnum()));
+         if(! scnp->isValid()) {
+            continue;
+         }
+         name = &shnamesForDebugInfo[scnp->sh_name()];
+
+         if(debugInfoSections.count(name) == 0)
+            continue;
+         // if(sectionsInOriginalBinary.count(name) > 0)
+         //    continue;
+      }
+
       allRegionHdrs.push_back( scnp );
 
       // resolve section name
-      const char *name = &shnames[scnp->sh_name()];
 
       //If the section appears in the memory image of a process address is given by sh_addr()
       //otherwise this is zero and sh_offset() gives the offset to the first byte in section.
@@ -836,7 +899,7 @@ void Object::load_object(bool alloc_syms)
       //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
       if (eh_frame_scnp != 0 && gcc_except != 0) {
-         find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
+         find_catch_blocks(elfHdrForDebugInfo, eh_frame_scnp, gcc_except, catch_addrs_);
       }
 #endif
       if(interp_scnp)
@@ -887,7 +950,7 @@ void Object::load_object(bool alloc_syms)
       fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
 
       // DWARF format (.debug_info section)
-      fix_global_symbol_modules_static_dwarf(elfHdr);
+      fix_global_symbol_modules_static_dwarf(elfHdrForDebugInfo);
 
       if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
       {
@@ -991,7 +1054,7 @@ void Object::load_shared_object(bool alloc_syms)
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
       //fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
       if (eh_frame_scnp != 0 && gcc_except != 0) {
-         find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
+         find_catch_blocks(elfHdrForDebugInfo, eh_frame_scnp, gcc_except, catch_addrs_);
       }
 #endif
 #if defined(TIMED_PARSE)
@@ -2491,10 +2554,11 @@ stab_entry *Object::get_stab_info() const
    return new stab_entry_64();
 }
 
-Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li,
-     std::vector<Region *> &secs_, 
-      void (*err_func)(const char *)) :
-   AObject(mf_, err_func), 
+Object::Object(MappedFile *mf_, MappedFile *mfd, 
+               dyn_hash_map<std::string, LineInformation> &li,
+               std::vector<Region *> &secs_, 
+               void (*err_func)(const char *)) :
+   AObject(mf_, mfd, err_func), 
    stab_off_(0),
    stab_size_(0),
    stabstr_off_(0),
@@ -2516,6 +2580,20 @@ Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li,
          ((unsigned long)mf_->base_addr()) + stabstr_off_,
          stab_size_/sizeof(stab32));
 #endif
+   if(mfForDebugInfo->getFD() != -1)
+      elfHdrForDebugInfo = Elf_X(mfForDebugInfo->getFD(), ELF_C_READ);
+   else
+      elfHdrForDebugInfo = Elf_X((char *)mfForDebugInfo->base_addr(), mfForDebugInfo->size());
+   if(!elfHdrForDebugInfo.isValid()) {
+      log_elferror(err_func_, "Elf header");
+      fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
+      return;
+   }
+   else if(!pdelf_check_ehdr(elfHdrForDebugInfo)) {
+      fprintf(stderr, "%s[%d]:  Warning: Elf ehdr failed integrity check\n", FILE__, __LINE__);
+      log_elferror(err_func_, "ELF header failed integrity check");
+   }
+
    if(mf->getFD() != -1)
       elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
    else
@@ -2547,9 +2625,9 @@ Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li,
       this->parseFileLineInfo(li);
 }
 
-Object::Object(MappedFile *mf_, void (*err_func)(const char *), bool alloc_syms) :
-   AObject(mf_, err_func), 
-   EEL(false) 
+Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), bool alloc_syms) :
+   AObject(mf_, mfd, err_func), 
+   EEL(false)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -2567,6 +2645,7 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), bool alloc_syms)
    else
        elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
 
+   mfForDebugInfo = findMappedFileForDebugInfo();
    // ELF header: sanity check
    //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
    if (!elfHdr.isValid())  {
@@ -2600,9 +2679,9 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), bool alloc_syms)
 }
 
 //Object constructor for archive members
-Object::Object(MappedFile *mf_, std::string &member_name, Offset offset,	
+Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset,	
         void (*err_func)(const char *), void *base, bool alloc_syms) :
-   AObject(mf_, err_func), 
+   AObject(mf_, mfd, err_func), 
    EEL(false) {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -2686,7 +2765,7 @@ Object::Object(MappedFile *mf_, std::string &member_name, Offset offset,
 }
 #endif
    Object::Object(const Object& obj)
-: AObject(obj), EEL(false) 
+: AObject(obj), EEL(false)
 {
 #if defined(os_solaris)
    loadNativeDemangler();
@@ -3505,7 +3584,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
    if (hasDwarfInfo())
 	{
       Dwarf_Debug dbg;
-      int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
+      int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
       if (status != DW_DLV_OK) {
          return;
       }	 
@@ -3852,7 +3931,7 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
 void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
    Dwarf_Debug dbg;
-   int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
+   int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
    if ( status != DW_DLV_OK ) { 
 //      fprintf(stderr, "%s[%d]:  dwarf init failed, no dwarf I guess\n", FILE__, __LINE__);
       return; 
@@ -4328,3 +4407,99 @@ void Object::parseStabTypes(Symtab *obj)
          << " msec" << endl;
 #endif
 } 
+
+// The standard procedure to look for a separate debug information file
+// is as follows:
+// 1. Lookup build_id from .note.gnu.build-id section and debug-file-name and
+//    crc from .gnu_debuglink section of the original binary.
+// 2. Look for the following files:
+//        /usr/lib/debug/.build-id/<path-obtained-using-build-id>.debug
+//        <debug-file-name> in <directory-of-executable>
+//        <debug-file-name> in <directory-of-executable>/.debug
+//        <debug-file-name> in /usr/lib/debug/<directory-of-executable>
+// Reference: http://sourceware.org/gdb/current/onlinedocs/gdb_16.html#SEC157
+
+MappedFile *Object::findMappedFileForDebugInfo() {
+   // ".shstrtab" section: string table for section header names
+   const char *shnames = pdelf_get_shnames(elfHdr);
+   if (shnames == NULL) {
+      fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+      log_elferror(err_func_, ".shstrtab section");
+   }
+
+   string debugFileFromDebugLink, debugFileFromBuildID;
+   unsigned debugFileCrc = 0;
+   Elf_X_Shdr *scnp;
+
+   for(int i = 0; i < elfHdr.e_shnum(); ++i) {
+      scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
+      if(! scnp->isValid()) { // section is malformed
+         continue;
+      }
+
+      const char *name = &shnames[scnp->sh_name()];
+      if(strcmp(name, DEBUGLINK_NAME) == 0) {
+         Elf_X_Data data = scnp->get_data();
+         debugFileFromDebugLink = (char *) data.d_buf();
+         void *crcLocation = ((char *) data.d_buf() + data.d_size() - 4);
+         debugFileCrc = *(unsigned *) crcLocation;
+      }
+      else if(strcmp(name, BUILD_ID_NAME) == 0) {
+         char *buildId = (char *) scnp->get_data().d_buf();
+         string filename = string(buildId + 2) + ".debug";
+         string subdir = string(buildId, 2);
+         debugFileFromBuildID = "/usr/lib/debug/.build-id/" + subdir + "/" + filename;
+      }
+   }
+
+   if(! debugFileFromBuildID.empty()) {
+      ifstream debugFile(debugFileFromBuildID.c_str(), ios::in | ios::binary);
+      if(debugFile) {
+         debugFile.close();
+
+         dwarvenDebugInfo = true;
+         mfForDebugInfo = MappedFile::createMappedFile(debugFileFromBuildID);
+         return mfForDebugInfo;
+      }
+   }
+
+   if(debugFileFromDebugLink.empty())
+      return mf;
+
+   char *mfPathNameCopy = strdup(mf->pathname().c_str());
+   string objectFileDirName = dirname(mfPathNameCopy);
+
+   vector<string> fnames = list_of
+      (objectFileDirName + "/" + debugFileFromDebugLink)
+      (objectFileDirName + "/.debug/" + debugFileFromDebugLink)
+      ("/usr/lib/debug/" + objectFileDirName + "/" + debugFileFromDebugLink);
+
+   free(mfPathNameCopy);
+
+   for(unsigned i = 0; i < fnames.size(); ++ i) {
+      ifstream debugFile(fnames[i].c_str(), ios::in | ios::binary);
+      if(!debugFile)
+         continue;
+
+      struct stat fileStat;
+      if(stat(fnames[i].c_str(), &fileStat) != 0)
+         continue;
+
+      char *buffer = (char *) malloc(sizeof(char) * fileStat.st_size);
+      debugFile.read(buffer, fileStat.st_size);
+      debugFile.close();
+
+      boost::crc_32_type crcComputer;
+      crcComputer.process_bytes(buffer, fileStat.st_size);
+      free(buffer);
+
+      if(crcComputer.checksum() != debugFileCrc)
+         continue;
+
+      dwarvenDebugInfo = true;
+      mfForDebugInfo = MappedFile::createMappedFile(fnames[i]);
+      return mfForDebugInfo;
+   }
+
+   return mf;
+}

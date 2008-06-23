@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.22 2008/06/19 19:54:17 legendre Exp $
+ * $Id: Object-xcoff.h,v 1.23 2008/06/23 18:45:46 legendre Exp $
 ************************************************************************/
 
 
@@ -189,10 +189,10 @@ class Object : public AObject {
     Object (const Object &);
     Object&   operator= (const Object &);
     Object(){}	
-    Object(MappedFile *, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
-    Object(MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, 
+    Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
+    Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, 
           void (*)(const char *) = log_msg, Offset off = 0);
-    Object(MappedFile *, std::string &member_name, Offset offset,	
+    Object(MappedFile *, MappedFile *, std::string &member_name, Offset offset,	
             void (*)(const char *) = log_msg, void *base = NULL);
     virtual ~Object ()
     {

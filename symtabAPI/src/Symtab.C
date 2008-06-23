@@ -340,7 +340,7 @@ DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
    Annotatable<Region *, user_regions_a, true>(),
    Annotatable<Type *, user_types_a, true>(),
    Annotatable<Symbol *, user_symbols_a, true>(),
-   mf(mf_)
+   mf(mf_), mfForDebugInfo(mf_)
 {   
 
 }   
@@ -1160,7 +1160,7 @@ Symtab::Symtab(std::string filename,bool &err) :
       err = true;
       return;
    }
-   Object *linkedFile = new Object(mf, pd_log_perror, true);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, true);
    if(!extractInfo(linkedFile))
    {
       symtab_printf("%s[%d]: WARNING: creating symtab for %s, extractInfo() " 
@@ -1195,7 +1195,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
       err = true;
       return;
    }
-   Object *linkedFile = new Object(mf, pd_log_perror, true);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, true);
    if(!extractInfo(linkedFile))
    {
       symtab_printf("%s[%d]: WARNING: creating symtab for memory image at addr" 
@@ -1222,7 +1222,7 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
-   Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror, base);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, member_name, offset, pd_log_perror, base);
    err = extractInfo(linkedFile);
    delete linkedFile;
    defaultNamespacePrefix = "";
@@ -1248,7 +1248,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
 {
     mf = MappedFile::createMappedFile(mem_image, image_size);
     assert(mf);
-    Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror, base);
+    Object *linkedFile = new Object(mf, mf, member_name, offset, pd_log_perror, base);
     err = extractInfo(linkedFile);
     delete linkedFile;
     defaultNamespacePrefix = "";
@@ -1271,6 +1271,8 @@ bool Symtab::extractInfo(Object *linkedFile)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
+    mfForDebugInfo = linkedFile->getMappedFileForDebugInfo();
+
     bool err = true;
     imageOffset_ = linkedFile->code_off();
     dataOffset_ = linkedFile->data_off();
@@ -2280,6 +2282,7 @@ Symtab::~Symtab()
 
     //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
     if (mf) MappedFile::closeMappedFile(mf);
+    if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
 }	
  
 bool Module::findSymbolByType(std::vector<Symbol *> &found, const std::string name,
@@ -3090,9 +3093,9 @@ void Symtab::parseLineInformation()
 {
    dyn_hash_map <std::string, LineInformation> *lineInfo = new dyn_hash_map <std::string, LineInformation>;
 #if defined(os_aix)
-   Object *linkedFile = new Object(mf, *lineInfo, regions_, pd_log_perror, member_offset_);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, *lineInfo, regions_, pd_log_perror, member_offset_);
 #else
-   Object *linkedFile = new Object(mf, *lineInfo, regions_, pd_log_perror);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, *lineInfo, regions_, pd_log_perror);
 #endif
 
    isLineInfoValid_ = true;	
@@ -3196,9 +3199,9 @@ DLLEXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExcl
 void Symtab::parseTypes()
 {
 #if defined(os_aix)
-   Object *linkedFile = new Object(mf, pd_log_perror, member_offset_, false);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, member_offset_, false);
 #else
-   Object *linkedFile = new Object(mf, pd_log_perror, false);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, false);
 #endif
    linkedFile->parseTypeInfo(this);
    isTypeInfoValid_ = true;
@@ -3885,7 +3888,7 @@ DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
         notypeSyms.push_back(iter->second);
         iter++;
     }
-   Object *linkedFile = new Object(mf, pd_log_perror, true);
+   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, true);
    assert(linkedFile);
    bool ret = linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
    delete linkedFile;
@@ -3937,7 +3940,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
     Offset secoffset = 0;
     Offset prevSecoffset = 0;
 
-    Object *linkedFile = new Object(mf, pd_log_perror, false);
+    Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, false);
     assert(linkedFile);
 
     for (unsigned i = 0; i < regions_.size(); i++) {

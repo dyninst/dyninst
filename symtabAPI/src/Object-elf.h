@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.20 2008/06/19 19:54:13 legendre Exp $
+ * $Id: Object-elf.h,v 1.21 2008/06/23 18:45:42 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -274,9 +274,9 @@ class Region;
 class Object : public AObject {
  public:
   Object(){}
-  Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
-  Object(MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
-  Object(MappedFile *, std::string &member_name, Offset offset,	
+  Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
+  Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
+  Object(MappedFile *, MappedFile *, std::string &member_name, Offset offset,	
           void (*)(const char *) = log_msg, void *base = NULL, bool alloc_syms = true);
   Object(const Object &);
   virtual ~Object();
@@ -371,6 +371,8 @@ class Object : public AObject {
   static void log_elferror (void (*)(const char *), const char *);
     
   Elf_X    elfHdr;
+
+  Elf_X    elfHdrForDebugInfo;
   
   Offset   fini_addr_;
   Offset   text_addr_; 	 //.text section 
@@ -487,6 +489,8 @@ class Object : public AObject {
   bool fix_global_symbol_modules_static_dwarf(Elf_X &elf);
 
   void get_valid_memory_areas(Elf_X &elf);
+
+  MappedFile *findMappedFileForDebugInfo();
 
 #if 0 
 #if defined(os_irix)

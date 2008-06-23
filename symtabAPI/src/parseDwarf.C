@@ -2149,7 +2149,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
    Dwarf_Debug dbg;
    Module *mod = NULL, *fixUnknownMod = NULL;
 
-   int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
+   int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
    DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error initializing libdwarf.\n", __FILE__, __LINE__ );
 
    /* Iterate over the compilation-unit headers. */

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.24 2008/06/19 19:54:18 legendre Exp $
+// $Id: Object.C,v 1.25 2008/06/23 18:45:47 legendre Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -914,8 +914,8 @@ DLLEXPORT AObject::~AObject()
 }
 
 // explicitly protected
-DLLEXPORT AObject::AObject(MappedFile *mf_ , void (*err_func)(const char *)) 
-: mf(mf_), code_ptr_(0), code_off_(0),
+DLLEXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *)) 
+: mf(mf_), mfForDebugInfo(mfd), code_ptr_(0), code_off_(0),
    code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
    loader_len_(0), is_dynamic_(false), deferredParse(false), err_func_(err_func),
    addressWidth_nbytes(4) 
@@ -923,7 +923,7 @@ DLLEXPORT AObject::AObject(MappedFile *mf_ , void (*err_func)(const char *))
 }
 
 DLLEXPORT AObject::AObject(const AObject &obj)
-: mf(obj.mf), symbols_(obj.symbols_), 
+: mf(obj.mf), mfForDebugInfo(obj.mfForDebugInfo), symbols_(obj.symbols_), 
    code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
    code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
    data_off_(obj.data_off_), data_len_(obj.data_len_), 
@@ -939,6 +939,7 @@ DLLEXPORT AObject& AObject::operator=(const AObject &obj)
    }
 
    mf = obj.mf;
+   mfForDebugInfo = obj.mfForDebugInfo;
    symbols_   = obj.symbols_;
    code_ptr_  = obj.code_ptr_;
    code_off_  = obj.code_off_;

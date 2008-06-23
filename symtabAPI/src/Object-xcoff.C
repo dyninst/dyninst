@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.27 2008/06/19 19:54:16 legendre Exp $
+// $Id: Object-xcoff.C,v 1.28 2008/06/23 18:45:45 legendre Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -1533,8 +1533,8 @@ Object::Object(const Object& obj) :
 }
 
 
-Object::Object(MappedFile *mf_, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
-   AObject(mf_, err_func), offset_(offset)
+Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
+   AObject(mf_, mfd, err_func), offset_(offset)
 {    
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
@@ -1542,8 +1542,8 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), Offset offset, b
    load_object(alloc_syms); 
 }
 
-Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li, std::vector<Region *> &, void (*err_func)(const char *), Offset offset) :
-   AObject(mf_, err_func), offset_(offset)
+Object::Object(MappedFile *mf_, MappedFile *mfd, dyn_hash_map<std::string, LineInformation> &li, std::vector<Region *> &, void (*err_func)(const char *), Offset offset) :
+   AObject(mf_, mfd, err_func), offset_(offset)
 {    
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
@@ -1571,8 +1571,8 @@ Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li, 
    parseFileLineInfo(li);
 }
 
-Object::Object(MappedFile *mf_, std::string &member_name, Offset offset, void (*err_func)(const char *), void *) :
-   AObject(mf_, err_func), member_(member_name), offset_(offset)
+Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset, void (*err_func)(const char *), void *) :
+   AObject(mf_, mfd, err_func), member_(member_name), offset_(offset)
 {    
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());

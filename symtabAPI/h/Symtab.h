@@ -480,6 +480,7 @@ class Symtab : public LookupInterface,
    std::string member_name_;
    Offset member_offset_;
    MappedFile *mf;
+   MappedFile *mfForDebugInfo;
 
    Offset imageOffset_;
    unsigned imageLen_;

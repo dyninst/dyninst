@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.19 2008/06/19 19:54:19 legendre Exp $
+ * $Id: Object.h,v 1.20 2008/06/23 18:45:48 legendre Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -121,16 +121,23 @@ public:
 
     DLLEXPORT void * getErrFunc() const;
     DLLEXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+    DLLEXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
+
+
 
 protected:
     DLLEXPORT virtual ~AObject();
     // explicitly protected
-    DLLEXPORT AObject(MappedFile * , void (*err_func)(const char *));
-    DLLEXPORT AObject(MappedFile * , dyn_hash_map<std::string, LineInformation> &, void (*)(const char *)) {assert(0);}
+    DLLEXPORT AObject(MappedFile * , MappedFile *, void (*err_func)(const char *));
+    DLLEXPORT AObject(MappedFile * , MappedFile *, 
+                      dyn_hash_map<std::string, LineInformation> &, 
+                      void (*)(const char *)) { assert(0); }
     DLLEXPORT AObject(const AObject &obj);
     DLLEXPORT AObject&  operator= (const AObject &obj);
 
     MappedFile *mf;
+    MappedFile *mfForDebugInfo;
+
     std::vector< Region *> regions_;
     dyn_hash_map< std::string, std::vector< Symbol *> > symbols_;
 

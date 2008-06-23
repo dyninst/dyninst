@@ -818,8 +818,9 @@ void fixup_filename(std::string &filename)
 }
 
 Object::Object(MappedFile *mf_,
+               MappedFile *mfd,
                void (*err_func)(const char *), bool alloc_syms) :
-    AObject(mf_, err_func),
+    AObject(mf_, mfd, err_func),
     curModule( NULL ),
     peHdr( NULL )
 {
@@ -827,9 +828,10 @@ Object::Object(MappedFile *mf_,
    ParseSymbolInfo(alloc_syms);
 }
 
-Object::Object(MappedFile *mf_, dyn_hash_map<std::string, LineInformation> &li,
+Object::Object(MappedFile *mf_, MappedFile *mfd, 
+               dyn_hash_map<std::string, LineInformation> &li,
                std::vector<Region *> &, void (*err_func)(const char *))  :
-   AObject(mf_, err_func),
+   AObject(mf_, mfd, err_func),
    baseAddr(0),
    imageBase(0),
    peHdr(NULL),
