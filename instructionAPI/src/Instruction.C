@@ -13,7 +13,7 @@ namespace Dyninst
 			     unsigned char size)
       : m_InsnOp(what), m_Size(size)
     {
-      int i;
+      unsigned int i;
       std::vector<Expression::Ptr>::const_iterator curVC;
       
       for(i = 0, curVC = operandSource.begin();
@@ -102,6 +102,7 @@ namespace Dyninst
 	  return true;
 	}
       }
+      return false;
     }
     
     bool Instruction::writesMemory() const
@@ -115,6 +116,7 @@ namespace Dyninst
 	  return true;
 	}
       }
+      return false;
     }
     
     void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const

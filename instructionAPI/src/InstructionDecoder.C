@@ -15,7 +15,7 @@ namespace Dyninst
     static const unsigned char modrm_use_sib = 4;
     
   
-    Instruction InstructionDecoder::decode(const unsigned char* buffer, size_t len)
+    Instruction InstructionDecoder::decode(const unsigned char* buffer, size_t /*len*/)
     {
       vector<Expression::Ptr> operands;
       rawInstruction = buffer;

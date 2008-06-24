@@ -18,11 +18,11 @@ namespace Dyninst
     RegisterAST::~RegisterAST()
     {
     }
-    void RegisterAST::getChildren(vector<InstructionAST::Ptr>& children) const
+    void RegisterAST::getChildren(vector<InstructionAST::Ptr>& /*children*/) const
     {
       return;
     }
-    void RegisterAST::getUses(set<InstructionAST::Ptr>& uses) const
+    void RegisterAST::getUses(set<InstructionAST::Ptr>& /*uses*/) const
     {
       //uses.insert(InstructionAST::Ptr(const_cast<RegisterAST*>(this)));
       return;
