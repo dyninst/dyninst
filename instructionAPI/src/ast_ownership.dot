@@ -1,0 +1,14 @@
+digraph G
+{
+  edge [fontname="Helvetica",fontsize=10,labelfontname="Helvetica",labelfontsize=10,color="darkorchid3",style="dashed"];
+  node [fontname="Helvetica",fontsize=10,shape=record,height=0.2,width=0.4,color="black"];
+  Deref [label="Dereference",shape=ellipse,URL="classDyninst_1_1Instruction_1_1Dereference.html"];
+  Deref -> Contents [label=" val_to_deref"];
+  Contents [label="Expression",URL="classDyninst_1_1Instruction_1_1Expression.html"];
+
+  BinaryFunc [label="BinaryFunction",shape=ellipse,URL="classDyninst_1_1Instruction_1_1BinaryFunction.html"];
+  BinaryFunc -> Arg1 [label=" arg1"];
+  BinaryFunc -> Arg2 [label=" arg2"];
+  Arg1 [label="Expression",URL="classDyninst_1_1Instruction_1_1Expression.html"];
+  Arg2 [label="Expression",URL="classDyninst_1_1Instruction_1_1Expression.html"];
+}

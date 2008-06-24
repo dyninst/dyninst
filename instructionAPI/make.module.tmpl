@@ -1,0 +1,74 @@
+# 
+# Common makefile template for the dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2008/06/24 15:33:55 bill Exp $
+#
+
+SUITE_NAME	= Dyninst
+RELEASE_NUM	= 5.2
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+
+CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
+CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
+
+ifdef GCC_2_95
+# This may cause problems on Alpha
+# GCC has a new mangled name squisher (-fsquangle) which can be 
+# set to "on" by default. This causes linker problems, so we
+# default to "off".
+CFLAGS		+= -fno-squangle
+CXXFLAGS	+= -fno-squangle
+endif
+
+
+LDFLAGS += -lpthread -lcommon
+
+LDFLAGS     += $(LIBDIR)
+ifndef USES_NATIVE_CC
+LD		= $(GXX)
+LDFLAGS		+= -shared $(G_PTHREAD_LD)
+CFLAGS		+= -fPIC
+CXXFLAGS	+= -fPIC $(G_PTHREAD)
+else
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+LDFLAGS		+= -G
+endif #sparc
+endif #USES_NATIVE
+
+
+ifdef AUTO_TEMPLATES
+CFLAGS += -DAUTO_TEMPLATES
+CXXFLAGS += -DAUTO_TEMPLATES
+endif
+
+TO_INC   = ../h
+
+#PUBLIC_H = 
+
+SRCS +=	../src/Instruction.C \
+	../src/InstructionAST.C \
+	../src/Operation.C \
+	../src/Operand.C \
+	../src/Register.C \
+	../src/Expression.C \
+	../src/BinaryFunction.C
+
+
+ifndef USES_NATIVE_CC
+ifdef CROSSCOMPILER
+SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
+else
+SYSLIBS         += -liberty
+endif
+else
+SYSLIBS		+= -ldemangle
+endif
+
+
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h
+
+# All that, and we finally get a target...
+all: $(TARGET) $(EXTRA_LIBS)

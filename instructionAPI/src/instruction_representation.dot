@@ -1,0 +1,16 @@
+digraph G
+{
+  edge [fontname="Helvetica",fontsize=10,labelfontname="Helvetica",labelfontsize=10,color="darkorchid3",style="dashed"];
+  node [fontname="Helvetica",fontsize=10,shape=record,height=0.2,width=0.4,color="black"];
+
+  instruction[label="<f>mov|<f1>eax|<f2>(%esi)"];
+  
+  mov;
+  dereference[label="*",shape=circle, height = 0.2, width = 0.2];
+  dereference->esi[label=" dereference target"];
+  esi;
+  instruction:f -> mov[label = "operation", labeljust="r"];
+  instruction:f1 -> eax[label=" operand", labeljust="r"];
+  instruction:f2 -> dereference[label=" operand", labeljust="r"];
+}
+

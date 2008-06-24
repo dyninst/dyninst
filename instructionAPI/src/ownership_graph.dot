@@ -1,0 +1,12 @@
+digraph G
+{
+  edge [fontname="Helvetica",fontsize=10,labelfontname="Helvetica",labelfontsize=10, color="darkorchid3",style="dashed"];
+  node [fontname="Helvetica",fontsize=10,shape=record,height=0.2,width=0.4,color="black"];
+  Instruction [URL="classDyninst_1_1Instruction_1_1Instruction.html"];
+  Instruction -> Operation [label=" m_InsnOp"];
+  Operation [URL="classDyninst_1_1Instruction_1_1Operation.html"];
+  Operands [label="vector\<Operand\>",URL="classDyninst_1_1Instruction_1_1Operand.html"];
+  Instruction ->  Operands[label=" m_Operands"];
+  Expression [URL="classDyninst_1_1Instruction_1_1Expression.html"];
+  Operands -> Expression [label="  op_value"];
+}
