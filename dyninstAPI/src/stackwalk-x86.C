@@ -46,9 +46,13 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/mapped_object.h"
 
+#if defined(CAP_INSTRUCTION_API)
+#include "dyninstAPI/src/frameChecker.h"
+#else
+#include "dyninstAPI/src/InstrucIter.h"
+#endif // defined(CAP_INSTRUCTION_API)
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,6 +175,8 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
    return false; 
 }
 
+
+
 /**
  * Sometimes a function that uses a stack frame may not yet have put up its
  * frame or have already taken it down by the time we reach it during a stack
@@ -184,6 +190,7 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 
     if (range &&
         range->is_basicBlockInstance()) {
+#if !defined(CAP_INSTRUCTION_API)
         InstrucIter ii(range->get_address(),
                        range->get_size(),
                        proc);
@@ -200,6 +207,21 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
                 return false;
             }
     }
+    
+#else
+      frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)), range->get_size() - (addr - range->get_address()));
+      if(fc.isReturn() || fc.isStackPreamble())
+      {
+	offset = 0;
+	return false;
+      }
+      if(fc.isStackFrameSetup())
+      {
+	offset = proc->getAddressWidth();
+	return false;
+      }
+    }
+#endif
     return true;       
 }
 

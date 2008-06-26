@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.38 2008/04/11 23:30:24 legendre Exp $
+// $Id: reloc-func.C,v 1.39 2008/06/26 20:40:15 bill Exp $
 
 
 
@@ -581,8 +581,8 @@ bool int_function::expandForInstrumentation() {
         multiTramp *multi = proc()->findMultiTrampByAddr(bblI->firstInsnAddr());
         if (!multi) continue;
         if (bblI->getSize() < multi->sizeDesired()) {
-            reloc_printf("Enlarging basic block %d\n",
-                         i);
+            reloc_printf("Enlarging basic block %d; currently %d, %d bytes required; start addr 0x%lx\n",
+                         i, bblI->getSize(), multi->sizeDesired(), bblI->firstInsnAddr());
             pdvector<bblInstance::reloc_info_t::relocInsn *> whocares;
             bool found = false;
             // Check to see if there's already a request for it...

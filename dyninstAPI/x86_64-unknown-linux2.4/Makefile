@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2008/04/18 17:07:25 jaw Exp $
+# $Id: Makefile,v 1.15 2008/06/26 20:40:16 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -40,7 +40,8 @@ SRCS =          ../src/linux.C \
 		../src/saveSharedLibrary.C \
 		../src/parseDwarf.C \
 		../src/image-x86.C \
-		../src/syscall-linux.C
+		../src/syscall-linux.C \
+		../src/frameChecker.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
@@ -55,6 +56,8 @@ SRCS =          ../src/linux.C \
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS     += -I$(LIBELF_INC) 
 MYFLAGS		+= -I/usr/include/libelf
+#MYFLAGS		+= -DCAP_INSTRUCTION_API
+
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -77,6 +80,7 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
+LIBS	+= -lInstruction
 
 AS		= /usr/bin/as
 

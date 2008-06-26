@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.165 2008/06/19 22:13:42 jaw Exp $
+// $Id: inst.C,v 1.166 2008/06/26 20:40:15 bill Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -57,7 +57,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/InstrucIter.h"
+//#include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/arch.h"

@@ -29,7 +29,8 @@ namespace Dyninst
 		    r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15,
 		      // AMD64 GPRs
 		    r_EIP, r_RIP,
-		    r_RSP, r_RBP
+		    r_RSP, r_RBP,
+		    r_RAX, r_RBX, r_RCX, r_RDX,r_RSI, r_RDI
 		    // Instruction pointers
     }; 
     struct RegInfo
@@ -68,8 +69,8 @@ namespace Dyninst
     (r_ESP, RegInfo(u32,"ESP"))(r_EBP, RegInfo(u32,"EBP"))(r_ESI, RegInfo(u32,"ESI"))(r_EDI, RegInfo(u32,"EDI"))
     (r_EIP, RegInfo(u32,"EIP"))(r_CF, RegInfo(bit_flag,"Carry"))(r_ZF,  RegInfo(bit_flag,"Zero"))
     (r_PF,  RegInfo(bit_flag,"Parity"))(r_OF,  RegInfo(bit_flag,"Overflow"))(r_SF,  RegInfo(bit_flag,"Sign"))
-    (r_RSP, RegInfo(u64, "RSP"))(r_RBP, RegInfo(u64, "RBP"));
-    
+    (r_RSP, RegInfo(u64, "RSP"))(r_RBP, RegInfo(u64, "RBP"))(r_RAX, RegInfo(u64, "RAX"))(r_RBX, RegInfo(u64, "RBX"))
+    (r_RCX, RegInfo(u64, "RCX"))(r_RDX, RegInfo(u64, "RDX"))(r_RSI, RegInfo(u64, "RSI"))(r_RDI, RegInfo(u64, "RDI"));    
 
   };
 };

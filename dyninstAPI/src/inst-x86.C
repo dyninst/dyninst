@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.284 2008/06/23 20:30:33 mlam Exp $
+ * $Id: inst-x86.C,v 1.285 2008/06/26 20:40:14 bill Exp $
  */
 #include <iomanip>
 
@@ -74,7 +74,7 @@
 #include "dyninstAPI/src/instP.h" // class returnInstance
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
-#include "InstrucIter.h"
+//#include "InstrucIter.h"
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 

@@ -421,7 +421,9 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
 	  }
       }
     }
-    ah++;
+    if(ah.hasMore()) {
+      ah++;
+    }
   }
   return false;
 }

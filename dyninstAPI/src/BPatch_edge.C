@@ -49,7 +49,7 @@
 #include "BPatch_basicBlock.h"
 #include "instPoint.h"
 #include "process.h"
-#include "InstrucIter.h"
+//#include "InstrucIter.h"
 #include "BPatch_process.h"
 
 string 

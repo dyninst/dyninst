@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.140 2008/06/19 22:13:42 jaw Exp $
+// $Id: linux-x86.C,v 1.141 2008/06/26 20:40:15 bill Exp $
 
 #include <fstream>
 #include <string>
@@ -72,7 +72,7 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/InstrucIter.h"
+//#include "dyninstAPI/src/InstrucIter.h"
 
 #include "dyninstAPI/src/mapped_object.h" 
 #include "dyninstAPI/src/signalgenerator.h" 

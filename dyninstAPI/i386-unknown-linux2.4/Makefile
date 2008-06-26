@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.38 2008/04/18 17:07:24 jaw Exp $
+# $Id: Makefile,v 1.39 2008/06/26 20:40:13 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,7 +38,8 @@ SRCS =          ../src/linux.C \
 		../src/stackwalk-x86.C \
 		../src/image-x86.C \
 		../src/syscall-linux.C \
-		../src/parseDwarf.C
+		../src/parseDwarf.C \
+		../src/frameChecker.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \
@@ -79,6 +80,9 @@ LIBS    += -lelf
 endif
 LIBS    += -lgcc
 
+# InstructionAPI is x86-only at this point
+LIBS    += -lInstruction
+
 AS		= /usr/bin/as
 
 # no support for elf64_XXX() functions
@@ -86,9 +90,17 @@ CXXFLAGS	+= -DUSES_ELF32_ONLY
 CFLAGS		+= -DUSES_ELF32_ONLY
 TFLAGS		+= -DUSES_ELF32_ONLY
 
+# Use instruction API
+CXXFLAGS +=  -DCAP_INSTRUCTION_API
+CFLAGS	+=  -DCAP_INSTRUCTION_API
+ 
 # Add preprocessor and special link information for G++
 G_PTHREAD	= -pthread
 G_PTHREAD_LD	= -pthread
+
+ifndef TARGET
+TARGET		= libDyninstAPI.so
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

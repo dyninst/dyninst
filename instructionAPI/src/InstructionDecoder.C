@@ -63,16 +63,16 @@ namespace Dyninst
       switch(opType)
       {
       case op_b:
-	return Expression::Ptr(new Immediate(Result(s8,*(byte_t*)(rawInstruction + position))));
+	return Expression::Ptr(new Immediate(Result(s8,*(const byte_t*)(rawInstruction + position))));
 	break;
       case op_d:
-	return Expression::Ptr(new Immediate(Result(s32, *(dword_t*)(rawInstruction + position))));
+	return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
       case op_si:
       case op_w:
-	return Expression::Ptr(new Immediate(Result(s16, *(word_t*)(rawInstruction + position))));
+	return Expression::Ptr(new Immediate(Result(s16, *(const word_t*)(rawInstruction + position))));
 	break;
       case op_q:
-	return Expression::Ptr(new Immediate(Result(s64, *(int64_t*)(rawInstruction + position))));
+	return Expression::Ptr(new Immediate(Result(s64, *(const int64_t*)(rawInstruction + position))));
 	break;
       case op_v:
       case op_z:
@@ -80,11 +80,11 @@ namespace Dyninst
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
 	if(is32BitMode ^ sizePrefixPresent)
 	{
-	  return Expression::Ptr(new Immediate(Result(s32, *(dword_t*)(rawInstruction + position))));
+	  return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
 	}
 	else
 	{
-	  return Expression::Ptr(new Immediate(Result(s16, *(word_t*)(rawInstruction + position))));
+	  return Expression::Ptr(new Immediate(Result(s16, *(const word_t*)(rawInstruction + position))));
 	}
 	
 	break;
@@ -108,10 +108,10 @@ namespace Dyninst
       switch(locs.modrm_mod)
       {
       case 1:
-	return Expression::Ptr(new Immediate(Result(s8, (*(byte_t*)(rawInstruction + disp_pos)))));
+	return Expression::Ptr(new Immediate(Result(s8, (*(const byte_t*)(rawInstruction + disp_pos)))));
 	break;
       case 2:
-	return Expression::Ptr(new Immediate(Result(s32, *((dword_t*)(rawInstruction + disp_pos)))));
+	return Expression::Ptr(new Immediate(Result(s32, *((const dword_t*)(rawInstruction + disp_pos)))));
 	break;
       default:
 	return Expression::Ptr();
@@ -119,7 +119,7 @@ namespace Dyninst
       }
     }
 
-    static IA32Regs IntelRegTable[4][8] = {
+    static IA32Regs IntelRegTable[][8] = {
       {
 	r_AL, r_CL, r_DL, r_BL, r_AH, r_CH, r_DH, r_BH
       },
@@ -131,11 +131,21 @@ namespace Dyninst
       },
       {
 	r_ES, r_CS, r_SS, r_DS, r_FS, r_GS, r_Reserved, r_Reserved
+      },
+      {
+	r_RAX, r_RCX, r_RDX, r_RBX, r_RSP, r_RBP, r_RSI, r_RDI
       }
+      
     };
       
     int InstructionDecoder::makeRegisterID(unsigned int intelReg, unsigned int opType)
     {
+      if(locs.rex_w)
+      {
+	// AMD64 with 64-bit operands
+	return IntelRegTable[4][intelReg];
+      }
+      
       switch(opType)
       {
       case op_b:
@@ -285,8 +295,39 @@ namespace Dyninst
 	{
 	  // Address/offset width, which is *not* what's encoded by the optype...
 	  // The deref's width is what's actually encoded here.  Need to address this issue somehow.
-	  int pseudoOpType = op_d;
-	  outputOperands.push_back(Expression::Ptr(new Dereference(decodeImmediate(pseudoOpType, locs.imm_position), makeSizeType(operand.optype))));
+	  int pseudoOpType;
+	  switch(locs.address_size)
+	  {
+	  case 1:
+	    pseudoOpType = op_b;
+	    break;
+	  case 2:
+	    pseudoOpType = op_w;
+	    break;
+	  case 4:
+	    pseudoOpType = op_d;
+	    break;
+	  case 0:
+	    // closest I can get to "will be address size by default"
+	    pseudoOpType = op_v;
+	    break;
+	  default:
+	    assert(!"Bad address size, should be 0, 1, 2, or 4!");
+	    pseudoOpType = op_b;
+	    break;
+	  }
+	  
+	  int offset_position = locs.opcode_position;
+	  if(locs.modrm_position > offset_position && locs.modrm_operand < outputOperands.size())
+	  {
+	    offset_position = locs.modrm_position;
+	  }
+	  if(locs.sib_position > offset_position)
+	  {
+	    offset_position = locs.sib_position;
+	  }
+	  offset_position++;
+	  outputOperands.push_back(Expression::Ptr(new Dereference(decodeImmediate(pseudoOpType, offset_position), makeSizeType(operand.optype))));
 	}
 	break;
       case am_P:

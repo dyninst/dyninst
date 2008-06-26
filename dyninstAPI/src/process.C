@@ -74,7 +74,6 @@
 #include "dyninstAPI/src/BPatch_asyncEventHandler.h"
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/ast.h"
 
 // #include "paradynd/src/mdld.h"

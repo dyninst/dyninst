@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2008/06/24 15:34:01 bill Exp $
+# $Id: Makefile,v 1.2 2008/06/26 20:40:16 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,15 +19,8 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS = 	../src/Instruction.C \
-	../src/InstructionAST.C \
-	../src/arch-x86.C \
-	../src/InstructionDecoder.C \
-	../src/Operation.C \
-	../src/Operand.C \
-	../src/Register.C \
-	../src/Expression.C \
-	../src/BinaryFunction.C
+SRCS = 	../src/arch-x86.C \
+	../src/InstructionDecoder.C
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -36,6 +29,7 @@ LIBS    += -lgcc
 
 AS		= /usr/bin/as
 
+TARGET = libInstruction.so
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

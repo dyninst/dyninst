@@ -59,7 +59,6 @@ class mapped_module;
 class mapped_object;
 
 class pdmodule;
-class InstrucIter;
 class image_func;
 
 /*

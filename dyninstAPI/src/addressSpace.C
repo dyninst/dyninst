@@ -52,7 +52,13 @@
 // Two-level codeRange structure
 #include "mapped_object.h"
 
+#if defined(CAP_INSTRUCTION_API)
+#include "../../instructionAPI/h/InstructionDecoder.h"
+#include "../../instructionAPI/h/Instruction.h"
+
+#else
 #include "InstrucIter.h"
+#endif //defined(CAP_INSTRUCTION_API)
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -1066,6 +1072,7 @@ void AddressSpace::getAllModules(pdvector<mapped_module *> &mods){
 // is an indirect jump to a function.
 //I know this is an odd function, but darn I need it.
 int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
+
     Address addr2 = 0;
     int_function *f = findFuncByAddr(addr);
     if (f)
@@ -1074,11 +1081,31 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     codeRange *range = findOrigByAddr(addr);
     if (!range->is_mapped_object()) 
         return NULL;
-    
+#if defined(CAP_INSTRUCTION_API)    
+    using namespace Dyninst::Instruction;
+    InstructionDecoder decoder;
+    // FIXME: compute real size
+    size_t maxSize = 10;
+    Dyninst::Instruction::Instruction curInsn = decoder.decode((const unsigned char*)(addr), maxSize);
+    Expression::Ptr target = curInsn.getControlFlowTarget();
+    Result cft = target->eval();
+    if(cft.defined)
+    {
+      switch(cft.type)
+      {
+      case u32:
+	addr2 = cft.val.u32val;
+	break;
+      default:
+	assert(!"Not implemented for non-32 bit CFTs yet!");
+	break;
+      }
+    }
+#else
     InstrucIter ii(addr, this);
     if (ii.isAJumpInstruction())
         addr2 = ii.getBranchTargetAddress();
-
+#endif //defined(CAP_INSTRUCTION_API)
     return findFuncByAddr(addr2);
 }
 
