@@ -3,6 +3,7 @@
 #define RESULT_H
 
 #include <sstream>
+#include "common/h/Types.h"
 
 namespace Dyninst
 {
