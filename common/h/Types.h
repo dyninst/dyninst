@@ -30,13 +30,12 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.35 2008/05/09 00:25:37 jaw Exp $
+ * $Id: Types.h,v 1.36 2008/06/30 19:40:17 legendre Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
 #if !defined(_Types_h_)
 #define _Types_h_
-
 
 /* Sets up 64 and 32 bit
    types:
@@ -113,6 +112,9 @@ WindowsNT    nonexistant
 #define TYPE64BIT
 #endif
 
+#elif defined(os_bluegene)
+#include <stdint.h>
+
 #elif defined(os_irix)
 #define TYPE64BIT
 #include <inttypes.h>
@@ -181,15 +183,15 @@ WindowsNT    nonexistant
 #if defined(__cplusplus)
 #include "dynutil/h/dyntypes.h"
 using namespace Dyninst;
+static const Address ADDR_NULL = (Address)(0);
 #else
+#define ADDR_NULL (0)
 typedef unsigned long Address;
 #endif
 /* Note the inherent assumption that the size of a "long" integer matches
    that of an address (void*) on every supported Paradyn/Dyninst system!
    (This can be checked with Address_chk().)
 */
-/* Gives a name for the NULL equivalent */
-static const Address ADDR_NULL = (Address)(0);
 
 typedef unsigned int Word;
 

@@ -30,7 +30,7 @@
  */
 
 
-// $Id: headers.h,v 1.29 2008/05/12 22:12:56 giri Exp $
+// $Id: headers.h,v 1.30 2008/06/30 19:40:18 legendre Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -56,7 +56,7 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #if defined(os_solaris)
 #include "common/h/solarisHeaders.h"
 
-#elif defined(os_linux)
+#elif defined(os_linux) || defined(os_bluegene)
 #include "common/h/linuxHeaders.h"
 
 #elif defined(os_aix)
