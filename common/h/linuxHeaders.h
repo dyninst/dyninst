@@ -261,33 +261,9 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
 #define DMGL_ARM         (1 << 11)      /* Use C++ ARM name mangling */ 
 
 extern "C" char *cplus_demangle(char *, int);
-extern void dedemangle( const char * demangled, char * dedemangled );
-inline char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
-                                bool includeTypes = false ) {
-   int opts = 0;
-   opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
-   //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
-   // pgCC's mangling scheme most closely resembles that of the Annotated
-   // C++ Reference Manual, only with "some exceptions" (to quote the PGI
-   // documentation). I guess we'll demangle names with "some exceptions".
-   opts |= nativeCompiler ? DMGL_ARM : 0;
-
-   char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
-   if( demangled == NULL ) { return NULL; }
-
-   if( ! includeTypes ) {
-        /* de-demangling never increases the length */   
-        char * dedemangled = strdup( demangled );   
-        assert( dedemangled != NULL );
-        dedemangle( demangled, dedemangled );
-        assert( dedemangled != NULL );
-
-        free( demangled );
-        return dedemangled;
-        }
-
-   return demangled;
-   } /* end P_cplus_demangle() */
+extern void dedemangle( char * demangled, char * dedemangled );
+extern char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
+				bool includeTypes = false );
 
 inline void   P_xdr_destroy(XDR *x) { xdr_destroy(x);}
 inline bool_t P_xdr_u_char(XDR *x, u_char *uc) { return (xdr_u_char(x, uc));}
