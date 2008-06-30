@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: stats.h,v 1.1 2008/06/19 22:13:41 jaw Exp $
+// $Id: stats.h,v 1.2 2008/06/30 17:33:25 legendre Exp $
 
 #ifndef STATS_H
 #define STATS_H
@@ -197,7 +197,7 @@ class DLLEXPORT StatContainer {
     void add(std::string name, StatType type);
 
     // Access all of the existing statistics
-    hash_map< std::string, Statistic * > &
+    dyn_hash_map< std::string, Statistic * > &
     allStats() { return stats_; }
 
     // And some pass-through methods, encapsulated for
@@ -209,7 +209,7 @@ class DLLEXPORT StatContainer {
     void addCounter(std::string, int);
 
  private:
-    hash_map< std::string, Statistic * > stats_;
+    dyn_hash_map< std::string, Statistic * > stats_;
 
 };
 #endif
