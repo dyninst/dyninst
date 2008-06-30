@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2008/06/26 20:40:16 bill Exp $
+# $Id: Makefile,v 1.16 2008/06/30 17:33:24 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -56,7 +56,6 @@ SRCS =          ../src/linux.C \
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS     += -I$(LIBELF_INC) 
 MYFLAGS		+= -I/usr/include/libelf
-#MYFLAGS		+= -DCAP_INSTRUCTION_API
 
 
 CXXFLAGS        += $(MYFLAGS)

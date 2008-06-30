@@ -48,11 +48,11 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 
-#if defined(CAP_INSTRUCTION_API)
+#if defined(cap_instruction_api)
 #include "dyninstAPI/src/frameChecker.h"
 #else
 #include "dyninstAPI/src/InstrucIter.h"
-#endif // defined(CAP_INSTRUCTION_API)
+#endif // defined(cap_instruction_api)
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -185,12 +185,12 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
  **/
 static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 {
-    int frameSizeDontCare;
     codeRange *range = proc->findOrigByAddr(addr);
 
     if (range &&
         range->is_basicBlockInstance()) {
-#if !defined(CAP_INSTRUCTION_API)
+#if !defined(cap_instruction_api)
+        int frameSizeDontCare;
         InstrucIter ii(range->get_address(),
                        range->get_size(),
                        proc);
