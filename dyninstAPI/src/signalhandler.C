@@ -201,6 +201,8 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
 
       // If we're still here, notify BPatch
       
+      signal_printf("[%s:%u] - Process visibly stopped. Notifying BPatch of stop\n", 
+                    FILE__, __LINE__);
       return notifyBPatchOfStop(ev, continueHint);
 }
 

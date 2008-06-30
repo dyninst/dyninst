@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.242 2008/06/20 21:44:51 bill Exp $
+// $Id: unix.C,v 1.243 2008/06/30 17:33:31 legendre Exp $
 
 #include <string>
 #include "common/h/headers.h"
@@ -594,25 +594,35 @@ bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord &ev,
 
    switch(status) {
      case DSE_forkEntry:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded forkEntry, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
         /* Entry to fork */
         ev.type = evtSyscallEntry;
         ev.what = SYS_fork;
         break;
      case DSE_forkExit:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded forkExit, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
         ev.type = evtSyscallExit;
         ev.what = SYSSET_MAP(SYS_fork, proc->getPid());
         break;
      case DSE_execEntry:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded execEntry, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
         /* Entry to exec */
         ev.type = evtSyscallEntry;
         ev.what = SYS_exec;
         break;
      case DSE_execExit:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded execExit, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
         ev.type = evtSyscallExit;
         ev.what = SYS_exec;
         /* Exit of exec, unused */
         break;
      case DSE_exitEntry:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded exitEntry, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
         /* Entry of exit, used for the callback. We need to trap before
            the process has actually exited as the callback may want to
            read from the process */
@@ -620,19 +630,27 @@ bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord &ev,
         ev.what = SYS_exit;
         break;
    case DSE_loadLibrary:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded loadLibrary, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
      /* We need to hook this into the shared library handling code... */
         ev.type = evtSyscallExit;
         ev.what = SYS_load;
         break;
    case DSE_lwpExit:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded lwpExit, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
         ev.type = evtSyscallEntry;
         ev.what = SYS_lwp_exit;
         break;
    case DSE_snippetBreakpoint:
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded snippetBreak, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
         ev.type = evtProcessStop;
         return true;
         break;
    case DSE_stopThread: 
+        signal_printf("[%s:%u] - decodeRTSignal_NP decoded stopThread, arg = %lx\n",
+                      FILE__, __LINE__, rt_arg);
        ev.type = evtStopThread;
        return true; 
    default:
