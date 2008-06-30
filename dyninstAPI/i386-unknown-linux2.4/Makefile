@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.39 2008/06/26 20:40:13 bill Exp $
+# $Id: Makefile,v 1.40 2008/06/30 17:33:26 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -90,17 +90,9 @@ CXXFLAGS	+= -DUSES_ELF32_ONLY
 CFLAGS		+= -DUSES_ELF32_ONLY
 TFLAGS		+= -DUSES_ELF32_ONLY
 
-# Use instruction API
-CXXFLAGS +=  -DCAP_INSTRUCTION_API
-CFLAGS	+=  -DCAP_INSTRUCTION_API
- 
 # Add preprocessor and special link information for G++
 G_PTHREAD	= -pthread
 G_PTHREAD_LD	= -pthread
-
-ifndef TARGET
-TARGET		= libDyninstAPI.so
-endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
