@@ -59,20 +59,20 @@ namespace Dyninst
 #if defined(_MSC_VER)
    typedef HANDLE PID;
    typedef HANDLE LWP;
-   typedef HANDLE TID;
+   typedef HANDLE THR_ID;
 
 #define NULL_PID     INVALID_HANDLE_VALUE
 #define NULL_LWP     INVALID_HANDLE_VALUE
-#define NULL_TID     INVALID_HANDLE_VALUE
+#define NULL_THR_ID     INVALID_HANDLE_VALUE
 
 #else
    typedef int PID;
    typedef int LWP;
-   typedef int TRID;
+   typedef int THR_ID;
 
 #define NULL_PID     -1
 #define NULL_LWP     -1
-#define NULL_TRID     -1
+#define NULL_THR_ID     -1
 #endif
 }
 
