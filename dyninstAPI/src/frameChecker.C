@@ -8,12 +8,12 @@ using namespace Dyninst::Instruction;
 frameChecker::frameChecker(const unsigned char* addr, size_t max_length)
 {
   // How many instructions in our stack frame idioms?
-  static const int max_insns = 3;
+  static const unsigned max_insns = 3;
   
   InstructionDecoder d;
-  int bytesDecoded = 0;
+  unsigned bytesDecoded = 0;
   
-  for(int i = 0; i < max_insns && bytesDecoded < max_length; i++)
+  for(unsigned i = 0; i < max_insns && bytesDecoded < max_length; i++)
   {
     m_Insns.push_back(d.decode(addr, max_length - bytesDecoded));
     addr += m_Insns.back().size();
@@ -45,9 +45,9 @@ bool frameChecker::isStackPreamble() const
   return true;
 }
 
-bool frameChecker::isMovStackToBase(int index_to_check) const
+bool frameChecker::isMovStackToBase(unsigned index_to_check) const
 {
-  if(m_Insns.size() < index_to_check) return false;
+   if(m_Insns.size() < index_to_check) return false;
   if(m_Insns[index_to_check].getOperation().getID() == e_mov)
   {
     RegisterAST::Ptr stack_ptr(new RegisterAST(r_ESP));

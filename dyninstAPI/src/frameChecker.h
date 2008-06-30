@@ -15,7 +15,7 @@ class frameChecker
   bool isStackFrameSetup() const;
   
  private:
-  bool isMovStackToBase(int index_to_check) const;
+  bool isMovStackToBase(unsigned index_to_check) const;
   vector<Dyninst::Instruction::Instruction> m_Insns;
 };
 
