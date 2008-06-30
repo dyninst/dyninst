@@ -1,0 +1,37 @@
+# 
+# Common makefile template for the dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2008/06/30 19:40:26 legendre Exp $
+#
+
+SUITE_NAME	= DynStackwalker
+RELEASE_NUM	= 1.0
+
+CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
+CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
+
+ifndef USES_NATIVE_CC
+LD		= $(GXX)
+LDFLAGS		+= -shared
+CFLAGS		+= -fPIC
+CXXFLAGS	+= -fPIC
+else
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+LDFLAGS		+= -G
+endif #sparc
+endif #USES_NATIVE
+TFLAGS		+= -fPIC
+
+SRCS	     +=	../src/frame.C \
+		../src/framestepper.C \
+		../src/swk_errors.C \
+      ../src/symlookup.C \
+		../src/walker.C \
+      ../src/procstate.C
+
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h
+
+# All that, and we finally get a target...
+all: $(TARGET) $(EXTRA_LIBS)

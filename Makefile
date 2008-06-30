@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.89 2008/06/26 20:40:52 bill Exp $
+# $Id: Makefile,v 1.90 2008/06/30 19:40:24 legendre Exp $
 #
 
 TO_CORE = .
@@ -31,12 +31,13 @@ ParadynVC	= visi \
 
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 SymtabAPI 	= ready common symtabAPI dynutil
+StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dynutil instructionAPI
 InstructionAPI	= ready common instructionAPI dynutil
 
 testsuites = dyninstAPI/tests testsuite newtestsuite
 
-allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dynutil instructionAPI
+allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dynutil instructionAPI stackwalk
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet
@@ -167,7 +168,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI basicComps subSystems testsuites InstructionAPI: 
+Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -218,6 +219,7 @@ $(allSubdirs_explicitInstall): install_%: %
 
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
+stackwalk: symtabAPI dynutil
 dyninstAPI: symtabAPI instructionAPI
 symtabAPI dyninstAPI: dynutil
 paradynd:  pdutil dyninstAPI 
