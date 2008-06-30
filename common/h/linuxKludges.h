@@ -33,6 +33,8 @@
 #if !defined(_linux_kludges_h)
 #define _linux_kludges_h
 
+using namespace Dyninst;
+
 unsigned long long PDYN_div1000(unsigned long long in);
 unsigned long long PDYN_divMillion(unsigned long long in);
 unsigned long long PDYN_mulMillion(unsigned long long in);
