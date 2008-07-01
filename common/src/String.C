@@ -30,7 +30,7 @@
  */
 
 
-// $Id: String.C,v 1.38 2008/06/11 22:48:18 legendre Exp $
+// $Id: String.C,v 1.39 2008/07/01 19:26:47 legendre Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -48,7 +48,7 @@ int string_counter::count = 0;
 string_counter sc;
 
 /* This doesn't actually belong here. */
-void dedemangle( const char * demangled, char * result ) {
+void dedemangle( char * demangled, char * result ) {
    /* Lifted from Jeffrey Odom.  Code reformatted so
       I could figure out how to eliminate compiler warnings.
       Adjusted to handle spaces inside templates intelligently.

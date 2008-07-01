@@ -281,7 +281,7 @@ inline char * nativeDemanglerBrokenness( int (*P_native_demangle)(const char *, 
 		} /* end sizing loop */
 	} /* end nativeCompilerBrokenness() */
 
-extern void dedemangle( const char * demangled, char * dedemangled );
+extern void dedemangle( char * demangled, char * dedemangled );
 inline char * P_cplus_demangle( const char *symbol, bool nativeCompiler,
 					bool includeTypes = false ) {
 	char * demangled = NULL;

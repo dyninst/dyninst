@@ -261,7 +261,7 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
 #define DMGL_ARM         (1 << 11)      /* Use C++ ARM name mangling */ 
 
 extern "C" char *cplus_demangle(char *, int);
-extern void dedemangle( const char * demangled, char * dedemangled );
+extern void dedemangle( char * demangled, char * dedemangled );
 extern char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes = false );
 
