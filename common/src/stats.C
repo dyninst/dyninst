@@ -41,12 +41,12 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.1 2008/06/19 22:13:41 jaw Exp $
+ * $Id: stats.C,v 1.2 2008/07/01 19:26:49 legendre Exp $
  */
 
 #include <sstream>
 #include <string>
-#include "stats.h"
+#include "common/h/stats.h"
 #include "dynutil/h/util.h"
 
 #if 0
