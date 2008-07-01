@@ -828,21 +828,6 @@ Object::Object(MappedFile *mf_,
    ParseSymbolInfo(alloc_syms);
 }
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, 
-               dyn_hash_map<std::string, LineInformation> &li,
-               std::vector<Region *> &, void (*err_func)(const char *))  :
-   AObject(mf_, mfd, err_func),
-   baseAddr(0),
-   imageBase(0),
-   peHdr(NULL),
-   optHdr(NULL)
-{
-   // need to have is_aout set here (can probably just do this with an 
-   // argument, rather than calling FindInterestingSections again....
-   FindInterestingSections(false);
-   parseFileLineInfo(li);
-}
-
 DLLEXPORT ObjectType Object::objType() const 
 {
 	return is_aout() ? obj_Executable : obj_SharedLib;

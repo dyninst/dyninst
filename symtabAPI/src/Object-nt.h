@@ -74,6 +74,7 @@ class ExceptionBlock;
 
 class Object : public AObject
 {
+	friend class Symtab;
  public:
     class intSymbol
 	{
@@ -169,8 +170,7 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
-    DLLEXPORT Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
+    DLLEXPORT Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
     DLLEXPORT Object(){};
   
     DLLEXPORT virtual ~Object( void );

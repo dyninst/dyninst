@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.23 2008/06/23 18:45:46 legendre Exp $
+ * $Id: Object-xcoff.h,v 1.24 2008/07/01 19:26:43 legendre Exp $
 ************************************************************************/
 
 
@@ -185,6 +185,7 @@ class Symtab;
 ************************************************************************/
 
 class Object : public AObject {
+   friend class Symtab;
  public:
     Object (const Object &);
     Object&   operator= (const Object &);

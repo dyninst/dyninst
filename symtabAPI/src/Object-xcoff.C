@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.28 2008/06/23 18:45:45 legendre Exp $
+// $Id: Object-xcoff.C,v 1.29 2008/07/01 19:26:42 legendre Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -183,7 +183,7 @@ void loadNativeDemangler()
 
 
 extern "C" char *cplus_demangle(char *, int);
-extern void dedemangle( const char * demangled, char * dedemangled );
+extern void dedemangle( char * demangled, char * dedemangled );
 
 #define DMGL_PARAMS      (1 << 0)       /* Include function args */
 #define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
@@ -1542,35 +1542,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
    load_object(alloc_syms); 
 }
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, dyn_hash_map<std::string, LineInformation> &li, std::vector<Region *> &, void (*err_func)(const char *), Offset offset) :
-   AObject(mf_, mfd, err_func), offset_(offset)
-{    
-   loadNativeDemangler();
-   fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
-   fo_->set_file(mf_->filename());
-
-#if 0
-   get_stab_info
-      get_line_info
-      is_aout
-      baseAddress
-   for (unsigned int i = 0; i < secs_.size(); ++i) {
-      string sname = secs_[i]->getSecName();
-      if (sname == STAB_NAME) {
-         stab_off_ = secs_[i]->getSecAddr();
-         stab_size_ = secs_[i]->getSecSize();
-      } else if (sname == STABSTR_NAME) {
-         stabstr_off_ = secs_[i]->getSecAddr();
-      }
-   }
-#endif
-   //  need to init just a couple basic vars here that are used later to access
-   //  the stabs sections and such:  therefore using load_object() is overkill
-
-   load_object(false); 
-   parseFileLineInfo(li);
-}
-
 Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset, void (*err_func)(const char *), void *) :
    AObject(mf_, mfd, err_func), member_(member_name), offset_(offset)
 {    
@@ -1579,25 +1550,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offse
    fo_->set_file(member_name);
    load_object(true); 
 }
-#if 0 
-Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *)) :
-   AObject(NULL, err_func)
-{
-   loadNativeDemangler();
-   fo_ = fileOpener::openFile((void *)mem_image, image_size);
-   assert(fo_);
-   load_object();
-}
-
-Object::Object(char *mem_image, size_t image_size, std::string &member_name, Offset offset, void (*err_func)(const char *)) :
-   AObject(NULL, err_func), member_(member_name), offset_(offset)
-{
-   loadNativeDemangler();
-   fo_ = fileOpener::openFile((void *)mem_image, image_size);
-   assert(fo_);
-   load_object();
-}
-#endif
 
 Object& Object::operator=(const Object& obj) 
 {

@@ -76,32 +76,6 @@ void pd_log_perror(const char *msg){
 #include <stdarg.h>
 int symtab_printf(const char *format, ...);
 
-#if 0
-#if !defined(os_windows)
-    //libxml2 functions
-	void *hXML;
-#else
-	HINSTANCE hXML; 
-#endif
-
-xmlTextWriterPtr(*my_xmlNewTextWriterFilename)(const char *,int) = NULL; 
-int(*my_xmlTextWriterStartDocument)(xmlTextWriterPtr, const char *, const char *, const char * ) = NULL;
-int(*my_xmlTextWriterStartElement)(xmlTextWriterPtr, const xmlChar *) = NULL;
-int(*my_xmlTextWriterWriteFormatElement)(xmlTextWriterPtr,const xmlChar *,const char *,...) = NULL;
-int(*my_xmlTextWriterEndDocument)(xmlTextWriterPtr) = NULL;
-void(*my_xmlFreeTextWriter)(xmlTextWriterPtr) = NULL;
-int(*my_xmlTextWriterWriteFormatAttribute)(xmlTextWriterPtr, const xmlChar *,const char *,...) = NULL;
-int(*my_xmlTextWriterEndElement)(xmlTextWriterPtr) = NULL;
-
-
-// generateXML helper functions
-bool generateXMLforSyms(xmlTextWriterPtr &writer, std::vector<Symbol *> &everyUniqueFunction, std::vector<Symbol *> &everyUniqueVariable, std::vector<Symbol *> &modSyms, std::vector<Symbol *> &notypeSyms);
-bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym);
-bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *> &excpBlocks);
-bool generateXMLforRelocations(xmlTextWriterPtr &writer, std::vector<relocationEntry> &fbt);
-bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods);
-#endif
-
 static SymtabError serr;
 
 std::vector<Symtab *> Symtab::allSymtabs;
@@ -340,13 +314,15 @@ DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
    Annotatable<Region *, user_regions_a, true>(),
    Annotatable<Type *, user_types_a, true>(),
    Annotatable<Symbol *, user_symbols_a, true>(),
-   mf(mf_), mfForDebugInfo(mf_)
+   mf(mf_), mfForDebugInfo(mf_),
+   obj_private(NULL)
 {   
 
 }   
 
 
-DLLEXPORT Symtab::Symtab()
+DLLEXPORT Symtab::Symtab() :
+   obj_private(NULL)
 {
   symtab_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
     defaultNamespacePrefix = "";
@@ -609,16 +585,6 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
         else if (lookUp->getType() == Symbol::ST_OBJECT)
         {
             const std::string mangledName = symIter.currkey();
-#if 0
-         fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d (obj %d, func %d)\n",
-                 symInfo.name().c_str(),
-                 symInfo.module().c_str(),
-                 symInfo.addr(),
-                 symInfo.type(),
-                 symInfo.linkage(),
-                 Symbol::ST_OBJECT,
-                 Symbol::ST_FUNCTION);
-#endif
 #if !defined(os_windows)
          // Windows: variables are created with an empty module
             if (lookUp->getModuleName().length() == 0) 
@@ -973,9 +939,6 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     else {
        Annotatable<Symbol *, user_funcs_a, true> &ufA = *this;
        ufA.addAnnotation(func);
-#if 0
-        createdFunctions.push_back(func);
-#endif
     }
 }
 
@@ -1140,6 +1103,7 @@ Symtab::Symtab(std::string filename,bool &err) :
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
+   obj_private(NULL),
    type_Error(NULL), 
    type_Untyped(NULL)
 {
@@ -1160,14 +1124,13 @@ Symtab::Symtab(std::string filename,bool &err) :
       err = true;
       return;
    }
-   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, true);
-   if(!extractInfo(linkedFile))
+   obj_private = new Object(mf, mfForDebugInfo, pd_log_perror, true);
+   if(!extractInfo(obj_private))
    {
       symtab_printf("%s[%d]: WARNING: creating symtab for %s, extractInfo() " 
                     "failed\n", FILE__, __LINE__, filename.c_str());
       err = true;
    }
-   delete linkedFile;
    defaultNamespacePrefix = "";
 }
 
@@ -1178,6 +1141,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
+   obj_private(NULL),
    type_Error(NULL), 
    type_Untyped(NULL)
 {
@@ -1195,21 +1159,20 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
       err = true;
       return;
    }
-   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, true);
-   if(!extractInfo(linkedFile))
+   obj_private = new Object(mf, mfForDebugInfo, pd_log_perror, true);
+   if(!extractInfo(obj_private))
    {
       symtab_printf("%s[%d]: WARNING: creating symtab for memory image at addr" 
                     "%u, extractInfo() failed\n", FILE__, __LINE__, mem_image);
       err = true;
    }
-   delete linkedFile;
    defaultNamespacePrefix = "";
 }
 
 // Symtab constructor for archive members
 #if defined(os_aix) || defined(os_linux) || defined(os_solaris)
 Symtab::Symtab(std::string filename, std::string member_name, Offset offset, 
-                       bool &err, void *base) :
+               bool &err, void *base) :
    member_name_(member_name), 
    member_offset_(offset),
    is_a_out(false),
@@ -1217,14 +1180,14 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    nativeCompiler(false), 
    isLineInfoValid_(false),
    isTypeInfoValid_(false), 
+   obj_private(NULL),
    type_Error(NULL), 
    type_Untyped(NULL)
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
-   Object *linkedFile = new Object(mf, mfForDebugInfo, member_name, offset, pd_log_perror, base);
-   err = extractInfo(linkedFile);
-   delete linkedFile;
+   obj_private = new Object(mf, mfForDebugInfo, member_name, offset, pd_log_perror, base);
+   err = extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }
 #else
@@ -1246,12 +1209,11 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    type_Error(NULL), 
    type_Untyped(NULL)
 {
-    mf = MappedFile::createMappedFile(mem_image, image_size);
-    assert(mf);
-    Object *linkedFile = new Object(mf, mf, member_name, offset, pd_log_perror, base);
-    err = extractInfo(linkedFile);
-    delete linkedFile;
-    defaultNamespacePrefix = "";
+   mf = MappedFile::createMappedFile(mem_image, image_size);
+   assert(mf);
+   obj_private = new Object(mf, mf, member_name, offset, pd_log_perror, base);
+   err = extractInfo(obj_private);
+   defaultNamespacePrefix = "";
 }
 #else 
 Symtab::Symtab(char *, size_t, std::string , Offset, bool &, void *)
@@ -1289,13 +1251,12 @@ bool Symtab::extractInfo(Object *linkedFile)
           //__FILE__,__LINE__, file().c_str());
           linkedFile->code_ptr_ = (char *) linkedFile->code_off();
        }
-       else {
+       else 
 #endif
+       {
           serr = Obj_Parsing;
           return false;
-#if !defined(os_aix)
-        }
-#endif
+       }
    }
 	
   //  if (!imageLen_ || !linkedFile->code_ptr()) {
@@ -1320,65 +1281,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
 
 	/* insert error check here. check if parsed */
-#if 0
-	std::vector <Symbol *> tmods;
-	
-  	SymbolIter symIter(linkedFile);
-
-   for(;symIter;symIter++)
-	{
-      Symbol *lookUp = symIter.currval();
-      if (lookUp.getType() == Symbol::ST_MODULE)
-		{
-         const std::string &lookUpName = lookUp->getName();
-         const char *str = lookUpName.c_str();
-
-         assert(str);
-         int ln = lookUpName.length();
-          
-         // directory definition -- ignored for now
-         if (str[ln-1] != '/')
-            tmods.push_back(lookUp);
-      }
-   }
- 
-	// sort the modules by address
-   //statusLine("sorting modules");
-   //sort(tmods.begin(), tmods.end(), symbol_compare);
-#if defined(TIMED_PARSE)
- 	struct timeval endtime;
-   gettimeofday(&endtime, NULL);
-   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-   unsigned long difftime = lendtime - lstarttime;
-   double dursecs = difftime/(1000 );
-   cout << __FILE__ << ":" << __LINE__ <<": extract mods & sort took "<<dursecs <<" msecs" << endl;
-#endif
-  
-   // remove duplicate entries -- some .o files may have the same 
-   // address as .C files.  kludge is true for module symbols that 
-   // I am guessing are modules
-  
-   unsigned int num_zeros = 0;
-   // must use loop+1 not mods.size()-1 since it is an unsigned compare
-   //  which could go negative - jkh 5/29/95
-   for (unsigned loop=0; loop < tmods.size(); loop++)
-	{
-      if (tmods[loop].getAddr() == 0)
-			num_zeros++;
-      if ((loop+1 < tmods.size()) && (tmods[loop].getAddr() == tmods[loop+1].getAddr()))
-         tmods[loop+1] = tmods[loop];
-      else
-         uniq.push_back(tmods[loop]);
-   }
-   // avoid case where all (ELF) module symbols have address zero
-   
-   if (num_zeros == tmods.size())
-      uniq.resize(0);
-
-#endif //if 0
-
-  	 
     address_width_ = linkedFile->getAddressWidth();
     is_a_out = linkedFile->is_aout();
     code_ptr_ = linkedFile->code_ptr();
@@ -1442,24 +1344,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     linkedFile->getModuleLanguageInfo(&mod_langs);
     setModuleLanguages(&mod_langs);
 	
-#if 0
-    dyn_hash_map<std::string, supportedLanguages>::iterator lang_iter;
-    for (lang_iter = mod_langs.begin(); lang_iter != mod_langs.end(); lang_iter++) {
-       std::string modn = lang_iter->first;
-       supportedLanguages l = lang_iter->second;
-       fprintf(stderr, "%s[%d]: Module: %s --- ", FILE__, __LINE__, modn.c_str());
-       switch (l) {
-          case lang_Unknown: fprintf(stderr, "lang_Unknown\n"); break;
-          case lang_Assembly: fprintf(stderr, "lang_Assembly\n"); break;
-          case lang_C: fprintf(stderr, "lang_C\n"); break;
-          case lang_CPlusPlus: fprintf(stderr, "lang_CPlusPlus\n"); break;
-          case lang_GnuCPlusPlus: fprintf(stderr, "lang_GnuCPlusPlus\n"); break;
-          case lang_Fortran: fprintf(stderr, "lang_Fortran\n"); break;
-          default: fprintf(stderr, "language other FIXME\n"); break;
-       };
-    }
-#endif
-
     // Once languages are assigned, we can build demangled names (in
     // the wider sense of demangling which includes stripping _'s from
     // fortran names -- this is why language information must be
@@ -1576,19 +1460,6 @@ bool Symtab::findModule(Module *&ret, const std::string name)
       ret = loc->second;
       return true;
    }
-#if 0
-    if (modsByFileName.find(name)!=modsByFileName.end()) 
-    {
-        ret = modsByFileName[name];
-        return true;
-    }
-    else if (modsByFullName.find(name)!=modsByFullName.end()) 
-    {
-        ret = modsByFullName[name];
-        return true;
-    }
-#endif
-  
     serr = No_Such_Module;
     ret = NULL;
     return false;
@@ -1738,13 +1609,6 @@ bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
       return false;
    ret = urA.getDataStructure();
    return true;
-#if 0
-    if(newRegions_.size() > 0) {
-    	ret = newRegions_;
-	return true;
-    }
-    return false;
-#endif
 }
 
 bool Symtab::getAllExceptions(std::vector<ExceptionBlock *> &exceptions)
@@ -2231,13 +2095,6 @@ Symtab::~Symtab()
        Region *s = usA[i];
        delete(s);
     }
-#if 0
-    for (i = 0; i < newRegions_.size(); i++) {
-        delete newRegions_[i];
-    }
-    newRegions_.clear();
-#endif
-    
     for (i = 0; i < _mods.size(); i++) {
         delete _mods[i];
     }
@@ -2262,9 +2119,6 @@ Symtab::~Symtab()
         delete everyUniqueFunction[i];
     }
     everyUniqueFunction.clear();
-#if 0
-    createdFunctions.clear();
-#endif
     exportedFunctions.clear();
     
     undefDynSyms.clear();
@@ -2614,36 +2468,7 @@ bool regexEquiv( const std::string &str,const std::string &them, bool checkCase 
    const char *s = them.c_str();
    // Would this work under NT?  I don't know.
    //#if !defined(os_windows)
-#if 0
-   regex_t r;
-   bool match = false;
-   int cflags = REG_NOSUB;
-   if( !checkCase )
-      cflags |= REG_ICASE;
-
-   // Regular expressions must be compiled first, see 'man regexec'
-   int err = regcomp( &r, str_, cflags );
-
-   if( err == 0 ) {
-      // Now we can check for a match
-      err = regexec( &r, s, 0, NULL, 0 );
-      if( err == 0 )
-         match = true;
-   }
-
-   // Deal with errors
-   if( err != 0 && err != REG_NOMATCH ) {
-      char errbuf[80];
-      regerror( err, &r, errbuf, 80 );
-      cerr << "regexEquiv -- " << errbuf << endl;
-   }
-
-   // Free the pattern buffer
-    regfree( &r );
-    return match;
-#else
     return pattern_match(str_, s, checkCase);
-#endif
 
 }
 
@@ -2862,19 +2687,6 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
     return !err;
 }
 	
-#if 0 
-bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
-{
-    bool err;
-    obj = new Symtab(mem_image, size, err);
-    if(err == false)
-        obj = NULL;
-    else
-        obj->setupTypes();	
-    return err;
-}
-#endif
-
 bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
 {
     std::vector<std::string>names;
@@ -3091,12 +2903,10 @@ bool Symtab::addRegion(Region *sec)
 
 void Symtab::parseLineInformation()
 {
-   dyn_hash_map <std::string, LineInformation> *lineInfo = new dyn_hash_map <std::string, LineInformation>;
-#if defined(os_aix)
-   Object *linkedFile = new Object(mf, mfForDebugInfo, *lineInfo, regions_, pd_log_perror, member_offset_);
-#else
-   Object *linkedFile = new Object(mf, mfForDebugInfo, *lineInfo, regions_, pd_log_perror);
-#endif
+   dyn_hash_map<std::string, LineInformation> *lineInfo = new dyn_hash_map <std::string, LineInformation>;
+
+   Object *linkedFile = getObject();
+   linkedFile->parseFileLineInfo(*lineInfo);
 
    isLineInfoValid_ = true;	
    dyn_hash_map <std::string, LineInformation>::iterator iter;
@@ -3117,13 +2927,7 @@ void Symtab::parseLineInformation()
             mod->setLineInfo(lineInformation);
          }	
       }
-      else {
-         // What are these??  maybe "DEFAULT_MODULE"??
-         // fprintf(stderr, "%s[%d]:  FIXME:  cannot find home for line information here\n", FILE__, __LINE__);
-      }
    }
-
-   delete linkedFile; 
 }
 
 DLLEXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
@@ -3198,14 +3002,9 @@ DLLEXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExcl
 
 void Symtab::parseTypes()
 {
-#if defined(os_aix)
-   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, member_offset_, false);
-#else
-   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, false);
-#endif
+   Object *linkedFile = getObject();
    linkedFile->parseTypeInfo(this);
    isTypeInfoValid_ = true;
-   delete linkedFile;
 }
 
 bool Symtab::addType(Type *type)
@@ -3214,12 +3013,7 @@ bool Symtab::addType(Type *type)
    utA.addAnnotation(type);
    typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
    globaltypes->addType(type);
-#if 0
-    if(!APITypes)
-    	APITypes = typeCollection::getGlobalTypeCollection();
-    APITypes->addType(type);	
-#endif
-    return true;
+   return true;
 }
 
 DLLEXPORT vector<Type *> *Symtab::getAllstdTypes()
@@ -3272,604 +3066,6 @@ bool Symtab::setDefaultNamespacePrefix(string &str){
     return true;
 }
 
-/********************************************************************************
-// Symtab::exportXML
-// This functions generates the XML document for all the data in Symtab.
-********************************************************************************/
-
-#if 0
-bool Symtab::exportXML(std::string file)
-{
-    int rc;
-#if defined(_MSC_VER)
-    hXML = LoadLibrary(LPCSTR("../../../i386-unknown-nt4.0/lib/libxml2.dll"));
-    if(hXML == NULL){
-        serr = Export_Error;
-        char buf[1000];
-        int result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 
-                                                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                                                buf, 1000, NULL);
-        errMsg = buf;
-        return false;
-    }
-    my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))GetProcAddress(hXML,"xmlNewTextWriterFilename");
-    my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))GetProcAddress(hXML,"xmlTextWriterStartDocument");
-    my_xmlTextWriterStartElement = (int(*)(xmlTextWriterPtr, const xmlChar *))GetProcAddress(hXML,"xmlTextWriterStartElement");
-    my_xmlTextWriterWriteFormatElement = (int(*)(xmlTextWriterPtr,const xmlChar *,const char *,...))GetProcAddress(hXML,"xmlTextWriterWriteFormatElement");
-    my_xmlTextWriterEndDocument = (int(*)(xmlTextWriterPtr))GetProcAddress(hXML,"xmlTextWriterEndDocument");
-    my_xmlFreeTextWriter = (void(*)(xmlTextWriterPtr))GetProcAddress(hXML,"xmlFreeTextWriter");
-    my_xmlTextWriterWriteFormatAttribute = (int(*)(xmlTextWriterPtr, const xmlChar *,const char *,...))GetProcAddress(hXML,"xmlTextWriterWriteFormatAttribute");
-    my_xmlTextWriterEndElement = (int(*)(xmlTextWriterPtr))GetProcAddress(hXML,"xmlTextWriterEndElement");
-#else
-    hXML = dlopen("libxml2.so", RTLD_LAZY);
-    if(hXML == NULL){
-    	serr = Export_Error;
-    	errMsg = "Unable to find libxml2";
-        return false;
-    }	
-    my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))dlsym(hXML,"xmlNewTextWriterFilename");
-    my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))dlsym(hXML,"xmlTextWriterStartDocument");
-    my_xmlTextWriterStartElement = (int(*)(xmlTextWriterPtr, const xmlChar *))dlsym(hXML,"xmlTextWriterStartElement");
-    my_xmlTextWriterWriteFormatElement = (int(*)(xmlTextWriterPtr,const xmlChar *,const char *,...))dlsym(hXML,"xmlTextWriterWriteFormatElement");
-    my_xmlTextWriterEndDocument = (int(*)(xmlTextWriterPtr))dlsym(hXML,"xmlTextWriterEndDocument");
-    my_xmlFreeTextWriter = (void(*)(xmlTextWriterPtr))dlsym(hXML,"xmlFreeTextWriter");
-    my_xmlTextWriterWriteFormatAttribute = (int(*)(xmlTextWriterPtr, const xmlChar *,const char *,...))dlsym(hXML,"xmlTextWriterWriteFormatAttribute");
-    my_xmlTextWriterEndElement = (int(*)(xmlTextWriterPtr))dlsym(hXML,"xmlTextWriterEndElement");
-#endif    	 
-	    
-    /* Create a new XmlWriter for DOM */
-    xmlTextWriterPtr writer = my_xmlNewTextWriterFilename(file.c_str(), 0);
-    if (writer == NULL) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error creating the xml writer";
-	return false;
-    }	
-    rc = my_xmlTextWriterStartDocument(writer, NULL, "ISO-8859-1", NULL);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartDocument";
-	return false;
-    }
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Symtab");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "file",
-                                             "%s", mf->filename().c_str());
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "imageOff",
-                                             "0x%lx", imageOffset_);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "imageLen",
-                                             "%ld", imageLen_);
-    if (rc < 0) {
-        serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "dataOff",
-                                             "0x%lx", dataOffset_);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "dataLen",
-                                             "%ld", dataLen_);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "isExec",
-                                                 "%d", is_a_out);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    
-    generateXMLforSyms(writer, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
-    generateXMLforExcps(writer, excpBlocks);
-    std::vector<relocationEntry> fbt;
-    getFuncBindingTable(fbt);
-    generateXMLforRelocations(writer, fbt);
-
-    //Module information including lineInfo & typeInfo
-    //generateXMLforModules(writer, _mods);
-    
-    rc = my_xmlTextWriterEndDocument(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndDocument";
-        return false;
-    }
-    my_xmlFreeTextWriter(writer);
-
-#if defined(_MSC_VER)
-    FreeLibrary(hXML);
-#endif
-
-    return true;
-}
-
-bool generateXMLforSyms( xmlTextWriterPtr &writer, std::vector<Symbol *> &everyUniqueFunction, std::vector<Symbol *> &everyUniqueVariable, std::vector<Symbol *> &modSyms, std::vector<Symbol *> &notypeSyms)
-{
-    unsigned tot = everyUniqueFunction.size()+everyUniqueVariable.size()+modSyms.size()+notypeSyms.size();
-    unsigned i;
-    if(!tot)
-    	return true;
-    int rc;
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Symbols");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
-                                         "%d", tot);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
-        return false;
-    }
-    
-    for(i=0;i<everyUniqueFunction.size();i++)
-    {
-        if(!generateXMLforSymbol(writer, everyUniqueFunction[i]))
-	    return false;
-    }		
-    for(i=0;i<everyUniqueVariable.size();i++)
-    {
-        if(!generateXMLforSymbol(writer, everyUniqueVariable[i]))
-	    return false;
-    }	    
-    for(i=0;i<modSyms.size();i++)
-    {
-        if(!generateXMLforSymbol(writer, modSyms[i]))
-	    return false;
-    }	    
-    for(i=0;i<notypeSyms.size();i++)
-    {
-        if(!generateXMLforSymbol(writer, notypeSyms[i]))
-	    return false;
-    }	   
-    
-    rc = my_xmlTextWriterEndElement(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        return false;
-    }
-    return true;
-}
-
-bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
-{
-    int rc,j,tot;
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Symbol");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "type",
-                                             "%d", sym->getType());
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "linkage",
-                                             "%d", sym->getLinkage());
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "addr",
-                                             "0x%lx", sym->getAddr());
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "size",
-                                             "%ld", sym->getSize());
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        return false;
-    }
-    tot = sym->getAllMangledNames().size();
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "mangledNames");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
-       			                                 "%d", tot);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
-        return false;
-    }
-    if(tot)
-    {
-	std::vector<std::string> names = sym->getAllMangledNames();
-        for(j=0;j<tot;j++)
-	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
-            	                                 "%s", names[j].c_str());
-	    if (rc < 0) {
-    		serr = Export_Error;
-        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        	return false;
-    	    }
- 	}
-    }	
-    rc = my_xmlTextWriterEndElement(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        return false;
-    }
-    tot = sym->getAllPrettyNames().size();
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "prettyNames");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
-       			                                 "%d", tot);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
-        return false;
-    }
-    if(tot)
-    {
-	std::vector<std::string> names = sym->getAllPrettyNames();
-        for(j=0;j<tot;j++)
-	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
-            	                                 "%s", names[j].c_str());
-	    if (rc < 0) {
-    		serr = Export_Error;
-        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        	return false;
-    	    }
- 	}
-    }	
-    rc = my_xmlTextWriterEndElement(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        return false;
-    }
-    tot = sym->getAllTypedNames().size();
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "typedNames");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
-       			                                 "%d", tot);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
-        return false;
-    }
-    if(tot)
-    {
-	std::vector<std::string> names = sym->getAllTypedNames();
-        for(j=0;j<tot;j++)
-	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
-            	                                 "%s", names[j].c_str());
-	    if (rc < 0) {
-    		serr = Export_Error;
-        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        	return false;
-    	    }
- 	}
-    }	
-    rc = my_xmlTextWriterEndElement(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "moduleName",
-                                             "%s", sym->getModuleName().c_str());
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        return false;
-    }
-    rc = my_xmlTextWriterEndElement(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        return false;
-    }
-    return true;
-}
-
-bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *> &excpBlocks)
-{
-    unsigned tot = excpBlocks.size(), i;
-    int rc;
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "ExcpBlocks");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
-                                         "%d", tot);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
-        return false;
-    }
-    for(i=0;i<excpBlocks.size();i++)
-    {
-        rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "ExcpBlock");
-        if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-            return false;
-    	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "hasTry",
-                                             "%d", excpBlocks[i]->hasTry());
-   	if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-            return false;
-    	}
-	if(excpBlocks[i]->hasTry())
-	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "tryStart",
-            		                                 "0x%lx", excpBlocks[i]->tryStart());
-    	    if (rc < 0) {
-    		serr = Export_Error;
-        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-        	return false;
-    	    }
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "trySize",
-            		                                 "%ld", excpBlocks[i]->trySize());
-    	    if (rc < 0) {
-    		serr = Export_Error;
-       		errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-		return false;
-	    }	
-	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "catchStart",
-        	                                 "0x%lx", excpBlocks[i]->catchStart());
-    	if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-            return false;
-    	}
-    	rc = my_xmlTextWriterEndElement(writer);
-	if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-            return false;
-	}
-    }
-    rc = my_xmlTextWriterEndElement(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        return false;
-    }
-    return true;
-}
-
-bool generateXMLforRelocations(xmlTextWriterPtr &writer, std::vector<relocationEntry> &fbt)
-{
-    unsigned tot = fbt.size(), i;
-    int rc;
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Relocations");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
-                                         "%d", tot);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
-        return false;
-    }
-    for(i=0;i<fbt.size();i++)
-    {
-        rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Relocation");
-        if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-            return false;
-    	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "targetAddr",
-        	                                 "%lx", fbt[i].target_addr());
-    	if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-            return false;
-    	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "relAddr",
-        	                                 "%lx", fbt[i].rel_addr());
-    	if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-            return false;
-    	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
-        	                                     "%s", fbt[i].name().c_str());
-    	if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-            return false;
-    	}
-    	rc = my_xmlTextWriterEndElement(writer);
-	if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-            return false;
-	}
-    }
-    rc = my_xmlTextWriterEndElement(writer);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        return false;
-    }
-    return true;
-}
-
-bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods)
-{
-    unsigned tot = mods.size(), i;
-    int rc;
-    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Modules");
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-        return false;
-    }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
-                                         "%d", tot);
-    if (rc < 0) {
-    	serr = Export_Error;
-        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
-        return false;
-    }	
-    for(i=0; i<mods.size(); i++)
-    {
-        rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Module");
-        if (rc < 0) {
-    	    serr = Export_Error;
-            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-	    return false;
-	}    
-	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "fullName",
-        			                                 "%s", mods[i]->fullName().c_str());
-    	if (rc < 0) {
-	   serr = Export_Error;
-       	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-       	   return false;
-	}   
-	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "addr",
-        			                                 "0x%lx", mods[i]->addr());
-    	if (rc < 0) {
-	   serr = Export_Error;
-       	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-       	   return false;
-	}   
-	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lang",
-        			                                 "%d", mods[i]->language());
-    	if (rc < 0) {
-	   serr = Export_Error;
-       	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-       	   return false;
-	}   
-	
-	LineInformation *lineInformation = mods[i]->getLineInformation();
-        if(lineInformation) {
-            rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "LineMap");
-            if (rc < 0) {
-    	    	serr = Export_Error;
-            	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-	        return false;
-	    }    
-	    LineInformation::const_iterator iter = lineInformation->begin();
-	    for(;iter!=lineInformation->end();iter++)
-	    {
-	        const std::pair<Offset, Offset> range = iter->first;
-	        LineNoTuple line = iter->second;
-                rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "LineMapEntry");
-                if (rc < 0) {
-    	    	    serr = Export_Error;
-            	    errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
-	            return false;
-	        }
-    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "rangeStart",
-	        			                                 "0x%lx", range.first);
-	    	if (rc < 0) {
-    		   serr = Export_Error;
-           	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-             	   return false;
-		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "rangeEnd",
-	        			                                 "0x%lx", range.second);
-	    	if (rc < 0) {
-    		   serr = Export_Error;
-           	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-             	   return false;
-		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lineSource",
-	        			                                 "%s", line.first);
-	    	if (rc < 0) {
-    		   serr = Export_Error;
-           	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-             	   return false;
-		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lineNumber",
-	        			                                 "%d", line.second);
-	    	if (rc < 0) {
-    		   serr = Export_Error;
-           	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-             	   return false;
-		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lineColumn",
-	        			                                 "%d", line.column);
-	    	if (rc < 0) {
-    		   serr = Export_Error;
-           	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
-             	   return false;
-		}   
-    		rc = my_xmlTextWriterEndElement(writer);
-		if (rc < 0) {
-    		    serr = Export_Error;
-		    errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-        	    return false;
-		}
-	    }
-    	    rc = my_xmlTextWriterEndElement(writer);
-	    if (rc < 0) {
-    	        serr = Export_Error;
-	        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-                return false;
-	    }
-	}
-    	rc = my_xmlTextWriterEndElement(writer);
-	if (rc < 0) {
-    	    serr = Export_Error;
-	    errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
-            return false;
-	}
-    }
-    return true;
-}
-#endif
 DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Add the undefined dynamic symbols so that they are added when emitting the binary
@@ -3888,10 +3084,10 @@ DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
         notypeSyms.push_back(iter->second);
         iter++;
     }
-   Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, true);
+    
+   Object *linkedFile = getObject();
    assert(linkedFile);
    bool ret = linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
-   delete linkedFile;
    return ret;
 }
 
@@ -3940,7 +3136,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
     Offset secoffset = 0;
     Offset prevSecoffset = 0;
 
-    Object *linkedFile = new Object(mf, mfForDebugInfo, pd_log_perror, false);
+    Object *linkedFile = getObject();
     assert(linkedFile);
 
     for (unsigned i = 0; i < regions_.size(); i++) {
@@ -3973,7 +3169,6 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
             break;
         }
     }
-    delete linkedFile;
 
     //   return highWaterMark;
     unsigned pgSize = P_getpagesize();
@@ -4253,169 +3448,6 @@ DLLEXPORT Region::region_t Region::getRegionType() const {
     return rType_;
 }
 
-#if 0
-DLLEXPORT Section::Section(unsigned sidnumber, std::string sname, 
-                           Offset saddr, unsigned long ssize, 
-                           void *secPtr, unsigned long sflags, bool isLoadable) 
-   : sidnumber_(sidnumber), sname_(sname), saddr_(saddr), ssize_(ssize), 
-     rawDataPtr_(secPtr), sflags_(sflags), isLoadable_(isLoadable),
-     isDirty_(false), buffer_(NULL)
-{
-}
-
-DLLEXPORT Section::Section(unsigned sidnumber, std::string sname, 
-                           unsigned long ssize, void *secPtr, 
-                           unsigned long sflags, bool isLoadable)
-   : sidnumber_(sidnumber), sname_(sname), saddr_(0), ssize_(ssize), 
-     rawDataPtr_(secPtr), sflags_(sflags), isLoadable_(isLoadable),
-     isDirty_(false), buffer_(NULL)
-{
-}
-
-DLLEXPORT Section::Section(const Section &sec)
-   : sidnumber_(sec.sidnumber_),sname_(sec.sname_), saddr_(sec.saddr_), 
-     ssize_(sec.ssize_), rawDataPtr_(sec.rawDataPtr_), 
-     sflags_(sec.sflags_), isLoadable_(sec.isLoadable_),
-     isDirty_(sec.isDirty_)
-{
-    buffer_ = malloc(ssize_);
-    memcpy(buffer_, sec.buffer_, ssize_);
-}
-
-DLLEXPORT Section& Section::operator=(const Section &sec)
-{
-    sidnumber_ = sec.sidnumber_;
-    sname_ = sec.sname_;
-    saddr_ = sec.saddr_;
-    ssize_ = sec.ssize_;
-    rawDataPtr_ = sec.rawDataPtr_;
-    sflags_ = sec.sflags_;
-    isLoadable_ = sec.isLoadable_;
-    isDirty_ = sec.isDirty_;
-    buffer_ = malloc(ssize_);
-    memcpy(buffer_, sec.buffer_, ssize_); 
-    return *this;
-}
-	
-DLLEXPORT ostream& Section::operator<< (ostream &os) 
-{
-    return os   << "{"
-                << " id="      << sidnumber_
-                << " name="    << sname_
-                << " addr="    << saddr_
-                << " size="    << ssize_
-		<< " loadable" << isLoadable_
-                << " }" << endl;
-}
-
-DLLEXPORT bool Section::operator== (const Section &sec)
-{
-    return ((sidnumber_ == sec.sidnumber_)&&
-           (sname_ == sec.sname_)&&
-           (saddr_ == sec.saddr_)&&
-           (ssize_ == sec.ssize_)&&
-           (rawDataPtr_ == sec.rawDataPtr_));
-}
-
-DLLEXPORT Section::~Section() 
-{
-    if(buffer_)
-        free(buffer_);
-}
- 
-DLLEXPORT unsigned Section::getSecNumber() const
-{ 
-    return sidnumber_; 
-}
-
-DLLEXPORT bool Section::setSecNumber(unsigned sidnumber)
-{
-    sidnumber_ = sidnumber;
-    return true;
-}
-
-DLLEXPORT std::string Section::getSecName() const
-{ 
-    return sname_; 
-}
-
-DLLEXPORT Offset Section::getSecAddr() const
-{ 
-    return saddr_; 
-}
-
-DLLEXPORT void *Section::getPtrToRawData() const
-{ 
-    return rawDataPtr_; 
-}
-
-DLLEXPORT bool Section::setPtrToRawData(void *buf, unsigned long size)
-{
-    rawDataPtr_ = buf;
-    ssize_ = size;
-    isDirty_ = true;
-    return true;
-}
-
-DLLEXPORT unsigned long Section::getSecSize() const
-{ 
-    return ssize_; 
-}
-
-DLLEXPORT unsigned Section::getFlags() const
-{
-    return sflags_;
-}
-
-DLLEXPORT bool Section::isBSS() const
-{ 
-    return sname_==".bss";
-}
-
-DLLEXPORT bool Section::isText() const
-{ 
-    return sname_ == ".text"; 
-}
-
-DLLEXPORT bool Section::isData() const
-{ 
-    return (sname_ == ".data"||sname_ == ".data2"); 
-}
-
-DLLEXPORT bool Section::isOffsetInSection(const Offset &offset) const
-{
-    return (offset > saddr_ && offset < saddr_ + ssize_);
-}
-
-DLLEXPORT bool Section::isLoadable() const
-{
-    return isLoadable_;
-}
-
-DLLEXPORT bool Section::isDirty() const
-{
-    return isDirty_;
-}
-
-DLLEXPORT bool Section::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType){
-    rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType));
-    return true;
-}
-
-DLLEXPORT bool Section::patchData(Offset off, void *buf, unsigned size){
-    if(off+size > ssize_)
-        return false;
-    if(!buffer_)
-        memcpy(buffer_, rawDataPtr_, ssize_);
-    memcpy((char *)buffer_+off, buf, size);
-    return setPtrToRawData(buffer_, ssize_);
-}
-
-DLLEXPORT vector<relocationEntry> &Section::getRelocations(){
-    return rels_;
-}
-#endif
-
 DLLEXPORT relocationEntry::relocationEntry()
    :target_addr_(0),rel_addr_(0), name_(""), dynref_(NULL), relType_(0)
 {
@@ -4504,3 +3536,17 @@ const char *Symbol::symbolTag2Str(SymbolTag t) {
    return "invalid symbol tag";
 }
 
+Object *Symtab::getObject()
+{
+   if (obj_private)
+      return obj_private;
+
+   //TODO: This likely triggered because we serialized in an object
+   // from cache, but now the user is requesting more information from
+   // the on disk object.  We should create a new 'Object' from data
+   // (likely a file path) serialized in.
+   
+   assert(0);
+   //obj_private = new Object();
+   return obj_private;
+}

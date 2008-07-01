@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.49 2008/06/23 18:45:41 legendre Exp $
+ * $Id: Object-elf.C,v 1.50 2008/07/01 19:26:39 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1725,42 +1725,6 @@ static void insertUniqdSymbol(Symbol *sym,
 	   symbols to the local ones, but the look up by address 
 	   favors the last-defined. */
 	(*namesByAddr)[symAddr] = symName;
-		
-#if 0
-    const string &symName = sym.name();
-    Offset symAddr = sym.addr();
-
-    if (syms->defines(symName)) {
-        Symbol other = syms->get(symName);
-        if (sym.linkage() == Symbol::SL_GLOBAL &&
-            other.linkage() != Symbol::SL_GLOBAL) {
-            // syms contains a local symbol with the same name. Let's
-            // replace it with ours (global).
-            (*syms)[symName] = sym;
-	    (*namesByAddr)[symAddr] = symName;
-            // We then re-add the original one under a different name
-            insertUniqdSymbol(other, syms, namesByAddr);
-        }
-        else {
-            // Let's make up a name in the form oldname,version. We'll
-            // keep incrementing version until we get a unique name
-            unsigned versionId = 1;
-            string uniqName;
-            do {
-	      uniqName = symName + ",v" + string(versionId++);
-            } while (syms->defines(uniqName));
-        
-            Symbol modified(uniqName, sym.module(), sym.type(), sym.linkage(),
-                            sym.addr(), sym.kludge(), sym.size());
-            (*syms)[uniqName] = modified;
-	    (*namesByAddr)[symAddr] = uniqName;
-        }
-    }
-    else {
-	(*syms)[symName] = sym;
-	(*namesByAddr)[symAddr] = symName;
-    }
-#endif /* 0 */
 }
 
 /********************************************************
@@ -2433,7 +2397,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
  * WEAK symbols - looks like this case isn't handled correctly
  *  for static libraries....
  *
-********************************************************/
+ ********************************************************/
 void Object::insert_symbols_static(std::vector<Symbol *> &allsymbols)
 {
   unsigned nsymbols = allsymbols.size();
@@ -2554,78 +2518,8 @@ stab_entry *Object::get_stab_info() const
    return new stab_entry_64();
 }
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, 
-               dyn_hash_map<std::string, LineInformation> &li,
-               std::vector<Region *> &secs_, 
-               void (*err_func)(const char *)) :
-   AObject(mf_, mfd, err_func), 
-   stab_off_(0),
-   stab_size_(0),
-   stabstr_off_(0),
-   EEL(false) 
-{
-   for (unsigned int i = 0; i < secs_.size(); ++i) {
-      string sname = secs_[i]->getRegionName();
-      if (sname == STAB_NAME) {
-         stab_off_ = secs_[i]->getDiskOffset();
-         stab_size_ = secs_[i]->getDiskSize();
-      } else if (sname == STABSTR_NAME) {
-         stabstr_off_ = secs_[i]->getDiskOffset();
-      }
-   }
-
-#if 0
-   fprintf(stderr, "%s[%d]:  before new Object(%lu, %lu, %lu)\n", FILE__, __LINE__,
-         ((unsigned long)mf_->base_addr()) + stab_off_,
-         ((unsigned long)mf_->base_addr()) + stabstr_off_,
-         stab_size_/sizeof(stab32));
-#endif
-   if(mfForDebugInfo->getFD() != -1)
-      elfHdrForDebugInfo = Elf_X(mfForDebugInfo->getFD(), ELF_C_READ);
-   else
-      elfHdrForDebugInfo = Elf_X((char *)mfForDebugInfo->base_addr(), mfForDebugInfo->size());
-   if(!elfHdrForDebugInfo.isValid()) {
-      log_elferror(err_func_, "Elf header");
-      fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
-      return;
-   }
-   else if(!pdelf_check_ehdr(elfHdrForDebugInfo)) {
-      fprintf(stderr, "%s[%d]:  Warning: Elf ehdr failed integrity check\n", FILE__, __LINE__);
-      log_elferror(err_func_, "ELF header failed integrity check");
-   }
-
-   if(mf->getFD() != -1)
-      elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
-   else
-       elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
-
-      // ELF header: sanity check
-      //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
-      if (!elfHdr.isValid())  {
-         log_elferror(err_func_, "ELF header");
-         fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
-         return;
-      }
-      else if (!pdelf_check_ehdr(elfHdr)) {
-         fprintf(stderr, "[%s][%d]: WARNING: ELF ehdr failed integrity check\n",
-               FILE__,__LINE__);
-         log_elferror(err_func_, "ELF header failed integrity check");
-      }
-      if( elfHdr.e_type() == 3 ) {
-       //  load_shared_object();
-      } else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
-         is_aout_ = true;
-        // load_object();
-      }    
-      else {
-         log_perror(err_func_,"Invalid filetype in Elf header");
-         return;
-      }
-
-      this->parseFileLineInfo(li);
-}
-
-Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), bool alloc_syms) :
+Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
+               bool alloc_syms) :
    AObject(mf_, mfd, err_func), 
    EEL(false)
 {
@@ -2641,9 +2535,9 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
    interpreter_name_ = NULL;
    isStripped = false;
    if(mf->getFD() != -1)
-   elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
+      elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
    else
-       elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
+      elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
 
    mfForDebugInfo = findMappedFileForDebugInfo();
    // ELF header: sanity check
@@ -2653,8 +2547,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
       return;
    }
    else if (!pdelf_check_ehdr(elfHdr)) {
-      fprintf(stderr, "[%s][%d]: WARNING: ELF ehdr failed integrity check\n",
-            FILE__,__LINE__);
       log_elferror(err_func_, "ELF header failed integrity check");
    }
    if( elfHdr.e_type() == 3 )
@@ -2728,44 +2620,8 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offse
 #endif
 }
 
-#if 0 
-   Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *))
-: AObject(NULL, err_func), fileName(NULL), mem_image_(mem_image), EEL(false)
-{
-#if defined(os_solaris)
-   loadNativeDemangler();
-#endif    
-   is_aout_ = false;
-   interpreter_name_ = NULL;
-   isStripped = false;
-   elfHdr = Elf_X(mem_image,image_size);
-   // ELF header: sanity check
-   if (!elfHdr.isValid()) 
-   {
-      log_elferror(err_func_, "ELF header");
-      return;
-   }
-   else if (!pdelf_check_ehdr(elfHdr))
-   {
-      fprintf(stderr, "[%s][%d]WARNING: ELF ehdr failed integrity check\n",__FILE__,__LINE__);
-      log_elferror(err_func_, "ELF header failed integrity check");
-   }
-   if( elfHdr.e_type() == 3 )
-      load_shared_object();
-   else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 )
-   {
-      is_aout_ = true;
-      load_object();
-   }	
-   else
-   {
-      log_perror(err_func_,"Invalid filetype in Elf header");
-      return;
-   }	
-}
-#endif
-   Object::Object(const Object& obj)
-: AObject(obj), EEL(false)
+Object::Object(const Object& obj)
+   : AObject(obj), EEL(false)
 {
 #if defined(os_solaris)
    loadNativeDemangler();
@@ -2780,9 +2636,8 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offse
    deps_ = obj.deps_;
 }
 
-const Object&
-Object::operator=(const Object& obj) {
-
+const Object& Object::operator=(const Object& obj) 
+{
    (void) AObject::operator=(obj);
 
    dynsym_addr_ = obj.dynsym_addr_;
@@ -3746,11 +3601,6 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
    bool isPreviousValid = false;
 
    Offset baseAddress = getBaseAddress();
-
-#if 0
-   fprintf(stderr, "%s[%d]:  iterating over %lu stab entries\n", 
-         FILE__, __LINE__, stabEntry->count());
-#endif
 
    for ( unsigned int i = 0; i < stabEntry->count(); i++ ) {
       switch (stabEntry->type( i )) {
