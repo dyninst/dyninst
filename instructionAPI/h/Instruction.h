@@ -69,6 +69,8 @@ namespace Dyninst
       /// The vector \c operands has the instruction's operands appended to it
       /// in the same order that they were decoded.
       void getOperands(std::vector<Operand>& operands) const;
+
+      Operand getOperand(int index) const;
   
       /// Returns the size of the corresponding machine instruction, in bytes.
       unsigned char size() const;

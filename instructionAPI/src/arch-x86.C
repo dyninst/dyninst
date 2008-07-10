@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.1 2008/06/24 15:34:00 bill Exp $
+// $Id: arch-x86.C,v 1.2 2008/07/10 20:37:31 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -58,11 +58,16 @@
 #include "common/h/Types.h"
 #include "arch-x86.h"
 #include "../h/RegisterIDs-x86.h"
+#include <iostream>
 
 using namespace std;
 using namespace boost::assign;
-using namespace Dyninst::Instruction;
 
+namespace Dyninst
+{
+  namespace Instruction
+  {
+    
 
 // groups
 enum {
@@ -814,16 +819,17 @@ static ia32_entry oneByteMap[256] = {
   { e_add,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_add,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_add,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { STHw, ES, eSP }, 0, s1W2R3RW },
-  { e_pop,  t_done, 0, false, { ES, STPw, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { ES, eSP, Zz }, 0, s1R2RW }, // Semantics rewritten to ignore stack "operand"
+  { e_pop,  t_done, 0, false, { ES, eSP, Zz }, 0, s1W2RW },
   /* 08 */
-  { e_or,   t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, 
+true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { STHw, CS, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { CS, eSP, Zz }, 0, s1W2R3RW },
   { e_No_Entry,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
   { e_adc,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
@@ -832,8 +838,8 @@ static ia32_entry oneByteMap[256] = {
   { e_adc,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_adc,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { STHw, SS, eSP }, 0, s1W2R3RW },
-  { e_pop,  t_done, 0, false, { SS, STPw, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { SS, eSP, Zz }, 0, s1R2RW },
+  { e_pop,  t_done, 0, false, { SS, eSP, Zz }, 0, s1W2RW },
   /* 18 */
   { e_sbb,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
@@ -841,8 +847,8 @@ static ia32_entry oneByteMap[256] = {
   { e_sbb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_sbb,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { STHw, DS, eSP }, 0, s1W2R3RW },
-  { e_pop , t_done, 0, false, { DS, STPw, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { DS, eSP, Zz }, 0, s1R2RW },
+  { e_pop , t_done, 0, false, { DS, eSP, Zz }, 0, s1W2RW },
   /* 20 */
   { e_and, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_and, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
@@ -898,23 +904,23 @@ static ia32_entry oneByteMap[256] = {
   { e_dec, t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
   { e_dec, t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
   /* 50 */
-  { e_push, t_done, 0, false, { STHv, eAX, eSP }, 0, s1W2R3RW },
-  { e_push, t_done, 0, false, { STHv, eCX, eSP }, 0, s1W2R3RW },
-  { e_push, t_done, 0, false, { STHv, eDX, eSP }, 0, s1W2R3RW },
-  { e_push, t_done, 0, false, { STHv, eBX, eSP }, 0, s1W2R3RW },
-  { e_push, t_done, 0, false, { STHv, eSP, eSP }, 0, s1W2R3RW },
-  { e_push, t_done, 0, false, { STHv, eBP, eSP }, 0, s1W2R3RW },
-  { e_push, t_done, 0, false, { STHv, eSI, eSP }, 0, s1W2R3RW },
-  { e_push, t_done, 0, false, { STHv, eDI, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { eAX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { eCX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { eDX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { eBX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { eSP, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { eBP, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { eSI, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { eDI, eSP, Zz }, 0, s1R2RW },
   /* 58 */
-  { e_pop, t_done, 0, false, { eAX, STPv, eSP }, 0, s1W2R3RW },
-  { e_pop, t_done, 0, false, { eCX, STPv, eSP }, 0, s1W2R3RW },
-  { e_pop, t_done, 0, false, { eDX, STPv, eSP }, 0, s1W2R3RW },
-  { e_pop, t_done, 0, false, { eBX, STPv, eSP }, 0, s1W2R3RW },
-  { e_pop, t_done, 0, false, { eSP, STPv, eSP }, 0, s1W2R3RW },
-  { e_pop, t_done, 0, false, { eBP, STPv, eSP }, 0, s1W2R3RW },
-  { e_pop, t_done, 0, false, { eSI, STPv, eSP }, 0, s1W2R3RW },
-  { e_pop, t_done, 0, false, { eDI, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eAX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { eCX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { eDX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { eBX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { eSP, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { eBP, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { eSI, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { eDI, eSP, Zz }, 0, s1W2RW },
   /* 60 */
   { e_pusha_d, t_done, 0, false, { STHa, GPRS, eSP }, 0, s1W2R3RW },
   { e_popa_d,  t_done, 0, false, { GPRS, STPa, eSP }, 0, s1W2R3RW },
@@ -925,9 +931,9 @@ static ia32_entry oneByteMap[256] = {
   { e_No_Entry,   t_prefixedSSE, 2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ)*/
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, /* address size prefix (PREFIX_ADDR_SZ)*/
   /* 68 */
-  { e_push,    t_done, 0, false, { STHv, Iz, eSP }, 0, s1W2R3RW },
+  { e_push,    t_done, 0, false, { Iz, eSP, Zz }, 0, s1R2RW },
   { e_imul,    t_done, 0, true, { Gv, Ev, Iz }, 0, s1W2R3R },
-  { e_push,    t_done, 0, false, { STHb, Ib, eSP }, 0, s1W2R3RW },
+  { e_push,    t_done, 0, false, { Ib, eSP, Zz }, 0, s1R2RW },
   { e_imul,    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
   { e_insb,    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
   { e_insw_d,  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R | (fREP << FPOS) },
@@ -969,7 +975,7 @@ static ia32_entry oneByteMap[256] = {
   { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, 0, s1W2R }, // this is just M in the book
                                                         // AFAICT the 2nd operand is not accessed
   { e_mov, t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
-  { e_pop, t_done, 0, true, { Ev, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, true, { Ev, eSP }, 0, s1W2R3RW },
   /* 90 */
   { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // actually xchg eax,eax
   { e_xchg, t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
@@ -984,8 +990,8 @@ static ia32_entry oneByteMap[256] = {
   { e_cwd_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
   { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
   { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_pushf_d, t_done, 0, false, { STHv, Fv, eSP }, 0, s1W2R3RW },
-  { e_popf_d,  t_done, 0, false, { Fv, STPv, eSP }, 0, s1W2R3RW },
+  { e_pushf_d, t_done, 0, false, { Fv, eSP, Zz }, 0, s1R2RW },
+  { e_popf_d,  t_done, 0, false, { Fv, eSP, Zz }, 0, s1W2RW },
   { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   /* A0 */
@@ -1288,8 +1294,8 @@ static ia32_entry twoByteMap[256] = {
   { e_setle,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { e_setnle, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* A0 */
-  { e_push,   t_done, 0, false, { STHw, FS, eSP }, 0, s1W2R3RW },
-  { e_pop,    t_done, 0, false, { FS, STPw, eSP }, 0, s1W2R3RW },
+  { e_push,   t_done, 0, false, { FS, eSP, Zz }, 0, s1R2RW },
+  { e_pop,    t_done, 0, false, { FS, eSP, Zz }, 0, s1W2RW },
   { e_cpuid,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_bt,     t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
   { e_shld,   t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
@@ -1297,8 +1303,8 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* A8 */
-  { e_push, t_done, 0, false, { STHw, GS, eSP }, 0, s1W2R3RW },
-  { e_pop,  t_done, 0, false, { GS, STPw, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { GS, eSP, Zz }, 0, s1R2RW },
+  { e_pop,  t_done, 0, false, { GS, eSP, Zz }, 0, s1W2RW },
   { e_rsm,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_bts,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
   { e_shrd, t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
@@ -2460,7 +2466,6 @@ void ia32_memacc::print()
     fprintf(stderr, "base: %d, index: %d, scale:%d, disp: %ld (%lx), size: %d, addr_size: %d\n",
 	    regs[0], regs[1], scale, imm, imm, size, addr_size);
 }
-
 
 ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
 {
@@ -3937,3 +3942,8 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 // insns
 unsigned char illegalRep[2] = {0x0f, 0x0b};
 unsigned char trapRep[1] = {0xCC};
+ 
+};
+
+};
+

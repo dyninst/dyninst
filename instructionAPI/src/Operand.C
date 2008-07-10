@@ -47,11 +47,13 @@ namespace Dyninst
 
     bool Operand::isRead(Expression::Ptr candidate) const
     {
-      return m_isRead && op_value->isUsed(candidate);
+      // The whole expression of a read, any subexpression of a write
+      return op_value->isUsed(candidate) && (m_isRead || !(*candidate == *op_value));
     }
     bool Operand::isWritten(Expression::Ptr candidate) const
     {
-      return m_isWritten && op_value->isUsed(candidate);
+      // Whole expression of a write
+      return m_isWritten && (*op_value == *candidate);
     }    
     bool Operand::readsMemory() const
     {

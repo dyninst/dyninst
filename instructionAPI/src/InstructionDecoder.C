@@ -1,7 +1,7 @@
 
 #include "../h/InstructionDecoder.h"
 #include "../h/Expression.h"
-#include "arch-x86.h"
+#include "../src/arch-x86.h"
 #include "../h/Register.h"
 #include "../h/Dereference.h"
 #include "../h/Immediate.h"
@@ -48,7 +48,7 @@ namespace Dyninst
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
       // This handles the rm and reg fields; the mod field affects how this expression is wrapped
-      if(locs.modrm_rm != modrm_use_sib)
+      if(locs.modrm_rm != modrm_use_sib || locs.modrm_mod == 0x03)
       {
 	return Expression::Ptr(new RegisterAST(makeRegisterID(locs.modrm_rm, opType)));
       }
@@ -179,6 +179,7 @@ namespace Dyninst
       case op_q:
       case op_sd:
 	return s64;
+      case op_lea:
       case op_z:
 	if(is32BitMode ^ sizePrefixPresent)
 	{
@@ -204,7 +205,6 @@ namespace Dyninst
       case op_dq:
       case op_pi:
       case op_ps:
-      case op_lea:
       case op_512:
 	assert(!"Not implemented!");
 	return u8;
@@ -331,7 +331,8 @@ namespace Dyninst
 	}
 	break;
       case am_P:
-	assert(!"Not implemented, mod r/m reg = MMX");
+	assert(!"Not implemented, mod r/m reg = MMX");	
+
 	break;
       case am_Q:
 	assert(!"Not implemented, mod r/m = MMX or memory");
@@ -374,8 +375,8 @@ namespace Dyninst
     unsigned int InstructionDecoder::decodeOpcode()
     {
       delete decodedInstruction;
-      decodedInstruction = new ia32_instruction(mac, &cond, &locs);
-      ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, rawInstruction, *decodedInstruction);
+      decodedInstruction = new Dyninst::Instruction::ia32_instruction(mac, &cond, &locs);
+      Dyninst::Instruction::ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, rawInstruction, *decodedInstruction);
       m_Operation = Operation(decodedInstruction->getEntry());
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();

@@ -4,6 +4,9 @@
 #include "../h/Register.h"
 #include "../h/Operation.h"
 
+#include <iostream>
+using namespace std;
+
 namespace Dyninst
 {
   namespace Instruction
@@ -37,6 +40,16 @@ namespace Dyninst
     {
       std::copy(m_Operands.begin(), m_Operands.end(), std::back_inserter(operands));
     }
+    
+     Operand Instruction::getOperand(int index) const
+     {
+        if(index < 0 || index >= m_Operands.size())
+        {
+	  // Out of range = empty operand
+           return Operand(Expression::Ptr(), false, false);
+        }
+        return m_Operands[index];
+     }
     
     unsigned char Instruction::size() const
     {

@@ -78,6 +78,8 @@ namespace Dyninst
       /// \c clearValue sets the contents of this %Expression to undefined.
       /// The next time \c eval is called, it will recalculate the value of the %Expression.
       void clearValue();
+
+      int size() const;
   
     private:
       Result userSetValue;

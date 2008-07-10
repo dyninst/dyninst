@@ -269,10 +269,40 @@ namespace Dyninst
 	  return ret.str();
 	}
       }
-      
+    /// Returns the size of the contained type, in bytes
+      int size() const
+      {
+	switch(type)
+	{
+	case u8:
+	case s8:
+	  return 1;
+	case u16:
+	case s16:
+	  return 2;
+	case u32:
+	case s32:
+	  return 4;
+	case u64:
+	case s64:
+	  return 8;
+	case u48:
+	case s48:
+	  return 6;
+	case sp_float:
+	  return sizeof(float);
+	case dp_float:
+             return sizeof(double);
+	case bit_flag:
+	  return 1;
+	default:
+	  assert(!"Unknown type in Result");
+	  return 0;
+	};
+      }
     };
-    Result operator+(const Result& arg1, const Result& arg2);
     
+    Result operator+(const Result& arg1, const Result& arg2);
   };
 };
 

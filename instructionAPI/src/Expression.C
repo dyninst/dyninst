@@ -23,6 +23,10 @@ namespace Dyninst
     void Expression::clearValue()
     {
       userSetValue.defined = false;
-    }  
+    }
+    int Expression::size() const
+    {
+      return userSetValue.size();
+    }
   };
 };

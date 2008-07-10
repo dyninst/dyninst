@@ -6,7 +6,7 @@ namespace Dyninst
 {
   namespace Instruction
   {
-    Operation::Operation(ia32_entry* e)
+    Operation::Operation(Dyninst::Instruction::ia32_entry* e)
     {
       if(!e)
       {
@@ -106,6 +106,18 @@ namespace Dyninst
 	writtenOperands.push_back(true);
 	readOperands.push_back(true);
 	writtenOperands.push_back(false);
+	break;
+      case s1R2RW:
+	readOperands.push_back(true);
+	writtenOperands.push_back(false);
+	readOperands.push_back(true);
+	writtenOperands.push_back(true);
+	break;
+      case s1W2RW:
+	readOperands.push_back(false);
+	writtenOperands.push_back(true);
+	readOperands.push_back(true);
+	writtenOperands.push_back(true);
 	break;
       case sNONE:
       default:

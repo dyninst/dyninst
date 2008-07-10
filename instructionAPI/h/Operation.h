@@ -62,7 +62,7 @@ namespace Dyninst
       typedef std::set<Expression::Ptr> VCSet;
   
     public:
-      Operation(ia32_entry* e);
+      Operation(Dyninst::Instruction::ia32_entry* e);
       Operation(const Operation& o);
       Operation operator=(const Operation& o);
       

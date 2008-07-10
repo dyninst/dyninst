@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.86 2008/06/19 19:53:07 legendre Exp $
+// $Id: arch-x86.C,v 1.87 2008/07/10 20:37:30 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -66,6 +66,7 @@
 
 using namespace std;
 using namespace boost::assign;
+using namespace Dyninst::Instruction;
 
 
 // groups
@@ -653,141 +654,141 @@ const map<entryID, flagInfo>& ia32_instruction::getFlagTable()
   return flagTable;
 }
 
-const vector<RegisterID> standardFlags = list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF);
+const vector<IA32Regs> standardFlags = list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF);
 
   
 void ia32_instruction::initFlagTable(map<entryID, flagInfo>& flagTable)
 {
   flagTable[e_aaa] = flagInfo(list_of(r_AF), standardFlags);
-  flagTable[e_aad] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_aam] = flagInfo(vector<RegisterID>(), standardFlags);
+  flagTable[e_aad] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_aam] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_aas] = flagInfo(list_of(r_AF), standardFlags);
   flagTable[e_adc] = flagInfo(list_of(r_CF), standardFlags);
-  flagTable[e_add] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_and] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_arpl] = flagInfo(vector<RegisterID>(), list_of(r_ZF));
-  flagTable[e_bsf] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_bt] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_bts] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_btr] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_btc] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_clc] = flagInfo(vector<RegisterID>(), list_of(r_CF));
-  flagTable[e_cld] = flagInfo(vector<RegisterID>(), list_of(r_DF));
-  flagTable[e_cli] = flagInfo(vector<RegisterID>(), list_of(r_IF));
-  flagTable[e_cmc] = flagInfo(vector<RegisterID>(), list_of(r_CF));
-  flagTable[e_cmovbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmove] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovnae] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovne] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovng] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovnge] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovpe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovpo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmovs] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_cmp] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_cmpsb] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_cmpsd] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_cmpss] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_cmpsw] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_cmpxch] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_cmpxch8b] = flagInfo(vector<RegisterID>(), list_of(r_ZF));
-  flagTable[e_comisd] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_comiss] = flagInfo(vector<RegisterID>(), standardFlags);
+  flagTable[e_add] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_and] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_arpl] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
+  flagTable[e_bsf] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_bt] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_bts] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_btr] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_btc] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_clc] = flagInfo(vector<IA32Regs>(), list_of(r_CF));
+  flagTable[e_cld] = flagInfo(vector<IA32Regs>(), list_of(r_DF));
+  flagTable[e_cli] = flagInfo(vector<IA32Regs>(), list_of(r_IF));
+  flagTable[e_cmc] = flagInfo(vector<IA32Regs>(), list_of(r_CF));
+  flagTable[e_cmovbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmove] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovnae] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovne] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovng] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovnge] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovpe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovpo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmovs] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_cmp] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_cmpsb] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_cmpsd] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_cmpss] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_cmpsw] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_cmpxch] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_cmpxch8b] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
+  flagTable[e_comisd] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_comiss] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_daa] = flagInfo(list_of(r_AF)(r_CF), standardFlags);
   flagTable[e_das] = flagInfo(list_of(r_AF)(r_CF), standardFlags);
-  flagTable[e_dec] = flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF));
+  flagTable[e_dec] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF));
   flagTable[e_div] = flagInfo(list_of(r_AF)(r_CF), standardFlags);
   // TODO: FCMOVcc (not in our entry table) (reads zf/pf/cf)
   // TODO: FCOMI/FCOMIP/FUCOMI/FUCOMIP (writes/zf/pf/cf)
-  flagTable[e_idiv] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_imul] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_inc] = flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF));
-  flagTable[e_insb] = flagInfo(list_of(r_DF), vector<RegisterID>());
-  flagTable[e_insw_d] = flagInfo(list_of(r_DF), vector<RegisterID>());
-  flagTable[e_int] = flagInfo(vector<RegisterID>(), list_of(r_TF)(r_NT));
-  flagTable[e_int3] = flagInfo(vector<RegisterID>(), list_of(r_TF)(r_NT));
+  flagTable[e_idiv] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_imul] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_inc] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF));
+  flagTable[e_insb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_insw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_int] = flagInfo(vector<IA32Regs>(), list_of(r_TF)(r_NT));
+  flagTable[e_int3] = flagInfo(vector<IA32Regs>(), list_of(r_TF)(r_NT));
   flagTable[e_into] = flagInfo(list_of(r_OF), list_of(r_TF)(r_NT));
-  flagTable[e_ucomisd] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_ucomiss] = flagInfo(vector<RegisterID>(), standardFlags);
+  flagTable[e_ucomisd] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_ucomiss] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_iret] = flagInfo(list_of(r_NT), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF));
-  flagTable[e_jb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jb_jnaej_j] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jcxz_jec] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jnb_jae_j] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jnle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jnp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jnz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_js] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_jz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_lar] = flagInfo(vector<RegisterID>(), list_of(r_ZF));
-  flagTable[e_loop] = flagInfo(list_of(r_DF), vector<RegisterID>());
-  flagTable[e_loope] = flagInfo(list_of(r_ZF), vector<RegisterID>());
-  flagTable[e_loopn] = flagInfo(list_of(r_ZF), vector<RegisterID>());
-  flagTable[e_lsl] = flagInfo(vector<RegisterID>(), list_of(r_ZF));
+  flagTable[e_jb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jb_jnaej_j] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jcxz_jec] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jnb_jae_j] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jnle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jnp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jnz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_js] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_jz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_lar] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
+  flagTable[e_loop] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_loope] = flagInfo(list_of(r_ZF), vector<IA32Regs>());
+  flagTable[e_loopn] = flagInfo(list_of(r_ZF), vector<IA32Regs>());
+  flagTable[e_lsl] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
   // I'd expect that mov control/debug/test gets handled when we do operand analysis
   // If it doesn't, fix later
-  flagTable[e_mul] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_neg] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_or] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_outsb] = flagInfo(list_of(r_DF), vector<RegisterID>());
-  flagTable[e_outsw_d] = flagInfo(list_of(r_DF), vector<RegisterID>());
-  flagTable[e_popf_d] = flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT));
+  flagTable[e_mul] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_neg] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_or] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_outsb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_outsw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_popf_d] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT));
   flagTable[e_rcl] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
   flagTable[e_rcr] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
   flagTable[e_rol] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
   flagTable[e_ror] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
-  flagTable[e_rsm] = flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT)(r_RF));
-  flagTable[e_sahf] = flagInfo(list_of(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_sar] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_shr] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_setb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setnle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setnp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setnz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_seto] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_sets] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_setz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>());
-  flagTable[e_shld] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_shrd] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_shl_sal] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_stc] = flagInfo(vector<RegisterID>(), list_of(r_CF));
-  flagTable[e_std] = flagInfo(vector<RegisterID>(), list_of(r_DF));
-  flagTable[e_sti] = flagInfo(vector<RegisterID>(), list_of(r_IF));
-  flagTable[e_stosb] = flagInfo(list_of(r_DF), vector<RegisterID>());
-  flagTable[e_stosw_d] = flagInfo(list_of(r_DF), vector<RegisterID>());
-  flagTable[e_sub] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_verr] = flagInfo(vector<RegisterID>(), list_of(r_ZF));
-  flagTable[e_verw] = flagInfo(vector<RegisterID>(), list_of(r_ZF));
-  flagTable[e_xadd] = flagInfo(vector<RegisterID>(), standardFlags);
-  flagTable[e_xor] = flagInfo(vector<RegisterID>(), standardFlags);
+  flagTable[e_rsm] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT)(r_RF));
+  flagTable[e_sahf] = flagInfo(list_of(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_sar] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_shr] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_setb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setnle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setnp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setnz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_seto] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_sets] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_setz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
+  flagTable[e_shld] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_shrd] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_shl_sal] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_stc] = flagInfo(vector<IA32Regs>(), list_of(r_CF));
+  flagTable[e_std] = flagInfo(vector<IA32Regs>(), list_of(r_DF));
+  flagTable[e_sti] = flagInfo(vector<IA32Regs>(), list_of(r_IF));
+  flagTable[e_stosb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_stosw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_sub] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_verr] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
+  flagTable[e_verw] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
+  flagTable[e_xadd] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_xor] = flagInfo(vector<IA32Regs>(), standardFlags);
 }
 
-bool ia32_entry::flagsUsed(std::set<RegisterID>& flagsRead, std::set<RegisterID>& flagsWritten)
+bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten)
 {
   map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(id);
   if(found == ia32_instruction::getFlagTable().end())
@@ -5458,4 +5459,32 @@ bool instruction::generateMem(codeGen &gen,
    fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");*/
    SET_PTR(walker, gen);
    return true;
+}
+
+int instruction::getStackDelta()
+{
+   ia32_instruction instruc;
+   const unsigned char *p = ptr();
+   ia32_decode(0, ptr(), instruc);
+
+   if (instruc.getEntry()->id == e_push)
+      return -4;
+   if (instruc.getEntry()->id == e_pop)
+      return 4;
+   if (instruc.getEntry()->id == e_pusha_d)
+      return (-4 * 9);
+   if (instruc.getEntry()->id == e_popa_d)
+      return (4 * 9);
+
+   if (p[0] == 0x83 && p[1] == 0xec) {
+      //Subtract byte
+      return -1 * (signed char) p[2];
+   }
+
+   if (p[0] == 0x83 && p[1] == 0xc4) {
+      //Add byte
+      return (signed char) p[2];
+   }
+   
+   return 0;
 }
