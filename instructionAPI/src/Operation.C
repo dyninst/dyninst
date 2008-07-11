@@ -4,9 +4,9 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
-    Operation::Operation(Dyninst::Instruction::ia32_entry* e)
+    Operation::Operation(Dyninst::InstructionAPI::ia32_entry* e)
     {
       if(!e)
       {
@@ -123,8 +123,29 @@ namespace Dyninst
       default:
 	break;
       }
-      
+      SetUpNonOperandData();
     }
+
+    void Operation::SetUpNonOperandData()
+    {
+      if(nonOperandRegisterReads.find(operationID) != nonOperandRegisterReads.end())
+      {
+	otherRead = nonOperandRegisterReads[operationID];
+      }
+      if(nonOperandRegisterWrites.find(operationID) != nonOperandRegisterWrites.end())
+      {
+	otherWritten = nonOperandRegisterWrites[operationID];
+      }
+      if(nonOperandMemoryReads.find(operationID) != nonOperandMemoryReads.end())
+      {
+	otherEffAddrsRead = nonOperandMemoryReads[operationID];
+      }
+      if(nonOperandMemoryWrites.find(operationID) != nonOperandMemoryWrites.end())
+      {
+	otherEffAddrsWritten = nonOperandMemoryWrites[operationID];
+      }      
+    }
+    
     Operation::Operation(const Operation& o)
     {
       readOperands = o.readOperands;
@@ -174,6 +195,38 @@ namespace Dyninst
       return readOperands.size();
       
     }
+
+    std::set<RegisterAST::Ptr> thePC = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
+    
+
+    map<entryID, std::set<RegisterAST::Ptr> > Operation::nonOperandRegisterReads;
+    map<entryID, std::set<RegisterAST::Ptr> > Operation::nonOperandRegisterWrites = map_list_of
+    (e_call, thePC)
+      (e_ret_near, thePC)
+      (e_ret_far, thePC)
+      (e_jb, thePC)
+      (e_jb_jnaej_j, thePC)
+      (e_jbe, thePC)
+      (e_jcxz_jec, thePC)
+      (e_jl, thePC)
+      (e_jle, thePC)
+      (e_jmp, thePC)
+      (e_jnb, thePC)
+      (e_jnb_jae_j, thePC)
+      (e_jnbe, thePC)
+      (e_jnl, thePC)
+      (e_jnle, thePC)
+      (e_jno, thePC)
+      (e_jnp, thePC)
+      (e_jns, thePC)
+      (e_jnz, thePC)
+      (e_jo, thePC)
+      (e_jp, thePC)
+      (e_js, thePC)
+      (e_jz, thePC);
+      
+    map<entryID, std::set<Expression::Ptr> > Operation::nonOperandMemoryReads;
+    map<entryID, std::set<Expression::Ptr> > Operation::nonOperandMemoryWrites;
     
   };
 };

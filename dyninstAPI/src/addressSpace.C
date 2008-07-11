@@ -1082,11 +1082,11 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (!range->is_mapped_object()) 
         return NULL;
 #if defined(cap_instruction_api)
-    using namespace Dyninst::Instruction;
+    using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder;
     // FIXME: compute real size
     size_t maxSize = 10;
-    Dyninst::Instruction::Instruction curInsn = decoder.decode((const unsigned char*)(addr), maxSize);
+    Instruction curInsn = decoder.decode((const unsigned char*)(addr), maxSize);
     Expression::Ptr target = curInsn.getControlFlowTarget();
     Result cft = target->eval();
     if(cft.defined)

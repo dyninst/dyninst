@@ -14,7 +14,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length,
     /// and constructs an %Instruction.

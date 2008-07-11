@@ -13,7 +13,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     /// The %Instruction class is a generic instruction representation that contains operands,
     /// read/write semantic information about those operands, and information about

@@ -46,7 +46,12 @@
 #include "miniTramp.h"
 #include "instPoint.h"
 #include "process.h"
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/InstructionDecoder.h"
 #include "InstrucIter.h"
+#else
+#include "InstrucIter.h"
+#endif // defined(cap_instruction_api)
 #include "BPatch.h"
 
 using namespace Dyninst;
@@ -524,10 +529,19 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     {
         inst_printf("Target function contains unresolved indirect branches\n"
                     "   Setting multiTramp size to instruction size\n");
+
         
-        InstrucIter ah(instAddr,proc);
         startAddr = instAddr;
+#if defined(cap_instruction_api)
+	using namespace Dyninst::InstructionAPI;
+	InstructionDecoder decoder;
+	Instruction instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)), 
+				  bbl->lastInsnAddr() - instAddr);
+	size = instInsn.size();
+#else
+        InstrucIter ah(instAddr,proc);
         size = ah.getInstruction().size();
+#endif // defined(cap_instruction_api)
         basicBlock = false;
         return true;
     }
@@ -2603,7 +2617,7 @@ relocatedInstruction::relocatedInstruction(instruction *i,
                       Address o, Address f, Address t,
                       multiTramp *m) :
    relocatedCode(),
-   insn(i),
+   //   insn(i),
 #if defined(arch_sparc)
    ds_insn(NULL),
    agg_insn(NULL),
@@ -2619,7 +2633,7 @@ relocatedInstruction::relocatedInstruction(instruction *i,
 relocatedInstruction::relocatedInstruction(relocatedInstruction *prev,
                                            multiTramp *m) :
    relocatedCode(),
-   insn(prev->insn),
+   //   insn(prev->insn),
 #if defined(arch_sparc)
    ds_insn(prev->ds_insn),
    agg_insn(prev->agg_insn),

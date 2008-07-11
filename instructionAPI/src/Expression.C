@@ -3,7 +3,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     Expression::Expression(Result_Type t) :
       userSetValue(t)

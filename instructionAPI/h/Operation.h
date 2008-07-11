@@ -4,11 +4,10 @@
 
 #include "Register.h"
 #include "Expression.h"
-#include "../src/arch-x86.h"
+#include "entryIDs-IA32.h"
 #include <set>
 #include <boost/dynamic_bitset.hpp>
 
-class ia32_entry;
 
 // OpCode = operation + encoding
 // contents:
@@ -28,7 +27,7 @@ class ia32_entry;
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     /// An %Operation object represents a family of opcodes (operation encodings)
     /// that perform the same task (e.g. the \c MOV family).  It includes
@@ -54,15 +53,16 @@ namespace Dyninst
     ///
     /// %Operations are constructed by the %InstructionDecoder as part of the process
     /// of constructing an %Instruction.
+    class ia32_entry;
     class Operation
     {
     public:
       typedef boost::dynamic_bitset<> bitSet;
-      typedef std::set<RegisterAST> registerSet;
+      typedef std::set<RegisterAST::Ptr> registerSet;
       typedef std::set<Expression::Ptr> VCSet;
   
     public:
-      Operation(Dyninst::Instruction::ia32_entry* e);
+      Operation(Dyninst::InstructionAPI::ia32_entry* e);
       Operation(const Operation& o);
       Operation operator=(const Operation& o);
       
@@ -91,6 +91,8 @@ namespace Dyninst
       
 
     private:
+      void SetUpNonOperandData();
+      
       std::string mnemonic;
       // should be dynamic_bitset in future
       bitSet readOperands;
@@ -100,6 +102,10 @@ namespace Dyninst
       VCSet otherEffAddrsRead;
       VCSet otherEffAddrsWritten;
       entryID operationID;
+      static map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
+      static map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
+      static map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
+      static map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
       
     };
   };

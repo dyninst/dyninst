@@ -9,7 +9,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     /// \enum Dyninst::Instruction::IA32Regs
     /// \brief Registers for IA32 and AMD64 processors.

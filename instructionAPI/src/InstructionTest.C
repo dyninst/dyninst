@@ -4,7 +4,7 @@
 #include <boost/assign.hpp>
 #include "../h/Register.h"
 
-using namespace Dyninst::Instruction;
+using namespace Dyninst::InstructionAPI;
 using namespace std;
 using namespace boost::assign;
 
@@ -31,7 +31,7 @@ public:
   
   bool testDecode(InstructionDecoder& testMe, const unsigned char* instruction, int size, const char* name)
   {
-    Dyninst::Instruction::Instruction tempInstruction = testMe.decode(instruction, size);
+    Instruction tempInstruction = testMe.decode(instruction, size);
     return testAssertEqual(name, tempInstruction.format());
   }
 
@@ -39,7 +39,7 @@ public:
 		     set<RegisterAST::Ptr> expectedRead, set<RegisterAST::Ptr> expectedWritten)
   {
     std::set<RegisterAST::Ptr> actualRead, actualWritten;
-    Dyninst::Instruction::Instruction testInsn = testMe.decode(instruction, size);
+    Instruction testInsn = testMe.decode(instruction, size);
     testInsn.getReadSet(actualRead);
     testInsn.getWriteSet(actualWritten);
     return testAssertEqual(expectedRead, actualRead) && testAssertEqual(expectedWritten, actualWritten);

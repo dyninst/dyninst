@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.51 2008/06/19 22:13:42 jaw Exp $
+// $Id: instPoint.C,v 1.52 2008/07/11 15:23:48 bill Exp $
 // instPoint code
 
 
@@ -55,7 +55,14 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
+
+#if defined(cap_instruction_api)
 #include "dyninstAPI/src/InstrucIter.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+#else
+#include "dyninstAPI/src/InstrucIter.h"
+#endif // defined(cap_instruction_api)
+
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/arch.h"
@@ -66,6 +73,7 @@
 #include "dyninstAPI/src/emit-x86.h"
 #endif
 
+using namespace Dyninst::InstructionAPI;
 
 unsigned int instPointBase::id_ctr = 1;
 
@@ -211,7 +219,24 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
         fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
     }
-
+#if 0 // defined(cap_instruction_api)
+    Address currentInsn = reinterpret_cast<unsigned char*>(bbl->firstInsnAddr());
+    InstructionDecoder decoder;
+    while(currentInsn < addr)
+    {
+      Instruction tmpInsn = decoder.decode((unsigned char*)(currentInsn), bbl->lastInsnAddr() - currentInsn);
+      currentInsn += tmpInsn.size();
+    }
+    if(currentInsn != addr)
+    {
+      inst_printf("Unaligned try for instruction iterator, ret null\n");
+      fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
+      return NULL; // Not aligned
+    }
+#if defined(arch_sparc)
+#error "Instruction API not yet implemented for SPARC, cap_instruction_api is illegal"
+#endif // defined(arch_sparc)
+#else
     InstrucIter newIter(bbl);
     while ((*newIter) < addr) newIter++;
     if (*newIter != addr) {
@@ -230,8 +255,8 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
 	return NULL;
       }
     }
-#endif
-    
+#endif // defined(arch_sparc)
+#endif // defined(cap_instruction_api)
     newIP = new instPoint(proc,
                           newIter.getInstruction(),
                           addr,

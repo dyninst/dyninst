@@ -9,7 +9,7 @@
 using namespace std;
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     
     static const unsigned char modrm_use_sib = 4;
@@ -375,8 +375,8 @@ namespace Dyninst
     unsigned int InstructionDecoder::decodeOpcode()
     {
       delete decodedInstruction;
-      decodedInstruction = new Dyninst::Instruction::ia32_instruction(mac, &cond, &locs);
-      Dyninst::Instruction::ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, rawInstruction, *decodedInstruction);
+      decodedInstruction = new Dyninst::InstructionAPI::ia32_instruction(mac, &cond, &locs);
+      Dyninst::InstructionAPI::ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, rawInstruction, *decodedInstruction);
       m_Operation = Operation(decodedInstruction->getEntry());
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();

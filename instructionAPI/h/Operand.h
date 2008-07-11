@@ -9,7 +9,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
 
     /// An %Operand object contains an AST built from %RegisterAST and %Immediate leaves,

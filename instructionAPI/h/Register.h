@@ -13,7 +13,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     /// A %RegisterAST object represents a register contained in an operand.
     /// As a %RegisterAST is a %Expression, it may contain the physical register's contents if

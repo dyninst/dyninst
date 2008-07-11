@@ -1,7 +1,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     
     /*! \mainpage

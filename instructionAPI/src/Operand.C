@@ -11,7 +11,7 @@ using namespace std;
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {

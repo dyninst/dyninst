@@ -10,7 +10,7 @@ using namespace boost;
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     RegisterAST::RegisterAST(int id) : Expression(IA32_register_names[IA32Regs(id)].regSize), registerID(id) 
     {

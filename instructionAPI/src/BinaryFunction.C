@@ -2,7 +2,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     Result operator+(const Result& arg1, const Result& arg2)
     {

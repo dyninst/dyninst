@@ -3,13 +3,14 @@
 #include "../h/Instruction.h"
 #include "../h/Register.h"
 #include "../h/Operation.h"
+#include <boost/iterator/indirect_iterator.hpp>
 
 #include <iostream>
 using namespace std;
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     Instruction::Instruction(const Operation& what, 
 			     const std::vector<Expression::Ptr>& operandSource,
@@ -158,8 +159,11 @@ namespace Dyninst
       // an implicit write, and that we have decoded the control flow
       // target's full location as the first and only operand.
       // If this is not the case, we'll squawk for the time being...
-      std::set<RegisterAST>::const_iterator foundPC = m_InsnOp.implicitWrites().find(RegisterAST::makePC());
-      if(foundPC == m_InsnOp.implicitWrites().end())
+      
+      if(std::find(boost::make_indirect_iterator(m_InsnOp.implicitWrites().begin()),
+		   boost::make_indirect_iterator(m_InsnOp.implicitWrites().end()),
+		   RegisterAST::makePC())
+	 == boost::make_indirect_iterator(m_InsnOp.implicitWrites().end()))
       {
 	return Expression::Ptr();
       }

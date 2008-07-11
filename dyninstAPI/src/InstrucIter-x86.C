@@ -64,6 +64,9 @@
 #include "BPatch_instruction.h"
 #include "BPatch_memoryAccess_NP.h"
 
+using namespace Dyninst::InstructionAPI;
+
+
 //some more function used to identify the properties of the instruction
 /**  the instruction used to return from the functions
  * @param i the instruction value 
@@ -684,7 +687,7 @@ bool operandIsWritten(int opsema, int operand)
     return false;
   };
 }
-static RegisterID IntelRegTable[][8] = {
+static IA32Regs IntelRegTable[][8] = {
   {
     r_AL, r_CL, r_DL, r_BL, r_AH, r_CH, r_DH, r_BH
   },
@@ -703,7 +706,7 @@ static RegisterID IntelRegTable[][8] = {
   
 };
 
-RegisterID makeRegisterID(unsigned int intelReg, unsigned int opType, bool is64bitMode, bool isExtendedRegister)
+IA32Regs makeIA32Regs(unsigned int intelReg, unsigned int opType, bool is64bitMode, bool isExtendedRegister)
 {
   if(is64bitMode && isExtendedRegister)
   {
@@ -738,24 +741,24 @@ RegisterID makeRegisterID(unsigned int intelReg, unsigned int opType, bool is64b
 const unsigned int modrm_use_sib = 0x04;
 const unsigned int sib_base_only = 0x04;
 
-void addSIBRegisters(std::set<RegisterID>& regs, const ia32_locations& locs, unsigned int opType)
+void addSIBRegisters(std::set<IA32Regs>& regs, const ia32_locations& locs, unsigned int opType)
 {
   unsigned scale;
   Register index, base;
   decode_SIB(locs.sib_byte, scale, index, base);
-  regs.insert(makeRegisterID(base, opType, locs.rex_byte, locs.rex_b));
+  regs.insert(makeIA32Regs(base, opType, locs.rex_byte, locs.rex_b));
   if(index != sib_base_only)
   {
-    regs.insert(makeRegisterID(index, opType, locs.rex_byte, locs.rex_x));
+    regs.insert(makeIA32Regs(index, opType, locs.rex_byte, locs.rex_x));
   }
 }
 
 
-void addModRMRegisters(std::set<RegisterID>& regs, const ia32_locations& locs, unsigned int opType)
+void addModRMRegisters(std::set<IA32Regs>& regs, const ia32_locations& locs, unsigned int opType)
 {
   if(locs.modrm_rm != modrm_use_sib)
   {
-    regs.insert(makeRegisterID(locs.modrm_rm, opType, locs.rex_byte, locs.rex_b));
+    regs.insert(makeIA32Regs(locs.modrm_rm, opType, locs.rex_byte, locs.rex_b));
   }
   else
   {
@@ -764,7 +767,7 @@ void addModRMRegisters(std::set<RegisterID>& regs, const ia32_locations& locs, u
 }
 
 
-void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& writeArray,
+void parseRegisters(std::set<IA32Regs>& readArray, std::set<IA32Regs>& writeArray,
 		    ia32_instruction& ii, int opsema)
 {
   ia32_entry * entry = ii.getEntry();
@@ -788,11 +791,11 @@ void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& write
       case 0x03:
 	if(isRead) 
 	{
-	  readArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
+	  readArray.insert(makeIA32Regs(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
 	} 
 	if(isWritten)
 	{
-	  writeArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
+	  writeArray.insert(makeIA32Regs(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
 	}
 	break;
       default:
@@ -803,11 +806,11 @@ void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& write
     case am_G:
       if(isRead) 
       {
-	readArray.insert(makeRegisterID(locs.modrm_reg, operand.optype, locs.rex_byte, locs.rex_r));
+	readArray.insert(makeIA32Regs(locs.modrm_reg, operand.optype, locs.rex_byte, locs.rex_r));
       }
       if(isWritten)
       {
-	writeArray.insert(makeRegisterID(locs.modrm_reg, operand.optype, locs.rex_byte, locs.rex_r));
+	writeArray.insert(makeIA32Regs(locs.modrm_reg, operand.optype, locs.rex_byte, locs.rex_r));
       }
       break;
       // same as am_E, except that we ignore the mod field and assume it's 11b
@@ -828,11 +831,11 @@ void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& write
     case am_R:
       if(isRead) 
       {
-	readArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
+	readArray.insert(makeIA32Regs(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
       } 
       if(isWritten)
       {
-	writeArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
+	writeArray.insert(makeIA32Regs(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
       }
       break;
     case am_S:
@@ -887,11 +890,11 @@ void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& write
     case am_reg:
       if(isRead) 
       {
-	readArray.insert(RegisterID(operand.optype));
+	readArray.insert(IA32Regs(operand.optype));
       }
       if(isWritten)
       {
-	writeArray.insert(RegisterID(operand.optype));
+	writeArray.insert(IA32Regs(operand.optype));
       }
       break;
     default:
@@ -947,7 +950,7 @@ void InstrucIter::readWriteRegisters(int* /*readRegs*/, int* /*writeRegs*/)
 
 using namespace boost::assign;
 
-map<RegisterID, Register> reverseRegisterLookup = map_list_of
+map<IA32Regs, Register> reverseRegisterLookup = map_list_of
 (r_EAX, REGNUM_RAX)
     (r_ECX, REGNUM_RCX)
     (r_EDX, REGNUM_RDX)
@@ -1005,9 +1008,9 @@ map<RegisterID, Register> reverseRegisterLookup = map_list_of
     (r_SS, REGNUM_IGNORED)
 ;
 
-Register dummyConverter(RegisterID toBeConverted)
+Register dummyConverter(IA32Regs toBeConverted)
 {
-    map<RegisterID, Register>::const_iterator found = 
+    map<IA32Regs, Register>::const_iterator found = 
         reverseRegisterLookup.find(toBeConverted);
     if(found == reverseRegisterLookup.end()) {
         fprintf(stderr, "Register ID %d not found in reverseRegisterLookup!\n", toBeConverted);
@@ -1021,8 +1024,8 @@ void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used,
 {
     // We need to map between the internal register encoding and the one expected
     // by codegen.
-    std::set<RegisterID> localUsed;
-    std::set<RegisterID> localDefined;
+    std::set<IA32Regs> localUsed;
+    std::set<IA32Regs> localDefined;
 
     ia32_locations locs;
     ia32_memacc mac[3];

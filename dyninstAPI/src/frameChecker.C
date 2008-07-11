@@ -1,8 +1,8 @@
 
 #include "frameChecker.h"
-#include "../../instructionAPI/h/InstructionDecoder.h"
+#include "instructionAPI/h/InstructionDecoder.h"
 
-using namespace Dyninst::Instruction;
+using namespace Dyninst::InstructionAPI;
 
 
 frameChecker::frameChecker(const unsigned char* addr, size_t max_length)

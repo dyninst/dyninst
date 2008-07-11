@@ -7,7 +7,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     union Result_Value
     {

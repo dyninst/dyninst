@@ -290,7 +290,8 @@ Address InstrucIter::operator*() const
 // Postfix...
 Address InstrucIter::operator++(int)
 {
-  assert(instPtr);
+  // Removed to be consistent with our prefix guard clauses (or lack thereof)
+  //assert(instPtr);
   Address retVal = **this;
   ++(*this);
   return retVal;

@@ -8,7 +8,7 @@
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     /// The %Immediate class represents an immediate value in an operand
     ///

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.65 2008/07/10 20:37:31 bill Exp $
+// $Id: arch-x86.h,v 1.66 2008/07/11 15:23:48 bill Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -594,7 +594,7 @@ struct ia32_operand {  // operand as given in Intel book tables
 struct ia32_entry {
   const char* name();
   // returns true if any flags are read/written, false otherwise
-  bool flagsUsed(std::set<Dyninst::Instruction::IA32Regs>& flagsRead, std::set<Dyninst::Instruction::IA32Regs>& flagsWritten);
+  bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
   unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
@@ -610,15 +610,15 @@ struct ia32_entry {
 using std::vector;
 struct flagInfo
 {
-  flagInfo(const vector<Dyninst::Instruction::IA32Regs>& rf, const vector<Dyninst::Instruction::IA32Regs>& wf) : readFlags(rf), writtenFlags(wf) 
+  flagInfo(const vector<Dyninst::InstructionAPI::IA32Regs>& rf, const vector<Dyninst::InstructionAPI::IA32Regs>& wf) : readFlags(rf), writtenFlags(wf) 
   {
   }
   flagInfo() 
   {
   }
   
-  vector<Dyninst::Instruction::IA32Regs> readFlags;
-  vector<Dyninst::Instruction::IA32Regs> writtenFlags;
+  vector<Dyninst::InstructionAPI::IA32Regs> readFlags;
+  vector<Dyninst::InstructionAPI::IA32Regs> writtenFlags;
 };
 
 class ia32_instruction

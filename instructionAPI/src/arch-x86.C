@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.2 2008/07/10 20:37:31 bill Exp $
+// $Id: arch-x86.C,v 1.3 2008/07/11 15:23:49 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -65,7 +65,7 @@ using namespace boost::assign;
 
 namespace Dyninst
 {
-  namespace Instruction
+  namespace InstructionAPI
   {
     
 

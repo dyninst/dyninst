@@ -2,7 +2,7 @@
 #if !defined(FRAMECHECKER_H)
 #define FRAMECHECKER_H
 
-#include "../../instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/Instruction.h"
 
 class frameChecker
 {
@@ -16,7 +16,7 @@ class frameChecker
   
  private:
   bool isMovStackToBase(unsigned index_to_check) const;
-  vector<Dyninst::Instruction::Instruction> m_Insns;
+  vector<Dyninst::InstructionAPI::Instruction> m_Insns;
 };
 
 
