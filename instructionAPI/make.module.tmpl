@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.1 2008/06/24 15:33:55 bill Exp $
+# $Id: make.module.tmpl,v 1.2 2008/07/14 21:24:16 bill Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -68,7 +68,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../external
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
