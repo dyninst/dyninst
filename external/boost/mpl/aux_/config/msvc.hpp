@@ -11,8 +11,8 @@
 // See http://www.boost.org/libs/mpl for documentation.
 
 // $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/mpl/aux_/config/msvc.hpp,v $
-// $Date: 2007/12/04 21:47:57 $
-// $Revision: 1.1 $
+// $Date: 2008/07/14 19:13:21 $
+// $Revision: 1.2 $
 
 
 // BOOST_MSVC is defined here:
