@@ -1270,14 +1270,19 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     regions_ = linkedFile->getAllRegions();
     for(unsigned index=0;index<regions_.size();index++){
-        if((regions_[index]->getRegionPermissions() == Region::RP_RX) || (regions_[index]->getRegionPermissions() == Region::RP_RWX))
-            codeRegions_.push_back(regions_[index]);
-        else if((regions_[index]->getRegionPermissions() == Region::RP_RW) || (regions_[index]->getRegionPermissions() == Region::RP_RWX))
-            dataRegions_.push_back(regions_[index]);
+        if ( regions_[index]->isLoadable() ) {
+            if( (regions_[index]->getRegionPermissions() == Region::RP_RX) || 
+                (regions_[index]->getRegionPermissions() == Region::RP_RWX))
+                codeRegions_.push_back(regions_[index]);
+            else if((regions_[index]->getRegionPermissions() == Region::RP_RW) || 
+                    (regions_[index]->getRegionPermissions() == Region::RP_RWX))
+                dataRegions_.push_back(regions_[index]);
+        }
         regionsByEntryAddr[regions_[index]->getRegionAddr()] = regions_[index];
     }
     // sort regions_ & codeRegions_ vectors
     std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+    std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
 
 	/* insert error check here. check if parsed */
@@ -2019,7 +2024,7 @@ bool Symtab::isValidOffset(const Offset where) const
 }
 
 /* Performs a binary search on the codeRegions_ vector, which must
- * always be sorted.  
+ * be kept in sorted order
  */
 bool Symtab::isCode(const Offset where)  const
 {
@@ -2053,17 +2058,29 @@ bool Symtab::isCode(const Offset where)  const
     return false;
 }
 
+/* Performs a binary search on the dataRegions_ vector, which must
+ * be kept in sorted order */
 bool Symtab::isData(const Offset where)  const
 {
     if(!dataRegions_.size())
         return false;
-    for(unsigned i=0; i< dataRegions_.size(); i++){
-        if((where>=dataRegions_[i]->getRegionAddr()) && (where <= (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
+    int first = 0; 
+    int last = dataRegions_.size() - 1;
+    while (last >= first) {
+        Region *curreg = dataRegions_[(first + last) / 2];
+        if (where >= curreg->getRegionAddr()
+            && where < (curreg->getRegionAddr()
+                        + curreg->getRegionSize())) {
             return true;
+        }
+        else if (where < curreg->getRegionAddr()) {
+            last = ((first + last) / 2) - 1;
+        }
+        else {
+            first = ((first + last) / 2) + 1;
+        }
     }
     return false;
-//    return (data_ptr_ && 
-//            (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
 }
 
 bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
@@ -2871,19 +2888,21 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
         regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
         for(i = newSectionInsertPoint+1; i < regions_.size(); i++)
             regions_[i]->setRegionNumber(regions_[i]->getRegionNumber() + 1);
+
+        if((sec->getRegionType() == Region::RT_TEXT) || (sec->getRegionType() == Region::RT_TEXTDATA)){
+            codeRegions_.push_back(sec);
+            std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+        }
+
+        if((sec->getRegionType() == Region::RT_DATA) || (sec->getRegionType() == Region::RT_TEXTDATA)){
+            dataRegions_.push_back(sec);
+            std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
+        }
     }
     else
     {
         sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, (char *)data, Region::RP_R, rType_);
         regions_.push_back(sec);
-    }	
-    if((sec->getRegionType() == Region::RT_TEXT) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-        codeRegions_.push_back(sec);
-        std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
-    }
-    if((sec->getRegionType() == Region::RT_DATA) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-        dataRegions_.push_back(sec);
-        std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
     }
 
     Annotatable<Region *, user_regions_a, true> &urA = *this;
