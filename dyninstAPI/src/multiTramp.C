@@ -2617,7 +2617,7 @@ relocatedInstruction::relocatedInstruction(instruction *i,
                       Address o, Address f, Address t,
                       multiTramp *m) :
    relocatedCode(),
-   //   insn(i),
+   insn(i),
 #if defined(arch_sparc)
    ds_insn(NULL),
    agg_insn(NULL),
@@ -2633,7 +2633,7 @@ relocatedInstruction::relocatedInstruction(instruction *i,
 relocatedInstruction::relocatedInstruction(relocatedInstruction *prev,
                                            multiTramp *m) :
    relocatedCode(),
-   //   insn(prev->insn),
+   insn(prev->insn),
 #if defined(arch_sparc)
    ds_insn(prev->ds_insn),
    agg_insn(prev->agg_insn),
