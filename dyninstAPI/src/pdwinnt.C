@@ -2230,7 +2230,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         prevEvtReg = handler.prev;
         if (!proc->findOrigByAddr((Address)prevEvtReg) &&
             !proc->findModByAddr((Address)prevEvtReg)) {
-            printf("EUREKA! Found handler at 0x%x while handling "
+            signal_printf("EUREKA! Found handler at 0x%x while handling "
                    "exceptionCode=0x%X ... %s[%d]\n",
                    handler.handler, ev.what, FILE__,__LINE__);
             handlers.push_back(handler.handler);
