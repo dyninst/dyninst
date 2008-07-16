@@ -24,6 +24,7 @@ namespace Dyninst
       double dblval;
       uint64_t u48val : 48;
       int64_t s48val : 48;
+      void * m512val;
     };
     enum Result_Type
     {
@@ -40,7 +41,9 @@ namespace Dyninst
       bit_flag,
       // 48-bit pointers...yay Intel
       s48,
-      u48
+      u48,
+      m512,
+      dbl128,
     };
 
     /// A %Result object represents a value computed by a %Expression AST.
@@ -142,6 +145,12 @@ namespace Dyninst
 	case s48:
 	  val.s48val = v;
 	  break;
+   case m512:
+      val.m512val = (void *) v;
+      break;
+   case dbl128:
+      assert(!"Not implemented yet");
+      break;
 	default:
 	  assert(!"Invalid type!");
 	  break;
@@ -203,6 +212,12 @@ namespace Dyninst
 	case s48:
 	  return val.s48val == o.val.s48val;
 	  break;
+   case m512:
+      return memcmp(val.m512val, o.val.m512val, 512) == 0;
+      break;
+   case dbl128:
+      assert(!"Not implemented yet");
+      break;
 	default:
 	  assert(!"Invalid type!");
 	  break;
@@ -262,6 +277,12 @@ namespace Dyninst
 	  case s48:
 	    ret << val.s48val;
 	    break;
+     case m512:
+        ret << val.m512val;
+        break;
+     case dbl128:
+        assert(!"Not implemented yet");
+        break;
 	  default:
 	    ret << "[ERROR: invalid type value!]";
 	    break;
@@ -295,6 +316,10 @@ namespace Dyninst
              return sizeof(double);
 	case bit_flag:
 	  return 1;
+   case m512:
+      return 512;
+   case dbl128:
+      return 8;
 	default:
 	  assert(!"Unknown type in Result");
 	  return 0;

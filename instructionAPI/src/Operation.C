@@ -197,13 +197,15 @@ namespace Dyninst
     }
 
     std::set<RegisterAST::Ptr> thePC = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
+    std::set<RegisterAST::Ptr> pcAndSP = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())))
+      (RegisterAST::Ptr(new RegisterAST(r_eSP)));
     
 
     map<entryID, std::set<RegisterAST::Ptr> > Operation::nonOperandRegisterReads;
     map<entryID, std::set<RegisterAST::Ptr> > Operation::nonOperandRegisterWrites = map_list_of
-    (e_call, thePC)
-      (e_ret_near, thePC)
-      (e_ret_far, thePC)
+    (e_call, pcAndSP)
+      (e_ret_near, pcAndSP)
+      (e_ret_far, pcAndSP)
       (e_jb, thePC)
       (e_jb_jnaej_j, thePC)
       (e_jbe, thePC)

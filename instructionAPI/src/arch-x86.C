@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.3 2008/07/11 15:23:49 bill Exp $
+// $Id: arch-x86.C,v 1.4 2008/07/16 19:14:04 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -1501,7 +1501,7 @@ static ia32_entry groupMap[][8] = {
   { e_call, t_done, 0, true, { Ep, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
   { e_jmp,  t_done, 0, true, { Ev, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
   { e_jmp,  t_done, 0, true, { Ep, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
-  { e_push, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
+  { e_push, t_done, 0, true, { Ev, eSP, Zz }, 0, s1R2RW },
   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
@@ -2015,7 +2015,7 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE6F */
     { e_movq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1W2R },
-    { e_movdqu, t_done, 0, false, { Vdq, Wdq, Zz }, 0, s1W2R }, // book has this/next swapped!!!
+    { e_movdqu, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R }, // book has this/next swapped!!!
     { e_movdqa, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
