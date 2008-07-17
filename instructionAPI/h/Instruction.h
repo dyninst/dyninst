@@ -58,7 +58,8 @@ namespace Dyninst
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
       Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, unsigned char size);
-  
+      Instruction();
+      
       virtual ~Instruction();
 
       /// \return The %Operation used by the %Instruction
@@ -169,11 +170,15 @@ namespace Dyninst
       /// output streams via \c operator<<.  \c format is included in the public interface for
       /// diagnostic purposes.
       std::string format() const;
-  
+      
+      bool isValid() const;
+      
     private:
       std::vector<Operand> m_Operands;
       Operation m_InsnOp;
       unsigned char m_Size;
+      bool m_Valid;
+      
     };
   };
 };

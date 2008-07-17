@@ -15,7 +15,7 @@ namespace Dyninst
     Instruction::Instruction(const Operation& what, 
 			     const std::vector<Expression::Ptr>& operandSource,
 			     unsigned char size)
-      : m_InsnOp(what), m_Size(size)
+      : m_InsnOp(what), m_Size(size), m_Valid(true)
     {
       unsigned int i;
       std::vector<Expression::Ptr>::const_iterator curVC;
@@ -28,10 +28,20 @@ namespace Dyninst
       }
       
     }
+    Instruction::Instruction() :
+      m_Valid(false)
+    {
+    }
     
     Instruction::~Instruction()
     {
     }
+
+    bool Instruction::isValid() const
+    {
+      return m_Valid;
+    }
+    
     const Operation& Instruction::getOperation() const
     {
       return m_InsnOp;
@@ -44,7 +54,7 @@ namespace Dyninst
     
      Operand Instruction::getOperand(int index) const
      {
-        if(index < 0 || index >= m_Operands.size())
+        if(index < 0 || index >= (int)(m_Operands.size()))
         {
 	  // Out of range = empty operand
            return Operand(Expression::Ptr(), false, false);

@@ -31,6 +31,11 @@ namespace Dyninst
     {
       return (*findMe == *this);
     }
+    unsigned int RegisterAST::getID() const
+    {
+      return registerID;
+    }
+    
     std::string RegisterAST::format() const
     {
       std::stringstream retVal;
@@ -50,6 +55,7 @@ namespace Dyninst
       // Make this platform independent
       return RegisterAST(r_EIP);
     }
+    
     bool RegisterAST::operator<(const RegisterAST& rhs) const
     {
       return registerID < rhs.registerID;

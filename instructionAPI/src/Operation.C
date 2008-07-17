@@ -1,11 +1,17 @@
 
-#include "../h/Operation.h"
+#include "Operation.h"
 #include "arch-x86.h"
+#include "entryIDs-IA32.h"
 
 namespace Dyninst
 {
   namespace InstructionAPI
   {
+    RegisterAST::Ptr makeRegFromID(IA32Regs regID)
+    {
+      return RegisterAST::Ptr(new RegisterAST(regID));
+    }
+
     Operation::Operation(Dyninst::InstructionAPI::ia32_entry* e)
     {
       if(!e)
@@ -124,8 +130,16 @@ namespace Dyninst
 	break;
       }
       SetUpNonOperandData();
+      std::set<IA32Regs> flagsRead, flagsWritten;
+      e->flagsUsed(flagsRead, flagsWritten);
+      
+      std::transform(flagsRead.begin(), flagsRead.end(), 
+		     inserter(otherRead, otherRead.begin()), &makeRegFromID);
+      std::transform(flagsWritten.begin(), flagsWritten.end(), 
+		     inserter(otherWritten, otherWritten.begin()), &makeRegFromID);
+      
     }
-
+    
     void Operation::SetUpNonOperandData()
     {
       if(nonOperandRegisterReads.find(operationID) != nonOperandRegisterReads.end())
@@ -168,7 +182,13 @@ namespace Dyninst
       otherEffAddrsWritten = o.otherEffAddrsWritten;
       operationID = o.operationID;
       return *this;
-    }    
+    }
+    Operation::Operation()
+    {
+      mnemonic = "[INVALID]";
+      operationID = e_No_Entry;
+    }
+    
 
     const Operation::bitSet& Operation::read() const
     {

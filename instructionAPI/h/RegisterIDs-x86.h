@@ -14,7 +14,7 @@ namespace Dyninst
     /// \enum Dyninst::Instruction::IA32Regs
     /// \brief Registers for IA32 and AMD64 processors.
     ///
-    enum IA32Regs { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107
+    enum IA32Regs { r_AH=0, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107
 		      r_AX, r_DX, //109
 		      r_eAX, r_eBX, r_eCX, r_eDX, //113
 		      r_EAX, r_EBX, r_ECX, r_EDX, //117
@@ -36,7 +36,6 @@ namespace Dyninst
 		    r_MM0, r_MM1, r_MM2, r_MM3, r_MM4, r_MM5, r_MM6, r_MM7,
 		    r_CR0, r_CR1, r_CR2, r_CR3, r_CR4, r_CR5, r_CR6, r_CR7,
 		    r_DR0, r_DR1, r_DR2, r_DR3, r_DR4, r_DR5, r_DR6, r_DR7
-		    
     }; 
     struct RegInfo
     {

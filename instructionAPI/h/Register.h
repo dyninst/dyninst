@@ -54,11 +54,14 @@ namespace Dyninst
       /// or other sorted containers.
       bool operator<(const RegisterAST& rhs) const;
 
+      unsigned int getID() const;
+      
+
     protected:
       virtual bool isSameType(const InstructionAST& rhs) const;
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
     private:
-      int registerID;
+      unsigned int registerID;
     };
     
   };

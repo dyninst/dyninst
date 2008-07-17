@@ -24,9 +24,16 @@ namespace Dyninst
     class InstructionDecoder
     {
     public:
-      InstructionDecoder() : decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false)
+      InstructionDecoder() : decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
+      bufferBegin(NULL), bufferSize(0), rawInstruction(NULL)
       {
       }
+      InstructionDecoder(const unsigned char* buffer, size_t size) : 
+      decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
+      bufferBegin(buffer), bufferSize(size), rawInstruction(bufferBegin)
+      {
+      }
+      
       
       ~InstructionDecoder() 
       {
@@ -37,6 +44,9 @@ namespace Dyninst
       /// If the buffer does not contain a valid instruction stream, an %Instruction with an invalid %Operation
       /// will be returned.  The %Instruction's \c size field will be set to the number of bytes actually decoded.
       Instruction decode(const unsigned char* buffer, size_t size);
+
+      Instruction decode();
+      
     protected:
       void decodeOperands(std::vector<Expression::Ptr>& operands);
 
@@ -62,7 +72,6 @@ namespace Dyninst
       Result_Type makeSizeType(unsigned int opType);
       
     private:
-      const unsigned char* rawInstruction;
       ia32_locations locs;
       ia32_condition cond;
       ia32_memacc mac[3];
@@ -70,6 +79,10 @@ namespace Dyninst
       Operation m_Operation;
       bool is32BitMode;
       bool sizePrefixPresent;
+      const unsigned char* bufferBegin;
+      size_t bufferSize;
+      const unsigned char* rawInstruction;
+      
       
     };
   };

@@ -64,6 +64,8 @@ namespace Dyninst
     public:
       Operation(Dyninst::InstructionAPI::ia32_entry* e);
       Operation(const Operation& o);
+      Operation();
+      
       Operation operator=(const Operation& o);
       
       /// \brief Return which operands are read
