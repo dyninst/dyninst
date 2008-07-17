@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.52 2008/07/11 15:23:48 bill Exp $
+// $Id: instPoint.C,v 1.53 2008/07/17 21:43:09 bill Exp $
 // instPoint code
 
 
@@ -59,6 +59,7 @@
 #if defined(cap_instruction_api)
 #include "dyninstAPI/src/InstrucIter.h"
 #include "instructionAPI/h/InstructionDecoder.h"
+using namespace Dyninst::InstructionAPI;
 #else
 #include "dyninstAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
@@ -72,8 +73,6 @@
 // For 32/64-bit mode knowledge
 #include "dyninstAPI/src/emit-x86.h"
 #endif
-
-using namespace Dyninst::InstructionAPI;
 
 unsigned int instPointBase::id_ctr = 1;
 
