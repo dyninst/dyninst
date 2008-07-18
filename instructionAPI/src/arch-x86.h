@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.3 2008/07/11 15:23:50 bill Exp $
+// $Id: arch-x86.h,v 1.4 2008/07/18 15:51:50 bill Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -58,11 +58,6 @@ namespace Dyninst
   namespace InstructionAPI
   {
     
-// Code generation
-
-typedef unsigned char codeBuf_t;
-typedef unsigned codeBufIndex_t;
-
 #if defined(i386_unknown_nt4_0)
 // disable VC++ warning C4800: (performance warning)
 // forcing 'unsigned int' value to bool 'true' or 'false'
