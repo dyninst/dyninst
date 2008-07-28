@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.91 2008/07/28 17:22:37 carl Exp $
+# $Id: Makefile,v 1.92 2008/07/28 18:20:16 carl Exp $
 #
 
 TO_CORE = .
@@ -37,7 +37,7 @@ InstructionAPI	= ready common instructionAPI dynutil
 
 testsuites = dyninstAPI/tests testsuite newtestsuite
 
-allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dynutil instructionAPI stackwalk
+allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet
