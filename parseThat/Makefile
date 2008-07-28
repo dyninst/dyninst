@@ -1,19 +1,18 @@
 # ----------------------------------------------
 # Configuration variables taken from ./configure
 # ----------------------------------------------
-CPPFLAGS     = -I$(DYNINST_ROOT)/core/dynutil/h -I$(DYNINST_ROOT)/core/dyninstAPI/h -I$(DYNINST_ROOT)/core/symtabAPI/h -I$(DYNINST_ROOT)/core -g
+CPPFLAGS     = -I/fs/dyninst/lam/dyninst/core -I/fs/dyninst/lam/dyninst/core/dyninstAPI/h -I/fs/dyninst/lam/dyninst/core/symtabAPI/h -I/fs/dyninst/lam/dyninst/core/instructionAPI/h -I/fs/dyninst/lam/dyninst/core/common/h -I/fs/dyninst/lam/dyninst/core/dynutil/h -I/fs/dyninst/lam/dyninst/core/external 
 CXX          = g++
-CXXFLAGS     = -I$(DYNINST_ROOT)/core/dynutil/h -I$(DYNINST_ROOT)/core/dyninstAPI/h -I$(DYNINST_ROOT)/core/symtabAPI/h -I$(DYNINST_ROOT)/core -g
+CXXFLAGS     = -g -O2
 DEFINES      = -DPACKAGE_NAME=\"parseThat\" -DPACKAGE_TARNAME=\"parsethat\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"parseThat\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_BPATCH_PROCESS_H=1 
-LDFLAGS      = -L$(DYNINST_ROOT)/$(PLATFORM)/lib
+LDFLAGS      = -L/fs/dyninst/lam/dyninst/i386-unknown-linux2.4/lib 
 LIBS         = 
 
 prefix       = .
 PLATFORM    ?= i686-pc-linux-gnu
 DYNINST_VER  = 5
 
-INSTALL      =
-#INSTALL      = install -c
+INSTALL      = /usr/bin/install -c
 
 vpath % ./src
 
@@ -41,7 +40,7 @@ ifeq ($(DYNINST_VER), 4)
 SRCS        += dyninstCompat.v4.C
 endif
 
-OBJDIR       = obj-$(PLATFORM)
+OBJDIR       = $(PLATFORM)
 OBJS         = $(addprefix $(OBJDIR)/, $(SRCS:%.C=%.o))
 
 CXXFLAGS    += -Wall
@@ -72,7 +71,6 @@ distclean: clean
 	rm -rf config.log config.status $(OBJDIR) Makefile
 
 ready:
-	mkdir -p obj-$(PLATFORM)
 	$(INSTALL) -d $(OBJDIR)
 
 $(OBJDIR)/parseThat: $(OBJS)

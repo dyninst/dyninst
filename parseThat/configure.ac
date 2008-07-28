@@ -5,7 +5,8 @@ AC_PREFIX_DEFAULT([.])
 
 if test -n ${DYNINST_ROOT}; then
    # Add search paths to CPPFLAGS and LDFLAGS.
-   AC_SUBST([CPPFLAGS], ["-I${DYNINST_ROOT}/core -I${DYNINST_ROOT}/core/dyninstAPI/h -I${DYNINST_ROOT}/core/symtabAPI/h -I${DYNINST_ROOT}/core/dynutil/h ${CPPFLAGS}"])
+   #AC_SUBST([CPPFLAGS], ["-I${DYNINST_ROOT}/core -I${DYNINST_ROOT}/core/dyninstAPI/h -I${DYNINST_ROOT}/core/symtabAPI/h -I${DYNINST_ROOT}/core/dynutil/h ${CPPFLAGS}"])
+   AC_SUBST([CPPFLAGS], ["-I${DYNINST_ROOT}/core -I${DYNINST_ROOT}/core/dyninstAPI/h -I${DYNINST_ROOT}/core/symtabAPI/h -I${DYNINST_ROOT}/core/instructionAPI/h -I${DYNINST_ROOT}/core/common/h -I${DYNINST_ROOT}/core/dynutil/h -I${DYNINST_ROOT}/core/external ${CPPFLAGS}"])
    AC_SUBST([LDFLAGS],  ["-L${DYNINST_ROOT}/${PLATFORM}/lib ${LDFLAGS}"])
 fi
 

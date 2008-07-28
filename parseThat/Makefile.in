@@ -40,7 +40,7 @@ ifeq ($(DYNINST_VER), 4)
 SRCS        += dyninstCompat.v4.C
 endif
 
-OBJDIR       = obj-$(PLATFORM)
+OBJDIR       = $(PLATFORM)
 OBJS         = $(addprefix $(OBJDIR)/, $(SRCS:%.C=%.o))
 
 CXXFLAGS    += -Wall
