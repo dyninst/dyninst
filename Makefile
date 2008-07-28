@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.90 2008/06/30 19:40:24 legendre Exp $
+# $Id: Makefile,v 1.91 2008/07/28 17:22:37 carl Exp $
 #
 
 TO_CORE = .
@@ -74,6 +74,9 @@ endif
 # i.e., if make is given no arguments.  Don't add other targets before all!
 
 all: ready world
+
+# Used for nightly builds
+nightly: DyninstAPI testsuites
 
 # This rule makes most of the normal recursive stuff.  Just about any
 # target can be passed down to the lower-level Makefiles by listing it
