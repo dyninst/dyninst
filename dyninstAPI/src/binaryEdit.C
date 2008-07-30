@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.20 2008/06/23 20:30:33 mlam Exp $
+// $Id: binaryEdit.C,v 1.21 2008/07/30 15:19:46 mlam Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -365,8 +365,6 @@ bool BinaryEdit::openAllDependencies(Symtab *st)
     unsigned int count = depends.size();
     for (unsigned int i = 0; i < count; i++) {
 
-        fprintf(stdout, "DEBUG - opening new dependency: %s\n", depends.at(i).c_str());
-
         // if we can find the file...
         std::string* fullPath = resolveLibraryName(depends.at(i));
         if (fullPath != NULL) {
@@ -420,6 +418,10 @@ bool BinaryEdit::openSharedLibrary(const std::string &file, bool openDependencie
 
 mapped_object * BinaryEdit::addSharedObject(const std::string *fullPath)
 {
+#ifdef BINEDIT_DEBUG
+    fprintf(stdout, "DEBUG - opening new dependency: %s", fullPath->c_str());
+#endif
+
     // make sure the executable exists
     if (!OS::executableExists(*fullPath)) {
         startup_printf("%s[%d]:  failed to read file %s\n", 
@@ -455,6 +457,14 @@ mapped_object * BinaryEdit::addSharedObject(const std::string *fullPath)
         }
 
         mapped_objects.push_back(bin);
+
+#ifdef BINEDIT_DEBUG
+        fprintf(stdout, " - added!\n");
+#endif
+    } else {
+#ifdef BINEDIT_DEBUG
+        fprintf(stdout, " - duplicate\n");
+#endif
     }
 
     return bin;

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.285 2008/06/26 20:40:14 bill Exp $
+ * $Id: inst-x86.C,v 1.286 2008/07/30 15:19:46 mlam Exp $
  */
 #include <iomanip>
 
@@ -1264,6 +1264,9 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee)
 // std::string version that doesn't take a callee...
 
 bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
+#ifdef BINEDIT_DEBUG
+    fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
+#endif
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
@@ -1271,7 +1274,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     // find int_function reference in address space
     // (refresh func_map)
     pdvector<int_function *> funcs;
-    addrSpace->findFuncsByPretty(callee->symTabName(), funcs);
+    addrSpace->findFuncsByAll(callee->prettyName(), funcs);
 
     // test to see if callee is in a shared module
     if (callee->obj()->isSharedLib() && binEdit != NULL) {
@@ -1279,9 +1282,14 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
         // find the Symbol corresponding to the int_function
         std::vector<Symbol *> syms;
         callee->obj()->parse_img()->getObject()->findSymbolByType(
-                syms, callee->symTabName(), Symbol::ST_FUNCTION);
+                syms, callee->symTabName(), Symbol::ST_FUNCTION,
+                true, false, true);
         if (syms.size() == 0) {
-            return false;
+            char msg[256];
+            sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+                    , __FILE__, __LINE__, callee->symTabName().c_str());
+            showErrorCallback(80, msg);
+            assert(0);
         }
         Symbol *referring = syms[0];
 

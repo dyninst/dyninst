@@ -163,6 +163,9 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
        
        if(!symbol->getVersionFileName(fileName))   //verdef entry
        {
+#ifdef BINEDIT_DEBUG
+           printf("verdef: symbol=%s\n", symbol->getName().c_str(), fileName.c_str());
+#endif
            vector<string> *vers;
            if(!symbol->getVersions(vers))
                 versionSymTable.push_back(1);
@@ -186,6 +189,11 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
            }
        }
        else {           //verneed entry
+#ifdef BINEDIT_DEBUG
+           //if (symbol->getName().find("_INST_",0) != string::npos) {
+               printf("verneed: symbol=%s    filename=%s\n", symbol->getName().c_str(), fileName.c_str());
+           //}
+#endif
            vector<string> *vers;
            if(!symbol->getVersions(vers))
                 versionSymTable.push_back(1);
@@ -210,6 +218,12 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
                         verneedEntries[fileName][(*vers)[0]] = curVersionNum;
                         curVersionNum++;
                     }
+                } else {
+                    versionSymTable.push_back(1);
+                    if (fileName != "" &&
+                            find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), fileName) == 
+                            unversionedNeededEntries.end())
+                        unversionedNeededEntries.push_back(fileName);
                 }
            }
        }
@@ -262,6 +276,19 @@ void emitElf::findSegmentEnds()
             break;
         }
         tmp++;
+    }
+}
+
+// Rename an old section. Lengths of old and new names must match.
+// Only renames the FIRST matching section encountered.
+void emitElf::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
+    assert(oldStr.length() == newStr.length());
+    for (int k = 0; k < secNames.size(); k++) {
+        if (secNames[k] == oldStr) {
+            secNames[k].replace(0, oldStr.length(), newStr);
+            if (!renameAll)
+                break;
+        }
     }
 }
 
@@ -389,6 +416,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    if(!strcmp(name, ".dynstr")){
             //Change the type of the original dynstr section if we are changing it.
     	    newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".dynstr", ".oldstr", false);
             olddynStrData = (char *)olddata->d_buf;
             dynStrData = newdata;
             olddynstrIndex = scncount+1;
@@ -402,17 +430,21 @@ bool emitElf::driver(Symtab *obj, string fName){
         if(!strcmp(name, ".dynsym")){
             //Change the type of the original dynsym section if we are changing it.
     	    newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".dynsym", ".oldsym", false);
             dynsymData = newdata;
             olddynsymIndex = scncount+1;
         }
         if(!strcmp(name, ".gnu.version")){
             newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".gnu.version", ".old.version", false);
         }
         if(!strcmp(name, ".gnu.version_r")){
             newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".gnu.version_r", ".old.version_r", false);
         }
         if(!strcmp(name, ".gnu.version_d")){
             newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".gnu.version_d", ".old.version_d", false);
         }
     	if(!strcmp(name, ".text")){
             textData = newdata;
@@ -448,6 +480,7 @@ bool emitElf::driver(Symtab *obj, string fName){
             dynSegAddr = newshdr->sh_addr;
             // Change the data to update the relocation addr
             newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".dynamic", ".old_dyn", false);
             //newSecs.push_back(new Section(oldEhdr->e_shnum+newSecs.size(),".dynamic", /*addr*/, newdata->d_size, dynData, Section::dynamicSection, true));
 	    }
 
@@ -712,7 +745,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
             else if(newSecs[i]->getRegionType() == Region::RT_STRTAB)    //String table Section
             {
                 newshdr->sh_type = SHT_STRTAB;
-                newshdr->sh_entsize = 1;
+                newshdr->sh_entsize = 0;
                 if(!libelfso0Flag) {
                     newdata64->d_type = ELF_T_BYTE;
                     newdata64->d_align = 1;
@@ -744,6 +777,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                 }
                 newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
+                newshdr->sh_info = 1;
                 dynsymIndex = secNames.size()-1;
 #if !defined(os_solaris)
                 updateDynamic(DT_SYMTAB, newshdr->sh_addr);
@@ -802,6 +836,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                 }
                 newshdr->sh_link = strtabIndex;   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
+                newshdr->sh_info = 2;
                 updateDynamic(DT_VERNEED, newshdr->sh_addr);
             }
             else if(newSecs[i]->getRegionType() == Region::RT_SYMVERDEF)
@@ -1037,7 +1072,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
     	else if(nonLoadableSecs[i]->getRegionType() == Region::RT_STRTAB)	//String table Section
 	    {
     	    newshdr->sh_type = SHT_STRTAB;
-            newshdr->sh_entsize = 1;
+            newshdr->sh_entsize = 0;
             if(!libelfso0Flag)
                 newdata64->d_type = ELF_T_BYTE;
             else
@@ -1314,6 +1349,14 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
     verneedSecData = (char *)malloc(verneedSecSize);
     unsigned curpos = 0;
     verneednum = 0;
+    std::vector<std::string>::iterator dit;
+    for(dit = unversionedNeededEntries.begin(); dit != unversionedNeededEntries.end(); dit++) {
+        versionNames[*dit] = dynSymbolNamesLength;
+        dynStrs.push_back(*dit);
+        dynSymbolNamesLength+= (*dit).size()+1;
+        if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), *dit) == DT_NEEDEDEntries.end())
+            DT_NEEDEDEntries.push_back(*dit);
+    }
     for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
        Elf32_Verneed *verneed = (Elf32_Verneed *)(void*)(verneedSecData+curpos);
         verneed->vn_version = 1;
@@ -1333,7 +1376,7 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
            Elf32_Vernaux *vernaux = (Elf32_Vernaux *)(void*)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf32_Vernaux));
             vernaux->vna_hash = elfHash(iter->first.c_str());
-            vernaux->vna_flags = 1;
+            vernaux->vna_flags = 0; // 1;
             vernaux->vna_other = (Elf32_Half) iter->second;
             vernaux->vna_name = versionNames[iter->first];
             if(i == verneed->vn_cnt-1)

@@ -947,10 +947,15 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) {
     	return false;
     string filename = referringSymbol->getModule()->exec()->name();
     vector<string> *vers, *newSymVers = new vector<string>;
-    if(referringSymbol->getVersions(vers)){
-        newSym->setVersionFileName(filename);
-        newSymVers->push_back((*vers)[0]);
-        newSym->setVersions(*newSymVers);
+    referringSymbol->getVersions(vers);
+    if (vers != NULL) {
+        if (vers->size() > 0) {
+            newSymVers->push_back((*vers)[0]);
+            newSym->setVersionFileName(filename);
+            newSym->setVersions(*newSymVers);
+        } else {
+            newSym->setVersionFileName(filename);
+        }
     }
 
     //Check again. Is this an ok thing to do??

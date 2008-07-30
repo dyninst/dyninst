@@ -77,6 +77,7 @@ class emitElf{
 #if !defined(os_solaris)
     std::map<unsigned, std::vector<Elf32_Dyn *> > dynamicSecData;
     std::vector<std::string> DT_NEEDEDEntries;
+    std::vector<std::string> unversionedNeededEntries;
 #endif
 
     // Symbol version table data
@@ -111,6 +112,7 @@ class emitElf{
 
     bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols, bool dynSymFlag = false);
     void findSegmentEnds();
+    void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
     void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf32_Shdr *shdr);
     bool createNonLoadableSections(Elf32_Shdr *& shdr);
