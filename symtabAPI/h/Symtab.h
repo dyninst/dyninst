@@ -359,8 +359,8 @@ class Symtab : public LookupInterface,
    DLLEXPORT Offset dataOffset() const;
    DLLEXPORT Offset dataLength() const;
    DLLEXPORT Offset imageLength() const;
-   DLLEXPORT char*  image_ptr ()  const;
-   DLLEXPORT char*  data_ptr ()  const;
+   //   DLLEXPORT char*  image_ptr ()  const;
+   //   DLLEXPORT char*  data_ptr ()  const;
 
    DLLEXPORT const char*  getInterpreterName() const;
 
