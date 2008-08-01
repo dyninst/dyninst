@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.37 2008/04/15 16:43:24 roundy Exp $
+// $Id: mapped_object.C,v 1.38 2008/08/01 17:55:17 roundy Exp $
 
 #include <string>
 
@@ -1045,9 +1045,14 @@ void *mapped_object::getPtrToData(Address addr) const
    return image_->getPtrToData(offset);
 }
 
+// mapped objects may contain multiple Symtab::Regions, this function
+// should not be used, but must be included in the class because this
+// function is a subclass of codeRange
 void *mapped_object::get_local_ptr() const 
 {
-   return image_->getObject()->image_ptr();
+    assert(0);// if you crash here, blame me. -kevin
+    return NULL; 
+    //   return image_->getObject()->image_ptr();
 }
 
 
