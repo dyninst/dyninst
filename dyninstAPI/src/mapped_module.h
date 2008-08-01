@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.13 2008/02/23 02:09:09 jaw Exp $
+// $Id: mapped_module.h,v 1.14 2008/08/01 17:55:13 roundy Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -136,6 +136,7 @@ class mapped_module {
       void addVariable(int_variable *var);
 
       static bool truncateLineFilenames;
+      int getFuncVectorSize() { return everyUniqueFunction.size(); }
 
    private:
 
