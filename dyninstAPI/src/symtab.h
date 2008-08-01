@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.210 2008/06/19 19:53:46 legendre Exp $
+// $Id: symtab.h,v 1.211 2008/08/01 17:55:15 roundy Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -131,26 +131,7 @@ class fileDescriptor {
         data_(data),
         shared_(isShared),
         pid_(0),
-        loadAddr_(0),
-        startAddr_(0),
-        endAddr_(0),
-        inMem_(false)
-        {}
-
-    // Constructor for a fileDescriptor that represents a dynamically 
-    // allocated memory region
-    fileDescriptor(string regionName, Address start, Address end, 
-                   Address loadAddress=0) :
-        file_(regionName),
-        member_(emptyString),
-        code_(start),
-        data_(start),
-        shared_(true),
-        pid_(0),
-        loadAddr_(loadAddress),
-        startAddr_(start),
-        endAddr_(end),
-        inMem_(true)
+        loadAddr_(0)
         {}
 
      ~fileDescriptor() {}
@@ -171,13 +152,10 @@ class fileDescriptor {
          return false;
      }
      
-     bool inMemoryOnly() const {return inMem_;}
      const string &file() const { return file_; }
      const string &member() const { return member_; }
      Address code() const { return code_; }
      Address data() const { return data_; }
-     Address startAddress() { return startAddr_; }
-     Address endAddress() { return endAddr_; }
      bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
      Address loadAddr() const { return loadAddr_; }
@@ -194,7 +172,7 @@ class fileDescriptor {
                     bool isShared, Address loadAddr) :
          file_(name), code_(baseAddr), data_(baseAddr),
          procHandle_(procH), fileHandle_(fileH),
-         shared_(isShared), pid_(0), loadAddr_(loadAddr), inMem_(false) {}
+         shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
      HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
@@ -214,10 +192,6 @@ class fileDescriptor {
      bool shared_;
      int pid_;
      Address loadAddr_;
-     // The start and end addresses are only set for memory regions
-     Address startAddr_;
-     Address endAddr_;
-     bool inMem_; // true if this is a memory region 
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };
@@ -450,8 +424,6 @@ class image : public codeRange, public InstructionSource {
    // And used for finding inferior heaps.... hacky, but effective.
    bool findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret);
 
-   const pdvector<image_instPoint*> &getBadControlFlow();
-
    const pdvector<image_func*> &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
@@ -533,7 +505,6 @@ class image : public codeRange, public InstructionSource {
 
    bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
    bool analyzeImage();
-   Address getBaseAddress() { return baseAddr_; }
    bool parseGaps() { return parseGaps_; }
    //
    //  ****  PRIVATE DATA MEMBERS  ****
@@ -607,9 +578,6 @@ class image : public codeRange, public InstructionSource {
    pdvector<image_variable *> createdVariables;
    pdvector<image_variable *> exportedVariables;
 
-   //Control flow targets that fail isCode or isValidAddress checks
-   pdvector<image_instPoint*> badControlFlow;
-
    // This contains all parallel regions on the image
    // These line up with the code generated to support OpenMP, UPC, Titanium, ...
    pdvector<image_parRegion *> parallelRegions;
@@ -642,7 +610,6 @@ class image : public codeRange, public InstructionSource {
 
 
    int refCount;
-   Address baseAddr_;
    imageParseState_t parseState_;
    bool parseGaps_;
 };
@@ -687,11 +654,17 @@ class pdmodule {
    supportedLanguages language() const;
    Address addr() const;
    bool isShared() const;
+   // Control flow targets that fail isCode or isValidAddress checks,
+   // or are statically unresolvable
+   const std::set<image_instPoint*> &getUnresolvedControlFlow();
+   void addUnresolvedControlFlow(image_instPoint* badPt);
+
    LineInformation *getLineInformation();
    Module *mod();
 
    image *imExec() const { return exec_; }
  private:
+   std::set<image_instPoint*> unresolvedControlFlow;
    Module *mod_;
    image *exec_;
 };
