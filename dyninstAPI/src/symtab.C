@@ -280,7 +280,7 @@ void image::findMain()
     	    //find and add main to allsymbols
             const unsigned char* p;
 		                   
-	    p = (( const unsigned char * )linkedFile->image_ptr()) + (textsec->getRegionAddr() - imageOffset_);
+            p = (( const unsigned char * ) textsec->getPtrToRawData());
             const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
@@ -399,7 +399,7 @@ void image::findMain()
    Region *sec;
    linkedFile->findRegion(sec, ".text"); 	
 
-   if( !foundMain && linkedFile->isExec() )
+   if( !foundMain && linkedFile->isExec() && sec )
    {
        //we havent found a symbol for main therefore we have to parse _start
        //to find the address of main
@@ -411,7 +411,7 @@ void image::findMain()
        int c;
        instructUnion i;
        int calls = 0;
-       Word *code_ptr_ = (Word *) linkedFile->image_ptr();
+       Word *code_ptr_ = (Word *) sec->getPtrToRawData();
        
        for( c = 0; code_ptr_[ c ] != 0; c++ );
 
@@ -827,12 +827,6 @@ pdmodule *image::findModule(const string &name, bool wildcard)
    return NULL;
 }
 
-const pdvector<image_instPoint*> &image::getBadControlFlow()
-{ 
-    analyzeIfNeeded();
-    return badControlFlow; 
-}
-
 const pdvector<image_func*> &image::getAllFunctions() 
 {
   analyzeIfNeeded();
@@ -1227,7 +1221,6 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 #endif  
 
 
-   baseAddr_ = desc.loadAddr();
    err = false;
    name_ = extract_pathname_tail(string(desc.file().c_str()));
 
@@ -1246,7 +1239,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
-   if (!imageLen_ || !linkedFile->image_ptr()) {
+   if (!imageLen_) {
       string msg = string("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());
       msg += "\n";
@@ -1478,6 +1471,17 @@ void pdmodule::dumpMangled(std::string &prefix) const
       }
   }
   cerr << endl;
+}
+
+void pdmodule::addUnresolvedControlFlow(image_instPoint *badPt)
+{ 
+    unresolvedControlFlow.insert(badPt);
+}
+
+const std::set<image_instPoint*> &pdmodule::getUnresolvedControlFlow()
+{ 
+    imExec()->analyzeIfNeeded();
+    return unresolvedControlFlow; 
 }
 
 /* This function is useful for seeding image parsing with function
@@ -2061,20 +2065,28 @@ bool pdmodule::getVariables(pdvector<image_variable *> &vars)  {
 } /* end getFunctions() */
 
 
-void * image::getPtrToDataInText( Address offset ) const {
-	if( isData(offset) ) { return NULL; }
-	if( ! isCode(offset) ) { return NULL; }
+void *image::getPtrToDataInText( Address offset ) const {
+    if( isData(offset) ) { return NULL; }
+    if( ! isCode(offset) ) { return NULL; }
 	
-	offset -= imageOffset_;
-	unsigned char * inst = (unsigned char *) (linkedFile->image_ptr());
-	return (void *)(& inst[ offset ]);	
+    Region *reg = linkedFile->findEnclosingRegion(offset);
+    if(reg != NULL) {
+        return (void*) ((Address)reg->getPtrToRawData() + offset 
+                        - reg->getRegionAddr());
+    }
+    return NULL;
 } /* end getPtrToDataInText() */
 
 void *image::getPtrToData(Address offset) const {
     if (!isData(offset)) return NULL;
-    offset -= dataOffset_;
-    unsigned char *inst = (unsigned char *)(linkedFile->data_ptr());
-    return (void *)(&inst[offset]);
+    Region *reg = linkedFile->findEnclosingRegion(offset);
+    if (reg != NULL &&
+        (reg->getRegionPermissions() == Region::RP_RW ||
+         reg->getRegionPermissions() == Region::RP_RWX)) {
+        return (void*) ((Address)reg->getPtrToRawData() + offset 
+                        - reg->getRegionAddr());
+    }
+    return NULL;
 }
     
 // return a pointer to the instruction at address adr
@@ -2087,20 +2099,18 @@ void *image::getPtrToInstruction(Address offset) const
       Region *reg = linkedFile->findEnclosingRegion(offset);
       if (reg != NULL &&
           (reg->getRegionPermissions() == Region::RP_RX ||
-           reg->getRegionPermissions() == Region::RP_RWX)) {
-          return (void*) ((Address)reg->getPtrToRawData() + offset - reg->getMemOffset());
+           reg->getRegionPermissions() == Region::RP_RWX ||
+           reg->getRegionType() == Region::RT_TEXT ||
+           reg->getRegionType() == Region::RT_TEXTDATA)) {
+          return (void*) ((Address)reg->getPtrToRawData() 
+                          + offset - reg->getRegionAddr());
       }
-      offset -= imageOffset_;
-      unsigned char *inst = (unsigned char *)(linkedFile->image_ptr());
-      return (void *)(&inst[offset]);
-   } else if (isData(offset)) {
-      offset -= dataOffset_;
-      unsigned char *inst = (unsigned char *)(linkedFile->data_ptr());
-      return (void *)(&inst[offset]);
-   } else {
-      assert(0);
-      return 0;
+      return NULL;
    }
+   else if (isData(offset)) { // not sure why we allow this
+       return getPtrToData(offset);
+   }
+   return NULL;
 }
 
 // Address must be in code or data range since some code may end up
