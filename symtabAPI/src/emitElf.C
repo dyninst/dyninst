@@ -283,7 +283,7 @@ void emitElf::findSegmentEnds()
 // Only renames the FIRST matching section encountered.
 void emitElf::renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll) {
     assert(oldStr.length() == newStr.length());
-    for (int k = 0; k < secNames.size(); k++) {
+    for (unsigned k = 0; k < secNames.size(); k++) {
         if (secNames[k] == oldStr) {
             secNames[k].replace(0, oldStr.length(), newStr);
             if (!renameAll)
