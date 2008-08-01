@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.51 2008/05/08 21:52:22 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.52 2008/08/01 17:55:11 roundy Exp $
  */
 
 #include <stdio.h>
@@ -556,7 +556,7 @@ bool image_func::parse(
                         p = new image_instPoint(funcEntryAddr, ah.getInstruction(), 
                                                 this, target, false, false, callSite);
                     }
-                    img()->badControlFlow.push_back(p);
+                    pdmod()->addUnresolvedControlFlow(p);
                 }
             }
             parsing_printf("Jump or call at entry of function\n");
@@ -953,7 +953,7 @@ bool image_func::buildCFG(
                                             false,
                                             false,
                                             otherPoint);
-                    img()->badControlFlow.push_back(p);
+                    pdmod()->addUnresolvedControlFlow(p);
                 }
 
                 if(ah.isDelaySlot())
@@ -1030,7 +1030,7 @@ bool image_func::buildCFG(
                                             true,
                                             true,
                                             functionExit); 
-                    img()->badControlFlow.push_back(p);
+                    pdmod()->addUnresolvedControlFlow(p);
                     return false; 
                 }                 
 
@@ -1045,7 +1045,7 @@ bool image_func::buildCFG(
                                             true,
                                             true,
                                             functionExit);
-                    img()->badControlFlow.push_back(p); 
+                    pdmod()->addUnresolvedControlFlow(p); 
                     break;
                 }
 
@@ -1076,7 +1076,7 @@ bool image_func::buildCFG(
                                            true,
                                            true,
                                            otherPoint);
-                   img()->badControlFlow.push_back(p);
+                   pdmod()->addUnresolvedControlFlow(p);
                 }
                 
                 iter = targets.begin();
@@ -1092,7 +1092,7 @@ bool image_func::buildCFG(
                                                     true, 
                                                     false,
                                                     otherPoint);
-                            img()->badControlFlow.push_back(p);
+                            pdmod()->addUnresolvedControlFlow(p);
                             foundBadTarget = true;
                         }
                         continue;
@@ -1166,7 +1166,7 @@ bool image_func::buildCFG(
                                             false,
                                             false,
                                             otherPoint); 
-                    img()->badControlFlow.push_back(p);
+                    pdmod()->addUnresolvedControlFlow(p);
                     break;
                 }
 
@@ -1306,7 +1306,7 @@ bool image_func::buildCFG(
                                                  true,
                                                  true,
                                                  callSite);
-                        img()->badControlFlow.push_back(p);
+                        pdmod()->addUnresolvedControlFlow(p);
 
                         parsing_printf("[%s:%u] dynamic call 0x%lx -> ?\n",
                             FILE__,__LINE__,currAddr);
@@ -1342,7 +1342,7 @@ bool image_func::buildCFG(
                                                      target,
                                                      false,
                                                      isAbsolute);
-                             img()->badControlFlow.push_back(p);
+                             pdmod()->addUnresolvedControlFlow(p);
                          }
 
                         parsing_printf("... invalid call target\n");
