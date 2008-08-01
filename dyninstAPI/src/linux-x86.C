@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.141 2008/06/26 20:40:15 bill Exp $
+// $Id: linux-x86.C,v 1.142 2008/08/01 17:55:12 roundy Exp $
 
 #include <fstream>
 #include <string>
@@ -698,7 +698,7 @@ bool process::instrumentLibcStartMain()
     }
     assert(libcIdx != maps_size);
     //KEVINTODO: address code and data are not always 0,0: need to fix this
-    fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path, 0, 0);
+    fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path,0,0,true);
     mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
     addASharedObject(libc);
 
@@ -812,7 +812,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
         //KEVINTODO: address code and data are not always 0,0: need to fix this
         // create a fileDescriptor and a new mapped_object for the region
         // create it as though it were a shared object
-        fileDescriptor fdesc = fileDescriptor(namebuf, 0, regionEnd-regionStart);
+        fileDescriptor fdesc = fileDescriptor(namebuf, 0, 0, true);
         a_out = mapped_object::createMappedObject(fdesc, this);
 
         // There is no function for adding an a.out, so we'll call
