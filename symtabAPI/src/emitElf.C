@@ -195,9 +195,14 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
            //}
 #endif
            vector<string> *vers;
-           if(!symbol->getVersions(vers))
+           if(!symbol->getVersions(vers)) {
+                // add an unversioned dependency
                 versionSymTable.push_back(1);
-           else{
+                if (fileName != "" &&
+                        find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), fileName) == 
+                        unversionedNeededEntries.end())
+                    unversionedNeededEntries.push_back(fileName);
+           } else {
                if(vers->size() == 1){        // There should only be one version string
                     //If the verison name already exists then add the same version number to the version symbol table
                     //Else give a new number and add it to the mapping.
@@ -219,6 +224,7 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
                         curVersionNum++;
                     }
                 } else {
+                    // add an unversioned dependency
                     versionSymTable.push_back(1);
                     if (fileName != "" &&
                             find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), fileName) == 
@@ -452,6 +458,14 @@ bool emitElf::driver(Symtab *obj, string fName){
         if(!strcmp(name, ".data")){
     	    dataData = newdata;
 	    }
+        if(!strcmp(name, ".rel.plt")){
+            newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".rel.plt", ".old.plt", false);
+        }
+        if(!strcmp(name, ".rel.dyn")){
+            newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".rel.dyn", ".old.dyn", false);
+        }
     	// Change offsets of sections based on the newly added sections
     	if(addNewSegmentFlag)
 	        newshdr->sh_offset += pgSize;
@@ -608,6 +622,7 @@ void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
     
     switch(dynamicSecData[tag][0]->d_tag){
         case DT_STRSZ:
+        case DT_RELSZ:
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
         case DT_SYMTAB:
@@ -1131,7 +1146,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
  */
 bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Symbol *>&variables, vector<Symbol *>&mods, vector<Symbol *>&notypes, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt)
 {
-    unsigned i;
+    unsigned i,j;
 
     //Symbol table(.symtab) symbols
     std::vector<Elf32_Sym *> symbols;
@@ -1275,7 +1290,6 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
         if(dynSymNameMapping.find(fbt[i].name()) != dynSymNameMapping.end()) {
             relplts[i].r_offset = fbt[i].rel_addr();
             relplts[i].r_info = ELF32_R_INFO(dynSymNameMapping[fbt[i].name()], fbt[i].getRelType());
-            //rels[i].r_addend = 0;
         }
     }
    	obj->addRegion(0, relplts, fbt.size()*sizeof(Elf32_Rel), ".rel.plt", Region::RT_REL, true);
@@ -1285,32 +1299,34 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
         newRels = newSecs[0]->getRelocations();
     
     Elf32_Rel *rels = (Elf32_Rel *)malloc(sizeof(Elf32_Rel) * (relocation_table.size()+newRels.size()));
+    j=0;
     //reconstruct .rel
     for(i=0;i<relocation_table.size();i++) 
     {
+        rels[j].r_offset = relocation_table[i].rel_addr();
         if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-            rels[i].r_offset = relocation_table[i].rel_addr();
-            rels[i].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
-            //rels[i].r_addend = 0;
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
         }
+        j++;
     }
     for(i=0;i<newRels.size();i++) 
     {
+        rels[j].r_offset = newRels[i].rel_addr();
         if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
-            rels[i].r_offset = newRels[i].rel_addr();
-            //rels[i].r_addend = 0;
 #if defined(arch_x86)
-            rels[i].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_32);
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
 #elif defined(arch_sparc)
-//            rels[i].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_32);
+//            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
-            rels[i].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_32);
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-            rels[i].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_ADDR32);
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
         }
+        j++;
     }
    	obj->addRegion(0, rels, (relocation_table.size()+newRels.size())*sizeof(Elf32_Rel), ".rel.dyn", Region::RT_REL, true);
+    updateDynamic(DT_RELSZ, (relocation_table.size()+newRels.size())*sizeof(Elf32_Rel));
     
 #if !defined(os_solaris)
     //add .dynamic section

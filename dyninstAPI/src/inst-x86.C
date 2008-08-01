@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.286 2008/07/30 15:19:46 mlam Exp $
+ * $Id: inst-x86.C,v 1.287 2008/08/01 18:10:38 mlam Exp $
  */
 #include <iomanip>
 
@@ -1297,15 +1297,17 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
         dest = binEdit->getDependentRelocationAddr(referring);
 
         if (!dest) {
-            // inferiorMalloc addr location
+            // inferiorMalloc addr location and initialize to zero
             dest = binEdit->inferiorMalloc(8);
+            unsigned int dat[4] = {0,0,0,0};
+            binEdit->writeDataSpace((void*)dest, 8, dat);
 
             // add write new relocation symbol/entry
             binEdit->addDependentRelocation(dest, referring);
         }
 
         // load eax with address from jump table
-        emitMovRMToReg(REGNUM_EAX, 0, dest, gen);                  // mov eax, *(addr)
+        emitMovMToReg(REGNUM_EAX, dest, gen);                      // mov eax, *(addr)
 
     } else {
         dest = callee->getAddress();
@@ -1315,7 +1317,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     }
 
     // emit call
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);     // call *(eax)
 
     return true;
 }
