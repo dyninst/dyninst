@@ -362,7 +362,7 @@ DLLEXPORT Offset Symtab::imageLength() const
 {
     return imageLen_;
 }
-
+/*
 DLLEXPORT char* Symtab::image_ptr ()  const 
 {
    return code_ptr_;
@@ -372,7 +372,7 @@ DLLEXPORT char* Symtab::data_ptr ()  const
 { 
    return data_ptr_;
 }
-
+*/
 DLLEXPORT const char*  Symtab::getInterpreterName() const 
 {
    if (interpreter_name_.length())
