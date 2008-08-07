@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.29 2008/07/01 19:26:42 legendre Exp $
+// $Id: Object-xcoff.C,v 1.30 2008/08/07 22:05:01 roundy Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -978,7 +978,11 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
 
    if (alloc_syms)
       for (i=0; i < hdr.f_nscns; i++) {
-          regions_.push_back(new Region(i, SCNH_NAME(i), SCNH_PADDR(i), SCNH_SIZE(i), SCNH_PADDR(i), SCNH_SIZE(i), (char *)fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), getRegionPerms(SCNH_FLAGS(i)), getRegionType(SCNH_FLAGS(i))));
+          // the XCOFF spec says that only text and data sections are loaded
+          Region::region_t regionType = getRegionType(SCNH_FLAGS(i));
+          bool isLoadable = regionType == Region::RT_TEXT || 
+                            regionType == Region::RT_DATA;
+          regions_.push_back(new Region(i, SCNH_NAME(i), SCNH_PADDR(i), SCNH_SIZE(i), SCNH_PADDR(i), SCNH_SIZE(i), (char *)fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), getRegionPerms(SCNH_FLAGS(i)), regionType, isLoadable));
 //         regions_.push_back(new Section(i, SCNH_NAME(i), SCNH_PADDR(i),
 //                  fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), SCNH_SIZE(i)));
          //fprintf(stderr, "%s[%d]:  section named %s\n", FILE__, __LINE__, SCNH_NAME(i));
