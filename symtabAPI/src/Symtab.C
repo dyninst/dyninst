@@ -546,8 +546,11 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
             if (!isValidOffset(lookUp->getAddr())) 
             {
                 sprintf(tempBuffer,"0x%lx",lookUp->getAddr());
-                msg = std::string("Function ") + lookUp->getName() + std::string(" has bad address ")
-                                                                            + std::string(tempBuffer);
+                msg = std::string("Function ") + lookUp->getName() 
+                    + std::string(" has bad address ")
+                    + std::string(tempBuffer);
+                fprintf(stderr, "%s[%d] in symbolsToFunctions %s\n", 
+                        __FILE__,__LINE__,msg.c_str());
                 return false;
             }
             // Fill in _mods.
@@ -1336,7 +1339,8 @@ bool Symtab::extractInfo(Object *linkedFile)
     // define all of the functions, this also defines all of the modules
     if (!symbolsToFunctions(linkedFile, &raw_funcs))
     {
-        fprintf(stderr, "Error converting symbols to functions in file %s\n", mf->filename().c_str());
+        fprintf(stderr, "%s[%d] Error converting symbols to functions in file %s\n", 
+                __FILE__, __LINE__, mf->filename().c_str());
         err = false;
         serr = Syms_To_Functions;
         return false;
@@ -1983,10 +1987,38 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
 /* Similar to binary search in isCode with the exception that here we
  * search to the end of regions without regards to whether they have
  * corresponding raw data on disk, and searches all regions.  
+ *
+ * regions_ elements that start at address 0 may overlap, ELF binaries
+ * have 0 address iff they are not loadable, but xcoff places loadable
+ * sections at address 0, including .text and .data
  */
 Region *Symtab::findEnclosingRegion(const Offset where)
 {
-    // search for "where" in regions (regions must not overlap)
+#if defined (os_aix) // regions overlap so do sequential search
+    // try code regions first, then data, regions_ vector as last resort
+    for (unsigned rIdx=0; rIdx < codeRegions_.size(); rIdx++) {
+        if (where >= codeRegions_[rIdx]->getRegionAddr() &&
+            where < (codeRegions_[rIdx]->getRegionAddr() 
+                     + codeRegions_[rIdx]->getMemSize())) {
+            return codeRegions_[rIdx];
+        }
+    }
+    for (unsigned rIdx=0; rIdx < dataRegions_.size(); rIdx++) {
+        if (where >= dataRegions_[rIdx]->getRegionAddr() &&
+            where < (dataRegions_[rIdx]->getRegionAddr() 
+                     + dataRegions_[rIdx]->getMemSize())) {
+            return dataRegions_[rIdx];
+        }
+    }
+    for (unsigned rIdx=0; rIdx < regions_.size(); rIdx++) {
+        if (where >= regions_[rIdx]->getRegionAddr() &&
+            where < (regions_[rIdx]->getRegionAddr() 
+                     + regions_[rIdx]->getMemSize())) {
+            return regions_[rIdx];
+        }
+    }
+    return NULL;
+#endif
     int first = 0; 
     int last = regions_.size() - 1;
     while (last >= first) {
@@ -2033,15 +2065,16 @@ bool Symtab::isValidOffset(const Offset where) const
  */
 bool Symtab::isCode(const Offset where)  const
 {
-    //    printf("isCode(%x)\n",where);
-    if(!codeRegions_.size())
+    if(!codeRegions_.size()) {
+        fprintf(stderr, "%s[%d] No code regions in %s \n",
+                __FILE__,__LINE__,mf->filename().c_str());
         return false;
+    }
     // search for "where" in codeRegions_ (code regions must not overlap)
     int first = 0; 
     int last = codeRegions_.size() - 1;
     while (last >= first) {
         Region *curreg = codeRegions_[(first + last) / 2];
-        //        printf("  reg[%d] [%x %x]\n", (first+last)/2, curreg->getRegionAddr(), curreg->getRegionAddr() + curreg->getRegionSize());
         if (where >= curreg->getRegionAddr()
             && where < (curreg->getRegionAddr()
                         + curreg->getDiskSize())) {
@@ -2067,8 +2100,11 @@ bool Symtab::isCode(const Offset where)  const
  * be kept in sorted order */
 bool Symtab::isData(const Offset where)  const
 {
-    if(!dataRegions_.size())
+    if(!dataRegions_.size()) {
+        fprintf(stderr, "%s[%d] No data regions in %s \n",
+                __FILE__,__LINE__,mf->filename().c_str());
         return false;
+    }
     int first = 0; 
     int last = dataRegions_.size() - 1;
     while (last >= first) {
