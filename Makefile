@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.92 2008/07/28 18:20:16 carl Exp $
+# $Id: Makefile,v 1.93 2008/08/12 15:50:40 carl Exp $
 #
 
 TO_CORE = .
@@ -35,7 +35,7 @@ StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dynutil instructionAPI
 InstructionAPI	= ready common instructionAPI dynutil
 
-testsuites = dyninstAPI/tests testsuite newtestsuite
+testsuites = dyninstAPI/tests testsuite 
 
 allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite
 allSubdirs_noinstall =
@@ -74,9 +74,6 @@ endif
 # i.e., if make is given no arguments.  Don't add other targets before all!
 
 all: ready world
-
-# Used for nightly builds
-nightly: DyninstAPI testsuites
 
 # This rule makes most of the normal recursive stuff.  Just about any
 # target can be passed down to the lower-level Makefiles by listing it
@@ -266,10 +263,13 @@ umd-nightly:
 	$(MAKE) clean
 	$(MAKE) DyninstAPI
 
-nightly:
-	$(MAKE) clean
-	$(MAKE) world
-#	$(MAKE) DyninstAPI
-	$(MAKE) docs
-	$(MAKE) install-man
-	chmod 644 /p/paradyn/man/man?/*
+# Used for nightly builds
+nightly: DyninstAPI testsuites
+
+#nightly:
+#	$(MAKE) clean
+#	$(MAKE) world
+##	$(MAKE) DyninstAPI
+#	$(MAKE) docs
+#	$(MAKE) install-man
+#	chmod 644 /p/paradyn/man/man?/*
