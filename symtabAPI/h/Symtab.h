@@ -81,7 +81,7 @@ class Region {
 
     enum region_t{
         RT_TEXT, RT_DATA, RT_TEXTDATA, RT_SYMTAB, RT_STRTAB , RT_BSS, RT_SYMVERSIONS,
-        RT_SYMVERDEF, RT_SYMVERNEEDED, RT_REL, RT_DYNAMIC, RT_OTHER
+        RT_SYMVERDEF, RT_SYMVERNEEDED, RT_REL, RT_RELA, RT_DYNAMIC, RT_OTHER
     };
 
     DLLEXPORT Region();
@@ -122,7 +122,7 @@ class Region {
     DLLEXPORT bool setRegionPermissions(perm_t newPerms);
     DLLEXPORT region_t getRegionType() const;
       
-    DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType);
+    DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::region_t rtype = Region::RT_REL);
 
   protected:                     
     DLLEXPORT Region(unsigned regnum, std::string name, Offset diskOff,
@@ -337,6 +337,10 @@ class Symtab : public LookupInterface,
 
    /***** Local Variable Information *****/
    DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+
+   /***** Relocation Sections *****/
+   DLLEXPORT bool hasRel() const;
+   DLLEXPORT bool hasRela() const;
 
    /***** Write Back binary functions *****/
    DLLEXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
@@ -557,6 +561,10 @@ class Symtab : public LookupInterface,
    void *stabs_;
    char *stringpool_;
 
+   //Relocation sections
+   bool hasRel_;
+   bool hasRela_;
+
    //Don't use obj_private, use getObject() instead.
    Object *getObject();
    Object *obj_private;
@@ -659,14 +667,19 @@ class relocationEntry {
     friend class SymtabTranslatorBin;
    public:
       DLLEXPORT relocationEntry();
-      DLLEXPORT relocationEntry(Offset ta,Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-      DLLEXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+      DLLEXPORT relocationEntry(Offset ta, Offset ra, Offset add, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+      DLLEXPORT relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+      DLLEXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0, Region::region_t rtype = Region::RT_REL);
 
       DLLEXPORT relocationEntry(const relocationEntry& ra);
 
       DLLEXPORT const relocationEntry& operator= (const relocationEntry &ra);
       DLLEXPORT Offset target_addr() const;
       DLLEXPORT Offset rel_addr() const;
+      DLLEXPORT Offset addend() const;
+      DLLEXPORT Region::region_t regionType() const;
+      DLLEXPORT void setAddend(const Offset);
+      DLLEXPORT void setRegionType(const Region::region_t);
       DLLEXPORT const std::string &name() const;
       DLLEXPORT Symbol *getDynSym() const;
       DLLEXPORT bool addDynSym(Symbol *dynref);
@@ -682,6 +695,8 @@ class relocationEntry {
    private:
       Offset target_addr_;	// target address of call instruction 
       Offset rel_addr_;		// address of corresponding relocation entry 
+      Offset addend_;       // addend (from RELA entries)
+      Region::region_t rtype_;        // RT_REL vs. RT_RELA
       std::string  name_;
       Symbol *dynref_;
       unsigned long relType_;

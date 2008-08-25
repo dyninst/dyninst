@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.15 2008/06/19 19:53:59 legendre Exp $
+ * $Id: Symbol.h,v 1.16 2008/08/25 16:21:37 mlam Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -229,6 +229,8 @@ private:
     // So we need a way to store the name of the module in 
     // which the symbol is present.
     std::string moduleName_;  
+    std::string fileName_;
+    std::vector<std::string> verNames_;
 
 public:
 #if 0

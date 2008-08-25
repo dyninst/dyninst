@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.287 2008/08/01 18:10:38 mlam Exp $
+ * $Id: inst-x86.C,v 1.288 2008/08/25 16:21:36 mlam Exp $
  */
 #include <iomanip>
 
@@ -1252,9 +1252,11 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee)
     // we are using an indirect call here because we don't know the
     // address of this instruction, so we can't use a relative call.
     // TODO: change this to use a direct call
-   emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);  // mov eax, addr
-   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
-   return true;
+    Register ptr = gen.rs()->allocateRegister(gen, false);
+    emitMovImmToReg(ptr, callee->getAddress(), gen);  // mov e_x, addr
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, ptr, gen);   // call *(e_x)
+    gen.rs()->freeRegister(ptr);
+    return true;
 }
 
 // TODO: we need to know if we're doing an inter-module call. This
@@ -1270,6 +1272,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
+    Register ptr = gen.rs()->allocateRegister(gen, false);
 
     // find int_function reference in address space
     // (refresh func_map)
@@ -1298,26 +1301,28 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
 
         if (!dest) {
             // inferiorMalloc addr location and initialize to zero
-            dest = binEdit->inferiorMalloc(8);
-            unsigned int dat[4] = {0,0,0,0};
-            binEdit->writeDataSpace((void*)dest, 8, dat);
+            dest = binEdit->inferiorMalloc(4);
+            unsigned int dat = 0;
+            binEdit->writeDataSpace((void*)dest, 4, &dat);
 
             // add write new relocation symbol/entry
             binEdit->addDependentRelocation(dest, referring);
         }
 
-        // load eax with address from jump table
-        emitMovMToReg(REGNUM_EAX, dest, gen);                      // mov eax, *(addr)
+        // load register with address from jump table
+        emitMovMToReg(ptr, dest, gen);                      // mov e_x, *(addr)
 
     } else {
         dest = callee->getAddress();
 
-        // load eax with function address
-        emitMovImmToReg(REGNUM_EAX, dest, gen);                    // mov eax, addr
+        // load register with function address
+        emitMovImmToReg(ptr, dest, gen);                    // mov e_x, addr
     }
 
     // emit call
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);     // call *(eax)
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, ptr, gen);     // call *(e_x)
+
+    gen.rs()->freeRegister(ptr);
 
     return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.21 2008/07/30 15:19:46 mlam Exp $
+// $Id: binaryEdit.C,v 1.22 2008/08/25 16:21:36 mlam Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -300,34 +300,68 @@ std::string* BinaryEdit::resolveLibraryName(const std::string &filename)
     struct stat dummy;
     std::string* fullPath = NULL;
     bool found = false;
-
-    // build list of library paths
+    FILE *ldconfig;
+    char buffer[512];
+    char *pos, *key, *val;
     
-    // prefer fully-qualified file paths
-    libPaths.push_back("");
+    // prefer qualified file paths
+    if (stat(filename.c_str(), &dummy) == 0) {
+        fullPath = new std::string(filename);
+        return fullPath;
+    }
 
-    // add paths from environment variables
+    // search paths from environment variables
     libPathStr = getenv("LD_LIBRARY_PATH");
     libPath = strtok(libPathStr, ":");
     while (libPath != NULL) {
         libPaths.push_back(std::string(libPath));
         libPath = strtok(NULL, ":");
     }
-    libPaths.push_back(std::string(getenv("PWD")));
+    //libPaths.push_back(std::string(getenv("PWD")));
+    for (unsigned int i = 0; !found && i < libPaths.size(); i++) {
+        fullPath = new std::string(libPaths.at(i) + "/" + filename);
+        if (stat(fullPath->c_str(), &dummy) == 0) {
+            found = true;
+        } else {
+            delete fullPath;
+            fullPath = NULL;
+        }
+    }
+    if (fullPath != NULL)
+        return fullPath;
 
-    // TODO: add paths from /etc/ld.so.conf ?
-
-    // add hard-coded paths
+    // search ld.so.cache
+    ldconfig = popen("/sbin/ldconfig -p", "r");
+    if (ldconfig != NULL) {
+        fgets(buffer, 512, ldconfig); // ignore first line
+        while (fullPath == NULL && fgets(buffer, 512, ldconfig) != NULL) {
+            pos = buffer;
+            while (*pos == ' ' || *pos == '\t') pos++;
+            key = pos;
+            while (*pos != ' ') pos++;
+            *pos = '\0';
+            while (*pos != '=' && *(pos+1) != '>') pos++;
+            pos += 2;
+            while (*pos == ' ' || *pos == '\t') pos++;
+            val = pos;
+            while (*pos != '\n' && *pos != '\0') pos++;
+            *pos = '\0';
+            if (strcmp(key, filename.c_str()) == 0)
+                fullPath = new std::string(val);
+        }
+        fclose(ldconfig);
+    }
+    if (fullPath != NULL)
+        return fullPath;
+ 
+    // search hard-coded system paths
+    libPaths.clear();
     libPaths.push_back("/usr/local/lib");
     libPaths.push_back("/usr/share/lib");
     libPaths.push_back("/usr/lib");
     libPaths.push_back("/lib");
-
-    // find actual shared object file by searching all the lib paths
     for (unsigned int i = 0; !found && i < libPaths.size(); i++) {
         fullPath = new std::string(libPaths.at(i) + "/" + filename);
-
-        // if we've found the file...
         if (stat(fullPath->c_str(), &dummy) == 0) {
             found = true;
         } else {
@@ -403,6 +437,11 @@ bool BinaryEdit::openSharedLibrary(const std::string &file, bool openDependencie
 {
     std::string* fullPath = resolveLibraryName(file);
 
+    if (!fullPath) {
+        fprintf(stderr, "ERROR:  unable to open shared library %s\n", file.c_str());
+        return false;
+    }
+
     mapped_object *bin = addSharedObject(fullPath);
 
     delete fullPath;
@@ -419,7 +458,7 @@ bool BinaryEdit::openSharedLibrary(const std::string &file, bool openDependencie
 mapped_object * BinaryEdit::addSharedObject(const std::string *fullPath)
 {
 #ifdef BINEDIT_DEBUG
-    fprintf(stdout, "DEBUG - opening new dependency: %s", fullPath->c_str());
+    fprintf(stdout, "DEBUG - opening new dependency: %s\n", fullPath->c_str());
 #endif
 
     // make sure the executable exists
@@ -460,9 +499,7 @@ mapped_object * BinaryEdit::addSharedObject(const std::string *fullPath)
 
 #ifdef BINEDIT_DEBUG
         fprintf(stdout, " - added!\n");
-#endif
     } else {
-#ifdef BINEDIT_DEBUG
         fprintf(stdout, " - duplicate\n");
 #endif
     }
@@ -573,7 +610,16 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 				Symbol::ST_FUNCTION, Symbol::SL_UNKNOWN,
 				to, newSec, 8);
 		symObj->addSymbol(newSymbol, referring);
-		newSymbol->getSec()->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
+        if (!symObj->hasRel() && !symObj->hasRela()) {
+            // TODO: probably should add new relocation section and
+            // corresponding .dynamic table entries
+            fprintf(stderr, "ERROR:  binary has no pre-existing relocation sections!\n");
+            return false;
+        } else if (!symObj->hasRel() && symObj->hasRela()) {
+            newSymbol->getSec()->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
+        } else {
+            newSymbol->getSec()->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
+        }
 	}
 
     // Put in symbol table entries for known code

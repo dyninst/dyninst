@@ -77,6 +77,7 @@ class emitElf64{
 #if !defined(os_solaris)
     std::map<unsigned, std::vector<Elf64_Dyn *> > dynamicSecData;
     std::vector<std::string> DT_NEEDEDEntries;
+    std::vector<std::string> unversionedNeededEntries;
 #endif
 
     // Symbol version table data
@@ -111,10 +112,12 @@ class emitElf64{
 
     bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols, bool dynSymFlag = false);
     void findSegmentEnds();
+    void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
     void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf64_Shdr *shdr);
     bool createNonLoadableSections(Elf64_Shdr *& shdr);
     bool createLoadableSections( Elf64_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &);
+    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 

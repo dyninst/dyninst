@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.25 2008/06/23 18:45:47 legendre Exp $
+// $Id: Object.C,v 1.26 2008/08/25 16:21:37 mlam Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -126,7 +126,10 @@ DLLEXPORT Offset ExceptionBlock::catchStart() const
 
 DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
    target_addr_(ra.target_addr_), 
-   rel_addr_(ra.rel_addr_), name_(ra.name_), 
+   rel_addr_(ra.rel_addr_), 
+   addend_ (ra.addend_),
+   rtype_ (ra.rtype_),
+   name_(ra.name_), 
    dynref_(ra.dynref_), relType_(ra.relType_) 
 {
 }
@@ -594,49 +597,66 @@ DLLEXPORT int Symbol::getFramePtrRegnum()
    return framePtrRegNum_;
 }
 
+//#define USE_ANNOTATIONS
+
 DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
 {
+#ifdef USE_ANNOTATIONS
    Annotatable<std::string, symbol_file_name_a> &fn = *this;
+   std::string s = fileName;
    if (fn.size()) {
-      fn.clearAnnotations();
-      //fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", FILE__, __LINE__, getName().c_str());
-      //return false;
+      fn[0] = fileName;
+      fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", FILE__, __LINE__, getName().c_str());
    }
-   fn.addAnnotation(fileName);
+   else
+       fn.addAnnotation(fileName);
+#else
+   fileName_ = fileName;
+#endif
    return true;
 }
 
 DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
 {
+#ifdef USE_ANNOTATIONS
    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
    if (sv.size()) {
-      sv.clearAnnotations();
-      //fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
-      //return false;
+      sv[0] = vers;
+      fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
    }
-   sv.addAnnotation(vers);
+   else
+       sv.addAnnotation(vers);
+#else
+   verNames_ = vers;
+#endif
    return true;
 }
 
 DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 {
+#ifdef USE_ANNOTATIONS
    Annotatable<std::string, symbol_file_name_a> &fn = *this;
    if (!fn.size()) {
       return false;
    }
-
    fileName = fn[0];
+#else
+   fileName = fileName_;
+#endif
    return true;
 }
 
 DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 {
+#ifdef USE_ANNOTATIONS
    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
    if (!sv.size()) {
       return false;
    }
-
    vers = &(sv[0]);
+#else
+   vers = &verNames_;
+#endif
    return true;
 }
 
@@ -746,6 +766,8 @@ ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
 ostream & relocationEntry::operator<< (ostream &s) const {
    s << "target_addr_ = " << target_addr_ << endl;
    s << "rel_addr_ = " << rel_addr_ << endl;
+   s << "addend_ = " << addend_ << endl;
+   s << "rtype_ = " << rtype_ << endl;
    s << "name_ = " << name_ << endl;
    return s; 
 }

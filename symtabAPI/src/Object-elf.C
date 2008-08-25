@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.50 2008/07/01 19:26:39 legendre Exp $
+ * $Id: Object-elf.C,v 1.51 2008/08/25 16:21:37 mlam Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -222,8 +222,9 @@ Region::region_t getRegionType(unsigned long type, unsigned long flags){
         case SHT_STRTAB:
             return Region::RT_STRTAB;
         case SHT_REL:
-        case SHT_RELA:
             return Region::RT_REL;
+        case SHT_RELA:
+            return Region::RT_RELA;
         case SHT_PROGBITS:
             if((flags & SHF_EXECINSTR) && (flags & SHF_WRITE))
                 return Region::RT_TEXTDATA;
@@ -697,20 +698,25 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
     		/* Iterate over the entries. */
 	    	for( u_int i = 0; i < (rel_size_/rel_entry_size_); ++i ) {
 		        long offset;
+                long addend;
 		        long index;
                 unsigned long type;
+                Region::region_t rtype = Region::RT_REL;
 
     		    switch (reldata.d_type()) {
 	    	      case ELF_T_REL:
     			    offset = rel.r_offset(i);
+                    addend = 0;
 	    	    	index = rel.R_SYM(i);
                     type = rel.R_TYPE(i);
         			break;
 
 	 	          case ELF_T_RELA:
         			offset = rela.r_offset(i);
+                    addend = rela.r_addend(i);
 	        		index = rela.R_SYM(i);
                     type = rela.R_TYPE(i);
+                    rtype = Region::RT_RELA;
         			break;
 
      		      default:
@@ -719,6 +725,8 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
 		        };
 		        // /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
     		    relocationEntry re( offset, string( &strs[ sym.st_name(index) ] ), NULL, type );
+                re.setAddend(addend);
+                re.setRegionType(rtype);
                 if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
                     vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
                     re.addDynSym(syms[0]);
@@ -793,20 +801,25 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 		/* Iterate over the entries. */
 		for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
 		    long offset;
+            long addend;
 		    long index;
             unsigned long type;
+            Region::region_t rtype = Region::RT_REL;
 
 		    switch (reldata.d_type()) {
 		    case ELF_T_REL:
                 offset = rel.r_offset(i);
+                addend = 0;
                 index = rel.R_SYM(i);
                 type = rel.R_TYPE(i);
                 break;
 
 		    case ELF_T_RELA:
                 offset = rela.r_offset(i);
+                addend = rela.r_addend(i);
                 index = rela.R_SYM(i);
                 type = rela.R_TYPE(i);
+                rtype = Region::RT_RELA;
                 break;
 
 		    default:
@@ -816,6 +829,8 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
 		    // /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
 		    relocationEntry re( next_plt_entry_addr, offset, string( &strs[ sym.st_name(index) ] ), NULL, type );
+            re.setAddend(addend);
+            re.setRegionType(rtype);
             if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
                 vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
                 re.addDynSym(syms[0]);

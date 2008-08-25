@@ -117,6 +117,7 @@ class emitElf{
     bool addSectionHeaderTable(Elf32_Shdr *shdr);
     bool createNonLoadableSections(Elf32_Shdr *& shdr);
     bool createLoadableSections( Elf32_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &);
+    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 

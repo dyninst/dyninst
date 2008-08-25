@@ -247,6 +247,8 @@ class SymtabTranslatorBase {
             relocation_start(param);
             getSD().translate(param.target_addr_, "targetAddr");
             getSD().translate(param.rel_addr_, "relocationAddr");
+            getSD().translate(param.addend_, "addend");
+            //getSD().translate(param.rtype_, "regionType");
             getSD().translate(param.name_, "name");
             relocation_end(param);
          } SER_CATCH("relocationEntry")

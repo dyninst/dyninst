@@ -950,15 +950,12 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) {
     	return false;
     string filename = referringSymbol->getModule()->exec()->name();
     vector<string> *vers, *newSymVers = new vector<string>;
-    referringSymbol->getVersions(vers);
-    if (vers != NULL) {
-        if (vers->size() > 0) {
-            newSymVers->push_back((*vers)[0]);
-            newSym->setVersionFileName(filename);
-            newSym->setVersions(*newSymVers);
-        } else {
-            newSym->setVersionFileName(filename);
-        }
+    newSym->setVersionFileName(filename);
+    std::string rstr;
+    bool ret = newSym->getVersionFileName(rstr);
+    if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) {
+        newSymVers->push_back((*vers)[0]);
+        newSym->setVersions(*newSymVers);
     }
 
     //Check again. Is this an ok thing to do??
@@ -1276,6 +1273,8 @@ bool Symtab::extractInfo(Object *linkedFile)
     newSectionInsertPoint = no_of_sections;
     no_of_symbols = linkedFile->no_of_symbols();
 
+    hasRel_ = false;
+    hasRela_ = false;
     regions_ = linkedFile->getAllRegions();
     for(unsigned index=0;index<regions_.size();index++){
         if ( regions_[index]->isLoadable() ) {
@@ -1287,6 +1286,12 @@ bool Symtab::extractInfo(Object *linkedFile)
                 dataRegions_.push_back(regions_[index]);
         }
         regionsByEntryAddr[regions_[index]->getRegionAddr()] = regions_[index];
+        if (regions_[index]->getRegionType() == Region::RT_REL) {
+            hasRel_ = true;
+        }
+        if (regions_[index]->getRegionType() == Region::RT_RELA) {
+            hasRela_ = true;
+        }
     }
     // sort regions_ & codeRegions_ vectors
     std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
@@ -3121,6 +3126,16 @@ DLLEXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::stri
    return false;	
 }
 
+DLLEXPORT bool Symtab::hasRel() const
+{
+    return hasRel_;
+}
+
+DLLEXPORT bool Symtab::hasRela() const
+{
+    return hasRela_;
+}
+
 bool Symtab::setDefaultNamespacePrefix(string &str){
     defaultNamespacePrefix = str;
     return true;
@@ -3490,8 +3505,8 @@ DLLEXPORT bool Region::patchData(Offset off, void *buf, unsigned size){
     return setPtrToRawData(buffer_, diskSize_);
 }
 
-DLLEXPORT bool Region::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType){
-    rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType));
+DLLEXPORT bool Region::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType, Region::region_t rtype){
+    rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType, rtype));
     return true;
 }
 
@@ -3509,29 +3524,52 @@ DLLEXPORT Region::region_t Region::getRegionType() const {
 }
 
 DLLEXPORT relocationEntry::relocationEntry()
-   :target_addr_(0),rel_addr_(0), name_(""), dynref_(NULL), relType_(0)
+   :target_addr_(0), rel_addr_(0), addend_(0), rtype_(Region::RT_REL), name_(""), dynref_(NULL), relType_(0)
 {
 }   
 
-DLLEXPORT relocationEntry::relocationEntry(Offset ta,Offset ra, std::string n, Symbol *dynref, unsigned long relType)
-   : target_addr_(ta), rel_addr_(ra),name_(n), dynref_(dynref), relType_(relType)
+DLLEXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref, unsigned long relType)
+   : target_addr_(ta), rel_addr_(ra), addend_(0), rtype_(Region::RT_REL), name_(n), dynref_(dynref), relType_(relType)
 {
 }   
 
-DLLEXPORT relocationEntry::relocationEntry(Offset ra, std::string n, Symbol *dynref, unsigned long relType)
-   : target_addr_(0), rel_addr_(ra),name_(n), dynref_(dynref), relType_(relType)
+DLLEXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add, std::string n, Symbol *dynref, unsigned long relType)
+   : target_addr_(ta), rel_addr_(ra), addend_(add), rtype_(Region::RT_REL), name_(n), dynref_(dynref), relType_(relType)
+{
+}
+
+DLLEXPORT relocationEntry::relocationEntry(Offset ra, std::string n, Symbol *dynref, unsigned long relType, Region::region_t rtype)
+   : target_addr_(0), rel_addr_(ra), addend_(0), rtype_(rtype), name_(n), dynref_(dynref), relType_(relType)
 {
 }   
 
 DLLEXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
 {
-    target_addr_ = ra.target_addr_; rel_addr_ = ra.rel_addr_; 
+    target_addr_ = ra.target_addr_;
+    rel_addr_ = ra.rel_addr_;
+    addend_ = ra.addend_;
+    rtype_ = ra.rtype_;
     name_ = ra.name_; 
     dynref_ = ra.dynref_;
     relType_ = ra.relType_;
     return *this;
 }
 
+DLLEXPORT void relocationEntry::setAddend(const Offset value) {
+    addend_ = value;
+}
+
+DLLEXPORT Offset relocationEntry::addend() const {
+    return addend_;
+}
+
+DLLEXPORT void relocationEntry::setRegionType(const Region::region_t value) {
+    rtype_ = value;
+}
+
+DLLEXPORT Region::region_t relocationEntry::regionType() const {
+    return rtype_;
+}
 
 int symtab_printf(const char *format, ...)
 {

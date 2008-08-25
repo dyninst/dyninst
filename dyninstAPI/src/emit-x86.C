@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.62 2008/06/19 19:53:13 legendre Exp $
+ * $Id: emit-x86.C,v 1.63 2008/08/25 16:21:36 mlam Exp $
  */
 
 #include <assert.h>
@@ -56,6 +56,8 @@
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/src/registerSpace.h"
+
+#include "dyninstAPI/src/binaryEdit.h"
 
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
@@ -1432,19 +1434,98 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 
 bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
     // make the call (using an indirect call)
-    emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
+    //emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
+    //emitSimpleInsn(0xff, gen); // group 5
+    //emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
 
-    emitSimpleInsn(0xff, gen); // group 5
-    emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
+    Register ptr = gen.rs()->allocateRegister(gen, false);
+    emitMovImmToReg64(ptr, callee->getAddress(), true, gen);
+    GET_PTR(insn, gen);
+    *insn++ = 0xFF;
+    *insn++ = static_cast<unsigned char>(0xD0 | ptr);
+    SET_PTR(insn, gen);
+    gen.rs()->freeRegister(ptr);
+
     return true;
 }
 
 
 bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
-    // make the call (using an indirect call)
-    emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
-    emitSimpleInsn(0xff, gen); // group 5
-    emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
+#ifdef BINEDIT_DEBUG
+    fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
+#endif
+    AddressSpace *addrSpace = gen.addrSpace();
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address dest;
+    Register ptr = gen.rs()->allocateRegister(gen, false);
+
+    // find int_function reference in address space
+    // (refresh func_map)
+    pdvector<int_function *> funcs;
+    addrSpace->findFuncsByAll(callee->prettyName(), funcs);
+
+    // test to see if callee is in a shared module
+    if (callee->obj()->isSharedLib() && binEdit != NULL) {
+
+        // find the Symbol corresponding to the int_function
+        std::vector<Symbol *> syms;
+        callee->obj()->parse_img()->getObject()->findSymbolByType(
+                syms, callee->symTabName(), Symbol::ST_FUNCTION,
+                true, false, true);
+        if (syms.size() == 0) {
+            char msg[256];
+            sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+                    , __FILE__, __LINE__, callee->symTabName().c_str());
+            showErrorCallback(80, msg);
+            assert(0);
+        }
+        Symbol *referring = syms[0];
+
+        // have we added this relocation already?
+        dest = binEdit->getDependentRelocationAddr(referring);
+
+        if (!dest) {
+            // inferiorMalloc addr location and initialize to zero
+            dest = binEdit->inferiorMalloc(8);
+            unsigned long dat = 0;
+            binEdit->writeDataSpace((void*)dest, 8, &dat);
+
+            // add write new relocation symbol/entry
+            binEdit->addDependentRelocation(dest, referring);
+        }
+
+        // load eax with address from jump table
+        //emitMovMToReg(REGNUM_RAX, dest, gen);                      // mov rax, *(addr)
+        
+        // mov r_x, dest
+        emitMovImmToReg64(ptr, dest, true, gen);
+        //emitMovImmToReg64(REGNUM_RBX, dest, true, gen);
+
+        // mov r_x, (r_x)
+        GET_PTR(insn, gen);
+        *insn++ = 0x48;
+        *insn++ = 0x8B;
+        *insn++ = static_cast<unsigned char>(ptr<<3 | ptr);
+        //*insn++ = static_cast<unsigned char>(REGNUM_RBX<<3 | REGNUM_RBX);
+        SET_PTR(insn, gen);
+
+    } else {
+        dest = callee->getAddress();
+
+        // load eax with function address
+        emitMovImmToReg64(ptr, dest, true, gen);                    // mov e_x, addr
+        //emitMovImmToReg64(REGNUM_RBX, dest, true, gen);                    // mov e_x, addr
+    }
+
+    // emit call
+    GET_PTR(insn, gen);
+    *insn++ = 0xFF;
+    *insn++ = static_cast<unsigned char>(0xD0 | ptr);
+    //*insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RBX);
+    SET_PTR(insn, gen);
+
+    gen.rs()->freeRegister(ptr);
+
     return true;
 }
 
