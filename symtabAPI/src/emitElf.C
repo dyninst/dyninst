@@ -39,6 +39,11 @@
 #include "emitElf.h"
 #include "Symtab.h"
 
+#if defined(os_solaris)
+#include <sys/link.h>
+#endif
+
+
 extern void pd_log_perror(const char *msg);
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -1409,11 +1414,15 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 
     if (obj->hasRel()) {
         obj->addRegion(0, rels, j*sizeof(Elf32_Rel), ".rel.dyn", Region::RT_REL, true);
+#if !defined(os_solaris)
         updateDynamic(DT_RELSZ, j*sizeof(Elf32_Rel));
+#endif
     }
     if (obj->hasRela()) {
         obj->addRegion(0, relas, k*sizeof(Elf32_Rela), ".rela.dyn", Region::RT_RELA, true);
+#if !defined(os_solaris)
         updateDynamic(DT_RELASZ, k*sizeof(Elf32_Rela));
+#endif
     }
 
     Elf32_Rel *relplts = (Elf32_Rel *)malloc(sizeof(Elf32_Rel) * (fbt.size()));
