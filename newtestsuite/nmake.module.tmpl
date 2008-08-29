@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.2 2008/06/20 19:15:50 carl Exp $
+# $Id: nmake.module.tmpl,v 1.3 2008/08/29 20:24:17 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -46,9 +46,11 @@ all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees DatabaseOutp
 UNCOMMON_INSTALL=true
 
 install: all
-	makeshift_die
-	-$(MKDIR) $(DEST)
-	for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
+
+# Old Install commands if we actually want to install
+# -$(MKDIR) $(DEST)
+# for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
+
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
 LIBS    = libdyninstAPI.lib
 

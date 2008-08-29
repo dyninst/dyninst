@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.22 2008/08/25 16:21:36 mlam Exp $
+// $Id: binaryEdit.C,v 1.23 2008/08/29 20:24:17 legendre Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -293,6 +293,12 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
     return true;
 }
 
+#if defined(os_windows)
+std::string* BinaryEdit::resolveLibraryName(const std::string &)
+{
+	return NULL;
+}
+#else
 std::string* BinaryEdit::resolveLibraryName(const std::string &filename)
 {
     char *libPathStr, *libPath;
@@ -372,6 +378,7 @@ std::string* BinaryEdit::resolveLibraryName(const std::string &filename)
 
     return fullPath;
 }
+#endif
 
 bool BinaryEdit::openAllDependencies()
 {
