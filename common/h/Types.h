@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.37 2008/08/29 20:24:17 legendre Exp $
+ * $Id: Types.h,v 1.38 2008/08/29 21:45:10 legendre Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -73,7 +73,7 @@ WindowsNT    nonexistant
 #if defined(os_windows)
    typedef __int64 int64_t;
    typedef __int32 int32_t;
-   typedef __int32 int16_t;
+   typedef __int16 int16_t;
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
    typedef unsigned __int16 uint16_t;
