@@ -23,7 +23,7 @@ TestOutputDriver *outputDriver_factory(void * data) { return new DatabaseOutputD
 }
 
 DatabaseOutputDriver::DatabaseOutputDriver(void * data)
-  : attributes(NULL), submittedResults(false), result(UNKNOWN)
+  : attributes(NULL), submittedResults(false), wroteLogHeader(false), result(UNKNOWN)
 {
 	sqlLogFilename = *((std::string *)data);
 
@@ -101,7 +101,14 @@ void DatabaseOutputDriver::vlog(TestOutputStream stream, const char *fmt,
   FILE *dbout = NULL;
 
   if (dblogFilename.empty()) {
+#if defined(os_windows)
+     char *tfile = _tempnam(".", "dts");
+     if (tfile) {
+        dbout = fopen(tfile, "w+b")
+     }
+#else
     dbout = tmpfile();
+#endif
     if (NULL == dbout) {
       fprintf(stderr, "[%s:%u] - Error opening temp log file\n", __FILE__, __LINE__);
     } else { // FIXME Check return values
