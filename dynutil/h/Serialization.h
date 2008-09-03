@@ -14,6 +14,8 @@
 //  to the next (hopefully top-level) exception handler.
 
 
+DLLEXPORT bool &serializer_debug_flag();
+
 #define SER_ERR(cmsg) \
    do { \
       if (serializer_debug_flag()) { \
