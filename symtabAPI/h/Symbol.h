@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.16 2008/08/25 16:21:37 mlam Exp $
+ * $Id: Symbol.h,v 1.17 2008/09/03 06:08:45 jaw Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -51,6 +51,7 @@
 #include "Type.h"
 
 #include "Annotatable.h"
+#include "Serialization.h"
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
@@ -70,18 +71,18 @@ class typeCommon;
 class localVarCollection;
 
 
+class SymtabTranslatorBase;
 /************************************************************************
  * class Symbol
 ************************************************************************/
 
-class Symbol : public Annotatable <std::string, symbol_file_name_a, false>,
+class Symbol : public Serializable,
+               public Annotatable <std::string, symbol_file_name_a, false>,
                public Annotatable <std::vector<std::string>, symbol_version_names_a, false>,
                public Annotatable <localVarCollection, symbol_variables_a, true>,
                public Annotatable <localVarCollection, symbol_parameters_a, true> {
     friend class typeCommon;
     friend class Symtab;
-    friend class SymtabTranslatorBase;
-    friend class SymtabTranslatorBin;
 
     friend std::string parseStabString(Module *, int linenum, char *, int, 
                               typeCommon *);
@@ -206,6 +207,7 @@ public:
     bool addLocalVar(localVar *);
     bool addParam(localVar *);
     
+
 private:
     Module*       module_;
     SymbolType    type_;
@@ -233,6 +235,7 @@ private:
     std::vector<std::string> verNames_;
 
 public:
+    DLLEXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
 #if 0
     localVarCollection *vars_;
     localVarCollection *params_;

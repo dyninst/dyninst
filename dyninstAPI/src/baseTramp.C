@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.67 2008/06/19 19:53:10 legendre Exp $
+// $Id: baseTramp.C,v 1.68 2008/09/03 06:08:44 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -123,7 +123,7 @@ baseTrampInstance::~baseTrampInstance() {
 void baseTramp::unregisterInstance(baseTrampInstance *inst) {
     for (unsigned i = 0; i < instances.size(); i++) {
         if (instances[i] == inst) {
-            instances.erase(i, i);
+            VECTOR_ERASE(instances,i, i);
             return;
         }
     }

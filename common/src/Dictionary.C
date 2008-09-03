@@ -41,6 +41,7 @@
 // them for template instantiation
 
 #include <limits.h> // UINT_MAX
+#include <assert.h>
 
 template<class K, class V>
 const unsigned dictionary_hash<K,V>::bin_grow_factor = 2;
@@ -230,8 +231,9 @@ dictionary_hash<K,V>::find(const K& key) {
     return end();
   }
   else {
-    TYPENAME dictionary_hash<K,V>::iterator dictIter(*this,
-                                                        all_elems.getIter(ndx));
+     TYPENAME dictionary_hash<K,V>::iterator dictIter(*this,
+           GET_ITER(all_elems,ndx));
+        
     return dictIter;
   }
 }
@@ -245,8 +247,13 @@ dictionary_hash<K,V>::find(const K& key)
     return end();
   }
   else {
+     TYPENAME dictionary_hash<K,V>::const_iterator dictIter(*this,
+           GET_ITER(all_elems,ndx));
+
+#if 0
     TYPENAME dictionary_hash<K,V>::const_iterator dictIter(*this, 
 						                                all_elems.getIter(ndx));
+#endif
     return dictIter;
   }
 }

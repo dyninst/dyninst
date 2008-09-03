@@ -1167,13 +1167,16 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
     }
 }
 
+pdvector<BPatch_type *> local_type_cache;
 // Parses the symbols associated with user-defined types.
 // Eg: Classes, structures, unions, and enumerations.
 template class pdvector<BPatch_type *>;
 BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 {
    static BPatch_module *mod_cache = NULL;
-   static pdvector<BPatch_type *> local_type_cache;
+#if 0
+ static pdvector<BPatch_type *> local_type_cache;
+#endif
 
    int endIndex;
    BPatch_type *result, *field;

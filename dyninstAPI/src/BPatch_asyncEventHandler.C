@@ -56,21 +56,8 @@
 #include <signal.h>
 #include <pwd.h>
 #include <sys/types.h>
-//#if defined (os_osf)
-//typedef unsigned long socklen_t;
-//#ifndef _XOPEN_SOURCE
-//#define _XOPEN_SOURCE 500
-//#else
-//#undef _XOPEN_SOURCE
-//#define _XOPEN_SOURCE 500
-//#endif
-//#ifndef _XOPEN_SOURCE_EXTENDED
-//#define _XOPEN_SOURCE_EXTENDED 1
-//#endif
-//#define _SOCKADDR_LEN
 #include <sys/types.h>
 #include <sys/socket.h>
-//#endif
 #endif
 
 #include "BPatch_eventLock.h"
@@ -94,8 +81,6 @@ BPatch_asyncEventHandler *getAsync()
   }
   return global_async_event_handler;
 }
-//extern MUTEX_TYPE global_mutex; // see BPatch_eventLock.h
-//extern bool mutex_created = false;
 
 void makeThreadDeleteCB(process *p, int index);
 
@@ -617,8 +602,15 @@ void threadExitWrapper(BPatch_process *p, BPatch_thread *t,
   threadDeleteWrapper(p,t);
 }
 
-bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int lwpid, dynthread_t tid, unsigned long stack_addr, unsigned long start_pc)
+bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int lwpid, 
+      dynthread_t tid, unsigned long stack_addr, unsigned long start_pc)
 {
+   bool thread_exists = (p->getThread(tid) != NULL);
+   if (thread_exists) {
+      //  used to do nothing here, now try a warning at least.
+      fprintf(stderr, "%s[%d]:  WARNING:  got a creation event for an already-existing thread\n", FILE__, __LINE__);
+   }
+
    //Create the new BPatch_thread object
    async_printf("%s[%d]:  before createOrUpdateBPThread: pid = %d, " \
          "start_pc = %p, addr = %p, tid = %lu, index = %d, " \
@@ -636,6 +628,169 @@ bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int 
       }
    }
    return (NULL != thr);
+}
+
+#if defined(x86_64_unknown_linux2_4)
+bool readDynamicCallInfo (PDSOCKET fd, Address &callsite_addr, Address &func_addr, unsigned  address_width)
+#else
+bool readDynamicCallInfo (PDSOCKET fd, Address &callsite_addr, Address &func_addr, unsigned  /*address_width*/)
+#endif
+{
+   BPatch_dynamicCallRecord call_rec;
+   readReturnValue_t retval ;
+   //is the mutatee 32 or 64 bit?
+#if defined(x86_64_unknown_linux2_4)
+   if ( address_width == 4 ){
+      BPatch_dynamicCallRecord32 call_rec_32;
+
+      retval = P_socketRead<BPatch_dynamicCallRecord32>(fd, call_rec_32);
+      call_rec.call_site_addr = (void*)call_rec_32.call_site_addr;
+      call_rec.call_target = (void*)call_rec_32.call_target;
+   } else
+      retval = P_socketRead<BPatch_dynamicCallRecord>(fd, call_rec);
+#else
+   retval = P_socketRead<BPatch_dynamicCallRecord>(fd, call_rec);
+#endif
+
+   if (retval != RRVsuccess) {
+      fprintf(stderr, "%s[%d]:  failed to read dynamic call record\n",
+            FILE__, __LINE__);
+      return false;
+   }
+
+   callsite_addr = (Address) call_rec.call_site_addr;
+   func_addr = (Address) call_rec.call_target;
+
+   return true;
+}
+
+bool handleDynamicCall(BPatch_process *appProc, process *llproc,
+      dictionary_hash<Address, BPatch_point *> &monitored_points,
+      Address callsite_addr, Address func_addr)
+{
+   //  find the point that triggered this event
+   if (!monitored_points.defines(callsite_addr)) {
+      fprintf(stderr, "%s[%d]:  could not find point for address %lu\n", 
+            FILE__, __LINE__, (unsigned long) callsite_addr);
+      return false;
+   }
+
+   BPatch_point *pt = monitored_points[callsite_addr];
+
+   //  found the record(s), now find the function that was called
+   int_function *f = llproc->findFuncByAddr(func_addr);
+   if (!f) {
+      fprintf(stderr, "%s[%d]:  failed to find BPatch_function\n",
+            FILE__, __LINE__);
+      return false;
+   }
+
+   //  find the BPatch_function...
+
+   BPatch_function *bpf = NULL;
+   if (NULL == (bpf = appProc->get_function(f))) {
+      fprintf(stderr, "%s[%d]:  failed to find BPatch_function\n",
+            FILE__, __LINE__);
+      return false;
+   }
+#if 0
+   if (!appProc->func_map->defines(f)) {
+      bperr("%s[%d]:  failed to find BPatch_function\n",
+            FILE__, __LINE__);
+      return false;
+   }
+
+   BPatch_function *bpf = appProc->func_map->get(f);
+
+   if (!bpf) {
+      bperr("%s[%d]:  failed to find BPatch_function\n",
+            FILE__, __LINE__);
+      return false;
+   }
+#endif
+
+   //  issue the callback(s) and we're done:
+
+   pdvector<CallbackBase *> cbs;
+   getCBManager()->dispenseCallbacksMatching(evtDynamicCall, cbs);
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+      DynamicCallsiteCallback &cb = * ((DynamicCallsiteCallback *) cbs[i]);
+      cb(pt, bpf);
+   }
+
+   return true;
+}
+
+#if defined(x86_64_unknown_linux2_4)
+bool readNewThreadEventInfo(PDSOCKET fd, unsigned long &start_pc, unsigned long &stack_addr, 
+      unsigned &index, int &lwpid, dynthread_t &tid, unsigned address_width) 
+#else
+bool readNewThreadEventInfo(PDSOCKET fd, unsigned long &start_pc, unsigned long &stack_addr, 
+      unsigned &index, int &lwpid, dynthread_t &tid, unsigned ) 
+#endif
+{
+   BPatch_newThreadEventRecord call_rec;
+   readReturnValue_t retval;
+
+#if defined(x86_64_unknown_linux2_4)
+   //is the mutatee 32 or 64 bit?
+   if ( address_width == 4){//32 bit
+      BPatch_newThreadEventRecord32 call_rec_32;
+      retval = P_socketRead<BPatch_newThreadEventRecord32>(fd, call_rec_32);
+
+      call_rec.ppid=call_rec_32.ppid;
+      call_rec.tid=(void*)call_rec_32.tid;
+      call_rec.lwp=call_rec_32.lwp;
+      call_rec.index=call_rec_32.index;
+      call_rec.stack_addr=(void*)call_rec_32.stack_addr;
+      call_rec.start_pc=(void*)call_rec_32.start_pc;
+   } else {
+      retval = P_socketRead<BPatch_newThreadEventRecord>(fd, call_rec);
+   }
+#else
+   retval = P_socketRead<BPatch_newThreadEventRecord>(fd, call_rec);
+#endif
+
+   if (retval != RRVsuccess) {
+      fprintf(stderr, "%s[%d]:  failed to read thread event call record\n",
+            FILE__, __LINE__);
+      return false;
+   }
+
+   start_pc = (unsigned long) call_rec.start_pc;
+   stack_addr = (unsigned long) call_rec.stack_addr;
+   index = (unsigned) call_rec.index;
+   lwpid = call_rec.lwp;
+   tid = (dynthread_t) call_rec.tid;
+   return true;
+}
+
+bool handleThreadExit(BPatch_process *appProc,  unsigned index)
+{
+   BPatch_thread *appThread = appProc->getThreadByIndex(index);
+   if (!appThread) {
+      fprintf(stderr, "%s[%d]:  thread index %d does not exist\n", FILE__, __LINE__, index);
+      return false;
+   }
+
+   //  this is a bit nasty:  since we need to ensure that the callbacks are 
+   //  called before the thread is deleted, we use a special callback function,
+   //  threadExitWrapper, specified above, which guarantees serialization.
+
+
+   pdvector<CallbackBase *> cbs;
+   pdvector<AsyncThreadEventCallback *> *cbs_copy = new pdvector<AsyncThreadEventCallback *>;
+   getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+      BPatch::bpatch->signalNotificationFD();
+      cbs_copy->push_back((AsyncThreadEventCallback *)cbs[i]); 
+   }
+
+   InternalThreadExitCallback *cb_ptr = new InternalThreadExitCallback(threadExitWrapper);
+   InternalThreadExitCallback &cb = *cb_ptr;
+   cb(appProc, appThread, cbs_copy); 
+   return true;
 }
 
 bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
@@ -721,9 +876,20 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                eventlock->_Unlock(FILE__, __LINE__);
             }
 
-            BPatch_newThreadEventRecord call_rec;
-            readReturnValue_t retval;
 
+            unsigned long start_pc = (unsigned long) -1;
+            unsigned long stack_addr = (unsigned long) -1;
+            unsigned index = (unsigned) -1;
+            int lwpid = -1;
+            dynthread_t tid;
+
+            if (!readNewThreadEventInfo(ev.fd, start_pc, stack_addr, index, lwpid, tid, appProc->getAddressWidth()) ) {
+               fprintf(stderr, "%s[%d]:  failed to read thread event call record\n",
+                     FILE__, __LINE__);
+               return false;
+            }
+
+#if 0
 #if defined(x86_64_unknown_linux2_4)
             //is the mutatee 32 or 64 bit?
             if ( appProc->getAddressWidth() == 4){//32 bit
@@ -743,24 +909,20 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             retval = P_socketRead<BPatch_newThreadEventRecord>(ev.fd, call_rec);
 #endif
 
-            async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
+#endif
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
 
+#if 0
             if (retval != RRVsuccess) {
                bperr("%s[%d]:  failed to read thread event call record\n",
                      FILE__, __LINE__);
                return false;
             }
+#endif
 
-            bool ret;
-            unsigned long start_pc = (unsigned long) call_rec.start_pc;
-            unsigned long stack_addr = (unsigned long) call_rec.stack_addr;
-            unsigned index = (unsigned) call_rec.index;
-            int lwpid = call_rec.lwp;
-            dynthread_t tid = (dynthread_t) call_rec.tid;
-            ret = handleThreadCreate(appProc, ev, index, lwpid, tid, stack_addr, start_pc);
+            bool ret = handleThreadCreate(appProc, ev, index, lwpid, tid, stack_addr, start_pc);
 
             async_printf("%s[%d]: signalling event...\n", FILE__, __LINE__);
             ev.proc->sh->signalEvent(evtThreadCreate);
@@ -771,6 +933,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          {
             BPatch_deleteThreadEventRecord rec;
             int lock_depth = eventlock->depth();
+
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Unlock(FILE__, __LINE__);
             }
@@ -781,17 +944,28 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 #endif
             readReturnValue_t retval = P_socketRead<BPatch_deleteThreadEventRecord>(ev.fd, rec);
             async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
+
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
 
             if (retval != RRVsuccess) {
-               bperr("%s[%d]:  failed to read thread event call record\n",
+               fprintf(stderr, "%s[%d]:  failed to read thread event call record\n",
                      FILE__, __LINE__);
                return false;
             }
 
             unsigned index = (unsigned) rec.index;
+
+            BPatch::bpatch->mutateeStatusChange = true;
+
+            if (!handleThreadExit(appProc, index)) {
+               fprintf(stderr, "%s[%d]:  failed to handleThreadExit \n",
+                     FILE__, __LINE__);
+               return false;
+            }
+
+#if 0
             BPatch_thread *appThread = appProc->getThreadByIndex(index);
 
             //  this is a bit nasty:  since we need to ensure that the callbacks are 
@@ -811,6 +985,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             InternalThreadExitCallback *cb_ptr = new InternalThreadExitCallback(threadExitWrapper);
             InternalThreadExitCallback &cb = *cb_ptr;
             cb(appProc, appThread, cbs_copy); 
+#endif
 
             ev.proc->sh->signalEvent(evtThreadExit);
             return true;
@@ -819,40 +994,49 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          {
             //  Read auxilliary packet with dyn call info
 
-            BPatch_dynamicCallRecord call_rec;
-            readReturnValue_t retval ;
+
+            Address callsite_addr = (Address) -1;
+            Address func_addr = (Address) -1;
 
             int lock_depth = eventlock->depth();
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Unlock(FILE__, __LINE__);
             }
 
-            //is the mutatee 32 or 64 bit?
-#if defined(x86_64_unknown_linux2_4)
-            if( appProc->getAddressWidth() == 4 ){
-               BPatch_dynamicCallRecord32 call_rec_32;
+            if (!readDynamicCallInfo(ev.fd, callsite_addr, func_addr, appProc->getAddressWidth())) {
+               fprintf(stderr, "%s[%d]:  failed to read dynamic call record\n",
+                     FILE__, __LINE__);
+               return false;
+            }
 
 #if 0
-               retval = readEvent(ev.fd/*fd*/, 
-                     (void *) &call_rec_32, 
-                     sizeof(BPatch_dynamicCallRecord32));
-#endif
+            //is the mutatee 32 or 64 bit?
+#if defined(x86_64_unknown_linux2_4)
+            if ( appProc->getAddressWidth() == 4 ){
+               BPatch_dynamicCallRecord32 call_rec_32;
+
                retval = P_socketRead<BPatch_dynamicCallRecord32>(ev.fd, call_rec_32);
+<<<<<<< BPatch_asyncEventHandler.C
+               call_rec.call_site_addr = (void*)call_rec_32.call_site_addr;
+               call_rec.call_target = (void*)call_rec_32.call_target;
+            } else
+               retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
+#else
+            retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
+=======
                call_rec.call_site_addr = (void*)(long)call_rec_32.call_site_addr;
                call_rec.call_target = (void*)(long)call_rec_32.call_target;
             }else
+>>>>>>> 1.54
 #endif
-#if 0
-               retval = readEvent(ev.fd/*fd*/, 
-                     (void *) &call_rec, 
-                     sizeof(BPatch_dynamicCallRecord));
-#endif
-            retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
+
             async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
+#endif
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
 
+#if 0
             if (retval != RRVsuccess) {
                bperr("%s[%d]:  failed to read dynamic call record\n",
                      FILE__, __LINE__);
@@ -860,15 +1044,24 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             }
 
             Address func_addr = (Address) call_rec.call_target;
+#endif
 
-            //  find the point that triggered this event
-            if (!monitored_points.defines((Address)call_rec.call_site_addr)) {
-               fprintf(stderr, "%s[%d]:  could not find point for address %lu\n", 
-                     FILE__, __LINE__, (unsigned long) call_rec.call_site_addr);
+            if (!handleDynamicCall(appProc, appProc->llproc, monitored_points, 
+                     callsite_addr, func_addr)) {
+               fprintf(stderr, "%s[%d]:  failed to handleDynamicCall for address %lu\n", 
+                     FILE__, __LINE__, (unsigned long) callsite_addr);
                return false;
             }
 
-            BPatch_point *pt = monitored_points[(Address)call_rec.call_site_addr];
+#if 0
+            //  find the point that triggered this event
+            if (!monitored_points.defines(callsite_addr)) {
+               fprintf(stderr, "%s[%d]:  could not find point for address %lu\n", 
+                     FILE__, __LINE__, (unsigned long) callsite_addr);
+               return false;
+            }
+
+            BPatch_point *pt = monitored_points[callsite_addr];
 
             //  found the record(s), now find the function that was called
             int_function *f = appProc->llproc->findFuncByAddr(func_addr);
@@ -902,6 +1095,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                DynamicCallsiteCallback &cb = * ((DynamicCallsiteCallback *) cbs[i]);
                cb(pt, bpf);
             }
+#endif
 
             return true;
          }

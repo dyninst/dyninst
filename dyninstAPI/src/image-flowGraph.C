@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.52 2008/08/01 17:55:11 roundy Exp $
+ * $Id: image-flowGraph.C,v 1.53 2008/09/03 06:08:44 jaw Exp $
  */
 
 #include <stdio.h>
@@ -70,14 +70,30 @@
 
 using namespace Dyninst;
 
+#if defined (cap_use_pdvector)
 int addrfunccmp( image_func*& pdf1, image_func*& pdf2 )
 {
-    if( pdf1->getOffset() > pdf2->getOffset() )
+    if ( pdf1->getOffset() > pdf2->getOffset() )
         return 1;
-    if( pdf1->getOffset() < pdf2->getOffset() )
+    if ( pdf1->getOffset() < pdf2->getOffset() )
         return -1;
     return 0;
 }
+#else
+//stl needs strict weak ordering (true if arg 1 is strictly less than 2)
+bool addrfunccmp( image_func* pdf1, image_func* pdf2 )
+{
+   if ( pdf1->getOffset() < pdf2->getOffset() )
+      return true;
+   return false;
+#if 0
+           if ( pdf1->getOffset() < pdf2->getOffset() )
+                      return false;
+               return false;
+#endif
+}
+#endif
+
 
 //analyzeImage() constructs a flow graph of basic blocks in the image and
 //assigns them to functions. It follows calls to discover new functions,
@@ -1733,8 +1749,13 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
             }
         }
     }
+#if defined (cap_use_pdvector)
     WL.zap();
     targets.zap();
+#else
+    WL.clear();
+    targets.clear();
+#endif
 }
 
 /* A specialized version for parsing shared blocks when we don't care

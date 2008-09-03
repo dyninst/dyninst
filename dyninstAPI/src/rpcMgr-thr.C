@@ -251,7 +251,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone)
                 pendingRPC_->runProcWhenDone = runProcWhenDone;
                 // Delete that iRPC (clunky)
                 pdvector<inferiorRPCtoDo *> newRPCs;
-                postedRPCs_.erase(0,0);
+                VECTOR_ERASE(postedRPCs_,0,0);
                 mgr_->addPendingRPC(pendingRPC_);
             }
             if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)

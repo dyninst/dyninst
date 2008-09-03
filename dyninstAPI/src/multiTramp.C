@@ -197,10 +197,30 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
             doWeDelete = true;
         }
         
+#if 0
+#if defined (cap_use_pdvector)
         unsigned exists_at;
         if(! find(deletedObjs, subObject, exists_at)) {
            deletedObjs.push_back(bti);
         }
+#else
+        if (deletedObjs.end() == std::find(deletedObjs.begin(), 
+                 deletedObjs.end(), subObject)) 
+        {
+           deletedObjs.push_back(bti);
+        }
+
+#endif
+#endif
+        int found_index = -1;
+        for (unsigned int i = 0; i <deletedObjs.size(); ++i) {
+           if (subObject == deletedObjs[i]) {
+              found_index = i;
+              break;
+           }
+        }
+        if (-1 == found_index) 
+           deletedObjs.push_back(bti);
     }
     
     if (doWeDelete) {
@@ -227,10 +247,30 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         generatedCodeObject *obj = NULL;
 
         while ((obj = cfgIter++)) {
+#if 0
            unsigned exists_at;
+#if defined (cap_use_pdvector)
            if(! find(deletedObjs, obj, exists_at)) {
               deletedObjs.push_back(obj);
-	      obj->removeCode(this);
+              obj->removeCode(this);
+           }
+#else
+           if (deletedObjs.end() == std::find(deletedObjs.begin(), deletedObjs.end(), obj)) {
+              deletedObjs.push_back(obj);
+              obj->removeCode(this);
+           }
+#endif
+#endif
+           int found_index = -1;
+           for (unsigned int i = 0; i <deletedObjs.size(); ++i) {
+              if (obj == deletedObjs[i]) {
+                 found_index = i;
+                 break;
+              }
+           }
+           if (-1 == found_index)  {
+              deletedObjs.push_back(obj);
+              obj->removeCode(this);
            }
         }
         generatedCFG_.setStart(NULL);
@@ -240,13 +280,13 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
     return;
 }
 
-bool multiTramp::safeToFree(codeRange *range) {
-    if (dynamic_cast<multiTramp *>(range) == this)
-        return false;
+   bool multiTramp::safeToFree(codeRange *range) {
+      if (dynamic_cast<multiTramp *>(range) == this)
+         return false;
 
-    generatedCFG_t::iterator cfgIter(generatedCFG_);
-    generatedCodeObject *obj = NULL;
-    
+      generatedCFG_t::iterator cfgIter(generatedCFG_);
+      generatedCodeObject *obj = NULL;
+
     while ((obj = cfgIter++)) {
         if (!obj->safeToFree(range))
             return false;
@@ -1781,10 +1821,27 @@ generatedCodeObject *generatedCFG_t::copy_int(generatedCodeObject *obj,
     generatedCodeObject *newObj = obj->replaceCode(newMulti);
 
     if (newObj != obj) {
+#if 0
         unsigned exists_at;
-        if(! find(unused, obj, exists_at)) {
+#if defined (cap_use_pdvector)
+        if (! find(unused, obj, exists_at)) {
            unused.push_back(obj);
         }
+#else
+        if (unused.end() == std::find(unused.begin(), unused.end(), obj)) {
+           unused.push_back(obj);
+        }
+#endif
+#endif
+        int found_index = -1;
+        for (unsigned int i = 0; i <unused.size(); ++i) {
+           if (obj == unused[i]) {
+              found_index = i;
+              break;
+           }
+        }
+        if (-1 == found_index) 
+           unused.push_back(obj);
     }
 
     newObj->setPrevious(par);

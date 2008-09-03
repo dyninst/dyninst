@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef __SERIALIZE__H__
-#define __SERIALIZE__H__
+#ifndef __ST_SERIALIZE__H__
+#define __ST_SERIALIZE__H__
 
 #if defined(os_windows)
 #include <libxml/xmlversion.h>
@@ -43,6 +43,7 @@
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/LineInformation.h"
 #include "symtabAPI/h/RangeLookup.h"
+#include "symtabAPI/src/Collections.h"
 
 namespace Dyninst {
 namespace SymtabAPI {
@@ -54,7 +55,7 @@ bool serialize(Symtab &, SymtabTranslatorBase &);
 class ExceptionBlock;
 class relocationEntry;
 
-class SymtabTranslatorBase {
+class SymtabTranslatorBase : public SerializerBase {
    public:
       virtual void vector_start(unsigned int &size, const char *tag = NULL) {
          getSD().vector_start(size, tag);
@@ -64,6 +65,22 @@ class SymtabTranslatorBase {
          getSD().vector_end();
       }
 
+      virtual void hash_map_start(unsigned int &size, const char *tag = NULL) {
+         getSD().hash_map_start(size, tag);
+      }
+
+      virtual void hash_map_end() {
+         getSD().hash_map_end();
+      }
+
+      virtual void translate_base(int &v, const char *t){
+         getSD().translate(v, t);
+      }
+
+      virtual void translate_base(std::string &v, const char *t){
+         getSD().translate(v, t);
+      }
+
       iomode_t iomode() {return getSD().iomode();}
 
       virtual void annotation_start(const char * /*string_id*/, const char * /*tag*/ = NULL) {}
@@ -71,15 +88,17 @@ class SymtabTranslatorBase {
    protected:
       Symtab *parent_symtab;
 
+#if 0
       virtual SerDes &getSD() = 0;
+#endif
    private:
 
       virtual void symbol_start(Symbol &, const char * = NULL) {}
       virtual void symbol_end(Symbol &, const char * = NULL) {}
       virtual void symtab_start(Symtab &, const char * = NULL) {}
       virtual void symtab_end(Symtab &, const char * = NULL) {}
-      //virtual void region_end(Section &, const char * = NULL) {}
-      //virtual void region_start(Section &, const char * = NULL) {}
+      virtual void region_end(Region &, const char * = NULL) {}
+      virtual void region_start(Region &, const char * = NULL) {}
       virtual void module_start(Module &, const char * = NULL) {}
       virtual void module_end(Module &, const char * = NULL) {}
       virtual void exception_start(ExceptionBlock &, const char * = NULL) {}
@@ -90,14 +109,20 @@ class SymtabTranslatorBase {
       virtual void line_information_end(LineInformation &, const char * = NULL) {}
       virtual void type_collection_start(typeCollection &, const char * = NULL) {}
       virtual void type_collection_end(typeCollection &, const char * = NULL) {}
+      virtual void local_var_collection_start(localVarCollection &, const char * = NULL) {}
+      virtual void local_var_collection_end(localVarCollection &, const char * = NULL) {}
 
    public:
-      SymtabTranslatorBase(Symtab *parent_symtab_) :
+      SymtabTranslatorBase(Symtab *parent_symtab_, std::string fname, iomode_t dir, bool verbose = false) :
+         SerializerBase("SymtabTranslator", fname, dir, verbose),
          parent_symtab(parent_symtab_)
       {}
-         SymtabTranslatorBase(Symtab *parent_symtab_, bool /*doingInputFlag*/) :
+#if 0
+         SymtabTranslatorBase(Symtab *parent_symtab_, ) :
+         SerializerBase("SymtabTranslator"),
          parent_symtab(parent_symtab_)
       {}
+#endif
       virtual ~SymtabTranslatorBase() {}
 
       virtual bool translate_annotation(void * /*anno*/, const char * /*name*/) 
@@ -114,6 +139,33 @@ class SymtabTranslatorBase {
       virtual void translate(Symbol::SymbolTag &param, const char *tag = NULL) = 0;
       virtual void translate(supportedLanguages & param, const char *tag = NULL) = 0;
 
+      virtual void translate_base(std::vector<std::string> &param, const char * tag= NULL) {
+         try {
+            //type_start(param);
+            //type_end(param);
+            getSD().translate(param, tag);
+         } SER_CATCH("vector<string>")
+      }
+      virtual void translate_base(Type &param, const char * = NULL) {
+         try {
+            //type_start(param);
+            //type_end(param);
+         } SER_CATCH("Type")
+      }
+      virtual void translate_base(Type *param, const char * tag= NULL) {
+         assert(param);
+         try {
+            translate_base(*param, tag);
+         } SER_CATCH("Type")
+      }
+
+      virtual void translate_base(localVar &param, const char * = NULL) {
+         try {
+            //type_start(param);
+            //type_end(param);
+         } SER_CATCH("localVar")
+      }
+
       virtual void translate_base(LineInformation &param, const char * = NULL) {
          try {
             line_information_start(param);
@@ -127,8 +179,22 @@ class SymtabTranslatorBase {
       virtual void translate_base(typeCollection &param, const char * = NULL) {
          try {
             type_collection_start(param);
+            fprintf(stderr, "%s[%d]:  WARNING:  gutted type collection serialization\n", FILE__, __LINE__);
+#if 0
+            translate_hash_map<SymtabTranslatorBase, int, Type>(this, param.typesByID, "typesByID");
+            translate_hash_map<SymtabTranslatorBase, std::string, Type>(this, param.globalVarsByName, "globalVarsByName");
+            getSD().translate(param.dwarfParsed_, "dwarfParsed");
+#endif
             type_collection_end(param);
          } SER_CATCH("typeCollection")
+      }
+
+      virtual void translate_base(localVarCollection &param, const char * = NULL) {
+         try {
+          //  local_var_collection_start(param);
+         //   translate_vector<SymtabTranslatorBase, localVar>(this, param.localVars, "localVars");
+           // local_var_collection_end(param);
+         } SER_CATCH("localVarCollection")
       }
 
       virtual void translate_base(Symbol &param, const char * = NULL) {
@@ -136,6 +202,7 @@ class SymtabTranslatorBase {
             symbol_start(param);
             translate(param.type_, "type");
             translate(param.linkage_, "linkage");
+            translate(param.tag_, "tag");
             getSD().translate(param.addr_, "addr");
             getSD().translate(param.size_, "size");
             getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
@@ -143,9 +210,6 @@ class SymtabTranslatorBase {
             getSD().translate(param.prettyNames, "prettyNames", "prettyName");
             getSD().translate(param.mangledNames, "mangledNames", "mangledName");
             getSD().translate(param.typedNames, "typedNames", "typedName");
-#if 0 // FIXME
-            translate(param.tag_, "tag");
-#endif
             getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
             //  Note:  have to deal with retType_ here?? Probably use type id.
             getSD().translate(param.moduleName_, "moduleName");
@@ -180,8 +244,10 @@ class SymtabTranslatorBase {
             getSD().translate(param.dataLen_, "dataLen");
             getSD().translate(param.is_a_out, "isExec");
 
+            fprintf(stderr, "%s[%d]:  %sserializing %d modules\n", FILE__, __LINE__, getSD().iomode() == sd_serialize ? "" : "de", param._mods.size());
             translate_vector<SymtabTranslatorBase, Module>(this, param._mods, 
                   "Modules");
+            fprintf(stderr, "%s[%d]:  %sserialized %d modules\n", FILE__, __LINE__, getSD().iomode() == sd_serialize ? "" : "de", param._mods.size());
             //translate_vector<SymtabTranslatorBase, Section>(this, param.sections_, 
              //     "Sections");
             translate_vector<SymtabTranslatorBase, Symbol>(this, param.everyUniqueFunction, 
@@ -199,11 +265,11 @@ class SymtabTranslatorBase {
          } SER_CATCH("Symtab")
       }
 
-      //  Migrate Section to "Region", I think
-#if 0
-      virtual void translate_base(Section &param, const char * = NULL) {
+      virtual void translate_base(Region &param, const char * = NULL) {
          try {
-            section_start(param);
+            region_start(param);
+            fprintf(stderr, "%s[%D]:  IMPLEMENT ME\n", FILE__, __LINE__);
+#if 0
             getSD().translate(param.sidnumber_, "id");
             getSD().translate(param.sname_, "name");
             getSD().translate(param.saddr_, "addr");
@@ -213,10 +279,10 @@ class SymtabTranslatorBase {
             getSD().translate(param.rawDataOffset_, "offset");
 #endif
             getSD().translate(param.sflags_, "flags");
-            section_end(param);
+#endif
+            region_end(param);
          } SER_CATCH("Section")
       }
-#endif
 
       virtual void translate_base(Module &param, const char * = NULL) {
          try {
@@ -256,10 +322,25 @@ class SymtabTranslatorBase {
 };
 
 class SymtabTranslatorXML : public SymtabTranslatorBase {
-   SerDesXML sd;
+   //SerFile sf;
    xmlTextWriterPtr writer;
    public:
-   SerDes &getSD() {return sd;}
+#if 0
+   SerDesXML &getSD() {
+      SerDes *sd = getSF().getSD();
+      if (!sd) assert(0);
+      SerDesXML *sdx = dynamic_cast<SerDesXML *> (sd);
+      if (!sdx) assert(0);
+      return *sdx;
+   }
+#endif
+   SerDesXML &getSDXML() {
+      SerDes *sd = getSF().getSD();
+      SerDesXML *sdx = dynamic_cast<SerDesXML *> (sd);
+      if (!sdx) assert(0);
+      return *sdx;
+   }
+
    SymtabTranslatorXML(Symtab *st, string file);
    virtual ~SymtabTranslatorXML() {}
 
@@ -275,8 +356,8 @@ class SymtabTranslatorXML : public SymtabTranslatorBase {
    virtual void module_start(Module &, const char * = NULL);
    virtual void module_end(Module &, const char * = NULL);
 #if 0
-   virtual void section_start(Section &, const char * = NULL);
-   virtual void section_end(Section &, const char * = NULL);
+   virtual void region_start(Section &, const char * = NULL);
+   virtual void region_end(Section &, const char * = NULL);
 #endif
    virtual void line_information_start(LineInformation &, const char * = NULL);
    virtual void line_information_end(LineInformation &, const char * = NULL);
@@ -290,18 +371,26 @@ class SymtabTranslatorXML : public SymtabTranslatorBase {
 };
 
 class SymtabTranslatorBin : public SymtabTranslatorBase {
-   SerDesBin sd;
+   //SerFile sf;
 
    //  catch-all for modules without a home
    //  (they should all have offset=NULL
    Module *default_module;
 
-   public:
-   SerDes &getSD() {return sd;}
    SymtabTranslatorBin(Symtab *st, string file, bool verbose = false); 
    SymtabTranslatorBin(Symtab *st, string file, iomode_t iomode, bool verbose = false); 
+
+   public:
+#if 0
+   SerDes &getSD() {
+      SerDes *sd = getSF().getSD();
+      if (!sd) assert(0);
+      return *sd;
+   }
+#endif
    virtual ~SymtabTranslatorBin();
 
+   static SymtabTranslatorBin *getTranslator(Symtab *st, string file, iomode_t iomode = sd_serialize, bool verbose = false);
    private:
    virtual void translate(Symbol::SymbolType &param, const char *tag = NULL); 
    virtual void translate(Symbol::SymbolLinkage &param, const char *tag = NULL); 

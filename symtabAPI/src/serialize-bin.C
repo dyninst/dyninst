@@ -34,23 +34,139 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+//template <class Dyninst::SymtabAPI::LineInformation *, module_line_info_a, SymtabTranslatorBase>
+//DLLEXPORT bool init_anno_serialization(void);
+//DLLEXPORT bool init_anno_serialization<Dyninst::SymtabAPI::LineInformation *, module_line_info_a, Dyninst::SymtabAPI::SymtabTranslatorBase>();
+
+bool dummy_for_ser_instance(std::string file, SerializerBase *sb) 
+{
+   if (file == std::string("no_such_file")) {
+      SymtabTranslatorBase *stb = dynamic_cast<SymtabTranslatorBase *>(sb);
+      if (!stb) {
+         fprintf(stderr, "%s[%d]:  really should not happen\n", FILE__, __LINE__);
+         return false;
+      }
+      bool r = false;
+      r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_parameters_a, SymtabTranslatorBase>(stb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for symbol_params\n", FILE__, __LINE__);}
+      r = false;
+      r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_variables_a, SymtabTranslatorBase>(stb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for symbol_vars\n", FILE__, __LINE__);}
+      r = false;
+      r = init_anno_serialization<Dyninst::SymtabAPI::LineInformation *, module_line_info_a, Dyninst::SymtabAPI::SymtabTranslatorBase>(stb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_line_info\n", FILE__, __LINE__);}
+      r = false;
+      r = init_anno_serialization<Dyninst::SymtabAPI::typeCollection *, module_type_info_a, Dyninst::SymtabAPI::SymtabTranslatorBase>(stb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_type_info\n", FILE__, __LINE__);}
+      r = false;
+   }
+   return true;
+}
+
+bool init_annotation_types(SerializerBase *sb) 
+{
+   assert(sb);
+   fprintf(stderr, "%s[%d]:  welcome to init_annotation_types...  serializer = %p\n", FILE__, __LINE__, sb);
+   bool ret = true;
+   int anno_id = -1;
+   std::string anno_name;
+
+   anno_name = typeid(user_funcs_a).name();
+   if (-1 == (anno_id = AnnotatableBase::createAnnotationType(anno_name, NULL, sb))) {
+      fprintf(stderr, "%s[%d]:  Failed to init annotation type %s\n", FILE__, __LINE__, 
+            anno_name.c_str());
+      ret = false;
+   }
+   anno_name = typeid(user_symbols_a).name();
+   if (-1 == (anno_id = AnnotatableBase::createAnnotationType(anno_name, NULL, sb))) {
+      fprintf(stderr, "%s[%d]:  Failed to init annotation type %s\n", FILE__, __LINE__, 
+            anno_name.c_str());
+      ret = false;
+   }
+   anno_name = typeid(module_type_info_a).name();
+   if (-1 == (anno_id = AnnotatableBase::createAnnotationType(anno_name, NULL, sb))) {
+      fprintf(stderr, "%s[%d]:  Failed to init annotation type %s\n", FILE__, __LINE__, 
+            anno_name.c_str());
+      ret = false;
+   }
+   anno_name = typeid(module_line_info_a).name();
+   if (-1 == (anno_id = AnnotatableBase::createAnnotationType(anno_name, NULL, sb))) {
+      fprintf(stderr, "%s[%d]:  Failed to init annotation type %s\n", FILE__, __LINE__, 
+            anno_name.c_str());
+      ret = false;
+   }
+   anno_name = typeid(symbol_variables_a).name();
+   if (-1 == (anno_id = AnnotatableBase::createAnnotationType(anno_name, NULL, sb))) {
+      fprintf(stderr, "%s[%d]:  Failed to init annotation type %s\n", FILE__, __LINE__, 
+            anno_name.c_str());
+      ret = false;
+   }
+   anno_name = typeid(symbol_parameters_a).name();
+   if (-1 == (anno_id = AnnotatableBase::createAnnotationType(anno_name, NULL, sb))) {
+      fprintf(stderr, "%s[%d]:  Failed to init annotation type %s\n", FILE__, __LINE__, 
+            anno_name.c_str());
+      ret = false;
+   }
+   return ret;
+}
+
 SymtabTranslatorBin::SymtabTranslatorBin(Symtab *st, string file, bool verbose) :
-       SymtabTranslatorBase(st),
-       sd(file, sd_serialize, verbose),
+       SymtabTranslatorBase(st, file, sd_serialize, verbose),
+#if 0
+       sf(file, sd_serialize, verbose),
+#endif
        default_module(NULL)
 {
+   fprintf(stderr, "%s[%d]:  welcome to SymtabTranslatorBin ctor: serializer = %p\n", 
+         FILE__, __LINE__, getSF().getSD());
+   init_annotation_types(this);
+   dummy_for_ser_instance(file, this);
 }
 
 SymtabTranslatorBin::SymtabTranslatorBin(Symtab *st, string file, iomode_t iomode,
       bool verbose) :
-       SymtabTranslatorBase(st),
-       sd(file, iomode, verbose),
+       SymtabTranslatorBase(st, file, iomode, verbose),
+#if 0
+       sf(file, iomode, verbose),
+#endif
        default_module(NULL)
 {
+   fprintf(stderr, "%s[%d]:  welcome to SymtabTranslatorBin ctor: serializer %p\n", 
+         FILE__, __LINE__, getSF().getSD());
+   init_annotation_types(this);
+   dummy_for_ser_instance(file, this);
 }
 
 SymtabTranslatorBin::~SymtabTranslatorBin()
 {
+}
+
+SymtabTranslatorBin *SymtabTranslatorBin::getTranslator(Symtab *st, std::string file, iomode_t iomode, bool verbose)
+{
+   SerializerBase *sb = SerializerBase::getSerializer(std::string("SymtabTranslatorBin"), file);
+   if (!sb) {
+      SymtabTranslatorBin *stb = new SymtabTranslatorBin(st, file, iomode, verbose);
+      bool ok = SerializerBase::addSerializer(std::string("SymtabTranslatorBin"), file, stb);
+      if (!ok) {
+         fprintf(stderr, "%s[%d]:  failed to add new serializer\n", FILE__, __LINE__);
+         delete stb;
+         return NULL;
+      }
+      return stb;
+   }
+   else {
+      //  sanity checks necessary?
+      SymtabTranslatorBin *stb = dynamic_cast<SymtabTranslatorBin *>(sb);
+      if (!stb) {
+         fprintf(stderr, "%s[%d]:  invalid serializer pointer\n", FILE__, __LINE__);
+         return NULL;
+      }
+      if (stb->iomode() != iomode) {
+         fprintf(stderr, "%s[%d]:  invalid serializer iomode\n", FILE__, __LINE__);
+      }
+      return stb;
+   }
+   return NULL;
 }
 
 void SymtabTranslatorBin::translate(Symbol::SymbolType &param, const char *tag) 
@@ -58,10 +174,10 @@ void SymtabTranslatorBin::translate(Symbol::SymbolType &param, const char *tag)
   size_t sz = sizeof(Symbol::SymbolType);
   if (sz == sizeof(int)) {
       int &conv = (int &) param;
-      sd.translate(conv,tag); 
+      getSD().translate(conv,tag); 
   } else if (sz == sizeof(char)) {
       char &conv = (char &) param;
-      sd.translate(conv,tag); 
+      getSD().translate(conv,tag); 
   }
   else {
     assert(0 && "bad size for enum!!");
@@ -74,10 +190,10 @@ void SymtabTranslatorBin::translate(Symbol::SymbolLinkage &param, const char *ta
   size_t sz = sizeof(Symbol::SymbolType);
   if (sz == sizeof(int)) {
       int &conv = (int &) param;
-      sd.translate(conv,tag); 
+      getSD().translate(conv,tag); 
   } else if (sz == sizeof(char)) {
       char &conv = (char &) param;
-      sd.translate(conv,tag); 
+      getSD().translate(conv,tag); 
   }
   else {
     assert(0 && "bad size for enum!!");
@@ -90,10 +206,10 @@ void SymtabTranslatorBin::translate(Symbol::SymbolTag &param, const char * tag)
   size_t sz = sizeof(Symbol::SymbolType);
   if (sz == sizeof(int)) {
       int &conv = (int &) param;
-      sd.translate(conv, tag); 
+      getSD().translate(conv, tag); 
   } else if (sz == sizeof(char)) {
       char & conv = (char &) param;
-      sd.translate(conv,tag); 
+      getSD().translate(conv,tag); 
   }
   else {
     assert(0 && "bad size for enum!!");
@@ -105,10 +221,10 @@ void SymtabTranslatorBin::translate(supportedLanguages &param, const char *tag)
 {
   if (sizeof(supportedLanguages) == sizeof(int)) {
       int &conv = (int &) param;
-      sd.translate(conv, tag); 
+      getSD().translate(conv, tag); 
   } else if (sizeof(supportedLanguages) == sizeof(char)) {
       char &conv = (char &) param;
-      sd.translate(conv,tag); 
+      getSD().translate(conv,tag); 
   }
   else {
     assert(sizeof(supportedLanguages) == sizeof(char));
@@ -125,9 +241,9 @@ void SymtabTranslatorBin::symtab_start(Symtab &param, const char *)
 //  sd.translate(param.codeValidEnd_);
 //  sd.translate(param.dataValidStart_);
 //  sd.translate(param.dataValidEnd_);
-  sd.translate(param.main_call_addr_);
-  sd.translate(param.nativeCompiler);
-  sd.translate(param.no_of_symbols);
+  getSD().translate(param.main_call_addr_);
+  getSD().translate(param.nativeCompiler);
+  getSD().translate(param.no_of_symbols);
 } 
 
 void SymtabTranslatorBin::symtab_end(Symtab &param, const char *) 
@@ -136,7 +252,7 @@ void SymtabTranslatorBin::symtab_end(Symtab &param, const char *)
   //  read extra data, rebuild indexes and hashes.
 
   translate_notype_syms(param);
-  if (sd.iomode() == sd_deserialize) {
+  if (getSD().iomode() == sd_deserialize) {
      rebuild_section_hash(param);
      fprintf(stderr, "%s[%d]:  rebuilding symbol indexes for %s\n", FILE__, __LINE__, param.file().c_str());
      rebuild_symbol_indexes(param);
@@ -151,22 +267,20 @@ void SymtabTranslatorBin::translate_notype_syms(Symtab &param)
 void SymtabTranslatorBin::symbol_end(Symbol &param, const char *)
 {
    Module *mod = param.module_;
-   //Section *sec = param.sec_;
+   Region *sec = param.sec_;
    Offset mod_off = 0;
-#if 0
-   unsigned sec_num = 0;
+   Offset region_entry = 0;
+
    if (sec)
-      sec_num = sec->getSecNumber();
-#endif
+      region_entry = sec->getRegionAddr();
+
    if (mod)
       mod_off = mod->addr();
 
-#if 0
-   sd.translate(sec_num);
-#endif
-   sd.translate(mod_off);
+   getSD().translate(region_entry);
+   getSD().translate(mod_off);
 
-   if (sd.iomode() == sd_deserialize) {
+   if (getSD().iomode() == sd_deserialize) {
 #if 0
       if (!default_module) {
          default_module = parent_symtab->newModule(std::string("DEFAULT_MODULE"), 0, lang_Unknown);
@@ -184,17 +298,17 @@ void SymtabTranslatorBin::symbol_end(Symbol &param, const char *)
          else
             param.module_ = default_module;
       }
-#if 0
-      if (sec_num) {
+      if (region_entry) {
          //  findSectionByIndex just iterates thru the vector of sections,
          //  this is actually a good thing, since we haven't rebuilt the
          //  section<->offset map yet
-         param.sec_ = parent_symtab->findSectionByIndex(sec_num);
+         if (!parent_symtab->findRegionByEntry(param.sec_, region_entry)) {
+            fprintf(stderr, "%s[%d]:  WARNING:  cannot find region with offset %p\n", FILE__, __LINE__, (void *)region_entry);
+         }
       } else {
-         fprintf(stderr, "%s[%d]:  WARNING:  no section offset for section %d\n", FILE__, __LINE__, sec_num);
+         fprintf(stderr, "%s[%d]:  WARNING:  no section offset for section %p\n", FILE__, __LINE__, (void *) region_entry);
          param.sec_ = NULL;
       }
-#endif
    }
 }
 
@@ -229,7 +343,7 @@ void SymtabTranslatorBin::rebuild_symbol_indexes(Symtab &param)
     }
 
     fprintf(stderr, "%s[%d]:  %s %d symbols for address 0x8050c78\n", 
-            FILE__, __LINE__, (sd.iomode() == sd_serialize) ? "saved" : "restored", counter);
+            FILE__, __LINE__, (getSD().iomode() == sd_serialize) ? "saved" : "restored", counter);
 
     
     for (unsigned int i = 0; i < unique_funcs.size(); ++i) {
@@ -382,4 +496,12 @@ void SymtabTranslatorBin::rebuild_section_hash(Symtab &/*param*/)
    param.no_of_sections = sections_.size();
 #endif
    fprintf(stderr, "%s[%d]:  WARNING:  rebuild section hash needs to be updated\n", FILE__, __LINE__);
+}
+
+void bogus_func()
+{
+   assert(0);
+   //SerDes *sd_bin = NULL;
+   //localVarCollection *lvC;
+   //sd_translate(lvC, sd_bin);
 }

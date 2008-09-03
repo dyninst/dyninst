@@ -171,6 +171,7 @@ int main(int argc, char *argv[])
 #if defined(os_osf)
    return 0;
 #endif
+   fprintf(stderr, "%s[%d]:  welcome to test15.mutatee\n", __FILE__, __LINE__);
 
    thr_exits = 0;
 

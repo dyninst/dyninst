@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.124 2008/06/20 21:44:46 bill Exp $
+// $Id: sol_proc.C,v 1.125 2008/09/03 06:08:45 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1509,7 +1509,10 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
       //trappedSyscall->syscall_id, trappedSyscall->orig_setting);
 #endif
       // Insert into the list of trapped syscalls
+#if 0
       syscallTraps_ += (trappedSyscall);
+#endif
+      syscallTraps_.push_back(trappedSyscall);
 
       return trappedSyscall;
    }

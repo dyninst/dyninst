@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.57 2008/06/19 19:53:18 legendre Exp $
+// $Id: image-func.C,v 1.58 2008/09/03 06:08:44 jaw Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -897,13 +897,27 @@ void image_basicBlock::debugPrint() {
 
 // Make sure no blocks overlap, sort stuff by address... you know,
 // basic stuff.
+bool compare_image_basicBlock(image_basicBlock *b1,
+      image_basicBlock *b2) {
+   if (b1->firstInsnOffset() < b2->firstInsnOffset())
+      return true;
+   if (b2->firstInsnOffset() < b1->firstInsnOffset())
+      return false;
 
-bool image_func::cleanBlockList() {
-    //unsigned i;
+   if(b1 != b2)
+      fprintf(stderr,"oh gnoes, blocks shouldn't match: 0x%p 0x%p are at 0x%lx \n",b1,b2,b1->firstInsnOffset());
+   assert(b1 == b2);
+   return false;
+}
+
+
+bool image_func::cleanBlockList() 
+{
+   //unsigned i;
 #if 0
-    // For all entry, exit, call points...
-    //points_[u].point->checkInstructions();
-    // Should also make multipoint decisions
+   // For all entry, exit, call points...
+   //points_[u].point->checkInstructions();
+   // Should also make multipoint decisions
 
 #if !defined(arch_x86) && !defined(arch_power) && !defined(arch_x86_64)
     // We need to make sure all the blocks are inside the function
@@ -1081,10 +1095,12 @@ bool image_func::cleanBlockList() {
     VECTOR_SORT( funcReturns, image_instPoint::compare);
     VECTOR_SORT( calls, image_instPoint::compare);
     
+#if defined (cap_use_pdvector)
     funcEntries_.reserve_exact(funcEntries_.size());
     funcReturns.reserve_exact(funcReturns.size());
     calls.reserve_exact(calls.size());
     blockList.reserve_exact(blockList.size());
+#endif
     return true;
 }
 
@@ -1230,8 +1246,10 @@ void image_func::updateFunctionEnd(Address newEnd)
             blk->debugPrint();
         }
 
+#if defined (cap_use_pdvector)
     funcReturns.reserve_exact(funcReturns.size());
     calls.reserve_exact(calls.size());
+#endif
     
     // And rerun memory trimming
     for (unsigned foo = 0; foo < blockList.size(); foo++)
@@ -1333,9 +1351,12 @@ image_instPoint * image_basicBlock::getRetInstPoint()
     return NULL;
 }
 
-void image_basicBlock::finalize() {
+void image_basicBlock::finalize() 
+{
+#if defined (cap_use_pdvector)
     targets_.reserve_exact(targets_.size());
     sources_.reserve_exact(sources_.size());
+#endif
 }
 
 

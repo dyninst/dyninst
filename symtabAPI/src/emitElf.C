@@ -1412,6 +1412,9 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
         }
     }
 
+#if defined (os_solaris)
+    fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
+#else
     if (obj->hasRel()) {
         obj->addRegion(0, rels, j*sizeof(Elf32_Rel), ".rel.dyn", Region::RT_REL, true);
 #if !defined(os_solaris)
@@ -1424,6 +1427,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
         updateDynamic(DT_RELASZ, k*sizeof(Elf32_Rela));
 #endif
     }
+#endif
 
     Elf32_Rel *relplts = (Elf32_Rel *)malloc(sizeof(Elf32_Rel) * (fbt.size()));
     Elf32_Rela *relaplts = (Elf32_Rela *)malloc(sizeof(Elf32_Rela) * (fbt.size()));

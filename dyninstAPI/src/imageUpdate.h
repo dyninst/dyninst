@@ -44,7 +44,7 @@
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
 
-/* $Id: imageUpdate.h,v 1.8 2008/02/19 13:37:29 rchen Exp $ */
+/* $Id: imageUpdate.h,v 1.9 2008/09/03 06:08:44 jaw Exp $ */
 
 
 //ccw 28 oct 2001
@@ -103,6 +103,7 @@ class imageUpdate{
 };
 
 extern "C" {
+#if defined (cap_use_pdvector)
 static inline int imageUpdateSort(const void * left, 
 											 const void *right)
 {
@@ -114,6 +115,18 @@ static inline int imageUpdateSort(const void * left,
 	else 
 		return -1;
 };
+#else
+static inline bool imageUpdateSort(const void * left, 
+											 const void *right)
+{
+	const imageUpdate *leftSym = *(const imageUpdate* const *) left;
+	const imageUpdate *rightSym = *(const imageUpdate* const *) right;
+   
+	if(leftSym->address < rightSym->address)
+		return true;
+   return false;
+};
+#endif
 }
 
 

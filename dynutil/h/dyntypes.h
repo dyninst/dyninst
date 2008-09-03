@@ -19,7 +19,9 @@
   //**************** Windows ********************
   #include <hash_map>
   #define dyn_hash_map stdext::hash_map
+  #define DECLTHROW(x)
 #elif defined(__GNUC__)
+  #define DECLTHROW(x) throw(x)
   //***************** GCC ***********************
    #if (__GNUC__ > 4) || \
       (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)

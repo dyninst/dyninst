@@ -39,67 +39,234 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.8 2008/06/19 19:52:36 legendre Exp $
+// $Id: Annotatable.C,v 1.9 2008/09/03 06:08:44 jaw Exp $
 
 #include "common/h/headers.h"
+#include "common/h/serialize.h"
 #include "dynutil/h/Annotatable.h"
 #include "dynutil/h/dyntypes.h"
 
 using namespace Dyninst;
-//template class pdvector<dictionary_hash<std::string, int> >::entry;
 
 int AnnotatableBase::number;
 int AnnotatableBase::metadataNum;
-dyn_hash_map<std::string, int> AnnotatableBase::annotationTypes;
+dyn_hash_map<std::string, AnnotatableBase::anno_info_t> AnnotatableBase::annotationTypes;
 dyn_hash_map<std::string, int> AnnotatableBase::metadataTypes;
+dyn_hash_map<std::string, std::string> AnnotatableBase::annotypes_to_typenames;
+std::string AnnotatableBase::emptyString = std::string("");
 
 DLLEXPORT AnnotatableBase::AnnotatableBase() 
 {
    number = -1;
 }
 
-DLLEXPORT int AnnotatableBase::createAnnotationType(std::string &name) 
+SerializerBase *getSDAnno(std::string &anno_name)
+{
+   SerializerBase *ret =  AnnotatableBase::getAnnotationSerializer(anno_name);
+
+   if (!ret) {
+      fprintf(stderr, "%s[%d]:  getAnnotationSerializer (%s) failed\n", 
+            FILE__, __LINE__, anno_name.c_str());
+   }
+
+   return ret;
+}
+
+void dumpSDAnno()
+{
+   AnnotatableBase::dumpAnnotationSerializers();
+}
+
+#if defined (cap_serialization)
+
+int AnnotatableBase::createAnnotationType(std::string &name, 
+      const char *tname, SerializerBase *sb) 
+
+#else
+
+int AnnotatableBase::createAnnotationType(std::string &name, 
+      const char *tname, SerializerBase *) 
+
+#endif
 {
    std::string n(name);
-   int num = getAnnotationType(name);
+   int num = getAnnotationType(name, tname);
+
    if (num != -1) {
+      //  also check to see if we have set the tname and serializer fields
+
+#if defined (cap_serialization)
+      if (sb) 
+      {
+         dyn_hash_map<std::string, anno_info_t>::iterator iter = annotationTypes.find(n); 
+
+         if (iter != annotationTypes.end()) {
+            AnnotatableBase::anno_info_t &anno_rec = iter->second;
+
+            if (!anno_rec.anno_serializer) {
+               fprintf(stderr, "%s[%d]:  assigning serializer for type %s to %p\n",
+                     FILE__, __LINE__, name.c_str(), sb);
+               anno_rec.anno_serializer = sb;
+               fprintf(stderr, "%s[%d]:  assigning serializer for type %s to %s\n",
+                     FILE__, __LINE__, name.c_str(), sb->name().c_str());
+            }
+
+            assert(num == anno_rec.anno_id);
+         }
+      }
+#endif
+
       return num;
    }
 
    number++;
-   annotationTypes[n] = number;
+   AnnotatableBase::anno_info_t anno_rec;
+   anno_rec.anno_id = number;
+
+#if defined (cap_serialization)
+   fprintf(stderr, "%s[%d]:  assigning serializer for type %s to %p\n", 
+         FILE__, __LINE__, name.c_str(), sb);
+   anno_rec.anno_serializer = sb;
+#endif
+
+   annotationTypes[n] = anno_rec;
+
+#if defined (cap_serialization)
+   assert(annotationTypes[n].anno_serializer == sb);
+#endif
+   
+   if (!tname) {
+      //  This should be OK, so long as we init the typename later on when we
+      //  call getOrCreate...  if we get an annotation with an empty type string
+      //  we should just fill it in.
+      fprintf(stderr, "%s[%d]:  FIXME:  NULL typename here\n", FILE__, __LINE__);
+      annotypes_to_typenames[name] = emptyString;
+   }
+   else
+      annotypes_to_typenames[name] = std::string(tname);
+
    return number;
 }
 
-DLLEXPORT int AnnotatableBase::getAnnotationType(std::string &name) 
+std::string &AnnotatableBase::findTypeName(std::string tname)
+{
+   dyn_hash_map<std::string, std::string>::iterator iter;
+   iter = annotypes_to_typenames.find(tname);
+
+   if (iter != annotypes_to_typenames.end()) {
+      return iter->second;
+   }
+
+   return emptyString;
+}
+
+int AnnotatableBase::getAnnotationType(std::string &name, const char *tname) 
+{
+   std::string str(name);
+
+   if (annotationTypes.find(name) == annotationTypes.end()) 
+      return -1;
+
+   AnnotatableBase::anno_info_t anno_rec = annotationTypes[name];
+
+   if (tname) {
+      //  check if we have typename, if not, add it
+      dyn_hash_map<std::string, std::string>::iterator iter;
+      iter  = annotypes_to_typenames.find(std::string(tname));
+
+      if (iter == annotypes_to_typenames.end()) {
+         // add this typename (it is possible to create an annotation type without a typename
+         //  and patch it up later)
+         annotypes_to_typenames[std::string(tname)] = name;
+      }
+      else {
+         if (iter->second == emptyString) {
+            iter->second = std::string(tname);
+         }
+      }
+   }
+
+   return anno_rec.anno_id;
+}
+
+int AnnotatableBase::getOrCreateAnnotationType(std::string &anno_name, const char *tname) {
+   int anno_type = AnnotatableBase::getAnnotationType(anno_name, tname);
+   if (anno_type == -1) {
+      //  for serializable annotation types, we need to explicitly create 
+      //  these during init time to provide the proper serializer object for
+      //  serializing the annotation later
+      anno_type = AnnotatableBase::createAnnotationType(anno_name, tname, NULL);
+      //  fprintf(stderr, "%s[%d]:  created annotation type %s/%d\n", 
+      //       FILE__, __LINE__, anno_name.c_str(), anno_type);
+   }
+   return anno_type;
+}
+
+#if !defined (cap_serialization)
+
+SerializerBase * AnnotatableBase::getAnnotationSerializer(std::string &) 
+{
+   fprintf(stderr, "%s[%d]:  WARNING:  asking for annotation serializer is not defined\n", 
+         FILE__, __LINE__);
+   return NULL;
+}
+
+#else
+
+SerializerBase * AnnotatableBase::getAnnotationSerializer(std::string &name) 
 {
   std::string str(name);
-  if (annotationTypes.find(name) == annotationTypes.end())
-     return -1;
-  int n = annotationTypes[name];
-  return n;
-}
 
-#if 0
-int AnnotatableBase::createMetadata(std::string &name) 
-{
-   std::string n(name);
-  int num = getMetadata(name);
-  if(num != -1) {
-    return num;
+  if (annotationTypes.find(name) == annotationTypes.end()) {
+     fprintf(stderr, "%s[%d]:  No serializer for type %s\n", FILE__, __LINE__, name.c_str());
+     return NULL;
   }
 
-  metadataTypes[n] = metadataNum;
+  AnnotatableBase::anno_info_t anno_rec = annotationTypes[name];
 
-  metadataNum++;
-  return metadataNum-1;
-}
+  if (!anno_rec.anno_serializer) {
+     fprintf(stderr, "%s[%d]:  WARNING:  anno_serializer not initialized\n", FILE__, __LINE__);
+  }
 
-int AnnotatableBase::getMetadata(std::string &name) 
-{
-  if (annotationTypes.find(name) == annotationTypes.end())
-     return -1;
-  int n = annotationTypes[name];
-  return n;
+  SerializerBase *ret = NULL;
+  ret = anno_rec.anno_serializer;
+
+  if (!ret) {
+     fprintf(stderr, "%s[%d]:  WARNING:  annotation serializer is NULL here?\n",
+           FILE__, __LINE__);
+  }
+
+  fprintf(stderr, "%s[%d]:  annotation serializer for %s is %p\n", 
+        FILE__, __LINE__, name.c_str(), ret );
+  fprintf(stderr, "%s[%d]:  annotation serializer for %s is %s\n", 
+        FILE__, __LINE__, name.c_str(), ret->name().c_str() );
+  fprintf(stderr, "%s[%d]:  annotation serializer for %s is %p\n", 
+        FILE__, __LINE__, name.c_str(), ret );
+
+  return ret;
 }
 #endif
+
+DLLEXPORT void AnnotatableBase::dumpAnnotationSerializers() 
+{
+   fprintf(stderr, "%s[%d]:  dump of serializers for annotations\n", FILE__, __LINE__);
+
+#if defined (cap_serialization)
+
+   dyn_hash_map<std::string, anno_info_t>::iterator iter;
+
+   for (iter = annotationTypes.begin(); iter != annotationTypes.end(); iter++) 
+   {
+      std::string name = iter->first;
+      anno_info_t anno_rec = iter->second;
+      fprintf(stderr, "\t%s -- id: %d -- serializer %p\n", 
+            name.c_str(), anno_rec.anno_id, anno_rec.anno_serializer);
+   }
+
+#else
+
+  fprintf(stderr, "%s[%d]:  WARNING:  asking for annotation serializer dump is not defined\n", 
+        FILE__, __LINE__);
+
+#endif
+}

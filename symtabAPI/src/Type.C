@@ -95,6 +95,59 @@ Type::~Type()
 {
 }
 
+const char *Dyninst::SymtabAPI::dataClass2Str(dataClass dc)
+{
+   switch(dc) {
+      CASE_RETURN_STR(dataEnum);
+      CASE_RETURN_STR(dataPointer);
+      CASE_RETURN_STR(dataFunction);
+      CASE_RETURN_STR(dataSubrange);
+      CASE_RETURN_STR(dataArray);
+      CASE_RETURN_STR(dataStructure);
+      CASE_RETURN_STR(dataUnion);
+      CASE_RETURN_STR(dataCommon);
+      CASE_RETURN_STR(dataScalar);
+      CASE_RETURN_STR(dataTypedef);
+      CASE_RETURN_STR(dataReference);
+      CASE_RETURN_STR(dataUnknownType);
+      CASE_RETURN_STR(dataNullType);
+      CASE_RETURN_STR(dataTypeClass);
+   };
+   return "bad_data_class";
+}
+
+const char *visibility2Str(visibility_t v) 
+{
+   switch(v) {
+      CASE_RETURN_STR(visPrivate);
+      CASE_RETURN_STR(visProtected);
+      CASE_RETURN_STR(visPublic);
+      CASE_RETURN_STR(visUnknown);
+   };
+   return "bad_visibility";
+}
+const char *storageClass2Str(storageClass sc) 
+{
+   switch(sc) {
+      CASE_RETURN_STR(storageAddr);
+      CASE_RETURN_STR(storageReg);
+      CASE_RETURN_STR(storageRegOffset);
+   };
+   return "bad_storage_class";
+}
+
+void Type::serialize(SerializerBase *s, const char *)
+{
+   //  this should no be called directly, but by serialization functions at leaf nodes
+   //  of the c++hierarchy (objects that descent from Type)
+   //ifxml_start_element(s, tag);
+   gtranslate(s, (int &) ID_, "typeid");
+   gtranslate(s, type_, dataClass2Str, "dataClass");
+   gtranslate(s, name_, "name");
+   gtranslate(s, size_, "size");
+   //ifxml_end_element(s, tag);
+}
+
 bool Type::operator==(const Type &otype) const 
 {
    return (ID_ == otype.ID_ && name_ == otype.name_ && size_== otype.size_ && type_ == otype.type_);
@@ -102,9 +155,9 @@ bool Type::operator==(const Type &otype) const
 
 unsigned int Type::getSize()
 {
-  if (!size_) 
-    const_cast<Type *>(this)->updateSize(); 
-  return size_;
+   if (!size_) 
+      const_cast<Type *>(this)->updateSize(); 
+   return size_;
 }
 
 bool Type::setSize(unsigned int size)
@@ -114,17 +167,17 @@ bool Type::setSize(unsigned int size)
 }
 
 bool Type::setUpPtr(void *upPtr){
-	upPtr_ = upPtr;
-	return true;
+   upPtr_ = upPtr;
+   return true;
 }
 
 void *Type::getUpPtr() const{
-	return upPtr_;
+   return upPtr_;
 }
 
 
 void Type::incrRefCount() {
-    ++refCount;
+   ++refCount;
 }
 
 

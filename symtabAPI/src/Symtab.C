@@ -36,10 +36,10 @@
 
 #include "common/h/debugOstream.h"
 #include "common/h/Timer.h"
+#include "common/h/serialize.h"
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/src/Collections.h"
-#include "symtabAPI/src/serialize.h"
 #include "common/h/pathName.h"
 
 #if defined (os_linux) | defined (os_aix)
@@ -314,6 +314,12 @@ DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
    Annotatable<Region *, user_regions_a, true>(),
    Annotatable<Type *, user_types_a, true>(),
    Annotatable<Symbol *, user_symbols_a, true>(),
+#if 0
+   Annotatable<Symbol *, user_funcs_a, true>(),
+   Annotatable<Region *, user_regions_a, true>(),
+   Annotatable<Type *, user_types_a, true>(),
+   Annotatable<Symbol *, user_symbols_a, true>(),
+#endif
    mf(mf_), mfForDebugInfo(mf_),
    obj_private(NULL)
 {   
@@ -940,7 +946,7 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     if (wasSymtab)
         exportedFunctions.push_back(func);
     else {
-       Annotatable<Symbol *, user_funcs_a, true> &ufA = *this;
+       Annotatable<Symbol *, user_funcs_a,  true> &ufA = *this;
        ufA.addAnnotation(func);
     }
 }
@@ -1390,9 +1396,10 @@ bool Symtab::extractInfo(Object *linkedFile)
 
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
+   Serializable(),
    Annotatable<Symbol *, user_funcs_a, true>(obj),
-   Annotatable<Region *, user_regions_a, true>(obj),
-   Annotatable<Type *, user_types_a, true> (obj),
+   Annotatable<Region *, user_regions_a,  true>(obj),
+   Annotatable<Type *, user_types_a,  true> (obj),
    Annotatable<Symbol *, user_symbols_a, true>(obj)
 {
   symtab_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
@@ -1623,7 +1630,7 @@ bool Symtab::getDataRegions(std::vector<Region *>&ret)
 
 bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 {
-   Annotatable<Region *, user_regions_a, true> &urA = *this;
+   Annotatable<Region *, user_regions_a,  true> &urA = *this;
    if (!urA.size())
       return false;
    ret = urA.getDataStructure();
@@ -2153,7 +2160,7 @@ Symtab::~Symtab()
     }
     regions_.clear();
     
-    Annotatable<Region *, user_regions_a, true> &usA = *this;
+    Annotatable<Region *, user_regions_a,  true> &usA = *this;
     for (i = 0; i < usA.size(); ++i) {
        Region *s = usA[i];
        delete(s);
@@ -2245,7 +2252,7 @@ DLLEXPORT supportedLanguages Module::language() const
 
 DLLEXPORT  bool Module::hasLineInformation()
 {
-   Annotatable<LineInformation *, module_line_info_a, true> &liA = *this;
+   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
    return ( 0 != liA.size());
 }
 
@@ -2254,7 +2261,7 @@ DLLEXPORT LineInformation *Module::getLineInformation()
    if (!exec_->isLineInfoValid_)
       exec_->parseLineInformation();
 
-   Annotatable<LineInformation *, module_line_info_a, true> &mt = *this;
+   Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
 
    if (exec_->isLineInfoValid_) {
       if (!mt.size()) {
@@ -2308,7 +2315,7 @@ DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
 
 DLLEXPORT vector<Type *> *Module::getAllTypes()
 {
-   Annotatable<typeCollection *, module_type_info_a, true> &mtA = *this;
+   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
    if (!mtA.size()) return NULL;
 
    typeCollection *mt = mtA[0]; 
@@ -2322,7 +2329,7 @@ DLLEXPORT vector<Type *> *Module::getAllTypes()
 
 DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
 {
-   Annotatable<typeCollection *, module_type_info_a, true> &mtA = *this;
+   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
    if (!mtA.size()) return NULL;
 
    typeCollection *mt = mtA[0]; 
@@ -2336,7 +2343,7 @@ DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
 
 DLLEXPORT typeCollection *Module::getModuleTypes()
 {
-   Annotatable<typeCollection *, module_type_info_a, true> &mtA = *this;
+   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
    typeCollection *mt;
 
    if(mtA.size()){
@@ -2383,7 +2390,7 @@ void Symtab::parseTypesNow()
 
 DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo) 
 {
-   Annotatable<LineInformation *, module_line_info_a, true> &mt = *this;
+   Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
    if (mt.size()) {
       // We need to remove the existing annotation and make sure there is only one annotation.
       mt.clearAnnotations();
@@ -2432,16 +2439,17 @@ DLLEXPORT Module::Module() :
 
 DLLEXPORT Module::Module(const Module &mod) :
    LookupInterface(), 
-   Annotatable<LineInformation *, module_line_info_a, true>(),
-   Annotatable<typeCollection *, module_type_info_a, true>(),
+   Serializable(),
+   Annotatable<LineInformation *, module_line_info_a,  true>(),
+   Annotatable<typeCollection *, module_type_info_a,  true>(),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_), 
    language_(mod.language_),
    addr_(mod.addr_), 
    exec_(mod.exec_)
 {
-   Annotatable<LineInformation *, module_line_info_a, true> &liA = *this;
-   const Annotatable<LineInformation *, module_line_info_a, true> &liA_src = mod;
+   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
+   const Annotatable<LineInformation *, module_line_info_a,  true> &liA_src = mod;
 
    if (liA_src.size()) {
       LineInformation *li_src = liA_src[0];
@@ -2452,7 +2460,7 @@ DLLEXPORT Module::Module(const Module &mod) :
 
 DLLEXPORT Module::~Module()
 {
-   Annotatable<LineInformation *, module_line_info_a, true> &liA = *this;
+   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
    if (liA.size()){
        delete liA[0];
        liA.clearAnnotations();
@@ -2485,8 +2493,8 @@ bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolTyp
 
 DLLEXPORT bool Module::operator==(const Module &mod) const 
 {
-   const Annotatable<LineInformation *, module_line_info_a, true> *liA = this;
-   const Annotatable<LineInformation *, module_line_info_a, true> *liA_src = &mod;
+   const Annotatable<LineInformation *, module_line_info_a,  true> *liA = this;
+   const Annotatable<LineInformation *, module_line_info_a,  true> *liA_src = &mod;
    if (liA->size() != liA_src->size()) return false;
    if (liA->size()) {
       LineInformation *li = liA->getAnnotation(0);
@@ -2533,6 +2541,20 @@ bool regexEquiv( const std::string &str,const std::string &them, bool checkCase 
    //#if !defined(os_windows)
     return pattern_match(str_, s, checkCase);
 
+}
+
+void Module::serialize(SerializerBase *sb, const char *tag)
+{
+   ifxml_start_element(sb, tag);
+   gtranslate(sb, fileName_, "fileName");
+   gtranslate(sb, fullName_, "fullName");
+   gtranslate(sb, addr_, "Address");
+   gtranslate(sb, language_, supportedLanguages2Str, "Language");
+   ifxml_end_element(sb, tag);
+
+   //  Patch up exec_ (pointer to Symtab) at a higher level??
+   //if (getSD().iomode() == sd_deserialize)
+   //   param.exec_ = parent_symtab;
 }
 
 // This function will match string s against pattern p.
@@ -2593,42 +2615,58 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
     }
 }
 
-#if defined (cap_serialization)
 bool Symtab::exportXML(string file)
 {
+#if defined (cap_serialization)
    try {
+      SerializerXML sb("XMLTranslator", file, sd_serialize, true);
+      serialize(&sb, "Symtab");
+#if 0
       SymtabTranslatorXML trans(this, file);
       if ( serialize(*this, trans))
          return true;
+#endif
    } catch (const SerializerError &err) {
       fprintf(stderr, "%s[%d]: error serializing xml: %s\n", FILE__, __LINE__, err.what());
       return false;
    }
 
    return false;
-}
 #else
-bool Symtab::exportXML(string) {
-   fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
+   fprintf(stderr, "%s[%d]:  WARNING:  cannot produce %s, serialization not available\n", FILE__, __LINE__, file.c_str());
    return false;
-}
 #endif
+}
 
 #if defined (cap_serialization)
 bool Symtab::exportBin(string file)
 {
    try
    {
+      //  This needs some work (probably want to do object cacheing and retrieval)
+      SerializerBin sb("BinSerializer", file, sd_serialize, true);
+      serialize(&sb, "Symtab");
+
+#if 0 
       bool verbose = false;
       if (strstr(file.c_str(), "cache_ld")) verbose = true;
-      SymtabTranslatorBin trans(this, file, sd_serialize, verbose);
+      SymtabTranslatorBin *transptr = SymtabTranslatorBin::getTranslator(this, file, sd_serialize, verbose);
+      assert(transptr);
+      SymtabTranslatorBin &trans = *transptr;
       if (serialize(*this, trans))
          return true;
+#endif
    }
    catch (const SerializerError &err)
    {
-      fprintf(stderr, "%s[%d]: %s\n\tfrom %s[%d]\n", FILE__, __LINE__,
-            err.what(), err.file().c_str(), err.line());
+      if (err.code() == SerializerError::ser_err_disabled) {
+         fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
+               FILE__, __LINE__, file.c_str());
+      }
+      else {
+         fprintf(stderr, "%s[%d]: %s\n\tfrom %s[%d]\n", FILE__, __LINE__,
+               err.what(), err.file().c_str(), err.line());
+      }
    }
 
 
@@ -2636,15 +2674,16 @@ bool Symtab::exportBin(string file)
    return false;
 }
 #else
-bool Symtab::exportBin(string) {
+bool Symtab::exportBin(string) 
+{
    fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
    return false;
 }
 #endif
 
-#if defined (cap_serialization)
 Symtab *Symtab::importBin(std::string file)
 {
+#if defined (cap_serialization)
    MappedFile *mf= MappedFile::createMappedFile(file);
    if (!mf) {
       fprintf(stderr, "%s[%d]:  failed to map file %s\n", FILE__, __LINE__, file.c_str());
@@ -2657,12 +2696,18 @@ Symtab *Symtab::importBin(std::string file)
    {
       bool verbose = false;
       if (strstr(file.c_str(), "ld-")) verbose = true;
-      SymtabTranslatorBin trans(st, file, sd_deserialize, verbose);
+      SerializerBin sb("BinTranslator", file, sd_deserialize, true);
+      st->serialize(&sb);
+#if 0
+      SymtabTranslatorBin *transptr = SymtabTranslatorBin::getTranslator(st, file, sd_deserialize, verbose);
+      assert(transptr);
+      SymtabTranslatorBin &trans = *transptr;
       if (deserialize(*st, trans)) {
          fprintf(stderr, "%s[%d]:  deserialized '%s' from cache\n", FILE__, __LINE__, file.c_str());
          if (!st) fprintf(stderr, "%s[%d]:  FIXME:  no symtab\n", FILE__, __LINE__);
          return st;
       }
+#endif
    }
 
    catch (const SerializerError &err)
@@ -2675,13 +2720,11 @@ Symtab *Symtab::importBin(std::string file)
    fprintf(stderr, "%s[%d]:  error doing binary deserialization\n", __FILE__, __LINE__);
    delete st;
    return NULL;
-}
 #else
-Symtab *Symtab::importBin(std::string) {
-   fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
+   fprintf(stderr, "%s[%d]:  WARNING:  cannot produce %s, serialization not available\n", FILE__, __LINE__, file.c_str());
    return NULL;
-}
 #endif
+}
 
 bool Symtab::openFile(Symtab *&obj, std::string filename)
 {
@@ -2728,7 +2771,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #endif
     if(!err)
     {
-        if(filename.find("/proc") == std::string::npos)
+        if (filename.find("/proc") == std::string::npos)
             allSymtabs.push_back(obj);
         obj->setupTypes();	
 #if defined (cap_serialization)
@@ -2737,6 +2780,8 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
         {
            fprintf(stderr, "%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
         }
+        else
+           fprintf(stderr, "%s[%d]:  did bin-serialize for %s\n", FILE__, __LINE__, filename.c_str());
 #endif
 
     }
@@ -2753,7 +2798,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
 {
     std::vector<std::string>names;
-    if(oldType == Symbol::ST_FUNCTION)
+    if (oldType == Symbol::ST_FUNCTION)
     {
         unsigned i;
         std::vector<Symbol *> *funcs;
@@ -2785,7 +2830,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
         iter = find(everyUniqueFunction.begin(), everyUniqueFunction.end(), sym);
         everyUniqueFunction.erase(iter);
     }
-    else if(oldType == Symbol::ST_OBJECT)
+    else if (oldType == Symbol::ST_OBJECT)
     {
         unsigned i;
         std::vector<Symbol *> *vars;
@@ -2807,7 +2852,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
         }
         names.clear();
         names = sym->getAllTypedNames();
-        for(i=0;i<names.size();i++)
+        for (i=0;i<names.size();i++)
         {
             vars= varsByPretty[names[i]];
             iter = find(vars->begin(), vars->end(), sym);
@@ -2816,13 +2861,13 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
         iter = find(everyUniqueVariable.begin(), everyUniqueVariable.end(), sym);
         everyUniqueVariable.erase(iter);
     }
-    else if(oldType == Symbol::ST_MODULE)
+    else if (oldType == Symbol::ST_MODULE)
     {
         unsigned i;
         std::vector<Symbol *> *mods;
         std::vector<Symbol *>::iterator iter;
         names = sym->getAllMangledNames();
-        for(i=0;i<names.size();i++)
+        for (i=0;i<names.size();i++)
         {
             mods = modsByName[names[i]];
             iter = find(mods->begin(), mods->end(), sym);
@@ -2832,7 +2877,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
         iter = find(modSyms.begin(),modSyms.end(),sym);
         modSyms.erase(iter);
     }
-    else if(oldType == Symbol::ST_NOTYPE)
+    else if (oldType == Symbol::ST_NOTYPE)
     {
         std::vector<Symbol *>::iterator iter;
         iter = find(notypeSyms.begin(),notypeSyms.end(),sym);
@@ -2951,7 +2996,7 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
         regions_.push_back(sec);
     }
 
-    Annotatable<Region *, user_regions_a, true> &urA = *this;
+    Annotatable<Region *, user_regions_a,  true> &urA = *this;
     urA.addAnnotation(sec);
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
     return true;
@@ -2961,7 +3006,7 @@ bool Symtab::addRegion(Region *sec)
 {
     regions_.push_back(sec);
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-    Annotatable<Region *, user_regions_a, true> &urA = *this;
+    Annotatable<Region *, user_regions_a,  true> &urA = *this;
     urA.addAnnotation(sec);
     return true;
 }
@@ -3074,7 +3119,7 @@ void Symtab::parseTypes()
 
 bool Symtab::addType(Type *type)
 {
-   Annotatable<Type *, user_types_a, true> &utA = *this;
+   Annotatable<Type *, user_types_a,  true> &utA = *this;
    utA.addAnnotation(type);
    typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
    globaltypes->addType(type);
@@ -3284,6 +3329,52 @@ DLLEXPORT unsigned Symtab::getNumberofSymbols() const
     return no_of_symbols; 
 }
 
+bool Symtab::setup_module_up_ptrs(SerializerBase *, Symtab *st)
+{
+   std::vector<Module *> &mods = st->_mods;
+   for (unsigned int i = 0; i < mods.size(); ++i) {
+      Module *m = mods[i];
+      m->exec_ = st;
+   }
+   return true;
+}
+
+bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
+{
+   std::vector<Module *> &mods = st->_mods;
+   for (unsigned int i = 0; i < mods.size(); ++i) {
+      Module *m = mods[i];
+      m->exec_ = st;
+   }
+   return true;
+}
+
+void Symtab::serialize(SerializerBase *sb, const char *tag)
+{
+   try {
+      ifxml_start_element(sb, tag);
+      gtranslate(sb, imageOffset_, "imageOffset");
+      gtranslate(sb, imageLen_, "imageLen");
+      gtranslate(sb, dataOffset_, "dataOff");
+      gtranslate(sb, dataLen_, "dataLen");
+      gtranslate(sb, is_a_out, "isExec");
+      gtranslate(sb, _mods, "Modules", "Module");
+      gtranslate(sb, everyUniqueFunction, "EveryUniqueFunction", "UniqueFunction");
+      gtranslate(sb, everyUniqueVariable, "EveryUniqueVariable", "UniqueVariable");
+      gtranslate(sb, modSyms, "ModuleSymbols", "ModuleSymbol");
+      gtranslate(sb, excpBlocks, "ExceptionBlocks", "ExceptionBlock");
+      ifxml_end_element(sb, tag);
+
+
+      ifinput(Symtab::setup_module_up_ptrs, sb, this);
+      ifinput(fixup_relocation_symbols, sb, this);
+
+      //  Patch up module's exec_ (pointer to Symtab) at a higher level??
+      //if (getSD().iomode() == sd_deserialize)
+      //   param.exec_ = parent_symtab;
+   } SER_CATCH("Symtab");
+}
+
 DLLEXPORT LookupInterface::LookupInterface() 
 {
 }
@@ -3294,20 +3385,21 @@ DLLEXPORT LookupInterface::~LookupInterface()
 
 
 DLLEXPORT ExceptionBlock::ExceptionBlock(Offset tStart, 
-                                                 unsigned tSize, 
-                                                 Offset cStart) 
-   : tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) 
+      unsigned tSize, 
+      Offset cStart) 
+: tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) 
 {
 }
 
-DLLEXPORT ExceptionBlock::ExceptionBlock(Offset cStart) 
-   : tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) 
+   DLLEXPORT ExceptionBlock::ExceptionBlock(Offset cStart) 
+: tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) 
 {
 }
 
-DLLEXPORT ExceptionBlock::ExceptionBlock(const ExceptionBlock &eb) 
-   : tryStart_(eb.tryStart_), trySize_(eb.trySize_), 
-     catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) 
+DLLEXPORT ExceptionBlock::ExceptionBlock(const ExceptionBlock &eb) :
+   Serializable(),
+   tryStart_(eb.tryStart_), trySize_(eb.trySize_), 
+   catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) 
 {
 }
  
@@ -3336,6 +3428,18 @@ DLLEXPORT bool ExceptionBlock::contains(Offset a) const
     return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
+void ExceptionBlock::serialize(SerializerBase *sb, const char *tag)
+{
+   try {
+      ifxml_start_element(sb, tag);
+      gtranslate(sb, tryStart_, "tryStart");
+      gtranslate(sb, trySize_, "trySize");
+      gtranslate(sb, catchStart_, "catchStart");
+      gtranslate(sb, hasTry_, "hasTry");
+      ifxml_end_element(sb, tag);
+   } SER_CATCH("Symtab");
+}
+
 DLLEXPORT Region::Region(): rawDataPtr_(NULL), buffer_(NULL)
 {
 }
@@ -3351,14 +3455,17 @@ DLLEXPORT Region::Region(unsigned regnum, std::string name, Offset diskOff,
         isLoadable_ = true;
 }
 
-DLLEXPORT Region::Region(const Region &reg) : regNum_(reg.regNum_), name_(reg.name_),
-                    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
-                    memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
-                    rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_)
+DLLEXPORT Region::Region(const Region &reg) : 
+   Serializable(),
+   regNum_(reg.regNum_), name_(reg.name_),
+   diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
+   memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
+   rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_)
 {
 }
 
-DLLEXPORT Region& Region::operator=(const Region &reg){
+DLLEXPORT Region& Region::operator=(const Region &reg)
+{
     regNum_ = reg.regNum_;
     name_ = reg.name_;
     diskOff_ = reg.diskOff_;
@@ -3409,6 +3516,55 @@ DLLEXPORT Region::~Region()
         free(buffer_);
 }
 
+const char *Region::permissions2Str(perm_t p)
+{
+   switch(p) {
+   CASE_RETURN_STR(RP_R);
+   CASE_RETURN_STR(RP_RW); 
+   CASE_RETURN_STR(RP_RX);
+   CASE_RETURN_STR(RP_RWX); 
+   };
+   return "bad_permissions";
+}
+
+const char *Region::regionType2Str(region_t rt)
+{
+   switch(rt) {
+   CASE_RETURN_STR(RT_TEXT);
+   CASE_RETURN_STR(RT_DATA);
+   CASE_RETURN_STR(RT_TEXTDATA);
+   CASE_RETURN_STR(RT_SYMTAB);
+   CASE_RETURN_STR(RT_STRTAB);
+   CASE_RETURN_STR(RT_BSS);
+   CASE_RETURN_STR(RT_SYMVERSIONS);
+   CASE_RETURN_STR(RT_SYMVERDEF);
+   CASE_RETURN_STR(RT_SYMVERNEEDED);
+   CASE_RETURN_STR(RT_REL);
+   CASE_RETURN_STR(RT_RELA);
+   CASE_RETURN_STR(RT_DYNAMIC);
+   CASE_RETURN_STR(RT_OTHER);
+   };
+   return "bad_region_type";
+};
+
+void Region::serialize(SerializerBase *sb, const char *tag)
+{
+   ifxml(SerializerXML::start_xml_element, sb, tag);
+   gtranslate(sb, regNum_, "RegionNumber");
+   gtranslate(sb, name_, "RegionName");
+   gtranslate(sb, diskOff_, "DiskOffset");
+   gtranslate(sb, diskSize_, "RegionDiskSize");
+   gtranslate(sb, memOff_, "MemoryOffset");
+   gtranslate(sb, memSize_, "RegionMemorySize");
+   gtranslate(sb, permissions_, permissions2Str, "Permissions");
+   gtranslate(sb, rType_, regionType2Str, "RegionType");
+   gtranslate(sb, isDirty_, "Dirty");
+   gtranslate(sb, rels_, "Relocations", "Relocation");
+   gtranslate(sb, buffer_, "Buffer");
+   gtranslate(sb, isLoadable_, "isLoadable");
+   ifxml(SerializerXML::end_xml_element, sb, tag);
+}
+
 DLLEXPORT unsigned Region::getRegionNumber() const
 {
     return regNum_;
@@ -3423,7 +3579,8 @@ DLLEXPORT std::string Region::getRegionName() const{
     return name_;
 }
 
-DLLEXPORT Offset Region::getRegionAddr() const{
+DLLEXPORT Offset Region::getRegionAddr() const
+{
 #if defined(_MSC_VER)
 	return memOff_;
 #else
@@ -3431,7 +3588,8 @@ DLLEXPORT Offset Region::getRegionAddr() const{
 #endif
 }
 
-DLLEXPORT Offset Region::getRegionSize() const{
+DLLEXPORT Offset Region::getRegionSize() const
+{
 #if defined(_MSC_VER)
 	return memSize_;
 #else
@@ -3571,6 +3729,19 @@ DLLEXPORT Region::region_t relocationEntry::regionType() const {
     return rtype_;
 }
 
+void relocationEntry::serialize(SerializerBase *sb, const char *tag)
+{
+   try {
+      ifxml_start_element(sb, tag);
+      gtranslate(sb, target_addr_, "targetAddress");
+      gtranslate(sb, rel_addr_, "relocationAddress");
+      gtranslate(sb, name_, "relocationName");
+      gtranslate(sb, relType_, "relocationType");
+      //  deserialize: Re-assign dynref_ symbol elsewhere (in Symtab class)
+      ifxml_end_element(sb, tag);
+   } SER_CATCH("relocationEntry");
+}
+
 int symtab_printf(const char *format, ...)
 {
    static int dyn_debug_symtab = 0;
@@ -3603,7 +3774,8 @@ int symtab_printf(const char *format, ...)
    return ret;
 }
 
-const char *Symbol::symbolType2Str(SymbolType t) {
+const char *Symbol::symbolType2Str(SymbolType t) 
+{
    switch(t) {
       CASE_RETURN_STR(ST_UNKNOWN);
       CASE_RETURN_STR(ST_FUNCTION);
@@ -3614,7 +3786,8 @@ const char *Symbol::symbolType2Str(SymbolType t) {
    return "invalid symbol type";
 }
 
-const char *Symbol::symbolLinkage2Str(SymbolLinkage t) {
+const char *Symbol::symbolLinkage2Str(SymbolLinkage t) 
+{
    switch(t) {
       CASE_RETURN_STR(SL_UNKNOWN);
       CASE_RETURN_STR(SL_GLOBAL);
@@ -3624,7 +3797,8 @@ const char *Symbol::symbolLinkage2Str(SymbolLinkage t) {
    return "invalid symbol linkage";
 }
 
-const char *Symbol::symbolTag2Str(SymbolTag t) {
+const char *Symbol::symbolTag2Str(SymbolTag t) 
+{
    switch(t) {
       CASE_RETURN_STR(TAG_UNKNOWN);
       CASE_RETURN_STR(TAG_USER);
@@ -3633,6 +3807,7 @@ const char *Symbol::symbolTag2Str(SymbolTag t) {
    }
    return "invalid symbol tag";
 }
+
 
 Object *Symtab::getObject()
 {

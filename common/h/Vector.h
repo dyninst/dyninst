@@ -32,6 +32,21 @@
 #if !defined(_Vector_h_)
 #define _Vector_h_
 
+#if !defined (cap_use_pdvector)
+#include <vector>
+#include <algorithm>
+#include <functional>
+
+#define pdvector std::vector
+#define VECTOR_SORT(l1, f)    std::sort(l1.begin(), l1.end(), ptr_fun(f));
+//  Note on erase:  in STL, the end_pos iterator points to one element beyond the desired
+//  erasure range, thus we increment it here.
+#define VECTOR_ERASE(v, start_pos, end_pos) v.erase(v.begin() + start_pos, v.begin() + (end_pos + 1))
+#define VECTOR_APPEND(v1, v2) v1.insert(v1.end(), v2.begin(), v2.end())
+#define GET_ITER(v, pos) (v.begin() + pos)
+
+#else
+
 #if defined(external_templates)
 #pragma interface
 #endif
@@ -45,7 +60,9 @@
 
 #define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
 #define VECTOR_SORT(l1, f) 	l1.sort((qsort_cmpfunc_t)f);
-#define VECTOR_ERASE(vec, start, finish) vec.erase(start,finish)
+#define VECTOR_ERASE(v, start_pos, end_pos) v.erase(start_pos, end_pos)
+#define GET_ITER(v, pos) v.getIter(pos)
+
 
 #ifdef _KERNEL
 #include <sys/types.h>
@@ -662,5 +679,5 @@ bool pdvector<T, A>::operator== (const pdvector<T,A> &) const
 {
   return false;
 }
-
+#endif /* cap_use_pdvector */
 #endif /* !defined(_Pdvector_h_) */

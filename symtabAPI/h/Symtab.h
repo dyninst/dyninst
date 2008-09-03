@@ -69,7 +69,7 @@ class relocationEntry;
 
 //class lineDict;
 
-class Region {
+class Region : public Serializable {
     friend class Object;
     friend class Symtab;
     friend class SymtabTranslatorBase;
@@ -77,12 +77,30 @@ class Region {
 
   public:  
     enum perm_t{
-        RP_R, RP_RW, RP_RX, RP_RWX };
+        RP_R, 
+        RP_RW, 
+        RP_RX, 
+        RP_RWX
+    };
+
+    static const char *permissions2Str(perm_t);
 
     enum region_t{
-        RT_TEXT, RT_DATA, RT_TEXTDATA, RT_SYMTAB, RT_STRTAB , RT_BSS, RT_SYMVERSIONS,
-        RT_SYMVERDEF, RT_SYMVERNEEDED, RT_REL, RT_RELA, RT_DYNAMIC, RT_OTHER
+        RT_TEXT,
+        RT_DATA,
+        RT_TEXTDATA,
+        RT_SYMTAB,
+        RT_STRTAB,
+        RT_BSS,
+        RT_SYMVERSIONS,
+        RT_SYMVERDEF,
+        RT_SYMVERNEEDED,
+        RT_REL,
+        RT_RELA,
+        RT_DYNAMIC,
+        RT_OTHER
     };
+    static const char *regionType2Str(region_t);
 
     DLLEXPORT Region();
     DLLEXPORT static bool createRegion( Offset diskOff, perm_t perms, region_t regType,
@@ -90,6 +108,7 @@ class Region {
                        std::string name = "", char *rawDataPtr = NULL);
     DLLEXPORT Region(const Region &reg);
     DLLEXPORT Region& operator=(const Region &reg);
+    DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "Region");
     DLLEXPORT std::ostream& operator<< (std::ostream &os);
     DLLEXPORT bool operator== (const Region &reg);
 
@@ -98,8 +117,10 @@ class Region {
     DLLEXPORT unsigned getRegionNumber() const;
     DLLEXPORT bool setRegionNumber(unsigned regnumber);
     DLLEXPORT std::string getRegionName() const;
-	DLLEXPORT Offset getRegionAddr() const;
-	DLLEXPORT unsigned long getRegionSize() const;
+
+    //  getRegionAddr returns diskOffset on unixes, memory offset on windows
+    DLLEXPORT Offset getRegionAddr() const;
+    DLLEXPORT unsigned long getRegionSize() const;
 
     DLLEXPORT Offset getDiskOffset() const;
     DLLEXPORT unsigned long getDiskSize() const;
@@ -162,16 +183,18 @@ class LookupInterface {
 };
  
 class Module : public LookupInterface,
-               public Annotatable<LineInformation *, module_line_info_a, true>,
+               public Serializable, 
+               public Annotatable<LineInformation *, module_line_info_a, true >,
                public Annotatable<typeCollection *, module_type_info_a, true> {
-    friend class SymtabTranslatorBase;
-    friend class SymtabTranslatorBin;
+                  friend class Symtab;
  public:
     DLLEXPORT Module();
     DLLEXPORT Module(supportedLanguages lang, Offset adr, std::string fullNm,
                             Symtab *img);
     DLLEXPORT Module(const Module &mod);
     DLLEXPORT bool operator==(const Module &mod) const;
+
+    DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "Module");
     
     DLLEXPORT const std::string &fileName() const;
     DLLEXPORT const std::string &fullName() const;
@@ -230,10 +253,11 @@ private:
 
 
 class Symtab : public LookupInterface,
-  public Annotatable<Symbol *, user_funcs_a, true>, 
-  public Annotatable<Region *, user_regions_a, true>, 
-  public Annotatable<Type *, user_types_a, true>, 
-  public Annotatable<Symbol *, user_symbols_a, true> 
+               public Serializable,
+               public Annotatable<Symbol *, user_funcs_a, true>, 
+               public Annotatable<Region *, user_regions_a, true>, 
+               public Annotatable<Type *, user_types_a, true>, 
+               public Annotatable<Symbol *, user_symbols_a, true> 
 {
     
    friend class Archive;
@@ -241,8 +265,6 @@ class Symtab : public LookupInterface,
    friend class Module;
    friend class emitElf;
    friend class emitElf64;
-   friend class SymtabTranslatorBase;
-   friend class SymtabTranslatorBin;
 	 
    /***** Public Member Functions *****/
  public:
@@ -255,6 +277,10 @@ class Symtab : public LookupInterface,
    DLLEXPORT static bool openFile(Symtab *&obj, std::string filename);
    DLLEXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
     
+    DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "Symtab");
+    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
+    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
+
    DLLEXPORT bool exportXML(std::string filename);
    DLLEXPORT bool exportBin(std::string filename);
    static Symtab *importBin(std::string filename);
@@ -579,10 +605,10 @@ class Symtab : public LookupInterface,
  * Used to represent something like a C++ try/catch block.  
  * Currently only used on Linux/x86
  **/
-class ExceptionBlock {
-    friend class SymtabTranslatorBase;
-    friend class SymtabTranslatorBin;
+class ExceptionBlock : public Serializable {
+
  public:
+    DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "exceptionBlock");
    DLLEXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
    DLLEXPORT ExceptionBlock(Offset cStart);
    DLLEXPORT ExceptionBlock(const ExceptionBlock &eb);
@@ -662,10 +688,9 @@ class Section {
 // on sparc-solaris: target_addr_ = rel_addr_ = PLT entry addr
 // on x86-solaris: target_addr_ = PLT entry addr
 //		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
-class relocationEntry {
-    friend class SymtabTranslatorBase;
-    friend class SymtabTranslatorBin;
+class relocationEntry : public Serializable {
    public:
+
       DLLEXPORT relocationEntry();
       DLLEXPORT relocationEntry(Offset ta, Offset ra, Offset add, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
       DLLEXPORT relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
@@ -674,6 +699,8 @@ class relocationEntry {
       DLLEXPORT relocationEntry(const relocationEntry& ra);
 
       DLLEXPORT const relocationEntry& operator= (const relocationEntry &ra);
+      DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "relocationEntry");
+
       DLLEXPORT Offset target_addr() const;
       DLLEXPORT Offset rel_addr() const;
       DLLEXPORT Offset addend() const;

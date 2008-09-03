@@ -315,7 +315,11 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
             }
         }
     }
+#if defined (cap_use_pdvector)
     WL.zap();
+#else
+    WL.clear();
+#endif
     return foundMaxSwitch && foundCondBranch;
 }
 

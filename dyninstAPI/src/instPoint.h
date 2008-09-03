@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.47 2008/06/19 22:13:42 jaw Exp $
+// $Id: instPoint.h,v 1.48 2008/09/03 06:08:44 jaw Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -158,6 +158,7 @@ class image_instPoint : public instPointBase {
 
   image_func *getCallee() const { return callee_; }
   void setCallee(image_func *f) { callee_ = f; }
+#if defined (cap_use_pdvector)
   static int compare(image_instPoint *&ip1,
                      image_instPoint *&ip2) {
       if (ip1->offset() < ip2->offset())
@@ -171,7 +172,31 @@ class image_instPoint : public instPointBase {
          fprintf(stderr, "%s[%d]:  WARNING:  duplicate instPoints?? [%p %p] [%p %p]\n", FILE__, __LINE__, ip1, ip2, (void *)ip1->offset(), (void *)ip2->offset());
       }
       return 0;
-  };
+  }
+#else
+  static bool compare(image_instPoint *ip1,
+        image_instPoint *ip2) {
+#if 0
+     if (ip1->offset() == ip2->offset())
+        fprintf(stderr, "%s[%d]:  WARNING:  strict weak ordring may not suffice here!\n", FILE__, __LINE__);
+#endif
+     if (ip1->offset() < ip2->offset())
+        return true;
+     return false;
+#if 0
+     if (ip2->offset() < ip1->offset())
+        return true;
+#if 0
+     assert(ip1 == ip2);
+#endif
+     if (ip1 != ip2) {
+        fprintf(stderr, "%s[%d]:  WARNING:  duplicate instPoints?? [%p %p] [%p %p]\n", FILE__, __LINE__, ip1, ip2, (void *)ip1->offset(), (void *)ip2->offset());
+     }
+     return false;
+#endif
+  }
+
+#endif
 };
 
 // The actual instPoint is a little more interesting. It wraps the

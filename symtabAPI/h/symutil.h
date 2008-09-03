@@ -65,6 +65,8 @@ typedef enum { lang_Unknown,
                lang_CMFortran
 } supportedLanguages;
 
+const char *supportedLanguages2Str(supportedLanguages s);
+
 typedef enum {
    obj_Unknown,
    obj_SharedLib,

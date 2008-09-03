@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.38 2008/08/01 17:55:17 roundy Exp $
+// $Id: mapped_object.C,v 1.39 2008/09/03 06:08:44 jaw Exp $
 
 #include <string>
 
@@ -487,11 +487,19 @@ mapped_module *mapped_object::findModule(string m_name, bool wildcard)
 }
 
 
-mapped_module *mapped_object::findModule(pdmodule *pdmod) {
+mapped_module *mapped_object::findModule(pdmodule *pdmod) 
+{
+   if (!pdmod) {
+      fprintf(stderr, "%s[%d]:  please call this findModule with nonNULL parameter\n", FILE__, __LINE__);
+      return NULL;
+   }
+
    assert(pdmod);
 
    if (pdmod->imExec() != parse_img()) {
-      cerr << "WARNING: lookup for module in wrong mapped object!" << endl;
+      fprintf(stderr, "%s[%d]: WARNING: lookup for module in wrong mapped object! %p != %p", FILE__, __LINE__, pdmod->imExec(), parse_img()); 
+      fprintf(stderr, "%s[%d]:  \t\t %s \n", FILE__, __LINE__, parse_img()->name().c_str());
+      fprintf(stderr, "%s[%d]:  \t %s != \n", FILE__, __LINE__, pdmod->imExec()->name().c_str());
       return NULL;
    }
 
@@ -765,6 +773,9 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
 int_function *mapped_object::findFunction(image_func *img_func) {
     if (!img_func) return NULL;
     mapped_module *mod = findModule(img_func->pdmod());
+    if (!mod) {
+       fprintf(stderr, "%s[%d]:  ERROR:  Cannot find module %s\n", FILE__, __LINE__, img_func->pdmod()->fileName().c_str());
+    }
     assert(mod);
     
     if (everyUniqueFunction.defines(img_func))

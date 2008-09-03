@@ -29,17 +29,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.26 2008/08/25 16:21:37 mlam Exp $
+// $Id: Object.C,v 1.27 2008/09/03 06:08:46 jaw Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/symutil.h"
 #include "symtabAPI/src/Collections.h"
+#include "common/h/serialize.h"
 
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 string Symbol::emptyString("");
+
+const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)
+{
+   switch(s) {
+      CASE_RETURN_STR(lang_Unknown);
+      CASE_RETURN_STR(lang_Assembly);
+      CASE_RETURN_STR(lang_C);
+      CASE_RETURN_STR(lang_CPlusPlus);
+      CASE_RETURN_STR(lang_GnuCPlusPlus);
+      CASE_RETURN_STR(lang_Fortran);
+      CASE_RETURN_STR(lang_Fortran_with_pretty_debug);
+      CASE_RETURN_STR(lang_CMFortran);
+   };
+   return "bad_language";
+}
+
 
 bool Dyninst::SymtabAPI::symbol_compare(const Symbol *s1, const Symbol *s2) 
 {
@@ -125,6 +143,7 @@ DLLEXPORT Offset ExceptionBlock::catchStart() const
 }
 
 DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
+   Serializable(),
    target_addr_(ra.target_addr_), 
    rel_addr_(ra.rel_addr_), 
    addend_ (ra.addend_),
@@ -173,6 +192,7 @@ DLLEXPORT Symbol::~Symbol ()
 }
 
 DLLEXPORT Symbol::Symbol(const Symbol& s) :
+   Serializable(),
    Annotatable <std::string, symbol_file_name_a>(), 
    Annotatable <std::vector<std::string>, symbol_version_names_a>(), 
    Annotatable <localVarCollection, symbol_variables_a, true>(), 
@@ -181,8 +201,13 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    type_(s.type_), linkage_(s.linkage_),
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
-   mangledNames(s.mangledNames), prettyNames(s.prettyNames), typedNames(s.typedNames), tag_(s.tag_), framePtrRegNum_(s.framePtrRegNum_),
-   retType_(s.retType_), moduleName_(s.moduleName_) 
+   mangledNames(s.mangledNames), 
+   prettyNames(s.prettyNames), 
+   typedNames(s.typedNames), 
+   tag_(s.tag_), 
+   framePtrRegNum_(s.framePtrRegNum_),
+   retType_(s.retType_), 
+   moduleName_(s.moduleName_) 
 {
    Annotatable <std::string, symbol_file_name_a> &sfa = *this;
    const Annotatable <std::string, symbol_file_name_a> &sfa_src = s;
@@ -234,12 +259,12 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
       sva.addAnnotation(sva_src[0]);
 
    Annotatable<localVarCollection, symbol_variables_a, true> &lvA = *this;
-   const Annotatable<localVarCollection, symbol_variables_a, true> &lvA_src = s;
+   const Annotatable<localVarCollection, symbol_variables_a,true> &lvA_src = s;
    if (lvA_src.size())
       lvA.addAnnotation(lvA_src[0]);
 
    Annotatable<localVarCollection, symbol_parameters_a, true> &pA = *this;
-   const Annotatable<localVarCollection, symbol_parameters_a, true> &pA_src = s;
+   const Annotatable<localVarCollection, symbol_parameters_a,true> &pA_src = s;
    if (pA_src.size())
       pA.addAnnotation(pA_src[0]);
 #endif
@@ -746,6 +771,44 @@ DLLEXPORT bool Symbol::findLocalVariable(std::vector<localVar *>&vars, string na
       return true;
 
    return false;
+}
+
+void Symbol::serialize(SerializerBase *s, const char *tag) 
+{
+   try {
+      ifxml_start_element(s, tag);
+      gtranslate(s, type_, symbolType2Str, "type");
+      gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
+      gtranslate(s, tag_, symbolTag2Str, "tag");
+      gtranslate(s, addr_, "addr");
+      gtranslate(s, size_, "size");
+      gtranslate(s, isInDynsymtab_, "isInDynsymtab");
+      gtranslate(s, isInSymtab_, "isInSymtab");
+      gtranslate(s, prettyNames, "prettyNames", "prettyName");
+      gtranslate(s, mangledNames, "mangledNames", "mangledName");
+      gtranslate(s, typedNames, "typedNames", "typedName");
+      gtranslate(s, framePtrRegNum_, "framePtrRegNum");
+      //  Note:  have to deal with retType_ here?? Probably use type id.
+      gtranslate(s, moduleName_, "moduleName");
+      ifxml_end_element(s, "Symbol");
+#if 0
+      symbol_start(param);
+      translate(param.type_, "type");
+      translate(param.linkage_, "linkage");
+      translate(param.tag_, "tag");
+      getSD().translate(param.addr_, "addr");
+      getSD().translate(param.size_, "size");
+      getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
+      getSD().translate(param.isInSymtab_, "isInSymtab");
+      getSD().translate(param.prettyNames, "prettyNames", "prettyName");
+      getSD().translate(param.mangledNames, "mangledNames", "mangledName");
+      getSD().translate(param.typedNames, "typedNames", "typedName");
+      getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
+      //  Note:  have to deal with retType_ here?? Probably use type id.
+      getSD().translate(param.moduleName_, "moduleName");
+      symbol_end(param);
+#endif
+   } SER_CATCH("Symbol");
 }
 
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 

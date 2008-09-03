@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.93 2008/08/12 15:50:40 carl Exp $
+# $Id: Makefile,v 1.94 2008/09/03 06:08:43 jaw Exp $
 #
 
 TO_CORE = .
@@ -68,6 +68,14 @@ endif
 ifndef DONT_BUILD_DYNINST
 fullSystem	+= $(DyninstAPI)
 Build_list	+= DyninstAPI
+endif
+
+ifndef DONT_BUILD_OLDTESTSUITE
+fullSystem	+= dyninstAPI/tests
+endif
+
+ifndef DONT_BUILD_TESTSUITE
+fullSystem	+= testsuite
 endif
 
 # Note that the first rule listed ("all") is what gets made by default,

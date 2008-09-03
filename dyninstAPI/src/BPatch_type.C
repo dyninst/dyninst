@@ -306,6 +306,7 @@ char *BPatch_type::getName(char *buffer, int max) const
 }
 #endif
 
+#if 0
 //
 // Define the type compatability among the intrensic types of the various
 //     languages.  For example int in c is compatiable to integer*4 in Fortran.
@@ -322,6 +323,20 @@ struct intrensicTypes_ intrensicTypes[] = {
     { "INTEGER*4", 	1 },
     { NULL,		0 },
 };
+
+static int findIntrensicType(const char *name)
+{
+    struct intrensicTypes_ *curr;
+
+    for (curr = intrensicTypes; curr->name; curr++) {
+	if (name && curr->name && !strcmp(name, curr->name)) {
+	    return curr->tid;
+	}
+    }
+
+    return 0;
+}
+#endif
 
 #if 0
 /*
@@ -540,11 +555,11 @@ BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
 BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 {
     type = (BPatch_type *)lVar->getType()->getUpPtr();
-    if(!type)
+    if (!type)
         type = new BPatch_type(lVar->getType());
     type->incrRefCount();
     vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar_->getLocationLists();
-    if(!locs)
+    if (!locs)
    	    storageClass = BPatch_storageFrameOffset;
     else
         storageClass = convertToBPatchStorage((*locs)[0]);

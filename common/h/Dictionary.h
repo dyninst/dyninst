@@ -281,17 +281,22 @@ class dictionary_hash_iter {
   //                   i(ii), the_end(iend) {
   //make_valid_or_end();
   //}
+
   dictionary_hash_iter(dictionary_hash<K,V> &idict) : dict(idict) {
     reset();
   }
+
   dictionary_hash_iter(const dictionary_hash<K,V> &idict) : 
     dict(const_cast< dictionary_hash<K,V>& >(idict)) {
     reset();
   }
+
+#if defined (cap_use_pdvector)
   dictionary_hash_iter(dictionary_hash<K,V> &idict,
       TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry>::iterator curi) 
     : dict(idict), i(curi), the_end(dict.all_elems.end()) {
   }
+
   dictionary_hash_iter(const dictionary_hash<K,V> &idict,
       TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry>::const_iterator curi) 
     : dict(const_cast< dictionary_hash<K,V>& >(idict)), 
@@ -299,9 +304,44 @@ class dictionary_hash_iter {
     the_end(const_cast< TYPENAME pdvector< TYPENAME dictionary_hash<K,V>::entry >::iterator>(
                                                                                            dict.all_elems.end()))
   {  }
+#else
+  dictionary_hash_iter(dictionary_hash<K,V> &idict,
+        TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry>::iterator curi)
+     : dict(idict), i(curi), the_end(dict.all_elems.end()) {
+     }
+
+  dictionary_hash_iter(const dictionary_hash<K,V> &idict,
+        TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry>::const_iterator curi)
+     : dict( const_cast< dictionary_hash<K,V>& >(idict))
+     {
+        TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry>::const_iterator *temp = &curi;
+        TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry>::iterator *iptr = NULL;
+        //iptr =  const_cast< TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::iterator *>
+        //      (temp);
+        iptr =  ( TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::iterator *)
+           (temp);
+        i = *iptr;
+
+        //i =  const_cast< TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::iterator >
+        //      (temp);
+
+        //i =  ( TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::iterator)
+        //      (temp);
+        TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::const_iterator ci = dict.all_elems.end();
+        TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::const_iterator *cip = &ci;
+        TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::iterator *nip;
+        nip = (TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::iterator *) cip;
+        the_end = *nip;
+
+
+        //the_end = const_cast< TYPENAME std::vector< TYPENAME dictionary_hash<K,V>::entry >::iterator>
+        //  (dict.all_elems.end()) ;
+     }
+
+#endif
 
   dictionary_hash_iter(const dictionary_hash_iter<K,V> &src) :
-                       dict(src.dict), i(src.i), the_end(src.the_end) { }
+     dict(src.dict), i(src.i), the_end(src.the_end) { }
   //dictionary_hash_iter& operator=(const dictionary_hash_iter<K,V> &src) {
   //  dict = src.dict;
   //  i = src.i;
@@ -310,17 +350,17 @@ class dictionary_hash_iter {
   //}
 
   dictionary_hash_iter operator++(int) {
-    dictionary_hash_iter result = *this;
-    move_to_next();
-    return result;
+     dictionary_hash_iter result = *this;
+     move_to_next();
+     return result;
   }
   dictionary_hash_iter operator++() { // prefix
-    move_to_next();
-    return *this;
+     move_to_next();
+     return *this;
   }
 
   bool next(K &k, V &v) {
-    for (; i != the_end; i++) {
+     for (; i != the_end; i++) {
       if (!i->removed) {
 	k = i->key;
 	v = i->val;
@@ -334,7 +374,14 @@ class dictionary_hash_iter {
   void reset() {
     // start the iterator off at the first non-removed item now:
     if (dict.all_elems.size() == 0) {
-      i = the_end = NULL;
+#if defined (use_pdvector)
+       i = NULL;
+       the_end = NULL;
+#else
+       i = dict.all_elems.begin();
+       the_end = dict.all_elems.end();
+#endif
+
     }
     else {
       i = dict.all_elems.begin();

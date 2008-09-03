@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2008/03/12 20:09:51 legendre Exp $
+# $Id: Makefile,v 1.11 2008/09/03 06:08:50 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -50,9 +50,12 @@ versionArray += unknown
 COMPILERT_NATIVE_CC = $(NATIVE_CC) version $(firstword $(versionArray))
 COMPILERT_NATIVE_CXX = $(COMPILERT_NATIVE_CC)
 
+-include $(TO_CORE)/make.config.local
+MUTATEE_CXXFLAGS_COMMON = $(FIRST_INCLUDE) -I$(TO_CORE)
+
 MUTATEE_CFLAGS_NATIVE =  -g $(UNIFIED_DEF) 
 MUTATEE_CFLAGS_NATIVE += -D__XLC__ -qnoinline -qnooptimize 
-MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CFLAGS_NATIVE) -+
+MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CXXFLAGS_COMMON) $(MUTATEE_CFLAGS_NATIVE) -+
 MUTATEE_CFLAGS_NATIVE += -qcpluscmt
 MUTATEE_NATIVE_FC_CFLAGS = $(MUTATEE_CFLAGS_NATIVE) -DXLF
 MUTATEE_NATIVE_CXX_CFLAGS = -qsmp=omp 
@@ -61,7 +64,7 @@ MUTATOR_CXXFLAGS = $(UNIFIED_DEF)
 
 MUTATEE_CFLAGS_GNU = -g $(UNIFIED_DEF)
 MUTATEE_LDFLAGS_GNU += -Wl,-bgcbypass:3  -Wl,-bnoobjreorder 
-MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
+MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CXXFLAGS_COMMON) $(MUTATEE_CFLAGS_GNU)
 
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
 MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -g -ldl -lpthread -lxlsmp

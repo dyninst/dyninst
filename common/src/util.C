@@ -27,6 +27,11 @@ DLLEXPORT_COMMON unsigned ptrHash(const void * iaddr)
    return Dyninst::addrHashCommon((Address)iaddr);
 }
 
+DLLEXPORT_COMMON unsigned ptrHash(void * iaddr)
+{
+   return Dyninst::addrHashCommon((Address)iaddr);
+}
+
 DLLEXPORT_COMMON unsigned addrHash4(const Address &iaddr)
 {
    // call when you know that the low 2 bits are 0 (meaning they contribute

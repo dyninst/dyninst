@@ -44,13 +44,14 @@ using namespace Dyninst::SymtabAPI;
 
 #if !defined(os_windows)
     //libxml2 functions
-void *hXML;
+extern void *hXML;
 #else
-HINSTANCE hXML;
+extern HINSTANCE hXML;
 #endif
 
 namespace Dyninst {
    namespace SymtabAPI {
+#if 0
 bool serialize(Symtab &st, SymtabTranslatorBase &trans)
 {
   try 
@@ -81,6 +82,7 @@ bool deserialize(Symtab &st, SymtabTranslatorBase &trans)
   }
   return true;
 }
+#endif
 
 }
 }
@@ -88,54 +90,56 @@ bool deserialize(Symtab &st, SymtabTranslatorBase &trans)
 extern SymtabError serr;
 extern string errMsg;
 SymtabTranslatorXML::SymtabTranslatorXML(Symtab *st, string file) : 
-   SymtabTranslatorBase(st),
-   sd(file, sd_serialize)
+   SymtabTranslatorBase(st, file, sd_serialize)
+#if 0
+   sf(file, sd_serialize)
+#endif
 {
 }
 
 
 void SymtabTranslatorXML::symtab_start(Symtab &, const char *)
 {
-  sd.start_element("Symtab");
+  getSDXML().start_element("Symtab");
 }
 
 void SymtabTranslatorXML::symbol_start(Symbol &, const char *)
 {
-  sd.start_element("Symbol");
+  getSDXML().start_element("Symbol");
 }
 
 void SymtabTranslatorXML::symbol_end(Symbol &, const char *)
 {
-  sd.end_element();
+  getSDXML().end_element();
 }
 
 void SymtabTranslatorXML::exception_start(ExceptionBlock &, const char *)
 {
-  sd.start_element("ExceptionBlock");
+  getSDXML().start_element("ExceptionBlock");
 }
 
 void SymtabTranslatorXML::exception_end(ExceptionBlock &, const char *)
 {
-  sd.end_element();
+  getSDXML().end_element();
 }
 
 void SymtabTranslatorXML::relocation_start(relocationEntry &, const char *)
 {
-  sd. start_element("Dyn_Relocation");
+  getSDXML().start_element("Dyn_Relocation");
 }
 
 void SymtabTranslatorXML::relocation_end(relocationEntry &, const char *)
 {
-  sd.end_element();
+  getSDXML().end_element();
 }
 void SymtabTranslatorXML::module_start(Module &, const char *)
 {
-  sd.start_element("Module");
+  getSDXML().start_element("Module");
 }
 
 void SymtabTranslatorXML::module_end(Module &, const char *)
 {
-  sd.end_element();
+  getSDXML().end_element();
 }
 
 #if 0
@@ -152,36 +156,36 @@ void SymtabTranslatorXML::section_end(Section &, const char *)
 
 void SymtabTranslatorXML::line_information_start(LineInformation &, const char *)
 {
-  sd.start_element("ModuleLineInformation");
+  getSDXML().start_element("ModuleLineInformation");
 }
 
 void SymtabTranslatorXML::line_information_end(LineInformation &, const char *)
 {
-  sd.end_element();
+  getSDXML().end_element();
 }
 
 void SymtabTranslatorXML::type_collection_start(typeCollection &, const char *)
 {
-  sd.start_element("ModuleTypeCollection");
+  getSDXML().start_element("ModuleTypeCollection");
 }
 
 void SymtabTranslatorXML::type_collection_end(typeCollection &, const char *)
 {
-  sd.end_element();
+  getSDXML().end_element();
 }
 
 void SymtabTranslatorXML::translate(Symbol::SymbolType &t, const char *tag)
 {
-    sd.xml_value(Symbol::symbolType2Str(t), tag);
+    getSDXML().xml_value(Symbol::symbolType2Str(t), tag);
 }
 
 void SymtabTranslatorXML::translate(Symbol::SymbolLinkage &t, const char *tag)
 {
-  sd.xml_value(Symbol::symbolLinkage2Str(t), tag);
+  getSDXML().xml_value(Symbol::symbolLinkage2Str(t), tag);
 }
 void SymtabTranslatorXML::translate(Symbol::SymbolTag &t, const char *tag)
 {
-  sd.xml_value(Symbol::symbolTag2Str(t), tag);
+  getSDXML().xml_value(Symbol::symbolTag2Str(t), tag);
 }
 
 void SymtabTranslatorXML::translate(supportedLanguages &l, const char *tag) 
@@ -208,10 +212,10 @@ void SymtabTranslatorXML::translate(supportedLanguages &l, const char *tag)
          break;
     };
 
-  sd.xml_value(lstr, tag);
+  getSDXML().xml_value(lstr, tag);
 }
 
 void SymtabTranslatorXML::symtab_end(Symtab &, const char *)
 {
-  sd.end_element();
+  getSDXML().end_element();
 }

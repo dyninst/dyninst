@@ -255,7 +255,7 @@ inferiorRPCtoDo *rpcMgr::getProcessRPC() {
 
     inferiorRPCtoDo *rpc = postedProcessRPCs_[0];
 
-    postedProcessRPCs_.erase(0,0);
+    VECTOR_ERASE(postedProcessRPCs_,0,0);
     return rpc;
 }
 

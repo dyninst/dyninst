@@ -104,7 +104,7 @@ void SignalHandler::main() {
             handleEvent(events_to_handle[0]);
             // Don't check stop_request here; handle all events first, then
             // exit.
-            events_to_handle.erase(0,0);
+            VECTOR_ERASE(events_to_handle,0,0);
         }
 
         if (stop_request) break;

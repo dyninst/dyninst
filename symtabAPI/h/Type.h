@@ -33,6 +33,7 @@
 #define Type_h_
 
 #include <assert.h>
+#include "dynutil/h/Serialization.h"
 #include "symutil.h"
 #include <vector>
 
@@ -77,10 +78,17 @@ typedef enum {dataEnum,
 	      dataTypeClass
 } dataClass;
 
+const char *dataClass2Str(dataClass dc);
+
 typedef int typeId_t;
 
-typedef enum {visPrivate, visProtected, visPublic,
-              visUnknown} visibility_t;
+typedef enum {
+   visPrivate, 
+   visProtected, 
+   visPublic,
+   visUnknown
+} visibility_t;
+
 /*
  * visibility: Accessibility of member data and functions
  * These values follow the 'fieldname:' after the '/' identifier.
@@ -90,6 +98,8 @@ typedef enum {visPrivate, visProtected, visPublic,
  * visUnknown visibility not known or doesn't apply(ANSIC), the default
  *
  */
+ 
+const char *visibility2Str(visibility_t v);
 
 typedef enum {
 	storageAddr,
@@ -97,6 +107,7 @@ typedef enum {
 	storageRegOffset
 } storageClass;
 
+const char *storageClass2Str(storageClass sc);
 /*
  * storageClass: Encodes how a variable is stored.
  *
@@ -151,10 +162,12 @@ class DLLEXPORT Field{
    void fixupUnknown(Module *);
 };
 				  
-class Type{
+class Type : public Serializable {
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
                           typeCommon *);
+   public:
+  DLLEXPORT void serialize(SerializerBase *, const char *);
  protected:
    typeId_t ID_;           /* unique ID of type */
    std::string name_;
@@ -213,6 +226,7 @@ public:
    // INTERNAL METHODS
    DLLEXPORT void incrRefCount();
    DLLEXPORT void decrRefCount(); 
+   Type () {}
    
    
    //Methods to dynamically cast generic Type Object to specific types.
@@ -523,6 +537,7 @@ class DLLEXPORT localVar
     // scope_t scope;
   
   public:
+    localVar() {}
       //  Internal use only
       localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t *> *locs = NULL);
       // Copy constructor

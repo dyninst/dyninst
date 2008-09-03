@@ -474,17 +474,30 @@ void AddressSpace::removeReplacedCall(replacedFunctionCall *repcall) {
     removeModifiedRange(repcall);
 }
 
+bool heapItemLessByAddr(const heapItem *a, const heapItem *b)
+{
+   if (a->addr < b->addr) {
+      return true;
+   }
+   return false;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Memory allocation routines
 //////////////////////////////////////////////////////////////////////////////
 
 
 void AddressSpace::inferiorFreeCompact() {
-  pdvector<heapItem *> &freeList = heap_.heapFree;
-  unsigned i, nbuf = freeList.size();
+   pdvector<heapItem *> &freeList = heap_.heapFree;
+   unsigned i, nbuf = freeList.size();
 
-  /* sort buffers by address */
-  VECTOR_SORT(freeList, heapItemCmpByAddr);
+   /* sort buffers by address */
+#if defined (cap_use_pdvector)
+   VECTOR_SORT(freeList, heapItemCmpByAddr);
+#else
+   VECTOR_SORT(freeList, heapItemLessByAddr);
+#endif
+
 
   /* combine adjacent buffers */
   bool needToCompact = false;

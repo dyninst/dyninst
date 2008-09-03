@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.15 2008/04/22 04:39:27 jaw Exp $
+# $Id: make.module.tmpl,v 1.16 2008/09/03 06:08:45 jaw Exp $
 #
 
 SUITE_NAME	= symtabAPI 
@@ -61,9 +61,9 @@ SRCS	     +=	../src/Object.C \
 		../src/Symtab.C \
 		../src/Collections.C \
 		../src/Type.C \
-		../src/serialize-bin.C \
-		../src/serialize-xml.C \
       ../src/AddrLookup.C
+#		../src/serialize-bin.C \
+#		../src/serialize-xml.C \
 
 TO_INC     = ../h
 PUBLIC_H   = AddrLookup.h \

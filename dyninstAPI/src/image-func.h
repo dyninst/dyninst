@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.36 2008/06/19 19:53:19 legendre Exp $
+// $Id: image-func.h,v 1.37 2008/09/03 06:08:44 jaw Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -149,6 +149,7 @@ class image_basicBlock : public codeRange {
 
     bool isShared() const { return isShared_; }
 
+#if defined (cap_use_pdvector)
     static int compare(image_basicBlock *&b1,
                        image_basicBlock *&b2) {
         if (b1->firstInsnOffset() < b2->firstInsnOffset())
@@ -162,6 +163,32 @@ class image_basicBlock : public codeRange {
         assert(b1 == b2);
         return 0;
     }
+#else
+    static bool compare(image_basicBlock *b1,
+          image_basicBlock *b2) {
+       if (!b1) {
+          fprintf(stderr, "%s[%d]:  compare func called with NULL param\n", FILE__, __LINE__);
+          return false;
+       }
+       if (!b2) {
+          fprintf(stderr, "%s[%d]:  compare func called with NULL param\n", FILE__, __LINE__);
+          return false;
+       }
+       if (b1->firstInsnOffset() < b2->firstInsnOffset())
+          return true;
+       return false;
+#if 0
+       if (b2->firstInsnOffset() < b1->firstInsnOffset())
+          return false;
+
+       if(b1 != b2)
+          fprintf(stderr,"oh gnoes, blocks shouldn't match: 0x%p 0x%p are at 0x%lx \n",b1,b2,b1->firstInsnOffset());
+       assert(b1 == b2);
+       return 0;
+#endif
+    }
+
+#endif
 
     void debugPrint();
 

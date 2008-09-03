@@ -94,6 +94,11 @@ std::vector<localVar *> *localVarCollection::getAllVars() {
     return &localVars;
 }
   
+void localVarCollection::serialize(SerializerBase *, const char *)
+{
+   fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
+}
+
 // Could be somewhere else... for DWARF-work.
 dyn_hash_map<std::string, typeCollection *> typeCollection::fileToTypesMap;
 
@@ -416,6 +421,11 @@ vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
        return NULL;
    }
    return varsVec;
+}
+
+void typeCollection::serialize(SerializerBase *, const char *)
+{
+   fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
 }
 
 /*

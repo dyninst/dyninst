@@ -182,3 +182,8 @@ bool LineInformationImpl::LineNoTuple::operator==(const LineNoTuple &cmp) const
    //  is compare-by-pointer OK here, or do we really have to really strcmp?
    return (!strcmp(first,cmp.first)); 
 }
+
+void LineInformation::serialize(SerializerBase *sb, const char *)
+{
+   fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", FILE__, __LINE__, sb);
+}

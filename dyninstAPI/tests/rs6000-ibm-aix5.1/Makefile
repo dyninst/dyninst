@@ -1,12 +1,12 @@
 #
-# $Id: Makefile,v 1.16 2006/04/06 13:13:08 jaw Exp $
+# $Id: Makefile,v 1.17 2008/09/03 06:08:45 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 INSTANTIATE_TEMPLATES = true
-
+MUTATOR_DEBUG_FLAG = -g
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
@@ -55,7 +55,7 @@ MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CFLAGS_NATIVE) -+
 MUTATEE_CFLAGS_NATIVE += -qcpluscmt
 MUTATEE_NATIVE_FC_CFLAGS = $(MUTATEE_CFLAGS_NATIVE) -DXLF
 
-MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
+MUTATOR_CXXFLAGS = $(MUTATOR_DEBUG_FLAG) $(UNIFIED_DEF) 
 
 MUTATEE_CFLAGS_GNU = $(UNIFIED_DEF)
 MUTATEE_LDFLAGS_GNU += -Wl,-bgcbypass:3  -Wl,-bnoobjreorder 

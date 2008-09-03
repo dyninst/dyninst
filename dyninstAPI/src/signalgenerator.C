@@ -899,7 +899,7 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts, dyn_lwp
   for (int i = wait_list.size() -1; i >= 0; i--) {
     if (wait_list[i] == eg) {
        found = true;
-       wait_list.erase(i,i);
+       VECTOR_ERASE(wait_list,i,i);
        delete eg;
        break;
     } 
@@ -948,7 +948,7 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
   for (int i = global_wait_list.size() -1; i >= 0; i--) {
     if (global_wait_list[i] == eg) {
        found = true;
-       global_wait_list.erase(i,i);
+       VECTOR_ERASE(global_wait_list,i,i);
        delete eg;
        break;
     } 
@@ -1015,7 +1015,7 @@ eventType SignalGeneratorCommon::waitForEvent(eventType evt,
   for (int i = wait_list.size() -1; i >= 0; i--) {
     if (wait_list[i] == eg) {
        found = true;
-       wait_list.erase(i,i);
+       VECTOR_ERASE(wait_list,i,i);
        delete eg;
        break;
     } 

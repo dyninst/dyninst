@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.246 2008/06/19 22:13:41 jaw Exp $
+// $Id: aix.C,v 1.247 2008/09/03 06:08:44 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -574,7 +574,7 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
                         j++;
                 }
 
-		imagePatches.erase(0,j-1);
+		VECTOR_ERASE(imagePatches,0,j-1);
 		j=0;
 
       for (;j<imagePatches.size()-1;j++){

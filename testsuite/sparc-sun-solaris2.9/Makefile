@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.12 2008/04/18 17:07:25 jaw Exp $
+# $Id: Makefile,v 1.13 2008/09/03 06:08:50 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -81,6 +81,11 @@ endif
 endif
 endif
 
+# Include any per-user configuration changes; this "local" config file
+# should *not* be under CVS control, so that it never gets committed.
+-include $(TO_CORE)/make.config.local
+
+
 TEST6_AS_GNU = gcc -c 
 TEST6_AS_SRC = test6LS-sparc.S
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
@@ -99,8 +104,11 @@ endif
 ifdef NATIVE_CXX
 COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>&1 | head -1)
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -instances=static
+MUTATEE_CXXFLAGS_NATIVE += $(FIRST_INCLUDE) -I$(TO_CORE) -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/common/h/ -I$(TO_CORE)/symtabAPI/h
 endif
 
+MUTATEE_CXXFLAGS_GNU = $(UNIFIED_DEF)
+MUTATEE_CXXFLAGS_GNU += $(FIRST_INCLUDE) -I$(TO_CORE) -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/common/h/ -I$(TO_CORE)symtabAPI/h
 MUTATEE_CFLAGS_GNU = $(MODCFLAGS) $(DEBUG_FLAG)
 MUTATOR_CXXFLAGS += -W -Wall
 

@@ -210,7 +210,11 @@ int_function::~int_function() {
 #if defined(cap_relocation)
     for (unsigned i = 0; i < enlargeMods_.size(); i++)
         delete enlargeMods_[i];
+#if defined (cap_use_pdvector)
     enlargeMods_.zap();
+#else
+    enlargeMods_.clear();
+#endif
 #endif
     
     for (unsigned i = 0; i < parallelRegions_.size(); i++)
@@ -266,7 +270,9 @@ void int_function::addArbitraryPoint(instPoint *insp) {
 const pdvector<instPoint *> &int_function::funcEntries() {
     if (entryPoints_.size() == 0) {
         const pdvector<image_instPoint *> &img_entries = ifunc_->funcEntries();        
+#if defined (cap_use_pdvector)
         entryPoints_.reserve_exact(img_entries.size());
+#endif
         for (unsigned i = 0; i < img_entries.size(); i++) {
 
             // TEMPORARY FIX: we're seeing points identified by low-level
@@ -289,14 +295,18 @@ const pdvector<instPoint *> &int_function::funcEntries() {
             entryPoints_.push_back(point);
         }
     }
+#if defined (cap_use_pdvector)
     entryPoints_.reserve_exact(entryPoints_.size());
+#endif
     return entryPoints_;
 }
 
 const pdvector<instPoint*> &int_function::funcExits() {
     if (exitPoints_.size() == 0) {
         const pdvector<image_instPoint *> &img_exits = ifunc_->funcExits();
+#if defined (cap_use_pdvector)
         exitPoints_.reserve_exact(img_exits.size());
+#endif
         
         for (unsigned i = 0; i < img_exits.size(); i++) {
             // TEMPORARY FIX: we're seeing points identified by low-level
@@ -320,14 +330,18 @@ const pdvector<instPoint*> &int_function::funcExits() {
             exitPoints_.push_back(point);
         }
     }
+#if defined (cap_use_pdvector)
     exitPoints_.reserve_exact(exitPoints_.size());
+#endif
     return exitPoints_;
 }
 
 const pdvector<instPoint*> &int_function::funcCalls() {
     if (callPoints_.size() == 0) {
         const pdvector<image_instPoint *> &img_calls = ifunc_->funcCalls();
+#if defined (cap_use_pdvector)
         callPoints_.reserve_exact(img_calls.size());
+#endif
         
         for (unsigned i = 0; i < img_calls.size(); i++) {
             // TEMPORARY FIX: we're seeing points identified by low-level
@@ -352,7 +366,9 @@ const pdvector<instPoint*> &int_function::funcCalls() {
             callPoints_.push_back(point);
         }
     }
+#if defined (cap_use_pdvector)
     callPoints_.reserve_exact(callPoints_.size());
+#endif
     return callPoints_;
 }
 
@@ -454,7 +470,9 @@ const std::vector<int_basicBlock *> &int_function::blocks()
         }
     }
     // And a quick consistency check...
+#if defined (cap_use_pdvector)
     //blockList.reserve_exact(blockList.size());
+#endif
     return blockList;
 }
 
@@ -757,7 +775,11 @@ int_basicBlock::~int_basicBlock() {
     for (unsigned i = 0; i < instances_.size(); i++) {
         delete instances_[i];
     }
+#if defined (cap_use_pdvector)
     instances_.zap();
+#else
+    instances_.clear();
+#endif
 }
 
 bblInstance *int_basicBlock::origInstance() const {
@@ -1115,7 +1137,11 @@ bblInstance::reloc_info_t::~reloc_info_t() {
     delete relocs_[i];
   }
 
+#if defined (cap_use_pdvector)
   relocs_.zap();
+#else
+  relocs_.clear();
+#endif
 
    // appliedMods is deleted by the function....
    // jumpToBlock is deleted by the process....

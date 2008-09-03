@@ -48,7 +48,7 @@ class Symtab;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
-class DLLEXPORT localVarCollection{
+class DLLEXPORT localVarCollection : public Serializable {
   
   dyn_hash_map<std::string, localVar *> localVariablesByName;
   vector<localVar *> localVars;
@@ -60,6 +60,8 @@ public:
   void addLocalVar(localVar * var);
   localVar * findLocalVar(std::string &name);
   vector<localVar *> *getAllVars();  
+
+  void serialize(SerializerBase *, const char * = "localVarCollection");
 };
   
 
@@ -68,10 +70,12 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class DLLEXPORT typeCollection {
+class DLLEXPORT typeCollection : public Serializable {
     friend class Symtab;
     friend class Object;
     friend class Module;
+    friend class SymtabTranslatorBase;
+    friend class SymtabTranslatorBin;
 
     dyn_hash_map<std::string, Type *> typesByName;
     dyn_hash_map<std::string, Type *> globalVarsByName;
@@ -91,6 +95,7 @@ class DLLEXPORT typeCollection {
     bool dwarfParsed_;
 
 public:
+    void serialize(SerializerBase *, const char * = "typeCollection");
     static typeCollection *getGlobalTypeCollection();
     static typeCollection *getModTypeCollection(Module *mod);
     static void freeTypeCollection(typeCollection *tc);

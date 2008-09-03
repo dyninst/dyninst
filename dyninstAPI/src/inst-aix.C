@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.27 2008/06/19 22:13:41 jaw Exp $
+/* $Id: inst-aix.C,v 1.28 2008/09/03 06:08:44 jaw Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -113,6 +113,7 @@ void initPrimitiveCost()
 }
 
 
+#if 0
 void emitStorePreviousStackFrameRegister(Address,
                                          Register,
                                          codeGen &,
@@ -121,6 +122,7 @@ void emitStorePreviousStackFrameRegister(Address,
 {
     assert (0);
 }
+#endif
 
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.278 2008/06/19 22:13:42 jaw Exp $
+// $Id: linux.C,v 1.279 2008/09/03 06:08:44 jaw Exp $
 
 #include <fstream>
 #include <string>
@@ -344,7 +344,7 @@ bool SignalGenerator:: remove_lwp_from_poll_list(int lwp_id)
       int lcur = abs(attached_lwp_ids[i]);
       if (lcur == lwp_id)
       {
-         attached_lwp_ids.erase(i, i);
+         VECTOR_ERASE(attached_lwp_ids,i, i);
          found = true;
       }
    }
@@ -2083,7 +2083,7 @@ bool WaitpidMux::registerProcess(SignalGenerator *me)
         proccontrol_printf("[%s:%u] - Found early event for %d, restoring\n",
                            FILE__, __LINE__, me->getPid());
         me->event_queue.push_back(unassigned_events[i]);
-        unassigned_events.erase(i, i);
+        VECTOR_ERASE(unassigned_events,i, i);
         i--;
      }
   addPidGen(me->getPid(), me);
@@ -2102,7 +2102,7 @@ bool WaitpidMux::registerLWP(unsigned lwpid, SignalGenerator *me)
          proccontrol_printf("[%s:%u] - Found early event for %d, restoring\n",
                             FILE__, __LINE__, me->getPid());
          me->event_queue.push_back(unassigned_events[i]);
-         unassigned_events.erase(i, i);
+         VECTOR_ERASE(unassigned_events,i, i);
          i--;
       }
    
@@ -2182,7 +2182,7 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
          //Someone put an event into our queue (thank you), we'll
          //go ahead and dequeue and return it.
          waitpid_ret_pair ret = me->event_queue[0];
-         me->event_queue.erase(0, 0);
+         VECTOR_ERASE(me->event_queue,0, 0);
          *status = ret.status;
          proccontrol_printf("[%s:%u] %d found an event %d in my queue\n",
                             FILE__, __LINE__, me->getPid(), *status);
@@ -2367,7 +2367,7 @@ void WaitpidMux::removePidGen(int pid, SignalGenerator *sg)
       if (pidgens[i].pid == pid) {
          assert(pidgens[i].sg == sg);
          assert(!found);
-         pidgens.erase(i, i);
+         VECTOR_ERASE(pidgens,i, i);
          found = true;
       }
    }
@@ -2382,7 +2382,7 @@ void WaitpidMux::removePidGen(SignalGenerator *sg)
       if (pidgens[i].sg == sg) {
          proccontrol_printf("\t[%s:%u] Removing pidgen %d for sg %d\n",
                             FILE__, __LINE__, pidgens[i].pid, sg->getPid());
-         pidgens.erase(i, i);
+         VECTOR_ERASE(pidgens,i, i);
          i--;
       }
    }

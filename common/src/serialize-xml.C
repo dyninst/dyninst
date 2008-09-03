@@ -52,6 +52,44 @@ HINSTANCE hXML;
 #define XMLCHAR_CAST BAD_CAST
 #endif
 
+SerDesXML &SerializerXML::getSD_xml()
+{
+   SerDes &sd = getSD();
+   SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
+   assert(sdxml);
+   return *sdxml;
+}
+
+bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
+{
+   SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
+   if (!sxml) {
+      fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n", FILE__, __LINE__);
+      return false;
+   }
+
+   SerDesXML sdxml = sxml->getSD_xml();
+   sdxml.start_element(tag); 
+   return true;
+}
+
+bool SerializerXML::end_xml_element(SerializerBase * sb, const char  * /*tag*/)
+{
+   SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
+   if (!sxml) {
+      fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n", FILE__, __LINE__);
+      return false;
+   }
+
+   SerDesXML sdxml = sxml->getSD_xml();
+   sdxml.end_element(); 
+   return true;
+}
+
+#if 0
+bool end_xml_element(SerializerBase *, const char *);
+#endif
+
 xmlTextWriterPtr(*my_xmlNewTextWriterFilename)(const char *,int) = NULL;
 int(*my_xmlTextWriterStartDocument)(xmlTextWriterPtr, const char *, const char *, const char * ) = NULL;
 int(*my_xmlTextWriterStartElement)(xmlTextWriterPtr, const xmlChar *) = NULL;
@@ -61,8 +99,9 @@ void(*my_xmlFreeTextWriter)(xmlTextWriterPtr) = NULL;
 int(*my_xmlTextWriterWriteFormatAttribute)(xmlTextWriterPtr, const xmlChar *,const char *,...) = NULL;
 int(*my_xmlTextWriterEndElement)(xmlTextWriterPtr) = NULL;
 
-SerDesXML::SerDesXML(std::string fname, iomode_t mode, bool verbose) :
-  SerDes(fname, mode, verbose)
+//SerDesXML::SerDesXML(std::string fname, iomode_t mode, bool verbose) :
+//  SerDes(fname, mode, verbose)
+xmlTextWriterPtr SerDesXML::init(std::string fname, iomode_t /*mode*/, bool /*verbose*/) 
 {
 #if defined(_MSC_VER)
    hXML = LoadLibrary(LPCSTR("../../../i386-unknown-nt4.0/lib/libxml2.dll"));
@@ -85,7 +124,7 @@ SerDesXML::SerDesXML(std::string fname, iomode_t mode, bool verbose) :
     hXML = dlopen("libxml2.so", RTLD_LAZY);
     if(hXML == NULL){
       SER_ERR("Unable to find libxml2");
-      return;
+      return NULL;
    }
     my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))dlsym(hXML,"xmlNewTextWriterFilename");
     my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))dlsym(hXML,"xmlTextWriterStartDocument");
@@ -98,17 +137,18 @@ SerDesXML::SerDesXML(std::string fname, iomode_t mode, bool verbose) :
 
 #endif
     /* Create a new XmlWriter for DOM */
-    writer = my_xmlNewTextWriterFilename(filename.c_str(), 0);
+    xmlTextWriterPtr writer = my_xmlNewTextWriterFilename(fname.c_str(), 0);
     if (writer == NULL) {
         SER_ERR("testXmlwriterDoc: Error creating the xml writer");
-      return;
+      return NULL;
     }
     int rc = my_xmlTextWriterStartDocument(writer, NULL, "ISO-8859-1", NULL);
     if (rc < 0) {
         SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartDocument");
-    return;
+    return NULL;
     }
 
+    return writer;
 }
 
 SerDesXML::~SerDesXML()
@@ -123,7 +163,7 @@ SerDesXML::~SerDesXML()
 
 }
 
-void SerDesXML::vector_start(unsigned int &/*size*/, const char *tag) throw(SerializerError)
+void SerDesXML::vector_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
     int rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST tag);
     if (rc < 0) {
@@ -139,7 +179,7 @@ void SerDesXML::vector_end()
     }
 }
 
-void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) throw(SerializerError)
+void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
     int rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST tag);
     if (rc < 0) {
@@ -148,6 +188,22 @@ void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) throw(Se
 }
 
 void SerDesXML::multimap_end()
+{
+    int rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+}
+
+void SerDesXML::hash_map_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
+{
+    int rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST tag);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+}
+
+void SerDesXML::hash_map_end()
 {
     int rc = my_xmlTextWriterEndElement(writer);
     if (rc < 0) {
@@ -193,6 +249,26 @@ void SerDesXML::translate(int &param, const char *tag)
     }
 }
 
+void SerDesXML::translate(long &param, const char *tag)
+{   
+    
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%l", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+}
+
+void SerDesXML::translate(short &param, const char *tag)
+{   
+    
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%h", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+}
+
 void SerDesXML::translate(unsigned int &param, const char *tag)
 {   
   translate( param, tag);
@@ -210,6 +286,26 @@ void SerDesXML::translate(OFFSET &param, const char *tag)
 }
 #endif
 
+void SerDesXML::translate(float &param, const char *tag)
+{
+
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%e", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+}
+
+void SerDesXML::translate(double &param, const char *tag)
+{
+
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%g", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+}
+
 void SerDesXML::translate(Address &param, const char *tag)
 {
 
@@ -221,6 +317,15 @@ void SerDesXML::translate(Address &param, const char *tag)
 }
 
 void SerDesXML::translate(const char * &param, int /*bufsize*/, const char *tag)
+{
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%s", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+}
+
+void SerDesXML::translate(char * &param, int /*bufsize*/, const char *tag)
 {
     int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
                                                  "%s", param);

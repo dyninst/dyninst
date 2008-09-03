@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: stats.h,v 1.2 2008/06/30 17:33:25 legendre Exp $
+// $Id: stats.h,v 1.3 2008/09/03 06:08:43 jaw Exp $
 
 #ifndef STATS_H
 #define STATS_H
@@ -176,17 +176,17 @@ typedef enum {
 
 
 /* A container for a group of (one expects) mutually related statistics. */
-class DLLEXPORT StatContainer {
+class StatContainer {
  public:
-    StatContainer(); 
+    DLLEXPORT StatContainer(); 
 
     /* Access or create a statistic indexed by the provided name.
      *
      * This operator may return null if the named statistic does
      * not exist.
      */
-    Statistic * operator[](std::string &);
-    Statistic * operator[](const char *s) {
+    DLLEXPORT Statistic * operator[](std::string &);
+    DLLEXPORT Statistic * operator[](const char *s) {
        std::string namestr(s);
        return (*this)[namestr];
     }
@@ -194,19 +194,19 @@ class DLLEXPORT StatContainer {
     // Create a new statistic of the given type indexed by name.
     // **This will replace any existing stat with the same index
     //   within this container**
-    void add(std::string name, StatType type);
+    DLLEXPORT void add(std::string name, StatType type);
 
     // Access all of the existing statistics
-    dyn_hash_map< std::string, Statistic * > &
-    allStats() { return stats_; }
+    DLLEXPORT dyn_hash_map< std::string, Statistic * > &
+       allStats() { return stats_; }
 
     // And some pass-through methods, encapsulated for
     // ease of use
-    void startTimer(std::string);
-    void stopTimer(std::string);
-    void incrementCounter(std::string);
-    void decrementCounter(std::string);
-    void addCounter(std::string, int);
+    DLLEXPORT void startTimer(std::string);
+    DLLEXPORT void stopTimer(std::string);
+    DLLEXPORT void incrementCounter(std::string);
+    DLLEXPORT void decrementCounter(std::string);
+    DLLEXPORT void addCounter(std::string, int);
 
  private:
     dyn_hash_map< std::string, Statistic * > stats_;

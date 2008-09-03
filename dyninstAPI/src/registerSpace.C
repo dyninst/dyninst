@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.22 2008/06/19 19:53:36 legendre Exp $
+// $Id: registerSpace.C,v 1.23 2008/09/03 06:08:44 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -371,7 +371,25 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
                         reg->keptValue);
 #endif                 
 
+#if 0
+#if defined (cap_use_pdvector)
         if (find(excluded, reg->number, scratchIndex)) continue;
+#else
+        if (excluded.end() != std::find(excluded.begin(), excluded.end(), reg->number)) 
+           continue;
+#endif
+#endif
+        bool found = false;
+        for (unsigned int i = 0; i < excluded.size(); ++i) {
+           Register &ex_reg = excluded[i];
+           if (reg->number == ex_reg) {
+              found = true;
+              break;
+           }
+        }
+
+        if (found) continue;
+
         if (reg->offLimits) continue;
         if (reg->refCount > 0) continue;
         if (reg->liveState == registerSlot::live) {

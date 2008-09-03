@@ -2090,7 +2090,7 @@ bool BPatch::removeThreadEventCallbackInt(BPatch_asyncEventType type,
       AsyncThreadEventCallback *test = (AsyncThreadEventCallback *)cbs[i];
       if (test->getFunc() == cb) {
         //  found it, destroy it
-        cbs.erase(i,i);
+        VECTOR_ERASE(cbs,i,i);
         ret = true;
         delete test;
       } 
@@ -2130,7 +2130,7 @@ bool BPatch::removeDynamicCallCallbackInt(BPatchDynamicCallSiteCallback func)
       DynamicCallsiteCallback *test = (DynamicCallsiteCallback *)cbs[i];
       if (test->getFunc() == func) {
         //  found it, destroy it
-        cbs.erase(i,i);
+        VECTOR_ERASE(cbs,i,i);
         ret = true;
         delete test;
       } 
@@ -2168,7 +2168,7 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
       UserEventCallback *test = (UserEventCallback *)cbs[i];
       if (test->getFunc() == cb) {
         //  found it, destroy it
-        cbs.erase(i,i);
+        VECTOR_ERASE(cbs,i,i);
         ret = true;
         delete test;
       } 
@@ -2207,7 +2207,7 @@ bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback cb)
         SignalHandlerCallback *test = (SignalHandlerCallback *)cbs[i];
         if (test->getFunc() == cb) {
             //  found it, destroy it
-            cbs.erase(i,i);
+            VECTOR_ERASE(cbs,i,i);
             ret = true;
             delete test;
         } 

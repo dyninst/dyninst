@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.211 2008/08/01 17:55:15 roundy Exp $
+// $Id: symtab.h,v 1.212 2008/09/03 06:08:45 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -539,7 +539,9 @@ class image : public codeRange, public InstructionSource {
 
    // A vector of all images. Used to avoid duplicating
    // an "image" that already exists.
+#if 0
    static pdvector<image*> allImages;
+#endif
 
    // knownJumpTargets: the addresses in this image that are known to 
    // be targets of jumps. It is used to check points with multiple 

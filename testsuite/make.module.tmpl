@@ -70,7 +70,8 @@ LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
 ###  Basic definitions (filename prefixes)
 #######################################################################
 
-MUTATORS =      test1_1 \
+MUTATORS =      test0_0 \
+                test1_1 \
                 test1_2 \
                 test1_3 \
                 test1_4 \
@@ -229,7 +230,9 @@ MUTATEES_CXX =	test1.mutatee \
 #  Most C mutatees are also compiled as C++ mutatees, there are some (well, one)
 #  that are c++ only, which cannot also be compiled as C mutatees
 
-MUTATEES_CXX_ONLY = test5.mutatee
+MUTATEES_CXX_ONLY = test5.mutatee 
+MUTATEES_CXX_GNU_ONLY = test0.mutatee \
+                        test00.mutatee 
 
 MUTATEES_FORTRAN = test1.mutatee
 
@@ -290,6 +293,7 @@ SRCS_MUTATEES_CXX 	+= $(addsuffix .C,$(MUTATEES_CXX_ONLY))
 MUTATEES_GCC		+= $(addsuffix _gcc,$(MUTATEES_C))
 MUTATEES_GXX		+= $(addsuffix _g++,$(MUTATEES_CXX))
 MUTATEES_GXX		+= $(addsuffix _g++,$(MUTATEES_CXX_ONLY))
+MUTATEES_GXX		+= $(addsuffix _g++,$(MUTATEES_CXX_GNU_ONLY))
 
 ifdef M_ABI
 MUTATEES_GCC_ABI	+= $(addsuffix _gcc_$(M_ABI), $(MUTATEES_C))
@@ -618,6 +622,14 @@ endif
 # 
 # The <testno>. will be stripped off, leaving -libwhatever on the link line
 
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 0.-lcommon
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 0.-liberty
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 0.-L$(DYNINST_ROOT)/core/common/$(PLATFORM)
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 00.-lcommon
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 00.-lsymtabAPI
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 00.-liberty
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 00.-L$(DYNINST_ROOT)/core/common/$(PLATFORM)
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 00.-L$(DYNINST_ROOT)/core/symtabAPI/$(PLATFORM)
 MUTATEE_SPECIFIC_LIBS_GNU 	+= $(MUTATEE_TEST9_EXTRA_LIB)
 MUTATEE_SPECIFIC_LIBS_GNU 	+= 12.-lpthread
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= $(MUTATEE_TEST9_EXTRA_LIB)

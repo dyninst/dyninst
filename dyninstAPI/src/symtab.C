@@ -76,6 +76,7 @@
 #include <cvconst.h>
 #endif
 
+pdvector<image*> allImages;
 
 using namespace Dyninst;
 string fileDescriptor::emptyString(string(""));
@@ -124,7 +125,9 @@ void fileDescriptor::setLoadAddr(Address a)
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
+#if 0
 pdvector<image*> image::allImages;
+#endif
 
 int codeBytesSeen = 0;
 
@@ -989,7 +992,10 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
      return NULL;
   }
 
+#if 0
   image::allImages.push_back(ret);
+#endif
+  allImages.push_back(ret);
 
   // define all modules.
 
@@ -1381,7 +1387,7 @@ image::~image()
     // Finally, remove us from the image list.
     for (i = 0; i < allImages.size(); i++) {
         if (allImages[i] == this)
-            allImages.erase(i,i);
+            VECTOR_ERASE(allImages,i,i);
     }
 
     if (pltFuncs) {

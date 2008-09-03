@@ -396,7 +396,7 @@ void ThreadMailbox::executeCallbacks(const char *file, unsigned int line)
   while (cbs.size())
   {
     CallbackBase *cb = cbs[0], *called_cb;
-    cbs.erase(0,0);
+    VECTOR_ERASE(cbs,0,0);
 
     mb_lock._Unlock(FILE__, __LINE__);
     called_cb = executeCallback(cb);
@@ -445,7 +445,7 @@ CallbackBase *ThreadMailbox::executeCallback(CallbackBase *cb)
   bool erased_from_running_pile = false;
   for (unsigned int i = 0; i < running.size(); ++i) {
     if (running[i] == cb) {
-       running.erase(i,i);
+       VECTOR_ERASE(running,i,i);
        erased_from_running_pile = true;
        break;
     }
@@ -486,7 +486,7 @@ void ThreadMailbox::cleanUpCalled()
   for (int i = startsz -1; i >= 0; i--) {
     if (called[i]->deleteEnabled()) {
       CallbackBase *cb = called[i];
-      called.erase(i,i);
+      VECTOR_ERASE(called,i,i);
       delete (cb);
     }
   }
