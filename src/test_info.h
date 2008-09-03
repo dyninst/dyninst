@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.26 2007/08/07 16:31:31 rutar Exp $
+// $Id: test_info.h,v 1.27 2008/09/03 06:08:50 jaw Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
+mutatee_list_t test0_mutatee;
 mutatee_list_t test1_mutatee;
 mutatee_list_t test2_mutatee;
 mutatee_list_t test3_mutatee;
@@ -84,6 +85,7 @@ void initialize_mutatees()
 #endif
 
 #ifdef gnu_cxx
+   test0_mutatee.push_back("test0.mutatee" xstr(gnu_cxx));
    test1_mutatee.push_back("test1.mutatee" xstr(gnu_cxx));
    test2_mutatee.push_back("test2.mutatee" xstr(gnu_cxx));
    test3_mutatee.push_back("test3.mutatee" xstr(gnu_cxx));
@@ -280,6 +282,7 @@ platforms_t unix_platforms =
    };
 
 test_data_t tests[] = {
+   test_data_t("test0_0", "test0_0.so", test0_mutatee, all_platforms, SELFSTART, 0, 0, COLLECT_EXITCODE, CREATE, ENABLED, SOLO),
    test_data_t("test1_1", "test1_1.so", test1_mutatee, all_platforms, STOPPED, 1, 1, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
    test_data_t("test1_2", "test1_2.so", test1_mutatee, all_platforms, STOPPED, 1, 2, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
    test_data_t("test1_3", "test1_3.so", test1_mutatee, all_platforms, STOPPED, 1, 3, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
