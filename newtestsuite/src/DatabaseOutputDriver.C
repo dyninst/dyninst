@@ -104,7 +104,7 @@ void DatabaseOutputDriver::vlog(TestOutputStream stream, const char *fmt,
 #if defined(os_windows)
      char *tfile = _tempnam(".", "dts");
      if (tfile) {
-        dbout = fopen(tfile, "w+b")
+        dbout = fopen(tfile, "w+b");
      }
 #else
     dbout = tmpfile();
