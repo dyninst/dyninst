@@ -1069,6 +1069,16 @@ bool SerDes::addAnnoFunc(std::string type_name, AnnoFunc sf)
    return true;
 }
 
+bool sb_is_input(SerializerBase *sb) 
+{
+   return  (sb->iomode() == sd_deserialize);
+}
+
+bool sb_is_output(SerializerBase *sb) 
+{
+   return  (sb->iomode() == sd_serialize);
+}
+
 SerializerBase::SerializerBase(const char *name_, 
       std::string filename, 
       iomode_t dir, 

@@ -26,6 +26,7 @@
 
 
 class SerializerBase;
+typedef enum {sd_serialize, sd_deserialize} iomode_t;
 
 class DLLEXPORT Serializable {
    protected:
@@ -414,12 +415,15 @@ DLLEXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/);
 class SerializerBin;
 class SerializerXML;
 
+bool sb_is_input(SerializerBase *sb);
+bool sb_is_output(SerializerBase *sb);
 
 template <class T>
 bool ifinput(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)
 {
-   if (sb->iomode() != sd_deserialize)
+   if (!sb_is_input(sb))
       return false;
+
 
    return (*f)(sb, itp);
 }
@@ -427,7 +431,7 @@ bool ifinput(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)
 template <class T>
 bool ifoutput(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)
 {
-   if (sb->iomode() != sd_serialize)
+   if (!sb_is_output(sb))
       return false;
 
    return (*f)(sb, itp);

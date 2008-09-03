@@ -92,36 +92,6 @@ DLLEXPORT bool &serializer_debug_flag();
    SER_ERR(x); }
 
 void DLLEXPORT serialize_debug_init();
-//class AnnotationBase;
-
-typedef enum {sd_serialize, sd_deserialize} iomode_t;
-
-
-
-#if 0
-class SerializerError : public std::runtime_error {
-   //  SerializerError:  a small class that is thrown by serialization/deserialization
-   //  routines.  This exists as an attempt to standardize and simplify error handling
-   //  for ser-des routines that are possibly deeply nested.
-   //  Here's the rub:  we don't want stray, unhandled exceptions finding their way into
-   //  the larger system...  thus all entry points to serialization/deserialization need
-   //  to catch this exception to render it transparent to the rest of the system.
-
-    std::string file__;
-    int line__;
-
-  public:
-
-  SerializerError(const std::string &__file__, const int &__line__, const std::string &msg) :
-     runtime_error(msg),
-     file__(__file__),
-     line__(__line__) {}
-  virtual ~SerializerError() throw() {}
-
-  std::string file() const {return file__;}
-  int line() const {return line__;}
-};
-#endif
 
 class SerDes;
 class SerFile;
@@ -140,9 +110,6 @@ class SerializerBase {
       DLLEXPORT virtual ~SerializerBase() {fprintf(stderr, "%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, this, serializer_name.c_str());}
       DLLEXPORT virtual SerDes &getSD()  { assert(sd); return *sd;}
       DLLEXPORT SerFile &getSF() {assert(sf); return *sf;}
-      //SerDes *getSerDes() {
-      //   return sd;
-     // }
       DLLEXPORT std::string &name() {return serializer_name;}
       DLLEXPORT static SerializerBase *getSerializer(std::string subsystem, std::string fname);
       DLLEXPORT static bool addSerializer(std::string subsystem, std::string fname, SerializerBase *sb);
