@@ -17,7 +17,7 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 SYSLIBS   += -lnsl 
-LIBS = -L$(LIBDWARF_LIB) -ldwarf
+LIBS = -L$(LIBDWARF_LIB) -ldwarf -linstructionAPI
 
 MUTATEE_CFLAGS += -rdynamic -ldl
 

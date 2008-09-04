@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.40 2008/06/30 17:33:26 legendre Exp $
+# $Id: Makefile,v 1.41 2008/09/04 21:06:06 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -81,7 +81,7 @@ endif
 LIBS    += -lgcc
 
 # InstructionAPI is x86-only at this point
-LIBS    += -lInstruction
+LIBS    += -linstructionAPI
 
 AS		= /usr/bin/as
 
