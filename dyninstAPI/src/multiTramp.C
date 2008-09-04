@@ -53,6 +53,9 @@
 #include "InstrucIter.h"
 #endif // defined(cap_instruction_api)
 #include "BPatch.h"
+// Need codebuf_t, Address
+#include "arch.h"
+#include <sstream>
 
 using namespace Dyninst;
 
@@ -429,6 +432,36 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 #endif
     if (!done) {
 
+#if defined(cap_instruction_api)
+      size_t offset = 0;
+      using namespace Dyninst::InstructionAPI;
+      const unsigned char* relocatedInsnBuffer =
+      reinterpret_cast<const unsigned char*>(proc->getPtrToInstruction(startAddr));
+      
+      InstructionDecoder decoder(relocatedInsnBuffer, size);
+      while(offset < size)
+      {
+	Address insnAddr = startAddr + offset;
+
+	relocatedInstruction *reloc = new relocatedInstruction(relocatedInsnBuffer + offset, insnAddr, insnAddr, 0, newMulti);
+	newMulti->insns_[insnAddr] = reloc;
+	if (prev) {
+	  prev->setFallthrough(reloc);
+	}
+	else {
+	  // Other initialization?
+	  newMulti->setFirstInsn(reloc);
+	}
+	reloc->setPrevious(prev);
+	prev = reloc;	
+	offset += decoder.decode().size();
+	#if defined(arch_sparc)
+	#error "Instruction API not implemented for SPARC yet"
+	// delay slot handling goes here
+	#endif
+      }
+      
+#else
       for (InstrucIter insnIter(startAddr, size, proc);
 	   insnIter.hasMore(); 
 	   insnIter++) {
@@ -470,8 +503,9 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 	    reloc->agg_insn = agg;
 	  }
         }
-#endif
-      }   
+#endif // defined(arch_sparc)
+      } 
+#endif // defined(cap_instruction_api)  
     }
 
     assert(prev);
@@ -757,14 +791,7 @@ void multiTramp::updateInstInstances() {
     while ((obj = cfgIter++)) {
         fprintf(stderr, "obj: %p (prev %p, next %p)...", obj,
                 obj->previous_, obj->fallthrough_);
-        relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
-        baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
-        trampEnd *end = dynamic_cast<trampEnd *>(obj);
-        replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
-        if (insn) fprintf(stderr, "insn\n");
-        if (bti) fprintf(stderr, "bti\n");
-        if (end) fprintf(stderr, "end\n");
-        if (ri) fprintf(stderr, "replaced instruction, orig insn %p\n", ri->oldInsn_);
+	fprintf(stderr, "%s\n", obj->getTypeString().c_str());
     }
     fprintf(stderr, "-----\n");
 #endif
@@ -2154,6 +2181,26 @@ generatedCodeObject *trampEnd::replaceCode(generatedCodeObject *obj) {
     return new trampEnd(multi_, target_);
 }
 
+std::string generatedCodeObject::getTypeString() const
+{
+  return "unknown";
+}
+std::string baseTrampInstance::getTypeString() const
+{
+  return "a base tramp";
+}
+std::string relocatedInstruction::getTypeString() const
+{
+  std::stringstream s;
+  s << "relocated instruction from " << std::hex << fromAddr_;
+  return s.str();
+}
+std::string trampEnd::getTypeString() const
+{
+  return "tramp end";
+}
+
+
 // And the code iterator
 
 generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
@@ -2169,63 +2216,14 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                     cur_, cur_->fallthrough_,
                     cur_->fallthrough_->previous_,
                     cur_);
-            baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(cur_);
-            relocatedInstruction *reloc = dynamic_cast<relocatedInstruction *>(cur_);
-            trampEnd *te = dynamic_cast<trampEnd *>(cur_);
-            if (bti)
-                fprintf(stderr, "current is a base tramp\n");
-            else if (reloc)
-                fprintf(stderr, "current is relocated insn from 0x%lx\n",
-                        reloc->fromAddr_);
-            else if (te)
-                fprintf(stderr, "current is tramp end\n");
-            else 
-                fprintf(stderr, "current is unknown\n");
-
-            bti = dynamic_cast<baseTrampInstance *>(cur_->previous_);
-            reloc = dynamic_cast<relocatedInstruction *>(cur_->previous_);
-            te = dynamic_cast<trampEnd *>(cur_->previous_);
-            if (bti)
-                fprintf(stderr, "previous is a base tramp\n");
-            else if (reloc)
-                fprintf(stderr, "previous is relocated insn from 0x%lx\n",
-                        reloc->fromAddr_);
-            else if (te)
-                fprintf(stderr, "previous is tramp end\n");
-            else
-                fprintf(stderr, "previous is unknown\n");
-            
+	    fprintf(stderr, "current is a %s\n", cur_->getTypeString().c_str());
+	    fprintf(stderr, "previous is a %s\n", cur_->previous_->getTypeString().c_str());
             if (cur_->previous_) 
                 fprintf(stderr, "Previous pointers: fallthrough %p, target %p\n",
                         cur_->previous_->fallthrough_,
                         cur_->previous_->target_);
-
-
-            bti = dynamic_cast<baseTrampInstance *>(cur_->fallthrough_);
-            reloc = dynamic_cast<relocatedInstruction *>(cur_->fallthrough_);
-            te = dynamic_cast<trampEnd *>(cur_->fallthrough_);
-            if (bti)
-                fprintf(stderr, "next is a base tramp\n");
-            else if (reloc)
-                fprintf(stderr, "next is relocated insn from 0x%lx\n",
-                        reloc->fromAddr_);
-            else if (te)
-                fprintf(stderr, "next is tramp end\n");
-            else 
-                fprintf(stderr, "next is unknown type\n");
-
-            bti = dynamic_cast<baseTrampInstance *>(cur_->fallthrough_->previous_);
-            reloc = dynamic_cast<relocatedInstruction *>(cur_->fallthrough_->previous_);
-            te = dynamic_cast<trampEnd *>(cur_->fallthrough_->previous_);
-            if (bti)
-                fprintf(stderr, "next->previous is a base tramp\n");
-            else if (reloc)
-                fprintf(stderr, "next->previous is relocated insn from 0x%lx\n", 
-                        reloc->fromAddr_);
-            else if (te)
-                fprintf(stderr, "next->previous is tramp end\n");
-            else
-                fprintf(stderr, "next->previous is unknown type\n");
+	    fprintf(stderr, "next is a %s\n", cur_->fallthrough_->getTypeString().c_str());
+	    fprintf(stderr, "next->previous is a %s\n", cur_->fallthrough_->previous_->getTypeString().c_str());
         }
         assert(cur_->fallthrough_->previous_ == cur_);
         cur_ = cur_->fallthrough_;
@@ -2701,6 +2699,24 @@ relocatedInstruction::relocatedInstruction(relocatedInstruction *prev,
    targetOverride_(prev->targetOverride_) 
 {
 }
+#if defined(cap_instruction_api)
+relocatedInstruction::relocatedInstruction(const unsigned char* insnPtr, Address o, Address f, Address t,
+                      multiTramp *m) :
+   relocatedCode(),
+#if defined(arch_sparc)
+   ds_insn(NULL),
+   agg_insn(NULL),
+#endif
+   origAddr_(o), 
+   fromAddr_(f), 
+   targetAddr_(t),
+   multiT(m), 
+   targetOverride_(NULL) 
+{
+  insn = new instruction;
+  insn->setInstruction((codeBuf_t*)insnPtr, (Address)(o));
+}
+#endif
 
 replacedInstruction::replacedInstruction(const relocatedInstruction *i,
                                          AstNodePtr ast,

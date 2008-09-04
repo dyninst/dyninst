@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.39 2008/06/26 20:40:15 bill Exp $
+// $Id: reloc-func.C,v 1.40 2008/09/04 21:06:11 bill Exp $
 
 
 
@@ -50,7 +50,13 @@
 #include "codeRange.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/multiTramp.h"
+#if defined(cap_instruction_api)
+#include "dyninstAPI/src/arch.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+#include "instructionAPI/h/Instruction.h"
+#else
 #include "dyninstAPI/src/InstrucIter.h"
+#endif
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/patch.h"
 class int_basicBlock;
@@ -646,6 +652,34 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    // Keep a running count of how big things are...
    maxSize() = 0;
    minSize() = 0;
+#if defined(cap_instruction_api)
+   using namespace Dyninst::InstructionAPI;
+   InstructionDecoder d;
+   unsigned char* buffer = reinterpret_cast<unsigned char*>(orig->proc()->getPtrToInstruction(orig->firstInsnAddr()));
+   
+   size_t offset = 0;
+   while(offset < orig->getSize())
+   {
+     Instruction tmp = d.decode(buffer + offset, orig->getSize() - offset);
+     
+     reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+
+     reloc->origAddr = orig->firstInsnAddr() + offset;
+     reloc->relocAddr = 0;
+     reloc->origInsn = new instruction;
+     reloc->origPtr = buffer + offset;
+     reloc->origInsn->setInstruction((const unsigned char*)reloc->origPtr, reloc->origAddr);
+     reloc->relocTarget = 0;
+     reloc->relocSize = 0;
+
+     relocs().push_back(reloc);
+
+     maxSize() += reloc->origInsn->spaceToRelocate();
+     offset += tmp.size();
+   }
+   
+  
+#else
    InstrucIter insnIter(orig);
    while (insnIter.hasMore()) {
      instruction *insnPtr = insnIter.getInsnPtr();
@@ -664,6 +698,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
      maxSize() += insnPtr->spaceToRelocate();
      insnIter++;
    }
+#endif //defined(cap_instruction_api)
 
    // Apply any hanging-around relocations from our previous instance
    for (i = 0; i < orig->appliedMods().size(); i++) {

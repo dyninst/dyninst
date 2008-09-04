@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.27 2008/02/14 22:03:51 legendre Exp $
+// $Id: multiTramp.h,v 1.28 2008/09/04 21:06:10 bill Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -146,6 +146,9 @@ class generatedCodeObject : public codeRange {
     // a 'single' point, we can do this.
 
     virtual Address uninstrumentedAddr() const = 0;
+
+    virtual std::string getTypeString() const;
+    
  protected:
     // And modification times
     bool generated_;
@@ -245,6 +248,7 @@ class trampEnd : public generatedCodeObject {
     virtual Address uninstrumentedAddr() const { return target_; }
     
     void *getPtrToInstruction(Address addr) const;
+    virtual std::string getTypeString() const;
     
  private:
     multiTramp *multi_;
@@ -284,7 +288,14 @@ class relocatedInstruction : public relocatedCode {
     relocatedInstruction(const relocatedInstruction *parRI,
                          multiTramp *cMT,
                          process *child);
-    
+    // Like the first constructor (with an instruction argument), but filling it in
+    // from the original address.  We're smart, we can do that.
+#if defined(cap_instruction_api)
+    relocatedInstruction(const unsigned char *insnPtr, Address o,
+			 Address f,
+			 Address t,
+			 multiTramp *m);
+#endif    
     ~relocatedInstruction();
 
     instruction *insn;
@@ -322,7 +333,8 @@ class relocatedInstruction : public relocatedCode {
     virtual Address uninstrumentedAddr() const { return fromAddr_; }
 
     void *getPtrToInstruction(Address addr) const;
-
+    virtual std::string getTypeString() const;
+    
  private:
     // TODO: move to vector of instructions
     patchTarget *targetOverride_;
@@ -603,7 +615,7 @@ class multiTramp : public generatedCodeObject {
   generatedCodeObject *replaceCode(generatedCodeObject *newParent);
   bool safeToFree(codeRange *range);
   void freeCode();
-
+  
  private:
   Address instAddr_; 
   Address trampAddr_;  // Where we are
