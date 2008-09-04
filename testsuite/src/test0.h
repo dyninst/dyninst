@@ -1,6 +1,11 @@
 #if !defined(__TEST0_H__)
 #define __TEST0_H__
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #ifndef FILE__
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
@@ -85,8 +90,88 @@ bool deserialize_verify(const char *cachefile, bool (*cmpfunc)(T &, T&) = NULL)
    return true;
 }
 
-template <class T>
-bool serialize_test(unsigned int testNo, bool (*cmpfunc)(T &, T&) = NULL)
+class RunCommand {
+   public:
+      RunCommand() {}
+      bool operator()(const char *file, std::vector<char *> &args)
+      {
+         int pid = fork();
+
+         if (pid == 0) 
+         {
+            // child -- exec command
+            char **new_argv = new char *[args.size()+ 2];
+            assert( new_argv );
+
+            // the first arg is always the filename
+            new_argv[0] = strdup(file);
+
+            for (unsigned int i = 0; i < args.size(); ++i)
+            {
+               new_argv[i+1] = strdup(args[i]);
+            }
+
+            new_argv[args.size()+1] = NULL;
+            extern char **environ;
+
+            int res = execve(file, new_argv, environ);
+
+            fprintf(stderr, "%s[%d]:  exec returned code %d: %d:%s\n",
+                  __FILE__, __LINE__ , res, errno,strerror(errno));
+
+            abort();
+         }
+         else
+         {
+            // parent, wait for child;
+            int status;
+            int res = waitpid(pid, &status, 0);
+
+            if (pid != res)
+            {
+               fprintf(stderr, "%s[%d]:  waitpid: %s\n",
+                     FILE__, __LINE__, strerror(errno));
+               return false;
+            }
+
+            if (!WIFEXITED(status))
+            {
+               fprintf(stderr, "%s[%d]:  process exited abnormally \n",
+                     FILE__, __LINE__ );
+
+               if (WIFSIGNALED(status))
+               {
+                  int signo = WTERMSIG(status);
+                  fprintf(stderr, "%s[%d]:  process got signal %d \n",
+                        FILE__, __LINE__, signo );
+               }
+
+               if (WIFSTOPPED(status))
+               {
+                  int signo = WSTOPSIG(status);
+                  fprintf(stderr, "%s[%d]:  weird, process is stopped with signal %d \n",
+                        FILE__, __LINE__, signo );
+               }
+
+               return false;
+            }
+
+            int exit_status = WEXITSTATUS(status);
+
+            if (exit_status != 0)
+            {
+               fprintf(stderr, "%s[%d]:  process returned code %d, not zero\n",
+                     FILE__, __LINE__ , exit_status);
+               return false;
+            }
+
+            return true;
+         }
+      }
+};
+
+   template <class T>
+bool serialize_test(unsigned int testNo, const char *prog_name, bool (*cmpfunc)(T &, T&) = NULL)
 {
    fprintf(stderr, "%s[%d]: welcome to serialize test %d\n", FILE__, __LINE__, testNo);
 
@@ -134,12 +219,12 @@ bool serialize_test(unsigned int testNo, bool (*cmpfunc)(T &, T&) = NULL)
 
    fprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
 
-   //  so far so good....  now launch a new process to do the same deserialization
+         //  so far so good....  now launch a new process to do the same deserialization
    //  (verify that no static state is carrying over)
 
    char modifier[6];
    std::vector<char *> args;
-   args.push_back("-run");
+   args.push_back((char *)"-run");
    sprintf(modifier, "%db", testNo);
    args.push_back(modifier);
 
@@ -147,6 +232,7 @@ bool serialize_test(unsigned int testNo, bool (*cmpfunc)(T &, T&) = NULL)
    char *ss = strdup(s);
    args.push_back(ss);
 
+   RunCommand runcmd;
    if (!runcmd(prog_name, args)) 
    {
       fprintf(stderr, "%s[%d]:  \"%s", __FILE__, __LINE__, prog_name);

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test0.mutatee.C,v 1.1 2008/09/03 06:08:50 jaw Exp $ */
+/* $Id: test0.mutatee.C,v 1.2 2008/09/04 01:30:29 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -89,6 +89,7 @@ const char *prog_name;
 
 #define MAX_TEST 5
 
+#if 0
 bool runcmd(const char *file, std::vector<char *> &args)
 {
    int pid = fork();
@@ -164,7 +165,7 @@ bool runcmd(const char *file, std::vector<char *> &args)
       return true;
    }
 }
-
+#endif
 
 
 //////////////////////////////////////////////////////////////////
@@ -282,7 +283,7 @@ bool test1b(const char *cachefile)
 
 bool test1()
 {
-   bool res = serialize_test<ZeroOne>(1);
+   bool res = serialize_test<ZeroOne>(1, prog_name);
 
    if (!res) 
    {
@@ -422,7 +423,7 @@ bool setup_control(ZeroTwo &control)
 
 bool test2()
 {
-   bool res = serialize_test<ZeroTwo>(2);
+   bool res = serialize_test<ZeroTwo>(2, prog_name);
 
    if (!res) 
    {
@@ -516,7 +517,7 @@ bool setup_control(ZeroThree &param)
 
 bool test3()
 {
-   bool res  = serialize_test<ZeroThree>(3);
+   bool res  = serialize_test<ZeroThree>(3, prog_name);
 
    if (!res) 
    {
@@ -625,7 +626,7 @@ bool setup_control(ZeroFour &param)
 
 bool test4()
 {
-   bool res = serialize_test<ZeroFour>(4);
+   bool res = serialize_test<ZeroFour>(4, prog_name);
 
    if (!res) 
    {
@@ -728,7 +729,7 @@ bool setup_control(ZeroFive &param)
 
 bool test5()
 {
-   bool res = serialize_test<ZeroFive>(5);
+   bool res = serialize_test<ZeroFive>(5, prog_name);
 
    if (!res) 
    {
@@ -880,7 +881,7 @@ bool setup_control(ZeroSix &param)
 
 bool test6()
 {
-   bool res = serialize_test<ZeroSix>(6);
+   bool res = serialize_test<ZeroSix>(6, prog_name);
 
    if (!res) 
    {
@@ -1042,7 +1043,7 @@ bool setup_control(ZeroSeven &param, int mult = 1)
 
 bool test7()
 {
-   bool res = serialize_test<ZeroSeven>(7);
+   bool res = serialize_test<ZeroSeven>(7, prog_name);
 
    if (!res) 
    {
@@ -1145,7 +1146,7 @@ bool setup_control(ZeroEight &param)
 
 bool test8()
 {
-   bool res = serialize_test<ZeroEight>(8);
+   bool res = serialize_test<ZeroEight>(8,prog_name);
    
    if (!res) 
    {
@@ -1249,7 +1250,7 @@ bool setup_control(ZeroNine &param)
 bool test9()
 {
 #if 0
-   bool res = serialize_test<ZeroNine>(9);
+   bool res = serialize_test<ZeroNine>(9, prog_name);
 
    if (!res) 
    {
@@ -1321,7 +1322,7 @@ bool setup_control(ZeroTen &param)
 bool test10()
 {
 #if 0
-   bool res = serialize_test<ZeroTen>(10);
+   bool res = serialize_test<ZeroTen>(10, prog_name);
    if (!res) 
    {
       fprintf(stderr, "%s[%d]:  test10 failed\n", FILE__, __LINE__);

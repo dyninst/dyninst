@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test0_0.C,v 1.1 2008/09/03 06:08:50 jaw Exp $
+// $Id: test0_0.C,v 1.2 2008/09/04 01:30:29 jaw Exp $
 /*
  *
  * #Name: test0_0
@@ -56,6 +56,7 @@
 #include <string.h>
 #include <vector>
 
+#if 0
 bool runcmd(const char *file, std::vector<char *> &args)
 {
    int pid = fork();
@@ -126,6 +127,7 @@ bool runcmd(const char *file, std::vector<char *> &args)
       return true;
    }
 }
+#endif
 
 bool subTest(int num, const char *exef)
 {
@@ -133,9 +135,10 @@ bool subTest(int num, const char *exef)
    sprintf(numstr, "%d", num);
 
    std::vector<char *> args;
-   args.push_back("-run");
+   args.push_back((char *)"-run");
    args.push_back(numstr);
 
+   RunCommand runcmd;
    bool res = runcmd(exef, args);
 
    if (!res) 
