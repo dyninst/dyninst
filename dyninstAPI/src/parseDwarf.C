@@ -2033,6 +2033,7 @@ typedef struct dwarfEHFrame_t
    Dwarf_Fde *fde_data;
    Dwarf_Signed fde_element_count;
    Address text_start;
+   Address page_start;  
    char *buffer;
    bool uses_absolute;
 } dwarfEHFrame_t;
@@ -2064,6 +2065,7 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
 
    eh_frame->buffer = buffer;
    eh_frame->text_start = p->getVsyscallText();
+   eh_frame->page_start = p->getVsyscallStart();
 			
    /**
 	* We try to open the vsyscall dso twice.  After the first open, we 
@@ -2160,7 +2162,7 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 
    if (!eh_frame->uses_absolute) {
 	  //PC is an absolute address, the eh_frame info is relative
-	  pc -= eh_frame->text_start;
+	  pc -= eh_frame->page_start;
    }
 
    /**
@@ -2323,13 +2325,15 @@ static bool getTextAndEHFrameStart(Elf *elf,
 static void patchVSyscallImage(char *mem_image, size_t image_size, 
 							   unsigned address_width)
 {
+  return;
+  
    Elf *elf;
    Address eh_frame_start;
    unsigned eh_frame_size, eh_frame_offset, eh_offset;
    char *eh_ptr;
    pdvector<Address> text_starts;
    pdvector<unsigned> text_sizes;
-   
+
 
    elf = elf_memory(mem_image, image_size);
    

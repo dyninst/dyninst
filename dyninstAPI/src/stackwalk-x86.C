@@ -275,6 +275,7 @@ Frame Frame::getCallerFrame()
     // assume _start is never called, so just return if we're there
     if (cur_func &&
        cur_func->getAddress() == getProc()->getAOut()->parse_img()->getObject()->getEntryOffset()) {
+      stackwalk_printf("%s[%d]: stack walk at entry of a.out (_start), returning null frame\n", FILE__, __LINE__);
        return Frame();
     }
 #endif
@@ -318,9 +319,13 @@ Frame Frame::getCallerFrame()
          * on Linux 2.4) we'll go ahead and treat the vsyscall page 
          * as a leaf
          **/
+	stackwalk_printf("%s[%d]: no vsyscall data present, treating as leaf frame\n", FILE__, __LINE__);
         if (!getProc()->readDataSpace((void *) sp_, addr_size, 
-                             (void *) &addrs.rtn, true))
-          return Frame();
+				      (void *) &addrs.rtn, true)) {
+	  stackwalk_printf("%s[%d]: Failed to access memory at 0x%x, returning null frame \n", FILE__, __LINE__, sp_);
+	  return Frame();
+	}
+	
         newFP = fp_;
         newPC = addrs.rtn;
         newSP = sp_+addr_size;
@@ -334,6 +339,7 @@ Frame Frame::getCallerFrame()
          * getRegValueAtFrame to parse the data and get the correct
          * values for %esp, %ebp, and %eip
          **/
+      stackwalk_printf("%s[%d]: vsyscall data is present, analyzing\n", FILE__, __LINE__);
         Address reg_map[MAX_DW_VALUE+1];
         bool error;
 
@@ -346,15 +352,26 @@ Frame Frame::getCallerFrame()
         //Calc frame start
         reg_map[DW_CFA] = getRegValueAtFrame(vsys_data, pc_, DW_CFA, 
                                              reg_map, getProc(), &error);
-        if (error) return Frame();
-
+        if (error) {
+	  stackwalk_printf("%s[%d]: Failed to parse vsyscall data (1)\n", FILE__, __LINE__);
+	  return Frame();
+	}
+	
         //Calc registers values.
         newPC = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, 
                                    getProc(), &error);
-        if (error) return Frame();
+        if (error) {
+	  stackwalk_printf("%s[%d]: Failed to parse vsyscall data (2)\n", FILE__, __LINE__);
+	  return Frame();
+	}
+	
         newFP = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, 
                                    getProc(), &error);
-        if (error) return Frame();
+        if (error) {
+	  stackwalk_printf("%s[%d]: Failed to parse vsyscall data (3)\n", FILE__, __LINE__);
+	  return Frame();
+	}
+	
         newSP = reg_map[DW_CFA];	
         goto done;
       }
@@ -362,6 +379,7 @@ Frame Frame::getCallerFrame()
    }
    else if (status == frame_sighandler)
    {
+     stackwalk_printf("%s[%d]: parsing signal handler...\n", FILE__, __LINE__);
       int fp_offset, pc_offset, frame_size;
       if (addr_size == 4) {
          fp_offset = SIG_HANDLER_FP_OFFSET_32;
@@ -376,10 +394,12 @@ Frame Frame::getCallerFrame()
       
       if (!getProc()->readDataSpace((caddr_t)(sp_+fp_offset), addr_size,
                                     &addrs.fp, true)) {
+	stackwalk_printf("%s[%d]: Failed to read memory at sp_+fp_offset 0x%lx\n", FILE__, __LINE__,sp_+fp_offset);
          return Frame();
       }
       if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), addr_size,
                                     &addrs.rtn, true)) {
+	stackwalk_printf("%s[%d]: Failed to read memory at sp_+pc_offset 0x%lx\n", FILE__, __LINE__,sp_+pc_offset);
          return Frame();
       }
       
@@ -397,10 +417,12 @@ Frame Frame::getCallerFrame()
    }   
    else if ((status == frame_allocates_frame || status == frame_tramp))
    {
-      /**
+     stackwalk_printf("%s[%d]: walking with allocated frame\n", FILE__, __LINE__);      
+     /**
        * The function that created this frame uses the standard 
        * prolog: push %ebp; mov %esp->ebp .  We can read the 
-       * appropriate data from the frame pointer.
+       * appropriate data	   stackwalk_printf("%s[%d]: Failed to read memory at addrs.fp 0x%lx\n", FILE__, __LINE__, addrs.fp);
+ from the frame pointer.
        **/
       int offset = 0;
       // FIXME: for tramps, we need to check if we've saved the FP yet
@@ -410,23 +432,31 @@ Frame Frame::getCallerFrame()
       {
          addrs.fp = offset + sp_;
          if (!getProc()->readDataSpace((caddr_t) addrs.fp, addr_size, 
-                               &addrs.rtn, true))
-            return Frame();
-         newPC = addrs.rtn;
+				       &addrs.rtn, true)) {
+	   stackwalk_printf("%s[%d]: Failed to read memory at addrs.fp 0x%lx\n", FILE__, __LINE__, addrs.fp);
+	   return Frame();
+	 }
+	 newPC = addrs.rtn;
          newFP = fp_;
          newSP = addrs.fp + getProc()->getAddressWidth();
          pcLoc = addrs.fp;
       }
       else
       {
-         if (!fp_)
-            return Frame();
+	if (!fp_) {
+	   stackwalk_printf("%s[%d]: No frame pointer!\n", FILE__, __LINE__);	  
+	   return Frame();
+	}
          if (!getProc()->readDataSpace((caddr_t) fp_, addr_size, 
-                                       &addrs.fp, false))
-            return Frame();
+                                       &addrs.fp, false)) {
+	   stackwalk_printf("%s[%d]: Failed to read memory at fp_ 0x%lx\n", FILE__, __LINE__, fp_);	   
+	   return Frame();
+	 }
          if (!getProc()->readDataSpace((caddr_t) (fp_ + addr_size), addr_size, 
-                                       &addrs.rtn, false))
-            return Frame();
+                                       &addrs.rtn, false)) {
+	   stackwalk_printf("%s[%d]: Failed to read memory at pc (fp_+addr_size) 0x%lx\n", FILE__, __LINE__, fp_+addr_size);
+	   return Frame();
+	 }
          newFP = addrs.fp;
          newPC = addrs.rtn;
          newSP = fp_+ (2 * addr_size);
@@ -451,6 +481,9 @@ Frame Frame::getCallerFrame()
        *  - Peek ahead.  If the stack trace from following the address doesn't
        *     end with the top of the stack, we probably shouldn't follow it.
        **/
+
+     stackwalk_printf("%s[%d]: Going into heuristic stack walker...\n", FILE__, __LINE__);
+
       Address estimated_sp;
       Address estimated_ip;
       Address estimated_fp;
@@ -558,6 +591,7 @@ Frame Frame::getCallerFrame()
          goto done;
       }
    }
+   stackwalk_printf("%s[%d]: Heuristic stack walker failed, returning null frame\n", FILE__, __LINE__);
 
    return Frame();
 

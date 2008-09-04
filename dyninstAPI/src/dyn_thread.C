@@ -139,9 +139,17 @@ bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
       return true;
    }
 
+   stackwalk_printf("%s[%d]: beginning stack walk on thread %ld\n",
+		    FILE__, __LINE__, get_tid());
+   
+
    Frame active = getActiveFrame();
    active.thread_ = this;
    bool retval = proc->walkStackFromFrame(active, stackWalk);
+
+   stackwalk_printf("%s[%d]: ending stack walk on thread %ld\n",
+		    FILE__, __LINE__, get_tid());
+ 
 
    if (continueWhenDone) {
       get_lwp()->continueLWP();
