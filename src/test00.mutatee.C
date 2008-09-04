@@ -98,6 +98,7 @@ const char *prog_name;
 #define MAX_TEST 5
 
 
+#if 0
 bool runcmd(const char *file, std::vector<char *> &args)
 {
    int pid = fork();
@@ -148,6 +149,7 @@ bool runcmd(const char *file, std::vector<char *> &args)
       return true;
    }
 }
+#endif
 
 
 class ZeroOne;
@@ -231,15 +233,18 @@ class ZeroOne : public Serializable{
       bool operator!=(const ZeroOne &cmp) {
          return (! (*this == cmp));
       }
-      void printcmp(const ZeroOne &cmp) {
+      void printcmp(const ZeroOne &cmp) 
+      {
          fprintf(stderr, "%s[%d]: %d %s %d\n", __FILE__, __LINE__,
                zero_one_int, 
-               zero_one_int == cmp.zero_one_int ? "==" : "!=", 
+               (zero_one_int == cmp.zero_one_int) ? "==" : "!=", 
                cmp.zero_one_int);
-         fprintf(stderr, "%s[%d]: %l %s %l\n", __FILE__, __LINE__,
+
+         fprintf(stderr, "%s[%d]: %ld %s %ld\n", __FILE__, __LINE__,
                zero_one_long, 
-               zero_one_long == cmp.zero_one_long ? "==" : "!=", 
+               (zero_one_long == cmp.zero_one_long) ? "==" : "!=", 
                cmp.zero_one_long);
+
 #if 0
          fprintf(stderr, "%s[%d]: %hu %s %hu\n", __FILE__, __LINE__, 
                zero_one_short, 
@@ -248,7 +253,7 @@ class ZeroOne : public Serializable{
 #endif
          fprintf(stderr, "%s[%d]: %c %s %c\n", __FILE__, __LINE__,
                zero_one_char, 
-               zero_one_char == cmp.zero_one_char ? "==" : "!=", 
+               (zero_one_char == cmp.zero_one_char) ? "==" : "!=", 
                cmp.zero_one_char);
       }
 
@@ -299,7 +304,7 @@ bool test1b(const char *cachefile)
 
 bool test1()
 {
-   bool res = serialize_test<ZeroOne>(1);
+   bool res = serialize_test<ZeroOne>(1, prog_name);
    if (!res) {
       fprintf(stderr, "%s[%d]:  test1 failed\n", FILE__, __LINE__);
    }
@@ -429,7 +434,7 @@ bool setup_control(ZeroTwo &control)
 
 bool test2()
 {
-   bool res = serialize_test<ZeroTwo>(2);
+   bool res = serialize_test<ZeroTwo>(2, prog_name);
    if (!res) {
       fprintf(stderr, "%s[%d]:  test2 failed\n", FILE__, __LINE__);
    }
@@ -502,7 +507,7 @@ bool setup_control(ZeroThree &param)
 
 bool test3()
 {
-   bool res  = serialize_test<ZeroThree>(3);
+   bool res  = serialize_test<ZeroThree>(3, prog_name);
    if (!res) {
       fprintf(stderr, "%s[%d]:  test3 failed\n", FILE__, __LINE__);
    }
@@ -586,7 +591,7 @@ bool setup_control(ZeroFour &param)
 
 bool test4()
 {
-   bool res = serialize_test<ZeroFour>(4);
+   bool res = serialize_test<ZeroFour>(4, prog_name);
    if (!res) {
       fprintf(stderr, "%s[%d]:  test4 failed\n", FILE__, __LINE__);
    }
@@ -665,7 +670,7 @@ bool setup_control(ZeroFive &param)
 
 bool test5()
 {
-   bool res = serialize_test<ZeroFive>(5);
+   bool res = serialize_test<ZeroFive>(5, prog_name);
    if (!res) {
       fprintf(stderr, "%s[%d]:  test5 failed\n", FILE__, __LINE__);
    }
@@ -788,7 +793,7 @@ bool setup_control(ZeroSix &param)
 
 bool test6()
 {
-   bool res = serialize_test<ZeroSix>(6);
+   bool res = serialize_test<ZeroSix>(6, prog_name);
    if (!res) {
       fprintf(stderr, "%s[%d]:  test6 failed\n", FILE__, __LINE__);
    }
@@ -843,7 +848,7 @@ int main(int iargc, char *argv[])
             //  catch subtests that are exec'd automatically (eg, 1b, 1c)
             modifier = str_end_ptr;
             aux_file_name = argv[i+2];
-            fprintf(stderr, "%s[%d]:  have test modifier %s, testNum = %d\n", 
+            fprintf(stderr, "%s[%d]:  have test modifier %s, testNum = %ld\n", 
                   FILE__, __LINE__, modifier, testNum);
             i += 1;
          }
@@ -976,7 +981,7 @@ int main(int iargc, char *argv[])
          }
          break;
       default:
-         fprintf(stderr, "%s[%d]: invalid test number %d in mutatee\n", 
+         fprintf(stderr, "%s[%d]: invalid test number %ld in mutatee\n", 
                FILE__, __LINE__, testNum);
          break;
    }
