@@ -39,11 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.58 2008/09/03 06:08:44 jaw Exp $
+// $Id: image-func.C,v 1.59 2008/09/04 21:06:17 bill Exp $
 
 #include "function.h"
 #include "instPoint.h"
+
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/InstructionDecoder.h"
+#else
 #include "InstrucIter.h"
+#endif //defined(cap_instruction_api)
 #include "symtab.h"
 #include "debug.h"
 
@@ -578,12 +583,27 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     }
 
     // update this block
-   
+#if defined(cap_instruction_api)   
+    using namespace Dyninst::InstructionAPI;
+    const unsigned char* buffer = 
+    reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset_));
+    InstructionDecoder decoder(buffer, newBlk->firstInsnOffset() -
+			       firstInsnOffset_);
+    Instruction tmp = decoder.decode();
+    lastInsnOffset_ = firstInsnOffset_;
+    
+    while(lastInsnOffset_ + tmp.size() < newBlk->firstInsnOffset())
+    {
+      lastInsnOffset_ += tmp.size();
+      tmp = decoder.decode();
+    }
+#else
     InstrucIter ah( this );
     while( *ah + ah.getInstruction().size() < newBlk->firstInsnOffset() )
                 ah++;
     
     lastInsnOffset_ = *ah;
+#endif // defined(cap_instruction_api)
     blockEndOffset_ = loc;      // ah.getInstruction().size()
 
     // Copy properties and update:
@@ -983,7 +1003,22 @@ bool image_func::cleanBlockList()
             b1->targets_.clear();
             b1->targets_.push_back(b2);
             
-            //find the end of the split block	       
+#if defined(cap_instruction_api)   
+	    using namespace Dyninst::InstructionAPI;
+	    const unsigned char* buffer = 
+	    reinterpret_cast<const unsigned char*>(getPtrToInstruction(b1->firstInsnOffset()));
+	    
+	    InstructionDecoder decoder(buffer, b2->firstInsnOffset() -
+				       b1->firstInsnOffset());
+	    b1->lastInsnOffset_ = b1->firstInsnOffset_;
+	    Instruction tmp = decoder.decode();
+	    while(b1->lastInsnOffset_ + tmp.size() < b2->firstInsnOffset())
+	    {
+	      b1->lastInsnOffset_ += tmp.size();
+	      tmp = decoder.decode();
+	    }
+	    b1->blockEndOffset_ = b1->lastInsnOffset_ + tmp.size();
+#else
             InstrucIter ah( b1 );
             while( *ah + ah.getInstruction().size() < b2->firstInsnOffset() )
                 ah++;
@@ -991,6 +1026,8 @@ bool image_func::cleanBlockList()
             b1->lastInsnOffset_ = *ah;
             b1->blockEndOffset_ = *ah + ah.getInstruction().size();
 
+#endif // defined(cap_instruction_api)
+            //find the end of the split block	       
             if( b1->isExitBlock_ )
             {
                 b1->isExitBlock_ = false;
@@ -1015,12 +1052,27 @@ bool image_func::cleanBlockList()
             // the start of b2. It will be that or smaller.
             b1->blockEndOffset_ = b2->firstInsnOffset();
 
+#if defined(cap_instruction_api)
+	    using namespace Dyninst::InstructionAPI;
+	    InstructionDecoder decoder(getPtrToInstruction(b1->firstInsnOffset()), b2->firstInsnOffset() -
+				       b1->firstInsnOffset());
+	    Address current = b1->firstInsnOffset();
+	    Instruction tmp = decoder.decode();
+	    while(current + tmp.size() < b2->firstInsnOffset())
+	    {
+	      current += tmp.size();
+	      tmp = decoder.decode();
+	    }
+	    b1->lastInsnOffset_ = current;
+	    b1->blockEndOffset_ = current + tmp.size();
+#else
             InstrucIter ah( b1 );
             while( *ah + ah.getInstruction().size() < b2->firstInsnOffset() )
                 ah++;
             
             b1->lastInsnOffset_ = *ah;
             b1->blockEndOffset_ = *ah + ah.getInstruction().size();
+#endif //defined(cap_instruction_api)
             b1->addTarget( b2 );	  
             b2->addSource( b1 );	            
         }        
