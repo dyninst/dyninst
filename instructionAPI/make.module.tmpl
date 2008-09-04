@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.2 2008/07/14 21:24:16 bill Exp $
+# $Id: make.module.tmpl,v 1.3 2008/09/04 21:06:23 bill Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -70,5 +70,14 @@ endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../external
 
+DOCDIR	= ../doc
+
+
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
+
+
+docs:
+	cd ..; doxygen instructionAPI.conf
+	cd $(DOCDIR)/latex; manual-preproc.pl *.tex; $(MAKE) clean
+	$(MAKE) -C $(DOCDIR)/latex
