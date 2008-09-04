@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2007-2008 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #if !defined(INSTRUCTION_H)
 #define INSTRUCTION_H
@@ -45,6 +75,8 @@ namespace Dyninst
       /// \param what Opcode of the instruction
       /// \param operandSource Contains the %Expressions to be transformed into %Operands
       /// \param size Contains the number of bytes occupied by the corresponding machine instruction
+      /// \param raw Contains a pointer to the buffer from which this instruction object
+      /// was decoded.
       ///
       /// Construct an %Instruction from an %Operation and a collection of %Expressions.  This
       /// method is not intended to be used except by the %InstructionDecoder class, which serves as a
@@ -57,10 +89,15 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, unsigned char size);
+      Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, unsigned char size,
+		  const unsigned char* raw);
       Instruction();
       
       virtual ~Instruction();
+
+      Instruction(const Instruction& o);
+      const Instruction& operator=(const Instruction& rhs);
+      
 
       /// \return The %Operation used by the %Instruction
       ///
@@ -71,8 +108,15 @@ namespace Dyninst
       /// in the same order that they were decoded.
       void getOperands(std::vector<Operand>& operands) const;
 
+      /// The \c getOperand method returns the operand at position \c index, or
+      /// an empty operand if \c index does not correspond to a valid operand in this
+      /// instruction.
       Operand getOperand(int index) const;
   
+      /// Returns a pointer to the buffer from which this instruction
+      /// was decoded.
+      const unsigned char* rawInsn() const;
+
       /// Returns the size of the corresponding machine instruction, in bytes.
       unsigned char size() const;
   
@@ -171,14 +215,15 @@ namespace Dyninst
       /// diagnostic purposes.
       std::string format() const;
       
+      /// Returns true if this %Instruction object is valid.  Invalid instructions indicate that
+      /// an %InstructionDecoder has reached the end of its assigned range, and that decoding should terminate.
       bool isValid() const;
       
     private:
       std::vector<Operand> m_Operands;
       Operation m_InsnOp;
-      unsigned char m_Size;
       bool m_Valid;
-      
+      std::vector<unsigned char> m_RawInsn;
     };
   };
 };

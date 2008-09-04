@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.4 2008/07/16 19:14:04 bill Exp $
+// $Id: arch-x86.C,v 1.5 2008/09/04 21:06:48 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -218,8 +218,14 @@ enum {
 #define EDI { am_reg, r_EDI }
 #define ECXEBX { am_reg, r_ECXEBX }
 #define EDXEAX { am_reg, r_EDXEAX }
-
-
+#define rAX { am_reg, r_rAX }
+#define rBX { am_reg, r_rBX }
+#define rCX { am_reg, r_rCX }
+#define rDX { am_reg, r_rDX }
+#define rSP { am_reg, r_rSP }
+#define rBP { am_reg, r_rBP }
+#define rSI { am_reg, r_rSI }
+#define rDI { am_reg, r_rDI }
 #define FPOS 16
 
 enum {
@@ -786,6 +792,8 @@ void ia32_instruction::initFlagTable(map<entryID, flagInfo>& flagTable)
   flagTable[e_verw] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
   flagTable[e_xadd] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_xor] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_scasb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_scasw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
 }
 
 bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten)
@@ -904,23 +912,23 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_dec, t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
   { e_dec, t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
   /* 50 */
-  { e_push, t_done, 0, false, { eAX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { eCX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { eDX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { eBX, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { eSP, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { eBP, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { eSI, eSP, Zz }, 0, s1R2RW },
-  { e_push, t_done, 0, false, { eDI, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rAX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rCX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rDX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rBX, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rSP, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rBP, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rSI, eSP, Zz }, 0, s1R2RW },
+  { e_push, t_done, 0, false, { rDI, eSP, Zz }, 0, s1R2RW },
   /* 58 */
-  { e_pop, t_done, 0, false, { eAX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { eCX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { eDX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { eBX, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { eSP, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { eBP, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { eSI, eSP, Zz }, 0, s1W2RW },
-  { e_pop, t_done, 0, false, { eDI, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rAX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rCX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rDX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rBX, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rSP, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rBP, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW },
+  { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW },
   /* 60 */
   { e_pusha_d, t_done, 0, false, { STHa, GPRS, eSP }, 0, s1W2R3RW },
   { e_popa_d,  t_done, 0, false, { GPRS, STPa, eSP }, 0, s1W2R3RW },

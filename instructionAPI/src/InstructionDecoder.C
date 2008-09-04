@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2007-2008 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #include "../h/InstructionDecoder.h"
 #include "../h/Expression.h"
@@ -21,7 +51,7 @@ namespace Dyninst
       unsigned int decodedSize = decodeOpcode();
       decodeOperands(operands);
       rawInstruction += decodedSize;
-      return Instruction(m_Operation, operands, decodedSize);      
+      return Instruction(m_Operation, operands, decodedSize, rawInstruction - decodedSize);      
     }
     
     Instruction InstructionDecoder::decode(const unsigned char* buffer, size_t /*len*/)
@@ -30,7 +60,7 @@ namespace Dyninst
       rawInstruction = buffer;
       unsigned int decodedSize = decodeOpcode();
       decodeOperands(operands);
-      return Instruction(m_Operation, operands, decodedSize);
+      return Instruction(m_Operation, operands, decodedSize, rawInstruction);
     }
 
     Expression::Ptr InstructionDecoder::makeSIBExpression(unsigned int opType)
@@ -123,7 +153,7 @@ namespace Dyninst
 	return Expression::Ptr(new Immediate(Result(s32, *((const dword_t*)(rawInstruction + disp_pos)))));
 	break;
       default:
-	return Expression::Ptr();
+	return Expression::Ptr(new Immediate(Result(s8, 0)));
 	break;
       }
     }
@@ -245,19 +275,26 @@ namespace Dyninst
       {
       case 0:
 	// No operand
-	outputOperands.push_back(Expression::Ptr());
+	assert(!"Mismatched number of operands--check tables");
 	return;
       case am_A:
 	{
 	  Expression::Ptr addr(decodeImmediate(operand.optype, locs.disp_position));
-	  outputOperands.push_back(Expression::Ptr(new Dereference(addr, makeSizeType(operand.optype))));
+	  Expression::Ptr op(new Dereference(addr, makeSizeType(operand.optype)));
+	  outputOperands.push_back(op);
 	}
 	break;
       case am_C:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[7][locs.modrm_reg])));
+	{
+	  Expression::Ptr op(new RegisterAST(IntelRegTable[7][locs.modrm_reg]));
+	  outputOperands.push_back(op);
+	}
 	break;
       case am_D:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[8][locs.modrm_reg])));
+	{
+	  Expression::Ptr op(new RegisterAST(IntelRegTable[8][locs.modrm_reg]));
+	  outputOperands.push_back(op);
+	}
 	break;
       case am_E:
 	// am_M is like am_E, except that mod of 0x03 should never occur (am_M specified memory,
@@ -271,8 +308,8 @@ namespace Dyninst
 	case 0x00:
 	  assert(operand.admet != am_R);
 	  {
-	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(operand.optype), 
-								     makeSizeType(operand.optype))));	    
+	    Expression::Ptr op(new Dereference(makeModRMExpression(operand.optype), makeSizeType(operand.optype)));
+	    outputOperands.push_back(op);
 	  }
 	  break;
 	  // dereference with 8-bit offset following mod/rm byte
@@ -283,15 +320,15 @@ namespace Dyninst
 	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(operand.optype), 
 								 getModRMDisplacement(), 
 								 makeSizeType(operand.optype)));
-	    outputOperands.push_back(Expression::Ptr(new Dereference(RMPlusDisplacement, 
-								     makeSizeType(operand.optype))));
+	    Expression::Ptr op(new Dereference(RMPlusDisplacement, makeSizeType(operand.optype)));
+	    outputOperands.push_back(op);
 	    break;
 	  }
 	case 0x03:
 	  assert(operand.admet != am_M);
 	  // use of actual register
 	  {
-	    outputOperands.push_back(Expression::Ptr(makeModRMExpression(operand.optype)));
+	    outputOperands.push_back(makeModRMExpression(operand.optype));
 	    break;
 	  }
 	default:
@@ -482,7 +519,7 @@ namespace Dyninst
       decodedInstruction = new Dyninst::InstructionAPI::ia32_instruction(mac, &cond, &locs);
       Dyninst::InstructionAPI::ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, 
 					   rawInstruction, *decodedInstruction);
-      m_Operation = Operation(decodedInstruction->getEntry());
+      m_Operation = Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix());
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();
     }

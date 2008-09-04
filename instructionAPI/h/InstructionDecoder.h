@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2007-2008 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #if !defined(INSTRUCTION_DECODER_H)
 #define INSTRUCTION_DECODER_H
@@ -21,6 +51,11 @@ namespace Dyninst
     /// The %InstructionDecoder will, by default, be constructed to decode machine language
     /// on the platform on which it has been compiled.  The buffer
     /// will be treated as if there is an instruction stream starting at the beginning of the buffer.
+    /// %InstructionDecoder objects are given a buffer from which to decode at construction.
+    /// Calls to \c decode will proceed to decode instructions sequentially from that buffer until its
+    /// end is reached.  At that point, all subsequent calls to \c decode will return an invalid
+    /// %Instruction object.
+
     class InstructionDecoder
     {
     public:
@@ -28,6 +63,7 @@ namespace Dyninst
       bufferBegin(NULL), bufferSize(0), rawInstruction(NULL)
       {
       }
+      /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
       InstructionDecoder(const unsigned char* buffer, size_t size) : 
       decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
       bufferBegin(buffer), bufferSize(size), rawInstruction(bufferBegin)
@@ -39,12 +75,12 @@ namespace Dyninst
       {
 	delete decodedInstruction;
       }
-      /// Decode the buffer at \c buffer, up to \c size bytes, interpreting it as 
-      /// machine language of the type understood by this %InstructionDecoder.
-      /// If the buffer does not contain a valid instruction stream, an %Instruction with an invalid %Operation
-      /// will be returned.  The %Instruction's \c size field will be set to the number of bytes actually decoded.
-      Instruction decode(const unsigned char* buffer, size_t size);
 
+      Instruction decode(const unsigned char* buffer, size_t size);
+      /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
+      /// machine language of the type understood by this %InstructionDecoder.
+      /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object
+      /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
       Instruction decode();
       
     protected:

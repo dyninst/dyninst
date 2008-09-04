@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2007-2008 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #if !defined(RESULT_H)
 #define RESULT_H
@@ -68,6 +98,8 @@ namespace Dyninst
     /// - \c sp_float: a single-precision float
     /// - \c dp_float: a double-precision float
     /// - \c bit_flag: a single bit (individual flags)
+    /// - \c m512: a 512-bit memory value
+    /// - \c dbl128: a 128-bit integer, which often contains packed floating point values
     ///
     // The %Instruction API's model of %Results is a simple one, and may seem overly aggressive about
     // making an %Expression's %Result undefined.  It follows the same basic rule as the rest of the API:

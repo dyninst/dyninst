@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2007-2008 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #include "Operation.h"
 #include "arch-x86.h"
@@ -12,20 +42,15 @@ namespace Dyninst
       return RegisterAST::Ptr(new RegisterAST(regID));
     }
 
-    Operation::Operation(Dyninst::InstructionAPI::ia32_entry* e)
+    Operation::Operation(Dyninst::InstructionAPI::ia32_entry* e, Dyninst::InstructionAPI::ia32_prefixes* p)
     {
-      if(!e)
-      {
-	return;
-      }
-      if(e->name())
-      {
-	mnemonic = e->name();
-      }
-      else
+      if(!e || !e->name())
       {
 	mnemonic = "[INVALID]";
+	operationID = e_No_Entry;
+	return;
       }
+      mnemonic = e->name();
       operationID = e->id;
       switch(e->opsema & 0xff)
       {
@@ -132,6 +157,18 @@ namespace Dyninst
       SetUpNonOperandData();
       std::set<IA32Regs> flagsRead, flagsWritten;
       e->flagsUsed(flagsRead, flagsWritten);
+      if(p && p->getCount())
+      {
+	for(unsigned i = 0; i < p->getCount(); i++)
+	{
+	  if(p->getPrefix(i) == PREFIX_REP || p->getPrefix(i) == PREFIX_REPNZ)
+	  {
+	    flagsRead.insert(r_DF);
+	    break;
+	  }
+	}
+      }
+      
       
       std::transform(flagsRead.begin(), flagsRead.end(), 
 		     inserter(otherRead, otherRead.begin()), &makeRegFromID);
@@ -189,7 +226,6 @@ namespace Dyninst
       operationID = e_No_Entry;
     }
     
-
     const Operation::bitSet& Operation::read() const
     {
       return readOperands;
@@ -219,7 +255,6 @@ namespace Dyninst
     std::set<RegisterAST::Ptr> thePC = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
     std::set<RegisterAST::Ptr> pcAndSP = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())))
       (RegisterAST::Ptr(new RegisterAST(r_eSP)));
-    
 
     map<entryID, std::set<RegisterAST::Ptr> > Operation::nonOperandRegisterReads;
     map<entryID, std::set<RegisterAST::Ptr> > Operation::nonOperandRegisterWrites = map_list_of

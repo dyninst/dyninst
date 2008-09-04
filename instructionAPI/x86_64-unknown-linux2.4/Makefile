@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2008/06/26 20:40:16 bill Exp $
+# $Id: Makefile,v 1.3 2008/09/04 21:06:52 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,7 +29,7 @@ LIBS    += -lgcc
 
 AS		= /usr/bin/as
 
-TARGET = libInstruction.so
+TARGET = libinstructionAPI.so
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

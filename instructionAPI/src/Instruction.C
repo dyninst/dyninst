@@ -1,10 +1,39 @@
+/*
+ * Copyright (c) 2007-2008 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #include <string>
 #include "../h/Instruction.h"
 #include "../h/Register.h"
 #include "../h/Operation.h"
 #include <boost/iterator/indirect_iterator.hpp>
-
 #include <iostream>
 using namespace std;
 
@@ -14,8 +43,8 @@ namespace Dyninst
   {
     Instruction::Instruction(const Operation& what, 
 			     const std::vector<Expression::Ptr>& operandSource,
-			     unsigned char size)
-      : m_InsnOp(what), m_Size(size), m_Valid(true)
+			     unsigned char size, const unsigned char* raw)
+      : m_InsnOp(what), m_Valid(true)
     {
       unsigned int i;
       std::vector<Expression::Ptr>::const_iterator curVC;
@@ -24,9 +53,16 @@ namespace Dyninst
 	  curVC != operandSource.end() && i < what.read().size() && i < what.written().size();
 	  ++curVC, ++i)
       {
-	m_Operands.push_back(Operand(*curVC, what.read()[i], what.written()[i]));
+	Operand tmp(*curVC, what.read()[i], what.written()[i]);
+	m_Operands.push_back(tmp);
       }
-      
+      if(raw)
+      {
+      	for(int i = 0; i < size; i++)
+	{
+	  m_RawInsn.push_back(raw[i]);
+	}
+      }
     }
     Instruction::Instruction() :
       m_Valid(false)
@@ -37,6 +73,27 @@ namespace Dyninst
     {
     }
 
+    Instruction::Instruction(const Instruction& o)
+    {
+      m_Operands.clear();
+      m_RawInsn.clear();
+      std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
+      std::copy(o.m_RawInsn.begin(), o.m_RawInsn.end(), std::back_inserter(m_RawInsn));
+      m_InsnOp = o.m_InsnOp;
+      m_Valid = o.m_Valid;
+    }
+
+    const Instruction& Instruction::operator=(const Instruction& rhs)
+    {
+      m_Operands.clear();
+      m_RawInsn.clear();
+      std::copy(rhs.m_Operands.begin(), rhs.m_Operands.end(), std::back_inserter(m_Operands));
+      std::copy(rhs.m_RawInsn.begin(), rhs.m_RawInsn.end(), std::back_inserter(m_RawInsn));
+      m_InsnOp = rhs.m_InsnOp;
+      m_Valid = rhs.m_Valid;
+      return *this;
+    }    
+    
     bool Instruction::isValid() const
     {
       return m_Valid;
@@ -64,7 +121,7 @@ namespace Dyninst
     
     unsigned char Instruction::size() const
     {
-      return m_Size;
+      return m_RawInsn.size();
     }
     
     void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
@@ -75,6 +132,9 @@ namespace Dyninst
       {
 	curOperand->getReadSet(regsRead);
       }
+      std::set<RegisterAST::Ptr> implicitReads = m_InsnOp.implicitReads();
+      std::copy(implicitReads.begin(), implicitReads.end(), std::inserter(regsRead, regsRead.begin()));
+      
     }
     
     void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
@@ -85,6 +145,9 @@ namespace Dyninst
       {
 	curOperand->getWriteSet(regsWritten);
       }
+      std::set<RegisterAST::Ptr> implicitWrites = m_InsnOp.implicitWrites();
+      std::copy(implicitWrites.begin(), implicitWrites.end(), std::inserter(regsWritten, regsWritten.begin()));
+      
     }
     
     bool Instruction::isRead(Expression::Ptr candidate) const

@@ -1,3 +1,33 @@
+/*
+ * Copyright (c) 2007-2008 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
 
 #if !defined(OPERAND_H)
 #define OPERAND_H
@@ -35,15 +65,33 @@ namespace Dyninst
       Operand(Expression::Ptr val, bool read, bool written) : op_value(val), m_isRead(read), m_isWritten(written) 
       {
       }
+      virtual ~Operand()
+      {
+	op_value.reset();
+      }
+      Operand(const Operand& o) :
+      op_value(o.op_value), m_isRead(o.m_isRead), m_isWritten(o.m_isWritten)
+      {
+      }
+      const Operand& operator=(const Operand& rhs)
+      {
+	op_value = rhs.op_value;
+	m_isRead = rhs.m_isRead;
+	m_isWritten = rhs.m_isWritten;
+	return *this;
+      }
+      
 
       /// \brief Get the registers read by this operand
-      /// \param[out] regsRead Has the registers read inserted into it
+      /// \param regsRead Has the registers read inserted into it
       void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
       /// \brief Get the registers written by this operand
-      /// \param[out] regsRead Has the registers written  inserted into it
+      /// \param regsWritten Has the registers written  inserted into it
       void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
+      /// Returns true if this operand is read
       bool isRead(Expression::Ptr candidate) const;
+      /// Returns true if this operand is written
       bool isWritten(Expression::Ptr candidate) const;
       
       /// Returns true if this operand reads memory
@@ -51,17 +99,17 @@ namespace Dyninst
       /// Returns true if this operand writes memory
       bool writesMemory() const;
       /// \brief Inserts the effective addresses read by this operand into memAccessors
-      /// \param[out] memAccessors If this is a memory read operand, insert the \c %Expression::Ptr representing
+      /// \param memAccessors If this is a memory read operand, insert the \c %Expression::Ptr representing
       /// the address being read into \c memAccessors.
       void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
       /// \brief Inserts the effective addresses written by this operand into memAccessors
-      /// \param[out] memAccessors If this is a memory write operand, insert the \c %Expression::Ptr representing
+      /// \param memAccessors If this is a memory write operand, insert the \c %Expression::Ptr representing
       /// the address being written into \c memAccessors.
       void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
       /// \brief Return a printable string representation of the operand
       /// \return The operand in a disassembly format
       std::string format() const;
-
+      /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
       Expression::Ptr getValue() const;
       
     private:
