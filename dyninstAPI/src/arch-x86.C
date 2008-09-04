@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.88 2008/07/11 15:23:48 bill Exp $
+// $Id: arch-x86.C,v 1.89 2008/09/04 21:06:07 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -63,6 +63,7 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "process.h"
 #include "inst-x86.h"
+#include "instructionAPI/h/RegisterIDs-x86.h"
 
 using namespace std;
 using namespace boost::assign;
@@ -4928,14 +4929,14 @@ bool instruction::generate(codeGen &gen,
       // TODO: label in parsing (once)
         
       if (target == (origAddr + size())) {
-         *newInsn = 0x68; // What opcode is this?
+         *newInsn = 0x68; // Push; we're replacing "call 0" with "push original IP"
          newInsn++;
 
          Address EIP = origAddr + size();
          unsigned int *temp = (unsigned int *) newInsn;
          *temp = EIP;
          // No 9-byte jumps...
-         assert(sizeof(unsigned int) == 4);
+         assert(sizeof(unsigned int) == 4); // should be a compile-time assert
          newInsn += sizeof(unsigned int);
          assert((newInsn - insnBuf) == 5);
          SET_PTR(newInsn, gen);
@@ -4964,7 +4965,8 @@ bool instruction::generate(codeGen &gen,
                if ((*(ptr + 2) == 0x24)) {
                   // Okay, put the PC into the 'reg'
                   Address EIP = origAddr + size();
-                  *newInsn = static_cast<unsigned char>(0xb8 + reg); // Opcode???
+                  *newInsn = static_cast<unsigned char>(0xb8 + reg); // MOV family, destination of the register encoded by
+		  // 'reg', source is an Iv immediate
                   newInsn++;
                   unsigned int *temp = (unsigned int *)newInsn;
                   *temp = EIP;
