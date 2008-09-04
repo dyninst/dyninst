@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.23 2008/09/03 06:08:44 jaw Exp $
+// $Id: registerSpace.C,v 1.24 2008/09/04 21:06:21 bill Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1073,7 +1073,7 @@ const bitArray &registerSpace::getSyscallWrittenRegisters() const {
 
 bitArray registerSpace::getBitArray()  {
 #if defined(arch_x86) || defined(arch_x86_64)
-    return bitArray(REGNUM_LAST+1);
+    return bitArray(REGNUM_IGNORED+1);
 #elif defined(arch_power)
     return bitArray(lastReg);
 #else

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.53 2008/07/17 21:43:09 bill Exp $
+// $Id: instPoint.C,v 1.54 2008/09/04 21:06:19 bill Exp $
 // instPoint code
 
 
@@ -240,7 +240,8 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
     while ((*newIter) < addr) newIter++;
     if (*newIter != addr) {
         inst_printf("Unaligned try for instruction iterator, ret null\n");
-        fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator at %lx (block start %lx), ret null\n", 
+		FILE__, __LINE__, addr, bbl->firstInsnAddr());
         return NULL; // Not aligned
     }
 #if defined(arch_sparc)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.11 2008/07/17 21:43:09 bill Exp $
+// $Id: liveness.C,v 1.12 2008/09/04 21:06:20 bill Exp $
 
 #if defined(cap_liveness)
 
@@ -62,6 +62,135 @@
 #if defined(arch_x86) || defined(arch_x86_64)
 // Special-casing for IA-32...
 #include "inst-x86.h"
+#include "instructionAPI/h/RegisterIDs-x86.h"
+#endif
+
+// Move this to a platform-specific file
+#if defined(cap_instruction_api)
+using namespace Dyninst::InstructionAPI;
+
+map<IA32Regs, Register> reverseRegisterMap = map_list_of
+(r_EAX, REGNUM_RAX)
+    (r_ECX, REGNUM_RCX)
+    (r_EDX, REGNUM_RDX)
+    (r_EBX, REGNUM_RBX)
+    (r_ESP, REGNUM_RSP)
+    (r_EBP, REGNUM_RBP)
+    (r_ESI, REGNUM_RSI)
+    (r_EDI, REGNUM_RDI)
+    (r_R8, REGNUM_R8)
+    (r_R9, REGNUM_R9)
+    (r_R10, REGNUM_R10)
+    (r_R11, REGNUM_R11)
+    (r_R12, REGNUM_R12)
+    (r_R13, REGNUM_R13)
+    (r_R14, REGNUM_R14)
+    (r_R15, REGNUM_R15)
+    (r_DummyFPR, REGNUM_DUMMYFPR)
+    (r_OF, REGNUM_OF)
+    (r_SF, REGNUM_SF)
+    (r_ZF, REGNUM_ZF)
+    (r_AF, REGNUM_AF)
+    (r_PF, REGNUM_PF)
+    (r_CF, REGNUM_CF)
+    (r_TF, REGNUM_TF)
+    (r_IF, REGNUM_IF)
+    (r_DF, REGNUM_DF)
+    (r_NT, REGNUM_NT)
+    (r_RF, REGNUM_RF)
+    (r_AH, REGNUM_RAX)
+    (r_BH, REGNUM_RBX)
+    (r_CH, REGNUM_RCX)
+    (r_DH, REGNUM_RDX)
+    (r_AL, REGNUM_RAX)
+    (r_BL, REGNUM_RBX)
+    (r_CL, REGNUM_RCX)
+    (r_DL, REGNUM_RDX)
+    (r_eAX, REGNUM_RAX)
+    (r_eBX, REGNUM_RBX)
+    (r_eCX, REGNUM_RCX)
+    (r_eDX, REGNUM_RDX)
+    (r_AX, REGNUM_RAX)
+    (r_DX, REGNUM_RDX)
+    (r_eSP, REGNUM_RSP)
+    (r_eBP, REGNUM_RBP)
+    (r_eSI, REGNUM_RSI)
+    (r_eDI, REGNUM_RDI)
+    // These are wrong, need to extend to make cmpxch8b work right
+    (r_EDXEAX, REGNUM_RAX)
+    (r_ECXEBX, REGNUM_RCX)
+    (r_CS, REGNUM_IGNORED)
+    (r_DS, REGNUM_IGNORED)
+    (r_ES, REGNUM_IGNORED)
+    (r_FS, REGNUM_IGNORED)
+    (r_GS, REGNUM_IGNORED)
+  (r_SS, REGNUM_IGNORED)
+  (r_rAX, REGNUM_RAX)
+  (r_rCX, REGNUM_RCX)
+  (r_rDX, REGNUM_RDX)
+  (r_rBX, REGNUM_RBX)
+  (r_rSP, REGNUM_RSP)
+  (r_rBP, REGNUM_RBP)
+  (r_rSI, REGNUM_RSI)
+  (r_rDI, REGNUM_RDI)
+  (r_EFLAGS, REGNUM_IGNORED)
+  (r_EIP, REGNUM_IGNORED)
+  (r_RIP, REGNUM_IGNORED)
+  (r_RAX, REGNUM_RAX)
+  (r_RCX, REGNUM_RCX)
+  (r_RDX, REGNUM_RDX)
+  (r_RBX, REGNUM_RBX)
+  (r_RSP, REGNUM_RSP)
+  (r_RBP, REGNUM_RBP)
+  (r_RSI, REGNUM_RSI)
+  (r_RDI, REGNUM_RDI)
+  (r_SI, REGNUM_RSI)
+  (r_DI, REGNUM_RDI)
+  (r_XMM0, REGNUM_IGNORED)
+  (r_XMM1, REGNUM_IGNORED)
+  (r_XMM2, REGNUM_IGNORED)
+  (r_XMM3, REGNUM_IGNORED)
+  (r_XMM4, REGNUM_IGNORED)
+  (r_XMM5, REGNUM_IGNORED)
+  (r_XMM6, REGNUM_IGNORED)
+  (r_XMM7, REGNUM_IGNORED)
+  (r_MM0, REGNUM_IGNORED)
+  (r_MM1, REGNUM_IGNORED)
+  (r_MM2, REGNUM_IGNORED)
+  (r_MM3, REGNUM_IGNORED)
+  (r_MM4, REGNUM_IGNORED)
+  (r_MM5, REGNUM_IGNORED)
+  (r_MM6, REGNUM_IGNORED)
+  (r_MM7, REGNUM_IGNORED)
+  (r_CR0, REGNUM_IGNORED)
+  (r_CR1, REGNUM_IGNORED)
+  (r_CR2, REGNUM_IGNORED)
+  (r_CR3, REGNUM_IGNORED)
+  (r_CR4, REGNUM_IGNORED)
+  (r_CR5, REGNUM_IGNORED)
+  (r_CR6, REGNUM_IGNORED)
+  (r_CR7, REGNUM_IGNORED)
+  (r_DR0, REGNUM_IGNORED)
+  (r_DR1, REGNUM_IGNORED)
+  (r_DR2, REGNUM_IGNORED)
+  (r_DR3, REGNUM_IGNORED)
+  (r_DR4, REGNUM_IGNORED)
+  (r_DR5, REGNUM_IGNORED)
+  (r_DR6, REGNUM_IGNORED)
+  (r_DR7, REGNUM_IGNORED)
+
+;
+
+Register convertRegID(IA32Regs toBeConverted)
+{
+    map<IA32Regs, Register>::const_iterator found = 
+        reverseRegisterMap.find(toBeConverted);
+    if(found == reverseRegisterMap.end()) {
+        fprintf(stderr, "Register ID %d not found in reverseRegisterLookup!\n", toBeConverted);
+        assert(!"Bad register ID");
+    }
+    return found->second;
+}
 #endif
 
 // Code for register liveness detection
@@ -157,7 +286,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
     bitArray read = in;
     bitArray written = in;
 
-#if defined(cap_instruction_api)
+    #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     
     InstructionDecoder decoder(reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())), 
@@ -169,17 +298,11 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       curInsn.getReadSet(cur_read);
       curInsn.getWriteSet(cur_written);
       for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); i != cur_read.end(); i++) {
-	if((*i)->getID() < read.size())
-	{
-	  read[(*i)->getID()] = true;
-	}
+	  read[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
       for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
 	   i != cur_written.end(); i++) {
-	if((*i)->getID() < written.size())
-	{
-	  written[(*i)->getID()] = true;
-	}
+	written[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
       entryID cur_op = curInsn.getOperation().getID();
       if(cur_op == e_call)
@@ -418,18 +541,11 @@ void instPoint::calcLiveness() {
       
       for (std::set<RegisterAST::Ptr>::const_iterator i = tmpRead.begin(); 
 	   i != tmpRead.end(); i++) {
-	if((*i)->getID() < block_out.size())
-	{
-	  read[(*i)->getID()] = true;
-	}
-	
+	read[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
       for (std::set<RegisterAST::Ptr>::const_iterator i = tmpWritten.begin(); 
 	   i != tmpWritten.end(); i++) {
-	if((*i)->getID() < block_out.size())
-	{
-	  written[(*i)->getID()] = true;
-	}
+	written[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
       entryID curEntry = curInsn->second.getOperation().getID();
       
@@ -581,17 +697,11 @@ bitArray instPoint::liveRegisters(callWhen when) {
 
     for (std::set<RegisterAST::Ptr>::const_iterator i = tmpRead.begin(); 
          i != tmpRead.end(); i++) {
-      if((*i)->getID() < postLiveRegisters_.size())
-      {
-        read[(*i)->getID()] = true;
-      }
+      read[convertRegID(IA32Regs((*i)->getID()))] = true;
     }
     for (std::set<RegisterAST::Ptr>::const_iterator i = tmpWritten.begin(); 
          i != tmpWritten.end(); i++) {
-      if((*i)->getID() < postLiveRegisters_.size())
-      {
-        written[(*i)->getID()] = true;
-      }
+      written[convertRegID(IA32Regs((*i)->getID()))] = true;
     }
 
     entryID curOperation = currentInsn.getOperation().getID();
