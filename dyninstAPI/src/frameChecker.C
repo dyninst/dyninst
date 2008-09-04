@@ -1,4 +1,6 @@
 
+#if defined(cap_instruction_api)
+
 #include "frameChecker.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
@@ -73,3 +75,5 @@ bool frameChecker::isStackFrameSetup() const
 {
   return isMovStackToBase(0);
 }
+
+#endif // defined(cap_instruction_api)
