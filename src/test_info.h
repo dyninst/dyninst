@@ -39,11 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.27 2008/09/03 06:08:50 jaw Exp $
+// $Id: test_info.h,v 1.28 2008/09/05 04:06:08 jaw Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
+#if !defined (os_windows)
 mutatee_list_t test0_mutatee;
+#endif
 mutatee_list_t test1_mutatee;
 mutatee_list_t test2_mutatee;
 mutatee_list_t test3_mutatee;
@@ -282,7 +284,9 @@ platforms_t unix_platforms =
    };
 
 test_data_t tests[] = {
+#if !defined(os_windows)
    test_data_t("test0_0", "test0_0.so", test0_mutatee, all_platforms, SELFSTART, 0, 0, COLLECT_EXITCODE, CREATE, ENABLED, SOLO),
+#endif
    test_data_t("test1_1", "test1_1.so", test1_mutatee, all_platforms, STOPPED, 1, 1, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
    test_data_t("test1_2", "test1_2.so", test1_mutatee, all_platforms, STOPPED, 1, 2, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
    test_data_t("test1_3", "test1_3.so", test1_mutatee, all_platforms, STOPPED, 1, 3, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),

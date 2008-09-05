@@ -168,9 +168,17 @@ bool test0()
 
    bool err = false;
    Symtab *test1_mutatee = NULL;
-   std::string mutatee_name("test1.mutatee_gcc");
+   char cwdbuf[1024];
+   if (!getcwd(cwdbuf, 1024)) {
+      fprintf(stderr, "%s[%d]:  getcwd:  %s\n", FILE__, __LINE__, strerror(errno));
+      abort();
+   }
 
-   err = Symtab::openFile(test1_mutatee, mutatee_name);
+   std::string cwd_str(cwdbuf);
+   std::string mutatee_short_name("test1.mutatee_gcc");
+   std::string mutatee_name = cwdbuf + std::string("/") + mutatee_short_name;
+
+   err = !Symtab::openFile(test1_mutatee, mutatee_name);
 
    if (err) 
    {
@@ -191,6 +199,378 @@ bool test0()
       fprintf(stderr, "%s[%d]:  symtab for %s is not an executable\n", 
             FILE__, __LINE__, mutatee_name.c_str());
       return false;
+   }
+
+   std::vector<Module *> mods;
+   if (!test1_mutatee->getAllModules(mods)) 
+   {
+      fprintf(stderr, "%s[%d]:  symtab for %s: failed to get modules\n", 
+            FILE__, __LINE__, mutatee_name.c_str());
+      return false;
+   }
+
+   if (!mods.size()) 
+   {
+      fprintf(stderr, "%s[%d]:  symtab for %s: failed to get modules\n", 
+            FILE__, __LINE__, mutatee_name.c_str());
+      return false;
+   }
+
+   if (mods.size() != 5) 
+   {
+      fprintf(stderr, "%s[%d]:  symtab for %s: wrong number of modules: %d, not 5\n", 
+            FILE__, __LINE__, mutatee_name.c_str(), mods.size());
+      return false;
+   }
+
+   std::vector<const char *> expected_modnames;
+   expected_modnames.push_back("DEFAULT_MODULE");
+   expected_modnames.push_back("test1.mutatee.c");
+   expected_modnames.push_back("mutatee_util.c");
+   expected_modnames.push_back("test1.mutateeCommon.c");
+
+#if defined (os_linux)
+#if defined (arch_x86)
+   expected_modnames.push_back("call35_1_x86_linux.s");
+#elif defined (arch_x86_64)
+   expected_modnames.push_back("call35_1_x86_64_linux.s");
+#endif
+#elif defined (os_solaris)
+   expected_modnames.push_back("call35_1_sparc_solaris.s");
+#else
+   expected_modnames.push_back("call35_1.c");
+#endif
+
+   for (unsigned int i = 0; i < mods.size(); ++i) 
+   {
+      Module *m = mods[i];
+      std::string modname = m->fileName();
+      bool found = false;
+
+      for (unsigned int j = 0; j < expected_modnames.size(); ++j) 
+      {
+         std::string checkname(expected_modnames[i]);
+         if (modname == checkname) {
+            found = true;
+            break;
+         }
+      }
+
+      if (!found) 
+      {
+         fprintf(stderr, "%s[%d]:  symtab for %s: cannot find module %s\n", 
+               FILE__, __LINE__, mutatee_name.c_str(), modname.c_str());
+         return false;
+      }
+   }
+
+   //  It might seem redundant here, but now also verify that findModule also works
+
+   for (unsigned int i = 0; i <expected_modnames.size(); ++i) 
+   {
+      Module *m = NULL;
+      std::string modname(expected_modnames[i]);
+
+      if (!test1_mutatee->findModule(m, modname)) 
+      {
+         fprintf(stderr, "%s[%d]:  failed to find module %s\n", FILE__, __LINE__, 
+               expected_modnames[i]);
+
+         return false;
+      }
+
+      if (!m) 
+      {
+         fprintf(stderr, "%s[%d]:  failed to find module %s\n", FILE__, __LINE__, 
+               expected_modnames[i]);
+
+         return false;
+      }
+
+      std::string mod_filename = m->fileName();
+
+      if (mod_filename != modname) 
+      {
+         fprintf(stderr, "%s[%d]:  module name mismatch???  %s vs %s\n", FILE__, __LINE__, 
+               expected_modnames[i], mod_filename.c_str());
+
+         return false;
+      }
+   }
+
+   //  A cursory test for findAllSymbols...
+   std::vector<Symbol *> symbols;
+
+   std::vector<const char *> expected_functions;
+   expected_functions.push_back("func1_1");
+   expected_functions.push_back("func2_1");
+   expected_functions.push_back("func3_1");
+   expected_functions.push_back("func4_1");
+   expected_functions.push_back("func5_1");
+   expected_functions.push_back("func6_1");
+   expected_functions.push_back("func7_1");
+   expected_functions.push_back("func8_1");
+   expected_functions.push_back("func9_1");
+   expected_functions.push_back("func10_1");
+   expected_functions.push_back("func11_1");
+   expected_functions.push_back("func12_1");
+   expected_functions.push_back("func13_1");
+   expected_functions.push_back("func14_1");
+   expected_functions.push_back("func15_1");
+   expected_functions.push_back("func16_1");
+   expected_functions.push_back("func17_1");
+   expected_functions.push_back("func18_1");
+   expected_functions.push_back("func19_1");
+   expected_functions.push_back("func20_1");
+   expected_functions.push_back("func21_1");
+   expected_functions.push_back("func22_1");
+   expected_functions.push_back("func23_1");
+   expected_functions.push_back("func24_1");
+   expected_functions.push_back("func25_1");
+   expected_functions.push_back("func26_1");
+   expected_functions.push_back("func27_1");
+   expected_functions.push_back("func28_1");
+   expected_functions.push_back("func29_1");
+   expected_functions.push_back("func30_1");
+   
+   std::vector<const char *> expected_variables;
+   expected_variables.push_back("globalVariable1_1");
+   expected_variables.push_back("globalVariable3_1");
+   expected_variables.push_back("globalVariable4_1");
+   expected_variables.push_back("globalVariable5_1");
+   expected_variables.push_back("globalVariable5_2");
+   expected_variables.push_back("globalVariable6_1");
+   expected_variables.push_back("globalVariable6_2");
+   expected_variables.push_back("globalVariable6_3");
+   expected_variables.push_back("globalVariable6_4");
+   expected_variables.push_back("globalVariable6_5");
+   expected_variables.push_back("globalVariable6_6");
+   expected_variables.push_back("globalVariable7_1");
+   expected_variables.push_back("globalVariable7_2");
+   expected_variables.push_back("globalVariable7_3");
+   expected_variables.push_back("globalVariable7_4");
+   expected_variables.push_back("globalVariable7_5");
+   expected_variables.push_back("globalVariable7_6");
+   expected_variables.push_back("globalVariable7_7");
+   expected_variables.push_back("globalVariable7_8");
+   expected_variables.push_back("globalVariable7_9");
+   expected_variables.push_back("globalVariable7_10");
+   expected_variables.push_back("globalVariable7_11");
+   expected_variables.push_back("globalVariable7_12");
+   expected_variables.push_back("globalVariable7_13");
+   expected_variables.push_back("globalVariable7_14");
+
+   if (!test1_mutatee->getAllSymbolsByType(symbols, Symbol::ST_UNKNOWN)) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to getAllSymbolsByType(... , ST_UNKNOWN)\n", 
+            FILE__, __LINE__);
+      return false;
+   }
+
+   if (!symbols.size())
+   {
+      fprintf(stderr, "%s[%d]:  failed to getAllSymbolsByType(... , ST_UNKNOWN)\n", 
+            FILE__, __LINE__);
+      return false;
+   }
+
+   //  with ST_UNKNOWN, all symbols should be returned, so look for both functions and variables
+
+   for (unsigned int i = 0; i < expected_functions.size(); ++i) 
+   {
+      std::string seekname(expected_functions[i]);
+
+      bool found = false;
+
+      for (unsigned int j = 0; j < symbols.size(); ++j) 
+      {
+         Symbol *sym = symbols[j];
+         if (!sym) 
+         {
+            fprintf(stderr, "%s[%d]:  NULL Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         std::string sname = sym->getName();
+
+         if (!sname.length()) 
+         {
+            fprintf(stderr, "%s[%d]:  Unnamed Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         if (seekname == sname) 
+         {
+            found = true;
+         }
+      }
+
+      if (!found) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, seekname.c_str());
+         return false;
+      }
+   }
+
+   for (unsigned int i = 0; i < expected_variables.size(); ++i) 
+   {
+      std::string seekname(expected_variables[i]);
+
+      bool found = false;
+
+      for (unsigned int j = 0; j < symbols.size(); ++j) 
+      {
+         Symbol *sym = symbols[j];
+         if (!sym) 
+         {
+            fprintf(stderr, "%s[%d]:  NULL Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         std::string sname = sym->getName();
+
+         if (!sname.length()) 
+         {
+            fprintf(stderr, "%s[%d]:  Unnamed Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         if (seekname == sname) 
+         {
+            found = true;
+         }
+      }
+
+      if (!found) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, seekname.c_str());
+         return false;
+      }
+   }
+
+   symbols.clear();
+
+   if (!test1_mutatee->getAllSymbolsByType(symbols, Symbol::ST_FUNCTION)) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to getAllSymbolsByType(... , ST_FUNCTION)\n", 
+            FILE__, __LINE__);
+      return false;
+   }
+
+   if (!symbols.size())
+   {
+      fprintf(stderr, "%s[%d]:  failed to getAllSymbolsByType(... , ST_FUNCTION)\n", 
+            FILE__, __LINE__);
+      return false;
+   }
+
+   for (unsigned int i = 0; i < expected_functions.size(); ++i) 
+   {
+      std::string seekname(expected_functions[i]);
+
+      bool found = false;
+
+      for (unsigned int j = 0; j < symbols.size(); ++j) 
+      {
+         Symbol *sym = symbols[j];
+         if (!sym) 
+         {
+            fprintf(stderr, "%s[%d]:  NULL Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         std::string sname = sym->getName();
+
+         if (!sname.length()) 
+         {
+            fprintf(stderr, "%s[%d]:  Unnamed Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         if (seekname == sname) 
+         {
+            found = true;
+         }
+      }
+
+      if (!found) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, seekname.c_str());
+         return false;
+      }
+   }
+
+   symbols.clear();
+
+   if (!test1_mutatee->getAllSymbolsByType(symbols, Symbol::ST_OBJECT))
+   {
+      fprintf(stderr, "%s[%d]:  failed to getAllSymbolsByType(... , ST_OBJECT)\n", 
+            FILE__, __LINE__);
+      return false;
+   }
+
+   if (!symbols.size())
+   {
+      fprintf(stderr, "%s[%d]:  failed to getAllSymbolsByType(... , ST_OBJECT)\n", 
+            FILE__, __LINE__);
+      return false;
+   }
+
+   for (unsigned int i = 0; i < expected_variables.size(); ++i) 
+   {
+      std::string seekname(expected_variables[i]);
+
+      bool found = false;
+
+      for (unsigned int j = 0; j < symbols.size(); ++j) 
+      {
+         Symbol *sym = symbols[j];
+         if (!sym) 
+         {
+            fprintf(stderr, "%s[%d]:  NULL Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         std::string sname = sym->getName();
+
+         if (!sname.length()) 
+         {
+            fprintf(stderr, "%s[%d]:  Unnamed Symbol !!!\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         if (seekname == sname) 
+         {
+            found = true;
+         }
+      }
+
+      if (!found) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, seekname.c_str());
+         return false;
+      }
+   }
+
+   symbols.clear();
+
+   fprintf(stderr, "\n%s[%d]:  Have modules:\n", FILE__, __LINE__);
+   for (unsigned int i = 0; i < mods.size(); ++i) 
+   {
+      Module *m = mods[i];
+      fprintf(stderr, "\t%s--%s\n", m->fileName().c_str(), m->fullName().c_str());
    }
 
    fprintf(stderr, "%s[%d]:  passed test0 so far\n", FILE__, __LINE__);
@@ -304,12 +684,16 @@ bool test1b(const char *cachefile)
 
 bool test1()
 {
+#if 0
    bool res = serialize_test<ZeroOne>(1, prog_name);
    if (!res) {
       fprintf(stderr, "%s[%d]:  test1 failed\n", FILE__, __LINE__);
    }
 
    return res;
+#endif
+   fprintf(stderr, "%s[%d]:  SHOULDN'T BE HERE\n", FILE__, __LINE__);
+   abort();
 }
 
 
@@ -892,6 +1276,7 @@ int main(int iargc, char *argv[])
          else {
             fprintf(stderr, "%s[%d]:  ERROR:  modifier makes no sense here\n", FILE__, __LINE__);
          }
+         break;
       case 1:
          if (!modifier)
             test_ok = test1();
