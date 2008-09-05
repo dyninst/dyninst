@@ -935,6 +935,7 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     // Functions added during symbol table parsing do not necessarily
     // have valid sizes set, and should therefor not be added to
     // the code range tree. They will be added after parsing. 
+
     /*if(!wasSymtab)
         {
         // TODO: out-of-line insertion here
@@ -951,13 +952,16 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     }
 }
 
-bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) {
+bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) 
+{
     if (!newSym)
     	return false;
+
     string filename = referringSymbol->getModule()->exec()->name();
     vector<string> *vers, *newSymVers = new vector<string>;
     newSym->setVersionFileName(filename);
     std::string rstr;
+
     bool ret = newSym->getVersionFileName(rstr);
     if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) {
         newSymVers->push_back((*vers)[0]);
@@ -2656,16 +2660,19 @@ bool Symtab::exportBin(string file)
       if (serialize(*this, trans))
          return true;
 #endif
+      fprintf(stderr, "%s[%d]:  binary serialization ok\n", __FILE__, __LINE__);
+      return true;
    }
    catch (const SerializerError &err)
    {
       if (err.code() == SerializerError::ser_err_disabled) {
          fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
                FILE__, __LINE__, file.c_str());
+         return true;
       }
       else {
-         fprintf(stderr, "%s[%d]: %s\n\tfrom %s[%d]\n", FILE__, __LINE__,
-               err.what(), err.file().c_str(), err.line());
+         fprintf(stderr, "%s[%d]: %s\n\tfrom %s[%d], code %d\n", FILE__, __LINE__,
+               err.what(), err.file().c_str(), err.line(), err.code());
       }
    }
 
@@ -2712,6 +2719,11 @@ Symtab *Symtab::importBin(std::string file)
 
    catch (const SerializerError &err)
    {
+      if (err.code() == SerializerError::ser_err_disabled) {
+         fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
+               FILE__, __LINE__, file.c_str());
+         return NULL;
+      }
       fprintf(stderr, "%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
             err.what(), err.file().c_str(), err.line());
    }
@@ -2749,6 +2761,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
             }
         }   
     }
+
 #if defined (cap_serialization)
     obj = importBin(filename);
     if (!obj) { 
@@ -2769,28 +2782,36 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
     double dursecs = difftime/(1000 );
     cout << __FILE__ << ":" << __LINE__ <<": openFile "<< filename<< " took "<<dursecs <<" msecs" << endl;
 #endif
-    if(!err)
+
+    if (!err)
     {
         if (filename.find("/proc") == std::string::npos)
             allSymtabs.push_back(obj);
+
         obj->setupTypes();	
+
 #if defined (cap_serialization)
-        fprintf(stderr, "%s[%d]:  doing bin-serialize for %s\n", FILE__, __LINE__, filename.c_str());
+        fprintf(stderr, "%s[%d]:  doing bin-serialize for %s\n", 
+              FILE__, __LINE__, filename.c_str());
+
         if (!obj->exportBin(filename))
         {
            fprintf(stderr, "%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
         }
         else
-           fprintf(stderr, "%s[%d]:  did bin-serialize for %s\n", FILE__, __LINE__, filename.c_str());
+           fprintf(stderr, "%s[%d]:  did bin-serialize for %s\n", 
+                 FILE__, __LINE__, filename.c_str());
 #endif
 
     }
     else
     {
-      symtab_printf("%s[%d]: WARNING: failed to open symtab for %s\n", FILE__, __LINE__, filename.c_str());
-      delete obj;
-        obj = NULL;
+       symtab_printf("%s[%d]: WARNING: failed to open symtab for %s\n", 
+             FILE__, __LINE__, filename.c_str());
+       delete obj;
+       obj = NULL;
     }
+
     // returns true on success (not an error)
     return !err;
 }

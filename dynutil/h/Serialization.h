@@ -6,8 +6,8 @@
 
 #include <stdexcept>
 #include <stdio.h>
-#include "dynutil/h/dyntypes.h"
-#include "common/h/Types.h"
+#include "dyntypes.h"
+#include "util.h"
 
 //  SER_ERR("msg") -- an attempt at "graceful" failure.  If debug flag is set
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
@@ -417,8 +417,8 @@ DLLEXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/);
 class SerializerBin;
 class SerializerXML;
 
-bool sb_is_input(SerializerBase *sb);
-bool sb_is_output(SerializerBase *sb);
+DLLEXPORT_COMMON bool sb_is_input(SerializerBase *sb);
+DLLEXPORT_COMMON bool sb_is_output(SerializerBase *sb);
 
 template <class T>
 bool ifinput(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)

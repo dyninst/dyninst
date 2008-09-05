@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.17 2008/09/03 06:08:45 jaw Exp $
+ * $Id: Symbol.h,v 1.18 2008/09/05 04:06:08 jaw Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -56,6 +56,7 @@
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
 
+//#define USE_ANNOTATIONS
 
 typedef struct {} symbol_file_name_a;
 typedef struct {} symbol_version_names_a;
@@ -123,21 +124,13 @@ public:
     DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
           Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
           bool isInSymtab_ = true);
-#if 0
-    DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-          Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false, 
-          bool isInSymtab_ = true);
-    DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-          Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false,
-          bool isInSymtab_ = true);
-#endif
     DLLEXPORT Symbol (const Symbol &);
     DLLEXPORT ~Symbol();
 
     DLLEXPORT Symbol&        operator= (const Symbol &);
     DLLEXPORT bool          operator== (const Symbol &) const;
 
-	DLLEXPORT const std::string&getModuleName ()        const;
+    DLLEXPORT const std::string&getModuleName ()        const;
     DLLEXPORT Module*	        getModule()		        const; 
     DLLEXPORT SymbolType        getType ()              const;
     DLLEXPORT SymbolLinkage     getLinkage ()           const;
@@ -167,10 +160,6 @@ public:
     DLLEXPORT bool	setSize(unsigned ns);
     DLLEXPORT bool	setModuleName(std::string module);
     DLLEXPORT bool 	setModule(Module *mod);
-#if 0
-    DLLEXPORT bool	setUpPtr(void *newUpPtr);
-    DLLEXPORT void 		        *getUpPtr()		        const;
-#endif
     DLLEXPORT bool  setDynSymtab();
     DLLEXPORT bool  clearDynSymtab();
     DLLEXPORT bool  setIsInSymtab();
@@ -215,9 +204,6 @@ private:
     Offset        addr_;
     Region*      sec_;
     unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
-#if 0
-    void*         upPtr_;
-#endif
     bool          isInDynsymtab_;
     bool          isInSymtab_;
 
@@ -232,14 +218,13 @@ private:
     // which the symbol is present.
     std::string moduleName_;  
     std::string fileName_;
+
+#if !defined (USE_ANNOTATIONS)
     std::vector<std::string> verNames_;
+#endif
 
 public:
     DLLEXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
-#if 0
-    localVarCollection *vars_;
-    localVarCollection *params_;
-#endif
 };
 
 inline

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.11 2008/09/03 06:08:45 jaw Exp $
+// $Id: Annotatable.h,v 1.12 2008/09/05 04:06:08 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -58,7 +58,6 @@ class AnnotatableBase;
 using std::vector;
 
 
-//#if defined (cap_serialization)
 class SerDes;
 class SerializerBase;
 class SerializerError;
@@ -68,14 +67,12 @@ void dumpSDAnno();
 
 template <class T, class ANNO_NAME_T>
 bool init_anno_serialization(SerializerBase * = NULL);
-//#endif
 
 class DLLEXPORT_COMMON AnnotatableBase
 {
    protected:
       AnnotatableBase();
-      ~AnnotatableBase() {
-      }
+      ~AnnotatableBase() {}
       typedef struct {
          int anno_id;
 #if defined (cap_serialization)

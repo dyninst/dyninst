@@ -148,8 +148,8 @@ class SerializerXML : public SerializerBase {
 #endif
 };
 
-class SerDesBin;
 class SerializerBin : public SerializerBase {
+   friend class SerDesBin;
    public:
       DLLEXPORT SerializerBin(const char *name_, std::string filename, iomode_t dir, bool verbose); 
       DLLEXPORT ~SerializerBin() {}

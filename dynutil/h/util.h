@@ -6,6 +6,19 @@
 #include "dyntypes.h"
 namespace Dyninst {
 
+#if !defined(DLLEXPORT)
+#if defined (_MSC_VER)
+   /* If we're on Windows, we need to explicetely export these functions: */
+      #if defined(DLL_BUILD)
+         #define DLLEXPORT __declspec(dllexport)
+      #else
+         #define DLLEXPORT __declspec(dllimport)   
+      #endif
+#else
+      #define DLLEXPORT
+#endif
+#endif
+
 #if !defined(DLLEXPORT_COMMON)
 #if defined (_MSC_VER)
 /* If we're on Windows, we need to explicetely export these functions: */

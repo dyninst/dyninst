@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.9 2008/09/03 06:08:44 jaw Exp $
+// $Id: Annotatable.C,v 1.10 2008/09/05 04:06:08 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/serialize.h"
@@ -55,7 +55,7 @@ dyn_hash_map<std::string, int> AnnotatableBase::metadataTypes;
 dyn_hash_map<std::string, std::string> AnnotatableBase::annotypes_to_typenames;
 std::string AnnotatableBase::emptyString = std::string("");
 
-DLLEXPORT AnnotatableBase::AnnotatableBase() 
+AnnotatableBase::AnnotatableBase() 
 {
    number = -1;
 }
@@ -247,7 +247,7 @@ SerializerBase * AnnotatableBase::getAnnotationSerializer(std::string &name)
 }
 #endif
 
-DLLEXPORT void AnnotatableBase::dumpAnnotationSerializers() 
+void AnnotatableBase::dumpAnnotationSerializers() 
 {
    fprintf(stderr, "%s[%d]:  dump of serializers for annotations\n", FILE__, __LINE__);
 

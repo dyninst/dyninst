@@ -240,6 +240,13 @@ void SerializerBin::globalEnable()
 //{
 FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/) 
 {
+   if (SerializerBin::global_disable) {
+      fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n", FILE__, __LINE__);
+      throw SerializerError(FILE__, __LINE__, 
+            std::string("serialization disabled"), 
+            SerializerError::ser_err_disabled);
+   }
+
    FILE *f = NULL;
    //  NOTE:  fname is path-resolved and turned into "filename" by the SerDes ctor
    std::string cache_name;
