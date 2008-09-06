@@ -148,6 +148,8 @@ class SerializerXML : public SerializerBase {
 #endif
 };
 
+class SerDesBin;
+
 class SerializerBin : public SerializerBase {
    friend class SerDesBin;
    public:
