@@ -160,6 +160,8 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     // This should be a parameter...
     bool atomic = false;
    
+    // Define up here so we don't have gotos causing issues
+    std::set<int_function *> instrumentedFunctions;
     
     // Two loops: first addInst, then generate/install/link
     pdvector<miniTramp *> workDone;
@@ -203,6 +205,33 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     
    if (atomic && err) goto cleanup;
 
+   // Having inserted the requests, we hand things off to functions to 
+   // actually do work. First, develop a list of unique functions. 
+
+   for (unsigned i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
+           point->optimizeBaseTramps(bir->when_[j]);
+
+           instrumentedFunctions.insert(point->func());
+       }
+   }
+
+   for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
+        funcIter != instrumentedFunctions.end();
+        funcIter++) {
+       pdvector<instPoint *> failedInstPoints;
+       (*funcIter)->performInstrumentation(atomic,
+                                           failedInstPoints); 
+       if (failedInstPoints.size() && atomic) {
+           err = true;
+           goto cleanup;
+       }
+   }
+
+#if 0
    // All generation first. Actually, all generation per function...
    // but this is close enough.
    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
@@ -270,6 +299,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
        }
        if (atomic && err) break;
    }
+#endif
 
    if (atomic && err) 
       goto cleanup;

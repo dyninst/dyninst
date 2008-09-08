@@ -444,6 +444,8 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
 
   // Monitoring function
   AstNodePtr ast = AstNode::funcCallNode(fb, args);
+  
+
   miniTramp *res = point->instrument(ast,
 				     callPreInsn,
 				     orderLastAtPoint,

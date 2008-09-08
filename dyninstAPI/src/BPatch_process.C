@@ -949,6 +949,9 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
     stacks.clear();
     pcs.clear();
 
+    // Define up here so we don't have gotos causing issues
+    std::set<int_function *> instrumentedFunctions;
+
     if (!llproc->walkStacks(stacks)) {
        inst_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
        return false;
@@ -1049,6 +1052,34 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
     
    if (atomic && err) goto cleanup;
 
+   // Having inserted the requests, we hand things off to functions to 
+   // actually do work. First, develop a list of unique functions. 
+
+   for (unsigned i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
+           point->optimizeBaseTramps(bir->when_[j]);
+
+           instrumentedFunctions.insert(point->func());
+       }
+   }
+
+   for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
+        funcIter != instrumentedFunctions.end();
+        funcIter++) {
+       pdvector<instPoint *> failedInstPoints;
+       (*funcIter)->performInstrumentation(atomic,
+                                           failedInstPoints);
+       if (failedInstPoints.size() && atomic) {
+           err = true;
+           goto cleanup;
+       }
+   }
+
+#if 0
+
    // All generation first. Actually, all generation per function...
    // but this is close enough.
    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
@@ -1114,16 +1145,6 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
 
    // Note that stackWalks can be changed in catchupSideEffect...
 
-    if (modified) *modified = false; 
-    for (unsigned ptIter = 0; ptIter < pts.size(); ptIter++) {
-        instPoint *pt = pts[ptIter];
-        for (unsigned thrIter = 0; thrIter < stacks.size(); thrIter++) {
-            for (unsigned sIter = 0; sIter < stacks[thrIter].size(); sIter++) {
-                if (pt->instrSideEffect(stacks[thrIter][sIter]))
-                    if (modified) *modified = true;
-             }
-        }
-    }
 
    //  finally, do all linking 
    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
@@ -1149,6 +1170,22 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
 
    if (atomic && err) 
       goto cleanup;
+#endif
+
+   // Move this to function instrumentation? It's more whole-process,
+   // as it modifies stacks.
+
+    if (modified) *modified = false; 
+    for (unsigned ptIter = 0; ptIter < pts.size(); ptIter++) {
+        instPoint *pt = pts[ptIter];
+        for (unsigned thrIter = 0; thrIter < stacks.size(); thrIter++) {
+            for (unsigned sIter = 0; sIter < stacks[thrIter].size(); sIter++) {
+                if (pt->instrSideEffect(stacks[thrIter][sIter]))
+                    if (modified) *modified = true;
+             }
+        }
+    }
+
 
    llproc->trapMapping.flush();
 
