@@ -1325,3 +1325,223 @@ bblInstance * bblInstance::getFallthroughBBL() {
     }
     return NULL;
 }
+
+
+bool int_function::performInstrumentation(bool stopOnFailure,
+                                          pdvector<instPoint *> &failedInstPoints) {
+    
+    // We have the following possible side-effects:
+    // 
+    // 1) Generating an instPoint (e.g., creating the multiTramp and its code)
+    //    may determine the function is too small to fit the instrumentation,
+    //    requiring relocation.
+    // 2) Instrumenting a shared block may also trigger relocation as a 
+    //    mechanism to unwind the sharing. 
+    //
+    // 3) Relocation will add additional instPoint instances.
+    //
+
+    // Thus, we have the following order of events:
+    //
+    // 1) Generate all instPoints that actually have instrumentation. 
+    //    This will identify whether the function requires relocation.
+    // 2) If relocation is necessary:
+    // 2a) Generate relocation; this will create the function copy and update 
+    //     function-local data structures.
+    // 2b) Install relocation; this will update process-level data structures and
+    //     copy the relocated function into the address space.
+    // 2c) Generate instPoints again to handle any new instPointInstances that
+    //     have showed up. This should _not_ result in required relocation.
+    // 3) Install instPoints
+    // 4) Link (relocated copy of the function) and instPoints.
+
+    // Assumptions: 
+    // 1) calling generate/install/link on "empty" instPoints has no effect.
+    // 2) Generate/install/link operations are idempotent.
+
+    // Let's avoid a lot of work and collect up all instPoints that have
+    // something interesting going on; that is, that have instrumentation
+    // added since the last time something came up. 
+
+    pdvector<instPoint *> newInstrumentation;
+    pdvector<instPoint *> anyInstrumentation;
+
+    getNewInstrumentation(newInstrumentation);
+    getAnyInstrumentation(anyInstrumentation);
+
+    // Quickie correctness assert: newInstrumentation \subseteq anyInstrumentation
+    assert(newInstrumentation.size() <= anyInstrumentation.size()); 
+
+    bool relocationRequired = false;
+
+    // Step 1: Generate all new instrumentation
+    generateInstrumentation(newInstrumentation, failedInstPoints, relocationRequired); 
+    
+    if (failedInstPoints.size() && stopOnFailure) return false;
+
+#if defined(cap_relocation)
+    // Step 2: is relocation necessary?
+    if (relocationRequired) {
+        // Yar.
+        // This will calculate the sizes required for our basic blocks.
+        expandForInstrumentation();
+        
+        // And keep a list of other functions that need relocation due to
+        // sharing.
+        pdvector<int_function *> need_reloc;
+
+        // Generate the relocated copy of the function.
+        relocationGenerate(enlargeMods(), 0, need_reloc);
+        
+        // Install the relocated copy of the function.
+        relocationInstall();
+
+        // Aaaand link it. 
+        pdvector<codeRange *> overwritten_objs;
+        relocationLink(overwritten_objs);
+
+        // We've added a new version of the function; therefore, we need
+        // to update _everything_ that's been instrumented. 
+        // We do this in two ways. First, we call generate on all
+        // instPoints to get them in the right place.
+        // Second, we replace newInstrumentation with anyInstrumentation,
+        // then call install/link as normal.
+
+        // Clear the failedInstPoints vector first; we'll re-generate
+        // it in any case.
+        failedInstPoints.clear();
+        relocationRequired = false;
+
+        // Update instPoint instances to include the new function
+        for (unsigned i = 0; i < anyInstrumentation.size(); i++) {
+            anyInstrumentation[i]->updateInstancesBatch();
+        }
+        // We _explicitly_ don't call the corresponding updateInstancesFinalize,
+        // as the only purpose of that function is to regenerate instrumentation;
+        // we do that explicitly below.
+
+        generateInstrumentation(anyInstrumentation,
+                                failedInstPoints,
+                                relocationRequired);
+        // I'm commenting this out; I originally thought it would be the case,
+        // but on further thought the original instPoint will _still_ be asking
+        // for relocation. 
+        //assert(relocationRequired == false);
+
+        newInstrumentation = anyInstrumentation;
+    }
+#endif
+
+    // Okay, back to what we were doing...
+    
+    installInstrumentation(newInstrumentation,
+                           failedInstPoints);
+    linkInstrumentation(newInstrumentation,
+                        failedInstPoints);
+
+    return (failedInstPoints.size() == 0);
+}
+
+void int_function::getNewInstrumentation(pdvector<instPoint *> &ret) {
+    for (unsigned i = 0; i < entryPoints_.size(); i++) {
+        if (entryPoints_[i]->hasNewInstrumentation()) {
+            ret.push_back(entryPoints_[i]);
+        }
+    }
+    for (unsigned i = 0; i < exitPoints_.size(); i++) {
+        if (exitPoints_[i]->hasNewInstrumentation()) {
+            ret.push_back(exitPoints_[i]);
+        }
+    }
+    for (unsigned i = 0; i < callPoints_.size(); i++) {
+        if (callPoints_[i]->hasNewInstrumentation()) {
+            ret.push_back(callPoints_[i]);
+        }
+    }
+    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
+        if (arbitraryPoints_[i]->hasNewInstrumentation()) {
+            ret.push_back(arbitraryPoints_[i]);
+        }
+    }
+}
+
+void int_function::getAnyInstrumentation(pdvector<instPoint *> &ret) {
+    for (unsigned i = 0; i < entryPoints_.size(); i++) {
+        if (entryPoints_[i]->hasAnyInstrumentation()) {
+            ret.push_back(entryPoints_[i]);
+        }
+    }
+    for (unsigned i = 0; i < exitPoints_.size(); i++) {
+        if (exitPoints_[i]->hasAnyInstrumentation()) {
+            ret.push_back(exitPoints_[i]);
+        }
+    }
+    for (unsigned i = 0; i < callPoints_.size(); i++) {
+        if (callPoints_[i]->hasAnyInstrumentation()) {
+            ret.push_back(callPoints_[i]);
+        }
+    }
+    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
+        if (arbitraryPoints_[i]->hasAnyInstrumentation()) {
+            ret.push_back(arbitraryPoints_[i]);
+        }
+    }
+}
+
+void int_function::generateInstrumentation(pdvector<instPoint *> &input,
+                                           pdvector<instPoint *> &failed,
+                                           bool &relocationRequired) {
+    for (unsigned i = 0; i < input.size(); i++) {
+        switch (input[i]->generateInst()) {
+        case instPoint::tryRelocation:
+            relocationRequired = true;
+            break;
+        case instPoint::generateSucceeded:
+            break;
+        case instPoint::generateFailed:
+            failed.push_back(input[i]);
+            break;
+        default:
+            assert(0);
+            break;
+        }
+    }
+}
+
+void int_function::installInstrumentation(pdvector<instPoint *> &input,
+                                          pdvector<instPoint *> &failed) {
+    for (unsigned i = 0; i < input.size(); i++) {
+        switch (input[i]->installInst()) {
+        case instPoint::wasntGenerated:
+            break;
+        case instPoint::installSucceeded:
+            break;
+        case instPoint::installFailed:
+            failed.push_back(input[i]);
+            break;
+        default:
+            assert(0);
+            break;
+        }
+    }
+}
+
+
+void int_function::linkInstrumentation(pdvector<instPoint *> &input,
+                                          pdvector<instPoint *> &failed) {
+    for (unsigned i = 0; i < input.size(); i++) {
+        switch (input[i]->linkInst()) {
+        case instPoint::wasntInstalled:
+            break;
+        case instPoint::linkSucceeded:
+            break;
+        case instPoint::linkFailed:
+            failed.push_back(input[i]);
+            break;
+        default:
+            assert(0);
+            break;
+        }
+    }
+}
+

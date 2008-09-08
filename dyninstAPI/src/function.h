@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.51 2008/06/19 19:53:17 legendre Exp $
+// $Id: function.h,v 1.52 2008/09/08 16:44:02 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -434,6 +434,16 @@ class int_function : public patchTarget {
 
    bool isInstrumentable() const { return ifunc_->isInstrumentable(); }
 
+   ////////////////////////////////////////////////////////////////////
+   // Instrumentation of the above instPoints
+   ////////////////////////////////////////////////////////////////////
+   
+   // Takes the instrumentation (specified by instPoint::addInst) in this
+   // function and actually generates it. 
+   bool performInstrumentation(bool stopOnFailure,
+                               pdvector<instPoint *> &failedInstPoints);
+
+
    Address get_address() const;
    unsigned get_size() const;
    std::string get_name() const;
@@ -444,8 +454,6 @@ class int_function : public patchTarget {
    // Defined in inst-x86.C
    bool setReturnValue(int val);
 
-   //bool hasJumpToFirstFiveBytes() { return ifunc_->hasJumpToFirstFiveBytes(); }
-   // ----------------------------------------------------------------------
 #endif
 
    ////////////////////////////////////////////////
@@ -630,6 +638,18 @@ class int_function : public patchTarget {
    callType callingConv;
    int paramSize;
 #endif
+
+    // 
+    // Local instrumentation-based auxiliary functions
+    void getNewInstrumentation(pdvector<instPoint *> &);
+    void getAnyInstrumentation(pdvector<instPoint *> &);
+    void generateInstrumentation(pdvector<instPoint *> &input,
+                                 pdvector<instPoint *> &failed,
+                                 bool &relocationRequired);
+    void installInstrumentation(pdvector<instPoint *> &input,
+                                pdvector<instPoint *> &failed);
+    void linkInstrumentation(pdvector<instPoint *> &input,
+                             pdvector<instPoint *> &failed);
 
 };
 
