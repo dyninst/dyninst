@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.40 2008/09/04 21:06:11 bill Exp $
+// $Id: reloc-func.C,v 1.41 2008/09/08 16:44:05 bernat Exp $
 
 
 
@@ -419,6 +419,9 @@ bool int_function::relocationInstall() {
     // This will cause multiTramps, etc. to be built in the new
     // version of the function.  
 
+#if 0
+    // Shouldn't need this, since we manually update later on.
+
     reloc_printf("RELOCATION INSTALL, updating instances...\n");
 
     for (i = 0; i < entryPoints_.size(); i++)
@@ -441,6 +444,7 @@ bool int_function::relocationInstall() {
 
     reloc_printf("%s[%d]: RELOCATION INSTALL FOR %s, returning %s\n",
                  FILE__, __LINE__, prettyName().c_str(), success ? "true" : "false");
+#endif
 
     return success;
 }
