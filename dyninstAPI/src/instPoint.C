@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.54 2008/09/04 21:06:19 bill Exp $
+// $Id: instPoint.C,v 1.55 2008/09/08 16:44:03 bernat Exp $
 // instPoint code
 
 
@@ -110,6 +110,9 @@ miniTramp *instPoint::addInst(AstNodePtr ast,
         delete miniT;
         return NULL;
     }
+
+    hasAnyInstrumentation_ = true;
+    hasNewInstrumentation_ = true;
     
     return miniT;
 }
@@ -418,6 +421,12 @@ miniTramp *instPoint::instrument(AstNodePtr ast,
         return NULL;
     }
 
+    pdvector<instPoint *> ignored;
+    func()->performInstrumentation(false,
+                                   ignored);
+
+    // Obsolete version below... we now use function-level control.
+#if 0
     if (!generateInst()) {
         cerr << "instPoint::instrument: failed generateInst, ret NULL" << endl;
         return NULL;
@@ -432,7 +441,7 @@ miniTramp *instPoint::instrument(AstNodePtr ast,
         cerr << "instPoint::instrument: failed linkInst, ret NULL" << endl;
         return NULL;
     }
-
+#endif
     return mini;
 }
 
@@ -448,35 +457,96 @@ miniTramp *instPoint::instrument(AstNodePtr ast,
 // if we relocate a function then generating into the entry point of the original
 // will fail, and that's 'bad'. So we now return true if anyone succeeded.
 
-bool instPoint::generateInst() {
+// Generating the initial instance (for the original function) may trigger relocation
+// of the function. So we special-case the first instance to determine whether relocation
+// is necessary. It's possible that later instances will want relocation as well; however,
+// this should only happen if the initial instance required it as well. 
+
+instPoint::result_t instPoint::generateInst() {
     stats_instru.startTimer(INST_GENERATE_TIMER);
     stats_instru.incrementCounter(INST_GENERATE_COUNTER);
     updateInstances();
 
+    bool desireRelocation = false;
     bool success = false;
+    bool noMultiTramp = false;
+
     for (unsigned i = 0; i < instances.size(); i++) {
-        // I was using |=, but it looked like it was getting short-cutted?
-        bool ret = instances[i]->generateInst();
-        if (ret) success = true;
+        switch (instances[i]->generateInst()) {
+        case instPointInstance::noMultiTramp:
+            // This can happen if there is another modification
+            // type at this location; this is only a failure
+            // if nothing else covers it.
+            noMultiTramp = true;
+            break;
+        case instPointInstance::instOfSharedBlock:
+            // We've instrumented a shared block, which is not desired.
+            // We want to force relocation of this function to ensure
+            // that we can remove the sharing. This may indirectly cause
+            // relocation of the sharing functions, but we don't care about
+            // that. 
+            desireRelocation = true;
+            break;
+        case instPointInstance::mTrampTooBig:
+            // We need to branch, but the branch is bigger than
+            // the block. Oops. 
+            // We don't do any work here; instead, we'll pass this up the
+            // chain and see how big the function needs to be from the function
+            // level.
+            desireRelocation = true;
+            break;
+        case instPointInstance::generateFailed:
+            break;
+        case instPointInstance::generateSucceeded:
+            success = true;
+            break;
+        case instPointInstance::pointPreviouslyModified:
+            // This case doesn't matter.
+            break;
+        default:
+            assert(0 && "Impossible case in switch"); 
+            break;
+        }
     }
     shouldGenerateNewInstances_ = true;
     stats_instru.stopTimer(INST_GENERATE_TIMER);
-    return success;
+
+    if (noMultiTramp) assert(0);
+    if (desireRelocation) return tryRelocation;
+    if (success) return generateSucceeded;
+    return generateFailed;
 }
 
 // See above return value comment...
 
-bool instPoint::installInst() {
+instPoint::result_t instPoint::installInst() {
     stats_instru.startTimer(INST_INSTALL_TIMER);
     stats_instru.incrementCounter(INST_INSTALL_COUNTER);
     bool success = false;
+    bool noMT = false;
     for (unsigned i = 0; i < instances.size(); i++) {
-        bool ret = instances[i]->installInst();
-        if (ret) success = true;
+        switch (instances[i]->installInst()) {
+        case instPointInstance::installSucceeded:
+            success = true;
+            break;
+        case instPointInstance::installFailed:
+            break;
+        case instPointInstance::noMultiTramp:
+            noMT = true;
+            break;
+        default:
+            assert(0);
+        }
     }
     shouldInstallNewInstances_ = true;
     stats_instru.stopTimer(INST_INSTALL_TIMER);
-    return success;
+
+    if (success)
+        return installSucceeded;
+    else if (noMT)
+        return wasntGenerated;
+    else
+        return installFailed;
 }
 
 // Return false if the PC is within the jump range of any of our
@@ -523,16 +593,27 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs)
 //   table with any traps that we added.  We may not want to do
 //   this yet if we're dealing with insertion sets, since large
 //   updates are more efficient than smaller ones.
-bool instPoint::linkInst(bool update_trap_table) {
+instPoint::result_t instPoint::linkInst(bool update_trap_table) {
     bool success = false;
+    bool noMT = false;
     stats_instru.startTimer(INST_LINK_TIMER);
     stats_instru.incrementCounter(INST_LINK_COUNTER);
 
     for (unsigned i = 0; i < instances.size(); i++) {
-        bool ret = instances[i]->linkInst();
-        if (ret) success = true;
+        switch (instances[i]->linkInst()) {
+        case instPointInstance::linkSucceeded:
+            success = true;
+            break;
+        case instPointInstance::linkFailed:
+            break;
+        case instPointInstance::noMultiTramp:
+            noMT = true;
+            break;
+        default:
+            assert(0);
+        }
     }
-    
+
     if (update_trap_table) {
       proc()->trapMapping.flush();
     }
@@ -540,8 +621,16 @@ bool instPoint::linkInst(bool update_trap_table) {
     shouldLinkNewInstances_ = true;
 
     stats_instru.stopTimer(INST_LINK_TIMER);
+
+    // It's been installed, so nothing new.
+    hasNewInstrumentation_ = false;
     
-    return success;
+    if (success)
+        return linkSucceeded;
+    else if (noMT)
+        return wasntInstalled;
+    else
+        return linkFailed;
 }
 
 instPointInstance *instPoint::getInstInstance(Address addr) {
@@ -572,7 +661,9 @@ instPoint::instPoint(AddressSpace *proc,
     addr_(addr),
     shouldGenerateNewInstances_(false),
     shouldInstallNewInstances_(false),
-    shouldLinkNewInstances_(false)    
+    shouldLinkNewInstances_(false),
+    hasNewInstrumentation_(false),
+    hasAnyInstrumentation_(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -603,7 +694,9 @@ instPoint::instPoint(AddressSpace *proc,
     addr_(addr),
     shouldGenerateNewInstances_(false),
     shouldInstallNewInstances_(false),
-    shouldLinkNewInstances_(false)    
+    shouldLinkNewInstances_(false),
+    hasNewInstrumentation_(false),
+    hasAnyInstrumentation_(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -633,7 +726,9 @@ instPoint::instPoint(instPoint *parP,
     addr_(parP->addr()),
     shouldGenerateNewInstances_(parP->shouldGenerateNewInstances_),
     shouldInstallNewInstances_(parP->shouldInstallNewInstances_),
-    shouldLinkNewInstances_(parP->shouldLinkNewInstances_)    
+    shouldLinkNewInstances_(parP->shouldLinkNewInstances_),
+    hasNewInstrumentation_(parP->hasNewInstrumentation_),
+    hasAnyInstrumentation_(parP->hasAnyInstrumentation_)
 {
 }
                   
@@ -902,23 +997,44 @@ int_function *instPoint::func() const {
 // allowTrap shouldn't really go here; problem is, 
 // multiple instPoints might use the same multiTramp,
 // and I'm not sure how to handle it.
-bool instPointInstance::generateInst() {
+instPointInstance::result_t instPointInstance::generateInst() {
     // Do all the hard work; this will create a complete
     // instrumentation structure and copy it into the address
     // space, but not link it up. We do that later. It may also
     // change the multiTramp we have a pointer to, though that's
     // handled through the multi() wrapper.    
+
+    // Putting this in here for now...
+    // We may be trying to instrument a point that was already modified
+    // for another reason; in particular, a jump to a relocated function.
+    // In this case we don't have a multiTramp, but we don't really
+    // want one. I'm going to look that up here, since the state of the
+    // data structures is _weird_ in this case. 
+
     if (!multi()) {
         multiID_ = multiTramp::findOrCreateMultiTramp(addr(),
                                                       proc());
     }
     if (!multi()) {
-        return false;
+        if (multiID_ != 0) {
+            // Okay, we have a multiTramp ID, but nothing matching it. Check to see if someone
+            // already got to our block.
+            codeRange *range = proc()->findModByAddr(block()->firstInsnAddr());
+            if (range) {
+                // See if it's a multiTramp
+                if (!proc()->findMultiTrampByAddr(block()->firstInsnAddr())) {
+                    // We have a non-multitramp-thingie. Return that we're not
+                    // generating, and why.
+                    return instPointInstance::pointPreviouslyModified;
+                }
+            }
+        }
+        return noMultiTramp;
     }
     multiTramp::mtErrorCode_t errCode = multi()->generateMultiTramp();
 
     if (errCode == multiTramp::mtError) {
-        return false;
+        return generateFailed;
     }
     // Can and will set our multiTramp ID if there isn't one already;
     // if there is, will reuse that slot in the multiTramp dictionary.
@@ -927,16 +1043,31 @@ bool instPointInstance::generateInst() {
 
 #if defined(cap_relocation)
 
-    // Moved from ::generate; we call ::generate multiple times, then ::install.
-    // This allows us to relocate once per function.... 
-  
-    // Relocation is necessary if the containing block is shared. 
-    // See if we're big enough to put the branch jump in. If not, trap.
-    // Can also try to relocate; we'll still trap _here_, but another
-    // ipInstance will be created that can jump.
+    // We may need to relocate if either of the following is true:
+    // 1) The block we instrumented is shared; we relocate to eliminate
+    // the sharing.
+    // 2) The branch to the tramp (e.g., "tramp size") is larger than
+    // the block. 
+    // 
+    // Relocation is tricky to get right; in particular, we desire the following:
+    // 1) Determine the relocation requirements of _all_ blocks in the function before
+    // creating the prototype relocated function. This is an efficiency requirement.
+    // 2) The state of all instances of an instPoint should be equivalent. 
+    //
+    // So we determine the relocation needs of the function here, and pass that
+    // back to instPoint::generate; it can summarize the requirements for its
+    // instances and hand that back up the chain. 
 
-    force_reloc.clear();
+    if (block_->block()->needsRelocation()) {
+        // We're part of a shared block.
+        return instOfSharedBlock;
+    }
 
+    if (errCode == multiTramp::mtTryRelocation) {
+        return mTrampTooBig;
+    }
+
+#if 0
     if (block_->block()->needsRelocation() ||
         errCode == multiTramp::mtTryRelocation) 
     {
@@ -971,13 +1102,13 @@ bool instPointInstance::generateInst() {
                 
     }
 #endif
-    
-    return true;
-    //return (errCode == multiTramp::mtSuccess);
+#endif
+
+    return generateSucceeded;
 }
 
-bool instPointInstance::installInst() {
-
+instPointInstance::result_t instPointInstance::installInst() {
+#if 0
 #if defined(cap_relocation)
     // This is harmless to call if there isn't a relocation in-flight
 
@@ -994,25 +1125,27 @@ bool instPointInstance::installInst() {
         force_reloc[i]->relocationInstall();
     }
 #endif
+#endif
 
     if (!multi()) {
         // Alternative: keep a set of sequence #s for generated/
         // installed/linked. We tried to generate and failed (prolly
         // due to stepping on a relocated function), so fail here
         // but don't assert.
-        return false;
+        return noMultiTramp;
     }
 
     // We now "install", that is copy the generated code into the 
     // addr space. This doesn't link.
     
     if (multi()->installMultiTramp() != multiTramp::mtSuccess) {
-        return false;
+        return installFailed;
     }
-    return true;
+    return installSucceeded;
 }
 
-bool instPointInstance::linkInst() {
+instPointInstance::result_t instPointInstance::linkInst() {
+#if 0
 #if defined(cap_relocation)
     // This is ignored (for now), is handled in updateInstInstances...
     pdvector<codeRange *> overwrittenObjs;
@@ -1024,18 +1157,14 @@ bool instPointInstance::linkInst() {
         force_reloc[i]->relocationLink(overwrittenObjs);
     }
 #endif
+#endif
 
-
-    // Funny thing is, we might very well try to link a multiTramp
-    // multiple times...
-    // Ah, well.
-    // See comment in installInst
-    if (!multi()) return false;
+    if (!multi()) return noMultiTramp;
     
     if (multi()->linkMultiTramp() != multiTramp::mtSuccess) {
-        return false;
+        return linkFailed;
     }
-    return true;
+    return linkSucceeded;
 }
 
 multiTramp *instPointInstance::multi() const {

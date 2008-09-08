@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.48 2008/09/03 06:08:44 jaw Exp $
+// $Id: instPoint.h,v 1.49 2008/09/08 16:44:04 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -207,11 +207,26 @@ class image_instPoint : public instPointBase {
 // structures.
 
 class instPointInstance {
+
     friend class instPoint;
     friend class multiTramp;
+    
+ public:
+    typedef enum {
+        noMultiTramp,
+        instOfSharedBlock,
+        mTrampTooBig,
+        pointPreviouslyModified,
+        generateFailed,
+        generateSucceeded,
+        installFailed,
+        installSucceeded,
+        linkFailed,
+        linkSucceeded
+    } result_t;
 
-    instPointInstance() { assert(0); }
  private:
+    instPointInstance() { assert(0); }
     instPointInstance(Address a, bblInstance *b, instPoint *ip) :
         addr_(a), block_(b), multiID_(0), point(ip), disabled(false) {
     }
@@ -224,16 +239,11 @@ class instPointInstance {
 
     instPoint *point; // Backchain pointer
 
-    bool generateInst();
-    bool installInst();
-    bool linkInst();
+    result_t generateInst();
+    result_t installInst();
+    result_t linkInst();
 
     bool disabled;
-
-#if defined(cap_relocation)
-        // this instPoint may force relocation of other functions
-    pdvector< int_function * > force_reloc; 
-#endif
 
  public:
     // If we re-generate code we toss the old
@@ -251,6 +261,7 @@ class instPointInstance {
     bblInstance *block() const { return block_; }
 
     void updateVersion();
+    
 };
 
 class instPoint : public instPointBase {
@@ -260,6 +271,18 @@ class instPoint : public instPointBase {
     friend class int_basicBlock;
     friend void initRegisters();
     friend class registerSpace; // Liveness
+ public:
+  typedef enum { 
+      tryRelocation,
+      generateSucceeded,
+      generateFailed,
+      installSucceeded,
+      installFailed,
+      wasntGenerated,
+      linkSucceeded,
+      linkFailed,
+      wasntInstalled} result_t;
+
  private:
     // Generic instPoint...
     instPoint(AddressSpace *proc,
@@ -301,6 +324,9 @@ class instPoint : public instPointBase {
     // Adding instances is expensive; if the function
     // hasn't changed, we can avoid doing so.
     int funcVersion;
+
+    bool hasNewInstrumentation() { return hasNewInstrumentation_; }
+    bool hasAnyInstrumentation() { return hasAnyInstrumentation_; }
 
   // Make a new instPoint at an arbitrary location
   static instPoint *createArbitraryInstPoint(Address addr,
@@ -405,10 +431,10 @@ class instPoint : public instPointBase {
   bool replaceCode(AstNodePtr ast);
 
   // Step 2:
-  bool generateInst();
+  result_t generateInst();
   // And 3:
   // We split this so that we can relocate between generation and installing
-  bool installInst();
+  result_t installInst();
 
 
   // Determine whether instrumentation will go in smoothly
@@ -420,7 +446,7 @@ class instPoint : public instPointBase {
   // TODO: if we're out-of-lining miniTramps or something, this should
   // be the call that causes linkage of the OOL MT to occur, just for
   // completeness of the model.
-  bool linkInst(bool update_trap_table = true);
+  result_t linkInst(bool update_trap_table = true);
 
   // Catchup: 1) does a PC correspond to the area covered by an
   // instPoint (aka multiTramp). 2) is the PC "before" or "after"
@@ -519,6 +545,9 @@ class instPoint : public instPointBase {
   // _input_, and so post-instruction instrumentation
   // will need an additional piece of work.
   void calcLiveness();
+
+  bool hasNewInstrumentation_;
+  bool hasAnyInstrumentation_;
 };
 
 typedef instPoint::iterator instPointIter;
