@@ -2314,8 +2314,8 @@ void BPatch::getBPatchVersionInt(int &major, int &minor, int &subminor)
    subminor = DYNINST_SUBMINOR;
 }
 
-BPatch_binaryEdit *BPatch::openBinaryInt(const char *path) {
-   BPatch_binaryEdit *editor = new BPatch_binaryEdit(path);
+BPatch_binaryEdit *BPatch::openBinaryInt(const char *path, int openSharedLibs) {
+   BPatch_binaryEdit *editor = new BPatch_binaryEdit(path, openSharedLibs);
    if (!editor)
       return NULL;
    if (editor->creation_error) {

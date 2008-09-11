@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.288 2008/08/25 16:21:36 mlam Exp $
+ * $Id: inst-x86.C,v 1.289 2008/09/11 20:14:14 mlam Exp $
  */
 #include <iomanip>
 
@@ -973,6 +973,35 @@ void emitMovRegToReg(Register dest, Register src,
     SET_PTR(insn, gen);
 }
 
+// emit MOV reg, (reg)
+void emitMovIRegToReg(Register dest, Register src,
+                                   codeGen &gen) {
+    GET_PTR(insn, gen);
+    *insn++ = 0x8B;
+    *insn++ = makeModRMbyte(0, dest, src);
+    SET_PTR(insn, gen);
+}
+
+// emit MOV reg, (offset(%eip))
+void emitMovPCRMToReg(Register dest, int offset, codeGen &gen)
+{
+    // call next instruction (relative 0x0) and pop PC (EIP) into register
+    GET_PTR(insn, gen);
+    *insn++ = 0xE8;
+    *insn++ = 0x00;
+    *insn++ = 0x00;
+    *insn++ = 0x00;
+    *insn++ = 0x00;
+    *insn++ = static_cast<unsigned char>(0x58 + dest);
+    SET_PTR(insn, gen);
+
+    // add the offset
+    emitAddRegImm32(dest, offset-5, gen);                   // add e_x, offset
+
+    // move from IP+offset into register
+    emitMovIRegToReg(dest, dest, gen);                    // mov e_x, (e_x)
+}
+
 // emit MOV reg, r/m
 void emitMovRMToReg(Register dest, Register base, int disp,
                                   codeGen &gen) {
@@ -1309,8 +1338,8 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
             binEdit->addDependentRelocation(dest, referring);
         }
 
-        // load register with address from jump table
-        emitMovMToReg(ptr, dest, gen);                      // mov e_x, *(addr)
+        // load register with address from jump slot
+        emitMovPCRMToReg(ptr, dest-gen.currAddr(), gen);
 
     } else {
         dest = callee->getAddress();

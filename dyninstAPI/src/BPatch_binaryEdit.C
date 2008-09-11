@@ -89,7 +89,7 @@
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
+BPatch_binaryEdit::BPatch_binaryEdit(const char *path, int openSharedLibs) :
    BPatch_addressSpace(),
    llBinEdit(NULL),
    creation_error(false)
@@ -103,7 +103,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
   
   std::string directoryName = "";
   
-  llBinEdit = BinaryEdit::openFile(std::string(path));
+  llBinEdit = BinaryEdit::openFile(std::string(path), openSharedLibs);
   if (!llBinEdit){
      creation_error = true;
      return;

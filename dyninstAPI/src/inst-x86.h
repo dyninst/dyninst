@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.38 2008/09/04 21:06:18 bill Exp $
+// $Id: inst-x86.h,v 1.39 2008/09/11 20:14:14 mlam Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -231,6 +231,8 @@ void emitOpRMReg(unsigned opcode, Register base, int disp,
                                Register src, codeGen &gen);
 
 void emitMovRegToReg(Register dest, Register src, codeGen &gen);
+void emitMovIRegToReg(Register dest, Register src, codeGen &gen);
+void emitMovPCRMToReg(Register dest, int offset, codeGen &gen);
 void emitMovMToReg(Register dest, int disp, codeGen &gen);
 void emitMovMBToReg(Register dest, int disp, codeGen &gen);
 void emitMovMWToReg(Register dest, int disp, codeGen &gen);

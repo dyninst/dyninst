@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.31 2008/06/19 19:53:14 legendre Exp $
+ * $Id: emit-x86.h,v 1.32 2008/09/11 20:14:14 mlam Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -164,6 +164,7 @@ extern EmitterIA32Stat emitterIA32Stat;
 
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
+void emitMovPCRMToReg64(Register dest, int offset, codeGen &gen);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);

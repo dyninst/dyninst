@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.23 2008/08/29 20:24:17 legendre Exp $
+// $Id: binaryEdit.C,v 1.24 2008/09/11 20:14:14 mlam Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -234,7 +234,7 @@ void BinaryEdit::deleteBinaryEdit() {
     }
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file, int openSharedLibs) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -279,7 +279,10 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file) {
 
     newBinaryEdit->initialize();
     
-    newBinaryEdit->openAllDependencies();
+    if (openSharedLibs != 0) {
+        // /* DEBUG */ printf(" opening shared libs\n");
+        newBinaryEdit->openAllDependencies();
+    }
 
     return newBinaryEdit;
 }

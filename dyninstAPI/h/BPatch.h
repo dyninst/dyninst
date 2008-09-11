@@ -511,8 +511,15 @@ public:
                                    int stdout_fd=1,
                                    int stderr_fd=2));
 
-    API_EXPORT(Int, (path), 
-               BPatch_binaryEdit *, openBinary, (const char *path));
+    // BPatch::openBinary
+    // Open a binary for static instrumentation
+    //
+    // The second parameter really should be a boolean, but the value
+    // gets reset between the openBinary and openBinaryInt calls--is
+    // this a gcc bug???
+    // 
+    API_EXPORT(Int, (path, openSharedLibs), 
+               BPatch_binaryEdit *, openBinary, (const char *path, int openSharedLibs = 1));
 
     // BPatch::attachProcess:
     // Attach to mutatee process

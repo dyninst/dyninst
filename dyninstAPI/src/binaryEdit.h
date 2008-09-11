@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.12 2008/06/23 20:30:33 mlam Exp $
+// $Id: binaryEdit.h,v 1.13 2008/09/11 20:14:14 mlam Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -129,7 +129,7 @@ class BinaryEdit : public AddressSpace {
     void deleteBinaryEdit();
 
     // And the "open" factory method.
-    static BinaryEdit *openFile(const std::string &file);
+    static BinaryEdit *openFile(const std::string &file, int openSharedLibs = 1);
 
     bool writeFile(const std::string &newFileName);
     

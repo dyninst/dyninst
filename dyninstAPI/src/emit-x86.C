@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.63 2008/08/25 16:21:36 mlam Exp $
+ * $Id: emit-x86.C,v 1.64 2008/09/11 20:14:14 mlam Exp $
  */
 
 #include <assert.h>
@@ -745,6 +745,17 @@ void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen)
     Register tmp_src = src;
     emitRex(is_64, &tmp_dest, NULL, &tmp_src, gen);
     emitMovRegToReg(tmp_dest, tmp_src, gen);
+}
+
+void emitMovPCRMToReg64(Register dest, int offset, codeGen &gen)
+{
+    GET_PTR(insn, gen);
+    *insn++ = static_cast<unsigned char>((dest & 0x8)>>1 | 0x48);    // REX prefix
+    *insn++ = 0x8B;                                                  // MOV instruction
+    *insn++ = static_cast<unsigned char>(((dest & 0x7) << 3) | 0x5); // ModRM byte
+    *((int *)insn) = offset-7;                                       // offset
+    insn += sizeof(int);
+    SET_PTR(insn, gen);
 }
 
 void emitLEA64(Register base, Register index, unsigned int scale, int disp,
@@ -1494,34 +1505,25 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
             binEdit->addDependentRelocation(dest, referring);
         }
 
-        // load eax with address from jump table
-        //emitMovMToReg(REGNUM_RAX, dest, gen);                      // mov rax, *(addr)
+        // load register with address from jump slot
         
-        // mov r_x, dest
-        emitMovImmToReg64(ptr, dest, true, gen);
-        //emitMovImmToReg64(REGNUM_RBX, dest, true, gen);
+        // DEBUG
+        //printf("jump slot: 0x%016x\ncurr addr: 0x%016x\noffset:    0x%016x\n\n",
+                //dest, gen.currAddr(), offset);
 
-        // mov r_x, (r_x)
-        GET_PTR(insn, gen);
-        *insn++ = 0x48;
-        *insn++ = 0x8B;
-        *insn++ = static_cast<unsigned char>(ptr<<3 | ptr);
-        //*insn++ = static_cast<unsigned char>(REGNUM_RBX<<3 | REGNUM_RBX);
-        SET_PTR(insn, gen);
+        emitMovPCRMToReg64(ptr, dest-gen.currAddr(), gen);
 
     } else {
         dest = callee->getAddress();
 
-        // load eax with function address
+        // load register with function address
         emitMovImmToReg64(ptr, dest, true, gen);                    // mov e_x, addr
-        //emitMovImmToReg64(REGNUM_RBX, dest, true, gen);                    // mov e_x, addr
     }
 
     // emit call
     GET_PTR(insn, gen);
     *insn++ = 0xFF;
     *insn++ = static_cast<unsigned char>(0xD0 | ptr);
-    //*insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RBX);
     SET_PTR(insn, gen);
 
     gen.rs()->freeRegister(ptr);
