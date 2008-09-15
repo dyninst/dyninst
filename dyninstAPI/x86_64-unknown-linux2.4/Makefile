@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.17 2008/09/03 06:08:45 jaw Exp $
+# $Id: Makefile,v 1.18 2008/09/15 17:38:17 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -76,7 +76,8 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
-LIBS	+= -lInstruction
+#LIBS	+= -lInstruction
+LIBS	+= -linstructionAPI
 
 AS		= /usr/bin/as
 

@@ -255,7 +255,7 @@ $(TEST_DEST)/%: %
 ###  High level targets
 #######################################################################
 
-MUTATOR_LDFLAGS += -lsymtabAPI -ldyninstAPI -lcommon $(MUTATOR_LIBS) -lpthread
+MUTATOR_LDFLAGS += -lsymtabAPI -ldyninstAPI -lcommon $(MUTATOR_LIBS) -lpthread -lstdc++
 
 
 all: mutators testlibs mutatees 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.12 2008/09/05 04:06:08 jaw Exp $
+// $Id: Annotatable.h,v 1.13 2008/09/15 17:38:17 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -58,6 +58,12 @@ class AnnotatableBase;
 using std::vector;
 
 
+typedef enum {
+   anno_impl_static_sparse,
+   anno_impl_static_dense,
+   anno_impl_local_dense,
+} annotation_implementation_t;
+
 class SerDes;
 class SerializerBase;
 class SerializerError;
@@ -73,7 +79,9 @@ class DLLEXPORT_COMMON AnnotatableBase
    protected:
       AnnotatableBase();
       ~AnnotatableBase() {}
-      typedef struct {
+
+      typedef struct 
+      {
          int anno_id;
 #if defined (cap_serialization)
          SerializerBase *anno_serializer;
@@ -81,6 +89,7 @@ class DLLEXPORT_COMMON AnnotatableBase
       } anno_info_t;
 
    private:
+
       static std::string emptyString;
       static int number;
       static dyn_hash_map<std::string, anno_info_t> annotationTypes;
@@ -108,25 +117,36 @@ template<class T>
 class AnnotationSet {
    //  T is a container, so far, always a vector of something else
 
-   typedef dyn_hash_map<int, T*> as_id_map_t;
-   typedef dyn_hash_map<char *, as_id_map_t> obj_map_t;
-   static obj_map_t sets_by_obj;
+   typedef dyn_hash_map<char *, T*> obj_map_t;
+   static std::vector<obj_map_t *> annos_by_id;
 
    public:
+
    AnnotationSet() {}
    ~AnnotationSet() {}
 
    static T *findAnnotationSet(char  *b, int anno_id) 
    {
-      typename obj_map_t::iterator iter = sets_by_obj.find(b);
-      if (iter == sets_by_obj.end()) {
+      if ((unsigned)anno_id >= annos_by_id.size()) 
+      {
          //fprintf(stderr, "%s[%d]:  no annotations for object %p\n", FILE__, __LINE__, b);
          return NULL;
       }
 
-      as_id_map_t &anno_sets_by_id = iter->second;
-      typename as_id_map_t::iterator nm_iter = anno_sets_by_id.find(anno_id);
-      if (nm_iter == anno_sets_by_id.end()) {
+      obj_map_t *anno_sets_by_obj_p = annos_by_id[anno_id];
+
+      if (NULL == anno_sets_by_obj_p) 
+      {
+         fprintf(stderr, "%s[%d]:  FIXME,  null pointer in slot %d\n", 
+               FILE__, __LINE__, anno_id);
+         return NULL;
+      }
+
+      obj_map_t &anno_sets_by_obj = *anno_sets_by_obj_p;
+      typename obj_map_t::iterator nm_iter = anno_sets_by_obj.find(b);
+
+      if (nm_iter == anno_sets_by_obj.end()) 
+      {
          //fprintf(stderr, "%s[%d]:  no annotations of type %d for object %p\n", 
          //      FILE__, __LINE__, anno_id, b);
          return NULL;
@@ -139,46 +159,36 @@ class AnnotationSet {
    {
       T *it = NULL;
 
-      if (NULL == (it = findAnnotationSet(b, anno_id))) {
-         //fprintf(stderr, "%s[%d]:  creating new annotation set for %p id %d\n", 
-         //FILE__, __LINE__, b,anno_id);
-         //fprintf(stderr, "%s[%d]:  sets_by_obj.size() = %d\n", 
-         //FILE__, __LINE__, sets_by_obj.size());
+      if (anno_id < 0) 
+      {
+         fprintf(stderr, "%s[%d]:  BAD NEWS:  anno_id = %d\n", FILE__, __LINE__, anno_id);
+         return NULL;
+         abort();
+      }
 
-         //  operator[] should create new elements if they don't exist
+      if (NULL == (it = findAnnotationSet(b, anno_id))) 
+      {
 
-         as_id_map_t &id_map = sets_by_obj[b];
+         //fprintf(stderr, "%s[%d]:  anno_id = %d, annos_by_id.size() = %d\n", 
+         //      FILE__, __LINE__, anno_id, annos_by_id.size());
 
-         //  wee sanity check...
-         if (sets_by_obj.end() == sets_by_obj.find(b)) {
-            fprintf(stderr, "%s[%d]:  FATAL!? &sets_by_obj = %p, b = %p\n", 
-                  FILE__, __LINE__, &sets_by_obj, b);
-            fprintf(stderr, "%s[%d]:  sets_by_obj.size() = %d\n", 
-                  FILE__, __LINE__, sets_by_obj.size());
-         }
+         while ((unsigned)anno_id >= annos_by_id.size())
+         {
+            obj_map_t *new_sets_by_obj = new obj_map_t();
+            annos_by_id.push_back(new_sets_by_obj);
+         };
 
-         // sanity check, make sure this map does not contain <name> already
-
-         typename as_id_map_t::iterator iter = id_map.find(anno_id);
-
-         if (iter != id_map.end()) {
-
-            //  we have already created a container for this annotation type, for this particular
-            //  object, just return it.
-
-            return iter->second;
-
-         //   fprintf(stderr, "%s[%d]:  WARNING:  exists:  object %p, id %d, size %d container = %s\n", FILE__, __LINE__, b, anno_id, iter->second->size(),typeid(T).name());
-         }
+         obj_map_t *obj_map = annos_by_id[anno_id];
 
          it = new T();
-         id_map[anno_id] = it;
+         (*obj_map)[b] = it;
       }
 
       return it;
    }
 
 
+#if 0
    static bool removeAnnotationSet(char *b, int anno_id)
    {
       typename obj_map_t::iterator iter = sets_by_obj.find(b);
@@ -210,44 +220,49 @@ class AnnotationSet {
 
       return true;
    }
+#endif
 };
 
-template< class T > dyn_hash_map<char *, dyn_hash_map<int, T*> >
-AnnotationSet< T >::sets_by_obj;
+template< class T > std::vector<dyn_hash_map<char *, T*> *>
+AnnotationSet< T >::annos_by_id;
 
 template <class T, class ANNOTATION_NAME_T, bool SERIALIZABLE = false>
-class Annotatable : public AnnotatableBase
+class AnnotatableCommon : public AnnotatableBase 
 {
    public:
-      Annotatable(SerializerBase *serializer) :
+      AnnotatableCommon(SerializerBase *serializer) :
          AnnotatableBase()
       {
 #if defined (cap_serialization)
          static bool did_init = false;
-         if (SERIALIZABLE && !did_init) {
+         if (SERIALIZABLE && !did_init) 
+         {
             init_anno_serialization<T, ANNOTATION_NAME_T>(serializer);
             did_init = true;
          }
 #endif
       }
-      Annotatable() :
+
+      AnnotatableCommon() :
          AnnotatableBase()
       {
          //  NULL default value required for default ctors of derived objects
          //  thus all code that uses serializer must check for its existence
 #if defined (cap_serialization)
          static bool did_init = false;
-         if (SERIALIZABLE && !did_init) {
+         if (SERIALIZABLE && !did_init) 
+         {
             init_anno_serialization<T, ANNOTATION_NAME_T>(NULL);
             did_init = true;
          }
 #endif
       }
-      ~Annotatable() 
+
+      ~AnnotatableCommon() 
       {
       }
 
-      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> &/*src*/) :
+      AnnotatableCommon(const AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE> &/*src*/) :
          AnnotatableBase()
       {/*hrm deep copy here or no?*/}
 
@@ -258,20 +273,18 @@ class Annotatable : public AnnotatableBase
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
          int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
-         if (anno_id == -1) {
+
+         if (anno_id == -1) 
+         {
             fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
                   FILE__, __LINE__, anno_name.c_str());
             return NULL;
          }
 
          v = AnnotationSet<Container_t>::getAnnotationSet((char *)this, anno_id);
-         if (v) {
-            //fprintf(stderr, "%s[%d]:  annotation set already exists for %s/%p\n", 
-            //      FILE__, __LINE__, anno_name.c_str(), this);
-            return v;
-         }
 
-         if (!v) {
+         if (!v) 
+         {
             fprintf(stderr, "%s[%d]:  malloc problem\n", FILE__, __LINE__);
             abort();
             return NULL;
@@ -287,20 +300,27 @@ class Annotatable : public AnnotatableBase
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
          int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
-         if (anno_id == -1) {
+
+         if (anno_id == -1) 
+         {
             fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
                   FILE__, __LINE__, anno_name.c_str());
             return false;
          }
 
          v = AnnotationSet<std::vector<T> >::findAnnotationSet((char *)this, anno_id);
+
          if (!v)
-            if (NULL == ( v = initAnnotations())) {
+         {
+            if (NULL == ( v = initAnnotations())) 
+            {
                fprintf(stderr, "%s[%d]:  bad annotation type\n", FILE__, __LINE__);
                return false;
             }
+         }
 
-         if (!v) {
+         if (!v) 
+         {
             fprintf (stderr, "%s[%d]:  initAnnotations failed\n", FILE__, __LINE__);
             return false;
          }
@@ -308,14 +328,16 @@ class Annotatable : public AnnotatableBase
          v->push_back(it);
 
 #if defined (cap_serialization)
-         if (SERIALIZABLE) {
+         if (SERIALIZABLE) 
+         {
 
             fprintf(stderr, "%s[%d]:  serializing annotation here for %s\n", 
                   FILE__, __LINE__, anno_name.c_str());
 
             SerializerBase *sd_bin = getSDAnno(anno_name);
 
-            if (!sd_bin) {
+            if (!sd_bin) 
+            {
                //fprintf(stderr, "%s[%d]:  ERROR:  no serializer listed for type %s, have:\n",
                 //     FILE__, __LINE__, anno_name.c_str());
                //dumpSDAnno();
@@ -326,7 +348,8 @@ class Annotatable : public AnnotatableBase
                return false;
             }
 
-            if (!gtranslate_w_err(sd_bin, /*(Serializable &)*/ it, NULL)) {
+            if (!gtranslate_w_err(sd_bin, /*(Serializable &)*/ it, NULL)) 
+            {
                fprintf(stderr, "%s[%d]:  gtranslate_w_err failed\n", FILE__, __LINE__);
                return false;
             }
@@ -342,60 +365,85 @@ class Annotatable : public AnnotatableBase
       {
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+
          int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
-         if (anno_id == -1) {
+         
+         if (anno_id == -1) 
+         {
             return;
          }
+
          v = AnnotationSet<std::vector<T> >::findAnnotationSet((char *)this, anno_id);
-         if (v)
+
+         if (v) 
+         {
             v->clear();
+         }
       }
 
       unsigned size() const 
       {
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+
          int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
-         if (anno_id == -1) {
+
+         if (anno_id == -1) 
+         {
             fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
                   FILE__, __LINE__, anno_name.c_str());
             return 0;
          }
 
          //  ahhh the things we do to get rid of constness
-         const Annotatable<T, ANNOTATION_NAME_T,  SERIALIZABLE> *thc = this; 
-         Annotatable<T, ANNOTATION_NAME_T,  SERIALIZABLE> *th  
-            = const_cast<Annotatable<T, ANNOTATION_NAME_T,  SERIALIZABLE> *> (thc);
+         const AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE> *thc = this; 
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE> *th  
+            = const_cast<AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE> *> (thc);
 
          v = AnnotationSet<Container_t>::findAnnotationSet((char *)th, anno_id);
-         if (!v) {
-            //fprintf(stderr, "%s[%d]:  no annotation set for id %d\n", FILE__, __LINE__, anno_id);
+
+         if (!v) 
+         {
+            //fprintf(stderr, "%s[%d]:  no annotation set for id %d\n", 
+            // FILE__, __LINE__, anno_id);
             return 0;
          }
+
          return v->size();
       }
 
       //  so called getDataStructure in case we generalize beyond vectors for annotations
+
       std::vector<T> &getDataStructure() 
       {
          // use with caution since this function will assert upon failure 
          // (it has no way to return errors)
          // when in doubt, check size() first.
+
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+
          int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
-         if (anno_id == -1) {
+
+         if (anno_id == -1) 
+         {
             fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
                   FILE__, __LINE__, anno_name.c_str());
             assert(0);
          }
+
          v = AnnotationSet<Container_t>::findAnnotationSet((char *)this, anno_id);
-         if (!v)
-            if (NULL == (v = initAnnotations())) {
+
+         if (!v) 
+         {
+            if (NULL == (v = initAnnotations())) 
+            {
                fprintf(stderr, "%s[%d]:  failed to init annotations here\n", 
                      FILE__, __LINE__);
                assert(0);
             }
+         }
+
          return *v;
       }
 
@@ -403,47 +451,376 @@ class Annotatable : public AnnotatableBase
       {
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+
          int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
-         if (anno_id == -1) {
+         
+         if (anno_id == -1) 
+         {
             fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
                   FILE__, __LINE__, anno_name.c_str());
             assert(0);
          }
 
          //  ahhh the things we do to get rid of constness
-         const Annotatable<T, ANNOTATION_NAME_T,  SERIALIZABLE> *thc = this; 
-         Annotatable<T, ANNOTATION_NAME_T,  SERIALIZABLE> *th  
-            = const_cast<Annotatable<T, ANNOTATION_NAME_T,  SERIALIZABLE> *> (thc);
+         const AnnotatableCommon<T, ANNOTATION_NAME_T,  SERIALIZABLE> *thc = this; 
+         AnnotatableCommon<T, ANNOTATION_NAME_T,  SERIALIZABLE> *th  
+            = const_cast<AnnotatableCommon<T, ANNOTATION_NAME_T,  SERIALIZABLE> *> (thc);
 
          v = AnnotationSet<Container_t>::findAnnotationSet((char *)th, anno_id);
-         if (!v) {
+
+         if (!v) 
+         {
             fprintf(stderr, "%s[%d]:  cannot find annotation set for anno type %s\n", 
                   FILE__, __LINE__, anno_name.c_str());
+
             v = AnnotationSet<Container_t>::getAnnotationSet((char *)th, anno_id);
          }
+
          assert(v);
-         if (index >= v->size()) {
+
+         if (index >= v->size()) 
+         {
             fprintf(stderr, "%s[%d]:  FIXME:  index = %d -- size = %d\n", 
                   FILE__, __LINE__, index, v->size());
          }
+
          assert(index < v->size());
          return (*v)[index];
       }
 
       T &operator[](unsigned index) const {return getAnnotation(index);}
+};
+
+template <class T, class ANNOTATION_NAME_T, 
+         bool SERIALIZABLE = false, 
+         annotation_implementation_t IMPL = anno_impl_static_sparse>
+class Annotatable : public AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>
+{
+   public:
+      Annotatable(SerializerBase *serializer) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer)
+      {}
+
+      Annotatable() :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
+      {}
+
+      ~Annotatable() 
+      {}
+
+      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, IMPL> &/*src*/) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
+      {/*hrm deep copy here or no?*/}
+
 
 };
+
+template <class T, class ANNOTATION_NAME_T, bool SERIALIZABLE>
+class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_static_dense> : public AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>
+{
+   private:
+
+      typedef typename std::vector<T> Container_t;
+      Container_t *annotations_;
+
+   public:
+
+      Annotatable(SerializerBase *serializer) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer)
+      {}
+
+      Annotatable() :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
+      {}
+
+      ~Annotatable() 
+      {}
+
+      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, IMPL> &/*src*/) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
+      {/*hrm deep copy here or no?*/}
+
+      Container_t *initAnnotations()
+      {
+         std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+
+         if (anno_id == -1) 
+         {
+            fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+            return NULL;
+         }
+
+         annotations_ = AnnotationSet<Container_t>::getAnnotationSet((char *)this, anno_id);
+
+         if (annotations_) 
+         {
+            return annotations_;
+         }
+
+         if (!annotations_) 
+         {
+            fprintf(stderr, "%s[%d]:  malloc problem\n", FILE__, __LINE__);
+            abort();
+            return NULL;
+         }
+
+         return annotations_;
+      }
+
+      bool addAnnotation(T it)
+      {
+         if (!annotations_) 
+         {
+            if (NULL == initAnnotations()) 
+            {
+               fprintf(stderr, "%s[%d]:  bad annotation type\n", FILE__, __LINE__);
+               return false;
+            }
+         }
+
+         if (!annotations_) 
+         {
+            fprintf (stderr, "%s[%d]:  initAnnotations failed\n", FILE__, __LINE__);
+            return false;
+         }
+
+         annotations_->push_back(it);
+
+#if defined (cap_serialization)
+         if (SERIALIZABLE) 
+         {
+
+            fprintf(stderr, "%s[%d]:  serializing annotation here for %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+
+            SerializerBase *sd_bin = getSDAnno(anno_name);
+
+            if (!sd_bin) 
+            {
+               //fprintf(stderr, "%s[%d]:  ERROR:  no serializer listed for type %s, have:\n",
+                //     FILE__, __LINE__, anno_name.c_str());
+               //dumpSDAnno();
+
+               fprintf(stderr, "%s[%d]:  ERROR:  no serializer listed for type %s\n",
+                     FILE__, __LINE__, anno_name.c_str());
+
+               return false;
+            }
+
+            if (!gtranslate_w_err(sd_bin, /*(Serializable &)*/ it, NULL)) 
+            {
+               fprintf(stderr, "%s[%d]:  gtranslate_w_err failed\n", FILE__, __LINE__);
+               return false;
+            }
+
+            fprintf(stderr, "%s[%d]:  \tserialized annotation here for %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+         }
+#endif
+         return true;
+      }
+
+      unsigned size() const 
+      {
+         if (!annotations_) return 0;
+         return annotations_->size();
+      }
+
+      T &getAnnotation(unsigned index) const
+      {
+         if (!annotations_) 
+         {
+            fprintf(stderr, "%s[%d]:  FATAL:  bad usage, check size before calling\n",
+                  FILE__, __LINE__);
+            abort();
+         }
+
+         if (index >= annotations->size()) 
+         {
+            fprintf(stderr, "%s[%d]:  FATAL:  bad usage, check size before calling\n",
+                  FILE__, __LINE__);
+            abort();
+         }
+
+         return (*annotations)[index];
+      }
+
+      T &operator[](unsigned index) const {return getAnnotation(index);}
+};
+
+template <class T, class ANNOTATION_NAME_T, bool SERIALIZABLE>
+class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_local_dense> : public AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>
+{
+   private:
+      typedef typename std::vector<T> Container_t;
+      Container_t *annotations_;
+
+   public:
+      Annotatable(SerializerBase *serializer) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer)
+      {}
+
+      Annotatable() :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
+      {}
+
+      ~Annotatable() 
+      {}
+
+      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, IMPL> &/*src*/) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
+      {/*hrm deep copy here or no?*/}
+
+      Container_t *initAnnotations()
+      {
+         std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         
+         if (anno_id == -1) 
+         {
+            fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+            return NULL;
+         }
+
+         annotations_ = new Container_t;
+
+         if (!annotations_) 
+         {
+            fprintf(stderr, "%s[%d]:  malloc problem\n", FILE__, __LINE__);
+            abort();
+            return NULL;
+         }
+
+         return annotations_;
+      }
+
+      bool addAnnotation(T it)
+      {
+         if (!annotations_) 
+         {
+            if (!initAnnotations()) 
+            {
+               fprintf(stderr, "%s[%d]:  failed to init annotations\n", FILE__, __LINE__);
+               return false;
+            }
+         }
+
+         annotations_->push_back(it);
+         return true;
+      }
+
+      unsigned size() const 
+      {
+         if (!annotations_) 
+         {
+            //  This is legal if we have not created the vector yet. 
+            //  The vector is created when we add the first annotation
+            return 0;
+         }
+
+         return annotations_->size();
+      }
+
+      T &getAnnotation(unsigned index) const
+      {
+         if (!annotations_) 
+         {
+            fprintf(stderr, "%s[%d]:  FATAL:  bad usage, check size before calling\n",
+                  FILE__, __LINE__);
+            abort();
+         }
+
+         if (index >= annotations->size()) 
+         {
+            fprintf(stderr, "%s[%d]:  FATAL:  bad usage, check size before calling\n",
+                  FILE__, __LINE__);
+            abort();
+         }
+
+         return (*annotations)[index];
+      }
+
+      T &operator[](unsigned index) const {return getAnnotation(index);}
+};
+
+#if 0
+template <class S, class T, annotation_implementation_t IMPL = anno_impl_static_sparse >
+class ImplSpecializeHelper {
+   public:
+      ImplSpecializeHelper() {}
+      ~ImplSpecializeHelper() {}
+      bool annotate(S *obj, T &anno, std::string anno_name) 
+      {
+         assert(obj);
+
+         char *tobj = (char *) obj;
+         std::vector<T> *v = NULL;
+
+         int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
+
+         if (-1 == anno_id) 
+         {
+            fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+            return false;
+         }
+
+         fprintf(stderr, "%s[%d]: about to try to getAnnotationSet for id %d\n", 
+               FILE__, __LINE__, anno_id);
+
+         v = AnnotationSet<std::vector<T> >::getAnnotationSet(tobj, anno_id);
+
+         if (!v) 
+         {
+            fprintf(stderr, "%s[%d]:  failed to init annotations here\n", 
+                  FILE__, __LINE__);
+            assert(0);
+         }
+
+         v->push_back(anno);
+         return true;
+      }
+
+      std::vector<T> *getAnnotations(S *obj, std::string anno_name) 
+      {
+         //  does not allocate anything, should return NULL if there are none
+         assert(obj);
+         char *tobj = (char *) obj;
+         std::vector<T> *v = NULL;
+
+         int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
+
+         if (-1 == anno_id) 
+         {
+            fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+            return false;
+         }
+
+         v = AnnotationSet<std::vector<T> >::findAnnotationSet(tobj, anno_id);
+
+         return v;
+      }
+};
+#endif
 
 template <class S, class T>
 bool annotate(S *obj, T &anno, std::string anno_name)
 {
    assert(obj);
+
    char *tobj = (char *) obj;
    std::vector<T> *v = NULL;
 
    int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
 
-   if (-1 == anno_id) {
+   if (-1 == anno_id) 
+   {
       fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
             FILE__, __LINE__, anno_name.c_str());
       return false;
@@ -451,7 +828,8 @@ bool annotate(S *obj, T &anno, std::string anno_name)
 
    v = AnnotationSet<std::vector<T> >::getAnnotationSet(tobj, anno_id);
 
-   if (!v) {
+   if (!v) 
+   {
       fprintf(stderr, "%s[%d]:  failed to init annotations here\n", 
             FILE__, __LINE__);
       assert(0);
@@ -460,6 +838,7 @@ bool annotate(S *obj, T &anno, std::string anno_name)
    v->push_back(anno);
    return true;
 }
+
 
 template <class S, class T>
 std::vector<T> *getAnnotations(S *obj, std::string anno_name)
@@ -471,7 +850,8 @@ std::vector<T> *getAnnotations(S *obj, std::string anno_name)
 
    int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
 
-   if (-1 == anno_id) {
+   if (-1 == anno_id) 
+   {
       fprintf(stderr, "%s[%d]:  failed to getOrCreateAnnotation type %s\n", 
             FILE__, __LINE__, anno_name.c_str());
       return false;
