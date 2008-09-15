@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.13 2008/09/15 17:38:17 jaw Exp $
+// $Id: Annotatable.h,v 1.14 2008/09/15 18:37:49 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -536,7 +536,7 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_static_dense> : 
       ~Annotatable() 
       {}
 
-      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, IMPL> &/*src*/) :
+      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_static_dense> &/*src*/) :
          AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
       {/*hrm deep copy here or no?*/}
 
@@ -544,7 +544,8 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_static_dense> : 
       {
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, 
+               typeid(T).name());
 
          if (anno_id == -1) 
          {
@@ -638,14 +639,14 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_static_dense> : 
             abort();
          }
 
-         if (index >= annotations->size()) 
+         if (index >= annotations_->size()) 
          {
             fprintf(stderr, "%s[%d]:  FATAL:  bad usage, check size before calling\n",
                   FILE__, __LINE__);
             abort();
          }
 
-         return (*annotations)[index];
+         return (*annotations_)[index];
       }
 
       T &operator[](unsigned index) const {return getAnnotation(index);}
@@ -670,7 +671,7 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_local_dense> : p
       ~Annotatable() 
       {}
 
-      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, IMPL> &/*src*/) :
+      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_local_dense> &/*src*/) :
          AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
       {/*hrm deep copy here or no?*/}
 
@@ -678,7 +679,7 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_local_dense> : p
       {
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
          
          if (anno_id == -1) 
          {
@@ -735,14 +736,14 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_local_dense> : p
             abort();
          }
 
-         if (index >= annotations->size()) 
+         if (index >= annotations_->size()) 
          {
             fprintf(stderr, "%s[%d]:  FATAL:  bad usage, check size before calling\n",
                   FILE__, __LINE__);
             abort();
          }
 
-         return (*annotations)[index];
+         return (*annotations_)[index];
       }
 
       T &operator[](unsigned index) const {return getAnnotation(index);}

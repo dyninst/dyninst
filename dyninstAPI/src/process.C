@@ -4417,6 +4417,9 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                                                               false);
                         if (mt) 
                             minis.push_back(mt);
+                        else {
+                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                        }
                     }
                 }
                 break;
@@ -4431,6 +4434,9 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                                                                  false);
                         if (mt) 
                             minis.push_back(mt);
+                        else {
+                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                        }
                     }
                 }
                 break;
@@ -4445,6 +4451,9 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                                                                false);
                         if (mt) 
                             minis.push_back(mt);
+                        else {
+                           fprintf(stderr, "%s[%d]:  failed to addInst here\n", FILE__, __LINE__);
+                        }
                     }
                 }
                 break;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.20 2007/06/13 18:51:24 bernat Exp $
+// $Id: syscall-solproc.C,v 1.21 2008/09/15 18:37:49 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -114,7 +114,8 @@ bool syscallNotification::installPreFork() {
 
 /////////// Postfork instrumentation
 
-bool syscallNotification::installPostFork() {
+bool syscallNotification::installPostFork() 
+{
 #if defined(os_aix)
     /* Block-comment
        
@@ -137,10 +138,19 @@ bool syscallNotification::installPostFork() {
 
 
     AstNodePtr returnVal = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
+    std::string ffunc(FORK_FUNC);
+    std::string ftarget("Dyninst_instForkExit");
+    std::string flib(FORK_LIB);
+    postForkInst = new instMapping(ffunc, ftarget,
+                                   FUNC_EXIT|FUNC_ARG,
+                                   returnVal,
+                                   flib);
+#if 0
     postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
                                    FUNC_EXIT|FUNC_ARG,
                                    returnVal,
                                    FORK_LIB);
+#endif
     postForkInst->dontUseTrampGuard();
     
     pdvector<instMapping *> instReqs;
@@ -149,8 +159,11 @@ bool syscallNotification::installPostFork() {
     proc->installInstrRequests(instReqs);
     
     // Check to see if we put anything in the proggie
-    if (postForkInst->miniTramps.size() == 0)
+    if (postForkInst->miniTramps.size() == 0) {
+       fprintf(stderr, "%s[%d]:  WARNING:  failed to generate inst for post-fork\n", 
+             FILE__, __LINE__);
         return false;
+    }
     return true;
 #else
     // Get existing flags, add post-fork, and set

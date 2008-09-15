@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.208 2008/06/19 19:53:09 legendre Exp $
+// $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -129,17 +129,23 @@ AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodeP
 }
 
 AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > &args,
-                                 AddressSpace *addrSpace) {
-    if (addrSpace) {
-        int_function *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
-        if (ifunc == NULL) {
-            fprintf(stderr, "Bitch whine moan\n");
-            return AstNodePtr();
-        }
-        return AstNodePtr(new AstCallNode(ifunc, args));
-    }
-    else
-        return AstNodePtr(new AstCallNode(func, args));
+      AddressSpace *addrSpace) 
+{
+   if (addrSpace) 
+   {
+      int_function *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
+
+      if (ifunc == NULL) 
+      {
+         fprintf(stderr, "Bitch whine moan\n");
+         fprintf(stderr, "%s[%d]: Can't find function %s\n", FILE__, __LINE__, func.c_str());
+         return AstNodePtr();
+      }
+
+      return AstNodePtr(new AstCallNode(ifunc, args));
+   }
+   else
+      return AstNodePtr(new AstCallNode(func, args));
 }
 
 AstNodePtr AstNode::funcCallNode(int_function *func, pdvector<AstNodePtr > &args) {

@@ -201,6 +201,23 @@ bool test0()
       return false;
    }
 
+   int aw = test1_mutatee->getAddressWidth();
+
+#if defined (x86_64_unknown_linux2_4) \
+   || defined (ppc64_linux) \
+   || defined (ia64_unknown_linux2_4)
+   int expected_address_width = 8;
+#else
+   int expected_address_width = 4;
+#endif
+
+   if (aw != expected_address_width) 
+   {
+      fprintf(stderr, "%s[%d]:  symtab for %s: bad address width, %d, not %d\n", 
+            FILE__, __LINE__, mutatee_name.c_str(), aw, expected_address_width);
+      return false;
+   }
+
    std::vector<Module *> mods;
    if (!test1_mutatee->getAllModules(mods)) 
    {
@@ -565,6 +582,122 @@ bool test0()
    }
 
    symbols.clear();
+
+   for (unsigned int i = 0; i < expected_functions.size(); ++i) 
+   {
+      //  for each expected function, do 2 lookups, first by unknown
+      //  then by function
+      std::string search_str(expected_functions[i]);
+      bool ok = false;
+
+      ok = test1_mutatee->findSymbolByType(symbols, search_str, Symbol::ST_UNKNOWN);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+
+      ok = test1_mutatee->findSymbolByType(symbols, search_str, Symbol::ST_FUNCTION);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+   }
+
+   for (unsigned int i = 0; i < expected_variables.size(); ++i) 
+   {
+      //  for each expected variable, do 2 lookups, first by unknown
+      //  then by object
+      std::string search_str(expected_variables[i]);
+      bool ok = false;
+
+      ok = test1_mutatee->findSymbolByType(symbols, search_str, Symbol::ST_UNKNOWN);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+
+      ok = test1_mutatee->findSymbolByType(symbols, search_str, Symbol::ST_OBJECT);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+   }
 
    fprintf(stderr, "\n%s[%d]:  Have modules:\n", FILE__, __LINE__);
    for (unsigned int i = 0; i < mods.size(); ++i) 

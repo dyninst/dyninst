@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.103 2008/02/23 02:09:07 jaw Exp $
+// $Id: inst.h,v 1.104 2008/09/15 18:37:49 jaw Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -113,36 +113,38 @@ int_function *getFunction(instPoint *point);
 // Container class for "instrument this point with this function". 
 // What I want to know is who is allergic to multi-letter arguments? Yeesh.
 class instMapping {
-public:
-  instMapping(const std::string f, const std::string i, const int w, 
-	      callWhen wn, callOrder o, AstNodePtr a = AstNodePtr(), std::string l = "")
-      : func(f), inst(i), lib(l),
-      where(w), when(wn), order(o), useTrampGuard(true),
-      mt_only(false), allow_trap(false) {
-      if (a != AstNodePtr()) args.push_back(a);
-  }
-  
-  instMapping(const std::string f, const std::string i, const int w, 
-              AstNodePtr a = AstNodePtr(), std::string l = "")
-      : func(f), inst(i), lib(l),
-      where(w), when(callPreInsn), order(orderLastAtPoint),
-      useTrampGuard(true), mt_only(false), allow_trap(false) {
-      if (a != AstNodePtr()) args.push_back(a);
-  }
-  
-  instMapping(const std::string f, const std::string i, const int w, 
-              pdvector<AstNodePtr> &aList, std::string l = "") :
-      func(f), inst(i), lib(l),
-      where(w), when(callPreInsn), order(orderLastAtPoint),
-      useTrampGuard(true), mt_only(false), allow_trap(false) {
-      for(unsigned u=0; u < aList.size(); u++) {
-          if (aList[u] != AstNodePtr()) args.push_back(aList[u]);
-      }
-  };
 
-  // Fork
-  instMapping(const instMapping *parMapping, process *child);
-  
+   public:
+
+      instMapping(const std::string f, const std::string i, const int w, 
+            callWhen wn, callOrder o, AstNodePtr a = AstNodePtr(), std::string l = "")
+         : func(f), inst(i), lib(l),
+         where(w), when(wn), order(o), useTrampGuard(true),
+         mt_only(false), allow_trap(false) {
+            if (a != AstNodePtr()) args.push_back(a);
+         }
+
+      instMapping(const std::string f, const std::string i, const int w, 
+            AstNodePtr a = AstNodePtr(), std::string l = "")
+         : func(f), inst(i), lib(l),
+         where(w), when(callPreInsn), order(orderLastAtPoint),
+         useTrampGuard(true), mt_only(false), allow_trap(false) {
+            if (a != AstNodePtr()) args.push_back(a);
+         }
+
+      instMapping(const std::string f, const std::string i, const int w, 
+            pdvector<AstNodePtr> &aList, std::string l = "") :
+         func(f), inst(i), lib(l),
+         where(w), when(callPreInsn), order(orderLastAtPoint),
+         useTrampGuard(true), mt_only(false), allow_trap(false) {
+            for(unsigned u=0; u < aList.size(); u++) {
+               if (aList[u] != AstNodePtr()) args.push_back(aList[u]);
+            }
+         };
+
+      // Fork
+      instMapping(const instMapping *parMapping, process *child);
+
   ~instMapping() {
   }
 

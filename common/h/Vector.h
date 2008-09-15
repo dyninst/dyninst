@@ -116,7 +116,8 @@ class vec_stdalloc {
 #else
       T* result = (T*)malloc(nbytes);
       if (!result) {
-         fprintf(stderr, "%s[%d]:  FATAL:  malloc (%d) failed\n", __FILE__, __LINE__, nbytes);
+         unsigned long lnbytes = nbytes;
+         fprintf(stderr, "%s[%d]:  FATAL:  malloc (%lu) failed\n", __FILE__, __LINE__, lnbytes);
          assert(result);
       }
 #endif
