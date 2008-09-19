@@ -699,6 +699,148 @@ bool test0()
       symbols.clear();
    }
 
+   //  Now, how about finding symbols in a module?
+   Module *m = NULL;
+
+   if (!test1_mutatee->findModule(m, "test1.mutatee.c")) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to find module 'test1.mutatee.c'\n", 
+            FILE__, __LINE__); 
+
+      return false;
+   }
+
+   if (!m) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to find module 'test1.mutatee.c'\n", 
+            FILE__, __LINE__);
+
+      return false;
+   }
+
+   fprintf(stderr, "%s[%d]:  CHECK THIS:  Apparently cannot find global vars in modules??\n", FILE__, __LINE__);
+#if 0
+   for (unsigned int i = 0; i < expected_variables.size(); ++i) 
+   {
+      //  for each expected variable, do 2 lookups, first by unknown
+      //  then by object
+      std::string search_str(expected_variables[i]);
+      bool ok = false;
+
+      ok = m->findSymbolByType(symbols, search_str, Symbol::ST_UNKNOWN);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+
+      ok = m->findSymbolByType(symbols, search_str, Symbol::ST_OBJECT);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+   }
+#endif
+
+
+   for (unsigned int i = 0; i < expected_functions.size(); ++i) 
+   {
+      //  for each expected function, do 2 lookups, first by unknown
+      //  then by function
+      std::string search_str(expected_functions[i]);
+      bool ok = false;
+
+      ok = m->findSymbolByType(symbols, search_str, Symbol::ST_UNKNOWN);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+
+      ok = m->findSymbolByType(symbols, search_str, Symbol::ST_FUNCTION);
+
+      if (!ok) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+      
+      if (!symbols.size()) 
+      {
+         fprintf(stderr, "%s[%d]:  Cannot find symbol %s\n", 
+               FILE__, __LINE__, search_str.c_str());
+         return false;
+      }
+
+      if (symbols.size() > 1) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+               FILE__, __LINE__, symbols.size(), search_str.c_str());
+         return false;
+      }
+
+      symbols.clear();
+   }
+
+
+
+
    fprintf(stderr, "\n%s[%d]:  Have modules:\n", FILE__, __LINE__);
    for (unsigned int i = 0; i < mods.size(); ++i) 
    {
