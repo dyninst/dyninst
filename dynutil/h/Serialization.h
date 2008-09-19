@@ -387,22 +387,81 @@ class trans_adaptor<S, std::vector<T *>, TT2>  {
       }
 };
 
+#if 0
+template<class T, class ANNO_NAME, bool, annotation_implementation_t>
+class Annotatable<T, ANNO_NAME,bool, annotation_implementation_t>;
+#endif
+   
+#if 0
+I really really wish this worked, maybe it still can given some more pounding
 
-template <class S, class TT>
-void gtranslate(S *ser, TT&it, const char *tag = NULL, const char *tag2 = NULL)
+template<class S, class T, class ANNO_NAME, bool SERIALIZABLE, annotation_implementation_t IMPL>
+class trans_adaptor<S, 
+      Annotatable<T, 
+      ANNO_NAME, 
+      SERIALIZABLE,
+      IMPL> &>  {
+   public: 
+      trans_adaptor() 
+      {
+         fprintf(stderr, "%s[%d]:  trans_adaptor  -- annotatable<%s, %s, %s>\n", 
+               FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
+               SERIALIZABLE ? "true" : "false");
+      }
+
+      Annotatable<T, ANNO_NAME, SERIALIZABLE, IMPL> * operator()(S *ser, 
+            Annotatable<T, ANNO_NAME, SERIALIZABLE, IMPL> &v, const char *tag = NULL, 
+            const char *tag2 = NULL) 
+      {
+          if (!SERIALIZABLE) 
+          {
+             fprintf(stderr, "%s[%d]:  Annotatable<%s, %s, %s>, not serializable\n", 
+                   FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
+                   SERIALIZABLE ? "true" : "false");
+             return NULL;
+          }
+
+          int nelem = v.size();
+
+          if (0 == nelem) 
+          {
+             fprintf(stderr, "%s[%d]:  Annotatable<%s, %s, %s>, no annotations\n", 
+                   FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
+                   SERIALIZABLE ? "true" : "false");
+             return NULL;
+          }
+
+          //  data structure must exist since size > 0
+
+          std::vector<T> &anno_vec = v.getDataStructure();
+
+          //  But is this OK??  (This goes around the usual annotations interface)
+          //  probably not, but let's see if it works anyways
+
+          fprintf(stderr, "%s[%d]:  WARNING:  This may not be kosher -- circumventing the anotations interface, think on this\n", FILE__, __LINE__);
+          translate_vector(ser, anno_vec, tag, tag2);
+
+         //  maybe catch errors here?
+         return &v;
+      }
+};
+#endif
+
+template <class S, class T>
+void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
 {
    fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
          FILE__, __LINE__,
          "SerializerBase",
-         typeid(TT).name(), &it);
+         typeid(T).name(), &it);
 
    //  Maybe just need to do try/catch here since the template mapping may 
    //  change the type of return value thru template specialization
 
-   trans_adaptor<S, TT> ta;
+   trans_adaptor<S, T> ta;
    fprintf(stderr, "%s[%d]: gtranslate: before operation\n", FILE__, __LINE__);
 
-   TT *itp = ta(ser, it, tag, tag2);
+   T *itp = ta(ser, it, tag, tag2);
 
    if (!itp) 
    {
@@ -490,10 +549,10 @@ void trans_enum(S *ser, TT &it, std::vector<std::string> *enum_tags_ptr)
 DLLEXPORT bool isBinary(SerializerBase *ser);
 DLLEXPORT bool isOutput(SerializerBase *ser);
 
-template <class S, class TT>
+template <class S, class T>
 void gtranslate(S *ser, 
-      TT &it, 
-      const char * (*to_str_func)(TT), 
+      T &it, 
+      const char * (*to_str_func)(T), 
       const char *tag = NULL, 
       const char * /*tag2*/ = NULL)
 {
@@ -515,14 +574,14 @@ void gtranslate(S *ser,
    {
       //  just in/output raw binary value 
       gtranslate(ser, enum_int, tag, NULL);
-      it = (TT) enum_int;
+      it = (T) enum_int;
    }
 }
 
 class SerializerError;
 
-template <class S, class TT>
-bool gtranslate_w_err(S *ser, TT&it, const char *tag = NULL, const char *tag2 = NULL)
+template <class S, class T>
+bool gtranslate_w_err(S *ser, T&it, const char *tag = NULL, const char *tag2 = NULL)
 {
 
    try 

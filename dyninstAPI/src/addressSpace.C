@@ -863,11 +863,15 @@ int_function *AddressSpace::findOnlyOneFunction(const string &name,
     assert(mapped_objects.size());
 
     pdvector<int_function *> allFuncs;
+
     if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
         return NULL;
-    if (allFuncs.size() > 1) {
+
+    if (allFuncs.size() > 1) 
+    {
         cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
     }
+
     return allFuncs[0];
 }
 

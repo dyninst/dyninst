@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "dynutil/h/Serialization.h"
 #include "common/h/debugOstream.h"
 #include "common/h/Timer.h"
 #include "common/h/serialize.h"
@@ -963,6 +964,12 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
     std::string rstr;
 
     bool ret = newSym->getVersionFileName(rstr);
+    if (!ret) 
+    {
+       fprintf(stderr, "%s[%d]:  failed to getVersionFileName(%s)\n", 
+             FILE__, __LINE__, rstr.c_str());
+    }
+
     if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) {
         newSymVers->push_back((*vers)[0]);
         newSym->setVersions(*newSymVers);

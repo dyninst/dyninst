@@ -5,12 +5,14 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "Annotatable.h"
+#include "Serialization.h"
 
 #ifndef FILE__
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-#define PART1_TESTS 8 
+#define PART1_TESTS 9
 #define PART2_TESTS 1
 
 class Tempfile {
@@ -170,17 +172,21 @@ class RunCommand {
       }
 };
 
-   template <class T>
-bool serialize_test(unsigned int testNo, const char *prog_name, bool (*cmpfunc)(T &, T&) = NULL)
+template <class T>
+bool serialize_test(unsigned int testNo, 
+      const char *prog_name, 
+      bool (*cmpfunc)(T &, T&) = NULL)
 {
-   fprintf(stderr, "%s[%d]: welcome to serialize test %d\n", FILE__, __LINE__, testNo);
+   fprintf(stderr, "%s[%d]: welcome to serialize test %d\n", 
+         FILE__, __LINE__, testNo);
 
    T control;
    T deserialize_result;
 
    if (!setup_control(control)) 
    {
-      fprintf(stderr, "%s[%d]:  failed to setup control structure\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  failed to setup control structure\n", 
+            FILE__, __LINE__);
       return false;
    }
 

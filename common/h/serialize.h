@@ -62,11 +62,6 @@
 #define PATH_MAX 512
 #endif
 
-
-#if 0
-DLLEXPORT bool &serializer_debug_flag();
-#endif
-
 //  SER_CATCH("string") is mostly for debugging...  it is just a default catch-block
 //  that prints out a message and then throws another exception.  The idea is that,
 //  when an exception is thrown, even though it comes with an informative message,
@@ -85,16 +80,26 @@ class SerFile;
 void printSerErr(const SerializerError &err);
 
 class SerializerBase {
+
    SerFile *sf;
    SerDes *sd;
+
    std::string serializer_name;
+
    typedef dyn_hash_map<std::string, SerializerBase *> subsystem_serializers_t;
    DLLEXPORT static dyn_hash_map<std::string, subsystem_serializers_t> all_serializers;
 
    public:
-      //SerializerBase(SerDes *sd_) : sd(sd_) { assert(sd);}
-      DLLEXPORT SerializerBase(const char *name_, std::string filename, iomode_t dir, bool verbose); 
-      DLLEXPORT virtual ~SerializerBase() {fprintf(stderr, "%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, this, serializer_name.c_str());}
+
+      DLLEXPORT SerializerBase(const char *name_, std::string filename, 
+            iomode_t dir, bool verbose); 
+
+      DLLEXPORT virtual ~SerializerBase() 
+      {
+         fprintf(stderr, "%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, 
+               this, serializer_name.c_str());
+      }
+
       DLLEXPORT virtual SerDes &getSD()  { assert(sd); return *sd;}
       DLLEXPORT SerFile &getSF() {assert(sf); return *sf;}
       DLLEXPORT std::string &name() {return serializer_name;}
@@ -121,55 +126,51 @@ class SerializerBase {
       DLLEXPORT virtual iomode_t iomode(); 
 
    protected:
+
       DLLEXPORT bool read_annotations();
-   private:
-      // SerDes *sd;
+
 };
 
 
 class SerDesXML;
-//  TODO:  make these more specific
+class SerDesBin;
+
 class SerializerXML : public SerializerBase {
+
    public:
-      DLLEXPORT SerializerXML(const char *name_, std::string filename, iomode_t dir, bool verbose) :
+
+      DLLEXPORT SerializerXML(const char *name_, std::string filename, 
+            iomode_t dir, bool verbose) :
          SerializerBase(name_, filename, dir, verbose) {}
+
       DLLEXPORT ~SerializerXML() {}
 
       DLLEXPORT SerDesXML &getSD_xml();
+
       DLLEXPORT static bool start_xml_element(SerializerBase *, const char *);
       DLLEXPORT static bool end_xml_element(SerializerBase *, const char *);
-#if 0
-      {
-         SerDes &sd = getSD();
-         SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
-         assert(sdxml);
-         return *sdxml;
-      }
-#endif
 };
-
-class SerDesBin;
 
 class SerializerBin : public SerializerBase {
    friend class SerDesBin;
+
+   static hash_map<const char *, SerializerBin *> active_bin_serializers;
+   static bool global_disable;
+
    public:
-      DLLEXPORT SerializerBin(const char *name_, std::string filename, iomode_t dir, bool verbose); 
-      DLLEXPORT ~SerializerBin() {}
+
+      DLLEXPORT SerializerBin(const char *name_, std::string filename, 
+            iomode_t dir, bool verbose); 
+
+      DLLEXPORT ~SerializerBin(); 
       
       DLLEXPORT SerDesBin &getSD_bin();
-#if 0
-      {
-         SerDes &sd = getSD();
-         SerDesBin *sdbin = dynamic_cast<SerDesBin *> (&sd);
-         assert(sdbin);
-         return *sdbin;
-      }
-#endif
       static void globalDisable();
       static void globalEnable();
 
-   private:
-      static bool global_disable;
+      static SerializerBin *findSerializerByName(const char *);
+
+      static void dumpActiveBinSerializers();
 };
 
 class AnnotationBase;
@@ -178,79 +179,170 @@ class AnnotationBase;
 template <class T, class ANNO_NAME_T>
 bool realloc_and_annotate(SerializerBase *sb, AnnotatableBase *pb)
 {
-   Annotatable<T, ANNO_NAME_T> *parent = (Annotatable<T, ANNO_NAME_T> *)pb;
-   if (!parent) {
+   fprintf(stderr, "\n%s[%d]:  welcome to realloc_and_annotate\n", FILE__, __LINE__);
+   Annotatable<T, ANNO_NAME_T> *parentp = (Annotatable<T, ANNO_NAME_T> *)pb;
+
+   if (!parentp) 
+   {
       fprintf(stderr, "%s[%d]:  failed to cast annotation parent here\n", FILE__, __LINE__);
       return false;
    }
 
-   T it; 
+   Annotatable<T, ANNO_NAME_T> &parent = *parentp;
 
-   try {
-      //  Maybe just need to do try/catch here since the template mapping may 
-      //  change the type of return value thru template specialization
-      trans_adaptor<SerializerBase, T> ta;
-      fprintf(stderr, "%s[%d]: gtranslate: before operation\n", FILE__, __LINE__);
-      T *itp = ta(sb, it, NULL, NULL);
-      if (!itp) {
-         fprintf(stderr, "%s[%d]: translate adaptor failed to de/serialize\n", FILE__, __LINE__);
+   unsigned nelem = parent.size();
+
+   gtranslate(sb, nelem, "AnnotationsListSize");
+
+   if (0 == nelem) 
+   {
+      fprintf(stderr, "%s[%d]:  skipping %sserialize of zero elements\n", 
+            FILE__, __LINE__, sb->iomode() == sd_serialize ? "" : "de");
+      return true;
+   }
+
+   std::vector<T> *anno_vecp = NULL;
+   if (sb->iomode() == sd_serialize)
+   {
+      //  if we are deserializing, the data structure will likely be nonexistant
+      //  and getDataStructure will assert()
+      anno_vecp = &parent.getDataStructure();
+      assert(anno_vecp->size() == nelem);
+   }
+
+   for (unsigned int i = 0; i < nelem; ++i) 
+   {
+
+      T it; 
+
+      try 
+      {
+         //  Maybe just need to do try/catch here since the template mapping may 
+         //  change the type of return value thru template specialization
+         trans_adaptor<SerializerBase, T> ta;
+
+         fprintf(stderr, "%s[%d]: gtranslate: before operation %d of %d\n", FILE__, __LINE__, i, nelem);
+
+         T * itp = NULL;
+
+         if (sb->iomode() == sd_serialize)
+         {
+            assert(anno_vecp);
+            std::vector<T> &anno_vec = *anno_vecp;
+
+            itp = ta(sb, anno_vec[i], NULL, NULL);
+         }
+         else
+         {
+            itp = ta(sb, it, NULL, NULL);
+         }
+
+         if (!itp) 
+         {
+            fprintf(stderr, "%s[%d]: translate adaptor failed to %sserialize\n", 
+                  FILE__, __LINE__, sb->iomode() == sd_serialize ? "" : "de");
+         }
+
+      } 
+      catch (const SerializerError &err) 
+      {
+         fprintf(stderr, "%s[%d]:  deserialization error here\n", FILE__, __LINE__);
+         printSerErr(err);
+         return false;
       }
 
-      //gtranslate(sb, it_ser, NULL);
-   }
-   catch (const SerializerError &err) {
-      fprintf(stderr, "%s[%d]:  deserialization error here\n", FILE__, __LINE__);
-      printSerErr(err);
-      return false;
-   }
-
-   if (!parent->addAnnotation(it)) {
-      fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-      return false;
+      if (sb->iomode() == sd_deserialize) 
+      {
+         if (!parent.addAnnotation(it)) 
+         {
+            fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+            return false;
+         }
+      }
    }
 
+   fprintf(stderr, "\n%s[%d]:  leaving realloc_and_annotate, after nelem %d\n", FILE__, __LINE__, nelem);
    return true;
 }
 
 class AnnoFunc {
+
    typedef bool (*func_t) (SerializerBase *, AnnotatableBase *);
    std::vector<func_t> funcbits;
 
    public:
       AnnoFunc() {}
-      AnnoFunc(func_t f) {funcbits.push_back(f);}
-      void add(func_t f) {funcbits.push_back(f);}
-      AnnoFunc(const AnnoFunc &src) {
+
+      AnnoFunc(func_t f) 
+      {
+         funcbits.push_back(f);
+      }
+      
+      void add(func_t f) 
+      {
+         funcbits.push_back(f);
+      }
+
+      unsigned nelem() 
+      {
+         return funcbits.size();
+      }
+
+      AnnoFunc(const AnnoFunc &src) 
+      {
          funcbits = src.funcbits;
       }
-      AnnoFunc &operator=(const AnnoFunc &src) {
+
+      AnnoFunc &operator=(const AnnoFunc &src) 
+      {
          funcbits = src.funcbits;
          return *this;
       }
 
-      bool operator==(const AnnoFunc &src) {
+      bool operator==(const AnnoFunc &src) 
+      {
+
          if (funcbits.size() != src.funcbits.size()) 
             return false;
-         for (unsigned int i = 0; i < funcbits.size(); ++i) {
-            if (funcbits[i] != src.funcbits[i]) {
+
+         for (unsigned int i = 0; i < funcbits.size(); ++i) 
+         {
+
+            if (funcbits[i] != src.funcbits[i]) 
+            {
                return false;
             }
+
          }
+
          return true;
       }
-      ~AnnoFunc() {funcbits.clear();}
 
-      bool operator()(SerializerBase *sd, AnnotatableBase *parent) {
-         if (!funcbits.size()) {
-            fprintf(stderr, "%s[%d]:  WARNING:  empty serialization function\n", FILE__, __LINE__);
+      ~AnnoFunc() 
+      {
+         funcbits.clear();
+      }
+
+      bool operator()(SerializerBase *sd, AnnotatableBase *parent) 
+      {
+         if (!funcbits.size()) 
+         {
+            fprintf(stderr, "%s[%d]:  WARNING:  empty serialization function\n", 
+                  FILE__, __LINE__);
             return false;
          }
-         for (unsigned int i = 0; i < funcbits.size(); ++i) {
-            if (! (funcbits[i])(sd, parent)) {
+
+         for (unsigned int i = 0; i < funcbits.size(); ++i) 
+         {
+
+            if (! (funcbits[i])(sd, parent)) 
+            {
                fprintf(stderr, "%s[%d]:  function sequence failing\n", FILE__, __LINE__);
                return false;
             }
+
          }
+
          return true;
       }
 };
@@ -263,25 +355,6 @@ class SerializationFunctionBase {
       //virtual AnnotationBase *operator()(SerDes *, void *, const char *tag) {return NULL;}
       //virtual AnnotationBase *operator()(SerDes *, const char *tag) {return NULL;}
 };
-
-#if 0
-template <class T> 
-class SerFunc : public SerializationFunctionBase {
-   typedef void (*ser_func_t)(SerDes *, T *, const char *);
-   ser_func_t func;
-
-   public:
-      SerFunc(ser_func_t f) : func (f) {}
-      virtual void operator()(SerDes *sd, T *it, const char *tag) 
-      {
-         try {
-            func(sd, it, tag);
-         } SER_CATCH("annotation")
-      }
-};
-#endif
-
-
 
 class SerializationFunctionMap {
    public:
@@ -296,6 +369,7 @@ class SerializationFunctionMap {
 //DLLEXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
 
 class SerDes {
+
    //  SerDes is a base class that provides generic serialization/deserialization
    //  access primitives and a common interface, (a toolbox, if you will).
    //  It is specialized (currently) by SerDesBin and SerDesXML, which implement the 
@@ -309,66 +383,43 @@ class SerDes {
    //  constructed.
 
    public:
-    DLLEXPORT static dyn_hash_map<std::string, AnnoFunc > anno_funcs;
 
-#if 0
-   //  ser_funcs is a mapping of type name (c++ type name, not annotation type name)
-   //  onto functions used to deserialize that type of object
-    DLLEXPORT static dyn_hash_map<std::string, std::vector<SerializationFunctionBase *> > ser_funcs;
-#endif
+      DLLEXPORT static dyn_hash_map<std::string, AnnoFunc > anno_funcs;
 
-#if 0
-    DLLEXPORT static std::vector<SerializationFunctionBase *> emptyFuncList;
-#endif
+      //  old_anno_name_to_id_map keeps a running mapping of 
+      //  annotation names onto annotation ids that was used when building
+      //  the file that is being deserialized.  This info is used to 
+      //  rebuild annotations information, the name<->type mapping may change
+      //  between different runs of dyninst.
+      dyn_hash_map<unsigned, std::string> old_anno_name_to_id_map;
 
-    //  old_anno_name_to_id_map keeps a running mapping of 
-    //  annotation names onto annotation ids that was used when building
-    //  the file that is being deserialized.  This info is used to 
-    //  rebuild annotations information, the name<->type mapping may change
-    //  between different runs of dyninst.
-    dyn_hash_map<unsigned, std::string> old_anno_name_to_id_map;
    protected:
-    iomode_t iomode_;
-  public:
 
-  DLLEXPORT AnnoFunc *findAnnoFunc(unsigned anno_type);
-  DLLEXPORT static bool addAnnoFunc(std::string type_name, AnnoFunc sf);
+      iomode_t iomode_;
 
-    DLLEXPORT SerDes() {assert(0);}
-    DLLEXPORT SerDes(iomode_t mode) : iomode_(mode){}
-    DLLEXPORT virtual ~SerDes() {}
+   public:
 
-#if 0
-    DLLEXPORT static std::vector<SerializationFunctionBase *> &findType(std::string typestr) 
-    {
-      dyn_hash_map<std::string, std::vector<SerializationFunctionBase *> >::iterator iter;
-      iter = ser_funcs.find(typestr); 
-       if (iter == ser_funcs.end()) {
-          fprintf(stderr, "%s[%d]:  no serialization functions found for type %s\n", 
-                FILE__, __LINE__, typestr.c_str());
-          return emptyFuncList;
-       }
-       return iter->second;
-    }
-#endif
+      DLLEXPORT AnnoFunc *findAnnoFunc(unsigned anno_type, 
+            std::string anno_name = AnnotatableBase::emptyString);
 
-#if 0
-    DLLEXPORT static bool addFuncForType(std::string typestr, SerializationFunctionBase *sfb) 
-    {
-       std::vector<SerializationFunctionBase *> &funcs = ser_funcs[typestr];
-       funcs.push_back(sfb);
-       return true;
-    }
-#endif
+      DLLEXPORT static bool addAnnoFunc(std::string type_name, AnnoFunc sf);
 
-    DLLEXPORT virtual void file_start(std::string &/*full_file_path*/) {}
-    DLLEXPORT virtual void vector_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError) = 0;
-    DLLEXPORT virtual void vector_end() = 0;
-    DLLEXPORT virtual void multimap_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError) = 0;
-    DLLEXPORT virtual void hash_map_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError) = 0;
-    DLLEXPORT virtual void hash_map_end() = 0;
-    DLLEXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL) = 0;
-    DLLEXPORT virtual void annotation_end() = 0;
+      DLLEXPORT SerDes() {assert(0);}
+      DLLEXPORT SerDes(iomode_t mode) : iomode_(mode){}
+      DLLEXPORT virtual ~SerDes() {}
+
+      DLLEXPORT virtual void file_start(std::string &/*full_file_path*/) {}
+      DLLEXPORT virtual void vector_start(unsigned int &size, 
+            const char *tag = NULL) DECLTHROW(SerializerError) = 0;
+      DLLEXPORT virtual void vector_end() = 0;
+      DLLEXPORT virtual void multimap_start(unsigned int &size, 
+            const char *tag = NULL) DECLTHROW(SerializerError) = 0;
+      DLLEXPORT virtual void hash_map_start(unsigned int &size, 
+            const char *tag = NULL) DECLTHROW(SerializerError) = 0;
+      DLLEXPORT virtual void hash_map_end() = 0;
+      DLLEXPORT virtual void annotation_start(const char *string_id, 
+            const char *tag = NULL) = 0;
+      DLLEXPORT virtual void annotation_end() = 0;
 
     DLLEXPORT virtual void multimap_end() = 0;
 
@@ -378,197 +429,232 @@ class SerDes {
     DLLEXPORT virtual void translate(long &param, const char *tag = NULL) = 0;
     DLLEXPORT virtual void translate(short &param, const char *tag = NULL) = 0;
     DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL) = 0;
-#if 0
-    virtual void translate(OFFSET &param, const char *tag = NULL) = 0;
-    virtual void translate(pdstring &param, const char *tag = NULL) = 0;
-#endif
     DLLEXPORT virtual void translate(float &param, const char *tag = NULL) = 0;
     DLLEXPORT virtual void translate(double &param, const char *tag = NULL) = 0;
     DLLEXPORT virtual void translate(Address &param, const char *tag = NULL) = 0;
-    DLLEXPORT virtual void translate(const char * &param, int bufsize = 0, const char *tag = NULL) = 0;
-    DLLEXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL) = 0;
+    DLLEXPORT virtual void translate(const char * &param, int bufsize = 0, 
+          const char *tag = NULL) = 0;
+    DLLEXPORT virtual void translate(char * &param, int bufsize = 0, 
+          const char *tag = NULL) = 0;
     DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL) = 0;
     DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
                            const char *elem_tag = NULL) = 0;
-
-
-    //virtual AnnotationBase * read_annotation(void *&id, unsigned anno_type) {return NULL;}
-    //virtual void read_annotations() {}
 
     DLLEXPORT virtual iomode_t iomode() {return iomode_;} 
 };
 
 class SerDesXML : public SerDes {
-  public:
-     xmlTextWriterPtr writer;
 
-    DLLEXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
+   public:
 
-    DLLEXPORT SerDesXML() { assert(0);}
-    DLLEXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
-    DLLEXPORT virtual ~SerDesXML();
+      xmlTextWriterPtr writer;
 
-    DLLEXPORT virtual void vector_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError);
-    DLLEXPORT virtual void vector_end();
-    DLLEXPORT virtual void multimap_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError);
-    DLLEXPORT virtual void multimap_end();
-    DLLEXPORT virtual void hash_map_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError);
-    DLLEXPORT virtual void hash_map_end();
-    DLLEXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
-    DLLEXPORT virtual void annotation_end();
-    DLLEXPORT virtual void translate(bool &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(char &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(int &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(long &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(short &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
-#if 0
-    virtual void translate(OFFSET &param, const char *tag = NULL);
-    virtual void translate(pdstring &param, const char *tag = NULL);
-#endif
-    DLLEXPORT virtual void translate(float &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(double &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(Address &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(const char * &param, int bufsize = 0, const char *tag = NULL);
-    DLLEXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
-    DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
-                           const char *elem_tag = NULL);
-    DLLEXPORT void start_element(const char *tag);
-    DLLEXPORT void end_element();
-    DLLEXPORT void xml_value(const char *val, const char *tag);
+      DLLEXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
 
-  protected:
-    //xmlTextWriterPtr writer;
+      DLLEXPORT SerDesXML() { assert(0);}
+      DLLEXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
+      DLLEXPORT virtual ~SerDesXML();
+
+      DLLEXPORT virtual void vector_start(unsigned int &size, 
+            const char *tag = NULL) DECLTHROW(SerializerError);
+      DLLEXPORT virtual void vector_end();
+      DLLEXPORT virtual void multimap_start(unsigned int &size, 
+            const char *tag = NULL) DECLTHROW(SerializerError);
+      DLLEXPORT virtual void multimap_end();
+      DLLEXPORT virtual void hash_map_start(unsigned int &size, 
+            const char *tag = NULL) DECLTHROW(SerializerError);
+      DLLEXPORT virtual void hash_map_end();
+      DLLEXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
+      DLLEXPORT virtual void annotation_end();
+      DLLEXPORT virtual void translate(bool &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(char &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(int &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(long &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(short &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(float &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(double &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(Address &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(const char * &param, int bufsize = 0, 
+            const char *tag = NULL);
+      DLLEXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
+      DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
+      DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
+            const char *elem_tag = NULL);
+      DLLEXPORT void start_element(const char *tag);
+      DLLEXPORT void end_element();
+      DLLEXPORT void xml_value(const char *val, const char *tag);
 };
 
 class AnnotatableBase;
 
 class SerDesBin : public SerDes {
 
-  typedef struct {
-     unsigned int cache_magic;
-     unsigned int source_file_size; //  if size is different, don't bother with checksum
-     char sha1[SHA1_DIGEST_LEN];
-  } cache_header_t;
+   typedef struct {
+      unsigned int cache_magic;
+      unsigned int source_file_size; //  if size is different, don't bother with checksum
+      char sha1[SHA1_DIGEST_LEN];
+   } cache_header_t;
 
-    FILE *f;
+   FILE *f;
 
-    bool noisy;
-  public:
-    DLLEXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
+   bool noisy;
 
-    DLLEXPORT static FILE *init(std::string fname, iomode_t mode, bool verbose);
-    DLLEXPORT SerDesBin() {assert(0);}
-    DLLEXPORT SerDesBin(FILE *ff, iomode_t mode, bool verbose) : SerDes(mode), f(ff),  noisy(verbose) {}
-    //SerDesBin(std::string fname, iomode_t mode, bool verbose = false);
-    DLLEXPORT virtual ~SerDesBin();
+   public:
 
-    DLLEXPORT static AnnotatableBase *findAnnotatee(void *id); 
+   DLLEXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
+   DLLEXPORT static FILE *init(std::string fname, iomode_t mode, bool verbose);
 
-    DLLEXPORT virtual void file_start(std::string &full_file_path);
-    DLLEXPORT virtual void vector_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError);
-    DLLEXPORT virtual void vector_end();
-    DLLEXPORT virtual void multimap_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError);
-    DLLEXPORT virtual void multimap_end();
-    DLLEXPORT virtual void hash_map_start(unsigned int &size, const char *tag = NULL) DECLTHROW(SerializerError);
-    DLLEXPORT virtual void hash_map_end();
-    DLLEXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
-    DLLEXPORT virtual void annotation_end();
-    DLLEXPORT virtual void translate(bool &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(char &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(int &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(long &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(short &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
-#if 0
-    virtual void translate(OFFSET &param, const char *tag = NULL);
-    virtual void translate(pdstring &param, const char *tag = NULL);
-#endif
-    DLLEXPORT virtual void translate(float &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(double &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(Address &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(const char * &param, int bufsize = 0, const char *tag = NULL);
-    DLLEXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
-    DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
-    DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
-                           const char *elem_tag = NULL);
+   DLLEXPORT SerDesBin() {assert(0);}
 
-    //virtual void read_annotations(); 
-    //virtual AnnotationBase *read_annotation(void *&id, unsigned anno_type); 
-    
-    // readHeaderAndVerify just opens, verifies (checksum, magic compare), and closes
-    // cache file, unless the FILE * is provided, in which case the file pointer is
-    // advanced past the preamble and is not closed;
-    DLLEXPORT static void readHeaderAndVerify(std::string full_file_path, std::string cache_name, FILE *f = NULL);
-    DLLEXPORT static void writeHeaderPreamble(FILE *f, std::string full_file_path, std::string cache_name);
+   DLLEXPORT SerDesBin(FILE *ff, iomode_t mode, bool verbose) : 
+      SerDes(mode), 
+      f(ff),  
+      noisy(verbose) {}
 
-    DLLEXPORT static bool getDefaultCacheDir(std::string &cache_dir);
-    DLLEXPORT static bool resolveCachePath(std::string fname, std::string &cache_name);
-    DLLEXPORT static bool verifyChecksum(std::string &filename, const char comp_checksum[SHA1_DIGEST_LEN]);
-    DLLEXPORT static bool cacheFileExists(std::string fname);
-    DLLEXPORT static bool invalidateCache(std::string cache_name);
-  private:
+   DLLEXPORT virtual ~SerDesBin();
+
+   DLLEXPORT static AnnotatableBase *findAnnotatee(void *id); 
+
+   DLLEXPORT virtual void file_start(std::string &full_file_path);
+   DLLEXPORT virtual void vector_start(unsigned int &size, 
+         const char *tag = NULL) DECLTHROW(SerializerError);
+   DLLEXPORT virtual void vector_end();
+   DLLEXPORT virtual void multimap_start(unsigned int &size, 
+         const char *tag = NULL) DECLTHROW(SerializerError);
+   DLLEXPORT virtual void multimap_end();
+   DLLEXPORT virtual void hash_map_start(unsigned int &size, 
+         const char *tag = NULL) DECLTHROW(SerializerError);
+   DLLEXPORT virtual void hash_map_end();
+   DLLEXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
+   DLLEXPORT virtual void annotation_end();
+   DLLEXPORT virtual void translate(bool &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(char &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(int &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(long &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(short &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(float &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(double &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(Address &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(const char * &param, 
+         int bufsize = 0, const char *tag = NULL);
+   DLLEXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
+   DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
+   DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
+         const char *elem_tag = NULL);
+
+   // readHeaderAndVerify just opens, verifies (checksum, magic compare), and closes
+   // cache file, unless the FILE * is provided, in which case the file pointer is
+   // advanced past the preamble and is not closed;
+
+   DLLEXPORT static void readHeaderAndVerify(std::string full_file_path, 
+         std::string cache_name, FILE *f = NULL);
+
+   DLLEXPORT static void writeHeaderPreamble(FILE *f, std::string full_file_path, 
+         std::string cache_name);
+
+   DLLEXPORT static bool getDefaultCacheDir(std::string &cache_dir);
+   DLLEXPORT static bool resolveCachePath(std::string fname, std::string &cache_name);
+   DLLEXPORT static bool verifyChecksum(std::string &filename, 
+         const char comp_checksum[SHA1_DIGEST_LEN]);
+   DLLEXPORT static bool cacheFileExists(std::string fname);
+   DLLEXPORT static bool invalidateCache(std::string cache_name);
 
 };
 
 
 class DLLEXPORT SerFile {
+
    SerDes *sd;
-    xmlTextWriterPtr writer;
-    FILE *f;
+   xmlTextWriterPtr writer;
+   FILE *f;
 
    public:
-    SerDes *getSD() {return sd;}
-    SerFile(std::string fname, iomode_t mode, bool verbose = false) :
-       writer (NULL), f(NULL), iomode_(mode), noisy(verbose) {
-          char file_path[PATH_MAX];
-          if (!resolve_file_path(fname.c_str(), file_path)) {
-             char msg[128];
-             sprintf(msg, "failed to resolve path for '%s'\n", fname.c_str());
-             SER_ERR(msg);
-          }
-          filename = std::string(file_path);
-          serialize_debug_init();
-          if (strstr(filename.c_str(), "xml")) {
-             fprintf(stderr, "%s[%d]:  opening xml file %s for %s\n", FILE__, __LINE__, filename.c_str(), mode == sd_serialize ? "output" : "input");
-             if (mode == sd_deserialize) {
-                fprintf(stderr, "%s[%d]:  ERROR:  deserializing xml not supported\n", FILE__, __LINE__);
-                assert(0);
-             }
-             writer = SerDesXML::init(fname, mode, verbose);
-             if (!writer) {
-                fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
-                assert(0);
-             }
-             sd = new SerDesXML(writer, mode);
-          }
-          else {
-             fprintf(stderr, "%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, filename.c_str(), mode == sd_serialize ? "output" : "input");
-             f = SerDesBin::init(fname, mode, verbose);
-             if (!f) {
-                fprintf(stderr, "%s[%d]:  failed to init file i/o\n", FILE__, __LINE__);
-                assert(0);
-             }
-             sd = new SerDesBin(f,mode, verbose);
-          }
-       }
 
-    iomode_t iomode() {return iomode_;}
+   SerDes *getSD() 
+   {
+      return sd;
+   }
 
-    static bool validCacheExistsFor(std::string full_file_path);
+   SerFile(std::string fname, iomode_t mode, bool verbose = false) :
+      writer (NULL), 
+      f(NULL), 
+      iomode_(mode), 
+      noisy(verbose) 
+   {
+      char file_path[PATH_MAX];
 
-  protected:
-    std::string filename;
-    iomode_t iomode_;
-  public:
-    bool noisy;
+      if (!resolve_file_path(fname.c_str(), file_path)) 
+      {
+         char msg[128];
+         sprintf(msg, "failed to resolve path for '%s'\n", fname.c_str());
+         SER_ERR(msg);
+      }
 
-  private:
+      filename = std::string(file_path);
+      serialize_debug_init();
+
+      if (strstr(filename.c_str(), "xml")) 
+      {
+         fprintf(stderr, "%s[%d]:  opening xml file %s for %s\n", FILE__, __LINE__, 
+               filename.c_str(), mode == sd_serialize ? "output" : "input");
+
+         if (mode == sd_deserialize) 
+         {
+            fprintf(stderr, "%s[%d]:  ERROR:  deserializing xml not supported\n", 
+                  FILE__, __LINE__);
+            assert(0);
+         }
+
+         writer = SerDesXML::init(fname, mode, verbose);
+
+         if (!writer) 
+         {
+            fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
+            assert(0);
+         }
+
+         sd = new SerDesXML(writer, mode);
+
+      }
+      else 
+      {
+         fprintf(stderr, "%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, 
+               filename.c_str(), mode == sd_serialize ? "output" : "input");
+
+         f = SerDesBin::init(fname, mode, verbose);
+         
+         if (!f) 
+         {
+            fprintf(stderr, "%s[%d]:  failed to init file i/o\n", FILE__, __LINE__);
+            assert(0);
+         }
+
+         sd = new SerDesBin(f,mode, verbose);
+      }
+   }
+
+   iomode_t iomode() 
+   {
+      return iomode_;
+   }
+
+   static bool validCacheExistsFor(std::string full_file_path);
+
+   protected:
+
+   std::string filename;
+   iomode_t iomode_;
+
+   public:
+
+   bool noisy;
+
 };
 
 #if 0
-template <class T>
+   template <class T>
 bool read_and_reannotate()
 {
    unsigned anno_type = 0;
@@ -603,7 +689,7 @@ bool read_and_reannotate()
             FILE__, __LINE__);
       return false;
    }
-   
+
    T *newobj = new T();
    T *anno = func(newobj, NULL, "AnnotationBody");
 
@@ -872,9 +958,13 @@ void translate_annotation(S *ser, T *it, const char *anno_str, const char *tag =
 
 template <class S, class T>
 class SpecAdaptor {
+
    public:
+
       SpecAdaptor() {}
-      T *operator()(S *s, T &t, const char *tag) {
+
+      T *operator()(S *s, T &t, const char *tag) 
+      {
          s->translate_base(t, tag);
          return &t;
       }
@@ -882,9 +972,13 @@ class SpecAdaptor {
 
 template <class S, class T>
 class SpecAdaptor<S, T *> {
+
    public:
+
       SpecAdaptor() {}
-      T* operator()(S *s, T *t, const char *tag) {
+
+      T* operator()(S *s, T *t, const char *tag) 
+      {
          assert(t);
          assert(s);
          s->translate_base(*t, tag);
@@ -899,10 +993,14 @@ void sd_translate(S *sd, T &it, const char * tag)
          FILE__, __LINE__, 
          typeid(S).name(), 
          typeid(T).name(), &it);
+
    SpecAdaptor<S,T> saf;
-   if (NULL == saf(sd, it, tag)) {
+
+   if (NULL == saf(sd, it, tag)) 
+   {
       fprintf(stderr, "%s[%d]:  ERROR here\n", FILE__, __LINE__);
    }
+
    return;
 }
 
@@ -960,25 +1058,31 @@ T *sd_translate(S *sd, T &it, const char * tag)
 #endif
 
 template <class T, class ANNO_NAME_T>
-bool init_anno_serialization(SerializerBase * /*serializer_*/)
+bool init_anno_serialization(const char * serializer_name)
 {
 
+   std::string anno_name = typeid(ANNO_NAME_T).name();
+
    fprintf(stderr, "%s[%d]:  initializing annotation function for annotation type %s\n",
-         FILE__, __LINE__, typeid(ANNO_NAME_T).name());
+         FILE__, __LINE__, anno_name.c_str());
 
    AnnoFunc sf(realloc_and_annotate<T, ANNO_NAME_T>);
-  //static bool addSerFuncForAnno(unsigned anno_type, SerFunc sf);
-   std::string anno_name = typeid(ANNO_NAME_T).name();
-   int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
-   if (anno_id == -1) {
+
+   int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+         serializer_name);
+
+   if (anno_id == -1) 
+   {
       fprintf(stderr, "%s[%d]:  failed to get annotation type here\n", FILE__, __LINE__);
       return false;
    }
 
-   if (!SerDesBin::addAnnoFunc(anno_name, sf)) {
+   if (!SerDesBin::addAnnoFunc(anno_name, sf)) 
+   {
       fprintf(stderr, "%s[%d]:  failed to add serialization function\n", FILE__, __LINE__);
       return false;
    }
+
    return true;
 }
 
@@ -1026,16 +1130,23 @@ class trans_adaptor<S, std::vector<T *>, TT2> {
 
 template<class S, class T, class TT2> 
 class trans_adaptor<S, dyn_hash_map<T, TT2> > {
+
    public:
-      trans_adaptor() {
+
+      trans_adaptor() 
+      {
          fprintf(stderr, "%s[%d]:  welcome to trans_adaptor<%s, hash<%s, %s> >()\n",
                FILE__, __LINE__,
                typeid(S).name(),
                typeid(T).name(), typeid(TT2).name() );
       }
-      dyn_hash_map<T, TT2> * operator()(S *ser, dyn_hash_map<T, TT2> &m, const char *tag = NULL, const char *tag2 = NULL) {
+
+      dyn_hash_map<T, TT2> * operator()(S *ser, dyn_hash_map<T, TT2> &m, 
+            const char *tag = NULL, const char *tag2 = NULL) 
+      {
          fprintf(stderr, "%s[%d]:  hash_size = %d\n", FILE__, __LINE__, m.size());
          translate_hash_map(ser, m, tag, tag2);
+
          //  maybe catch errors here?
          return &m;
       }
@@ -1117,16 +1228,28 @@ bool deserialize(T &it, S &trans)
 #endif
 
 class SerTest : public Serializable {
+
    int my_int;
+
    public:
-      SerTest() { my_int = 777;}
+
+      SerTest() 
+      { 
+         my_int = 777;
+      }
+
       ~SerTest() {}
-      void serialize(SerializerBase *s, const char * = NULL) {
-         try {
+
+      void serialize(SerializerBase *s, const char * = NULL) 
+      {
+         try 
+         {
             gtranslate(s, my_int);
          }  SER_CATCH("SerTest");
       }
-      void testit() {
+
+      void testit() 
+      {
          SerializerBase sb("SerTest", std::string("boogabooga"), sd_serialize, true);
          serialize( &sb);
       }

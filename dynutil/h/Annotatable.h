@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.14 2008/09/15 18:37:49 jaw Exp $
+// $Id: Annotatable.h,v 1.15 2008/09/19 00:56:09 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -50,8 +50,7 @@
 #include <typeinfo>
 #include <assert.h>
 #include "dyntypes.h"
-#include "util.h"
-#include "Serialization.h"
+#include "dynutil/h/util.h"
 
 class AnnotatableBase;
 
@@ -72,7 +71,7 @@ SerializerBase *getSDAnno(std::string &anno_name);
 void dumpSDAnno();
 
 template <class T, class ANNO_NAME_T>
-bool init_anno_serialization(SerializerBase * = NULL);
+bool init_anno_serialization(const char * = NULL);
 
 class DLLEXPORT_COMMON AnnotatableBase
 {
@@ -84,13 +83,13 @@ class DLLEXPORT_COMMON AnnotatableBase
       {
          int anno_id;
 #if defined (cap_serialization)
+         const char *anno_serializer_name;
          SerializerBase *anno_serializer;
 #endif
       } anno_info_t;
 
    private:
 
-      static std::string emptyString;
       static int number;
       static dyn_hash_map<std::string, anno_info_t> annotationTypes;
       static dyn_hash_map<std::string, int> metadataTypes;
@@ -98,13 +97,14 @@ class DLLEXPORT_COMMON AnnotatableBase
       static int metadataNum;
 
    public:
+      static std::string emptyString;
 
-      static int createAnnotationType(std::string &name, const char *tname, SerializerBase *);
+      static int createAnnotationType(std::string &name, const char *tname, const char *);
       static int getAnnotationType(std::string &name, const char *tname = NULL);
       static SerializerBase *getAnnotationSerializer(std::string &name);
       static  void dumpAnnotationSerializers();
       static std::string &findTypeName(std::string anno_name);
-      static int getOrCreateAnnotationType(std::string &anno_name, const char *tname); 
+      static int getOrCreateAnnotationType(std::string &anno_name, const char *tname, const char *); 
 
 #if 0
       virtual int createMetadata(std::string &name);
@@ -223,6 +223,12 @@ class AnnotationSet {
 #endif
 };
 
+bool serialize_int_param(SerializerBase *sb, int &param, const char *tag);
+         //gtranslate(sb, nelem, "AnnotationsListSize");
+
+class SerializerBin;
+DLLEXPORT bool getAndExecuteSerFunc(AnnotatableBase *, SerializerBin *, int, std::string, unsigned nelem);
+
 template< class T > std::vector<dyn_hash_map<char *, T*> *>
 AnnotationSet< T >::annos_by_id;
 
@@ -230,14 +236,14 @@ template <class T, class ANNOTATION_NAME_T, bool SERIALIZABLE = false>
 class AnnotatableCommon : public AnnotatableBase 
 {
    public:
-      AnnotatableCommon(SerializerBase *serializer) :
+      AnnotatableCommon(const char *serializer_name) :
          AnnotatableBase()
       {
 #if defined (cap_serialization)
          static bool did_init = false;
          if (SERIALIZABLE && !did_init) 
          {
-            init_anno_serialization<T, ANNOTATION_NAME_T>(serializer);
+            init_anno_serialization<T, ANNOTATION_NAME_T>(serializer_name);
             did_init = true;
          }
 #endif
@@ -272,7 +278,8 @@ class AnnotatableCommon : public AnnotatableBase
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+               (const char *)NULL);
 
          if (anno_id == -1) 
          {
@@ -299,7 +306,8 @@ class AnnotatableCommon : public AnnotatableBase
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+               (const char *)NULL);
 
          if (anno_id == -1) 
          {
@@ -361,12 +369,108 @@ class AnnotatableCommon : public AnnotatableBase
          return true;
       }
 
+      //  would really really like to see this overloaded into the trans_adapt 
+      //  specializations, but first stab was not forthcoming
+
+      bool gtranslate_annotations(SerializerBase *sb, 
+            const char *tag = NULL, const char *tag2 = NULL)
+      {
+         std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+         unsigned nelem = size();
+
+         fprintf(stderr, "%s[%d]: Bulk serialize annotations for %s, size is %d\n",
+               FILE__, __LINE__, anno_name.c_str(), nelem);
+
+         if (NULL == sb)
+         {
+            fprintf(stderr, "%s[%d]: Bulk serialize annotations not given serializer\n",
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name(),
+               (const char *) NULL);
+
+         if (-1 == anno_id)
+         {
+            fprintf(stderr, "%s[%d]:  failed to get annotation type here\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         SerializerBin *ser = dynamic_cast<SerializerBin *>(sb);
+
+         if (!ser) 
+         {
+            fprintf(stderr, "%s[%d]:  weird, not a binary serialization\n", 
+                  FILE__, __LINE__);
+            return false;
+         }
+
+         if (!serialize_int_param(sb, (int &) nelem, "AnnotationsListSize"))
+         {
+            fprintf(stderr, "%s[%d]:  failed to serialize size param for type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+         }
+
+         if (nelem == 0) 
+         {
+            fprintf(stderr, "%s[%d]:  serializing zero annotations of type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+            return true;
+         } 
+
+         bool res = getAndExecuteSerFunc((AnnotatableBase *)this, ser, anno_id, 
+               anno_name, nelem);
+
+         if (false == res)
+         {
+            fprintf(stderr, "%s[%d]:  failed execute function\n", FILE__, __LINE__);
+            return false;
+         }
+
+#if 0
+         SerDesBin *sdbin = ser->getSerDes();
+
+         if (!sdbin)
+         {
+            fprintf(stderr, "%s[%d]: Bulk serialize annotations broken serializer\n",
+                  FILE__, __LINE__);
+            return false;
+         }
+
+
+
+         AnnoFunc *afp = sdbin->findAnnoFunc(anno_id);
+
+         if (NULL == afp)
+         {
+            fprintf(stderr, "%s[%d]:  failed to findAnnoFunc for id %d\n", 
+                  FILE__, __LINE__, anno_id);
+            return false;
+         }
+
+         AnnoFunc &af = *afp;
+
+         bool res = af(ser, this);
+
+         if (false == res)
+         {
+            fprintf(stderr, "%s[%d]:  failed execute function\n", FILE__, __LINE__);
+            return false;
+         }
+#endif
+
+         return true;
+      }
+
       void clearAnnotations()
       {
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+               (const char *)NULL);
          
          if (anno_id == -1) 
          {
@@ -386,7 +490,8 @@ class AnnotatableCommon : public AnnotatableBase
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+               (const char *)NULL);
 
          if (anno_id == -1) 
          {
@@ -423,7 +528,8 @@ class AnnotatableCommon : public AnnotatableBase
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+               (const char *)NULL);
 
          if (anno_id == -1) 
          {
@@ -452,7 +558,8 @@ class AnnotatableCommon : public AnnotatableBase
          Container_t *v = NULL;
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+               (const char *)NULL);
          
          if (anno_id == -1) 
          {
@@ -480,7 +587,7 @@ class AnnotatableCommon : public AnnotatableBase
 
          if (index >= v->size()) 
          {
-            fprintf(stderr, "%s[%d]:  FIXME:  index = %d -- size = %d\n", 
+            fprintf(stderr, "%s[%d]:  FIXME:  index = %d -- size = %lu\n", 
                   FILE__, __LINE__, index, v->size());
          }
 
@@ -497,8 +604,8 @@ template <class T, class ANNOTATION_NAME_T,
 class Annotatable : public AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>
 {
    public:
-      Annotatable(SerializerBase *serializer) :
-         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer)
+      Annotatable(const char *serializer_name) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer_name)
       {}
 
       Annotatable() :
@@ -512,7 +619,12 @@ class Annotatable : public AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>
          AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>()
       {/*hrm deep copy here or no?*/}
 
-
+      bool gtranslate_annotations(SerializerBase *ser, 
+            const char *tag = NULL, const char *tag2 = NULL)
+      {
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE> *ac = this;
+         return ac->gtranslate_annotations(ser, tag, tag2);
+      }
 };
 
 template <class T, class ANNOTATION_NAME_T, bool SERIALIZABLE>
@@ -525,8 +637,8 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_static_dense> : 
 
    public:
 
-      Annotatable(SerializerBase *serializer) :
-         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer)
+      Annotatable(const char *serializer_name) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer_name)
       {}
 
       Annotatable() :
@@ -545,7 +657,7 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_static_dense> : 
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
          int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, 
-               typeid(T).name());
+               typeid(T).name(), (const char *)NULL);
 
          if (anno_id == -1) 
          {
@@ -660,8 +772,8 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_local_dense> : p
       Container_t *annotations_;
 
    public:
-      Annotatable(SerializerBase *serializer) :
-         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer)
+      Annotatable(const char *serializer_name) :
+         AnnotatableCommon<T, ANNOTATION_NAME_T, SERIALIZABLE>(serializer_name)
       {}
 
       Annotatable() :
@@ -679,7 +791,7 @@ class Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE, anno_impl_local_dense> : p
       {
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
 
-         int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
+         int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name(), NULL);
          
          if (anno_id == -1) 
          {
@@ -817,8 +929,14 @@ bool annotate(S *obj, T &anno, std::string anno_name)
 
    char *tobj = (char *) obj;
    std::vector<T> *v = NULL;
+   const char *serializer_name = NULL;
 
-   int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
+#if defined (cap_serialization)
+   fprintf(stderr, "%s[%d]:  FIXME:  NULL serializer_name\n", FILE__, __LINE__);
+#endif
+
+   int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name(), 
+         serializer_name);
 
    if (-1 == anno_id) 
    {
@@ -849,7 +967,17 @@ std::vector<T> *getAnnotations(S *obj, std::string anno_name)
    char *tobj = (char *) obj;
    std::vector<T> *v = NULL;
 
-   int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name());
+   const char *serializer_name = NULL;
+
+#if defined (cap_serialization)
+   //  uh what to do here....  want to get serializer name from annotatee object if
+   //  possible, that is, if it is a descendant of Annotatable...  might be an even more
+   //  generic solution here...
+   fprintf(stderr, "%s[%d]:  FIXME:  NULL serializer_name\n", FILE__, __LINE__);
+#endif
+
+   int anno_id = AnnotatableBase::getOrCreateAnnotationType(anno_name, typeid(T).name(),
+         serializer_name);
 
    if (-1 == anno_id) 
    {

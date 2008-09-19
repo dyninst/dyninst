@@ -11,7 +11,7 @@ class MappedFile {
    public:
       DLLEXPORT static MappedFile *createMappedFile(std::string fullpath_);
       DLLEXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_);
-      DLLEXPORT static void closeMappedFile(MappedFile *mf);
+      DLLEXPORT static void closeMappedFile(MappedFile *&mf);
 
       DLLEXPORT std::string pathname();
       DLLEXPORT std::string filename();

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.30 2008/08/07 22:05:01 roundy Exp $
+// $Id: Object-xcoff.C,v 1.31 2008/09/19 00:56:09 jaw Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -159,7 +159,7 @@ void loadNativeDemangler()
       //   BPatch_reportError(BPatchSerious,122,
       //             "unable to locate function demangle in libdemangle.so.1\n");
 
-      P_functionName = (char*(*)(Name*)) dlsym(hDemangler, "functionName");
+      P_functionName = (char*(*)(Name*)) dlsym(hDemangler, (const char *)"functionName");
       //if (!P_functionName) 
       //   BPatch_reportError(BPatchSerious,122,
       //         "unable to locate function functionName in libdemangle.so.1\n");
@@ -1158,8 +1158,9 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
                if (is64) size &= csect->x_csect.x_scnlen_hi64 * 0x10000;
             }
 
-            if (csect->x_csect.x_smclas == XMC_TC0) { 
-               if (toc_offset);
+            if (csect->x_csect.x_smclas == XMC_TC0) 
+            {
+               //if (toc_offset);
                //logLine("Found more than one XMC_TC0 entry.");
                toc_offset = sym_value;
                continue;
@@ -1628,11 +1629,12 @@ bool parseCompilerType(Object *objPtr)
   // Use presence of string "IBM VisualAge C++" to confirm
   //   it's the IBM compiler
   //
-                char *compiler_strings[] = {
+                const char * const compiler_strings[] = {
                    "IBM.*VisualAge.*C\\+\\+",
                    "IBM.* XL .*C\\+\\+",
                    NULL};
-                for (char **cpp = compiler_strings; *cpp != NULL; cpp++) {
+
+                for (const char * const *cpp = compiler_strings; *cpp != NULL; cpp++) {
                    regex_t reg;
                    if (regcomp(&reg, *cpp, REG_NOSUB))
                       break;

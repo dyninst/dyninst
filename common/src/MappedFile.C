@@ -69,19 +69,33 @@ MappedFile::MappedFile(void *loc, unsigned long size_, bool &ok) :
 #endif
 }
 
-void MappedFile::closeMappedFile(MappedFile *mf)
+void MappedFile::closeMappedFile(MappedFile *&mf)
 {
+   if (!mf) 
+   {
+      fprintf(stderr, "%s[%d]:  BAD NEWS:  called closeMappedFile(NULL)\n", FILE__, __LINE__);
+      return;
+   }
+
    //fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->pathname().c_str(), mf->refCount);
+
    mf->refCount--;
-   if (mf->refCount <= 0) {
+
+   if (mf->refCount <= 0) 
+   {
       dyn_hash_map<std::string, MappedFile *>::iterator iter;
       iter = mapped_files.find(mf->pathname());
-      if (iter != mapped_files.end()) {
+
+      if (iter != mapped_files.end()) 
+      {
          mapped_files.erase(iter);
       }
+
       //fprintf(stderr, "%s[%d]:  DELETING mapped file\n", FILE__, __LINE__);
       //  dtor handles unmap and close
+
       delete mf;
+      mf = NULL;
    }
 }
 

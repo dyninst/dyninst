@@ -149,7 +149,7 @@ void trans_adapt(SerializerBase *ser, char *&it, const char *tag)
    assert(ser);
    assert(it);
    int s_len = strlen(it);
-   ser->translate_base((const char *&)it, s_len, tag);
+   ser->translate_base(const_cast<const char *&>(it), s_len, tag);
 }
 
 void trans_adapt(SerializerBase *ser, std::string &it, const char *tag)
@@ -213,16 +213,95 @@ SerDesBin &SerializerBin::getSD_bin()
 }
 
 bool SerializerBin::global_disable = false;
+hash_map<const char *, SerializerBin *> SerializerBin::active_bin_serializers;
 
-SerializerBin::SerializerBin(const char *name_, std::string filename, iomode_t dir, bool verbose) :
+void SerializerBin::dumpActiveBinSerializers()
+{
+   fprintf(stderr, "%s[%d]:  have serializers:\n", FILE__, __LINE__);
+
+   hash_map<const char *, SerializerBin *>::iterator iter;
+
+   for (iter = active_bin_serializers.begin(); 
+         iter != active_bin_serializers.end(); 
+         iter++)
+   {
+      fprintf(stderr, "\t%s--%p\n", iter->first, iter->second);
+   }
+}
+
+SerializerBin::SerializerBin(const char *name_, std::string filename, 
+      iomode_t dir, bool verbose) :
    SerializerBase(name_, filename, dir, verbose) 
 {
-   if (global_disable) {
-      fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n", FILE__, __LINE__);
+   if (global_disable) 
+   {
+      fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n", 
+            FILE__, __LINE__);
+
       throw SerializerError(FILE__, __LINE__, 
             std::string("serialization disabled"), 
             SerializerError::ser_err_disabled);
    }
+
+   hash_map<const char *, SerializerBin *>::iterator iter;
+
+   iter = active_bin_serializers.find(name_);
+
+   if (iter == active_bin_serializers.end()) 
+   {
+      fprintf(stderr, "%s[%d]:  Adding Active serializer for name %s\n", 
+            FILE__, __LINE__, name_);
+
+      active_bin_serializers[name_] = this;
+   }
+   else
+   {
+      fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n", 
+            FILE__, __LINE__, name_);
+   }
+
+}
+
+SerializerBin::~SerializerBin()
+{
+   hash_map<const char *, SerializerBin *>::iterator iter;
+
+   iter = active_bin_serializers.find(name().c_str());
+
+   if (iter == active_bin_serializers.end()) 
+   {
+      fprintf(stderr, "%s[%d]:  Weird, no static ptr for name %s\n", 
+            FILE__, __LINE__, name().c_str());
+   }
+   else
+   {
+      fprintf(stderr, "%s[%d]:  Removing active serializer for name %s\n", 
+            FILE__, __LINE__, name().c_str());
+      active_bin_serializers.erase(iter);
+   }
+}
+
+SerializerBin *SerializerBin::findSerializerByName(const char *name_)
+{
+   hash_map<const char *, SerializerBin *>::iterator iter;
+
+   iter = active_bin_serializers.find(name_);
+
+   if (iter == active_bin_serializers.end()) 
+   {
+      fprintf(stderr, "%s[%d]:  No static ptr for name %s\n", 
+            FILE__, __LINE__, name_);
+      dumpActiveBinSerializers();
+   }
+   else
+   {
+      fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n", 
+            FILE__, __LINE__, name_);
+
+      return iter->second;
+   }
+
+   return NULL;
 }
 
 void SerializerBin::globalDisable()
@@ -719,7 +798,7 @@ void SerDesBin::translate(long &param, const char *tag)
   }
 
   if (noisy)
-     fprintf(stderr, "%s[%d]:  %sserialize %s=%d\n", FILE__, __LINE__,
+     fprintf(stderr, "%s[%d]:  %sserialize %s=%lu\n", FILE__, __LINE__,
            iomode_ == sd_serialize ? "" : "de", 
            tag ? tag : "no-tag", param);
 }
@@ -920,7 +999,9 @@ void SerDesBin::translate(std::string &param, const char *tag)
      param = std::string(buf2);
   }
    if ((iomode_ == sd_deserialize) ||strstr(param.c_str(), "file")) {
-   fprintf(stderr, "%s[%d]:  %sserializing string %s--%s, len = %d\n", FILE__, __LINE__, (iomode_ == sd_serialize) ? "" : "de", tag ? tag : "unnamed", param.c_str(), param.length());
+   fprintf(stderr, "%s[%d]:  %sserializing string %s--%s, len = %lu\n", 
+         FILE__, __LINE__, (iomode_ == sd_serialize) ? "" : "de", tag ? tag : "unnamed", 
+         param.c_str(), param.length());
    }
 }
 
@@ -1011,44 +1092,84 @@ AnnotatableBase *SerDesBin::findAnnotatee(void *id)
    return iter->second;
 }
 
-AnnoFunc *SerDes::findAnnoFunc(unsigned anno_type)
+AnnoFunc *SerDes::findAnnoFunc(unsigned anno_type,  std::string anno_name)
 {
-#if 0
-   if (iomode_ != sd_deserialize) {
-      fprintf(stderr, "%s[%d]:  WARNING, unexpected usage here\n", FILE__, __LINE__);
-      return NULL;
+   // anno_name is only used during serialize??
+
+   if ((iomode_ == sd_serialize) 
+         || (iomode_ == sd_deserialize))
+   {
+      std::string anno_name_str(anno_name);
+      std::string type_name = AnnotatableBase::findTypeName(anno_name_str);
+
+      if (AnnotatableBase::emptyString == type_name) 
+      {
+         fprintf(stderr, "%s[%d]:  cannot find type name for annotation %s\n", FILE__, __LINE__, 
+               anno_name.c_str());
+         return NULL;
+      }
+
+      fprintf(stderr, "%s[%d]:  WARN:  not sure this should be looking up annotation name\n", 
+            FILE__, __LINE__);
+      dyn_hash_map<std::string ,AnnoFunc>::iterator funcmap_iter = anno_funcs.find(anno_name);
+
+      if (anno_funcs.end() == funcmap_iter) 
+      {
+         fprintf(stderr, "%s[%d]:  cannot find serialization function for type %s, size = %d\n", 
+               FILE__, __LINE__, type_name.c_str(), anno_funcs.size());
+         fprintf(stderr, "%s[%d]:  contents of map:\n", FILE__, __LINE__);
+
+         for (funcmap_iter = anno_funcs.begin(); funcmap_iter != anno_funcs.end(); funcmap_iter++)
+         {
+            fprintf(stderr, "\t%s--%d\n", funcmap_iter->first.c_str(), funcmap_iter->second.nelem());
+         }
+
+         return NULL;
+      }
+
+      return &(funcmap_iter->second);
    }
-#endif
+   else 
+   {
 
-   // figure out the annotation name using the mapping that we've been building
-   // from entries in the (input) file.  The annotation name -> id mapping may not be the
-   // same, and the name trumps the id, so we use it to request a fresh id for the annotation
-   // type.
-   dyn_hash_map<unsigned, std::string>::iterator iter = old_anno_name_to_id_map.find(anno_type);
-   if (iter == old_anno_name_to_id_map.end()) {
-      //  all annotation types that we get should already have entries in this map.
-      //  if not, then we are doing something wrong (we should have written (and read)
-      //  a map entry to/from the output stream)
-      fprintf (stderr, "%s[%d]: FIXME:  no entry for annotation type %d in old name map\n", 
-            FILE__, __LINE__, anno_type);
-      return NULL;
+      // figure out the annotation name using the mapping that we've been building
+      // from entries in the (input) file.  The annotation name -> id mapping may not be the
+      // same, and the name trumps the id, so we use it to request a fresh id for the annotation
+      // type.
+      dyn_hash_map<unsigned, std::string>::iterator iter = old_anno_name_to_id_map.find(anno_type);
+
+      if (iter == old_anno_name_to_id_map.end()) 
+      {
+         //  all annotation types that we get should already have entries in this map.
+         //  if not, then we are doing something wrong (we should have written (and read)
+         //  a map entry to/from the output stream)
+         fprintf (stderr, "%s[%d]: FIXME:  no entry for annotation type %d in old name map\n", 
+               FILE__, __LINE__, anno_type);
+         return NULL;
+      }
+
+      std::string anno_type_name = iter->second;
+
+      std::string type_name = AnnotatableBase::findTypeName(anno_type_name);
+
+      if (type_name == "") 
+      {
+         fprintf(stderr, "%s[%d]:  cannot find type (c++ type) for anno type\n", FILE__, __LINE__);
+         return NULL;
+      }
+
+      dyn_hash_map<std::string, AnnoFunc>::iterator funcmap_iter = anno_funcs.find(type_name);
+
+      if (anno_funcs.end() == funcmap_iter) 
+      {
+         fprintf(stderr, "%s[%d]:  cannot find serialization function for type\n", FILE__, __LINE__);
+         return NULL;
+      }
+
+      return &(funcmap_iter->second);
    }
 
-   std::string anno_type_name = iter->second;
-
-   std::string type_name = AnnotatableBase::findTypeName(anno_type_name);
-   if (type_name == "") {
-      fprintf(stderr, "%s[%d]:  cannot find type (c++ type) for anno type\n", FILE__, __LINE__);
-      return NULL;
-   }
-
-   dyn_hash_map<std::string ,AnnoFunc>::iterator funcmap_iter = anno_funcs.find(type_name);
-   if (anno_funcs.end() == funcmap_iter) {
-      fprintf(stderr, "%s[%d]:  cannot find serialization function for type\n", FILE__, __LINE__);
-      return NULL;
-   }
-
-   return &(funcmap_iter->second);
+   return NULL;
 }
 
 bool SerDes::addAnnoFunc(std::string type_name, AnnoFunc sf) 
@@ -1155,11 +1276,13 @@ bool SerializerBase::read_annotations()
 {
    bool ret = true;
 
-   while (1) {
+   while (1) 
+   {
       unsigned anno_type = 0;
       void *parent_id = NULL;
 
-      if (getSD().iomode() == sd_serialize) {
+      if (getSD().iomode() == sd_serialize) 
+      {
          fprintf(stderr, "%s[%d]:  this should only be used in a deserialization sequence!\n", 
                FILE__, __LINE__);
          return false;
@@ -1167,7 +1290,8 @@ bool SerializerBase::read_annotations()
 
       getSD().translate((Address &)parent_id, "AnnotationParent");
 
-      if (!parent_id) {
+      if (!parent_id) 
+      {
          fprintf(stderr, "%s[%d]:  weird:  zero id for annotation\n", FILE__, __LINE__);
       }
 
@@ -1175,9 +1299,11 @@ bool SerializerBase::read_annotations()
 
       //  look up the function that we need to call for this type of annotation
       AnnoFunc *func_ptr = getSD().findAnnoFunc(anno_type);
-      if (!func_ptr) {
+
+      if (!func_ptr) 
+      {
          fprintf(stderr, "%s[%d]:  WARNING:  cannot find function to read anno type %d\n", 
-               FILE__, __LINE__);
+               FILE__, __LINE__, anno_type);
          return false;
       }
 
@@ -1185,7 +1311,8 @@ bool SerializerBase::read_annotations()
 
       //  now look up the parent (the function will re-do the annotation)
       AnnotatableBase *parent = SerDesBin::findAnnotatee(parent_id);
-      if (!parent) {
+      if (!parent) 
+      {
          fprintf(stderr, "%s[%d]:  ERROR:  cannot find parent for annotation\n", 
                FILE__, __LINE__);
          continue;
@@ -1193,7 +1320,8 @@ bool SerializerBase::read_annotations()
 
       bool ok = func(this, parent);
 
-      if (!ok) {
+      if (!ok) 
+      {
          fprintf(stderr, "%s[%d]:  translation function failed here\n", FILE__, __LINE__);
          ret = false;
       }
@@ -1202,11 +1330,15 @@ bool SerializerBase::read_annotations()
 
    return ret;
 }
+
 iomode_t SerializerBase::iomode()
 {
-   if (sd)
+   if (sd) 
+   {
       return sd->iomode();
-   fprintf(stderr, "%s[d]:  no sd for iomode query\n", FILE__, __LINE__);
+   }
+
+   fprintf(stderr, "%s[%d]:  no sd for iomode query\n", FILE__, __LINE__);
    return sd_serialize;
 }
 

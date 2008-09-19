@@ -11,7 +11,7 @@ NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 OVERRIDE_INSTALL	= true
 
-#DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 
 EXTRA_LIBS = libdemangle.so.1
 

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test0.mutatee.C,v 1.2 2008/09/04 01:30:29 jaw Exp $ */
+/* $Id: test0.mutatee.C,v 1.3 2008/09/19 00:56:11 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -86,87 +86,6 @@ const char *Builder_id=COMPILER; /* defined on compile line */
 int debugPrint = 0;
 bool verbose = false;
 const char *prog_name;
-
-#define MAX_TEST 5
-
-#if 0
-bool runcmd(const char *file, std::vector<char *> &args)
-{
-   int pid = fork();
-
-   if (pid == 0) 
-   {
-      // child -- exec command
-      char **new_argv = new char *[args.size()+ 2];
-      assert( new_argv );
-
-      // the first arg is always the filename
-      new_argv[0] = strdup(file);
-
-      for (unsigned int i = 0; i < args.size(); ++i) 
-      {
-         new_argv[i+1] = strdup(args[i]);
-      }
-
-      new_argv[args.size()+1] = NULL;
-      extern char **environ;
-
-      int res = execve(file, new_argv, environ);
-
-      fprintf(stderr, "%s[%d]:  exec returned code %d: %d:%s\n", 
-            __FILE__, __LINE__ , res, errno,strerror(errno));
-
-      abort();
-   }
-   else 
-   {
-      // parent, wait for child;
-      int status;
-      int res = waitpid(pid, &status, 0);
-
-      if (pid != res) 
-      {
-         fprintf(stderr, "%s[%d]:  waitpid: %s\n", 
-               FILE__, __LINE__, strerror(errno));
-         return false;
-      }
-
-      if (!WIFEXITED(status)) 
-      {
-         fprintf(stderr, "%s[%d]:  process exited abnormally \n", 
-               FILE__, __LINE__ );
-
-         if (WIFSIGNALED(status)) 
-         {
-            int signo = WTERMSIG(status);
-            fprintf(stderr, "%s[%d]:  process got signal %d \n", 
-                  FILE__, __LINE__, signo );
-         }
-
-         if (WIFSTOPPED(status)) 
-         {
-            int signo = WSTOPSIG(status);
-            fprintf(stderr, "%s[%d]:  weird, process is stopped with signal %d \n", 
-                  FILE__, __LINE__, signo );
-         }
-
-         return false;
-      }
-
-      int exit_status = WEXITSTATUS(status);
-
-      if (exit_status != 0) 
-      {
-         fprintf(stderr, "%s[%d]:  process returned code %d, not zero\n", 
-               FILE__, __LINE__ , exit_status);
-         return false;
-      }
-
-      return true;
-   }
-}
-#endif
-
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
@@ -1179,6 +1098,7 @@ typedef struct {} zero_nine_anno;
 class ZeroNine : public Serializable,
                  public Annotatable<int, zero_nine_anno, true> {
    public:
+      ZeroNine() : Annotatable<int, zero_nine_anno, true>("BinSerializer") {}
       int i9;
 
       bool operator==(ZeroNine &cmp) 
@@ -1199,6 +1119,8 @@ class ZeroNine : public Serializable,
             if (z9_anno[i] != z9_anno_cmp[i])
                return false;
          }
+
+         return true;
       }
 
       bool operator!=(ZeroNine &cmp) 
@@ -1229,9 +1151,28 @@ class ZeroNine : public Serializable,
 
       void serialize(SerializerBase *sb, const char *) 
       {
+
+         Annotatable<int, zero_nine_anno, true> &z9_anno = *this;
+
          try 
          {
             gtranslate(sb,i9);
+            fprintf(stderr, "%s[%d]:  before gtranslate_annotations\n", FILE__, __LINE__);
+            fprintf(stderr, "%s[%d]:    annotations.size() = %d\n", FILE__, __LINE__, 
+                  z9_anno.size());
+            bool res = z9_anno.gtranslate_annotations(sb);
+            if (!res) 
+            {
+               fprintf(stderr, "%s[%d]:  FAILED TO %sSERIALIZE ANNOTATION\n", FILE__, __LINE__,
+                     sb->iomode() == sd_serialize ? "" : "DE");
+               abort();
+            }
+            else {
+               fprintf(stderr, "%s[%d]:  %sSERIALIZE ANNOTATION SUCCEEDED\n", FILE__, __LINE__,
+                     sb->iomode() == sd_serialize ? "" : "DE");
+               fprintf(stderr, "%s[%d]:    annotations.size() = %d\n", FILE__, __LINE__, 
+                     z9_anno.size());
+            }
          } SER_CATCH("ZeroNine");
       }
 };
@@ -1244,12 +1185,13 @@ bool setup_control(ZeroNine &param)
    z9_anno.addAnnotation(66);
    z9_anno.addAnnotation(77);
    z9_anno.addAnnotation(88);
+   fprintf(stderr, "%s[%d]:  setup_control:  annotations.size() = %d\n", FILE__, __LINE__, 
+         z9_anno.size());
    return true;
 }
 
 bool test9()
 {
-#if 0
    bool res = serialize_test<ZeroNine>(9, prog_name);
 
    if (!res) 
@@ -1258,15 +1200,15 @@ bool test9()
    }
 
    return res;
-#endif
 
+#if 0
    fprintf(stderr, "%s[%d]:  skipping test9\n", FILE__, __LINE__);
    return true;
+#endif
 }
 
 bool test9b(const char *cachefile)
 {
-#if 0
    if (!cachefile) 
    {
       fprintf(stderr, "%s[%d]:  NULL param\n", FILE__, __LINE__);
@@ -1281,10 +1223,11 @@ bool test9b(const char *cachefile)
    }
 
    return res;
-#endif
 
+#if 0
    fprintf(stderr, "%s[%d]:  skipping test9b: %s\n", FILE__, __LINE__, cachefile);
    return true;
+#endif
 }
 
 class ZeroTen : public Serializable {
@@ -1448,25 +1391,33 @@ int main(int iargc, char *argv[])
    if (argc==1) exit(0);
 
    bool test_ok = false;
-   switch (testNum) {
+
+   switch (testNum) 
+   {
       case 1:
          if (!modifier)
             test_ok = test1();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  
-                  if (!aux_file_name) {
+                  if (!aux_file_name) 
+                  {
                      fprintf(stderr, "%s[%d]:  no aux file name\n", FILE__, __LINE__);
                      abort();
                   }
 
                   fprintf(stderr, "%s[%d]:  process %d about to run test1b\n", 
                         FILE__, __LINE__, getpid());
+
                   test_ok = test1b(aux_file_name); 
+
                   fprintf(stderr, "%s[%d]:  process %d ran test1b\n", 
                         FILE__, __LINE__, getpid());
+
                   break;
+
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
                         FILE__, __LINE__, modifier);
@@ -1479,7 +1430,8 @@ int main(int iargc, char *argv[])
             test_ok = test2();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test2b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1493,7 +1445,8 @@ int main(int iargc, char *argv[])
             test_ok = test3();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test3b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1507,7 +1460,8 @@ int main(int iargc, char *argv[])
             test_ok = test4();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test4b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1521,7 +1475,8 @@ int main(int iargc, char *argv[])
             test_ok = test5();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test5b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1535,7 +1490,8 @@ int main(int iargc, char *argv[])
             test_ok = test6();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test6b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1548,7 +1504,8 @@ int main(int iargc, char *argv[])
             test_ok = test7();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test7b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1561,7 +1518,8 @@ int main(int iargc, char *argv[])
             test_ok = test8();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test8b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1574,7 +1532,8 @@ int main(int iargc, char *argv[])
             test_ok = test9();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test9b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 
@@ -1587,7 +1546,8 @@ int main(int iargc, char *argv[])
             test_ok = test10();
          else 
          {
-            switch (*modifier) {
+            switch (*modifier) 
+            {
                case 'b':  test_ok = test10b(aux_file_name); break;
                default:
                   fprintf(stderr, "%s[%d]:  bad modifier! %s\n", 

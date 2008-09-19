@@ -117,7 +117,8 @@ Archive::~Archive()
          allArchives.erase(allArchives.begin()+i);
    }
 
-   if (mf) {
+   if (mf) 
+   {
       MappedFile::closeMappedFile(mf);
    }
 }

@@ -33,6 +33,8 @@ namespace Dyninst {
 #endif
 
 
+
+
 DLLEXPORT_COMMON unsigned addrHashCommon(const Address &addr);
 DLLEXPORT_COMMON unsigned ptrHash(const void * addr);
 DLLEXPORT_COMMON unsigned ptrHash(void * addr);
