@@ -56,9 +56,10 @@
 #include "../../symtabAPI/h/symutil.h"
 #include "../../symtabAPI/h/AddrLookup.h"
 #include "../../symtabAPI/h/Symtab.h"
+#include "../../symtabAPI/h/Module.h"
 #include "../../symtabAPI/h/Type.h"
 //  TODO:  move this file
-#include "../../symtabAPI/src/Collections.h"
+#include "../../symtabAPI/h/Collections.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
