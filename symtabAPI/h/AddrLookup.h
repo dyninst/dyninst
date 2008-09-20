@@ -32,11 +32,6 @@
 #ifndef __AddrLookup_H__
 #define __AddrLookup_H__
 
-#include "symutil.h"
-#include "Symtab.h"
-
-#include <string>
-
 namespace Dyninst {
 namespace SymtabAPI {
 

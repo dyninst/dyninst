@@ -30,13 +30,15 @@
  */
  
 #include <stdio.h>
+#include <string>
+
+#include "Collections.h"
+#include "Symtab.h"
+#include "Module.h"
 
 #include "common/h/headers.h"
-#include "symtabAPI/src/Collections.h"
-#include "Symtab.h"
-#include <string>
-using namespace std;
 
+using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 

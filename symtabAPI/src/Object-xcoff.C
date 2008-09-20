@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.31 2008/09/19 00:56:09 jaw Exp $
+// $Id: Object-xcoff.C,v 1.32 2008/09/20 03:56:10 jaw Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -38,9 +38,11 @@
 #include <regex.h>
 
 #include "symtabAPI/src/Object.h"
-#include "symtabAPI/src/Collections.h"
 #include "common/h/pathName.h"
-#include "symtabAPI/h/Symtab.h"
+
+#include "Collections.h"
+#include "Symtab.h"
+#include "Module.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -646,7 +648,7 @@ Region::perm_t getRegionPerms(unsigned flags){
         return Region::RP_R;
 }
 
-Region::region_t getRegionType(unsigned flags){
+Region::RegionType getRegionType(unsigned flags){
     if(flags & STYP_TEXT)
         return Region::RT_TEXT;
     else if(flags & STYP_DATA)
@@ -979,7 +981,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    if (alloc_syms)
       for (i=0; i < hdr.f_nscns; i++) {
           // the XCOFF spec says that only text and data sections are loaded
-          Region::region_t regionType = getRegionType(SCNH_FLAGS(i));
+          Region::RegionType regionType = getRegionType(SCNH_FLAGS(i));
           bool isLoadable = regionType == Region::RT_TEXT || 
                             regionType == Region::RT_DATA;
           regions_.push_back(new Region(i, SCNH_NAME(i), SCNH_PADDR(i), SCNH_SIZE(i), SCNH_PADDR(i), SCNH_SIZE(i), (char *)fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), getRegionPerms(SCNH_FLAGS(i)), regionType, isLoadable));

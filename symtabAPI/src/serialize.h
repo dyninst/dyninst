@@ -40,10 +40,12 @@
 #include <libxml/xmlwriter.h>
 #include "common/h/headers.h"
 #include "common/h/serialize.h"
-#include "symtabAPI/h/Symtab.h"
+
+#include "Symtab.h"
+#include "Collections.h"
+
 #include "symtabAPI/h/LineInformation.h"
 #include "symtabAPI/h/RangeLookup.h"
-#include "symtabAPI/src/Collections.h"
 
 namespace Dyninst {
 namespace SymtabAPI {

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.18 2008/09/05 04:06:08 jaw Exp $
+ * $Id: Symbol.h,v 1.19 2008/09/20 03:56:10 jaw Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -42,21 +42,17 @@
  * header files.
 ************************************************************************/
 
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <iostream>
-
 #include "symutil.h"
+#include "Collections.h"
 #include "Type.h"
 
 #include "Annotatable.h"
 #include "Serialization.h"
+
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
 
-//#define USE_ANNOTATIONS
 
 typedef struct {} symbol_file_name_a;
 typedef struct {} symbol_version_names_a;
@@ -66,13 +62,11 @@ typedef struct {} symbol_parameters_a;
 namespace Dyninst{
 namespace SymtabAPI{
 
-class Region;
 class Module;
 class typeCommon;
 class localVarCollection;
+class Region;
 
-
-class SymtabTranslatorBase;
 /************************************************************************
  * class Symbol
 ************************************************************************/
@@ -81,191 +75,213 @@ class Symbol : public Serializable,
                public Annotatable <std::string, symbol_file_name_a, false>,
                public Annotatable <std::vector<std::string>, symbol_version_names_a, false>,
                public Annotatable <localVarCollection, symbol_variables_a, true>,
-               public Annotatable <localVarCollection, symbol_parameters_a, true> {
-    friend class typeCommon;
-    friend class Symtab;
+               public Annotatable <localVarCollection, symbol_parameters_a, true> 
+{
+   friend class typeCommon;
+   friend class Symtab;
 
-    friend std::string parseStabString(Module *, int linenum, char *, int, 
-                              typeCommon *);
-public:
-    enum SymbolType {
-        ST_UNKNOWN,
-        ST_FUNCTION,
-        ST_OBJECT,
-        ST_MODULE,
-        ST_NOTYPE
-    };
+   friend std::string parseStabString(Module *, int linenum, char *, int, 
+         typeCommon *);
 
-    static const char *symbolType2Str(SymbolType t);
+   public:
 
-    enum SymbolLinkage {
-       SL_UNKNOWN,
-       SL_GLOBAL,
-       SL_LOCAL,
-       SL_WEAK
-    };
+   enum SymbolType {
+      ST_UNKNOWN,
+      ST_FUNCTION,
+      ST_OBJECT,
+      ST_MODULE,
+      ST_NOTYPE
+   };
 
-    static const char *symbolLinkage2Str(SymbolLinkage t);
+   static const char *symbolType2Str(SymbolType t);
 
-    enum SymbolTag {
-       TAG_UNKNOWN,
-       TAG_USER,
-       TAG_LIBRARY,
-       TAG_INTERNAL
-    };
+   enum SymbolLinkage {
+      SL_UNKNOWN,
+      SL_GLOBAL,
+      SL_LOCAL,
+      SL_WEAK
+   };
 
-    static const char *symbolTag2Str(SymbolTag t);
+   static const char *symbolLinkage2Str(SymbolLinkage t);
 
-    DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
-    DLLEXPORT Symbol (unsigned);
-    DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
-          bool isInSymtab_ = true);
-    DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
-          bool isInSymtab_ = true);
-    DLLEXPORT Symbol (const Symbol &);
-    DLLEXPORT ~Symbol();
+   enum SymbolTag {
+      TAG_UNKNOWN,
+      TAG_USER,
+      TAG_LIBRARY,
+      TAG_INTERNAL
+   };
 
-    DLLEXPORT Symbol&        operator= (const Symbol &);
-    DLLEXPORT bool          operator== (const Symbol &) const;
+   static const char *symbolTag2Str(SymbolTag t);
 
-    DLLEXPORT const std::string&getModuleName ()        const;
-    DLLEXPORT Module*	        getModule()		        const; 
-    DLLEXPORT SymbolType        getType ()              const;
-    DLLEXPORT SymbolLinkage     getLinkage ()           const;
-    DLLEXPORT Offset            getAddr ()              const;
-    DLLEXPORT Region		    *getSec ()      	    const;
-    DLLEXPORT bool              isInDynSymtab()         const;
-    DLLEXPORT bool              isInSymtab()            const;
-    
-    
-    /***********************************************************
-    	Name Output Functions
+   DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
+   DLLEXPORT Symbol (unsigned);
+   DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
+         Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
+         bool isInSymtab_ = true);
+   DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
+         Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
+         bool isInSymtab_ = true);
+   DLLEXPORT Symbol (const Symbol &);
+   DLLEXPORT ~Symbol();
+
+   DLLEXPORT Symbol&        operator= (const Symbol &);
+   DLLEXPORT bool          operator== (const Symbol &) const;
+
+   DLLEXPORT const std::string&getModuleName ()        const;
+   DLLEXPORT Module*	        getModule()		        const; 
+   DLLEXPORT SymbolType        getType ()              const;
+   DLLEXPORT SymbolLinkage     getLinkage ()           const;
+   DLLEXPORT Offset            getAddr ()              const;
+   DLLEXPORT Region		    *getSec ()      	    const;
+   DLLEXPORT bool              isInDynSymtab()         const;
+   DLLEXPORT bool              isInSymtab()            const;
+
+
+   /***********************************************************
+     Name Output Functions
     ***********************************************************/		
-    DLLEXPORT const std::string&      getName ()              const;
-    DLLEXPORT const std::string&	getPrettyName()       	const;
-    DLLEXPORT const std::string& 	getTypedName() 		const;
-    
-    DLLEXPORT const std::vector<std::string>&	getAllMangledNames()    const;
-    DLLEXPORT const std::vector<std::string>&	getAllPrettyNames()     const;
-    DLLEXPORT const std::vector<std::string>&	getAllTypedNames()      const;
+   DLLEXPORT const std::string&      getName ()              const;
+   DLLEXPORT const std::string&	getPrettyName()       	const;
+   DLLEXPORT const std::string& 	getTypedName() 		const;
 
-    DLLEXPORT bool setAddr (Offset newAddr);
+   DLLEXPORT const std::vector<std::string>&	getAllMangledNames()    const;
+   DLLEXPORT const std::vector<std::string>&	getAllPrettyNames()     const;
+   DLLEXPORT const std::vector<std::string>&	getAllTypedNames()      const;
 
-    DLLEXPORT bool setSymbolType(SymbolType sType);
-   
-    DLLEXPORT unsigned            getSize ()               const;
-    DLLEXPORT SymbolTag            tag ()               const;
-    DLLEXPORT bool	setSize(unsigned ns);
-    DLLEXPORT bool	setModuleName(std::string module);
-    DLLEXPORT bool 	setModule(Module *mod);
-    DLLEXPORT bool  setDynSymtab();
-    DLLEXPORT bool  clearDynSymtab();
-    DLLEXPORT bool  setIsInSymtab();
-    DLLEXPORT bool  clearIsInSymtab();
+   DLLEXPORT bool setAddr (Offset newAddr);
 
-    DLLEXPORT Type  *getReturnType();
-    DLLEXPORT bool	setReturnType(Type *);
-    DLLEXPORT bool  setFramePtrRegnum(int regnum);
-    DLLEXPORT int   getFramePtrRegnum();
-    DLLEXPORT bool  setVersionFileName(std::string &fileName);
-    DLLEXPORT bool  setVersions(std::vector<std::string> &vers);
-    DLLEXPORT bool  setVersionNum(unsigned verNum);
-    DLLEXPORT bool  getVersionFileName(std::string &fileName);
-    DLLEXPORT bool  getVersions(std::vector<std::string> *&vers);
-    DLLEXPORT bool  VersionNum(unsigned &verNum);
-    
-    // Bool: returns true if the name is new (and therefore added)
-    DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-    DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-    DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
+   DLLEXPORT bool setSymbolType(SymbolType sType);
 
-    /***** Local Variable Information *****/
-    DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
-    DLLEXPORT bool getLocalVariables(std::vector<localVar *>&vars);
-    DLLEXPORT bool getParams(std::vector<localVar *>&params);
-    
-    friend
-    std::ostream& operator<< (std::ostream &os, const Symbol &s);
+   DLLEXPORT unsigned            getSize ()               const;
+   DLLEXPORT SymbolTag            tag ()               const;
+   DLLEXPORT bool	setSize(unsigned ns);
+   DLLEXPORT bool	setModuleName(std::string module);
+   DLLEXPORT bool 	setModule(Module *mod);
+   DLLEXPORT bool  setDynSymtab();
+   DLLEXPORT bool  clearDynSymtab();
+   DLLEXPORT bool  setIsInSymtab();
+   DLLEXPORT bool  clearIsInSymtab();
 
-public:
-    static std::string emptyString;
+   DLLEXPORT Type  *getReturnType();
+   DLLEXPORT bool	setReturnType(Type *);
+   DLLEXPORT bool  setFramePtrRegnum(int regnum);
+   DLLEXPORT int   getFramePtrRegnum();
+   DLLEXPORT bool  setVersionFileName(std::string &fileName);
+   DLLEXPORT bool  setVersions(std::vector<std::string> &vers);
+   DLLEXPORT bool  setVersionNum(unsigned verNum);
+   DLLEXPORT bool  getVersionFileName(std::string &fileName);
+   DLLEXPORT bool  getVersions(std::vector<std::string> *&vers);
+   DLLEXPORT bool  VersionNum(unsigned &verNum);
 
-    //  convenience functions, not really meant to be called outside symtabAPI
-    bool addLocalVar(localVar *);
-    bool addParam(localVar *);
-    
+   // Bool: returns true if the name is new (and therefore added)
+   DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
+   DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
+   DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
 
-private:
-    Module*       module_;
-    SymbolType    type_;
-    SymbolLinkage linkage_;
-    Offset        addr_;
-    Region*      sec_;
-    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
-    bool          isInDynsymtab_;
-    bool          isInSymtab_;
+   /***** Local Variable Information *****/
+   DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   DLLEXPORT bool getLocalVariables(std::vector<localVar *>&vars);
+   DLLEXPORT bool getParams(std::vector<localVar *>&params);
 
-    std::vector<std::string> mangledNames;
-    std::vector<std::string> prettyNames;
-    std::vector<std::string> typedNames;
-    SymbolTag     tag_;
-    int           framePtrRegNum_;
-    Type          *retType_;
-    // Module Objects are created in Symtab and not in Object.
-    // So we need a way to store the name of the module in 
-    // which the symbol is present.
-    std::string moduleName_;  
-    std::string fileName_;
+   friend
+      std::ostream& operator<< (std::ostream &os, const Symbol &s);
+
+   public:
+   static std::string emptyString;
+
+   //  convenience functions, not really meant to be called outside symtabAPI
+   bool addLocalVar(localVar *);
+   bool addParam(localVar *);
+
+
+   private:
+   Module*       module_;
+   SymbolType    type_;
+   SymbolLinkage linkage_;
+   Offset        addr_;
+   Region*      sec_;
+   unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
+   bool          isInDynsymtab_;
+   bool          isInSymtab_;
+
+   std::vector<std::string> mangledNames;
+   std::vector<std::string> prettyNames;
+   std::vector<std::string> typedNames;
+   SymbolTag     tag_;
+   int           framePtrRegNum_;
+   Type          *retType_;
+   // Module Objects are created in Symtab and not in Object.
+   // So we need a way to store the name of the module in 
+   // which the symbol is present.
+   std::string moduleName_;  
+   std::string fileName_;
 
 #if !defined (USE_ANNOTATIONS)
-    std::vector<std::string> verNames_;
+   std::vector<std::string> verNames_;
 #endif
 
-public:
-    DLLEXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
+   public:
+   DLLEXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
 };
 
 inline
 Symbol::Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
-    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_("")
-    //vars_(NULL), params_(NULL) 
+   module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
+   isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_("")
+   //vars_(NULL), params_(NULL) 
 {
 }
 #if 0
-inline
+   inline
 Symbol::Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), upPtr_(NULL),
-    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
-    vars_(NULL), params_(NULL) {
-}
+   module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), upPtr_(NULL),
+   isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
+   vars_(NULL), params_(NULL) {
+   }
 #endif
 
 inline
 bool
-Symbol::operator==(const Symbol& s) const {
-    // explicitly ignore tags when comparing symbols
-    return ((module_  == s.module_)
-        && (type_    == s.type_)
-        && (linkage_ == s.linkage_)
-        && (addr_    == s.addr_)
-	&& (sec_     == s.sec_)
-	&& (size_    == s.size_)
+Symbol::operator==(const Symbol& s) const 
+{
+   // explicitly ignore tags when comparing symbols
+   return ((module_  == s.module_)
+         && (type_    == s.type_)
+         && (linkage_ == s.linkage_)
+         && (addr_    == s.addr_)
+         && (sec_     == s.sec_)
+         && (size_    == s.size_)
 #if 0
-	&& (upPtr_    == s.upPtr_)
+         && (upPtr_    == s.upPtr_)
 #endif
-    && (isInDynsymtab_ == s.isInDynsymtab_)
-    && (isInSymtab_ == s.isInSymtab_)
-	&& (retType_    == s.retType_)
-    	&& (mangledNames == s.mangledNames)
-    	&& (prettyNames == s.prettyNames)
-    	&& (typedNames == s.typedNames)
-        && (moduleName_ == s.moduleName_));
+         && (isInDynsymtab_ == s.isInDynsymtab_)
+         && (isInSymtab_ == s.isInSymtab_)
+         && (retType_    == s.retType_)
+         && (mangledNames == s.mangledNames)
+         && (prettyNames == s.prettyNames)
+         && (typedNames == s.typedNames)
+         && (moduleName_ == s.moduleName_));
 }
+
+class LookupInterface 
+{
+   public:
+      DLLEXPORT LookupInterface();
+      DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
+            Symbol::SymbolType sType) = 0;
+      DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
+            const std::string name,
+            Symbol::SymbolType sType,
+            bool isMangled = false,
+            bool isRegex = false,
+            bool checkCase = false) = 0;
+      DLLEXPORT virtual bool findType(Type *&type, std::string name) = 0;
+      DLLEXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
+
+      DLLEXPORT virtual ~LookupInterface();
+};
 
 }//namespace SymtabAPI
 }//namespace Dyninst

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.51 2008/08/25 16:21:37 mlam Exp $
+ * $Id: Object-elf.C,v 1.52 2008/09/20 03:56:10 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -38,6 +38,7 @@
 #include "symtabAPI/h/Symtab.h"
 
 #include "emitElf.h"
+#include "Module.h"
 
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
 #include "emitElf-64.h"
@@ -158,7 +159,8 @@ Region::perm_t getSegmentPerms(unsigned long flags){
         return Region::RP_R;
 }
 
-Region::region_t getSegmentType(unsigned long type, unsigned long flags){
+Region::RegionType getSegmentType(unsigned long type, unsigned long flags)
+{
     if(type == PT_DYNAMIC)
         return Region::RT_DYNAMIC;
     if(flags == 7)
@@ -171,7 +173,8 @@ Region::region_t getSegmentType(unsigned long type, unsigned long flags){
 }
 
 /* binary search to find the section starting at a particular address */
-Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
+Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) 
+{
     unsigned end = allRegionHdrs.size() - 1, start = 0;
     unsigned mid = 0; 
     while(start < end) {
@@ -214,7 +217,7 @@ Region::perm_t getRegionPerms(unsigned long flags){
         return Region::RP_R;
 }
 
-Region::region_t getRegionType(unsigned long type, unsigned long flags){
+Region::RegionType getRegionType(unsigned long type, unsigned long flags){
     switch(type){
         case SHT_SYMTAB:
         case SHT_DYNSYM:
@@ -701,7 +704,7 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
                 long addend;
 		        long index;
                 unsigned long type;
-                Region::region_t rtype = Region::RT_REL;
+                Region::RegionType rtype = Region::RT_REL;
 
     		    switch (reldata.d_type()) {
 	    	      case ELF_T_REL:
@@ -804,7 +807,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
             long addend;
 		    long index;
             unsigned long type;
-            Region::region_t rtype = Region::RT_REL;
+            Region::RegionType rtype = Region::RT_REL;
 
 		    switch (reldata.d_type()) {
 		    case ELF_T_REL:
@@ -1328,8 +1331,8 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
    Elf_X_Dyn dyns = data.get_dyn();
    unsigned verneednum = 0, verdefnum = 0;
    Elf_X_Versym symVersions;
-   Elf_X_Verdef *symVersionDefs;
-   Elf_X_Verneed *symVersionNeeds;
+   Elf_X_Verdef *symVersionDefs = NULL;
+   Elf_X_Verneed *symVersionNeeds = NULL;
    for (unsigned i = 0; i < dyns.count(); ++i) {
        switch(dyns.d_tag(i)) {
            case DT_NEEDED:

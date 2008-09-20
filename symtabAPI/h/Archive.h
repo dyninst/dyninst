@@ -29,16 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef Archive_h
-#define Archive_h
- 
-#include "symutil.h" 
-#include <sys/types.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <vector>
-#include <string>
+#ifndef __ARCHIVE_H__
+#define __ARCHIVE_H__
  
 using namespace std;
 using namespace __gnu_cxx; 

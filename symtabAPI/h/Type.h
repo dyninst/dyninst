@@ -32,10 +32,7 @@
 #ifndef Type_h_
 #define Type_h_
 
-#include <assert.h>
-#include "dynutil/h/Serialization.h"
-#include "symutil.h"
-#include <vector>
+#include "Serialization.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -58,6 +55,7 @@ class typeRef;
 class CBlock;
 class typeCollection;
 class fieldListType;
+class localVarCollection;
 
 //TODO?? class BPatch(to be  ??)function;
 
@@ -521,6 +519,7 @@ typedef struct{
    Address lowPC;
    Address hiPC;
 } loc_t;
+
 
 class DLLEXPORT localVar
 {

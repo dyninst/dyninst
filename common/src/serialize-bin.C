@@ -213,13 +213,13 @@ SerDesBin &SerializerBin::getSD_bin()
 }
 
 bool SerializerBin::global_disable = false;
-hash_map<const char *, SerializerBin *> SerializerBin::active_bin_serializers;
+dyn_hash_map<const char *, SerializerBin *> SerializerBin::active_bin_serializers;
 
 void SerializerBin::dumpActiveBinSerializers()
 {
    fprintf(stderr, "%s[%d]:  have serializers:\n", FILE__, __LINE__);
 
-   hash_map<const char *, SerializerBin *>::iterator iter;
+   dyn_hash_map<const char *, SerializerBin *>::iterator iter;
 
    for (iter = active_bin_serializers.begin(); 
          iter != active_bin_serializers.end(); 
@@ -243,7 +243,7 @@ SerializerBin::SerializerBin(const char *name_, std::string filename,
             SerializerError::ser_err_disabled);
    }
 
-   hash_map<const char *, SerializerBin *>::iterator iter;
+   dyn_hash_map<const char *, SerializerBin *>::iterator iter;
 
    iter = active_bin_serializers.find(name_);
 
@@ -264,7 +264,7 @@ SerializerBin::SerializerBin(const char *name_, std::string filename,
 
 SerializerBin::~SerializerBin()
 {
-   hash_map<const char *, SerializerBin *>::iterator iter;
+   dyn_hash_map<const char *, SerializerBin *>::iterator iter;
 
    iter = active_bin_serializers.find(name().c_str());
 
@@ -283,7 +283,7 @@ SerializerBin::~SerializerBin()
 
 SerializerBin *SerializerBin::findSerializerByName(const char *name_)
 {
-   hash_map<const char *, SerializerBin *>::iterator iter;
+   dyn_hash_map<const char *, SerializerBin *>::iterator iter;
 
    iter = active_bin_serializers.find(name_);
 

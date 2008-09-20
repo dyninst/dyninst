@@ -58,7 +58,7 @@ public:
 bool ProcessReaderPtrace::start()
 {
    long result;
-   bool is_attached;
+   bool is_attached = false;
 
    result = ptrace(PTRACE_ATTACH, pid, NULL, NULL);
    if (result == -1)

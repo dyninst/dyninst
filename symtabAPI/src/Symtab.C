@@ -34,14 +34,17 @@
 #include <assert.h>
 #include <string.h>
 
-#include "dynutil/h/Serialization.h"
-#include "common/h/debugOstream.h"
 #include "common/h/Timer.h"
+#include "common/h/debugOstream.h"
 #include "common/h/serialize.h"
-#include "symtabAPI/src/Object.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/src/Collections.h"
 #include "common/h/pathName.h"
+
+#include "Serialization.h"
+#include "Symtab.h"
+#include "Module.h"
+#include "Collections.h"
+
+#include "symtabAPI/src/Object.h"
 
 #if defined (os_linux) | defined (os_aix)
 //  gcc is complaining about the constness of the library-provided
@@ -2219,328 +2222,6 @@ Symtab::~Symtab()
     if (mf) MappedFile::closeMappedFile(mf);
     if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
 }	
- 
-bool Module::findSymbolByType(std::vector<Symbol *> &found, const std::string name,
-                                  Symbol::SymbolType sType, bool isMangled,
-                                  bool isRegex, bool checkCase)
-{
-   unsigned orig_size = found.size();
-   std::vector<Symbol *> obj_syms;
-
-   if (!exec()->findSymbolByType(obj_syms, name, sType, isMangled, isRegex, checkCase))
-      return false;
-
-   for (unsigned i = 0; i < obj_syms.size(); i++)  {
-      if (obj_syms[i]->getModule() == this)
-         found.push_back(obj_syms[i]);
-   }
-
-   if (found.size() > orig_size) 
-      return true;
-
-   return false;	
-}
-
-DLLEXPORT const std::string &Module::fileName() const 
-{
-   return fileName_; 
-}
-
-DLLEXPORT const std::string &Module::fullName() const 
-{
-   return fullName_; 
-}
-
-DLLEXPORT Symtab *Module::exec() const 
-{
-   return exec_;
-}
-
-DLLEXPORT supportedLanguages Module::language() const 
-{
-   return language_;
-}
-
-DLLEXPORT  bool Module::hasLineInformation()
-{
-   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
-   return ( 0 != liA.size());
-}
-
-DLLEXPORT LineInformation *Module::getLineInformation()
-{
-   if (!exec_->isLineInfoValid_)
-      exec_->parseLineInformation();
-
-   Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
-
-   if (exec_->isLineInfoValid_) {
-      if (!mt.size()) {
-          // There is no line info valid for this module
-         return NULL;
-      }
-      if (mt.size() > 1) {
-        // fprintf(stderr, "%s[%d]:  weird, multiple line info for %s: FIXME\n", 
-        //       FILE__, __LINE__, fileName_.c_str());
-      }
-      if (!mt[0]) {
-         fprintf(stderr, "%s[%d]:  FIXME:  Line info annotation is NULL!\n", FILE__, __LINE__);
-      }
-      return mt[0];
-   }
-   
-   fprintf(stderr, "%s[%d]:  FIXME:  line info not valid after parse\n", 
-         FILE__, __LINE__);
-
-   return NULL;
-}
-
-DLLEXPORT bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
-      std::string lineSource, unsigned int lineNo)
-{
-   unsigned int originalSize = ranges.size();
-
-   LineInformation *lineInformation = getLineInformation();
-   if (lineInformation)
-      lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
-
-   if ( ranges.size() != originalSize )
-      return true;
-
-   return false;
-}
-
-DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
-{
-   unsigned int originalSize = lines.size();
-
-   LineInformation *lineInformation = getLineInformation();
-   if (lineInformation)
-      lineInformation->getSourceLines( addressInRange, lines );
-
-   if ( lines.size() != originalSize )
-      return true;
-
-   return false;
-}
-
-DLLEXPORT vector<Type *> *Module::getAllTypes()
-{
-   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
-   if (!mtA.size()) return NULL;
-
-   typeCollection *mt = mtA[0]; 
-   if (!mt) {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
-      return NULL;
-   }
-
-   return mt->getAllTypes();
-}
-
-DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
-{
-   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
-   if (!mtA.size()) return NULL;
-
-   typeCollection *mt = mtA[0]; 
-   if (!mt) {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
-      return NULL;
-   }
-
-   return mt->getAllGlobalVariables();
-}
-
-DLLEXPORT typeCollection *Module::getModuleTypes()
-{
-   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
-   typeCollection *mt;
-
-   if(mtA.size()){
-       mt = mtA[0]; 
-       if (!mt) {
-           fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
-           return NULL;
-       }
-   }
-   else{
-       mt = typeCollection::getModTypeCollection(this); 
-       mtA.addAnnotation(mt);
-   }
-   return mt;
-}
-
-DLLEXPORT bool Module::findType(Type *&type, std::string name)
-{
-   exec_->parseTypesNow();
-   type = getModuleTypes()->findType(name);
-
-   if (type == NULL)
-      return false;
-
-   return true;	
-}
-
-DLLEXPORT bool Module::findVariableType(Type *&type, std::string name)
-{
-   exec_->parseTypesNow();
-   type = getModuleTypes()->findVariableType(name);
-
-   if (type == NULL)
-      return false;
-   return true;	
-}
-
-void Symtab::parseTypesNow()
-{
-   if (isTypeInfoValid_)
-      return;
-   parseTypes();
-}
-
-DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo) 
-{
-   Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
-   if (mt.size()) {
-      // We need to remove the existing annotation and make sure there is only one annotation.
-      mt.clearAnnotations();
-      //fprintf(stderr, "%s[%d]:  WARNING, already have lineInfo set for module %s\n", FILE__, __LINE__, fileName_.c_str());
-   }
-   mt.addAnnotation(lineInfo);
-   return true;
-}
-
-DLLEXPORT bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
-{
-   exec_->parseTypesNow();
-   std::vector<Symbol *>mod_funcs;
-
-   if (!getAllSymbolsByType(mod_funcs, Symbol::ST_FUNCTION))
-      return false;
-
-   unsigned origSize = vars.size();
-   for (unsigned int i=0;i<mod_funcs.size();i++)
-      mod_funcs[i]->findLocalVariable(vars, name);
-
-   if (vars.size()>origSize)
-      return true;
-
-   return false;	
-}
-
-DLLEXPORT Module::Module(supportedLanguages lang, Offset adr, 
-      std::string fullNm, Symtab *img) :
-   fullName_(fullNm), 
-   language_(lang), 
-   addr_(adr), 
-   exec_(img)
-{
-   fileName_ = extract_pathname_tail(fullNm);
-}
-
-DLLEXPORT Module::Module() :
-   fileName_(""), 
-   fullName_(""),
-   language_(lang_Unknown), 
-   addr_(0), 
-   exec_(NULL) 
-{
-}
-
-DLLEXPORT Module::Module(const Module &mod) :
-   LookupInterface(), 
-   Serializable(),
-   Annotatable<LineInformation *, module_line_info_a,  true>(),
-   Annotatable<typeCollection *, module_type_info_a,  true>(),
-   fileName_(mod.fileName_),
-   fullName_(mod.fullName_), 
-   language_(mod.language_),
-   addr_(mod.addr_), 
-   exec_(mod.exec_)
-{
-   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
-   const Annotatable<LineInformation *, module_line_info_a,  true> &liA_src = mod;
-
-   if (liA_src.size()) {
-      LineInformation *li_src = liA_src[0];
-      assert(li_src);
-      liA.addAnnotation(li_src);
-   }
-}
-
-DLLEXPORT Module::~Module()
-{
-   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
-   if (liA.size()){
-       delete liA[0];
-       liA.clearAnnotations();
-   }
-}
-
-bool Module::isShared() const 
-{ 
-   return !exec_->isExec();
-}
-
-bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolType sType)
-{
-   unsigned orig_size = found.size();
-   std::vector<Symbol *> obj_syms;
-   if (!exec()->getAllSymbolsByType(obj_syms, sType))
-      return false;
-
-   for (unsigned i = 0; i < obj_syms.size(); i++) {
-      if (obj_syms[i]->getModule() == this)
-         found.push_back(obj_syms[i]);
-   }
-
-   if (found.size() > orig_size) 
-      return true;
-
-   serr = No_Such_Symbol;	
-   return false;
-}
-
-DLLEXPORT bool Module::operator==(const Module &mod) const 
-{
-   const Annotatable<LineInformation *, module_line_info_a,  true> *liA = this;
-   const Annotatable<LineInformation *, module_line_info_a,  true> *liA_src = &mod;
-   if (liA->size() != liA_src->size()) return false;
-   if (liA->size()) {
-      LineInformation *li = liA->getAnnotation(0);
-      LineInformation *li_src = liA_src->getAnnotation(0);
-      if ((li != li_src)) return false;
-   }
-
-   return ( 
-         (language_==mod.language_)
-         && (addr_==mod.addr_) 
-         && (fullName_==mod.fullName_) 
-         && (exec_==mod.exec_) 
-         );
-}
-
-DLLEXPORT bool Module::setName(std::string newName) 
-{
-   fullName_ = newName;
-   fileName_ = extract_pathname_tail(fullName_);
-   return true;
-}
-
-DLLEXPORT void Module::setLanguage(supportedLanguages lang) 
-{
-   language_ = lang;
-}
-
-DLLEXPORT Offset Module::addr() const 
-{
-   return addr_; 
-}
-
-DLLEXPORT bool Module::setDefaultNamespacePrefix(string str){
-    return exec_->setDefaultNamespacePrefix(str);
-}
 
 // Use POSIX regular expression pattern matching to check if std::string s matches
 // the pattern in this std::string
@@ -2552,20 +2233,6 @@ bool regexEquiv( const std::string &str,const std::string &them, bool checkCase 
    //#if !defined(os_windows)
     return pattern_match(str_, s, checkCase);
 
-}
-
-void Module::serialize(SerializerBase *sb, const char *tag)
-{
-   ifxml_start_element(sb, tag);
-   gtranslate(sb, fileName_, "fileName");
-   gtranslate(sb, fullName_, "fullName");
-   gtranslate(sb, addr_, "Address");
-   gtranslate(sb, language_, supportedLanguages2Str, "Language");
-   ifxml_end_element(sb, tag);
-
-   //  Patch up exec_ (pointer to Symtab) at a higher level??
-   //if (getSD().iomode() == sd_deserialize)
-   //   param.exec_ = parent_symtab;
 }
 
 // This function will match string s against pattern p.
@@ -2997,7 +2664,7 @@ bool Symtab::delSymbol(Symbol *sym)
     return true;
 }
 
-bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::region_t rType_, bool loadable)
+bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::RegionType rType_, bool loadable)
 {
     Region *sec;
     unsigned i;
@@ -3468,247 +3135,6 @@ void ExceptionBlock::serialize(SerializerBase *sb, const char *tag)
    } SER_CATCH("Symtab");
 }
 
-DLLEXPORT Region::Region(): rawDataPtr_(NULL), buffer_(NULL)
-{
-}
-
-DLLEXPORT Region::Region(unsigned regnum, std::string name, Offset diskOff,
-                    unsigned long diskSize, Offset memOff, unsigned long memSize,
-                    char *rawDataPtr, perm_t perms, region_t regType, bool isLoadable):
-    regNum_(regnum), name_(name), diskOff_(diskOff), diskSize_(diskSize), memOff_(memOff),
-    memSize_(memSize), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType), 
-    isDirty_(false), buffer_(NULL), isLoadable_(isLoadable)
-{
-     if(memOff)
-        isLoadable_ = true;
-}
-
-DLLEXPORT Region::Region(const Region &reg) : 
-   Serializable(),
-   regNum_(reg.regNum_), name_(reg.name_),
-   diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
-   memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
-   rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_)
-{
-}
-
-DLLEXPORT Region& Region::operator=(const Region &reg)
-{
-    regNum_ = reg.regNum_;
-    name_ = reg.name_;
-    diskOff_ = reg.diskOff_;
-    diskSize_ = reg.diskSize_;
-    memOff_ = reg.memOff_;
-    memSize_ = reg.memSize_;
-    rawDataPtr_ = reg.rawDataPtr_;
-    permissions_ = reg.permissions_;
-    rType_ = reg.rType_;
-    isDirty_ = reg.isDirty_;
-    rels_ = reg.rels_;
-    buffer_ = reg.buffer_;
-
-    return *this;
-}
-
-DLLEXPORT bool Region::operator==(const Region &reg){
-    return ((regNum_== reg.regNum_) &&
-            (name_ == reg.name_) &&
-            (diskOff_ == reg.diskOff_) &&
-            (diskSize_ == reg.diskSize_) &&
-            (memOff_ == reg.memOff_) &&
-            (memSize_ == reg.memSize_) &&
-            (rawDataPtr_ == reg.rawDataPtr_) &&
-            (permissions_ == reg.permissions_) &&
-            (rType_ == reg.rType_) &&
-            (isDirty_ == reg.isDirty_) &&
-            (buffer_ == reg.buffer_));
-}
-
-DLLEXPORT ostream& Region::operator<< (ostream &os) 
-{
-    return os   << "{"
-                << " Region Number="      << regNum_
-                << " name="    << name_
-                << " disk offset="    << diskOff_
-                << " disk size="    << diskSize_
-                << " memory offset="    << memOff_
-                << " memory size="    << memSize_
-                << " Permissions=" << permissions_
-        		<< " region type " << rType_
-                << " }" << endl;
-}
-
-DLLEXPORT Region::~Region() 
-{
-    if(buffer_)
-        free(buffer_);
-}
-
-const char *Region::permissions2Str(perm_t p)
-{
-   switch(p) {
-   CASE_RETURN_STR(RP_R);
-   CASE_RETURN_STR(RP_RW); 
-   CASE_RETURN_STR(RP_RX);
-   CASE_RETURN_STR(RP_RWX); 
-   };
-   return "bad_permissions";
-}
-
-const char *Region::regionType2Str(region_t rt)
-{
-   switch(rt) {
-   CASE_RETURN_STR(RT_TEXT);
-   CASE_RETURN_STR(RT_DATA);
-   CASE_RETURN_STR(RT_TEXTDATA);
-   CASE_RETURN_STR(RT_SYMTAB);
-   CASE_RETURN_STR(RT_STRTAB);
-   CASE_RETURN_STR(RT_BSS);
-   CASE_RETURN_STR(RT_SYMVERSIONS);
-   CASE_RETURN_STR(RT_SYMVERDEF);
-   CASE_RETURN_STR(RT_SYMVERNEEDED);
-   CASE_RETURN_STR(RT_REL);
-   CASE_RETURN_STR(RT_RELA);
-   CASE_RETURN_STR(RT_DYNAMIC);
-   CASE_RETURN_STR(RT_OTHER);
-   };
-   return "bad_region_type";
-};
-
-void Region::serialize(SerializerBase *sb, const char *tag)
-{
-   ifxml(SerializerXML::start_xml_element, sb, tag);
-   gtranslate(sb, regNum_, "RegionNumber");
-   gtranslate(sb, name_, "RegionName");
-   gtranslate(sb, diskOff_, "DiskOffset");
-   gtranslate(sb, diskSize_, "RegionDiskSize");
-   gtranslate(sb, memOff_, "MemoryOffset");
-   gtranslate(sb, memSize_, "RegionMemorySize");
-   gtranslate(sb, permissions_, permissions2Str, "Permissions");
-   gtranslate(sb, rType_, regionType2Str, "RegionType");
-   gtranslate(sb, isDirty_, "Dirty");
-   gtranslate(sb, rels_, "Relocations", "Relocation");
-   gtranslate(sb, buffer_, "Buffer");
-   gtranslate(sb, isLoadable_, "isLoadable");
-   ifxml(SerializerXML::end_xml_element, sb, tag);
-}
-
-DLLEXPORT unsigned Region::getRegionNumber() const
-{
-    return regNum_;
-}
-
-DLLEXPORT bool Region::setRegionNumber(unsigned regnumber){
-    regNum_ = regnumber;
-    return true;
-}
-
-DLLEXPORT std::string Region::getRegionName() const{
-    return name_;
-}
-
-DLLEXPORT Offset Region::getRegionAddr() const
-{
-#if defined(_MSC_VER)
-	return memOff_;
-#else
-	return diskOff_;
-#endif
-}
-
-DLLEXPORT Offset Region::getRegionSize() const
-{
-#if defined(_MSC_VER)
-	return memSize_;
-#else
-	return diskSize_;
-#endif
-}
-
-DLLEXPORT Offset Region::getDiskOffset() const{
-    return diskOff_;
-}
-
-DLLEXPORT unsigned long Region::getDiskSize() const{
-    return diskSize_;
-}
-
-DLLEXPORT Offset Region::getMemOffset() const{
-    return memOff_;
-}
-
-DLLEXPORT unsigned long Region::getMemSize() const{
-    return memSize_;
-}
-
-DLLEXPORT void *Region::getPtrToRawData() const{
-    return rawDataPtr_;
-}
- 
-DLLEXPORT bool Region::setPtrToRawData(void *buf, unsigned long newsize){
-    rawDataPtr_ = buf;
-    diskSize_ = newsize;
-    isDirty_ = true;
-    return true;
-}
-    
-DLLEXPORT bool Region::isBSS() const {
-    return rType_==RT_BSS;
-}
-    
-DLLEXPORT bool Region::isText() const{
-    return rType_==RT_TEXT;
-}
-
-DLLEXPORT bool Region::isData() const{
-    return rType_ == RT_DATA;
-}
-
-DLLEXPORT bool Region::isOffsetInRegion(const Offset &offset) const {
-    return (offset >= diskOff_ && offset<=(diskOff_+diskSize_));
-}
-
-DLLEXPORT bool Region::isLoadable() const{
-    if(isLoadable_)
-        return true;
-    return (memOff_ != 0);
-}
-
-DLLEXPORT bool Region::isDirty() const{
-    return isDirty_;
-}
-
-DLLEXPORT std::vector<relocationEntry> &Region::getRelocations(){
-    return rels_;
-}
-
-DLLEXPORT bool Region::patchData(Offset off, void *buf, unsigned size){
-    if(off+size > diskSize_)
-        return false;
-    if(!buffer_)
-        memcpy(buffer_, rawDataPtr_, diskSize_);
-    memcpy((char *)buffer_+off, buf, size);
-    return setPtrToRawData(buffer_, diskSize_);
-}
-
-DLLEXPORT bool Region::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType, Region::region_t rtype){
-    rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType, rtype));
-    return true;
-}
-
-DLLEXPORT Region::perm_t Region::getRegionPermissions() const {
-    return permissions_;
-}
-
-DLLEXPORT bool Region::setRegionPermissions(Region::perm_t newPerms){
-    permissions_ = newPerms;
-    return true;
-}
-
-DLLEXPORT Region::region_t Region::getRegionType() const {
-    return rType_;
-}
-
 DLLEXPORT relocationEntry::relocationEntry()
    :target_addr_(0), rel_addr_(0), addend_(0), rtype_(Region::RT_REL), name_(""), dynref_(NULL), relType_(0)
 {
@@ -3724,7 +3150,7 @@ DLLEXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add, std
 {
 }
 
-DLLEXPORT relocationEntry::relocationEntry(Offset ra, std::string n, Symbol *dynref, unsigned long relType, Region::region_t rtype)
+DLLEXPORT relocationEntry::relocationEntry(Offset ra, std::string n, Symbol *dynref, unsigned long relType, Region::RegionType rtype)
    : target_addr_(0), rel_addr_(ra), addend_(0), rtype_(rtype), name_(n), dynref_(dynref), relType_(relType)
 {
 }   
@@ -3749,11 +3175,11 @@ DLLEXPORT Offset relocationEntry::addend() const {
     return addend_;
 }
 
-DLLEXPORT void relocationEntry::setRegionType(const Region::region_t value) {
+DLLEXPORT void relocationEntry::setRegionType(const Region::RegionType value) {
     rtype_ = value;
 }
 
-DLLEXPORT Region::region_t relocationEntry::regionType() const {
+DLLEXPORT Region::RegionType relocationEntry::regionType() const {
     return rtype_;
 }
 
@@ -3851,3 +3277,35 @@ Object *Symtab::getObject()
    //obj_private = new Object();
    return obj_private;
 }
+
+#if defined (cap_serialization)
+//  Not sure this is strictly necessary, problems only seem to exist with Module 
+// annotations when the file was split off, so there's probably something else that
+//  can be done to instantiate the relevant functions.
+
+bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
+{
+   if (file == std::string("no_such_file")) {
+      if (!sb) {
+         fprintf(stderr, "%s[%d]:  really should not happen\n", FILE__, __LINE__);
+         return false;
+      }
+      bool r = false;
+      const char *sbb = "no_name_dummy";
+      r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_parameters_a >(sbb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for symbol_params\n", FILE__, __LINE__);}
+      r = false;
+      r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_variables_a>(sbb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for symbol_vars\n", FILE__, __LINE__);}
+      r = false;
+      r = init_anno_serialization<Dyninst::SymtabAPI::LineInformation *, module_line_info_a>(sbb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_line_info\n", FILE__, __LINE__);}
+      r = false;
+      r = init_anno_serialization<Dyninst::SymtabAPI::typeCollection *, module_type_info_a>(sbb);
+      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_type_info\n", FILE__, __LINE__);}
+      r = false;
+   }
+   return true;
+}
+#endif
+

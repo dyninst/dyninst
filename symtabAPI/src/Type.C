@@ -31,10 +31,11 @@
 			     
 #include <stdio.h>
 
-#include "symtabAPI/h/symutil.h"
-#include "symtabAPI/h/Type.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/src/Collections.h"
+#include "symutil.h"
+#include "Type.h"
+#include "Symtab.h"
+#include "Module.h"
+#include "Collections.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

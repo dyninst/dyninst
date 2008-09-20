@@ -42,9 +42,9 @@
 #if ! defined( LINE_INFORMATION_H )
 #define LINE_INFORMATION_H
 
-#include "dynutil/h/Serialization.h"
 #include "symutil.h"
 #include "RangeLookup.h"
+#include "Serialization.h"
 
 namespace Dyninst{
 namespace SymtabAPI{

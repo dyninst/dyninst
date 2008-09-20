@@ -154,7 +154,7 @@ class SerializerXML : public SerializerBase {
 class SerializerBin : public SerializerBase {
    friend class SerDesBin;
 
-   static hash_map<const char *, SerializerBin *> active_bin_serializers;
+   static dyn_hash_map<const char *, SerializerBin *> active_bin_serializers;
    static bool global_disable;
 
    public:

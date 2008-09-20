@@ -36,9 +36,10 @@
 
 #include "Type.h"
 #include "Symbol.h"
+#include "Module.h"
 #include "Symtab.h"
 #include "symtabAPI/src/Object.h"
-#include "symtabAPI/src/Collections.h"
+#include "Collections.h"
 #include "common/h/pathName.h"
 
 #include <stdarg.h>

@@ -30,6 +30,8 @@
  */
 
 #include "serialize.h"
+#include "Collections.h"
+#include "LineInformation.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

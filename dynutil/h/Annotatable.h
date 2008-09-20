@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.15 2008/09/19 00:56:09 jaw Exp $
+// $Id: Annotatable.h,v 1.16 2008/09/20 03:56:10 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -375,6 +375,8 @@ class AnnotatableCommon : public AnnotatableBase
       bool gtranslate_annotations(SerializerBase *sb, 
             const char *tag = NULL, const char *tag2 = NULL)
       {
+#if defined (cap_serialization)
+      //  SerializerBin reference is causing probs with windows build
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
          unsigned nelem = size();
 
@@ -462,6 +464,11 @@ class AnnotatableCommon : public AnnotatableBase
 #endif
 
          return true;
+#else
+         fprintf(stderr, "%s[%d]:  WARNING:  requested serialization not available\n", 
+               FILE__, __LINE__);
+         return false;
+#endif
       }
 
       void clearAnnotations()

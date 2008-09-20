@@ -252,7 +252,7 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
     /* Split the range to be inserted. */
     Offset lowAddress = lowInclusiveAddr;
     AddressList::const_iterator splitAddressIterator = splitAddressList.begin();
-    Offset highAddress;
+    Offset highAddress = 0;
     for ( ; splitAddressIterator != splitAddressList.end(); ++ splitAddressIterator ) {
       highAddress = * splitAddressIterator;
       // /* DEBUG */ fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx) (%s, %u)\n", __FILE__, __LINE__, lowAddress, highAddress, lnt.first, lnt.second );

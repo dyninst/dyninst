@@ -30,6 +30,7 @@
  */
 
 #include <ctype.h>
+#include <iostream>
 // from libiberty's demangle.h
 #define DMGL_PARAMS   (1 << 0) 
 #define DMGL_ANSI     (1 << 1) 
@@ -38,7 +39,8 @@
 #include "symutil.h"
 #include "Symtab.h" // For looking up compiler type
 #include "Symbol.h" 
-#include "symtabAPI/src/Collections.h"
+#include "Module.h" 
+#include "Collections.h"
 #include "common/h/headers.h"
 
 using namespace Dyninst;

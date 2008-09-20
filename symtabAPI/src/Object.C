@@ -29,13 +29,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.27 2008/09/03 06:08:46 jaw Exp $
+// $Id: Object.C,v 1.28 2008/09/20 03:56:10 jaw Exp $
+
+#include "common/h/serialize.h"
+
+#include "Symtab.h"
+#include "symutil.h"
+#include "Module.h"
+#include "Collections.h"
 
 #include "symtabAPI/src/Object.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/symutil.h"
-#include "symtabAPI/src/Collections.h"
-#include "common/h/serialize.h"
+
+
 
 using namespace std;
 using namespace Dyninst;

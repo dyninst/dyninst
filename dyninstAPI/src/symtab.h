@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.212 2008/09/03 06:08:45 jaw Exp $
+// $Id: symtab.h,v 1.213 2008/09/20 03:56:09 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -75,6 +75,7 @@
 #endif
 
 #include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/Module.h"
 #include "symtabAPI/h/Type.h"
 
 using namespace Dyninst;

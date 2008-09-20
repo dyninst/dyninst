@@ -43,11 +43,15 @@
 #include <iomanip>
 #include <limits.h>
 #include <crtdbg.h>
+
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/src/Object-nt.h"
-#include "symtabAPI/h/LineInformation.h"
+
+#include "LineInformation.h"
 #include "Collections.h"
 #include "Symtab.h"
+#include "Module.h"
+
 #include "common/h/headers.h"
 
 using namespace Dyninst;
@@ -646,7 +650,7 @@ Region::perm_t getRegionPerms(DWORD flags){
         return Region::RP_R;
 }
 
-Region::region_t getRegionType(DWORD flags){
+Region::RegionType getRegionType(DWORD flags){
     if((flags & IMAGE_SCN_CNT_CODE) && (flags & IMAGE_SCN_CNT_INITIALIZED_DATA))
         return Region::RT_TEXTDATA;
     else if(flags & IMAGE_SCN_CNT_CODE)

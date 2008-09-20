@@ -45,6 +45,7 @@
 #include <map>
 #include <vector>
 #include "dyntypes.h"
+#include "util.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
