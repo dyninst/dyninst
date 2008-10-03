@@ -89,7 +89,7 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, unsigned char size,
+      Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, size_t size,
 		  const unsigned char* raw);
       Instruction();
       
@@ -118,7 +118,7 @@ namespace Dyninst
       const unsigned char* rawInsn() const;
 
       /// Returns the size of the corresponding machine instruction, in bytes.
-      unsigned char size() const;
+      size_t size() const;
   
       /// \param regsWritten Insert the set of registers written by the instruction into \c regsWritten.
       ///

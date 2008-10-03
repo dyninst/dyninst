@@ -240,13 +240,14 @@ namespace Dyninst
     }
     const Operation::registerSet&  Operation::implicitWrites() const
     {
+
       return otherWritten;
     }
     std::string Operation::format() const
     {
       return mnemonic;
     }
-    int Operation::numOperands() const
+    size_t Operation::numOperands() const
     {
       return readOperands.size();
       

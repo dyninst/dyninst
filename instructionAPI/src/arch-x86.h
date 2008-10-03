@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.4 2008/07/18 15:51:50 bill Exp $
+// $Id: arch-x86.h,v 1.5 2008/10/03 19:54:26 bill Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -315,25 +315,25 @@ enum {
 
 
 
-#define PREFIX_LOCK   0xF0
-#define PREFIX_REPNZ  0xF2
-#define PREFIX_REP    0xF3
+#define PREFIX_LOCK   (unsigned char)(0xF0)
+#define PREFIX_REPNZ  (unsigned char)(0xF2)
+#define PREFIX_REP    (unsigned char)(0xF3)
 
-#define PREFIX_SEGCS  0x2E
-#define PREFIX_SEGSS  0x36
-#define PREFIX_SEGDS  0x3E
-#define PREFIX_SEGES  0x26
-#define PREFIX_SEGFS  0x64
-#define PREFIX_SEGGS  0x65
+#define PREFIX_SEGCS  (unsigned char)(0x2E)
+#define PREFIX_SEGSS  (unsigned char)(0x36)
+#define PREFIX_SEGDS  (unsigned char)(0x3E)
+#define PREFIX_SEGES  (unsigned char)(0x26)
+#define PREFIX_SEGFS  (unsigned char)(0x64)
+#define PREFIX_SEGGS  (unsigned char)(0x65)
 
-#define PREFIX_BRANCH0 0x2E
-#define PREFIX_BRANCH1 0x3E
+#define PREFIX_BRANCH0 (unsigned char)(0x2E)
+#define PREFIX_BRANCH1 (unsigned char)(0x3E)
 
-#define PREFIX_SZOPER  0x66
-#define PREFIX_SZADDR  0x67
+#define PREFIX_SZOPER  (unsigned char)(0x66)
+#define PREFIX_SZADDR  (unsigned char)(0x67)
 
-void ia32_set_mode_64(bool mode);
-bool ia32_is_mode_64();
+//void ia32_set_mode_64(bool mode);
+//bool ia32_is_mode_64();
 
 // addressing methods (see appendix A-2)
 // I've added am_reg (for registers implicitely encoded in instruciton), 
@@ -484,7 +484,7 @@ class ia32_prefixes
   unsigned char prfx[5];
   unsigned char opcode_prefix;
  public:
-  unsigned int const getCount() const { return count; }
+  unsigned int getCount() const { return count; }
   unsigned char getPrefix(unsigned char group) const { return prfx[group]; }
   bool rexW() const { return prfx[4] & 0x8; }
   bool rexR() const { return prfx[4] & 0x4; }

@@ -118,7 +118,7 @@ namespace Dyninst
       /// and will be replaced with stream operators in the public interface.
       std::string format() const;
       /// Returns the number of operands accepted by this operation.
-      int numOperands() const;
+      size_t numOperands() const;
       /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
       /// to assembly mnemonics.
       entryID getID() const

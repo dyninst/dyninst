@@ -43,7 +43,7 @@ namespace Dyninst
   {
     Instruction::Instruction(const Operation& what, 
 			     const std::vector<Expression::Ptr>& operandSource,
-			     unsigned char size, const unsigned char* raw)
+			     size_t size, const unsigned char* raw)
       : m_InsnOp(what), m_Valid(true)
     {
       unsigned int i;
@@ -58,7 +58,7 @@ namespace Dyninst
       }
       if(raw)
       {
-      	for(int i = 0; i < size; i++)
+      	for(unsigned int i = 0; i < size; i++)
 	{
 	  m_RawInsn.push_back(raw[i]);
 	}
@@ -119,7 +119,7 @@ namespace Dyninst
         return m_Operands[index];
      }
     
-    unsigned char Instruction::size() const
+    size_t Instruction::size() const
     {
       return m_RawInsn.size();
     }
@@ -184,7 +184,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->readsMemory());
+	if(curOperand->readsMemory())
 	{
 	  return true;
 	}
@@ -198,7 +198,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->writesMemory());
+	if(curOperand->writesMemory())
 	{
 	  return true;
 	}

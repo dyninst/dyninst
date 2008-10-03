@@ -33,6 +33,7 @@
 #define RESULT_H
 
 #include <sstream>
+#include <string.h> // memcmp
 #include "common/h/Types.h"
 
 namespace Dyninst
@@ -139,43 +140,43 @@ namespace Dyninst
 	switch(type)
 	{
 	case u8:
-	  val.u8val = v;
+	  val.u8val = (unsigned char)(v);
 	  break;
 	case s8:
-	  val.s8val = v;
+	  val.s8val = (char)(v);
 	  break;
 	case u16:
-	  val.u16val = v;
+	  val.u16val = (uint16_t)(v);
 	  break;
 	case s16:
-	  val.s16val = v;
+	  val.s16val = (int16_t)(v);
 	  break;
 	case u32:
-	  val.u32val = v;
+	  val.u32val = (uint32_t)(v);
 	  break;
 	case s32:
-	  val.s32val = v;
+	  val.s32val = (int32_t)(v);
 	  break;
 	case u64:
-	  val.u64val = v;
+	  val.u64val = (uint64_t)(v);
 	  break;
 	case s64:
-	  val.s64val = v;
+	  val.s64val = (int64_t)(v);
 	  break;
 	case sp_float:
-	  val.floatval = v;
+	  val.floatval = (float)(v);
 	  break;
 	case dp_float:
-	  val.dblval = v;
+	  val.dblval = (double)(v);
 	  break;
 	case bit_flag:
-	  val.bitval = v;
+	  val.bitval = (bool)(v);
 	  break;
 	case u48:
-	  val.u48val = v;
+	  val.u48val = (uint64_t)(v);
 	  break;
 	case s48:
-	  val.s48val = v;
+	  val.s48val = (int64_t)(v);
 	  break;
    case m512:
       val.m512val = (void *) v;
