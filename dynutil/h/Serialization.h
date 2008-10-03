@@ -6,6 +6,8 @@
 
 #include <stdexcept>
 #include <stdio.h>
+#include <typeinfo>
+#include <vector>
 #include "dyntypes.h"
 #include "util.h"
 
@@ -22,7 +24,7 @@ DLLEXPORT bool &serializer_debug_flag();
          fprintf(stderr, "%s", cmsg); \
          assert (0); \
       } else { \
-         throw SerializerError(FILE__, __LINE__, std::string(cmsg)); \
+         throw SerializerError(__FILE__, __LINE__, std::string(cmsg)); \
       } \
    } while (0)
 
@@ -152,7 +154,7 @@ void translate_vector(S *ser, std::vector<std::vector<T> > &vec,
       const char *tag = NULL, const char *elem_tag = NULL) 
 {
    fprintf(stderr, "%s[%d]:  welcome to translate vector of vectors\n", 
-         FILE__, __LINE__);
+           __FILE__, __LINE__);
 
    unsigned int nelem = vec.size();
    ser->vector_start(nelem, tag);
@@ -183,19 +185,19 @@ void translate_hash_map(S *ser, dyn_hash_map<K, V> &hash,
       const char *tag = NULL, const char *key_tag = NULL, const char *value_tag = NULL)
 {   
    fprintf(stderr, "%s[%d]:  welcome to translate_hash_map<%s, %s>()\n", 
-         FILE__, __LINE__,
-         typeid(K).name(), typeid(V).name()); 
+           __FILE__, __LINE__,
+           typeid(K).name(), typeid(V).name()); 
 
    unsigned int nelem = hash.size();
    ser->hash_map_start(nelem, tag);
    fprintf(stderr, "%s[%d]:  after hash_map start, mode = %sserialize\n", 
-         FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de"); 
+           __FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de"); 
 
    if (ser->iomode() == sd_serialize) 
    {
       typename dyn_hash_map<K,V>::iterator iter = hash.begin();
       fprintf(stderr, "%s[%d]:  about to serialize hash with %d elements\n", 
-            FILE__, __LINE__, hash.size());
+              __FILE__, __LINE__, hash.size());
 
       while (iter != hash.end()) 
       {
@@ -227,14 +229,14 @@ void translate_hash_map(S *ser, dyn_hash_map<K, V *> &hash,
       const char *tag = NULL, const char *key_tag = NULL, const char *value_tag = NULL)
 {
    fprintf(stderr, "%s[%d]:  welcome to translate_hash_map<%s, %s*>()\n", 
-         FILE__, __LINE__,
+         __FILE__, __LINE__,
          typeid(K).name(), typeid(V).name());
 
    unsigned int nelem = hash.size();
    ser->hash_map_start(nelem, tag);
 
    fprintf(stderr, "%s[%d]:  after hash_map start, mode = %sserialize\n", 
-         FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de");
+         __FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de");
 
    if (ser->iomode() == sd_serialize) 
    {
@@ -270,14 +272,14 @@ void translate_hash_map(S *ser, dyn_hash_map<K, char *> &hash,
 {
    //  THIS SPECIALIZATION DOES NOT WORK CORRECTLY (YET)
    fprintf(stderr, "%s[%d]:  welcome to translate_hash_map<%s, %s*>()\n", 
-         FILE__, __LINE__,
+         __FILE__, __LINE__,
          typeid(K).name(), typeid(V).name());
 
    unsigned int nelem = hash.size();
    ser->hash_map_start(nelem, tag);
 
    fprintf(stderr, "%s[%d]:  after hash_map start, mode = %sserialize\n", 
-         FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de");
+         __FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de");
 
    if (ser->iomode() == sd_serialize) 
    {
@@ -328,7 +330,7 @@ class trans_adaptor {
    public:
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
       } 
 
       T * operator()(S *ser, T & it, const char *tag = NULL, const char * /*tag2*/ = NULL)
@@ -343,7 +345,7 @@ class trans_adaptor<S, Serializable, T2> {
    public:
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
       } 
 
       Serializable * operator()(S *ser, Serializable & it, const char *tag = NULL, 
@@ -359,7 +361,7 @@ class trans_adaptor<S, std::vector<T>, TT2 > {
    public:
       trans_adaptor()
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vectorl\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vectorl\n", __FILE__, __LINE__);
       }
 
       std::vector<T> * operator()(S *ser, std::vector<T> &v, const char *tag = NULL, 
@@ -375,7 +377,7 @@ class trans_adaptor<S, std::vector<T *>, TT2>  {
    public: 
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vector of ptrs\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vector of ptrs\n", __FILE__, __LINE__);
       }
 
       std::vector<T*> * operator()(S *ser, std::vector<T *> &v, const char *tag = NULL, 
@@ -405,7 +407,7 @@ class trans_adaptor<S,
       trans_adaptor() 
       {
          fprintf(stderr, "%s[%d]:  trans_adaptor  -- annotatable<%s, %s, %s>\n", 
-               FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
+               __FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
                SERIALIZABLE ? "true" : "false");
       }
 
@@ -416,7 +418,7 @@ class trans_adaptor<S,
           if (!SERIALIZABLE) 
           {
              fprintf(stderr, "%s[%d]:  Annotatable<%s, %s, %s>, not serializable\n", 
-                   FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
+                   __FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
                    SERIALIZABLE ? "true" : "false");
              return NULL;
           }
@@ -426,7 +428,7 @@ class trans_adaptor<S,
           if (0 == nelem) 
           {
              fprintf(stderr, "%s[%d]:  Annotatable<%s, %s, %s>, no annotations\n", 
-                   FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
+                   __FILE__, __LINE__, typeid(T).name(), typeid(ANNO_NAME).name(),
                    SERIALIZABLE ? "true" : "false");
              return NULL;
           }
@@ -438,7 +440,7 @@ class trans_adaptor<S,
           //  But is this OK??  (This goes around the usual annotations interface)
           //  probably not, but let's see if it works anyways
 
-          fprintf(stderr, "%s[%d]:  WARNING:  This may not be kosher -- circumventing the anotations interface, think on this\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  WARNING:  This may not be kosher -- circumventing the anotations interface, think on this\n", __FILE__, __LINE__);
           translate_vector(ser, anno_vec, tag, tag2);
 
          //  maybe catch errors here?
@@ -451,7 +453,7 @@ template <class S, class T>
 void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
 {
    fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
-         FILE__, __LINE__,
+         __FILE__, __LINE__,
          "SerializerBase",
          typeid(T).name(), &it);
 
@@ -459,14 +461,14 @@ void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
    //  change the type of return value thru template specialization
 
    trans_adaptor<S, T> ta;
-   fprintf(stderr, "%s[%d]: gtranslate: before operation\n", FILE__, __LINE__);
+   fprintf(stderr, "%s[%d]: gtranslate: before operation\n", __FILE__, __LINE__);
 
    T *itp = ta(ser, it, tag, tag2);
 
    if (!itp) 
    {
       fprintf(stderr, "%s[%d]: translate adaptor failed to de/serialize\n", 
-            FILE__, __LINE__);
+            __FILE__, __LINE__);
    }
 }
 
@@ -525,7 +527,7 @@ template <class S, class TT>
 void gtranslate(S *ser, TT&it, void (*use_func)(SerializerBase *, TT &, void *), const char *tag = NULL, const char *tag2)
 {
    fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
-         FILE__, __LINE__,
+         __FILE__, __LINE__,
          "SerializerBase",
          typeid(TT).name(), &it);
 
@@ -591,7 +593,7 @@ bool gtranslate_w_err(S *ser, T&it, const char *tag = NULL, const char *tag2 = N
 
    catch (const SerializerError &err_) 
    {
-      fprintf(stderr, "%s[%d]:  gtranslate failed\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  gtranslate failed\n", __FILE__, __LINE__);
       printSerErr(err_);
       return false;
    }

@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.94 2008/09/03 06:08:43 jaw Exp $
+# $Id: Makefile,v 1.95 2008/10/03 21:12:39 legendre Exp $
 #
 
 TO_CORE = .
@@ -272,7 +272,7 @@ umd-nightly:
 	$(MAKE) DyninstAPI
 
 # Used for nightly builds
-nightly: DyninstAPI testsuites
+nightly: DyninstAPI newtestsuite
 
 #nightly:
 #	$(MAKE) clean

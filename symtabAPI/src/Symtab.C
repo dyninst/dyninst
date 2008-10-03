@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <algorithm>
 
 #include "common/h/Timer.h"
 #include "common/h/debugOstream.h"

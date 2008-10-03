@@ -31,6 +31,7 @@
 #include "Region.h"
 #include "Symtab.h"
 #include "common/h/serialize.h"
+#include <iostream>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

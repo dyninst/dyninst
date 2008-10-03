@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.28 2008/09/20 03:56:10 jaw Exp $
+// $Id: Object.C,v 1.29 2008/10/03 21:12:46 legendre Exp $
 
 #include "common/h/serialize.h"
 
@@ -40,7 +40,7 @@
 
 #include "symtabAPI/src/Object.h"
 
-
+#include <iostream>
 
 using namespace std;
 using namespace Dyninst;

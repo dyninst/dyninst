@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.4 2008/06/20 19:15:53 carl Exp $
+// $Id: test_driver.C,v 1.5 2008/10/03 21:12:45 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -1749,7 +1749,7 @@ void updateSearchPaths(const char *filename) {
 #endif
 }
 
-int main(unsigned int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   unsigned int i;
   bool shouldDebugBreak = false;
   bool called_from_runTests = false;

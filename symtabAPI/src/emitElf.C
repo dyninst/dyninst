@@ -35,6 +35,7 @@
 #endif
 */
 
+#include <algorithm>
 #include "common/h/parseauxv.h"
 #include "emitElf.h"
 #include "Symtab.h"

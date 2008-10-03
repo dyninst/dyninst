@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-
+#include <string.h>
 #include <stdio.h>
 #include <time.h>
 

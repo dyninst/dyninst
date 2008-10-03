@@ -5010,7 +5010,7 @@ void setVar40(const char *vname, void *value, BPatch_image *appImage)
    // Note: Can't use reinterpret_cast here.  G++ produces an error:
    //   reinterpret_cast from `void*' to `unsigned int' loses precision
    unsigned long longAddr = (unsigned long)(value);
-   unsigned int shortAddr = (unsigned  int)(value);
+   unsigned long shortAddr = (unsigned long)(value);
 
    switch (v->getSize()) {
      case 4: buf = reinterpret_cast<void *>(&shortAddr); break;

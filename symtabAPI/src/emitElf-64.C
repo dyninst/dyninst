@@ -35,6 +35,7 @@
 #endif
 */
 
+#include <algorithm>
 #include "emitElf-64.h"
 #include "Symtab.h"
 
