@@ -1,7 +1,8 @@
 #!/bin/sh
 
-TOPGEN=mrnet_topgen
-topology_dir="topology_files"
+bin_dir=`dirname $0`
+TOPGEN="${bin_dir}/mrnet_topgen"
+topology_dir="${bin_dir}/topology_files"
 
 topologies=(1x1 1x2 1x16 1x1x1 1x2x2 1x16x16 1x1x2 1x1x16 1x2x4 1x4x16)
 remote_topology_specs=(1 2 16 1:1 2:2x1 16:16x1 1:2 1:16 2:2x2 4:4x4)
@@ -31,7 +32,7 @@ create_remote_topologies()
 
     for (( idx = 0 ; idx < ${#topologies[@]}; idx++ ));
     do
-		remote_topology="$remote_topology_prefix-${topologies[$idx]}.top"
+	remote_topology="$remote_topology_prefix-${topologies[$idx]}.top"
 
         echo -n "Creating \"$remote_topology\" ... "
 
@@ -88,8 +89,6 @@ run_test()
         if [ "$?" = 0 ]; then
             echo "exited with $?."
             echo -n "   Checking results ... ";
-            /bin/rm -f $logfile
-
             grep -i failure $outfile > grep.out
             if [ "$?" != 0 ]; then
                 echo "success!"
@@ -97,7 +96,7 @@ run_test()
             else
                 echo "failure! (Details in $outfile and $logfile)"
             fi
-        /bin/rm -f grep.out
+            /bin/rm -f grep.out
         else
             echo "Test exited with failure.(Details in $outfile and $logfile)"
         fi

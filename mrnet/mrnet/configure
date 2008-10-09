@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT SET_MAKE RANLIB ac_ct_RANLIB GREP RM FLEX BISON INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA COMPILER_TYPE AR ARFLAGS VERBOSEMAKE PURIFY build build_cpu build_vendor build_os host host_cpu host_vendor host_os MRNET_ARCH MRNET_OS MRNET_ROOT MRNET_VERSION SOFLAGS C_AS_CPLUSPLUS CXXCPP EGREP LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT BUILDSHARED VERBOSEMAKE PURIFY SET_MAKE RANLIB ac_ct_RANLIB GREP RM FLEX BISON INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA COMPILER_TYPE AR ARFLAGS build build_cpu build_vendor build_os host host_cpu host_vendor host_os MRNET_ARCH MRNET_OS MRNET_ROOT MRNET_VERSION SOFLAGS C_AS_CPLUSPLUS CXXCPP EGREP LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -845,13 +845,15 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-shared         Build shared object version of mrnet library
+                          (default off)
   --enable-verbosebuild   Display commands during build (default off)
   --enable-debug          Enable debug mode options (default off)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-libfldir         Absolute path to flex library
+  --with-libfldir         Absolute path to directory containing flex library
   --with-purify           Use purify for memory debugging
 
 Some influential environment variables:
@@ -1898,6 +1900,91 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
+
+# Check whether --with-libfldir or --without-libfldir was given.
+if test "${with_libfldir+set}" = set; then
+  withval="$with_libfldir"
+  FLEX_LIBDIR="${withval}";
+fi;
+
+
+# Check whether --enable-shared or --disable-shared was given.
+if test "${enable_shared+set}" = set; then
+  enableval="$enable_shared"
+   BUILDSHARED="yes"
+else
+   BUILDSHARED="no"
+fi;
+
+
+# Check whether --enable-verbosebuild or --disable-verbosebuild was given.
+if test "${enable_verbosebuild+set}" = set; then
+  enableval="$enable_verbosebuild"
+   VERBOSEMAKE=""
+else
+   VERBOSEMAKE=".SILENT:"
+fi;
+
+
+# Check whether --enable-debug or --disable-debug was given.
+if test "${enable_debug+set}" = set; then
+  enableval="$enable_debug"
+   debug_mode="yes"
+else
+   debug_mode="no"
+fi;
+
+
+# Check whether --with-purify or --without-purify was given.
+if test "${with_purify+set}" = set; then
+  withval="$with_purify"
+   if test "${withval}" = yes; then
+          # Extract the first word of "purify", so it can be a program name with args.
+set dummy purify; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path_PURIFY+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $PURIFY in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PURIFY="$PURIFY" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path_PURIFY="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+PURIFY=$ac_cv_path_PURIFY
+
+if test -n "$PURIFY"; then
+  echo "$as_me:$LINENO: result: $PURIFY" >&5
+echo "${ECHO_T}$PURIFY" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+      else
+          PURIFY="${withval}"
+      fi
+
+fi;
+
+
 echo "$as_me:$LINENO: checking whether ${MAKE-make} sets \$(MAKE)" >&5
 echo $ECHO_N "checking whether ${MAKE-make} sets \$(MAKE)... $ECHO_C" >&6
 set dummy ${MAKE-make}; ac_make=`echo "$2" | sed 'y,:./+-,___p_,'`
@@ -2330,6 +2417,13 @@ echo "${ECHO_T}gnu" >&6
       COMPILER_TYPE="forte"
       echo "$as_me:$LINENO: result: forte" >&5
 echo "${ECHO_T}forte" >&6
+    else
+      $GREP "Sun" version.out > /dev/null
+      if test "$?" = 0 ; then
+        COMPILER_TYPE="forte"
+        echo "$as_me:$LINENO: result: forte" >&5
+echo "${ECHO_T}forte" >&6
+      fi
     fi
     $RM -f version.out
   fi
@@ -2341,17 +2435,14 @@ echo "${ECHO_T}unknown" >&6
 
 
 
-if test "$COMPILER_TYPE" = "gnu" ; then
+if test $COMPILER_TYPE = "gnu" ; then
+
     CXXFLAGS="$CXXFLAGS -Dcompiler_gnu"
-    C_AS_CPLUSPLUS="-x c++"
-
-    SOFLAGS=" -fPIC -shared -rdynamic"
-
-    if test "$debug_mode" = "yes" ; then
-      CXXFLAGS="$CXXFLAGS -g"
-    else
-      CXXFLAGS="$CXXFLAGS -O3"
+    if test $BUILDSHARED = "yes" ; then
+        CXXFLAGS="$CXXFLAGS -fPIC"
     fi
+    SOFLAGS=" -fPIC -shared -rdynamic"
+    C_AS_CPLUSPLUS="-x c++"
 
     # Extract the first word of "ar", so it can be a program name with args.
 set dummy ar; ac_word=$2
@@ -2395,16 +2486,13 @@ fi
 
     ARFLAGS="crv"
 
-elif test "$COMPILER_TYPE" = "aix-native" ; then
+
+elif test $COMPILER_TYPE = "aix-native" ; then
+
     CXXFLAGS="$CXXFLAGS -Dcompiler_ibm"
     SOFLAGS=" -G"
     C_AS_CPLUSPLUS="-+"
 
-    if test "$debug_mode" = "$yes" ; then
-      CXXFLAGS="$CXXFLAGS -g"
-    else
-      CXXFLAGS="$CXXFLAGS -O2"
-    fi
     # Extract the first word of "ar", so it can be a program name with args.
 set dummy ar; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -2447,15 +2535,15 @@ fi
 
     ARFLAGS="crv"
 
-elif test "$COMPILER_TYPE" = "forte" ; then
+
+elif test $COMPILER_TYPE = "forte" ; then
+
     CXXFLAGS="$CXXFLAGS -Dcompiler_sun"
+    if test $BUILDSHARED = "yes" ; then
+        CXXFLAGS="$CXXFLAGS -KPIC"
+    fi
     SOFLAGS=" -G"
 
-    if test "$debug_mode" = "$yes" ; then
-      CXXFLAGS="$CXXFLAGS -g"
-    else
-      CXXFLAGS="$CXXFLAGS -O2"
-    fi
     # Extract the first word of "CC", so it can be a program name with args.
 set dummy CC; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -2500,81 +2588,12 @@ fi
 
 fi
 
-
-
-# Check whether --with-libfldir or --without-libfldir was given.
-if test "${with_libfldir+set}" = set; then
-  withval="$with_libfldir"
-  FLEX_LIBDIR="${withval}";
-fi;
-
-
-# Check whether --enable-verbosebuild or --disable-verbosebuild was given.
-if test "${enable_verbosebuild+set}" = set; then
-  enableval="$enable_verbosebuild"
-   VERBOSEMAKE=""
+CXXFLAGS=`echo $CXXFLAGS | sed 's/-g //; s/-O //; s/-O1 //; s/-O2 //; s/-O3 //'`
+if test $debug_mode = "yes" ; then
+    CXXFLAGS="-g $CXXFLAGS -DDEBUG"
 else
-   VERBOSEMAKE=".SILENT:"
-fi;
-
-
-# Check whether --enable-debug or --disable-debug was given.
-if test "${enable_debug+set}" = set; then
-  enableval="$enable_debug"
-   debug_mode="yes"; CXXFLAGS="$CXXFLAGS -DDEBUG"
-else
-   debug_mode="no"
-fi;
-
-
-# Check whether --with-purify or --without-purify was given.
-if test "${with_purify+set}" = set; then
-  withval="$with_purify"
-   if test "${withval}" = yes; then
-          # Extract the first word of "purify", so it can be a program name with args.
-set dummy purify; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_path_PURIFY+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $PURIFY in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PURIFY="$PURIFY" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_path_PURIFY="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-  ;;
-esac
+    CXXFLAGS="-O2 $CXXFLAGS"
 fi
-PURIFY=$ac_cv_path_PURIFY
-
-if test -n "$PURIFY"; then
-  echo "$as_me:$LINENO: result: $PURIFY" >&5
-echo "${ECHO_T}$PURIFY" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
-
-      else
-          PURIFY="${withval}"
-      fi
-
-fi;
 
 
 
@@ -2657,7 +2676,7 @@ CXXFLAGS="$CXXFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
 case "$host_os" in
   *linux*)
     LIBS="$LIBS -lm -lpthread -ldl"
-    LDFLAGS="-rdynamic"
+    LDFLAGS="-Wl,-E"
     os_release=`uname -r`
     case "$os_release" in
       2.4*)
@@ -8088,6 +8107,9 @@ s,@CPPFLAGS@,$CPPFLAGS,;t t
 s,@ac_ct_CXX@,$ac_ct_CXX,;t t
 s,@EXEEXT@,$EXEEXT,;t t
 s,@OBJEXT@,$OBJEXT,;t t
+s,@BUILDSHARED@,$BUILDSHARED,;t t
+s,@VERBOSEMAKE@,$VERBOSEMAKE,;t t
+s,@PURIFY@,$PURIFY,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@RANLIB@,$RANLIB,;t t
 s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
@@ -8101,8 +8123,6 @@ s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@COMPILER_TYPE@,$COMPILER_TYPE,;t t
 s,@AR@,$AR,;t t
 s,@ARFLAGS@,$ARFLAGS,;t t
-s,@VERBOSEMAKE@,$VERBOSEMAKE,;t t
-s,@PURIFY@,$PURIFY,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t
@@ -9233,6 +9253,9 @@ s,@CPPFLAGS@,$CPPFLAGS,;t t
 s,@ac_ct_CXX@,$ac_ct_CXX,;t t
 s,@EXEEXT@,$EXEEXT,;t t
 s,@OBJEXT@,$OBJEXT,;t t
+s,@BUILDSHARED@,$BUILDSHARED,;t t
+s,@VERBOSEMAKE@,$VERBOSEMAKE,;t t
+s,@PURIFY@,$PURIFY,;t t
 s,@SET_MAKE@,$SET_MAKE,;t t
 s,@RANLIB@,$RANLIB,;t t
 s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
@@ -9246,8 +9269,6 @@ s,@INSTALL_DATA@,$INSTALL_DATA,;t t
 s,@COMPILER_TYPE@,$COMPILER_TYPE,;t t
 s,@AR@,$AR,;t t
 s,@ARFLAGS@,$ARFLAGS,;t t
-s,@VERBOSEMAKE@,$VERBOSEMAKE,;t t
-s,@PURIFY@,$PURIFY,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t

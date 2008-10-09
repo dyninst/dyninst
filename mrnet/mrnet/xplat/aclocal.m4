@@ -38,12 +38,11 @@ AC_DEFUN(PD_COMPILER_TYPE,[
     if test "$?" = 0 ; then
       COMPILER_TYPE="forte"
       AC_MSG_RESULT([forte])
-    else
-      $GREP "Sun" version.out > /dev/null
-      if test "$?" = 0 ; then
-        COMPILER_TYPE="forte"
-        AC_MSG_RESULT([forte])
-      fi
+    fi
+    $GREP "Sun" version.out > /dev/null
+    if test "$?" = 0 ; then
+      COMPILER_TYPE="forte"
+      AC_MSG_RESULT([forte])
     fi
     $RM -f version.out
   fi

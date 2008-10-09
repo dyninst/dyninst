@@ -37,7 +37,7 @@ PURIFY = @PURIFY@
 # General Definitions
 #####################
 
-VPATH   = $(SRCDIR)/src:$(SRCDIR)/tests
+VPATH   = $(SRCDIR)/src:$(SRCDIR)/tests:$(SRCDIR)/tests/test_Recovery
 
 CXX = @CXX@
 CXXFLAGS = @CXXFLAGS@ $(INCDIR) $(WARNFLAGS)
@@ -48,15 +48,16 @@ LIBS = $(LIBXPLAT) @LIBS@
 
 MAKEDEPENDS = $(SRCDIR)/conf/makedepends.sh
 
+BUILD_SHARED_LIBS = @BUILDSHARED@
+
 COMPILER_TYPE = @COMPILER_TYPE@
 
 ifeq ($(COMPILER_TYPE), gnu)
 
     ifndef SILENCE_WARNINGS
-    WARNFLAGS = -fmessage-length=72 \
-                -Wall \
+    WARNFLAGS = -Wall \
                 -W \
-	            -Wno-system-headers \
+	        -Wno-system-headers \
                 -Wfloat-equal \
                 -Wconversion \
                 -Wshadow \
@@ -67,8 +68,8 @@ ifeq ($(COMPILER_TYPE), gnu)
                 -Wsign-compare \
                 -Wredundant-decls \
                 -Wlong-long \
-	            -Woverloaded-virtual   \
-	            -Wno-non-template-friend
+	        -Woverloaded-virtual   \
+	        -Wno-non-template-friend
    endif # SILENCE_WARNINGS
 
 endif #GNU options
@@ -83,63 +84,68 @@ endif #Forte (Sun) compiler warnings
 # System Specific Definitions
 #############################
 LIBMRNET    = $(LIBDIR)/libmrnet.a
+LIBMRNET_SO = $(LIBDIR)/libmrnet.so
 LIBXPLAT    = $(MRNET_ROOT)/xplat/libxplat.a
+LIBXPLAT_SO = $(MRNET_ROOT)/xplat/libxplat.so
 COMMNODE    = $(BINDIR)/mrnet_commnode 
-TARGETS     = $(LIBMRNET) $(COMMNODE)
-INCDIR      = -I$(MRNET_ROOT)/src -I$(SRCDIR)/h -I$(SRCDIR)/src -I$(SRCDIR)/xplat/include -I$(SRCDIR)/tests
-#INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR)/src -I$(SRCDIR)/xplat/include -I$(SRCDIR)/tests
-FILTERSO_HEADERS = $(SRCDIR)/src/Packet.h \
-	               $(SRCDIR)/src/DataElement.h \
-	               $(SRCDIR)/src/Error.h \
-	               $(SRCDIR)/src/pdr.h \
-	               $(SRCDIR)/src/refCounter.h \
-	               $(SRCDIR)/src/Types.h
 
-TESTS   = $(BINDIR)/microbench_FE \
-	      $(BINDIR)/microbench_BE \
-	      $(BINDIR)/test_basic_FE \
-	      $(BINDIR)/test_basic_BE \
-	      $(BINDIR)/test_arrays_FE \
-	      $(BINDIR)/test_arrays_BE \
-	      $(BINDIR)/test_NativeFilters_FE \
-	      $(BINDIR)/test_NativeFilters_BE \
-	      $(BINDIR)/test_DynamicFilters_FE \
-	      $(BINDIR)/test_DynamicFilters_BE
+TARGETS     = $(LIBMRNET) $(COMMNODE) $(BINDIR)/mrnet_topgen
+ifeq ($(BUILD_SHARED_LIBS), yes)
+    TARGETS += $(LIBXPLAT_SO) $(LIBMRNET_SO)
+endif
+
+INCDIR      = -I$(MRNET_ROOT)/src -I$(SRCDIR)/include -I$(SRCDIR)/src -I$(SRCDIR) \
+              -I$(SRCDIR)/xplat/include -I$(SRCDIR)/tests
+
+STD_TESTS = $(BINDIR)/test_basic_FE \
+            $(BINDIR)/test_basic_BE  \
+            $(BINDIR)/microbench_FE \
+            $(BINDIR)/microbench_BE \
+            $(BINDIR)/test_arrays_FE \
+            $(BINDIR)/test_arrays_BE \
+            $(BINDIR)/test_NativeFilters_FE \
+            $(BINDIR)/test_NativeFilters_BE \
+            $(BINDIR)/test_DynamicFilters_FE \
+            $(BINDIR)/test_DynamicFilters_BE
+
+OPT_TESTS = $(BINDIR)/test_Recovery_FE \
+	    $(BINDIR)/test_Recovery_BE
 
 ###################################
 # Object and Executable Definitions
 ###################################
 LIBMRNET_SRCS = \
-	         $(SRCDIR)/src/utils.C \
-	         $(SRCDIR)/src/EventImpl.C \
+	         $(SRCDIR)/src/BackEndNode.C \
+	         $(SRCDIR)/src/byte_order.c \
+	         $(SRCDIR)/src/ChildNode.C \
+	         $(SRCDIR)/src/CommunicationNode.C \
+	         $(SRCDIR)/src/Communicator.C \
+	         $(SRCDIR)/src/DataElement.C \
+	         $(SRCDIR)/src/EventDetector.C \
 	         $(SRCDIR)/src/Error.C \
+	         $(SRCDIR)/src/Filter.C \
+	         $(SRCDIR)/src/FilterDefinitions.C \
+	         $(SRCDIR)/src/FrontEndNode.C \
+	         $(SRCDIR)/src/InternalNode.C \
+	         $(SRCDIR)/src/Message.C \
+	         $(SRCDIR)/src/Network.C \
+	         $(SRCDIR)/src/NetworkTopology.C \
+	         $(SRCDIR)/src/Packet.C \
+	         $(SRCDIR)/src/ParadynFilterDefinitions.C \
+	         $(SRCDIR)/src/ParsedGraph.C \
+	         $(OBJDIR)/parser.tab.C \
+	         $(SRCDIR)/src/ParentNode.C \
 	         $(SRCDIR)/src/pdr.c \
 	         $(SRCDIR)/src/pdr_mem.c \
 	         $(SRCDIR)/src/pdr_sizeof.c \
-	         $(SRCDIR)/src/byte_order.c \
+	         $(SRCDIR)/src/PeerNode.C \
+	         $(SRCDIR)/src/Router.C \
 	         $(OBJDIR)/scanner.C \
-	         $(OBJDIR)/parser.tab.C \
-	         $(SRCDIR)/src/NetworkGraph.C \
-	         $(SRCDIR)/src/EndPointImpl.C \
-	         $(SRCDIR)/src/CommunicatorImpl.C \
-	         $(SRCDIR)/src/StreamImpl.C \
-	         $(SRCDIR)/src/NetworkImpl.C \
-	         $(SRCDIR)/src/Network.C \
-	         $(SRCDIR)/src/DataElement.C \
-	         $(SRCDIR)/src/Packet.C \
-	         $(SRCDIR)/src/Message.C \
-	         $(SRCDIR)/src/CommunicationNode.C \
-	         $(SRCDIR)/src/RemoteNode.C \
-	         $(SRCDIR)/src/ParentNode.C \
-	         $(SRCDIR)/src/ChildNode.C \
-	         $(SRCDIR)/src/FrontEndNode.C \
-	         $(SRCDIR)/src/BackEndNode.C \
-	         $(SRCDIR)/src/StreamManager.C \
-	         $(SRCDIR)/src/Filter.C \
-	         $(SRCDIR)/src/FilterDefinitions.C \
-	         $(SRCDIR)/src/ParadynFilterDefinitions.C \
-	         $(SRCDIR)/src/InternalNode.C \
-	         $(SRCDIR)/src/Tree.C 
+	         $(SRCDIR)/src/SerialGraph.C \
+	         $(SRCDIR)/src/Stream.C \
+	         $(SRCDIR)/src/Tree.C \
+	         $(SRCDIR)/src/PerfDataEvent.C \
+	         $(SRCDIR)/src/utils.C
 
 LIBMRNET_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMRNET_SRCS)))))
  
@@ -161,6 +167,9 @@ all: xplat-all $(TARGETS)
 xplat-all:
 	cd ./xplat ; $(MAKE) all
 
+xplat-sharedobj:
+	cd ./xplat ; $(MAKE) sharedobj
+
 install: install-local xplat-install
 
 install-local: all
@@ -175,33 +184,44 @@ install-local: all
 	    chmod +x `echo $(INSTALL) | sed 's/ .*$$//'` ; \
 	fi
 	@echo Installing binaries
-	$(INSTALL) -p -m 555 $(COMMNODE) $(IBINDIR)/
+	$(INSTALL) -p -m 555 $(COMMNODE) $(BINDIR)/mrnet_topgen $(IBINDIR)/
 	@echo Installing libraries
 	$(INSTALL) -p -m 555 $(LIBMRNET) $(ILIBDIR)/
+	if [ "$(BUILD_SHARED_LIBS)" == "yes" ] ; then \
+            $(INSTALL) -p -m 555 $(LIBMRNET_SO) $(ILIBDIR)/ \
+	fi
 	@echo Installing headers
-	for hdr in @srcdir@/h/mrnet/*.h ; do \
+	for hdr in @srcdir@/include/mrnet/*.h ; do \
 	    $(INSTALL) -p -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
 	done
-	$(INSTALL) -p -m 444 $(FILTERSO_HEADERS) $(IINCDIR)/mrnet
+	for hdr in @srcdir@/src/*.h ; do \
+	    $(INSTALL) -p -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
+	done
 
+install-tests: mrnet-tests $(BINDIR)/mrnet_tests.sh
+	@echo Installing standard tests
+	$(INSTALL) -p -m 555 $(STD_TESTS) $(BINDIR)/mrnet_tests.sh $(IBINDIR)/
+	$(INSTALL) -p -m 555 $(LIBDIR)/test_DynamicFilters.so $(ILIBDIR)/
+	if [ ! -d $(IBINDIR)/topology_files ] ; then \
+            mkdir -p $(IBINDIR)/topology_files ; \
+	    chmod 755 $(IBINDIR)/topology_files ; \
+	fi
+	for top in $(SRCDIR)/tests/topology_files/local-*.top ; do \
+	    $(INSTALL) -p -m 444 $$top $(IBINDIR)/topology_files/ ; \
+	done
+
+install-tests-opt: mrnet-tests-opt
+	@echo Installing optional tests
+	$(INSTALL) -p -m 555 $(OPT_TESTS) $(IBINDIR)/
+	$(INSTALL) -p -m 555 $(LIBDIR)/test_RecoveryFilter.so $(ILIBDIR)/
 
 xplat-install:
 	@echo Installing xplat library
 	cd ./xplat ; $(MAKE) install
 
-mrnet_tests: all $(TESTS) $(BINDIR)/mrnet_topgen
+mrnet-tests: all $(STD_TESTS)
 
-rebuild:
-	make "FRC=force_rebuild"
-
-force_rebuild:
-
-#$(OBJDIR) $(LIBDIR) $(BINDIR):
-#	if [ ! -d $@ ] ; then \
-#	    echo Making directory $@ ... ; \
-#	    { mkdir -p $@ && [ -w $@ ]; } || \
-#	    { echo "$@ not a writable directory" >&2; exit 1;} \
-#	fi 
+mrnet-tests-opt: $(OPT_TESTS)
 
 $(OBJDIR)/scanner.C: $(SRCDIR)/src/scanner.l $(OBJDIR)/parser.tab.C $(FRC)
 	@echo Building `basename $@` ...
@@ -213,35 +233,67 @@ $(OBJDIR)/parser.tab.C $(OBJDIR)/parser.tab.h: $(SRCDIR)/src/parser.y $(FRC)
 	mv y.tab.c $(OBJDIR)/parser.tab.C
 	mv y.tab.h $(OBJDIR)/parser.tab.h
 
-#$(LIBMRNET_OBJS): $(OBJDIR)
-
 $(LIBMRNET): $(LIBMRNET_OBJS)
 	@echo Archiving `basename $@` ...
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
 
-#$(COMMNODE_OBJS): $(OBJDIR)
+$(LIBMRNET_SO): $(LIBMRNET_OBJS)
+	@echo Building `basename $@` ...
+	$(CXX) $(SOFLAGS) -o $@ $(LIBMRNET_OBJS)
 
 $(LIBXPLAT): xplat-all
 
+$(LIBXPLAT_SO): xplat-sharedobj
+
 $(BINDIR)/mrnet_commnode: $(COMMNODE_OBJS) $(LIBMRNET) $(LIBXPLAT)
 	@echo Linking `basename $@` ...
-	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@  $(COMMNODE_OBJS) $(LIBMRNET) $(LIBS)
+	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(COMMNODE_OBJS) \
+	   $(LIBMRNET) $(LIBS)
 
-$(BINDIR)/mrnet_topgen: $(OBJDIR)/config_generator.o $(OBJDIR)/Topology.o $(OBJDIR)/Tree.o
+$(BINDIR)/mrnet_topgen: $(OBJDIR)/config_generator.o $(LIBMRNET) $(LIBXPLAT)
 	@echo "Linking `basename $@` ..."
-	$(PURIFY) $(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/config_generator.o $(OBJDIR)/Topology.o $(OBJDIR)/Tree.o
+	$(PURIFY) $(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/config_generator.o \
+           $(LIBMRNET) $(LIBS)
 
-$(TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o $(LIBDIR)/test_DynamicFilters.so $(SRCDIR)/tests/test_common.h $(BINDIR)/mrnet_tests.sh
+$(STD_TESTS): $(BINDIR)/%: $(LIBMRNET) $(OBJDIR)/test_common.o $(OBJDIR)/%.o \
+              $(LIBDIR)/test_DynamicFilters.so $(SRCDIR)/tests/test_common.h \
+              $(BINDIR)/mrnet_tests.sh
 	@echo "Linking `basename $*` ..."
-	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
+	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o \
+	   $(OBJDIR)/test_common.o $(LIBMRNET) $(LIBS)
 
 $(BINDIR)/mrnet_tests.sh: $(SRCDIR)/conf/mrnet_tests.sh
-	/bin/cp -f $(SRCDIR)/conf/mrnet_tests.sh $@
+	cp $(SRCDIR)/conf/mrnet_tests.sh $(BINDIR)/
+
 
 $(LIBDIR)/test_DynamicFilters.so: $(SRCDIR)/tests/test_DynamicFilters.C
 	@echo "Building `basename $@` ..."
 	$(CXX) $(CXXFLAGS) $(SOFLAGS) -o $@ $(SRCDIR)/tests/test_DynamicFilters.C
+
+$(BINDIR)/test_Recovery_FE: $(BINDIR)/%: $(LIBMRNET) \
+                            $(OBJDIR)/%.o \
+                            $(OBJDIR)/test_Recovery.o \
+                            $(OBJDIR)/ThroughputExperiment.o \
+                            $(OBJDIR)/test_Recovery_aux.o \
+                            $(LIBDIR)/test_RecoveryFilter.so
+	@echo "Linking `basename $*` ..."
+	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o \
+	   $(OBJDIR)/test_Recovery.o $(OBJDIR)/test_Recovery_aux.o \
+           $(OBJDIR)/ThroughputExperiment.o $(LIBMRNET) $(LIBS)
+
+$(BINDIR)/test_Recovery_BE: $(BINDIR)/%: $(LIBMRNET) \
+                            $(OBJDIR)/%.o \
+                            $(OBJDIR)/ThroughputExperiment.o \
+                            $(OBJDIR)/test_Recovery.o
+	@echo "Linking `basename $*` ..."
+	$(PURIFY) $(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $(OBJDIR)/$*.o \
+           $(OBJDIR)/ThroughputExperiment.o \
+           $(OBJDIR)/test_Recovery.o $(LIBMRNET) $(LIBS)
+
+$(LIBDIR)/test_RecoveryFilter.so: $(SRCDIR)/tests/test_Recovery/test_RecoveryFilter.C
+	@echo "Building `basename $@` ..."
+	$(CXX) $(CXXFLAGS) $(SOFLAGS) -o $@ $(SRCDIR)/tests/test_Recovery/test_RecoveryFilter.C
 
 $(BINDIR)/pdr_test: $(PDR_OBJS) tests/xdr_test.c
 	@echo "Linking `basename $@` ..."
@@ -260,7 +312,7 @@ clean: local-clean xplat-clean
 local-clean:
 	@echo Cleaning $(MRNET_PLATFORM) platform ...
 	$(RM) $(BINDIR)/* $(LIBDIR)/* $(OBJDIR)/*
-	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
+	$(RM)  `find $(MRNET_ROOT) -name "*~" -print`
 
 xplat-clean:
 	@echo Cleaning xplat library
@@ -271,7 +323,7 @@ CLEAN: local-CLEAN xplat-clean
 local-CLEAN:
 	@echo Cleaning all platforms ...
 	$(RM) -r $(DEPENDDIR) bin lib obj
-	$(RM)  `find $(MRNET_ROOT)/.. -name "*~" -print`
+	$(RM)  `find $(MRNET_ROOT) -name "*~" -print`
 
 distclean: local-distclean xplat-distclean
 

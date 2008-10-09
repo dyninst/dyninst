@@ -2,7 +2,7 @@
 # * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
 # *                  Detailed MRNet usage rights in "LICENSE" file.          *
 # ****************************************************************************/
-# $Id: Makefile.in,v 1.13 2007/03/20 23:20:18 darnold Exp $
+# $Id: Makefile.in,v 1.14 2008/10/09 19:50:12 mjbrim Exp $
 @SET_MAKE@
 
 AR      = @AR@
@@ -22,11 +22,21 @@ INSTALL = @INSTALL@
 
 MAKEDEPENDS = $(srcdir)/../conf/makedepends.sh
 
+BUILD_SHARED_LIBS = @BUILDSHARED@
+
 TARGET = libxplat.a
-INCFLAGS = -I$(srcdir)/include -I$(srcdir)/src -I.
+TARGET_SO = libxplat.so
+
+INCFLAGS = -I$(srcdir)/include -I$(srcdir)/src -I. -I$(srcdir)/.. -I$(srcdir)/../src -I$(srcdir)/../include
 CXXFLAGS = @CXXFLAGS@ $(INCFLAGS) $(WARNFLAGS)
+SOFLAGS = @SOFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
+
+TARGETS = $(TARGET)
+ifeq ($(BUILD_SHARED_LIBS), yes)
+    TARGETS += $(TARGET_SO)
+endif 
 
 SRCS    = Monitor-pthread.C \
           Mutex-pthread.C \
@@ -37,6 +47,7 @@ SRCS    = Monitor-pthread.C \
           Process.C \
           Process-unix.C \
           Thread-pthread.C \
+          Tokenizer.C \
           NetUtils.C \
           NetUtils-unix.C \
           PathUtils-unix.C \
@@ -46,14 +57,20 @@ SRCS    = Monitor-pthread.C \
 OBJS    = $(SRCS:.C=.o)
 DEPS    = $(SRCS:.C=.d)
 
-all: $(TARGET)
+all: $(TARGETS)
+
+sharedobj: $(TARGET_SO)
 
 $(TARGET): $(OBJS)
 	@echo Archiving `basename $@` ...
 	$(AR) $(ARFLAGS) $@ $?
 	$(RANLIB) $@
 
-install: $(TARGET)
+$(TARGET_SO): $(OBJS)
+	@echo Building `basename $@` ...
+	$(CXX) $(SOFLAGS) -o $@ $(OBJS)
+
+install: $(TARGETS)
 	for dir in $(libdir) $(includedir) $(includedir)/xplat ; do \
 	    if [ ! -d $$dir ] ; then \
 	        mkdir -p $$dir ; \
@@ -64,6 +81,9 @@ install: $(TARGET)
 	    chmod +x `echo $(INSTALL) | sed 's/ .*$$//'` ; \
 	fi
 	$(INSTALL) -p -m 555 $(TARGET) $(libdir)/
+	if [ "$(BUILD_SHARED_LIBS)" == "yes" ] ; then \
+            $(INSTALL) -p -m 555 $(TARGET_SO) $(libdir)/ \
+        fi
 	for hdr in @srcdir@/include/xplat/*.h ; do \
 	    $(INSTALL) -p -m 444 $$hdr $(includedir)/xplat/ ; \
 	done
@@ -72,7 +92,7 @@ clean:
 	$(RM) $(OBJS)
 
 distclean: clean
-	$(RM) $(TARGET) $(DEPS) config.status config.log config.h Makefile
+	$(RM) $(TARGETS) $(DEPS) config.status config.log config.h Makefile
 
 # pattern rules
 @VERBOSEMAKE@
@@ -86,9 +106,9 @@ distclean: clean
 
 # TODO this must change - copied from gnu make info files
 #%.d:    %.C
-	#set -e; $(CXX) -MM $(CXXFLAGS) $< | \
-	    #sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
-	    #[ -s $@ ] || rm -f $@
+#set -e; $(CXX) -MM $(CXXFLAGS) $< | \
+#sed 's/\($*\)\.o[ :]*/\1.o $@ : /g' > $@; \
+#[ -s $@ ] || rm -f $@
 
 %.d: %.C
 	@echo Building depends file `basename $@` ...
