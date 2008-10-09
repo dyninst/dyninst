@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2008 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ***************************************************************************/
 
@@ -19,6 +19,7 @@ extern FilterId TFILTER_MIN;
 extern FilterId TFILTER_MAX;
 extern FilterId TFILTER_ARRAY_CONCAT;
 extern FilterId TFILTER_INT_EQ_CLASS;
+extern FilterId TFILTER_EPK_UNIFY;
 
 // IDs for built-in synchronization filters
 extern FilterId SFILTER_DONTWAIT;
