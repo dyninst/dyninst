@@ -3,10 +3,12 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NetUtils.C,v 1.10 2007/08/06 21:18:40 mjbrim Exp $
+// $Id: NetUtils.C,v 1.11 2008/10/09 19:54:04 mjbrim Exp $
+
 #include <sstream>
 #include "xplat/Types.h"
 #include "xplat/NetUtils.h"
+#include "xplat/PathUtils.h"
 
 #if defined(os_windows)
 #include <ws2tcpip.h>
@@ -24,30 +26,33 @@ int NetUtils::FindNetworkName( std::string ihostname, std::string & ohostname )
         return -1;
     }
 
-    // do the lookup
-    memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_CANONNAME;
-    hints.ai_socktype = SOCK_STREAM;
-    if ( error = getaddrinfo(ihostname.c_str(), NULL, NULL, &addrs)) {
-        fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(error));
-        return -1;
+    const char* varval = getenv( "XPLAT_USE_CANONICAL_NAMES" );
+    if( varval != NULL )
+    {
+        // do the lookup
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_flags = AI_CANONNAME;
+        hints.ai_socktype = SOCK_STREAM;
+        if ( error = getaddrinfo(ihostname.c_str(), NULL, NULL, &addrs)) {
+            fprintf(stderr, "%s[%d]: getaddrinfo(%s): %s\n", 
+                    __FILE__, __LINE__,
+                    ihostname.c_str(), gai_strerror(error));
+            return -1;
+        }
+
+        char hostname[256];
+        if( error = getnameinfo(addrs->ai_addr, sizeof(struct sockaddr), hostname, sizeof(hostname), NULL,0,0) ){
+            fprintf(stderr, "getnameinfo(): %s\n", gai_strerror(error));
+            return -1;
+        }
+
+        ohostname = hostname;
+
+        freeaddrinfo(addrs);
     }
-
-    char hostname[256];
-    if( error = getnameinfo(addrs->ai_addr, sizeof(struct sockaddr), hostname, sizeof(hostname), NULL,0,0) ){
-        fprintf(stderr, "getnameinfo(): %s\n", gai_strerror(error));
-        return -1;
+    else {
+        ohostname = ihostname;
     }
-
-    ohostname = hostname;
-
-    // cleanup list dynamically allocated by getaddrinfo()
-    while( addrs != NULL ) {
-       tmp = addrs;
-       addrs = addrs->ai_next;
-       free(tmp);
-    }
-
     return 0;
 }
 
@@ -84,7 +89,7 @@ NetUtils::IsLocalHost( const std::string& ihostname )
     }
 
     for( unsigned int i=0; i<local_addresses.size(); i++ ) {
-        if( local_addresses[i] == iaddress ){
+		if( local_addresses[i] == iaddress ){
             return true;
         }
     }
@@ -216,7 +221,9 @@ int NetUtils::FindNetworkAddress( std::string ihostname, NetUtils::NetworkAddres
     hints.ai_flags = AI_CANONNAME;
     hints.ai_socktype = SOCK_STREAM;
     if ( error = getaddrinfo(ihostname.c_str(), NULL, NULL, &addrs)) {
-        fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(error));
+		fprintf(stderr, "%s[%d]: getaddrinfo(%s): %s\n", 
+			    __FILE__, __LINE__,
+			    ihostname.c_str(), gai_strerror(error));
         return -1;
     }
 
@@ -224,6 +231,9 @@ int NetUtils::FindNetworkAddress( std::string ihostname, NetUtils::NetworkAddres
     struct sockaddr_in *sinptr = ( struct sockaddr_in * )(addrs->ai_addr);
     memcpy( &in.s_addr, ( void * )&( sinptr->sin_addr ), sizeof( in.s_addr ) );
     oaddr = NetworkAddress( ntohl(in.s_addr) );
+
+	freeaddrinfo(addrs);
+
     return 0;
 }
 
