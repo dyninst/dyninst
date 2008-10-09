@@ -108,7 +108,7 @@ static void _destroy(PDR *pdrs)
 
 static int32_t * _makeinline (PDR *pdrs, int32_t len)
 {
-    if (len == 0 || pdrs->p_op != XDR_ENCODE){
+    if (len == 0 || pdrs->p_op != PDR_ENCODE){
         return NULL;
     }
 
@@ -157,7 +157,7 @@ uint32_t pdr_sizeof(pdrproc_t func, void *data)
     PDR pdrs;
     bool_t stat;
 
-    pdrs.p_op = XDR_ENCODE;
+    pdrs.p_op = PDR_ENCODE;
     pdrs.p_ops = &_ops;
     pdrs.space = 1;  /* 1-byte byte ordering entity */
     pdrs.cur = (caddr_t) NULL;
