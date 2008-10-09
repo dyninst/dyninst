@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NCIO-win.C,v 1.4 2007/01/24 19:34:09 darnold Exp $
+// $Id: NCIO-win.C,v 1.5 2008/10/09 19:54:02 mjbrim Exp $
 
 #include <winsock2.h>
 #include <stdio.h>
@@ -28,14 +28,12 @@ NCSend( XPSOCKET s, NCBuf* ncbufs, unsigned int nBufs )
     {
         wsaBufs[i].buf = ncbufs[i].buf;
         wsaBufs[i].len = ncbufs[i].len;
-		nBytesSent += ncbufs[i].len;
+        nBytesSent += ncbufs[i].len;
     }
 
     // do the send
-	fprintf(stderr, "[%s:%u] - Trying to send %u bytes\n", __FILE__, __LINE__, nBytesSent);
-	nBytesSent = 0;
+    nBytesSent = 0;
     int sret = WSASend( s, wsaBufs, nBufs, &nBytesSent, 0, NULL, NULL );
-	fprintf(stderr, "\tSent %u bytes\n", nBytesSent);
     if( sret != SOCKET_ERROR )
     {
         ret = nBytesSent;
@@ -63,40 +61,39 @@ NCRecv( XPSOCKET s, NCBuf* ncbufs, unsigned int nBufs )
     }
 
     // do the receive
-	while (1) {
+    while (1) {
         DWORD nBytesReceived = 0;
-	    DWORD dwFlags = 0;
-		int rret = WSARecv( s, wsaBufs, nBufs, &nBytesReceived, &dwFlags, NULL, NULL );
-		if( rret == SOCKET_ERROR || nBytesReceived == 0)
-		{
-			return -1;
-		}
-		bytes_remaining -= nBytesReceived;
-		ret += nBytesReceived;
-		if (bytes_remaining <= 0)
-			break;
-		if (bytes_remaining > 0) {
-			for (unsigned i=0; i<nBufs; i++) {
-				if (!wsaBufs[i].len) 
-					continue;
-				if (!nBytesReceived)
-					break;
-				if (wsaBufs[i].len <= nBytesReceived) {
-					wsaBufs[i].len = 0;
-					nBytesReceived -= wsaBufs[i].len;
-					continue;
-				}
-				else {
-					wsaBufs[i].len -= nBytesReceived;
-					wsaBufs[i].buf = ((char *) wsaBufs[i].buf) + nBytesReceived;
-					nBytesReceived = 0;
-				}
-			}
-		}
-	}
+        DWORD dwFlags = 0;
+        int rret = WSARecv( s, wsaBufs, nBufs, &nBytesReceived, &dwFlags, NULL, NULL );
+        if( rret == SOCKET_ERROR || nBytesReceived == 0)
+            return -1;
 
-	delete wsaBufs;
-	return ret;
+        bytes_remaining -= nBytesReceived;
+        ret += nBytesReceived;
+        if (bytes_remaining <= 0)
+            break;
+        if (bytes_remaining > 0) {
+            for (unsigned i=0; i<nBufs; i++) {
+                if (!wsaBufs[i].len) 
+                    continue;
+                if (!nBytesReceived)
+                    break;
+                if (wsaBufs[i].len <= nBytesReceived) {
+                    wsaBufs[i].len = 0;
+                    nBytesReceived -= wsaBufs[i].len;
+                    continue;
+                }
+                else {
+                    wsaBufs[i].len -= nBytesReceived;
+                    wsaBufs[i].buf = ((char *) wsaBufs[i].buf) + nBytesReceived;
+                    nBytesReceived = 0;
+                }
+            }
+        }
+    }
+
+    delete wsaBufs;
+    return ret;
 }
 
 

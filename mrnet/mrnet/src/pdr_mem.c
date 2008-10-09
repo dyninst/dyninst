@@ -10,6 +10,7 @@
 #include <sys/types.h>
 //#include <unistd.h>
 
+#include "utils.h"
 #include "byte_order.h"
 #include "pdr_mem.h"
 #include "config.h"
@@ -347,10 +348,11 @@ bool_t pdrmem_getdouble_swap(PDR *pdrs, double *p)
 
 bool_t pdrmem_getbytes(PDR *pdrs, char * addr,  uint32_t len)
 {
-    if ((pdrs->space -= len) < 0)
-			{
-				return (FALSE);
-			}
+    if ((pdrs->space -= len) < 0) {
+        mrn_dbg(5, mrn_printf(FLF, stderr, "Not enough data left: %u\n",
+                              pdrs->space ));
+        return (FALSE);
+    }
     memcpy(addr, pdrs->cur, len);
     pdrs->cur += len;
     return (TRUE);
@@ -358,10 +360,9 @@ bool_t pdrmem_getbytes(PDR *pdrs, char * addr,  uint32_t len)
 
 bool_t pdrmem_putbytes(PDR *pdrs, char * addr,  uint32_t len)
 {
-    if ((pdrs->space -= len) < 0)
-			{
+    if ((pdrs->space -= len) < 0) {
         return (FALSE);
-			}
+    }
     memcpy(pdrs->cur, addr, len);
     pdrs->cur += len;
     return (TRUE);

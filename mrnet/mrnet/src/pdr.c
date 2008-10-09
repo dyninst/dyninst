@@ -11,6 +11,7 @@
  * pdr.
  */
 
+#include "utils.h"
 #include "pdr.h"
 #include "pdr_mem.h"
 
@@ -198,16 +199,14 @@ bool_t pdr_enum(PDR *pdrs, enum_t *ep)
  */
 bool_t pdr_opaque(PDR *pdrs, char * cp, uint32_t cnt)
 {
-    /*
-     * if no data we are done
-     */
-    if (cnt == 0)
-			{
+    /* if no data we are done */
+    if (cnt == 0) {
         return TRUE;
-			}
+    }
 
     switch (pdrs->p_op) {
     case PDR_DECODE:
+        mrn_dbg(5, mrn_printf(FLF, stderr, "Calling pdr_getbytes ...\n" ));
         return pdr_getbytes(pdrs, cp, cnt);
     case PDR_ENCODE:
         return pdr_putbytes(pdrs, cp, cnt);
@@ -273,65 +272,62 @@ bool_t pdr_bytes(PDR *pdrs, char **cpp, uint32_t *sizep, uint32_t maxsize)
  * storage is allocated.  The last parameter is the max allowed length
  * of the std::string as specified by a protocol.
  */
+
 bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
 {
     char *sp = *cpp;  /* sp is the actual string pointer */
     uint32_t nodesize=0;
 
-    /*
-     * first deal with the length since pdr strings are counted-std::strings
-     */
-    switch (pdrs->p_op) 
-			{
-			case PDR_FREE:
-        if (sp != NULL)
-					{
-						free(sp);
-						*cpp = NULL;
-					}
+    /* mrn_dbg_func_begin(); */
+
+    /* first deal with the length since pdr strings are counted strings */
+    switch (pdrs->p_op) {
+    case PDR_FREE:
+        if (sp != NULL) {
+            free(sp);
+            *cpp = NULL;
+        }
         return TRUE;
-			case PDR_ENCODE:
-        if (sp == NULL)
-					{
-						return FALSE;
-					}
+    case PDR_ENCODE:
+        if (sp == NULL) {
+            return FALSE;
+        }
         nodesize = strlen(sp) + 1; /* add 1-byte null terminator */
         break;
-			case PDR_DECODE:
+    case PDR_DECODE:
         break;
-			}
+    }
 		
-    if (! pdr_uint32(pdrs, &nodesize))
-			{
-				return FALSE;
-			}
-    if (nodesize > maxsize)
-			{
+    if (!pdr_uint32(pdrs, &nodesize)) {
         return FALSE;
-			}
+    }
+
+    if (nodesize > maxsize) {
+        return FALSE;
+    }
 		
-    /*
-     * now deal with the actual bytes
-     */
-    switch (pdrs->p_op)
-			{
-			case PDR_FREE:  /* Already handled above, but silences compiler warning */
+    /*  now deal with the actual bytes */
+    switch (pdrs->p_op) {
+    case PDR_FREE:  /* Already handled above, but silences compiler warning */
         return TRUE;
-			case PDR_DECODE:
-        if (sp == NULL)
-					{
-						*cpp = sp = (char *)malloc(nodesize);
-					}
-        if (sp == NULL)
-					{
-						return FALSE;
-					}
+    case PDR_DECODE:
+        mrn_dbg(5, mrn_printf(0,0,0, stderr, "String size+1: %u\n", nodesize ));
+        if (sp == NULL) {
+            mrn_dbg(5, mrn_printf(FLF, stderr, "Allocating memory ...\n" ));
+            *cpp = sp = (char *)malloc(nodesize);
+        }
+        if (sp == NULL) {
+            mrn_dbg(5, mrn_printf(FLF, stderr, "Malloc failed\n" ));
+            return FALSE;
+        }
         sp[nodesize-1] = 0;
         /* fall into ... */
 				
-			case PDR_ENCODE:
+    case PDR_ENCODE:
+        mrn_dbg(5, mrn_printf(FLF, stderr, "Calling pdr_opaque ...\n" ));
         return pdr_opaque(pdrs, sp, nodesize);
-			}
+    }
+
     return FALSE;
 }
 
@@ -424,11 +420,11 @@ bool_t pdr_pointer(PDR *pdrs, char **objpp, uint32_t obj_size, pdrproc_t pdr_obj
  * elsize is the size (in bytes) of each element, and elproc is the
  * pdr procedure to call to handle each element of the array.
  */
-bool_t pdr_array(PDR *pdrs, char **addrp, uint32_t *sizep, uint32_t maxsize,
+bool_t pdr_array(PDR *pdrs, void **addrp, uint32_t *sizep, uint32_t maxsize,
                  uint32_t elsize, pdrproc_t elproc)
 {
     uint32_t i;
-    char * target = *addrp;
+    char * target = (char*) *addrp;
     uint32_t c;  /* the actual element count */
     bool_t stat = TRUE;
     uint32_t nodesize;
@@ -452,7 +448,8 @@ bool_t pdr_array(PDR *pdrs, char **addrp, uint32_t *sizep, uint32_t maxsize,
         case PDR_DECODE:
             if (c == 0)
             return (TRUE);
-            *addrp = target = (char *)malloc(nodesize);
+            *addrp = malloc(nodesize);
+            target = (char*) *addrp;
             if (target == NULL) {
               return (FALSE);
             }

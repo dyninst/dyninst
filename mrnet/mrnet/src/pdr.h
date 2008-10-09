@@ -11,7 +11,7 @@
 extern "C" {
 #endif /* defined(__cplusplus) */
 
-#include "Types.h"
+#include "mrnet/Types.h"
 
 enum pdr_op {
     PDR_FREE=0,
@@ -96,7 +96,7 @@ extern bool_t   pdr_reference(PDR *pdrs, char * *pp, uint32_t size,
 extern bool_t   pdr_pointer(PDR *pdrs, char **objpp, uint32_t obj_size,
                           pdrproc_t pdr_obj);
 
-extern bool_t   pdr_array(PDR *pdrs, char **addrp, uint32_t *sizep,
+extern bool_t   pdr_array(PDR *pdrs, void **addrp, uint32_t *sizep,
                           uint32_t maxsize, uint32_t elsize, pdrproc_t elproc);
 extern bool_t   pdr_vector(PDR *pdrs, char *basep, uint32_t nelem,
                           uint32_t elemsize, pdrproc_t pdr_elem);
@@ -120,6 +120,8 @@ extern uint32_t pdr_sizeof (pdrproc_t, void *);
 #if defined(__cplusplus)
 }
 #endif /* defined(__cplusplus) */
+
+#ifdef NEED_XDR_COMPAT_MACROS
 
 /****************************/
 /* XDR compatibility macros */
@@ -174,11 +176,12 @@ extern uint32_t pdr_sizeof (pdrproc_t, void *);
  * xdr streams.
  */
 
-
 #define xdrmem_create pdrmem_create
 
 /* free memory buffers for xdr */
 #define xdr_free pdr_free
+
+#endif /* NEED_XDR_COMPAT_MACROS */
 
 /* Convenience Macros */
 #define pdr_getchar(pdrs, charp)                        \
