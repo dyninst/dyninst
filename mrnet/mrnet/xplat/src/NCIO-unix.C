@@ -3,11 +3,12 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NCIO-unix.C,v 1.5 2007/03/20 23:20:19 darnold Exp $
+// $Id: NCIO-unix.C,v 1.6 2008/10/09 19:53:58 mjbrim Exp $
 #include <unistd.h>
 #include <limits.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 #include <string.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
@@ -101,16 +102,15 @@ NCRecv( XPSOCKET s, NCBuf* ncbufs, unsigned int nBufs )
 
         // do the receive
         int sret = recvmsg( s, &msg, NCBlockingRecvFlag );
-        delete[] msg.msg_iov;
-        if( sret < 0 )
-        {
+
+        if( sret < 0 ) {
+            perror( "recvmsg()");
             ret = sret;
             break;
-        }
-        else
-        {
+        } else {
             ret += sret;
         }
+        delete[] msg.msg_iov;
 
         // advance through buffers
         nBufsLeftToRecv -= nBufsToRecv;
