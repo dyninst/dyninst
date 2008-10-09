@@ -1,54 +1,47 @@
 /****************************************************************************
- * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2008 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include <stdio.h>
-#include <assert.h>
 #include <ctype.h>
 
 #include "mrnet/MRNet.h"
+#include "utils.h"
+
+#include "xplat/Tokenizer.h"
+
+using namespace std;
 
 namespace MRN{
-std::map<std::string, TreeNode *> Tree::NodesByName;
+
+Tree::Node::Node(string n) : _name(n), visited(false)
+{}
 
 
-TreeNode::TreeNode( std::string n) : _name(n), visited(false)
+void Tree::Node::add_Child( Tree::Node * n)
 {
+    children.insert( n );
 }
 
-void TreeNode::add_Child( TreeNode * n)
-{
-    std::list<TreeNode*>::iterator iter;
-
-    for( iter=children.begin(); iter!=children.end(); iter++ ){
-        if( (*iter) == n ){
-            return;
-        }
-    }
-
-    children.push_back( n );
-}
-
-void TreeNode::print_ToFile(FILE *f)
+void Tree::Node::print_ToFile(FILE *f)
 {
     if( children.size() == 0 )
         return;
 
     fprintf(f, "%s =>", _name.c_str() );
 
-    std::list<TreeNode*>::iterator iter;
+    set<Tree::Node*>::iterator iter;
     for( iter=children.begin(); iter!= children.end(); iter++){
         fprintf(f, "\n\t%s", (*iter)->name().c_str() );
     }
-    fprintf(f, ";\n\n");
+    fprintf(f, " ;\n\n");
 
     for( iter=children.begin(); iter!= children.end(); iter++){
         (*iter)->print_ToFile( f );
     }
 }
 
-unsigned int TreeNode::visit()
+unsigned int Tree::Node::visit()
 {
     int retval;
     unsigned int num_nodes_visited=1;
@@ -59,7 +52,7 @@ unsigned int TreeNode::visit()
 
     visited=true;
 
-    std::list<TreeNode*>::iterator iter;
+    set<Tree::Node*>::iterator iter;
 
     for( iter=children.begin(); iter!=children.end(); iter++ ){
         retval = (*iter)->visit();
@@ -73,39 +66,73 @@ unsigned int TreeNode::visit()
 }
 
 Tree::Tree( )
-    :root(0), _contains_cycle(false), _contains_unreachable_nodes(false)
+    :root(0), _contains_cycle(false), _contains_unreachable_nodes(false),
+    _fanout(0), _num_leaves(0), _depth(0)
 {
 }
 
-TreeNode * Tree::get_Node( std::string & hostname )
+Tree::Node * Tree::get_Node( string hostname )
 {
-    TreeNode * node;
+    Tree::Node * node;
 
-    std::map<std::string, TreeNode *>::iterator iter;
+    map<string, Tree::Node *>::iterator iter;
 
     iter = NodesByName.find( hostname );
     if( iter != NodesByName.end() ){
         node = (*iter).second;
     }
     else{
-        node = new TreeNode( hostname );
+        node = new Tree::Node( hostname );
         NodesByName[hostname] = node;
     }
 
     return node;
 }
 
-void Tree::create_TopologyFile( FILE * f )
+bool Tree::create_TopologyFile( FILE * ifile )
 {
+    root->print_ToFile( ifile );
+
+    return true;
+}
+
+bool Tree::create_TopologyFile( const char * ifilename )
+{
+    FILE * f = fopen( ifilename, "w" );
+
+    if( f == NULL ) {
+        perror( "fopen()" );
+        return false;
+    }
     root->print_ToFile( f );
-    //std::map<std::string, TreeNode *>::iterator iter;
-    //for( iter=NodesByName.begin(); iter!=NodesByName.end(); iter++){
-        //(*iter).second->print_ToFile( f );
-    //}
+    fclose( f );
+
+    return true;
 }
 
 void Tree::get_TopologyBuffer( char ** /* buf */ )
 {
+}
+
+bool Tree::get_HostsFromFile( const char* ifilename, list< string >& hosts )
+{
+    FILE * f = fopen( ifilename, "r" );
+    if( f == NULL ) {
+        perror( "fopen()" );
+        return false;
+    }
+    else {
+        get_HostsFromFileStream( f, hosts );
+        fclose( f );
+        return true;
+    }
+}
+
+void Tree::get_HostsFromFileStream( FILE* ifile, list< string >& hosts )
+{
+    char cur_host[256];
+    while( fscanf( ifile, "%s", cur_host ) != EOF )
+        hosts.push_back( cur_host );
 }
 
 bool Tree::validate()
@@ -126,80 +153,283 @@ bool Tree::validate()
     return retval;
 }
 
-BalancedTree::BalancedTree( std::list<std::string> &hosts, std::string & topology_spec )
-    :_fanout(0), _num_leaves(0), _depth(0)
+BalancedTree::BalancedTree( string &itopology_spec,
+                            list< string > &ihosts,
+                            unsigned int ife_procs_per_node  /* =1 */,
+                            unsigned int ibe_procs_per_node  /* =1 */,
+                            unsigned int iint_procs_per_node /* =1 */ )
 {
-    int retval;
-
-    retval = sscanf(topology_spec.c_str(), "%ux%u", &_fanout, &_num_leaves);
-    if( retval != 2 ){
-        fprintf(stderr, "Bad topology specification for balanced tree: \"%s\"."
-                "Should be of format FxN.\n", topology_spec.c_str() );
-        exit(-1);
-    }
-
-    unsigned int tmp_int = _num_leaves;
-    do{
-        if( tmp_int % _fanout != 0 ){
-            fprintf(stderr, "num_backends(%d) must be a power of fanout(%d)\n",
-                    _num_leaves, _fanout);
-            exit(-1);
-        }
-        tmp_int /= _fanout;
-        _depth++;
-    } while (tmp_int != 1);
-
-    unsigned int pow=1;
-    unsigned int num_nodes_needed=0;
-    for(unsigned int i=0; i<=_depth; i++){
-        num_nodes_needed += pow;
-        pow*=_fanout;
-    }
-
-    if ( hosts.size() < num_nodes_needed ){
-        fprintf( stderr, "Need %d nodes for topology %s. Hostfile has %d\n",
-                 num_nodes_needed, topology_spec.c_str(), hosts.size() );
-        exit(-1);
-    }
-
-    std::list< std::string> ::iterator next_parent_iter, next_orphan_iter;
-    next_orphan_iter = next_parent_iter = hosts.begin();
-    next_orphan_iter++;
-    TreeNode * cur_parent_node=0;
-
-    //fprintf(stderr, "%d backends, %d fanout, %d nodes\n", _num_leaves, _fanout, num_nodes_needed );
-
-    for(unsigned int ii=1; ii<num_nodes_needed; ){
-        cur_parent_node = get_Node( *next_parent_iter );
-        if( !root ){
-            root = cur_parent_node;
-        }
-        next_parent_iter++;
-        //fprintf(f, "%s => ", hosts[cur_parent-1]);
-
-        for(unsigned int j=0; j<_fanout; j++){
-            cur_parent_node->add_Child( get_Node( *next_orphan_iter ) );
-            next_orphan_iter++;
-            ii++;
-            //fprintf(f, "%s ", hosts[next_orphan-1]);
-        }
-        //fprintf(f, ";\n");
-    }
+    _fe_procs_per_node = ife_procs_per_node;
+    _be_procs_per_node = ibe_procs_per_node;
+    _int_procs_per_node = iint_procs_per_node;
+    initialize_Tree( itopology_spec, ihosts );
 }
 
-GenericTree::GenericTree( std::list<std::string> &hosts,
-                          std::string & topology_spec )
+BalancedTree::BalancedTree( string &itopology_spec,
+                            string &ihost_file, 
+                            unsigned int ife_procs_per_node  /* =1 */,
+                            unsigned int ibe_procs_per_node  /* =1 */,
+                            unsigned int iint_procs_per_node /* =1 */ )
+{
+    _fe_procs_per_node = ife_procs_per_node;
+    _be_procs_per_node = ibe_procs_per_node;
+    _int_procs_per_node = iint_procs_per_node;
+
+    list< string > hosts;
+    if( get_HostsFromFile( ihost_file.c_str(), hosts ) )
+        initialize_Tree( itopology_spec, hosts );
+}
+
+bool BalancedTree::initialize_Tree( string &topology_spec, list< string > &hosts )
+{
+    bool uniform_fanout=false;
+    vector< unsigned int > fanouts;
+    vector< vector< Tree::Node*> > nodes_by_level;
+
+    if( topology_spec.find_first_of( "^" ) != string::npos ) {
+        uniform_fanout=true;
+
+        if( sscanf(topology_spec.c_str(), "%u^%u", &_fanout, &_depth) != 2 ) {
+            fprintf(stderr, "Bad topology specification: \"%s\"."
+                "Should be of format Fanout^Depth.\n", topology_spec.c_str() );
+            exit(-1);
+        }
+
+        for(unsigned int i=0; i<_depth; i++){
+            fanouts.push_back( _fanout );
+        }
+    }
+    else {
+        XPlat::Tokenizer tok( topology_spec );
+        std::string::size_type cur_len;
+        const char* delim = "x\n";
+        std::string::size_type cur_pos = tok.GetNextToken( cur_len, delim );
+
+        while( cur_pos != std::string::npos ) {
+            std::string cur_fanout = topology_spec.substr( cur_pos, cur_len );
+            fanouts.push_back( atoi( cur_fanout.c_str() ) );
+            cur_pos = tok.GetNextToken( cur_len, delim );
+        }
+    }
+
+    fprintf( stderr, "%lu hosts for topology: \"%s\" (%u procs/fe, %u procs/be, %u procs/internal )\n",
+             (unsigned long)hosts.size(), topology_spec.c_str(), _fe_procs_per_node,
+             _be_procs_per_node, _int_procs_per_node );
+    list< string >::const_iterator list_iter = hosts.begin();
+    if( list_iter == hosts.end() ) {
+        fprintf( stderr, "Not enough hosts(%lu) for topology %s\n",
+                 (unsigned long)hosts.size(), topology_spec.c_str() );
+        exit(-1);
+    }
+    unsigned int procs_on_cur_host=0;
+    char cur_host[256];
+
+    //Process 1st level (root)
+    fprintf( stderr, "Processing root ...\n" );
+    nodes_by_level.push_back( vector< Tree::Node*>() );
+    snprintf( cur_host, sizeof(cur_host), "%s:%u",
+              (*list_iter).c_str(), procs_on_cur_host++ );
+    nodes_by_level[0].push_back( get_Node( cur_host ) );
+
+    if( procs_on_cur_host >= _fe_procs_per_node ) {
+        list_iter++;
+        if( list_iter == hosts.end() ) {
+            fprintf( stderr, "Not enough hosts(%lu) for topology %s\n",
+                     (unsigned long)hosts.size(), topology_spec.c_str() );
+            exit(-1);
+        }
+        procs_on_cur_host=0;
+    }
+
+    //Process internal levels
+    fprintf( stderr, "Processing internal nodes ...\n" );
+    unsigned int nodes_at_cur_level=1;
+    for( unsigned int i=0; i<fanouts.size()-1; i++ ) {
+        nodes_at_cur_level *= fanouts[i];
+        nodes_by_level.push_back( vector< Tree::Node*>() );
+
+        for( unsigned int j=0; j<nodes_at_cur_level; j++ ) {
+            if( procs_on_cur_host >= _int_procs_per_node ) {
+                list_iter++;
+                if( list_iter == hosts.end() ) {
+                    fprintf( stderr, "Not enough hosts(%lu) for topology %s\n",
+                             (unsigned long)hosts.size(), topology_spec.c_str() );
+                    exit(-1);
+                }
+                procs_on_cur_host=0;
+            }
+
+            snprintf( cur_host, sizeof(cur_host), "%s:%u",
+                      (*list_iter).c_str(), procs_on_cur_host++ );
+            nodes_by_level[ i+1 ].push_back( get_Node( cur_host ) );
+        }
+    }
+    if( procs_on_cur_host >= _int_procs_per_node ) {
+        list_iter++;
+        if( list_iter == hosts.end() ) {
+            fprintf( stderr, "Not enough hosts(%lu) for topology %s\n",
+                     (unsigned long)hosts.size(), topology_spec.c_str() );
+            exit(-1);
+        }
+        procs_on_cur_host=0;
+    }
+
+    //Process last level (leaves)
+    fprintf( stderr, "Processing leaves ...\n" );
+    nodes_at_cur_level *= fanouts[ fanouts.size()-1 ];
+    nodes_by_level.push_back( vector< Tree::Node*>() );
+
+    for( unsigned int i=0; i<nodes_at_cur_level; i++ ) {
+        if( procs_on_cur_host >= _be_procs_per_node ) {
+            list_iter++;
+            if( list_iter == hosts.end() ) {
+                fprintf( stderr, "Not enough hosts(%lu) for topology %s\n",
+                         (unsigned long)hosts.size(), topology_spec.c_str() );
+                exit(-1);
+            }
+            procs_on_cur_host=0;
+        }
+
+        snprintf( cur_host, sizeof(cur_host), "%s:%u",
+                  (*list_iter).c_str(), procs_on_cur_host++ );
+        nodes_by_level[ fanouts.size() ].push_back( get_Node( cur_host ) );
+    }
+
+    unsigned int next_orphan_idx=0;
+    Tree::Node * cur_parent_node=0;
+    for( unsigned int i=0; i<nodes_by_level.size()-1; i++ ) {
+        next_orphan_idx=0;
+
+        for( unsigned int j=0; j<nodes_by_level[i].size(); j++ ) {
+            //assign orphans to each parent at current level
+            cur_parent_node = nodes_by_level[i][j];
+            if( !root ){
+                root = cur_parent_node;
+            }
+
+            for(unsigned int k=0; k<fanouts[i]; k++){
+                cur_parent_node->add_Child
+                    ( nodes_by_level[i+1][next_orphan_idx] );
+                next_orphan_idx++;
+            }
+        }
+    }
+
+    return true;
+}
+
+KnomialTree::KnomialTree( std::string &itopology_spec, std::list<std::string> &ihosts )
+{
+    initialize_Tree( itopology_spec, ihosts );
+}
+
+KnomialTree::KnomialTree( std::string &itopology_spec, std::string &ihost_file )
+{
+    list< string > hosts;
+    if( get_HostsFromFile( ihost_file.c_str(), hosts ) )
+        initialize_Tree( itopology_spec, hosts );
+}
+
+bool KnomialTree::initialize_Tree( std::string &topology_spec,
+                                   std::list<std::string> &hosts )
+{
+    map< string, vector<string> > tree;
+    unsigned kfactor, num_nodes;
+
+    if( topology_spec.find_first_of( "@" ) != string::npos ) {
+        if( sscanf(topology_spec.c_str(), "%u@%u", &kfactor, &num_nodes) != 2 ) {
+            fprintf(stderr, "Bad topology specification: \"%s\". "
+                "Should be of format Fanout^Depth.\n", topology_spec.c_str() );
+            exit(-1);
+        }
+    }
+    else {
+        fprintf( stderr, "Bad topology specification: \"%s\". "
+                 "Should be of format K_NumNodes.\n", topology_spec.c_str() );
+        exit(-1);
+    }
+
+    _fanout = kfactor;
+    unsigned max_depth = 0;
+
+    /* Algorithm: Host list treated as two sub-lists, USED and AVAIL. USED is
+                  initialized to the first host (the root), AVAIL to the rest.
+                  While we still have available hosts and haven't reached the 
+                  desired total number of nodes, each member of USED will be
+                  assigned k-1 new children from AVAIL. After each round of 
+                  adding children from AVAIL to the members of USED, the size
+                  of USED is effectively multiplied by k.
+    */
+
+    unsigned curr_step_nodes = 1;
+
+    list< string >::iterator avail_iter = hosts.begin();
+    if( !root )
+        root = get_Node( *avail_iter );
+    avail_iter++;
+
+
+    while( avail_iter != hosts.end() && 
+           curr_step_nodes < num_nodes ) {
+
+        max_depth++;
+
+        list< string >::iterator used_iter = hosts.begin();
+        list< string >::iterator stop_iter = avail_iter;
+
+        for( ; (used_iter != stop_iter) && (curr_step_nodes < num_nodes); used_iter++) {
+            vector< string >& children = tree[ *used_iter ];
+            for(int i=0; (i < kfactor-1) && 
+                         (avail_iter != hosts.end()) && 
+                         (curr_step_nodes < num_nodes) ; i++, avail_iter++, curr_step_nodes++) {
+                children.push_back( *avail_iter );
+            }
+        }
+
+    }
+
+    _depth = max_depth;
+    _num_leaves = num_nodes - tree.size();
+
+    map< string, vector< string > >::iterator parent = tree.begin();
+    for( ; parent != tree.end() ; parent++ ) {
+       Tree::Node* pnode = get_Node( parent->first );
+       
+       vector< string >& children = parent->second;
+       vector< string >::iterator child = children.begin();
+       for( ; child != children.end(); child++ )
+          pnode->add_Child( get_Node(*child) );
+    }
+
+    return true;
+}
+
+GenericTree::GenericTree( string &itopology_spec,
+                          list< string > &ihosts )
+{
+    initialize_Tree( itopology_spec, ihosts );
+}
+
+GenericTree::GenericTree( string &itopology_spec,
+                          string &ihost_file )
+{
+    list< string > hosts;
+    if( get_HostsFromFile( ihost_file.c_str(), hosts ) )
+        initialize_Tree( itopology_spec, hosts );
+}
+
+bool GenericTree::initialize_Tree( string &topology_spec, list< string > &hosts )
 {
     bool new_child_spec=false, new_level=false, first_time=true;
     const char * cur_pos_ptr;
     char cur_item[16];
     unsigned int cur_item_pos=0, cur_num_children;
-    std::vector< TreeNode *> cur_level_nodes, next_level_nodes;
-    std::vector< unsigned int > cur_level_num_children;
-    TreeNode * cur_node, *next_child;
+    vector< Tree::Node *> cur_level_nodes, next_level_nodes;
+    vector< unsigned int > cur_level_num_children;
+    Tree::Node * cur_node, *next_child;
     unsigned int child_spec_multiplier=1;
 
-    std::list<std::string>::iterator next_orphan_iter=hosts.begin();
+    list<string>::iterator next_orphan_iter=hosts.begin();
 
     for( cur_pos_ptr = topology_spec.c_str(); ;
          cur_pos_ptr++ ){
@@ -261,11 +491,13 @@ GenericTree::GenericTree( std::list<std::string> &hosts,
 
         cur_level_nodes = next_level_nodes;
         next_level_nodes.clear();
+        string next_orphan;
         for( unsigned int i=0; i<cur_level_num_children.size(); i++ ){
             cur_num_children = cur_level_num_children[ i ];
 
             if( !root ){
-                root = get_Node( *next_orphan_iter );
+                next_orphan = *next_orphan_iter;
+                root = get_Node( next_orphan );
                 next_orphan_iter++;
                 cur_node = root;
             }
@@ -274,7 +506,8 @@ GenericTree::GenericTree( std::list<std::string> &hosts,
             }
 
             for( unsigned int j=0; j<cur_num_children; j++ ){
-                next_child = get_Node( *next_orphan_iter );
+                next_orphan = *next_orphan_iter;
+                next_child = get_Node( next_orphan );
                 next_orphan_iter++;
 
                 cur_node->add_Child( next_child );
@@ -287,6 +520,8 @@ GenericTree::GenericTree( std::list<std::string> &hosts,
             break;
         }
     }
+
+    return true;
 }
 
 } /* namespace MRN */
