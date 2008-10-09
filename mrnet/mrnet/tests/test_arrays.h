@@ -6,7 +6,7 @@
 #if !defined(test_array_h)
 #define test_array_h 1
 
-typedef enum {PROT_EXIT=FIRST_APPL_TAG,
+typedef enum {PROT_EXIT=FirstApplicationTag,
               PROT_CHAR, PROT_UCHAR,
               PROT_SHORT, PROT_USHORT,
               PROT_INT, PROT_UINT,

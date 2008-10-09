@@ -6,14 +6,16 @@
 #if !defined(test_h)
 #define test_h
 
-#include "sys/time.h"
+#include "DataElement.h"
+#include "utils.h"
+#include "mrnet/MRNet.h"
+using namespace MRN;
+
 #include <string>
 #include <map>
-#include "DataElement.h"
-#include "mrnet/MRNet.h"
 
 
-namespace MRN_test{
+namespace MRN_test {
 
 extern std::map< MRN::DataType, std::string> Type2String;
 extern std::map< MRN::DataType, const char *> Type2FormatString;
@@ -80,7 +82,6 @@ class Test{
     int end_SubTest(const std::string & subtest_name, TestStatus status);
     void print(const char *, const std::string& subtest_name="");
 };
-
 
 }
 

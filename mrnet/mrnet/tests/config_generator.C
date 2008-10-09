@@ -7,21 +7,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if !defined(os_windows)
-#include <unistd.h>
-#include <getopt.h>
+#if defined(os_linux)
+# include <getopt.h>
+#elif !defined(os_windows)
+# include <unistd.h>
 #else
-#include "common/h/ntHeaders.h"
+extern int P_getopt(int argc, char* argv[], const char* optstring);
+#define getopt P_getopt
 #endif
 
 #include <list>
 #include <string>
 
 #include "mrnet/MRNet.h"
-#include "Topology.h"
 
-static std::list<std::string> get_HostsFromFile( FILE *);
-static void print_usage();
+static void print_usage(char* program);
 
 int main(int argc, char **argv)
 {
@@ -30,26 +30,28 @@ int main(int argc, char **argv)
     int c;
     FILE * infile, *outfile;
 
+    if( argc == 1 ){
+        print_usage(argv[0]);
+        exit(0);
+    }
 
+    extern char * optarg;
+    const char optstring[] = "b:k:o:";
     while (true) {
 
-#if !defined(os_windows)
+#if defined(os_linux)
         int option_index = 0;
         static struct option long_options[] = {
             {"balanced", 1, 0, 'b'},
-            {"binomial", 1, 0, 'n'},
+            {"knomial", 1, 0, 'k'},
             {"other", 1, 0, 'o'},
             {0, 0, 0, 0}
         };
-
-        c = getopt_long (argc, argv, "b:n:o", long_options, &option_index);
+        c = getopt_long( argc, argv, optstring, long_options, &option_index );
 #else
-		extern char * optarg;
-        const char optstring[] = "b:n:o";
-        c = P_getopt(argc, argv, optstring);
-#endif /* os_windows */
-
-		if (c == -1)
+        c = getopt( argc, argv, optstring );
+#endif
+        if (c == -1)
             break;
 
         switch (c) {
@@ -57,8 +59,8 @@ int main(int argc, char **argv)
             topology_type = "balanced";
             topology = optarg;
             break;
-        case 'n':
-            topology_type = "binomial";
+        case 'k':
+            topology_type = "knomial";
             topology = optarg;
             break;
         case 'o':
@@ -66,7 +68,7 @@ int main(int argc, char **argv)
             topology = optarg;
             break;
         default:
-            print_usage();
+            print_usage(argv[0]);
             break;
         }
     }
@@ -86,7 +88,7 @@ int main(int argc, char **argv)
              ( std::string(argv[argc-1]).find('=') != std::string::npos ) ) {
         fprintf(stderr, "topology_type \"%s\" should be last, 2nd to last or 3rd to last!\n",
                 topology.c_str());
-        print_usage();
+        print_usage(argv[0]);
     }
 
     if( machine_file == "" ){
@@ -112,35 +114,34 @@ int main(int argc, char **argv)
         }
     }
 
-    if( topology_type == "binomial" ){
-        fprintf(stderr, "binomial topologies not yet supported\n" );
-        exit(-1);
-    }
-    else if( topology_type == "balanced" ){
+    MRN::Tree::get_HostsFromFileStream(infile, hosts);
+
+    MRN::Tree * tree=NULL;
+
+    if( topology_type == "balanced" ){
         //fprintf(stderr, "Creating balanced topology \"%s\" from \"%s\" to \"%s\"\n",
                 //topology.c_str(),
                 //( machine_file == "" ? "stdin" : machine_file.c_str() ),
                 //( output_file == "" ? "stdout" : output_file.c_str() ) );
+        tree = new MRN::BalancedTree( topology, hosts );
+    }
+    else if( topology_type == "knomial" ){
+        //fprintf(stderr, "Creating k-nomial topology \"%s\" from \"%s\" to \"%s\"\n",
+                //topology.c_str(),
+                //( machine_file == "" ? "stdin" : machine_file.c_str() ),
+                //( output_file == "" ? "stdout" : output_file.c_str() ) );
+        tree = new MRN::KnomialTree( topology, hosts );
     }
     else if( topology_type == "other" ){
         //fprintf(stderr, "Creating generic topology \"%s\" from \"%s\" to \"%s\"\n",
                 //topology.c_str(),
                 //( machine_file == "" ? "stdin" : machine_file.c_str() ),
                 //( output_file == "" ? "stdout" : output_file.c_str() ) );
+        tree = new MRN::GenericTree( topology, hosts );
     }
     else{
         fprintf(stderr, "Error: Unknown topology \"%s\".", topology.c_str() );
         exit(-1);
-    }
-
-    hosts = get_HostsFromFile(infile);
-
-	MRN::Tree * tree=NULL;
-    if( topology_type == "balanced" ){
-        tree = new MRN::BalancedTree( hosts, topology );
-    }
-    else if( topology_type == "other" ){
-        tree = new MRN::GenericTree( hosts, topology );
     }
 
     tree->create_TopologyFile( outfile );
@@ -148,46 +149,30 @@ int main(int argc, char **argv)
     return 0;
 }
 
-std::list<std::string> get_HostsFromFile(FILE * f)
+
+
+void print_usage(char* program)
 {
-    std::list<std::string> hosts;
-    char tmp_str[128], tmp_str2[128], *num_proc_str;
-    char * cur_host;
-    unsigned int num_procs;
-
-    while( fscanf(f, "%s", tmp_str) != EOF ){
-        cur_host = tmp_str;
-        num_procs = 1;
-
-        if( (num_proc_str = strstr(tmp_str, ":")) != NULL ){
-            *(num_proc_str) = '\0'; //null terminate host name
-            num_procs = atoi(num_proc_str+1);
-        }
-
-        for(unsigned int i=0; i<num_procs; i++){
-            sprintf(tmp_str2, "%s:%d", cur_host, i);
-            hosts.push_back( tmp_str2 ); //place in host vector
-        }
-    }
-
-    return hosts;
-}
-
-void print_usage()
-{
-    fprintf( stderr, "\nUsage: mrnet_topgen <OPTION> [INFILE] [OUTFILE]\n\n"
+    fprintf( stderr, "\nUsage: %s <TOPOLOGY_OPTION> [INFILE] [OUTFILE]\n\n"
 
              "Create a MRNet topology specification from machine list in [INFILE],\n"
              "or standard input, and writes output to [OUTFILE], or standard output.\n"
+
              "\t-b topology, --balanced=topology\n"
              "\t\tCreate a balanced tree using \"topology\" specification. The specification\n"
-             "\t\tis in the format DxN, where D is the fan-out or out degree of each node and N is\n"
-             "\t\tthe number of leaves or back-ends.\n\n"
+             "\t\tis in the format F^D, where F is the fan-out (or out-degree) and D is the\n"
+             "\t\ttree depth. The number of tree leaves (or back-ends) will be F^D.\n\n"
+             "\t\tExample: \"16^3\" means a tree of depth 3 with fan-out 16, with 4096 leaves.\n\n"
 
-             "\t-n topology, --binomial=topology\n"
-             "\t\tCurrently unsupported\n\n"
+             "\t-k topology, --knomial=topology\n"
+             "\t\tCreate a k-nomial tree using \"topology\" specification. The specification\n"
+             "\t\tis in the format K@N, where K is the k-factor (>=2) and N is the\n"
+             "\t\ttotal number of tree nodes. The number of tree leaves (or back-ends) will be\n"
+             "\t\t(N/K)*(K-1).\n\n"
+             "\t\tExample: \"2@128\" means a binomial tree of 128 nodes, with 64 leaves.\n"
+             "\t\tExample: \"3@27\" means a trinomial tree of 27 nodes, with 18 leaves.\n\n"
 
-             "\t-o topology, --othter=topology\n"
+             "\t-o topology, --other=topology\n"
              "\t\tCreate a generic tree using \"topology\" specification. The specification\n"
              "\t\tfor this option is (the agreeably complicated) N:N,N,N:... where N specifies\n"
              "\t\tthe number of children a node has, ',' distinguishes nodes on the same level,\n"
@@ -196,6 +181,6 @@ void print_usage()
              "\t\t           and each child on the 2nd level has 2 children.\n"
              "\t\tExample 2: \"2:8,4\" specifies a tree where the root has 2 children.\n"
              "\t\t           At the 2nd level, the 1st child has 8 children, and the\n"
-             "\t\t           2nd child has 4 children\n" );
+             "\t\t           2nd child has 4 children\n", program );
     exit(-1);
 }

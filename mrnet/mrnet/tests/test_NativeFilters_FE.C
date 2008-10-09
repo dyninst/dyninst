@@ -4,8 +4,6 @@
  ****************************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "Types.h"
-#include "DataElement.h"
 #include "test_common.h"
 #include "test_NativeFilters.h"
 
@@ -37,11 +35,6 @@ int main(int argc, char **argv)
     test = new Test("MRNet Native Filter Test");
 	const char * dummy_argv=NULL;
     Network * network = new Network( topology_file, backend_exe, &dummy_argv  );
-    if( network->fail() ){
-        fprintf(stderr, "Network Initialization failure\n");
-        network->print_error(argv[0]);
-        exit(-1);
-    }
 
     test_Sum( network, CHAR_T );
     test_Sum( network, UCHAR_T );
@@ -66,18 +59,19 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    delete network;
-
     test->end_Test();
     delete test;
+
+    delete network;
 
     return 0;
 }
 
 int test_Sum( Network * network, DataType type )
 {
-    Packet * buf;
-    char send_val[8], recv_val[8], expected_val[8];
+    PacketPtr buf;
+    int64_t recv_buf; // we have alignment issues on some 64-bit platforms that require this
+    void* recv_val = (void*)&recv_buf;
     int retval=0;
     std::string testname;
     bool success=true;
@@ -90,7 +84,8 @@ int test_Sum( Network * network, DataType type )
     Communicator * comm_BC = network->get_BroadcastCommunicator( );
     Stream * stream = network->new_Stream( comm_BC, TFILTER_SUM,
                                            SFILTER_WAITFORALL);
-    int num_backends = stream->get_NumEndPoints();
+
+    int num_backends = stream->size();
 
     if( stream->send(tag, "%d", type) == -1 ){
         test->print("stream::send() failure\n", testname);
@@ -104,7 +99,7 @@ int test_Sum( Network * network, DataType type )
         return -1;
     }
 
-    retval = stream->recv(&tag, &buf);
+    retval = stream->recv(&tag, buf);
     assert( retval != 0 ); //shouldn't be 0, either error or block till data
     if( retval == -1){
         //recv error
@@ -116,7 +111,7 @@ int test_Sum( Network * network, DataType type )
         //Got data
         char tmp_buf[1024];
 
-        if( Stream::unpack( buf, Type2FormatString[type], recv_val ) == -1 ){
+        if( buf->unpack( Type2FormatString[type], recv_val ) == -1 ){
             test->print("stream::unpack() failure\n", testname);
             return -1;
         }
@@ -185,7 +180,9 @@ int test_Sum( Network * network, DataType type )
         case INT64_T:
             if( *((int64_t*)recv_val) != num_backends * INT64VAL ){
                 sprintf(tmp_buf,
-                        "recv_val(%lld) != INT64VAL(%lld)*num_backends(%d):%lld.\n",
+                        (sizeof(long int) == sizeof(int64_t) ? 
+                         "recv_val(%ld) != INT64VAL(%ld)*num_backends(%d):%ld.\n" :
+                         "recv_val(%lld) != INT64VAL(%lld)*num_backends(%d):%lld.\n"),
                         *((int64_t*)recv_val), INT64VAL, num_backends,
                         INT64VAL*num_backends );
                 test->print(tmp_buf, testname);
@@ -195,7 +192,9 @@ int test_Sum( Network * network, DataType type )
         case UINT64_T:
             if( *((uint64_t*)recv_val) != num_backends * UINT64VAL ){
                 sprintf(tmp_buf,
-                        "recv_val(%llu) != INT64VAL(%llu)*num_backends(%d):%llu.\n",
+                        (sizeof(long unsigned int) == sizeof(uint64_t) ? 
+                         "recv_val(%lu) != UINT64VAL(%lu)*num_backends(%d):%lu.\n" :
+                         "recv_val(%llu) != UINT64VAL(%llu)*num_backends(%d):%llu.\n"),
                         *((uint64_t*)recv_val), UINT64VAL, num_backends,
                         UINT64VAL*(uint64_t)num_backends );
                 test->print(tmp_buf, testname);
@@ -252,7 +251,7 @@ int test_Sum( Network * network, DataType type )
 #if defined (UNCUT)
 int test_Max( Network * network, DataType type )
 {
-    Packet * buf;
+    PacketPtr buf;
     char recv_val[8];
     int tag=0, retval=0;
     std::string testname;
@@ -279,7 +278,7 @@ int test_Max( Network * network, DataType type )
         return -1;
     }
 
-    retval = stream->recv(&tag, &buf);
+    retval = stream->recv(&tag, buf);
     assert( retval != 0 ); //shouldn't be 0, either error or block till data
     if( retval == -1){
         test->print("stream::recv() failure\n", testname);
@@ -289,7 +288,7 @@ int test_Max( Network * network, DataType type )
     else{
         char tmp_buf[1024];
 
-        if( Stream::unpack( buf, Type2FormatString[type], recv_val ) == -1 ){
+        if( buf->unpack( Type2FormatString[type], recv_val ) == -1 ){
             test->print("stream::unpack() failure\n", testname);
             return -1;
         }

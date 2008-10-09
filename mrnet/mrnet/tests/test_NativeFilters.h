@@ -8,7 +8,7 @@
 
 #include "timer.h"
 
-typedef enum { PROT_EXIT=FIRST_APPL_TAG, PROT_SUM, PROT_MAX } Protocol;
+typedef enum { PROT_EXIT=FirstApplicationTag, PROT_SUM, PROT_MAX } Protocol;
 
 const char_t CHARVAL=7;
 const uchar_t UCHARVAL=7;

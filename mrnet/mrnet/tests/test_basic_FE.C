@@ -4,11 +4,9 @@
  ****************************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "Types.h"
 #include "test_basic.h"
 #include "test_common.h"
 
-#include <string>
 #include <assert.h>
 
 using namespace MRN;
@@ -17,8 +15,6 @@ Test * test;
 
 int test_char( Network *, Stream *, bool anonymous=false, bool block=true);
 int test_char_array( Network *, Stream *, bool anonymous=false, bool block=true);
-int test_uchar( Network *, Stream *, bool anonymous=false, bool block=true);
-int test_uchar_array( Network *, Stream *, bool anonymous=false, bool block=true);
 
 int test_short( Network *, Stream *, bool anonymous=false, bool block=true);
 int test_short_array( Network *, Stream *, bool anonymous=false, bool block=true);
@@ -51,7 +47,6 @@ int main(int argc, char **argv)
 {
     Stream * stream_BC;
 
-    //set_OutputLevel(5);
     if( argc != 3 ){
         fprintf(stderr, "Usage: %s <topology file> <backend_exe>\n", argv[0]);
         exit(-1);
@@ -70,11 +65,6 @@ int main(int argc, char **argv)
 
     const char * dummy_argv=NULL;
     Network * network = new Network( argv[1], argv[2], &dummy_argv );
-    if( network->fail() ){
-        fprintf(stderr, "Network Initialization failure\n");
-        network->print_error(argv[0]);
-        exit(-1);
-    }
     Communicator * comm_BC = network->get_BroadcastCommunicator( );
     assert(comm_BC);
 
@@ -92,15 +82,6 @@ int main(int argc, char **argv)
     if( test_char( network, stream_BC, true, false) == -1 ){
     }
     if( test_char( network, stream_BC, true, true) == -1 ){
-    }
-            
-    if( test_uchar( network, stream_BC, false, true) == -1 ){
-    }
-    if( test_uchar( network, stream_BC, false, false) == -1 ){
-    }
-    if( test_uchar( network, stream_BC, true, false) == -1 ){
-    }
-    if( test_uchar( network, stream_BC, true, true) == -1 ){
     }
             
     if( test_short( network, stream_BC, false, true) == -1 ){
@@ -219,10 +200,10 @@ int main(int argc, char **argv)
 int test_char( Network * network, Stream *stream, bool anonymous, bool block)
 {
     Stream *recv_stream;
-    char send_val=-17, recv_val=0;
+    char send_val=(char)-17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_char(");
 
@@ -242,9 +223,9 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
 
-    fprintf(stderr,"[%s:%d] ***********number of end points = %d\n",__FILE__,__LINE__,num_to_receive);
+    //fprintf(stderr,"[%s:%d] ***********number of end points = %d\n",__FILE__,__LINE__,num_to_receive);
 
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
@@ -267,16 +248,20 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
             //recv error
-            test->print("stream::recv1() failure\n", testname);
+            test->print("stream::recv() failure\n", testname);
             test->end_SubTest(testname, FAILURE);
             return -1;
         }
@@ -294,117 +279,12 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 						//#endif
 
-            if( Stream::unpack( buf, "%c", &recv_val ) == -1 ){
+            if( buf->unpack( "%c", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
             if(send_val != recv_val ){
                 sprintf(tmp_buf, "send_val(%c) != recv_val(%c) failure.\n",
-                        send_val, recv_val);
-                test->print(tmp_buf, testname);
-                success = false;
-            }
-        }
-    } while(num_received < num_to_receive);
-
-    if( success ){
-        test->end_SubTest(testname, SUCCESS);
-        return 0;
-    }
-    else{
-        test->end_SubTest(testname, FAILURE);
-        return -1;
-    }
-
-    return 0;
-}
-
-/* 
- *  test_uchar(): bcast an unsigned char to all endpoints in stream.
- *  recv a char from every endpoint
- */
-int test_uchar( Network * network, Stream *stream, bool anonymous, bool block)
-{
-    Stream *recv_stream;
-    unsigned char send_val=17, recv_val=0;
-    int num_received=0, num_to_receive=0;
-    int tag;
-    Packet *buf;
-    bool success = true;
-    std::string testname("test_uchar(");
-
-    if(!anonymous){
-        testname += "stream_specific, ";
-    }
-    else{
-        testname += "stream_anonymous, ";
-    }
-
-    if(block){
-        testname += "blocking_recv)";
-    }
-    else{
-        testname += "non-blocking_recv)";
-    }
-
-    test->start_SubTest(testname);
-
-    num_to_receive = stream->get_NumEndPoints();
-    if( num_to_receive == 0 ){
-        test->print("No endpoints in stream\n", testname);
-        test->end_SubTest(testname, NOTRUN);
-        return -1;
-    }
-
-
-    if(stream->send(PROT_UCHAR, "%uc", send_val) == -1){
-        test->print("stream::send() failure\n", testname);
-        test->end_SubTest(testname, FAILURE);
-        return -1;
-    }
-
-    if(stream->flush() == -1){
-        test->print("stream::flush() failure\n", testname);
-        test->end_SubTest(testname, FAILURE);
-        return -1;
-    }
-
-    do{
-        int retval;
-
-        if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
-        }
-        else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
-        }
-
-        if( retval == -1){
-            //recv error
-            test->print("stream::recv() failure\n", testname);
-            test->end_SubTest(testname, FAILURE);
-            return -1;
-        }
-        else if ( retval == 0 ){
-            //No data available
-        }
-        else{
-            //Got data
-            char tmp_buf[256];
-
-            num_received++;
-#if defined(DEBUG)
-            sprintf(tmp_buf, "Received %d packets; %d left.\n",
-                    num_received, num_to_receive-num_received);
-            test->print(tmp_buf, testname);
-#endif
-
-            if( Stream::unpack( buf, "%uc", &recv_val ) == -1 ){
-                test->print("stream::unpack() failure\n", testname);
-                success = false;
-            }
-            if(send_val != recv_val ){
-                sprintf(tmp_buf, "send_val(%uc) != recv_val(%uc) failure.\n",
                         send_val, recv_val);
                 test->print(tmp_buf, testname);
                 success = false;
@@ -434,7 +314,7 @@ int test_short( Network * network, Stream *stream, bool anonymous, bool block)
     int16_t send_val=-17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_short(");
 
@@ -454,7 +334,7 @@ int test_short( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -477,11 +357,16 @@ int test_short( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -504,7 +389,7 @@ int test_short( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%hd", &recv_val ) == -1 ){
+            if( buf->unpack( "%hd", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -540,7 +425,7 @@ int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
     uint16_t send_val=17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_ushort(");
 
@@ -560,7 +445,7 @@ int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -583,11 +468,16 @@ int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -610,7 +500,7 @@ int test_ushort( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%uhd", &recv_val ) == -1 ){
+            if( buf->unpack( "%uhd", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -646,7 +536,7 @@ int test_int( Network * network, Stream *stream, bool anonymous, bool block)
     int32_t send_val = -17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_int(");
 
@@ -666,7 +556,7 @@ int test_int( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -689,11 +579,16 @@ int test_int( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -716,7 +611,7 @@ int test_int( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%d", &recv_val ) == -1 ){
+            if( buf->unpack( "%d", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -752,7 +647,7 @@ int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
     uint32_t send_val = 17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_uint(");
 
@@ -772,7 +667,7 @@ int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -795,11 +690,16 @@ int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -822,7 +722,7 @@ int test_uint( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%ud", &recv_val ) == -1 ){
+            if( buf->unpack( "%ud", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -858,7 +758,7 @@ int test_long( Network * network, Stream *stream, bool anonymous, bool block)
     int64_t send_val = -17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_long(");
 
@@ -878,7 +778,7 @@ int test_long( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -901,11 +801,16 @@ int test_long( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -928,13 +833,13 @@ int test_long( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%ld", &recv_val ) == -1 ){
+            if( buf->unpack( "%ld", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
             if( send_val != recv_val ){
                 sprintf(tmp_buf, "send_val(%lld) != recv_val(%lld) failure.\n",
-                        send_val, recv_val);
+                        (long long int)send_val, (long long int)recv_val);
                 test->print(tmp_buf, testname);
                 success = false;
             }
@@ -964,7 +869,7 @@ int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
     uint64_t send_val = 17, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_ulong(");
 
@@ -984,7 +889,7 @@ int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -1007,11 +912,16 @@ int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1034,13 +944,14 @@ int test_ulong( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%uld", &recv_val ) == -1 ){
+            if( buf->unpack( "%uld", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
             if(send_val != recv_val ){
                 sprintf(tmp_buf, "send_val(%llu) != recv_val(%llu) failure.\n",
-                        send_val, recv_val);
+                        (long long unsigned int)send_val, 
+                        (long long unsigned int)recv_val);
                 test->print(tmp_buf, testname);
                 success = false;
             }
@@ -1070,7 +981,7 @@ int test_float( Network * network, Stream *stream, bool anonymous, bool block)
     float send_val = -17.234, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_float(");
 
@@ -1090,7 +1001,7 @@ int test_float( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -1113,11 +1024,16 @@ int test_float( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1140,7 +1056,7 @@ int test_float( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%f", &recv_val ) == -1 ){
+            if( buf->unpack( "%f", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -1176,7 +1092,7 @@ int test_double( Network * network, Stream *stream, bool anonymous, bool block)
     double send_val = 17.3421, recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_double(");
 
@@ -1196,7 +1112,7 @@ int test_double( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -1219,11 +1135,16 @@ int test_double( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1246,7 +1167,7 @@ int test_double( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%lf", &recv_val ) == -1 ){
+            if( buf->unpack( "%lf", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -1282,7 +1203,7 @@ int test_string( Network * network, Stream *stream, bool anonymous, bool block)
     char *send_val=strdup("Test String"), *recv_val=0;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname("test_string(");
 
@@ -1302,7 +1223,7 @@ int test_string( Network * network, Stream *stream, bool anonymous, bool block)
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -1325,11 +1246,16 @@ int test_string( Network * network, Stream *stream, bool anonymous, bool block)
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1352,7 +1278,7 @@ int test_string( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 #endif
 
-            if( Stream::unpack( buf, "%s", &recv_val ) == -1 ){
+            if( buf->unpack( "%s", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -1388,7 +1314,7 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
     Stream *recv_stream;
     int num_received=0, num_to_receive=0;
     int tag;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
 
     char send_char='A', recv_char=0;
@@ -1421,7 +1347,7 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -1449,11 +1375,16 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
     do{
         int retval;
 
+        //In non-blocking mode we sleep b/n recv attempts
+        if( !block ){
+            sleep(2);
+        }
+
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
@@ -1476,12 +1407,11 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
             test->print(tmp_buf, testname);
 #endif
 
-            if(stream->unpack(buf,
-                              "%c %uc %hd %uhd %d %ud %ld %uld %f %lf %s",
-                              &recv_char, &recv_uchar,
-                              &recv_short, &recv_ushort,
-                              &recv_int, &recv_uint, &recv_long, &recv_ulong,
-                              &recv_float, &recv_double, &recv_string ) == 1){
+            if(buf->unpack( "%c %uc %hd %uhd %d %ud %ld %uld %f %lf %s",
+                            &recv_char, &recv_uchar,
+                            &recv_short, &recv_ushort,
+                            &recv_int, &recv_uint, &recv_long, &recv_ulong,
+                            &recv_float, &recv_double, &recv_string ) == 1){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
@@ -1512,8 +1442,9 @@ int test_alltypes( Network * network, Stream *stream, bool anonymous, bool block
                         send_char, recv_char, send_uchar, recv_uchar,
                         send_short, recv_short, send_ushort, recv_ushort,
                         send_int, recv_int, send_uint, recv_uint,
-                        send_long, recv_long,
-                        send_ulong, recv_ulong,
+                        (long long int)send_long, (long long int)recv_long,
+                        (long long unsigned int)send_ulong, 
+                        (long long unsigned int)recv_ulong,
                         send_float, recv_float, send_double, recv_double,
                         send_string, recv_string);
                 test->print(tmp_buf, testname);

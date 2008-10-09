@@ -37,11 +37,6 @@ int main(int argc, char **argv)
 
 	const char * dummy_argv=NULL;
     Network * network = new Network( topology_file, backend_exe, &dummy_argv );
-    if( network->fail() ){
-        fprintf(stderr, "Network Initialization failure\n");
-        network->print_error(argv[0]);
-        exit(-1);
-    }
 
     /* For all the following tests, the 1st bool param indicates *
      * whether the recv() call should be stream-anonymous or not *
@@ -79,7 +74,7 @@ int main(int argc, char **argv)
 int test_CountFilter( Network * network, const char * so_file )
 {
     int retval, tag, recv_val=0;
-    Packet * buf;
+    PacketPtr buf;
     std::string testname("test_Count"); 
 
     test->start_SubTest(testname);
@@ -105,7 +100,7 @@ int test_CountFilter( Network * network, const char * so_file )
         return -1;
     }
 
-    retval = stream->recv(&tag, &buf);
+    retval = stream->recv(&tag, buf);
     assert( retval != 0 ); //shouldn't be 0, either error or block till data
     if( retval == -1){
         //recv error
@@ -115,14 +110,14 @@ int test_CountFilter( Network * network, const char * so_file )
     }
     else{
         //Got data
-        if( Stream::unpack( buf, "%d", &recv_val ) == -1 ){
+        if( buf->unpack( "%d", &recv_val ) == -1 ){
             test->print("stream::unpack() failure\n", testname);
             return -1;
         }
-        if( recv_val != (int)stream->get_NumEndPoints( ) ){
+        if( recv_val != (int)stream->size() ){
             char tmp_buf[256];
             sprintf(tmp_buf, "recv_val(%d) != NumEndPoints(%d). Failure.\n",
-                    recv_val, stream->get_NumEndPoints( ) );
+                    recv_val, stream->size( ) );
             test->print(tmp_buf, testname);
             test->end_SubTest(testname, FAILURE);
             return -1;
@@ -136,7 +131,7 @@ int test_CountFilter( Network * network, const char * so_file )
 int test_CountOddsAndEvensFilter( Network * network, const char * so_file )
 {
     int num_odds=0, num_evens=0, retval, tag=0;
-    Packet * buf;
+    PacketPtr buf;
     std::string testname("test_CountOddsAndEvens"); 
 
     test->start_SubTest(testname);
@@ -164,7 +159,7 @@ int test_CountOddsAndEvensFilter( Network * network, const char * so_file )
         return -1;
     }
 
-    retval = stream->recv(&tag, &buf);
+    retval = stream->recv(&tag, buf);
     assert( retval != 0 ); //shouldn't be 0, either error or block till data
     if( retval == -1){
         //recv error
@@ -174,7 +169,7 @@ int test_CountOddsAndEvensFilter( Network * network, const char * so_file )
     }
     else{
         //Got data
-        if( Stream::unpack( buf, "%d %d", &num_odds, &num_evens ) == -1 ){
+        if( buf->unpack( "%d %d", &num_odds, &num_evens ) == -1 ){
             test->print("stream::unpack() failure\n", testname);
             test->end_SubTest(testname, FAILURE);
             return -1;

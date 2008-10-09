@@ -42,6 +42,7 @@ Test::SubTest::SubTest(const std::string & subtest_name, FILE *f)
     :name(subtest_name), fout(f), status(NOTRUN)
 {
     fprintf( fout, "    **Starting SubTest: \"%s\"\n", name.c_str() );
+    fflush(fout);
     timer.start();
 }
 
@@ -68,6 +69,7 @@ void Test::SubTest::end(TestStatus s)
                 timer.duration() );
         break;
     }
+    fflush(fout);
 }
 
 void Test::SubTest::print_status()
@@ -90,12 +92,14 @@ void Test::SubTest::print_status()
                 timer.duration() );
         break;
     }
+    fflush(fout);
 }
 
 Test::Test(const char *test_name, FILE *f)
     :name(test_name), fout(f), num_failures(0)
 {
     fprintf( fout, "  * Starting Test: \"%s\"\n", name.c_str() );
+    fflush(fout);
     timer.start();
 }
 
@@ -126,6 +130,7 @@ void Test::end_Test( )
             (*iter).second->print_status();
         }
     }
+    fflush(fout);
 }
 
 int Test::start_SubTest(const std::string & subtest_name)
@@ -137,6 +142,7 @@ int Test::start_SubTest(const std::string & subtest_name)
     if( iter != subtests.end() ){
         //subtest already exists
         fprintf(fout, "Subtest %s already exists\n", subtest_name.c_str() );
+        fflush(fout);
         return -1;
     }
 
@@ -155,6 +161,7 @@ int Test::end_SubTest(const std::string & subtest_name, TestStatus status)
     if( iter == subtests.end() ){
         //subtest does not already exist
         fprintf(fout, "Subtest %s does not exist\n", subtest_name.c_str() );
+        fflush(fout);
         return -1;
     }
 
@@ -176,6 +183,7 @@ void Test::print(const char *s, const std::string& subtest_name)
     else{
         fprintf(fout, "      %s: %s", subtest_name.c_str(), s);
     }
+    fflush(fout);
 }
 
 StaticInitializer::StaticInitializer()
@@ -226,10 +234,12 @@ void val2string( char * ostring, void * ival, MRN::DataType itype )
         sprintf(ostring, "%u", *((uint32_t *)ival) );
         break;
     case INT64_T:
-        sprintf(ostring, "%Ld", *((int64_t *)ival) );
+        sprintf(ostring, ( sizeof(long int) == sizeof(int64_t) ? "%ld" : "%lld" ), 
+                *((int64_t *)ival) );
         break;
     case UINT64_T:
-        sprintf(ostring, "%Lu", *((uint64_t *)ival) );
+        sprintf(ostring, ( sizeof(long unsigned int) == sizeof(uint64_t) ? "%lu" : "%llu" ), 
+                *((uint64_t *)ival) );
         break;
     case FLOAT_T:
         sprintf(ostring, "%f", *((float *)ival) );

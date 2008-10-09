@@ -81,7 +81,7 @@ main( int argc, char* argv[] )
     Stream* stream = network->new_Stream( bcComm, TFILTER_SUM );
     assert( bcComm != NULL );
     assert( stream != NULL );
-    unsigned int nBackends = bcComm->size();
+    unsigned int nBackends = bcComm->get_EndPoints().size();
     std::cout << "FE: broadcast communicator has " 
         << nBackends << " backends" 
         << std::endl;
@@ -117,13 +117,6 @@ BuildNetwork( std::string cfgfile, std::string backend_exe )
     std::cout << "FE: network instantiation: ";
     startTime.set_time();
     Network * network = new Network( cfgfile.c_str(), backend_exe.c_str(), &argv );
-    if( network->fail() )
-    {
-        std::cerr << "FE: network initialization failed" << std::endl;
-        network->print_error("FE:");
-        delete network;
-        exit(-1);
-    }
     endTime.set_time();
 
     // dump network instantiation latency
@@ -185,7 +178,7 @@ DoRoundtripLatencyExp( Stream* stream,
 
         // receive reduced value
         int tag;
-        Packet* buf = NULL;
+        PacketPtr buf;
         int rret = 0;
         nTries = 0;
 #if READY
@@ -195,8 +188,7 @@ DoRoundtripLatencyExp( Stream* stream,
         do
         {
             tag = 0;
-            buf = NULL;
-            rret = stream->recv( &tag, &buf );
+            rret = stream->recv( &tag, buf );
             if( rret == -1 )
             {
                 std::cerr << "FE: roundtrip latency recv() failed" << std::endl;
@@ -217,7 +209,7 @@ DoRoundtripLatencyExp( Stream* stream,
         else
         {
             int ival = 0;
-            stream->unpack(buf, "%d", &ival );
+            buf->unpack( "%d", &ival );
             if( ival != (int)nBackends )
             {
                 std::cerr << "FE: unexpected reduction value " << ival << " seen, expected " << nBackends << std::endl;
@@ -281,14 +273,13 @@ DoReductionThroughputExp( Stream* stream,
     {
         // receive reduced value
         int tag;
-        Packet* buf;
+        PacketPtr buf;
         int rret;
         unsigned int nTries = 0;
         do
         {
             tag = 0;
-            buf = NULL;
-            rret = stream->recv( &tag, &buf );
+            rret = stream->recv( &tag, buf );
             if( rret == -1 )
             {
                 std::cerr << "FE: reduction throughput recv() failed" 
@@ -311,7 +302,7 @@ DoReductionThroughputExp( Stream* stream,
         else
         {
             int ival = 0;
-            stream->unpack( buf, "%d", &ival );
+            buf->unpack( "%d", &ival );
             if( ival != (int)nBackends )
             {
                 std::cerr << "FE: unexpected reduction value " << ival << " received, expected " << nBackends << std::endl;

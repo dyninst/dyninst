@@ -16,20 +16,16 @@ using namespace MRN_test;
 int main(int argc, char **argv)
 {
     Stream * stream;
-    Packet * buf=NULL;
+    PacketPtr buf;
     int tag;
     bool success=true;
 
     srandom( time(NULL) ); //arbitrary seed to random()
 
     Network * network = new Network( argc, argv );
-    if( network->fail() ){
-        fprintf(stderr, "backend_init() failed\n");
-        return -1;
-    }
 
     do{
-        if ( network->recv(&tag, &buf, &stream) != 1){
+        if ( network->recv(&tag, buf, &stream) != 1){
             fprintf(stderr, "stream::recv() failure\n");
         }
 
@@ -68,5 +64,7 @@ int main(int argc, char **argv)
         }
     } while ( tag != PROT_EXIT );
 
-    exit(0);
+    // FE delete network will shut us down, so just go to sleep!!
+    sleep(10);
+    return 0;
 }

@@ -4,7 +4,6 @@
  ****************************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "Types.h"
 #include "test_common.h"
 #include "test_arrays.h"
 
@@ -13,19 +12,15 @@ using namespace MRN_test;
 
 int main(int argc, char **argv){
     Stream * stream;
-    Packet * buf=NULL;
+    PacketPtr buf;
     int tag=0, recv_array_len=0;
     void * recv_array=NULL;
     bool success=true;
 
     Network * network = new Network( argc, argv );
-    if( network->fail() ){
-        fprintf(stderr, "backend_init() failed\n");
-        return -1;
-    }
 
     do{
-        if ( network->recv(&tag, &buf, &stream) != 1){
+        if ( network->recv(&tag, buf, &stream) != 1){
             fprintf(stderr, "stream::recv() failure\n");
         }
 
@@ -33,7 +28,7 @@ int main(int argc, char **argv){
         switch(tag){
         case PROT_CHAR:
             fprintf( stdout, "Processing PROT_CHAR_ARRAY ...\n");
-            if( stream->unpack(buf, "%ac", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack("%ac", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%ac) failure\n");
                 success=false;
             }
@@ -44,7 +39,7 @@ int main(int argc, char **argv){
             break;
         case PROT_UCHAR:
             fprintf( stdout, "Processing PROT_UCHAR_ARRAY ...\n");
-            if( stream->unpack(buf, "%auc", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%auc", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%auc) failure\n");
                 success=false;
             }
@@ -55,7 +50,7 @@ int main(int argc, char **argv){
             break;
         case PROT_INT:
             fprintf( stdout, "Processing PROT_INT_ARRAY ...\n");
-            if( stream->unpack(buf, "%ad", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%ad", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%ad) failure\n");
                 success=false;
             }
@@ -66,7 +61,7 @@ int main(int argc, char **argv){
             break;
         case PROT_UINT:
             fprintf( stdout, "Processing PROT_UINT_ARRAY ...\n");
-            if( stream->unpack(buf, "%aud", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%aud", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%aud) failure\n");
                 success=false;
             }
@@ -77,7 +72,7 @@ int main(int argc, char **argv){
             break;
         case PROT_SHORT:
             fprintf( stdout, "Processing PROT_SHORT_ARRAY ...\n");
-            if( stream->unpack(buf, "%ahd", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%ahd", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%ahd) failure\n");
                 success=false;
             }
@@ -88,7 +83,7 @@ int main(int argc, char **argv){
             break;
         case PROT_USHORT:
             fprintf( stdout, "Processing PROT_USHORT_ARRAY ...\n");
-            if( stream->unpack(buf, "%auhd", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%auhd", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%auhd) failure\n");
                 success=false;
             }
@@ -99,11 +94,10 @@ int main(int argc, char **argv){
             break;
         case PROT_LONG:
             fprintf( stdout, "Processing PROT_LONG_ARRAY ...\n");
-            if( stream->unpack(buf, "%ald", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%ald", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%ald) failure\n");
                 success=false;
             }
-            fprintf(stderr, "recv_array= %p, len=%d\n", recv_array, recv_array_len);
             if( stream->send(tag, "%ald", recv_array, recv_array_len) == -1 ){
                 fprintf(stderr, "stream::send(%%ald) failure\n");
                 success=false;
@@ -111,7 +105,7 @@ int main(int argc, char **argv){
             break;
         case PROT_ULONG:
             fprintf( stdout, "Processing PROT_ULONG_ARRAY ...\n");
-            if( stream->unpack(buf, "%auld", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%auld", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%auld) failure\n");
                 success=false;
             }
@@ -122,7 +116,7 @@ int main(int argc, char **argv){
             break;
         case PROT_FLOAT:
             fprintf( stdout, "Processing PROT_FLOAT_ARRAY ...\n");
-            if( stream->unpack(buf, "%af", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%af", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%af) failure\n");
                 success=false;
             }
@@ -133,7 +127,7 @@ int main(int argc, char **argv){
             break;
         case PROT_DOUBLE:
             fprintf( stdout, "Processing PROT_DOUBLE_ARRAY ...\n");
-            if( stream->unpack(buf, "%alf", &recv_array, &recv_array_len) == -1 ){
+            if( buf->unpack( "%alf", &recv_array, &recv_array_len) == -1 ){
                 fprintf(stderr, "stream::unpack(%%alf) failure\n");
                 success=false;
             }
@@ -155,6 +149,8 @@ int main(int argc, char **argv){
         }
 
     } while( tag != PROT_EXIT );
-    
-    exit(0);
+
+    // FE delete network will shut us down, so just go to sleep!!
+    sleep(10);
+    return 0;
 }

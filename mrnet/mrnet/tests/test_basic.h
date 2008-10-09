@@ -6,7 +6,9 @@
 #if !defined(test_basic_h)
 #define test_basic_h 1
 
-typedef enum {PROT_EXIT=FIRST_APPL_TAG,
+#include "mrnet/Types.h"
+
+typedef enum {PROT_EXIT=FirstApplicationTag,
               PROT_CHAR, PROT_UCHAR,
               PROT_SHORT, PROT_USHORT,
               PROT_INT, PROT_UINT,

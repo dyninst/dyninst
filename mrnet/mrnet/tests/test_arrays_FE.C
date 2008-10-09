@@ -4,8 +4,6 @@
  ****************************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "Types.h"
-#include "DataElement.h"
 #include "test_common.h"
 #include "test_arrays.h"
 
@@ -39,15 +37,8 @@ int main(int argc, char **argv)
 
     test = new Test( "MRNet Basic Test", stdout );
 
-	const char * dummy_argv=NULL;
+    const char * dummy_argv=NULL;
     Network * network = new Network( argv[1], argv[2], &dummy_argv );
-    if( network->fail() ){
-        fprintf(stderr, "Network Initialization failure\n");
-        network->print_error(argv[0]);
-        delete network;
-        exit(-1);
-    }
-
     Communicator * comm_BC = network->get_BroadcastCommunicator();
 
     stream_BC = network->new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
@@ -173,7 +164,7 @@ int test_array( Network * network, Stream *stream, bool anonymous, bool block,
     unsigned int i, recv_array_len=0;
     int num_received=0, num_to_receive=0, data_size=0;
     int tag=0;
-    Packet *buf;
+    PacketPtr buf;
     bool success = true;
     std::string testname, format_string;
 
@@ -310,7 +301,7 @@ int test_array( Network * network, Stream *stream, bool anonymous, bool block,
 
     test->start_SubTest(testname);
 
-    num_to_receive = stream->get_NumEndPoints();
+    num_to_receive = stream->size();
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
         test->end_SubTest(testname, NOTRUN);
@@ -336,15 +327,15 @@ int test_array( Network * network, Stream *stream, bool anonymous, bool block,
         int retval;
 
         if(!anonymous){
-            retval = stream->recv(&tag, &buf, block);
+            retval = stream->recv(&tag, buf, block);
         }
         else{
-            retval = network->recv(&tag, &buf, &recv_stream, block);
+            retval = network->recv(&tag, buf, &recv_stream, block);
         }
 
         if( retval == -1){
             //recv error
-            test->print("stream::recv() failure\n", testname);
+            test->print("recv() failure\n", testname);
             test->end_SubTest(testname, FAILURE);
             free(send_array);
             return -1;
@@ -361,8 +352,8 @@ int test_array( Network * network, Stream *stream, bool anonymous, bool block,
                     num_received, num_to_receive-num_received);
             test->print(tmp_buf, testname);
 
-            if( Stream::unpack( buf, format_string.c_str(), &recv_array,
-                                &recv_array_len ) == -1 ){
+            if( buf->unpack( format_string.c_str(), &recv_array,
+                             &recv_array_len ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }

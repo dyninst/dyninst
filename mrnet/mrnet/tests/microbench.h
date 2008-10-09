@@ -6,8 +6,10 @@
 #if !defined( microbench_h )
 #define microbench_h 1
 
+#include "mrnet/MRNet.h"
+
 typedef enum {
-    MB_EXIT=FIRST_APPL_TAG,
+    MB_EXIT=FirstApplicationTag,
     MB_ROUNDTRIP_LATENCY,
     MB_RED_THROUGHPUT
 } Protocol;

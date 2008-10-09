@@ -21,7 +21,7 @@ main( int argc, char* argv[] )
     int ret = 0;
     Stream* stream;
     int tag;
-    Packet* buf = NULL;
+    PacketPtr buf;
 
 
     if( getenv( "MRN_DEBUG_BE" ) != NULL )
@@ -34,14 +34,6 @@ main( int argc, char* argv[] )
         }
     }
 
-    if( argc != 5 )
-    {
-        std::cerr << argv[0] << ": invalid/incomplete command line\n"
-            << argv[0] << ": usage: " << argv[0] << " parentHostname parentPort backendHostname backendRank"
-            << std::endl;
-        exit( 1 );
-    }
-
 #if READY
     // become a daemon process
     BeDaemon();
@@ -50,11 +42,6 @@ main( int argc, char* argv[] )
 
     // join the MRNet network
     Network * network = new Network( argc, argv );
-    if( network->fail() )
-    {
-        std::cerr << argv[0] << "init_Backend() failed" << std::endl;
-        return -1;
-    }
 
     // participate in the broadcast/reduction roundtrip latency experiment
     bool done = false;
@@ -62,7 +49,7 @@ main( int argc, char* argv[] )
     {
         // receive the broadcast message
         tag = 0;
-        int rret = network->recv( &tag, &buf, &stream );
+        int rret = network->recv( &tag, buf, &stream );
         if( rret == -1 )
         {
             std::cerr << "BE: Stream::recv() failed" << std::endl;
@@ -73,7 +60,7 @@ main( int argc, char* argv[] )
         {
             // extract the value and send it back
             int ival = 0;
-            stream->unpack( buf, "%d", &ival );
+            buf->unpack( "%d", &ival );
 
 #if READY
             std::cout << "BE: roundtrip lat, received val " << ival << std::endl;
@@ -108,11 +95,10 @@ main( int argc, char* argv[] )
 
     // determine the number of reductions required
     assert( tag == MB_RED_THROUGHPUT );
-    assert( buf != NULL );
     assert( stream != NULL );
     int nReductions = 0;
     int ival;
-    stream->unpack( buf, "%d %d", &nReductions, &ival );
+    buf->unpack( "%d %d", &nReductions, &ival );
 
 #if READY
     std::cout << "BE: received throughput exp start message"
@@ -137,7 +123,7 @@ main( int argc, char* argv[] )
     // cleanup
     // receive a go-away message
     tag = 0;
-    int rret = network->recv( &tag, &buf, &stream );
+    int rret = network->recv( &tag, buf, &stream );
     if( (rret != -1) && (tag != MB_EXIT) )
     {
         std::cerr << "BE: received unexpected go-away tag " << tag << std::endl;
@@ -147,7 +133,9 @@ main( int argc, char* argv[] )
         std::cerr << "BE: received unexpected go-away tag " << tag << std::endl;
     }
 
-    return ret;
+    // FE delete network will shut us down, so just go to sleep!!
+    sleep(10);
+    return 0;
 }
 
 void
