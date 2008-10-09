@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: SharedObject.h,v 1.4 2007/01/24 19:33:50 darnold Exp $
+// $Id: SharedObject.h,v 1.5 2008/10/09 19:53:52 mjbrim Exp $
 #ifndef XPLAT_SHARED_OBJECT_H
 #define XPLAT_SHARED_OBJECT_H
 
@@ -37,6 +37,7 @@ public:
 
     virtual const char* GetPath( void ) const   { return path; }
     virtual void* GetSymbol( const char* name ) const = 0;
+    virtual void* GetHandle( ) const = 0;
 };
 
 } // namespace XPlat
