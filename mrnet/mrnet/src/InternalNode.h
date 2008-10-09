@@ -17,24 +17,27 @@
 namespace MRN
 {
 
-class InternalNode: public ParentNode, public ChildNode,
-    public CommunicationNode
-{
- protected:
-    virtual int deliverLeafInfoResponse( Packet& pkt ) const;
-    virtual int deliverConnectLeavesResponse( Packet& pkt ) const;
+class Network;
 
+class InternalNode: public ParentNode, public ChildNode
+{
  public:
-    InternalNode(std::string hostname, Port port,
-                 std::string _phostname, Port _pport);
+    InternalNode( Network * inetwork,
+                  std::string const& ihostname, Rank irank,
+                  std::string const& iphostname, Port ipport, Rank iprank );
     virtual ~InternalNode(void);
 
     void waitLoop() const;
-    int send_newSubTreeReport(bool status) const;
-    virtual int proc_PacketsFromUpStream(std::list <Packet> &) const;
-    virtual int proc_DataFromUpStream(Packet&) const;
-    virtual int proc_PacketsFromDownStream(std::list <Packet> &) const;
-    virtual int proc_DataFromDownStream(Packet&) const;
+    virtual int proc_DataFromParent( PacketPtr ipacket ) const;
+    virtual int proc_DataFromChildren( PacketPtr ipacket ) const;
+    virtual int proc_FailureReportFromParent( PacketPtr ipacket ) const;
+    virtual int proc_NewParentReportFromParent( PacketPtr ipacket ) const;
+    void signal_NetworkTermination( );
+    void waitfor_NetworkTermination( );
+
+ private:
+    XPlat::Monitor _sync;
+    enum {NETWORK_TERMINATION};
 };
 
 } // namespace MRN

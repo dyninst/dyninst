@@ -14,34 +14,30 @@
 
 namespace MRN
 {
+class Network;
 
-class BackEndNode: public ChildNode, public CommunicationNode{
- private:
-    Network * network;
-    Rank rank;
-
-    int proc_newStream( Packet & pkt ) const;
-
+class BackEndNode: public ChildNode{
  public:
-    BackEndNode(Network * _network, 
-                    std::string _my_hostname, Port _my_port, Rank _my_rank,
-                    std::string _parent_hostname, Port _parent_port);
+    BackEndNode(Network * inetwork, 
+                std::string imy_hostname, Rank imy_rank,
+                std::string iphostname, Port ipport, Rank iprank );
     virtual ~BackEndNode(void);
 
-    virtual int proc_PacketsFromUpStream(std::list <Packet> &) const;
-    virtual int proc_DataFromUpStream(Packet &) const;
-    int send(Packet &) const;
-    int flush() const;
-    int recv( bool blocking=true ) const;
+    virtual int proc_DataFromParent( PacketPtr ) const;
+    virtual int proc_FailureReportFromParent( PacketPtr ) const;
+    virtual int proc_NewParentReportFromParent( PacketPtr  ) const;
 
-    int get_SocketFd() const ;
+    //int send( PacketPtr ) const;
+    //int flush() const;
+    //int recv( bool blocking=true ) const;
+
+    int proc_newStream( PacketPtr ) const;
+    int proc_DeleteSubTree( PacketPtr ) const;
+    int proc_newFilter( PacketPtr ) const;
+    int proc_DownstreamFilterParams( PacketPtr &ipacket ) const;
+    int proc_UpstreamFilterParams( PacketPtr &ipacket ) const;
 };
 
-inline int BackEndNode::get_SocketFd() const
-{
-    assert( ChildNode::get_UpStreamNode() );
-    return ChildNode::get_UpStreamNode()->get_SocketFd();
-}
 } // namespace MRN
 
 #endif /* __backendnode_h */

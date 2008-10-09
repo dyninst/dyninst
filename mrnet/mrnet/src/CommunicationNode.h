@@ -7,68 +7,66 @@
 #define __communicationnode_h 1
 
 #include <string>
-#include "mrnet/MRNet.h"
+#include "mrnet/Types.h"
 #include "Error.h"
 
 namespace MRN
 {
 
 enum ProtocolTags {
-    PROT_NEW_SUBTREE = FIRST_CTL_TAG,
+    PROT_SUBTREE_INFO_REQ = FirstSystemTag,
+    PROT_NEW_SUBTREE,
+    PROT_NEW_SUBTREE_RPT,
     PROT_DEL_SUBTREE,
-    PROT_RPT_SUBTREE,
-    PROT_NEW_APPLICATION,
-    PROT_DEL_APPLICATION,
+    PROT_DEL_SUBTREE_ACK,
     PROT_NEW_STREAM,
     PROT_DEL_STREAM,
+    PROT_CLOSE_STREAM,
     PROT_NEW_FILTER,
-    PROT_DATA,
+    PROT_SET_FILTERPARAMS_UPSTREAM,
+    PROT_SET_FILTERPARAMS_DOWNSTREAM,
     PROT_EVENT,
     PROT_GET_LEAF_INFO,
-    PROT_CONNECT_LEAVES
+    PROT_CONNECT_LEAVES,
+    PROT_KILL_SELF,
+    PROT_NEW_CHILD_FD_CONNECTION,
+    PROT_NEW_CHILD_DATA_CONNECTION,
+    PROT_FAILURE_RPT,
+    PROT_RECOVERY_RPT,
+    PROT_NEW_PARENT_RPT,
+    PROT_TOPOLOGY_RPT,
+    PROT_COLLECT_PERFDATA,
+
+    // aliang
+    PROT_GUI_INIT,
+    PROT_GUI_KILL_NODE,
+    PROT_GUI_CPUPERCENT
+    // aliang
 };
 
 class CommunicationNode {
  protected:
-    std::string hostname;
-    Port port;    // MRNet-assigned "port"
-#if READY
-    Rank rank;    // back-end rank, if a back-end
-#endif // READY
+    std::string _hostname;
+    Port _port;
+    Rank _rank;
     
  public:
 
     ~CommunicationNode(){}
-#if READY
-    CommunicationNode( std::string & _hostname, Port _port,
-                       Rank _rank = UnknownRank );
-#else
-    CommunicationNode( std::string & _hostname, Port _port );
-#endif // READY
+    CommunicationNode( std::string const& ihostname, Port iport, Rank irank );
+
     std::string get_HostName( ) const;
     Port get_Port( ) const;
-
-#if READY
     Rank get_Rank( ) const;
-#endif // READY
+
+    struct ltnode {
+        bool operator()(const CommunicationNode* n1, const CommunicationNode* n2) const
+        {
+            return n1->get_Rank() < n2->get_Rank();
+        }
+    };
+
 };
-
-inline Port CommunicationNode::get_Port() const
-{
-    return port;
-}
-
-inline std::string CommunicationNode::get_HostName() const
-{
-    return hostname;
-}
-
-#if READY
-inline Rank CommunicationNode::get_Rank() const
-{
-    return rank;
-}
-#endif // READY
 
 }                               // namespace MRN
 

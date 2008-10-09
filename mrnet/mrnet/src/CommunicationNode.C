@@ -3,8 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include "CommunicationNode.h"
 #include "xplat/NetUtils.h"
+#include "CommunicationNode.h"
+#include "utils.h"
 
 namespace MRN
 {
@@ -12,18 +13,28 @@ namespace MRN
 /*===========================================================*/
 /*  CommunicationNode CLASS METHOD DEFINITIONS            */
 /*===========================================================*/
-#if READY
-CommunicationNode::CommunicationNode(std::string &_h, Port _p, Rank _rank)
-    : port(_p), rank(_rank)
+CommunicationNode::CommunicationNode(std::string const& ih, Port ip, Rank irank)
+    : _port(ip), _rank(irank)
 {
-    XPlat::NetUtils::GetNetworkName(_h, hostname );
+    XPlat::NetUtils::GetNetworkName(ih, _hostname );
+    mrn_dbg( 5, mrn_printf(FLF, stderr,
+                           "node[%u]:\"%s:%u\"\n",
+                           _rank, _hostname.c_str(), _port ));
 }
-#else
-CommunicationNode::CommunicationNode(std::string &_h, Port _p )
-    : port(_p)
+
+std::string CommunicationNode::get_HostName( ) const
 {
-    XPlat::NetUtils::GetNetworkName(_h, hostname );
+    return _hostname;
 }
-#endif // READY
+
+Port CommunicationNode::get_Port( ) const
+{
+    return _port;
+}
+
+Rank CommunicationNode::get_Rank( ) const
+{
+    return _rank;
+}
 
 } // namespace MRN

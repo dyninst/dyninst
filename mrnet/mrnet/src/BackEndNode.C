@@ -1,14 +1,18 @@
 /****************************************************************************
- * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright  2003-2008 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
 #include <stdio.h>
 
+#include "mrnet/MRNet.h"
+#include "mrnet/NetworkTopology.h"
 #include "BackEndNode.h"
-#include "RemoteNode.h"
-#include "StreamImpl.h"
+#include "PeerNode.h"
 #include "utils.h"
+#include "EventDetector.h"
+#include "Router.h"
+#include "Filter.h"
 
 namespace MRN
 {
@@ -17,182 +21,185 @@ namespace MRN
 /*  BackEndNode CLASS METHOD DEFINITIONS            */
 /*=====================================================*/
 
-BackEndNode::BackEndNode(Network * _network, 
-                         std::string _my_hostname, Port _my_port, Rank _my_rank,
-                         std::string _parent_hostname, Port _parent_port)
-    :ChildNode( _my_hostname, _my_port, false ), 
-     CommunicationNode(_my_hostname, _my_port),
-     network(_network),
-     rank( _my_rank )
+BackEndNode::BackEndNode( Network * inetwork, 
+                          std::string imyhostname, Rank imyrank,
+                          std::string iphostname, Port ipport, Rank iprank )
+    :ChildNode( inetwork, imyhostname, imyrank, iphostname, ipport, iprank )
 {
-    RemoteNode::local_child_node = this;
-    mrn_dbg(3, mrn_printf(FLF, stderr, "In BackEndNode() cnstr.\n"));
-    mrn_dbg(4, mrn_printf(FLF, stderr,
-               "host=%s, port=%u, rank=%u, parHost=%s, parPort=%u\n",
-               _my_hostname.c_str(), _my_port, rank,
-               _parent_hostname.c_str(), _parent_port ));
-    RemoteNode * tmp_upstream_node = new RemoteNode(false, _parent_hostname, _parent_port);
-    tmp_upstream_node->_is_upstream = true;
+    _network->set_LocalHostName( _hostname  );
+    _network->set_LocalRank( _rank );
+    _network->set_BackEndNode( this );
+    _network->set_NetworkTopology( new NetworkTopology( inetwork, _hostname, _port, _rank, true ) );
 
-    if( tmp_upstream_node->connect_to_leaf( rank ) == -1 )
-    {
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "connect_to_leaf() failed\n" ));
+    //establish data connection w/ parent
+    if( init_newChildDataConnection( _network->get_ParentNode() ) == -1 ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                               "init_newChildDataConnection() failed\n" ));
         return;
     }
 
-    set_UpStreamNode( tmp_upstream_node );
+    //start event detection thread
+    if( ! EventDetector::start( _network ) ) {
+      mrn_dbg( 1, mrn_printf(FLF, stderr, "start_EventDetector() failed\n" ));
+      error( MRN_ESYSTEM, "start_EventDetector failed\n" );
+      return;
+    }
 
-    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving BackEndNode()\n"));
+    //send new subtree report
+    mrn_dbg( 5, mrn_printf(FLF, stderr, "Sending new child report.\n" ));
+    if( send_NewSubTreeReport( ) == -1 ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                               "send_newSubTreeReport() failed\n" ));
+    }
+    mrn_dbg( 5, mrn_printf(FLF, stderr,
+                           "send_newSubTreeReport() succeded!\n" ));
 }
 
 BackEndNode::~BackEndNode(void)
 {
 }
 
-int BackEndNode::proc_PacketsFromUpStream(std::list <Packet> &packets) const
-{
-    int retval=0;
-    Packet cur_packet;
-
-    mrn_dbg(3, mrn_printf(FLF, stderr, "In proc_PacketsFromUpStream()\n"));
-
-    std::list<Packet>::iterator iter=packets.begin();
-    for(; iter != packets.end(); iter++){
-        cur_packet = (*iter);
-        switch(cur_packet.get_Tag()){
-        case PROT_DATA:
-        case PROT_NEW_SUBTREE:
-        case PROT_DEL_SUBTREE:
-        case PROT_RPT_SUBTREE:
-        case PROT_NEW_APPLICATION:
-        case PROT_DEL_APPLICATION:
-        case PROT_DEL_STREAM:
-        case PROT_GET_LEAF_INFO:
-        case PROT_CONNECT_LEAVES:
-            //these protocol tags should never reach backend
-            mrn_dbg(1, mrn_printf(FLF,stderr,"BackEndNode::proc_DataFromUpStream(): "
-                       "poison tag: %d\n", cur_packet.get_Tag()));
-            assert(0);
-            break;
-
-        case PROT_NEW_STREAM:
-            if( proc_newStream(cur_packet) == -1){
-                mrn_dbg(1, mrn_printf(FLF, stderr, "proc_newStream() failed\n"));
-                retval = -1;
-            }
-            break;
-
-        default:
-            //Any Unrecognized tag is assumed to be data
-            if(proc_DataFromUpStream(cur_packet) == -1){
-                mrn_dbg(1, mrn_printf(FLF, stderr, "proc_DataFromUpStream() failed\n"));
-                retval=-1;
-            }
-            break;
-        }
-    }
-
-    packets.clear();
-    mrn_dbg(3, mrn_printf(FLF, stderr, "proc_PacketsFromUpStream() %s",
-               (retval == -1 ? "failed\n" : "succeeded\n")));
-    return retval;
-}
-
-int BackEndNode::proc_DataFromUpStream(Packet& packet) const
+int BackEndNode::proc_DataFromParent(PacketPtr ipacket) const
 {
     Stream * stream;
 
-    mrn_dbg(3, mrn_printf(FLF, stderr, "In proc_DataFromUpStream():stream id %d, packet:%p\n", packet.get_StreamId(), &packet ));
+    stream = _network->get_Stream( ipacket->get_StreamId() );
+    assert(  stream );
 
-    stream = network->get_Stream( packet.get_StreamId() );
+    stream->add_IncomingPacket(ipacket);
 
-    if( stream ){
-        stream->get_StreamImpl()->add_IncomingPacket(packet);
-    }
-    else{
-        stream = network->new_Stream( packet.get_StreamId() );
-        stream->get_StreamImpl()->add_IncomingPacket(packet);
-    }
-    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving proc_DataFromUpStream()\n"));
     return 0;
 }
 
-int BackEndNode::send(Packet& packet) const
+int BackEndNode::proc_newStream( PacketPtr ipacket ) const
 {
-    mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.send(). Calling sendUpStream()\n"));
-    return send_PacketUpStream(packet);
-}
-
-int BackEndNode::flush() const
-{
-    mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.flush(). Calling flushUpStream()\n"));
-    return flush_PacketsUpStream();
-}
-
-int BackEndNode::recv( bool iblocking ) const
-{
-    std::list <Packet> packet_list;
-    mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.recv(%s)...\n",
-                          (iblocking? "blocking" : "non-blocking") ));
-
-    // recv_PacketsFromUpStream() blocks.
-    // Only call if blocking or data is available.
-    if( iblocking || this->has_data() ){
-        mrn_dbg(3, mrn_printf(FLF, stderr, "Calling recv_packetsfromUpStream()\n"));
-        if(recv_PacketsFromUpStream(packet_list) == -1){
-            mrn_dbg(1, mrn_printf(FLF, stderr, "recv_packetsfromUpStream() failed\n"));
-            return -1;
-        }
-
-        if(packet_list.size() == 0){
-            mrn_dbg(3, mrn_printf(FLF, stderr, "No packets read!\n"));
-            return 0;
-        }
-
-        mrn_dbg(3, mrn_printf(FLF, stderr, "Calling proc_packetsfromUpStream()\n"));
-        if(proc_PacketsFromUpStream(packet_list) == -1){
-            mrn_dbg(1, mrn_printf(FLF, stderr, "proc_packetsfromUpStream() failed\n"));
-            return -1;
-        }
-
-        //if we get here, we have found data to return
-        return 1;
-    }
-
-    mrn_dbg(3, mrn_printf(FLF, stderr, "Leaving backend.recv().\n"));
-    return 0;
-}
-
-
-int BackEndNode::proc_newStream(Packet& pkt) const
-{
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "In proc_newStream()\n" ));
-
-    // extract the info needed to build the stream
-    int stream_id = -1;
-    int* backends = NULL;
-    unsigned int num_backends = 0;
-    int sync_id = -1;
+    unsigned int num_backends;
+    Rank *backends;
+    int stream_id, sync_id;
     int ds_filter_id = -1;
     int us_filter_id = -1;
-    int uret = pkt.ExtractArgList( "%d %ad %d %d %d",
-                                    &stream_id,
-                                    &backends, &num_backends,
-                                    &sync_id,
-                                    &ds_filter_id,
-                                    &us_filter_id );
-    if( uret == -1 ) {
+
+    mrn_dbg_func_begin();
+
+    // extract the info needed to build the stream
+    if( ipacket->ExtractArgList( "%d %ad %d %d %d", 
+                                 &stream_id, &backends, &num_backends, 
+                                 &us_filter_id, &sync_id, &ds_filter_id) == -1 ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
         return -1;
     }
 
-    // Build a new stream object.
-    // (As a side effect, registers the stream.)
-    (void)network->new_Stream( stream_id, backends, num_backends,
-                               us_filter_id, sync_id, ds_filter_id );
+    //register new stream
+    _network->new_Stream( stream_id, backends, num_backends,
+                          us_filter_id, sync_id, ds_filter_id );
 
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "procNewStream() succeeded\n" ));
-    return 1;
+    mrn_dbg_func_end();
+    return 0;
+}
+
+int BackEndNode::proc_DownstreamFilterParams( PacketPtr &ipacket ) const
+{
+    int stream_id;
+
+    mrn_dbg_func_begin();
+
+    stream_id = ipacket->get_StreamId();
+    Stream* strm = _network->get_Stream( stream_id );
+    strm->set_FilterParams( false, ipacket );
+
+    mrn_dbg_func_end();
+    return 0;
+}
+
+int BackEndNode::proc_UpstreamFilterParams( PacketPtr &ipacket ) const
+{
+    int stream_id;
+
+    mrn_dbg_func_begin();
+
+    stream_id = ipacket->get_StreamId();
+    Stream* strm = _network->get_Stream( stream_id );
+    strm->set_FilterParams( true, ipacket );
+
+    mrn_dbg_func_end();
+    return 0;
+}
+
+int BackEndNode::proc_DeleteSubTree( PacketPtr ipacket ) const
+{
+    mrn_dbg_func_begin();
+
+    //processes will be exiting -- disable failure recovery
+    _network->disable_FailureRecovery();
+
+    //Send ack to parent
+    if( !_network->get_LocalChildNode()->ack_DeleteSubTree() ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ack_DeleteSubTree() failed\n" ));
+    }
+
+    char delete_backend;
+
+    ipacket->unpack( "%c", &delete_backend );
+
+    //kill all mrnet threads
+    _network->cancel_IOThreads();
+
+    if( delete_backend == 't' ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "Back-end exiting ... \n" ));
+        exit(0);
+    }
+
+    EventDetector::stop();
+   
+    mrn_dbg_func_end();
+    return 0;
+}
+
+int BackEndNode::proc_FailureReportFromParent( PacketPtr ipacket ) const
+{
+    Rank failed_rank;
+
+    ipacket->unpack( "%uhd", &failed_rank ); 
+
+    _network->remove_Node( failed_rank );
+
+    return 0;
+}
+
+int BackEndNode::proc_NewParentReportFromParent( PacketPtr ipacket ) const
+{
+    Rank child_rank, parent_rank;
+
+    ipacket->unpack( "%ud &ud", &child_rank, &parent_rank ); 
+
+    _network->change_Parent( child_rank, parent_rank );
+
+    return 0;
+}
+
+int BackEndNode::proc_newFilter( PacketPtr ipacket ) const
+{
+    int retval = 0;
+    unsigned short fid = 0;
+    const char *so_file = NULL, *func = NULL;
+
+    mrn_dbg_func_begin();
+
+    if( ipacket->ExtractArgList( "%uhd %s %s", &fid, &so_file, &func ) == -1 ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "ExtractArgList() failed\n" ));
+        return -1;
+    }
+
+    retval = Filter::load_FilterFunc( so_file, func );
+
+    if( retval != ( int )fid ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr,
+                    "Filter::load_FilterFunc() failed.\n" ));
+        return -1;
+    }
+
+    mrn_dbg_func_end();
+    return fid;
 }
 
 } // namespace MRN

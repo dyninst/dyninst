@@ -3,25 +3,40 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include "Types.h"
 #include <stdarg.h>
 #include <errno.h>
 #include <limits.h>
 #include <fcntl.h>
 
+#include "mrnet/Types.h"
+#include "mrnet/Packet.h"
+#include "pdr.h"
 #include "utils.h"
+#include "PeerNode.h"
 #include "Message.h"
 #include "xplat/NCIO.h"
 
 namespace MRN
 {
 
+static uint64_t MRN_bytes_send = 0;
+static uint64_t MRN_bytes_recv = 0;
+uint64_t get_TotalBytesSend(void) { return MRN_bytes_send; }
+uint64_t get_TotalBytesRecv(void) { return MRN_bytes_recv; }
+
+
 int read( int fd, void *buf, int size );
 int write( int fd, const void *buf, int size );
 
-int Message::recv( int sock_fd, std::list < Packet >&packets_in,
-                   const RemoteNode * remote_node )
+Message::Message()
 {
+    _packet_sync.RegisterCondition( MRN_QUEUE_NONEMPTY );
+}
+
+int Message::recv( int sock_fd, std::list < PacketPtr >&packets_in,
+                   Rank iinlet_rank )
+{
+    mrn_dbg_func_begin();
     unsigned int i;
     int32_t buf_len;
     uint32_t no_packets = 0, *packet_sizes;
@@ -30,20 +45,18 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     enum pdr_op op = PDR_DECODE;
 
 
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "Receiving packets to message (%p)\n",
-                this ));
-
     //
     // packet count
     //
 
     /* find out how many packets are coming */
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling sizeof ...\n" ));
     buf_len = pdr_sizeof( ( pdrproc_t ) ( pdr_uint32 ), &no_packets );
     assert( buf_len );
     buf = ( char * )malloc( buf_len );
     assert( buf );
 
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling read(%d, %p, %d)\n", sock_fd, buf,
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "read(%d, %p, %d) ...\n", sock_fd, buf,
                 buf_len ));
     int retval;
     if( ( retval = MRN::read( sock_fd, buf, buf_len ) ) != buf_len ) {
@@ -54,28 +67,30 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
         free( buf );
         return -1;
     }
-
+    MRN_bytes_recv += retval;
 
     //
     // pdrmem initialize
     //
 
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling memcreate ...\n" ));
     pdrmem_create( &pdrs, buf, buf_len, op );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling uint32 ...\n" ));
     if( !pdr_uint32( &pdrs, &no_packets ) ) {
         error( MRN_EPACKING, "pdr_uint32() failed\n");
         free( buf );
         return -1;
     }
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling free ...\n" ));
     free( buf );
-    mrn_dbg( 3, mrn_printf(FLF, stderr,
-                "pdr_uint32() succeeded. Receive %d packets\n",
-                no_packets ));
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "pdr_uint32() succeeded. Receive %d packets\n",
+                           no_packets ));
+    assert( no_packets < 2000 );
 
     if( no_packets == 0 ) {
         mrn_dbg( 2, mrn_printf(FLF, stderr, "warning: Receiving %d packets\n",
                     no_packets ));
     }
-
 
     //
     // packet size vector
@@ -83,11 +98,12 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
 
     /* recv an vector of packet_sizes */
     //buf_len's value is hardcode, breaking pdr encapsulation barrier :(
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling malloc ...\n" ));
     buf_len = (sizeof( uint32_t ) * no_packets) + 1;  // 1 byte pdr overhead
     buf = ( char * )malloc( buf_len );
     assert( buf );
 
-
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling malloc ...\n" ));
     packet_sizes = ( uint32_t * ) malloc( sizeof( uint32_t ) * no_packets );
     if( packet_sizes == NULL ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr,
@@ -108,11 +124,13 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
         free( packet_sizes );
         return -1;
     }
+    MRN_bytes_recv += readRet;
 
     //
     // packets
     //
 
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling pdrmem_create ...\n" ));
     pdrmem_create( &pdrs, buf, buf_len, op );
     if( !pdr_vector ( &pdrs, ( char * )( packet_sizes ), no_packets,
                       sizeof( uint32_t ), ( pdrproc_t ) pdr_uint32 ) ) {
@@ -139,9 +157,11 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
     }
     mrn_dbg( 3, mrn_printf(0,0,0, stderr, "]\n" ));
 
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling NCRecv ...\n" ));
     retval = XPlat::NCRecv( sock_fd, ncbufs, no_packets );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "NCRecv returned %d..\n", retval ));
     if( retval != total_bytes ) {
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "%s", "" ));
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "%s\n", "" ));
         _perror( "XPlat::NCRecv()" );
         error( MRN_ESYSTEM, "XPlat::NCRecv() %d of %d bytes received: %s",
                retval, buf_len, strerror(errno) );
@@ -155,14 +175,21 @@ int Message::recv( int sock_fd, std::list < Packet >&packets_in,
         free( packet_sizes );
         return -1;
     }
+    MRN_bytes_recv += retval;
 
     //
     // post-processing
     //
 
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Creating Packets ...\n" ));
     for( i = 0; i < no_packets; i++ ) {
-        Packet new_packet ( ncbufs[i].len, ncbufs[i].buf, remote_node  );
-        if( new_packet.fail(  ) ) {
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Creating packet[%d] ...\n", i ));
+        //unsigned short * s = (unsigned short *)(ncbufs[i].buf+1);
+        //assert( 0 <= *s  && *s < 5 );
+        PacketPtr new_packet( new Packet( ncbufs[i].len,
+                                          ncbufs[i].buf,
+                                          iinlet_rank ));
+        if( new_packet->has_Error( ) ) {
             mrn_dbg( 1, mrn_printf(FLF, stderr, "packet creation failed\n" ));
             for( i = 0; i < no_packets; i++ )
             {
@@ -197,11 +224,14 @@ int Message::send( int sock_fd )
 
     mrn_dbg( 3, mrn_printf(FLF, stderr, "Sending packets from message %p\n",
                 this ));
-    if( packets.size( ) == 0 ) {   //nothing to do
+
+    _packet_sync.Lock();
+    if( _packets.size( ) == 0 ) {   //nothing to do
         mrn_dbg( 3, mrn_printf(FLF, stderr, "Nothing to send!\n" ));
+        _packet_sync.Unlock();
         return 0;
     }
-    no_packets = packets.size( );
+    no_packets = _packets.size( );
 
     /* send packet buffers */
     XPlat::NCBuf* ncbufs = new XPlat::NCBuf[no_packets];
@@ -209,17 +239,19 @@ int Message::send( int sock_fd )
     //Process packets in list to prepare for send()
     packet_sizes = ( uint32_t * ) malloc( sizeof( uint32_t ) * no_packets );
     assert( packet_sizes );
-    std::list < Packet >::iterator iter = packets.begin( );
+    std::list < PacketPtr >::iterator iter = _packets.begin( );
     mrn_dbg( 3, mrn_printf(FLF, stderr, "Writing %d packets of size: [ ",
-                no_packets ));
+                           no_packets ));
     int total_bytes = 0;
-    for( i = 0; iter != packets.end( ); iter++, i++ ) {
+    for( i = 0; iter != _packets.end( ); iter++, i++ ) {
 
-        Packet curPacket = *iter;
+        PacketPtr curPacket( *iter );
 
-        ncbufs[i].buf = const_cast< char * >( curPacket.get_Buffer( ) );
-        ncbufs[i].len = curPacket.get_BufferLen( );
-        packet_sizes[i] = curPacket.get_BufferLen( );
+        ncbufs[i].buf = const_cast< char * >( curPacket->get_Buffer( ) );
+        //unsigned short * s = (unsigned short *)(ncbufs[i].buf+1);
+        //assert( 0 <= *s  && *s < 5 );
+        ncbufs[i].len = curPacket->get_BufferLen( );
+        packet_sizes[i] = curPacket->get_BufferLen( );
 
         total_bytes += ncbufs[i].len;
         mrn_dbg( 3, mrn_printf(0,0,0, stderr, "%d, ", ( int )ncbufs[i].len ));
@@ -240,20 +272,22 @@ int Message::send( int sock_fd )
         free( buf );
         delete[] ncbufs;
         free( packet_sizes );
+        _packet_sync.Unlock();
         return -1;
     }
 
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling write(%d, %p, %d)\n", sock_fd,
-                buf, buf_len ));
     if( MRN::write( sock_fd, buf, buf_len ) != buf_len ) {
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "write() failed" ));
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "write() failed\n" ));
         _perror( "write()" );
         free( buf );
         delete[] ncbufs;
         free( packet_sizes );
+        _packet_sync.Unlock();
         return -1;
     }
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "write() succeeded" ));
+    MRN_bytes_send += buf_len;
+
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "write() succeeded\n" ));
     free( buf );
 
     /* send a vector of packet_sizes */
@@ -270,6 +304,7 @@ int Message::send( int sock_fd )
         free( buf );
         delete[] ncbufs;
         free( packet_sizes );
+        _packet_sync.Unlock();
         return -1;
     }
 
@@ -277,13 +312,15 @@ int Message::send( int sock_fd )
                 buf, buf_len ));
     int mcwret = MRN::write( sock_fd, buf, buf_len );
     if( mcwret != buf_len ) {
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "write failed" ));
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "write failed\n" ));
         _perror( "write()" );
         free( buf );
         delete[] ncbufs;
         free( packet_sizes );
+        _packet_sync.Unlock();
         return -1;
     }
+    MRN_bytes_send += mcwret;
     free( packet_sizes );
     free( buf );
 
@@ -306,26 +343,66 @@ int Message::send( int sock_fd )
         error( MRN_ESYSTEM, "XPlat::NCSend() returned %d of %d bytes: %s\n",
                     sret, total_bytes, strerror(errno) );
         delete[] ncbufs;
+        _packet_sync.Unlock( );
         return -1;
     }
+    MRN_bytes_send += sret;
 
-    packets.clear(  );
+    _packets.clear( );
+    _packet_sync.Unlock( );
 
     delete[] ncbufs;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "msg(%p)::send() succeeded\n", this ));
     return 0;
 }
 
+void Message::add_Packet( const PacketPtr packet )
+{
+    _packet_sync.Lock();
+    _packets.push_back( packet );
+    _packet_sync.SignalCondition(MRN_QUEUE_NONEMPTY);
+    _packet_sync.Unlock();
+}
+
+int Message::size_Packets( void )
+{
+    _packet_sync.Lock();
+    int size = _packets.size( );
+    _packet_sync.Unlock();
+
+    return size;
+}
+
+void Message::waitfor_MessagesToSend( void )
+{
+    _packet_sync.Lock();
+
+    while( _packets.empty() ) {
+        _packet_sync.WaitOnCondition( MRN_QUEUE_NONEMPTY );
+    }
+
+    _packet_sync.Unlock();
+}
+
+int Message::size_Bytes( void )
+{
+    assert( 0 );
+    return 0;
+}
 
 /*********************************************************
  *  Functions used to implement sending and recieving of
  *  some basic data types
  *********************************************************/
 
-int write( int fd, const void *buf, int count )
+int write( int ifd, const void *ibuf, int ibuf_len )
 {
-    int ret = ::send( fd, (const char*)buf, count, 0 );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "%d, %p, %d\n", ifd, ibuf, ibuf_len ));
+    //fprintf(stderr, "write(): %d, %p, %d\n", ifd, ibuf, ibuf_len );
+    int ret = ::send( ifd, (const char*)ibuf, ibuf_len, 0 );
 
+    //fprintf(stderr, "write(): send => %d\n", ret );
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "send => %d\n", ret ));
     //TODO: recursive call checking for syscall interuption
     return ret;
 }
@@ -344,9 +421,9 @@ int read( int fd, void *buf, int count )
             }
             else {
                 mrn_dbg( 3, mrn_printf(FLF, stderr,
-                            "premature return from read(). Got %d of %d "
-                            " bytes. errno: %d ", bytes_recvd, count,
-                            errno ));
+                                       "premature return from read(). Got %d of %d "
+                                       " bytes. errno: %s\n", bytes_recvd, count,
+                                       strerror(errno) ));
                 return -1;
             }
         }
@@ -365,8 +442,8 @@ int read( int fd, void *buf, int count )
                 if( bytes_recvd != count ) {
                     mrn_dbg( 3, mrn_printf(FLF, stderr,
                                 "premature return from read(). %d of %d "
-                                " bytes. errno: %d ", bytes_recvd, count,
-                                errno ));
+                                " bytes. errno: %s\n", bytes_recvd, count,
+                                           strerror(errno) ));
                 }
                 return bytes_recvd;
             }

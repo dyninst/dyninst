@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2008 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -13,189 +13,656 @@
 #include <stdio.h>
 
 #include "mrnet/MRNet.h"
-#include "Types.h"
+#include "mrnet/NetworkTopology.h"
+#include "xplat/NetUtils.h"
+#include "xplat/Thread.h"
+using namespace XPlat;
+
 #include "utils.h"
 #include "config.h"
-#include "NetworkImpl.h"
+#include "FrontEndNode.h"
 #include "BackEndNode.h"
-#include "StreamImpl.h"
-#include "CommunicatorImpl.h"
-#include "EndPointImpl.h"
-#include "EventImpl.h"
+#include "InternalNode.h"
+#include "ParentNode.h"
+#include "ChildNode.h"
+#include "ParsedGraph.h"
+#include "Filter.h"
+#include "PeerNode.h"
+
+extern FILE *mrnin;
+//extern int mrn_flex_debug;
+
+using namespace std;
 
 namespace MRN
 {
+Network * network=NULL;
+int mrnparse( );
+
+extern int mrndebug;
+extern const char* mrnBufPtr;
+extern unsigned int mrnBufRemaining;
 
 const int MIN_OUTPUT_LEVEL=0;
 const int MAX_OUTPUT_LEVEL=5;
 int CUR_OUTPUT_LEVEL=1;
 
-
 const Port UnknownPort = (Port)-1;
 const Rank UnknownRank = (Rank)-1;
 
-void set_OutputLevel(int l){
-    if(l <=MIN_OUTPUT_LEVEL){
-        CUR_OUTPUT_LEVEL = MIN_OUTPUT_LEVEL;
-    }
-    else if(l >= MAX_OUTPUT_LEVEL){
-        CUR_OUTPUT_LEVEL = MAX_OUTPUT_LEVEL;
-    }
-    else{
-        CUR_OUTPUT_LEVEL = l;
-    }
+const char *node_type="";
+const char *empty_str="";
+
+void set_OutputLevelFromEnvironment( void );
+
+void init_local( void )
+{
+#if !defined(os_windows)
+    // ignore SIGPIPE
+    signal( SIGPIPE, SIG_IGN );
+#else
+    // init Winsock
+    WORD version = MAKEWORD(2, 2); /* socket version 2.2 supported by all modern Windows */
+    WSADATA data;
+    if( WSAStartup(version, &data) != 0 )
+        fprintf(stderr, "WSAStartup failed!\n");
+#endif
+}
+
+void cleanup_local( void )
+{
+#if defined(os_windows)
+    // cleanup Winsock
+    WSACleanup();
+#endif
 }
 
 /*===========================================================*/
-/*             Network static function DEFINITIONS        */
+/*             Network DEFINITIONS        */
 /*===========================================================*/
-Network::Network( const char *ifilename, const char *iapplication,
-                  const char **iargv )
+Network::Network( const char * itopology, const char * ibackend_exe,
+                  const char **ibackend_args, bool irank_backends,
+                  bool iusing_mem_buf )
+    : _local_port(UnknownPort), _local_rank(UnknownRank),_network_topology(NULL), 
+      _failure_manager(NULL), _bcast_communicator(NULL), 
+      _local_front_end_node(NULL), _local_back_end_node(NULL), 
+      _local_internal_node(NULL), _threaded(true),
+      _recover_from_failures(true), _terminate_backends(true),
+      _notificationFDOutput(-1), _notificationFDInput(-1), _FDneedsPolling(false)
 {
-    _network_impl = new NetworkImpl( this, ifilename, iapplication, iargv );
-}
+    init_local();
+    network=this;
+    set_OutputLevelFromEnvironment();
+    node_type="fe";
+    _streams_sync.RegisterCondition( STREAMS_NONEMPTY );
+    _parent_sync.RegisterCondition( PARENT_NODE_AVAILABLE );
 
-Network::Network( const char *cfgFileName, Network::LeafInfo *** leafInfo,
-                  unsigned int *nLeaves )
-{
-    // build the network
+    _network_lifetime.start();
+    getrusage(RUSAGE_SELF, &_network_rusage);
 
-    _network_impl = new NetworkImpl( this, cfgFileName, (const char*)NULL,
-                               (const char**)NULL);
-    if( !_network_impl->fail( ) ) {
-        if( (leafInfo != NULL) && (nLeaves != NULL) )
-        {
-            _network_impl->get_LeafInfo( leafInfo, nLeaves );
-        }
-        else
-        {
-            // indicate the error
-            _network_impl->error( MRN_EINTERNAL, "invalid argument" );
+    if( parse_Configuration( itopology, iusing_mem_buf ) == -1 ) {
+        mrn_dbg(1, mrn_printf(FLF, stderr, "Failure: parse_Configuration( \"%s\" )!\n",
+                              ( iusing_mem_buf ? "memory buffer" : itopology )));
+        return;
+    }
+
+    if( !parsed_graph->validate( ) ) {
+        mrn_dbg(1, mrn_printf(FLF, stderr, "Failure: ParsedGraph::validate()!\n" ));
+        return;
+    }
+
+    parsed_graph->assign_NodeRanks( irank_backends );
+
+    //TLS: setup thread local storage for frontend
+    //I am "FE(hostname:port)"
+    string prettyHost;
+    string rootHost = parsed_graph->get_Root()->get_HostName();
+    Rank rootRank = parsed_graph->get_Root( )->get_Rank();
+    setrank(rootRank);
+    XPlat::NetUtils::GetHostName( rootHost, prettyHost );
+    char port_str[128];
+    sprintf( port_str, "%d", rootRank );
+    string name( "FE(" );
+    name += prettyHost;
+    name += ":";
+    name += port_str;
+    name += ")";
+
+    int status;
+    tsd_t *local_data = new tsd_t;
+    local_data->thread_id = XPlat::Thread::GetId( );
+    local_data->thread_name = strdup( name.c_str( ) );
+    status = tsd_key.Set( local_data );
+
+    if( status != 0 ) {
+        error( MRN_ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
+        return;
+    }
+
+    new FrontEndNode( this, rootHost, rootRank );
+
+    const char* mrn_commnode_path = getenv( "MRN_COMM_PATH" );
+
+    if( mrn_commnode_path == NULL ) {
+        mrn_commnode_path = COMMNODE_EXE;
+    }
+    if( ibackend_exe == NULL ) {
+        ibackend_exe = empty_str;
+    }
+    unsigned int backend_argc=0;
+    if( ibackend_args != NULL ){
+        for(unsigned int i=0; ibackend_args[i] != NULL; i++){
+            backend_argc++;
         }
     }
-}
 
-Network::Network( const char* _configBuffer, 
-                    bool /* unused */,
-                    const char* _application, const char **argv )
-{
-    _network_impl = new NetworkImpl( this, _configBuffer, true, _application, argv );
-}
+    // save the serialized graph string in a variable on the stack,
+    // so that we don't build a packet with a pointer into a temporary
+    string sg = parsed_graph->get_SerializedGraphString();
 
-Network::Network( const char* _configBuffer, bool /* unused */,
-                    Network::LeafInfo *** leafInfo, unsigned int *nLeaves )
-{
-    // build the network
-    _network_impl = new NetworkImpl( this, _configBuffer, true, NULL, NULL );
-    if( !_network_impl->fail( ) ) {
-        if( ( leafInfo != NULL ) && ( nLeaves != NULL ) ) {
-            _network_impl->get_LeafInfo( leafInfo, nLeaves );
-        }
-        else {
-            // TODO is this the right error?
-            _network_impl->error( MRN_EINTERNAL, "invalid argument" );
-        }
+    PacketPtr packet( new Packet( 0, PROT_NEW_SUBTREE, "%s%s%s%as", sg.c_str( ),
+                                  mrn_commnode_path, ibackend_exe, ibackend_args,
+                                  backend_argc ) );
+    
+    mrn_dbg(5, mrn_printf(FLF, stderr, "Instantiating network ... \n" ));
+    if( get_LocalFrontEndNode()->proc_newSubTree( packet ) == -1 ) {
+        mrn_dbg(1, mrn_printf(FLF, stderr, "Failure: FrontEndNode::proc_newSubTree()!\n" ));
+        error( MRN_EINTERNAL, "");
     }
-}
 
-
-Network::~Network(  )
-{
-    delete _network_impl;
-}
-
-int Network::connect_Backends( void )
-{
-    // TODO is this the right error?
-    int ret = MRN_ENETWORK_FAILURE;
-
-    if( _network_impl != NULL ) {
-        ret = _network_impl->connect_Backends(  );
+    mrn_dbg(5, mrn_printf(FLF, stderr, "Waiting for subtrees to report ... \n" ));
+    if( get_LocalFrontEndNode()->waitfor_SubTreeReports( ) == -1 ) {
+        error( MRN_EINTERNAL, "");
     }
-    return ret;
+  
+    //We should have a topology available after subtrees report
+    _network_topology->print( stderr );
+
+    //broadcast topology, not necessary since sent for subtree creation, right?
+    char * topology = _network_topology->get_TopologyStringPtr();
+    packet = PacketPtr( new Packet( 0, PROT_TOPOLOGY_RPT, "%s", topology ) );
+    mrn_dbg(5, mrn_printf(FLF, stderr, "Broadcasting topology ... \n" ));
+    if( send_PacketToChildren( packet, false ) == -1 ) {
+        mrn_dbg(1, mrn_printf(FLF, stderr, "Failure: send_DownStream()!\n" ));
+        error( MRN_EINTERNAL, "");
+    }
+    free( topology );
+  
+    mrn_dbg(5, mrn_printf(FLF, stderr, "Creating bcast communicator ... \n" ));
+    _bcast_communicator = new Communicator( this );
+    update_BcastCommunicator( );
 }
 
-int Network::getConnections( int **conns, unsigned int *nConns )
+// back-end constructors
+Network::Network( const char *iphostname, Port ipport, Rank iprank,
+                  const char *imyhostname, Rank imyrank )
+    : _local_port(UnknownPort), _local_rank(UnknownRank), _network_topology(NULL),
+      _failure_manager(NULL), _bcast_communicator(NULL),
+      _local_front_end_node(NULL), _local_back_end_node(NULL),
+      _local_internal_node(NULL), _threaded(true),
+      _recover_from_failures( true ),
+      _notificationFDOutput(-1), _notificationFDInput(-1), _FDneedsPolling(false)
 {
-    return _network_impl->getConnections( conns, nConns );
+    init_local();
+    network=this;
+    set_OutputLevelFromEnvironment();
+    _streams_sync.RegisterCondition( STREAMS_NONEMPTY );
+    _parent_sync.RegisterCondition( PARENT_NODE_AVAILABLE );
+
+    _network_lifetime.start();
+    getrusage(RUSAGE_SELF, &_network_rusage);
+
+    init_BackEnd( iphostname, ipport, iprank, imyhostname, imyrank );
 }
 
-
-// back-end constructor
 Network::Network( int argc, char **argv )
+    : _local_port(UnknownPort), _local_rank(UnknownRank), _network_topology(NULL),
+      _failure_manager(NULL), _bcast_communicator(NULL),
+      _local_front_end_node(NULL), _local_back_end_node(NULL),
+      _local_internal_node(NULL), _threaded(true),
+      _recover_from_failures( true ),
+      _notificationFDOutput(-1), _notificationFDInput(-1), _FDneedsPolling(false)
 {
-    const char * phostname = argv[argc-4];
-    Port pport = (Port)strtoul( argv[argc-3], NULL, 10 );
+    init_local();
+    network=this;
+    set_OutputLevelFromEnvironment();
+    _streams_sync.RegisterCondition( STREAMS_NONEMPTY );
+    _parent_sync.RegisterCondition( PARENT_NODE_AVAILABLE );
+
+    _network_lifetime.start();
+    getrusage(RUSAGE_SELF, &_network_rusage);
+
+    const char * phostname = argv[argc-5];
+    Port pport = (Port) strtoul( argv[argc-4], NULL, 10 );
+    Rank prank = (Rank) strtoul( argv[argc-3], NULL, 10 );
     const char * myhostname = argv[argc-2];
-    Rank myrank = (Rank)strtoul( argv[argc-1], NULL, 10 );
-
-    _network_impl = new NetworkImpl( this, phostname, pport, myhostname, myrank );
+    Rank myrank = (Rank) strtoul( argv[argc-1], NULL, 10 );
+    init_BackEnd( phostname, pport, prank, myhostname, myrank );
 }
 
-Network::Network(const char *phostname, Port pport, const char * myhostname, Rank myrank)
+//internal node constructor
+Network::Network( )
+    : _local_port(UnknownPort), _local_rank(UnknownRank), _network_topology(NULL), 
+      _failure_manager(NULL), _bcast_communicator(NULL), 
+      _local_front_end_node(NULL), _local_back_end_node(NULL),
+      _local_internal_node(NULL), _threaded(true),
+      _recover_from_failures(true),
+      _notificationFDOutput(-1), _notificationFDInput(-1), _FDneedsPolling(false)
 {
-    _network_impl = new NetworkImpl( this, phostname, pport, myhostname, myrank );
+    init_local();
+    network=this;
+    set_OutputLevelFromEnvironment();
+    node_type="comm";
+    
+    _network_lifetime.start();
+    getrusage(RUSAGE_SELF, &_network_rusage);
 }
+
+Network::~Network( )
+{
+    shutdown_Network( );
+    cleanup_local( );
+}
+
+void Network::shutdown_Network( void )
+{
+    if( is_LocalNodeFrontEnd() ) {
+        char delete_backends;
+        if( _terminate_backends )
+            delete_backends = 't';
+        else
+            delete_backends = 'f';
+        
+        PacketPtr packet( new Packet( 0, PROT_DEL_SUBTREE, "%c", delete_backends ) );
+        get_LocalFrontEndNode()->proc_DeleteSubTree( packet );
+    }
+}
+
+void Network::set_TerminateBackEndsOnShutdown( bool terminate )
+{
+   _terminate_backends = terminate;
+}
+
+void Network::update_BcastCommunicator( void )
+{
+    set< NetworkTopology::Node * > backends =
+        _network_topology->get_BackEndNodes();
+
+    //add end-points to broadcast communicator
+    set< NetworkTopology::Node * >::const_iterator iter;
+    for( iter=backends.begin(); iter!=backends.end(); iter++ ){
+        string cur_hostname = (*iter)->get_HostName();
+        Rank cur_rank = (*iter)->get_Rank();
+        if( _end_points.find( cur_rank ) == _end_points.end() ) {
+            _end_points[ cur_rank ] =
+                new CommunicationNode( cur_hostname,
+                                       (*iter)->get_Port(),
+                                       cur_rank );
+            _bcast_communicator->add_EndPoint( cur_rank );
+        }
+    }
+    mrn_dbg(5, mrn_printf(FLF, stderr, "Bcast communicator complete \n" ));
+}
+
+void Network::init_BackEnd(const char *iphostname, Port ipport, Rank iprank,
+                           const char * imyhostname, Rank imyrank )
+{
+    node_type="be";
+    setrank( imyrank );
+    string myhostname;
+    XPlat::NetUtils::GetNetworkName( imyhostname, myhostname );
+
+    //TLS: setup thread local storage for frontend
+    //I am "BE(host:port)"
+    string prettyHost;
+    XPlat::NetUtils::GetHostName( myhostname, prettyHost );
+    char rank_str[16];
+    sprintf( rank_str, "%u", imyrank );
+    string name( "BE(" );
+    name += prettyHost;
+    name += ":";
+    name += rank_str;
+    name += ")";
+    int status;
+
+    tsd_t *local_data = new tsd_t;
+    local_data->thread_id = XPlat::Thread::GetId(  );
+    local_data->thread_name = strdup( name.c_str(  ) );
+    if( ( status = tsd_key.Set( local_data ) ) != 0 ) {
+        //TODO: add event to notify upstream
+        error(MRN_ESYSTEM, "XPlat::TLSKey::Set(): %s\n", strerror( status ) );
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "XPlat::TLSKey::Set(): %s\n",
+                    strerror( status ) ));
+    }
+
+    set_BackEndNode( new BackEndNode( this, myhostname, imyrank,
+                                                 iphostname, ipport, iprank ) );
+
+    if( get_LocalBackEndNode()->has_Error() ){
+        error( MRN_ESYSTEM, "Failed to initialize via BackEndNode()\n" );
+    }
+}
+
+int Network::parse_Configuration( const char* itopology, bool iusing_mem_buf )
+{
+    int status;
+    mrndebug=0;
+    //mrn_flex_debug=0;
+
+    if( iusing_mem_buf ) {
+        // set up to parse config from a buffer in memory
+        mrnBufPtr = itopology;
+        mrnBufRemaining = strlen( itopology );
+    }
+    else {
+        // set up to parse config from teh file named by our
+        // 'filename' member variable
+        mrnin = fopen( itopology, "r" );
+        if( mrnin == NULL ) {
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "Failure: fopen(\"%s\") failed: %s",
+                                   itopology, strerror( errno ) ));
+            error( MRN_EBADCONFIG_IO, "fopen() failed: %s: %s", itopology,
+                   strerror( errno ) );
+            return -1;
+        }
+    }
+
+    status = mrnparse( );
+
+    if( status != 0 ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "Failure: mrnparse(\"%s\"): Parse Error\n",
+                               itopology ));
+        error( MRN_EBADCONFIG_FMT, "Failure: mrnparse(\"%s\"): Parse Error\n",
+               itopology );
+        return -1;
+    }
+
+    return 0;
+}
+
 
 void Network::print_error( const char *s )
 {
-    assert(_network_impl);
-    _network_impl->perror( s );
+    perror( s );
 }
 
-int Network::recv(bool iblocking)
+int Network::send_PacketsToParent( std::vector <PacketPtr> &ipackets )
 {
-    assert( _network_impl );
+    assert( is_LocalNodeChild() );
 
-    int ret = _network_impl->recv( iblocking );
+    vector< PacketPtr >::const_iterator iter;
 
-    return ret;
+    for( iter = ipackets.begin(); iter!= ipackets.end(); iter++ ) {
+        send_PacketToParent( *iter );
+    }
+
+    return 0;
 }
 
-int Network::recv(int *otag, Packet **opacket, Stream ** ostream,
-                  bool iblocking)
+int Network::send_PacketToParent( PacketPtr ipacket )
 {
-    assert( _network_impl );
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::recv(&tag, &buf, &stream, %s)\n",
-               ( iblocking ? "blocking" : "non-blocking") ));
-    int ret = _network_impl->recv( otag, opacket, ostream, iblocking );
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::recv(&tag, &buf, &stream) => %d %d\n",
-               *otag, ret ));
+    mrn_dbg_func_begin();
 
-    return ret;
+    if( get_ParentNode()->send( ipacket ) == -1 ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "upstream.send() failed()\n" ));
+        return -1;
+    }
+
+    mrn_dbg_func_end();
+    return 0;
 }
 
-EndPoint * Network::get_EndPoint(const char* hostname,
-                                 short unsigned int port )
+int Network::flush_PacketsToParent( void )
 {
-    assert(_network_impl);
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_EndPoint(%s, %h)\n",
-               hostname, port));
-    EndPoint * ret = _network_impl->get_EndPoint( hostname, port );
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::get_EndPoint(%s, %h) => %p\n",
-               hostname, port, ret));
-
-    return ret;
+    assert( is_LocalNodeChild() );
+    return _parent->flush();
 }
 
-EndPoint * Network::get_EndPoint( Rank rank )
+int Network::send_PacketsToChildren( std::vector <PacketPtr> &ipackets  )
 {
-    assert(_network_impl);
+    assert( is_LocalNodeParent() );
 
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_EndPoint(%u)\n",
-               rank));
-    EndPoint * ret = _network_impl->get_EndPoint( rank );
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::get_EndPoint(%u) => %p\n",
-               rank, ret));
+    vector< PacketPtr >::const_iterator iter;
 
-    return ret;
+    for( iter = ipackets.begin(); iter!= ipackets.end(); iter++ ) {
+        send_PacketToChildren( *iter );
+    }
+
+    return 0;
 }
 
-Communicator * Network::get_BroadcastCommunicator(void)
+int Network::send_PacketToChildren( PacketPtr ipacket,
+                                    bool iinternal_only /* =false */ )
 {
-    assert(_network_impl);
-    return _network_impl->get_BroadcastCommunicator();
+    int retval = 0;
+    Stream *stream;
+
+    mrn_dbg_func_begin();
+
+    std::set < PeerNodePtr > peers;
+
+    if( ipacket->get_StreamId( ) == 0 ) {   //stream id 0 => control stream
+        peers = get_ChildPeers();
+    }
+    else {
+        std::set < Rank > peer_ranks;
+        std::set < Rank >::const_iterator iter;
+        stream = get_Stream( ipacket->get_StreamId() );
+        assert( stream );
+        peer_ranks = stream->get_ChildPeers();
+        for( iter= peer_ranks.begin(); iter!=peer_ranks.end(); iter++) {
+            PeerNodePtr cur_peer = get_OutletNode( *iter );
+            if( cur_peer != PeerNode::NullPeerNode ) {
+                peers.insert( cur_peer );
+            }
+        }
+    }
+    
+    std::set < PeerNodePtr >::const_iterator iter;
+    for( iter=peers.begin(); iter!=peers.end(); iter++ ) {
+        PeerNodePtr cur_node = *iter;
+        mrn_dbg(3, mrn_printf( FLF, stderr, "node \"%s:%d:%d\": %s, %s\n",
+                               cur_node->get_HostName().c_str(),
+                               cur_node->get_Rank(),
+                               cur_node->get_Port(),
+                               ( cur_node->is_parent() ? "parent" : "child" ),
+                               ( cur_node->is_internal() ? "internal" : "end-point" ) ));
+
+        //Never send packet back to src
+        if ( cur_node->get_Rank() == ipacket->get_InletNodeRank() ){
+            continue;
+        }
+
+        //if internal_only, don't send to non-internal nodes
+        if( iinternal_only && !cur_node->is_internal( ) ){
+            continue;
+        }
+        mrn_dbg( 3, mrn_printf( FLF, stderr, "Calling peer[%d].send() ...\n",
+                                cur_node->get_Rank() ));
+        if( cur_node->send( ipacket ) == -1 ) {
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "peer.send() failed\n" ));
+            retval = -1;
+        }
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "peer.send() succeeded\n" ));
+    }
+
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "send_PacketToChildren %s",
+                           retval == 0 ? "succeeded\n" : "failed\n" ));
+    return retval;
+}
+
+int Network::flush_PacketsToChildren( void ) const
+{
+    int retval = 0;
+    
+    mrn_dbg_func_begin();
+    
+    const std::set < PeerNodePtr > peers = get_ChildPeers();
+
+    std::set < PeerNodePtr >::const_iterator iter;
+    for( iter=peers.begin(); iter!=peers.end(); iter++ ) {
+        PeerNodePtr cur_node = *iter;
+
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling child[%d].flush() ...\n",
+                               cur_node->get_Rank() ));
+        if( cur_node->flush( ) == -1 ) {
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "child.flush() failed\n" ));
+            retval = -1;
+        }
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "child.flush() succeeded\n" ));
+    }
+
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "flush_PacketsToChildren %s",
+                retval == 0 ? "succeeded\n" : "failed\n" ));
+    return retval;
+}
+
+int Network::recv( bool iblocking )
+{
+    mrn_dbg_func_begin();
+
+    if( is_LocalNodeFrontEnd() ) { 
+        if( iblocking ){
+            waitfor_NonEmptyStream();
+            return 1;
+        }
+        return 0;
+    }
+    else if( is_LocalNodeBackEnd() ){
+        std::list <PacketPtr> packet_list;
+        mrn_dbg(3, mrn_printf(FLF, stderr, "In backend.recv(%s)...\n",
+                              (iblocking? "blocking" : "non-blocking") ));
+
+        //if not blocking and no data present, return immediately
+        if( !iblocking && !this->has_PacketsFromParent() ){
+            return 0;
+        }
+
+        //check if we already have data
+        if( is_LocalNodeThreaded() ) {
+            waitfor_NonEmptyStream();
+        }
+        else {
+            mrn_dbg(3, mrn_printf(FLF, stderr, "Calling recv_packets()\n"));
+            if( recv_PacketsFromParent( packet_list ) == -1){
+                mrn_dbg(1, mrn_printf(FLF, stderr, "recv_packets() failed\n"));
+                return -1;
+            }
+
+            if(packet_list.size() == 0){
+                mrn_dbg(3, mrn_printf(FLF, stderr, "No packets read!\n"));
+            }
+            else {
+                mrn_dbg(3, mrn_printf(FLF, stderr,
+                                      "Calling proc_packets()\n"));
+                if( get_LocalChildNode()->proc_PacketsFromParent(packet_list) == -1){
+                    mrn_dbg(1, mrn_printf(FLF, stderr, "proc_packets() failed\n"));
+                    return -1;
+                }
+            }
+        }
+        
+        //if we get here, we have found data to return
+        mrn_dbg(5, mrn_printf(FLF, stderr, "Found/processed packets! Returning\n"));
+        
+        return 1;
+    }
+
+    return -1; //shouldn't get here
+}
+
+int Network::recv( int *otag, PacketPtr  &opacket, Stream ** ostream, bool iblocking)
+{
+    mrn_dbg(2, mrn_printf(FLF, stderr, "blocking: \"%s\"\n",
+               ( iblocking ? "yes" : "no") ));
+
+    bool checked_network = false;   // have we checked sockets for input?
+    PacketPtr cur_packet( Packet::NullPacket );
+
+    if( !have_Streams() && is_LocalNodeFrontEnd() ){
+        //No streams exist -- bad for FE
+        mrn_dbg(1, mrn_printf(FLF, stderr, "%s recv in FE when no streams "
+                              "exist\n", (iblocking? "Blocking" : "Non-blocking") ));
+        
+        return -1;
+    }
+
+    // check streams for input
+get_packet_from_stream_label:
+    if( have_Streams() ) {
+
+        bool packet_found=false;
+        map <unsigned int, Stream *>::iterator start_iter;
+
+        start_iter = _stream_iter;
+        do{
+            Stream* cur_stream = _stream_iter->second;
+
+            mrn_dbg( 5, mrn_printf(FLF, stderr,
+                                   "Checking for packets on stream[%d]...",
+                                   cur_stream->get_Id() ));
+            cur_packet = cur_stream->get_IncomingPacket();
+            if( cur_packet != Packet::NullPacket ){
+                packet_found = true;
+            }
+            mrn_dbg( 5, mrn_printf(0,0,0, stderr, "%s!\n",
+                                   (packet_found ? "found" : "not found")));
+
+            _streams_sync.Lock();
+            _stream_iter++;
+            if( _stream_iter == _streams.end() ){
+                //wrap around to start of map entries
+                _stream_iter = _streams.begin();
+            }
+            _streams_sync.Unlock();
+        } while( (start_iter != _stream_iter) && !packet_found );
+    }
+
+    if( cur_packet != Packet::NullPacket ) {
+        *otag = cur_packet->get_Tag();
+        *ostream = get_Stream( cur_packet->get_StreamId() );
+        opacket = cur_packet;
+        mrn_dbg(4, mrn_printf(FLF, stderr, "cur_packet tag: %d, fmt: %s\n",
+                   cur_packet->get_Tag(), cur_packet->get_FormatString() ));
+        return 1;
+    }
+    else if( iblocking || !checked_network ) {
+
+        // No packets are already in the stream
+        // check whether there is data waiting to be read on our sockets
+        int retval = recv( iblocking );
+        checked_network = true;
+
+        if( retval == -1 ){
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "Network::recv() failed.\n" ));
+            return -1;
+        }
+        else if ( retval == 1 ){
+            // go back if we found a packet
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "Network::recv() found a packet!\n" ));
+            goto get_packet_from_stream_label;
+        }
+    }
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Network::recv() No packets found.\n" ));
+
+    return 0;
+}
+
+CommunicationNode * Network::get_EndPoint( Rank irank ) const
+{
+    map< Rank, CommunicationNode * >::const_iterator iter =
+        _end_points.find( irank );
+
+    if( iter == _end_points.end() ){
+        return NULL;
+    }
+
+    return (*iter).second;
+}
+
+Communicator * Network::get_BroadcastCommunicator(void) const
+{
+    return _bcast_communicator;
 }
 
 Communicator * Network::new_Communicator()
@@ -205,454 +672,874 @@ Communicator * Network::new_Communicator()
 
 Communicator * Network::new_Communicator( Communicator& comm )
 {
-    assert(_network_impl);
     return new Communicator( this, comm );
 }
 
-Communicator * Network::new_Communicator( std::vector <EndPoint *> & endpoints )
+Communicator * Network::new_Communicator( set <CommunicationNode *> & endpoints )
 {
-    // TODO: technically, assert is correct, but commented as temp. fix for
-    // fact that in the calling sequence Network() calls NetworkImpl() calls
-    // new_Communicator() Network, object has not yet set network var
-
-    // assert(_network_impl);
     return new Communicator( this, endpoints );
 }
 
-EndPoint * Network::new_EndPoint(Rank rank, const char * hostname, Port port)
+CommunicationNode * Network::new_EndPoint(string &ihostname,
+                                          Port iport, Rank irank )
 {
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::new_EndPoint(%d, %s, %d)\n",
-               rank, hostname, port));
-    EndPoint * ret = new EndPoint(rank, hostname, port);
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::new_EndPoint(%d, %s, %d) => %p\n",
-               rank, hostname, port, ret));
-
-    return ret;
+    return new CommunicationNode(ihostname, iport, irank);
 }
 
-Stream * Network::new_Stream( Communicator *comm, 
-                                int us_filter_id,
-                                int sync_id, 
-                                int ds_filter_id)
+Stream * Network::new_Stream( Communicator *icomm, 
+                              int ius_filter_id /*=TFILTER_NULL*/,
+                              int isync_filter_id /*=SFILTER_WAITFORALL*/, 
+                              int ids_filter_id /*=TFILTER_NULL*/ )
 {
-    assert(_network_impl);
+    static unsigned int next_stream_id=1;  //id '0' reserved for internal communication
 
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::new_Stream(%p, %d, %d, %d)\n",
-               comm, us_filter_id, sync_id, ds_filter_id));
+    //get array of back-ends from communicator
+    const set <CommunicationNode*> endpoints = icomm->get_EndPoints();
+    Rank * backends = new Rank[ endpoints.size() ];
+        
+    mrn_dbg(5, mrn_printf(FLF, stderr, "backends[ " ));
+    set <CommunicationNode*>:: const_iterator iter;
+    unsigned  int i;
+    for( i=0,iter=endpoints.begin(); iter!=endpoints.end(); i++,iter++) {
+        mrn_dbg(5, mrn_printf( 0,0,0, stderr, "%d, ", (*iter)->get_Rank() ));
+        backends[i] = (*iter)->get_Rank();
+    }
+    mrn_dbg(5, mrn_printf(0,0,0, stderr, "]\n"));
+    
 
-    Stream * new_stream = new Stream( this, comm, us_filter_id,
-                                      sync_id, ds_filter_id );
-    _network_impl->set_StreamById( new_stream->get_Id(), new_stream );
+    PacketPtr packet( new Packet( 0, PROT_NEW_STREAM, "%d %ad %d %d %d",
+                                  next_stream_id, backends, endpoints.size(),
+                                  ius_filter_id, isync_filter_id, ids_filter_id ) );
+    next_stream_id++;
 
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::new_Stream(%p, %d, %d, %d) => %p (id:%d)\n",
-               comm, us_filter_id, sync_id, ds_filter_id,
-               new_stream, new_stream->get_Id() ));
+    Stream * stream = get_LocalFrontEndNode()->proc_newStream(packet);
+    if( stream == NULL ){
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "proc_newStream() failed\n" ));
+    }
 
-    return new_stream;
-}
-
-Stream * Network::new_Stream( int stream_id, int *backends,
-                              int num_backends,
-                              int us_filter_id,
-                              int sync_id,
-                              int ds_filter_id)
-{
-    assert(_network_impl);
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::new_Stream(id: %d, %d, %d, %d)\n",
-               stream_id, us_filter_id, sync_id, ds_filter_id));
-
-    Stream * new_stream = new Stream( this, stream_id, backends,
-                                      num_backends, us_filter_id,
-                                      sync_id, ds_filter_id );
-
-    _network_impl->set_StreamById( new_stream->get_Id(), new_stream );
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::new_Stream(id: %d, %d, %d, %d) => %p (id:%d)\n",
-               stream_id, us_filter_id, sync_id, ds_filter_id,
-               new_stream, new_stream->get_Id() ));
-
-    return new_stream;
-}
-
-Stream* Network::get_Stream(int stream_id)
-{
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_Stream(%d)\n", stream_id));
-
-    Stream * stream = _network_impl->get_StreamById( stream_id );
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::get_Stream(%d) => %p\n",
-               stream_id, stream));
-
+    delete [] backends;
     return stream;
 }
 
-int Network::get_SocketFd(){
-    assert(_network_impl);
-
-    //mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_SocketFd()\n"));
-    int ret = _network_impl->get_SocketFd();
-    //mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_SocketFd() => %d\n", ret));
-
-    return ret;
-}
-
-int Network::get_SocketFd(int **array, unsigned int *array_size){
-    assert(_network_impl);
-
-    //mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_SocketFd()\n"));
-    int ret = _network_impl->get_SocketFd(array, array_size);
-    //mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_SocketFd() => %d\n", ret));
-
-    return ret;
-}
-
-int Network::load_FilterFunc( const char *so_file, const char *func,
-                             bool is_trans_filter )
+Stream * Network::new_Stream( int iid,
+                              Rank *ibackends,
+                              unsigned int inum_backends,
+                              int ius_filter_id,
+                              int isync_filter_id,
+                              int ids_filter_id
+                            )
 {
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::load_FilterFunc(%s, %s, %s)\n",
-               so_file, func, ( is_trans_filter ? "tfilter" : "sfilter" )));
+    mrn_dbg_func_begin();
+    Stream * stream = new Stream( this, iid, ibackends, inum_backends,
+                                  ius_filter_id, isync_filter_id, ids_filter_id );
 
-    int fid = Filter::load_FilterFunc( so_file, func,
-                                       is_trans_filter );
+    _streams_sync.Lock();
+
+    _streams[iid] = stream;
+
+    if( _streams.size() == 1 ){
+        _stream_iter = _streams.begin();
+    }
+
+    _streams_sync.Unlock();
+
+    mrn_dbg_func_end();
+    return stream;
+}
+
+Stream * Network::get_Stream( unsigned int iid ) const
+{
+    Stream * ret;
+    map<unsigned int, Stream*>::const_iterator iter; 
+
+    _streams_sync.Lock();
+
+    iter = _streams.find( iid );
+    if(  iter != _streams.end() ){
+        ret = iter->second;
+    }
+    else{
+        ret = NULL;
+    }
+    _streams_sync.Unlock();
+
+    mrn_dbg(5, mrn_printf(FLF, stderr, "network(%p): stream[%d] = %p\n", this, iid, ret ));
+    return ret;
+}
+
+void Network::delete_Stream( unsigned int iid )
+{
+    map<unsigned int, Stream*>::iterator iter; 
+
+    _streams_sync.Lock();
+
+    iter = _streams.find( iid );
+    if(  iter != _streams.end() ){
+
+        //if we are about to delete start_iter, set it to next elem. (w/wrap)
+        if( iter == _stream_iter ){
+            _stream_iter++;
+            if( _stream_iter == Network::_streams.end() ){
+                _stream_iter = Network::_streams.begin();
+            }
+        }
+
+        _streams.erase( iter );
+    }
+
+    _streams_sync.Unlock();
+}
+
+bool Network::have_Streams( )
+{
+    bool ret;
+    _streams_sync.Lock();
+    ret = !_streams.empty();
+    _streams_sync.Unlock();
+    return ret;
+}
+int Network::get_DataSocketFds( int **ofds, unsigned int *onum_fds ) const
+{
+    if( is_LocalNodeFrontEnd() ) {
+        _children_mutex.Lock();
+        std::set < PeerNodePtr >::const_iterator iter;
+
+        *onum_fds = _children.size( );
+        *ofds = new int[*onum_fds];
+        
+        unsigned int i;
+        for( i=0,iter=_children.begin(); iter != _children.end(); iter++,i++ ) {
+            (*ofds)[i] = (*iter)->get_DataSocketFd();
+        }
+        _children_mutex.Unlock();
+    }
+    else if ( is_LocalNodeBackEnd() ) {
+        _parent_sync.Lock();
+        *onum_fds = 1;
+        *ofds = new int;
+
+        *ofds[0] = _parent->get_DataSocketFd();
+
+        _parent_sync.Unlock();
+    }
+
+    return 0;
+}
+
+int Network::get_DataNotificationFd( void )
+{
+#if !defined(os_windows)
+    _notification_mutex.Lock();
+    if( _notificationFDOutput == -1 ) {
+        int pipeFDs[2];
+        pipeFDs[0] = pipeFDs[1] = -1;
+        int ret = pipe(pipeFDs);
+        if( ret == 0 ) {
+            _notificationFDOutput = pipeFDs[0];
+            _notificationFDInput = pipeFDs[1];
+        }
+    }
+    _notification_mutex.Unlock();
+    return _notificationFDOutput;
+#else
+    return -1;
+#endif
+}
+
+void Network::signal_DataNotificationFd( void )
+{
+#if !defined(os_windows)
+    // If the FDs are set up, write a byte to the input side.
+    _notification_mutex.Lock();
+    if((_notificationFDInput == -1 ) || _FDneedsPolling ) {
+        _notification_mutex.Unlock();
+        return;
+    }
+    _notification_mutex.Unlock();
+    
+    char f = (char) 42;
+    int ret = write(_notificationFDInput, &f, sizeof(char));
+    if( ret == -1 )
+        perror("Notification write");
+    else {
+        _notification_mutex.Lock();
+        _FDneedsPolling = true;
+        _notification_mutex.Unlock();
+    }
+
+#endif
+    return;
+}
+
+void Network::clear_DataNotificationFd( void )
+{
+#if !defined(os_windows)
+    _notification_mutex.Lock();
+    if(( _notificationFDOutput == -1 ) || ( ! _FDneedsPolling )) {
+        _notification_mutex.Unlock();
+        return;
+    }
+    _notification_mutex.Unlock();
+
+
+    char buf;
+    read(_notificationFDOutput, &buf, sizeof(char));
+
+    _notification_mutex.Lock();
+    _FDneedsPolling = false;
+    _notification_mutex.Unlock();
+#endif
+    return;
+}
+
+
+void Network::collect_PerformanceData( void )
+{
+    if( is_LocalNodeFrontEnd() ) {
+        PacketPtr packet( new Packet( 0, PROT_COLLECT_PERFDATA, "" ) );
+        if( send_PacketToChildren( packet ) == -1 ) {
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "send_PacketToChildren() failed\n" ));
+            return;
+        }
+    }
+    collect_PerfData();
+}
+
+void Network::collect_PerfData( void )
+{
+    struct rusage last_usage;
+    double user_pctcpu = 0, sys_pctcpu = 0;
+    uint64_t total_send, total_recv;
+
+    mrn_dbg_func_begin();
+
+    // collect
+    _network_lifetime.stop();
+    getrusage(RUSAGE_SELF, &last_usage);
+    total_send = MRN::get_TotalBytesSend();
+    total_recv = MRN::get_TotalBytesRecv();
+
+    // calculate totals
+    double secs = _network_lifetime.get_latency_secs();
+
+    double user_secs = MRN::tv2dbl( last_usage.ru_utime );
+    user_secs -= MRN::tv2dbl( _network_rusage.ru_utime );
+    user_pctcpu = 100.0 * user_secs / secs;
+
+    double sys_secs = MRN::tv2dbl( last_usage.ru_stime );
+    sys_secs -= MRN::tv2dbl( _network_rusage.ru_stime );
+    sys_pctcpu = 100.0 * sys_secs / secs;
+
+    // report performance data
+    mrn_dbg( 1, mrn_printf(0,0,0, stderr, "MRNET PERFDATA: CPU User%% %.2lf Sys%% %.2lf\n",
+                           user_pctcpu, sys_pctcpu));
+
+    mrn_dbg( 1, mrn_printf(0,0,0, stderr, "MRNET PERFDATA: Network Lifetime: %.2lf secs\n", 
+                           secs));
+
+    mrn_dbg( 1, mrn_printf(0,0,0, stderr, "MRNET PERFDATA: Network Send: %.2lf KB\n", 
+                           (double)total_send / 1024.0));
+    mrn_dbg( 1, mrn_printf(0,0,0, stderr, "MRNET PERFDATA: Network Recv: %.2lf KB\n", 
+                           (double)total_recv / 1024.0));
+    mrn_dbg( 1, mrn_printf(0,0,0, stderr, "MRNET PERFDATA: Network Utilization: %.2lf KB/sec\n",
+                           ((double)(total_send + total_recv) / secs) / 1024.0));
+
+
+    fflush(stderr);
+
+    mrn_dbg_func_end();
+}
+
+
+
+int Network::load_FilterFunc( const char *so_file, const char *func )
+{
+    mrn_dbg_func_begin();
+
+    int fid = Filter::load_FilterFunc( so_file, func );
     
     if( fid != -1 ){
         //Filter registered locally, now propagate to tree
         //TODO: ensure that filter is loaded down the entire tree
-        Packet packet( 0, PROT_NEW_FILTER, "%uhd %s %s %c",
-                       fid, so_file, func, is_trans_filter );
-        _network_impl->front_end->send_PacketDownStream( packet, true );
+        mrn_dbg(3, mrn_printf(FLF, stderr, "sending PROT_NEW_FILTER\n" ));
+        PacketPtr packet( new Packet( 0, PROT_NEW_FILTER, "%uhd %s %s",
+                                      fid, so_file, func ) );
+        send_PacketToChildren( packet );
     }
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::load_FilterFunc(%s, %s, %s) => %d\n",
-               so_file, func, ( is_trans_filter ? "tfilter" : "sfilter" ),
-               fid));
+    mrn_dbg_func_end();
     return fid;
 }
 
-bool Network::is_FrontEnd()
+
+void Network::set_BlockingTimeOut( int timeout )
 {
-    assert(_network_impl);
-    return _network_impl->is_FrontEnd();
+    mrn_dbg(2, mrn_printf(FLF, stderr, "set_BlockingTimeOut(%d)\n", timeout ));
+
+    PeerNode::set_BlockingTimeOut( timeout );
 }
 
-bool Network::is_BackEnd()
+int Network::get_BlockingTimeOut(  )
 {
-    assert(_network_impl);
-    return _network_impl->is_BackEnd();
+    return PeerNode::get_BlockingTimeOut(  );
 }
 
-bool Network::good()
+void Network::waitfor_NonEmptyStream( void )
 {
-    assert(_network_impl);
-    return _network_impl->good();
+    mrn_dbg_func_begin();
+
+    map < unsigned int, Stream * >::const_iterator iter;
+    _streams_sync.Lock();
+    while( true ){ 
+        for( iter=_streams.begin(); iter != _streams.end(); iter++ ){
+            mrn_dbg(5, mrn_printf(FLF, stderr, "Checking stream[%d] (%p) for data\n",
+                                  (*iter).second->get_Id(), (*iter).second ));
+            if( (*iter).second->has_Data() ){
+                mrn_dbg(5, mrn_printf(FLF, stderr, "Data found on stream[%d]\n",
+                                      (*iter).second->get_Id() ));
+                _streams_sync.Unlock();
+                return;
+            }
+        }
+        mrn_dbg(5, mrn_printf(FLF, stderr, "Waiting on CV[STREAMS_NONEMPTY] ...\n"));
+        _streams_sync.WaitOnCondition( STREAMS_NONEMPTY );
+    }
+    _streams_sync.Unlock();
+
+    mrn_dbg_func_end();
 }
 
-bool Network::fail()
+void Network::signal_NonEmptyStream( void )
 {
-    assert(_network_impl);
-    return _network_impl->fail();
+    _streams_sync.Lock();
+    mrn_dbg(5, mrn_printf(FLF, stderr, "Signaling CV[STREAMS_NONEMPTY] ...\n"));
+    _streams_sync.SignalCondition( STREAMS_NONEMPTY );
+    signal_DataNotificationFd();
+    _streams_sync.Unlock();
 }
 
-FrontEndNode * Network::get_FrontEndNode( void )
+/* Methods to access internal network state */
+
+void Network::set_BackEndNode( BackEndNode * iback_end_node )
 {
-    assert( _network_impl );
-    return _network_impl->get_FrontEndNode();
+    _local_back_end_node = iback_end_node;
 }
 
-BackEndNode * Network::get_BackEndNode( void )
+void Network::set_FrontEndNode( FrontEndNode * ifront_end_node )
 {
-    assert( _network_impl );
-    return _network_impl->get_BackEndNode();
+    _local_front_end_node = ifront_end_node;
 }
 
-/*================================================*/
-/*             Stream class DEFINITIONS        */
-/*================================================*/
-Stream::Stream(Network * inetwork,
-               Communicator *icomm,
-               int iupstream_filter_id,
-               int isync_filter_id,
-               int idownstream_filter_id)
-    : _stream_impl( new StreamImpl( inetwork, icomm, iupstream_filter_id,
-                              isync_filter_id, idownstream_filter_id) )
+void Network::set_InternalNode( InternalNode * iinternal_node )
 {
+    _local_internal_node = iinternal_node;
 }
 
-Stream::Stream( Network *inetwork,
-                int istream_id,
-                int *ibackends,
-                int inum_backends,
-                int iupstream_filter_id,
-                int isync_filter_id ,
-                int idownstream_filter_id)
-    : _stream_impl( new StreamImpl( inetwork, istream_id, ibackends,
-                                    inum_backends, iupstream_filter_id,
-                                    isync_filter_id, idownstream_filter_id ) )
+void Network::set_NetworkTopology( NetworkTopology * inetwork_topology )
 {
+    _network_topology = inetwork_topology;
 }
 
-Stream::~Stream()
+void Network::set_LocalHostName( string & ihostname )
 {
-    delete _stream_impl;
+    _local_hostname = ihostname;
 }
 
-int Stream::unpack( Packet *ipacket, char const *ifmt_str, ... )
+void Network::set_LocalPort( Port iport )
 {
-    va_list arg_list;
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to Stream::unpack(%p, \"%s\")\n",
-               ipacket, ifmt_str));
-
-    va_start( arg_list, ifmt_str );
-    int ret = StreamImpl::unpack( ipacket, ifmt_str, arg_list );
-    va_end( arg_list );
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Stream::unpack(%p, \"%s\") => %d\n",
-               ipacket, ifmt_str, ret));
-
-    return ret;
+    _local_port = iport;
 }
 
-char * Stream::get_FormatString(Packet *packet)
+void Network::set_LocalRank( Rank irank )
 {
-	if (packet != NULL)
-	{
-		return strdup(packet->get_FormatString());
-	}
-	else
-	{
-		return NULL;
-	}
+    _local_rank = irank;
 }
 
-void Stream::set_BlockingTimeOut( int timeout )
+void Network::set_FailureManager( CommunicationNode * icomm )
 {
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Stream::set_BlockingTimeOut(%d)\n", timeout ));
-
-    RemoteNode::set_BlockingTimeOut( timeout );
+    if( _failure_manager != NULL ) {
+        delete _failure_manager;
+    }
+    _failure_manager = icomm;
 }
 
-int Stream::get_BlockingTimeOut(  )
+NetworkTopology * Network::get_NetworkTopology( void ) const
 {
-    return RemoteNode::get_BlockingTimeOut(  );
+    return _network_topology;
 }
 
-int Stream::send(int tag, const char * format_str, ...)const
+FrontEndNode * Network::get_LocalFrontEndNode( void ) const
 {
-    assert( _stream_impl );
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "In Stream[%d]::send(%d, \"%s\")\n",
-               _stream_impl->get_Id(), tag, format_str));
-
-    int status;
-    va_list arg_list;
-
-    va_start(arg_list, format_str);
-    status = _stream_impl->send_aux( tag, format_str, arg_list );
-    va_end(arg_list);
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Stream[%d]::send(%d, \"%s\") => %d\n",
-               _stream_impl->get_Id(), tag, format_str, status));
-
-    return status;
+    return _local_front_end_node;
 }
 
-int Stream::flush()const
+InternalNode * Network::get_LocalInternalNode( void ) const
 {
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to Stream::flush\n"));
-    assert( _stream_impl );
-
-    return _stream_impl->flush();
+    return _local_internal_node;
 }
 
-int Stream::recv( int *otag, Packet **opacket, bool iblocking )
+BackEndNode * Network::get_LocalBackEndNode( void ) const
 {
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to Stream::recv(&tag, &buf, %s)\n",
-               ( iblocking ? "blocking": "non-blocking" ) ));
-    assert( _stream_impl );
-    int ret = _stream_impl->recv( otag, opacket, iblocking );
-
-    mrn_dbg(2, mrn_printf(FLF, stderr, "Stream::recv(&tag, &buf, %s) => %d, %p, %d\n",
-               ( iblocking ? "blocking": "non-blocking" ), *otag, *opacket, ret ));
-    return ret;
+    return _local_back_end_node;
 }
 
-unsigned int Stream::get_NumEndPoints()const
+ChildNode * Network::get_LocalChildNode( void ) const
 {
-    assert( _stream_impl );
-    return _stream_impl->get_NumEndPoints();
+    if( is_LocalNodeInternal() )
+        return dynamic_cast<ChildNode*>(_local_internal_node);
+    else
+        return dynamic_cast<ChildNode*>(_local_back_end_node) ;
 }
 
-Communicator* Stream::get_Communicator()const
+ParentNode * Network::get_LocalParentNode( void ) const
 {
-    assert ( _stream_impl );
-    return _stream_impl->get_Communicator();
+    if( is_LocalNodeInternal() )
+        return dynamic_cast<ParentNode*>(_local_internal_node);
+    else
+        return dynamic_cast<ParentNode*>(_local_front_end_node); 
 }
 
-unsigned int Stream::get_Id()const
+string Network::get_LocalHostName( void ) const
 {
-    assert( _stream_impl );
-    return _stream_impl->get_Id();
+    return _local_hostname;
 }
 
-/*======================================================*/
-/*             Communicator class DEFINITIONS        */
-/*======================================================*/
-Communicator::Communicator( Network * inetwork )
-    : _communicator_impl( new CommunicatorImpl( inetwork ) )
+Port Network::get_LocalPort( void ) const
 {
+    return _local_port;
 }
 
-Communicator::Communicator( Network * inetwork, Communicator & icomm )
-    :_communicator_impl( new CommunicatorImpl( inetwork, icomm ) )
+Rank Network::get_LocalRank( void ) const
 {
+    return _local_rank;
 }
 
-Communicator::Communicator( Network * inetwork,
-                            std::vector<EndPoint *>& iendpoints )
-    :_communicator_impl( new CommunicatorImpl( inetwork, iendpoints ) )
+int Network::get_ListeningSocket( void ) const
 {
+    assert( is_LocalNodeParent() );
+    return get_LocalParentNode()->get_ListeningSocket();
 }
 
-Communicator::~Communicator( )
+CommunicationNode * Network::get_FailureManager( void ) const
 {
-    assert(_communicator_impl);
-    delete _communicator_impl;
+    return _failure_manager;
 }
 
-int Communicator::add_EndPoint(const char * ihostname, Port iport)
+bool Network::is_LocalNodeFrontEnd( void ) const
 {
-    assert(_communicator_impl);
-    return _communicator_impl->add_EndPoint( ihostname, iport );
+    return ( _local_front_end_node != NULL );
 }
 
-int Communicator::add_EndPoint(Rank _rank)
+bool Network::is_LocalNodeBackEnd( void ) const
 {
-    assert(_communicator_impl);
-    return _communicator_impl->add_EndPoint( _rank );
+    return ( _local_back_end_node != NULL );
 }
 
-void Communicator::add_EndPoint(EndPoint *iendpoint )
+bool Network::is_LocalNodeInternal( void ) const
 {
-    assert(_communicator_impl);
-    _communicator_impl->add_EndPoint( iendpoint );
+    return ( _local_internal_node != NULL );
 }
 
-unsigned int Communicator::size( void ) const
+bool Network::is_LocalNodeParent( void ) const
 {
-    assert(_communicator_impl);
-    return _communicator_impl->size( );
+    return ( is_LocalNodeFrontEnd() || is_LocalNodeInternal() );
 }
 
-const char * Communicator::get_HostName( int iidx ) const
+bool Network::is_LocalNodeChild( void ) const
 {
-    assert(_communicator_impl);
-    return _communicator_impl->get_HostName( iidx );
+    return ( is_LocalNodeBackEnd() || is_LocalNodeInternal() );
 }
 
-Port Communicator::get_Port( int iidx ) const
+bool Network::is_LocalNodeThreaded( void ) const
 {
-    assert(_communicator_impl);
-    return _communicator_impl->get_Port( iidx );
+    return _threaded;
 }
 
-Rank Communicator::get_Rank( int iidx ) const
+int Network::send_FilterStatesToParent( void )
 {
-    assert(_communicator_impl);
-    return _communicator_impl->get_Rank( iidx );
+    mrn_dbg_func_begin();
+    map<unsigned int, Stream*>::iterator iter; 
+
+    _streams_sync.Lock();
+
+    for( iter = _streams.begin(); iter != _streams.end(); iter++ ) {
+        (*iter).second->send_FilterStateToParent( );
+    }
+
+    _streams_sync.Unlock();
+    mrn_dbg_func_end();
+    return 0;
 }
 
-const std::vector<EndPoint *> & Communicator::get_EndPoints( void ) const
+bool Network::reset_Topology( string & itopology )
 {
-    assert(_communicator_impl);
-    return _communicator_impl->get_EndPoints( );
+    if( !_network_topology->reset( itopology ) ){
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "Topology->reset() failed\n" ));
+        return false;
+    }
+
+    return true;
 }
 
-/*============================================*/
-/*             EndPoint class DEFINITIONS        */
-/*============================================*/
-EndPoint::EndPoint(Rank irank, const char * ihostname, Port iport)
-    : _endpoint_impl(new EndPointImpl( irank, ihostname, iport ) )
+bool Network::add_SubGraph( Rank iroot_rank, SerialGraph &sg )
 {
+    unsigned topsz = _network_topology->get_NumNodes();
+
+    if( !_network_topology->add_SubGraph( iroot_rank, sg, true ) ){
+        mrn_dbg(5, mrn_printf(FLF, stderr, "add_SubGraph() failed\n"));
+        return false;
+    }
+
+    if( is_LocalNodeFrontEnd() && 
+        ( _bcast_communicator != NULL ) &&
+        ( _network_topology->get_NumNodes() > topsz ) ) {
+        // new node joined network (likely a new BE)   
+        // update list of network endpoints and bcast communicator
+        update_BcastCommunicator( );
+
+        // TODO: safely inform rest of network about topology change
+    }
+
+    update();
+
+    return true;
+
 }
 
-EndPoint::~EndPoint()
+bool Network::remove_Node( Rank ifailed_rank, bool iupdate )
 {
-    assert(_endpoint_impl);
-    delete _endpoint_impl;
+    mrn_dbg_func_begin();
+
+    mrn_dbg(3, mrn_printf( FLF, stderr, "Deleing PeerNode: node[%u] ...\n", ifailed_rank ));
+    delete_PeerNode( ifailed_rank );
+
+    mrn_dbg(3, mrn_printf( FLF, stderr, "Removing from Topology: node[%u] ...\n", ifailed_rank ));
+    _network_topology->remove_Node( ifailed_rank, iupdate );
+
+    mrn_dbg(3, mrn_printf( FLF, stderr, "Removing from Streams: node[%u] ...\n", ifailed_rank ));
+    _streams_sync.Lock();
+    map < unsigned int, Stream * >::iterator iter;
+    for( iter=_streams.begin(); iter != _streams.end(); iter++ ) {
+        (*iter).second->remove_Node( ifailed_rank );
+    }
+    _streams_sync.Unlock();
+
+    bool retval=true;
+    if( iupdate ) {
+        if( !update() ) {
+            retval = false;
+        }
+    }
+
+    mrn_dbg_func_end();
+    return retval;
 }
 
-bool EndPoint::compare(const char * ihostname, Port iport)const
+bool Network::change_Parent( Rank ichild_rank, Rank inew_parent_rank )
 {
-    assert(_endpoint_impl);
-    return _endpoint_impl->compare( ihostname, iport );
+    //update topology
+    if( !_network_topology->set_Parent( ichild_rank, inew_parent_rank, true ) ) {
+        return false;
+    }
+
+    if( !update() ) {
+        return false;
+    }
+
+    return true;
 }
 
-bool EndPoint::compare(Rank irank)const
+bool Network::update( void )
 {
-    assert(_endpoint_impl);
-    return _endpoint_impl->compare( irank );
+    //update stream
+    mrn_dbg(3, mrn_printf( FLF, stderr, "Updating stream children ...\n"));
+    _streams_sync.Lock();
+    map < unsigned int, Stream * >::iterator iter;
+    for( iter=_streams.begin(); iter != _streams.end(); iter++ ) {
+        (*iter).second->recompute_ChildrenNodes();
+    }
+    _streams_sync.Unlock();
+
+    return true;
 }
 
-const char * EndPoint::get_HostName()const
+#include <signal.h>
+void Network::cancel_IOThreads( void )
 {
-    assert(_endpoint_impl);
-    return _endpoint_impl->get_HostName();
+    mrn_dbg_func_begin();
+
+    set< PeerNodePtr >::const_iterator iter;
+
+    if( is_LocalNodeParent() ) {
+        _children_mutex.Lock();
+        for( iter=_children.begin(); iter!=_children.end(); iter++ ) {
+            PeerNodePtr cur_node = *iter;
+            
+            //flush outgoing packets for children threads
+            if( cur_node->flush() != 0 ) {
+                mrn_dbg(1, mrn_printf(FLF, stderr, "Peer[%u]: flush() failed\n",
+                                      cur_node->get_Rank() ));
+            }
+
+            mrn_dbg(5, mrn_printf(FLF, stderr,
+                                  "Cancelling I/O threads to %s:%d\n",
+                                  cur_node->get_HostName().c_str(),
+                                  cur_node->get_Rank() ));
+            if( XPlat::Thread::Cancel( cur_node->send_thread_id ) != 0 ) {
+                mrn_dbg(1, mrn_printf(FLF, stderr, "Thread::Cancel(%d) failed\n",
+                                      cur_node->send_thread_id ));
+                ::perror( "Thread::Cancel()\n");
+            }
+            if( XPlat::Thread::Cancel( cur_node->recv_thread_id ) != 0 ) {
+                mrn_dbg(1, mrn_printf(FLF, stderr, "Thread::Cancel(%d) failed\n",
+                                      cur_node->recv_thread_id ));
+                ::perror( "Thread::Cancel()\n");
+            }
+        }
+        _children_mutex.Unlock();
+    }
+
+    if( is_LocalNodeChild() ) {
+        mrn_dbg(5, mrn_printf(FLF, stderr,
+                              "Cancelling I/O threads to %s:%d\n",
+                              _parent->get_HostName().c_str(),
+                              _parent->get_Rank() ));
+        if( XPlat::Thread::Cancel( _parent->send_thread_id ) != 0 ) {
+            mrn_dbg(1, mrn_printf(FLF, stderr, "Thread::Cancel(%d) failed\n",
+                                  _parent->send_thread_id ));
+            ::perror( "Thread::Cancel()\n");
+        }
+        if( XPlat::Thread::Cancel( _parent->recv_thread_id ) != 0 ) {
+            mrn_dbg(1, mrn_printf(FLF, stderr, "Thread::Cancel(%d) failed\n",
+                                  _parent->recv_thread_id ));
+            ::perror( "Thread::Cancel()\n");
+        }
+    }
+
+    mrn_dbg_func_end();
 }
 
-Port EndPoint::get_Port()const
+void Network::close_PeerNodeConnections( void )
 {
-    assert(_endpoint_impl);
-    return _endpoint_impl->get_Port();
+    mrn_dbg_func_begin();
+
+    set< PeerNodePtr >::const_iterator iter;
+ 
+    if( is_LocalNodeParent() ) {
+        _children_mutex.Lock();
+        for( iter=_children.begin(); iter!=_children.end(); iter++ ) {
+            PeerNodePtr cur_node = *iter;
+            mrn_dbg(5, mrn_printf(FLF, stderr,
+                                  "Closing data(%d) and event(%d) sockets to %s:%d\n",
+                                  cur_node->_data_sock_fd,
+                                  cur_node->_event_sock_fd,
+                                  cur_node->get_HostName().c_str(),
+                                  cur_node->get_Rank() ));
+            if( close( cur_node->_data_sock_fd ) == -1 ) {
+                perror("close(data_fd)");
+            }
+            if( close( cur_node->_event_sock_fd ) == -1 ){
+                perror("close(event_fd)");
+            }
+        }
+        _children_mutex.Unlock();
+    }
+
+    if( is_LocalNodeChild() ) {
+        _parent_sync.Lock();
+        if( close( _parent->_data_sock_fd ) == -1 ) {
+            perror("close(data_fd)");
+        }
+        if( close( _parent->_event_sock_fd ) == -1 ){
+            perror("close(event_fd)");
+        }
+        _parent_sync.Unlock();
+    }
+
+    mrn_dbg_func_end();
 }
 
-Rank EndPoint::get_Rank()const
+char * Network::get_TopologyStringPtr( void ) const
 {
-    assert(_endpoint_impl);
-    return _endpoint_impl->get_Rank();
+    return _network_topology->get_TopologyStringPtr();
 }
 
-
-/*============================================*/
-/*             Event class DEFINITIONS        */
-/*============================================*/
-Event * Event::new_Event( EventType t, std::string desc,
-                          std::string h, Port p){
-    return new EventImpl( t, desc, h, p );
-}
-
-bool Event::have_Event()
+char * Network::get_LocalSubTreeStringPtr( void ) const
 {
-    return EventImpl::have_Event();
+    return _network_topology->get_LocalSubTreeStringPtr();
 }
 
-bool Event::have_RemoteEvent()
+void Network::enable_FailureRecovery( void )
 {
-    return EventImpl::have_RemoteEvent();
+    _recover_from_failures = true;
 }
 
-void Event::add_Event( Event & event ){
-    EventImpl::add_Event( (EventImpl&)event );
-}
-
-Event * Event::get_NextEvent()
+void Network::disable_FailureRecovery( void )
 {
-    return EventImpl::get_NextEvent();
+    _recover_from_failures = false;
 }
 
-Event * Event::get_NextRemoteEvent()
+bool Network::recover_FromFailures( void ) const
 {
-    return EventImpl::get_NextRemoteEvent();
+    return _recover_from_failures;
 }
 
-unsigned int Event::get_NumEvents()
+PeerNodePtr Network::get_ParentNode( void ) const
 {
-    return EventImpl::get_NumEvents();
+    _parent_sync.Lock();
+
+    while( _parent == PeerNode::NullPeerNode ) {
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "Wait for parent node available\n"));
+        _parent_sync.WaitOnCondition( PARENT_NODE_AVAILABLE );
+    }
+
+    _parent_sync.Unlock();
+    return _parent;
 }
 
-unsigned int Event::get_NumRemoteEvents()
+void Network::set_ParentNode( PeerNodePtr ip )
 {
-    return EventImpl::get_NumRemoteEvents();
+    _parent_sync.Lock();
+
+    _parent = ip;
+    if( _parent != PeerNode::NullPeerNode ) {
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Signal parent node available\n"));
+        _parent_sync.SignalCondition( PARENT_NODE_AVAILABLE );
+    }
+
+    _parent_sync.Unlock();
+}
+
+PeerNodePtr Network::new_PeerNode( string const& ihostname, Port iport,
+                                   Rank irank, bool iis_parent,
+                                   bool iis_internal )
+{
+    PeerNodePtr node( new PeerNode( this, ihostname, iport, irank,
+                                    iis_parent, iis_internal ) );
+
+    mrn_dbg( 5, mrn_printf(FLF, stderr, "new peer node: %s:%d (%p) \n",
+                           node->get_HostName().c_str(), node->get_Rank(),
+                           node.get() )); 
+
+    if( iis_parent ) {
+        _parent_sync.Lock();
+        _parent = node;
+        _parent_sync.Unlock();
+    }
+    else {
+        _children_mutex.Lock();
+        _children.insert( node );
+        _children_mutex.Unlock();
+    }
+
+    return node;
+}
+
+bool Network::delete_PeerNode( Rank irank )
+{
+    set< PeerNodePtr >::const_iterator iter;
+
+    if( is_LocalNodeChild() ) {
+        _parent_sync.Lock();
+        if( _parent->get_Rank() == irank ) {
+            _parent == PeerNode::NullPeerNode;
+            _parent_sync.Unlock();
+            return true;
+        }
+        _parent_sync.Unlock();
+    }
+
+    _children_mutex.Lock();
+    for( iter=_children.begin(); iter!=_children.end(); iter++ ) {
+        if( (*iter)->get_Rank() == irank ) {
+            _children.erase( *iter );
+            _children_mutex.Unlock();
+            return true;
+        }
+    }
+    _children_mutex.Unlock();
+
+    return false;
+}
+
+PeerNodePtr Network::get_PeerNode( Rank irank )
+{
+    PeerNodePtr peer=PeerNode::NullPeerNode;
+
+    set< PeerNodePtr >::const_iterator iter;
+
+    if( is_LocalNodeChild() ) {
+        _parent_sync.Lock();
+        if( _parent->get_Rank() == irank ) {
+            peer = _parent;
+        }
+        _parent_sync.Unlock();
+    }
+
+    if( peer == PeerNode::NullPeerNode ) {
+        _children_mutex.Lock();
+        for( iter=_children.begin(); iter!=_children.end(); iter++ ) {
+            if( (*iter)->get_Rank() == irank ) {
+                peer = *iter;
+                break;
+            }
+        }
+        _children_mutex.Unlock();
+    }
+
+    return peer;
+}
+
+const set < PeerNodePtr > Network::get_ChildPeers( void ) const
+{
+    _children_mutex.Lock();
+    const set< PeerNodePtr> children = _children;
+    _children_mutex.Unlock();
+
+    return children;
+}
+
+PeerNodePtr Network::get_OutletNode( Rank irank ) const
+{
+    return _network_topology->get_OutletNode( irank );
+}
+
+bool Network::has_PacketsFromParent( void )
+{
+    assert( is_LocalNodeChild() );
+    return _parent->has_data();
+}
+
+int Network::recv_PacketsFromParent( std::list <PacketPtr> & opackets ) const
+{
+    assert( is_LocalNodeChild() );
+    return _parent->recv( opackets );
+}
+
+bool Network::node_Failed( Rank irank  )
+{
+    return _network_topology->node_Failed( irank );
+}
+
+void set_OutputLevel(int l){
+    if( l <= MIN_OUTPUT_LEVEL ) {
+        CUR_OUTPUT_LEVEL = MIN_OUTPUT_LEVEL;
+    }
+    else if( l >= MAX_OUTPUT_LEVEL ) {
+        CUR_OUTPUT_LEVEL = MAX_OUTPUT_LEVEL;
+    }
+    else {
+        CUR_OUTPUT_LEVEL = l;
+    }
+}
+
+void set_OutputLevelFromEnvironment( void )
+{
+    char * output_level = getenv( "MRNET_OUTPUT_LEVEL" );
+
+    if( output_level ) {
+        int l = atoi( output_level );
+        set_OutputLevel( l );
+    }
 }
 
 }  // namespace MRN

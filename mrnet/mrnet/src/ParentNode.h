@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright  2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -10,112 +10,84 @@
 #include <list>
 #include <string>
 
-#include "Message.h"
-#include "StreamManager.h"
-#include "Filter.h"
-#include "RemoteNode.h"
+#include "Error.h"
 #include "xplat/Monitor.h"
 #include "xplat/Mutex.h"
+#include "mrnet/Packet.h"
+#include "CommunicationNode.h"
+#include "PeerNode.h"
 
 namespace MRN
 {
 
-class ParentNode: public Error {
+class Network;
+class Stream;
+
+class ParentNode: public Error, public CommunicationNode {
     friend class Aggregator;
     friend class Synchronizer;
-    friend class RemoteNode;
- private:
-
-    std::string hostname;
-    Port port;
-    Port config_port;
-    int listening_sock_fd;
-
-    bool threaded;
-
-    bool isLeaf_;           // am I a leaf in the MRNet tree?
-    mutable std::vector < Packet >childLeafInfoResponses;
-    mutable XPlat::Mutex childLeafInfoResponsesLock;
-    mutable std::vector < Packet >childConnectedLeafResponses;
-    mutable XPlat::Mutex childConnectedLeafResponsesLock;
-
-    int wait_for_SubTreeReports( ) const;
-
- protected:
-    enum
-        { ALLNODESREPORTED };
-    mutable std::list < const RemoteNode * >children_nodes;
-    mutable std::list < int >backend_descendant_nodes;
-    mutable XPlat::Monitor subtreereport_sync;
-    mutable unsigned int num_descendants, num_descendants_reported;
-
-    mutable std::map < unsigned int, const RemoteNode * >ChildNodeByRank;
-    mutable XPlat::Mutex childnodebybackendid_sync;
-
-    //std::map < unsigned int, StreamManager * >StreamManagerById;
-    //XPlat::Mutex streammanagerbyid_sync;
-
-    virtual int deliverLeafInfoResponse( Packet& pkt )const = 0;
-    virtual int deliverConnectLeavesResponse( Packet& pkt )const = 0;
-
-    bool isLeaf( void ) const {
-        return isLeaf_;
-    }
-
+    friend class PeerNode;
  public:
-    ParentNode( bool _threaded, std::string, Port );
+    ParentNode( Network *, std::string const&, Rank );
     virtual ~ ParentNode( void );
 
-    virtual int proc_PacketsFromDownStream( std::list < Packet >& ) const = 0;
-    virtual int proc_DataFromDownStream( Packet& ) const = 0;
+    int proc_PacketsFromChildren( std::list < PacketPtr >& ) const;
+    virtual int proc_DataFromChildren( PacketPtr ) const = 0;
+    virtual int proc_NewParentReportFromParent( PacketPtr ipacket ) const=0;
+    int proc_FailureReport( PacketPtr ipacket ) const;
+    int proc_RecoveryReport( PacketPtr ipacket ) const;
 
-    int recv_PacketsFromDownStream( std::list < Packet >&packet_list,
+    int recv_PacketsFromChildren( std::list < PacketPtr >&packet_list,
                                     bool blocking = true ) const;
-    int send_PacketDownStream( Packet & packet, bool internal_only =
-                               false ) const;
-    int flush_PacketsDownStream( unsigned int stream_id ) const;
-    int flush_PacketsDownStream( void ) const;
+    int flush_PacketsToChildren( void ) const;
 
-    int proc_newSubTree( Packet & ) const;
-    int proc_delSubTree( Packet & ) const;
+    int proc_newSubTree( PacketPtr ipacket );
+    int proc_DeleteSubTree( PacketPtr ipacket ) const;
+    int proc_DeleteSubTreeAck( PacketPtr ipacket ) const;
 
-    int proc_newSubTreeReport( Packet & ) const;
-    int proc_Event( Packet & ) const;
-    int send_Event( Packet & ) const;
+    int proc_newSubTreeReport( PacketPtr ipacket ) const;
+    int proc_Event( PacketPtr ipacket ) const;
+    int send_Event( PacketPtr ipacket ) const;
 
-    StreamManager *proc_newStream( Packet & ) const;
-    int send_newStream( Packet &, StreamManager * ) const;
-    int proc_delStream( Packet & ) const;
-    int proc_newApplication( Packet & ) const;
-    int proc_delApplication( Packet & ) const;
+    Stream * proc_newStream( PacketPtr ipacket ) const;
+    int proc_deleteStream( PacketPtr ipacket ) const;
+    int proc_closeStream( PacketPtr ipacket ) const;
 
-    int proc_newFilter( Packet & ) const;
+    int proc_newFilter( PacketPtr ipacket ) const;
+    int proc_DownstreamFilterParams( PacketPtr &ipacket ) const;
+    int proc_UpstreamFilterParams( PacketPtr &ipacket ) const;
 
-    int proc_getLeafInfo( Packet & ) const;
-    int proc_getLeafInfoResponse( Packet & ) const;
+    int proc_SubTreeInfoRequest( PacketPtr ipacket ) const;
 
-    int proc_connectLeaves( Packet & ) const;
-    int proc_connectLeavesResponse( Packet & ) const;
-
-    std::string get_HostName(  ) const;
-    Port get_Port(  ) const;
-    int get_SocketFd(int **array, unsigned int *array_size) const;
+    int get_ListeningSocket( void ) const { return listening_sock_fd; }
     int getConnections( int **conns, unsigned int *nConns ) const;
+
+    int proc_NewChildDataConnection( PacketPtr ipacket, int sock );
+    PeerNodePtr find_ChildNodeByRank( int irank );
+
+    int launch_InternalNode( std::string ihostname, Rank irank,
+                             std::string icommnode_exe ) const;
+    int launch_Application( std::string ihostname, Rank irank,
+                            std::string &ibackend_exe,
+                            std::vector <std::string> &ibackend_args) const;
+
+    int waitfor_SubTreeReports( void ) const;
+    bool waitfor_DeleteSubTreeAcks( void ) const ;
+
+ protected:
+    Network * _network;
+
+    enum { ALLNODESREPORTED };
+    mutable XPlat::Monitor subtreereport_sync;
+    mutable unsigned int _num_children, _num_children_reported;
+
+ private:
+    int listening_sock_fd;
+    PacketPtr _initial_subtree_packet;
 };
 
-bool lt_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 );
-bool equal_RemoteNodePtr( RemoteNode * p1, RemoteNode * p2 );
-
-
-inline std::string ParentNode::get_HostName(  ) const
-{
-    return hostname;
-}
-
-inline Port ParentNode::get_Port(  ) const
-{
-    return port;
-}
+//bool lt_PeerNodePtr( PeerNodePtr p1, PeerNodePtr p2 );
+//bool equal_PeerNodePtr( PeerNodePtr p1, PeerNodePtr p2 );
 
 }                               // namespace MRN
 

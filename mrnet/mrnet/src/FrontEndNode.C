@@ -1,246 +1,95 @@
 /****************************************************************************
- * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright  2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller  *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
 #include <stdio.h>
+#include "mrnet/MRNet.h"
+#include "mrnet/NetworkTopology.h"
 #include "FrontEndNode.h"
-#include "StreamImpl.h"
 #include "utils.h"
+#include "EventDetector.h"
+#include "Router.h"
 
 namespace MRN
 {
-/*======================================================*/
-/*  FrontEndNode CLASS METHOD DEFINITIONS            */
-/*======================================================*/
-
-FrontEndNode::FrontEndNode( Network * _network, std::string _hostname,
-                            Port _port )
-    : ParentNode( false, _hostname, _port ),
-      CommunicationNode( _hostname, _port ),
-      network(_network),
-      leafInfoPacket( *Packet::NullPacket ),
-      leavesConnectedPacket( *Packet::NullPacket )
+/*===============================================*/
+/*  FrontEndNode CLASS METHOD DEFINITIONS        */
+/*===============================================*/
+FrontEndNode::FrontEndNode( Network * inetwork, std::string const& ihostname, Rank irank )
+    : ParentNode( inetwork, ihostname, irank )
 {
-    RemoteNode::local_parent_node = this;
+    mrn_dbg_func_begin();
+
+    _network->set_LocalHostName( _hostname  );
+    _network->set_LocalPort( _port );
+    _network->set_LocalRank( _rank );
+    _network->set_FrontEndNode( this );
+    _network->set_NetworkTopology( new NetworkTopology( inetwork, _hostname, _port, _rank ));
+    _network->set_FailureManager( new CommunicationNode( _hostname, _port, _rank ) );
+    
+    mrn_dbg( 5, mrn_printf(FLF, stderr, "start_EventDetectionThread() ...\n" ));
+    if( EventDetector::start( _network ) == -1 ){
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "start_EventDetectionThread() failed\n" ));
+        error( MRN_ESYSTEM, "start_EventDetectionThread failed\n" );
+        return;
+    }
+    mrn_dbg_func_end();
 }
 
 FrontEndNode::~FrontEndNode(  )
 {
 }
 
-int FrontEndNode::proc_DataFromDownStream( Packet& packet ) const
+int FrontEndNode::proc_DataFromChildren( PacketPtr ipacket ) const
 {
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "In frontend.proc_DataFromDownStream()\n" ));
+    mrn_dbg_func_begin();
 
-    StreamManager *stream_mgr = StreamManager::get_StreamManagerById( packet.get_StreamId() );
-    std::vector < Packet >packets;
+    Stream *stream = _network->get_Stream( ipacket->get_StreamId() );
+    std::vector < PacketPtr > packets, reverse_packets;
 
-    stream_mgr->push_packet( packet, packets, true );
+    stream->push_Packet( ipacket, packets, reverse_packets, true );
 
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "frontend.proc_DataFromDownStream(): stream_mgr->push_packet returned %u packets\n", packets.size() ));
+    mrn_dbg( 3, mrn_printf
+             (FLF, stderr, "push_packet => %u packets, %u reverse_packets\n", 
+              packets.size(), reverse_packets.size() ));
 
-    if( !packets.empty(  ) ) {
-        for( unsigned int i = 0; i < packets.size(  ); i++ ) {
-            Packet cur_packet = packets[i];
-            Stream *stream;
-            stream = network->get_Stream( cur_packet.get_StreamId( ) );
+    if( !packets.empty() ) {
+        for( unsigned int i = 0; i < packets.size( ); i++ ) {
+            PacketPtr cur_packet( packets[i] );
 
-            if( stream ) {
-                mrn_dbg( 3, mrn_printf(FLF, stderr, "Put packet in stream %d\n",
-                            cur_packet.get_StreamId(  ) ));
-                stream->get_StreamImpl()->add_IncomingPacket( cur_packet );
-            }
-            else {
-                mrn_dbg( 1, mrn_printf(FLF, stderr, "Packet from unknown stream %d\n",
-                            cur_packet.get_StreamId(  ) ));
-                error( MRN_EINTERNAL, "Packet with unknown stream id: %d\n",
-                       cur_packet.get_StreamId() );
-                return -1;
-            }
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "Put packet in stream %d\n",
+                                   cur_packet->get_StreamId(  ) ));
+            stream->add_IncomingPacket( cur_packet );
+        }
+    }
+    if( !reverse_packets.empty() ) {
+        if( _network->send_PacketsToChildren( reverse_packets ) == -1 ){
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "send_PacketsToChildren() failed()\n" ));
+            return -1;
         }
     }
 
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "Leaving frontend.proc_DataFromDownStream()\n" ));
+    mrn_dbg_func_end();
     return 0;
 }
 
-int FrontEndNode::proc_PacketsFromDownStream( std::list < Packet >&
-                                              packet_list ) const
+int FrontEndNode::proc_NewParentReportFromParent( PacketPtr ipacket ) const
 {
-    int retval = 0;
-    Packet cur_packet;
+    Rank child_rank, parent_rank;
 
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "In procPacketsFromDownStream()\n" ));
+    ipacket->unpack( "%ud &ud", &child_rank, &parent_rank ); 
 
-    std::list < Packet >::iterator iter = packet_list.begin(  );
-    for( ; iter != packet_list.end(  ); iter++ ) {
-        cur_packet = ( *iter );
-        switch ( cur_packet.get_Tag(  ) ) {
-        case PROT_RPT_SUBTREE:
-            //printf(3, mrn_printf(FLF, stderr, "Calling proc_newSubTreeReport()\n");
-            if( proc_newSubTreeReport( cur_packet ) == -1 ) {
-                mrn_dbg( 1, mrn_printf(FLF, stderr,
-                            "proc_newSubTreeReport() failed\n" ));
-                retval = -1;
-            }
-            //printf(3, mrn_printf(FLF, stderr, "proc_newSubTreeReport() succeeded\n");
-            break;
+    //update local topology
+    _network->change_Parent( child_rank, parent_rank );
 
-        case PROT_GET_LEAF_INFO:
-            if( proc_getLeafInfoResponse( cur_packet ) == -1 ) {
-                mrn_dbg( 1, mrn_printf(FLF, stderr,
-                            "proc_getLeafInfoResponse() failed\n" ));
-                retval = -1;
-            }
-            break;
-
-        case PROT_CONNECT_LEAVES:
-            if( proc_connectLeavesResponse( cur_packet ) == -1 ) {
-                mrn_dbg( 1, mrn_printf(FLF, stderr,
-                            "proc_connectLeavesResponse() failed\n" ));
-                retval = -1;
-            }
-            break;
-
-        case PROT_EVENT:
-            if( proc_Event( cur_packet ) == -1 ){
-                mrn_dbg( 1, mrn_printf(FLF, stderr, "proc_Event() failed\n" ));
-                retval = -1;
-            }
-            break;
-        default:
-            //Any unrecognized tag is assumed to be data
-            if( proc_DataFromDownStream( cur_packet ) == -1 ) {
-                mrn_dbg( 1, mrn_printf(FLF, stderr,
-                            "proc_DataFromDownStream() failed\n" ));
-                retval = -1;
-            }
-        }
-    }
-
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "proc_PacketsFromDownStream() %s",
-                ( retval == -1 ? "failed\n" : "succeeded\n" ) ));
-    packet_list.clear(  );
-    return retval;
-}
-
-int FrontEndNode::recv( bool blocking ) const
-{
-    std::list < Packet >packet_list;
-    mrn_dbg( 3, mrn_printf(FLF, stderr,
-                "In frontend.recv(). Calling recvfromdownstream()\n" ));
-
-
-    if( recv_PacketsFromDownStream( packet_list, blocking ) == -1 ) {
-        // mrn_dbg( 1, mrn_printf(FLF, stderr,
-        //           "recv_packetsfromdownstream() failed\n" ));
+    //propagate to children except on incident channel
+    if( _network->send_PacketToChildren( ipacket, false ) == -1 ){
+        mrn_dbg( 1, mrn_printf(FLF, stderr, "send_PacketToChildren() failed()\n" ));
         return -1;
     }
 
-    if( packet_list.size(  ) == 0 ) {
-        mrn_dbg( 3, mrn_printf(FLF, stderr, "No packets read!\n" ));
-        return 0;
-    }
-
-    if( proc_PacketsFromDownStream( packet_list ) == -1 ) {
-        mrn_dbg( 1, mrn_printf(FLF, stderr,
-                    "proc_packetsfromdownstream() failed\n" ));
-        return -1;
-    }
-    mrn_dbg( 3, mrn_printf(FLF, stderr, "Leaving frontend.recv()\n" ));
-
-    return 1;
-}
-
-
-int FrontEndNode::deliverConnectLeavesResponse( Packet& pkt ) const
-{
-    //
-    // stash the aggregated response for subsequent retrieval
-    // (It is assumed that our NetworkImpl is polling us till
-    // we have received and stashed this packet.)
-    //
-#if READY
-    // Note that, if we are the front end *and* the leaf,
-    // the packet we're given is the packet that we constructed ourself.
-    // The packets we construct ourself have data elements that
-    //
-    //
-    if( this->isLeaf(  ) ) {
-        // we constructed the packet ourself -
-        // the packet's data element array contains pointers
-        // to data that may no longer be valid
-        // 
-        // we have to build a new packet that uses the
-        // marshalled data in this packet's buffer
-        //
-        // or we have to have a way to reset the packet to say that
-        // it should use the arg list to decode the packet
-
-        // painful - having to marshal/unmarshal the data within
-        // the same process.  But if we're pointing to data on the
-        // stack, we don't have the original data anymore anyway.
-        //
-        leavesConnectedPacket = Packet( pkt.get_BufferLen(  ),
-                                        pkt.get_Buffer(  ) );
-    }
-    else {
-        // we can use the packet as it is
-        leavesConnectedPacket = pkt;
-    }
-#else
-    leavesConnectedPacket = pkt;
-#endif // READY
-
     return 0;
 }
 
-int FrontEndNode::deliverLeafInfoResponse( Packet& pkt ) const
-{
-    //
-    // stash the aggregated response for subsequent retrieval
-    // (It is assumed that our NetworkImpl is polling us till
-    // we have received and stashed this packet.)
-    //
-#if READY
-    // Note that, if we are the front end *and* the leaf,
-    // the packet we're given is the packet that we constructed ourself.
-    // The packets we construct ourself have data elements that
-    //
-    //
-    if( this->isLeaf(  ) ) {
-        // we constructed the packet ourself -
-        // the packet's data element array contains pointers
-        // to data that may no longer be valid
-        // 
-        // we have to build a new packet that uses the
-        // marshalled data in this packet's buffer
-        //
-        // or we have to have a way to reset the packet to say that
-        // it should use the arg list to decode the packet
-
-        // painful - having to marshal/unmarshal the data within
-        // the same process.  But if we're pointing to data on the
-        // stack, we don't have the original data anymore anyway.
-        //
-        unsigned int buflen = pkt.get_BufferLen(  );
-        char *buf = pkt.get_Buffer(  );
-        if( ( buflen == 0 ) || ( buf == NULL ) ) {
-            mrn_dbg( 1, 0, 0, stderr,
-                        "FE::ParentNode: deliverleafinfo resp: empty buffer\n" ));
-        }
-        leafInfoPacket = Packet( buflen, buf );
-    }
-    else {
-        // we can use the packet as it is
-        leafInfoPacket = pkt;
-    }
-#else
-    leafInfoPacket = pkt;
-#endif // READY
-
-    return 0;
-}
-
-}                               // namespace MRN
+}    // namespace MRN
