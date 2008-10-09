@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Thread-win.C,v 1.3 2007/01/24 19:34:33 darnold Exp $
+// $Id: Thread-win.C,v 1.4 2008/10/09 19:53:55 mjbrim Exp $
 #include <windows.h>
 #include <assert.h>
 #include "xplat/Thread.h"
@@ -58,6 +58,14 @@ Thread::Join( Id joinWith, void** exitValue )
         ret = 0;
     }
     return ret;
+}
+
+int Thread::Cancel( Id id )
+{
+    if( TerminateThread( (HANDLE)id, (DWORD)0) )
+	    return 0;
+    else
+	    return (int) GetLastError();
 }
 
 

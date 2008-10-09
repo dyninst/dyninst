@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Thread-pthread.C,v 1.5 2007/01/24 19:34:32 darnold Exp $
+// $Id: Thread-pthread.C,v 1.6 2008/10/09 19:53:54 mjbrim Exp $
 #include <pthread.h>
 #include "xplat/Thread.h"
 
@@ -32,6 +32,12 @@ Thread::Join( Thread::Id joinWith, void** exitValue )
     return pthread_join( jwith, exitValue );
 }
 
+int
+Thread::Cancel( Thread::Id iid )
+{
+    pthread_t id = (pthread_t) iid;
+    return pthread_cancel( id );
+}
 
 void
 Thread::Exit( void* val )

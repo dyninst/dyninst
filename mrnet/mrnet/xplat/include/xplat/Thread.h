@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Thread.h,v 1.4 2007/01/24 19:33:53 darnold Exp $
+// $Id: Thread.h,v 1.5 2008/10/09 19:53:53 mjbrim Exp $
 #ifndef XPLAT_THREAD_H
 #define XPLAT_THREAD_H
 
@@ -19,6 +19,7 @@ public:
     static int Create( Func func, void* data, Id* id );
     static Id GetId( void );
     static int Join( Id joinWith, void** exitValue );
+    static int Cancel( Id id );
     static void Exit( void* val );
 };
 
