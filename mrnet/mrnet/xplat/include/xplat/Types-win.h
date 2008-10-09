@@ -3,13 +3,12 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Types-win.h,v 1.6 2007/01/24 19:33:56 darnold Exp $
+// $Id: Types-win.h,v 1.7 2008/10/09 19:53:57 mjbrim Exp $
 #ifndef XPLAT_TYPES_WIN_H
 #define XPLAT_TYPES_WIN_H
 
-//#include <windows.h>
-#include <winsock2.h>
 #include <limits.h>
+#include <winsock2.h>
 
 // Microsoft's compiler does not provide typedefs for specific-sized integers
 // in <stdint.h>, or any other header.
