@@ -9,8 +9,6 @@
 #include <list>
 #include <errno.h>
 
-#include "mrnet/MRNet.h"
-
 namespace MRN
 {
 
@@ -63,11 +61,7 @@ class Error{
     Error(): MRN_errno(MRN_ENONE) { }
     virtual ~Error() { }
 
-    inline bool good() const {
-        return (MRN_errno == MRN_ENONE);
-    }
-
-    inline bool fail() const {
+    inline bool has_Error() const {
         return (MRN_errno != MRN_ENONE);
     }
 
