@@ -1,4 +1,4 @@
-XSLSTYLE=/scratch/darnold/local/share/docbook-xsl-1.68.1/html/docbook.xsl
+XSLSTYLE=/s/docbook-xsl-1.68.0/common/xml/html/docbook.xsl
 
 UG.html: *.xml
 	xsltproc --output $@ --catalogs  ${XSLSTYLE} UG.xml

@@ -1,54 +1,96 @@
-<appendix id="example"><title>A Complete MRNet Example</title>
+<appendix id="example"><title>A Complete MRNet Example: Integer Addition</title>
 <example><title>A Complete MRNet Front-End</title>
 <programlisting>
 #include "mrnet/MRNet.h"
+#include "IntegerAddition.h"
 
 using namespace MRN;
 
-int main( int argc, char **argv )
+int main(int argc, char **argv)
 {
-	const char * dummy_argv=NULL;
-    int num_packets=10;
-    unsigned int num_packets_to_recv=0;
+    int send_val=32, recv_val=0;
+    int tag, retval;
+    PacketPtr p;
 
-    if( argc != 3 ){
-        fprintf(stderr, "Usage: %s &lt;topology file&gt; &lt;backend_exe&gt;\n", argv[0]);
+    if( argc != 4 ){
+        fprintf(stderr, "Usage: %s topology_file backend_exe so_file\n", argv[0]);
         exit(-1);
     }
+    const char * topology_file = argv[1];
+    const char * backend_exe = argv[2];
+    const char * so_file = argv[3];
+    const char * dummy_argv=NULL;
 
-    set_OutputLevel(1);
+    // This Network() cnstr instantiates the MRNet internal nodes, according to the
+    // organization in "topology_file," and the application back-end with any
+    // specified cmd line args
+    Network * network = new Network( topology_file, backend_exe, &amp;dummy_argv  );
 
-    Network * net = new Network( argv[1], argv[2], &amp;dummy_argv );
-    if( net-&gt;fail() ){
-        net-&gt;error_str(argv[0]);
-        exit(-1);
+    // Make sure path to "so_file" is in LD_LIBRARY_PATH
+    int filter_id = network-&gt;load_FilterFunc( so_file, "IntegerAdd" );
+    if( filter_id == -1 ){
+        fprintf( stderr, "Network::load_FilterFunc() failure\n");
+        delete network;
+        return -1;
     }
 
-    MRN::Stream * stream =
-        net-&gt;new_Stream( net-&gt;get_BroadcastCommunicator(),
-                         MRN::TFILTER_NULL,
-                         MRN::SFILTER_DONTWAIT );
+    // A Broadcast communicator contains all the back-ends
+    Communicator * comm_BC = network-&gt;get_BroadcastCommunicator( );
 
-    stream-&gt;send( 7777, "%d", num_packets );
-    stream-&gt;flush();
+    // Create a stream that will use the Integer_Add filter for aggregation
+    Stream * stream = network-&gt;new_Stream( comm_BC, filter_id,
+                                            SFILTER_WAITFORALL);
 
-    //each backend will send num_packets packets ...
-    num_packets_to_recv =
-        net-&gt;get_BroadcastCommunicator()-&gt;size() * num_packets;
+    int num_backends = comm_BC-&gt;get_EndPoints().size();
 
-    while( num_packets_to_recv &gt; 0 ){
-        int retval, tag, recv_val;
-        Packet *packet;
-
-        //blocking receive ...
-        if( stream-&gt;recv(&amp;tag, &amp;packet, true) == -1 )
-            return -1;
-
-        if( Stream::unpack( packet, "%d", &amp;recv_val ) == -1 )
-            return -1;
-
-        num_packets_to_recv--;
+    tag = PROT_SUM;
+    unsigned int num_iters=5;
+    // Broadcast a control message to back-ends to send us "num_iters"
+    // waves of integers
+    if( stream-&gt;send( tag, "%d %d", send_val, num_iters ) == -1 ){
+        fprintf( stderr, "stream::send() failure\n");
+        return -1;
     }
+    if( stream-&gt;flush( ) == -1 ){
+        fprintf( stderr, "stream::flush() failure\n");
+        return -1;
+    }
+
+    // We expect "num_iters" aggregated responses from all back-ends
+    for( unsigned int i=0; i&lt;num_iters; i++ ){
+        retval = stream-&gt;recv(&amp;tag, p);
+        assert( retval != 0 ); //shouldn't be 0, either error or block till data
+        if( retval == -1){
+            //recv error
+            return -1;
+        }
+
+        if( p-&gt;unpack( "%d", &amp;recv_val ) == -1 ){
+            fprintf( stderr, "stream::unpack() failure\n");
+            return -1;
+        }
+
+        if( recv_val != num_backends * i * send_val ){
+            fprintf(stderr, "Iteration %d: Success! recv_val(%d) != %d*%d*%d=%d (send_val*i*num_backends)\n",
+                    i, recv_val, send_val, i, num_backends, send_val*i*num_backends );
+        }
+        else{
+            fprintf(stderr, "Iteration %d: Success! recv_val(%d) == %d*%d*%d=%d (send_val*i*num_backends)\n",
+                    i, recv_val, send_val, i, num_backends, send_val*i*num_backends );
+        }
+    }
+
+    if(stream-&gt;send(PROT_EXIT, "") == -1){
+        fprintf( stderr, "stream::send(exit) failure\n");
+        return -1;
+    }
+    if(stream-&gt;flush() == -1){
+        fprintf( stderr, "stream::flush() failure\n");
+        return -1;
+    }
+
+    // The Network destructor will cause all internal and leaf tree nodes to exit
+    delete network;
 
     return 0;
 }
@@ -58,59 +100,97 @@ int main( int argc, char **argv )
 <example><title>A Complete MRNet Back-End</title>
 <programlisting>
 #include "mrnet/MRNet.h"
+#include "IntegerAddition.h"
 
 using namespace MRN;
 
-int main( int argc, char** argv ){
-    Stream * stream;
-    Packet * packet=NULL;
-    int tag;
-    int num_packets, sleep_time;
+int main(int argc, char **argv)
+{
+    Stream * stream=NULL;
+    PacketPtr p;
+    int tag=0, recv_val=0, num_iters=0;
 
-    set_OutputLevel(1);
+    Network * network = new Network( argc, argv );
 
-    if( argc != 4 ){
-        fprintf(stderr, "usage: %s parent_hostname parent_port my_rank\n", argv[0]);
-        exit( -1 );
-    }
-
-    const char* parHostname = argv[argc-3];
-    Port parPort = (Port)strtoul( argv[argc-2], NULL, 10 );
-    Rank myRank = (Rank)strtoul( argv[argc-1], NULL, 10 );
-    Network * net = new Network( parHostname, parPort, myRank );
-    if( net-&gt;fail() )
-        return -1;
-
-    if( net-&gt;recv( &amp;tag, &amp;packet, &amp;stream ) != 1)
-        return -1;
-
-    assert( tag == 7777 );
-
-    Stream::unpack( packet, "%d", &amp;num_packets );
-
-    for( unsigned int i=0; i&lt;num_packets; i++ ){
-        if( stream-&gt;send( tag, "%d", rand() ) == -1 )
+    do{
+        if ( network-&gt;recv(&amp;tag, p, &amp;stream) != 1){
+            fprintf(stderr, "stream::recv() failure\n");
             return -1;
-        if( stream-&gt;flush( ) == -1 )
-            return -1;
-    }
+        }
+
+        switch(tag){
+        case PROT_SUM:
+            p-&gt;unpack( "%d %d", &amp;recv_val, &amp;num_iters );
+
+            // Send num_iters waves of integers
+            for( unsigned int i=0; i&lt;num_iters; i++ ){
+                if( stream-&gt;send(tag, "%d", recv_val*i) == -1 ){
+                    fprintf(stderr, "stream::send(%%d) failure\n");
+                    return -1;
+                }
+                if( stream-&gt;flush( ) == -1 ){
+                    fprintf(stderr, "stream::flush() failure\n");
+                    return -1;
+                }
+            }
+            break;
+
+        case PROT_EXIT:
+            fprintf( stdout, "Processing PROT_EXIT ...\n");
+            break;
+
+        default:
+            fprintf(stdout, "Unknown Protocol: %d\n", tag);
+            break;
+        }
+    } while ( tag != PROT_EXIT );
 
     return 0;
 }
 </programlisting>
 </example>
 
+<example><title>An MRNet Filter: Integer Addition</title>
+<programlisting>
+extern "C" {
+
+//Must Declare the format of data expected by the filter
+const char * IntegerAdd_format_string = "%d"; 
+void IntegerAdd( std::vector&lt; PacketPtr &gt; &amp; packets_in,
+                 std::vector&lt; PacketPtr &gt; &amp; packets_out,
+                 std::vector&lt; PacketPtr &gt; &amp; /* packets_out_reverse */,
+                 void ** /* client data */,
+		 PacketPtr &amp; /* params */ )
+{
+    int sum = 0;
+    
+    for( unsigned int i = 0; i &lt; packets_in.size( ); i++ ) {
+        PacketPtr cur_packet = packets_in[i];
+	int val;
+	cur_packet-&gt;unpack("%d", &amp;val);
+        sum += val;
+    }
+    
+    PacketPtr new_packet ( new Packet(packets_in[0]-&gt;get_StreamId(),
+                                      packets_in[0]-&gt;get_Tag(), "%d", sum ) );
+    packets_out.push_back( new_packet );
+}
+
+} /* extern "C" */
+</programlisting>
+</example>
+
 <example><title>An MRNet Topology File</title>
 <programlisting>
-nutmeg:0 => c01:0 c02:0 c03:0 c04:0 ;
+nutmeg:0 =&gt; c01:0 c02:0 c03:0 c04:0 ;
 
-c03:0 => c05:0 ;
+c03:0 =&gt; c05:0 ;
 
-c04:0 => c06:0 c07:0 c08:0 c09:0 ;
+c04:0 =&gt; c06:0 c07:0 c08:0 c09:0 ;
 
-c08:0 => c10:0 ;
+c08:0 =&gt; c10:0 ;
 
-c09:0 => c11:0 ;
+c09:0 =&gt; c11:0 ;
 
 #       nutmeg
 #          |
@@ -133,30 +213,4 @@ c09:0 => c11:0 ;
 </programlisting>
 </example>
 
-<example><title>An MRNet Filter: Integer Maximum</title>
-<programlisting>
-//Must Declare the format of data expected by the filter
-const char * tfilter_int_max_format_str="%d";  
-
-void tfilter_int_max( const std::vector &lt; Packet &gt; &amp;packets_in,
-                      std::vector &lt; Packet &gt; &amp;packets_out )
-{
-    // initialize result to the value in first packet
-    int result = packets_in[0][0].get_int32_t();
-
-    for( unsigned int i = 1; i &lt; packets_in.size( ); i++ ) {
-        Packet cur_packet = packets_in[i];
-
-        // 1st and only data element in packet is an int ("%d")
-        result = max( result, cur_packet[0].get_int32_t() );
-    }
-    
-    Packet new_packet( packets_in[0].get_StreamId( ),
-                       packets_in[0].get_Tag( ),
-                       "%d", result );
-    packets_out.push_back( new_packet );
-}
-
-</programlisting>
-</example>
 </appendix>

@@ -10,20 +10,19 @@ assumed that the current working directory is <envar>$MRNET_ROOT</envar>.
 <sect1><title>Supported Platforms and Compilers</title>
 <para>
 MRNet has been developed to be highly portable; we expect it to run properly
-on all common Unix-based as well as Microsoft Windows platforms. This being said, we have successfully
-built and
-tested MRNet using <application>GCC version 3.3 compilers</application>
-on the following systems:
+on all common Unix-based as well as Microsoft Windows platforms. This being said, 
+we have successfully built and tested MRNet on the following systems:
 <itemizedlist>
 <listitem>i686-pc-linux-gnu</listitem>
-<listitem>ia64-unknown-linux</listitem>
-<listitem>rs6000-ibm-aix5.1.0.0</listitem>
+<listitem>ia64-unknown-linux-gnu</listitem>
+<listitem>x86_64-unknown-linux-gnu</listitem>
+<listitem>powerpc64-unknown-linux-gnu</listitem>
+<listitem>rs6000-ibm-aix5.2.0.0</listitem>
 <listitem>sparc-sun-solaris2.8</listitem>
-<listitem>sparc-sun-solaris2.9</listitem>
-<listitem>i386-unknown-nt4.0 (built with MS Visual Studio 6)</listitem>
+<listitem>i386-unknown-nt4.0 (MS Visual Studio 2005)</listitem>
 </itemizedlist>
 
-Our build system attempts to native system compilers where appropriate, for
+Our build system attempts to use native system compilers where appropriate, for
 instance, <application>xlc</application> and <application>xlC</application>
 in AIX environments.
 </para>
@@ -67,8 +66,8 @@ results, but the user may specify certain options. For example,
 </screen>
 
 instructs the configure script to use <command>g++</command> for the C++
-compiler with level 3 optimization, <emphasis>very</emphasis> verbose output
-and <filename>/usr/local/lib/libfl.a</filename> as the location of the flex library.
+compiler with level 3 optimization and <filename>/usr/local/lib/libfl.a</filename> 
+as the location of the flex library.
 </para>
 </sect1>
 
@@ -89,7 +88,7 @@ internal communcation node</listitem>
 
 Typing:
 <screen>
-<prompt>UNIX></prompt>  <command>make mrnet_tests</command>
+<prompt>UNIX></prompt>  <command>make mrnet-tests</command>
 </screen>
 builds the mrnet test files. In addition to those files above, you will also generate:
 <itemizedlist>
@@ -108,7 +107,7 @@ binary directory with the other executables during the building of the MRNet
 tests as described above. This script can be used to run the MRNet test
 programs and check their output for errors. The script is used as follows:
 <screen>
-<prompt>UNIX></prompt> <command>mrnet_tests.sh [ -l | -r &lt;hostfile&gt; | -a &lt;hostfile&gt; | -f &lt;sharedobject&gt;</command>
+<prompt>UNIX></prompt> <command>mrnet_tests.sh [ -l | -r &lt;hostfile&gt; | -a &lt;hostfile&gt; ] [ -f &lt;sharedobject&gt; ]</command>
 </screen>
 </sect1>
 The <option>-l</option> flag is used to run all tests using only topologies that create processes on the local machine. The <option>-r</option> flag runs tests using remote machines specified in the file whose name immediately follows this flag. To run test both locally and remotely, use the <option>-a</option> flag and specify a hostfile to use. To run the programs that test MRNet's ability to dynamically load filters, you must specify the absolute location of the shared object <filename>test_DynamicFilters.so</filename> produced when the tests were built.
@@ -117,12 +116,12 @@ The <option>-l</option> flag is used to run all tests using only topologies that
 
 <sect1><title>Bugs, Questions and Comments</title>
 <para>
-MRNet is maintained primarily by Dorian Arnold, Paradyn Project, University of Wisconsin-Madison.
+MRNet is maintained primarily by the Paradyn Project, University of Wisconsin-Madison.
 Comments and other feedback whether positive or negative are welcome.
 </para>
 
 <para>
-Please report bugs to darnold@cs.wisc.edu.
+Please report bugs to paradyn@cs.wisc.edu.
 </para>
 
 <para>

@@ -1,6 +1,6 @@
 <appendix id="format_strings"><title>MRNET Format Strings</title>
 <para>
-Following  the  % character introducing a conversion there
+After the % character that introduces a conversion, there
 may be a number of flag characters. <emphasis>u</emphasis>,
 <emphasis>h</emphasis>, <emphasis>l</emphasis>, and <emphasis>a</emphasis>
 are special modifiers meaning unsigned, short, long and array, respectivley.

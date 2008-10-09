@@ -63,25 +63,21 @@ at stream creation. MRNet uses two types of filters: synchronization filters
 and transformation filters. Synchronization filters organize data packets from
 downstream nodes into synchronized waves of data packets, while transformation
 filters operate on the synchronized data packets yielding one or more output
-packets.
+packets. A distinction between synchronization and transformation 
+filters is that synchronization filters are independent of the packet data type, 
+but transformation filters operate on packets of a specific type.
 </para>
 
 <para>
-Filters operate on data flowing upstream in the network. Synchronization
-filters receive packets one at a time and do not output any packets until the
-specified synchronization criteria has occurred. Transformation filters input
-the group of synchronized packets, perform some type of data transformation
-on the data contained in the packets and output one or more packets. A
-distinction between synchronization and transformation filters is that
-synchronization filters are independent of the packet data type, but
-transformation filters operate on packets of a specific type.
+Synchronization filters operate on data flowing upstream in the network,
+receiving packets one at a time and outputting packets only when the
+specified synchronization criteria has occurred.
 Synchronization filters provide a mechanism to deal with the asynchronous 
-rrival of packets from children nodes; the synchronizer collects packets and
+arrival of packets from children nodes; the synchronizer collects packets and
 typically aligns them into waves, passing an entire wave onward at the same
 time. Therefore, synchronization filters do no data transformation and can
 operate on packets in a type-independent fashion. MRNet currently supports
 three synchronization modes:
-
 <itemizedlist>
 <listitem><emphasis>Wait For All</emphasis>: wait for a packet from every
 child node,</listitem>
@@ -94,7 +90,9 @@ return packets to the stream manager.</listitem>
 </para>
 
 <para>
-Transformation filters combine data from multiple packets by performing an
+Transformation filters can be used on both upstream and downstream data flows. 
+Transformation filters input a group of synchronized packets, and
+combine data from multiple packets by performing an
 aggregation that yields one or more new data packets. Since transformation
 filters are expected to perform computational operations on data packets,
 there is a type requirement for the data packets to be passed to this type of
@@ -105,11 +103,9 @@ provides several transformation filters that should be of general use:
 <itemizedlist>
 <listitem><emphasis>Basic scalar operations</emphasis>: min, max, sum and
 average on integers or floats.</listitem>
-
 <listitem><emphasis>Concatenation</emphasis>: operation that inputs n scalars
 and outputs a vector of length n of the same base type.</listitem>
 </itemizedlist>
-
 <xref linkend="adding_filters"></xref> describes facilities a tool developer 
 may use to add new filters to the provided set.
 </para>

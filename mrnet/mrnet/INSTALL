@@ -1,30 +1,17 @@
 MRNet: A Multicast/Reduction Network
 http://www.paradyn.org/mrnet/
-Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
+Copyright © 2003-2008 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
 
 LICENSE contains the usage terms for MRNet.
 
-For this discussion, $MRNET_ROOT is the location of the top-level directory
-of the MRNet distribution and $MRNET_ARCH is a string describing the platform
-(OS and architecture) as discovered by autoconf. For all instructions, it is
-assumed that the current working directory is $MRNET_ROOT. Complete updated
-documentation may be found at http://www.paradyn.org/mrnet.
+Complete documentation may be found at http://www.paradyn.org/mrnet.
 
 1. SUPPORTED PLATFORMS
 
-  MRNet is designed to be a highly-portable system. While it should build
-  effortlessly with GNU v3 compilers, this version adds support for native
-  compilers on Solaris, AIX, and Windows. We have built and successfully tested
-  MRNet components on:
-   - i686-pc-linux-gnu
-   - ia64-unknown-linux
-   - rs6000-ibm-aix5.1.0.0
-   - sparc-sun-solaris2.8
-   - sparc-sun-solaris2.9
-   - i386-unknown-nt4.0
-
-  Our build system to allow the use of native compilers where appropriate,
-  for instance, xlC in AIX environments.
+  MRNet is designed to be a highly-portable system. It should build
+  effortlessly with recent GNU compilers, as well as native compilers on
+  Solaris, AIX, and Windows. See the README for the latest list of
+  platforms on which we have built and successfully tested MRNet.
 
 2. SYSTEM REQUIREMENTS
 
@@ -48,28 +35,45 @@ documentation may be found at http://www.paradyn.org/mrnet.
   ./configure without any options should give reasonable results, but the user
   may specify certain options. For example, 
 
-    UNIX> ./configure CXX=g++ CXXFLAGS=-O3 --with-libfldir=/usr/local/lib
+    UNIX> ./configure CXX=g++ --with-libfldir=/usr/local/lib
 
-  instructs the configure script to use g++ for the C++ compiler with level 3
-  optimization, very verbose output and /usr/local/lib as the location of
-  the flex library. 
+  instructs the configure script to use g++ for the C++ compiler
+  and /usr/local/lib as the location of the flex library. 
 
 4. Compilation and Installation
 
-  To build the MRNet toolkit by type: 
+  For this discussion, $MRNET_ROOT is the location of the top-level directory
+  of the MRNet distribution and $MRNET_ARCH is a string describing the platform
+  (OS and architecture) as discovered by autoconf. For all instructions, it is
+  assumed that the current working directory is $MRNET_ROOT.
+
+  * To build the MRNet toolkit: 
 
     UNIX>  make
 
-  After a successful build, the following files will be present: 
-  $MRNET_ROOT/lib/$MRNET_ARCH/libmrnet.a: MRNet API library
-  $MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode: MRNet internal communcation node (used internally)
-  $MRNET_ROOT/bin/$MRNET_ARCH/mrnet_topgen: MRNet topology file generator
-  $MRNET_ROOT/bin/$MRNET_ARCH/*_[FE,BE]: MRNet test front-end and back-end programs
+    After a successful build, the following files will be present: 
+      $MRNET_ROOT/bin/$MRNET_ARCH/mrnet_commnode: MRNet internal communcation node (used internally)
+      $MRNET_ROOT/bin/$MRNET_ARCH/mrnet_topgen: MRNet topology file generator
+      $MRNET_ROOT/lib/$MRNET_ARCH/libmrnet.a: MRNet API library
+      $MRNET_ROOT/xplat/libxplat.a: Cross-Platform library
+  
+  * To build the standard MRNet tests:
 
+    UNIX>  make mrnet-tests
+
+    After a successful build, the following files will be present: 
+      $MRNET_ROOT/bin/$MRNET_ARCH/*_[FE,BE]: MRNet test front-end and back-end programs
+      $MRNET_ROOT/bin/$MRNET_ARCH/mrnet_tests.sh: MRNet test driver script
+
+  * To install the MRNet toolkit: 
+
+    UNIX>  make install
+    UNIX>  make install-tests (Optional)
+    
 5. Bugs, Questions and Comments
 
   MRNet is maintained by the Paradyn Project, University of Wisconsin-Madison.
   Comments and other feedback whether positive or negative are welcome. 
 
-  Please report bugs to darnold@cs.wisc.edu. 
+  Please report bugs to paradyn@cs.wisc.edu. 
   The MRNet webpage is http://www.paradyn.org/mrnet/ 

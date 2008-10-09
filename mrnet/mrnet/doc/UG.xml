@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
-       "/scratch/darnold/local/share/docbook-xml-4.4/docbookx.dtd" [
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+       "/s/docbook-xml-4.1.2/common/xml/docbookx.dtd" [
 <!ENTITY introduction SYSTEM "introduction.xml">
 <!ENTITY installation SYSTEM "installation.xml">
 <!ENTITY abstractions SYSTEM "abstractions.xml">
@@ -15,7 +15,7 @@
 ]>
 
 <book id="book">
-<title>The Multicast/Reduction Network: A User's Guide to MRNet v1.1</title>
+<title>The Multicast/Reduction Network: A User's Guide to MRNet v2.0</title>
 
 &introduction;
 &installation;
@@ -25,8 +25,6 @@
 &topologies;
 &adding_filters;
 &format_strings;
-&data_elements;
-&event_types;
 &full_example;
 
 </book>

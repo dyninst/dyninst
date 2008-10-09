@@ -1,19 +1,21 @@
 MRNet: A Multicast/Reduction Network
 http://www.paradyn.org/mrnet/
-Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
+Copyright © 2003-2008 Dorian C. Arnold, Philip C. Roth, Barton P. Miller.
 
 LICENSE contains the usage terms for MRNet.
 
 1. OVERVIEW
+
   MRNet is a customizable, high-performance software infrastructure for
-  building scalable tools.  It supports efficient multicast and data
-  aggregation functionality using a tree of processes between the tool's
-  front-end and back-ends.  MRNet-based tools may use these internal
-  processes to distribute many important tool activities, for example to
-  reduce data analysis time and keep tool front-end loads manageable.
+  building scalable tools and applications.  It supports efficient 
+  multicast and data aggregation functionality using a tree of processes 
+  between the tool's front-end and back-ends.  MRNet-based tools may use 
+  these internal processes to distribute many important tool activities, 
+  for example to reduce data analysis time and keep tool front-end loads 
+  manageable.
 
   MRNet-based tool components communicate across logical channels called
-  streams. At MRNet internal processes,  filters are bound to these streams to
+  streams. At MRNet internal processes, filters are bound to these streams to
   synchronize and aggregate dataflows. Using filters, MRNet can efficiently
   compute averages, sums, and other more complex aggregations and analyses
   on tool data. MRNet also supports facilities that allow tool developers
@@ -42,35 +44,37 @@ LICENSE contains the usage terms for MRNet.
 
     * Open source licensing.
 
-2. MRNet v1.2 RELEASE NOTES
+2. MRNet v2.0 RELEASE NOTES
+
   This release of MRNet includes a source distribution for Unix/Linux
   platforms, a Windows binary distribution, as well as associated manuals.
-  The release incorporates improvements and platform changes made to MRNet
-  since the 1.1 release.
-
+  The release incorporates improvements made to MRNet since version 1.2.
+ 
   For information about the software releases, plus papers and manuals on the
   MRNet system, visit:
       http://www.paradyn.org/mrnet
 
   Release Highlights:
-    * New LGPL licensing
-    * Improved support for 64-bit platforms
-    * Topology generation methods added to API
-    * Various bug fixes and enhancements
+    * Fault tolerance and recovery for internal MRNet node failures
+    * Improved API for examining MRNet topology
+    * New filter capabilities such as dynamic configuration
+    * Improved memory management
+    * Improved support for multi-threaded front-ends and back-ends
+    * Updated examples, including a sample Makefile
+    * Numerous bug fixes and enhancements
 
 3. SUPPORTED PLATFORMS
 
-  MRNet is designed to be a highly-portable system. While it should build
-  effortlessly with GNU v3 compilers, this version adds support for native
-  compilers on Solaris, AIX, and Windows. We have built and successfully tested
-  MRNet components on:
+  MRNet is designed to be a highly-portable system. The source code has
+  been compiled using both GNU GCC and native platform compilers. We 
+  have successfully tested MRNet components on the following platforms:
    - i686-pc-linux-gnu
-   - rs6000-ibm-aix5.1.0.0
-   - sparc-sun-solaris2.8
-   - sparc-sun-solaris2.9
-   - i386-unknown-nt4.0
-   - ia64-unknown-linux
+   - ia64-unknown-linux-gnu
+   - x86_64-unknown-linux-gnu
    - powerpc64-unknown-linux-gnu
+   - rs6000-ibm-aix5.2.0.0
+   - sparc-sun-solaris2.8
+   - i386-unknown-nt4.0
 
 4. CONTACT
 
@@ -80,5 +84,5 @@ LICENSE contains the usage terms for MRNet.
   1210 West Dayton Street
   Madison, WI 53706
   Web: http://www.paradyn.org/mrnet
-  Email: darnold@cs.wisc.edu
+  Email: paradyn@cs.wisc.edu
   FAX: (608) 262-9777
