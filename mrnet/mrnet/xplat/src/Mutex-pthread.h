@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Mutex-pthread.h,v 1.3 2007/01/24 19:34:05 darnold Exp $
+// $Id: Mutex-pthread.h,v 1.4 2008/10/09 19:54:12 mjbrim Exp $
 #ifndef XPLAT_PTHREADMUTEX_H
 #define XPLAT_PTHREADMUTEX_H
 
@@ -25,15 +25,8 @@ public:
     virtual ~PthreadMutexData( void );
 
 
-    virtual int Lock( void )
-    {
-        return pthread_mutex_lock( &mutex );
-    }
-
-    virtual int Unlock( void )
-    {
-        return pthread_mutex_unlock( &mutex );
-    }
+    virtual int Lock( void );
+    virtual int Unlock( void );
 };
 
 } // namespace XPlat

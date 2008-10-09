@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Monitor.h,v 1.4 2007/01/24 19:33:43 darnold Exp $
+// $Id: Monitor.h,v 1.5 2008/10/09 19:54:06 mjbrim Exp $
 #ifndef XPLAT_MONITOR_H
 #define XPLAT_MONITOR_H
 
@@ -39,11 +39,11 @@ private:
 
 public:
     Monitor( void );
-    virtual ~Monitor( void )            { delete data; }
+    virtual ~Monitor( void );
 
     // critical section-related methods
-    virtual int Lock( void )            { return data->Lock(); }
-    virtual int Unlock( void )          { return data->Unlock(); }
+    virtual int Lock( void );
+    virtual int Unlock( void );
 
     // condition variable-related methods
     virtual int RegisterCondition( unsigned int condid )

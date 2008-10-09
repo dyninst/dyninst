@@ -3,8 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Mutex-pthread.C,v 1.4 2007/01/24 19:34:04 darnold Exp $
+// $Id: Mutex-pthread.C,v 1.5 2008/10/09 19:54:11 mjbrim Exp $
 #include <assert.h>
+#include <errno.h>
 #include "Mutex-pthread.h"
 
 namespace XPlat
@@ -14,6 +15,28 @@ Mutex::Mutex( void )
   : data( new PthreadMutexData )
 {
     // nothing else to do
+}
+
+Mutex::~Mutex( void )
+{
+    delete data;
+    data = NULL;
+}
+
+int Mutex::Lock( void )
+{
+    if( data != NULL )
+        return data->Lock();
+    else
+        return EINVAL;
+}
+
+int Mutex::Unlock( void )
+{
+    if( data != NULL )
+        return data->Unlock();
+    else
+        return EINVAL;
 }
 
 PthreadMutexData::PthreadMutexData( void )
@@ -32,6 +55,16 @@ PthreadMutexData::~PthreadMutexData( void )
     {
         pthread_mutex_destroy( &mutex );
     }
+}
+
+int PthreadMutexData::Lock( void )
+{
+    return pthread_mutex_lock( &mutex );
+}
+
+int PthreadMutexData::Unlock( void )
+{
+    return pthread_mutex_unlock( &mutex );
 }
 
 } // namespace XPlat

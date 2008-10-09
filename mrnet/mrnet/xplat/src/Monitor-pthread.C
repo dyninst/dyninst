@@ -3,8 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Monitor-pthread.C,v 1.6 2007/01/24 19:34:00 darnold Exp $
+// $Id: Monitor-pthread.C,v 1.7 2008/10/09 19:54:09 mjbrim Exp $
 #include <assert.h>
+#include <errno.h>
 #include "Monitor-pthread.h"
 
 namespace XPlat
@@ -16,6 +17,25 @@ Monitor::Monitor( void )
     // nothing else to do
 }
 
+Monitor::~Monitor( void )
+{
+    delete data;
+    data = NULL;
+}
+
+int Monitor::Lock( void )
+{
+    if( data != NULL )
+        return data->Lock();
+    return EINVAL;
+}
+
+int Monitor::Unlock( void )
+{
+    if( data != NULL )
+        return data->Unlock();
+    return EINVAL;
+}
 
 PthreadMonitorData::PthreadMonitorData( void )
   : initialized( false )

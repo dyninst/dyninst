@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: TLSKey.h,v 1.5 2007/01/24 19:33:52 darnold Exp $
+// $Id: TLSKey.h,v 1.6 2008/10/09 19:54:08 mjbrim Exp $
 #ifndef XPLAT_TLSKEY_H
 #define XPLAT_TLSKEY_H
 
@@ -32,17 +32,22 @@ public:
     virtual ~TLSKey( void ) {
         data_sync.Lock();
         delete data;
+        data = NULL;
         data_sync.Unlock();
     }
     virtual void* Get( void ) const {
+        void* ret = NULL;
         data_sync.Lock();
-        void * ret = data->Get();
+        if( data != NULL )
+            ret = data->Get();
         data_sync.Unlock();
         return ret;
     }
     virtual int Set( void* val ) {
+        int ret = 0;
         data_sync.Lock();
-        int ret = data->Set( val );
+        if( data != NULL )
+            ret = data->Set( val );
         data_sync.Unlock();
         return ret;
     }

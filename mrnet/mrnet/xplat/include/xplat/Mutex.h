@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Mutex.h,v 1.4 2007/01/24 19:33:44 darnold Exp $
+// $Id: Mutex.h,v 1.5 2008/10/09 19:54:07 mjbrim Exp $
 #ifndef XPLAT_MUTEX_H
 #define XPLAT_MUTEX_H
 
@@ -27,10 +27,10 @@ private:
 
 public:
     Mutex( void );
-    virtual ~Mutex( void )          { delete data; }
+    virtual ~Mutex( void );
 
-    virtual int Lock( void )        { return data->Lock(); }
-    virtual int Unlock( void )      { return data->Unlock(); }
+    virtual int Lock( void );
+    virtual int Unlock( void );
 };
 
 } // namespace XPlat

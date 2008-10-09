@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Monitor-win.C,v 1.5 2007/01/24 19:34:02 darnold Exp $
+// $Id: Monitor-win.C,v 1.6 2008/10/09 19:54:10 mjbrim Exp $
 //
 // Implementation of the WinMonitor class.
 // A WinMonitor is a Win32-based Monitor.
@@ -25,6 +25,26 @@ Monitor::Monitor( void )
   : data( new WinMonitorData )
 {
     // nothing else to do
+}
+
+Monitor::~Monitor( void )
+{
+    delete data;
+    data = NULL;
+}
+
+int Monitor::Lock( void )
+{
+    if( data != NULL )
+        return data->Lock();
+    return -1;
+}
+
+int Monitor::Unlock( void )
+{
+    if( data != NULL )
+        return data->Unlock();
+    return 0;
 }
 
 
