@@ -5,19 +5,17 @@
 
 #include <map>
 #include <string>
+#include <math.h>
 
 #if !defined(os_windows)
 #include <sys/time.h>
 #endif
 
-#include <math.h>
-
+#include "mrnet/MRNet.h"
 
 #include "FilterDefinitions.h"
 #include "utils.h"
 #include "DataElement.h"
-#include "Packet.h"
-
 #include "ParadynFilterDefinitions.h"
 
 #define MAXDOUBLE   1.701411834604692293e+308
@@ -52,9 +50,9 @@ FilterId TFILTER_SAVE_LOCAL_CLOCK_SKEW_DOWNSTREAM=0;
     gettimeofday(tmval, NULL);
 #endif
 	}
-void save_LocalClockSkewDownstream( const std::vector<Packet>& in_pkts,
-                                    std::vector<Packet>& out_pkts,
-                                    void** /* cd */ )
+void save_LocalClockSkewDownstream( const std::vector<PacketPtr>& in_pkts,
+                                    std::vector<PacketPtr>& out_pkts,
+                                    void** /* cd */, PacketPtr&, bool& )
 {
     //DataType atype;
     //unsigned int alen;
@@ -67,18 +65,18 @@ void save_LocalClockSkewDownstream( const std::vector<Packet>& in_pkts,
 		savedLocalRecvTimestamp = TimeVal2Double( recvTimeVal );
 
     // save the time our parent sent the downstream message,
-    unsigned int id = in_pkts[0][0]->get_uint32_t();
+        unsigned int id = (*in_pkts[0])[0]->get_uint32_t();
 
-    savedLocalParSendTimestamp = in_pkts[0][1]->get_double( );
+    savedLocalParSendTimestamp = (*in_pkts[0])[1]->get_double( );
 
     // sample "send" time as late as possible for outgoing message(s)
     getTime(&sendTimeVal);
 
     sendTime = TimeVal2Double( sendTimeVal );
 
-    out_pkts.push_back( Packet( in_pkts[0].get_StreamId(),
-                                     in_pkts[0].get_Tag(),
-                                     "%ud %lf",  id, sendTime ) );
+    out_pkts.push_back( PacketPtr( new Packet( in_pkts[0]->get_StreamId(),
+                                               in_pkts[0]->get_Tag(),
+                                               "%ud %lf",  id, sendTime ) ) );
 }
 
 // Upstream filter used to save time skew data on upward flow and propagate
@@ -87,9 +85,9 @@ void save_LocalClockSkewDownstream( const std::vector<Packet>& in_pkts,
 const char * TFILTER_SAVE_LOCAL_CLOCK_SKEW_UPSTREAM_FORMATSTR="%ud %ud %alf";
 FilterId TFILTER_SAVE_LOCAL_CLOCK_SKEW_UPSTREAM=0;
 
-void save_LocalClockSkewUpstream( const std::vector<Packet>& in_pkts,
-                                  std::vector<Packet>& out_pkts,
-                                  void** /* cd */ )
+void save_LocalClockSkewUpstream( const std::vector<PacketPtr>& in_pkts,
+                                  std::vector<PacketPtr>& out_pkts,
+                                  void** /* cd */, PacketPtr&, bool& )
 {
     struct timeval recvTimeVal, sendTimeVal;
     double recvTime, sendTime;
@@ -99,7 +97,7 @@ void save_LocalClockSkewUpstream( const std::vector<Packet>& in_pkts,
 
     recvTime = TimeVal2Double( recvTimeVal );
 
-    unsigned int id = (in_pkts[0])[0]->get_uint32_t();
+    unsigned int id = (*in_pkts[0])[0]->get_uint32_t();
 
     // ensure we have a place to save our skews
     if( localSkews == NULL ) {
@@ -125,7 +123,7 @@ void save_LocalClockSkewUpstream( const std::vector<Packet>& in_pkts,
         DataType atype;
         unsigned int alen;
 		
-        const double * inTimestamps = (const double *)(in_pkts[i][2]->get_array( &atype, (uint32_t *) &alen ));
+        const double * inTimestamps = (const double *)((*in_pkts[i])[2]->get_array( &atype, (uint32_t *) &alen ));
         assert( inTimestamps != NULL );
         assert( atype == DOUBLE_ARRAY_T );
         assert( alen == 3 );
@@ -154,21 +152,21 @@ void save_LocalClockSkewUpstream( const std::vector<Packet>& in_pkts,
     sendTime = TimeVal2Double( sendTimeVal );
     timestamps[2] = sendTime;
 
-    out_pkts.push_back( Packet( in_pkts[0].get_StreamId(),
-                                     in_pkts[0].get_Tag(),
-                                     "%ud %ud %alf", id, 3, timestamps, 3 ) );
+    out_pkts.push_back( PacketPtr( new Packet( in_pkts[0]->get_StreamId(),
+                                               in_pkts[0]->get_Tag(),
+                                               "%ud %ud %alf", id, 3, timestamps, 3 ) ) );
 }
 
 const char * TFILTER_GET_CLOCK_SKEW_FORMATSTR="%ud %ud %alf";
 FilterId TFILTER_GET_CLOCK_SKEW=0;
 
 void
-get_ClockSkew( const std::vector<Packet>& in_pkts,
-                std::vector<Packet>& out_pkts,
-                void** /* cd */ )
+get_ClockSkew( const std::vector<PacketPtr>& in_pkts,
+                std::vector<PacketPtr>& out_pkts,
+                void** /* cd */, PacketPtr&, bool& )
 {
     assert( localSkews != NULL );
-    unsigned int id = in_pkts[0][0]->get_uint32_t();
+    unsigned int id = (*in_pkts[0])[0]->get_uint32_t();
 
     // our input is the cumulative skew to each backend
     // reachable from our child processes
@@ -176,15 +174,13 @@ get_ClockSkew( const std::vector<Packet>& in_pkts,
     std::vector<const unsigned int*> daemonIdArrays;
     std::vector<const double*> skewArrays;
     unsigned int nReachableBackends = 0;
-    for( std::vector<Packet>::const_iterator iter = in_pkts.begin();
-            iter != in_pkts.end();
-            iter++ )
+    for( unsigned int i=0; i<in_pkts.size(); i++ )
     {
         DataType atype;
         unsigned int alen;
 
         // extract skew array from current packet
-        const double* curSkews = (const double*)((*iter)[2]->get_array( &atype, (uint32_t *) &alen ));
+        const double* curSkews = (const double*)((*in_pkts[i])[2]->get_array( &atype, (uint32_t *) &alen ));
         assert( curSkews != NULL );
         assert( atype == DOUBLE_ARRAY_T );
 
@@ -220,10 +216,10 @@ get_ClockSkew( const std::vector<Packet>& in_pkts,
 
 
     // deliver the cumulative skews upstream
-    out_pkts.push_back( Packet( in_pkts[0].get_StreamId(),
-                                     in_pkts[0].get_Tag(),
-                                     "%ud %ud %alf", id, nReachableBackends,
-                                     cumulativeSkews, nReachableBackends ));
+    out_pkts.push_back( PacketPtr( new Packet( in_pkts[0]->get_StreamId(),
+                                               in_pkts[0]->get_Tag(),
+                                               "%ud %ud %alf", id, nReachableBackends,
+                                               cumulativeSkews, nReachableBackends )));
 }
 
 FilterId TFILTER_PD_UINT_EQ_CLASS=0;
@@ -235,16 +231,16 @@ const char * TFILTER_PD_UINT_EQ_CLASS_FORMATSTR="%ud %ud %ad %ad";
 //  %ad => array of classes (1 for each object in parallel array)
 //  %ad => array of class reps (1 for each object in parallel array)
 
-void tfilter_PDUIntEqClass( const std::vector < Packet >&packets_in,
-                           std::vector < Packet >&packets_out,
-                           void ** /* client data */ )
+void tfilter_PDUIntEqClass( const std::vector < PacketPtr >&packets_in,
+                           std::vector < PacketPtr >&packets_out,
+                            void ** /* client data */, PacketPtr&, bool& )
 {
     DataType type=UNKNOWN_T;
     const uint32_t *class_array, *class_rep_array;
     uint32_t class_array_len, class_rep_array_len;
     uint32_t cur_class, cur_class_rep;
 
-    uint32_t sdm_id=packets_in[0][0]->get_uint32_t(); //daemon id (igen wants)
+    uint32_t sdm_id=(*packets_in[0])[0]->get_uint32_t(); //daemon id (igen wants)
 
     //mrn_printf( 1, MCFL, stderr, "In EqClassFilter(%d packets in) constructor\n", packets_in.size() );
 
@@ -254,19 +250,19 @@ void tfilter_PDUIntEqClass( const std::vector < Packet >&packets_in,
 
     //for each packet
     for( unsigned int i = 0; i < packets_in.size(); i++ ) {
-        Packet cur_packet = packets_in[i];
+        PacketPtr cur_packet( packets_in[i] );
         /*mrn_printf( 1, MCFL, stderr,
                     "Packet[%d]: tag=%d,stream=%d,fmt=%s,num_elems=%d\n",
                     i,
-                    cur_packet.get_Tag(),
-                    cur_packet.get_StreamId(),
-                    cur_packet.get_FormatString(),
-                    cur_packet.get_NumDataElements() );
+                    cur_packet->get_Tag(),
+                    cur_packet->get_StreamId(),
+                    cur_packet->get_FormatString(),
+                    cur_packet->get_NumDataElements() );
 	*/
-        class_array = (uint32_t *)cur_packet[2]->get_array(&type, &class_array_len);
+        class_array = (const uint32_t *)(*cur_packet)[2]->get_array(&type, &class_array_len);
         //mrn_printf( 1, MCFL, stderr, "class_array(%p): len: %d\n",
         //            class_array, class_array_len );
-        class_rep_array = (uint32_t *)cur_packet[3]->get_array(&type, &class_rep_array_len);
+        class_rep_array = (const uint32_t *)(*cur_packet)[3]->get_array(&type, &class_rep_array_len);
 	// mrn_printf( 1, MCFL, stderr, "class_rep_array(%p): len: %d\n",
         //            class_rep_array, class_rep_array_len );
 
@@ -303,11 +299,11 @@ void tfilter_PDUIntEqClass( const std::vector < Packet >&packets_in,
         new_class_rep_array[j] = iter->second;
     }
 
-    Packet new_packet( packets_in[0].get_StreamId( ),
-                       packets_in[0].get_Tag( ),
-                       "%ud %ud %ad %ad", sdm_id, new_class_array_len, 
-                       new_class_array, new_class_array_len,
-                       new_class_rep_array, new_class_rep_array_len );
+    PacketPtr new_packet( new Packet( packets_in[0]->get_StreamId( ),
+                                      packets_in[0]->get_Tag( ),
+                                      "%ud %ud %ad %ad", sdm_id, new_class_array_len, 
+                                      new_class_array, new_class_array_len,
+                                      new_class_rep_array, new_class_rep_array_len ) );
 
     packets_out.push_back( new_packet );
     //mrn_printf( 1, MCFL, stderr, "Done processing output\n");
