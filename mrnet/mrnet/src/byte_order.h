@@ -11,7 +11,7 @@
 extern "C" {
 #endif /* defined(__cplusplus) */
 
-#include "Types.h"
+#include "mrnet/Types.h"
 
 #define ntoh_bytes hton_bytes
 void hton_bytes(char * out, char * in, uint32_t elsize);
