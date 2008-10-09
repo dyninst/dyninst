@@ -5,15 +5,14 @@
  ****************************************************************************/
 #include <list>
 
-#include "NetworkGraph.h"
-#include "NetworkImpl.h"
+#include "ParsedGraph.h"
 
 #if defined(os_windows)
 #include <malloc.h>
 #endif
 
-static std::list <MRN::NetworkNode *> hostlist;
-static std::list <MRN::NetworkNode *> potential_root;
+static std::list <MRN::ParsedGraph::Node *> hostlist;
+static std::list <MRN::ParsedGraph::Node *> potential_root;
 
 int yylex(void);
 
@@ -34,7 +33,7 @@ extern int lineNum;
 %union {
     unsigned int uval;
     char * hostname;
-    MRN::NetworkNode * node_ptr;
+    MRN::ParsedGraph::Node * node_ptr;
 }
 
 %token <hostname> HOSTNAME
@@ -50,22 +49,26 @@ config: line config
     if(potential_root.size() != 1){
 	    fprintf(stderr, "graph is not connected\n");
         YYABORT;
-    }           
-    NetworkImpl::parsed_graph->set_Root( *potential_root.begin() );
+    }
+    parsed_graph->set_Root( *potential_root.begin() );
+    potential_root.clear();
+    hostlist.clear();
 }
 ;
 
 line: host ARROW hosts SEMI
 {
-    std::list<NetworkNode *>::iterator iter = hostlist.begin();
+    std::list<ParsedGraph::Node *>::iterator iter = hostlist.begin();
     for(; iter != hostlist.end(); iter++){
-        NetworkNode * cur_node;
+        ParsedGraph::Node * cur_node;
         cur_node = (*iter);
         potential_root.remove(cur_node); //node cannot be a root
         $1->add_Child(cur_node);
+        cur_node->set_Parent( $1 );
     }
     hostlist.clear();
 }
+| host SEMI
 | error
 {
     fprintf(stderr, "line parse error on line %d\n", lineNum-1);
@@ -86,11 +89,14 @@ hosts: hosts host
 
 host: HOSTNAME COLON MRN_UINT
 {
-    NetworkNode * cur_node = NetworkImpl::parsed_graph->find_Node($1, $3);
+    if( !parsed_graph )
+        parsed_graph = new ParsedGraph;
+
+    ParsedGraph::Node * cur_node = parsed_graph->find_Node($1, $3);
     if(cur_node == NULL){
-        cur_node = new NetworkNode($1, $3);
+        cur_node = new ParsedGraph::Node($1, $3);
         free($1);
-        NetworkImpl::parsed_graph->add_Node(cur_node);
+        parsed_graph->add_Node(cur_node);
         potential_root.push_back(cur_node);
     }
     $$ = cur_node;
