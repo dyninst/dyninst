@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_19.C,v 1.1 2007/09/24 16:37:05 cooksey Exp $
+// $Id: test1_19.C,v 1.2 2008/10/20 20:36:04 legendre Exp $
 /*
  * #Name: test1_19
  * #Desc: Mutator Side - oneTimeCode
@@ -61,7 +61,7 @@ class test1_19_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_19_factory() {
   return new test1_19_Mutator();
@@ -79,7 +79,7 @@ static void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_19_Mutator::execute() {
+test_results_t test1_19_Mutator::executeTest() {
     // Avoid a race condition in fast & loose mode
     while (!appThread->isStopped()) {
       bpatch->waitForStatusChange();
@@ -160,7 +160,7 @@ test_results_t test1_19_Mutator::execute() {
     }
 
     return PASSED;
-} // test1_19_Mutator::execute()
+} // test1_19_Mutator::executeTest()
 
 // External Interface
 // extern "C" TEST_DLL_EXPORT int test1_19_mutatorMAIN(ParameterDict &param)

@@ -15,7 +15,7 @@ bool TestMutator::hasCustomExecutionPath() {
 }
 
 // Standard setup; this does the setup for the "simple" class of tests.
-// "Simple" tests are tests that only perform any processing in the preExecution
+// "Simple" tests are tests that only perform any processing in the executeTest
 // stage.  Most just do some lookup in the mutatee and then optionally insert
 // instrumentation and let the mutatee do its thing.
 test_results_t TestMutator::setup(ParameterDict &param) {
@@ -36,19 +36,8 @@ test_results_t TestMutator::setup(ParameterDict &param) {
 
 // This method should only be run in test objects that provide a custom
 // execution path.
-test_results_t TestMutator::execute() {
+test_results_t TestMutator::executeTest() {
   return SKIPPED;
-}
-
-test_results_t TestMutator::preExecution() {
-  if (!hasCustomExecutionPath()) {
-    logstatus("**WARNING** Using default preExecution()\n");
-  }
-  return PASSED;
-}
-
-test_results_t TestMutator::inExecution() {
-  return PASSED;
 }
 
 // I'd like this method to look into the mutatee and determine whether or not it

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_37.C,v 1.1 2007/09/24 16:38:23 cooksey Exp $
+// $Id: test1_37.C,v 1.2 2008/10/20 20:36:24 legendre Exp $
 /*
  * #Name: test1_37
  * #Desc: Instrument Loops
@@ -61,7 +61,7 @@
 
 #include "TestMutator.h"
 class test1_37_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_37_factory() {
   return new test1_37_Mutator();
@@ -197,7 +197,7 @@ static int instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_37_Mutator::preExecution() {
+test_results_t test1_37_Mutator::executeTest() {
     if (isMutateeFortran(appImage)) {
 	return SKIPPED;
     } 

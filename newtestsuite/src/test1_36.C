@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_36.C,v 1.1 2007/09/24 16:38:18 cooksey Exp $
+// $Id: test1_36.C,v 1.2 2008/10/20 20:36:23 legendre Exp $
 /*
  * #Name: test1_36
  * #Desc: Callsite Parameter Referencing
@@ -60,7 +60,7 @@ class test1_36_Mutator : public TestMutator {
   bool mutateeFortran;
 
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 
   BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId);
 };
@@ -86,7 +86,7 @@ BPatch_arithExpr *test1_36_Mutator::makeTest36paramExpr(BPatch_snippet *expr,
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_36_Mutator::preExecution() {
+test_results_t test1_36_Mutator::executeTest() {
   const char *funcName = "test1_36_func1";
    BPatch_Vector<BPatch_function *> found_funcs;
    if ((NULL == appImage->findFunction(funcName, found_funcs))

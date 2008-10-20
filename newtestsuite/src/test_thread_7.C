@@ -69,7 +69,7 @@ public:
   test_thread_7_Mutator();
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_thread_7_factory() {
   return new test_thread_7_Mutator();
@@ -159,7 +159,7 @@ BPatch_process *test_thread_7_Mutator::getProcess() {
    return proc;
 }
 
-test_results_t test_thread_7_Mutator::execute() {
+test_results_t test_thread_7_Mutator::executeTest() {
   memset(args, 0, sizeof (args));
 
    proc = getProcess();

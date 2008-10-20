@@ -4,9 +4,21 @@
 #include <vector>
 
 #include "TestData.h"
+#include "test_results.h"
 
 // Avoid stupid circular dependency issue..
 class TestMutator;
+
+#define NUM_RUNSTATES 7
+typedef enum {
+   program_setup_rs = 0,
+   group_setup_rs,
+   group_teardown_rs,
+   test_init_rs,
+   test_setup_rs,
+   test_execute_rs,
+   test_teardown_rs
+} test_runstate_t;
 
 class TestInfo {
 public:
@@ -19,9 +31,14 @@ public:
   bool disabled;
   bool enabled;
   unsigned int index;
-
+  
+  test_results_t results[NUM_RUNSTATES];
+  bool result_reported;
+  
+  
   TestInfo(unsigned int i, const char *iname, const char *mrname,
 	   const char *isoname, const char *ilabel);
+  ~TestInfo();
 };
 
 class RunGroup {
@@ -33,6 +50,7 @@ public:
   bool selfStart;
   unsigned int index;
   std::vector<TestInfo *> tests;
+  bool disabled;
 
   RunGroup(char *mutatee_name, start_state_t state_init,
 	   create_mode_t attach_init, bool ex, TestInfo *test_init);

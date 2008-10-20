@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_1.C,v 1.2 2008/05/08 20:54:24 cooksey Exp $
+// $Id: test2_1.C,v 1.3 2008/10/20 20:36:35 legendre Exp $
 /*
  * #Name: test2_1
  * #Desc: Run an executable that does not exist
@@ -63,7 +63,7 @@ class test2_1_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_1_factory() {
   return new test2_1_Mutator();
@@ -76,7 +76,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_1_factory() {
 //
 
 // static int mutatorTest(BPatch *bpatch, bool useAttach)
-test_results_t test2_1_Mutator::execute() {
+test_results_t test2_1_Mutator::executeTest() {
 
     if (useAttach) {
 	logerror("Skipping test #1 (run an executable that does not exist)\n");

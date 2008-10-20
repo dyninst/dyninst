@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_23.C,v 1.2 2008/05/08 20:54:14 cooksey Exp $
+// $Id: test1_23.C,v 1.3 2008/10/20 20:36:09 legendre Exp $
 /*
  * #Name: test1_23
  * #Desc: Local Variables
@@ -58,7 +58,7 @@
 
 #include "TestMutator.h"
 class test1_23_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_23_factory() {
   return new test1_23_Mutator();
@@ -69,7 +69,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_23_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_23_Mutator::preExecution() {
+test_results_t test1_23_Mutator::executeTest() {
   const char *funcName = "test1_23_call1";
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction(funcName, found_funcs, 1)) 

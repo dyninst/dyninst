@@ -43,55 +43,55 @@ void StdOutputDriver::redirectStream(TestOutputStream stream, const char *filena
 }
 
 void StdOutputDriver::logResult(test_results_t result) {
-  // TODO Finish me.  I can probably copy the final output stuff from
-  // test_driver.C into here.
-
-  // I think this just has to print out the human log results
-  const char *outfn = streams[HUMAN].c_str();
-  FILE *out;
-  if (strcmp(outfn, "-") == 0) {
-    out = stdout;
-  } else {
-    out = fopen(outfn, "a");
-    if (NULL == out) {
+   // TODO Finish me.  I can probably copy the final output stuff from
+   // test_driver.C into here.
+   
+   // I think this just has to print out the human log results
+   const char *outfn = streams[HUMAN].c_str();
+   FILE *out;
+   if (strcmp(outfn, "-") == 0) {
       out = stdout;
-    }
-  }
+   } else {
+      out = fopen(outfn, "a");
+      if (NULL == out) {
+         out = stdout;
+      }
+   }
+   
+   // Now print out a summary results line
+   fprintf(out, "%s:\tmutatee: %s.mutatee_solo_%s_%s_%s\tcreate_mode: %s\tresult: ",
+           (*attributes)["test"].c_str(), (*attributes)["mutatee"].c_str(),
+           (*attributes)["compiler"].c_str(),
+           (*attributes)["mutatee_abi"].c_str(),
+           (*attributes)["optimization"].c_str(),
+           (*attributes)["run_mode"].c_str());
+   switch(result) {
+      case PASSED:
+         fprintf(out, "PASSED");
+         break;
+         
+      case FAILED:
+         fprintf(out, "FAILED");
+         break;
+         
+      case SKIPPED:
+         fprintf(out, "SKIPPED");
+         break;
+         
+      case CRASHED:
+         fprintf(out, "CRASHED");
+         break;
 
-  // Now print out a summary results line
-  fprintf(out, "%s:\tmutatee: %s.mutatee_solo_%s_%s_%s\tcreate_mode: %s\tresult: ",
-	  (*attributes)["test"].c_str(), (*attributes)["mutatee"].c_str(),
-	  (*attributes)["compiler"].c_str(),
-	  (*attributes)["mutatee_abi"].c_str(),
-	  (*attributes)["optimization"].c_str(),
-	  (*attributes)["run_mode"].c_str());
-  switch(result) {
-  case PASSED:
-    fprintf(out, "PASSED");
-    break;
-
-  case FAILED:
-    fprintf(out, "FAILED");
-    break;
-
-  case SKIPPED:
-    fprintf(out, "SKIPPED");
-    break;
-
-  case CRASHED:
-    fprintf(out, "CRASHED");
-    break;
-
-  default:
-    fprintf(out, "UNKNOWN");
-  }
-  fprintf(out, "\n");
-
-  if ((out != stdout) && (out != stderr)) {
-    fclose(out);
-  } else {
-    fflush(out);
-  }
+      default:
+         fprintf(out, "UNKNOWN");
+   }
+   fprintf(out, "\n");
+   
+   if ((out != stdout) && (out != stderr)) {
+      fclose(out);
+   } else {
+      fflush(out);
+   }
 }
 
 void StdOutputDriver::logCrash(std::string testname) {

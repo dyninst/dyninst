@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_thread_3.C,v 1.1 2007/09/24 16:41:36 cooksey Exp $
+// $Id: test_thread_3.C,v 1.2 2008/10/20 20:37:45 legendre Exp $
 /*
  * #Name: test12_4
  * #Desc: thread create callback -- doa
@@ -71,7 +71,7 @@ private:
 public:
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_thread_3_factory() {
   return new test_thread_3_Mutator();
@@ -148,7 +148,7 @@ static void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
 }
 
 // static bool mutatorTest3and4(int testno, const char *testname)
-test_results_t test_thread_3_Mutator::execute() {
+test_results_t test_thread_3_Mutator::executeTest() {
   test3_threadCreateCounter = 0;
   callback_tids.clear();
 

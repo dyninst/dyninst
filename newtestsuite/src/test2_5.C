@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_5.C,v 1.1 2007/09/24 16:39:24 cooksey Exp $
+// $Id: test2_5.C,v 1.2 2008/10/20 20:36:44 legendre Exp $
 /*
  * #Name: test2_5
  * #Desc: Look up nonexistent function
@@ -58,7 +58,7 @@
 
 #include "TestMutator.h"
 class test2_5_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_5_factory() {
   return new test2_5_Mutator();
@@ -70,7 +70,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_5_factory() {
 //	process.
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *img)
-test_results_t test2_5_Mutator::preExecution()
+test_results_t test2_5_Mutator::executeTest()
 {
     test_results_t result;
     clearError();

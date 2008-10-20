@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_1.C,v 1.1 2007/09/24 16:39:59 cooksey Exp $
+// $Id: test5_1.C,v 1.2 2008/10/20 20:37:00 legendre Exp $
 /*
  * #Name: test5_1
  * #Desc: C++ Argument Pass
@@ -60,7 +60,7 @@
 class test5_1_Mutator : public TestMutator {
 public:
   //  virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 
 extern "C" TEST_DLL_EXPORT TestMutator *test5_1_factory() {
@@ -71,7 +71,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_1_factory() {
 // Start Test Case #1 - (C++ argument pass)
 //       
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test5_1_Mutator::preExecution() {
+test_results_t test5_1_Mutator::executeTest() {
 #if defined(os_solaris) || defined(os_linux) || defined(os_windows)
 
   BPatch_Vector<BPatch_function *> bpfv;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_26.C,v 1.1 2007/09/24 16:37:35 cooksey Exp $
+// $Id: test1_26.C,v 1.2 2008/10/20 20:36:12 legendre Exp $
 /*
  * #Name: test1_26
  * #Desc: Struct Elements
@@ -58,7 +58,7 @@
 
 #include "TestMutator.h"
 class test1_26_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_26_factory() {
   return new test1_26_Mutator();
@@ -69,7 +69,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_26_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_26_Mutator::preExecution() {
+test_results_t test1_26_Mutator::executeTest() {
   if (isMutateeFortran(appImage)) {
     return SKIPPED;
   }

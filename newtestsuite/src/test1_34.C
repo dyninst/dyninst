@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_34.C,v 1.1 2007/09/24 16:38:11 cooksey Exp $
+// $Id: test1_34.C,v 1.2 2008/10/20 20:36:21 legendre Exp $
 /*
  * #Name: test1_34
  * #Desc: Loop Information
@@ -57,7 +57,7 @@
 
 #include "TestMutator.h"
 class test1_34_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_34_factory() {
   return new test1_34_Mutator();
@@ -76,7 +76,7 @@ static int numContainedLoops(BPatch_basicBlockLoop *loop)
 //
 // static int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage)
 // {
-test_results_t test1_34_Mutator::preExecution() {
+test_results_t test1_34_Mutator::executeTest() {
 #if !defined(os_windows) && !defined(os_aix)
     unsigned int i;
 

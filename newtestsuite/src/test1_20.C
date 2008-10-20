@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.1 2007/09/24 16:37:17 cooksey Exp $
+// $Id: test1_20.C,v 1.2 2008/10/20 20:36:06 legendre Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -62,7 +62,7 @@ class test1_20_Mutator : public TestMutator {
   BPatch *bpatch;
 
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_20_factory() {
   return new test1_20_Mutator();
@@ -73,7 +73,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_20_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_20_Mutator::preExecution() {
+test_results_t test1_20_Mutator::executeTest() {
     BPatch_Vector<BPatch_function *> bpfv;
     char *fn = "test1_20_call1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
@@ -171,7 +171,7 @@ test_results_t test1_20_Mutator::preExecution() {
     }
 
     return PASSED;
-} // test1_20_Mutator::preExecution()
+} // test1_20_Mutator::executeTest()
 
 // External Interface
 // extern "C" TEST_DLL_EXPORT int test1_20_mutatorMAIN(ParameterDict &param)

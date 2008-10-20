@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_32.C,v 1.1 2007/09/24 16:38:01 cooksey Exp $
+// $Id: test1_32.C,v 1.2 2008/10/20 20:36:19 legendre Exp $
 /*
  * #Name: test1_32
  * #Desc: Recursive Base Tramp
@@ -57,7 +57,7 @@
 
 #include "TestMutator.h"
 class test1_32_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_32_factory() {
   return new test1_32_Mutator();
@@ -66,7 +66,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_32_factory() {
 //
 // Start Test Case #32 - (recursive base tramp)
 //
-test_results_t test1_32_Mutator::preExecution() {
+test_results_t test1_32_Mutator::executeTest() {
   const char * func32_2_name = "test1_32_func2";
   const char * func32_3_name = "test1_32_func3";
   const char * func32_4_name = "test1_32_func4";

@@ -23,12 +23,8 @@ typedef enum {
 
 class TestOutputDriver {
 public:
-  // FIXME Should the attributes parameter be a reference or a pointer?
-  // Heck, can I get everything I need from the RunGroup and TestInfo
-  // structures?  Then I wouldn't need to create a map here.  Maybe a
-  // convenience method to transform those structures into a map, because
-  // I'm pretty sure a map will be easier to produce output from.
-  TESTLIB_DLL_EXPORT static std::map<std::string, std::string> *getAttributesMap(TestInfo *test, RunGroup *group);
+   TESTLIB_DLL_EXPORT static bool TestOutputDriver::getAttributesMap(TestInfo *test, 
+                        RunGroup *group, std::map<std::string, std::string> &attrs);
 
   // Informs the output driver that any log messages or results should be
   // associated with the test passed in through the attributes parameter

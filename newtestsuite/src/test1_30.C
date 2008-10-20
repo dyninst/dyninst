@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_30.C,v 1.2 2008/05/08 20:54:17 cooksey Exp $
+// $Id: test1_30.C,v 1.3 2008/10/20 20:36:17 legendre Exp $
 /*
  * #Name: test1_30
  * #Desc: Line Information
@@ -62,7 +62,7 @@ using namespace std;
 
 #include "TestMutator.h"
 class test1_30_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_30_factory() {
   return new test1_30_Mutator();
@@ -73,7 +73,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_30_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_30_Mutator::preExecution() {
+test_results_t test1_30_Mutator::executeTest() {
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \

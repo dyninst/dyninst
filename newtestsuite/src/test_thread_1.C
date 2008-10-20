@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_thread_1.C,v 1.2 2008/05/08 20:55:30 cooksey Exp $
+// $Id: test_thread_1.C,v 1.3 2008/10/20 20:37:43 legendre Exp $
 /*
  * #Name: test12_1
  * #Desc: rtlib spinlocks
@@ -60,7 +60,7 @@
 class test_thread_1_Mutator : public TestMutator {
 public:
   virtual bool hasCustomExecutionPath() { return true; }
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_thread_1_factory() {
   return new test_thread_1_Mutator();
@@ -74,7 +74,6 @@ static int mutateeXLC;
 extern BPatch *bpatch;
 static int debugPrint;
 
-static BPatch_thread *appThread;
 static const char *expected_fnames[] = {"call1_1","call1_2","call1_3","call1_4"};
 static int test1done = 0;
 static int test1err = 0;
@@ -83,7 +82,7 @@ static BPatch_Vector<void *> test1handles;
 static BPatch_Vector<BPatch_point *> dyncalls;
 
 // static int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
-test_results_t test_thread_1_Mutator::execute() {
+test_results_t test_thread_1_Mutator::executeTest() {
   //  Just continue the process and wait for the (mutatee side) test to complete
   BPatch_process *proc = appThread->getProcess();
   int childpid = proc->getPid();

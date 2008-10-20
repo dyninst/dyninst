@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_8.C,v 1.1 2007/09/24 16:39:30 cooksey Exp $
+// $Id: test2_8.C,v 1.2 2008/10/20 20:36:47 legendre Exp $
 /*
  * #Name: test2_8
  * #Desc: BPatch_breakPointExpr
@@ -64,7 +64,7 @@ class test2_8_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_8_factory() {
   return new test2_8_Mutator();
@@ -129,7 +129,7 @@ int test2_8_Mutator::test8b()
   }
 }
 
-test_results_t test2_8_Mutator::execute() {
+test_results_t test2_8_Mutator::executeTest() {
    // Insert a breakpoint into the mutatee
    if ( test8a() < 0 ) {
      // I need to terminate the mutatee here

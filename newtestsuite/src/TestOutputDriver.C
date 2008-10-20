@@ -64,15 +64,10 @@ static void parseLabel3(std::map<std::string, std::string> *attrs,
   }
 }
 
-TESTLIB_DLL_EXPORT std::map<std::string, std::string> *TestOutputDriver::getAttributesMap(TestInfo *test, RunGroup *group) {
+TESTLIB_DLL_EXPORT bool TestOutputDriver::getAttributesMap(TestInfo *test, 
+                RunGroup *group, std::map<std::string, std::string> &attrs) {
   if ((NULL == test) || (NULL == test->label)) {
-    return NULL;
-  }
-  std::map<std::string, std::string> *retval =
-      new std::map<std::string, std::string>();
-  if (NULL == retval) {
-    // Out of memory error
-    return retval;
+    return false;
   }
 
   // Fill in attributes corresponding to the TestInfo object
@@ -81,9 +76,8 @@ TESTLIB_DLL_EXPORT std::map<std::string, std::string> *TestOutputDriver::getAttr
   // interested in.  I think I'd be better off parsing the label field, so we
   // don't need to change TestInfo whenever build parameters change.
   // What's a good way to parse a string using C++?
-  parseLabel(retval, const_cast<char *>(test->label));
-
-  return retval;
+  parseLabel(&attrs, const_cast<char *>(test->label));
+  return true;
 }
 
 TESTLIB_DLL_EXPORT void TestOutputDriver::getMutateeArgs(std::vector<std::string> &args) {

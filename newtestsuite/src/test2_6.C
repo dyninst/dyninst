@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_6.C,v 1.2 2008/05/08 20:54:26 cooksey Exp $
+// $Id: test2_6.C,v 1.3 2008/10/20 20:36:45 legendre Exp $
 /*
  * #Name: test2_6
  * #Desc: Load a dynamically linked library from the mutatee
@@ -62,7 +62,7 @@ class test2_6_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_6_factory() {
   return new test2_6_Mutator();
@@ -75,7 +75,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_6_factory() {
 //	library via getModules.
 //
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
-test_results_t test2_6_Mutator::execute() {
+test_results_t test2_6_Mutator::executeTest() {
     appThread->continueExecution();
     waitUntilStopped(bpatch, appThread, 6, "load a dynamically linked library");
     bool found = false;

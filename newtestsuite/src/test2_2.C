@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_2.C,v 1.1 2007/09/24 16:39:21 cooksey Exp $
+// $Id: test2_2.C,v 1.2 2008/10/20 20:36:41 legendre Exp $
 /*
  * #Name: test2_2
  * #Desc: Try to run a createProcess on a file that is not an executable file
@@ -62,7 +62,7 @@ class test2_2_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_2_factory() {
   return new test2_2_Mutator();
@@ -75,7 +75,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_2_factory() {
 //	(via mutatorMAIN).
 //
 // static int mutatorTest(BPatch *bpatch, bool useAttach)
-test_results_t test2_2_Mutator::execute() {
+test_results_t test2_2_Mutator::executeTest() {
 //     if (useAttach) {
 // 	logerror("Skipping test #2 (try to execute a file that is not a valid program)\n");
 // 	logerror("    not relevant with -attach option\n");

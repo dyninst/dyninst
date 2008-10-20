@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_7.C,v 1.1 2007/09/24 16:38:54 cooksey Exp $
+// $Id: test1_7.C,v 1.2 2008/10/20 20:36:32 legendre Exp $
 /*
  * #Name: test1_7
  * #Desc: Mutator Side - Relational Operators
@@ -57,7 +57,7 @@
 #include "TestMutator.h"
 
 class test1_7_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_7_factory() {
   return new test1_7_Mutator();
@@ -145,7 +145,7 @@ static int genVRelTest(BPatch_image *appImage,
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_7_Mutator::preExecution() {
+test_results_t test1_7_Mutator::executeTest() {
     // Find the entry point to the procedure "func7_2"
   const char *funcName = "test1_7_func2";
    BPatch_Vector<BPatch_function *> found_funcs;

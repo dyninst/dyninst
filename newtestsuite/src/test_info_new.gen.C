@@ -4,39 +4,6 @@
  
 #include "test_info_new.h"
 
-// The constructor for TestInfo
-TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
-                   const char *isoname, const char *ilabel)
-  : index(i), name(iname), mutator_name(imrname), soname(isoname),
-    label(ilabel), mutator(NULL), disabled(false), enabled(false)
-{
-}
-
-// Constructor for RunGroup, with an initial test specified
-RunGroup::RunGroup(char *mutatee_name, start_state_t state_init,
-                   create_mode_t attach_init, bool ex, TestInfo *test_init)
-  : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
-    customExecution(ex)
-{
-  tests.push_back(test_init);
-}
-
-// Constructor for RunGroup with no initial test specified
-RunGroup::RunGroup(char *mutatee_name, start_state_t state_init,
-                   create_mode_t attach_init, bool ex)
-  : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
-    customExecution(ex)
-{
-}
-
-// RunGroup's destructor clears its vector of tests
-RunGroup::~RunGroup() {
-//  while (tests.size() > 0) {
-//    delete tests[0];
-//    tests.erase(tests.begin());
-//  }
-}
-
 // We define one global variable to store the list of run groups that we'll run
 // std::vector<RunGroup *> tests;
 

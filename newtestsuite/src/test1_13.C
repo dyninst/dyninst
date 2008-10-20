@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_13.C,v 1.1 2007/09/24 16:36:33 cooksey Exp $
+// $Id: test1_13.C,v 1.2 2008/10/20 20:35:58 legendre Exp $
 /*
  * #Name: test1_13
  * #Desc: Mutator Side - paramExpr,retExpr,nullExpr
@@ -59,7 +59,7 @@
 #include "TestMutator.h"
 
 class test1_13_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_13_factory() {
   return new test1_13_Mutator();
@@ -70,7 +70,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_13_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_13_Mutator::preExecution() {
+test_results_t test1_13_Mutator::executeTest() {
     // Find the entry point to the procedure "func13_1"
   const char *funcName = "test1_13_func1";
   BPatch_Vector<BPatch_function *> found_funcs;
@@ -172,4 +172,4 @@ test_results_t test1_13_Mutator::preExecution() {
     appThread->insertSnippet(call13_3Expr, *point13_2, BPatch_callAfter, BPatch_lastSnippet);
 
     return PASSED;
-} // test1_13_Mutator::preExecution()
+} // test1_13_Mutator::executeTest()

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_21.C,v 1.2 2008/06/18 19:58:17 carl Exp $
+// $Id: test1_21.C,v 1.3 2008/10/20 20:36:07 legendre Exp $
 /*
  * #Name: test1_21
  * #Desc: findFunction in module
@@ -75,7 +75,7 @@ class test1_21_Mutator : public TestMutator {
 public:
   test1_21_Mutator();
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
   test_results_t mutatorTest21();
 };
 test1_21_Mutator::test1_21_Mutator() : libNameAroot("libtestA"),
@@ -202,7 +202,7 @@ test_results_t test1_21_Mutator::mutatorTest21() {
 // Wrapper to call readyTest
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_21_Mutator::preExecution() {
+test_results_t test1_21_Mutator::executeTest() {
    int pointer_size = 0;
 #if defined(arch_x86_64)
    pointer_size = pointerSize(appImage);

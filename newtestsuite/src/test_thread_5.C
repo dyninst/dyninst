@@ -74,7 +74,7 @@ protected:
 public:
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_thread_5_factory() {
   return new test_thread_5_Mutator();
@@ -257,7 +257,7 @@ do { \
 } while (0)
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test_thread_5_Mutator::execute() {
+test_results_t test_thread_5_Mutator::executeTest() {
   test8done = false;
   test8err = false;
 

@@ -66,7 +66,7 @@ public:
   test_thread_8_Mutator();
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_thread_8_factory() {
   return new test_thread_8_Mutator();
@@ -390,7 +390,7 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
 //    return 0;
 }
 
-test_results_t test_thread_8_Mutator::execute() {
+test_results_t test_thread_8_Mutator::executeTest() {
   memset(args, 0, sizeof (args));
 
    if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, newthr))

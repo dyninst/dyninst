@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_9.C,v 1.2 2008/05/08 20:54:28 cooksey Exp $
+// $Id: test2_9.C,v 1.3 2008/10/20 20:36:48 legendre Exp $
 /*
  * #Name: test2_9
  * #Desc: dump core but do not terminate
@@ -59,7 +59,7 @@
 #include "TestMutator.h"
 class test2_9_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_9_factory() {
   return new test2_9_Mutator();
@@ -72,7 +72,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_9_factory() {
 //	"mycore" in the current directory.
 //      
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image * /*appImage*/)
-test_results_t test2_9_Mutator::preExecution() {
+test_results_t test2_9_Mutator::executeTest() {
     // dump core, but do not terminate.
     // this doesn't seem to do anything - jkh 7/12/97
     if (access("mycore", F_OK) == 0) {

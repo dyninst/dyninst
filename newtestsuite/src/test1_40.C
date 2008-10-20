@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_40.C,v 1.3 2008/10/03 21:12:44 legendre Exp $
+// $Id: test1_40.C,v 1.4 2008/10/20 20:36:28 legendre Exp $
 /*
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
@@ -61,7 +61,7 @@
 #include "TestMutator.h"
 class test1_40_Mutator : public TestMutator {
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_40_factory() {
   return new test1_40_Mutator();
@@ -124,7 +124,7 @@ static int setVar40(const char *vname, void *value, BPatch_image *appImage)
 
 // static int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 // {
-test_results_t test1_40_Mutator::preExecution() {
+test_results_t test1_40_Mutator::executeTest() {
    const char *monitorFuncName = "test1_40_monitorFunc";
    const char *callSiteAddrVarName = "test1_40_callsite5_addr";
 

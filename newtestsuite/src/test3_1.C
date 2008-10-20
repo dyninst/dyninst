@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_1.C,v 1.3 2008/06/18 19:58:19 carl Exp $
+// $Id: test3_1.C,v 1.4 2008/10/20 20:36:49 legendre Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -73,7 +73,7 @@ public:
   test3_1_Mutator();
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test3_1_factory() {
   return new test3_1_Mutator();
@@ -98,7 +98,7 @@ test3_1_Mutator::test3_1_Mutator() {
 //
 // static int mutatorTest(char *pathname, BPatch *bpatch)
 // {
-test_results_t test3_1_Mutator::execute() {
+test_results_t test3_1_Mutator::executeTest() {
     unsigned int n=0;
     const char *child_argv[5];
     child_argv[n++] = pathname;

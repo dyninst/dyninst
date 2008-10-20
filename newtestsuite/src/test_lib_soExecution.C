@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.3 2008/06/18 19:58:50 carl Exp $
+// $Id: test_lib_soExecution.C,v 1.4 2008/10/20 20:37:27 legendre Exp $
 
 #include <sstream>
 
@@ -78,14 +78,12 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
   return retval;
 }
 
-bool getMutatorsForRunGroup(RunGroup *group,
-			    std::vector<TestInfo *> &group_tests)
+int setupMutatorsForRunGroup(RunGroup *group)
 {
+  int tests_found = 0;
   for (int i = 0; i < group->tests.size(); i++) {
-    if (false == group->tests[i]->enabled) {
-      // Skip disabled tests
-      continue;
-    }
+    if (group->tests[i]->disabled)
+       continue;
 
     char *fullSoPath;
 #if defined(os_aix)
@@ -100,14 +98,14 @@ bool getMutatorsForRunGroup(RunGroup *group,
     if (!fullSoPath) {
       fprintf(stderr, "Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n",
 	      soname);
-      return true; // Error
+      return -1; // Error
     }
     void *handle = dlopen(fullSoPath, RTLD_NOW);
     ::free(fullSoPath);
     if (!handle) {
       fprintf(stderr, "Error opening lib: %s\n", group->tests[i]->soname);
       fprintf(stderr, "%s\n", dlerror());
-      return true; // Error
+      return -1; //Error
     }
 
     typedef TestMutator *(*mutator_factory_t)();
@@ -121,7 +119,7 @@ bool getMutatorsForRunGroup(RunGroup *group,
 	      soname);
       fprintf(stderr, "%s\n", dlerror());
       dlclose(handle);
-      return true; // Error
+      return -1; //Error
     }
 
     TestMutator *mutator = factory();
@@ -130,106 +128,9 @@ bool getMutatorsForRunGroup(RunGroup *group,
 	      test->name);
     } else {
       test->mutator = mutator;
-      group_tests.push_back(test);
+      tests_found++;
     }
   }
-  return false; // No error
-} // getMutatorsForRunGroup
+  return tests_found; // No error
+} // setupMutatorsForRunGroup
 
-int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
-{
-   //printf("Loading test: %s\n", testLib.soname);
-   char *fullSoPath;
-#if defined(os_aix)
-   fullSoPath = searchPath(getenv("LIBPATH"), testLib.soname);
-#else
-   fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), testLib.soname);
-#endif
-   if (!fullSoPath) {
-      printf("Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n",
-             testLib.soname);
-      return -1;
-   }
-   void *handle = dlopen(fullSoPath, RTLD_NOW);
-   ::free(fullSoPath);
-
-   if (!handle)
-   {
-      printf("Error opening lib: %s\n", testLib.soname);
-      printf("%s\n", dlerror());
-      return -1;
-   }
-
-   // Parse parameters here, to keep tests simple
-//    bool useAttach = param["useAttach"]->getInt();
-//    BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
-//    BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-   // Read the program's image and get an associated image object
-//    BPatch_image *appImage = appThread->getImage();
-
-
-//    typedef int (*mutatorM_t)(BPatch_thread *, BPatch_image *, int);
-   typedef int (*mutatorM_t)(ParameterDict &);
-
-   typedef TestMutator *(*mutator_factory_t)();
-
-   char mutator_name[256];
-//    snprintf(mutator_name, 256, "%s_mutatorTest", testLib.name); 
-//    snprintf(mutator_name, 256, "%s_mutatorMAIN", testLib.name);
-//    mutatorM_t mutTest = (mutatorM_t) dlsym(handle, mutator_name);
-//    if ( !mutTest )
-//    {
-//       printf("Error finding function: mutatorMAIN, in %s\n", testLib.soname);
-//       printf("%s\n", dlerror());
-//       dlclose(handle);
-//       return -1;
-//    }
-
-//    int mutateeFortran = isMutateeFortran(appImage);
-
-//    if ( useAttach ) {
-//      if ( ! signalAttached(appThread, appImage) )
-//        return -1;
-//    }
-
-   snprintf(mutator_name, 256, "%s_factory", testLib.name);
-   mutator_factory_t factory = (mutator_factory_t) dlsym(handle, mutator_name);
-   if (NULL == factory) {
-     printf("Error finding function: %s, in %s\n", mutator_name,
-	    testLib.soname);
-     printf("%s\n", dlerror());
-     dlclose(handle);
-     return -1;
-   }
-     
-   // Call function
-//    int result = mutTest(appThread, appImage, mutateeFortran);
-//    int result = mutTest(param);
-   TestMutator *mutator = factory();
-   test_results_t result = mutator->setup(param);
-   if (PASSED == result) {
-     if (mutator->hasCustomExecutionPath()) {
-       result = mutator->execute();
-     } else {
-       result = mutator->preExecution();
-       // Do something with inExecution?
-       if (PASSED == result) {
-	 result = mutator->postExecution();
-       }
-       if (PASSED == result) {
-	 result = mutator->teardown();
-       }
-     }
-   }
-
-   dlclose(handle);
-
-   //printf("Ran test: %s\n", testLib.soname);
-   int retval;
-   if (FAILED == result) {
-     retval = -1;
-   } else {
-     retval = 0;
-   }
-   return retval;
-}

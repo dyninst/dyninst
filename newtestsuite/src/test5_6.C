@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_6.C,v 1.1 2007/09/24 16:40:09 cooksey Exp $
+// $Id: test5_6.C,v 1.2 2008/10/20 20:37:05 legendre Exp $
 /*
  * #Name: test5_6
  * #Desc: Exception
@@ -58,7 +58,7 @@
 #include "TestMutator.h"
 class test5_6_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test5_6_factory() {
   return new test5_6_Mutator();
@@ -68,7 +68,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_6_factory() {
 // Start Test Case #6 - (exception)
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test5_6_Mutator::preExecution() {
+test_results_t test5_6_Mutator::executeTest() {
 #if defined(os_linux) && defined(arch_x86)
 
   BPatch_Vector<BPatch_function *> bpfv;

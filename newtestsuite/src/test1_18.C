@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_18.C,v 1.1 2007/09/24 16:36:59 cooksey Exp $
+// $Id: test1_18.C,v 1.2 2008/10/20 20:36:03 legendre Exp $
 /*
  * #Name: test1_18
  * #Desc: Mutator Side - Read/Write a variable in the mutatee
@@ -59,7 +59,7 @@
 #include "TestMutator.h"
 
 class test1_18_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_18_factory() {
   return new test1_18_Mutator();
@@ -70,7 +70,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_18_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_18_Mutator::preExecution() {
+test_results_t test1_18_Mutator::executeTest() {
   const char *funcName = "test1_18_func1";
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) {
@@ -121,4 +121,4 @@ test_results_t test1_18_Mutator::preExecution() {
     expr18_1->writeValue(&n,true); //ccw 31 jul 2002
 
     return PASSED;
-} // test1_18_Mutator::preExecution()
+} // test1_18_Mutator::executeTest()

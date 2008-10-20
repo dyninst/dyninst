@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_28.C,v 1.1 2007/09/24 16:37:42 cooksey Exp $
+// $Id: test1_28.C,v 1.2 2008/10/20 20:36:14 legendre Exp $
 /*
  * #Name: test1_28
  * #Desc: User Defined Fields
@@ -63,7 +63,7 @@ class test1_28_Mutator : public TestMutator {
   BPatch *bpatch;
 
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_28_factory() {
   return new test1_28_Mutator();
@@ -74,7 +74,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_28_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_28_Mutator::preExecution() {
+test_results_t test1_28_Mutator::executeTest() {
     int i;
 
     if (isMutateeFortran(appImage)) {

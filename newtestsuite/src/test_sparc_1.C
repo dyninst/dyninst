@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_sparc_1.C,v 1.1 2008/05/08 20:55:20 cooksey Exp $
+// $Id: test_sparc_1.C,v 1.2 2008/10/20 20:37:36 legendre Exp $
 /*
  * #Name: test10_1
  * #Desc: ?
@@ -58,7 +58,7 @@
 #include "TestMutator.h"
 class test_sparc_1_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_sparc_1_factory() {
   return new test_sparc_1_Mutator();
@@ -67,7 +67,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test_sparc_1_factory() {
 //
 // Start Test Case #1 - ()
 //
-test_results_t test_sparc_1_Mutator::preExecution() {
+test_results_t test_sparc_1_Mutator::executeTest() {
   if (instrumentToCallZeroArg(appThread, appImage,
 			      "test_sparc_1_func1", "test_sparc_1_call1",
 			      1, "test_sparc_1") != 0) {

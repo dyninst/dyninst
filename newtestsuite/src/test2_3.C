@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_3.C,v 1.1 2007/09/24 16:39:22 cooksey Exp $
+// $Id: test2_3.C,v 1.2 2008/10/20 20:36:42 legendre Exp $
 /*
  * #Name: test2_3
  * #Desc: Attatch to an invalid pid
@@ -62,7 +62,7 @@ class test2_3_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_3_factory() {
   return new test2_3_Mutator();
@@ -73,7 +73,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_3_factory() {
 //	Try to attach to an invalid pid number (65539).
 //
 // static int mutatorTest(BPatch *bpatch, bool useAttach) 
-test_results_t test2_3_Mutator::execute() {
+test_results_t test2_3_Mutator::executeTest() {
     // attach to an an invalid pid
     clearError();
     BPatch_thread *ret = bpatch->attachProcess(NULL, 65539);

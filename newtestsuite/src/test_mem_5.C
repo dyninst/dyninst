@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_mem_5.C,v 1.1 2007/09/24 16:41:11 cooksey Exp $
+// $Id: test_mem_5.C,v 1.2 2008/10/20 20:37:32 legendre Exp $
 /*
  * #Name: test6_5
  * #Desc: Instrumentation w/effective address snippet
@@ -59,7 +59,7 @@
 #include "TestMutator.h"
 class test_mem_5_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_mem_5_factory() {
   return new test_mem_5_Mutator();
@@ -67,7 +67,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test_mem_5_factory() {
 
 // Instrument all accesses with an effective address snippet
 // static int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
-test_results_t test_mem_5_Mutator::preExecution() {
+test_results_t test_mem_5_Mutator::executeTest() {
   int testnum = 5;
   const char* testdesc = "instrumentation w/effective address snippet";
 #if !defined(sparc_sun_solaris2_4) \

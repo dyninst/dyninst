@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_mem_1.C,v 1.1 2007/09/24 16:41:03 cooksey Exp $
+// $Id: test_mem_1.C,v 1.2 2008/10/20 20:37:28 legendre Exp $
 /*
  * #Name: test6_1
  * #Desc: Load Instrumentation
@@ -59,7 +59,7 @@
 #include "TestMutator.h"
 class test_mem_1_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_mem_1_factory() {
   return new test_mem_1_Mutator();
@@ -450,7 +450,7 @@ static void init_test_data()
 
 // Find and instrument loads with a simple function call snippet
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *bpimg)
-test_results_t test_mem_1_Mutator::preExecution() {
+test_results_t test_mem_1_Mutator::executeTest() {
   int testnum = 1;
   const char* testdesc = "load instrumentation";
 #if !defined(sparc_sun_solaris2_4) \

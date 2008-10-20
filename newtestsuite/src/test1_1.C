@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_1.C,v 1.2 2008/05/08 20:54:10 cooksey Exp $
+// $Id: test1_1.C,v 1.3 2008/10/20 20:35:54 legendre Exp $
 /*
  *
  * #Name: test1_1
@@ -59,7 +59,7 @@
 
 class test1_1_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution(); // override
+  virtual test_results_t executeTest(); // override
 };
 
 // Factory function.
@@ -70,7 +70,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_1_factory() {
 //
 // Start Test Case #1 - (zero arg function call)
 //
-test_results_t test1_1_Mutator::preExecution() {
+test_results_t test1_1_Mutator::executeTest() {
   const char *funcName = "test1_1_func1_1";
   const char* testName = "zero arg function call";
   int testNo = 1;
@@ -115,4 +115,4 @@ test_results_t test1_1_Mutator::preExecution() {
   appThread->insertSnippet(call1Expr, *point1_1);
   dprintf("Inserted snippet\n");
   return PASSED;
-} // test1_1_Mutator::preExecution()
+} // test1_1_Mutator::executeTest()

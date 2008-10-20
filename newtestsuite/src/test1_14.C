@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_14.C,v 1.1 2007/09/24 16:36:38 cooksey Exp $
+// $Id: test1_14.C,v 1.2 2008/10/20 20:35:59 legendre Exp $
 /*
  * #Name: test1_14
  * #Desc: Mutator Side - Replace Function Call
@@ -57,7 +57,7 @@
 #include "TestMutator.h"
 
 class test1_14_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_14_factory() {
   return new test1_14_Mutator();
@@ -68,7 +68,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_14_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_14_Mutator::preExecution() {
+test_results_t test1_14_Mutator::executeTest() {
     if ( replaceFunctionCalls(appThread, appImage, "test1_14_func1",
 			      "test1_14_func2", "test1_14_call1", 
 			      14, "replace/remove function call", 1) < 0 ) {
@@ -81,7 +81,7 @@ test_results_t test1_14_Mutator::preExecution() {
     }
 
     return PASSED;
-} // test1_14_Mutator::preExecution()
+} // test1_14_Mutator::executeTest()
 
 // External Interface
 // extern "C" TEST_DLL_EXPORT int test1_14_mutatorMAIN(ParameterDict &param)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_8.C,v 1.2 2008/05/08 20:54:49 cooksey Exp $
+// $Id: test5_8.C,v 1.3 2008/10/20 20:37:07 legendre Exp $
 /*
  * #Name: test5_8
  * #Desc: Declaration
@@ -58,7 +58,7 @@
 #include "TestMutator.h"
 class test5_8_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test5_8_factory() {
   return new test5_8_Mutator();
@@ -67,7 +67,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_8_factory() {
 //
 // Start Test Case #8 - (declaration)
 //   
-test_results_t test5_8_Mutator::preExecution() {
+test_results_t test5_8_Mutator::executeTest() {
   // Find the exit point to the procedure "func_cpp"
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "decl_test::func_cpp";

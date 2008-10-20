@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_fork_7.C,v 1.2 2008/05/08 20:55:07 cooksey Exp $
+// $Id: test_fork_7.C,v 1.3 2008/10/20 20:37:18 legendre Exp $
 /*
  * #Name: test7_3
  * #Desc: Delete snippet in both parent and child
@@ -63,7 +63,7 @@ private:
 public:
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_fork_7_factory() {
   return new test_fork_7_Mutator();
@@ -266,7 +266,7 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     return passedTest;
 }
 
-test_results_t test_fork_7_Mutator::execute() {
+test_results_t test_fork_7_Mutator::executeTest() {
   // Initialize global variables
   parentDone = false;
   childDone = false;

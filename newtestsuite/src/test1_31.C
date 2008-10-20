@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_31.C,v 1.1 2007/09/24 16:37:56 cooksey Exp $
+// $Id: test1_31.C,v 1.2 2008/10/20 20:36:18 legendre Exp $
 /*
  * #Name: test1_31
  * #Desc: Mutator Side - Non-Recursive Base Tramp
@@ -57,7 +57,7 @@
 
 #include "TestMutator.h"
 class test1_31_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_31_factory() {
   return new test1_31_Mutator();
@@ -68,7 +68,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_31_factory() {
 //
 // static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 // {
-test_results_t test1_31_Mutator::preExecution() {
+test_results_t test1_31_Mutator::executeTest() {
    const char * func31_2_name = "test1_31_func2";
    const char * func31_3_name = "test1_31_func3";
    const char * func31_4_name = "test1_31_func4";

@@ -165,216 +165,198 @@ void setLabel(unsigned int label_ndx, char *label) {
 
 int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
-    unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
-    unsigned int i, j;
+   unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
+   unsigned int i, j;
 #if !defined(i386_unknown_nt4_0)
-    int pfd;
+   int pfd;
 #endif
-    int useAttach = FALSE;
-    char *logfilename = NULL;
-    int allTestsPassed = TRUE;
-    int retval;
-    char *mutatee_name = NULL;
-    char *resumelog_name = "mutatee_resumelog";
-    unsigned int label_count = 0;
-    int print_labels = FALSE;
+   int useAttach = FALSE;
+   char *logfilename = NULL;
+   int allTestsPassed = TRUE;
+   int retval;
+   char *mutatee_name = NULL;
+   unsigned int label_count = 0;
+   int print_labels = FALSE;
 
-    gargc = argc;
-    gargv = argv;
+   gargc = argc;
+   gargv = argv;
 
-    initOutputDriver();
+   initOutputDriver();
 
-    /* Extract the name of the mutatee binary from argv[0] */
-    /* Find the last '/' in argv[0]; we want everything after that */
-    mutatee_name = strrchr(argv[0], '/');
-    if (NULL == mutatee_name) {
+   /* Extract the name of the mutatee binary from argv[0] */
+   /* Find the last '/' in argv[0]; we want everything after that */
+   mutatee_name = strrchr(argv[0], '/');
+   if (!mutatee_name) {
       /* argv[0] contains just the filename for the executable */
       mutatee_name = argv[0];
       setExecutableName(argv[0]);
-    } else {
+   } else {
       mutatee_name += 1; /* Skip past the '/' */
       setExecutableName(mutatee_name);
-    }
+   }
 
-    for (j=0; j < MAX_TEST; j++) {
+   for (j=0; j < MAX_TEST; j++) {
       runTest[j] = FALSE;
-    }
+   }
 
-    /* Parse command line arguments */
-    for (i=1; i < argc; i++) {
-        if (!strcmp(argv[i], "-verbose")) {
-            debugPrint = 1;
-	} else if (!strcmp(argv[i], "-log")) {
-	  /* Read the log file name so we can set it up later */
-	  if ((i + 1) >= argc) {
-	    output->log(STDERR, "Missing log file name\n");
-	    exit(-1);
-	  }
-	  i += 1;
-	  logfilename = argv[i];
-        } else if (!strcmp(argv[i], "-attach")) {
-            useAttach = TRUE;
-#ifndef i386_unknown_nt4_0
-	    if (++i >= argc) {
-		output->log(STDERR, "attach usage\n");
-		output->log(STDERR, "%s\n", USAGE);
-		exit(-1);
-	    }
-	    pfd = atoi(argv[i]);
+   /* Parse command line arguments */
+   for (i=1; i < argc; i++) {
+      if (!strcmp(argv[i], "-verbose")) {
+         debugPrint = 1;
+      } else if (!strcmp(argv[i], "-log")) {
+         /* Read the log file name so we can set it up later */
+         if ((i + 1) >= argc) {
+            output->log(STDERR, "Missing log file name\n");
+            exit(-1);
+         }
+         i += 1;
+         logfilename = argv[i];
+      } else if (!strcmp(argv[i], "-attach")) {
+         useAttach = TRUE;
+#if !defined(os_windows)
+         if (++i >= argc) {
+            output->log(STDERR, "attach usage\n");
+            output->log(STDERR, "%s\n", USAGE);
+            exit(-1);
+         }
+         pfd = atoi(argv[i]);
 #endif
-        } else if (!strcmp(argv[i], "-run")) {
-	  char *tests;
-	  char *name;
+      } else if (!strcmp(argv[i], "-run")) {
+         char *tests;
+         char *name;
 
-	  if (i + 1 >= argc) {
-	    output->log(STDERR, "-run must be followed by a test name\n");
-	    exit(-1);
-	  }
-	  i += 1;
-	  tests = strdup(argv[i]);
-	  /* FIXME I think strtok is frowned on */
-	  name = strtok(tests, ",");
-	  setRunTest(name); /* Enables the named test to run */
-	  while (name != NULL) {
-	    name = strtok(NULL, ",");
-	    if (name != NULL) {
-	      setRunTest(name);
-	    }
-	  }
-	  free(tests);
-	} else if (!strcmp(argv[i], "-label")) {
-	  if (i + 1 >= argc) {
-	    output->log(STDERR, "-label must be followed by a label string\n");
-	    exit(-1);
-	  }
-	  i += 1;
-	  setLabel(label_count, argv[i]);
-	  label_count += 1;
-	} else if (!strcmp(argv[i], "-print-labels")) {
-	  print_labels = TRUE;
-	} else if (!strcmp(argv[i], "-humanlog")) {
-	  if (i + 1 >= argc) {
-	    output->log(STDERR, "-humanlog must be followed by a file name or '-'\n");
-	    exit(-1);
-	  }
-	  i += 1;
-	  setHumanLog(argv[i]);
-	} else if (strcmp(argv[i], "-pidfile") == 0) {
-	  if (i + 1 >= argc) {
-	    output->log(STDERR, "-pidfile must be followed by a file name\n");
-	    exit(-1);
-	  }
-	  i += 1;
-	  setPIDFilename(argv[i]);
-	} else if (!strcmp(argv[i], "-runall")) {
-	  for (j = 0; j < MAX_TEST; j++) {
-	    runTest[j] = TRUE;
-	  }
-	} else if (!strcmp(argv[i], "-fast")) {
-	  fastAndLoose = 1;
-	} else if (!strcmp(argv[i], "-dboutput")) {
-	  /* Set up database output */
-	  initDatabaseOutputDriver();
-        } else {
-	  /* Let's just ignore unrecognized parameters.  They might be
-	   * important to a specific test.
-	   */
-        }
-    }
+         if (i + 1 >= argc) {
+            output->log(STDERR, "-run must be followed by a test name\n");
+            exit(-1);
+         }
+         i += 1;
+         tests = strdup(argv[i]);
+         /* FIXME I think strtok is frowned on */
+         name = strtok(tests, ",");
+         setRunTest(name); /* Enables the named test to run */
+         while (name != NULL) {
+            name = strtok(NULL, ",");
+            if (name != NULL) {
+               setRunTest(name);
+            }
+         }
+         free(tests);
+      } else if (!strcmp(argv[i], "-label")) {
+         if (i + 1 >= argc) {
+            output->log(STDERR, "-label must be followed by a label string\n");
+            exit(-1);
+         }
+         i += 1;
+         setLabel(label_count, argv[i]);
+         label_count += 1;
+      } else if (!strcmp(argv[i], "-print-labels")) {
+         print_labels = TRUE;
+      } else if (!strcmp(argv[i], "-humanlog")) {
+         if (i + 1 >= argc) {
+            output->log(STDERR, "-humanlog must be followed by a file name or '-'\n");
+            exit(-1);
+         }
+         i += 1;
+         setHumanLog(argv[i]);
+      } else if (strcmp(argv[i], "-pidfile") == 0) {
+         if (i + 1 >= argc) {
+            output->log(STDERR, "-pidfile must be followed by a file name\n");
+            exit(-1);
+         }
+         i += 1;
+         setPIDFilename(argv[i]);
+      } else if (!strcmp(argv[i], "-runall")) {
+         for (j = 0; j < MAX_TEST; j++) {
+            runTest[j] = TRUE;
+         }
+      } else if (!strcmp(argv[i], "-dboutput")) {
+         /* Set up database output */
+         initDatabaseOutputDriver();
+      } else {
+         /* Let's just ignore unrecognized parameters.  They might be
+          * important to a specific test.
+          */
+      }
+   }
 
-    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+   if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
       /* Set up the log file */
       redirectStream(LOGINFO, logfilename);
       redirectStream(LOGERR, logfilename);
       outlog = fopen(logfilename, "a");
       if (NULL == outlog) {
-	output->log(STDERR, "Error opening log file %s\n", logfilename);
-	exit(-1);
+         output->log(STDERR, "Error opening log file %s\n", logfilename);
+         exit(-1);
       }
       errlog = outlog;
-    } else {
+   } else {
       outlog = stdout;
       errlog = stderr;
-    }
+   }
 
-    if ((argc==1) || debugPrint)
-        logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
-		  mutateeCplusplus ? "C++" : "C", Builder_id);
-    if (argc==1) exit(0);
+   if ((argc==1) || debugPrint)
+      logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
+                mutateeCplusplus ? "C++" : "C", Builder_id);
+   if (argc==1) exit(0);
 
-    /* see if we should wait for the attach */
-    if (useAttach) {
+   /* see if we should wait for the attach */
+   if (useAttach) {
 #ifndef i386_unknown_nt4_0
-	char ch = 'T';
-	if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
-	    output->log(STDERR, "*ERROR*: Writing to pipe\n");
-	    exit(-1);
-	}
-	close(pfd);
+      char ch = 'T';
+      if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
+         output->log(STDERR, "*ERROR*: Writing to pipe\n");
+         exit(-1);
+      }
+      close(pfd);
 #endif
       setUseAttach(TRUE);
       logstatus("Waiting for mutator to attach...\n");
       flushOutputLog();
       while (!checkIfAttached()) {
-	/* Do nothing */
+         /* Do nothing */
       }
       fflush(stderr);
       logstatus("Mutator attached.  Mutatee continuing.\n");
-    } else {
+   } else {
       setUseAttach(FALSE);
-    }
+   }
 
-    /* Run the tests and keep track of return values in case of test failure */
-    /* TODO Fix this so that it prints out human log messages in the correct
-     * circumstances.  Decide policy for printing out human log messages in
-     * the mutatee.  I think I want to print from the mutatee for group tests
-     * and from the mutator for non-group tests.
-     * TODO Add a group test flag to the boilerplate?  Or something like that?
-     */
-    for (i = 0; i < MAX_TEST; i++) {
+   /* 
+    * Run the tests and keep track of return values in case of test failure
+    */
+   for (i = 0; i < MAX_TEST; i++) {
       if (runTest[i]) {
-	updateResumeLog(resumelog_name, mutatee_funcs[i].testname);
-	if (print_labels && (mutatee_funcs[i].testlabel != NULL)) {
-	  logstatus("%s\n", mutatee_funcs[i].testlabel);
-	}
-	output->setTestName(mutatee_funcs[i].testname);
-	mutatee_funcs[i].func();
-	updateResumeLogCompleted(resumelog_name);
-	/* TODO Do I need to print out a success message here for groupable
-	 * tests that pass?
-	 */
-	if (passedTest[i] && groupable_mutatee) {
-	  /* FIXME This will also print that skipped tests passed.  But I
-	   * shouldn't be running skipped tests in the first place, so it
-	   * should be okay.
-	   */
-	  output->logResult(PASSED);
-	}
-	if (!passedTest[i]) {
-	  if (groupable_mutatee) {
-	    /* Only print test failure messages from the mutatee for group
-	     * mutatees */
-	    output->logResult(FAILED);
-	  }
-	  allTestsPassed = FALSE;
-	}
+
+         log_testrun(mutatee_funcs[i].testname);
+
+         if (print_labels && (mutatee_funcs[i].testlabel != NULL)) {
+            logstatus("%s\n", mutatee_funcs[i].testlabel);
+         }
+
+         output->setTestName(mutatee_funcs[i].testname);
+         mutatee_funcs[i].func();
+         log_testresult(passedTest[i]);
+    
+         if (!passedTest[i]) {
+            allTestsPassed = FALSE;
+         }
       }
 
       flushOutputLog();
       flushErrorLog();
-    }
+   }
 
-    if (allTestsPassed) {
+   if (allTestsPassed) {
       logstatus("All tests passed.\n");
       retval = 0;
-    } else {
+   } else {
       retval = -1;
-    }
+   }
 
-    /* Clean up after ourselves */
-    if ((outlog != NULL) && (outlog != stdout)) {
+   /* Clean up after ourselves */
+   if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
-    }
+   }
 
-    return retval;
+   return retval;
 }

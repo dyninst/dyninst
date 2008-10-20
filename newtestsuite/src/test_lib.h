@@ -274,20 +274,19 @@ char *searchPath(const char *path, const char *file);
 TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);
 
 // TODO Implement this function for Windows   
-TESTLIB_DLL_EXPORT bool getMutatorsForRunGroup (RunGroup *group, std::vector<TestInfo *> &group_tests);
+TESTLIB_DLL_EXPORT int setupMutatorsForRunGroup (RunGroup *group);
 
-TESTLIB_DLL_EXPORT int loadLibRunTest(test_data_t &testLib, ParameterDict &param);
+TESTLIB_DLL_EXPORT bool shouldRunTest(RunGroup *group, TestInfo *test);
+TESTLIB_DLL_EXPORT void reportTestResult(RunGroup *group, TestInfo *test);
 
 // Function in MutateeStart.C
 TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach);
-
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestAll(BPatch *bpatch, char *pathname, bool useAttach, ProcessList &procList, char *logfilename);
 
 TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname, bool useAttach, char *logfilename, char *humanlogname);
 
 TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, ProcessList &procList, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
 
 // TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestSet(BPatch *bpatch, char *pathname, 
 // 				   test_data_t tests[],

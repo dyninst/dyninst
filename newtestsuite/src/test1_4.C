@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_4.C,v 1.1 2007/09/24 16:38:33 cooksey Exp $
+// $Id: test1_4.C,v 1.2 2008/10/20 20:36:27 legendre Exp $
 /*
  * #Name: test1_4
  * #Desc: Mutator Side (Sequence) Use the BPatch sequence operation to glue expressions together.  The test is constructed to verify the correct execution order.
@@ -57,7 +57,7 @@
 #include "TestMutator.h"
 
 class test1_4_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_4_factory() {
   return new test1_4_Mutator();
@@ -68,7 +68,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_4_factory() {
 //	Use the BPatch sequence operation to glue to expressions togehter.
 //	The test is constructed to verify the correct execution order.
 //
-test_results_t test1_4_Mutator::preExecution() {
+test_results_t test1_4_Mutator::executeTest() {
     // Find the entry point to the procedure "func4_1"
   const char *funcName = "test1_4_func1";
   BPatch_Vector<BPatch_function *> found_funcs;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_10.C,v 1.2 2008/05/08 20:54:25 cooksey Exp $
+// $Id: test2_10.C,v 1.3 2008/10/20 20:36:36 legendre Exp $
 /*
  * #Name: test2_10
  * #Desc: Dump image
@@ -58,7 +58,7 @@
 
 #include "TestMutator.h"
 class test2_10_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_10_factory() {
   return new test2_10_Mutator();
@@ -74,7 +74,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_10_factory() {
 //	via gdb. It will crash if you try to run it.
 //
 // static int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
-test_results_t test2_10_Mutator::preExecution() {
+test_results_t test2_10_Mutator::executeTest() {
 #if !defined(rs6000_ibm_aix4_1) \
  && !defined(sparc_sun_sunos4_1_3) \
  && !defined(sparc_sun_solaris2_4) \

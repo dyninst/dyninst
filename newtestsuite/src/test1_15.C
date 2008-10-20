@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_15.C,v 1.1 2007/09/24 16:36:43 cooksey Exp $
+// $Id: test1_15.C,v 1.2 2008/10/20 20:36:00 legendre Exp $
 /*
  * #Name: test1_15
  * #Desc: Mutator Side - setMutationsActive
@@ -63,7 +63,7 @@ class test1_15_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
   int mutatorTest15a();
   int mutatorTest15b();
 };
@@ -121,7 +121,7 @@ int test1_15_Mutator::mutatorTest15b() {
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_15_Mutator::execute() {
+test_results_t test1_15_Mutator::executeTest() {
   if (mutatorTest15a() != 0) {
     // Kill mutatee
     appThread->getProcess()->terminateExecution();

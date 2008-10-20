@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_1.C,v 1.3 2008/06/18 19:58:26 carl Exp $
+// $Id: test4_1.C,v 1.4 2008/10/20 20:36:56 legendre Exp $
 /*
  * #Name: test4_1
  * #Desc: Exit Callback
@@ -67,7 +67,7 @@ public:
   test4_1_Mutator();
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
   test_results_t mutatorTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test4_1_factory() {
@@ -175,7 +175,7 @@ test_results_t test4_1_Mutator::mutatorTest() {
     return PASSED;
 }
 
-test_results_t test4_1_Mutator::execute() {
+test_results_t test4_1_Mutator::executeTest() {
   // Register the proper callbacks for this test
   bpatch->registerPreForkCallback(forkFunc);
   bpatch->registerPostForkCallback(forkFunc);

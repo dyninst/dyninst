@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_thread_4.C,v 1.1 2007/09/24 16:41:38 cooksey Exp $
+// $Id: test_thread_4.C,v 1.2 2008/10/20 20:37:46 legendre Exp $
 /*
  * #Name: test12_5
  * #Desc: thread exit callback 
@@ -71,7 +71,7 @@ protected:
 public:
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_thread_4_factory() {
   return new test_thread_4_Mutator();
@@ -140,7 +140,7 @@ static void threadDestroyCB(BPatch_process * /*proc*/, BPatch_thread *thr)
 }  
       
 // static bool mutatorTest5and6(int testno, const char *testname)
-test_results_t test_thread_4_Mutator::execute() {     
+test_results_t test_thread_4_Mutator::executeTest() {     
   unsigned int timeout = 0; // in ms
   int err = 0;
 

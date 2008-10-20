@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_7.C,v 1.1 2007/09/24 16:39:28 cooksey Exp $
+// $Id: test2_7.C,v 1.2 2008/10/20 20:36:46 legendre Exp $
 /*
  * #Name: test2_7
  * #Desc: Load a dynamically linked lbibraryr from the mutator
@@ -58,7 +58,7 @@
 
 #include "TestMutator.h"
 class test2_7_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_7_factory() {
   return new test2_7_Mutator();
@@ -73,7 +73,7 @@ static void lcase(char *s) {
 }
 
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
-test_results_t test2_7_Mutator::preExecution() {
+test_results_t test2_7_Mutator::executeTest() {
 #if !defined(os_solaris) && !defined(os_linux) && !defined(os_irix) && \
     !defined(os_aix) && !defined(os_windows)
     logerror("Skipping test #7 (load a dynamically linked library from the mutator)\n");

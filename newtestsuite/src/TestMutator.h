@@ -14,9 +14,7 @@ public:
   TestMutator();
   virtual bool hasCustomExecutionPath();
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
-  virtual test_results_t preExecution();
-  virtual test_results_t inExecution();
+  virtual test_results_t executeTest();
   virtual test_results_t postExecution();
   virtual test_results_t teardown();
 };

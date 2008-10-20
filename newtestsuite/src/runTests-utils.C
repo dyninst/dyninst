@@ -21,7 +21,7 @@ void initPIDFilename(char *buffer, size_t len) {
 void cleanupMutatees(char *pidFilename) {
   FILE *pidFile = fopen(pidFilename, "r");
   if (NULL == pidFile) {
-    fprintf(stderr, "Unable to open pid file for cleanup\n");
+     return;
   } else {
     bool more = true;
     while (more) {
@@ -152,8 +152,8 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
       } else {
 	// Do something with child_status
 	if (WIFSIGNALED(child_status)) {
-	  fprintf(stderr, "*** Child terminated abnormally via signal %d.\n",
-		   WTERMSIG(child_status));
+      //fprintf(stderr, "*** Child terminated abnormally via signal %d.\n",
+      //WTERMSIG(child_status));
 	  retval = -2;
 	  break;
 	} else if (WIFEXITED(child_status)) {

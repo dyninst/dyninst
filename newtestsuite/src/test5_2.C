@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_2.C,v 1.2 2008/05/08 20:54:45 cooksey Exp $
+// $Id: test5_2.C,v 1.3 2008/10/20 20:37:01 legendre Exp $
 /*
  * #Name: test5_2
  * #Desc: Overload Functions
@@ -58,7 +58,7 @@
 #include "TestMutator.h"
 class test5_2_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test5_2_factory() {
   return new test5_2_Mutator();
@@ -68,7 +68,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_2_factory() {
 // Start Test Case #2 - (overload function)
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test5_2_Mutator::preExecution() {
+test_results_t test5_2_Mutator::executeTest() {
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "overload_func_test::func_cpp";

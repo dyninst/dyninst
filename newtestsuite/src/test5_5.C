@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_5.C,v 1.1 2007/09/24 16:40:07 cooksey Exp $
+// $Id: test5_5.C,v 1.2 2008/10/20 20:37:04 legendre Exp $
 /*
  * #Name: test5_5
  * #Desc: Namespace
@@ -58,7 +58,7 @@
 #include "TestMutator.h"
 class test5_5_Mutator : public TestMutator {
 public:
-  test_results_t preExecution();
+  test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test5_5_factory() {
   return new test5_5_Mutator();
@@ -68,7 +68,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_5_factory() {
 // Start Test Case #5 - (namespace)
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test5_5_Mutator::preExecution() {
+test_results_t test5_5_Mutator::executeTest() {
 #if defined(os_solaris) || defined(os_linux) || defined(os_windows)
 
   BPatch_Vector<BPatch_function *> bpfv;

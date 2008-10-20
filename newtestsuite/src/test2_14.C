@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_14.C,v 1.1 2007/09/24 16:39:19 cooksey Exp $
+// $Id: test2_14.C,v 1.2 2008/10/20 20:36:40 legendre Exp $
 /*
  * #Name: test2_14
  * #Desc: Delete Thread
@@ -61,7 +61,7 @@ class test2_14_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_14_factory() {
   return new test2_14_Mutator();
@@ -72,7 +72,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_14_factory() {
 //    been deleted as required.
 
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *appImage)
-test_results_t test2_14_Mutator::execute() {
+test_results_t test2_14_Mutator::executeTest() {
     killMutatee(appThread); // FIXME Uses deprecated BPatch_thread::terminateExecution()
     delete appThread;
    

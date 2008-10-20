@@ -156,6 +156,9 @@ extern void logerror(const char *fmt, ...);
 extern void flushOutputLog();
 extern void flushErrorLog();
 
+extern void log_testrun(char *testname);
+extern void log_testresult(int passed);
+
 /* Mutatee cleanup: PID registration */
 extern void setPIDFilename(char *pfn);
 extern char *getPIDFilename();
@@ -164,8 +167,6 @@ extern void registerPID(int pid);
 
 extern int setupFortranOutput();
 extern int cleanupFortranOutput();
-
-extern int fastAndLoose;
 
 extern char *executable_name;
 extern void setExecutableName(const char *new_name);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_4.C,v 1.2 2008/05/08 20:54:33 cooksey Exp $
+// $Id: test3_4.C,v 1.3 2008/10/20 20:36:52 legendre Exp $
 /*
  * #Name: test3_4
  * #Desc: sequential multiple-process management - exit
@@ -68,7 +68,7 @@ public:
   test3_4_Mutator();
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test3_4_factory() {
   return new test3_4_Mutator();
@@ -83,7 +83,7 @@ test3_4_Mutator::test3_4_Mutator()
 //     create a second one and wait for it to exit.  Repeat as required.
 //
 // static int mutatorTest(char *pathname, BPatch *bpatch)
-test_results_t test3_4_Mutator::execute() {
+test_results_t test3_4_Mutator::executeTest() {
     unsigned int n=0;
     const char *child_argv[5];
     child_argv[n++] = pathname;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_4.C,v 1.1 2007/09/24 16:39:23 cooksey Exp $
+// $Id: test2_4.C,v 1.2 2008/10/20 20:36:43 legendre Exp $
 /*
  * #Name: test2_4
  * #Desc: Attach to a protected pid
@@ -62,7 +62,7 @@ class test2_4_Mutator : public TestMutator {
 
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_4_factory() {
   return new test2_4_Mutator();
@@ -77,7 +77,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_4_factory() {
 //
 
 // static int mutatorTest(BPatch *bpatch, bool useAttach)
-test_results_t test2_4_Mutator::execute() {
+test_results_t test2_4_Mutator::executeTest() {
     // attach to an a protected pid
     clearError();
     BPatch_thread *ret = bpatch->attachProcess(NULL, 1);

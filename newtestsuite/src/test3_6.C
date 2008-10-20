@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_6.C,v 1.3 2008/06/18 19:58:24 carl Exp $
+// $Id: test3_6.C,v 1.4 2008/10/20 20:36:54 legendre Exp $
 /*
  * #Name: test3_6
  * #Desc: Create processes (via standard OS methods, not BPatch::createProcess), process events, and kill them, no instrumentation
@@ -75,7 +75,7 @@ public:
   test3_6_Mutator();
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test3_6_factory() {
   return new test3_6_Mutator();
@@ -219,7 +219,7 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
 #endif
 
 // static int mutatorTest(char *pathname, BPatch *bpatch)
-test_results_t test3_6_Mutator::execute() {
+test_results_t test3_6_Mutator::executeTest() {
 #if !defined (os_windows)
     unsigned int n=0;
     const char *child_argv[5];

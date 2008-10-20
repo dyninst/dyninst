@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_22.C,v 1.2 2008/06/18 19:58:18 carl Exp $
+// $Id: test1_22.C,v 1.3 2008/10/20 20:36:08 legendre Exp $
 /*
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
@@ -75,7 +75,7 @@ class test1_22_Mutator : public TestMutator {
 public:
   test1_22_Mutator();
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
   virtual test_results_t mutatorTest22();
 };
 test1_22_Mutator::test1_22_Mutator() : libNameAroot("libtestA"),
@@ -259,7 +259,7 @@ test_results_t test1_22_Mutator::mutatorTest22() {
 // Wrapper to call readyTest
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
-test_results_t test1_22_Mutator::preExecution() {
+test_results_t test1_22_Mutator::executeTest() {
    int pointer_size = 0;
 #if defined(arch_x86_64)
    pointer_size = pointerSize(appImage);
@@ -288,7 +288,7 @@ test_results_t test1_22_Mutator::preExecution() {
    // }
 
    return mutatorTest22();
-} // test1_22_Mutator::preExecution()
+} // test1_22_Mutator::executeTest()
 
 // External Interface
 // extern "C" TEST_DLL_EXPORT int test1_22_mutatorMAIN(ParameterDict &param)

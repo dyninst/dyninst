@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_4.C,v 1.2 2008/05/08 20:54:47 cooksey Exp $
+// $Id: test5_4.C,v 1.3 2008/10/20 20:37:03 legendre Exp $
 /*
  * #Name: test5_4
  * #Desc: Static Member
@@ -58,7 +58,7 @@
 #include "TestMutator.h"
 class test5_4_Mutator : public TestMutator {
 public:
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test5_4_factory() {
   return new test5_4_Mutator();
@@ -68,7 +68,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_4_factory() {
 // Start Test Case #4 - (static member)
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test5_4_Mutator::preExecution() {
+test_results_t test5_4_Mutator::executeTest() {
 #if defined(os_solaris) || defined(os_linux) || defined(os_windows)
 
   BPatch_Vector<BPatch_function *> bpfv;

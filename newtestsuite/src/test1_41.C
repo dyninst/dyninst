@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_41.C,v 1.3 2008/05/08 20:54:23 cooksey Exp $
+// $Id: test1_41.C,v 1.4 2008/10/20 20:36:29 legendre Exp $
 /*
  * #Name: test1_41
  * #Desc: Tests whether we lose line information running a mutatee twice
@@ -66,7 +66,7 @@ class test1_41_Mutator : public TestMutator {
   
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 
 public:
   test1_41_Mutator();
@@ -81,7 +81,7 @@ test1_41_Mutator::test1_41_Mutator()
 }
 
 // static int mutatorTest(char *pathname, BPatch *bpatch)
-test_results_t test1_41_Mutator::execute() {
+test_results_t test1_41_Mutator::executeTest() {
     unsigned int n=0;
     const char *child_argv[5];
     child_argv[n++] = pathname;

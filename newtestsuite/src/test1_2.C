@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_2.C,v 1.1 2007/09/24 16:37:16 cooksey Exp $
+// $Id: test1_2.C,v 1.2 2008/10/20 20:36:05 legendre Exp $
 /*
  * #Name: test1_2
  * #Desc: Mutator Side (call a four argument function)
@@ -59,7 +59,7 @@
 #include "TestMutator.h"
 
 class test1_2_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_2_factory() {
   return new test1_2_Mutator();
@@ -70,7 +70,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_2_factory() {
 //
 // extern "C" TEST_DLL_EXPORT int test1_2_mutatorTest(BPatch_thread *appThread,
 // 						   BPatch_image *appImage) {
-test_results_t test1_2_Mutator::preExecution() {
+test_results_t test1_2_Mutator::executeTest() {
   const char *funcName = "test1_2_func2_1";
   const char* testName = "four parameter function";
   int testNo = 2;

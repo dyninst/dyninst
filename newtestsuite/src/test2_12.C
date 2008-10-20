@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_12.C,v 1.1 2007/09/24 16:39:15 cooksey Exp $
+// $Id: test2_12.C,v 1.2 2008/10/20 20:36:38 legendre Exp $
 /*
  * #Name: test2_12
  * #Desc: BPatch_point query funcs
@@ -57,7 +57,7 @@
 
 #include "TestMutator.h"
 class test2_12_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_12_factory() {
   return new test2_12_Mutator();
@@ -74,7 +74,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_12_factory() {
 // This test looks like it also does nothing..  - Greg
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test2_12_Mutator::preExecution() {
+test_results_t test2_12_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> found_funcs;
   char *funcname = "test2_12_func1";
     if ((NULL == appImage->findFunction(funcname, found_funcs, 1)) || !found_funcs.size()) {

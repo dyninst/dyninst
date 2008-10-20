@@ -241,7 +241,7 @@ def write_test_info_new_gen(filename, tuplefile):
 TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
                    const char *isoname, const char *ilabel)
   : index(i), name(iname), mutator_name(imrname), soname(isoname),
-    label(ilabel), mutator(NULL), disabled(false), enabled(false)
+    label(ilabel), mutator(NULL), disabled(false), enabled(false), result(UNKNOWN)
 {
 }
 
@@ -802,7 +802,7 @@ def write_test_info_new_gen_nt(filename, tuplefile):
 TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
                    const char *isoname, const char *ilabel)
   : index(i), name(iname), mutator_name(imrname), soname(isoname),
-    label(ilabel), mutator(NULL), disabled(false), enabled(false)
+    label(ilabel), mutator(NULL), disabled(false), enabled(false), result(UNKNOWN)
 {
 }
 

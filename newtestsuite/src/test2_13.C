@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_13.C,v 1.1 2007/09/24 16:39:17 cooksey Exp $
+// $Id: test2_13.C,v 1.2 2008/10/20 20:36:39 legendre Exp $
 /*
  * #Name: test2_13
  * #Desc: loadLibrary failure test
@@ -64,7 +64,7 @@ static void llErrorFunc(BPatchErrorLevel level, int num,
 
 class test2_13_Mutator : public TestMutator {
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_13_factory() {
   return new test2_13_Mutator();
@@ -88,7 +88,7 @@ static void llErrorFunc(BPatchErrorLevel level, int num, const char * const *par
 
 // Start Test Case #13 - (loadLibrary failure test)
 // static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
-test_results_t test2_13_Mutator::preExecution() {
+test_results_t test2_13_Mutator::executeTest() {
   test_results_t retval;
   if (appThread->isTerminated()) {
     logerror( "**Failed** test #13 (dlopen failure reporting test)\n" );

@@ -39,12 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParameterDict.h,v 1.1 2007/09/24 16:35:44 cooksey Exp $
+// $Id: ParameterDict.h,v 1.2 2008/10/20 20:35:44 legendre Exp $
 #ifndef PARAMETERDICT_H
 #define PARAMETERDICT_H
 
-//#include "common/h/String.h"
-//#include "common/h/Dictionary.h"
 #include <map>
 #include <string>
 #include "test_lib_dll.h"
@@ -55,7 +53,7 @@ class TESTLIB_DLL_EXPORT Parameter {
       Parameter();
       virtual ~Parameter();
       virtual char *getString();
-      virtual void setString(char *str);
+      virtual void setString(const char *str);
 
       virtual int getInt();
       virtual void setInt(int num);
@@ -68,15 +66,14 @@ class TESTLIB_DLL_EXPORT Parameter {
 
 class TESTLIB_DLL_EXPORT ParamString : public Parameter {
    private:
-      char *data;
+     char *data;
 
    public:
       ParamString();
       ~ParamString();
-      ParamString(char *str);
+      ParamString(const char *str);
       char *getString();
-      void setString(char *str);
-
+      void setString(const char *str);
 };
 
 class TESTLIB_DLL_EXPORT ParamInt : public Parameter {

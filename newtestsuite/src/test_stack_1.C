@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_stack_1.C,v 1.2 2008/05/08 20:55:28 cooksey Exp $
+// $Id: test_stack_1.C,v 1.3 2008/10/20 20:37:40 legendre Exp $
 /*
  * #Name: test8_1
  * #Desc: getCallStack
@@ -63,14 +63,14 @@ private:
 public:
   virtual bool hasCustomExecutionPath() { return true; }
   virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t execute();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test_stack_1_factory() {
   return new test_stack_1_Mutator();
 }
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test_stack_1_Mutator::execute() {
+test_results_t test_stack_1_Mutator::executeTest() {
     appThread->continueExecution();
     static const frameInfo_t correct_frame_info[] = {
 #if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))

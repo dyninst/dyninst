@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_3.C,v 1.1 2007/09/24 16:37:53 cooksey Exp $
+// $Id: test1_3.C,v 1.2 2008/10/20 20:36:16 legendre Exp $
 /*
  * #Name: test1_3
  * #Desc: Mutator Side (passing variables to a function)
@@ -65,7 +65,7 @@
 #include "TestMutator.h"
 
 class test1_3_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_3_factory() {
   return new test1_3_Mutator();
@@ -74,7 +74,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_3_factory() {
 //
 // Start Test Case #3 - mutator side (passing variables to function)
 //
-test_results_t test1_3_Mutator::preExecution() {
+test_results_t test1_3_Mutator::executeTest() {
   // Find the entry point to the procedure "func3_1"
   const char *funcName = "test1_3_func3_1";
 

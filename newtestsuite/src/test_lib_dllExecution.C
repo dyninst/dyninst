@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_dllExecution.C,v 1.2 2008/06/18 19:58:28 carl Exp $
+// $Id: test_lib_dllExecution.C,v 1.3 2008/10/20 20:37:25 legendre Exp $
 #include "test_lib.h"
 #include "ParameterDict.h"
 #include "TestOutputDriver.h"
@@ -77,96 +77,34 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
 	return retval;
 }
 
-int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
+int setupMutatorsForRunGroup(RunGroup * group)
 {
-   //printf("Loading test: %s\n", testLib.soname);
-   char *dllname;
-   HINSTANCE handle;
-
-   // Build correct dll name
-   dllname = (char *) malloc(sizeof(char)*(strlen(testLib.name)+strlen(ext)));
-   strcpy(dllname,testLib.name);
-   strcat(dllname,ext);
-
-   handle = LoadLibrary(dllname);
-
-   if (!handle)
-   {
-      printf("Error opening lib: %s\n", testLib.name);
-      free(dllname);
-      return -1;
-   }
-
-   char mutator_name[256];
-   _snprintf(mutator_name, 256, "%s_mutatorMAIN", testLib.name);
-   mutatorM_t mutTest = (mutatorM_t)GetProcAddress(handle, mutator_name);
-   if ( !mutTest )
-   {
-      printf("Error finding function: %s, in %s\n", mutator_name, testLib.name);
-      free(dllname);
-      FreeLibrary(handle);
-      return -1;
-   }
-
-   // Call function
-   int result = mutTest(param);
-
-   FreeLibrary(handle);
-   free(dllname);
-
-   //printf("Ran test: %s\n", testLib.soname);
-   return result;
-}
-
-bool getMutatorsForRunGroup(RunGroup * group,
-				std::vector<TestInfo *> &group_tests)
-{
+   int tests_found = 0;
 	for (int i = 0; i < group->tests.size(); i++) {
-		if (false == group->tests[i]->enabled) {
-			// Skip disabled tests
+		if (group->tests[i]->disabled)
 			continue;
-		}
-
-//		char *fullSoPath;
 
 		TestInfo *test = group->tests[i];
 		std::string dllname = std::string(test->name) + std::string(ext);
-//		const char *soname = test->soname;
-//		fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
-
-//		if (!fullSoPath) {
-//			fprintf(stderr, "Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n",
-//			soname);
-//			return true; // Error
-//		}
-//		void *handle = dlopen(fullSoPath, RTLD_NOW);
 		HINSTANCE handle = LoadLibrary(dllname.c_str());
-//		::free(fullSoPath);
 		if (!handle) {
 			fprintf(stderr, "Error opening lib: %s\n", dllname.c_str());
-//			fprintf(stderr, "Error opening lib: %s\n", group->tests[i]->soname);
-//			fprintf(stderr, "%s\n", dlerror());
 			fprintf(stderr, "%s\n", GetLastError());
-			return true; // Error
+			return -1;
 		}
 
 		typedef TestMutator *(*mutator_factory_t)();
 		char mutator_name[256];
 		const char *testname = test->mutator_name;
 		_snprintf(mutator_name, 256, "%s_factory", testname);
-//		mutator_factory_t factory = (mutator_factory_t) dlsym(handle,
-//		mutator_name);
 		mutator_factory_t factory = (mutator_factory_t)GetProcAddress(handle, mutator_name);
 		if (NULL == factory) {
 			fprintf(stderr, "Error funding function: %s, in %s\n", mutator_name,
 				dllname);
-			//			soname);
-//			fprintf(stderr, "%s\n", dlerror());
 			fprintf(stderr, "%s\n", GetLastError());
-//			dlclose(handle);
 			FreeLibrary(handle);
-			return true; // Error
-		}
+         return -1;
+      }
 
 		TestMutator *mutator = factory();
 		if (NULL == mutator) {
@@ -174,9 +112,9 @@ bool getMutatorsForRunGroup(RunGroup * group,
 			test->name);
 		} else {
 			test->mutator = mutator;
-			group_tests.push_back(test);
+         tests_found++;
 		}
 	}
-	return false; // No error
+	return tests_found;
 }
 

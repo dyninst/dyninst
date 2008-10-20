@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.4 2008/06/18 19:58:30 carl Exp $
+// $Id: test_lib.C,v 1.5 2008/10/20 20:37:23 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -90,6 +90,7 @@
 #include "BPatch_thread.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM
 #include "test_lib.h"
+#include "ResumeLog.h"
 
 int expectError = DYNINST_NO_ERROR;
 
@@ -189,7 +190,7 @@ void flushErrorLog() {
 // PID registration for mutatee cleanup
 // TODO Check if these make any sense on Windows.  I suspect I'll need to
 // change them.
-char *pidFilename = NULL;
+char *pidFilename = "pidfile";
 void setPIDFilename(char *pfn) {
   pidFilename = pfn;
 }
@@ -1826,5 +1827,72 @@ bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
 
    return true;
 }
+
+void reportTestResult(RunGroup *group, TestInfo *test)
+{
+   if (test->result_reported || test->disabled)
+      return;
+
+   test_results_t result = UNKNOWN;
+
+   for (unsigned i=0; i<NUM_RUNSTATES; i++)
+   {
+      if (test->results[i] == FAILED ||
+          test->results[i] == CRASHED || 
+          test->results[i] == SKIPPED) {
+         result = test->results[i];
+         break;
+      }
+      else if (test->results[i] == PASSED) {
+         result = test->results[i];
+      }
+      else if (test->results[i] == UNKNOWN) {
+         return;
+      }
+      else {
+         assert(0 && "Unknown run state");
+      }
+   }
+   assert(result != UNKNOWN);
+
+   std::map<std::string, std::string> attrs;
+   TestOutputDriver::getAttributesMap(test, group, attrs);
+   getOutput()->startNewTest(attrs);
+   getOutput()->logResult(result);
+   getOutput()->finalizeOutput();
+
+   log_testreported(group->index, test->index);
+   test->result_reported = true;
+}
+
+/**
+ * A test should be run if:
+ *   1) It isn't disabled
+ *   2) It hasn't reported a failure/crash/skip
+ *   3) It hasn't reported final results already
+ **/
+bool shouldRunTest(RunGroup *group, TestInfo *test)
+{
+   if (group->disabled || test->disabled)
+      return false;
+   
+   if (test->result_reported)
+      return false;
+
+   for (unsigned i=0; i<NUM_RUNSTATES; i++)
+   {
+      if (test->results[i] == FAILED ||
+          test->results[i] == SKIPPED ||
+          test->results[i] == CRASHED)
+      {
+         reportTestResult(group, test);
+         return false;
+      }
+      assert(test->results[i] == UNKNOWN ||
+             test->results[i] == PASSED);
+   }
+   return true;
+}
+
 
 // End Test12 Library functions

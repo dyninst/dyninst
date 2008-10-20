@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_29.C,v 1.1 2007/09/24 16:37:44 cooksey Exp $
+// $Id: test1_29.C,v 1.2 2008/10/20 20:36:15 legendre Exp $
 /*
  * #Name: test1_29
  * #Desc: getParent/Child
@@ -58,7 +58,7 @@
 
 #include "TestMutator.h"
 class test1_29_Mutator : public TestMutator {
-  virtual test_results_t preExecution();
+  virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test1_29_factory() {
   return new test1_29_Mutator();
@@ -108,7 +108,7 @@ static bool printSrcObj(BPatch_sourceObj *p, int level)
 //
 // static int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 // {
-test_results_t test1_29_Mutator::preExecution() {
+test_results_t test1_29_Mutator::executeTest() {
     BPatch_sourceObj *p;
     bool passedTest;
 
