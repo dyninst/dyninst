@@ -89,7 +89,10 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     TestData.C \
                     TestMutator.C \
                     TestOutputDriver.C \
-                    StdOutputDriver.C
+                    StdOutputDriver.C \
+                    ResumeLog.C \
+                    dyninst_comp.C \
+                    test_info_new.C
 
 SRCS_TEMPLATES = test_driver_templates.C 
 
@@ -237,7 +240,7 @@ $(LIB_DEST_LN)/%: % $(LIB_DEST)
 ###  High level targets
 #######################################################################
 
-MUTATOR_LDFLAGS := -L. -ltestSuite $(LIBDIR) -lcommon -lsymtabAPI -ldyninstAPI $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
+MUTATOR_LDFLAGS := -L. -ltestSuite $(LIBDIR) -lcommon -lsymtabAPI -ldyninstAPI -linstructionAPI $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
 MUTATOR_SO_LDFLAGS = $(filter-out -liberty, $(MUTATOR_LDFLAGS))
 
 
