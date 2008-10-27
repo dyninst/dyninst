@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.29 2008/10/03 21:12:46 legendre Exp $
+// $Id: Object.C,v 1.30 2008/10/27 17:23:54 mlam Exp $
 
 #include "common/h/serialize.h"
 
@@ -627,11 +627,8 @@ DLLEXPORT int Symbol::getFramePtrRegnum()
    return framePtrRegNum_;
 }
 
-//#define USE_ANNOTATIONS
-
 DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
 {
-#ifdef USE_ANNOTATIONS
    Annotatable<std::string, symbol_file_name_a> &fn = *this;
    std::string s = fileName;
    if (fn.size()) {
@@ -640,15 +637,11 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
    }
    else
        fn.addAnnotation(fileName);
-#else
-   fileName_ = fileName;
-#endif
    return true;
 }
 
 DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
 {
-#ifdef USE_ANNOTATIONS
    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
    if (sv.size()) {
       sv[0] = vers;
@@ -656,37 +649,26 @@ DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    }
    else
        sv.addAnnotation(vers);
-#else
-   verNames_ = vers;
-#endif
    return true;
 }
 
 DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 {
-#ifdef USE_ANNOTATIONS
    Annotatable<std::string, symbol_file_name_a> &fn = *this;
    if (!fn.size()) {
       return false;
    }
    fileName = fn[0];
-#else
-   fileName = fileName_;
-#endif
    return true;
 }
 
 DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 {
-#ifdef USE_ANNOTATIONS
    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
    if (!sv.size()) {
       return false;
    }
    vers = &(sv[0]);
-#else
-   vers = &verNames_;
-#endif
    return true;
 }
 

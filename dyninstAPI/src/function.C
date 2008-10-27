@@ -1329,7 +1329,7 @@ bblInstance * bblInstance::getFallthroughBBL() {
 
 bool int_function::performInstrumentation(bool stopOnFailure,
                                           pdvector<instPoint *> &failedInstPoints) {
-    
+
     // We have the following possible side-effects:
     // 
     // 1) Generating an instPoint (e.g., creating the multiTramp and its code)
@@ -1438,6 +1438,12 @@ bool int_function::performInstrumentation(bool stopOnFailure,
                            failedInstPoints);
     linkInstrumentation(newInstrumentation,
                         failedInstPoints);
+
+    if (obj()->isSharedLib()) {
+        //printf("===> Instrumenting function in shared library: %s [%s]\n",
+                //prettyName().c_str(), obj()->fileName().c_str());
+        obj()->setDirty();
+    }
 
     return (failedInstPoints.size() == 0);
 }

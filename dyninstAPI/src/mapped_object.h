@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.22 2008/05/08 21:52:26 legendre Exp $
+// $Id: mapped_object.h,v 1.23 2008/10/27 17:23:53 mlam Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -216,14 +216,13 @@ class mapped_object : public codeRange {
     // parsing of new function and add it to the mapped_object
     bool analyzeNewFunctions(vector<image_func*> *func);
 
-#if defined(cap_save_the_world)
 	//this marks the shared object as dirty, mutated
-	//so it needs saved back to disk during saveworld 
-
+	//so it needs saved back to disk
 	void setDirty(){ dirty_=true;}
 	bool isDirty() { return dirty_; }
 
 
+#if defined(cap_save_the_world)
 	//ccw 24 jul 2003
 	//This marks the shared library as one that contains functions
 	//that are called by instrumentation.  These functions, and hence

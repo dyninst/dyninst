@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.24 2008/09/04 21:06:21 bill Exp $
+// $Id: registerSpace.C,v 1.25 2008/10/27 17:23:53 mlam Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -350,7 +350,9 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
 }
 
 Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost) {
+#if 0
     unsigned scratchIndex = 0;
+#endif
     pdvector<registerSlot *> couldBeStolen;
     pdvector<registerSlot *> couldBeSpilled;
 

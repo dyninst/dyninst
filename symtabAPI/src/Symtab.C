@@ -2907,6 +2907,28 @@ DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
    return ret;
 }
 
+DLLEXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
+{
+    dynLibSubs[oldName] = newName;
+}
+
+DLLEXPORT std::string Symtab::getDynLibSubstitution(std::string name)
+{
+#ifdef BINEDIT_DEBUG
+    map<std::string, std::string>::iterator iter = dynLibSubs.begin();
+    printf ("substitutions for %s:\n", mf->filename().c_str());
+    while (iter != dynLibSubs.end()) {
+       printf("  \"%s\" => \"%s\"\n", iter->first.c_str(), iter->second.c_str());
+       iter++;
+    }
+#endif
+    map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
+    if (loc == dynLibSubs.end())
+        return name;
+    else
+        return loc->second;
+}
+
 DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
    segs = segments_;

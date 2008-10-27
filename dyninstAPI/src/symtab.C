@@ -954,10 +954,6 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
-  if(desc.isSharedObject()) 
-    statusLine("Processing a shared object file");
-  else  
-    statusLine("Processing an executable file");
   
   bool err=false;
 
@@ -969,6 +965,11 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
   startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
   image *ret = new image(desc, err, parseGaps); 
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
+
+  if(desc.isSharedObject()) 
+    statusLine("Processing a shared object file");
+  else  
+    statusLine("Processing an executable file");
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -1226,6 +1227,9 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    }
 #endif  
 
+   // fix isSharedObject flag in file descriptor
+   desc.setIsShared(!linkedFile->isExec());
+   desc_.setIsShared(!linkedFile->isExec());
 
    err = false;
    name_ = extract_pathname_tail(string(desc.file().c_str()));

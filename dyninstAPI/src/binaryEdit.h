@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.13 2008/09/11 20:14:14 mlam Exp $
+// $Id: binaryEdit.h,v 1.14 2008/10/27 17:23:53 mlam Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -167,11 +167,11 @@ class BinaryEdit : public AddressSpace {
 
     bool inferiorMallocStatic(unsigned size);
 
-    bool createMemoryBackingStore();
+    bool createMemoryBackingStore(mapped_object *obj);
 
     bool initialize();
 
-    codeRangeTree memoryTracking_;
+    std::map<mapped_object*, codeRangeTree*> memoryTrackers_;
 
     mapped_object * addSharedObject(const std::string *fullPath);
 

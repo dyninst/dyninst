@@ -141,6 +141,12 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
 {
    Elf32_Sym *sym = new Elf32_Sym();
    sym->st_name = symbolNamesLength;
+   //std::string strippedName = symbol->getName();
+   //size_t pos = strippedName.find('@');
+   //if (pos != std::npos) {
+       //strippedName = strippedName.substr(0,pos);
+   //}
+   //symbolStrs.push_back(strippedName);
    symbolStrs.push_back(symbol->getName());
    symbolNamesLength += symbol->getName().length()+1;
    sym->st_value = symbol->getAddr();
@@ -153,8 +159,10 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
 #else
       sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
 #endif
-   else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
+   else if (symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
         sym->st_shndx = SHN_ABS;
+   else
+       sym->st_shndx = 0;
    
    symbols.push_back(sym);
    //Do not emit aliases for dynamic symbols
@@ -280,8 +288,10 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
 #else
             sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
 #endif
-    	else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
+    	else if (symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
     	    sym->st_shndx = SHN_ABS;
+        else
+            sym->st_shndx = 0;
        	symbols.push_back(sym);
    }
    return true;
@@ -412,6 +422,8 @@ bool emitElf::driver(Symtab *obj, string fName){
     
     	if(foundSec->isDirty())
     	{
+            //printf("  SYMTAB: copy from NEW data [%s]  0x%lx to 0x%lx  sz=%d\n", 
+                    //name, foundSec->getPtrToRawData(), newshdr->sh_addr, foundSec->getDiskSize());
     	    newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
     	    memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
     	    newdata->d_size = foundSec->getDiskSize();
@@ -419,6 +431,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     	}
     	else if(olddata->d_buf)     //copy the data buffer from oldElf
     	{
+            //printf("  SYMTAB: copy from old data [%s]\n", name);
             newdata->d_buf = (char *)malloc(olddata->d_size);
             memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
     	}
@@ -494,8 +507,8 @@ bool emitElf::driver(Symtab *obj, string fName){
             renameSection(".rel.dyn", ".old.dyn", false);
         }
     	// Change offsets of sections based on the newly added sections
-    	if(addNewSegmentFlag)
-	        newshdr->sh_offset += pgSize;
+        if(addNewSegmentFlag)
+			newshdr->sh_offset += pgSize;
     	if(scncount > insertPoint)
 	        newshdr->sh_offset += loadSecTotalSize;
 	    newshdr->sh_offset += (int) (dirtySecsChange + extraAlignSize);
@@ -607,10 +620,12 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	    if(addNewSegmentFlag) {
 	        if(tmp->p_type == PT_LOAD && tmp->p_flags == 5)
             {
-    	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
-        		newPhdr->p_paddr = newPhdr->p_vaddr;
-        		newPhdr->p_filesz += pgSize;
-        		newPhdr->p_memsz = newPhdr->p_filesz;
+                if (tmp->p_vaddr > pgSize) {
+                    newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
+                    newPhdr->p_paddr = newPhdr->p_vaddr;
+                    newPhdr->p_filesz += pgSize;
+                    newPhdr->p_memsz = newPhdr->p_filesz;
+                }
 	        }
             if(tmp->p_type == PT_PHDR){
     	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
@@ -1299,7 +1314,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
     char *verneedSecData, *verdefSecData;
     unsigned verneedSecSize = 0, verdefSecSize = 0, dynsecSize = 0;
                
-    createSymbolVersions(symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
+    createSymbolVersions(obj, symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
     Region *sec;
     if(obj->findRegion(sec, ".dynstr"))
         olddynStrData = (char *)sec->getPtrToRawData();
@@ -1368,6 +1383,8 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
             rels[j].r_offset = relocation_table[i].rel_addr();
             if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
                 rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+            //} else {
+                //printf("relocation symbol not found: %s\n", relocation_table[i].name().c_str());
             }
             j++;
         } else {
@@ -1393,6 +1410,8 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 #elif defined(arch_power)
                 rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
+            //} else {
+                //printf("new relocation symbol not found: %s\n", newRels[i].name().c_str());
             }
             j++;
         } else {
@@ -1458,7 +1477,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 } 
 
 #if !defined(os_solaris)
-void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
+void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
 
     //Add all names to the new .dynstr section
     map<string, unsigned>::iterator iter = versionNames.begin();
@@ -1484,11 +1503,17 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
     verneednum = 0;
     std::vector<std::string>::iterator dit;
     for(dit = unversionedNeededEntries.begin(); dit != unversionedNeededEntries.end(); dit++) {
-        versionNames[*dit] = dynSymbolNamesLength;
-        dynStrs.push_back(*dit);
-        dynSymbolNamesLength+= (*dit).size()+1;
-        if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), *dit) == DT_NEEDEDEntries.end())
-            DT_NEEDEDEntries.push_back(*dit);
+        // account for any substitutions due to rewriting a shared lib
+        std::string name = obj->getDynLibSubstitution(*dit);
+        // no need for self-references
+        if (!(obj->name() == name)) {
+            //printf("adding unversioned entry: %s [%s]\n", name.c_str(), obj->name().c_str());
+            versionNames[name] = dynSymbolNamesLength;
+            dynStrs.push_back(name);
+            dynSymbolNamesLength+= (name).size()+1;
+            if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), name) == DT_NEEDEDEntries.end())
+                DT_NEEDEDEntries.push_back(name);
+        }
     }
     for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
        Elf32_Verneed *verneed = (Elf32_Verneed *)(void*)(verneedSecData+curpos);

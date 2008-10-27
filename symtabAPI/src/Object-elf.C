@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.52 2008/09/20 03:56:10 jaw Exp $
+ * $Id: Object-elf.C,v 1.53 2008/10/27 17:23:54 mlam Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -91,6 +91,49 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
                               std::vector<ExceptionBlock> &catch_addrs);
 #endif
     
+#ifdef BINEDIT_DEBUG
+bool ____sym_hdr_printed = false;
+void print_symbols( std::vector< Symbol *>& allsymbols ) {
+    FILE* fd = stdout;
+    Symbol *sym;
+    std::string modname;
+    if (!____sym_hdr_printed) {
+        fprintf(fd, "%-20s  %-15s  %-10s  %5s  SEC  TYP  LN\n", 
+                "SYMBOL", "MODULE", "ADDR", "SIZE");
+        ____sym_hdr_printed = true;
+    }
+    for (unsigned i=0; i<allsymbols.size(); i++) {
+        sym = allsymbols[i];
+        modname = sym->getModuleName();
+        //if (modname == "libspecial.so" || modname == "libprofile.so") {
+        //if (sym->getLinkage() == Symbol::SL_WEAK) {
+        if (1) {
+            fprintf(fd, "%-20s  %-15s  0x%08lx  %5lu  %3u", 
+                sym->getName().substr(0,20).c_str(), 
+                modname.size() > 15 ? modname.substr(modname.size()-15,15).c_str() : modname.c_str(),
+                (unsigned)sym->getAddr(),
+                (unsigned)sym->getSize(),
+                sym->getSec() ? sym->getSec()->getRegionNumber() : 0
+                );
+            switch (sym->getType()) {
+                case Symbol::ST_UNKNOWN:  fprintf(fd, "  ???"); break;
+                case Symbol::ST_FUNCTION: fprintf(fd, "  FUN"); break;
+                case Symbol::ST_OBJECT:   fprintf(fd, "  OBJ"); break;
+                case Symbol::ST_MODULE:   fprintf(fd, "  MOD"); break;
+                case Symbol::ST_NOTYPE:   fprintf(fd, "   - "); break;
+            }
+            switch (sym->getLinkage()) {
+                case Symbol::SL_UNKNOWN: fprintf(fd, "  ??"); break;
+                case Symbol::SL_GLOBAL:  fprintf(fd, "  GL"); break;
+                case Symbol::SL_LOCAL:   fprintf(fd, "  LO"); break;
+                case Symbol::SL_WEAK:    fprintf(fd, "  WK"); break;
+            }
+            fprintf(fd,"\n");
+        }
+    }
+}
+#endif
+
 string symt_current_func_name;
 string symt_current_mangled_func_name;
 Symbol *symt_current_func = NULL;
@@ -734,6 +777,7 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
                     vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
                     re.addDynSym(syms[0]);
                 }
+
 	    	    relocation_table_.push_back(re);
 	    	}
 		return true;
@@ -1102,6 +1146,8 @@ void Object::load_shared_object(bool alloc_syms)
       //VECTOR_SORT(allsymbols,symbol_compare);
       no_of_symbols_ = allsymbols.size();
 
+      //print_symbols(allsymbols);
+
       fix_zero_function_sizes(allsymbols, 0);
       override_weak_symbols(allsymbols);
       insert_symbols_shared(allsymbols);
@@ -1122,6 +1168,9 @@ void Object::load_shared_object(bool alloc_syms)
          strdata = dynstr_scnp->get_data();
          parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
       }
+      //printf("-----------------------------------------\n");
+      //print_symbols(allsymbols);
+      
       //TODO
       //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
       //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
@@ -1255,8 +1304,8 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       //in symtab section so that we can resolve symbol references. So 
       //we parse & store undefined symbols only if there is no dynamic
       //symbol table
-      if (is_dynamic_ && (syms.st_shndx(i) == SHN_UNDEF)) continue;
-      if (syms.st_shndx(i) == SHN_UNDEF) continue;
+      //if (is_dynamic_ && (syms.st_shndx(i) == SHN_UNDEF)) continue;
+      //if (syms.st_shndx(i) == SHN_UNDEF) continue;
       int etype = syms.ST_TYPE(i);
       int ebinding = syms.ST_BIND(i);
 
@@ -1269,7 +1318,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       unsigned secNumber = syms.st_shndx(i);
 
       //Get rid of weak symbols which are undefined 
-      if((slinkage == Symbol::SL_WEAK) && (secNumber == SHN_UNDEF)) continue;
+      //if((slinkage == Symbol::SL_WEAK) && (secNumber == SHN_UNDEF)) continue;
       
       if (stype == Symbol::ST_UNKNOWN) continue;
       if (slinkage == Symbol::SL_UNKNOWN) continue;
@@ -1280,8 +1329,8 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       else
          sec = NULL;
       
-      if((secNumber == SHN_ABS) && regions_.size())
-         sec = regions_[0];
+      //if((secNumber == SHN_ABS) && regions_.size())
+         //sec = regions_[0];
       
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
@@ -1434,8 +1483,8 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       else
          sec = NULL;		
 
-      if((secNumber == SHN_ABS) && regions_.size())
-         sec = regions_[0];     
+      //if((secNumber == SHN_ABS) && regions_.size())
+         //sec = regions_[0];     
 
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, /*NULL,*/ true, false);
 #if !defined(os_solaris)
@@ -1444,6 +1493,15 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
               newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
           if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
               newsym->setVersions(versionMapping[symVersions.get(i)]);
+#ifdef BINEDIT_DEBUG
+          if (smodule == "libspecial.so") {
+              printf(" [%s] %s: ", smodule.c_str(), sname.c_str());
+              std::vector<std::string> svers = versionMapping[symVersions.get(i)];
+              for (unsigned j=0; j<svers.size(); j++)
+                  printf(" %s", svers[j].c_str());
+              printf("\n");
+          }
+#endif
       }
 #endif
       // register symbol in dictionary

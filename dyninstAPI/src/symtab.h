@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.213 2008/09/20 03:56:09 jaw Exp $
+// $Id: symtab.h,v 1.214 2008/10/27 17:23:53 mlam Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -125,7 +125,7 @@ class fileDescriptor {
 
     // Some platforms have split code and data. If yours is not one of them,
     // hand in the same address for code and data.
-    fileDescriptor(string file, Address code, Address data, bool isShared) :
+    fileDescriptor(string file, Address code, Address data, bool isShared=false) :
         file_(file),
         member_(emptyString),
         code_(code),
@@ -190,7 +190,7 @@ class fileDescriptor {
      string member_;
      Address code_;
      Address data_;
-     bool shared_;
+     bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
      Address loadAddr_;
 

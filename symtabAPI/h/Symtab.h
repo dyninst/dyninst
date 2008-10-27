@@ -184,6 +184,9 @@ class Symtab : public LookupInterface,
    DLLEXPORT bool addRegion(Region *newreg);
    DLLEXPORT bool emit(std::string filename, unsigned flag = 0);
 
+   DLLEXPORT void addDynLibSubstitution(std::string oldName, std::string newName);
+   DLLEXPORT std::string getDynLibSubstitution(std::string name);
+
    DLLEXPORT bool getSegments(std::vector<Segment> &segs) const;
    DLLEXPORT bool updateCode(void *buffer, unsigned size);
    DLLEXPORT bool updateData(void *buffer, unsigned size);
@@ -404,6 +407,9 @@ class Symtab : public LookupInterface,
    //Don't use obj_private, use getObject() instead.
    Object *getObject();
    Object *obj_private;
+
+   // dynamic library name substitutions
+   std::map <std::string, std::string> dynLibSubs;
 
    public:
    Type *type_Error;
