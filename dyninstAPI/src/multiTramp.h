@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.28 2008/09/04 21:06:10 bill Exp $
+// $Id: multiTramp.h,v 1.29 2008/10/28 18:42:48 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -565,6 +565,9 @@ class multiTramp : public generatedCodeObject {
   void *getPtrToInstruction(Address addr) const;
 
   Address getAddress() const { return trampAddr_; }
+
+  Address trampAddr() const { return trampAddr_; }
+  Address trampSize() const { return trampSize_; }
 
   Address instAddr() const { return instAddr_; }
   unsigned instSize() const { return instSize_; }
