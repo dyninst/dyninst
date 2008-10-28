@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.25 2008/10/27 17:23:53 mlam Exp $
+// $Id: binaryEdit.C,v 1.26 2008/10/28 18:42:44 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -685,40 +685,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             }
         }
 
-        // Put in symbol table entries for known code
-        pdvector<codeRange *> newCode;
-        textRanges_.elements(newCode);
-        for (unsigned i = 0; i < newCode.size(); i++) {
-            char buffer[1025];        
-            
-            if (newCode[i]->is_multitramp()) {
-                snprintf(buffer, 1024, "%s_inst_0x%lx_0x%lx",
-                         newCode[i]->is_multitramp()->func()->symTabName().c_str(),
-                         newCode[i]->is_multitramp()->instAddr(),
-                         newCode[i]->is_multitramp()->instAddr() +
-                         newCode[i]->is_multitramp()->instSize());
-            }
-            else if (newCode[i]->is_basicBlockInstance()) {
-                // Relocated function
-                snprintf(buffer, 1024, "%s_reloc",
-                         newCode[i]->is_basicBlockInstance()->func()->symTabName().c_str());
-            }
-            else {
-                continue;
-            }
-            
-            Symbol *newSym = new Symbol(buffer,
-                                        "DyninstInst",
-                                        Symbol::ST_FUNCTION,
-                                        Symbol::SL_GLOBAL,
-                                        newCode[i]->get_address(),
-                                        newSec,
-                                        newCode[i]->get_size(),
-                                        (void *)newCode[i]);
-                
-            symObj->addSymbol(newSym, false);
+        pdvector<Symbol *> newSyms;
+        buildDyninstSymbols(newSyms, newSec);
+        for (unsigned i = 0; i < newSyms.size(); i++) {
+            symObj->addSymbol(newSyms[i], false);
         }
-            
+        
         // Okay, now...
         // Hand textSection and newSection to DynSymtab.
         
@@ -1089,3 +1061,85 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 	return retAddr;
 }
 
+
+// Build a list of symbols describing instrumentation and relocated functions. 
+// To keep this list (somewhat) short, we're doing one symbol per extent of 
+// instrumentation + relocation for a particular function. 
+// New: do this for one mapped object. 
+
+
+void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
+                                     Region *newSec) {
+    pdvector<codeRange *> ranges;
+    textRanges_.elements(ranges);
+
+    int_function *currFunc = NULL;
+    codeRange *startRange = NULL;
+
+    Address startAddr = 0;
+    unsigned size = 0;
+
+    for (unsigned i = 0; i < ranges.size(); i++) {
+        multiTramp *multi = ranges[i]->is_multitramp();
+        bblInstance *bbl = ranges[i]->is_basicBlockInstance();
+
+        bool finishCurrentRegion = false;
+        bool startNewRegion = false;
+        bool extendCurrentRegion = false;
+
+        if (multi) {
+            if (multi->func() != currFunc) {
+                finishCurrentRegion = true;
+                startNewRegion = true;
+            }
+            else {
+                extendCurrentRegion = true;
+            }
+        }
+        if (bbl) {
+            if (bbl->func() != currFunc) {
+                finishCurrentRegion = true;
+                startNewRegion = true;
+            }
+            else {
+                extendCurrentRegion = true;
+            }
+        }
+        else
+            continue;
+
+        
+        if (finishCurrentRegion && (currFunc != NULL)) {
+            std::string name = currFunc->prettyName();
+            name.append("_dyninst");
+
+            Symbol *newSym = new Symbol(name.c_str(),
+                                        "DyninstInst",
+                                        Symbol::ST_FUNCTION,
+                                        Symbol::SL_GLOBAL,
+                                        startAddr,
+                                        newSec,
+                                        size,
+                                        (void *)startRange);
+            newSyms.push_back(newSym);
+
+            currFunc = NULL;
+            startAddr = 0;
+            size = 0;
+            startRange = NULL;
+        }
+        if (startNewRegion) {
+            assert(currFunc == NULL);
+            
+            currFunc = (multi != NULL) ? (multi->func()) : (bbl->func());
+            assert(currFunc != NULL);
+            startRange = ranges[i];
+            startAddr = ranges[i]->get_address();
+            size = ranges[i]->get_size();
+        }
+        if (extendCurrentRegion) {
+            size += ranges[i]->get_size() + (ranges[i]->get_address() - (startAddr + size));
+        }
+    }
+}
+    

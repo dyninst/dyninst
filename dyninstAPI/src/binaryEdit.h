@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.14 2008/10/27 17:23:53 mlam Exp $
+// $Id: binaryEdit.h,v 1.15 2008/10/28 18:42:45 bernat Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -177,6 +177,8 @@ class BinaryEdit : public AddressSpace {
 
     std::vector<depRelocation *> dependentRelocations;
 
+    void buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
+                             Region *newSec);
 };
 
 class depRelocation {
