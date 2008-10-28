@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.66 2008/07/11 15:23:48 bill Exp $
+// $Id: arch-x86.h,v 1.67 2008/10/28 18:42:39 bernat Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -325,7 +325,8 @@ enum {
 };
 
 
-
+#ifndef PREFIX_LOCK
+// Might be coming in from InstructionAPI definitions
 #define PREFIX_LOCK   0xF0
 #define PREFIX_REPNZ  0xF2
 #define PREFIX_REP    0xF3
@@ -342,6 +343,7 @@ enum {
 
 #define PREFIX_SZOPER  0x66
 #define PREFIX_SZADDR  0x67
+#endif
 
 void ia32_set_mode_64(bool mode);
 bool ia32_is_mode_64();
