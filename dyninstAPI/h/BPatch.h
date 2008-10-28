@@ -518,8 +518,8 @@ public:
     // gets reset between the openBinary and openBinaryInt calls--is
     // this a gcc bug???
     // 
-    API_EXPORT(Int, (path, openSharedLibs), 
-               BPatch_binaryEdit *, openBinary, (const char *path, int openSharedLibs = 1));
+    API_EXPORT(Int, (path, openDependencies), 
+               BPatch_binaryEdit *, openBinary, (const char *path, bool openDependencies = false));
 
     // BPatch::attachProcess:
     // Attach to mutatee process

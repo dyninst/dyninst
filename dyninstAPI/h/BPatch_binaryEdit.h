@@ -92,7 +92,7 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
 
     private:
     BinaryEdit *llBinEdit;
-    BPatch_binaryEdit(const char *path, int openSharedLibs = 1);
+    BPatch_binaryEdit(const char *path, bool openDependencies);
     bool creation_error;
 
     public:

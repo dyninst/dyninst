@@ -89,7 +89,7 @@
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_binaryEdit::BPatch_binaryEdit(const char *path, int openSharedLibs) :
+BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
    llBinEdit(NULL),
    creation_error(false)
@@ -103,7 +103,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, int openSharedLibs) :
   
   std::string directoryName = "";
   
-  llBinEdit = BinaryEdit::openFile(std::string(path), openSharedLibs);
+  llBinEdit = BinaryEdit::openFile(std::string(path), openDependencies);
   if (!llBinEdit){
      creation_error = true;
      return;
@@ -222,6 +222,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
    for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
         funcIter != instrumentedFunctions.end();
         funcIter++) {
+
        pdvector<instPoint *> failedInstPoints;
        (*funcIter)->performInstrumentation(atomic,
                                            failedInstPoints); 
