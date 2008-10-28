@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.53 2008/09/03 06:08:44 jaw Exp $
+ * $Id: image-flowGraph.C,v 1.54 2008/10/28 18:42:46 bernat Exp $
  */
 
 #include <stdio.h>
@@ -1390,7 +1390,8 @@ bool image_func::buildCFG(
 		
 		if(targetFunc && (targetFunc->symTabName() == "exit" ||
                                   targetFunc->symTabName() == "abort" ||
-                                  targetFunc->symTabName() == "__f90_stop"))
+                                  targetFunc->symTabName() == "__f90_stop" ||
+                                  targetFunc->symTabName() == "fancy_abort"))
 		  { 
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
 				   targetFunc->symTabName().c_str(),
@@ -1398,7 +1399,8 @@ bool image_func::buildCFG(
 		  }
                 else if((*pltFuncs)[target] == "exit" || 
                         (*pltFuncs)[target] == "abort" ||
-                        (*pltFuncs)[target] == "__f90_stop")
+                        (*pltFuncs)[target] == "__f90_stop" ||
+                        (*pltFuncs)[target] == "fancy_abort")
 		  {
                       parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
                           (*pltFuncs)[target].c_str(),
@@ -1520,7 +1522,7 @@ image_func * image_func::bindCallTarget(
         image_basicBlock* currBlk,
         pdvector< Address >& callTargets,
         dictionary_hash< Address, image_func *>& preParseStubs)
-{
+    {
     codeRange *tmpRange;
     image_basicBlock *ph_callTarget = NULL;
     image_basicBlock *newBlk;
