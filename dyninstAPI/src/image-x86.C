@@ -56,6 +56,8 @@
 #include <set>
 #include <algorithm>
 #include "arch.h"
+#include "instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/InstructionDecoder.h"
 
 /**************************************************************
  *
@@ -249,8 +251,10 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
 }
 
 bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
-        instruction &branchInsn)
+        instruction &branchInsn, const std::set<Dyninst::InstructionAPI::RegisterAST::Ptr>& regsRead)
 {
+using namespace Dyninst::InstructionAPI;
+
     BPatch_Set<image_basicBlock *> visited;
     pdvector<image_basicBlock *> WL;
     pdvector<image_edge *> sources;
@@ -276,11 +280,41 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
             // check for cmp 
             if( iter.getInstruction().isCmp() )
             {
-                parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
-                                *iter);
+#if defined(unsafe_safety_check)
+                // This is the right thing to do, but we see several examples of
+                // code like so:
+
+                //
+                // cmp 0x13, 0x8(%ebp)
+                // ... jump around
+                // mov 0x8(%ebp), %eax
+                // ... calculate
+                // jmp *%eax
+                // 
+                // Note that there's an alias problem here that means we can't look for
+                // cmp eax, ...
+
+                InstructionDecoder d((const unsigned char *)curBlk->getFirstFunc()->img()->getPtrToInstruction(*iter), 
+                                     iter.getInstruction().size());
+                Instruction cmpInsn = d.decode();
+                for(std::set<RegisterAST::Ptr>::const_iterator curReg = regsRead.begin();
+                    curReg != regsRead.end();
+                    ++curReg)
+                    {
+                        if(cmpInsn.isRead(*curReg))
+                            {
+                                parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
+                                               *iter);
+                                maxSwitch = iter.getInstruction();
+                                maxSwitchAddr = *iter;
+                                foundMaxSwitch = true;
+                            }
+                    }
+#else
                 maxSwitch = iter.getInstruction();
-		maxSwitchAddr = *iter;
+                maxSwitchAddr = *iter;
                 foundMaxSwitch = true;
+#endif
             }
             if( iter.getInstruction().type() & IS_JCC ) {
                 parsing_printf("\tFound jmp table cond br instruction at 0x%lx\n",
@@ -497,6 +531,7 @@ bool image_func::archGetMultipleJumpTargets(
                                 InstrucIter &ah,
                                 pdvector< instruction >& allInstructions)
 {
+    using namespace Dyninst::InstructionAPI;
 
     //we are going to get the instructions to parse the 
     //jump table from my source block(s)
@@ -565,8 +600,13 @@ bool image_func::archGetMultipleJumpTargets(
                     break;    
                 }
             }
-	    }
+        }
 
+        InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(tableInsnAddr), 
+                             tableInsn.size());
+        Instruction tableInsn_iapi = d.decode();
+        std::set<RegisterAST::Ptr> regsRead;
+        tableInsn_iapi.getReadSet(regsRead);
         /* Previous comment said:	
         // search backward over the blocks that reach this one. we're looking
         // for a comparison on this register. if we find an assignment to the
@@ -578,7 +618,7 @@ bool image_func::archGetMultipleJumpTargets(
            This routine finds the comparison & conditional branch that guard
            the jump table.
         */
-        bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn);
+        bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn, regsRead);
 
         // Searches for a thunk (call-thunk or rip-relative LEA as one
         // sees on x86-64). thunkOffset is filled in with the /base address
@@ -637,7 +677,14 @@ bool image_func::archIsATailCall(InstrucIter &ah,
                                  pdvector< instruction >& allInstructions)
 {
     unsigned numInsns = allInstructions.size() - 2;
+
     Address target = ah.getBranchTargetAddress();
+
+    // Several cases
+    //
+    // If we are a direct jump AND destination is a known entry point OR an indirect jump
+    //    if we have saved the FP && previous insn is POP_EBP, true
+    //    if previous insn is LEAVE, true
 
     if( img()->findFuncByEntry( target ) ||
         ( *allInstructions[ numInsns ].ptr() == POP_EBP ||
@@ -654,7 +701,35 @@ bool image_func::archIsIndirectTailCall(InstrucIter &ah)
   if(!ah.peekPrev()) return false;
   InstrucIter temp(ah);
   temp--;
-  return (*temp.getInstruction().op_ptr()) == POP_EBX;
+  
+
+  if (*(temp.getInstruction().op_ptr()) == POP_EBX) {
+      //fprintf(stderr, "0x%lx: Indirect branch preceded by POP_EBX\n",
+      //*temp);
+
+      // No longer return true; not sure why it ever was. 
+      return false;
+  }
+  if (*(temp.getInstruction().op_ptr()) == POP_EBP) {
+      if (savesFramePointer()) {
+          //fprintf(stderr, "0x%lx: Indirect branch preceded by POP_EBP, FRAMED\n",
+          //*temp);
+          return true;
+      }
+      else {
+          //fprintf(stderr, "0x%lx: Indirect branch preceded by POP_EBP, FRAMELESS\n",
+          //*temp);
+          // Assume that EBP could hold real data, return false
+          return false;
+      }
+  }
+  if (temp.getInstruction().isLeave()) {
+      //fprintf(stderr, "0x%lx: Indirect branch preceded by LEAVE\n",
+      //*temp);
+      return true;
+  }
+
+  return false;
 }
 
 bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
