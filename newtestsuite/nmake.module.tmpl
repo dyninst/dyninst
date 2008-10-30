@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 2008/10/20 20:35:13 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.5 2008/10/30 19:15:44 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -22,24 +22,32 @@ LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
 SYSLIBS		= 
 
 LIBTESTSUITE = libtestSuite.dll
+LIBDYNINSTCOMP = libtestdyninst.dll
+
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib
+
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
-                    ../src/test_lib_mutateeStart.C \
-                    ../src/Process_data.C \
                     ../src/ParameterDict.C \
                     ../src/TestData.C \
-                    ../src/Callbacks.C \
-					../src/TestMutator.C \
-					../src/TestOutputDriver.C \
-					../src/ResumeLog.C \
-					../src/dyninst_comp.C \
-					../src/test_info_new.C
-               
+                    ../src/TestMutator.C \
+                    ../src/TestOutputDriver.C \
+                    ../src/StdOutputDriver.C \
+                    ../src/ResumeLog.C \
+                    ../src/test_info_new.C
+
+SRCS_DYNINSTCOMP = ../src/dyninst_comp.C \
+                   ../src/test_lib_mutateeStart.C \
+                   ../src/Callbacks.C \
+                   ../src/Process_data.C
 
 OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
 OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
 
-MUTATOR_LIBS = libdyninstAPI.lib libtestSuite.lib
+OBJS_DYNINSTCOMP = $(SRCS_DYNINSTCOMP:.C=.obj)
+OBJS_DYNINSTCOMP = $(OBJS_DYNINSTCOMP:../src/=)
+
+TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib
 
 all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll # libtestA.dll libtestB.dll
 
@@ -56,15 +64,20 @@ LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
 LIBS    = libdyninstAPI.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
-	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE) $(LIBS)
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)
+
+$(LIBDYNINSTCOMP): $(OBJS_DYNINSTCOMP) ../src/test_lib.h
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_DYNINSTCOMP) $(LIBS) libtestSuite.lib
 
 $(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
+
+$(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
 
 test_info_new.gen.obj: test_info_new.gen.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 test_driver.exe:  test_driver.obj test_lib.obj test_info_new.gen.obj $(LIBTESTSUITE)
-	$(LINK) $(LDFLAGS) test_driver.obj test_info_new.gen.obj $(MUTATOR_LIBS)
+	$(LINK) $(LDFLAGS) test_driver.obj test_info_new.gen.obj $(TESTDRIVER_LIBS)
 
 test_driver.obj: ../src/test_driver.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -Dnative_cxx=_VC++.exe -c $**
@@ -80,4 +93,7 @@ DatabaseOutputDriver.obj: ../src/DatabaseOutputDriver.C
 	
 DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
 # Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
-	$(LINK) $(LDFLAGS) -DLL -out:$@ $(MUTATOR_LIBS) Advapi32.lib Ws2_32.lib $**
+	$(LINK) $(LDFLAGS) -DLL -out:$@ $(TESTDRIVER_LIBS) Advapi32.lib Ws2_32.lib $**
+
+$(dyninst_OBJS_ALL_MUTATORS): ../src/$*.C
+	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VCC++.exe -I../src/ -I../src/dyninst -c ../src/dyninst/$**

@@ -619,7 +619,7 @@ void stop_process_()
  */
 void test_passes(const char *testname) {
    unsigned int i;
-   for (i = 0; i < MAX_TEST; i++) {
+   for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
          /* Found it */
          passedTest[i] = TRUE;
@@ -631,7 +631,7 @@ void test_passes(const char *testname) {
 /* This function sets a flag noting that testname ran unsuccessfully */
 void test_fails(const char *testname) {
    unsigned int i;
-   for (i = 0; i < MAX_TEST; i++) {
+   for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
          /* Found it */
          passedTest[i] = FALSE;
@@ -646,14 +646,14 @@ void test_fails(const char *testname) {
 static int test_passed(const char *testname) {
    unsigned int i;
    int retval;
-   for (i = 0; i < MAX_TEST; i++) {
+   for (i = 0; i < max_tests; i++) {
       if (!strcmp(mutatee_funcs[i].testname, testname)) {
          /* Found it */
          retval = passedTest[i];
          break;
       }
    }
-   if (i >= MAX_TEST) {
+   if (i >= max_tests) {
       retval = FALSE; /* Not found */
    }
    return retval;

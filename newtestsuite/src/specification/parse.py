@@ -21,7 +21,7 @@ record_str = r"""
 
 prog_str = r"""
    \[
-   (?P<name>.+?),(?P<src>.+?)
+   (?P<name>.+?),\[(?P<src>.+?)\]
    \]
 """
 record_re = re.compile(record_str, re.VERBOSE)
@@ -30,7 +30,7 @@ records = []
 
 def parse_flat_list(str):
    if ( len(str) < 2 ):
-      print "error: ill formed list"
+      print "error: ill formed list: " + str
       exit(1)
    return re.compile(",").split(str[1:-1])
 
@@ -64,10 +64,13 @@ class Program:
          exit(1)
 
       self.name = match.group('name')
+      print "Parsing source: " + match.group('src')
       self.src = parse_flat_list(match.group('src'))
       self.type = self.so
 
       print self.name
+      print self.src
+      print self.type
    
 
 class Test:
@@ -132,6 +135,10 @@ def read_data(filename):
             bracket_depth += 1
          elif (x == "]" ):
             bracket_depth -= 1
+         elif (x == "\n"):
+	   pass
+         elif (x == ","):
+	   pass
          else:
             print "error: malformed file1: %s"%(iter)
             exit(1)

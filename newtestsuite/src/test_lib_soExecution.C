@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.4 2008/10/20 20:37:27 legendre Exp $
+// $Id: test_lib_soExecution.C,v 1.5 2008/10/30 19:16:58 legendre Exp $
 
 #include <sstream>
 
@@ -52,6 +52,7 @@
 #include "TestOutputDriver.h"
 #include "TestMutator.h"
 #include "test_info_new.h"
+#include "comptester.h"
 
 TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
   std::stringstream fname;
@@ -78,34 +79,42 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
   return retval;
 }
 
+static void* openSO(const char *soname)
+{
+   char *fullSoPath;
+#if defined(os_aix)
+   fullSoPath = searchPath(getenv("LIBPATH"), soname);
+#else
+   fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
+#endif
+   
+   if (!fullSoPath) {
+      fprintf(stderr, "Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n",
+              soname);
+      return NULL; // Error
+   }
+   void *handle = dlopen(fullSoPath, RTLD_NOW);
+   ::free(fullSoPath);
+   if (!handle) {
+       fprintf(stderr, "Error opening lib: %s\n", soname);
+      fprintf(stderr, "%s\n", dlerror());
+      return NULL; //Error
+   }
+   return handle;
+}
+
 int setupMutatorsForRunGroup(RunGroup *group)
 {
   int tests_found = 0;
   for (int i = 0; i < group->tests.size(); i++) {
     if (group->tests[i]->disabled)
        continue;
+    TestInfo *test = group->tests[i];
+    const char *soname = test->soname;
 
-    char *fullSoPath;
-#if defined(os_aix)
-    TestInfo *test = group->tests[i];
-    const char *soname = test->soname;
-    fullSoPath = searchPath(getenv("LIBPATH"), group->tests[i]->soname);
-#else
-    TestInfo *test = group->tests[i];
-    const char *soname = test->soname;
-    fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
-#endif
-    if (!fullSoPath) {
-      fprintf(stderr, "Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n",
-	      soname);
-      return -1; // Error
-    }
-    void *handle = dlopen(fullSoPath, RTLD_NOW);
-    ::free(fullSoPath);
+    void *handle = openSO(soname);
     if (!handle) {
-      fprintf(stderr, "Error opening lib: %s\n", group->tests[i]->soname);
-      fprintf(stderr, "%s\n", dlerror());
-      return -1; //Error
+       return -1;
     }
 
     typedef TestMutator *(*mutator_factory_t)();
@@ -115,7 +124,7 @@ int setupMutatorsForRunGroup(RunGroup *group)
     mutator_factory_t factory = (mutator_factory_t) dlsym(handle,
 							  mutator_name);
     if (NULL == factory) {
-      fprintf(stderr, "Error funding function: %s, in %s\n", mutator_name,
+      fprintf(stderr, "Error finding function: %s, in %s\n", mutator_name,
 	      soname);
       fprintf(stderr, "%s\n", dlerror());
       dlclose(handle);
@@ -134,3 +143,25 @@ int setupMutatorsForRunGroup(RunGroup *group)
   return tests_found; // No error
 } // setupMutatorsForRunGroup
 
+typedef ComponentTester* (*comptester_factory_t)();
+ComponentTester *Module::loadModuleLibrary()
+{
+   libhandle = NULL;
+   char libname[256];
+   snprintf(libname, 256, "libtest%s.so", name.c_str());
+   
+   //TODO: Open the so that goes with this group.
+   libhandle = openSO(libname);
+   if (!libhandle)
+      return NULL;
+
+   comptester_factory_t factory;
+   factory = (comptester_factory_t) dlsym(libhandle, "componentTesterFactory");
+   if (!factory)
+   {
+      fprintf(stderr, "Error finding componentTesterFactory\n");
+      return NULL;
+   }
+
+   return factory();
+}

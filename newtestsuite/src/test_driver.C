@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.6 2008/10/20 20:37:11 legendre Exp $
+// $Id: test_driver.C,v 1.7 2008/10/30 19:16:50 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -435,11 +435,13 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
       if (groups[i]->disabled)
          continue;
       groups[i]->disabled = true;
-      for (unsigned j=0; j<groups[i]->tests.size(); j++) {
-         if (!groups[i]->tests[j]->disabled)
-            groups[i]->disabled = false;
+      if (groups[i]->mod) {
+         for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+            if (!groups[i]->tests[j]->disabled)
+               groups[i]->disabled = false;
+         }
       }
-   }       
+   }
 }
 
 void setIndexes(std::vector<RunGroup *> groups)
@@ -529,6 +531,51 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    }
 }
 
+struct groupcmp 
+{
+   bool operator()(const RunGroup* lv, const RunGroup* rv)
+   {
+      if (lv->mod == rv->mod)
+      {
+         return std::string(lv->mutatee).compare(rv->mutatee) == -1;
+      }
+      return std::string(lv->mod->name).compare(rv->mod->name) == -1;
+   }
+};
+
+void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
+                           ParameterDict &params)
+{
+   bool initModule = false;
+   if (group->disabled)
+      return;
+   for (unsigned j=0; j<group->tests.size(); j++)
+   {
+      if (group->tests[j]->results[program_setup_rs] == UNKNOWN &&
+          !group->tests[j]->disabled)
+         initModule = true;
+   }
+   if (!initModule)
+      return;
+
+   log_teststart(group->index, 0, program_setup_rs);
+   test_results_t result = group->mod->tester->program_setup(params);
+   log_testresult(result);
+
+   for (unsigned i=0; i<groups.size(); i++) {
+      if (groups[i]->disabled || groups[i]->mod != group->mod)
+         continue;
+      for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+         if (groups[i]->tests[j]->disabled)
+            continue;
+         groups[i]->tests[j]->results[program_setup_rs] = result;
+         if (result != PASSED)
+            reportTestResult(groups[i], groups[i]->tests[j]);
+      }
+   }
+}
+         
+
 void startAllTests(std::vector<RunGroup *> &groups,
                    std::vector<char *> mutatee_list)
 {
@@ -552,7 +599,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
    param["debugPrint"] = &debugprint_p;
 
    // Print Test Log Header
-   getOutput()->log(LOGINFO, "Commencing DyninstAPI test(s) ...\n");
+   getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
 #if !defined(os_windows)
    if ( pdscrdir )
    {
@@ -564,21 +611,13 @@ void startAllTests(std::vector<RunGroup *> &groups,
 
    // Sets the disable flag on groups and tests that weren't selected by
    // options or have alread been passed according to the resumelog
+   std::sort(groups.begin(), groups.end(), groupcmp());
    setIndexes(groups);
    disableUnwantedTests(groups);
 
-   //TODO: Once Bill has the group associated with a component, lookup and
-   // load the specific component for each group.
-   ComponentTester *component = componentTesterFactory();
-   test_results_t result = component->program_setup(param);
-   for (unsigned i=0; i<groups.size(); i++) {
-      for (unsigned j=0; j<groups[i]->tests.size(); j++) {
-         groups[i]->tests[j]->results[program_setup_rs] = result;
-      }
-   }
-      
-   
-   // Now run each of the run groups in to_run
+   std::vector<Module *> modules;
+   Module::getAllModules(modules);
+
    for (i = 0; i < groups.size(); i++) {
       if (groups[i]->disabled)
          continue;
@@ -591,10 +630,12 @@ void startAllTests(std::vector<RunGroup *> &groups,
          return;
       }
 
+      initModuleIfNecessary(groups[i], groups, param);
+
       // Print mutatee (run group) header
       printLogMutateeHeader(groups[i]->mutatee);
 
-      executeGroup(component, groups[i], param);
+      executeGroup(groups[i]->mod->tester, groups[i], param);
        
       if (numUnreportedTests(groups[i])) {
          //This should be uncommon.  We have tests in this group that didn't

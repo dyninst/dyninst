@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.1 2008/06/18 20:16:40 carl Exp $
+# $Id: Makefile,v 1.2 2008/10/30 19:15:51 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -34,3 +34,7 @@ TEST_LINKS = libdyninstAPI.lib libtestSuite.lib
 !include $(TO_CORE)/nmake.program.tmpl
 !include ./nmake.mutators.gen
 !include ./nmake.solo_mutatee.gen
+
+!if EXIST(noexist.mak)
+!include noexist.mak
+!endif

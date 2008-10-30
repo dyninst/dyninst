@@ -81,7 +81,7 @@ int CONCAT(TEST_NAME, _mutatee());
 
 static const char *testname = QUOTE(TEST_NAME);
 
-int groupable_mutatee = GROUPABLE;
+static int groupable_mutatee = GROUPABLE;
 
 /* The macro SOLO_MUTATEE(<testname>) (from solo.h) defines a few variables
  * that are required by the mutatee driver.  This macro needs to be called
@@ -89,12 +89,15 @@ int groupable_mutatee = GROUPABLE;
  */
 
 /* SOLO_MUTATEE(@<testname>@); */
+#if (GROUPABLE==0)
 mutatee_call_info_t mutatee_funcs[] = {
   {QUOTE(TEST_NAME), CONCAT(TEST_NAME, _mutatee), SOLO, "@<label>@"}
 };
+
 int runTest[1];
 int passedTest[1];
 int MAX_TEST = 1;
+#endif
 
 #ifdef __cplusplus
 }

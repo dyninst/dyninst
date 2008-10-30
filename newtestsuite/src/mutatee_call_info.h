@@ -62,4 +62,6 @@ typedef struct _mutatee_info {
   int groupable; /* Groupable mutatee flag: controls output */
 } mutatee_info_t;
 
+extern int max_tests;
+
 #endif /* MUTATEE_CALL_INFO_H */

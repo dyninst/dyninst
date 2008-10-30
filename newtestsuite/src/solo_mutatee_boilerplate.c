@@ -85,13 +85,14 @@ static const char *testname = QUOTE(TEST_NAME);
  * of a group mutatee.  The mutatee driver uses this flag to tell whether it
  * is supposed to print the results of the test or not.
  */
-int groupable_mutatee = GROUPABLE;
+static int groupable_mutatee = GROUPABLE;
 
 /* The macro SOLO_MUTATEE(<testname>) (from solo_mutatee.h) defines a few
  * variables that are required by the mutatee driver.  This macro needs to be
  * called *after* the declaration of the main mutatee function.
  */
 
+#if (GROUPABLE==0)
 /* SOLO_MUTATEE(@<testname>@); */
 /* Why am I using a macro here?  I'm just going to include the body of the
  * macro directly.
@@ -101,7 +102,8 @@ mutatee_call_info_t mutatee_funcs[] = {
 };
 int runTest[1];
 int passedTest[1];
-unsigned int MAX_TEST = 1;
+int max_tests = 1;
+#endif
 
 #ifdef __cplusplus
 }

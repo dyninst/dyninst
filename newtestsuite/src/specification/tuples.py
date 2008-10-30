@@ -105,7 +105,7 @@ def parse_mutatees(tuplestring):
 
 def parse_tests(tuplestring):
 	test_list = parse_pllist(tuplestring)
-	return map(lambda x: dict(zip(('name','mutator','mutatee','platform','groupable'), x)), test_list)
+	return map(lambda x: dict(zip(('name','mutator','mutatee','groupable', 'module'), x)), test_list)
 
 def parse_compilers(tuplestring):
 	compiler_tuple_labels = ('executable', 'defstring', 'platforms',

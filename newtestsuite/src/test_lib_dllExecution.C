@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_dllExecution.C,v 1.3 2008/10/20 20:37:25 legendre Exp $
+// $Id: test_lib_dllExecution.C,v 1.4 2008/10/30 19:16:57 legendre Exp $
 #include "test_lib.h"
 #include "ParameterDict.h"
 #include "TestOutputDriver.h"
+#include "comptester.h"
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,7 +81,7 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
 int setupMutatorsForRunGroup(RunGroup * group)
 {
    int tests_found = 0;
-	for (int i = 0; i < group->tests.size(); i++) {
+	for (unsigned i = 0; i < group->tests.size(); i++) {
 		if (group->tests[i]->disabled)
 			continue;
 
@@ -118,3 +119,28 @@ int setupMutatorsForRunGroup(RunGroup * group)
 	return tests_found;
 }
 
+typedef ComponentTester* (*comptester_factory_t)();
+ComponentTester *Module::loadModuleLibrary()
+{
+   libhandle = NULL;
+   char libname[256];
+   snprintf(libname, 256, "libtest%s.dll", name.c_str());
+
+   HINSTANCE handle = LoadLibrary(dllname);
+   if (!handle) {
+      fprintf(stderr, "Error opening lib: %s\n", dllname);
+      fprintf(stderr, "%s\n", GetLastError());
+      return NULL;
+   }
+   libhandle = (void *) handle;
+   comptester_factory_t factory;
+   factory = (comptester_factory_t) GetProcAddress(handle, "componentTesterFactory");
+   if (NULL == factory) {
+      fprintf(stderr, "Error finding componentTesterFactory");
+      fprintf(stderr, "%s\n", GetLastError());
+      FreeLibrary(handle);
+      return NULL;
+   }
+   
+   return factory();
+}

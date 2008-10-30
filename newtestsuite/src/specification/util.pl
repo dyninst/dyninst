@@ -146,3 +146,7 @@ replace_suffix(In, Old, New, Out) :-
 replace_suffix(In, Old, New, Out) :-
     var(In), nonvar(Old), nonvar(New), nonvar(Out),
     replace_suffix(Out, New, Old, In).
+
+removedups([], []).
+%removedups([H|T], Result) :- member(H, T), removedups(T, Result), !.
+removedups([H|T], [H|T1]) :- (member(H, T) -> removedups(T, [H | T1]); removedups(T, T1)).

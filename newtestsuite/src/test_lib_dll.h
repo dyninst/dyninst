@@ -14,6 +14,12 @@
 #pragma warning(disable:4275)
 #pragma warning(disable:4786)
 
+#ifdef COMPLIB_DLL_BUILD
+#define COMPLIB_DLL_EXPORT __declspec(dllexport)
+#else
+#define COMPLIB_DLL_EXPORT __declspec(dllimport)
+#endif
+
 #ifdef TESTLIB_DLL_BUILD
 // we are building the Testsuite DLL
 #define TESTLIB_DLL_EXPORT __declspec(dllexport)
@@ -28,6 +34,7 @@
 // we are not building for a Windows target 
 #define TESTLIB_DLL_EXPORT
 #define TEST_DLL_EXPORT
+#define COMPLIB_DLL_EXPORT
 #endif /* _MSC_VER */
 
 #endif /* TEST_LIB_DLL_H */

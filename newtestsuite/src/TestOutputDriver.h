@@ -23,7 +23,7 @@ typedef enum {
 
 class TestOutputDriver {
 public:
-   TESTLIB_DLL_EXPORT static bool TestOutputDriver::getAttributesMap(TestInfo *test, 
+   TESTLIB_DLL_EXPORT static bool getAttributesMap(TestInfo *test, 
                         RunGroup *group, std::map<std::string, std::string> &attrs);
 
   // Informs the output driver that any log messages or results should be

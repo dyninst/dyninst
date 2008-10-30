@@ -108,13 +108,13 @@ void setRunTest(const char *testname) {
     return;
   }
 
-  for (i = 0; i < MAX_TEST; i++) {
+  for (i = 0; i < max_tests; i++) {
     if (!strcmp(testname, mutatee_funcs[i].testname)) {
       runTest[i] = TRUE;
       break;
     }
   }
-  if (i >= MAX_TEST) {
+  if (i >= max_tests) {
     output->log(STDERR, "%s is not a valid test for this mutatee\n", testname);
   }
 } /* setRunTest() */
@@ -155,7 +155,7 @@ void updateResumeLogCompleted(const char *resumelogname) {
 
 void setLabel(unsigned int label_ndx, char *label) {
   /* TODO Fix me so group mutatees work */
-  if (MAX_TEST > 1) {
+  if (max_tests > 1) {
     output->log(STDERR, "Group mutatees not enabled yet\n");
     return;
   }
@@ -195,7 +195,7 @@ int main(int iargc, char *argv[])
       setExecutableName(mutatee_name);
    }
 
-   for (j=0; j < MAX_TEST; j++) {
+   for (j=0; j < max_tests; j++) {
       runTest[j] = FALSE;
    }
 
@@ -266,7 +266,7 @@ int main(int iargc, char *argv[])
          i += 1;
          setPIDFilename(argv[i]);
       } else if (!strcmp(argv[i], "-runall")) {
-         for (j = 0; j < MAX_TEST; j++) {
+         for (j = 0; j < max_tests; j++) {
             runTest[j] = TRUE;
          }
       } else if (!strcmp(argv[i], "-dboutput")) {
@@ -324,7 +324,7 @@ int main(int iargc, char *argv[])
    /* 
     * Run the tests and keep track of return values in case of test failure
     */
-   for (i = 0; i < MAX_TEST; i++) {
+   for (i = 0; i < max_tests; i++) {
       if (runTest[i]) {
 
          log_testrun(mutatee_funcs[i].testname);

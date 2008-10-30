@@ -128,12 +128,14 @@ mutator_tuple(Name, Sources, Libraries, Platform, Compiler) :-
                 test_platform(TestName, Platform)
             ),
             Ms),
-    sort(Ms, Ms_uniq), !, % We won't build the list again
-    member(Name, Ms_uniq),
+    sort(Ms, Ms_sorted), !, % We won't build the list again
+    member(Name, Ms_sorted),
     mutator(Name, Sources),
     mutator_requires_libs(Name, Explicit_libs),
     all_mutators_require_libs(Implicit_libs),
-    findall(L, (member(L, Explicit_libs); member(L, Implicit_libs)), All_libs),
+	tests_module(Name, Modules),
+	module_requires_libs(Modules, Module_libs),
+    findall(L, (member(L, Explicit_libs); member(L, Implicit_libs); member(L, Module_libs)), All_libs),
     % BUG(?) This doesn't maintain order of libraries, if link order matters..
     sort(All_libs, Libraries),
     mcomp_plat(Compiler, Platform).
@@ -221,10 +223,11 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
 % instead of a simple mutatee name
 % test_tuple
 % Map a test name to its mutator and mutatee, along with ?
-test_tuple(Name, Mutator, Mutatee, Platform, Groupable) :-
+test_tuple(Name, Mutator, Mutatee, Platform, Groupable, Module) :-
     test(Name, Mutator, Mutatee),
     test_platform(Name, Platform),
-    (groupable_test(Name) -> Groupable = true; Groupable = false).
+    (groupable_test(Name) -> Groupable = true; Groupable = false),
+	tests_module(Name, Module).
 
 % Provide tuples for run groups
 rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
@@ -317,7 +320,7 @@ write_tuples(Filename, Platform) :-
             Compilers),
     write_term(Stream, Compilers, [quoted(true)]),
     write(Stream, '\n'),
-    findall([N, S, L, Platform, C],
+    setof([N, S, L, Platform, C],
             mutator_tuple(N, S, L, Platform, C), Mutators),
     write_term(Stream, Mutators, [quoted(true)]),
     write(Stream, '\n'),
@@ -326,8 +329,8 @@ write_tuples(Filename, Platform) :-
     sort(Mutatees_t, Mutatees),
     write_term(Stream, Mutatees, [quoted(true)]),
     write(Stream, '\n'),
-    findall([T, Mr, Me, G],
-            test_tuple(T, Mr, Me, Platform, G),
+    findall([T, Mr, Me, G, Mo],
+            test_tuple(T, Mr, Me, Platform, G, Mo),
             Tests),
     write_term(Stream, Tests, [quoted(true)]),
     write(Stream, '\n'),

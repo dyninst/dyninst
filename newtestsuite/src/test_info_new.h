@@ -2,12 +2,15 @@
 #define TEST_INFO_NEW_H
 
 #include <vector>
+#include <string>
+#include <map>
 
 #include "TestData.h"
 #include "test_results.h"
 
 // Avoid stupid circular dependency issue..
 class TestMutator;
+class ComponentTester;
 
 #define NUM_RUNSTATES 7
 typedef enum {
@@ -36,10 +39,12 @@ public:
   bool result_reported;
   
   
-  TestInfo(unsigned int i, const char *iname, const char *mrname,
+  TESTLIB_DLL_EXPORT TestInfo(unsigned int i, const char *iname, const char *mrname,
 	   const char *isoname, const char *ilabel);
-  ~TestInfo();
+  TESTLIB_DLL_EXPORT ~TestInfo();
 };
+
+class Module;
 
 class RunGroup {
 public:
@@ -51,12 +56,29 @@ public:
   unsigned int index;
   std::vector<TestInfo *> tests;
   bool disabled;
+  Module *mod;
 
-  RunGroup(char *mutatee_name, start_state_t state_init,
-	   create_mode_t attach_init, bool ex, TestInfo *test_init);
-  RunGroup(char *mutatee_name, start_state_t state_init,
-	   create_mode_t attach_init, bool ex);
-  ~RunGroup();
+  TESTLIB_DLL_EXPORT RunGroup(char *mutatee_name, start_state_t state_init,
+                              create_mode_t attach_init, bool ex, TestInfo *test_init, char *modname_);
+  TESTLIB_DLL_EXPORT RunGroup(char *mutatee_name, start_state_t state_init,
+                              create_mode_t attach_init, bool ex, char *modname_);
+  TESTLIB_DLL_EXPORT ~RunGroup();
+};
+
+class Module {
+   bool creation_error;
+   static std::map<std::string, Module *> allmods;
+
+   Module(std::string name_);
+   ComponentTester *loadModuleLibrary();
+   void *libhandle;
+public:
+   std::string name;
+   ComponentTester *tester;
+   std::vector<RunGroup *> groups;
+
+   static bool registerGroupInModule(std::string modname, RunGroup *group);
+   static void getAllModules(std::vector<Module *> &mods);
 };
 
 //extern std::vector<RunGroup *> tests;
