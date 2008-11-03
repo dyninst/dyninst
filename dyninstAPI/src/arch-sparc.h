@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.55 2008/04/22 04:39:26 jaw Exp $
+// $Id: arch-sparc.h,v 1.56 2008/11/03 15:19:24 jaw Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
-#include <dynutil/h/Annotatable.h>
+#include "Annotatable.h"
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -540,11 +540,15 @@ private:
 
 class codeGen;
 
+#if 0
 typedef struct {} register_read_set_a;
 typedef struct {} register_write_set_a;
+static AnnotationClass<std::vector<InsnRegister *> > RegisterReadSetAnno("RegisterReadSetAnno");
+static AnnotationClass<std::vector<InsnRegister *> > RegisterWriteSetAnno("RegisterWriteSetAnno");
+#endif
 class InsnRegister;
-class instruction : public Annotatable<InsnRegister, register_read_set_a>,
-                    public Annotatable<InsnRegister, register_write_set_a> {
+class instruction : public AnnotatableSparse
+{
 
  private:
     static instructUnion *insnPtr(codeGen &gen);
@@ -554,8 +558,7 @@ class instruction : public Annotatable<InsnRegister, register_read_set_a>,
     instruction(unsigned int raw) { insn_.raw = raw; }
 
     instruction(const instruction &insn) :
-        Annotatable<InsnRegister, register_read_set_a>(),
-        Annotatable<InsnRegister, register_write_set_a>(),
+        AnnotatableSparse(),
         insn_(insn.insn_) {};
     instruction(instructUnion &insn) :
         insn_(insn) {};

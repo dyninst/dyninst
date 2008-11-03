@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.53 2008/10/27 17:23:54 mlam Exp $
+ * $Id: Object-elf.C,v 1.54 2008/11/03 15:19:25 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -936,35 +936,45 @@ void Object::load_object(bool alloc_syms)
 
       // And attempt to parse the ELF data structures in the file....
       // EEL, added one more parameter
+
       if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
                stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
-               dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) {
+               dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) 
+      {
          goto cleanup;
       }
+
       addressWidth_nbytes = elfHdr.wordSize();
 
       // find code and data segments....
       find_code_and_data(elfHdr, txtaddr, dataddr);
-      if(elfHdr.e_type() != ET_REL) {
-          if (!code_ptr_ || !code_len_) {
-              //bpfatal( "no text segment\n");
-              goto cleanup;
-          }
-          if (!data_ptr_ || !data_len_) {
-              //bpfatal( "no data segment\n");
-              goto cleanup;
-          }
+
+      if (elfHdr.e_type() != ET_REL) 
+      {
+         if (!code_ptr_ || !code_len_) 
+         {
+            //bpfatal( "no text segment\n");
+            goto cleanup;
+         }
+
+         if (!data_ptr_ || !data_len_) 
+         {
+            //bpfatal( "no data segment\n");
+            goto cleanup;
+         }
       }
       get_valid_memory_areas(elfHdr);
 
       //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
+
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-      if (eh_frame_scnp != 0 && gcc_except != 0) {
+      if (eh_frame_scnp != 0 && gcc_except != 0) 
+      {
          find_catch_blocks(elfHdrForDebugInfo, eh_frame_scnp, gcc_except, catch_addrs_);
       }
 #endif
-      if(interp_scnp)
+      if (interp_scnp)
          interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
 
       // global symbols are put in global_symbols. Later we read the
@@ -980,83 +990,94 @@ void Object::load_object(bool alloc_syms)
       struct timeval starttime;
       gettimeofday(&starttime, NULL);
 #endif
-      if (alloc_syms) {
-      std::vector<Symbol *> allsymbols;
-
-      // find symbol and string data
-      string module = "DEFAULT_MODULE";
-      string name   = "DEFAULT_NAME";
-      Elf_X_Data symdata, strdata;
-      if (symscnp && strscnp)
+      if (alloc_syms) 
       {
-         symdata = symscnp->get_data();
-         strdata = strscnp->get_data();
-         parse_symbols(allsymbols, symdata, strdata, false, module);
-      }   
-      sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
-      //VECTOR_SORT(allsymbols,symbol_compare);
+         std::vector<Symbol *> allsymbols;
 
-      no_of_symbols_ = allsymbols.size();
-      fix_zero_function_sizes(allsymbols, 0);
+         // find symbol and string data
+         string module = "DEFAULT_MODULE";
+         string name   = "DEFAULT_NAME";
+         Elf_X_Data symdata, strdata;
 
-      override_weak_symbols(allsymbols);
+         if (symscnp && strscnp)
+         {
+            symdata = symscnp->get_data();
+            strdata = strscnp->get_data();
+            parse_symbols(allsymbols, symdata, strdata, false, module);
+         }   
 
-      // dump "allsymbols" into "symbols_" (data member)
-      insert_symbols_static(allsymbols);
+         sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
+         //VECTOR_SORT(allsymbols,symbol_compare);
 
-      // try to resolve the module names of global symbols
-      // Sun compiler stab.index section 
-      fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
+         no_of_symbols_ = allsymbols.size();
+         fix_zero_function_sizes(allsymbols, 0);
 
-      // STABS format (.stab section)
-      fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+         override_weak_symbols(allsymbols);
 
-      // DWARF format (.debug_info section)
-      fix_global_symbol_modules_static_dwarf(elfHdrForDebugInfo);
+         // dump "allsymbols" into "symbols_" (data member)
+         insert_symbols_static(allsymbols);
 
-      if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
-      {
-         symdata = dynsym_scnp->get_data();
-         strdata = dynstr_scnp->get_data();
-         parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
-      }
-      //TODO
-      //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
-      //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
-      //         symbols only in dynsymtab & symbols present in both).
-      // Else add dynamic symbol to dictionary
-      // (or) Have two sepearate dictionaries. Makes life easy!
-      // Think about it today!!
+         // try to resolve the module names of global symbols
+         // Sun compiler stab.index section 
+         fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
 
-      //allsymbols = merge(allsymbols, alldynSymbols);
+         // STABS format (.stab section)
+         fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+
+         // DWARF format (.debug_info section)
+         fix_global_symbol_modules_static_dwarf(elfHdrForDebugInfo);
+
+         if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
+         {
+            symdata = dynsym_scnp->get_data();
+            strdata = dynstr_scnp->get_data();
+            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
+         }
+
+         //TODO
+         //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
+         //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
+         //         symbols only in dynsymtab & symbols present in both).
+         // Else add dynamic symbol to dictionary
+         // (or) Have two sepearate dictionaries. Makes life easy!
+         // Think about it today!!
+
+         //allsymbols = merge(allsymbols, alldynSymbols);
 
 #if defined(TIMED_PARSE)
-      struct timeval endtime;
-      gettimeofday(&endtime, NULL);
-      unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-      unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-      unsigned long difftime = lendtime - lstarttime;
-      double dursecs = difftime/(1000);
-      cout << "parsing/fixing/overriding elf took "<<dursecs <<" msecs" << endl;
+         struct timeval endtime;
+         gettimeofday(&endtime, NULL);
+         unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+         unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+         unsigned long difftime = lendtime - lstarttime;
+         double dursecs = difftime/(1000);
+         cout << "parsing/fixing/overriding elf took "<<dursecs <<" msecs" << endl;
 #endif
-      if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
-         parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
-      }
 
-      // populate "fbt_"
-      if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-         if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
-            goto cleanup;
+         if (dynamic_addr_ && dynsym_scnp && dynstr_scnp) 
+         {
+            parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
          }
-      }
+
+         // populate "fbt_"
+         if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) 
+         {
+            if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) 
+            {
+               goto cleanup;
+            }
+         }
       }
 
       //Set object type
       int e_type = elfHdr.e_type();
-      if (e_type == ET_DYN) {
+
+      if (e_type == ET_DYN) 
+      {
          obj_type_ = obj_SharedLib;
       }
-      else if (e_type == ET_EXEC) {
+      else if (e_type == ET_EXEC) 
+      {
          obj_type_ = obj_Executable;
       }
 
@@ -1125,81 +1146,76 @@ void Object::load_shared_object(bool alloc_syms)
 #endif
 
       if (alloc_syms) {
-      // build symbol dictionary
-      std::vector<Symbol *> allsymbols;
-      string module = mf->pathname();
-      string name   = "DEFAULT_NAME";
+         // build symbol dictionary
+         std::vector<Symbol *> allsymbols;
+         string module = mf->pathname();
+         string name   = "DEFAULT_NAME";
 
-      // find symbol and string data
-      Elf_X_Data symdata, strdata;
-      if (symscnp && strscnp)
-      {
-         symdata = symscnp->get_data();
-         strdata = strscnp->get_data();
-         if (!symdata.isValid() || !strdata.isValid()) {
-            log_elferror(err_func_, "locating symbol/string data");
-            goto cleanup2;
+         // find symbol and string data
+         Elf_X_Data symdata, strdata;
+         if (symscnp && strscnp)
+         {
+            symdata = symscnp->get_data();
+            strdata = strscnp->get_data();
+            if (!symdata.isValid() || !strdata.isValid()) {
+               log_elferror(err_func_, "locating symbol/string data");
+               goto cleanup2;
+            }
+            parse_symbols(allsymbols, symdata, strdata, false, module);
+         } 
+         sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
+         //VECTOR_SORT(allsymbols,symbol_compare);
+         no_of_symbols_ = allsymbols.size();
+
+         fix_zero_function_sizes(allsymbols, 0);
+         override_weak_symbols(allsymbols);
+         insert_symbols_shared(allsymbols);
+
+         //	// try to resolve the module names of global symbols
+         //	// Sun compiler stab.index section 
+         //	fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
+
+         //	// STABS format (.stab section)
+         //	fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+
+         //	// DWARF format (.debug_info section)
+         //	fix_global_symbol_modules_static_dwarf(elfHdr);
+
+         if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
+         {
+            symdata = dynsym_scnp->get_data();
+            strdata = dynstr_scnp->get_data();
+            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
          }
-         parse_symbols(allsymbols, symdata, strdata, false, module);
-      } 
-      sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
-      //VECTOR_SORT(allsymbols,symbol_compare);
-      no_of_symbols_ = allsymbols.size();
+         //TODO
+         //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
+         //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
+         //         symbols only in dynsymtab & symbols present in both).
+         // Else add dynamic symbol to dictionary
+         // (or) Have two sepearate dictionaries. Makes life easy!
+         // Think about it today!!
 
-      //print_symbols(allsymbols);
-
-      fix_zero_function_sizes(allsymbols, 0);
-      override_weak_symbols(allsymbols);
-      insert_symbols_shared(allsymbols);
-
-      //	// try to resolve the module names of global symbols
-      //	// Sun compiler stab.index section 
-      //	fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
-
-      //	// STABS format (.stab section)
-      //	fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
-
-      //	// DWARF format (.debug_info section)
-      //	fix_global_symbol_modules_static_dwarf(elfHdr);
-
-      if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
-      {
-         symdata = dynsym_scnp->get_data();
-         strdata = dynstr_scnp->get_data();
-         parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
-      }
-      //printf("-----------------------------------------\n");
-      //print_symbols(allsymbols);
-      
-      //TODO
-      //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
-      //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
-      //         symbols only in dynsymtab & symbols present in both).
-      // Else add dynamic symbol to dictionary
-      // (or) Have two sepearate dictionaries. Makes life easy!
-      // Think about it today!!
-
-      //allsymbols = merge(allsymbols, alldynSymbols);
+         //allsymbols = merge(allsymbols, alldynSymbols);
 
 #if defined(TIMED_PARSE)
-      struct timeval endtime;
-      gettimeofday(&endtime, NULL);
-      unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-      unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-      unsigned long difftime = lendtime - lstarttime;
-      double dursecs = difftime/(1000 * 1000);
-      cout << "*INSERT SYMBOLS* elf took "<<dursecs <<" msecs" << endl;
-      //cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
+         struct timeval endtime;
+         gettimeofday(&endtime, NULL);
+         unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+         unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+         unsigned long difftime = lendtime - lstarttime;
+         double dursecs = difftime/(1000 * 1000);
+         cout << "*INSERT SYMBOLS* elf took "<<dursecs <<" msecs" << endl;
+         //cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
 #endif
-      if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
-         parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
-      }
-
-      if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-         if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
-            goto cleanup2;
+         if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
+            parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
          }
-      }
+
+         if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+            if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
+               goto cleanup2;
+            }
+         }
       }
 
       //Set object type
@@ -1277,25 +1293,25 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 {
    for( unsigned i = 0; i < allsymbols.size(); i++ )
    {
-	if( allsymbols[ i ]->getType() != Symbol::ST_FUNCTION )
-	{
-	    continue;
-	}
-	cout << allsymbols[ i ] << endl;
-    } 
+      if( allsymbols[ i ]->getType() != Symbol::ST_FUNCTION )
+      {
+         continue;
+      }
+      cout << allsymbols[ i ] << endl;
+   } 
 } 
 
 
 // parse_symbols(): populate "allsymbols"
 void Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
-                           Elf_X_Data &symdata, Elf_X_Data &strdata,
-                           bool shared, string smodule)
+      Elf_X_Data &symdata, Elf_X_Data &strdata,
+      bool shared, string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
 #endif
-  
+
    Elf_X_Sym syms = symdata.get_sym();
    const char *strs = strdata.get_string();
    for (unsigned i = 0; i < syms.count(); i++) {
@@ -1322,7 +1338,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       
       if (stype == Symbol::ST_UNKNOWN) continue;
       if (slinkage == Symbol::SL_UNKNOWN) continue;
-      
+
       Region *sec;
       if(secNumber >= 1 && secNumber <= regions_.size())
          sec = regions_[secNumber];
@@ -1335,37 +1351,37 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-          (shared) && (sname == extract_pathname_tail(smodule))) {
+            (shared) && (sname == extract_pathname_tail(smodule))) {
          // symbols_[sname] = newsym; // special case
          symbols_[sname].push_back( newsym );
       } else {
          allsymbols.push_back(newsym); // normal case
       }
    }
-   
+
 #if defined(TIMED_PARSE)
-    struct timeval endtime;
-    gettimeofday(&endtime, NULL);
-    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-    unsigned long difftime = lendtime - lstarttime;
-    double dursecs = difftime/(1000 * 1000);
-    cout << "parsing elf took "<<dursecs <<" secs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 * 1000);
+   cout << "parsing elf took "<<dursecs <<" secs" << endl;
 #endif
-    //if (addressWidth_nbytes == 8) fprintf(stderr, ">>> 64-bit parse_symbols() successful\n");
+   //if (addressWidth_nbytes == 8) fprintf(stderr, ">>> 64-bit parse_symbols() successful\n");
 }
 
 // parse_symbols(): populate "allsymbols"
 // Lazy parsing of dynamic symbol  & string tables
 // Parsing the dynamic symbols lazily would certainly not increase the overhead of the entire parse
-void Object::parse_dynamicSymbols (Elf_X_Shdr *&
+   void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #if !defined(os_solaris)
-                                   dyn_scnp
+         dyn_scnp
 #endif 
-                                   , Elf_X_Data &symdata, 
-                                   Elf_X_Data &strdata,
-                                   bool /*shared*/, 
-                                   string smodule)
+         , Elf_X_Data &symdata, 
+         Elf_X_Data &strdata,
+         bool /*shared*/, 
+         string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -1383,11 +1399,11 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
    Elf_X_Verdef *symVersionDefs = NULL;
    Elf_X_Verneed *symVersionNeeds = NULL;
    for (unsigned i = 0; i < dyns.count(); ++i) {
-       switch(dyns.d_tag(i)) {
-           case DT_NEEDED:
-               deps_.push_back(&strs[dyns.d_ptr(i)]);
-               break;
-           case DT_VERSYM:
+      switch(dyns.d_tag(i)) {
+         case DT_NEEDED:
+            deps_.push_back(&strs[dyns.d_ptr(i)]);
+            break;
+         case DT_VERSYM:
                versymSec = getRegionHdrByAddr(dyns.d_ptr(i));
                break;
            case DT_VERNEED:
@@ -2114,6 +2130,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 						}									
 					}
 				}
+						 /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
 				
 			dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
 			} break;
@@ -2144,112 +2161,162 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 		}
 	} /* end fixSymbolsInModule */
 
-void fixSymbolsInModuleByRange(string &moduleName,
-			       Dwarf_Addr modLowPC, Dwarf_Addr modHighPC,
-			       dyn_hash_map<string, std::vector< Symbol *> > *symbols_)
+unsigned fixSymbolsInModuleByRange(string &moduleName,
+      Dwarf_Addr modLowPC, Dwarf_Addr modHighPC,
+      dyn_hash_map<string, std::vector< Symbol *> > *symbols_)
 {
-    string symName;
-    std::vector< Symbol *> syms;
-    Symbol *sym;
-    
-    dyn_hash_map< string, std::vector< Symbol *> >::iterator iter = symbols_->begin();
-    for(;iter!=symbols_->end();iter++)
-    {
-    	symName = iter->first;
-	syms = iter->second;
-    	for( unsigned int i = 0; i < syms.size(); i++ ) {
-    		sym = syms[i];
-			if (sym->getAddr() >= modLowPC && sym->getAddr() < modHighPC) {
-			    (*symbols_)[symName][i]->setModuleName(moduleName);
-		    }
-		}
-    }
+   unsigned nsyms_altered = 0;
+
+   dyn_hash_map< string, std::vector< Symbol *> >::iterator iter = symbols_->begin();
+
+   for (;iter!=symbols_->end();iter++)
+   {
+      std::string symName = iter->first;
+      std::vector<Symbol *> & syms = iter->second;
+
+      for ( unsigned int i = 0; i < syms.size(); i++ ) 
+      {
+         Symbol *sym = syms[i];
+
+         if (sym->getAddr() >= modLowPC && sym->getAddr() < modHighPC) 
+         {
+            (*symbols_)[symName][i]->setModuleName(moduleName);
+            nsyms_altered++;
+            //fprintf(stderr, "%s[%d]:  %s:%p in range [%p, %p) for module %s\n", 
+            //      FILE__, __LINE__, sym->getName().c_str(), sym->getAddr(), 
+            //      modLowPC, modHighPC, moduleName.c_str());
+         }
+         else
+         {
+            //fprintf(stderr, "%s[%d]:  %s:%p not in range [%p, %p) for module %s\n", 
+            //      FILE__, __LINE__, sym->getName().c_str(), sym->getAddr(), (void *)modLowPC, (void *)modHighPC, moduleName.c_str());
+         }
+      }
+   }
+
+   return nsyms_altered;
 }
 
 bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
 {
-  /* Initialize libdwarf. */
-  Dwarf_Debug dbg;
+   /* Initialize libdwarf. */
+   Dwarf_Debug dbg;
+   Dwarf_Unsigned hdr;
 
-									  
-  int status = dwarf_elf_init( elf.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL);
-  if( status != DW_DLV_OK ) {
-     return false;
-  }
+   int status = dwarf_elf_init( elf.e_elfp(), DW_DLC_READ, 
+         & pd_dwarf_handler, getErrFunc(), & dbg, NULL);
 
-  /* Iterate over the CU headers. */
-  Dwarf_Unsigned hdr;
-  while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
-	/* Obtain the module DIE. */
-	Dwarf_Die moduleDIE;
-	status = dwarf_siblingof( dbg, NULL, & moduleDIE, NULL );
-	assert( status == DW_DLV_OK );
+   if ( status != DW_DLV_OK ) 
+   {
+      //fprintf(stderr, "%s[%d]:  failed to init dwarf\n", FILE__, __LINE__);
+      return false;
+   }
 
-	/* Make sure we've got the right one. */
-	Dwarf_Half moduleTag;
-	status = dwarf_tag( moduleDIE, & moduleTag, NULL);
-	assert( status == DW_DLV_OK );
-	assert( moduleTag == DW_TAG_compile_unit );
-                
-	/* Extract the name of this module. */
-	char * dwarfModuleName = NULL;
-	status = dwarf_diename( moduleDIE, & dwarfModuleName, NULL );
-	assert( status != DW_DLV_ERROR );
+   /* Iterate over the CU headers. */
 
-	string moduleName;
-	if( status == DW_DLV_NO_ENTRY || dwarfModuleName == NULL ) {
-		moduleName = string( "{ANONYMOUS}" );
-		//assert( moduleName != NULL );
-		}
-	else {
-		moduleName = extract_pathname_tail( string(dwarfModuleName) );
-		}
+   while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
+   {
 
-	Dwarf_Addr modLowPC = 0;
-	Dwarf_Addr modHighPC = (Dwarf_Addr)(-1);
-	Dwarf_Bool hasLowPC;
-	Dwarf_Bool hasHighPC;
-	
-	if( (status = dwarf_hasattr(moduleDIE, DW_AT_low_pc, &hasLowPC, NULL)) == DW_DLV_OK &&
-		hasLowPC &&
-	    (status = dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC, NULL)) == DW_DLV_OK && 
-		hasHighPC ) {
-	    // Get PC boundaries for the module, if present
-	    status = dwarf_lowpc(moduleDIE, &modLowPC, NULL);
-	    assert(status == DW_DLV_OK);
-	    status = dwarf_highpc(moduleDIE, &modHighPC, NULL);
-	    assert(status == DW_DLV_OK);
-	    
-	    // Set module names for all symbols that belong to the range
-	    fixSymbolsInModuleByRange(moduleName, modLowPC, modHighPC,
-				      &symbols_);
-		}
-	else {
-		/* Acquire declFileNoToName. */
-		status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
-		assert( status != DW_DLV_ERROR );
-	
-		if( status == DW_DLV_OK ) {
-		    /* Walk the tree. */
-		    fixSymbolsInModule( dbg, moduleName, moduleDIE, symbols_, symbolNamesByAddr );
-	    
-			/* Deallocate declFileNoToName. */
-			for( Dwarf_Signed i = 0; i < declFileNo; i++ ) {
-				dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
-				}
-			dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
-			} /* end if the srcfile information was available */
-		else {
-			//bperr( "Unable to determine modules (%s): no code range or source file information available.\n", moduleName.c_str() );
-			} /* end if no source file information available */
-		} /* end if code range information unavailable */
-		
-	} /* end scan over CU headers. */
+      /* Obtain the module DIE. */
+      Dwarf_Die moduleDIE;
+      status = dwarf_siblingof( dbg, NULL, & moduleDIE, NULL );
+      assert( status == DW_DLV_OK );
 
-  /* Clean up. */
-  status = dwarf_finish( dbg, NULL );  
-  assert( status == DW_DLV_OK );
-  return true;
+      /* Make sure we've got the right one. */
+      Dwarf_Half moduleTag;
+      status = dwarf_tag( moduleDIE, & moduleTag, NULL);
+      assert( status == DW_DLV_OK );
+      assert( moduleTag == DW_TAG_compile_unit );
+
+      /* Extract the name of this module. */
+      char * dwarfModuleName = NULL;
+      status = dwarf_diename( moduleDIE, & dwarfModuleName, NULL );
+      assert( status != DW_DLV_ERROR );
+
+      string moduleName;
+
+      if ( status == DW_DLV_NO_ENTRY || dwarfModuleName == NULL ) 
+      {
+         moduleName = string( "{ANONYMOUS}" );
+         //assert( moduleName != NULL );
+      }
+      else 
+      {
+         moduleName = extract_pathname_tail( string(dwarfModuleName) );
+      }
+
+      Dwarf_Addr modLowPC = 0;
+      Dwarf_Addr modHighPC = (Dwarf_Addr)(-1);
+      Dwarf_Bool hasLowPC;
+      Dwarf_Bool hasHighPC;
+
+      if ( (status = dwarf_hasattr(moduleDIE, DW_AT_low_pc, &hasLowPC, NULL)) == DW_DLV_OK &&
+            hasLowPC &&
+            (status = dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC, NULL)) == DW_DLV_OK && 
+            hasHighPC ) 
+      {
+         // Get PC boundaries for the module, if present
+         status = dwarf_lowpc(moduleDIE, &modLowPC, NULL);
+         assert(status == DW_DLV_OK);
+
+         status = dwarf_highpc(moduleDIE, &modHighPC, NULL);
+         assert(status == DW_DLV_OK);
+
+         if (modHighPC == 0) 
+         {
+            fprintf(stderr, "%s[%d]:  WARNING:  hijacking zero modHighPC\n", FILE__, __LINE__);
+            modHighPC = (Dwarf_Addr)(-1);
+         }
+
+         // Set module names for all symbols that belong to the range
+         //int nsyms_altered  =
+
+            fixSymbolsInModuleByRange(moduleName, modLowPC, modHighPC,
+               &symbols_);
+
+         //fprintf(stderr, "%s[%d]:  fixSymbolsInModuleByRange(%s,%p, %p), match %d syms\n",
+         //      FILE__, __LINE__, moduleName.c_str(), (void *) modLowPC, (void *) modHighPC, 
+         //      nsyms_altered);
+      }
+      else 
+      {
+         /* Acquire declFileNoToName. */
+         status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
+         assert( status != DW_DLV_ERROR );
+
+         if ( status == DW_DLV_OK ) 
+         {
+            /* Walk the tree. */
+
+            fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
+                  FILE__, __LINE__, moduleName.c_str());
+
+            fixSymbolsInModule( dbg, moduleName, moduleDIE, symbols_, symbolNamesByAddr );
+
+            /* Deallocate declFileNoToName. */
+
+            for ( Dwarf_Signed i = 0; i < declFileNo; i++ ) 
+            {
+               dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
+            }
+
+            dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
+
+         } /* end if the srcfile information was available */
+         else 
+         {
+            //bperr( "Unable to determine modules (%s): no code range or source file information available.\n", moduleName.c_str() );
+         } /* end if no source file information available */
+      } /* end if code range information unavailable */
+
+   } /* end scan over CU headers. */
+
+   /* Clean up. */
+
+   status = dwarf_finish( dbg, NULL );  
+   assert ( status == DW_DLV_OK );
+
+   return true;
 }
 
 #else
@@ -2267,399 +2334,399 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &/*elf*/)
  *
  ********************************************************/
 bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_Shdr* stabstrscnp) {
-    // Read the stab section to find the module of global symbols.
-    // The symbols appear in the stab section by module. A module begins
-    // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
-    // All the symbols in between those two symbols belong to the module.
+   // Read the stab section to find the module of global symbols.
+   // The symbols appear in the stab section by module. A module begins
+   // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
+   // All the symbols in between those two symbols belong to the module.
 
-    if (!stabscnp || !stabstrscnp) return false;
+   if (!stabscnp || !stabstrscnp) return false;
 
-    Elf_X_Data stabdata = stabscnp->get_data();
-    Elf_X_Data stabstrdata = stabstrscnp->get_data();
-    stab_entry *stabptr = NULL;
+   Elf_X_Data stabdata = stabscnp->get_data();
+   Elf_X_Data stabstrdata = stabstrscnp->get_data();
+   stab_entry *stabptr = NULL;
 
-    if (!stabdata.isValid() || !stabstrdata.isValid()) return false;
+   if (!stabdata.isValid() || !stabstrdata.isValid()) return false;
 
-    switch (addressWidth_nbytes) {
-    case 4:
-	stabptr = new stab_entry_32(stabdata.d_buf(),
-				    stabstrdata.get_string(),
-				    stabscnp->sh_size() / sizeof(stab32));
-	break;
+   switch (addressWidth_nbytes) {
+      case 4:
+         stabptr = new stab_entry_32(stabdata.d_buf(),
+               stabstrdata.get_string(),
+               stabscnp->sh_size() / sizeof(stab32));
+         break;
 
-    case 8:
-	stabptr = new stab_entry_64(stabdata.d_buf(),
-				    stabstrdata.get_string(),
-				    stabscnp->sh_size() / sizeof(stab64));
-	break;
-    };
-    const char *next_stabstr = stabptr->getStringBase();
-    string module = "DEFAULT_MODULE";
+      case 8:
+         stabptr = new stab_entry_64(stabdata.d_buf(),
+               stabstrdata.get_string(),
+               stabscnp->sh_size() / sizeof(stab64));
+         break;
+   };
+   const char *next_stabstr = stabptr->getStringBase();
+   string module = "DEFAULT_MODULE";
 
-    // the stabstr contains one string table for each module.
-    // stabstr_offset gives the offset from the begining of stabstr of the
-    // string table for the current module.
+   // the stabstr contains one string table for each module.
+   // stabstr_offset gives the offset from the begining of stabstr of the
+   // string table for the current module.
 
-    bool is_fortran = false;  // is the current module fortran code?
-    for (unsigned i = 0; i < stabptr->count(); i++) {
-	switch(stabptr->type(i)) {
- 	case N_UNDF: /* start of object file */
-	    stabptr->setStringBase(next_stabstr);
-	    next_stabstr = stabptr->getStringBase() + stabptr->val(i);
-	    break;
+   bool is_fortran = false;  // is the current module fortran code?
+   for (unsigned i = 0; i < stabptr->count(); i++) {
+      switch(stabptr->type(i)) {
+         case N_UNDF: /* start of object file */
+            stabptr->setStringBase(next_stabstr);
+            next_stabstr = stabptr->getStringBase() + stabptr->val(i);
+            break;
 
-	case N_ENDM: /* end of object file */
-	    is_fortran = false;
-	    module = "DEFAULT_MODULE";
-	    break;
+         case N_ENDM: /* end of object file */
+            is_fortran = false;
+            module = "DEFAULT_MODULE";
+            break;
 
-	case N_SO: /* compilation source or file name */
-  	    if ((stabptr->desc(i) == N_SO_FORTRAN) || (stabptr->desc(i) == N_SO_F90))
-		is_fortran = true;
+         case N_SO: /* compilation source or file name */
+            if ((stabptr->desc(i) == N_SO_FORTRAN) || (stabptr->desc(i) == N_SO_F90))
+               is_fortran = true;
 
-	    module = string(stabptr->name(i));
-	    break;
+            module = string(stabptr->name(i));
+            break;
 
-        case N_ENTRY: /* fortran alternate subroutine entry point */
-	case N_GSYM: /* global symbol */
-	    // the name string of a function or object appears in the stab 
-	    // string table as <symbol name>:<symbol descriptor><other stuff>
-	    // where <symbol descriptor> is a one char code.
-	    // we must extract the name and descriptor from the string
-        {
-	    const char *p = stabptr->name(i);
-	    // bperr("got %d type, str = %s\n", stabptr->type(i), p);
-	    // if (stabptr->type(i) == N_FUN && strlen(p) == 0) {
-	    if (strlen(p) == 0) {
-		// GNU CC 2.8 and higher associate a null-named function
-		// entry with the end of a function.  Just skip it.
-		break;
+         case N_ENTRY: /* fortran alternate subroutine entry point */
+         case N_GSYM: /* global symbol */
+            // the name string of a function or object appears in the stab 
+            // string table as <symbol name>:<symbol descriptor><other stuff>
+            // where <symbol descriptor> is a one char code.
+            // we must extract the name and descriptor from the string
+            {
+               const char *p = stabptr->name(i);
+               // bperr("got %d type, str = %s\n", stabptr->type(i), p);
+               // if (stabptr->type(i) == N_FUN && strlen(p) == 0) {
+               if (strlen(p) == 0) {
+                  // GNU CC 2.8 and higher associate a null-named function
+                  // entry with the end of a function.  Just skip it.
+                  break;
+               }
+               const char *q = strchr(p,':');
+               unsigned len;
+               if (q) {
+                  len = q - p;
+               } else {
+                  len = strlen(p);
+               }
+               if(len == 0)
+               {
+                  // symbol name is empty.Skip it.- 02/12/07 -Giri
+                  break;
+               }		
+               char *sname = new char[len+1];
+               strncpy(sname, p, len);
+               sname[len] = 0;
+
+               string SymName = string(sname);
+
+               // q points to the ':' in the name string, so 
+               // q[1] is the symbol descriptor. We must check the symbol descriptor
+               // here to skip things we are not interested in, such as prototypes.
+               bool res = (symbols_.find(SymName)!=symbols_.end());
+               if (!res && is_fortran) {
+                  // Fortran symbols usually appear with an '_' appended in .symtab,
+                  // but not on .stab
+                  SymName += "_";
+                  res = (symbols_.find(SymName)!=symbols_.end());
+               }
+
+               if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
+                  unsigned int count = 0;
+                  std::vector< Symbol *> & syms = symbols_[SymName];
+
+                  /* If there's only one, apply regardless. */
+                  if( syms.size() == 1 ) { symbols_[SymName][0]->setModuleName(module); }
+                  else {
+                     for( unsigned int i = 0; i < syms.size(); i++ ) {
+                        if( syms[i]->getLinkage() == Symbol::SL_GLOBAL ) {
+                           symbols_[SymName][i]->setModuleName(module);
+                           count++;
+                        }
+                     }
+                     if( count < syms.size() ) {
+                        // /* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
+                     }
+                  }
+               }
             }
-	    const char *q = strchr(p,':');
-	    unsigned len;
-	    if (q) {
-		len = q - p;
-	    } else {
-		len = strlen(p);
-	    }
-	    if(len == 0)
-	    {
-	    	// symbol name is empty.Skip it.- 02/12/07 -Giri
-	    	break;
-	    }		
-	    char *sname = new char[len+1];
-	    strncpy(sname, p, len);
-	    sname[len] = 0;
+            break;
 
-	    string SymName = string(sname);
+               case N_FUN: /* function */ {
+                                             const char *p = stabptr->name(i);
+                                             if (strlen(p) == 0) {
+                                                // Rumours are that GNU CC 2.8 and higher associate a
+                                                // null-named function entry with the end of a
+                                                // function. Just skip it.
+                                                break;
+                                             }
+                                             const char *q = strchr(p,':');
+                                             if (q == 0) {
+                                                // bperr( "Unrecognized stab format: %s\n", p);
+                                                // Happens with the Solaris native compiler (.xstabs entries?)
+                                                break;
+                                             }
 
-	    // q points to the ':' in the name string, so 
-	    // q[1] is the symbol descriptor. We must check the symbol descriptor
-	    // here to skip things we are not interested in, such as prototypes.
-	    bool res = (symbols_.find(SymName)!=symbols_.end());
-	    if (!res && is_fortran) {
-		// Fortran symbols usually appear with an '_' appended in .symtab,
-		// but not on .stab
-		SymName += "_";
-		res = (symbols_.find(SymName)!=symbols_.end());
-	    }
+                                             if (q[1] == SD_PROTOTYPE) {
+                                                // We see a prototype, skip it
+                                                break;
+                                             }
 
-	    if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
-	    	unsigned int count = 0;
-	    	std::vector< Symbol *> & syms = symbols_[SymName];
+                                             unsigned long entryAddr = stabptr->val(i);
+                                             if (entryAddr == 0) {
+                                                // The function stab doesn't contain a function address
+                                                // (happens with the Solaris native compiler). We have to
+                                                // look up the symbol by its name. That's unfortunate, since
+                                                // names may not be unique and we may end up assigning a wrong
+                                                // module name to the symbol.
+                                                unsigned len = q - p;
+                                                if(len == 0)
+                                                {
+                                                   // symbol name is empty.Skip it.- 02/12/07 -Giri
+                                                   break;
+                                                }		
+                                                char *sname = new char[len+1];
+                                                strncpy(sname, p, len);
+                                                sname[len] = 0;
+                                                string nameFromStab = string(sname);
+                                                delete[] sname;
 
-	    	/* If there's only one, apply regardless. */
-	    	if( syms.size() == 1 ) { symbols_[SymName][0]->setModuleName(module); }
-	    	else {
-		    for( unsigned int i = 0; i < syms.size(); i++ ) {
-			if( syms[i]->getLinkage() == Symbol::SL_GLOBAL ) {
-			    symbols_[SymName][i]->setModuleName(module);
-			    count++;
-			}
-		    }
-		    if( count < syms.size() ) {
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
-		    }
-		}
-	    }
-	}
-	break;
+                                                if (symbols_.find(nameFromStab)!=symbols_.end()) {
+                                                   std::vector< Symbol* > & syms = symbols_[nameFromStab];
+                                                   if( syms.size() == 1 ) {
+                                                      symbols_[nameFromStab][0]->setModuleName(module);
+                                                   }
+                                                   /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique STABS name '%s' in module.\n", __FILE__, __LINE__, nameFromStab.c_str() ); }
+                                                   /* Otherwise, don't assign a module if we don't know
+                                                      to which symbol this refers. */
+                                                }
+                                             }
+                                             else {
+                                                if (symbolNamesByAddr.find(entryAddr)==symbolNamesByAddr.end()) {
+                                                   //bperr( "fix_global_symbol_modules_static_stab "
+                                                   //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
+                                                   break;
+                                                }
+                                                string symName = symbolNamesByAddr[entryAddr];
+                                                assert(symbols_.find(symName)!=symbols_.end());
+                                                std::vector< Symbol *> & syms = symbols_[symName];
+                                                if( syms.size() == 1 ) {
+                                                   symbols_[symName][0]->setModuleName(module);
+                                                }
+                                                /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique id %s in module.\n", __FILE__, __LINE__, symName.c_str() ); }
+                                                /* Otherwise, don't assign a module if we don't know
+                                                   to which symbol this refers. */
+                                             }
+                                             break;
+                                          }
 
-	case N_FUN: /* function */ {
-	    const char *p = stabptr->name(i);
-            if (strlen(p) == 0) {
-                // Rumours are that GNU CC 2.8 and higher associate a
-                // null-named function entry with the end of a
-                // function. Just skip it.
-                break;
+               default:
+                                          /* ignore other entries */
+                                          break;
             }
-	    const char *q = strchr(p,':');
-	    if (q == 0) {
-		// bperr( "Unrecognized stab format: %s\n", p);
-		// Happens with the Solaris native compiler (.xstabs entries?)
-		break;
-	    }
+      }
+      delete stabptr;
 
-	    if (q[1] == SD_PROTOTYPE) {
-		// We see a prototype, skip it
-		break;
-	    }
-
-	    unsigned long entryAddr = stabptr->val(i);
-	    if (entryAddr == 0) {
-		// The function stab doesn't contain a function address
-		// (happens with the Solaris native compiler). We have to
-		// look up the symbol by its name. That's unfortunate, since
-		// names may not be unique and we may end up assigning a wrong
-		// module name to the symbol.
-		unsigned len = q - p;
-	    	if(len == 0)
-	    	{
-	    	    // symbol name is empty.Skip it.- 02/12/07 -Giri
-	    	    break;
-	    	}		
-		char *sname = new char[len+1];
-		strncpy(sname, p, len);
-		sname[len] = 0;
-		string nameFromStab = string(sname);
-		delete[] sname;
-
-		if (symbols_.find(nameFromStab)!=symbols_.end()) {
-		    std::vector< Symbol* > & syms = symbols_[nameFromStab];
-		    if( syms.size() == 1 ) {
-			symbols_[nameFromStab][0]->setModuleName(module);
-		    }
-		    /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique STABS name '%s' in module.\n", __FILE__, __LINE__, nameFromStab.c_str() ); }
-		    /* Otherwise, don't assign a module if we don't know
-		       to which symbol this refers. */
-		}
-	    }
-	    else {
-		if (symbolNamesByAddr.find(entryAddr)==symbolNamesByAddr.end()) {
-		    //bperr( "fix_global_symbol_modules_static_stab "
-		    //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
-		    break;
-		}
-		string symName = symbolNamesByAddr[entryAddr];
-		assert(symbols_.find(symName)!=symbols_.end());
-		std::vector< Symbol *> & syms = symbols_[symName];
-		if( syms.size() == 1 ) {
-		    symbols_[symName][0]->setModuleName(module);
-		}
-		/* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique id %s in module.\n", __FILE__, __LINE__, symName.c_str() ); }
-		/* Otherwise, don't assign a module if we don't know
-		   to which symbol this refers. */
-	    }
-	    break;
-	}
-
-	default:
-	    /* ignore other entries */
-	    break;
-	}
-    }
-    delete stabptr;
-
-    return true;
-}
+      return true;
+   }
 
 
-/********************************************************
- *
- * Run over allsymbols, and stuff symbols contained according 
- *  to following rules:
- * LOCAL symbols - into (data member) symbols_
- * GLOBAL symbols - into (paramater) global_symbols
- * WEAK symbols - looks like this case isn't handled correctly
- *  for static libraries....
- *
- ********************************************************/
-void Object::insert_symbols_static(std::vector<Symbol *> &allsymbols)
-{
-  unsigned nsymbols = allsymbols.size();
+   /********************************************************
+    *
+    * Run over allsymbols, and stuff symbols contained according 
+    *  to following rules:
+    * LOCAL symbols - into (data member) symbols_
+    * GLOBAL symbols - into (paramater) global_symbols
+    * WEAK symbols - looks like this case isn't handled correctly
+    *  for static libraries....
+    *
+    ********************************************************/
+   void Object::insert_symbols_static(std::vector<Symbol *> &allsymbols)
+   {
+      unsigned nsymbols = allsymbols.size();
 #ifdef TIMED_PARSE
-   cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
-	 << " symbols into symbols_ dictionary" << endl; 
+      cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
+         << " symbols into symbols_ dictionary" << endl; 
 #endif
-  for (unsigned u = 0; u < nsymbols; u++) {
-      insertUniqdSymbol(allsymbols[u], &symbols_, &symbolNamesByAddr);
-  }    
-}
+      for (unsigned u = 0; u < nsymbols; u++) {
+         insertUniqdSymbol(allsymbols[u], &symbols_, &symbolNamesByAddr);
+      }    
+   }
 
-/********************************************************
- *
- * Run over allsymbols, and stuff symbols it contains into (data
- *  member) symbols_. 
- *
- * Assumes that all kludges, patches, fixes, hacks, to objects
- *  in allsymbols have already been made, and that it safe to
- *  dump them into symbols_ (data member, instead of stack var....)....
- *
-********************************************************/
-void Object::insert_symbols_shared(std::vector<Symbol *> &allsymbols) {
-    unsigned i, nsymbols;
+   /********************************************************
+    *
+    * Run over allsymbols, and stuff symbols it contains into (data
+    *  member) symbols_. 
+    *
+    * Assumes that all kludges, patches, fixes, hacks, to objects
+    *  in allsymbols have already been made, and that it safe to
+    *  dump them into symbols_ (data member, instead of stack var....)....
+    *
+    ********************************************************/
+   void Object::insert_symbols_shared(std::vector<Symbol *> &allsymbols) {
+      unsigned i, nsymbols;
 
-    nsymbols = allsymbols.size();
+      nsymbols = allsymbols.size();
 #ifdef TIMED_PARSE
-    cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
-	 << " symbols into symbols_ dictionary" << endl; 
+      cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
+         << " symbols into symbols_ dictionary" << endl; 
 #endif
-    for (i=0;i<nsymbols;i++) {
-        insertUniqdSymbol(allsymbols[i], &symbols_, &symbolNamesByAddr);
-    }
-}
-
-// find_code_and_data(): populates the following members:
-//   code_ptr_, code_off_, code_len_
-//   data_ptr_, data_off_, data_len_
-void Object::find_code_and_data(Elf_X &elf,
-      Offset txtaddr, 
-      Offset dataddr) 
-{
-   for (int i = 0; i < elf.e_phnum(); ++i) {
-      Elf_X_Phdr phdr = elf.get_phdr(i);
-      
-      char *file_ptr = (char *)mf->base_addr();
-
-      if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
-          regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
-
-      // The code pointer, offset, & length should be set even if
-      // txtaddr=0, so in this case we set these values by
-      // identifying the segment that contains the entryAddress
-      if (((phdr.p_vaddr() <= txtaddr) && 
-               (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
-            (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
-                          (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
-
-         if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
-            code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
-            code_off_ = (Offset)phdr.p_vaddr();
-            code_len_ = (unsigned)phdr.p_filesz();
-         }
-
-      } else if (((phdr.p_vaddr() <= dataddr) && 
-               (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
-            (!dataddr && (phdr.p_type() == PT_LOAD))) {
-         if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
-            data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
-            data_off_ = (Offset)phdr.p_vaddr();
-            data_len_ = (unsigned)phdr.p_filesz();
-         }
+      for (i=0;i<nsymbols;i++) {
+         insertUniqdSymbol(allsymbols[i], &symbols_, &symbolNamesByAddr);
       }
    }
-   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
-}
 
-const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
-{
-   const char *ret = NULL;
-   unsigned code_size_ = code_len_;
-   unsigned data_size_ = data_len_;
+   // find_code_and_data(): populates the following members:
+   //   code_ptr_, code_off_, code_len_
+   //   data_ptr_, data_off_, data_len_
+   void Object::find_code_and_data(Elf_X &elf,
+         Offset txtaddr, 
+         Offset dataddr) 
+   {
+      for (int i = 0; i < elf.e_phnum(); ++i) {
+         Elf_X_Phdr phdr = elf.get_phdr(i);
+
+         char *file_ptr = (char *)mf->base_addr();
+
+         if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
+            regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
+
+         // The code pointer, offset, & length should be set even if
+         // txtaddr=0, so in this case we set these values by
+         // identifying the segment that contains the entryAddress
+         if (((phdr.p_vaddr() <= txtaddr) && 
+                  (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
+               (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
+                             (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
+
+            if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
+               code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
+               code_off_ = (Offset)phdr.p_vaddr();
+               code_len_ = (unsigned)phdr.p_filesz();
+            }
+
+         } else if (((phdr.p_vaddr() <= dataddr) && 
+                  (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
+               (!dataddr && (phdr.p_type() == PT_LOAD))) {
+            if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
+               data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
+               data_off_ = (Offset)phdr.p_vaddr();
+               data_len_ = (unsigned)phdr.p_filesz();
+            }
+         }
+      }
+      //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
+   }
+
+   const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
+   {
+      const char *ret = NULL;
+      unsigned code_size_ = code_len_;
+      unsigned data_size_ = data_len_;
 
 #if defined(os_irix)
-   vaddr -= base_addr;
+      vaddr -= base_addr;
 #endif
 
-   if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
-      ret = ((char *)code_ptr_) + (vaddr - code_off_);
-   } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
-      ret = ((char *)data_ptr_) + (vaddr - data_off_);
-   } 
+      if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
+         ret = ((char *)code_ptr_) + (vaddr - code_off_);
+      } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
+         ret = ((char *)data_ptr_) + (vaddr - data_off_);
+      } 
 
-   return ret;
-}
-
-stab_entry *Object::get_stab_info() const
-{
-   char *file_ptr = (char *)mf->base_addr();
-
-   // check that file has .stab info
-   if (stab_off_ && stab_size_ && stabstr_off_) {
-      switch (addressWidth_nbytes) {
-         case 4: // 32-bit object
-            return new stab_entry_32(file_ptr + stab_off_,
-                  file_ptr + stabstr_off_,
-                  stab_size_ / sizeof(stab32));
-            break;
-         case 8: // 64-bit object
-            return new stab_entry_64(file_ptr + stab_off_,
-                  file_ptr + stabstr_off_,
-                  stab_size_ / sizeof(stab64));
-            break;
-      };
+      return ret;
    }
 
-   //fprintf(stderr, "%s[%d]:  WARNING:  FIXME, stab_off = %d, stab_size = %d, stabstr_off_ = %d\n", FILE__, __LINE__, stab_off_, stab_size_, stabstr_off_);
-   return new stab_entry_64();
-}
+   stab_entry *Object::get_stab_info() const
+   {
+      char *file_ptr = (char *)mf->base_addr();
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
-               bool alloc_syms) :
-   AObject(mf_, mfd, err_func), 
-   EEL(false)
-{
+      // check that file has .stab info
+      if (stab_off_ && stab_size_ && stabstr_off_) {
+         switch (addressWidth_nbytes) {
+            case 4: // 32-bit object
+               return new stab_entry_32(file_ptr + stab_off_,
+                     file_ptr + stabstr_off_,
+                     stab_size_ / sizeof(stab32));
+               break;
+            case 8: // 64-bit object
+               return new stab_entry_64(file_ptr + stab_off_,
+                     file_ptr + stabstr_off_,
+                     stab_size_ / sizeof(stab64));
+               break;
+         };
+      }
+
+      //fprintf(stderr, "%s[%d]:  WARNING:  FIXME, stab_off = %d, stab_size = %d, stabstr_off_ = %d\n", FILE__, __LINE__, stab_off_, stab_size_, stabstr_off_);
+      return new stab_entry_64();
+   }
+
+   Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
+         bool alloc_syms) :
+      AObject(mf_, mfd, err_func), 
+      EEL(false)
+   {
 #if defined(TIMED_PARSE)
-   struct timeval starttime;
-   gettimeofday(&starttime, NULL);
+      struct timeval starttime;
+      gettimeofday(&starttime, NULL);
 #endif
 #if defined(os_solaris)
-   loadNativeDemangler();
+      loadNativeDemangler();
 #endif    
-   is_aout_ = false;
-   did_open = false;
-   interpreter_name_ = NULL;
-   isStripped = false;
-   if(mf->getFD() != -1)
-      elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
-   else
-      elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
+      is_aout_ = false;
+      did_open = false;
+      interpreter_name_ = NULL;
+      isStripped = false;
+      if(mf->getFD() != -1)
+         elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
+      else
+         elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
 
-   mfForDebugInfo = findMappedFileForDebugInfo();
-   // ELF header: sanity check
-   //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
-   if (!elfHdr.isValid())  {
-      log_elferror(err_func_, "ELF header");
-      return;
-   }
-   else if (!pdelf_check_ehdr(elfHdr)) {
-      log_elferror(err_func_, "ELF header failed integrity check");
-   }
-   if( elfHdr.e_type() == 3 )
-      load_shared_object(alloc_syms);
-   else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
-      is_aout_ = true;
-      load_object(alloc_syms);
-   }    
-   else {
-      log_perror(err_func_,"Invalid filetype in Elf header");
-      return;
-   }
+      mfForDebugInfo = findMappedFileForDebugInfo();
+      // ELF header: sanity check
+      //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
+      if (!elfHdr.isValid())  {
+         log_elferror(err_func_, "ELF header");
+         return;
+      }
+      else if (!pdelf_check_ehdr(elfHdr)) {
+         log_elferror(err_func_, "ELF header failed integrity check");
+      }
+      if( elfHdr.e_type() == 3 )
+         load_shared_object(alloc_syms);
+      else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
+         is_aout_ = true;
+         load_object(alloc_syms);
+      }    
+      else {
+         log_perror(err_func_,"Invalid filetype in Elf header");
+         return;
+      }
 #if defined(TIMED_PARSE)
-   struct timeval endtime;
-   gettimeofday(&endtime, NULL);
-   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-   unsigned long difftime = lendtime - lstarttime;
-   double dursecs = difftime/(1000 );
-   cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
+      struct timeval endtime;
+      gettimeofday(&endtime, NULL);
+      unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+      unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+      unsigned long difftime = lendtime - lstarttime;
+      double dursecs = difftime/(1000 );
+      cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
 #endif
-}
+   }
 
-//Object constructor for archive members
-Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset,	
-        void (*err_func)(const char *), void *base, bool alloc_syms) :
-   AObject(mf_, mfd, err_func), 
-   EEL(false) {
+   //Object constructor for archive members
+   Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset,	
+         void (*err_func)(const char *), void *base, bool alloc_syms) :
+      AObject(mf_, mfd, err_func), 
+      EEL(false) {
 #if defined(TIMED_PARSE)
-   struct timeval starttime;
-   gettimeofday(&starttime, NULL);
+         struct timeval starttime;
+         gettimeofday(&starttime, NULL);
 #endif
 #if defined(os_solaris)
-   loadNativeDemangler();
+         loadNativeDemangler();
 #endif    
-   is_aout_ = false;
-   did_open = false;
+         is_aout_ = false;
+         did_open = false;
    interpreter_name_ = NULL;
    isStripped = false;
     
@@ -4124,12 +4191,25 @@ void Object::parseStabTypes(Symtab *obj)
 	           ptr++;
 		   modName = ptr;
 	       }
-	       if(obj->findModule(mod, modName)) {
+	       if (obj->findModule(mod, modName)) 
+          {
                parseActive = true;
-	           mod->getModuleTypes()->clearNumberedTypes();
-	       }else {
+               if (!mod) 
+               {
+                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+               }
+               else if (!mod->getModuleTypes()) 
+               {
+                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+               }
+               else 
+                  mod->getModuleTypes()->clearNumberedTypes();
+	       } 
+          else 
+          {
                parseActive = false;
 	       }
+
 #ifdef TIMED_PARSE
 	       gettimeofday(&t2, NULL);
 	       src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;

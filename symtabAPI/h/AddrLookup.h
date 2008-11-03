@@ -32,6 +32,8 @@
 #ifndef __AddrLookup_H__
 #define __AddrLookup_H__
 
+#include "Annotatable.h"
+
 namespace Dyninst {
 namespace SymtabAPI {
 
@@ -58,7 +60,7 @@ typedef struct {
    Address dataAddr;
 } LoadedLibrary;
 
-class AddressLookup 
+class AddressLookup : public AnnotatableSparse
 {
  private:
    AddressTranslate *translator;

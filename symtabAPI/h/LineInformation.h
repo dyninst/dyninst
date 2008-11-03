@@ -45,87 +45,90 @@
 #include "symutil.h"
 #include "RangeLookup.h"
 #include "Serialization.h"
+#include "Annotatable.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
 
 /* This is clumsy. */
 namespace LineInformationImpl {
-        class LineNoTuple{
-           public:
-      DLLEXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
-           const char *first; // really file
-           unsigned int second; // really line
-           unsigned int column;
-      DLLEXPORT bool operator==(const LineNoTuple &cmp) const;
-        };
-	
-	/* Explicit comparison functors seems slightly less confusing than using
-	   operator <() via an implicit Less<> template argument to the maps. */
-	struct LineNoTupleLess {
-		bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
-	};
+   class LineNoTuple{
+      public:
+         DLLEXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
+         const char *first; // really file
+         unsigned int second; // really line
+         unsigned int column;
+         DLLEXPORT bool operator==(const LineNoTuple &cmp) const;
+   };
+
+   /* Explicit comparison functors seems slightly less confusing than using
+      operator <() via an implicit Less<> template argument to the maps. */
+   struct LineNoTupleLess {
+      bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
+   };
 } /* end namespace LineInformationImpl */			
 
 DLLEXPORT typedef LineInformationImpl::LineNoTuple LineNoTuple;
 
 class LineInformation : public Serializable, 
-                        private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > {
-	public:
+                        public AnnotatableSparse,
+                        private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > 
+{
+   public:
       DLLEXPORT void serialize(SerializerBase *, const char * = "LineInformation");
-		typedef LineInformationImpl::LineNoTuple LineNoTuple;
-		typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::const_iterator const_iterator;
-		typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::AddressRange AddressRange;
-		
-		DLLEXPORT LineInformation();
+      typedef LineInformationImpl::LineNoTuple LineNoTuple;
+      typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::const_iterator const_iterator;
+      typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::AddressRange AddressRange;
 
-		/* You MAY freely deallocate the lineSource strings you pass in. */
-		DLLEXPORT bool addLine( const char * lineSource, 
-                              unsigned int lineNo, 
-                              unsigned int lineOffset, 
-                              Offset lowInclusiveAddr, 
-                              Offset highExclusiveAddr );
-		DLLEXPORT void addLineInfo(LineInformation *lineInfo);	      
-		DLLEXPORT bool addAddressRange( Offset lowInclusiveAddr, 
-                                      Offset highExclusiveAddr, 
-                                      const char * lineSource, 
-                                      unsigned int lineNo, 
-                                      unsigned int lineOffset = 0 );
-		
-		/* You MUST NOT deallocate the strings returned. */
-		DLLEXPORT bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines );
-		DLLEXPORT bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
-		
-		DLLEXPORT const_iterator begin() const;
-		DLLEXPORT const_iterator end() const;
-        DLLEXPORT unsigned getSize() const;
-		
-		DLLEXPORT ~LineInformation();
-		
-	protected:
-		/* We maintain internal copies of all the source file names.  Because
-		   both directions of the mapping include pointers to these names,
-		   maintain a separate list of them, and only ever deallocate those
-		   (in the destructor).  Note that it speeds and simplifies things
-		   to have the string pointers be the same. */
+      DLLEXPORT LineInformation();
+
+      /* You MAY freely deallocate the lineSource strings you pass in. */
+      DLLEXPORT bool addLine( const char * lineSource, 
+            unsigned int lineNo, 
+            unsigned int lineOffset, 
+            Offset lowInclusiveAddr, 
+            Offset highExclusiveAddr );
+      DLLEXPORT void addLineInfo(LineInformation *lineInfo);	      
+      DLLEXPORT bool addAddressRange( Offset lowInclusiveAddr, 
+            Offset highExclusiveAddr, 
+            const char * lineSource, 
+            unsigned int lineNo, 
+            unsigned int lineOffset = 0 );
+
+      /* You MUST NOT deallocate the strings returned. */
+      DLLEXPORT bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines );
+      DLLEXPORT bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
+
+      DLLEXPORT const_iterator begin() const;
+      DLLEXPORT const_iterator end() const;
+      DLLEXPORT unsigned getSize() const;
+
+      DLLEXPORT ~LineInformation();
+
+   protected:
+      /* We maintain internal copies of all the source file names.  Because
+         both directions of the mapping include pointers to these names,
+         maintain a separate list of them, and only ever deallocate those
+         (in the destructor).  Note that it speeds and simplifies things
+         to have the string pointers be the same. */
 
 #if ! defined( _MSC_VER )		   
-		struct SourceLineCompare {
-			bool operator () ( const char * lhs, const char * rhs ) const;
-			};
-			
-		typedef dyn_hash_set< const char *, boost::hash< const char * >, SourceLineCompare > SourceLineInternTable;
+      struct SourceLineCompare {
+         bool operator () ( const char * lhs, const char * rhs ) const;
+      };
+
+      typedef dyn_hash_set< const char *, boost::hash< const char * >, SourceLineCompare > SourceLineInternTable;
 #else
 
-		struct SourceLineLess {
-			bool operator () ( const char * lhs, const char * rhs ) const;
-			};
-			
-		typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
+      struct SourceLineLess {
+         bool operator () ( const char * lhs, const char * rhs ) const;
+      };
+
+      typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
 #endif 
-		SourceLineInternTable sourceLineNames;
-        unsigned size_;
-	}; /* end class LineInformation */
+      SourceLineInternTable sourceLineNames;
+      unsigned size_;
+}; /* end class LineInformation */
 
 }//namespace SymtabAPI
 }//namespace Dyninst

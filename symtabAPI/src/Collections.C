@@ -378,16 +378,23 @@ void typeCollection::addType(Type *type)
   type->incrRefCount();
 }
 
-void typeCollection::addGlobalVariable(std::string &name, Type *type) {
+void typeCollection::addGlobalVariable(std::string &name, Type *type) 
+{
     globalVarsByName[name] = type;
 }
 
-void typeCollection::clearNumberedTypes() {
+void typeCollection::clearNumberedTypes() 
+{
    for (dyn_hash_map<int, Type *>::iterator it = typesByID.begin();
         it != typesByID.end();
-        it ++) {
-      it->second->decrRefCount();
+        it ++) 
+   {
+      if (it->second)
+         it->second->decrRefCount();
+      else
+         fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
    }
+
    typesByID.clear();
 }
 

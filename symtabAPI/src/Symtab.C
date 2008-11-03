@@ -65,6 +65,7 @@
 
 #include <libxml/xmlwriter.h>
 #include <iomanip>
+#include <stdarg.h>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -74,11 +75,12 @@ static std::string errMsg;
 extern bool parseCompilerType(Object *);
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase );
 bool pattern_match( const char *p, const char *s, bool checkCase );
-void pd_log_perror(const char *msg){
+
+void pd_log_perror(const char *msg)
+{
    errMsg = msg;
 };
 
-#include <stdarg.h>
 int symtab_printf(const char *format, ...);
 
 static SymtabError serr;
@@ -87,13 +89,15 @@ std::vector<Symtab *> Symtab::allSymtabs;
 builtInTypeCollection *Symtab::builtInTypes = NULL;
 typeCollection *Symtab::stdTypes = NULL;
  
-SymtabError Symtab::getLastSymtabError(){
+SymtabError Symtab::getLastSymtabError()
+{
     return serr;
 }
 
 std::string Symtab::printError(SymtabError serr)
 {
-    switch (serr){
+    switch (serr)
+    {
         case Obj_Parsing:
             return "Failed to parse the Object"+errMsg;
         case Syms_To_Functions:
@@ -123,7 +127,8 @@ std::string Symtab::printError(SymtabError serr)
     }		
 }
 
-void Symtab::setupTypes(){
+void Symtab::setupTypes()
+{
     /*
      * Create the "error" and "untyped" types.
      */
@@ -134,9 +139,11 @@ void Symtab::setupTypes(){
     setupStdTypes();
 }    
 
-void Symtab::setupStdTypes() {
-   if(builtInTypes)
+void Symtab::setupStdTypes() 
+{
+   if (builtInTypes)
     	return;
+
    builtInTypes = new builtInTypeCollection;
    typeScalar *newType;
 
@@ -269,8 +276,9 @@ void Symtab::setupStdTypes() {
 	/*
     * Initialize hash table of standard types.
     */
-	if(stdTypes)
+	if (stdTypes)
     	return;
+
    stdTypes = typeCollection::getGlobalTypeCollection();
    stdTypes->addType(newType = new typeScalar(-1, sizeof(int), "int"));
    newType->decrRefCount();
@@ -294,11 +302,13 @@ void Symtab::setupStdTypes() {
 
    stdTypes->addType(newType = new typeScalar(-12, sizeof(float), "float"));
    newType->decrRefCount();
+
 #if defined(i386_unknown_nt4_0)
    stdTypes->addType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long"));    
 #else
    stdTypes->addType(newType = new typeScalar(-31, sizeof(long long), "long long"));
 #endif
+
 	newType->decrRefCount();
 
    return;
@@ -314,18 +324,16 @@ DLLEXPORT bool Symtab::isNativeCompiler() const
     return nativeCompiler; 
 }
  
+static AnnotationClass<std::vector<Symbol *> > UserFuncsAnno(std::string("UserFuncsAnno"));
+static AnnotationClass<std::vector<Region *> > UserRegionsAnno(std::string("UserRegionsAnno"));
+static AnnotationClass<std::vector<Type *> > UserTypesAnno(std::string("UserTypesAnno"));
+static AnnotationClass<std::vector<Symbol *> > UserSymbolsAnno(std::string("UserSymbolsAnno"));
+
+
 DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
-   Annotatable<Symbol *, user_funcs_a, true>(),
-   Annotatable<Region *, user_regions_a, true>(),
-   Annotatable<Type *, user_types_a, true>(),
-   Annotatable<Symbol *, user_symbols_a, true>(),
-#if 0
-   Annotatable<Symbol *, user_funcs_a, true>(),
-   Annotatable<Region *, user_regions_a, true>(),
-   Annotatable<Type *, user_types_a, true>(),
-   Annotatable<Symbol *, user_symbols_a, true>(),
-#endif
-   mf(mf_), mfForDebugInfo(mf_),
+   AnnotatableSparse(),
+   mf(mf_), 
+   mfForDebugInfo(mf_),
    obj_private(NULL)
 {   
 
@@ -411,7 +419,8 @@ DLLEXPORT Offset Symtab::getTOCoffset() const
    return toc_offset_;
 }
 
-DLLEXPORT string Symtab::getDefaultNamespacePrefix() const{
+DLLEXPORT string Symtab::getDefaultNamespacePrefix() const
+{
     return defaultNamespacePrefix;
 }
 	
@@ -429,7 +438,8 @@ bool Symtab::buildDemangledName( const std::string &mangled,
     * approach.
     */
 
-   if ((mangled.length()>5) && (mangled.substr(0,5)==std::string("MPI__"))) { 
+   if ((mangled.length()>5) && (mangled.substr(0,5)==std::string("MPI__"))) 
+   {
       return false;
    }	  
 
@@ -447,7 +457,8 @@ bool Symtab::buildDemangledName( const std::string &mangled,
          free ( demangled );
          return true;
       }
-      else {
+      else 
+      {
          /* No trailing underscores, do nothing */
          return false;
       }
@@ -465,19 +476,23 @@ bool Symtab::buildDemangledName( const std::string &mangled,
    //         in the future.  JAW 10/03
 
 #if !defined(os_windows)
+
    char *atat;
+
    if (NULL != (atat = strstr(mangled.c_str(), "@@"))) 
    {
         pretty = mangled.substr(0 /*start pos*/, 
                         (int)(atat - mangled.c_str())/*len*/);
-        char msg[256];
-        sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
-                  __FILE__, __LINE__, mangled.c_str(), pretty.c_str());
+        //char msg[256];
+        //sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
+        //          __FILE__, __LINE__, mangled.c_str(), pretty.c_str());
+
         //cerr << msg << endl;
         //logLine(msg);
       
         return true;
     }
+
 #endif
 
     bool retval = false;
@@ -522,135 +537,186 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
    gettimeofday(&starttime, NULL);
 #endif
 
-    std::vector< Symbol *> lookUps;
-    std::string symString;
+   std::vector< Symbol *> lookUps;
+   std::string symString;
 
-    // find the real functions -- those with the correct type in the symbol table
-    for (SymbolIter symIter(*linkedFile); symIter;symIter++) 
-    {
-        Symbol *lookUp = symIter.currval();
-        const char *np = lookUp->getName().c_str();
+   // find the real functions -- those with the correct type in the symbol table
+   for (SymbolIter symIter(*linkedFile); symIter;symIter++) 
+   {
+      Symbol *lookUp = symIter.currval();
+      const char *np = lookUp->getName().c_str();
 
-        //parsing_printf("Scanning file: symbol %s\n", lookUp->getName().c_str());
+      //parsing_printf("Scanning file: symbol %s\n", lookUp->getName().c_str());
 
-        //fprintf(stderr,"np %s\n",np);
+      //fprintf(stderr,"np %s\n",np);
 
-        if (is_eel_ && (np[0] == '.'))
-           /* ignore these EEL symbols; we don't understand their values */
-           continue; 
-        
-        // check for undefined dynamic symbols. Used when rewriting relocation section.
-        // relocation entries have references to these undefined dynamic symbols.
-        // We also have undefined symbols for the static binary case.
-        if (lookUp->getSec() == NULL) {
-        //if (lookUp->getSec() == NULL && lookUp->isInDynSymtab()) {
-            undefDynSyms[np] = lookUp;
-            continue;
-        }
+      if (is_eel_ && (np[0] == '.'))
+         /* ignore these EEL symbols; we don't understand their values */
+         continue; 
 
-    	if (lookUp->getType() == Symbol::ST_FUNCTION) 
-	    {
-            // /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", FILE__, __LINE__, lookUp.getName().c_str(), lookUp.getModuleName().c_str() );
-            
-            std::string msg;
-            char tempBuffer[40];
-            if (!isValidOffset(lookUp->getAddr())) 
-            {
-                sprintf(tempBuffer,"0x%lx",lookUp->getAddr());
-                msg = std::string("Function ") + lookUp->getName() 
-                    + std::string(" has bad address ")
-                    + std::string(tempBuffer);
-                fprintf(stderr, "%s[%d] in symbolsToFunctions %s\n", 
-                        __FILE__,__LINE__,msg.c_str());
-                return false;
-            }
-            // Fill in _mods.
-            Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
-            lookUp->setModule(newMod);
-            raw_funcs->push_back(lookUp);
-        }
-        if (lookUp->getType() == Symbol::ST_MODULE)
-        {
-            const std::string mangledName = symIter.currkey();
-            Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
-            lookUp->setModule(newMod);
-            char * unmangledName =
-                P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
-            if (unmangledName)
-                lookUp->addPrettyName(unmangledName, true);
-            else
-                lookUp->addPrettyName(mangledName, true);
-            addModuleName(lookUp,mangledName);
-            modSyms.push_back(lookUp);
-        }
-        else if (lookUp->getType() == Symbol::ST_NOTYPE)
-        {
-            const std::string mangledName = symIter.currkey();
-            Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
-            lookUp->setModule(newMod);
-            char * unmangledName =
-                P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
-            if (unmangledName)
-                lookUp->addPrettyName(unmangledName, true);
-            else
-                lookUp->addPrettyName(mangledName, true);
-            notypeSyms.push_back(lookUp);
-        }	
-        else if (lookUp->getType() == Symbol::ST_OBJECT)
-        {
-            const std::string mangledName = symIter.currkey();
+      // check for undefined dynamic symbols. Used when rewriting relocation section.
+      // relocation entries have references to these undefined dynamic symbols.
+      // We also have undefined symbols for the static binary case.
+
+      //if (lookUp->getSec() == NULL && lookUp->isInDynSymtab()) {
+
+      if (lookUp->getSec() == NULL) 
+      {
+         undefDynSyms[np] = lookUp;
+         continue;
+      }
+
+      if (lookUp->getType() == Symbol::ST_FUNCTION) 
+      {
+         // /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", FILE__, __LINE__, lookUp.getName().c_str(), lookUp.getModuleName().c_str() );
+
+         std::string msg;
+         char tempBuffer[40];
+
+         if (!isValidOffset(lookUp->getAddr())) 
+         {
+            sprintf(tempBuffer,"0x%lx",lookUp->getAddr());
+            msg = std::string("Function ") + lookUp->getName() 
+               + std::string(" has bad address ")
+               + std::string(tempBuffer);
+            fprintf(stderr, "%s[%d] in symbolsToFunctions %s\n", 
+                  __FILE__,__LINE__,msg.c_str());
+            return false;
+         }
+
+         // Fill in _mods.
+
+         Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
+         assert(newMod);
+
+         lookUp->setModule(newMod);
+         raw_funcs->push_back(lookUp);
+      }
+
+      if (lookUp->getType() == Symbol::ST_MODULE)
+      {
+         const std::string mangledName = symIter.currkey();
+
+         Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
+         lookUp->setModule(newMod);
+
+         char * unmangledName =
+            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+
+         if (unmangledName)
+            lookUp->addPrettyName(unmangledName, true);
+         else
+            lookUp->addPrettyName(mangledName, true);
+
+         addModuleName(lookUp,mangledName);
+         modSyms.push_back(lookUp);
+      }
+      else if (lookUp->getType() == Symbol::ST_NOTYPE)
+      {
+         const std::string mangledName = symIter.currkey();
+
+         Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
+         lookUp->setModule(newMod);
+
+         char * unmangledName =
+            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+
+         if (unmangledName)
+            lookUp->addPrettyName(unmangledName, true);
+         else
+            lookUp->addPrettyName(mangledName, true);
+
+         notypeSyms.push_back(lookUp);
+      }	
+      else if (lookUp->getType() == Symbol::ST_OBJECT)
+      {
+         const std::string mangledName = symIter.currkey();
+
 #if !defined(os_windows)
          // Windows: variables are created with an empty module
-            if (lookUp->getModuleName().length() == 0) 
-            {
-                //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
-                continue;
-            }
-#endif
-            char * unmangledName =
-                    P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
-                            
-            //Fill in _mods.
-            Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
-            lookUp->setModule(newMod);
-            Symbol *var;
-            //bool addToPretty = false;
-            if (varsByAddr.find(lookUp->getAddr())!=varsByAddr.end()) 
-            {
-                var = varsByAddr[lookUp->getAddr()];
-                                    
-                // Keep the new mangled name
-                var->addMangledName(mangledName);
-                if (unmangledName)
-                var->addPrettyName(unmangledName, true);
-                else
-                var->addPrettyName(mangledName, true);
-                                    
-            }
-            else
-            {
-                var = lookUp;
-                varsByAddr[lookUp->getAddr()] = var;
-                if (unmangledName)
-                    var->addPrettyName(unmangledName, true);
-                else
-                    var->addPrettyName(mangledName, true);
-                everyUniqueVariable.push_back(var);
-            }
-        }
 
-    }
+         if (lookUp->getModuleName().length() == 0) 
+         {
+            //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
+            continue;
+         }
+#endif
+         char * unmangledName =
+            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+
+         //fprintf(stderr, "%s[%d]:  looking up module '%s' addr %p\n", 
+         //      FILE__, __LINE__, lookUp->getModuleName().c_str(), 
+         //      (void *) lookUp->getAddr());
+
+         //Fill in _mods.
+
+         Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
+
+         lookUp->setModule(newMod);
+         Symbol *var;
+
+         //bool addToPretty = false;
+
+         if (varsByAddr.find(lookUp->getAddr())!=varsByAddr.end()) 
+         {
+            var = varsByAddr[lookUp->getAddr()];
+
+            // Keep the new mangled name
+            var->addMangledName(mangledName);
+
+            if (unmangledName)
+               var->addPrettyName(unmangledName, true);
+            else
+               var->addPrettyName(mangledName, true);
+
+            if (newMod->fileName() != std::string("DEFAULT_MODULE")) 
+            {
+               Module *m = var->getModule();
+
+               if ( (NULL == m) || (m->fileName() == std::string("DEFAULT_MODULE")))
+               {
+                  //fprintf(stderr, "%s[%d]:  setting module to %s for var %s\n", 
+                  //      FILE__, __LINE__,mangledName.c_str(),newMod->fileName().c_str());
+
+                  var->setModule(newMod);
+               }
+            }
+
+         }
+         else
+         {
+            var = lookUp;
+            varsByAddr[lookUp->getAddr()] = var;
+
+            if (unmangledName)
+               var->addPrettyName(unmangledName, true);
+            else
+               var->addPrettyName(mangledName, true);
+
+            everyUniqueVariable.push_back(var);
+
+            //if (var->getModule()->fileName().c_str() == std::string("DEFAULT_MODULE"))
+            //{
+            //fprintf(stderr, "%s[%d]:  setting module for %s to %s\n", 
+            //      FILE__, __LINE__, mangledName.c_str(), 
+            //      var->getModule()->fileName().c_str());
+            //}
+         }
+      }
+
+   }
 
 #if defined(TIMED_PARSE)
-  	struct timeval endtime;
-  	gettimeofday(&endtime, NULL);
-  	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  	unsigned long difftime = lendtime - lstarttime;
-  	double dursecs = difftime/(1000 );
-  	cout << __FILE__ << ":" << __LINE__ <<": symbolsToFunctions took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": symbolsToFunctions took "<<dursecs <<" msecs" << endl;
 #endif
-    return true;
+
+   return true;
 }
 
 #if defined(ppc64_linux)
@@ -669,7 +735,7 @@ void Symtab::checkPPC64DescriptorSymbols(Object *linkedFile)
       const char *np = lookUp->getName().c_str();
       if(!np)
          continue;
-      
+
       if(np[0] == '.' && (lookUp->getType() == Symbol::ST_FUNCTION))
       {
          std::vector<Symbol *>syms;
@@ -716,7 +782,7 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
          currLang = (*mod_langs)[fn];
       }
       else if (fn.rfind(".s") != std::string::npos ||
-               fn.rfind(".asm") != std::string::npos)
+            fn.rfind(".asm") != std::string::npos)
       {
          currLang = lang_Assembly;
       }
@@ -725,8 +791,8 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
          currLang = lang_C;
       }
       else if (fn.rfind(".cpp") != std::string::npos ||
-               fn.rfind(".cc") != std::string::npos ||
-               fn.rfind(".C") != std::string::npos)
+            fn.rfind(".cc") != std::string::npos ||
+            fn.rfind(".C") != std::string::npos)
       {
          currLang = lang_CPlusPlus;
       }
@@ -748,9 +814,10 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
       nameToUse = "DEFAULT_MODULE";
 
    Module *fm = NULL;
-   if (findModule(fm, nameToUse)) {
-        return fm;
-    }
+   if (findModule(fm, nameToUse)) 
+   {
+      return fm;
+   }
 
     const char *str = nameToUse.c_str();
     int len = nameToUse.length();
@@ -869,7 +936,7 @@ bool Symtab::buildFunctionLists(std::vector <Symbol *> &raw_funcs)
                }
             }
 
-            if(*rawmod == *use)
+            if (*rawmod == *use)
             {
                // Keep the new mangled name
                possiblyExistingFunction->addMangledName(mangled_name);
@@ -883,7 +950,7 @@ bool Symtab::buildFunctionLists(std::vector <Symbol *> &raw_funcs)
                break;
             }	
          }	
-         if(!flag)
+         if (!flag)
          {
                 funcsByEntryAddr[raw->getAddr()].push_back(raw);
                 addFunctionName(raw, mangled_name, true);
@@ -952,8 +1019,22 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     if (wasSymtab)
         exportedFunctions.push_back(func);
     else {
-       Annotatable<Symbol *, user_funcs_a,  true> &ufA = *this;
-       ufA.addAnnotation(func);
+       std::vector<Symbol *> *user_funcs_p = NULL;
+       if (!getAnnotation(user_funcs_p, UserFuncsAnno))
+       {
+          user_funcs_p = new std::vector<Symbol *>();
+          if (!addAnnotation(user_funcs_p, UserFuncsAnno))
+          {
+             fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+          }
+       }
+       if (!user_funcs_p)
+       {
+          fprintf(stderr, "%s[%d]: failed to get annotation here\n", FILE__, __LINE__);
+          return;
+       }
+
+       user_funcs_p->push_back(func);
     }
 }
 
@@ -974,13 +1055,15 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
              FILE__, __LINE__, rstr.c_str());
     }
 
-    if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) {
+    if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) 
+    {
         newSymVers->push_back((*vers)[0]);
         newSym->setVersions(*newSymVers);
     }
 
     //Check again. Is this an ok thing to do??
     undefDynSyms[newSym->getPrettyName()] = newSym;
+
     return addSymbol(newSym, true);
 }
 
@@ -996,7 +1079,8 @@ bool Symtab::addSymbolInt(Symbol *newSym,bool from_user,  bool isDynamic)
     if (!newSym)
     	return false;
 
-    if (isDynamic) {
+    if (isDynamic) 
+    {
         newSym->clearIsInSymtab();
         newSym->setDynSymtab();
     }	
@@ -1014,10 +1098,10 @@ bool Symtab::addSymbolInt(Symbol *newSym,bool from_user,  bool isDynamic)
     }
 #endif
 
-    if( ! newSym->getModule()) {
-        Module *newMod = getOrCreateModule
-            (newSym->getModuleName(), newSym->getAddr());
-    newSym->setModule(newMod);
+    if ( !newSym->getModule()) 
+    {
+        Module *newMod = getOrCreateModule(newSym->getModuleName(), newSym->getAddr());
+        newSym->setModule(newMod);
     }
 
     if (newSym->getAllPrettyNames().size() == 0)
@@ -1062,20 +1146,36 @@ bool Symtab::addSymbolInt(Symbol *newSym,bool from_user,  bool isDynamic)
     else
         notypeSyms.push_back(newSym);
 
-    if (!newSym->getAllPrettyNames().size()) // add the unmangledName if there are no prettyNames
+    if (!newSym->getAllPrettyNames().size()) 
     {
+       // add the unmangledName if there are no prettyNames
         if (unmangledName)
             newSym->addPrettyName(unmangledName, true);
         else
             newSym->addPrettyName(sname,true);
     }		
 
-    if (from_user) {
+    if (from_user) 
+    {
        //  The case that is yet unaccounted for is if the user adds a symbols
        //  that causes the creation of a new module...  to be correct-ish here
        //  this module should be acknowledged as "different"
-       Annotatable<Symbol *, user_symbols_a, true> &usA = *this;
-       usA.addAnnotation(newSym);
+       std::vector<Symbol *> *user_syms = NULL;
+       if (!getAnnotation(user_syms, UserSymbolsAnno))
+       {
+          user_syms = new std::vector<Symbol *>();
+          if (!addAnnotation(user_syms, UserSymbolsAnno))
+          {
+             fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+          }
+       }
+       if (!user_syms)
+       {
+          fprintf(stderr, "%s[%d]: failed to get annotation here\n", FILE__, __LINE__);
+          return false;
+       }
+
+       user_syms->push_back(newSym);
     }
 
     return true;
@@ -1412,10 +1512,7 @@ bool Symtab::extractInfo(Object *linkedFile)
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
    Serializable(),
-   Annotatable<Symbol *, user_funcs_a, true>(obj),
-   Annotatable<Region *, user_regions_a,  true>(obj),
-   Annotatable<Type *, user_types_a,  true> (obj),
-   Annotatable<Symbol *, user_symbols_a, true>(obj)
+   AnnotatableSparse()
 {
   symtab_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
@@ -1625,7 +1722,7 @@ bool Symtab::getAllRegions(std::vector<Region *>&ret)
 
 bool Symtab::getCodeRegions(std::vector<Region *>&ret)
 {
-    if(codeRegions_.size() > 0)
+    if (codeRegions_.size() > 0)
     {
         ret = codeRegions_;
         return true;
@@ -1635,7 +1732,7 @@ bool Symtab::getCodeRegions(std::vector<Region *>&ret)
 
 bool Symtab::getDataRegions(std::vector<Region *>&ret)
 {
-    if(dataRegions_.size() > 0)
+    if (dataRegions_.size() > 0)
     {
         ret = dataRegions_;
         return true;
@@ -1645,16 +1742,28 @@ bool Symtab::getDataRegions(std::vector<Region *>&ret)
 
 bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 {
-   Annotatable<Region *, user_regions_a,  true> &urA = *this;
-   if (!urA.size())
+   std::vector<Region *> *retp = NULL;
+
+   if (!getAnnotation(retp, UserRegionsAnno))
+   {
+      fprintf(stderr, "%s[%d]:  failed to get annotations here\n", FILE__, __LINE__);
       return false;
-   ret = urA.getDataStructure();
+   }
+
+   if (!retp)
+   {
+      fprintf(stderr, "%s[%d]:  failed to get annotations here\n", FILE__, __LINE__);
+      return false;
+   }
+
+   ret = *retp;
+
    return true;
 }
 
 bool Symtab::getAllExceptions(std::vector<ExceptionBlock *> &exceptions)
 {
-    if(excpBlocks.size()>0)
+    if (excpBlocks.size()>0)
     {
         exceptions = excpBlocks;
         return true;
@@ -2170,37 +2279,45 @@ Symtab::~Symtab()
 	
     unsigned i;
             
-    for (i = 0; i < regions_.size(); i++) {
+    for (i = 0; i < regions_.size(); i++) 
+    {
         delete regions_[i];
     }
     regions_.clear();
     
-    Annotatable<Region *, user_regions_a,  true> &usA = *this;
-    for (i = 0; i < usA.size(); ++i) {
-       Region *s = usA[i];
-       delete(s);
+    std::vector<Region *> *user_regions = NULL;
+    getAnnotation(user_regions, UserRegionsAnno);
+    if (user_regions)
+    {
+       for (i = 0; i < user_regions->size(); ++i) 
+          delete (*user_regions)[i];
+       user_regions->clear();
     }
+
     for (i = 0; i < _mods.size(); i++) {
         delete _mods[i];
     }
     _mods.clear();
 
-    for(i=0; i< modSyms.size(); i++)
+    for (i=0; i< modSyms.size(); i++)
         delete modSyms[i];
     modSyms.clear();	
+
     modsByFileName.clear();
     modsByFullName.clear();
 
-    for(i=0; i< notypeSyms.size(); i++)
+    for (i=0; i< notypeSyms.size(); i++)
         delete notypeSyms[i];
     notypeSyms.clear();	
     
-    for (i = 0; i < everyUniqueVariable.size(); i++) {
+    for (i = 0; i < everyUniqueVariable.size(); i++) 
+    {
         delete everyUniqueVariable[i];
     }
     everyUniqueVariable.clear();
     
-    for (i = 0; i < everyUniqueFunction.size(); i++) {
+    for (i = 0; i < everyUniqueFunction.size(); i++) 
+    {
         delete everyUniqueFunction[i];
     }
     everyUniqueFunction.clear();
@@ -2214,7 +2331,8 @@ Symtab::~Symtab()
     
     deps_.clear();
     
-    for (i = 0; i < allSymtabs.size(); i++) {
+    for (i = 0; i < allSymtabs.size(); i++) 
+    {
         if (allSymtabs[i] == this)
             allSymtabs.erase(allSymtabs.begin()+i);
     }
@@ -2692,18 +2810,64 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
         regions_.push_back(sec);
     }
 
-    Annotatable<Region *, user_regions_a,  true> &urA = *this;
-    urA.addAnnotation(sec);
+    addUserRegion(sec);
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
     return true;
+}
+
+bool Symtab::addUserRegion(Region *reg)
+{
+   std::vector<Region *> *user_regions = NULL;
+
+   if (!getAnnotation(user_regions, UserRegionsAnno))
+   {
+      user_regions = new std::vector<Region *>();
+      if (!addAnnotation(user_regions, UserRegionsAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+         return false;
+      }
+   }
+   if (!user_regions)
+   {
+      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+      return false;
+   }
+
+   user_regions->push_back(reg);
+
+   return true;
+}
+
+bool Symtab::addUserType(Type *t)
+{
+   std::vector<Type *> *user_types = NULL;
+
+   if (!getAnnotation(user_types, UserTypesAnno))
+   {
+      user_types = new std::vector<Type *>();
+      if (!addAnnotation(user_types, UserTypesAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+         return false;
+      }
+   }
+   if (!user_types)
+   {
+      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+      return false;
+   }
+
+   user_types->push_back(t);
+
+   return true;
 }
 
 bool Symtab::addRegion(Region *sec)
 {
     regions_.push_back(sec);
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-    Annotatable<Region *, user_regions_a,  true> &urA = *this;
-    urA.addAnnotation(sec);
+    addUserRegion(sec);
     return true;
 }
 
@@ -2815,10 +2979,14 @@ void Symtab::parseTypes()
 
 bool Symtab::addType(Type *type)
 {
-   Annotatable<Type *, user_types_a,  true> &utA = *this;
-   utA.addAnnotation(type);
+   if (!addUserType(type))
+   {
+      fprintf(stderr, "%s[%d]:  failed to addUserType\n", FILE__, __LINE__);
+   }
+
    typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
    globaltypes->addType(type);
+
    return true;
 }
 

@@ -76,6 +76,8 @@
 #include <cvconst.h>
 #endif
 
+AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno");
+AnnotationClass<image_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
 
 using namespace Dyninst;
@@ -592,7 +594,14 @@ bool image::symbolsToFunctions(vector<Symbol *> &mods,
           image_func *main_pdf = makeOneFunction(mods, lookUp);
           //lookUp->setUpPtr((void *)main_pdf);	// set the back ptr in the symbol;
           assert(main_pdf);
+          if (!lookUp->addAnnotation(main_pdf, ImageFuncUpPtrAnno))
+          {
+             fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+             return false;
+          }
+#if 0
           annotate(lookUp, main_pdf, std::string("image_func_ptr"));
+#endif
 
           raw_funcs->push_back(main_pdf);
       }
@@ -647,7 +656,14 @@ bool image::symbolsToFunctions(vector<Symbol *> &mods,
             fprintf(stderr, "%s[%d]:  makeOneFunction failed\n", FILE__, __LINE__);
         else {
             raw_funcs->push_back(new_func);
+            if (!lookUp->addAnnotation(new_func, ImageFuncUpPtrAnno))
+            {
+               fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+               continue;
+            }
+#if 0
             annotate(lookUp, new_func, std::string("image_func_ptr"));
+#endif
         }
 
     }
@@ -724,7 +740,14 @@ bool image::addSymtabVariables()
                                               symInfo->getAddr());
           assert(use);
 	  var = new image_variable(symInfo, use);
+     if (!var->symbol()->addAnnotation(var, ImageVariableUpPtrAnno))
+     {
+        fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+        return false;
+     }
+#if 0
      annotate(var->symbol(), var, std::string("image_variable_ptr"));
+#endif
 
 	  //var->symbol()->setUpPtr((void *)var);
           exportedVariables.push_back(var);
@@ -1523,7 +1546,14 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      linkedFile->addSymbol( funcSym );
      image_func *func = new image_func(funcSym, mod, this);
      //func->symbol()->setUpPtr(func);
+     if (!func->symbol()->addAnnotation(func, ImageFuncUpPtrAnno))
+     {
+        fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+        return NULL;
+     }
+#if 0
      annotate(func->symbol(), func, std::string("image_func_ptr"));
+#endif
 
      func->addSymTabName( funcName ); 
      func->addPrettyName( funcName );
@@ -1651,6 +1681,19 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
     for(unsigned index=0; index<syms.size(); index++)
     {
        Symbol *sym = syms[index];
+       image_func *imf = NULL;
+
+       if (!sym->getAnnotation(imf, ImageFuncUpPtrAnno)) 
+       {
+          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+          return NULL;
+       }
+
+       if (imf) 
+       {
+          res->push_back(imf);
+       }
+#if 0
        std::vector<image_func *> *image_funcs 
           = getAnnotations<Symbol, image_func *>(sym, std::string("image_func_ptr"));
        if (image_funcs->size()) {
@@ -1662,6 +1705,7 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
           image_func *imf = (*image_funcs)[image_funcs->size() -1];
           res->push_back(imf);
        }
+#endif
 
           //if(syms[index]->getUpPtr())
 	   // res->push_back((image_func *)syms[index]->getUpPtr());
@@ -1698,6 +1742,18 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string 
     for(unsigned index=0; index<syms.size(); index++)
     {
        Symbol *sym = syms[index];
+       image_func *imf = NULL;
+       if (!sym->getAnnotation(imf, ImageFuncUpPtrAnno)) 
+       {
+          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+          return NULL;
+       }
+
+       if (imf) 
+       {
+          res->push_back(imf);
+       }
+#if 0
        std::vector<image_func *> *image_funcs
           = getAnnotations<Symbol, image_func *>(sym, std::string("image_func_ptr"));
        if (image_funcs->size()) {
@@ -1708,6 +1764,7 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string 
           image_func *imf = (*image_funcs)[image_funcs->size() -1];
           res->push_back(imf);
        }
+#endif
 
           //if(syms[index]->getUpPtr())				//Every Symbol might not have a corresponding image_func
           //    res->push_back((image_func *)syms[index]->getUpPtr());
@@ -1733,6 +1790,18 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const std::strin
     for(unsigned index=0; index<syms.size(); index++)
     {
        Symbol *sym = syms[index];
+       image_variable *imv = NULL;
+       if (!sym->getAnnotation(imv, ImageVariableUpPtrAnno)) 
+       {
+          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+          return NULL;
+       }
+
+       if (imv) 
+       {
+          res->push_back(imv);
+       }
+#if 0
        std::vector<image_variable *> *image_vars
           = getAnnotations<Symbol, image_variable *>(sym, std::string("image_variable_ptr"));
        if (image_vars->size()) {
@@ -1743,6 +1812,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const std::strin
           image_variable *image_var = (*image_vars)[image_vars->size() -1];
           res->push_back(image_var);
        }
+#endif
 
           //if(syms[index]->getUpPtr())
           //    res->push_back((image_variable *)syms[index]->getUpPtr());
@@ -1767,6 +1837,18 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
     for(unsigned index=0; index<syms.size(); index++)
     {
        Symbol *sym = syms[index];
+       image_variable *imv = NULL;
+       if (!sym->getAnnotation(imv, ImageVariableUpPtrAnno)) 
+       {
+          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+          return NULL;
+       }
+
+       if (imv) 
+       {
+          res->push_back(imv);
+       }
+#if 0
        std::vector<image_variable *> *image_vars
           = getAnnotations<Symbol, image_variable *>(sym, std::string("image_variable_ptr"));
        if (image_vars->size()) {
@@ -1777,6 +1859,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
           image_variable *im_var = (*image_vars)[image_vars->size() -1];
           res->push_back(im_var);
        }
+#endif
 
        //if(syms[index]->getUpPtr())
     	//    res->push_back((image_variable *)syms[index]->getUpPtr());

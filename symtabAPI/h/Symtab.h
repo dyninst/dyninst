@@ -61,10 +61,7 @@ class relocationEntry;
 
 class Symtab : public LookupInterface,
                public Serializable,
-               public Annotatable<Symbol *, user_funcs_a, true>, 
-               public Annotatable<Region *, user_regions_a, true>, 
-               public Annotatable<Type *, user_types_a, true>, 
-               public Annotatable<Symbol *, user_symbols_a, true> 
+               public AnnotatableSparse
 {
 
    friend class Archive;
@@ -306,6 +303,8 @@ class Symtab : public LookupInterface,
    void addModuleName(Symbol *mod,
          const std::string newName);
 
+   bool addUserRegion(Region *newreg);
+   bool addUserType(Type *newtypeg);
    /***** Private Data Members *****/
    private:
    std::string member_name_;
@@ -421,7 +420,7 @@ class Symtab : public LookupInterface,
  * Used to represent something like a C++ try/catch block.  
  * Currently only used on Linux/x86
  **/
-class ExceptionBlock : public Serializable {
+class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
       DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "exceptionBlock");
@@ -450,7 +449,7 @@ class ExceptionBlock : public Serializable {
 // on x86-solaris: target_addr_ = PLT entry addr
 //		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
 
-class relocationEntry : public Serializable {
+class relocationEntry : public Serializable, public AnnotatableSparse {
    public:
 
       DLLEXPORT relocationEntry();

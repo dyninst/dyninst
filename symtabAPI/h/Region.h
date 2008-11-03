@@ -33,6 +33,7 @@
 #define __REGION__H__
  
 #include "Serialization.h"
+#include "Annotatable.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -42,7 +43,7 @@ class relocationEntry;
 
 
 
-class Region : public Serializable {
+class Region : public Serializable, public AnnotatableSparse {
    friend class Object;
    friend class Symtab;
    friend class SymtabTranslatorBase;

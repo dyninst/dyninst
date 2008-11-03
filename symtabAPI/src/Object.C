@@ -29,8 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.30 2008/10/27 17:23:54 mlam Exp $
+// $Id: Object.C,v 1.31 2008/11/03 15:19:25 jaw Exp $
 
+#include "Annotatable.h"
 #include "common/h/serialize.h"
 
 #include "Symtab.h"
@@ -45,6 +46,11 @@
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+
+AnnotationClass<localVarCollection> FunctionLocalVariablesAnno(std::string("FunctionLocalVariablesAnno"));
+AnnotationClass<localVarCollection> FunctionParametersAnno(std::string("FunctionParametersAnno"));
+AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersionNamesAnno");
+AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
 
 string Symbol::emptyString("");
 
@@ -198,10 +204,7 @@ DLLEXPORT Symbol::~Symbol ()
 
 DLLEXPORT Symbol::Symbol(const Symbol& s) :
    Serializable(),
-   Annotatable <std::string, symbol_file_name_a>(), 
-   Annotatable <std::vector<std::string>, symbol_version_names_a>(), 
-   Annotatable <localVarCollection, symbol_variables_a, true>(), 
-   Annotatable <localVarCollection, symbol_parameters_a, true>(), 
+   AnnotatableSparse(),
    module_(s.module_), 
    type_(s.type_), linkage_(s.linkage_),
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
@@ -214,6 +217,7 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    retType_(s.retType_), 
    moduleName_(s.moduleName_) 
 {
+#if 0
    Annotatable <std::string, symbol_file_name_a> &sfa = *this;
    const Annotatable <std::string, symbol_file_name_a> &sfa_src = s;
    if (sfa_src.size())
@@ -233,6 +237,74 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    const Annotatable<localVarCollection, symbol_parameters_a, true> &pA_src = s;
    if (pA_src.size())
       pA.addAnnotation(pA_src[0]);
+   fprintf(stderr, "%s[%d]:  FIXME??  copy annotations here or not??\n", FILE__, __LINE__);
+#endif
+
+   std::string *sfa_p = NULL;
+   if (s.getAnnotation(sfa_p, SymbolFileNameAnno))
+   {
+      if (!sfa_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         //  alloc a new string here??
+         if (!addAnnotation(sfa_p, SymbolFileNameAnno)) 
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
+
+   std::vector<std::string> *svn_p = NULL;
+   if (s.getAnnotation(svn_p, SymbolVersionNamesAnno))
+   {
+      if (!svn_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         //  alloc a new vector here??
+         if (!addAnnotation(svn_p, SymbolVersionNamesAnno))
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
+
+   localVarCollection *vars_p = NULL;
+   if (s.getAnnotation(vars_p, FunctionLocalVariablesAnno))
+   {
+      if (!vars_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         if (!addAnnotation(vars_p, FunctionLocalVariablesAnno))
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
+
+   localVarCollection *params_p = NULL;
+   if (s.getAnnotation(params_p, FunctionParametersAnno))
+   {
+      if (!params_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         if (!addAnnotation(params_p, FunctionParametersAnno))
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
 }
 
 DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) 
@@ -250,7 +322,80 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    prettyNames = s.prettyNames;
    typedNames = s.typedNames;
    framePtrRegNum_ = s.framePtrRegNum_;
+
+   std::string *sfa_p = NULL;
+   if (s.getAnnotation(sfa_p, SymbolFileNameAnno))
+   {
+      if (!sfa_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         //  alloc a new string here??
+         if (!addAnnotation(sfa_p, SymbolFileNameAnno))
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
+
+   std::vector<std::string> *svn_p = NULL;
+   if (s.getAnnotation(svn_p, SymbolVersionNamesAnno))
+   {
+      if (!svn_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         //  alloc a new vector here??
+         std::vector<std::string> *new_svn_p = new std::vector<std::string>();
+         for (unsigned int i = 0; i < svn_p->size(); ++i)
+         {
+            new_svn_p->push_back((*svn_p)[i]);
+         }
+
+         if (!addAnnotation(svn_p, SymbolVersionNamesAnno))
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
+
+   localVarCollection *vars_p = NULL;
+   if (s.getAnnotation(vars_p, FunctionLocalVariablesAnno))
+   {
+      if (!vars_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         if (!addAnnotation(vars_p, FunctionLocalVariablesAnno))
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
+
+   localVarCollection *params_p = NULL;
+   if (s.getAnnotation(params_p, FunctionParametersAnno))
+   {
+      if (!params_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         if (!addAnnotation(params_p, FunctionParametersAnno))
+         {
+            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
+         }
+      }
+   }
 #if 0
+#if 1 
    fprintf(stderr, "%s[%d]:  WARNING:  assignment ctor not assigning local variables and parameters\n", FILE__, __LINE__);
 #else
    Annotatable <std::string, symbol_file_name_a> &sfa = *this;
@@ -272,6 +417,7 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    const Annotatable<localVarCollection, symbol_parameters_a,true> &pA_src = s;
    if (pA_src.size())
       pA.addAnnotation(pA_src[0]);
+#endif
 #endif
    return *this;
 }
@@ -338,41 +484,37 @@ DLLEXPORT Region *Symbol::getSec() const
 
 bool Symbol::addLocalVar(localVar *locVar)
 {
-   Annotatable<localVarCollection, symbol_variables_a, true> &varA = *this;
-
-   if (!varA.size()) {
-      localVarCollection newColl;
-      varA.addAnnotation(newColl);
+   localVarCollection *lvs = NULL;
+   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
+   {
+      lvs = new localVarCollection();
+      if (!addAnnotation(lvs, FunctionLocalVariablesAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
+               FILE__, __LINE__);
+         return false;
+      }
    }
 
-   if (!varA.size()) {
-      fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-      return false;
-   }
-
-   localVarCollection &svars = varA[0];
-   svars.addLocalVar(locVar);
-
+   lvs->addLocalVar(locVar);
    return true;
 }
 
 bool Symbol::addParam(localVar *param)
 {
-   Annotatable<localVarCollection, symbol_parameters_a, true> &paramA = *this;
-
-   if (!paramA.size()) {
-      localVarCollection newColl;
-      paramA.addAnnotation(newColl);
+   localVarCollection *ps = NULL;
+   if (!getAnnotation(ps, FunctionParametersAnno))
+   {
+      ps = new localVarCollection();
+      if (!addAnnotation(ps, FunctionParametersAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
+               FILE__, __LINE__);
+         return false;
+      }
    }
 
-   if (!paramA.size()) {
-      fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-      return false;
-   }
-
-   localVarCollection &sparams = paramA[0];
-   sparams.addLocalVar(param);
-
+   ps->addLocalVar(param);
    return true;
 }
         
@@ -629,6 +771,28 @@ DLLEXPORT int Symbol::getFramePtrRegnum()
 
 DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
 {
+   std::string *fn_p = NULL;
+   if (getAnnotation(fn_p, SymbolFileNameAnno)) 
+   {
+      if (!fn_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
+      }
+      else
+         fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", FILE__, __LINE__, getName().c_str());
+      return false;
+   }
+   else
+   {
+      if (!addAnnotation(&fileName, SymbolFileNameAnno)) 
+      {
+         fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
+         return false;
+      }
+      return true;
+   }
+   return false;
+#if 0
    Annotatable<std::string, symbol_file_name_a> &fn = *this;
    std::string s = fileName;
    if (fn.size()) {
@@ -638,10 +802,30 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
    else
        fn.addAnnotation(fileName);
    return true;
+#endif
 }
 
 DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
 {
+   std::vector<std::string> *vn_p = NULL;
+   if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
+   {
+      if (!vn_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
+      }
+      else
+         fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
+      return false;
+   }
+   else
+   {
+      if (!addAnnotation(&vers, SymbolVersionNamesAnno)) 
+      {
+         fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
+      }
+   }
+#if 0
    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
    if (sv.size()) {
       sv[0] = vers;
@@ -649,27 +833,60 @@ DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    }
    else
        sv.addAnnotation(vers);
+#endif
    return true;
 }
 
 DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 {
+   std::string *fn_p = NULL;
+   if (getAnnotation(fn_p, SymbolFileNameAnno)) 
+   {
+      if (!fn_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
+      }
+      else
+         fileName = *fn_p;
+      return true;
+   }
+
+   return false;
+
+#if 0
    Annotatable<std::string, symbol_file_name_a> &fn = *this;
    if (!fn.size()) {
       return false;
    }
    fileName = fn[0];
    return true;
+#endif
 }
 
 DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 {
+   std::vector<std::string> *vn_p = NULL;
+   if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
+   {
+      if (!vn_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
+      }
+      else
+      {
+         vers = vn_p;
+         return true;
+      } 
+   }
+   return false;
+#if 0
    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
    if (!sv.size()) {
       return false;
    }
    vers = &(sv[0]);
    return true;
+#endif
 }
 
 DLLEXPORT bool Symbol::getLocalVariables(std::vector<localVar *>&vars)
@@ -679,16 +896,18 @@ DLLEXPORT bool Symbol::getLocalVariables(std::vector<localVar *>&vars)
 
    module_->exec()->parseTypesNow();	
 
-   Annotatable<localVarCollection, symbol_variables_a, true> &svA = *this;
-   if (!svA.size())
+   localVarCollection *lvs = NULL;
+   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
+   {
       return false;
-
-   if (svA.size() > 1) {
-      fprintf(stderr, "%s[%d]:  FIXME:  unexpected size for annotation\n", FILE__, __LINE__);
+   }
+   if (!lvs)
+   {
+      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
+      return false;
    }
 
-   localVarCollection &lvc = svA[0];
-   vars = *(lvc.getAllVars());
+   vars = *(lvs->getAllVars());
 
    if (vars.size())
       return true;
@@ -706,16 +925,19 @@ DLLEXPORT bool Symbol::getParams(std::vector<localVar *>&params)
 
    module_->exec()->parseTypesNow();	
 
-   Annotatable<localVarCollection, symbol_parameters_a, true> &pA = *this;
-   if (!pA.size())
+   localVarCollection *lvs = NULL;
+   if (!getAnnotation(lvs, FunctionParametersAnno))
+   {
       return false;
-
-   if (pA.size() > 1) {
-      fprintf(stderr, "%s[%d]:  FIXME:  unexpected size for annotation\n", FILE__, __LINE__);
    }
 
-   localVarCollection &lvc = pA[0];
-   params = *(lvc.getAllVars());
+   if (!lvs)
+   {
+      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
+      return false;
+   }
+
+   params = *(lvs->getAllVars());
 
    if (params.size())
       return true;
@@ -733,23 +955,26 @@ DLLEXPORT bool Symbol::findLocalVariable(std::vector<localVar *>&vars, string na
 
    module_->exec()->parseTypesNow();	
 
-   Annotatable<localVarCollection, symbol_variables_a, true> &lvA = *this;
-   Annotatable<localVarCollection, symbol_parameters_a, true> &pA = *this;
-   if (!lvA.size() && !pA.size()) 
+   localVarCollection *lvs = NULL, *lps = NULL;
+   bool res1 = false, res2 = false;
+   res1 = getAnnotation(lvs, FunctionLocalVariablesAnno);
+   res2 = getAnnotation(lps, FunctionParametersAnno);
+
+   if (!res1 && !res2)
       return false;
 
    unsigned origSize = vars.size();	
 
-   if (lvA.size()) {
-      localVarCollection &lvc = lvA[0];
-      localVar *var = lvc.findLocalVar(name);
+   if (lvs)
+   {
+      localVar *var = lvs->findLocalVar(name);
       if (var) 
          vars.push_back(var);
    }
 
-   if (pA.size()) {
-      localVarCollection &lvc = pA[0];
-      localVar *var = lvc.findLocalVar(name);
+   if (lps)
+   {
+      localVar *var = lps->findLocalVar(name);
       if (var) 
          vars.push_back(var);
    }

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.19 2008/09/20 03:56:10 jaw Exp $
+ * $Id: Symbol.h,v 1.20 2008/11/03 15:19:24 jaw Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -54,10 +54,12 @@
 #endif
 
 
+#if 0
 typedef struct {} symbol_file_name_a;
 typedef struct {} symbol_version_names_a;
 typedef struct {} symbol_variables_a;
 typedef struct {} symbol_parameters_a;
+#endif
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -72,10 +74,7 @@ class Region;
 ************************************************************************/
 
 class Symbol : public Serializable,
-               public Annotatable <std::string, symbol_file_name_a, false>,
-               public Annotatable <std::vector<std::string>, symbol_version_names_a, false>,
-               public Annotatable <localVarCollection, symbol_variables_a, true>,
-               public Annotatable <localVarCollection, symbol_parameters_a, true> 
+               public AnnotatableSparse 
 {
    friend class typeCommon;
    friend class Symtab;

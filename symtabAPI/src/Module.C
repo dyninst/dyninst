@@ -28,8 +28,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "Annotatable.h"
 #include "Module.h"
-#include "Symtab.h"
 #include "Symtab.h"
 #include "Collections.h"
 
@@ -39,6 +39,8 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
+static AnnotationClass<LineInformation> ModuleLineInfoAnno(std::string("ModuleLineInfoAnno"));
+static AnnotationClass<typeCollection> ModuleTypeInfoAnno(std::string("ModuleTypeInfoAnno"));
 static SymtabError serr;
 
 bool Module::findSymbolByType(std::vector<Symbol *> &found, 
@@ -80,37 +82,80 @@ bool Module::findSymbolByType(std::vector<Symbol *> &found,
    return false;        
 }
 
-DLLEXPORT const std::string &Module::fileName() const
+const std::string &Module::fileName() const
 {
    return fileName_;
 }
 
-DLLEXPORT const std::string &Module::fullName() const
+const std::string &Module::fullName() const
 {
    return fullName_;
 }
 
-DLLEXPORT Symtab *Module::exec() const
+ Symtab *Module::exec() const
 {
    return exec_;
 }
 
-DLLEXPORT supportedLanguages Module::language() const
+supportedLanguages Module::language() const
 {
    return language_;
 }
 
-DLLEXPORT  bool Module::hasLineInformation()
+bool Module::hasLineInformation()
 {
+   LineInformation *li =  NULL;
+   if (getAnnotation(li, ModuleLineInfoAnno)) 
+   {
+      if (!li) 
+      {
+         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
+               FILE__, __LINE__);
+         return false;
+      }
+
+      if (li->getSize())
+      {
+         return true;
+      }
+   }
+
+   return false;
+#if 0
    Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
    return ( 0 != liA.size());
+#endif
 }
 
-DLLEXPORT LineInformation *Module::getLineInformation()
+LineInformation *Module::getLineInformation()
 {
    if (!exec_->isLineInfoValid_)
       exec_->parseLineInformation();
 
+   if (!exec_->isLineInfoValid_) 
+   {
+      return NULL;
+   }
+
+   LineInformation *li =  NULL;
+   if (getAnnotation(li, ModuleLineInfoAnno)) 
+   {
+      if (!li) 
+      {
+         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
+               FILE__, __LINE__);
+         return NULL;
+      }
+
+      if (!li->getSize())
+      {
+         return NULL;
+      }
+   }
+
+   return li;
+
+#if 0
    Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
 
    if (exec_->isLineInfoValid_) {
@@ -127,6 +172,7 @@ DLLEXPORT LineInformation *Module::getLineInformation()
       }
       return mt[0];
    }
+#endif
 
    fprintf(stderr, "%s[%d]:  FIXME:  line info not valid after parse\n",
          FILE__, __LINE__);
@@ -134,7 +180,7 @@ DLLEXPORT LineInformation *Module::getLineInformation()
    return NULL;
 }
 
-DLLEXPORT bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
+bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
@@ -149,7 +195,7 @@ DLLEXPORT bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&range
    return false;
 }
 
-DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
@@ -163,54 +209,81 @@ DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
    return false;
 }
 
-DLLEXPORT vector<Type *> *Module::getAllTypes()
+vector<Type *> *Module::getAllTypes()
 {
-   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
-   if (!mtA.size()) return NULL;
-
-   typeCollection *mt = mtA[0];
-   if (!mt) {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
+   typeCollection *tc = NULL;
+   if (!getAnnotation(tc, ModuleTypeInfoAnno))
+   {
+#if 0
+      tc = new typeCollection();
+      if (!addAnnotation(tc, ModuleTypeInfoAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+         return NULL;
+      }
+#endif
+      return NULL;
+   }
+   if (!tc)
+   {
+      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
       return NULL;
    }
 
-   return mt->getAllTypes();
+   return tc->getAllTypes();
 }
 
-DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
+vector<pair<string, Type *> > *Module::getAllGlobalVars()
 {
-   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
-   if (!mtA.size()) return NULL;
 
-   typeCollection *mt = mtA[0];
-   if (!mt) {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
+   typeCollection *tc = NULL;
+   if (!getAnnotation(tc, ModuleTypeInfoAnno))
+   {
+#if 0
+      tc = new typeCollection();
+      if (!addAnnotation(tc, ModuleTypeInfoAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+         return NULL;
+      }
+#endif
+      return NULL;
+   }
+   if (!tc)
+   {
+      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
       return NULL;
    }
 
-   return mt->getAllGlobalVariables();
+   return tc->getAllGlobalVariables();
 }
 
-DLLEXPORT typeCollection *Module::getModuleTypes()
+typeCollection *Module::getModuleTypes()
 {
-   Annotatable<typeCollection *, module_type_info_a,  true> &mtA = *this;
-   typeCollection *mt;
+   typeCollection *tc = NULL;
+   if (!getAnnotation(tc, ModuleTypeInfoAnno))
+   {
+      //  add an empty type collection (to be filled in later)
+      tc = new typeCollection();
+      if (!addAnnotation(tc, ModuleTypeInfoAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+         return NULL;
+      }
 
-   if(mtA.size()){
-       mt = mtA[0];
-       if (!mt) {
-           fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
-           return NULL;
-       }
+      return tc;
    }
-   else{
-       mt = typeCollection::getModTypeCollection(this);
-       mtA.addAnnotation(mt);
+
+   if (!tc)
+   {
+      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+      return NULL;
    }
-   return mt;
+
+   return tc;
 }
 
-DLLEXPORT bool Module::findType(Type *&type, std::string name)
+bool Module::findType(Type *&type, std::string name)
 {
    exec_->parseTypesNow();
    type = getModuleTypes()->findType(name);
@@ -221,13 +294,14 @@ DLLEXPORT bool Module::findType(Type *&type, std::string name)
    return true;
 }
 
-DLLEXPORT bool Module::findVariableType(Type *&type, std::string name)
+bool Module::findVariableType(Type *&type, std::string name)
 {
    exec_->parseTypesNow();
    type = getModuleTypes()->findVariableType(name);
 
    if (type == NULL)
       return false;
+
    return true;
 }
 
@@ -235,40 +309,83 @@ void Symtab::parseTypesNow()
 {
    if (isTypeInfoValid_)
       return;
+
    parseTypes();
 }
 
-DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo)
+bool Module::setLineInfo(LineInformation *lineInfo)
 {
+   LineInformation *li =  NULL;
+   if (!getAnnotation(li, ModuleLineInfoAnno)) 
+   {
+      if (li) 
+      {
+         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
+               FILE__, __LINE__);
+         return false;
+      }
+
+      if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
+         return false;
+      }
+
+      return true;
+   }
+   else 
+   {
+      if (li != lineInfo)
+         delete li;
+
+      fprintf(stderr, "%s[%d]:  weird, already have line info anno, check this\n", FILE__, __LINE__);
+      if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
+      {
+         fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
+         return false;
+      }
+   }
+
+   return false;
+
+#if 0
    Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
-   if (mt.size()) {
+
+   if (mt.size()) 
+   {
       // We need to remove the existing annotation and make sure there is only one annotation.
       mt.clearAnnotations();
       //fprintf(stderr, "%s[%d]:  WARNING, already have lineInfo set for module %s\n", FILE__, __LINE__, fileName_.c_str());
    }
    mt.addAnnotation(lineInfo);
    return true;
+#endif
 }
 
-DLLEXPORT bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
+bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
    exec_->parseTypesNow();
    std::vector<Symbol *>mod_funcs;
 
    if (!getAllSymbolsByType(mod_funcs, Symbol::ST_FUNCTION))
+   {
       return false;
+   }
 
    unsigned origSize = vars.size();
-   for (unsigned int i=0;i<mod_funcs.size();i++)
-      mod_funcs[i]->findLocalVariable(vars, name);
 
-   if (vars.size()>origSize)
+   for (unsigned int i = 0; i < mod_funcs.size(); i++)
+   {
+      mod_funcs[i]->findLocalVariable(vars, name);
+   }
+
+   if (vars.size() > origSize)
       return true;
 
    return false;
 }
 
-DLLEXPORT Module::Module(supportedLanguages lang, Offset adr,
+Module::Module(supportedLanguages lang, Offset adr,
       std::string fullNm, Symtab *img) :
    fullName_(fullNm),
    language_(lang),
@@ -278,7 +395,7 @@ DLLEXPORT Module::Module(supportedLanguages lang, Offset adr,
    fileName_ = extract_pathname_tail(fullNm);
 }
 
-DLLEXPORT Module::Module() :
+Module::Module() :
    fileName_(""),
    fullName_(""),
    language_(lang_Unknown),
@@ -287,34 +404,32 @@ DLLEXPORT Module::Module() :
 {
 }
 
-DLLEXPORT Module::Module(const Module &mod) :
+Module::Module(const Module &mod) :
    LookupInterface(),
    Serializable(),
-   Annotatable<LineInformation *, module_line_info_a,  true>(),
-   Annotatable<typeCollection *, module_type_info_a,  true>(),
+   AnnotatableSparse(),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_),
    language_(mod.language_),
    addr_(mod.addr_),
    exec_(mod.exec_)
 {
-   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
-   const Annotatable<LineInformation *, module_line_info_a,  true> &liA_src = mod;
-
-   if (liA_src.size()) {
-      LineInformation *li_src = liA_src[0];
-      assert(li_src);
-      liA.addAnnotation(li_src);
-   }
+   //  Copy annotations here or no?
 }
 
-DLLEXPORT Module::~Module()
+Module::~Module()
 {
-   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
-   if (liA.size()){
-       delete liA[0];
-       liA.clearAnnotations();
+
+   //  individual deletion of annotations??
+
+#if 0
+   if (!clearAnnotations()) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to clear annotations\n", FILE__, __LINE__);
    }
+#endif
+   fprintf(stderr, "%s[%d]:  FIXME:  need to clear annotations??\n", FILE__, __LINE__);
+
 }
 
 bool Module::isShared() const
@@ -326,30 +441,63 @@ bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolTyp
 {
    unsigned orig_size = found.size();
    std::vector<Symbol *> obj_syms;
+
    if (!exec()->getAllSymbolsByType(obj_syms, sType))
       return false;
 
-   for (unsigned i = 0; i < obj_syms.size(); i++) {
+   for (unsigned i = 0; i < obj_syms.size(); i++) 
+   {
       if (obj_syms[i]->getModule() == this)
          found.push_back(obj_syms[i]);
    }
 
    if (found.size() > orig_size)
+   {
       return true;
+   }
 
    serr = No_Such_Symbol;
    return false;
 }
 
-DLLEXPORT bool Module::operator==(const Module &mod) const
+bool Module::operator==(Module &mod) 
 {
-   const Annotatable<LineInformation *, module_line_info_a,  true> *liA = this;
-   const Annotatable<LineInformation *, module_line_info_a,  true> *liA_src = &mod;
-   if (liA->size() != liA_src->size()) return false;
-   if (liA->size()) {
-      LineInformation *li = liA->getAnnotation(0);
-      LineInformation *li_src = liA_src->getAnnotation(0);
-      if ((li != li_src)) return false;
+   LineInformation *li =  NULL;
+   LineInformation *li_src =  NULL;
+   bool get_anno_res = false, get_anno_res_src = false;
+   get_anno_res = getAnnotation(li, ModuleLineInfoAnno);
+   get_anno_res_src = mod.getAnnotation(li_src, ModuleLineInfoAnno);
+
+   if (get_anno_res != get_anno_res_src)
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
+            FILE__, __LINE__);
+      return false;
+   }
+
+   if (li) 
+   {
+      if (!li_src) 
+      {
+         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
+               FILE__, __LINE__);
+         return false;
+      }
+
+      if (li->getSize() != li_src->getSize()) 
+         return false;
+
+      if ((li != li_src)) 
+         return false;
+   }
+   else
+   {
+      if (li_src) 
+      {
+         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
+               FILE__, __LINE__);
+         return false;
+      }
    }
 
    return (
@@ -360,24 +508,25 @@ DLLEXPORT bool Module::operator==(const Module &mod) const
          );
 }
 
-DLLEXPORT bool Module::setName(std::string newName)
+bool Module::setName(std::string newName)
 {
    fullName_ = newName;
    fileName_ = extract_pathname_tail(fullName_);
    return true;
 }
 
-DLLEXPORT void Module::setLanguage(supportedLanguages lang)
+void Module::setLanguage(supportedLanguages lang)
 {
    language_ = lang;
 }
 
-DLLEXPORT Offset Module::addr() const
+Offset Module::addr() const
 {
    return addr_;
 }
 
-DLLEXPORT bool Module::setDefaultNamespacePrefix(string str){
+bool Module::setDefaultNamespacePrefix(string str)
+{
     return exec_->setDefaultNamespacePrefix(str);
 }
 

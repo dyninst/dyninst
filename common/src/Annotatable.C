@@ -39,12 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.11 2008/09/19 00:56:09 jaw Exp $
+// $Id: Annotatable.C,v 1.12 2008/11/03 15:19:23 jaw Exp $
 
 #include "common/h/headers.h"
-#include "common/h/serialize.h"
-#include "dynutil/h/Annotatable.h"
 #include "dynutil/h/dyntypes.h"
+#include "dynutil/h/Annotatable.h"
+int AnnotationClass_nextId;
+AnnotatableSparse::annos_t AnnotatableSparse::annos;
+#if 0
+
+
+#if defined (cap_serialization)
+#include "common/h/serialize.h"
+#endif
 
 using namespace Dyninst;
 
@@ -424,3 +431,10 @@ bool getAndExecuteSerFunc(AnnotatableBase *ab, SerializerBin *ser, int anno_id,
    return true;
 }
 
+#endif
+
+bool dummy_bs()
+{
+   fprintf(stderr, "%s[%d]:  \n", FILE__, __LINE__);
+   return true;
+}

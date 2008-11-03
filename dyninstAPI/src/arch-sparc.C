@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.33 2008/06/20 21:45:12 bill Exp $
+ * $Id: arch-sparc.C,v 1.34 2008/11/03 15:19:24 jaw Exp $
  */
 
 #include "common/h/Types.h"
@@ -53,6 +53,8 @@
 #include "InstrucIter.h"
 #include "addressSpace.h"
 
+static AnnotationClass<std::vector<InsnRegister *> > RegisterReadSetAnno("RegisterReadSetAnno");
+static AnnotationClass<std::vector<InsnRegister *> > RegisterWriteSetAnno("RegisterWriteSetAnno");
 
 //inline unsigned getMaxBranch1Insn() {
 //   // The length we can branch using just 1 instruction is dictated by the
@@ -858,14 +860,48 @@ void instruction::get_register_operands()
      return;
 
   // mark the annotations
+#if 0
   Annotatable<InsnRegister, register_read_set_a> &read_regs = *this;
   Annotatable<InsnRegister, register_write_set_a> &write_regs = *this;
+#endif
+  std::vector<InsnRegister> *read_regs_p = NULL;
+  std::vector<InsnRegister> *write_regs_p = NULL;
 
+  bool read_regs_exists = getAnnotation(read_regs_p, ReadRegistersAnno);
+  bool write_regs_exists = getAnnotation(write_regs_p, WriteRegistersAnno);
+
+
+  //  check to see if we already have made these register sets
+  if (read_regs_exists || write_regs_exists) 
+  {
+     //  yep, ...  just return
+     return;
+  }
+
+  read_regs_p = new std::vector<InsnRegister>();
+  write_regs_p = new std::vector<InsnRegister>();
+
+  bool read_regs_exists = addAnnotation(read_regs_p, ReadRegistersAnno);
+  bool write_regs_exists = addAnnotation(write_regs_p, WriteRegistersAnno);
+
+  if (!read_regs_exists)
+  {
+     fprintf(stderr, "%s[%d]:  addAnnotation failed here\n", FILE__, __LINE__);
+     return;
+  }
+
+  if (!write_regs_exists)
+  {
+     fprintf(stderr, "%s[%d]:  addAnnotation failed here\n", FILE__, __LINE__);
+     return;
+  }
+#if 0
   //  check to see if we already have made these register sets
   if (read_regs.size() || write_regs.size()) {
      //  yep, ...  just return
      return;
   }
+#endif
 
 #if 0
   //  check to see if we already have made these register sets
@@ -1290,7 +1326,10 @@ void instruction::get_register_operands()
   for (unsigned int i = 0; i < reads.size(); ++i) {
      if (reads[i].getNumber() == -1)
         break;
+     read_regs_p->push_back(reads[i]);
+#if 0
      read_regs.addAnnotation(reads[i]);
+#endif
   }
 
 
@@ -1301,7 +1340,10 @@ void instruction::get_register_operands()
   for (unsigned int i = 0; i < writes.size(); ++i) {
      if (writes[i].getNumber() == -1)
         break;
+     write_regs_p->push_back(writes[i]);
+#if 0
      write_regs.addAnnotation(writes[i]);
+#endif
   }
 
 #if 0

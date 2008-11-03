@@ -252,13 +252,25 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 		//bperr("adding local var with missing type %s, type = %d\n",
 		//      name, ID);
 	      }
-         Annotatable<localVarCollection, symbol_variables_a, true> &varA = *symt_current_func;
-         if (!varA.size()) {
-            localVarCollection newColl;
-            varA.addAnnotation(newColl);
+
+         localVarCollection *lvs = NULL;
+         extern AnnotationClass<localVarCollection> FunctionLocalVariablesAnno;
+
+         if (!symt_current_func->getAnnotation(lvs, FunctionLocalVariablesAnno)) 
+         {
+            lvs = new localVarCollection();
+            if (!symt_current_func->addAnnotation(lvs, FunctionLocalVariablesAnno)) 
+            {
+               fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+            }
          }
-         localVarCollection &svars = varA[0];
-         svars.addLocalVar(locVar);
+
+         if (!lvs)
+         {
+            fprintf(stderr, "%s[%d]: failed to get annotation here\n", FILE__, __LINE__);
+         }
+
+         lvs->addLocalVar(locVar);
 #if 0
 	      if(!symt_current_func->vars_)
 	          symt_current_func->vars_ = new localVarCollection();
@@ -1165,7 +1177,15 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
    // range index type - not used
    symdescID = parseSymDesc(stabstr, cnt);
 
-    baseType = mod->getModuleTypes()->findType(symdescID);
+   if (!mod || !mod->getModuleTypes()) 
+   {
+      fprintf(stderr, "%s[%d]: FIXME\n", FILE__, __LINE__);
+      return NULL;
+   }
+   else 
+   {
+      baseType = mod->getModuleTypes()->findType(symdescID);
+   }
 
    // //bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 

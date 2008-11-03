@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.108 2008/06/23 20:30:33 mlam Exp $
+// $Id: BPatch_function.C,v 1.109 2008/11/03 15:19:24 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -71,6 +71,17 @@
 #include "BPatch_dependenceGraphEdge.h"
 #include "dynutil/h/Annotatable.h"
 #endif
+
+static AnnotationClass<std::vector<ParameterType *> > FormalParamSetAnno("FormalParamSetAnno");
+static AnnotationClass<std::vector<ParameterType *> > ActualParamSetAnno("ActualParamSetAnno");
+static AnnotationClass<std::vector<ReturnParameterType *> > ReturnVaueSetAnno("ReturnValueSetAnno");
+static AnnotationClass<std::vector<ReturnParameterType *> > ActuallyReturnedSetAnno("ActuallyReturnedSetAnno");
+static AnnotationClass<std::vector<BPatch_dependenceGraphNode *> > ProgDepGraphAnno("ProgDepGraphAnno");
+static AnnotationClass<std::vector<BPatch_dependenceGraphNode *> > ExtendedProgDepGraphAnno("ExtendedProgDepGraphAnno");
+static AnnotationClass<std::vector<BPatch_dependenceGraphNode *> > ControlDepGraphAnno("ControlDepGraphAnno");
+static AnnotationClass<std::vector<BPatch_dependenceGraphNode *> > DataDepGraphAnno("DataDepGraphAnnp");
+static AnnotationClass<std::vector<BPatch_dependenceGraphNode *> > DepHelperGraphAnno("DepHelperGraphAnno");
+
 
 /**************************************************************************
  * BPatch_function
@@ -1285,9 +1296,24 @@ BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction* ins
    if (inst == NULL)
       return NULL;
 
-   Annotatable<BPatch_dependenceGraphNode *, extended_prog_dep_graph_a> &edg = *this;
    createExtendedProgramDependenceGraph();
 
+   std::vector<BPatch_dependenceGraphNode *> *edgp = NULL;
+
+   if (!getAnnotation(edgp, ExtendedProgDepGraphAnno)) 
+   {
+      fprintf(stderr, "%s[%d]:  weird no extended program dep graph\n", FILE__, __LINE__);
+      return NULL;
+   }
+
+   if (!edgp)
+   {
+      fprintf(stderr, "%s[%d]:  weird no extended program dep graph\n", FILE__, __LINE__);
+      return NULL;
+   }
+
+   std::vector<BPatch_dependenceGraphNode *> &edg = *edgp;
+   
    for (unsigned int i = 0; i < edg.size(); ++i)
       if ( (NULL != edg[i]->getBPInstruction())
             && (inst->getAddress() == edg[i]->getBPInstruction()->getAddress()) )
@@ -1309,31 +1335,48 @@ BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction* ins
  */
 void BPatch_function::createExtendedProgramDependenceGraph() 
 {
-   Annotatable<BPatch_dependenceGraphNode *, prog_dep_graph_a> &dg = *this;
-   Annotatable<BPatch_dependenceGraphNode *, extended_prog_dep_graph_a> &edg = *this;
-   Annotatable<BPatch_dependenceGraphNode *, dep_helper_graph_a> &helpergraph = *this;
+   bool edg_exists = false, dg_exists = false, hg_exists = false;
 
-   if (!edg.size()) {
-      if (!dg.size()) {
+   std::vector<BPatch_dependenceGraphNode *> *edgp = NULL;
+   std::vector<BPatch_dependenceGraphNode *> *dgp = NULL;
+   std::vector<BPatch_dependenceGraphNode *> *hgp = NULL;
+
+   edg_exists = getAnnotation(edgp, ExtendedProgDepGraphAnno);
+   dg_exists = getAnnotation(dgp, ProgDepGraphAnno);
+   hg_exists = getAnnotation(hgp, DepHelperGraphAnno);
+
+   if (edg_exists && !edgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (dg_exists && !dgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (hg_exists && !hgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (!edg_exists) 
+   {
+      if (!dg_exists) 
+      {
          createProgramDependenceGraph();
       }
-      if (!copyDependenceGraph(edg.getDataStructure(), dg.getDataStructure())) {
+
+      if (!copyDependenceGraph(*edgp, *dgp)) {
          fprintf(stderr, "%s[%d]:  failed to copy dependence graph\n", FILE__, __LINE__);
          return;
       }
-      mergeGraphs(&edg.getDataStructure(), &helpergraph.getDataStructure());
+      mergeGraphs(edgp, hgp);
    }
 
-#if 0
-   if(getAnnotation("ExtendedProgramDependenceGraph") == NULL) {
-      if(getAnnotation("ProgramDependenceGraph") == NULL)
-         createProgramDependenceGraph();
-      BPatch_Vector<BPatch_dependenceGraphNode*>* extendedProgramDependenceGraph = copyDependenceGraph((BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph"));
-      // now add the unconditional jump and return instructions.
-      mergeGraphs(extendedProgramDependenceGraph,(BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("HelperGraph"));
-    setAnnotation(getAnnotationType("ExtendedProgramDependenceGraph"), new Annotation(extendedProgramDependenceGraph));
-  }
-#endif
 }
 
 /*
@@ -1341,23 +1384,51 @@ void BPatch_function::createExtendedProgramDependenceGraph()
  */
 void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/) 
 {
-   Annotatable<BPatch_dependenceGraphNode *, prog_dep_graph_a> &pdg = *this;
-   Annotatable<BPatch_dependenceGraphNode *, control_dep_graph_a> &cdg = *this;
-   Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a> &ddg = *this;
+   std::vector<BPatch_dependenceGraphNode *> *dgp = NULL;
+   std::vector<BPatch_dependenceGraphNode *> *cdp = NULL;
+   std::vector<BPatch_dependenceGraphNode *> *ddp = NULL;
 
-   if (!pdg.size()) {
-      if (!cdg.size()) {
+   bool dg_exists = getAnnotation(dgp, ProgDepGraphAnno);
+   bool cdg_exists = getAnnotation(cdp, ControlDepGraphAnno);
+   bool ddg_exists = getAnnotation(ddp, DataDepGraphAnno);
+
+   if (dg_exists && !dgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (cdg_exists && !cdp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (ddg_exists && !ddp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (!dg_exists) 
+   {
+      if (!cdg_exists) 
+      {
          createControlDependenceGraph();
       }
-      if (!ddg.size()) {
+
+      if (!ddg_exists) 
+      {
          createDataDependenceGraph();
       }
 
-      if (!copyDependenceGraph(pdg.getDataStructure(), cdg.getDataStructure())) {
+      if (!copyDependenceGraph(*dgp, *cdp)) 
+      {
          fprintf(stderr, "%s[%d]:  failed to copy control dep. graph\n", FILE__, __LINE__);
          return;
       }
-      mergeGraphs(&pdg.getDataStructure(), &ddg.getDataStructure());
+
+      mergeGraphs(dgp, ddp);
    }
 
 #ifdef print_graphs
@@ -1370,26 +1441,10 @@ void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/)
    }
 #endif
 
-#if 0
-      if(getAnnotation("ProgramDependenceGraph") == NULL) {
-         if(getAnnotation("ControlDependenceGraph") == NULL) {
-            // updates the global controlDependenceGraph variable
-            createControlDependenceGraph();
-         }
-         if(getAnnotation("DataDependenceGraph") == NULL) {
-            // updates the global dataDependenceGraph variable
-            createDataDependenceGraph();
-         }
-         BPatch_Vector<BPatch_dependenceGraphNode*>* programDependenceGraph = copyDependenceGraph((BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ControlDependenceGraph"));
-         mergeGraphs(programDependenceGraph,(BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("DataDependenceGraph")); // updates programDependenceGraph
-         setAnnotation(getAnnotationType("ProgramDependenceGraph"), new Annotation(programDependenceGraph));
-      } 
-
 #ifdef print_graphs
       BPatch_Vector<BPatch_dependenceGraphNode*> * allNodes = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph");
       printf("Progam Dependence Graph. Total Node Num: %d\n", allNodes->size());
       outputGraph(allNodes);
-#endif
 #endif
 }
 
@@ -1401,15 +1456,34 @@ void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/)
  */
 BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch_instruction* inst) 
 {
-   Annotatable<BPatch_dependenceGraphNode *, prog_dep_graph_a> &pdg = *this;
+   std::vector<BPatch_dependenceGraphNode *> *dgp = NULL;
 
-   if (!pdg.size()) {
-      createProgramDependenceGraph();
+   bool dg_exists = getAnnotation(dgp, ProgDepGraphAnno);
+
+   if (dg_exists && !dgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return NULL;
    }
 
-   for (unsigned int i =0; i<pdg.size(); i++) {
-      if (pdg[i]->getBPInstruction() != NULL
-            && pdg[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+   if (!dg_exists) 
+   {
+      createProgramDependenceGraph();
+      dg_exists = getAnnotation(dgp, ProgDepGraphAnno);
+      if (!dg_exists)
+      {
+         fprintf(stderr, "%s[%d]:  error here!\n", FILE__, __LINE__);
+         return NULL;
+      }
+   }
+
+   std::vector<BPatch_dependenceGraphNode *> &pdg = *dgp;
+
+   for (unsigned int i =0; i<pdg.size(); i++) 
+   {
+      if (pdg[i]->getBPInstruction() != NULL 
+            && pdg[i]->getBPInstruction()->getAddress() == inst->getAddress()) 
+      {
          return pdg[i];
       }
    }
@@ -1438,10 +1512,29 @@ BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch
  */
 BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch_instruction* inst) 
 {
-   Annotatable<BPatch_dependenceGraphNode *, control_dep_graph_a> &cdg = *this;
-   if (!cdg.size()) {
-      createControlDependenceGraph();
+   std::vector<BPatch_dependenceGraphNode *> *cdgp = NULL;
+
+   bool cdg_exists = getAnnotation(cdgp, ControlDepGraphAnno);
+   if (cdg_exists && !cdgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return NULL;
    }
+
+   if (!cdg_exists) 
+   {
+      createControlDependenceGraph();
+      cdg_exists = getAnnotation(cdgp, ControlDepGraphAnno);
+      if (!cdg_exists)
+      {
+         fprintf(stderr, "%s[%d]:  error here!\n", FILE__, __LINE__);
+         return NULL;
+      }
+   }
+
+   assert(cdgp);
+
+   std::vector<BPatch_dependenceGraphNode *> &cdg = *cdgp;
 
    for (unsigned int i = 0; i < cdg.size(); ++i) {
       if (cdg[i]->getBPInstruction() != NULL
@@ -1474,29 +1567,38 @@ BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch
  */
 BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_instruction* inst) 
 {
-   Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a> &ddg = *this;
-   if (!ddg.size()) {
-      createDataDependenceGraph();
+   std::vector<BPatch_dependenceGraphNode *> *ddgp = NULL;
+
+   bool ddg_exists = getAnnotation(ddgp, DataDepGraphAnno);
+   if (ddg_exists && !ddgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return NULL;
    }
 
-   for (unsigned int i = 0; i < ddg.size(); ++i) {
-      if (ddg[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+   if (!ddg_exists) 
+   {
+      createDataDependenceGraph();
+      ddg_exists = getAnnotation(ddgp, DataDepGraphAnno);
+      if (!ddg_exists)
+      {
+         fprintf(stderr, "%s[%d]:  error here!\n", FILE__, __LINE__);
+         return NULL;
+      }
+   }
+
+   assert(ddgp);
+
+   std::vector<BPatch_dependenceGraphNode *> &ddg = *ddgp;
+
+   for (unsigned int i = 0; i < ddg.size(); ++i) 
+   {
+      if (ddg[i]->getBPInstruction()->getAddress() == inst->getAddress()) 
+      {
          return ddg[i];
       }
    }
 
-#if 0
-   unsigned int i;
-  if(getAnnotation("DataDependenceGraph") == NULL) {
-    createDataDependenceGraph();
-  }
-  BPatch_Vector<BPatch_dependenceGraphNode*>* dataDependenceGraph = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("DataDependenceGraph");
-  for(i=0; i<dataDependenceGraph->size(); i++) {
-    if((*dataDependenceGraph)[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
-      return (*dataDependenceGraph)[i];
-    }
-  }
-#endif
   return NULL;
 }
 
@@ -1585,11 +1687,50 @@ void determineReturnBranchDependencies(BPatch_Vector<BPatch_dependenceGraphNode*
  */
 void BPatch_function::createControlDependenceGraph() 
 {
+   std::vector<BPatch_dependenceGraphNode *> *cdgp = NULL;
+   std::vector<BPatch_dependenceGraphNode *> *dhgp = NULL;
+
+   bool cdg_exists = getAnnotation(cdgp, ControlDepGraphAnno);
+   bool dhg_exists = getAnnotation(dhgp, DepHelperGraphAnno);
+
+   if (cdg_exists && !cdgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+   if (dhg_exists && !dhgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+#if 0
    Annotatable<BPatch_dependenceGraphNode *, control_dep_graph_a> &cdg = *this;
    Annotatable<BPatch_dependenceGraphNode *, dep_helper_graph_a> &helper_graph = *this;
+#endif
 
-   if (cdg.size()) {
+   if (cdg_exists) 
+   {
       //  must've already generated it, return without doing anything
+      return;
+   }
+
+   cdgp = new std::vector<BPatch_dependenceGraphNode *>();
+   cdg_exists = addAnnotation(cdgp, ControlDepGraphAnno);
+   if (!cdg_exists || !cdgp)
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (!dhg_exists) 
+   {
+      dhgp = new std::vector<BPatch_dependenceGraphNode *>();
+      dhg_exists = addAnnotation(dhgp, DepHelperGraphAnno);
+   }
+   if (!dhg_exists || !dhgp)
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
       return;
    }
 
@@ -1631,8 +1772,8 @@ void BPatch_function::createControlDependenceGraph()
       (BPatch_dependenceGraphNode**)malloc(sizeof(BPatch_dependenceGraphNode*)*num_blocks);
    BPatch_dependenceGraphNode** last_inst_helper = 
       (BPatch_dependenceGraphNode**)malloc(sizeof(BPatch_dependenceGraphNode*)*num_blocks);
-   determineReturnBranchDependencies(&cdg.getDataStructure(), 
-         &helper_graph.getDataStructure(), dependencies, blockNumbers, blocks, 
+   determineReturnBranchDependencies(cdgp, 
+         dhgp, dependencies, blockNumbers, blocks, 
          num_blocks,last_inst_in_block,last_inst_helper);
 
 #ifdef print_graphs
@@ -2007,8 +2148,32 @@ int getReadWriteSets(InstrucIter& iter, int** readArr, int** writeArr) {
  */
 void BPatch_function::createDataDependenceGraph() 
 {
+   std::vector<BPatch_dependenceGraphNode *> *ddgp = NULL;
+
+   bool ddg_exists = getAnnotation(ddgp, DataDepGraphAnno);
+
+   if (ddg_exists && !ddgp) 
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+   if (!ddg_exists)
+   {
+      ddgp = new std::vector<BPatch_dependenceGraphNode *>();
+      ddg_exists = addAnnotation(ddgp, DataDepGraphAnno);
+   }
+
+   if (!ddg_exists || !ddgp)
+   {
+      fprintf(stderr, "%s[%d]:  weird inconsistency here!\n", FILE__, __LINE__);
+      return;
+   }
+
+#if 0
    Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a> &ddg = *this;
    //   Annotatable<ParameterType *, formal_param_set_a> &formal_params = *this;
+#endif
 
   unsigned i,j;
   BPatch_flowGraph* cfg = getCFG();
@@ -2023,7 +2188,7 @@ void BPatch_function::createDataDependenceGraph()
   if(getAnnotation("DataDependenceGraph") != NULL)
     return;
 #endif
-  if (ddg.size())
+  if (ddgp->size())
      return;
 
 #if defined(interprocedural)
@@ -2100,11 +2265,11 @@ void BPatch_function::createDataDependenceGraph()
          // check whether a memory operation is performed
          BPatch_memoryAccess * memAcc = iter->isLoadOrStore();
          // create a node for this instruction in case we did not create yet
-         BPatch_dependenceGraphNode * node = getNode(&ddg.getDataStructure(), bpins);
+         BPatch_dependenceGraphNode * node = getNode(ddgp, bpins);
 #if defined(arch_x86)
          // if this instruction is a conditional branch instruction, it depends on the previous compare instruction
          if(iter->isACondBranchInstruction()) {
-            handleCondBranch(node, iter, &ddg.getDataStructure());
+            handleCondBranch(node, iter, ddgp);
          } // end checking whether this is conditional instruction
 #endif
  

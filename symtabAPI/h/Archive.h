@@ -42,40 +42,40 @@ namespace SymtabAPI{
 
 class Symtab;
 
-class Archive{
- public:
- 	Archive() {}
-	static bool openArchive(Archive *&img, std::string filename);
+class Archive : public AnnotatableSparse {
+   public:
+      Archive() {}
+      static bool openArchive(Archive *&img, std::string filename);
 #if 0 
-	static bool openArchive(Archive *&img, char *mem_image, size_t image_size);
+      static bool openArchive(Archive *&img, char *mem_image, size_t image_size);
 #endif
 
-	bool getMember(Symtab *&img, std::string memberName);
-	bool getAllMembers(std::vector <Symtab *> &members);
-	bool isMemberInArchive(std::string member_name);
-    bool findMemberWithDefinition(Symtab *&obj, std::string name);
+      bool getMember(Symtab *&img, std::string memberName);
+      bool getAllMembers(std::vector <Symtab *> &members);
+      bool isMemberInArchive(std::string member_name);
+      bool findMemberWithDefinition(Symtab *&obj, std::string name);
 
-	static SymtabError getLastError();
-	static std::string printError(SymtabError serr);
-	~Archive();
+      static SymtabError getLastError();
+      static std::string printError(SymtabError serr);
+      ~Archive();
 
- private:
- 	Archive(std::string &filename, bool &err);
-	Archive(char *mem_image, size_t image_size, bool &err);
- 
- private:
-   MappedFile *mf;
-	char *mem_image_;
-    //architecture specific data - 
-        //For ELF the elf pointer for the archive
-        //NONE as of now for xcoff
-    void *basePtr;
-	dyn_hash_map <std::string, Symtab *> membersByName;
-    dyn_hash_map <std::string, Offset> memberToOffsetMapping;
+   private:
+      Archive(std::string &filename, bool &err);
+      Archive(char *mem_image, size_t image_size, bool &err);
 
-	// A vector of all Archive. Used to avoid duplicating
-   // a Archive that already exists.
-   static std::vector<Archive *> allArchives;
+   private:
+      MappedFile *mf;
+      char *mem_image_;
+      //architecture specific data - 
+      //For ELF the elf pointer for the archive
+      //NONE as of now for xcoff
+      void *basePtr;
+      dyn_hash_map <std::string, Symtab *> membersByName;
+      dyn_hash_map <std::string, Offset> memberToOffsetMapping;
+
+      // A vector of all Archive. Used to avoid duplicating
+      // a Archive that already exists.
+      static std::vector<Archive *> allArchives;
 };
 
 }//namespace SymtabAPI

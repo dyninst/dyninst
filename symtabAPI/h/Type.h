@@ -33,6 +33,7 @@
 #define Type_h_
 
 #include "Serialization.h"
+#include "Annotatable.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -160,7 +161,7 @@ class DLLEXPORT Field{
    void fixupUnknown(Module *);
 };
 				  
-class Type : public Serializable {
+class Type : public Serializable, public AnnotatableSparse  {
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
                           typeCommon *);

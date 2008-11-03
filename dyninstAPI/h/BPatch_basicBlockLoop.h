@@ -44,6 +44,7 @@
 
 #include <stdlib.h>
 #include <string>
+#include "Annotatable.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
@@ -66,7 +67,7 @@ class BPatch_loopTreeNode;
 #endif
 #define DYNINST_CLASS_NAME BPatch_basicBlockLoop
 
-class BPATCH_DLL_EXPORT BPatch_basicBlockLoop : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_basicBlockLoop : public BPatch_eventLock, public AnnotatableSparse {
 	friend class BPatch_flowGraph;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
 	friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,

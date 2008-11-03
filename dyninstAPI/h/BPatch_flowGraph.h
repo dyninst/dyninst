@@ -43,6 +43,7 @@
 #define _BPatch_flowGraph_h_
 
 #include <string>
+#include "Annotatable.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
@@ -69,7 +70,7 @@ typedef BPatch_basicBlockLoop BPatch_loop;
 #endif
 #define DYNINST_CLASS_NAME BPatch_flowGraph
 
-class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock, public AnnotatableSparse {
   friend class BPatch_basicBlock;
   friend class BPatch_function;
   friend class dominatorCFG;

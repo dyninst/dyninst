@@ -48,6 +48,8 @@ int dwarf_printf(const char *format, ...);
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+extern AnnotationClass<localVarCollection> FunctionLocalVariablesAnno;
+extern AnnotationClass<localVarCollection> FunctionParametersAnno;
 /* For location decode. */
 #include <stack>
 
@@ -1428,13 +1430,24 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                   std::string vName = convertCharToString(variableName);
                   localVar * newVariable = new localVar( vName, variableType, fileName, (int) variableLineNo);
                   newVariable->setLocation(locs);
-                  Annotatable<localVarCollection, symbol_variables_a, true> &varA = *currentFunction;
-                  if (!varA.size()) {
-                     localVarCollection newCollection;
-                     varA.addAnnotation(newCollection);
+                  localVarCollection *lvs = NULL; 
+                  if (!currentFunction->getAnnotation(lvs, FunctionLocalVariablesAnno))
+                  {
+                     lvs = new localVarCollection();
+                     if (!currentFunction->addAnnotation(lvs, FunctionLocalVariablesAnno))
+                     {
+                        fprintf(stderr, "%s[%d]:  failed to add annotations here\n", 
+                              FILE__, __LINE__);
+                        break;
+                     }
                   }
-                  localVarCollection &svars = varA[0];
-                  svars.addLocalVar(newVariable);
+                  if (!lvs)
+                  {
+                     fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", 
+                           FILE__, __LINE__);
+                     break;
+                  }
+                  lvs->addLocalVar(newVariable);
                } /* end if a local or static variable. */
                else if ( currentEnclosure != NULL ) {
                   //assert( sClass != storageFrameOffset );
@@ -1594,13 +1607,26 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             newParameter->setLocation(locs);
 
             /* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
-            Annotatable<localVarCollection, symbol_parameters_a, true> &paramA = *currentFunction;
-            if (!paramA.size()) {
-               localVarCollection newVarColl;
-               paramA.addAnnotation(newVarColl);
+            localVarCollection *lvs = NULL;
+            if (!currentFunction->getAnnotation(lvs, FunctionParametersAnno))
+            {
+               lvs = new localVarCollection();
+               if (!currentFunction->addAnnotation(lvs, FunctionParametersAnno)) 
+               {
+                  fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
+                        FILE__, __LINE__);
+                  break;
+               }
             }
-            localVarCollection &sparams = paramA[0];
-            sparams.addLocalVar(newParameter);
+
+            if (!lvs)
+            {
+               fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
+                     FILE__, __LINE__);
+               break;
+            }
+
+            lvs->addLocalVar(newParameter);
 
             //TODO ??NOT REQUIRED??
             //currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
@@ -1666,6 +1692,16 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
                dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
+               if (!module) 
+               {
+                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+                  break;
+               }
+               if (!module->getModuleTypes()) 
+               {
+                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+                  break;
+               }
                referencedType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
             }
             string tName;

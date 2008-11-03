@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.59 2008/09/04 21:06:17 bill Exp $
+// $Id: image-func.C,v 1.60 2008/11/03 15:19:24 jaw Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -166,8 +166,9 @@ image_func::image_func(const std::string &symbol,
     endOffset_ = offset + symTabSize;
     Region * sec = NULL;
     Symtab * st = i->getObject();
-    if(st)
+    if (st)
        st->findRegion(sec, ".text");
+
     sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
                       offset, sec, symTabSize);
     std::vector<Module *> mods;
@@ -179,7 +180,14 @@ image_func::image_func(const std::string &symbol,
     //sym_->setUpPtr(this);
     //symTabNames_.push_back(symbol);
     image_func *th = this;
+    extern AnnotationClass<image_func> ImageFuncUpPtrAnno;
+    if (!sym_->addAnnotation(th, ImageFuncUpPtrAnno))
+    {
+       fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+    }
+#if 0
     annotate<Symbol, image_func *>(sym_, th, std::string("image_func_ptr"));
+#endif
 }
 
 image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
@@ -221,19 +229,22 @@ image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
  }	
 
 
-image_func::~image_func() { 
+image_func::~image_func() 
+{
   /* TODO */ 
   delete usedRegisters;
 }
 
 #if defined(arch_ia64)
-int image_func::getFramePointerCalculator(){
+int image_func::getFramePointerCalculator()
+{
     return sym_->getFramePtrRegnum();
 }
 #endif
 
 // Two-copy version... can't really do better.
-bool image_func::addSymTabName(std::string name, bool isPrimary) {
+bool image_func::addSymTabName(std::string name, bool isPrimary) 
+{
     if(sym_->addMangledName(name.c_str(), isPrimary)){
         // Add to image class...
 //        image_->addFunctionName(this, name, true);

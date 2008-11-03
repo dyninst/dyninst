@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: variable.C,v 1.11 2008/04/22 04:39:27 jaw Exp $
+// $Id: variable.C,v 1.12 2008/11/03 15:19:24 jaw Exp $
 
 // Variable.C
 
 #include <string>
+#include "Annotatable.h"
 #include "mapped_object.h"
 
 image_variable::image_variable(Address offset,
@@ -55,7 +56,14 @@ image_variable::image_variable(Address offset,
          Symbol::ST_OBJECT , Symbol::SL_GLOBAL, offset);
    mod->imExec()->getObject()->addSymbol(sym_);
    image_variable *th = this;
+   extern AnnotationClass<image_variable> ImageVariableUpPtrAnno;
+   if (!sym_->addAnnotation(th, ImageVariableUpPtrAnno))
+   {
+      fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+   }
+#if 0
    annotate(sym_, th, std::string("image_variable_ptr"));
+#endif
 
    //sym_->setUpPtr(this);								    
 }

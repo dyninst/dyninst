@@ -51,100 +51,124 @@ using namespace std;
 
 #include "RangeLookup.t"
 
-DLLEXPORT LineInformation::LineInformation() : 
-	Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >(),
-	sourceLineNames() {
-        size_ = 0;
-	} /* end LineInformation constructor */
-
-DLLEXPORT bool LineInformation::addLine( const char * lineSource, 
-                               unsigned int lineNo, 
-                               unsigned int lineOffset, 
-                               Offset lowInclusiveAddr, 
-                               Offset highExclusiveAddr ) 
+LineInformation::LineInformation() : 
+   Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, 
+                                    LineInformationImpl::LineNoTupleLess >(),
+   sourceLineNames() 
 {
+   size_ = 0;
+} /* end LineInformation constructor */
+
+bool LineInformation::addLine( const char * lineSource, 
+      unsigned int lineNo, 
+      unsigned int lineOffset, 
+      Offset lowInclusiveAddr, 
+      Offset highExclusiveAddr ) 
+{
+
    /* If we haven't already, intern the lineSource. */
-   if ( lineSource == NULL ) { return false; }
-	
+   if ( lineSource == NULL ) 
+   { 
+      return false; 
+   }
+
    const char * lineSourceInternal = NULL;
    typedef SourceLineInternTable::const_iterator IteratorType;
    IteratorType found = sourceLineNames.find( lineSource );
-   if ( found == sourceLineNames.end() ) {
+
+   if ( found == sourceLineNames.end() ) 
+   {
       lineSourceInternal = strdup( lineSource );
       assert( lineSourceInternal != NULL );
       sourceLineNames.insert( lineSourceInternal );
    }
-   else {
+   else 
+   {
       lineSourceInternal = * found;
    }
+
    assert( lineSourceInternal != NULL );
    size_++;
 
    return addValue( LineNoTuple(lineSourceInternal, lineNo, lineOffset), 
-                    lowInclusiveAddr, highExclusiveAddr );
+         lowInclusiveAddr, highExclusiveAddr );
 } /* end setLineToAddressRangeMapping() */
 
-DLLEXPORT void LineInformation::addLineInfo(LineInformation *lineInfo)
+void LineInformation::addLineInfo(LineInformation *lineInfo)
 {
-    const_iterator iter = lineInfo->begin();
-    for(;iter!=lineInfo->end();iter++)
-        addLine(iter->second.first, iter->second.second, iter->second.column, iter->first.first, iter->first.second);
+   const_iterator iter = lineInfo->begin();
+
+   for (; iter != lineInfo->end(); iter++)
+   {
+      addLine(iter->second.first, iter->second.second, iter->second.column, 
+            iter->first.first, iter->first.second);
+   }
 }
-                                                                                                                                    
-DLLEXPORT bool LineInformation::addAddressRange( Offset lowInclusiveAddr, 
-                                       Offset highExclusiveAddr, 
-                                       const char * lineSource, 
-                                       unsigned int lineNo, 
-                                       unsigned int lineOffset ) 
+
+bool LineInformation::addAddressRange( Offset lowInclusiveAddr, 
+      Offset highExclusiveAddr, 
+      const char * lineSource, 
+      unsigned int lineNo, 
+      unsigned int lineOffset ) 
 {
    return addLine( lineSource, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr );
 } /* end setAddressRangeToLineMapping() */
 
-DLLEXPORT bool LineInformation::getSourceLines( Offset addressInRange, 
-                                      vector< LineNoTuple > & lines ) 
+bool LineInformation::getSourceLines( Offset addressInRange, 
+      vector< LineNoTuple > & lines ) 
 {
    return getValues( addressInRange, lines );
 } /* end getLinesFromAddress() */
 
-DLLEXPORT bool LineInformation::getAddressRanges( const char * lineSource, 
+bool LineInformation::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, vector< AddressRange > & ranges ) 
 {
-	return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
+   return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
 } /* end getAddressRangesFromLine() */
 
-DLLEXPORT LineInformation::const_iterator LineInformation::begin() const {
-	return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::begin();
-	} /* end begin() */
-	
-DLLEXPORT LineInformation::const_iterator LineInformation::end() const {
-	return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::end();
-	} /* end begin() */
+LineInformation::const_iterator LineInformation::begin() const 
+{
+   return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::begin();
+} /* end begin() */
 
-DLLEXPORT unsigned LineInformation::getSize() const{
-    return size_;
+LineInformation::const_iterator LineInformation::end() const 
+{
+   return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::end();
+} /* end begin() */
+
+unsigned LineInformation::getSize() const
+{
+   return size_;
 }
+
 bool LineInformationImpl::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNoTuple rhs ) const 
 {
    //  dont bother with ordering by column information yet.
 
    int strcmp_res = strcmp( lhs.first, rhs.first);
+
    if (strcmp_res < 0 ) 
-       return true; 
+      return true; 
+
    if ( strcmp_res == 0 ) 
+   {
       if ( lhs.second < rhs.second )  
-          return true; 
-   
+         return true; 
+   }
+
    return false; 
 } /* end LineNoTupleLess() */
 
 #if ! defined( os_windows )
-bool LineInformation::SourceLineCompare::operator () ( const char * lhs, const char * rhs ) const {
-	return strcmp( lhs, rhs ) == 0;
-	} /* end SourceLineCompare() */
+bool LineInformation::SourceLineCompare::operator () ( const char * lhs, const char * rhs ) const 
+{
+   return strcmp( lhs, rhs ) == 0;
+} /* end SourceLineCompare() */
 #else
-bool LineInformation::SourceLineLess::operator () ( const char * lhs, const char * rhs ) const {
-	return strcmp( lhs, rhs ) < 0;
-	} /* end SourceLineLess() */
+bool LineInformation::SourceLineLess::operator () ( const char * lhs, const char * rhs ) const 
+{
+   return strcmp( lhs, rhs ) < 0;
+} /* end SourceLineLess() */
 #endif
 
 /* We free the strings we allocated, and let the compiler clean up everything else:
@@ -152,26 +176,31 @@ bool LineInformation::SourceLineLess::operator () ( const char * lhs, const char
    Section 10.4.6 [Stroustroup's C++]: "When a class object containing class
    objects is destroyed, the body of that object's own destructor is executed first,
    and then the members' destructors are executed in the reverse order of declaration." */
-LineInformation::~LineInformation() {
-	/* Apparently, the iterator depends on the hash of its current key
-	   to continue.  This should probably be cached, to allow me to free
-	   the current key if it's a pointer (and the hash over the pointed-to
-	   data), but I guess it's not strictly a bug. */
-	   
-	const char * internedString = NULL;
-	SourceLineInternTable::iterator iterator = sourceLineNames.begin();
 
-	while( iterator != sourceLineNames.end() ) {
-		internedString = * iterator;
-		++iterator;
-		free( const_cast< char * >( internedString ) );
-		}	
+LineInformation::~LineInformation() 
+{
+   /* Apparently, the iterator depends on the hash of its current key
+      to continue.  This should probably be cached, to allow me to free
+      the current key if it's a pointer (and the hash over the pointed-to
+      data), but I guess it's not strictly a bug. */
+
+   const char * internedString = NULL;
+   SourceLineInternTable::iterator iterator = sourceLineNames.begin();
+
+   while ( iterator != sourceLineNames.end() ) 
+   {
+      internedString = * iterator;
+      ++iterator;
+      free( const_cast< char * >( internedString ) );
+   }	
+
 } /* end LineInformation destructor */
 
-LineInformationImpl::LineNoTuple::LineNoTuple(const char *file_, unsigned int line_, unsigned int col_) :
-         first(file_),
-         second(line_),
-         column(col_) 
+LineInformationImpl::LineNoTuple::LineNoTuple(const char *file_, unsigned int line_, 
+      unsigned int col_) :
+   first(file_),
+   second(line_),
+   column(col_) 
 {
 }
 
@@ -179,11 +208,13 @@ bool LineInformationImpl::LineNoTuple::operator==(const LineNoTuple &cmp) const
 {
    if (second != cmp.second) return false;
    if (column != cmp.column) return false;
+
    //  is compare-by-pointer OK here, or do we really have to really strcmp?
    return (!strcmp(first,cmp.first)); 
 }
 
 void LineInformation::serialize(SerializerBase *sb, const char *)
 {
-   fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", FILE__, __LINE__, sb);
+   fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
+         FILE__, __LINE__, sb);
 }
