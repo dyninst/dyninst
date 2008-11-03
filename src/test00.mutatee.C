@@ -702,6 +702,7 @@ bool test0()
 
    //  Now, how about finding symbols in a module?
    Module *m = NULL;
+   Module *d_m = NULL;
 
    if (!test1_mutatee->findModule(m, "test1.mutatee.c")) 
    {
@@ -719,8 +720,26 @@ bool test0()
       return false;
    }
 
-   fprintf(stderr, "%s[%d]:  CHECK THIS:  Apparently cannot find global vars in modules??\n", FILE__, __LINE__);
-#if 0
+   if (!test1_mutatee->findModule(d_m, "DEFAULT_MODULE")) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to find module 'DEFAULT_MODULE'\n", 
+            FILE__, __LINE__); 
+
+      return false;
+   }
+
+   if (!d_m) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to find module 'DEFAULT_MODULE'\n", 
+            FILE__, __LINE__);
+
+      return false;
+   }
+
+   //  We expect to find global variables in DEFAULT_MODULE since they
+   //  are, well, global, and thus should not be attributable to any
+   //  specific real module.
+   
    for (unsigned int i = 0; i < expected_variables.size(); ++i) 
    {
       //  for each expected variable, do 2 lookups, first by unknown
@@ -728,7 +747,7 @@ bool test0()
       std::string search_str(expected_variables[i]);
       bool ok = false;
 
-      ok = m->findSymbolByType(symbols, search_str, Symbol::ST_UNKNOWN);
+      ok = d_m->findSymbolByType(symbols, search_str, Symbol::ST_UNKNOWN);
 
       if (!ok) 
       {
@@ -753,7 +772,7 @@ bool test0()
 
       symbols.clear();
 
-      ok = m->findSymbolByType(symbols, search_str, Symbol::ST_OBJECT);
+      ok = d_m->findSymbolByType(symbols, search_str, Symbol::ST_OBJECT);
 
       if (!ok) 
       {
@@ -778,7 +797,6 @@ bool test0()
 
       symbols.clear();
    }
-#endif
 
 
    for (unsigned int i = 0; i < expected_functions.size(); ++i) 
