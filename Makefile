@@ -19,7 +19,7 @@ InstructionAPI	= ready common instructionAPI dynutil
 
 testsuites = dyninstAPI/tests testsuite 
 
-allSubdirs	= common dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite
+allSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet

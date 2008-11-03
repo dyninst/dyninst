@@ -140,10 +140,12 @@ class AnnotatableDense
 
          size_t elems_erased = annotations_map->erase(&typeid(T));
 
-         if (annotations_map->empty()) {
+         if (annotations_map->empty()) 
+         {
             delete annotations_map;
             annotations_map = NULL;
          }
+
          return elems_erased != 0;
       }
 
@@ -253,38 +255,37 @@ class AnnotatableSparse
 
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
       typedef std::vector<annos_by_type_t *> annos_t;
+
    private:
-
-
 
       static annos_t annos;
 
       template <class T>
-         annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
+      annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
+      {
+         int aid = a_id.getID();
+
+         int nelems_to_create = aid - annos.size() + 1;
+
+         if (nelems_to_create > 0)
          {
-            int aid = a_id.getID();
-
-            int nelems_to_create = aid - annos.size() + 1;
-
-            if (nelems_to_create > 0)
+            if (!do_create)
             {
-               if (!do_create)
-               {
-                  return NULL;
-               }
-
-               while (nelems_to_create)
-               {
-                  annos_by_type_t *newl = new annos_by_type_t();
-                  annos.push_back(newl);
-                  nelems_to_create--;
-               }
+               return NULL;
             }
 
-            annos_by_type_t *abt = annos[aid];
-
-            return abt;
+            while (nelems_to_create)
+            {
+               annos_by_type_t *newl = new annos_by_type_t();
+               annos.push_back(newl);
+               nelems_to_create--;
+            }
          }
+
+         annos_by_type_t *abt = annos[aid];
+
+         return abt;
+      }
 
       void *getAnnosForObject(annos_by_type_t *abt,
             void *obj, bool do_create = false) const 
@@ -314,8 +315,9 @@ class AnnotatableSparse
       }
 
    public:
+
       template<class T>
-         bool addAnnotation(T *a, AnnotationClass<T> &a_id)
+      bool addAnnotation(T *a, AnnotationClass<T> &a_id)
          {
             void *obj = this;
             annos_by_type_t *abt = getAnnosOfType(a_id, true /*do create if needed*/);
@@ -347,33 +349,33 @@ class AnnotatableSparse
          }
 
       template<class T>
-         bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
+      bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
+      {
+         a = NULL;
+
+         annos_by_type_t *abt = getAnnosOfType(a_id, false /*don't create if none*/);
+
+         if (!abt)
          {
-            a = NULL;
-
-            annos_by_type_t *abt = getAnnosOfType(a_id, false /*don't create if none*/);
-
-            if (!abt)
-            {
-               fprintf(stderr, "%s[%d]:  no annotations of type %s\n",
-                     FILE__, __LINE__, a_id.getName().c_str());
-               return false;
-            }
-
-            AnnotatableSparse * this_noconst = const_cast<AnnotatableSparse *>(this);
-            void *annos_for_object = getAnnosForObject(abt, (void *)this_noconst,
-                  false /*no create if none*/);
-
-            if (!annos_for_object)
-            {
-               //fprintf(stderr, "%s[%d]:  no annotations of type %s\n", 
-               //      FILE__, __LINE__, a_id->getName().c_str());
-               return false;
-            }
-
-            a = (T *)annos_for_object;
-            return true;
+            //fprintf(stderr, "%s[%d]:  no annotations of type %s\n",
+            //      FILE__, __LINE__, a_id.getName().c_str());
+            return false;
          }
+
+         AnnotatableSparse * this_noconst = const_cast<AnnotatableSparse *>(this);
+         void *annos_for_object = getAnnosForObject(abt, (void *)this_noconst,
+               false /*no create if none*/);
+
+         if (!annos_for_object)
+         {
+            //fprintf(stderr, "%s[%d]:  no annotations of type %s\n", 
+            //      FILE__, __LINE__, a_id->getName().c_str());
+            return false;
+         }
+
+         a = (T *)annos_for_object;
+         return true;
+      }
 
 #if 0
       template<class T>
@@ -389,8 +391,8 @@ class AnnotatableSparse
             int nelem_cleared = abt->size();
             abt->clear();
 
-         return (nelem_cleared != 0);
-      }
+            return (nelem_cleared != 0);
+         }
 #endif
 
       template<class T>

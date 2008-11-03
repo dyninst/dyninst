@@ -53,8 +53,8 @@
 #include "InstrucIter.h"
 #include "addressSpace.h"
 
-static AnnotationClass<std::vector<InsnRegister *> > RegisterReadSetAnno("RegisterReadSetAnno");
-static AnnotationClass<std::vector<InsnRegister *> > RegisterWriteSetAnno("RegisterWriteSetAnno");
+AnnotationClass<std::vector<InsnRegister> > RegisterReadSetAnno("RegisterReadSetAnno");
+AnnotationClass<std::vector<InsnRegister> > RegisterWriteSetAnno("RegisterWriteSetAnno");
 
 //inline unsigned getMaxBranch1Insn() {
 //   // The length we can branch using just 1 instruction is dictated by the
@@ -867,8 +867,8 @@ void instruction::get_register_operands()
   std::vector<InsnRegister> *read_regs_p = NULL;
   std::vector<InsnRegister> *write_regs_p = NULL;
 
-  bool read_regs_exists = getAnnotation(read_regs_p, ReadRegistersAnno);
-  bool write_regs_exists = getAnnotation(write_regs_p, WriteRegistersAnno);
+  bool read_regs_exists = getAnnotation(read_regs_p, RegisterReadSetAnno);
+  bool write_regs_exists = getAnnotation(write_regs_p, RegisterWriteSetAnno);
 
 
   //  check to see if we already have made these register sets
@@ -881,8 +881,8 @@ void instruction::get_register_operands()
   read_regs_p = new std::vector<InsnRegister>();
   write_regs_p = new std::vector<InsnRegister>();
 
-  bool read_regs_exists = addAnnotation(read_regs_p, ReadRegistersAnno);
-  bool write_regs_exists = addAnnotation(write_regs_p, WriteRegistersAnno);
+  read_regs_exists = addAnnotation(read_regs_p, RegisterReadSetAnno);
+  write_regs_exists = addAnnotation(write_regs_p, RegisterWriteSetAnno);
 
   if (!read_regs_exists)
   {

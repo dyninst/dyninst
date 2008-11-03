@@ -44,6 +44,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "Annotatable.h"
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -590,10 +591,18 @@ void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs)
 {
    instruction insn = getInstruction();
    insn.get_register_operands();
+   std::vector<InsnRegister> *read_regs_p = NULL;
+   std::vector<InsnRegister> *write_regs_p = NULL;
+
+   extern AnnotationClass<std::vector<InsnRegister> > RegisterReadSetAnno;
+   extern AnnotationClass<std::vector<InsnRegister> > RegisterWriteSetAnno;
+
+   bool have_read_regs = insn.getAnnotation(read_regs_p, RegisterReadSetAnno);
+   bool have_write_regs = insn.getAnnotation(write_regs_p, RegisterReadSetAnno);
+#if 0
    Annotatable<InsnRegister, register_read_set_a> &read_regs = insn;
    Annotatable<InsnRegister, register_write_set_a> &write_regs = insn;
 
-#if 0
   InsnRegister* reads = (InsnRegister*)malloc(sizeof(InsnRegister)*7);//[7];
   InsnRegister* writes = (InsnRegister*)malloc(sizeof(InsnRegister)*5);
   getInstruction().get_register_operands(reads, writes);
@@ -601,21 +610,26 @@ void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs)
 
   int c=0;
 
-  unsigned int reads_size = read_regs.size();
-  assert(reads_size < 9);
+  if (have_read_regs)
+  {
+     assert(read_regs_p);
+     std::vector<InsnRegister> &read_regs = *read_regs_p;
+     unsigned int reads_size = read_regs.size();
+     assert(reads_size < 9);
 
-  for (unsigned int i  = 0; i < reads_size; ++i) {
+     for (unsigned int i  = 0; i < reads_size; ++i) {
 
-     InsnRegister &read_reg = read_regs[i];
-     int regNum = read_reg.getNumber();
-     if (regNum == -1)
-        break;
+        InsnRegister &read_reg = read_regs[i];
+        int regNum = read_reg.getNumber();
+        if (regNum == -1)
+           break;
 
-     regNum = getRegisterNumber(regNum, read_reg.getType());
+        regNum = getRegisterNumber(regNum, read_reg.getType());
 
-     if (regNum != 0) {
-        for (unsigned int j=0, wC=read_reg.getWordCount(); j<wC; j++,c++) {
-           readRegs[c] = regNum + j;
+        if (regNum != 0) {
+           for (unsigned int j=0, wC=read_reg.getWordCount(); j<wC; j++,c++) {
+              readRegs[c] = regNum + j;
+           }
         }
      }
   }
@@ -639,21 +653,26 @@ void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs)
 #endif
 
   c=0;
-  unsigned int writes_size = write_regs.size();
-  assert(writes_size < 7);
+  if (have_write_regs)
+  {
+     assert(write_regs_p);
+     std::vector<InsnRegister> &write_regs = *write_regs_p;
+     unsigned int writes_size = write_regs.size();
+     assert(writes_size < 7);
 
-  for (unsigned int i  = 0; i < writes_size; ++i) {
+     for (unsigned int i  = 0; i < writes_size; ++i) {
 
-     InsnRegister &write_reg = write_regs[i];
-     int regNum = write_reg.getNumber();
-     if (regNum == -1)
-        break;
+        InsnRegister &write_reg = write_regs[i];
+        int regNum = write_reg.getNumber();
+        if (regNum == -1)
+           break;
 
-     regNum = getRegisterNumber(regNum, write_reg.getType());
+        regNum = getRegisterNumber(regNum, write_reg.getType());
 
-     if (regNum != 0) {
-        for (unsigned int j=0, wC=write_reg.getWordCount(); j<wC; j++,c++) {
-           writeRegs[c] = regNum + j;
+        if (regNum != 0) {
+           for (unsigned int j=0, wC=write_reg.getWordCount(); j<wC; j++,c++) {
+              writeRegs[c] = regNum + j;
+           }
         }
      }
   }
@@ -664,8 +683,8 @@ void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs)
      int regNum = writes[i].getNumber();
      if(regNum != -1) {
         regNum = getRegisterNumber(regNum, writes[i].getType());
-      if(regNum != 0)
-	for(j=0, wC=writes[i].getWordCount(); j<wC; j++,c++) {
+        if(regNum != 0)
+           for(j=0, wC=writes[i].getWordCount(); j<wC; j++,c++) {
 	  writeRegs[c] = regNum + j;
 	}
     }

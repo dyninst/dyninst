@@ -307,7 +307,17 @@ void image_func::archInstructionProc(InstrucIter &ah)
 #endif
         instruction insn = ah.getInstruction();
         insn.get_register_operands();
+        std::vector<InsnRegister> *read_regs_p  = NULL;
+        extern AnnotationClass<std::vector<InsnRegister> > RegisterReadSetAnno;
+        if (!insn.getAnnotation(read_regs_p, RegisterReadSetAnno))
+        {
+           return;
+        }
+        assert(read_regs_p);
+        std::vector<InsnRegister> &read_regs = *read_regs_p;
+#if 0
         Annotatable<InsnRegister, register_read_set_a> &read_regs = insn;
+#endif
         assert(read_regs.size() < 9);
 
         for (unsigned int i = 0; i < read_regs.size(); ++i) {
