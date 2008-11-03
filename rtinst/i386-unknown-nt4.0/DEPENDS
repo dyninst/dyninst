@@ -1,9 +1,0 @@
-..\src\RTetc-winnt.o: ../src/RTetc-winnt.c ../../rtinst/h/trace.h \
-  ../../rtinst/h/rtinst.h ../../common/h/Types.h \
-  ../../rtinst/h/RThwtimer-winnt.h
-..\src\RThwtimer-winnt.o: ../src/RThwtimer-winnt.c \
-  ../../rtinst/h/RThwtimer-winnt.h ../../common/h/Types.h \
-  ../../rtinst/h/rtinst.h
-..\src\RTinst.o: ../src/RTinst.c ../../rtinst/h/rtinst.h \
-  ../../common/h/Types.h ../../rtinst/h/trace.h ../src/RTcompat.h \
-  ../../pdutil/h/resource.h ../../dyninstAPI_RT/h/dyninstRTExport.h
