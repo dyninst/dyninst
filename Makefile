@@ -12,24 +12,6 @@ include ./make.config
 
 BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
-# "basicComps" is the list of components which need to be built first
-# with "make world", since they are used building the rest of the system.
-#
-# "subSystems" is the list of all other pieces which should be built
-# as part of Paradyn.
-#
-# "DyninstAPI" is the list of additional API components (optional).
-
-basicComps	= igen mrnet pdutil 
-ParadynD	= pdutil igen mrnet sharedMem rtinst symtabAPI dyninstAPI dyninstAPI_RT paradynd
-ParadynFE	= pdthread paradyn
-ParadynVC	= visi \
-		visiClients/tclVisi visiClients/barchart \
-		visiClients/tableVisi visiClients/phaseTable \
-		visiClients/histVisi visiClients/terrain \
-		visiClients/termWin
-
-subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dynutil instructionAPI
@@ -37,32 +19,13 @@ InstructionAPI	= ready common instructionAPI dynutil
 
 testsuites = dyninstAPI/tests testsuite 
 
-allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite
+allSubdirs	= common dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet
 ifeq ($(DONT_BUILD_NEWTESTSUITE),false)
 testsuites += newtestsuite
 allSubdirs_noinstall += newtestsuite
-endif
-
-# "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
-# set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
-ifndef DONT_BUILD_PARADYN
-fullSystem	+= $(basicComps)
-Build_list	+= basicComps
-ifndef DONT_BUILD_FE
-fullSystem	+= $(ParadynFE)
-Build_list	+= ParadynFE
-endif
-ifndef DONT_BUILD_DAEMON
-fullSystem	+= $(ParadynD)
-Build_list	+= ParadynD
-endif
-ifndef DONT_BUILD_VISIS
-fullSystem	+= $(ParadynVC)
-Build_list	+= ParadynVC
-endif
 endif
 
 ifndef DONT_BUILD_DYNINST
@@ -151,21 +114,6 @@ ready:
 
 intro:
 	@echo "Build of $(BUILD_ID) starting for $(PLATFORM)!"
-ifdef DONT_BUILD_PARADYN
-	@echo "Build of Paradyn components skipped!"
-endif
-ifdef DONT_BUILD_FE
-	@echo "Build of Paradyn front-end components skipped!"
-endif
-ifdef DONT_BUILD_DAEMON
-	@echo "Build of Paradyn daemon components skipped!"
-endif
-ifdef DONT_BUILD_VISIS
-	@echo "Build of Paradyn visi client components skipped!"
-endif
-ifdef DONT_BUILD_PD_MT
-	@echo "Build of ParadynMT components skipped!"
-endif
 ifdef DONT_BUILD_DYNINST
 	@echo "Build of DyninstAPI components skipped!"
 endif
@@ -176,7 +124,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -230,20 +178,7 @@ symtabAPI igen: common
 stackwalk: symtabAPI dynutil
 dyninstAPI: symtabAPI instructionAPI
 symtabAPI dyninstAPI: dynutil
-paradynd:  pdutil dyninstAPI 
-paradyn: pdutil pdthread 
-pdthread: igen mrnet 
-visi:  pdutil
-pdutil: igen
-visiClients/tclVisi: visi
-visiClients/barchart: visi
-visiClients/tableVisi: visi
-visiClients/phaseTable: visi
-visiClients/histVisi: visi
-visiClients/terrain: visi
-visiClients/termWin: visi mrnet pdthread
 dyner codeCoverage dyninstAPI/tests testsuite newtestsuite: dyninstAPI
-rtinst: igen dyninstAPI_RT 
 
 # This rule passes down the documentation-related make stuff to
 # lower-level Makefiles in the individual "docs" directories.
