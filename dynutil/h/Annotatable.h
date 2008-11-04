@@ -78,81 +78,6 @@ class AnnotationClass {
 
 typedef void *anno_list_t;
 
-
-#if 0
-class AnnotatableDense
-{
-   /**
-    * Inheriting from this class adds a pointer to each object.  Multiple
-    * types of annotations are stored under this pointer in a 
-    * annotation_type -> anno_list_t map.
-    **/
-
-   private:
-      struct cmp_type_info
-      {
-         bool operator()(const std::type_info *l, const std::type_info *r)
-         {
-            return l->before(*r) != 0;
-         }
-      };
-
-      typedef std::map<const std::type_info*, anno_list_t, cmp_type_info> anno_map_t;
-
-      anno_map_t *annotations_map;
-
-   public:
-      AnnotatableDense() : annotations_map(NULL)
-      {
-      }
-
-      template<class T> 
-         bool addAnnotation(T *a, AnnotationClass<T> &a_id)
-         {
-            if (!annotations_map)
-               annotations_map = new anno_map_t();
-
-            (*annotations_map)[&typeid(T)] = (void *) a;
-
-            return true;
-         }
-
-      template<class T> 
-         bool getAnnotation(T *&a, AnnotationClass<T> &a_id)
-         {
-            if (!annotations_map)
-               return false;
-
-            anno_map_t::iterator avec_i = annotations_map->find(&typeid(T));
-
-            if (avec_i == annotations_map->end())
-               return false;
-
-            a = (T) (*avec_i).second;
-
-            return true;
-         }
-
-      template<class T> bool removeAnnotation(AnnotationClass<T> &a_id)
-      {
-         if (!annotations_map)
-            return false;
-
-         size_t elems_erased = annotations_map->erase(&typeid(T));
-
-         if (annotations_map->empty()) 
-         {
-            delete annotations_map;
-            annotations_map = NULL;
-         }
-
-         return elems_erased != 0;
-      }
-
-};
-#endif
-
-
 class AnnotatableDense
 {
    /**
@@ -178,67 +103,68 @@ class AnnotatableDense
       }
 
       template<class T> 
-         bool addAnnotation(T *a, AnnotationClass<T> &a_id) {
-            int size;
-            int id = a_id.getID();
+      bool addAnnotation(T *a, AnnotationClass<T> &a_id) 
+      {
+         int size;
+         int id = a_id.getID();
 
-            if (!annotations) 
-            {
-               size = id;
-               annotations = (aInfo *) malloc(sizeof(aInfo));
+         if (!annotations) 
+         {
+            size = id;
+            annotations = (aInfo *) malloc(sizeof(aInfo));
 
-               annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), size);
-               annotations->max = size;
-            } 
-            else if (id > annotations->max) 
-            {
-               size = annotations->max * 2;
-               annotations->max = size;
-               annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t *) * size);
-            }
-
-            annotations->data[id] = (void *) a;
-
-            return true;
+            annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), size);
+            annotations->max = size;
+         } 
+         else if (id > annotations->max) 
+         {
+            size = annotations->max * 2;
+            annotations->max = size;
+            annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t *) * size);
          }
+
+         annotations->data[id] = (void *) a;
+
+         return true;
+      }
 
       template<class T> 
-         bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const
+      bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const
+      {
+         if (!annotations)
+            return false;
+
+         int id = a_id.getID();
+
+         if (id > annotations->max) 
          {
-            if (!annotations)
-               return false;
-
-            int id = a_id.getID();
-
-            if (id > annotations->max) 
-            {
-               return false;
-            }
-
-            a = (T *) annotations->data[id];
-            if (!a) return false;
-
-            return true;
+            return false;
          }
+
+         a = (T *) annotations->data[id];
+         if (!a) return false;
+
+         return true;
+      }
 
       template<class T> 
-         bool removeAnnotation(AnnotationClass<T> &a_id)
+      bool removeAnnotation(AnnotationClass<T> &a_id)
+      {
+         if (!annotations) return false;
+
+         int id = a_id.getID();
+         if (id > annotations->max) 
          {
-            if (!annotations) return false;
-
-            int id = a_id.getID();
-            if (id > annotations->max) 
-            {
-               return false;
-            }
-
-            if (!annotations->data[id]) 
-               return false;
-
-            annotations->data[id] = NULL;
-
-            return true;
+            return false;
          }
+
+         if (!annotations->data[id]) 
+            return false;
+
+         annotations->data[id] = NULL;
+
+         return true;
+      }
 
 };
 
