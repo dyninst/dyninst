@@ -333,7 +333,9 @@ class AnnotatableSparse
             return false;
          }
 
-         annos.erase(aid,aid);
+         annos_t::iterator a_iter(aid);
+         annos.erase(a_iter);
+         //annos.erase(aid);
 
 #if 0
          int nelems_to_create = aid - annos.size() + 1;

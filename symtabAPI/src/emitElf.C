@@ -137,163 +137,247 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, voi
    setVersion();
 }
 
-bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
+bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, 
+      unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
 {
    Elf32_Sym *sym = new Elf32_Sym();
    sym->st_name = symbolNamesLength;
+
    //std::string strippedName = symbol->getName();
    //size_t pos = strippedName.find('@');
    //if (pos != std::npos) {
-       //strippedName = strippedName.substr(0,pos);
+   //strippedName = strippedName.substr(0,pos);
    //}
    //symbolStrs.push_back(strippedName);
+
    symbolStrs.push_back(symbol->getName());
    symbolNamesLength += symbol->getName().length()+1;
    sym->st_value = symbol->getAddr();
    sym->st_size = symbol->getSize();
    sym->st_other = 0;
    sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
-   if(symbol->getSec())
+
+   if (symbol->getSec())
+   {
 #if defined(os_solaris)
       sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
 #else
       sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
 #endif
-   else if (symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
-        sym->st_shndx = SHN_ABS;
+   }
+   else if (symbol->getAddr() != 0) 
+      //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
+   {
+      sym->st_shndx = SHN_ABS;
+   }
    else
-       sym->st_shndx = 0;
-   
+   {
+      sym->st_shndx = 0;
+   }
+
    symbols.push_back(sym);
+
    //Do not emit aliases for dynamic symbols
-   if(dynSymFlag){
+   if (dynSymFlag) 
+   {
 
 #if !defined(os_solaris)
-       string fileName;
-       if(symbol->getLinkage() == Symbol::SL_WEAK){
-           versionSymTable.push_back(0);
-           return true;
-       }
-       
-       if(!symbol->getVersionFileName(fileName))   //verdef entry
-       {
+      string fileName;
+      if (symbol->getLinkage() == Symbol::SL_WEAK)
+      {
+         versionSymTable.push_back(0);
+         return true;
+      }
+
+      if (!symbol->getVersionFileName(fileName))   //verdef entry
+      {
 #ifdef BINEDIT_DEBUG
-           printf("verdef: symbol=%s\n", symbol->getName().c_str());
+         printf("verdef: symbol=%s\n", symbol->getName().c_str());
 #endif
-           vector<string> *vers;
-           if(!symbol->getVersions(vers))
-                versionSymTable.push_back(1);
-           else {
-               if(vers->size() > 1){
-                   if(versionNames.find((*vers)[0]) == versionNames.end())
-                       versionNames[(*vers)[0]] = 0;
-                   if(verdefEntries.find((*vers)[0]) != verdefEntries.end())
-                      versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
-                   else{
-                      versionSymTable.push_back((unsigned short) curVersionNum);
-                       verdefEntries[(*vers)[0]] = curVersionNum;
-                       curVersionNum++;
-                   }
+         vector<string> *vers;
+         if (!symbol->getVersions(vers))
+         {
+            versionSymTable.push_back(1);
+         }
+         else 
+         {
+            if (vers->size() > 1)
+            {
+               if (versionNames.find((*vers)[0]) == versionNames.end())
+               {
+                  versionNames[(*vers)[0]] = 0;
                }
-               for(unsigned i=1; i< vers->size(); i++){
-                   if(versionNames.find((*vers)[i]) == versionNames.end())
-                       versionNames[(*vers)[i]] = 0;
-                   verdauxEntries[verdefEntries[(*vers)[0]]].push_back((*vers)[i]);
+               if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
+               {
+                  versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
                }
-           }
-       }
-       else {           //verneed entry
-           char msg[2048];
-           char *mpos = msg;
-           mpos += sprintf(mpos, "need: symbol=%s    filename=%s\n", symbol->getName().c_str(), fileName.c_str());
-           vector<string> *vers;
-           if(!symbol->getVersions(vers)) {
-                // add an unversioned dependency
-                if (fileName == "") {
-                    mpos += sprintf(mpos, "  local\n");
-                    versionSymTable.push_back(0);
-                } else {
-                    if (find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), fileName) == 
-                            unversionedNeededEntries.end()) {
-                        mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
-                        unversionedNeededEntries.push_back(fileName);
-                    }
-                    mpos += sprintf(mpos, "  global\n");
-                    versionSymTable.push_back(1);
-                }
-           } else {
-               if(vers->size() == 1){        // There should only be one version string
-                    //If the verison name already exists then add the same version number to the version symbol table
-                    //Else give a new number and add it to the mapping.
-                    if(versionNames.find((*vers)[0]) == versionNames.end()) {
-                        mpos += sprintf(mpos, "  new version name: %s\n", (*vers)[0].c_str());
-                        versionNames[(*vers)[0]] = 0;
-                    }
-                    if(verneedEntries.find(fileName) != verneedEntries.end())
-                    {
-                        if(verneedEntries[fileName].find((*vers)[0]) != verneedEntries[fileName].end()) {
-                            mpos += sprintf(mpos, "  vernum: %d\n", verneedEntries[fileName][(*vers)[0]]);
-                           versionSymTable.push_back((unsigned short) verneedEntries[fileName][(*vers)[0]]);
-                        }
-                        else{
-                            mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", curVersionNum, (*vers)[0].c_str(), fileName.c_str());
-                            versionSymTable.push_back((unsigned short) curVersionNum);
-                            verneedEntries[fileName][(*vers)[0]] = curVersionNum;
-                            curVersionNum++;
-                        }
-                    }
-                    else{
-                        mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", curVersionNum, (*vers)[0].c_str(), fileName.c_str());
-                        versionSymTable.push_back((unsigned short) curVersionNum);
-                        verneedEntries[fileName][(*vers)[0]] = curVersionNum;
-                        curVersionNum++;
-                    }
-                } else {
-                    // add an unversioned dependency
-                    if (fileName == "") {
-                        mpos += sprintf(mpos, "  local\n");
-                        versionSymTable.push_back(0);
-                    } else {
-                        if (find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), fileName) == 
-                                unversionedNeededEntries.end()) {
-                            mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
-                            unversionedNeededEntries.push_back(fileName);
-                        }
-                        mpos += sprintf(mpos, "  global\n");
-                        versionSymTable.push_back(1);
-                    }
-                }
-           }
+               else 
+               {
+                  versionSymTable.push_back((unsigned short) curVersionNum);
+                  verdefEntries[(*vers)[0]] = curVersionNum;
+                  curVersionNum++;
+               }
+            }
+            for (unsigned i=1; i< vers->size(); i++)
+            {
+               if (versionNames.find((*vers)[i]) == versionNames.end())
+               {
+                  versionNames[(*vers)[i]] = 0;
+               }
+
+               verdauxEntries[verdefEntries[(*vers)[0]]].push_back((*vers)[i]);
+            }
+         }
+      }
+      else 
+      {           
+         //verneed entry
+         char msg[2048];
+         char *mpos = msg;
+         mpos += sprintf(mpos, "need: symbol=%s    filename=%s\n", 
+               symbol->getName().c_str(), fileName.c_str());
+
+         vector<string> *vers;
+
+         if (!symbol->getVersions(vers)) 
+         {
+            // add an unversioned dependency
+            if (fileName == "") 
+            {
+               mpos += sprintf(mpos, "  local\n");
+               versionSymTable.push_back(0);
+            } 
+            else 
+            {
+               std::vector<std::string>::iterator iter;
+               
+               iter = find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), 
+                     fileName); 
+
+               if (iter == unversionedNeededEntries.end()) 
+               {
+                  mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
+                  unversionedNeededEntries.push_back(fileName);
+               }
+
+               mpos += sprintf(mpos, "  global\n");
+               versionSymTable.push_back(1);
+            }
+         } 
+         else 
+         {
+            if (!vers)
+            {
+               fprintf(stderr, "%s[%d]:  weird inconsistency here...  getVersions returned NULL\n",
+                     FILE__, __LINE__);
+            }
+            else
+            {
+            if (vers->size() == 1)
+            {
+               // There should only be one version string
+               //If the verison name already exists then add the same version number to the version symbol table
+               //Else give a new number and add it to the mapping.
+               if (versionNames.find((*vers)[0]) == versionNames.end()) 
+               {
+                  mpos += sprintf(mpos, "  new version name: %s\n", (*vers)[0].c_str());
+                  versionNames[(*vers)[0]] = 0;
+               }
+
+               if (verneedEntries.find(fileName) != verneedEntries.end())
+               {
+                  if (verneedEntries[fileName].find((*vers)[0]) != verneedEntries[fileName].end()) 
+                  {
+                     mpos += sprintf(mpos, "  vernum: %d\n", verneedEntries[fileName][(*vers)[0]]);
+                     versionSymTable.push_back((unsigned short) verneedEntries[fileName][(*vers)[0]]);
+                  }
+                  else
+                  {
+                     mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", 
+                           curVersionNum, (*vers)[0].c_str(), fileName.c_str());
+                     versionSymTable.push_back((unsigned short) curVersionNum);
+                     verneedEntries[fileName][(*vers)[0]] = curVersionNum;
+                     curVersionNum++;
+                  }
+               }
+               else
+               {
+                  mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", 
+                        curVersionNum, (*vers)[0].c_str(), fileName.c_str());
+                  versionSymTable.push_back((unsigned short) curVersionNum);
+                  verneedEntries[fileName][(*vers)[0]] = curVersionNum;
+                  curVersionNum++;
+               }
+            } 
+            else 
+            {
+               // add an unversioned dependency
+               if (fileName == "") 
+               {
+                  mpos += sprintf(mpos, "  local\n");
+                  versionSymTable.push_back(0);
+               } 
+               else 
+               {
+                  std::vector<std::string>::iterator iter;
+
+                  iter = find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), 
+                        fileName); 
+
+                  if (iter == unversionedNeededEntries.end()) 
+                  {
+                     mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
+                     unversionedNeededEntries.push_back(fileName);
+                  }
+
+                  mpos += sprintf(mpos, "  global\n");
+                  versionSymTable.push_back(1);
+               }
+            }
+            }
+         }
 #ifdef BINEDIT_DEBUG
-           printf("%s", msg);
+         printf("%s", msg);
 #endif
-       }
+      }
 #endif
-       return true;
+      return true;
    }
+
    std::vector<string> names = symbol->getAllMangledNames();
-   for(unsigned i=1;i<names.size();i++)
+
+   for (unsigned i=1;i<names.size();i++)
    {
-       	sym = new Elf32_Sym();
-	    sym->st_name = symbolNamesLength;
-    	symbolStrs.push_back(names[i]);
-       	symbolNamesLength += names[i].length()+1;
-    	sym->st_value = symbol->getAddr();
-    	sym->st_size = 0;
-       	sym->st_other = 0;
-       	sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
-       	if(symbol->getSec())
+      sym = new Elf32_Sym();
+      sym->st_name = symbolNamesLength;
+      symbolStrs.push_back(names[i]);
+      symbolNamesLength += names[i].length()+1;
+      sym->st_value = symbol->getAddr();
+      sym->st_size = 0;
+      sym->st_other = 0;
+      sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), 
+            elfSymType (symbol->getType()));
+      if (symbol->getSec())
+      {
 #if defined(os_solaris)
-            sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
+         sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
 #else
-            sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
+         sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
 #endif
-    	else if (symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
-    	    sym->st_shndx = SHN_ABS;
-        else
-            sym->st_shndx = 0;
-       	symbols.push_back(sym);
+      }
+      else if (symbol->getAddr() != 0) 
+         //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
+      {
+         sym->st_shndx = SHN_ABS;
+      }
+      else
+      {
+         sym->st_shndx = 0;
+      }
+
+      symbols.push_back(sym);
    }
+
    return true;
 }
 
