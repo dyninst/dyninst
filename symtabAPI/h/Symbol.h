@@ -116,10 +116,10 @@ class Symbol : public Serializable,
    DLLEXPORT Symbol (unsigned);
    DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
-         bool isInSymtab_ = true);
+         bool isInSymtab_ = true, bool isAbsolute_ = false);
    DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
-         bool isInSymtab_ = true);
+         bool isInSymtab_ = true, bool isAbsolute_ = false);
    DLLEXPORT Symbol (const Symbol &);
    DLLEXPORT ~Symbol();
 
@@ -134,6 +134,7 @@ class Symbol : public Serializable,
    DLLEXPORT Region		    *getSec ()      	    const;
    DLLEXPORT bool              isInDynSymtab()         const;
    DLLEXPORT bool              isInSymtab()            const;
+   DLLEXPORT bool              isAbsolute()            const;
 
 
    /***********************************************************
@@ -160,6 +161,8 @@ class Symbol : public Serializable,
    DLLEXPORT bool  clearDynSymtab();
    DLLEXPORT bool  setIsInSymtab();
    DLLEXPORT bool  clearIsInSymtab();
+   DLLEXPORT bool  setIsAbsolute();
+   DLLEXPORT bool  clearIsAbsolute();
 
    DLLEXPORT Type  *getReturnType();
    DLLEXPORT bool	setReturnType(Type *);
@@ -202,6 +205,7 @@ class Symbol : public Serializable,
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
    bool          isInDynsymtab_;
    bool          isInSymtab_;
+   bool          isAbsolute_;
 
    std::vector<std::string> mangledNames;
    std::vector<std::string> prettyNames;
@@ -227,7 +231,8 @@ inline
 Symbol::Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
-   isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_("")
+   isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
+   retType_(NULL), moduleName_("")
    //vars_(NULL), params_(NULL) 
 {
 }
@@ -257,6 +262,7 @@ Symbol::operator==(const Symbol& s) const
 #endif
          && (isInDynsymtab_ == s.isInDynsymtab_)
          && (isInSymtab_ == s.isInSymtab_)
+         && (isAbsolute_ == s.isAbsolute_)
          && (retType_    == s.retType_)
          && (mangledNames == s.mangledNames)
          && (prettyNames == s.prettyNames)

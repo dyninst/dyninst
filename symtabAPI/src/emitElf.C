@@ -159,7 +159,7 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
 #else
       sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
 #endif
-   else if (symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
+   else if (symbol->isAbsolute()) //(symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
         sym->st_shndx = SHN_ABS;
    else
        sym->st_shndx = 0;
@@ -288,7 +288,7 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned
 #else
             sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
 #endif
-    	else if (symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
+    	else if (symbol->isAbsolute()) //(symbol->getAddr() != 0) //if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
     	    sym->st_shndx = SHN_ABS;
         else
             sym->st_shndx = 0;

@@ -1349,6 +1349,8 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          //sec = regions_[0];
       
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
+      if (secNumber == SHN_ABS)
+          newsym->setIsAbsolute();
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
             (shared) && (sname == extract_pathname_tail(smodule))) {
@@ -1472,6 +1474,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       unsigned ssize = syms.st_size(i);
       Offset saddr = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
+      /* 11/4/08: don't discard symbols with same name and address */
       if(symbols_.find(sname) != symbols_.end()) {
           vector<Symbol *> syms = symbols_[sname];
           for(unsigned j = 0; j < syms.size(); j++){
@@ -1503,6 +1506,8 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          //sec = regions_[0];     
 
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, /*NULL,*/ true, false);
+      if (secNumber == SHN_ABS)
+          newsym->setIsAbsolute();
 #if !defined(os_solaris)
       if(versymSec) {
           if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())

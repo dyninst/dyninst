@@ -209,6 +209,7 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    type_(s.type_), linkage_(s.linkage_),
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
+   isAbsolute_(s.isAbsolute_),
    mangledNames(s.mangledNames), 
    prettyNames(s.prettyNames), 
    typedNames(s.typedNames), 
@@ -317,6 +318,7 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    size_    = s.size_;
    isInDynsymtab_ = s.isInDynsymtab_;
    isInSymtab_ = s.isInSymtab_;
+   isAbsolute_ = s.isAbsolute_;
    tag_     = s.tag_;
    mangledNames = s.mangledNames;
    prettyNames = s.prettyNames;
@@ -528,6 +530,11 @@ DLLEXPORT bool Symbol::isInSymtab() const
     return isInSymtab_;
 }
 
+DLLEXPORT bool Symbol::isAbsolute() const
+{
+    return isAbsolute_;
+}
+
 DLLEXPORT unsigned Symbol::getSize() const 
 {
     return size_;
@@ -580,11 +587,23 @@ DLLEXPORT bool Symbol::clearIsInSymtab()
     return true;
 }
 
+DLLEXPORT bool Symbol::setIsAbsolute()
+{
+    isAbsolute_= true;
+    return true;
+}
+
+DLLEXPORT bool Symbol::clearIsAbsolute()
+{
+    isAbsolute_= false;
+    return true;
+}
+
 DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), 
-    retType_(NULL), moduleName_("")
+    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
+    framePtrRegNum_(-1), retType_(NULL), moduleName_("")
 {
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
@@ -607,10 +626,12 @@ DLLEXPORT const std::vector<string>& Symbol::getAllTypedNames() const
 
 DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab)
+    Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
+    bool isAbsolute)
     : type_(itype),
     linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
-    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL)
+    isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
+    retType_(NULL)
 {
         module_ = NULL;
     	moduleName_ = imodule;
@@ -619,10 +640,12 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
 
 DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab)
+    Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
+    bool isAbsolute)
     : module_(mod), type_(itype),
     linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
-    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL)
+    isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
+    retType_(NULL)
 {
     	mangledNames.push_back(iname);
 }
@@ -996,6 +1019,7 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, size_, "size");
       gtranslate(s, isInDynsymtab_, "isInDynsymtab");
       gtranslate(s, isInSymtab_, "isInSymtab");
+      gtranslate(s, isAbsolute_, "isAbsolute");
       gtranslate(s, prettyNames, "prettyNames", "prettyName");
       gtranslate(s, mangledNames, "mangledNames", "mangledName");
       gtranslate(s, typedNames, "typedNames", "typedName");
