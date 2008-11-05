@@ -184,535 +184,641 @@ Symbol *mangledNameMatchKLUDGE(const char *pretty, const char *mangled,
 //
 // <paramList> = | <typeUse>;<paramList> 
 //
+
 std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr, 
-		      int framePtr, typeCommon *commonBlock)
+      int framePtr, typeCommon *commonBlock)
 {
-    int cnt;
-    int ID = 0;
-    int symdescID = 0;
-    int funcReturnID = 0;
-    Symbol  *fp = NULL;
-    Type * ptrType = NULL;
-    Type * newType = NULL; // For new types to add to the collection
-    localVar *locVar = NULL;
-    cnt= 0;
-    std::string fName = mod->fileName();
+   int cnt;
+   int ID = 0;
+   int symdescID = 0;
+   int funcReturnID = 0;
+   Symbol  *fp = NULL;
+   Type * ptrType = NULL;
+   Type * newType = NULL; // For new types to add to the collection
+   localVar *locVar = NULL;
+   cnt= 0;
+   std::string fName = mod->fileName();
 
-    /* get type or variable name */
-    std::string mangledname = getIdentifier( stabstr, cnt );
+   /* get type or variable name */
+   std::string mangledname = getIdentifier( stabstr, cnt );
 
-    currentRawSymbolName = mangledname;
-    char * demangled = P_cplus_demangle( mangledname.c_str(), mod->exec()->isNativeCompiler() );
-    std::string name;
-    if( demangled == NULL ) {
-    	name = mangledname;
-    } else {
-       name = demangled;
-    }
+   currentRawSymbolName = mangledname;
+   char * demangled = P_cplus_demangle( mangledname.c_str(), mod->exec()->isNativeCompiler() );
+   std::string name;
 
-    if( name[0] != '\0' && stabstr[cnt] != ':' ) {
-		return name;
-    }
+   if ( demangled == NULL ) 
+   {
+      name = mangledname;
+   } 
+   else 
+   {
+      name = demangled;
+   }
 
-    if (stabstr[cnt] == ':') {
-       // skip to type part
-       cnt++;
-    }
+   if ( name[0] != '\0' && stabstr[cnt] != ':' ) 
+   {
+      return name;
+   }
 
-    if (isSymId(stabstr[cnt])) {
-	/* instance of a predefined type */
+   if (stabstr[cnt] == ':') 
+   {
+      // skip to type part
+      cnt++;
+   }
 
-	ID = parseSymDesc(stabstr, cnt);
-	
-	////bperr("Variable: %s  Type ID: %d, file ID %d \n",name, ID, file_ID);
-	if (stabstr[cnt] == '=') {
-	  /* More Stuff to parse, call parseTypeDef */
-	  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
-	  cnt = 0;
-	  ptrType = mod->getModuleTypes()->findOrCreateType(ID);
-	  if (!symt_current_func) {
-	      // XXX-may want to use N_LBRAC and N_RBRAC to set function scope 
-	      // -- jdd 5/13/99
-	      // Still need to add to local variable list if in a function
+   if (isSymId(stabstr[cnt])) 
+   {
+      /* instance of a predefined type */
 
-	      std::string modName = mod->fileName();
-	      //bperr("%s[%d] Can't find function %s in module %s\n", __FILE__, __LINE__,
-         //     symt_current_mangled_func_name.c_str(), modName);
-	      //bperr("Unable to add %s to local variable list in %s\n",
-         //     name.c_str(), symt_current_func_name.c_str());
-	  } else {
-	      locVar = new localVar(name, ptrType, fName, linenum);
-	      loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
-	      loc->stClass = storageRegOffset;
-	      loc->refClass = storageNoRef;
-	      loc->frameOffset = framePtr;
-	      loc->reg = -1;
-	      locVar->addLocation(loc);
-	      if (!ptrType) {
-		//bperr("adding local var with missing type %s, type = %d\n",
-		//      name, ID);
-	      }
+      ID = parseSymDesc(stabstr, cnt);
 
-         localVarCollection *lvs = NULL;
-         extern AnnotationClass<localVarCollection> FunctionLocalVariablesAnno;
+      ////bperr("Variable: %s  Type ID: %d, file ID %d \n",name, ID, file_ID);
 
-         if (!symt_current_func->getAnnotation(lvs, FunctionLocalVariablesAnno)) 
+      if (stabstr[cnt] == '=') 
+      {
+         /* More Stuff to parse, call parseTypeDef */
+
+         stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
+         cnt = 0;
+         ptrType = mod->getModuleTypes()->findOrCreateType(ID);
+         if (!symt_current_func) 
          {
-            lvs = new localVarCollection();
-            if (!symt_current_func->addAnnotation(lvs, FunctionLocalVariablesAnno)) 
+            // XXX-may want to use N_LBRAC and N_RBRAC to set function scope 
+            // -- jdd 5/13/99
+            // Still need to add to local variable list if in a function
+
+            std::string modName = mod->fileName();
+            //bperr("%s[%d] Can't find function %s in module %s\n", __FILE__, __LINE__,
+            //     symt_current_mangled_func_name.c_str(), modName);
+            //bperr("Unable to add %s to local variable list in %s\n",
+            //     name.c_str(), symt_current_func_name.c_str());
+         } 
+         else 
+         {
+            locVar = new localVar(name, ptrType, fName, linenum);
+            loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+            loc->stClass = storageRegOffset;
+            loc->refClass = storageNoRef;
+            loc->frameOffset = framePtr;
+            loc->reg = -1;
+            locVar->addLocation(loc);
+            if (!ptrType) {
+               //bperr("adding local var with missing type %s, type = %d\n",
+               //      name, ID);
+            }
+
+            localVarCollection *lvs = NULL;
+            extern AnnotationClass<localVarCollection> FunctionLocalVariablesAnno;
+
+            if (!symt_current_func->getAnnotation(lvs, FunctionLocalVariablesAnno)) 
             {
-               fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+               lvs = new localVarCollection();
+               if (!symt_current_func->addAnnotation(lvs, FunctionLocalVariablesAnno)) 
+               {
+                  fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+               }
             }
-         }
 
-         if (!lvs)
+            if (!lvs)
+            {
+               fprintf(stderr, "%s[%d]: failed to get annotation here\n", FILE__, __LINE__);
+            }
+
+            lvs->addLocalVar(locVar);
+         }
+      } 
+      else if (symt_current_func) 
+      {
+         // Try to find the BPatch_Function
+         ptrType = mod->getModuleTypes()->findOrCreateType( ID);
+
+         locVar = new localVar(name, ptrType, fName, linenum);
+         loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+         loc->stClass = storageRegOffset;
+         loc->refClass = storageNoRef;
+         loc->frameOffset = framePtr;
+         loc->reg = -1;
+         locVar->addLocation(loc);
+
+         if (!ptrType) 
          {
-            fprintf(stderr, "%s[%d]: failed to get annotation here\n", FILE__, __LINE__);
+            ////bperr("adding local var with missing type %s, type = %d\n",
+            //	     name, ID);
          }
 
-         lvs->addLocalVar(locVar);
-#if 0
-	      if(!symt_current_func->vars_)
-	          symt_current_func->vars_ = new localVarCollection();
-	      symt_current_func->vars_->addLocalVar( locVar);
-#endif
-	  }
-	} else if (symt_current_func) {
-	  // Try to find the BPatch_Function
-	  ptrType = mod->getModuleTypes()->findOrCreateType( ID);
-	  
-	  locVar = new localVar(name, ptrType, fName, linenum);
-	  loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
-	  loc->stClass = storageRegOffset;
-	  loc->refClass = storageNoRef;
-	  loc->frameOffset = framePtr;
-	  loc->reg = -1;
-	  locVar->addLocation(loc);
-	  
-	  if (!ptrType) {
-	    ////bperr("adding local var with missing type %s, type = %d\n",
-	    //	     name, ID);
-	  }
+         if (!symt_current_func->addLocalVar(locVar)) 
+         {
+            fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+         }
 
-     if (!symt_current_func->addLocalVar(locVar)) {
-        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-     }
-
-#if 0
-	  if(!symt_current_func->vars_)
-        symt_current_func->vars_ = new localVarCollection();
-	  symt_current_func->vars_->addLocalVar( locVar);
-#endif
-	}
-    } else if (stabstr[cnt]) {
+      }
+   } 
+   else if (stabstr[cnt]) 
+   {
       std::vector<Symbol *> bpfv;
+
       switch (stabstr[cnt]) {
-	    case 'f': /*Local Function*/ {
-	      std::string scopeName;
-	      std::string lfuncName;
-	      cnt++;
+         case 'f': /*Local Function*/ 
+            {
+               std::string scopeName;
+               std::string lfuncName;
+               cnt++;
 
-	      symt_current_func_name = name;
-	      symt_current_mangled_func_name = mangledname;
+               symt_current_func_name = name;
+               symt_current_mangled_func_name = mangledname;
 
-	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
-      
-	      if (stabstr[cnt]==',') {
-		  cnt++; 	/*skip the comma*/
+               funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
-		  /* Local Function Name */
-		  lfuncName = getIdentifier(stabstr, cnt);
+               if (stabstr[cnt]==',') 
+               {
+                  cnt++; 	/*skip the comma*/
 
-		  assert(stabstr[cnt] == ',');
-		  cnt++; 	/*skip the comma*/
+                  /* Local Function Name */
+                  lfuncName = getIdentifier(stabstr, cnt);
 
-		  /* Scope Name of Local Function */
-		  scopeName = getIdentifier(stabstr, cnt);
+                  assert(stabstr[cnt] == ',');
+                  cnt++; 	/*skip the comma*/
 
-		  if (stabstr[cnt]) {
-		      //bperr("Extra: %s\n", &stabstr[cnt]);
-		  }
-	      }
+                  /* Scope Name of Local Function */
+                  scopeName = getIdentifier(stabstr, cnt);
 
-	      if (!scopeName.length()) { // Not an embeded function
-		  ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
-		  if( !ptrType) ptrType = mod->exec()->type_Untyped;
+                  if (stabstr[cnt]) 
+                  {
+                     //bperr("Extra: %s\n", &stabstr[cnt]);
+                  }
+               }
 
-		  if (!(mod->findSymbolByType( bpfv, name, Symbol::ST_FUNCTION ))) {
-		    if(!(mod->findSymbolByType( bpfv, name, Symbol::ST_FUNCTION, true ))) {
-		       //showInfoCallback(string("missing local function ") +
-		 	//					     name + "\n");
-                       // It's very possible that we might not find a function
-                       // that's a weak reference, and defined in multiple places
-                       // as we only store an object from the last definition
-                      fp = NULL;
-		   }   
-		 } else {
-		    if (bpfv.size() > 1) {
-		      // warn if we find more than one function with current_func_name
-                      char msg[1024];
-                      sprintf(msg, "%s[%d]:  found %d functions with name %s, using the first",
+               if (!scopeName.length()) 
+               { 
+                  // Not an embeded function
+
+                  ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
+                  if ( !ptrType) ptrType = mod->exec()->type_Untyped;
+
+                  if (!(mod->findSymbolByType( bpfv, name, Symbol::ST_FUNCTION ))) 
+                  {
+                     if (!(mod->findSymbolByType( bpfv, name, Symbol::ST_FUNCTION, true ))) 
+                     {
+                        //showInfoCallback(string("missing local function ") +
+                        //					     name + "\n");
+                        // It's very possible that we might not find a function
+                        // that's a weak reference, and defined in multiple places
+                        // as we only store an object from the last definition
+                        fp = NULL;
+                     }   
+                  } 
+                  else 
+                  {
+                     if (bpfv.size() > 1) 
+                     {
+                        // warn if we find more than one function with current_func_name
+                        char msg[1024];
+                        sprintf(msg, "%s[%d]:  found %d functions with name %s, using the first",
                               __FILE__, __LINE__, (int)bpfv.size(), name.c_str());
-                     // BPatch::bpatch->reportError(BPatchWarning, 0, msg);
+                        // BPatch::bpatch->reportError(BPatchWarning, 0, msg);
 
-                    }else if (!bpfv.size()) {
-                      //bperr("%s[%d]:  SERIOUS: found 0 functions with name %s",
-                      //       __FILE__, __LINE__, name.c_str());
-                      break;
-                    }
-		    fp = bpfv[0];
-		    // set return type.
-		    fp->setReturnType(ptrType);
-		  }
-	      } else {
-		  //bperr("%s is an embedded function in %s\n",name.c_str(), scopeName.c_str());
-	      }
+                     }
+                     else if (!bpfv.size()) 
+                     {
+                        //bperr("%s[%d]:  SERIOUS: found 0 functions with name %s",
+                        //       __FILE__, __LINE__, name.c_str());
+                        break;
+                     }
 
-         symt_current_func = fp;
-	      // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
-	      cnt = strlen(stabstr);
+                     fp = bpfv[0];
+                     // set return type.
+                     fp->setReturnType(ptrType);
+                  }
+               } 
+               else 
+               {
+                  //bperr("%s is an embedded function in %s\n",name.c_str(), scopeName.c_str());
+               }
 
-	      break;
-	  }  
+               symt_current_func = fp;
+               // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
+               cnt = strlen(stabstr);
 
-	  case 'F':/* Global Function */
-	  {
-	      cnt++; /*skipping 'F' */
+               break;
+            }  
 
-	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
+         case 'F':/* Global Function */
+            {
+               cnt++; /*skipping 'F' */
 
-	      symt_current_func_name = name;
-	      symt_current_mangled_func_name = mangledname;
+               funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
-	      //
-	      // For SunPro compilers there may be a parameter list after 
-	      //   the return
-	      //
-	      while (stabstr[cnt] == ';') {
-		  cnt++;	// skip ';'
-		  (void) parseTypeUse(mod, stabstr, cnt, "");
-	      }
+               symt_current_func_name = name;
+               symt_current_mangled_func_name = mangledname;
 
-	      // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
-	      cnt = strlen(stabstr);
+               //
+               // For SunPro compilers there may be a parameter list after 
+               //   the return
+               //
 
-	      ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
-	      if (!ptrType) ptrType = mod->exec()->type_Untyped;
-		
-	      std::vector<Symbol *>fpv;
-	      if(!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)) {
-		std::string modName = mod->fileName();
-		
-		if (NULL == (fp = mangledNameMatchKLUDGE(symt_current_func_name.c_str(), 
-                                  symt_current_mangled_func_name.c_str(), mod))){
-                   //bpwarn("%s L%d - Cannot find global function with mangled name '%s' or pretty name '%s' with return type '%s' in module '%s', possibly extern\n",
-                   //       __FILE__, __LINE__,
-                   //       symt_current_mangled_func_name.c_str(), current_func_name.c_str(),
-                   //       ((ptrType->getName() == NULL) ? "" : ptrType->getName()), 
-                   //       modName);
-                   //char prefix[5];
-                   //strncpy(prefix, current_mangled_func_name, 4);
-                   //prefix[4] = '\0';
-                   // mod->dumpMangled(prefix);
-                   break;
-		}
-	      }
-	      fp = fpv[0];
+               while (stabstr[cnt] == ';') 
+               {
+                  cnt++;	// skip ';'
+                  (void) parseTypeUse(mod, stabstr, cnt, "");
+               }
 
-	      fp->setReturnType(ptrType);
-	      symt_current_func = fp;
-	      fpv.clear();
-	  }    
-	      break;
-	
-	  case 'U':/* Class Declaration - for Sun Compilers - jkh 6/6/03 */
-	  case 'E':/* Extern'd Global ??? - undocumented type for Sun Compilers - jkh 6/6/03 */
-	  case 'G':/* Global Varaible */
-	      cnt++; /* skip the 'G' */
-            
-	      /* Get variable type number */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
-	      if (stabstr[cnt]) {
-		  //bperr( "\tMore to parse - global var %s\n", &stabstr[cnt]);
-		  //bperr( "\tFull String: %s\n", stabstr);
-	      }
-	      // lookup symbol and set type
-	      Type *BPtype;
-      
-	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
-	      if (!BPtype) {
-		      //bperr("ERROR: unable to find type #%d for variable %s\n", 
-		       //symdescID, name.c_str());
-	      } else {
-		  /** XXXX - should add local too here **/
-                  //fprintf(stderr, "%s[%d]:  found global variable: %s\n", FILE__, __LINE__, name.c_str());
-		  mod->getModuleTypes()->addGlobalVariable(name, BPtype);
-	      }
-	      break;
+               // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
+               cnt = strlen(stabstr);
 
-	  case 'P':	// function parameter passed in a register (GNU/Solaris)
-	  case 'R':	// function parameter passed in a register (AIX style)
-	  case 'v':	// Fortran Local Variable
-	  case 'X':	// Fortran function return Variable (e.g. function name)
-          case 'p': {	// Function Parameter
-	      cnt++; /* skip the 'p' */
+               ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
+               if (!ptrType) ptrType = mod->exec()->type_Untyped;
 
-	      /* Get variable type number */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
+               std::vector<Symbol *>fpv;
+               if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)) 
+               {
+                  std::string modName = mod->fileName();
 
-	      if (stabstr[cnt] == ';') {
-		  // parameter type information, not used for now
-		  cnt = strlen(stabstr);
-	      } else if (stabstr[cnt]) {
-		  //bperr( "\tMore to parse func param %s\n", &stabstr[cnt]);
-		  //bperr( "\tFull String: %s\n", stabstr);
-	      }
+                  if (NULL == (fp = mangledNameMatchKLUDGE(symt_current_func_name.c_str(), 
+                              symt_current_mangled_func_name.c_str(), mod)))
+                  {
+                     //bpwarn("%s L%d - Cannot find global function with mangled name '%s' or pretty name '%s' with return type '%s' in module '%s', possibly extern\n",
+                     //       __FILE__, __LINE__,
+                     //       symt_current_mangled_func_name.c_str(), current_func_name.c_str(),
+                     //       ((ptrType->getName() == NULL) ? "" : ptrType->getName()), 
+                     //       modName);
+                     //char prefix[5];
+                     //strncpy(prefix, current_mangled_func_name, 4);
+                     //prefix[4] = '\0';
+                     // mod->dumpMangled(prefix);
+                     break;
+                  }
+               }
+               fp = fpv[0];
 
-	      ptrType = mod->getModuleTypes()->findOrCreateType(symdescID);
-	      if (!ptrType) ptrType = mod->exec()->type_Untyped;
+               fp->setReturnType(ptrType);
+               symt_current_func = fp;
+               fpv.clear();
+            }    
+            break;
 
-	      localVar *param;
-	      
-	      param = new localVar(name, ptrType, fName, linenum);
-	      loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
-	      loc->stClass = storageRegOffset;
-	      loc->refClass = storageNoRef;
-	      loc->frameOffset = framePtr;
-	      loc->reg = -1;
-	      param->addLocation(loc);
-      
-	      if (symt_current_func) {
-            if (!symt_current_func->addParam(param)) {
-               fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+         case 'U':/* Class Declaration - for Sun Compilers - jkh 6/6/03 */
+         case 'E':/* Extern'd Global ??? - undocumented type for Sun Compilers - jkh 6/6/03 */
+         case 'G':/* Global Varaible */
+            cnt++; /* skip the 'G' */
+
+            /* Get variable type number */
+            symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
+
+            //if (stabstr[cnt]) 
+            //{
+               //bperr( "\tMore to parse - global var %s\n", &stabstr[cnt]);
+               //bperr( "\tFull String: %s\n", stabstr);
+            //}
+            // lookup symbol and set type
+
+            Type *BPtype;
+
+            BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
+
+            if (BPtype) 
+            {
+               /** XXXX - should add local too here **/
+               //fprintf(stderr, "%s[%d]:  found global variable: %s\n", FILE__, __LINE__, 
+               //                         name.c_str());
+
+               mod->getModuleTypes()->addGlobalVariable(name, BPtype);
             }
-#if 0
-            if(!symt_current_func->params_)
-               symt_current_func->params_ = new localVarCollection();
-            symt_current_func->params_->addLocalVar(param);
-#endif
-	      } else {
-            //showInfoCallback(string("parameter without local function ") 
-            //	 + string(stabstr) + "\n");
-	      }
-	      break;
-	  }
+            //else
+            //{
+               //bperr("ERROR: unable to find type #%d for variable %s\n", 
+               //symdescID, name.c_str());
+            //} 
+            else 
+            break;
 
-	  case 'c': /* constant */
-	  {
-	      cnt++; /*move past the 'c' */
+         case 'P':	// function parameter passed in a register (GNU/Solaris)
+         case 'R':	// function parameter passed in a register (AIX style)
+         case 'v':	// Fortran Local Variable
+         case 'X':	// Fortran function return Variable (e.g. function name)
+         case 'p': 
+            {	
+               // Function Parameter
+               cnt++; /* skip the 'p' */
 
-	      ptrType = parseConstantUse(mod, stabstr, cnt);
-	      if (stabstr[cnt])
-		//bperr("Parsing Error More constant info to Parse!!: %s\n",
-		//    &(stabstr[cnt]));
+               /* Get variable type number */
+               symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
-	      if (!ptrType) ptrType = mod->exec()->type_Untyped;
+               if (stabstr[cnt] == ';') 
+               {
+                  // parameter type information, not used for now
+                  cnt = strlen(stabstr);
+               } 
+              // else if (stabstr[cnt]) 
+              // {
+                  //bperr( "\tMore to parse func param %s\n", &stabstr[cnt]);
+                  //bperr( "\tFull String: %s\n", stabstr);
+               //}
 
-	      localVar *var;
-	      var = new localVar(name, ptrType, fName, linenum);
-	      loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
-	      loc->stClass = storageRegOffset;
-	      loc->refClass = storageNoRef;
-	      loc->frameOffset = 0;
-	      loc->reg = -1;
-	      var->addLocation(loc);
-      
-	      if (symt_current_mangled_func_name.length()) {
-	        std::vector<Symbol *>fpv;
-		if(!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)){
-		  //showInfoCallback(string("missing local function ") + 
-         //		            symt_current_func_name + "\n");
-		} else { // found function, add parameter
-	          fp = fpv[0];	
-             symt_current_func = fp;
-            if (!symt_current_func->addParam(var)) {
-               fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+               ptrType = mod->getModuleTypes()->findOrCreateType(symdescID);
+               if (!ptrType) ptrType = mod->exec()->type_Untyped;
+
+               localVar *param;
+
+               param = new localVar(name, ptrType, fName, linenum);
+               loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+               loc->stClass = storageRegOffset;
+               loc->refClass = storageNoRef;
+               loc->frameOffset = framePtr;
+               loc->reg = -1;
+               param->addLocation(loc);
+
+               if (symt_current_func) 
+               {
+                  if (!symt_current_func->addParam(param)) 
+                  {
+                     fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+                  }
+               } 
+
+               // else 
+               // {
+                  //showInfoCallback(string("parameter without local function ") 
+                  //	 + string(stabstr) + "\n");
+               //}
+
+               break;
             }
-#if 0
-             if(!fp->params_)
-                fp->params_= new localVarCollection();
-             fp->params_->addLocalVar(var);
-#endif
-		}
-		fpv.clear();
-	      } else {
-		//showInfoCallback(std::string("parameter without local function ") 
-		//+ std::string(stabstr));
-	      }
-	  }
-	      break;
 
-	  case 'r':/* Register Variable */
-	      cnt++; /*move past the 'r'*/
-	      /* get type reference */
+         case 'c': /* constant */
+            {
+               cnt++; /*move past the 'c' */
 
-	      symdescID = parseSymDesc(stabstr, cnt);
+               ptrType = parseConstantUse(mod, stabstr, cnt);
+
+               //if (stabstr[cnt])
+                  //bperr("Parsing Error More constant info to Parse!!: %s\n",
+                  //    &(stabstr[cnt]));
+
+               if (!ptrType) ptrType = mod->exec()->type_Untyped;
+
+               localVar *var;
+               var = new localVar(name, ptrType, fName, linenum);
+               loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+               loc->stClass = storageRegOffset;
+               loc->refClass = storageNoRef;
+               loc->frameOffset = 0;
+               loc->reg = -1;
+               var->addLocation(loc);
+
+               if (symt_current_mangled_func_name.length()) 
+               {
+                  std::vector<Symbol *>fpv;
+                  if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true))
+                  {
+                     //showInfoCallback(string("missing local function ") + 
+                     //		            symt_current_func_name + "\n");
+                  } 
+                  else 
+                  { 
+                     // found function, add parameter
+                     fp = fpv[0];	
+                     symt_current_func = fp;
+                     if (!symt_current_func->addParam(var)) 
+                     {
+                        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+                     }
+                  }
+                  fpv.clear();
+               } 
+              // else 
+               //{
+                  //showInfoCallback(std::string("parameter without local function ") 
+                  //+ std::string(stabstr));
+               //}
+            }
+            break;
+
+         case 'r':/* Register Variable */
+            cnt++; /*move past the 'r'*/
+            /* get type reference */
+
+            symdescID = parseSymDesc(stabstr, cnt);
 
 #ifdef notdef
-	      /* often have rNN=*yy - what is this ? jkh 11/30/00 */
-	     //if (stabstr[cnt])
-		//bperr("Parsing Error More register info to Parse!!: %s\n",
-        //	    &(stabstr[cnt]));
+            /* often have rNN=*yy - what is this ? jkh 11/30/00 */
+            //if (stabstr[cnt])
+            //bperr("Parsing Error More register info to Parse!!: %s\n",
+            //	    &(stabstr[cnt]));
 #endif
-	      break;
+            break;
 
-	  case 'S':/* Global Static Variable */ {
-	      cnt++; /*move past the 'S'*/
+         case 'S':/* Global Static Variable */ 
+            {
+               cnt++; /*move past the 'S'*/
 
-	      /* get type reference */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
+               /* get type reference */
+               symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
-	      // lookup symbol and set type
-	      Type *BPtype;
+               // lookup symbol and set type
+               Type *BPtype;
 
-          std::string nameTrailer;
-	      if (name.find(".") < name.length()) {
-              std::string defaultNameSpace;
-              defaultNameSpace = name.substr(0,name.find("."));
-              nameTrailer = name.substr(name.find(".")+1,name.length()-name.find(".")-1);
-              mod->setDefaultNamespacePrefix(defaultNameSpace);
-	      } else
-              nameTrailer = name;
+               std::string nameTrailer;
+               if (name.find(".") < name.length()) 
+               {
+                  std::string defaultNameSpace;
+                  defaultNameSpace = name.substr(0,name.find("."));
+                  nameTrailer = name.substr(name.find(".")+1,name.length()-name.find(".")-1);
+                  mod->setDefaultNamespacePrefix(defaultNameSpace);
+               } 
+               else
+               {
+                  nameTrailer = name;
+               }
 
-	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
-	      if (!BPtype) {
-		      //bperr("ERROR: unable to find type #%d for variable %s\n", 
-		      // symdescID, nameTrailer.c_str());
-	      } else {
-              Symtab *img = mod->exec();
-              std::vector<Symbol *>syms;
-              if(img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) || img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) {
-                  syms.clear();	
-                  mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);
-              }
-	      }
+               BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
 
-	      break;
-	  }
+               if (BPtype) 
+               {
+                  Symtab *img = mod->exec();
+                  std::vector<Symbol *>syms;
+                  if (img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) 
+                        || img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) 
+                  {
+                     syms.clear();	
+                     mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);
+                  }
+               }
 
-	  case 't':	// Type Name 
-	      cnt++; /*move past the 't'*/
+               //else 
+               //{
+                  //bperr("ERROR: unable to find type #%d for variable %s\n", 
+                  // symdescID, nameTrailer.c_str());
+               //} 
 
-	      /* get type reference */
-	      symdescID = parseSymDesc(stabstr, cnt);
+               break;
+            }
 
-	      //Create Type.
-	      if (stabstr[cnt] == '=') {
-              /* More Stuff to parse, call parseTypeDef */
-              //char *oldStr = stabstr;
-              stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
-              cnt = 0;
-              // AIX seems to append an semi at the end of these
-              if (stabstr[0] && strcmp(stabstr, ";")) {
+         case 't':	// Type Name 
+            cnt++; /*move past the 't'*/
+
+            /* get type reference */
+            symdescID = parseSymDesc(stabstr, cnt);
+
+            //Create Type.
+            if (stabstr[cnt] == '=') 
+            {
+               /* More Stuff to parse, call parseTypeDef */
+               //char *oldStr = stabstr;
+               stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
+               cnt = 0;
+               // AIX seems to append an semi at the end of these
+               if (stabstr[0] && strcmp(stabstr, ";")) 
+               {
                   //bperr("\tMore to parse creating type %s\n", stabstr);
                   //bperr( "\tFull String: %s\n", oldStr);
-              }
-	      } else {
-              //Create Type defined as a pre-exisitng type.
-              ptrType = mod->getModuleTypes()->findOrCreateType(symdescID);
-              if (!ptrType)
+               }
+            } 
+            else 
+            {
+               //Create Type defined as a pre-exisitng type.
+
+               ptrType = mod->getModuleTypes()->findOrCreateType(symdescID);
+               if (!ptrType)
+               {
                   ptrType = mod->exec()->type_Untyped;
-              newType = new typeTypedef(symdescID, ptrType, name);
-              if (newType) {
+               }
+
+               newType = new typeTypedef(symdescID, ptrType, name);
+
+               if (newType) 
+               {
                   mod->getModuleTypes()->addOrUpdateType(newType);
-              }
-	      }
-	      break;
-    
-	  case ':':	// :T... - skip ":" and parse 'T'
-	      if ((stabstr[cnt+1] == 't') || (stabstr[cnt+1] == 'T')) {
-              // parse as a normal typedef
-              parseStabString(mod, linenum, &stabstr[cnt+1], framePtr);
-	      } else {
-	          //bperr("Unknown type seen %s\n", stabstr);
-	      }
-	      break;
+               }
+            }
+            break;
 
-      case 'T':/* Aggregate type tag -struct, union, enum */
-          cnt++; /*move past the 'T'*/
+         case ':':	// :T... - skip ":" and parse 'T'
+            if ((stabstr[cnt+1] == 't') || (stabstr[cnt+1] == 'T')) 
+            {
+               // parse as a normal typedef
+               parseStabString(mod, linenum, &stabstr[cnt+1], framePtr);
+            } 
 
-          if (stabstr[cnt] == 't') {
-              //C++ struct  tag "T" and type def "t"
-              ////bperr("SKipping C++ Identifier t of Tt\n");
-              cnt++;  //skip it
-          }
+            // else 
+            //{
+            //bperr("Unknown type seen %s\n", stabstr);
+            //}
 
-	      /* get type reference */
-	      symdescID = parseSymDesc(stabstr, cnt);
+            break;
 
-	      //Create Type.
-	      if (stabstr[cnt] == '=') {
-              /* More Stuff to parse, call parseTypeDef */
-              stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name.c_str(),symdescID);
-              cnt = 0;
-              if (stabstr[0]) {
+         case 'T':/* Aggregate type tag -struct, union, enum */
+            cnt++; /*move past the 'T'*/
+
+            if (stabstr[cnt] == 't') 
+            {
+               //C++ struct  tag "T" and type def "t"
+               ////bperr("SKipping C++ Identifier t of Tt\n");
+               cnt++;  //skip it
+            }
+
+            /* get type reference */
+            symdescID = parseSymDesc(stabstr, cnt);
+
+            //Create Type.
+            if (stabstr[cnt] == '=') 
+            {
+               /* More Stuff to parse, call parseTypeDef */
+               stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name.c_str(),symdescID);
+               cnt = 0;
+
+               //if (stabstr[0]) 
+               //{
                   //bperr( "\tMore to parse aggregate type %s\n", (&stabstr[cnt]));
                   //bperr("\tFull String: %s\n", stabstr);
-              }
-          } else {
-              //Create Type defined as a pre-exisitng type.
-              newType = Type::createPlaceholder(symdescID, name);
-              if (newType) { newType = mod->getModuleTypes()->addOrUpdateType(newType); }
-	      }
+               //}
 
-	      break;
+            } 
+            else 
+            {
+               //Create Type defined as a pre-exisitng type.
 
-	  case 'V':/* Local Static Variable (common block vars too) */
-	      cnt++; /*move past the 'V'*/
+               newType = Type::createPlaceholder(symdescID, name);
+               if (newType) 
+               { 
+                  newType = mod->getModuleTypes()->addOrUpdateType(newType); 
+               }
+            }
 
-	      // //bperr("parsing 'v' type of %s\n", stabstr);
-	      /* Get variable type number */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
-	      if (stabstr[cnt]) {
-              //bperr( "\tMore to parse local static %s\n", &stabstr[cnt]);
-              //bperr( "\tFull String: %s\n", stabstr);
-	      }
-	      // lookup symbol and set type
-	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
-	      if (!BPtype) {
-		      //bperr("ERROR: unable to find type #%d for variable %s\n", 
-		      // symdescID, name.c_str());
-              break;
-	      }
-	      if (commonBlock) {
-              /* This variable is in a common block */
-              /* add it only if not already there, common block
-                 are re-defined for each subroutine but subroutines
-                 define only the member they care about
-                 */
-              bool found = false;
-              const std::vector<Field *> *fields;
-              fields = commonBlock->getFields();
-              if (fields) {
-                  for (unsigned int i=0; i < fields->size(); i++) {
-                      if (name == (*fields)[i]->getName()) {
-                          found = true;
-                          break;
-                      }
-                      int start1, start2, end1, end2;
-                      start1 = (*fields)[i]->getOffset();
-                      end1 = start1 + (*fields)[i]->getSize();
-                      start2 = framePtr;
-                      end2 = framePtr + BPtype->getSize();
-                      if (((start2 >= start1) && (start2 < end1)) ||
-                              ((start1 >= start2) && (start1 < end2))) {
-                          /* common block aliasing detected */
-                          //bpwarn("WARN: EQUIVALENCE used in %s: %s and %s\n",
-                          //  current_func_name.c_str(), name.c_str(), (*fields)[i]->getName());
-                          found = true;
-                          break;
-                      }
+            break;
+
+         case 'V':/* Local Static Variable (common block vars too) */
+            cnt++; /*move past the 'V'*/
+
+            // //bperr("parsing 'v' type of %s\n", stabstr);
+            /* Get variable type number */
+
+            symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
+
+            //if (stabstr[cnt]) 
+            //{
+               //bperr( "\tMore to parse local static %s\n", &stabstr[cnt]);
+               //bperr( "\tFull String: %s\n", stabstr);
+            //}
+
+            // lookup symbol and set type
+            BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
+
+            if (!BPtype) 
+            {
+               //bperr("ERROR: unable to find type #%d for variable %s\n", 
+               // symdescID, name.c_str());
+               break;
+            }
+
+            if (commonBlock) 
+            {
+               /* This variable is in a common block */
+               /* add it only if not already there, common block
+                  are re-defined for each subroutine but subroutines
+                  define only the member they care about
+                */
+
+               bool found = false;
+               const std::vector<Field *> *fields;
+               fields = commonBlock->getFields();
+               if (fields) 
+               {
+                  for (unsigned int i=0; i < fields->size(); i++) 
+                  {
+                     if (name == (*fields)[i]->getName()) 
+                     {
+                        found = true;
+                        break;
+                     }
+
+                     int start1, start2, end1, end2;
+                     start1 = (*fields)[i]->getOffset();
+                     end1 = start1 + (*fields)[i]->getSize();
+                     start2 = framePtr;
+                     end2 = framePtr + BPtype->getSize();
+                     if ( ((start2 >= start1) && (start2 < end1)) 
+                         || ((start1 >= start2) && (start1 < end2)) ) 
+                     {
+                        /* common block aliasing detected */
+                        //bpwarn("WARN: EQUIVALENCE used in %s: %s and %s\n",
+                        //  current_func_name.c_str(), name.c_str(), (*fields)[i]->getName());
+
+                        found = true;
+                        break;
+                     }
                   }
-              }
-              if (!found) {
+               }
+
+               if (!found) 
+               {
                   commonBlock->addField(name, BPtype, framePtr);
-              }
-          } else {
-              // put it into the local variable scope
-              if (!symt_current_func) {
-                  //bperr("Unable to add %s to local variable list in %s\n",
-                  //	 name.c_str(),current_func_name.c_str());
-              } else {
+               }
+            } 
+            else 
+            {
+               // put it into the local variable scope
+               if (symt_current_func) 
+               {
                   locVar = new localVar(name, BPtype, fName, linenum);
                   loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
                   loc->stClass = storageAddr;
@@ -721,31 +827,36 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   loc->reg = -1;
                   locVar->addLocation(loc);
 
-                  if (!symt_current_func->addLocalVar(locVar)) {
+                  if (!symt_current_func->addLocalVar(locVar)) 
+                  {
                      fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
                   }
-#if 0
-                  if(!symt_current_func->vars_)
-                      symt_current_func->vars_ = new localVarCollection();
-                  symt_current_func->vars_->addLocalVar( locVar);
-#endif
-              }
-	      }
-	      break;
-      case 'l':
-          /* These are string literals, of the form 
-	      name:l(type);value
-	      where type must be predefined, and value of of type type.
-	      It should be safe to ignore these. */
-          cnt = strlen(stabstr);
-          break;
+               }
 
-	  case 'Y':	// C++ specific stuff
-          cnt++; // Skip past the 'Y'
-          if (stabstr[cnt] == 'I') {
-              /* Template instantiation */
-              cnt++; // skip past the I;
-              if (stabstr[cnt] == 'f') /* Template function */ {
+               //else 
+               //{
+                  //bperr("Unable to add %s to local variable list in %s\n",
+                  //	 name.c_str(),current_func_name.c_str());
+               //} 
+            }
+            break;
+         case 'l':
+            // These are string literals, of the form 
+            // name:l(type);value
+            // where type must be predefined, and value of of type type.
+            // It should be safe to ignore these. 
+
+            cnt = strlen(stabstr);
+            break;
+
+         case 'Y':	// C++ specific stuff
+            cnt++; // Skip past the 'Y'
+            if (stabstr[cnt] == 'I') 
+            {
+               /* Template instantiation */
+               cnt++; // skip past the I;
+               if (stabstr[cnt] == 'f') /* Template function */ 
+               {
                   while (stabstr[cnt] != '@') cnt++;
                   cnt++; // Skip past '@'
                   cnt++; // Skip past ';'
@@ -768,6 +879,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
           break;
       }   
     }
+
     return(&stabstr[cnt]);
 } /* end of parseStabString */
 

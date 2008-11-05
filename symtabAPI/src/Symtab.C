@@ -3064,14 +3064,21 @@ DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsi
 DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
     map<string, Symbol *>::iterator iter = undefDynSyms.begin();
-    while(iter!=undefDynSyms.end()){
+
+    while (iter!=undefDynSyms.end())
+    {
         notypeSyms.push_back(iter->second);
         iter++;
     }
     
    Object *linkedFile = getObject();
    assert(linkedFile);
-   bool ret = linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
+
+   //fprintf(stderr, "%s[%d]:  about to emit %s\n", FILE__, __LINE__, filename.c_str());
+
+   bool ret = linkedFile->emitDriver(this, filename, everyUniqueFunction, 
+         everyUniqueVariable, modSyms, notypeSyms, flag);
+
    return ret;
 }
 

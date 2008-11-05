@@ -3710,13 +3710,15 @@ bool Object::emitDriver(Symtab *obj, string fName,
       std::vector<Symbol *>&notypes, 
       unsigned flag)
 {
-   if (elfHdr.e_ident()[EI_CLASS] == 1) {
+   if (elfHdr.e_ident()[EI_CLASS] == 1) 
+   {
       emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
       em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_, fbt_); 
       return em->driver(obj, fName);
    }
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
-   else if (elfHdr.e_ident()[EI_CLASS] == 2) {
+   else if (elfHdr.e_ident()[EI_CLASS] == 2) 
+   {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
       em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_, fbt_); 
       return em->driver(obj, fName);

@@ -197,9 +197,23 @@ DLLEXPORT unsigned long relocationEntry::getRelType() const
 
 DLLEXPORT Symbol::~Symbol ()
 {
-    	mangledNames.clear();
-    	prettyNames.clear();
-    	typedNames.clear();
+   mangledNames.clear();
+   prettyNames.clear();
+   typedNames.clear();
+
+   std::string *sfa_p = NULL;
+
+   if (getAnnotation(sfa_p, SymbolFileNameAnno))
+   {
+      if (!sfa_p) 
+      {
+         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
+      }
+      else
+      {
+         delete (sfa_p);
+      }
+   }
 }
 
 DLLEXPORT Symbol::Symbol(const Symbol& s) :
@@ -250,8 +264,9 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
       }
       else
       {
-         //  alloc a new string here??
-         if (!addAnnotation(sfa_p, SymbolFileNameAnno)) 
+         std::string *sfa_p2 = new std::string(*sfa_p);
+
+         if (!addAnnotation(sfa_p2, SymbolFileNameAnno)) 
          {
             fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
          }
@@ -267,7 +282,19 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
       }
       else
       {
-         //  alloc a new vector here??
+         //  note:  in an older version we just copied one element from this
+         // vector when the symbol got copied.  I think this is incorrect.
+         //fprintf(stderr, "%s[%d]:  alloc'ing new vector for symbol versions\n", FILE__, __LINE__);
+
+         //  if we alloc here, probably want to check in dtor to make
+         //  sure that we are deleting this if it exists.
+         //std::vector<std::string> *svn_p2 = new std::vector<std::string>();
+
+         //for (unsigned int i = 0; i < svn_p->size(); ++i)
+         //{
+         //   svn_p2->push_back(std::string((*svn_p)[i]));
+         //}
+
          if (!addAnnotation(svn_p, SymbolVersionNamesAnno))
          {
             fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
@@ -326,6 +353,7 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    framePtrRegNum_ = s.framePtrRegNum_;
 
    std::string *sfa_p = NULL;
+
    if (s.getAnnotation(sfa_p, SymbolFileNameAnno))
    {
       if (!sfa_p) 
@@ -334,8 +362,9 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
       }
       else
       {
-         //  alloc a new string here??
-         if (!addAnnotation(sfa_p, SymbolFileNameAnno))
+         std::string *sfa_p2 = new std::string(*sfa_p);
+
+         if (!addAnnotation(sfa_p2, SymbolFileNameAnno))
          {
             fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
          }
@@ -351,12 +380,18 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
       }
       else
       {
-         //  alloc a new vector here??
-         std::vector<std::string> *new_svn_p = new std::vector<std::string>();
-         for (unsigned int i = 0; i < svn_p->size(); ++i)
-         {
-            new_svn_p->push_back((*svn_p)[i]);
-         }
+         //  note:  in an older version we just copied one element from this
+         // vector when the symbol got copied.  I think this is incorrect.
+         //fprintf(stderr, "%s[%d]:  alloc'ing new vector for symbol versions\n", FILE__, __LINE__);
+
+         //  if we alloc here, probably want to check in dtor to make
+         //  sure that we are deleting this if it exists.
+         //std::vector<std::string> *svn_p2 = new std::vector<std::string>();
+
+         //for (unsigned int i = 0; i < svn_p->size(); ++i)
+         //{
+         //   svn_p2->push_back(std::string((*svn_p)[i]));
+         //}
 
          if (!addAnnotation(svn_p, SymbolVersionNamesAnno))
          {
@@ -487,9 +522,11 @@ DLLEXPORT Region *Symbol::getSec() const
 bool Symbol::addLocalVar(localVar *locVar)
 {
    localVarCollection *lvs = NULL;
+
    if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
    {
       lvs = new localVarCollection();
+
       if (!addAnnotation(lvs, FunctionLocalVariablesAnno))
       {
          fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
@@ -505,9 +542,11 @@ bool Symbol::addLocalVar(localVar *locVar)
 bool Symbol::addParam(localVar *param)
 {
    localVarCollection *ps = NULL;
+
    if (!getAnnotation(ps, FunctionParametersAnno))
    {
       ps = new localVarCollection();
+
       if (!addAnnotation(ps, FunctionParametersAnno))
       {
          fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
@@ -517,6 +556,7 @@ bool Symbol::addParam(localVar *param)
    }
 
    ps->addLocalVar(param);
+
    return true;
 }
         
@@ -802,30 +842,25 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
          fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
       }
       else
-         fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", FILE__, __LINE__, getName().c_str());
+      {
+         fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", 
+               FILE__, __LINE__, getName().c_str());
+      }
       return false;
    }
    else
    {
-      if (!addAnnotation(&fileName, SymbolFileNameAnno)) 
+      //  not sure if we need to copy here or not, so let's do it...
+      std::string *fn = new std::string(fileName);
+      if (!addAnnotation(fn, SymbolFileNameAnno)) 
       {
          fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
          return false;
       }
       return true;
    }
+
    return false;
-#if 0
-   Annotatable<std::string, symbol_file_name_a> &fn = *this;
-   std::string s = fileName;
-   if (fn.size()) {
-      fn[0] = fileName;
-      fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", FILE__, __LINE__, getName().c_str());
-   }
-   else
-       fn.addAnnotation(fileName);
-   return true;
-#endif
 }
 
 DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
@@ -848,21 +883,14 @@ DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
          fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
       }
    }
-#if 0
-   Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
-   if (sv.size()) {
-      sv[0] = vers;
-      fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
-   }
-   else
-       sv.addAnnotation(vers);
-#endif
+
    return true;
 }
 
 DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 {
    std::string *fn_p = NULL;
+
    if (getAnnotation(fn_p, SymbolFileNameAnno)) 
    {
       if (!fn_p) 
@@ -871,6 +899,7 @@ DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
       }
       else
          fileName = *fn_p;
+
       return true;
    }
 
@@ -889,6 +918,7 @@ DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 {
    std::vector<std::string> *vn_p = NULL;
+
    if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
    {
       if (!vn_p) 
@@ -901,7 +931,9 @@ DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
          return true;
       } 
    }
+
    return false;
+
 #if 0
    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
    if (!sv.size()) {
