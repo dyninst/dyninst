@@ -105,12 +105,14 @@ pdstring expand_tilde_pathname(const pdstring &dir) {
 }
 #endif
 
-static pdstring concat_pathname_components_simple(const pdstring &comp1, const pdstring &comp2) {
+static pdstring concat_pathname_components_simple(const pdstring &comp1, const pdstring &comp2) 
+{
    pdstring result = (comp1.length() ? comp1 : comp2);
    return result;
 }
 
-pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2) {
+pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2) 
+{
    if (comp1.length() == 0 || comp2.length() == 0)
       return concat_pathname_components_simple(comp1, comp2);
 
@@ -143,7 +145,7 @@ bool extractNextPathElem(const char * &ptr, pdstring &result)
    // variable.  Extracts the next element (writing to result, updating
    // ptr, returning true) if available else returns false;
 
-   if( ptr == NULL )
+   if ( ptr == NULL )
       return false;
 
    while (isspace(*ptr))
@@ -172,9 +174,11 @@ bool extractNextPathElem(const char * &ptr, pdstring &result)
    return true;
 }
 
-bool exists_executable(const pdstring &fullpathname) {
+bool exists_executable(const pdstring &fullpathname) 
+{
    struct stat stat_buffer;
    int result = stat(fullpathname.c_str(), &stat_buffer);
+
    if (result == -1)
       return false;
 
@@ -190,7 +194,8 @@ bool exists_executable(const pdstring &fullpathname) {
 bool executableFromArgv0AndPathAndCwd(pdstring &result,
 				      const pdstring &i_argv0,
 				      const pdstring &path,
-				      const pdstring &cwd) {
+				      const pdstring &cwd) 
+{
    // return true iff successful.
    // if successful, writes to result.
    // "path" is the value of the PATH env var
@@ -258,13 +263,76 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 				      const std::string &path,
 				      const std::string &cwd) 
 {
-   pdstring pdresult(result.c_str());
-   pdstring pdargv0(i_argv0.c_str());
-   pdstring pdpath(path.c_str());
-   pdstring pdcwd(cwd.c_str());
-   bool ret = executableFromArgv0AndPathAndCwd(pdresult, pdargv0, pdpath, pdcwd);
-   result = std::string(pdresult.c_str());
-   return ret;
+   // return true iff successful.
+   // if successful, writes to result.
+   // "path" is the value of the PATH env var
+   // "cwd" is the current working directory, presumably from the PWD env var
+
+   // 0) if argv0 empty then forget it
+   if (i_argv0.length() == 0)
+      return false;
+
+   const std::string &argv0 = expand_tilde_pathname(i_argv0);
+
+   // 1) If argv0 starts with a slash then we sink or swim with argv0
+
+   if ((argv0.c_str())[0] == '/') 
+   {
+      if (exists_executable(argv0)) {
+         result = argv0;
+         return true;
+      }
+   }
+
+   // 2) search the path, trying (dir + argv0) for each path component.
+   //    But only search the path if argv0 doesn't contain any slashes.
+   //    Why?  Because if it does contain a slash than at least one
+   //    directory component prefixes the executable name, and the path
+   //    is only supposed to be searched when an executable name is specifed
+   //    alone.
+
+   bool contains_slash = false;
+   const char *ptr = argv0.c_str();
+
+   while (*ptr != '\0')
+   {
+      if (*ptr++ == '/') 
+      {
+         contains_slash = true;
+         break;
+      }
+   }
+
+   if (!contains_slash) 
+   {
+      // search the path to see what directory argv0 came from.  If found, then
+      // use dir + argv0 else use argv0.
+      ptr = path.c_str();
+      std::string pathelem;
+
+      while (extractNextPathElem(ptr, pathelem)) 
+      {
+         std::string trystr = concat_pathname_components(pathelem, argv0);
+
+         if (exists_executable(trystr)) 
+         {
+            result = trystr;
+            return true;
+         }
+      }
+   }
+
+   // well, if we've gotten this far without success: couldn't find argv0 in the
+   // path and argv0 wasn't a full path.  Last resort: try current directory + argv0
+   std::string trystr = concat_pathname_components(cwd, argv0);
+
+   if (exists_executable(trystr)) 
+   {
+      result = trystr;
+      return true;
+   }
+
+
 }
 #endif
 
@@ -278,33 +346,33 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 #if defined (cap_use_pdstring)
 pdstring extract_pathname_tail(const pdstring &path)
 {
-  const char *path_str = path.c_str();
-  const char *path_sep = P_strrchr(path_str, PATH_SEP);
+   const char *path_str = path.c_str();
+   const char *path_sep = P_strrchr(path_str, PATH_SEP);
 
 #if defined(SECOND_PATH_SEP)
-  const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
-  if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
-    path_sep = sec_path_sep;
+   const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
+   if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
+      path_sep = sec_path_sep;
 #endif
 
-  pdstring ret = (path_sep) ? (path_sep + 1) : (path_str);
-  return ret;
+   pdstring ret = (path_sep) ? (path_sep + 1) : (path_str);
+   return ret;
 }
 
 #else
 std::string extract_pathname_tail(const std::string &path)
 {
-  const char *path_str = path.c_str();
-  const char *path_sep = P_strrchr(path_str, PATH_SEP);
+   const char *path_str = path.c_str();
+   const char *path_sep = P_strrchr(path_str, PATH_SEP);
 
 #if defined(SECOND_PATH_SEP)
-  const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
-  if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
-    path_sep = sec_path_sep;
+   const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
+   if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
+      path_sep = sec_path_sep;
 #endif
 
-  std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
-  return ret;
+   std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
+   return ret;
 }
 #endif
 
