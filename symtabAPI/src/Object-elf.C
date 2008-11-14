@@ -2135,7 +2135,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 						}									
 					}
 				}
-						 /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
+         // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
 				
 			dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
 			} break;
@@ -2276,7 +2276,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
          // Set module names for all symbols that belong to the range
          //int nsyms_altered  =
 
-            fixSymbolsInModuleByRange(moduleName, modLowPC, modHighPC,
+         fixSymbolsInModuleByRange(moduleName, modLowPC, modHighPC,
                &symbols_);
 
          //fprintf(stderr, "%s[%d]:  fixSymbolsInModuleByRange(%s,%p, %p), match %d syms\n",
@@ -2293,8 +2293,8 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
          {
             /* Walk the tree. */
 
-            fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
-                  FILE__, __LINE__, moduleName.c_str());
+            //fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
+            //      FILE__, __LINE__, moduleName.c_str());
 
             fixSymbolsInModule( dbg, moduleName, moduleDIE, symbols_, symbolNamesByAddr );
 
@@ -2308,10 +2308,12 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
             dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
 
          } /* end if the srcfile information was available */
-         else 
-         {
+
+         //else 
+         //{
             //bperr( "Unable to determine modules (%s): no code range or source file information available.\n", moduleName.c_str() );
-         } /* end if no source file information available */
+         //} /* end if no source file information available */
+
       } /* end if code range information unavailable */
 
    } /* end scan over CU headers. */
@@ -2338,7 +2340,9 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &/*elf*/)
  *  read the .stab section to find the module of global symbols
  *
  ********************************************************/
-bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_Shdr* stabstrscnp) {
+
+bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_Shdr* stabstrscnp) 
+{
    // Read the stab section to find the module of global symbols.
    // The symbols appear in the stab section by module. A module begins
    // with a symbol of type N_UNDF and ends with a symbol of type N_ENDM.
@@ -2352,7 +2356,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 
    if (!stabdata.isValid() || !stabstrdata.isValid()) return false;
 
-   switch (addressWidth_nbytes) {
+   switch (addressWidth_nbytes) 
+   {
       case 4:
          stabptr = new stab_entry_32(stabdata.d_buf(),
                stabstrdata.get_string(),
@@ -2365,6 +2370,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                stabscnp->sh_size() / sizeof(stab64));
          break;
    };
+
    const char *next_stabstr = stabptr->getStringBase();
    string module = "DEFAULT_MODULE";
 
@@ -2373,8 +2379,11 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
    // string table for the current module.
 
    bool is_fortran = false;  // is the current module fortran code?
-   for (unsigned i = 0; i < stabptr->count(); i++) {
-      switch(stabptr->type(i)) {
+
+   for (unsigned i = 0; i < stabptr->count(); i++) 
+   {
+      switch(stabptr->type(i)) 
+      {
          case N_UNDF: /* start of object file */
             stabptr->setStringBase(next_stabstr);
             next_stabstr = stabptr->getStringBase() + stabptr->val(i);
@@ -2402,23 +2411,32 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                const char *p = stabptr->name(i);
                // bperr("got %d type, str = %s\n", stabptr->type(i), p);
                // if (stabptr->type(i) == N_FUN && strlen(p) == 0) {
-               if (strlen(p) == 0) {
+
+               if (strlen(p) == 0) 
+               {
                   // GNU CC 2.8 and higher associate a null-named function
                   // entry with the end of a function.  Just skip it.
                   break;
                }
+
                const char *q = strchr(p,':');
                unsigned len;
-               if (q) {
+
+               if (q) 
+               {
                   len = q - p;
-               } else {
+               } 
+               else 
+               {
                   len = strlen(p);
                }
-               if(len == 0)
+
+               if (len == 0)
                {
                   // symbol name is empty.Skip it.- 02/12/07 -Giri
                   break;
                }		
+
                char *sname = new char[len+1];
                strncpy(sname, p, len);
                sname[len] = 0;
@@ -2428,325 +2446,308 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                // q points to the ':' in the name string, so 
                // q[1] is the symbol descriptor. We must check the symbol descriptor
                // here to skip things we are not interested in, such as prototypes.
+
                bool res = (symbols_.find(SymName)!=symbols_.end());
-               if (!res && is_fortran) {
+
+               if (!res && is_fortran) 
+               {
                   // Fortran symbols usually appear with an '_' appended in .symtab,
                   // but not on .stab
                   SymName += "_";
                   res = (symbols_.find(SymName)!=symbols_.end());
                }
 
-               if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
+               if (res && (q == 0 || q[1] != SD_PROTOTYPE)) 
+               {
                   unsigned int count = 0;
                   std::vector< Symbol *> & syms = symbols_[SymName];
 
                   /* If there's only one, apply regardless. */
-                  if( syms.size() == 1 ) { symbols_[SymName][0]->setModuleName(module); }
-                  else {
-                     for( unsigned int i = 0; i < syms.size(); i++ ) {
-                        if( syms[i]->getLinkage() == Symbol::SL_GLOBAL ) {
+                  if ( syms.size() == 1 ) 
+                  { 
+                     symbols_[SymName][0]->setModuleName(module); 
+                  }
+                  else 
+                  {
+                     for ( unsigned int i = 0; i < syms.size(); i++ ) 
+                     {
+                        if ( syms[i]->getLinkage() == Symbol::SL_GLOBAL ) 
+                        {
                            symbols_[SymName][i]->setModuleName(module);
                            count++;
                         }
                      }
-                     if( count < syms.size() ) {
-                        // /* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
-                     }
+
+                     //if ( count < syms.size() ) 
+                     //{
+                     // /* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
+                     //}
                   }
                }
+               break;
             }
+            case N_FUN: 
+            /* function */ 
+            {
+               const char *p = stabptr->name(i);
+
+               if (strlen(p) == 0) 
+               {
+                  // Rumours are that GNU CC 2.8 and higher associate a
+                  // null-named function entry with the end of a
+                  // function. Just skip it.
+                  break;
+               }
+
+               const char *q = strchr(p,':');
+
+               if (q == 0) 
+               {
+                  // bperr( "Unrecognized stab format: %s\n", p);
+                  // Happens with the Solaris native compiler (.xstabs entries?)
+                  break;
+               }
+
+               if (q[1] == SD_PROTOTYPE) 
+               {
+                  // We see a prototype, skip it
+                  break;
+               }
+
+               unsigned long entryAddr = stabptr->val(i);
+
+               if (entryAddr == 0) 
+               {
+                  // The function stab doesn't contain a function address
+                  // (happens with the Solaris native compiler). We have to
+                  // look up the symbol by its name. That's unfortunate, since
+                  // names may not be unique and we may end up assigning a wrong
+                  // module name to the symbol.
+                  unsigned len = q - p;
+                  if (len == 0)
+                  {
+                     // symbol name is empty.Skip it.- 02/12/07 -Giri
+                     break;
+                  }		
+
+                  char *sname = new char[len+1];
+                  strncpy(sname, p, len);
+                  sname[len] = 0;
+                  string nameFromStab = string(sname);
+                  delete[] sname;
+
+                  if (symbols_.find(nameFromStab)!=symbols_.end()) 
+                  {
+                     std::vector< Symbol* > & syms = symbols_[nameFromStab];
+                     if ( syms.size() == 1 ) 
+                     {
+                        symbols_[nameFromStab][0]->setModuleName(module);
+                     }
+
+                     /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique STABS name '%s' in module.\n", __FILE__, __LINE__, nameFromStab.c_str() ); }
+                     /* Otherwise, don't assign a module if we don't know
+                        to which symbol this refers. */
+                  }
+               }
+               else 
+               {
+                  if (symbolNamesByAddr.find(entryAddr)==symbolNamesByAddr.end()) 
+                  {
+                     //bperr( "fix_global_symbol_modules_static_stab "
+                     //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
+                     break;
+                  }
+
+                  string symName = symbolNamesByAddr[entryAddr];
+                  assert(symbols_.find(symName)!=symbols_.end());
+                  std::vector< Symbol *> & syms = symbols_[symName];
+
+                  if ( syms.size() == 1 ) 
+                  {
+                     symbols_[symName][0]->setModuleName(module);
+                  }
+
+                  /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique id %s in module.\n", __FILE__, __LINE__, symName.c_str() ); }
+                  /* Otherwise, don't assign a module if we don't know
+                     to which symbol this refers. */
+               }
+               break;
+            }
+
+            default:
+            /* ignore other entries */
             break;
-
-               case N_FUN: /* function */ {
-                                             const char *p = stabptr->name(i);
-                                             if (strlen(p) == 0) {
-                                                // Rumours are that GNU CC 2.8 and higher associate a
-                                                // null-named function entry with the end of a
-                                                // function. Just skip it.
-                                                break;
-                                             }
-                                             const char *q = strchr(p,':');
-                                             if (q == 0) {
-                                                // bperr( "Unrecognized stab format: %s\n", p);
-                                                // Happens with the Solaris native compiler (.xstabs entries?)
-                                                break;
-                                             }
-
-                                             if (q[1] == SD_PROTOTYPE) {
-                                                // We see a prototype, skip it
-                                                break;
-                                             }
-
-                                             unsigned long entryAddr = stabptr->val(i);
-                                             if (entryAddr == 0) {
-                                                // The function stab doesn't contain a function address
-                                                // (happens with the Solaris native compiler). We have to
-                                                // look up the symbol by its name. That's unfortunate, since
-                                                // names may not be unique and we may end up assigning a wrong
-                                                // module name to the symbol.
-                                                unsigned len = q - p;
-                                                if(len == 0)
-                                                {
-                                                   // symbol name is empty.Skip it.- 02/12/07 -Giri
-                                                   break;
-                                                }		
-                                                char *sname = new char[len+1];
-                                                strncpy(sname, p, len);
-                                                sname[len] = 0;
-                                                string nameFromStab = string(sname);
-                                                delete[] sname;
-
-                                                if (symbols_.find(nameFromStab)!=symbols_.end()) {
-                                                   std::vector< Symbol* > & syms = symbols_[nameFromStab];
-                                                   if( syms.size() == 1 ) {
-                                                      symbols_[nameFromStab][0]->setModuleName(module);
-                                                   }
-                                                   /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique STABS name '%s' in module.\n", __FILE__, __LINE__, nameFromStab.c_str() ); }
-                                                   /* Otherwise, don't assign a module if we don't know
-                                                      to which symbol this refers. */
-                                                }
-                                             }
-                                             else {
-                                                if (symbolNamesByAddr.find(entryAddr)==symbolNamesByAddr.end()) {
-                                                   //bperr( "fix_global_symbol_modules_static_stab "
-                                                   //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
-                                                   break;
-                                                }
-                                                string symName = symbolNamesByAddr[entryAddr];
-                                                assert(symbols_.find(symName)!=symbols_.end());
-                                                std::vector< Symbol *> & syms = symbols_[symName];
-                                                if( syms.size() == 1 ) {
-                                                   symbols_[symName][0]->setModuleName(module);
-                                                }
-                                                /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique id %s in module.\n", __FILE__, __LINE__, symName.c_str() ); }
-                                                /* Otherwise, don't assign a module if we don't know
-                                                   to which symbol this refers. */
-                                             }
-                                             break;
-                                          }
-
-               default:
-                                          /* ignore other entries */
-                                          break;
             }
       }
+
       delete stabptr;
 
       return true;
    }
 
 
-   /********************************************************
-    *
-    * Run over allsymbols, and stuff symbols contained according 
-    *  to following rules:
-    * LOCAL symbols - into (data member) symbols_
-    * GLOBAL symbols - into (paramater) global_symbols
-    * WEAK symbols - looks like this case isn't handled correctly
-    *  for static libraries....
-    *
-    ********************************************************/
-   void Object::insert_symbols_static(std::vector<Symbol *> &allsymbols)
-   {
-      unsigned nsymbols = allsymbols.size();
+/********************************************************
+ *
+ * Run over allsymbols, and stuff symbols contained according 
+ *  to following rules:
+ * LOCAL symbols - into (data member) symbols_
+ * GLOBAL symbols - into (paramater) global_symbols
+ * WEAK symbols - looks like this case isn't handled correctly
+ *  for static libraries....
+ *
+ ********************************************************/
+void Object::insert_symbols_static(std::vector<Symbol *> &allsymbols)
+{
+   unsigned nsymbols = allsymbols.size();
 #ifdef TIMED_PARSE
-      cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
-         << " symbols into symbols_ dictionary" << endl; 
+   cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
+      << " symbols into symbols_ dictionary" << endl; 
 #endif
-      for (unsigned u = 0; u < nsymbols; u++) {
-         insertUniqdSymbol(allsymbols[u], &symbols_, &symbolNamesByAddr);
-      }    
-   }
+   for (unsigned u = 0; u < nsymbols; u++) 
+   {
+      insertUniqdSymbol(allsymbols[u], &symbols_, &symbolNamesByAddr);
+   }    
+}
 
-   /********************************************************
-    *
-    * Run over allsymbols, and stuff symbols it contains into (data
-    *  member) symbols_. 
-    *
-    * Assumes that all kludges, patches, fixes, hacks, to objects
-    *  in allsymbols have already been made, and that it safe to
-    *  dump them into symbols_ (data member, instead of stack var....)....
-    *
-    ********************************************************/
-   void Object::insert_symbols_shared(std::vector<Symbol *> &allsymbols) {
-      unsigned i, nsymbols;
+/********************************************************
+ *
+ * Run over allsymbols, and stuff symbols it contains into (data
+ *  member) symbols_. 
+ *
+ * Assumes that all kludges, patches, fixes, hacks, to objects
+ *  in allsymbols have already been made, and that it safe to
+ *  dump them into symbols_ (data member, instead of stack var....)....
+ *
+ ********************************************************/
+void Object::insert_symbols_shared(std::vector<Symbol *> &allsymbols) {
+   unsigned i, nsymbols;
 
-      nsymbols = allsymbols.size();
+   nsymbols = allsymbols.size();
 #ifdef TIMED_PARSE
-      cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
-         << " symbols into symbols_ dictionary" << endl; 
+   cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
+      << " symbols into symbols_ dictionary" << endl; 
 #endif
-      for (i=0;i<nsymbols;i++) {
-         insertUniqdSymbol(allsymbols[i], &symbols_, &symbolNamesByAddr);
-      }
+   for (i=0;i<nsymbols;i++) {
+      insertUniqdSymbol(allsymbols[i], &symbols_, &symbolNamesByAddr);
    }
+}
 
-   // find_code_and_data(): populates the following members:
-   //   code_ptr_, code_off_, code_len_
-   //   data_ptr_, data_off_, data_len_
-   void Object::find_code_and_data(Elf_X &elf,
-         Offset txtaddr, 
-         Offset dataddr) 
-   {
-      for (int i = 0; i < elf.e_phnum(); ++i) {
-         Elf_X_Phdr phdr = elf.get_phdr(i);
+// find_code_and_data(): populates the following members:
+//   code_ptr_, code_off_, code_len_
+//   data_ptr_, data_off_, data_len_
+void Object::find_code_and_data(Elf_X &elf,
+      Offset txtaddr, 
+      Offset dataddr) 
+{
+   for (int i = 0; i < elf.e_phnum(); ++i) {
+      Elf_X_Phdr phdr = elf.get_phdr(i);
 
-         char *file_ptr = (char *)mf->base_addr();
-
-         if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
-            regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
-
-         // The code pointer, offset, & length should be set even if
-         // txtaddr=0, so in this case we set these values by
-         // identifying the segment that contains the entryAddress
-         if (((phdr.p_vaddr() <= txtaddr) && 
-                  (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
-               (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
-                             (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
-
-            if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
-               code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
-               code_off_ = (Offset)phdr.p_vaddr();
-               code_len_ = (unsigned)phdr.p_filesz();
-            }
-
-         } else if (((phdr.p_vaddr() <= dataddr) && 
-                  (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
-               (!dataddr && (phdr.p_type() == PT_LOAD))) {
-            if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
-               data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
-               data_off_ = (Offset)phdr.p_vaddr();
-               data_len_ = (unsigned)phdr.p_filesz();
-            }
-         }
-      }
-      //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
-   }
-
-   const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
-   {
-      const char *ret = NULL;
-      unsigned code_size_ = code_len_;
-      unsigned data_size_ = data_len_;
-
-#if defined(os_irix)
-      vaddr -= base_addr;
-#endif
-
-      if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
-         ret = ((char *)code_ptr_) + (vaddr - code_off_);
-      } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
-         ret = ((char *)data_ptr_) + (vaddr - data_off_);
-      } 
-
-      return ret;
-   }
-
-   stab_entry *Object::get_stab_info() const
-   {
       char *file_ptr = (char *)mf->base_addr();
 
-      // check that file has .stab info
-      if (stab_off_ && stab_size_ && stabstr_off_) {
-         switch (addressWidth_nbytes) {
-            case 4: // 32-bit object
-               return new stab_entry_32(file_ptr + stab_off_,
-                     file_ptr + stabstr_off_,
-                     stab_size_ / sizeof(stab32));
-               break;
-            case 8: // 64-bit object
-               return new stab_entry_64(file_ptr + stab_off_,
-                     file_ptr + stabstr_off_,
-                     stab_size_ / sizeof(stab64));
-               break;
-         };
-      }
+      if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
+         regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
 
-      //fprintf(stderr, "%s[%d]:  WARNING:  FIXME, stab_off = %d, stab_size = %d, stabstr_off_ = %d\n", FILE__, __LINE__, stab_off_, stab_size_, stabstr_off_);
-      return new stab_entry_64();
+      // The code pointer, offset, & length should be set even if
+      // txtaddr=0, so in this case we set these values by
+      // identifying the segment that contains the entryAddress
+      if (((phdr.p_vaddr() <= txtaddr) && 
+               (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
+            (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
+                          (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
+
+         if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
+            code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
+            code_off_ = (Offset)phdr.p_vaddr();
+            code_len_ = (unsigned)phdr.p_filesz();
+         }
+
+      } else if (((phdr.p_vaddr() <= dataddr) && 
+               (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
+            (!dataddr && (phdr.p_type() == PT_LOAD))) {
+         if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
+            data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
+            data_off_ = (Offset)phdr.p_vaddr();
+            data_len_ = (unsigned)phdr.p_filesz();
+         }
+      }
+   }
+   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
+}
+
+const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
+{
+   const char *ret = NULL;
+   unsigned code_size_ = code_len_;
+   unsigned data_size_ = data_len_;
+
+#if defined(os_irix)
+   vaddr -= base_addr;
+#endif
+
+   if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
+      ret = ((char *)code_ptr_) + (vaddr - code_off_);
+   } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
+      ret = ((char *)data_ptr_) + (vaddr - data_off_);
+   } 
+
+   return ret;
+}
+
+stab_entry *Object::get_stab_info() const
+{
+   char *file_ptr = (char *)mf->base_addr();
+
+   // check that file has .stab info
+   if (stab_off_ && stab_size_ && stabstr_off_) {
+      switch (addressWidth_nbytes) {
+         case 4: // 32-bit object
+            return new stab_entry_32(file_ptr + stab_off_,
+                  file_ptr + stabstr_off_,
+                  stab_size_ / sizeof(stab32));
+            break;
+         case 8: // 64-bit object
+            return new stab_entry_64(file_ptr + stab_off_,
+                  file_ptr + stabstr_off_,
+                  stab_size_ / sizeof(stab64));
+            break;
+      };
    }
 
-   Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
-         bool alloc_syms) :
-      AObject(mf_, mfd, err_func), 
-      EEL(false)
-   {
+   //fprintf(stderr, "%s[%d]:  WARNING:  FIXME, stab_off = %d, stab_size = %d, stabstr_off_ = %d\n", FILE__, __LINE__, stab_off_, stab_size_, stabstr_off_);
+   return new stab_entry_64();
+}
+
+Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
+      bool alloc_syms) :
+   AObject(mf_, mfd, err_func), 
+   EEL(false)
+{
 #if defined(TIMED_PARSE)
-      struct timeval starttime;
-      gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 #if defined(os_solaris)
-      loadNativeDemangler();
+   loadNativeDemangler();
 #endif    
-      is_aout_ = false;
-      did_open = false;
-      interpreter_name_ = NULL;
-      isStripped = false;
-      if(mf->getFD() != -1)
-         elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
-      else
-         elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
-
-      mfForDebugInfo = findMappedFileForDebugInfo();
-      // ELF header: sanity check
-      //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
-      if (!elfHdr.isValid())  {
-         log_elferror(err_func_, "ELF header");
-         return;
-      }
-      else if (!pdelf_check_ehdr(elfHdr)) {
-         log_elferror(err_func_, "ELF header failed integrity check");
-      }
-      if( elfHdr.e_type() == 3 )
-         load_shared_object(alloc_syms);
-      else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
-         is_aout_ = true;
-         load_object(alloc_syms);
-      }    
-      else {
-         log_perror(err_func_,"Invalid filetype in Elf header");
-         return;
-      }
-#if defined(TIMED_PARSE)
-      struct timeval endtime;
-      gettimeofday(&endtime, NULL);
-      unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-      unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-      unsigned long difftime = lendtime - lstarttime;
-      double dursecs = difftime/(1000 );
-      cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
-#endif
-   }
-
-   //Object constructor for archive members
-   Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset,	
-         void (*err_func)(const char *), void *base, bool alloc_syms) :
-      AObject(mf_, mfd, err_func), 
-      EEL(false) {
-#if defined(TIMED_PARSE)
-         struct timeval starttime;
-         gettimeofday(&starttime, NULL);
-#endif
-#if defined(os_solaris)
-         loadNativeDemangler();
-#endif    
-         is_aout_ = false;
-         did_open = false;
+   is_aout_ = false;
+   did_open = false;
    interpreter_name_ = NULL;
    isStripped = false;
-    
-   elfHdr = *(((Elf_X *)base)->e_rand(offset));
-   Elf_Arhdr *archdr = elf_getarhdr(elfHdr.e_elfp());
-   assert(member_name == string(archdr->ar_name));
+   if(mf->getFD() != -1)
+      elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
+   else
+      elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
 
+   mfForDebugInfo = findMappedFileForDebugInfo();
    // ELF header: sanity check
    //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
    if (!elfHdr.isValid())  {
       log_elferror(err_func_, "ELF header");
       return;
    }
-   assert(elfHdr.e_type() == ET_REL);
-   
+   else if (!pdelf_check_ehdr(elfHdr)) {
+      log_elferror(err_func_, "ELF header failed integrity check");
+   }
    if( elfHdr.e_type() == 3 )
       load_shared_object(alloc_syms);
    else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
@@ -2768,110 +2769,160 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 #endif
 }
 
-Object::Object(const Object& obj)
-   : AObject(obj), EEL(false)
-{
+//Object constructor for archive members
+Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset,	
+      void (*err_func)(const char *), void *base, bool alloc_syms) :
+   AObject(mf_, mfd, err_func), 
+   EEL(false) {
+#if defined(TIMED_PARSE)
+      struct timeval starttime;
+      gettimeofday(&starttime, NULL);
+#endif
 #if defined(os_solaris)
-   loadNativeDemangler();
+      loadNativeDemangler();
 #endif    
-   interpreter_name_ = obj.interpreter_name_;
-   isStripped = obj.isStripped;
-   loadAddress_ = obj.loadAddress_;
-   entryAddress_ = obj.entryAddress_;
-   relocation_table_ = obj.relocation_table_;
-   fbt_ = obj.fbt_;
-   elfHdr = obj.elfHdr;
-   deps_ = obj.deps_;
-}
+      is_aout_ = false;
+      did_open = false;
+      interpreter_name_ = NULL;
+      isStripped = false;
 
-const Object& Object::operator=(const Object& obj) 
-{
-   (void) AObject::operator=(obj);
+         elfHdr = *(((Elf_X *)base)->e_rand(offset));
+         Elf_Arhdr *archdr = elf_getarhdr(elfHdr.e_elfp());
+         assert(member_name == string(archdr->ar_name));
 
-   dynsym_addr_ = obj.dynsym_addr_;
-   dynstr_addr_ = obj.dynstr_addr_;
-   got_addr_ = obj.got_addr_;
-   plt_addr_ = obj.plt_addr_;
-   plt_size_ = obj.plt_size_;
-   plt_entry_size_ = obj.plt_entry_size_;
-   rel_plt_addr_ = obj.rel_plt_addr_;
-   rel_plt_size_ = obj.rel_plt_size_;
-   rel_plt_entry_size_ = obj.rel_plt_entry_size_;
-   rel_size_ = obj.rel_size_;
-   rel_entry_size_ = obj.rel_entry_size_;
-   stab_off_ = obj.stab_off_;
-   stab_size_ = obj.stab_size_;
-   stabstr_off_ = obj.stabstr_off_;
-   relocation_table_  = obj.relocation_table_;
-   fbt_  = obj.fbt_;
-   dwarvenDebugInfo = obj.dwarvenDebugInfo;
-   symbolNamesByAddr = obj.symbolNamesByAddr;
-   versionMapping = obj.versionMapping;
-   versionFileNameMapping = obj.versionFileNameMapping;
-   deps_ = obj.deps_;
-   elfHdr = obj.elfHdr; 
-   return *this;
-}
+         // ELF header: sanity check
+         //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
+         if (!elfHdr.isValid())  {
+            log_elferror(err_func_, "ELF header");
+            return;
+         }
+         assert(elfHdr.e_type() == ET_REL);
 
-Object::~Object()
-{
-   //   if (fileName) free((void *)fileName);
-   unsigned i;
-   relocation_table_.clear();
-   fbt_.clear();
-   for(i=0; i<allRegionHdrs.size();i++)
-      delete allRegionHdrs[i];
-   allRegionHdrs.clear();
-   symbolNamesByAddr.clear();
-   versionMapping.clear();
-   versionFileNameMapping.clear();
-   deps_.clear();
-}
+         if( elfHdr.e_type() == 3 )
+            load_shared_object(alloc_syms);
+         else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
+            is_aout_ = true;
+            load_object(alloc_syms);
+         }    
+         else {
+            log_perror(err_func_,"Invalid filetype in Elf header");
+            return;
+         }
+#if defined(TIMED_PARSE)
+         struct timeval endtime;
+         gettimeofday(&endtime, NULL);
+         unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+         unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+         unsigned long difftime = lendtime - lstarttime;
+         double dursecs = difftime/(1000 );
+         cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
+#endif
+      }
 
-void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
-{
-   const char* err = elf_errmsg(elf_errno());
-    err = err ? err: "(bad elf error)";
-    string str = string(err)+string(msg);
-    err_func(str.c_str());
-}
+   Object::Object(const Object& obj)
+      : AObject(obj), EEL(false)
+      {
+#if defined(os_solaris)
+         loadNativeDemangler();
+#endif    
+         interpreter_name_ = obj.interpreter_name_;
+         isStripped = obj.isStripped;
+         loadAddress_ = obj.loadAddress_;
+         entryAddress_ = obj.entryAddress_;
+         relocation_table_ = obj.relocation_table_;
+         fbt_ = obj.fbt_;
+         elfHdr = obj.elfHdr;
+         deps_ = obj.deps_;
+      }
 
-bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const 
-{
-    if(!plt_addr_ || (!fbt_.size())) return false;
-    fbt = fbt_;
-    return true;
-}
+   const Object& Object::operator=(const Object& obj) 
+   {
+      (void) AObject::operator=(obj);
 
-bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const 
-{
-    if(!plt_addr_ || (!fbt_.size())) return false;
-    fbt = &fbt_;
-    return true;
-}
+      dynsym_addr_ = obj.dynsym_addr_;
+      dynstr_addr_ = obj.dynstr_addr_;
+      got_addr_ = obj.got_addr_;
+      plt_addr_ = obj.plt_addr_;
+      plt_size_ = obj.plt_size_;
+      plt_entry_size_ = obj.plt_entry_size_;
+      rel_plt_addr_ = obj.rel_plt_addr_;
+      rel_plt_size_ = obj.rel_plt_size_;
+      rel_plt_entry_size_ = obj.rel_plt_entry_size_;
+      rel_size_ = obj.rel_size_;
+      rel_entry_size_ = obj.rel_entry_size_;
+      stab_off_ = obj.stab_off_;
+      stab_size_ = obj.stab_size_;
+      stabstr_off_ = obj.stabstr_off_;
+      relocation_table_  = obj.relocation_table_;
+      fbt_  = obj.fbt_;
+      dwarvenDebugInfo = obj.dwarvenDebugInfo;
+      symbolNamesByAddr = obj.symbolNamesByAddr;
+      versionMapping = obj.versionMapping;
+      versionFileNameMapping = obj.versionFileNameMapping;
+      deps_ = obj.deps_;
+      elfHdr = obj.elfHdr; 
+      return *this;
+   }
 
-void Object::getDependencies(std::vector<std::string> &deps){
-    deps = deps_;
-}
+   Object::~Object()
+   {
+      //   if (fileName) free((void *)fileName);
+      unsigned i;
+      relocation_table_.clear();
+      fbt_.clear();
+      for(i=0; i<allRegionHdrs.size();i++)
+         delete allRegionHdrs[i];
+      allRegionHdrs.clear();
+      symbolNamesByAddr.clear();
+      versionMapping.clear();
+      versionFileNameMapping.clear();
+      deps_.clear();
+   }
 
-bool Object::addRelocationEntry(relocationEntry &re)
-{
-    relocation_table_.push_back(re);
-    return true;
-}
+   void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
+   {
+      const char* err = elf_errmsg(elf_errno());
+      err = err ? err: "(bad elf error)";
+      string str = string(err)+string(msg);
+      err_func(str.c_str());
+   }
+
+   bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const 
+   {
+      if(!plt_addr_ || (!fbt_.size())) return false;
+      fbt = fbt_;
+      return true;
+   }
+
+   bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const 
+   {
+      if(!plt_addr_ || (!fbt_.size())) return false;
+      fbt = &fbt_;
+      return true;
+   }
+
+   void Object::getDependencies(std::vector<std::string> &deps){
+      deps = deps_;
+   }
+
+   bool Object::addRelocationEntry(relocationEntry &re)
+   {
+      relocation_table_.push_back(re);
+      return true;
+   }
 
 #ifdef DEBUG
 
-// stream-based debug output
-const ostream &Object::dump_state_info(ostream &s) 
-{
-  s << "Debugging Information for Object (address) : " << this << endl;
-  
-  s << " <<begin debugging info for base object>>" << endl;
-  AObject::dump_state_info(s);
-  s << " <<end debuggingo info for base object>>" << endl;
-  
-  s << " dynsym_addr_ = " << dynsym_addr_ << endl;
+   // stream-based debug output
+   const ostream &Object::dump_state_info(ostream &s) 
+   {
+      s << "Debugging Information for Object (address) : " << this << endl;
+
+      s << " <<begin debugging info for base object>>" << endl;
+      AObject::dump_state_info(s);
+      s << " <<end debuggingo info for base object>>" << endl;
+
+      s << " dynsym_addr_ = " << dynsym_addr_ << endl;
   s << " dynstr_addr_ = " << dynstr_addr_ << endl;
   s << " got_addr_ = " << got_addr_ << endl;
   s << " plt_addr_ = " << plt_addr_ << endl;
