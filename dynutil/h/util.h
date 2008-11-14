@@ -43,7 +43,7 @@ DLLEXPORT_COMMON unsigned addrHash(const Address &addr);
 DLLEXPORT_COMMON unsigned addrHash4(const Address &addr);
 DLLEXPORT_COMMON unsigned addrHash16(const Address &addr);
 
-DLLEXPORT_COMMON unsigned hash(const std::string &s);
+DLLEXPORT_COMMON unsigned stringhash(const std::string &s);
 DLLEXPORT_COMMON std::string itos(int);
 DLLEXPORT_COMMON std::string utos(unsigned);
 

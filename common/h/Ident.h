@@ -43,7 +43,10 @@
 ************************************************************************/
 
 #include <iostream>
-#include "common/h/String.h"
+#include <ostream>
+//#include "debugOstream.h"
+#include "headers.h"
+#include "String.h"
 
 /************************************************************************
  * class Ident
@@ -81,7 +84,7 @@ class Ident {
     pdstring Time () const { return pdstring (time_); }
     pdstring Builder () const { return pdstring (builder_); }
 
-    friend ostream& operator<< (ostream &os, const Ident &Id);  // output
+    friend std::ostream& operator<< (std::ostream &os, const Ident &Id);  // output
 
   private:
     bool ok_;                   

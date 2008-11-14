@@ -34,21 +34,14 @@
 
 #include <assert.h>
 #include "common/h/headers.h"
-
-#if !defined(os_windows)
+#if !defined (os_windows)
+#include <sys/types.h>
 #include <regex.h>
 #endif
 
-#include "common/h/String.h"
-
-// Declare static member vrbles:
-pdstring *pdstring::nilptr = NULL;
-long pdstring::nilptr_initialized = 0;
-int string_counter::count = 0;
-string_counter sc;
-
 /* This doesn't actually belong here. */
-void dedemangle( char * demangled, char * result ) {
+void dedemangle( char * demangled, char * result ) 
+{
    /* Lifted from Jeffrey Odom.  Code reformatted so
       I could figure out how to eliminate compiler warnings.
       Adjusted to handle spaces inside templates intelligently.
@@ -57,51 +50,58 @@ void dedemangle( char * demangled, char * result ) {
       before the 'const'. */
    const char * resultBegins = NULL;
    char * resultEnds = NULL;
-   
+
    if (	demangled[0] == '(' &&
-        strstr( demangled, "::" ) != NULL) {
+         strstr( demangled, "::" ) != NULL) 
+   {
       /* Local variable.  Strip off the opening ( :: ). */
       resultBegins = strrchr( demangled, ')' ) + 3;
-      
+
       /* End it at the right-most space, if any. */
       resultEnds = strrchr( resultBegins, ' ' );
-      if( resultEnds != NULL ) { * resultEnds = '\0'; }
+      if ( resultEnds != NULL ) { * resultEnds = '\0'; }
    }
-   else if ( strrchr( demangled, '(' ) != NULL ) {
+   else if ( strrchr( demangled, '(' ) != NULL ) 
+   {
       /* Strip off return types, if any.  Be careful not to
          pull off [template?/]class/namespace information.
-         
+
          The only space that matters is the one that's _not_
          inside a template, so skip the templates and cut at the
          first space.  We can ignore 'operator[<[<]|>[>]]' because
          we'll stop before we reach it.
-         
-         Caveat: conversion operators (e.g., "operator bool") have
-         spaces in the function name.  Right now we deal with this
-         specifically (is the function "operator *"?).  Could be
-         altered to after the last template but before the last
-         left parenthesis.  (Instead of next, for "operator ()".)
-      */
+
+Caveat: conversion operators (e.g., "operator bool") have
+spaces in the function name.  Right now we deal with this
+specifically (is the function "operator *"?).  Could be
+altered to after the last template but before the last
+left parenthesis.  (Instead of next, for "operator ()".)
+       */
 
       resultBegins = demangled;
       int stack = 0; bool inTemplate = false;
       unsigned int offset, start_template_offset=0, stop_template_offset=0;
       int lastColon = 0;
-      for( offset = 0; offset < strlen( resultBegins ); offset++ ) {
-         if( resultBegins[offset] == '<' ) {
+      for ( offset = 0; offset < strlen( resultBegins ); offset++ ) 
+      {
+         if ( resultBegins[offset] == '<' ) 
+         {
             stack++;
             inTemplate = true;
-            if(stack == 1)
+            if (stack == 1)
                start_template_offset = offset;
          }
-         else if( resultBegins[offset] == '>' ) {
+         else if ( resultBegins[offset] == '>' ) 
+         {
             stack--;
-            if( stack == 0 ) { 
+            if ( stack == 0 ) 
+            { 
                inTemplate = false;
                stop_template_offset = offset;
             }
          }
-         else if( !inTemplate && resultBegins[offset] == '(' ) {
+         else if ( !inTemplate && resultBegins[offset] == '(' ) 
+         {
             /* We've stumbled on something without a return value. */
 
 #ifdef os_solaris
@@ -110,17 +110,21 @@ void dedemangle( char * demangled, char * result ) {
 
                need to find last asterick before '(' and see if it's within
                a template area. if not, then set resultBegins to next offset.
-            */
+             */
             char *prefix = (char*)malloc(strlen(demangled));
-            if(prefix != NULL) {
+            if (prefix != NULL) 
+            {
                strncpy(prefix, demangled, offset+1); 
                prefix[offset+1] = '\0';
                char *last_ast = strrchr(prefix, '*');            
-               if( last_ast != NULL ) {
+               if ( last_ast != NULL ) 
+               {
                   unsigned last_ast_off = last_ast - prefix;
-                  if( stop_template_offset ) {
-                     if( last_ast_off > start_template_offset &&
-                         last_ast_off < stop_template_offset ) {
+                  if ( stop_template_offset ) 
+                  {
+                     if ( last_ast_off > start_template_offset &&
+                           last_ast_off < stop_template_offset ) 
+                     {
                         // last '*' is in template, no return type
                         offset = 0;
                         resultBegins = demangled;
@@ -144,22 +148,26 @@ void dedemangle( char * demangled, char * result ) {
 #endif
             break;
          }
-         else if( !inTemplate && resultBegins[offset] == ' ' ) {
+         else if ( !inTemplate && resultBegins[offset] == ' ' ) 
+         {
             /* FIXME: verify that the space isn't in the function name,
                e.g., 'operator bool'.  If the first space we meet _is_
                a function name, it doesn't have a(n explicit) return type. */
-            if( strstr( &(resultBegins[ lastColon + 1 ]), "operator " ) == resultBegins + lastColon + 1 ) {
+            if ( strstr( &(resultBegins[ lastColon + 1 ]), "operator " ) == resultBegins + lastColon + 1 ) 
+            {
                resultBegins = demangled;
                offset = 0;
             }
-            else {
+            else 
+            {
                resultBegins = &(resultBegins[offset + 1]);
                offset++;
             }
-            
+
             break;
          }
-         else if( !inTemplate && resultBegins[offset] == ':' ) {
+         else if ( !inTemplate && resultBegins[offset] == ':' ) 
+         {
             lastColon = offset;
          }
       } /* end template elimination loop */
@@ -167,34 +175,138 @@ void dedemangle( char * demangled, char * result ) {
       /* Scan past the function name; the first left parenthesis
          not in in a template declaration starts the function arguments. */
       stack = 0; inTemplate = false;
-      for( ; offset < strlen( resultBegins ); offset++ ) {
-         if( resultBegins[offset] == '<' ) {
+      for ( ; offset < strlen( resultBegins ); offset++ ) 
+      {
+         if ( resultBegins[offset] == '<' ) 
+         {
             stack++;
             inTemplate = true;
          }
-         if( resultBegins[offset] == '>' ) {
+         if ( resultBegins[offset] == '>' ) 
+         {
             stack--;
-            if( stack == 0 ) { inTemplate = false; }
+            if ( stack == 0 ) { inTemplate = false; }
          }
-         if( !inTemplate && resultBegins[offset] == '(' ) {
+         if ( !inTemplate && resultBegins[offset] == '(' ) 
+         {
             resultEnds = const_cast<char *>(&(resultBegins[offset]));
             * resultEnds = '\0';
             break;
          } 
       } /* end template elimination loop */
    } /* end if a function prototype */
-   else {
+   else 
+   {
       /* Assume demangle OK. */
       resultBegins = demangled;
    }
-   
+
    strcpy( result, resultBegins );
 } /* end dedemangle */
 
 
-string_ll::string_ll()
-    : str_(0), len_(0), key_(0) {
+// Use POSIX regular expression pattern matching to check if string s matches
+// the pattern in this string
+bool regexEquiv(const char *str_,  const char *s, bool checkCase ) 
+{
+// Would this work under NT?  I don't know.
+#if !defined(os_windows)
+	regex_t r;
+	int err;
+	bool match = false;
+	int cflags = REG_NOSUB;
+	if ( !checkCase )
+		cflags |= REG_ICASE;
+
+	// Regular expressions must be compiled first, see 'man regexec'
+	err = regcomp( &r, str_, cflags );
+
+	if ( err == 0 ) 
+   {
+		// Now we can check for a match
+		err = regexec( &r, s, 0, NULL, 0 );
+		if( err == 0 )
+			match = true;
+	}
+
+	// Deal with errors
+	if ( err != 0 && err != REG_NOMATCH ) 
+   {
+		char errbuf[80];
+		regerror( err, &r, errbuf, 80 );
+		//cerr << "string_ll::regexEquiv -- " << errbuf << endl;
+	}
+
+	// Free the pattern buffer
+	regfree( &r );
+	return match;
+#else
+	return false;
+#endif
 }
+
+bool prefixed_by(std::string &haystack, std::string &prefix)
+{
+   if (!haystack.c_str()) 
+      return false;
+
+   char *res = strstr(haystack.c_str(), prefix.c_str());
+
+   if (res == haystack.c_str())
+      return true;
+
+   return false;
+}
+
+bool prefixed_by(std::string &haystack, const char *prefix)
+{
+   std::string pref_str(prefix);
+   return prefixed_by(haystack, pref_str);
+}
+
+
+bool suffixed_by(std::string &haystack, std::string &suffix)
+{
+   if (!haystack.c_str()) 
+      return false;
+
+   int lastchar = haystack.length() - 1;
+
+   int j = 0;
+   for (int i = suffix.length() - 1; i >= 0; i--)
+   {
+      if (haystack[lastchar - i] != suffix[j])
+         return false;
+      j++;
+   }
+
+   return true;
+}
+
+bool suffixed_by(std::string &haystack, const char *suffix)
+{
+   std::string suff_str(suffix);
+   return suffixed_by(haystack, suff_str);
+}
+
+#if defined (cap_use_pdstring)
+
+#if !defined(os_windows)
+#include <regex.h>
+#endif
+
+#include "common/h/String.h"
+
+// Declare static member vrbles:
+pdstring *pdstring::nilptr = NULL;
+long pdstring::nilptr_initialized = 0;
+int string_counter::count = 0;
+string_counter sc;
+
+
+string_ll::string_ll()
+   : str_(0), len_(0), key_(0) {
+   }
 
 string_ll::string_ll(const char* str)
 {
@@ -219,18 +331,18 @@ string_ll::string_ll(const char *str, unsigned len) {
 }
 
 string_ll::string_ll(const string_ll& s)
-    : str_(STRDUP(s.str_)), len_(s.len_), key_(s.key_) {
-   // lazy key define iff "s" lazy key define (as it should be)
-}
+   : str_(STRDUP(s.str_)), len_(s.len_), key_(s.key_) {
+      // lazy key define iff "s" lazy key define (as it should be)
+   }
 
 string_ll::string_ll(const char c) {
-  char tempBuffer[2]; //only need space for one character and '\0'
-  sprintf(tempBuffer, "%c", c);
+   char tempBuffer[2]; //only need space for one character and '\0'
+   sprintf(tempBuffer, "%c", c);
 
-  str_ = STRDUP(tempBuffer);
-  len_ = STRLEN(tempBuffer);
+   str_ = STRDUP(tempBuffer);
+   len_ = STRLEN(tempBuffer);
 
-  key_ = 0; // lazy key define
+   key_ = 0; // lazy key define
 }
 
 string_ll::string_ll(int i) {
@@ -304,16 +416,16 @@ string_ll::~string_ll() {
 
 string_ll&
 string_ll::operator=(const char* str) {
-    if (str_ == str) {
-        return *this;
-    }
+   if (str_ == str) {
+      return *this;
+   }
 
-    free(str_); str_ = 0;
+   free(str_); str_ = 0;
 
-    str_ = STRDUP(str);
-    len_ = STRLEN(str);
+   str_ = STRDUP(str);
+   len_ = STRLEN(str);
 
-    key_ = 0; // lazy key define
+   key_ = 0; // lazy key define
 
     return *this;
 }
@@ -697,4 +809,4 @@ void pdstring::free_static_stuff() {
 }
 
 
-
+#endif /*defined(cap_use_pdstring) */

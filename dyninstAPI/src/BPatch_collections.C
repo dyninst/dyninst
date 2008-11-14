@@ -123,7 +123,7 @@ BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
 }
   
 // Could be somewhere else... for DWARF-work.
-dictionary_hash<std::string, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap(::Dyninst::hash);
+dictionary_hash<std::string, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap(::Dyninst::stringhash);
 
 /*
  * Reference count
@@ -177,8 +177,8 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
  * for the type, by Name and ID.
  */
 BPatch_typeCollection::BPatch_typeCollection():
-    typesByName(::Dyninst::hash),
-    globalVarsByName(::Dyninst::hash),
+    typesByName(::Dyninst::stringhash),
+    globalVarsByName(::Dyninst::stringhash),
     typesByID(intHash),
     refcount(0),
     dwarfParsed_(false)
@@ -419,7 +419,7 @@ void BPatch_typeCollection::clearNumberedTypes() {
  * it is created just in case. jdd 4/21/99
  */
 BPatch_builtInTypeCollection::BPatch_builtInTypeCollection():
-  builtInTypesByName(::Dyninst::hash),
+  builtInTypesByName(::Dyninst::stringhash),
   builtInTypesByID(intHash)
 {
   /* Initialize hash tables: builtInTypesByName, builtInTypesByID */

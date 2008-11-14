@@ -2410,7 +2410,7 @@ bool process::hasPassedMain()
    // We only need to parse /lib/ld-2.x.x once for any process,
    // so just do it once for any process.  We'll cache the result
    // in lib_to_addr.
-   static dictionary_hash<std::string, Address> lib_to_addr(::Dyninst::hash);
+   static dictionary_hash<std::string, Address> lib_to_addr(::Dyninst::stringhash);
    Symtab *ld_file = NULL;
    bool result, tresult;
    std::string name;

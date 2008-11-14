@@ -1960,7 +1960,7 @@ int getInsnCost(opCode op)
 }
 
 
-dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::hash);
+dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::stringhash);
 
 //
 // initDefaultPointFrequencyTable - define the expected call frequency of

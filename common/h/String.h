@@ -37,6 +37,18 @@
 #if !defined(_String_h_)
 #define _String_h_
 
+bool regexEquiv(const char *str_,  const char *s, bool checkCase );
+
+#if !defined (cap_use_pdstring)
+#include <string>
+#define pdstring std::string
+const std::string nullString("");
+bool prefixed_by(std::string &haystack, std::string &prefix);
+bool prefixed_by(std::string &haystack, const char *prefix);
+bool suffixed_by(std::string &haystack, std::string &suffix);
+bool suffixed_by(std::string &haystack, const char *suffix);
+#else
+
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation ("../src/String.C")
 #endif
@@ -425,4 +437,5 @@ class string_counter {
 };
 extern string_counter sc;
 
+#endif /*cap_use_pdstring*/
 #endif /* !defined(_String_h_) */

@@ -122,8 +122,12 @@ pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2
       needToAddSlash = false;
 
    // if comp2 begins with a "/" then no need to add slash
+   if (comp2.length() && comp2[0] == '/')
+	   needToAddSlash = false;
+#if 0
    if (comp2.prefixed_by("/"))
       needToAddSlash = false;
+#endif
 
    pdstring result = comp1;
    if (needToAddSlash)
@@ -133,7 +137,8 @@ pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2
    return result;
 }
 
-bool extractNextPathElem(const char * &ptr, pdstring &result) {
+bool extractNextPathElem(const char * &ptr, pdstring &result) 
+{
    // assumes that "ptr" points to the value of the PATH environment
    // variable.  Extracts the next element (writing to result, updating
    // ptr, returning true) if available else returns false;
@@ -181,6 +186,7 @@ bool exists_executable(const pdstring &fullpathname) {
    return true;
 }
 
+#if defined (cap_use_pdstring)
 bool executableFromArgv0AndPathAndCwd(pdstring &result,
 				      const pdstring &i_argv0,
 				      const pdstring &path,
@@ -244,6 +250,7 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 
    return false;
 }
+#else
 
 
 bool executableFromArgv0AndPathAndCwd(std::string &result,
@@ -259,6 +266,7 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
    result = std::string(pdresult.c_str());
    return ret;
 }
+#endif
 
 #if defined(os_windows)
 #define PATH_SEP ('\\')
@@ -267,6 +275,7 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 #define PATH_SEP ('/')
 #endif
 
+#if defined (cap_use_pdstring)
 pdstring extract_pathname_tail(const pdstring &path)
 {
   const char *path_str = path.c_str();
@@ -282,6 +291,7 @@ pdstring extract_pathname_tail(const pdstring &path)
   return ret;
 }
 
+#else
 std::string extract_pathname_tail(const std::string &path)
 {
   const char *path_str = path.c_str();
@@ -296,6 +306,7 @@ std::string extract_pathname_tail(const std::string &path)
   std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
   return ret;
 }
+#endif
 
 #if !defined (os_windows)
 char *resolve_file_path(const char *fname, char *resolved_path)

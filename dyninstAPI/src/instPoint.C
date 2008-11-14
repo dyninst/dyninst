@@ -76,7 +76,7 @@ using namespace Dyninst::InstructionAPI;
 
 unsigned int instPointBase::id_ctr = 1;
 
-dictionary_hash <std::string, unsigned> primitiveCosts(::Dyninst::hash);
+dictionary_hash <std::string, unsigned> primitiveCosts(::Dyninst::stringhash);
 
 #if defined(rs6000_ibm_aix4_1)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C

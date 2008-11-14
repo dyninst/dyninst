@@ -34,10 +34,12 @@
  * $Id: Ident.C,v 1.6 2008/06/11 22:48:17 legendre Exp $
 ************************************************************************/
 
-#include "common/h/Ident.h"
+#include "Ident.h"
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <ostream>
+
 using namespace std;
 
 Ident::Ident (const char *Vstr, const char *expected_suite)

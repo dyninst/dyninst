@@ -60,7 +60,7 @@ class BPatch_localVarCollection{
   dictionary_hash<std::string, BPatch_localVar *> localVariablesByName;
 
 public:
-  BPatch_localVarCollection(): localVariablesByName(::Dyninst::hash){};
+  BPatch_localVarCollection(): localVariablesByName(::Dyninst::stringhash){};
   ~BPatch_localVarCollection();
 
   void addLocalVar(BPatch_localVar * var);

@@ -47,7 +47,7 @@ DLLEXPORT_COMMON unsigned addrHash16(const Address &iaddr)
 }
 
 // string hash grabbed from pdstring
-unsigned hash(const std::string &s)
+unsigned stringhash(const std::string &s)
 {
    const char *str = s.c_str();
    if (!str)

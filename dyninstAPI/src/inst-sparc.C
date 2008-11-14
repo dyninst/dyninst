@@ -64,7 +64,7 @@
 /****************************************************************************/
 /****************************************************************************/
 
-static dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::hash);
+static dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::stringhash);
 
 
 /****************************************************************************/

@@ -35,10 +35,16 @@
 #ifndef _PATH_NAME_H_
 #define _PATH_NAME_H_
 
+#include "headers.h"
+#include "String.h"
+
+#if defined (cap_use_pdstring)
+class pdstring;
+#else
 #include <string>
 using namespace std;
+#endif
 
-class pdstring;
 
 pdstring expand_tilde_pathname(const pdstring &dir);
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
@@ -56,18 +62,21 @@ bool extractNextPathElem(const char * &ptr, pdstring &result);
 
 bool exists_executable(const pdstring &fullpathname);
 
+
+
+#if defined (cap_use_pdstring)
 bool executableFromArgv0AndPathAndCwd(pdstring &result,
 				      const pdstring &i_argv0,
 				      const pdstring &path,
 				      const pdstring &cwd);
-
+DLLEXPORT pdstring extract_pathname_tail(const pdstring &path);
+#else
 bool executableFromArgv0AndPathAndCwd(std::string &result,
 				      const std::string &i_argv0,
 				      const std::string &path,
 				      const std::string &cwd);
-
-DLLEXPORT pdstring extract_pathname_tail(const pdstring &path);
 DLLEXPORT string extract_pathname_tail(const string &path);
+#endif
 
 DLLEXPORT char *resolve_file_path(const char *fname, char *resolved_name);
 #endif
