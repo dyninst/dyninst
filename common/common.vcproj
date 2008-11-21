@@ -36,6 +36,7 @@
 				OutputFile="$(OutDir)\libcommon.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
+				AdditionalLibraryDirectories="../../i386-unknown-nt4.0/lib"
 				GenerateDebugInformation="TRUE"
 				AssemblyDebug="1"
 				SubSystem="0"
@@ -288,6 +289,22 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\stats.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\String.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -352,22 +369,6 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\timing.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAsManaged="0"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\stats.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -461,6 +462,9 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\sha1.h">
 			</File>
 			<File
+				RelativePath=".\h\stats.h">
+			</File>
+			<File
 				RelativePath=".\h\std_namesp.h">
 			</File>
 			<File
@@ -477,9 +481,6 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\timing.h">
-			</File>
-			<File
-				RelativePath=".\h\stats.h">
 			</File>
 			<File
 				RelativePath=".\h\triple.h">

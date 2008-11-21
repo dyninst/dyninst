@@ -11,14 +11,17 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-#include <boost/functional/hash.hpp>
+//#include <boost/functional/hash.hpp>
 //#define dyn_hash_set boost::unordered_set
 //#define dyn_hash_map boost::unordered_map
 
 #if defined (_MSC_VER)
   //**************** Windows ********************
   #include <hash_map>
+#if 0
   #define dyn_hash_map stdext::hash_map
+#endif
+  #define dyn_hash_map std::hash_map
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #define DECLTHROW(x) throw(x)

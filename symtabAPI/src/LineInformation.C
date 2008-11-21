@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <list>
 #include <cstring>
+#include "boost/functional/hash.hpp"
 
 
 using namespace Dyninst;
@@ -51,10 +52,67 @@ using namespace std;
 
 #include "RangeLookup.t"
 
+#if ! defined( _MSC_VER )        
+struct SourceLineCompare 
+{
+   bool operator () ( const char * lhs, const char * rhs ) const;
+};
+
+typedef dyn_hash_set< const char *, boost::hash< const char * >, SourceLineCompare > SourceLineInternTable;
+
+#else
+
+struct SourceLineLess 
+{
+   bool operator () ( const char * lhs, const char * rhs ) const;
+};
+
+typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
+
+#endif 
+
+namespace Dyninst {
+namespace SymtabAPI {
+class SourceLineInternalTableWrapper {
+   public:
+      SourceLineInternTable source_line_names;
+      SourceLineInternalTableWrapper() {}
+      ~SourceLineInternalTableWrapper(){}
+      SourceLineInternTable &getTable() {return source_line_names;}
+};
+}}
+
+SourceLineInternalTableWrapper *LineInformation::getSourceLineNamesW()
+{
+   if (sourceLineNamesPtr)
+      return sourceLineNamesPtr;
+
+   sourceLineNamesPtr = new SourceLineInternalTableWrapper();
+
+   if (!sourceLineNamesPtr) 
+      fprintf(stderr, "%s[%d]:  alloc failure here\n", FILE__, __LINE__);
+
+   return sourceLineNamesPtr;
+}
+
+SourceLineInternTable &getSourceLineNames(LineInformation *li)
+{
+   if (!li->sourceLineNamesPtr)
+      li->sourceLineNamesPtr = new SourceLineInternalTableWrapper();
+
+   if (!li->sourceLineNamesPtr)
+   {
+      fprintf(stderr, "%s[%d]:  alloc prob\n", FILE__, __LINE__);
+      abort();
+   }
+
+   return li->sourceLineNamesPtr->getTable();
+}
+
 LineInformation::LineInformation() : 
    Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, 
-                                    LineInformationImpl::LineNoTupleLess >(),
-   sourceLineNames() 
+   LineInformationImpl::LineNoTupleLess >(),
+   sourceLineNamesPtr(NULL) 
 {
    size_ = 0;
 } /* end LineInformation constructor */
@@ -74,6 +132,7 @@ bool LineInformation::addLine( const char * lineSource,
 
    const char * lineSourceInternal = NULL;
    typedef SourceLineInternTable::const_iterator IteratorType;
+   SourceLineInternTable &sourceLineNames = getSourceLineNames(this);
    IteratorType found = sourceLineNames.find( lineSource );
 
    if ( found == sourceLineNames.end() ) 
@@ -160,12 +219,12 @@ bool LineInformationImpl::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNo
 } /* end LineNoTupleLess() */
 
 #if ! defined( os_windows )
-bool LineInformation::SourceLineCompare::operator () ( const char * lhs, const char * rhs ) const 
+bool SourceLineCompare::operator () ( const char * lhs, const char * rhs ) const 
 {
    return strcmp( lhs, rhs ) == 0;
 } /* end SourceLineCompare() */
 #else
-bool LineInformation::SourceLineLess::operator () ( const char * lhs, const char * rhs ) const 
+bool SourceLineLess::operator () ( const char * lhs, const char * rhs ) const 
 {
    return strcmp( lhs, rhs ) < 0;
 } /* end SourceLineLess() */
@@ -185,6 +244,8 @@ LineInformation::~LineInformation()
       data), but I guess it's not strictly a bug. */
 
    const char * internedString = NULL;
+   typedef SourceLineInternTable::const_iterator IteratorType;
+   SourceLineInternTable &sourceLineNames = getSourceLineNames(this);
    SourceLineInternTable::iterator iterator = sourceLineNames.begin();
 
    while ( iterator != sourceLineNames.end() ) 

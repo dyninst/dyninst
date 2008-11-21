@@ -192,9 +192,9 @@ bool exists_executable(const pdstring &fullpathname)
 
 #if defined (cap_use_pdstring)
 bool executableFromArgv0AndPathAndCwd(pdstring &result,
-				      const pdstring &i_argv0,
-				      const pdstring &path,
-				      const pdstring &cwd) 
+      const pdstring &i_argv0,
+      const pdstring &path,
+      const pdstring &cwd) 
 {
    // return true iff successful.
    // if successful, writes to result.
@@ -208,11 +208,13 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
    const pdstring &argv0 = expand_tilde_pathname(i_argv0);
 
    // 1) If argv0 starts with a slash then we sink or swim with argv0
-   
-   if ((argv0.c_str())[0] == '/') {
-      if (exists_executable(argv0)) {
-	 result = argv0;
-	 return true;
+
+   if ((argv0.c_str())[0] == '/') 
+   {
+      if (exists_executable(argv0)) 
+      {
+         result = argv0;
+         return true;
       }
    }
 
@@ -225,30 +227,39 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
    bool contains_slash = false;
    const char *ptr = argv0.c_str();
    while (*ptr != '\0')
-      if (*ptr++ == '/') {
-	 contains_slash = true;
-	 break;
+   {
+      if (*ptr++ == '/') 
+      {
+         contains_slash = true;
+         break;
       }
+   }
 
-   if (!contains_slash) {
+   if (!contains_slash) 
+   {
       // search the path to see what directory argv0 came from.  If found, then
       // use dir + argv0 else use argv0.
       ptr = path.c_str();
       pdstring pathelem;
-      while (extractNextPathElem(ptr, pathelem)) {
-	 pdstring trystr = concat_pathname_components(pathelem, argv0);
-	 
-	 if (exists_executable(trystr)) {
-	    result = trystr;
-	    return true;
-	 }
+      while (extractNextPathElem(ptr, pathelem)) 
+      {
+         pdstring trystr = concat_pathname_components(pathelem, argv0);
+
+         if (exists_executable(trystr)) 
+         {
+            result = trystr;
+            return true;
+         }
       }
    }
 
    // well, if we've gotten this far without success: couldn't find argv0 in the
    // path and argv0 wasn't a full path.  Last resort: try current directory + argv0
+
    pdstring trystr = concat_pathname_components(cwd, argv0);
-   if (exists_executable(trystr)) {
+
+   if (exists_executable(trystr)) 
+   {
       result = trystr;
       return true;
    }
@@ -259,9 +270,9 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 
 
 bool executableFromArgv0AndPathAndCwd(std::string &result,
-				      const std::string &i_argv0,
-				      const std::string &path,
-				      const std::string &cwd) 
+      const std::string &i_argv0,
+      const std::string &path,
+      const std::string &cwd) 
 {
    // return true iff successful.
    // if successful, writes to result.
@@ -278,7 +289,8 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 
    if ((argv0.c_str())[0] == '/') 
    {
-      if (exists_executable(argv0)) {
+      if (exists_executable(argv0)) 
+      {
          result = argv0;
          return true;
       }
@@ -333,6 +345,7 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
    }
 
 
+   return false;
 }
 #endif
 

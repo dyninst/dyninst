@@ -179,7 +179,12 @@ class AnnotatableSparse
          }
       };
 
+#if defined (os_windows)
+      typedef dyn_hash_map<void *, void *> annos_by_type_t;
+#else
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
+#endif
+
       typedef std::vector<annos_by_type_t *> annos_t;
 
    private:
