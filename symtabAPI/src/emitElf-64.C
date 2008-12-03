@@ -577,7 +577,7 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
     	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
         		newPhdr->p_paddr = newPhdr->p_vaddr;
             }
-    	    if(tmp->p_type == PT_LOAD && tmp->p_flags == 6 || tmp->p_type == PT_NOTE || tmp->p_type == PT_INTERP)
+            if ((tmp->p_type == PT_LOAD && tmp->p_flags == 6) || tmp->p_type == PT_NOTE || tmp->p_type == PT_INTERP)
 	            newPhdr->p_offset += pgSize;
     	} 
 #ifdef BINEDIT_DEBUG

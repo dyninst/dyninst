@@ -961,8 +961,8 @@ void SerDesBin::translate(std::string &param, const char *tag)
    if ((iomode_ == sd_deserialize) ||strstr(param.c_str(), "file")) 
    {
       fprintf(stderr, "%s[%d]:  %sserializing string %s--%s, len = %lu\n", 
-            FILE__, __LINE__, (iomode_ == sd_serialize) ? "" : "de", tag ? tag : "unnamed", 
-            param.c_str(), param.length());
+            FILE__, __LINE__, (iomode_ == sd_serialize) ? "" : "de", tag ? tag : "unnamed",
+              param.c_str(), (unsigned long) param.length());
    }
 }
 

@@ -331,8 +331,7 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
       result = trystr;
       return true;
    }
-
-
+   return false;
 }
 #endif
 

@@ -391,11 +391,9 @@ ostream& operator<<(ostream&s, timeLength z) {
 ostream& operator<<(ostream&s, timeStamp z) {
   time_t s1970 = static_cast<time_t>(z.getI(timeUnit::sec(), timeBase::b1970()));
   int64_t nsI1970 = static_cast<int64_t>(s1970) * I64_C(1000000000);
-  int64_t max_time_t = (I64_C(1)<<((sizeof(time_t)*8)-1))-1;  // eg. (2^(32-1)) -1
   if(! z.isInitialized()) {  
     s << "[uninitialized]";
-  } else if(z < timeStamp(0, timeUnit::year(), timeBase::b1970()) ||
-	    z > timeStamp(max_time_t, timeUnit::sec(), timeBase::b1970())) {
+  } else if(z < timeStamp(0, timeUnit::year(), timeBase::b1970())) {
     timeLength tl(z - timeStamp(0, timeUnit::year(), timeBase::b1970()));
     // setting the oct flag is just a hack to tell the timeLength ostream<<
     // to print the time compressed

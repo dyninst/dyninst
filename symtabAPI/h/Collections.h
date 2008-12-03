@@ -32,7 +32,7 @@
 #ifndef _Collections_h_
 #define _Collections_h_
 
-#include "symtabAPI/h/Type.h"
+#include "Type.h"
 
 using namespace std;
 namespace Dyninst {
