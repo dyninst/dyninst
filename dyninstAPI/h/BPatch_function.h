@@ -75,7 +75,7 @@ class ReturnParameterType;
 class BPATCH_DLL_EXPORT BPatch_function : 
    public BPatch_sourceObj, 
    public BPatch_eventLock,
-   public AnnotatableSparse
+   public Dyninst::AnnotatableSparse
 {
     friend class BPatch_flowGraph;
     friend class InstrucIter;

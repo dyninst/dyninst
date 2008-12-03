@@ -50,10 +50,8 @@
 #include "dyntypes.h"
 
 
-#if 0
 namespace Dyninst
 {
-#endif
 
 typedef short AnnotationClassID;
 
@@ -386,7 +384,6 @@ class AnnotatableSparse
 };
 
 //AnnotatableSparse::annos_t AnnotatableSparse::annos;
-#if 0
 } // namespace
-#endif
+
 #endif

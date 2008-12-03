@@ -3488,6 +3488,7 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
          fprintf(stderr, "%s[%d]:  really should not happen\n", FILE__, __LINE__);
          return false;
       }
+#if 0
       bool r = false;
       const char *sbb = "no_name_dummy";
       r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_parameters_a >(sbb);
@@ -3502,7 +3503,9 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
       r = init_anno_serialization<Dyninst::SymtabAPI::typeCollection *, module_type_info_a>(sbb);
       if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_type_info\n", FILE__, __LINE__);}
       r = false;
+#endif
    }
+   fprintf(stderr, "%s[%d]:  commented out serialization init functions here\n", FILE__, __LINE__);
    return true;
 }
 #endif
