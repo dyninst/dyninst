@@ -50,6 +50,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <errno.h>
+#include <assert.h>
 
 #if !defined(i386_unknown_nt4_0)
 #include <fnmatch.h>

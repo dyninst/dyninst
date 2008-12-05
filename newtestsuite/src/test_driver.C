@@ -49,6 +49,8 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include <assert.h>
+#include <algorithm>
 
 #include <sys/stat.h>
 #include <time.h>

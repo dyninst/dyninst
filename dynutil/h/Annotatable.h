@@ -48,7 +48,7 @@
 #include <string>
 #include <assert.h>
 #include "dyntypes.h"
-
+#include "../../common/h/Types.h"
 
 #if 0
 namespace Dyninst
@@ -177,6 +177,12 @@ class AnnotatableSparse
          {
             return (size_t) a;
          }
+		 static const size_t min_buckets = 8;
+		 static const size_t bucket_size = 4;
+		bool operator()(const void* a, const void* b) const
+		{
+			return (a < b);
+		}
       };
 
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;

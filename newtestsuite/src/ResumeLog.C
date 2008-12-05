@@ -43,6 +43,7 @@
 #include "test_info_new.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
+#include <assert.h>
 
 static bool enableLog = false;
 static char *resumelog_name = "resumelog";

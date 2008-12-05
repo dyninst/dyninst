@@ -47,6 +47,7 @@
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 typedef int (*mutatorM_t)(ParameterDict &);
 const char* ext = ".dll";
@@ -123,12 +124,13 @@ typedef ComponentTester* (*comptester_factory_t)();
 ComponentTester *Module::loadModuleLibrary()
 {
    libhandle = NULL;
-   char libname[256];
-   snprintf(libname, 256, "libtest%s.dll", name.c_str());
+   std::string dllname = "libtest";
+   dllname += name;
+   dllname += ".dll";
 
-   HINSTANCE handle = LoadLibrary(dllname);
+   HINSTANCE handle = LoadLibrary(dllname.c_str());
    if (!handle) {
-      fprintf(stderr, "Error opening lib: %s\n", dllname);
+      fprintf(stderr, "Error opening lib: %s\n", dllname.c_str());
       fprintf(stderr, "%s\n", GetLastError());
       return NULL;
    }

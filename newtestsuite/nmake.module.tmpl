@@ -12,7 +12,7 @@ RELEASE_NUM	= 4.2
 
 DEST		= $(TO_CORE)\$(PROGRAM_DEST)\newtestsuite
 
-CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h /D_DEBUG /Zi
+CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src /D_DEBUG /Zi
 CXXFLAGS_NORM = $(CXXFLAGS)
 CXXFLAGS     = $(CXXFLAGS) -DTESTLIB_DLL_BUILD
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
@@ -36,16 +36,16 @@ SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/ResumeLog.C \
                     ../src/test_info_new.C
 
-SRCS_DYNINSTCOMP = ../src/dyninst_comp.C \
-                   ../src/test_lib_mutateeStart.C \
-                   ../src/Callbacks.C \
-                   ../src/Process_data.C
+SRCS_DYNINSTCOMP = ../src/dyninst/dyninst_comp.C \
+                   ../src/dyninst/test_lib_mutateeStart.C \
+                   ../src/dyninst/Callbacks.C \
+                   ../src/dyninst/Process_data.C
 
 OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
 OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
 
 OBJS_DYNINSTCOMP = $(SRCS_DYNINSTCOMP:.C=.obj)
-OBJS_DYNINSTCOMP = $(OBJS_DYNINSTCOMP:../src/=)
+OBJS_DYNINSTCOMP = $(OBJS_DYNINSTCOMP:../src/dyninst/=)
 
 TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib
 
@@ -70,8 +70,10 @@ $(LIBDYNINSTCOMP): $(OBJS_DYNINSTCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_DYNINSTCOMP) $(LIBS) libtestSuite.lib
 
 $(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
+	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
+	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 test_info_new.gen.obj: test_info_new.gen.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
@@ -95,5 +97,7 @@ DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
 # Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
 	$(LINK) $(LDFLAGS) -DLL -out:$@ $(TESTDRIVER_LIBS) Advapi32.lib Ws2_32.lib $**
 
-$(dyninst_OBJS_ALL_MUTATORS): ../src/$*.C
-	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VCC++.exe -I../src/ -I../src/dyninst -c ../src/dyninst/$**
+mutators: $(dyninst_MUTATORS_SO)
+
+#$(dyninst_OBJS_ALL_MUTATORS): ../src/$*.C
+#	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VCC++.exe -I../src/ -I../src/dyninst -c ../src/dyninst/$**

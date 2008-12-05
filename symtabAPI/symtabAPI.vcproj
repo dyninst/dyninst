@@ -35,7 +35,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib libcommon.lib"
+				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib"
 				OutputFile="$(OutDir)\libsymtabAPI.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
@@ -187,6 +187,15 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Module.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Object-nt.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -205,25 +214,16 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Symtab.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Module.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\Region.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Symtab.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -264,6 +264,9 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\LineInformation.h">
 			</File>
 			<File
+				RelativePath=".\h\Module.h">
+			</File>
+			<File
 				RelativePath=".\src\Object-nt.h">
 			</File>
 			<File
@@ -273,6 +276,9 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\RangeLookup.h">
 			</File>
 			<File
+				RelativePath=".\h\Region.h">
+			</File>
+			<File
 				RelativePath=".\src\serialize.h">
 			</File>
 			<File
@@ -280,12 +286,6 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\Symtab.h">
-			</File>
-			<File
-				RelativePath=".\h\Module.h">
-			</File>
-			<File
-				RelativePath=".\h\Region.h">
 			</File>
 			<File
 				RelativePath=".\h\symutil.h">

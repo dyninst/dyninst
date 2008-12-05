@@ -21,7 +21,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..;../../i386-unknown-nt4.0/include;../external"
+				AdditionalIncludeDirectories="..;../h;&quot;../../i386-unknown-nt4.0/include&quot;;../external"
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;DLL_BUILD"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
@@ -288,6 +288,22 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\stats.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\String.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -352,22 +368,6 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\timing.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAsManaged="0"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\stats.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -461,6 +461,9 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\sha1.h">
 			</File>
 			<File
+				RelativePath=".\h\stats.h">
+			</File>
+			<File
 				RelativePath=".\h\std_namesp.h">
 			</File>
 			<File
@@ -477,9 +480,6 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\timing.h">
-			</File>
-			<File
-				RelativePath=".\h\stats.h">
 			</File>
 			<File
 				RelativePath=".\h\triple.h">
