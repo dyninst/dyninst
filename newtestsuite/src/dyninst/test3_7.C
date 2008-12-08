@@ -79,7 +79,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_7_factory() {
 
 test3_7_Mutator::test3_7_Mutator()
   : pathname(NULL), bpatch(NULL), TIMEOUT(120) {
-#if defined(os_windows)
+#if defined(os_windows_test)
   expectedSignal = ExitedNormally;
 #else
   expectedSignal = ExitedViaSignal;
@@ -88,7 +88,7 @@ test3_7_Mutator::test3_7_Mutator()
 
 static unsigned int num_callbacks_issued = 0;
 
-#if defined (os_osf)
+#if defined (os_osf_test)
 #define TEST7_NUM_ONETIMECODE 100
 #else
 #define TEST7_NUM_ONETIMECODE 400
@@ -238,7 +238,7 @@ test_results_t test3_7_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
-#if defined (sparc_sun_solaris2_4)
+#if defined (sparc_sun_solaris2_4_test)
     // we use some unsafe type operations in the test cases.
     bpatch->setTypeChecking(false);
 #endif

@@ -134,7 +134,7 @@ int func1_1()
     current_locks[i] = 0;
   }
 
-#if !defined (os_windows) && !defined(os_irix)
+#if !defined (os_windows_test) && !defined(os_irix)
 
 #if defined(m32_test)
   libname = "libdyninstAPI_RT_m32.so.1";
@@ -175,7 +175,7 @@ int func1_1()
   pthread_mutex_init(&real_lock, NULL);
 
   (*DYNINSTunlock_thelock)(&test1lock);
-#if !defined(os_solaris)
+#if !defined(os_solaris_test)
    /*  XXX this is nasty */
    /*  The way this is supposed to work is that we get a lock, then start a bunch of
        threads, which all try to get the same lock, pretty much as soon as they start.
@@ -200,7 +200,7 @@ int func1_1()
   sleep_ms(5);
 
   dprintf("%s[%d]:  doing initial unlock...\n", __FILE__, __LINE__);
-#if !defined(os_solaris)
+#if !defined(os_solaris_test)
   /* (*DYNINSTunlock_thelock)(&test1lock); */ 
 
 #endif

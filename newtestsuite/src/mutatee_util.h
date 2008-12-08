@@ -50,7 +50,7 @@ extern "C" {
 
 #include <stdio.h>
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 
 #include <windows.h>
 
@@ -214,7 +214,7 @@ extern int verifyScalarValue(const char *name, int a, int value,
 			     const char *testName, const char *testDesc);
 
 #if !defined(P_sleep)
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define P_sleep(sec) Sleep(1000*(sec))
 #else
 #define P_sleep(sec) sleep(sec)

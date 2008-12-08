@@ -479,9 +479,6 @@
 				RelativePath="..\src\test_lib_mutateeStart.C">
 			</File>
 			<File
-				RelativePath="..\src\test_lib_soExecution.C">
-			</File>
-			<File
 				RelativePath="..\src\test_lib_templates.C">
 			</File>
 			<File

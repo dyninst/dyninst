@@ -120,34 +120,6 @@ class LineInformation : public Serializable,
          (in the destructor).  Note that it speeds and simplifies things
          to have the string pointers be the same. */
 
-
-#if 0
-#if ! defined( _MSC_VER )		   
-      struct SourceLineCompare {
-         bool operator () ( const char * lhs, const char * rhs ) const;
-      };
-
-#if 0
-      typedef dyn_hash_set< const char *, boost::hash< const char * >, SourceLineCompare > SourceLineInternTable;
-#endif
-
-#else
-
-      struct SourceLineLess {
-         bool operator () ( const char * lhs, const char * rhs ) const;
-      };
-
-#if 0
-      typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
-#endif
-
-#endif 
-
-#if 0
-      SourceLineInternTable sourceLineNames;
-#endif
-#endif
-
       unsigned size_;
 }; /* end class LineInformation */
 

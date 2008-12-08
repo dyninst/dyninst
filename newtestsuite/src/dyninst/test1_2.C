@@ -109,7 +109,7 @@ test_results_t test1_2_Mutator::executeTest() {
 
   void *ptr;
 
-#if defined(mips_sgi_irix6_4) || defined(arch_x86_64)
+#if defined(mips_sgi_irix6_4_test) || defined(arch_x86_64_test)
   unsigned pointer_size = pointerSize(appImage);
   /* Determine the size of pointer we should use dynamically. */
   if (pointer_size == 4) {

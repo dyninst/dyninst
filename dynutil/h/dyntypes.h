@@ -11,10 +11,6 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-//#include <boost/functional/hash.hpp>
-//#define dyn_hash_set boost::unordered_set
-//#define dyn_hash_map boost::unordered_map
-
 #if defined (_MSC_VER)
   //**************** Windows ********************
   #include <hash_map>
@@ -24,6 +20,7 @@
   #define dyn_hash_map std::hash_map
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
+  #include <functional>
   #define DECLTHROW(x) throw(x)
   //***************** GCC ***********************
    #if (__GNUC__ > 4) || \

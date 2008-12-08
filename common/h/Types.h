@@ -228,7 +228,7 @@ DLLEXPORT char *Address_str (Address addr);
 
 // NB: this is probably inappropriate for 64-bit addresses!
 inline unsigned hash_address(const Address& addr) {
-    return (addr >> 2);
+   return (unsigned) ((addr >> 2) & 0xffffffff);
 }
 #endif /* __cplusplus */
 

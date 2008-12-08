@@ -27,15 +27,15 @@ int test1_39_passed = 0;
 
 /* Test #39 (refex function search) */
 int test1_39_mutatee() {
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) \
- || defined(mips_sgi_irix6_4) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(os_linux) /* Use OS #define instead of platform - Greg */
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(alpha_dec_osf4_0_test) \
+ || defined(i386_unknown_solaris2_5_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4_test) \
+ || defined(mips_sgi_irix6_4_test) \
+ || defined(rs6000_ibm_aix4_1_test) \
+ || defined(os_linux_test) /* Use OS #define instead of platform - Greg */
 
     /* The only possible failures occur in the mutator. */
   if (1 == test1_39_passed) {

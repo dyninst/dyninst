@@ -219,7 +219,7 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test_thread_4_Mutator::setup(ParameterDict &param) {
   return SKIPPED; // This test appears to be disabled for all platforms..
 
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   debugPrint = param["debugPrint"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;

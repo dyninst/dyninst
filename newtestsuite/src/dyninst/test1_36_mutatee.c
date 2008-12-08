@@ -78,7 +78,7 @@ int test1_36_func1() {
               test1_36_globalVariable6);
       failure = 1;
    }
-#if !defined(alpha_dec_osf4_0) && !defined(arch_x86_64)  /* alpha and AMD64 don't handle more than 6 */
+#if !defined(alpha_dec_osf4_0_test) && !defined(arch_x86_64_test)  /* alpha and AMD64 don't handle more than 6 */
    if(test1_36_globalVariable7 != 7) {
       logerror("   for test 36, expecting arg7 value of 7, got %d\n",
               test1_36_globalVariable7);
@@ -97,7 +97,7 @@ int test1_36_func1() {
    if(test1_36_globalVariable10 != 10) {
       logerror("   for test 36, expecting arg10 value of 10, got %d\n",
               test1_36_globalVariable10);
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4_test)
       logerror("   not marking as an error since this needs "
               "to be implemented for sparc-sol\n");
 #else

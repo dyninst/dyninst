@@ -111,8 +111,10 @@ LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
 
+TESTDRIVER_LDFLAGS = -liberty
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBELF_LIB) -lelf -lstdc++ -lsocket -lrt -liberty -L$(LIBDWARF_LIB) -ldwarf 
+MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBELF_LIB) -lelf -lstdc++ -lsocket -lrt -L$(LIBDWARF_LIB) -ldwarf 
+

@@ -80,7 +80,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_1_factory() {
 }
 
 test3_1_Mutator::test3_1_Mutator() {
-#if defined(os_windows)
+#if defined(os_windows_test)
   expectedSignal = ExitedNormally;
 #else
   expectedSignal = ExitedViaSignal;
@@ -168,7 +168,7 @@ test_results_t test3_1_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
-#if defined (sparc_sun_solaris2_4)
+#if defined (sparc_sun_solaris2_4_test)
     // we use some unsafe type operations in the test cases.
     bpatch->setTypeChecking(false);
 #endif

@@ -96,7 +96,7 @@ mutatee_call_info_t mutatee_funcs[] = {
 
 int runTest[1];
 int passedTest[1];
-int MAX_TEST = 1;
+int max_tests = 1;
 #endif
 
 #ifdef __cplusplus

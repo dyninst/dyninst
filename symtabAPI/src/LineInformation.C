@@ -52,7 +52,7 @@ using namespace std;
 
 #include "RangeLookup.t"
 
-#if ! defined( _MSC_VER )        
+#if ! defined(os_windows)      
 struct SourceLineCompare 
 {
    bool operator () ( const char * lhs, const char * rhs ) const;

@@ -44,7 +44,7 @@
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
  * #Dep: 
- * #Arch: sparc_sun_solaris2_4,i386_unknown_linux2_0,alpha_dec_osf4_0,ia64_unknown_linux2_4,x86_64_unknown_linux2_4
+ * #Arch: sparc_sun_solaris2_4_test,i386_unknown_linux2_0_test,alpha_dec_osf4_0_test,ia64_unknown_linux2_4_test,x86_64_unknown_linux2_4_test
  * #Notes: This test uses libNameA/B magic like test1_21
  */
 
@@ -61,7 +61,7 @@
 
 // static char libNameA[128], libNameB[128];
 
-#ifdef os_windows
+#ifdef os_windows_test
 #define snprintf _snprintf
 #endif
 
@@ -95,10 +95,10 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_22_factory() {
 // static int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 // {
 test_results_t test1_22_Mutator::mutatorTest22() {
-#if defined(os_solaris) \
- || defined(alpha_dec_osf4_0) \
- || defined(os_linux) \
- || defined(os_windows)
+#if defined(os_solaris_test) \
+ || defined(alpha_dec_osf4_0_test) \
+ || defined(os_linux_test) \
+ || defined(os_windows_test)
 
     char errbuf[1024]; errbuf[0] = '\0';
     BPatch_module *modA = NULL;
@@ -261,7 +261,7 @@ test_results_t test1_22_Mutator::mutatorTest22() {
 // {
 test_results_t test1_22_Mutator::executeTest() {
    int pointer_size = 0;
-#if defined(arch_x86_64)
+#if defined(arch_x86_64_test)
    pointer_size = pointerSize(appImage);
 #endif
    strncpy(libNameA, libNameAroot, 128);

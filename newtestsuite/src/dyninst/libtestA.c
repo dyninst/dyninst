@@ -52,13 +52,13 @@
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define DLLEXPORT __declspec( dllexport )
 #else
 #define DLLEXPORT
 #endif
 
-#if defined(os_windows) && defined(__cplusplus)
+#if defined(os_windows_test) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -86,7 +86,7 @@ DLLEXPORT int call22_6(int x)
     return x + MAGIC22_6;
 }
 
-#if defined(os_windows) && defined(__cplusplus)
+#if defined(os_windows_test) && defined(__cplusplus)
 }
 #endif
 

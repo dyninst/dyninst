@@ -53,7 +53,7 @@ endif
 include ../make.module.tmpl
 
 # 32-bit runtime library
-ASM_SRCS_32  = ../src/RTfake-ret-x86.S ../src/RTspace.S ../src/RTsignal-x86.S
+ASM_SRCS_32  = ../src/RTspace.S ../src/RTsignal-x86.S
 
 TARGET_32_SO = libdyninstAPI_RT_m32.so.1
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))

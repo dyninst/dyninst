@@ -44,7 +44,7 @@
  * #Name: test8_2
  * #Desc: getCallStack in signal handler
  * #Dep: 
- * #Arch: i386_unknown_linux2_0,sparc_sun_solaris2_4,ia64_unknown_linux2_4
+ * #Arch: i386_unknown_linux2_0_test,sparc_sun_solaris2_4_test,ia64_unknown_linux2_4_test
  * #Notes:
  */
 
@@ -71,19 +71,19 @@ extern "C" TEST_DLL_EXPORT TestMutator *test_stack_2_factory() {
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test_stack_2_Mutator::executeTest() {
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4) \
- || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4_test) \
+ || defined(ia64_unknown_linux2_4_test)
 
     appThread->continueExecution();
 
     static const frameInfo_t correct_frame_info[] = {
 
-#if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
+#if defined( os_linux_test ) && (defined( arch_x86_test ) || defined( arch_x86_64_test ))
 	{ true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
 #endif
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1_test)
 	{ false, false, BPatch_frameNormal, NULL },
 #endif	
 	{ true,  false, BPatch_frameNormal, "stop_process_" },
@@ -127,10 +127,10 @@ test_results_t test_stack_2_Mutator::executeTest() {
 // External Interface
 // extern "C" TEST_DLL_EXPORT int test8_2_mutatorMAIN(ParameterDict &param)
 test_results_t test_stack_2_Mutator::setup(ParameterDict &param) {
-#ifdef os_windows
+#ifdef os_windows_test
   return SKIPPED;
 #else
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;
 #endif

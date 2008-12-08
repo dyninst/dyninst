@@ -37,6 +37,8 @@
 #include "Module.h"
 #include "Collections.h"
 
+#include <string.h>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -1090,10 +1092,10 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
 	// localVar->addField() TODO????
 	//fieldList[j]->getOffset()+(Offset) baseAddr, -1, storageAddr);
 	
-      if (!func->addLocalVar(locVar)) 
-      {
-         fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-      }
+        if (!func->addLocalVar(locVar) )
+        {
+           fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+        }
     }
 
     // look to see if the field list matches an existing block

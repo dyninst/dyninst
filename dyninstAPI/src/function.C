@@ -789,15 +789,15 @@ bblInstance *int_basicBlock::origInstance() const {
 
 bblInstance *int_basicBlock::instVer(unsigned id) const {
     if (id >= instances_.size())
-        fprintf(stderr, "ERROR: requesting bblInstance %u, only %d known\n",
-                id, instances_.size());
+        fprintf(stderr, "ERROR: requesting bblInstance %u, only %ld known\n",
+                id, (long) instances_.size());
     return instances_[id];
 }
 
 void int_basicBlock::removeVersion(unsigned id) {
     if (id >= instances_.size()) {
-        fprintf(stderr, "ERROR: deleting bblInstance %u, only %d known\n",
-                id, instances_.size());
+        fprintf(stderr, "ERROR: deleting bblInstance %u, only %ld known\n",
+                id, (long) instances_.size());
         return;
     }
     if (id < (instances_.size() - 1)) {

@@ -44,7 +44,7 @@
  * #Name: test1_26
  * #Desc: Struct Elements
  * #Dep: 
- * #Arch: !mips_sgi_irix6_4
+ * #Arch: !mips_sgi_irix6_4_test
  * #Notes:
  */
 
@@ -116,7 +116,7 @@ test_results_t test1_26_Mutator::executeTest() {
 
     if (!gvar[i]) {
       logerror("**Failed** test #26 (struct elements)\n");
-      logerror("  can't find variable %s\n", i, name);
+      logerror("  can't find variable %s\n", name);
       return FAILED;
     }
   }

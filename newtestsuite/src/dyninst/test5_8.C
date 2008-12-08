@@ -44,7 +44,7 @@
  * #Name: test5_8
  * #Desc: Declaration
  * #Dep: 
- * #Arch: sparc_sun_solaris2_4,i386_unknown_linux2_0,x86_64_unknown_linux2_4,ia64_unknown_linux2_4
+ * #Arch: sparc_sun_solaris2_4_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,ia64_unknown_linux2_4_test
  * #Notes:
  */
 

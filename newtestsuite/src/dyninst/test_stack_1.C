@@ -44,7 +44,7 @@
  * #Name: test8_1
  * #Desc: getCallStack
  * #Dep: 
- * #Arch: !alpha_dec_osf4_0
+ * #Arch: !alpha_dec_osf4_0_test
  * #Notes:
  */
 
@@ -73,13 +73,13 @@ extern "C" TEST_DLL_EXPORT TestMutator *test_stack_1_factory() {
 test_results_t test_stack_1_Mutator::executeTest() {
     appThread->continueExecution();
     static const frameInfo_t correct_frame_info[] = {
-#if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
+#if defined( os_linux_test ) && (defined( arch_x86_test ) || defined( arch_x86_64_test ))
 	{ true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
 #endif
-#if !defined(rs6000_ibm_aix4_1)
+#if !defined(rs6000_ibm_aix4_1_test)
 	{ false, false, BPatch_frameNormal, NULL },
 #endif
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0_test)
 	{ true,  false, BPatch_frameNormal, "stop_process_" },
 #endif
 	{ true,  false, BPatch_frameNormal, "test_stack_1_func3" },
@@ -116,7 +116,7 @@ test_results_t test_stack_1_Mutator::executeTest() {
 // External Interface
 // extern "C" TEST_DLL_EXPORT int test8_1_mutatorMAIN(ParameterDict &param)
 test_results_t test_stack_1_Mutator::setup(ParameterDict &param) {
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;
 }

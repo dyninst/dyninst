@@ -85,7 +85,7 @@ test_results_t test2_2_Mutator::executeTest() {
     // try to run a file that is not a valid program
 
     char *mutatee_name;
-#ifdef i386_unknown_nt4_0
+#ifdef os_windows_test
     mutatee_name = "nul:";
 #else
     mutatee_name = "/dev/null";

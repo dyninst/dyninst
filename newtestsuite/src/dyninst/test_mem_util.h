@@ -48,7 +48,7 @@ extern unsigned int bcListCC[1000];
 extern void* eaExpCC[1000];
 extern unsigned int bcExpCC[1000];
 
-#ifdef sparc_sun_solaris2_4
+#ifdef sparc_sun_solaris2_4_test
 extern /* const */ unsigned int loadExp;
 extern /* const */ unsigned int storeExp;
 extern /* const */ unsigned int prefeExp;
@@ -66,9 +66,9 @@ extern double dfvard;
 extern long double dfvarq;
 
 extern /* _inline */ void init_test_data();
-#endif /* defined(sparc_sun_solaris2_4) */
+#endif /* defined(sparc_sun_solaris2_4_test) */
 
-#ifdef rs6000_ibm_aix4_1
+#ifdef rs6000_ibm_aix4_1_test
 extern const unsigned int loadExp;
 extern const unsigned int storeExp;
 extern const unsigned int prefeExp;
@@ -85,7 +85,7 @@ extern float dfvars;
 extern double dfvard;
 
 extern void* gettoc();
-#ifdef rs6000_ibm_aix4_1
+#ifdef rs6000_ibm_aix4_1_test
 /* Had trouble with this one */
 extern void *getsp(int, int, int);
 #else
@@ -97,10 +97,10 @@ extern void* getsp();
 #endif
 
 extern /* _inline */ void init_test_data();
-#endif /* defined(rs6000_ibm_aix4_1) */
+#endif /* defined(rs6000_ibm_aix4_1_test) */
 
-#if defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(i386_unknown_nt4_0_test)
 extern unsigned int loadExp;
 extern unsigned int storeExp;
 extern unsigned int prefeExp;
@@ -147,9 +147,9 @@ void reduce(const struct reduction x);
 void reduceCC(const struct reduction x);
 
 void init_test_data();
-#endif /* defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) */
+#endif /* defined(i386_unknown_linux2_0_test) || defined(i386_unknown_nt4_0_test) */
 
-#ifdef x86_64_unknown_linux2_4
+#ifdef x86_64_unknown_linux2_4_test
 
 extern unsigned int loadExp;
 extern unsigned int storeExp;
@@ -170,9 +170,9 @@ extern char dlarge[512];
 extern void* rip_relative_load_address;
 
 void init_test_data();
-#endif /* defined(x86_64_unknown_linux2_4) */
+#endif /* defined(x86_64_unknown_linux2_4_test) */
 
-#ifdef ia64_unknown_linux2_4
+#ifdef ia64_unknown_linux2_4_test
 
 #define loadExp 6
 #define storeExp 3
@@ -198,9 +198,9 @@ extern unsigned int bcExpCC[];
 extern long loadsnstores( long x, long y, long z );
 
 void init_test_data();
-#endif /* defined(ia64_unknown_linux2_4) */
+#endif /* defined(ia64_unknown_linux2_4_test) */
 
-#ifdef mips_sgi_irix6_4
+#ifdef mips_sgi_irix6_4_test
 #define loadExp 0
 #define storeExp 0
 #define prefeExp 0
@@ -212,9 +212,9 @@ long loadsnstores(long x, long y, long z);
 extern unsigned int bcExp[];
 
 void init_test_data();
-#endif /* defined(mips_sgi_irix6_4) */
+#endif /* defined(mips_sgi_irix6_4_test) */
 
-#ifdef alpha_dec_osf4_0
+#ifdef alpha_dec_osf4_0_test
 #define loadExp 0
 #define storeExp 0
 #define prefeExp 0
@@ -226,9 +226,9 @@ long loadsnstores(long x, long y, long z);
 extern unsigned int bcExp[];
 
 void init_test_data();
-#endif /* defined(alpha_dec_osf4_0) */
+#endif /* defined(alpha_dec_osf4_0_test) */
 
-#if defined(arch_power) && defined(os_linux)
+#if defined(arch_power) && defined(os_linux_test)
 #define loadExp 0
 #define storeExp 0
 #define prefeExp 0

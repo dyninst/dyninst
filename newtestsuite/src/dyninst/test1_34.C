@@ -44,7 +44,7 @@
  * #Name: test1_34
  * #Desc: Loop Information
  * #Dep: 
- * #Arch: !os_windows && !os_aix
+ * #Arch: !os_windows && !os_aix_test
  * #Notes:
  */
 
@@ -77,7 +77,7 @@ static int numContainedLoops(BPatch_basicBlockLoop *loop)
 // static int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage)
 // {
 test_results_t test1_34_Mutator::executeTest() {
-#if !defined(os_windows) && !defined(os_aix)
+#if !defined(os_windows_test) && !defined(os_aix_test)
     unsigned int i;
 
     BPatch_Vector<BPatch_function *> bpfv;
