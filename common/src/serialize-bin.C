@@ -46,6 +46,7 @@ DLLEXPORT dyn_hash_map<Address, AnnotatableBase *> SerDesBin::annotatable_id_map
 DLLEXPORT dyn_hash_map<std::string, SerializerBase::subsystem_serializers_t> SerializerBase::all_serializers;
 
 
+namespace Dyninst {
 bool dyn_debug_serializer = false;
 bool &serializer_debug_flag()
 {
@@ -88,6 +89,18 @@ void printSerErr(const SerializerError &err)
 {
    fprintf(stderr, "\tserializer exception %s from \n\t%s[%d]\n", 
          err.what(), err.file().c_str(), err.line());
+}
+
+
+bool isOutput(Dyninst::SerializerBase *ser)
+{
+   return (ser->iomode() == sd_serialize);
+}
+
+bool isBinary(Dyninst::SerializerBase *ser)
+{
+   SerializerBin *sb = dynamic_cast<SerializerBin *>(ser);
+   return (sb != NULL);
 }
 
 void trans_adapt(SerializerBase *ser, Serializable &it, const char *tag)
@@ -196,6 +209,18 @@ DLLEXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 
    return true;
 }
+
+bool sb_is_input(SerializerBase *sb) 
+{
+   return  (sb->iomode() == sd_deserialize);
+}
+
+bool sb_is_output(SerializerBase *sb) 
+{
+   return  (sb->iomode() == sd_serialize);
+}
+
+} /* namespace Dyninst */
 
 SerDesBin &SerializerBin::getSD_bin()
 {
@@ -1007,15 +1032,7 @@ AnnotatableBase *SerDesBin::findAnnotatee(void *id)
    return iter->second;
 }
 
-bool sb_is_input(SerializerBase *sb) 
-{
-   return  (sb->iomode() == sd_deserialize);
-}
 
-bool sb_is_output(SerializerBase *sb) 
-{
-   return  (sb->iomode() == sd_serialize);
-}
 
 SerializerBase::SerializerBase(const char *name_, 
       std::string filename, 
@@ -1170,14 +1187,4 @@ void SerializerBase::translate_base(std::string &v, const char *t)
    getSD().translate(v, t);
 }
 
-bool isOutput(SerializerBase *ser)
-{
-   return (ser->iomode() == sd_serialize);
-}
-
-bool isBinary(SerializerBase *ser)
-{
-   SerializerBin *sb = dynamic_cast<SerializerBin *>(ser);
-   return (sb != NULL);
-}
 

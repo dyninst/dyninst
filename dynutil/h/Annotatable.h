@@ -58,20 +58,33 @@ typedef short AnnotationClassID;
 // since can't have a single static in a temlated class that spans all template instances.
 extern int AnnotationClass_nextId;
 
+class SerializerBase;
+
 template <class T> 
 class AnnotationClass {
    public:
+      typedef bool (*ser_func_t) (SerializerBase &, T &);
       // typedef T annotation_realtype;
 
-      AnnotationClass(std::string n) {
+      AnnotationClass(std::string n, bool (*serializer)(SerializerBase &, T&) = NULL) :
+         name(n),
+         serialize_func(serializer)
+      {
          id = AnnotationClass_nextId++;
-         name = n;
       }
+
       AnnotationClassID getID() { return id; }
       std::string &getName() {return name;}
+
+      ser_func_t getSerializeFunc()
+      {
+         return serialize_func;
+      }
+
    private:
       AnnotationClassID id;
       std::string name;
+      ser_func_t serialize_func;
 };
 
 typedef void *anno_list_t;

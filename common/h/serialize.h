@@ -52,6 +52,8 @@
 #include "common/h/sha1.h"
 #include "common/h/pathName.h"
 
+namespace Dyninst {
+
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
 #define DEFAULT_DYNINST_DIR ".dyninstAPI"
 #define DEFAULT_CACHE_DIR "caches"
@@ -567,4 +569,5 @@ class SerTest : public Serializable {
       serialize( &sb);
    }
 };
+} /*namespace Dyninst*/
 #endif
