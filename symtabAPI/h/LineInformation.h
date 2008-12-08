@@ -70,6 +70,14 @@ namespace LineInformationImpl {
 
 DLLEXPORT typedef LineInformationImpl::LineNoTuple LineNoTuple;
 
+struct hash_charptr : public std::unary_function<char*, size_t>
+{
+   size_t operator()(const char* const &p) const
+   {
+      return reinterpret_cast<size_t>(p);
+   }
+};
+
 class LineInformation : public Serializable, 
                         public AnnotatableSparse,
                         private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > 
@@ -117,7 +125,7 @@ class LineInformation : public Serializable,
          bool operator () ( const char * lhs, const char * rhs ) const;
       };
 
-      typedef dyn_hash_set< const char *, boost::hash< const char * >, SourceLineCompare > SourceLineInternTable;
+      typedef dyn_hash_set< const char *, hash_charptr, SourceLineCompare > SourceLineInternTable;
 #else
 
       struct SourceLineLess {

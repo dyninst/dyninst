@@ -4,7 +4,8 @@ CP = cp
 TO_INC = h
 PUBLIC_H = Annotatable.h \
            dyntypes.h \
-           util.h
+           util.h \
+           Serialization.h
 
 world:
 	@echo Nothing to be done for build

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <typeinfo>
 #include <vector>
+#include <assert.h>
 #include "dyntypes.h"
 #include "util.h"
 
