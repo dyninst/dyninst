@@ -51,10 +51,8 @@
 #include "dyntypes.h"
 
 
-#if 0
 namespace Dyninst
 {
-#endif
 
 typedef short AnnotationClassID;
 
@@ -180,7 +178,12 @@ class AnnotatableSparse
          }
       };
 
+#if defined (os_windows)
+      typedef dyn_hash_map<void *, void *> annos_by_type_t;
+#else
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
+#endif
+
       typedef std::vector<annos_by_type_t *> annos_t;
 
    private:
@@ -382,7 +385,6 @@ class AnnotatableSparse
 };
 
 //AnnotatableSparse::annos_t AnnotatableSparse::annos;
-#if 0
 } // namespace
-#endif
+
 #endif

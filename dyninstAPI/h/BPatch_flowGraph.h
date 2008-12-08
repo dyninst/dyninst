@@ -70,7 +70,10 @@ typedef BPatch_basicBlockLoop BPatch_loop;
 #endif
 #define DYNINST_CLASS_NAME BPatch_flowGraph
 
-class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock, public AnnotatableSparse {
+class BPATCH_DLL_EXPORT BPatch_flowGraph : 
+      public BPatch_eventLock, 
+      public Dyninst::AnnotatableSparse 
+{
   friend class BPatch_basicBlock;
   friend class BPatch_function;
   friend class dominatorCFG;

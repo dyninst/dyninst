@@ -51,6 +51,7 @@ namespace Dyninst{
 namespace SymtabAPI{
 
 /* This is clumsy. */
+
 namespace LineInformationImpl {
    class LineNoTuple{
       public:
@@ -69,14 +70,7 @@ namespace LineInformationImpl {
 } /* end namespace LineInformationImpl */			
 
 DLLEXPORT typedef LineInformationImpl::LineNoTuple LineNoTuple;
-
-struct hash_charptr : public std::unary_function<char*, size_t>
-{
-   size_t operator()(const char* const &p) const
-   {
-      return reinterpret_cast<size_t>(p);
-   }
-};
+class SourceLineInternalTableWrapper;
 
 class LineInformation : public Serializable, 
                         public AnnotatableSparse,
@@ -113,6 +107,10 @@ class LineInformation : public Serializable,
 
       DLLEXPORT ~LineInformation();
 
+      // double secret private:
+      SourceLineInternalTableWrapper *getSourceLineNamesW();
+      SourceLineInternalTableWrapper *sourceLineNamesPtr;
+
    protected:
       /* We maintain internal copies of all the source file names.  Because
          both directions of the mapping include pointers to these names,
@@ -120,21 +118,6 @@ class LineInformation : public Serializable,
          (in the destructor).  Note that it speeds and simplifies things
          to have the string pointers be the same. */
 
-#if ! defined( _MSC_VER )		   
-      struct SourceLineCompare {
-         bool operator () ( const char * lhs, const char * rhs ) const;
-      };
-
-      typedef dyn_hash_set< const char *, hash_charptr, SourceLineCompare > SourceLineInternTable;
-#else
-
-      struct SourceLineLess {
-         bool operator () ( const char * lhs, const char * rhs ) const;
-      };
-
-      typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
-#endif 
-      SourceLineInternTable sourceLineNames;
       unsigned size_;
 }; /* end class LineInformation */
 
