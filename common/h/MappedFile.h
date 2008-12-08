@@ -22,6 +22,7 @@ class MappedFile {
       DLLEXPORT int getFD() {return fd;}
 #endif
       DLLEXPORT unsigned long size() {return file_size;}
+      DLLEXPORT MappedFile *clone() { refCount++; return this; }
 
    private:
 

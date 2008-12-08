@@ -341,6 +341,8 @@ DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
 
 
 DLLEXPORT Symtab::Symtab() :
+   mf(NULL),
+   mfForDebugInfo(NULL),
    obj_private(NULL)
 {
   symtab_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
@@ -1224,6 +1226,8 @@ void Symtab::addModuleName(Symbol *mod, const std::string newName)
 }
 
 Symtab::Symtab(std::string filename,bool &err) :
+   mf(NULL),
+   mfForDebugInfo(NULL),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
@@ -1262,6 +1266,8 @@ Symtab::Symtab(std::string filename,bool &err) :
 
 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
+   mf(NULL),
+   mfForDebugInfo(NULL),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false),
@@ -1301,6 +1307,8 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
                bool &err, void *base) :
    member_name_(member_name), 
    member_offset_(offset),
+   mf(NULL),
+   mfForDebugInfo(NULL),
    is_a_out(false),
    main_call_addr_(0), 
    nativeCompiler(false), 
@@ -1327,6 +1335,8 @@ Symtab::Symtab(std::string, std::string, Offset, bool &, void *base)
 Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
                        Offset offset, bool &err, void *base) :
    member_name_(member_name), 
+   mf(NULL),
+   mfForDebugInfo(NULL),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
@@ -1514,75 +1524,77 @@ Symtab::Symtab(const Symtab& obj) :
    Serializable(),
    AnnotatableSparse()
 {
-  symtab_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
+   symtab_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
-    member_name_ = obj.member_name_;
-    imageOffset_ = obj.imageOffset_;
-    imageLen_ = obj.imageLen_;
-    dataOffset_ = obj.dataOffset_;
-    dataLen_ = obj.dataLen_;
+   mf = obj.mf ? obj.mf->clone() : NULL;
+   mfForDebugInfo = obj.mfForDebugInfo ? obj.mfForDebugInfo->clone() : NULL;
+   member_name_ = obj.member_name_;
+   imageOffset_ = obj.imageOffset_;
+   imageLen_ = obj.imageLen_;
+   dataOffset_ = obj.dataOffset_;
+   dataLen_ = obj.dataLen_;
 
-    isLineInfoValid_ = obj.isLineInfoValid_;
-    isTypeInfoValid_ = obj.isTypeInfoValid_;
+   isLineInfoValid_ = obj.isLineInfoValid_;
+   isTypeInfoValid_ = obj.isTypeInfoValid_;
 
-    is_a_out = obj.is_a_out;
-    main_call_addr_ = obj.main_call_addr_; // address of call to main()
+   is_a_out = obj.is_a_out;
+   main_call_addr_ = obj.main_call_addr_; // address of call to main()
     
-    nativeCompiler = obj.nativeCompiler;
-    defaultNamespacePrefix = obj.defaultNamespacePrefix;
+   nativeCompiler = obj.nativeCompiler;
+   defaultNamespacePrefix = obj.defaultNamespacePrefix;
     
-    //sections
-    no_of_sections = obj.no_of_sections;
-    unsigned i;
-    for(i=0;i<obj.regions_.size();i++)
-        regions_.push_back(new Region(*(obj.regions_[i])));
-    for(i=0;i<regions_.size();i++)
-        regionsByEntryAddr[regions_[i]->getRegionAddr()] = regions_[i];
+   //sections
+   no_of_sections = obj.no_of_sections;
+   unsigned i;
+   for(i=0;i<obj.regions_.size();i++)
+      regions_.push_back(new Region(*(obj.regions_[i])));
+   for(i=0;i<regions_.size();i++)
+      regionsByEntryAddr[regions_[i]->getRegionAddr()] = regions_[i];
     
-    //symbols
-    no_of_symbols = obj.no_of_symbols;
+   //symbols
+   no_of_symbols = obj.no_of_symbols;
     
-    for(i=0;i<obj.everyUniqueFunction.size();i++)
-        everyUniqueFunction.push_back(new Symbol(*(obj.everyUniqueFunction[i])));
-    for(i=0;i<everyUniqueFunction.size();i++)
-    {
-        funcsByEntryAddr[everyUniqueFunction[i]->getAddr()].push_back(everyUniqueFunction[i]);
-        addFunctionName(everyUniqueFunction[i],everyUniqueFunction[i]->getName(),true);
-        addFunctionName(everyUniqueFunction[i],everyUniqueFunction[i]->getPrettyName(),false);
-    }	
+   for(i=0;i<obj.everyUniqueFunction.size();i++)
+      everyUniqueFunction.push_back(new Symbol(*(obj.everyUniqueFunction[i])));
+   for(i=0;i<everyUniqueFunction.size();i++)
+   {
+      funcsByEntryAddr[everyUniqueFunction[i]->getAddr()].push_back(everyUniqueFunction[i]);
+      addFunctionName(everyUniqueFunction[i],everyUniqueFunction[i]->getName(),true);
+      addFunctionName(everyUniqueFunction[i],everyUniqueFunction[i]->getPrettyName(),false);
+   }	
     
-    for(i=0;i<obj.everyUniqueVariable.size();i++)
-        everyUniqueVariable.push_back(new Symbol(*(obj.everyUniqueVariable[i])));
-    for(i=0;i<everyUniqueVariable.size();i++)
-    {
-        varsByAddr[everyUniqueVariable[i]->getAddr()] = everyUniqueVariable[i];
-        addVariableName(everyUniqueVariable[i],everyUniqueVariable[i]->getName(),true);
-        addVariableName(everyUniqueVariable[i],everyUniqueVariable[i]->getPrettyName(),false);
-    }
+   for(i=0;i<obj.everyUniqueVariable.size();i++)
+      everyUniqueVariable.push_back(new Symbol(*(obj.everyUniqueVariable[i])));
+   for(i=0;i<everyUniqueVariable.size();i++)
+   {
+      varsByAddr[everyUniqueVariable[i]->getAddr()] = everyUniqueVariable[i];
+      addVariableName(everyUniqueVariable[i],everyUniqueVariable[i]->getName(),true);
+      addVariableName(everyUniqueVariable[i],everyUniqueVariable[i]->getPrettyName(),false);
+   }
 
-    for(i=0;i<obj._mods.size();i++)
-        _mods.push_back(new Module(*(obj._mods[i])));
-    for(i=0;i<_mods.size();i++)
-    {
-        modsByFileName[_mods[i]->fileName()] = _mods[i];
-        modsByFullName[_mods[i]->fullName()] = _mods[i];
-    }
-    for(i=0;i<modSyms.size();i++)
-        modSyms.push_back(new Symbol(*(modSyms[i])));
+   for(i=0;i<obj._mods.size();i++)
+      _mods.push_back(new Module(*(obj._mods[i])));
+   for(i=0;i<_mods.size();i++)
+   {
+      modsByFileName[_mods[i]->fileName()] = _mods[i];
+      modsByFullName[_mods[i]->fullName()] = _mods[i];
+   }
+   for(i=0;i<modSyms.size();i++)
+      modSyms.push_back(new Symbol(*(modSyms[i])));
     
-    for(i=0;i<notypeSyms.size();i++)
-        notypeSyms.push_back(new Symbol(*(obj.notypeSyms[i])));
+   for(i=0;i<notypeSyms.size();i++)
+      notypeSyms.push_back(new Symbol(*(obj.notypeSyms[i])));
     
-    for(i=0; i<relocation_table_.size();i++) {
-        relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-        undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
-    }
+   for(i=0; i<relocation_table_.size();i++) {
+      relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
+      undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+   }
     
-    for(i=0;i<excpBlocks.size();i++)
-        excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
+   for(i=0;i<excpBlocks.size();i++)
+      excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
 
-    deps_ = obj.deps_;
-    setupTypes();
+   deps_ = obj.deps_;
+   setupTypes();
 }
 
 bool Symtab::findModule(Module *&ret, const std::string name)

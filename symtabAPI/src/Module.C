@@ -338,7 +338,7 @@ bool Module::setLineInfo(LineInformation *lineInfo)
       if (li != lineInfo)
          delete li;
 
-      fprintf(stderr, "%s[%d]:  weird, already have line info anno, check this\n", FILE__, __LINE__);
+      //      fprintf(stderr, "%s[%d]:  weird, already have line info anno, check this\n", FILE__, __LINE__);
       if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
       {
          fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
