@@ -25,11 +25,11 @@
 int test1_21_mutatee()
 {
   /* Nothing for the mutatee to do in this test (findFunction in module) */
-#if defined(os_aix) \
- || defined(os_osf) \
- || defined(os_solaris) \
- || defined(os_linux) \
- || defined(os_windows)
+#if defined(os_aix_test) \
+ || defined(os_osf_test) \
+ || defined(os_solaris_test) \
+ || defined(os_linux_test) \
+ || defined(os_windows_test)
      logerror("Passed test #21 (findFunction in module)\n");
      test_passes(testname);
 #else

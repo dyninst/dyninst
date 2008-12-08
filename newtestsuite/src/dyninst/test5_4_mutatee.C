@@ -45,7 +45,7 @@ void static_test::func_cpp()
 }
 
 int test5_4_mutatee() {
-#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
+#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_windows_test)
 
     logerror("Skipped test #4 (static member)\n");
     logerror("\t- not implemented on this platform\n");

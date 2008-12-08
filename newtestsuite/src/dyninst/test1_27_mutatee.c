@@ -75,14 +75,14 @@ float test1_27_globalVariable8[12];
 int test1_27_mutatee() {
   int retval, passed;
 
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4_test) \
+ && !defined(rs6000_ibm_aix4_1_test) \
+ && !defined(alpha_dec_osf4_0_test) \
+ && !defined(i386_unknown_linux2_0_test) \
+ && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_solaris2_5_test) \
+ && !defined(i386_unknown_nt4_0_test) \
+ && !defined(ia64_unknown_linux2_4_test)
 
     logerror("Skipped test #27 (type compatibility)\n");
     logerror("\t- not implemented on this platform\n");

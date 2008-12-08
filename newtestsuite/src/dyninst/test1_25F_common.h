@@ -2,7 +2,7 @@
 
 	INTEGER test1_25_globalVariable1,
 
-#if defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0_test)
      & test1_25_globalVariable2*8,
 #else
      & test1_25_globalVariable2,

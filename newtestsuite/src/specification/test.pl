@@ -157,10 +157,11 @@ mutator_tuple_s([Name, Sources, Libraries, Platform, Compiler],
 % This clause generates duplicates which are removed by the sort/2 call in
 % write_tuples.
 mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
-              ABI, Compiler, Optimization_level, Groupable) :-
+              ABI, Compiler, Optimization_level, Groupable, Module) :-
     test(TestName, _, Name),
     test_platform(TestName, Platform),
     test_platform_abi(TestName, Platform, ABI),
+    tests_module(TestName, Module),
     % This mutatee is groupable if any of the tests that use it are groupable
     % FIXME This is assuming a one-to-one relation between mutators and
     % mutatees.  This should still work as long as the mutatee is only used
@@ -185,12 +186,13 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
 
 % This one handles peers
 mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
-              ABI, Compiler, Optimization_level, Groupable) :-
+              ABI, Compiler, Optimization_level, Groupable, Module) :-
     mutatee(M1, _, _),
     test(TestName, _, M1),
     test_platform(TestName, Platform),
     mutatee_peer(M1, Name),
     mutatee(Name, PreprocessedSources, RS1),
+    tests_module(TestName, Module),
     forall_mutatees(RS2),
     append(RS1, RS2, RS3),
     sort(RS3, RawSources),
@@ -324,8 +326,8 @@ write_tuples(Filename, Platform) :-
             mutator_tuple(N, S, L, Platform, C), Mutators),
     write_term(Stream, Mutators, [quoted(true)]),
     write(Stream, '\n'),
-    findall([N, PS, RS, L, Platform, A, C, O, G],
-            mutatee_tuple(N, PS, RS, L, Platform, A, C, O, G), Mutatees_t),
+    findall([N, PS, RS, L, Platform, A, C, O, G, MO],
+            mutatee_tuple(N, PS, RS, L, Platform, A, C, O, G, MO), Mutatees_t),
     sort(Mutatees_t, Mutatees),
     write_term(Stream, Mutatees, [quoted(true)]),
     write(Stream, '\n'),

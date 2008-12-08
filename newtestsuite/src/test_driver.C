@@ -49,17 +49,21 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
-
+#include <algorithm>
+#include <strings.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <assert.h>
 
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows_test)
 #define vsnprintf _vsnprintf
 #define snprintf _snprintf
 #pragma warning(disable:4786)
 #else
 #include <fnmatch.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <sys/times.h>
 #endif
 
 #include "ParameterDict.h"
@@ -69,13 +73,53 @@
 #include "TestOutputDriver.h"
 #include "StdOutputDriver.h"
 #include "comptester.h"
+#include "help.h"
 
-// Globals, should be eventually set by commandline options
+#define opt_none 1<<0
+#define opt_low 1<<1
+#define opt_high 1<<2
+#define opt_max 1<<3
+#define opt_all (opt_none|opt_low|opt_high|opt_max)
+
+struct compiler_t {
+   const char *option;
+   const char *mutatee_str;
+   bool enabled;
+};
+
+#define NUM_COMPILERS 19
+compiler_t compilers[] = {
+   { "-gcc", "gcc", false },
+   { "-g++", "g++", true },
+   { "-g77", "g77", true },
+   { "-icc", "icc", false },
+   { "-icpc", "icpc", false },
+   { "-pgcc", "pgcc", false },
+   { "-pgCC", "pgCC", false },
+   { "-cc", "cc", false },
+   { "-CC", "CC", false },
+   { "-cxx", "cxx", false },
+   { "-VC", "VC", false },
+   { "-VC++", "VC++", true },
+   { "-suncc", "suncc", false },
+   { "-xlc", "xlc", false },
+   { "-xlC", "xlC", false },
+   { "-ibmas", "ibmas", false },
+   { "-masm", "masm", false },
+   { "-nasm", "nasm", false },
+   { "-nocompiler", "nocompiler", true }
+};
+   
+// These determine the defaults when test driver is invoked with no options
+int optLevel = opt_none;
+bool runDefaultOpts = true;
 bool runAllTests = true;
 bool ranLastTest = false;
 bool runAllMutatees = true;
-bool runAllOptions = true;
-bool runCreate = false;
+bool runDefaultCompilers = true;
+bool runAllCompilers = false;
+bool runDefaultStarts = true;
+bool runCreate = true;
 bool runAttach = false;
 bool useHumanLog = true;
 bool enableLogging = true;
@@ -83,6 +127,14 @@ bool printLabels = false;
 bool shouldDebugBreak = false;
 bool called_from_runTests = false;
 bool quietFormat = false;
+bool runDyninst = false;
+bool runSymtab = false;
+bool runAllComps = true;
+bool printMutateeLogHeader = false;
+bool measureMEMCPU = false;
+bool runAllABIs = true;
+bool runABI_32 = false;
+bool runABI_64 = false;
 int skipToTest = 0;
 int skipToMutatee = 0;
 int skipToOption = 0;
@@ -93,10 +145,11 @@ int debugPrint = 0;
 char *resumelog_name = "resumelog";
 char *humanlog_name = "-";
 char *crashlog_name = "crashlog";
+char *measureFileName = "-";
 std::vector<char *> mutatee_list;
 std::vector<char *> test_list;
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 char *logfilename = "NUL";
 #else
 char *logfilename = "/dev/null";
@@ -114,7 +167,7 @@ int setupLogs();
 // Include test setup data
 #include "test_info_new.h"
 
-#if !defined(os_windows)
+#if !defined(os_windows_test)
 int runScript(const char *name, ...)
 {
    char test[1024];
@@ -148,30 +201,81 @@ int runScript(const char *name, ...) {
 }
 #endif
 
-bool runOnThisPlatform(test_data_t &test)
+#if !defined(os_windows_test)
+static void *mem_start;
+static struct tms start_time;
+
+#include <unistd.h>
+
+void measureStart()
 {
-#if defined(alpha_dec_osf4_0)
-   return test.platforms.alpha_dec_osf5_1;
-#elif defined(i386_unknown_linux2_0)
-   return test.platforms.i386_unknown_linux2_4;
-#elif defined(i386_unknown_nt4_0)
-   return test.platforms._i386_unknown_nt4_0;
-#elif defined(ia64_unknown_linux2_4) 
-   return test.platforms._ia64_unknown_linux2_4;
-#elif defined(x86_64_unknown_linux2_4)
-   return test.platforms._x86_64_unknown_linux2_4;
-#elif defined(mips_sgi_irix6_5)
-   return test.platforms.mips_sgi_irix6_5;
-#elif defined(rs6000_ibm_aix5_1) 
-   return test.platforms._rs6000_ibm_aix5_1;
-#elif defined(sparc_sun_solaris2_4)
-   return test.platforms.sparc_sun_solaris2_8;
-#else
-   return true;
-#endif
+   if (!measureMEMCPU)
+      return;
+
+   mem_start = sbrk(0);
+   times(&start_time);
 }
 
-void printLogMutateeHeader(char *mutatee)
+void measureEnd()
+{
+   if (!measureMEMCPU)
+      return;
+
+   void *mem_end = sbrk(0);
+   struct tms end_time;
+   times(&end_time);
+
+   signed long mem_diff = ((char *) mem_end) - ((char *) mem_start);
+   clock_t utime = end_time.tms_utime - start_time.tms_utime;
+   clock_t stime = end_time.tms_stime - start_time.tms_stime;
+
+   FILE *measure_file = NULL;
+   bool using_stdout;
+   if (strcmp(measureFileName, "-") == 0) {
+      using_stdout = true;
+      measure_file = stdout;
+   }
+   else {
+      using_stdout = false;
+      measure_file = fopen(measureFileName, "a");
+   }
+   if (!measure_file)
+   {
+      perror("Unable to open file for CPU/MEM measurement");
+      return;
+   }
+
+   fprintf(measure_file, "mem=%ld\tutime=%ld\tstime=%ld\n",
+           mem_diff, utime, stime);
+   if (!using_stdout)
+      fclose(measure_file);
+}
+
+void setupProcessGroup()
+{
+   if (!called_from_runTests)
+      return;
+
+   setpgrp();
+}
+
+#else
+
+void measureStart()
+{
+}
+
+void measureEnd()
+{
+}
+
+void setupProcessGroup()
+{
+}
+
+#endif
+
+void printLogMutateeHeader(const char *mutatee)
 {
    if (!enableLogging)
       return;
@@ -181,7 +285,7 @@ void printLogMutateeHeader(char *mutatee)
    // Mutatee Info
    if ( (mutatee != NULL) && (strcmp(mutatee, "") != 0) ) {
       getOutput()->log(LOGINFO, "[Tests with %s]\n", mutatee);
-#if !defined(os_windows)
+#if !defined(os_windows_test)
       if ( pdscrdir ) {
          runScript("ls -lLF %s", mutatee);
          runScript("%s/ldd_PD %s", pdscrdir, mutatee);
@@ -198,6 +302,8 @@ void printLogMutateeHeader(char *mutatee)
 
 void printLogOptionHeader(TestInfo *tinfo)
 {
+   if (!printMutateeLogHeader)
+      return;
    flushOutputLog();
    flushErrorLog();
    // Full test description
@@ -261,7 +367,7 @@ struct failureInfo
 // match on Windows
 // Returns true for match found, false for no match
 bool nameMatches(const char *wcname, const char *tomatch) {
-#if defined(os_windows)
+#if defined(os_windows_test)
    // Sadly, we can't assume the presence of fnmatch on Windows
    return (strcmp(wcname, tomatch) == 0);
 #else
@@ -272,7 +378,7 @@ bool nameMatches(const char *wcname, const char *tomatch) {
 
 // Returns true if the vector mutatee_list contains the string mutatee, and
 // returns false if it does not
-bool mutateeListContains(std::vector<char *> mutatee_list, char *mutatee) {
+bool mutateeListContains(std::vector<char *> mutatee_list, const char *mutatee) {
    if (NULL == mutatee) {
       return false;
    }
@@ -299,43 +405,6 @@ bool testListContains(TestInfo * test,
          return true;
    }
    return false;
-}
-
-void reportTestResult(RunGroup *group, TestInfo *test)
-{
-   if (test->result_reported || test->disabled)
-      return;
-
-   test_results_t result = UNKNOWN;
-
-   for (unsigned i=0; i<NUM_RUNSTATES; i++)
-   {
-      if (test->results[i] == FAILED ||
-          test->results[i] == CRASHED || 
-          test->results[i] == SKIPPED) {
-         result = test->results[i];
-         break;
-      }
-      else if (test->results[i] == PASSED) {
-         result = test->results[i];
-      }
-      else if (test->results[i] == UNKNOWN) {
-         return;
-      }
-      else {
-         assert(0 && "Unknown run state");
-      }
-   }
-   assert(result != UNKNOWN);
-
-   std::map<std::string, std::string> attrs;
-   TestOutputDriver::getAttributesMap(test, group, attrs);
-   getOutput()->startNewTest(attrs);
-   getOutput()->logResult(result);
-   getOutput()->finalizeOutput();
-
-   log_testreported(group->index, test->index);
-   test->result_reported = true;
 }
 
 int numUnreportedTests(RunGroup *group)
@@ -388,7 +457,7 @@ void executeTest(ComponentTester *tester,
    {
       log_teststart(group_num, test_num, test_teardown_rs);
       test->results[test_teardown_rs] = tester->test_teardown(test, param);
-      log_teststart(group_num, test_num, test_teardown_rs);
+      log_testresult(test->results[test_teardown_rs]);
    }
 
    for (unsigned j=0; j<new_params.size(); j++)
@@ -397,21 +466,10 @@ void executeTest(ComponentTester *tester,
 
 void disableUnwantedTests(std::vector<RunGroup *> groups)
 {
-   if (!runAllOptions) {
+   if (!runCreate || !runAttach) {
       for (unsigned  i = 0; i < groups.size(); i++) {
          if (((groups[i]->useAttach == CREATE) && runAttach) ||
              ((groups[i]->useAttach == USEATTACH) && runCreate))
-         {
-            for (unsigned j=0; j<groups[i]->tests.size(); j++)
-               groups[i]->tests[j]->disabled = true;
-            groups[i]->disabled = true;
-         }
-      }
-   }
-   if (!runAllMutatees)
-   {
-      for (unsigned  i = 0; i < groups.size(); i++) {
-         if (!mutateeListContains(mutatee_list, groups[i]->mutatee))
          {
             for (unsigned j=0; j<groups[i]->tests.size(); j++)
                groups[i]->tests[j]->disabled = true;
@@ -429,6 +487,93 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
          }
       }
    }
+   if (!runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (!mutateeListContains(mutatee_list, groups[i]->mutatee))
+         {
+            for (unsigned j=0; j<groups[i]->tests.size(); j++)
+               groups[i]->tests[j]->disabled = true;
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runAllComps && runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (!groups[i]->mod || 
+             (!runDyninst && groups[i]->mod->name == std::string("dyninst")) ||
+             (!runSymtab && groups[i]->mod->name == std::string("symtab")))
+         {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   else 
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (!groups[i]->mod)
+            groups[i]->disabled = true;
+      }
+   }
+   if (!runAllCompilers && runAllMutatees)
+   {
+      for (unsigned i=0; i<groups.size(); i++)
+      {
+         if (groups[i]->disabled)
+            continue;
+         bool compiler_enabled = false;
+         const char *compiler_name;
+         if (!groups[i]->mutatee || strlen(groups[i]->mutatee) == 0)
+            compiler_name = "nocompiler";
+         else {
+            compiler_name = groups[i]->compiler;
+         }
+         for (unsigned j=0; j<NUM_COMPILERS; j++)
+         {
+            if (strcmp(compiler_name, compilers[j].mutatee_str) == 0)
+            {
+               compiler_enabled = compilers[j].enabled;
+               break;
+            }
+         }
+         if (!compiler_enabled)
+            groups[i]->disabled = true;
+      }
+   }
+   if (optLevel != opt_all && runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->disabled)
+            continue;
+         if (!groups[i]->optlevel)
+            continue;
+         if ((optLevel&opt_none) && (strcmp(groups[i]->optlevel, "none")==0))
+            continue;
+         if ((optLevel&opt_low) && (strcmp(groups[i]->optlevel, "low")==0))
+            continue;
+         if ((optLevel&opt_high) && (strcmp(groups[i]->optlevel, "high")==0))
+            continue;
+         if ((optLevel&opt_max) && (strcmp(groups[i]->optlevel, "max")==0))
+            continue;
+         groups[i]->disabled = true;
+      }      
+   }
+#if defined(cap_32_64_test)
+   if (!runAllABIs && runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) 
+      {
+         if (groups[i]->disabled)
+            continue;
+         if (runABI_32 && strcmp(groups[i]->abi, "32") == 0)
+            continue;
+         if (runABI_64 && strcmp(groups[i]->abi, "64") == 0)
+            continue;
+         groups[i]->disabled = true;            
+      }
+   }
+#endif
 
    parse_resumelog(groups);
    for (unsigned  i = 0; i < groups.size(); i++) {
@@ -531,15 +676,56 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    }
 }
 
+#define is_int(x) (x >= '0' && x <= '9')
+bool strint_lt(const char *lv, const char *rv)
+{
+   int i = 0;
+   while (lv[i] != '\0' && rv[i] != '\0')
+   {
+      if (lv[i] == rv[i]) {
+         i++;
+         continue;
+      }
+
+      bool lint = is_int(lv[i]);
+      bool rint = is_int(rv[i]);
+
+      if (lint && !rint)
+         return true;
+      else if (!lint && rint)
+         return false;
+      else if (!lint && !rint)
+         return (lv[i] < rv[i]);
+      else {
+         return atoi(lv+i) < atoi(rv+i);
+      }
+   }
+   if (lv[i] == '\0' && rv[i] != '\0')
+      return true;
+   return false;
+}
+
 struct groupcmp 
 {
    bool operator()(const RunGroup* lv, const RunGroup* rv)
    {
+      if (!lv->mod)
+         return false;
+      if (!rv->mod)
+         return true;
       if (lv->mod == rv->mod)
       {
-         return std::string(lv->mutatee).compare(rv->mutatee) == -1;
+         return strint_lt(lv->mutatee, rv->mutatee);
       }
       return std::string(lv->mod->name).compare(rv->mod->name) == -1;
+   }
+};
+
+struct testcmp 
+{
+   bool operator()(const TestInfo* lv, const TestInfo* rv)
+   {
+      return strint_lt(lv->name, rv->name);
    }
 };
 
@@ -551,8 +737,7 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
       return;
    for (unsigned j=0; j<group->tests.size(); j++)
    {
-      if (group->tests[j]->results[program_setup_rs] == UNKNOWN &&
-          !group->tests[j]->disabled)
+      if (group->mod && !group->mod->setupRun() && !group->tests[j]->disabled)
          initModule = true;
    }
    if (!initModule)
@@ -561,6 +746,8 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
    log_teststart(group->index, 0, program_setup_rs);
    test_results_t result = group->mod->tester->program_setup(params);
    log_testresult(result);
+
+   group->mod->setSetupRun(true);
 
    for (unsigned i=0; i<groups.size(); i++) {
       if (groups[i]->disabled || groups[i]->mod != group->mod)
@@ -579,7 +766,6 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
 void startAllTests(std::vector<RunGroup *> &groups,
                    std::vector<char *> mutatee_list)
 {
-
    // Begin setting up test parameters
    ParameterDict param;
    unsigned i;
@@ -600,7 +786,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
 
    // Print Test Log Header
    getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
-#if !defined(os_windows)
+#if !defined(os_windows_test)
    if ( pdscrdir )
    {
       runScript("date");
@@ -612,22 +798,26 @@ void startAllTests(std::vector<RunGroup *> &groups,
    // Sets the disable flag on groups and tests that weren't selected by
    // options or have alread been passed according to the resumelog
    std::sort(groups.begin(), groups.end(), groupcmp());
+   for (i=0; i<groups.size(); i++)
+      std::sort(groups[i]->tests.begin(), groups[i]->tests.end(), testcmp());
+
    setIndexes(groups);
    disableUnwantedTests(groups);
 
    std::vector<Module *> modules;
    Module::getAllModules(modules);
 
+   measureStart();
+
    for (i = 0; i < groups.size(); i++) {
       if (groups[i]->disabled)
          continue;
 
-      //If we fail (or have the test limit reached), then have the log resume 
-      // us at this group
+      //If we fail then have the log resume us at this group
       log_resumepoint(i, 0);
 
       if (testLimit && testsRun >= testLimit) {
-         return;
+         break;
       }
 
       initModuleIfNecessary(groups[i], groups, param);
@@ -650,21 +840,48 @@ void startAllTests(std::vector<RunGroup *> &groups,
          }
       }
    }
-
    if (i==groups.size())
       ranLastTest = true;
+   unsigned final_group = i;
+   
+   for (i = 0; i < final_group; i++) {
+     Module *mod = groups[i]->mod;
+     if (!mod || !mod->isInitialized() || groups[i]->disabled)
+       continue;
+     
+     log_teststart(groups[i]->index, 0, program_teardown_rs);
+     test_results_t result = mod->tester->program_teardown(param);
+     log_testresult(result);
 
-   log_clear();
-    
+     for (unsigned j=0; j < groups[i]->tests.size(); j++)
+     {
+       if (!groups[i]->tests[j]->disabled) {
+          groups[i]->tests[j]->results[program_teardown_rs] = result;
+       }
+       reportTestResult(groups[i], groups[i]->tests[j]);
+     }
+     mod->setInitialized(false);
+   }
+
+   if (ranLastTest)
+      log_clear();
+   else 
+      log_resumepoint(final_group, 0);   
+
+   measureEnd();
+
+   cleanPIDFile();
    return;
 } // startAllTests()
 
 void DebugPause() {
    getOutput()->log(STDERR, "Waiting for attach by debugger\n");
-#if defined(os_windows)
+#if defined(os_windows_test)
    DebugBreak();
 #else
-   sleep(10);
+   static volatile int set_me = 0;
+   while (!set_me)
+     P_sleep(1);
 #endif
 }
 
@@ -677,7 +894,7 @@ void setPDScriptDir(bool skip_warning)
    pdscrdir = getenv("PDSCRDIR");
    if ( pdscrdir == NULL )
    {
-#if !defined(os_windows)
+#if !defined(os_windows_test)
       // Environment variable not set, try default wisc/umd directories
       DIR *dir;
       dir = opendir(uw_pdscrdir);
@@ -725,7 +942,7 @@ void setPDScriptDir(bool skip_warning)
 }
    
 void updateSearchPaths(const char *filename) {
-#if !defined(os_windows)
+#if !defined(os_windows_test)
    // First, find the directory we reside in
 
    char *execpath;
@@ -770,14 +987,14 @@ void updateSearchPaths(const char *filename) {
    assert(!putenv(envCopy));
     
    char *envLibPath;
-#if defined(os_aix)
+#if defined(os_aix_test)
    envLibPath = getenv("LIBPATH");
 #else
    envLibPath = getenv("LD_LIBRARY_PATH");
 #endif
     
    envCopy = (char *) ::malloc(((envLibPath && strlen(envLibPath)) ? strlen(envLibPath) + 1 : 0) + strlen(execpath) + 17);
-#if defined(os_aix)
+#if defined(os_aix_test)
    strcpy(envCopy, "LIBPATH=");
 #else
    strcpy(envCopy, "LD_LIBRARY_PATH=");
@@ -817,6 +1034,8 @@ int main(int argc, char *argv[]) {
       getOutput()->log(LOGINFO, "WARNING: No mutatees specified\n");
    }
 
+   setupProcessGroup();
+
    // Set the resume log name
    if ( getenv("RESUMELOG") ) {
       resumelog_name = getenv("RESUMELOG");
@@ -843,7 +1062,7 @@ int setupLogs()
    // Set the script dir if we require scripts
    if ( enableLogging )
    {
-      setPDScriptDir(called_from_runTests);
+     setPDScriptDir(true);
    }
 
    // Set up the logging file..
@@ -892,21 +1111,17 @@ int parseArgs(int argc, char *argv[])
          quietFormat = true;
       }
       else if ( strcmp(argv[i], "-skipTo")==0)
-         // TODO Remove this option
       {
          // skip to test i+1
          skipToTest = atoi(argv[++i]);
       }
       else if ( strcmp(argv[i], "-log")==0)
       {
-         bool logfile_found = false;
+         logfilename = "-";
          if ((i + 1) < argc) {
-            // Check whether the next argument is a filename to log to
-            if ((argv[i + 1][0] != '-') || (argv[i + 1][1] == '\0')) {
-               // It either doesn't start with '-' or is exactly "-"
+            if ((argv[i + 1][0] != '-') || (argv[i + 1][1] != '\0')) {
                i += 1;
                logfilename = argv[i];
-               logfile_found = true;
             }
          }
       }
@@ -1001,17 +1216,118 @@ int parseArgs(int argc, char *argv[])
       // TODO -attach and -create are DyninstAPI specific
       else if ( strcmp(argv[i], "-attach") == 0 )
       {
-         runAllOptions = false;
+         if (runDefaultStarts)
+         {
+            runCreate = false;
+         }
          runAttach = true;
+         runDefaultStarts = false;
       }
       else if ( strcmp(argv[i], "-create") == 0 )
       {
-         runAllOptions = false;
+         if (runDefaultStarts)
+         {
+            runAttach = false;
+         }
          runCreate = true;
+         runDefaultStarts = false;
+      }
+      else if (strcmp(argv[i], "-allmode") == 0)
+      {
+         runCreate = true;
+         runAttach = true;
+         runDefaultStarts = false;
+      }
+      else if (strcmp(argv[i], "-all") == 0)
+      {
+         runCreate = true;
+         runAttach = true;
+         runAllCompilers = true;
+         runAllComps = true;
+      }
+      else if (strcmp(argv[i], "-full") == 0)
+      {
+         //Like -all, but with full optimization levels
+         runCreate = true;
+         runAttach = true;
+         runAllCompilers = true;
+         runAllComps = true;
+         optLevel = opt_all;
+      }
+      else if ( strcmp(argv[i], "-dyninst") == 0)
+      {
+         runDyninst = true;
+         runAllComps = false;
+      }
+      else if ( strcmp(argv[i], "-symtab") == 0)
+      {
+         runSymtab = true;
+         runAllComps = false;
+      }
+      else if (strcmp(argv[i], "-allcomp") == 0)
+      {
+         runSymtab = true;
+         runDyninst = true;
+         runAllComps = true;
+      }
+      else if (strcmp(argv[i], "-max") == 0)
+      {
+         runDefaultOpts = false;
+         optLevel |= opt_max;
+      }
+      else if (strcmp(argv[i], "-high") == 0)
+      {
+         runDefaultOpts = false;
+         optLevel |= opt_high;
+      }
+      else if (strcmp(argv[i], "-low") == 0)
+      {
+         runDefaultOpts = false;
+         optLevel |= opt_low;
+      }
+      else if (strcmp(argv[i], "-none") == 0)
+      {
+         runDefaultOpts = false;
+         optLevel |= opt_none;
+      }
+      else if (strcmp(argv[i], "-allopt") == 0)
+      {
+         runDefaultOpts = false;
+         optLevel |= opt_all;
+      }
+      else if (strcmp(argv[i], "-32") == 0)
+      {
+         runAllABIs = false;
+         runABI_32 = true;
+      }
+      else if (strcmp(argv[i], "-64") == 0)
+      {
+         runAllABIs = false;
+         runABI_64 = true;
+      }
+      else if ((strcmp(argv[i], "-cpumem") == 0) ||
+               (strcmp(argv[i], "-memcpu") == 0))
+      {
+         measureMEMCPU = true;
+         if (i+1 < argc)
+         {
+            if (argv[i+1][0] != '-')
+            {
+               i++;
+               measureFileName = argv[i];
+            }
+            else if (argv[i+1][1] == '\0')
+            {
+               i++;
+               measureFileName = "-";
+            }
+         }
       }
       else if ((strcmp(argv[i], "-enable-resume") == 0) ||
                (strcmp(argv[i], "-use-resume") == 0)) {
          enableResumeLog();
+      } else if ( strcmp(argv[i], "-header") == 0 ) {
+         printMutateeLogHeader = true;
       } else if ( strcmp(argv[i], "-limit") == 0 ) {
          if ( i + 1 >= argc ) {
             getOutput()->log(STDERR, "-limit must be followed by an integer limit\n");
@@ -1036,10 +1352,10 @@ int parseArgs(int argc, char *argv[])
       } else if (strcmp(argv[i], "-under-runtests") == 0) {
          called_from_runTests = true;
       }
-      else if ( strcmp(argv[i], "-help") == 0) {
-         getOutput()->log(STDOUT, "Usage: %s [-skipTo <test_num>] [-humanlog filename] [-verbose]\n", argv[0]);
-         getOutput()->log(STDOUT, "       [-log] [-test <name> ...]\n", argv[0]);
-         return SUCCESS;
+      else if ((strcmp(argv[i], "-help") == 0) ||
+               (strcmp(argv[i], "--help") == 0)) {
+         print_help();
+         exit(-5);
       }
       else if (strcmp(argv[i], "-pidfile") == 0) {
          char *pidFilename = NULL;
@@ -1089,11 +1405,36 @@ int parseArgs(int argc, char *argv[])
             setOutput(newoutput);
          }
       }
+      else if (strcmp(argv[i], "-allcompilers") == 0)
+      {
+         runDefaultCompilers = false;
+         runAllCompilers = true;
+      }
       else
       {
-         getOutput()->log(STDOUT, "Unrecognized option: '%s'\n", argv[i]);
-         return NOTESTS;
+         bool found_compiler_option = false;
+         for (unsigned j=0; j<NUM_COMPILERS; j++)
+         {
+            if (runDefaultCompilers)
+            {
+               //The first time we see a compiler option, disable the
+               // ones that are default on.
+               compilers[j].enabled = false;
+            }
+            if (strcmp(argv[i], compilers[j].option) == 0)
+            {
+               compilers[j].enabled = true;
+               found_compiler_option = true;
+            }
+         }
+         runDefaultCompilers = false;
+
+         if (!found_compiler_option) {
+            getOutput()->log(STDOUT, "Unrecognized option: '%s'\n", argv[i]);
+            return NOTESTS;
+         }
       }
    }
    return 0;
 }
+

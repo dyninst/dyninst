@@ -45,7 +45,7 @@ void test4_2_func2() {
 }
 
 int test4_2_mutatee() {
-#ifndef i386_unknown_nt4_0
+#ifndef os_windows_test
     int pid;
 
     pid = fork();
@@ -56,44 +56,30 @@ int test4_2_mutatee() {
     }
 
     if (pid >= 0) {
-        /* both parent and child exit here */
-        test4_2_func2();
-        dprintf("at exit of %d, test4_2_global1 = %d\n", (int) getpid(),
-                test4_2_global1);
-
-#if defined(rs6000_ibm_aix4_1)
-	if( pid == 0){
-	        /* On AIX the child dies when the parent exits, so wait */
-		/* apparently the parent needs to wake up occasionally to keep Dyninst happy */
-		dprintf("%d SLEEPING\n",getpid());
-        	sleep(5);
-		dprintf("%d SLEEP MORE\n",getpid());
-		sleep(1);
-		dprintf("%d SLEEP MORE\n",getpid());
-		sleep(5);
-		dprintf("%d DONE SLEEPING\n",getpid());
-	}
+       /* both parent and child exit here */
+       test4_2_func2();
+       dprintf("at exit of %d, test4_2_global1 = %d\n", (int) getpid(),
+               test4_2_global1);
+       
+#if defined(rs6000_ibm_aix4_1_test)
+       if( pid == 0){
+          /* On AIX the child dies when the parent exits, so wait */
+          /* apparently the parent needs to wake up occasionally to keep Dyninst happy */
+          dprintf("%d SLEEPING\n",getpid());
+          sleep(5);
+          dprintf("%d SLEEP MORE\n",getpid());
+          sleep(1);
+          dprintf("%d SLEEP MORE\n",getpid());
+          sleep(5);
+          dprintf("%d DONE SLEEPING\n",getpid());
+       }
 #endif
         
-        /* Make the parent exit first (again, testing) */
-        if (pid == 0) {
-		dprintf("%d SLEEPING\n",getpid());
-            sleep(1);
-		dprintf("%d SLEEPING\n",getpid());
-            sleep(1);
-		dprintf("%d SLEEPING\n",getpid());
-            sleep(1);
-		dprintf("%d SLEEPING\n",getpid());
-            sleep(1);
-		dprintf("%d SLEEPING\n",getpid());
-            sleep(1);
-        }
-
-	dprintf("Mutatee %d exiting...\n", getpid());
-        exit(getpid());
+       dprintf("Mutatee %d exiting...\n", getpid());
+       exit(getpid());
     } else if (pid < 0) {
-        /* error case */
-        exit(pid);
+       /* error case */
+       exit(pid);
     }
 #endif
     return 0; /* No error, technically.  Shouldn't get here */

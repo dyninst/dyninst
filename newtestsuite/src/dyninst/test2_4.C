@@ -44,7 +44,7 @@
  * #Name: test2_4
  * #Desc: Attach to a protected pid
  * #Dep: 
- * #Arch: !sparc_sun_sunos4_1_3
+ * #Arch: !sparc_sun_sunos4_1_3_test
  * #Notes:
  */
 
@@ -100,7 +100,7 @@ test_results_t test2_4_Mutator::setup(ParameterDict &param) {
   int useAttach = param["useAttach"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
-#if defined(sparc_sun_sunos4_1_3)
+#if defined(sparc_sun_sunos4_1_3_test)
     logerror("Skipping test #4 (attach to a protected pid)\n");
     logerror("    attach is not supported on this platform\n");
     return SKIPPED;

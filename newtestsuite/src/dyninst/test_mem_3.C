@@ -44,7 +44,7 @@
  * #Name: test6_3
  * #Desc: Prefetch Instrumentation
  * #Dep: 
- * #Arch: !(sparc_sun_solaris2_4,,rs6000_ibm_aix4_1,i386_unknown_linux2_0,x86_64_unknown_linux2_4,i386_unknown_nt4_0,ia64_unknown_linux2_4)
+ * #Arch: !(sparc_sun_solaris2_4_test,,rs6000_ibm_aix4_1_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,i386_unknown_nt4_0_test,ia64_unknown_linux2_4_test)
  * #Notes:
  */
 
@@ -65,7 +65,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test_mem_3_factory() {
   return new test_mem_3_Mutator();
 }
 
-#ifdef sparc_sun_solaris2_4
+#ifdef arch_sparc_test
 static const unsigned int nprefes = 2;
 static BPatch_memoryAccess* prefeList[nprefes];
 
@@ -77,7 +77,7 @@ static void init_test_data()
 }
 #endif
 
-#ifdef rs6000_ibm_aix4_1
+#ifdef arch_power_test
 static const unsigned int nprefes = 0;
 #if defined(__XLC__) || defined(__xlC__)
 static BPatch_memoryAccess* *prefeList;
@@ -115,8 +115,7 @@ static void get_vars_addrs(BPatch_image* bip) // from mutatee
 }
 
 
-#if defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+#if defined(arch_x86_test)
 static const unsigned int nprefes = 2;
 static BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
 
@@ -129,7 +128,7 @@ static void init_test_data()
 }
 #endif
 
-#ifdef ia64_unknown_linux2_4
+#ifdef arch_ia64_test
 static const unsigned int nprefes = 3;
 static BPatch_memoryAccess* prefeList[nprefes];
 static void init_test_data() {
@@ -140,7 +139,7 @@ static void init_test_data() {
 
 #endif
 
-#ifdef x86_64_unknown_linux2_4
+#ifdef arch_x86_64_test
 static const unsigned int nprefes = 2;
 
 static BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
@@ -155,34 +154,16 @@ static void init_test_data()
 }
 #endif
 
-#ifdef mips_sgi_irix6_4
-static void init_test_data()
-{
-}
-#endif
-
-#ifdef alpha_dec_osf4_0
-static void init_test_data()
-{
-}
-#endif
-
-
 // Find and instrument loads with a simple function call snippet
 // static int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 test_results_t test_mem_3_Mutator::executeTest() {
   int testnum = 3;
   const char* testdesc = "prefetch instrumentation";
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(arch_sparc_test) && !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test) && !defined(arch_ia64_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86_test) || defined(arch_x86_64_test)
   get_vars_addrs(appImage);
 #endif
   init_test_data();

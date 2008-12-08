@@ -6,10 +6,10 @@
  * names.  I suggest following the pattern <testname>_<function>
  */
 
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_solaris2_5_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4_test)
 
 #ifndef Fortran
 #ifdef __cplusplus
@@ -36,10 +36,10 @@ extern int test1_35_call1();
 /* Function definitions follow */
 
 int test1_35_mutatee() {
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4)  
+#if defined(i386_unknown_solaris2_5_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4_test)  
 
 #if !defined Fortran
 
@@ -68,10 +68,10 @@ int test1_35_mutatee() {
 #else
     test_passes(testname);
     logerror( "Skipped test #35 (function relocation)\n" );
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
     logerror( "\t- test not implemented for this platform\n" );
 #else
-#if defined(ia64_unknown_linux2_4)
+#if defined(ia64_unknown_linux2_4_test)
     logerror( "\t- not applicable to this platform.\n" );
 #else
     logerror( "\t- not implemented on this platform\n" );

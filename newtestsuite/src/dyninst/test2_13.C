@@ -44,7 +44,7 @@
  * #Name: test2_13
  * #Desc: loadLibrary failure test
  * #Dep: 
- * #Arch: !(i386_unknown_nt4_0,alpha_dec_osf4_0)
+ * #Arch: !(i386_unknown_nt4_0_test,alpha_dec_osf4_0_test)
  * #Notes:
  */
 

@@ -84,5 +84,7 @@ LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
 
+TESTDRIVER_LDFLAGS = -liberty
+
 include ../make.module.tmpl
 

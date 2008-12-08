@@ -306,7 +306,7 @@ BPatch_process *test_thread_6_Mutator::getProcess()
 	registerPID(pid); // Register for cleanup
       }
 
-#if defined(os_windows)
+#if defined(os_windows_test)
       P_sleep(1);
 #endif
 

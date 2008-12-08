@@ -2,7 +2,7 @@
 #define RUNTESTS_UTILS_H
 
 /* Windows Specific Includes and Macros */
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
 // For getpid
 #include <process.h>
 #define popen _popen
@@ -16,11 +16,11 @@
 
 #endif
 
-#if !defined(os_aix) && !defined(os_windows)
+#if !defined(os_aix_test) && !defined(os_windows_test)
 #include <wait.h>
 #endif
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
 #define WEXITSTATUS(x) x
 #endif
 
@@ -38,7 +38,7 @@ void cleanupMutatees(char *pidFilename);
 
 int RunTest(unsigned int iteration, bool useLog, bool staticTests,
 	    string logfile, int testLimit, vector<char *> child_argv,
-	    char *pidFilename);
+            char *pidFilename, const char *memcpu_name);
 
 bool isRegFile(const string& filename);
 

@@ -146,6 +146,6 @@ test_results_t test1_29_Mutator::executeTest() {
     setExpectError(DYNINST_NO_ERROR);
 
     int n = 1;
-    expr29_1->writeValue(&n,true); //ccw 31 jul 2002
+    expr29_1->writeValue(&n,true);
     return PASSED;
 }

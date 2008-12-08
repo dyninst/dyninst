@@ -46,7 +46,7 @@ dfvard: .align 3
 	#l	7,T.divarw(2)
 	# but avoid that because the offset is unknow(?)
 	# afaict, the linker may reorder/combine .tc entries...
-#if defined(arch_64bit)
+#if defined(arch_64bit_test)
 	la	7,T.divarw(2)
 #else
 	la	7,T.divarw@plt(2)
@@ -185,7 +185,7 @@ loop2:	ldarx	5,0,7
 	# VG(11/22/01) Now it only happens with xlc mutatees but not with
 	# gcc mutatees... Very odd...
 #	bne-	loop2
-#if defined(arch_64bit)
+#if defined(arch_64bit_test)
 	la	4,T.dfvars(2)
 #else
 	la	4,T.dfvars@plt(2)
@@ -199,7 +199,7 @@ loop2:	ldarx	5,0,7
 	lfsu	7,0(4)
 	mr	4,5
 	lfsux	8,6,4
-#if defined(arch_64bit)
+#if defined(arch_64bit_test)
 	la	6,T.dfvard(2)
 #else
 	la	6,T.dfvard@plt(2)
@@ -245,7 +245,7 @@ loop2:	ldarx	5,0,7
 .globl .gettoc
 
 	# addi	3,2,T.divarw - This doesn't compile even tough it the same as:
-#if defined(arch_64bit)
+#if defined(arch_64bit_test)
 	la	3,T.divarw(2)  # T.divarw is not 0 at execution time!
 #else
 	la	3,T.divarw@plt(2)  # T.divarw is not 0 at execution time!
@@ -257,7 +257,7 @@ loop2:	ldarx	5,0,7
 #.globl .getsp[PR]
 #.csect .getsp[PR]
 .globl .getsp
-#if defined(arch_64bit)
+#if defined(arch_64bit_test)
 	l	7,T.divarw(2)	
 #else
 	l	7,T.divarw@plt(2)	

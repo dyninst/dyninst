@@ -137,6 +137,13 @@ mutatee('dyninst_cxx_group_test', ['test5_1_mutatee.C',
 compiler_for_mutatee('dyninst_cxx_group_test', Compiler) :-
     comp_lang(Compiler, 'c++').
 
+mutatee('symtab_group_test', [
+   'test_lookup_func_mutatee.c',
+	'test_lookup_var_mutatee.c'
+   ]).
+compiler_for_mutatee('symtab_group_test', Compiler) :-
+    comp_lang(Compiler, 'c').
+
 test('test1_1', 'test1_1', 'dyninst_group_test').
 test_description('test1_1', 'instrument with zero-arg function call').
 test_runs_everywhere('test1_1').
@@ -959,7 +966,7 @@ test_mem_platform(Platform) :-
         platform('x86_64', 'linux', _, Platform).
 
 % Special flags for asm files on Solaris
-spec_object_file(OFile, 'gcc', ['test6LS-sparc.S'], [], [],
+spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
                  ['-P -Wa,-xarch=v8plus']) :-
     current_platform('sparc-sun-solaris2.8'),
     member(OFile, ['test6LS-sparc_gcc_32_none', 'test6LS-sparc_gcc_32_low',
@@ -2058,6 +2065,25 @@ test_start_state('test_sparc_4', 'stopped').
 groupable_test('test_sparc_4').
 tests_module('test_sparc_4', 'dyninst').
 
+% SymtabAPI tests
+
+test('test_lookup_func', 'test_lookup_func', 'symtab_group_test').
+test_description('test_lookup_func', 'Lookup a single function with SymtabAPI').
+test_runs_everywhere('test_lookup_func').
+groupable_test('test_lookup_func').
+mutator('test_lookup_func', ['test_lookup_func.C']).
+test_runmode('test_lookup_func', 'createProcess').
+test_start_state('test_lookup_func', 'stopped').
+tests_module('test_lookup_func', 'symtab').
+
+test('test_lookup_var', 'test_lookup_var', 'symtab_group_test').
+test_description('test_lookup_var', 'Lookup a single function with SymtabAPI').
+test_runs_everywhere('test_lookup_var').
+groupable_test('test_lookup_var').
+mutator('test_lookup_var', ['test_lookup_var.C']).
+test_runmode('test_lookup_var', 'createProcess').
+test_start_state('test_lookup_var', 'stopped').
+tests_module('test_lookup_var', 'symtab').
 
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
@@ -2214,6 +2240,11 @@ compiler_platform('xlC', 'rs6000-ibm-aix5.1').
 % Solariss native compilers are cc & CC
 compiler_platform('sun_cc', Plat) :- platform(_, OS, _, Plat), OS = 'solaris'.
 compiler_platform('CC', Plat) :- platform(_, OS, _, Plat), OS = 'solaris'.
+% Intel cc on Linux/x86 and Linux/x86_64
+compiler_platform('icc', Plat) :- 
+    platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
+compiler_platform('iCC', Plat) :-
+    platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
 
 % linker/2
 % linker(?Platform, ?Linker)
@@ -2244,6 +2275,8 @@ aux_compiler_for_platform(Platform, 'att_asm', 'gcc') :-
     \+ member(OS, ['windows', 'aix']).
 aux_compiler_for_platform(Platform, 'power_asm', 'ibm_as') :-
         platform('power', 'aix', _, Platform).
+aux_compiler_for_platform(Platform, 'sparc_asm', 'gcc') :-
+        platform('sparc', 'solaris', _, Platform).
 
 % mcomp_plat/2
 % mcomp_plat(?Compiler, ?Platform)
@@ -2266,6 +2299,7 @@ lang('att_asm').
 lang('masm_asm').
 lang('nasm_asm').
 lang('power_asm').
+lang('sparc_asm').
 
 % Language-file extension mappings
 lang_ext('fortran', '.F').
@@ -2276,6 +2310,7 @@ lang_ext('att_asm', '.S').
 lang_ext('power_asm', '.s'). % On POWER/AIX
 lang_ext('masm_asm', '.asm').
 lang_ext('nasm_asm', '.asm').
+lang_ext('sparc_asm', '.s').
 
 % lang_ext sanity checking
 % No platform should have compilers defined for multiple languages that share
@@ -2301,10 +2336,10 @@ insane('Too many compilers on platform P1 for extension P2',
 % Compiler/language constraints
 comp_lang('g77', 'fortran').
 comp_lang(Compiler, 'c') :-
-    member(Compiler, ['gcc', 'pgcc', 'VC', 'cc', 'sun_cc', 'xlc']);
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC']).
+    member(Compiler, ['gcc', 'pgcc', 'VC', 'cc', 'sun_cc', 'xlc', 'icc']);
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC']).
 comp_lang(Compiler, 'c++') :-
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC']).
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC']).
 comp_lang('gcc', 'att_asm') :-
     % We dont use gcc for assembly files on AIX
     current_platform(Platform),
@@ -2325,6 +2360,8 @@ mutatee_comp('cxx').
 mutatee_comp('CC').
 mutatee_comp('xlc').
 mutatee_comp('xlC').
+mutatee_comp('icc').
+mutatee_comp('iCC').
 
 % compiler_presence_def/2
 % compiler_presence_def(Compiler, EnvironmentVariable)
@@ -2334,21 +2371,25 @@ mutatee_comp('xlC').
 % FIXME Theres got to be a better way to do this.
 compiler_presence_def('pgcc', 'PGI').
 compiler_presence_def('pgCC', 'PGI').
+compiler_presence_def('icc', 'ICC').
+compiler_presence_def('iCC', 'ICC').
 
 % Translations between compiler names and compiler #defines
 compiler_define_string('gcc', 'gnu_cc').
 compiler_define_string('g++', 'gnu_cxx').
-compiler_define_string('pgcc', 'native_cc').
+compiler_define_string('pgcc', 'pg_cc').
 compiler_define_string('VC', 'native_cc').
 compiler_define_string('cc', 'native_cc').
 compiler_define_string('sun_cc', 'native_cc').
 compiler_define_string('xlc', 'native_cc').
-compiler_define_string('pgCC', 'native_cxx').
+compiler_define_string('pgCC', 'pg_cxx').
 compiler_define_string('VC++', 'native_cxx').
 compiler_define_string('cxx', 'native_cxx').
 compiler_define_string('CC', 'native_cxx').
 compiler_define_string('xlC', 'native_cxx').
 compiler_define_string('g77', 'gnu_fc').
+compiler_define_string('icc', 'intel_cc').
+compiler_define_string('iCC', 'intel_CC').
 
 %%%%%%%%%%
 % *_s relations translate various internal atoms into strings than are
@@ -2370,6 +2411,9 @@ compiler_s(Comp, Comp) :-
 compiler_s('sun_cc', 'cc').
 compiler_s('VC', 'cl').
 compiler_s('VC++', 'cl').
+compiler_s('icc', 'icc').
+compiler_s('iCC', 'icpc').
+
 
 % Translation for Optimization Level
 %compiler_opt_trans(compiler name, symbolic name, compiler argument).
@@ -2378,21 +2422,21 @@ compiler_s('VC++', 'cl').
 % FIXME Im also not sure that all these compilers default to no optimization
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'low', '-O') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'low', '-O') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'high', '-O3') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '-O3') :-
-    member(Comp, ['gcc', 'g++', 'cc', 'cxx']).
+    member(Comp, ['gcc', 'g++', 'cc', 'cxx', 'icc', 'iCC']).
 compiler_opt_trans(SunWorkshop, 'max', '-xO5') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'max', '-O5') :-
@@ -2410,7 +2454,7 @@ insane('P1 not defined as a compiler, but has optimization translation defined',
 % partial_compile: compile to an object file rather than an executable
 compiler_parm_trans(Comp, 'partial_compile', '-c') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'sun_cc', 'CC',
-                  'xlc', 'xlC', 'cxx', 'g77', 'VC', 'VC++']).
+                  'xlc', 'xlC', 'cxx', 'g77', 'VC', 'VC++', 'icc', 'iCC']).
 
 % Mutator compiler defns
 mutator_comp('g++').
@@ -2421,8 +2465,7 @@ mutator_comp('CC').
 mutator_comp('xlC').
 
 % Per-compiler link options for building mutatees
-mutatee_link_options('gcc', '$(MUTATEE_LDFLAGS_GNU)').
-mutatee_link_options('g++', '$(MUTATEE_LDFLAGS_GNU)').
+mutatee_link_options(gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(gnu_family, ['icc', 'gcc', 'g++', 'iCC']).
 mutatee_link_options(Native_cc, '$(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
     member(Native_cc, ['cc', 'sun_cc', 'xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
@@ -2459,6 +2502,10 @@ comp_std_flags_str('VC', '-TC').
 comp_std_flags_str('VC++', '-TP').
 comp_mutatee_flags_str('VC', '$(CFLAGS)').
 comp_mutatee_flags_str('VC++', '$(CXXFLAGS_NORM)').
+comp_std_flags_str('icc', '$(CFLAGS)').
+comp_std_flags_str('iCC', '$(CXXFLAGS)').
+comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
+comp_mutatee_flags_str('iCC', '-x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
 
 % g77 flags
 comp_std_flags_str('g77', '-g').

@@ -187,6 +187,12 @@ def print_mutators_list(out, mutator_dict, test_dict):
 
 	# Now we'll print out a rule for each mutator..
 	for m in mutator_dict:
+		tests = filter(lambda t: t['mutator'] == m['name'], test_dict)
+		modules = map(lambda t: t['module'], tests)
+		if(len(uniq(modules)) != 1):
+			 print "ERROR: multiple modules for test " + m['name']
+			 raise
+		module = modules.pop()
 		# FIXME Don't hardcode $(LIBTESTSUITE)
 		out.write("%s%s: " % (m['name'], LibSuffix))
 		# Loop through the files listed in this mutator's source list and
@@ -195,18 +201,12 @@ def print_mutators_list(out, mutator_dict, test_dict):
 			for s in m['sources']:
 				# Print out the object file for this source file
 				out.write("%s%s " % (s[0:-len(extension(s))], ObjSuffix))
-			out.write("$(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/%s.dep $(LIBTESTSUITE)\n" % (m['name']))
+			out.write("$(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/%s.dep $(LIBTESTSUITE) $(%s_MUTATOR_LIB)\n" % (m['name'], module))
 		except KeyError:
 			print "Couldn't find sources for mutator " + m['name']
 			raise
 		# FIXME Make this one better too.  Right now it's copied straight from
 		# make.module.tmpl
-		tests = filter(lambda t: t['mutator'] == m['name'], test_dict)
-		modules = map(lambda t: t['module'], tests)
-		if(len(uniq(modules)) != 1):
-			 print "ERROR: multiple modules for test " + m['name']
-			 raise
-		module = modules.pop()
 		out.write("\t$(CXX) -o $@ -shared $(filter %%%s,$^) $(%s_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS)\n" % (ObjSuffix, module))
 		out.write("ifndef NO_OPT_FLAG\n")
 		out.write("ifdef STRIP_SO\n")
@@ -353,7 +353,10 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			print "No module found! Test object: " 
 			print testobj[0]
 			raise
-		out.write(', "%s"' % (module))
+		out.write(', "%s", ' % (module))
+		out.write('"%s", ' % (group['compiler']))
+		out.write('"%s", ' % (group['optimization']))
+		out.write('"%s"' % (group['abi']))
 		out.write(');\n')
 		for test in group['tests']:
 			# Set the tuple string for this test
@@ -402,13 +405,19 @@ def print_mutatee_comp_defs(out):
 	out.write('\n')
 
 def get_module(mutatee):
-	test_list = filter(lambda x: x['mutatee'] == mutatee['name'], info['tests'])
-	module_names = map(lambda x: x['module'], test_list)
-	module_names = uniq(module_names)
-	try:
-		return module_names[0]
-	except IndexError:
-		return '$(' + mutatee['name'] + '_SRC_DIR)'
+	return mutatee["module"]
+#	test_list = filter(lambda x: x['mutatee'] == mutatee['name'], info['tests'])
+#	module_names = map(lambda x: x['module'], test_list)
+#	module_names = uniq(module_names)
+#	try:
+#		return module_names[0]
+#	except IndexError:
+#		return '$(' + mutatee['name'] + '_SRC_DIR)'
+
+def group_uses_module(group, module):
+	mutatee_name = group['mutatee']
+	mutatees = filter(lambda t: t['name'] == group['mutatee'], info['mutatees'])
+	return get_module(mutatees[0]) == module
 
 def has_multiple_tests(testgroup):
 	try:
@@ -424,6 +433,7 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 	out.write("######################################################################\n")
 	out.write("# Mutatees compiled with %s\n" % (mutatees[0]['compiler']))
 	out.write("######################################################################\n\n")
+
 	if compiler['presencevar'] != 'true':
 		out.write("ifdef %s\n" % (compiler['presencevar']))
 		out.write("# We only want to build these targets if the compiler exists\n")
@@ -632,16 +642,24 @@ def print_patterns(c, out, module):
 	platform = find_platform(os.environ.get('PLATFORM'))
 	ObjSuffix = platform['filename_conventions']['object_suffix']
 
-	ng_sources = uniq(reduce(lambda a, b: set(a) | set(b),
-                       (map(lambda m: m['preprocessed_sources'],
+	ng_sources_p = map(lambda m: m['preprocessed_sources'],
                             filter(lambda m: m['name'] != 'none'
                                    and is_groupable(m) == 'false' and get_module(m) == module,
-                                   info['mutatees'])))))
-	g_sources = uniq(reduce(lambda a, b: set(a) | set(b),
-                      (map(lambda m: m['preprocessed_sources'],
+                             info['mutatees']))
+	if (len(ng_sources_p) != 0):
+		ng_sources = uniq(reduce(lambda a, b: set(a) | set(b), ng_sources_p))
+	else:
+		ng_sources = []
+
+	g_sources_p = map(lambda m: m['preprocessed_sources'],
                            filter(lambda m: m['name'] != 'none'
                                   and is_groupable(m) == 'true' and get_module(m) == module,
-                                  info['mutatees'])))))
+                            info['mutatees']))
+	if (len(g_sources_p) != 0):
+		g_sources = uniq(reduce(lambda a, b: set(a) | set(b), g_sources_p))
+	else:
+		g_sources = []
+
 	for abi in platform['abis']:
 		for o in compiler['optimization']:
 			# Rules for compiling source files to .o files
@@ -655,8 +673,9 @@ def print_patterns(c, out, module):
 				boilerplate = "solo_mutatee_boilerplate" + ext
 				basename = sourcefile[0:-len('_mutatee') - len(ext)]
 
-				out.write("%s_mutatee_solo%s%s: ../src/%s\n"
-						% (basename, cto, ObjSuffix, boilerplate))
+				out.write("#ng %s, %s, %s\n" % (abi, o, sourcefile))
+				out.write("%s_mutatee_solo%s%s: ../src/%s ../src/%s/%s\n"
+						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
 				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
 						% (compiler['defstring'], module,
 						   object_flag_string(platform, compiler, abi, o),
@@ -667,6 +686,7 @@ def print_patterns(c, out, module):
 				boilerplate = "solo_mutatee_boilerplate" + ext
 				basename = sourcefile[0:-len('_mutatee') - len(ext)]
 
+				out.write("#g %s, %s, %s\n" % (abi, o, sourcefile))
 				out.write("%s_mutatee_solo%s%s: ../src/%s\n"
 						% (basename, cto, ObjSuffix, boilerplate))
 				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
@@ -675,7 +695,9 @@ def print_patterns(c, out, module):
 						   module,
 						   basename, module, sourcefile))
 	groups = info['rungroups']
-	group_mutatee_list = filter(has_multiple_tests, groups)
+	group_mutatee_list = filter(lambda g: has_multiple_tests(g) and
+                                         group_uses_module(g, module),
+                               groups)
 	group_boilerplates = uniq(map(lambda g: g['mutatee'] + '_group.c', group_mutatee_list))
 	for abi in platform['abis']:
 		for o in compiler['optimization']:
@@ -683,6 +705,7 @@ def print_patterns(c, out, module):
 			for sourcefile in group_boilerplates:
 				ext = extension(sourcefile)
 				basename = sourcefile[0:-len(ext)]
+				out.write("#o %s, %s, %s\n" % (abi, o, sourcefile))
 				out.write("%s%s%s: %s\n" % (basename, cto, ObjSuffix, sourcefile))
 				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n" 
 							 % (compiler['defstring'], module, 
@@ -831,12 +854,14 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 	pname = os.environ.get('PLATFORM')
 	platform = find_platform(pname)
 	ObjSuffix = platform['filename_conventions']['object_suffix']
+
 	modules = uniq(map(lambda t: t['module'], info['tests']))
 	for c in comps:
 		# Generate a block of rules for mutatees produced by each compiler
 		for m in modules:
 			muts = filter(lambda x: x['compiler'] == c and get_module(x) == m, mutatees)
-			print_mutatee_rules(out, muts, compilers[c], m)
+			if (len(muts) != 0):
+				print_mutatee_rules(out, muts, compilers[c], m)
 		# Print rules for exceptional object files
 		print_special_object_rules(c, out)
 		for m in modules:

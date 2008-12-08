@@ -2,7 +2,7 @@
 
 #include "mutatee_util.h"
 
-#ifdef os_windows
+#ifdef os_windows_test
 #include <process.h>
 #endif
 

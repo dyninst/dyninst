@@ -48,7 +48,7 @@
 #include "test_lib_dll.h"
 
 #if !defined(P_sleep)
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define P_sleep(sec) Sleep(1000*(sec))
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -99,6 +99,7 @@ TESTLIB_DLL_EXPORT int setupMutatorsForRunGroup (RunGroup *group);
 TESTLIB_DLL_EXPORT void setPIDFilename(char *pfn);
 TESTLIB_DLL_EXPORT char *getPIDFilename();
 TESTLIB_DLL_EXPORT void registerPID(int pid);
+TESTLIB_DLL_EXPORT void cleanPIDFile();
 
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);

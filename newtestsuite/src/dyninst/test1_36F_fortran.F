@@ -124,7 +124,7 @@
 		failure = 1
 	endif
 
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX5)
+#if defined(rs6000_ibm_aix4_1_test) && !defined(AIX5)
 	call xlf90_41_hack()
 #endif
 
@@ -167,7 +167,7 @@
 	if (test1_36_globalVariable7 .ne. 7) then
 		print *, '  for test 36, expecting arg7 value of 7, got ',
      &		test1_36_globalVariable7
-#if defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0_test)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else
@@ -178,7 +178,7 @@
 	if (test1_36_globalVariable8 .ne. 8) then
 		print *, '  for test 36, expecting arg8 value of 8, got ',
      &		test1_36_globalVariable8
-#if defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0_test)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else
@@ -189,8 +189,8 @@
 	if (test1_36_globalVariable9 .ne. 9) then
 		print *, '  for test 36, expecting arg9 value of 9, got ',
      &		test1_36_globalVariable9
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(alpha_dec_osf4_0_test)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else
@@ -201,8 +201,8 @@
 	if (test1_36_globalVariable10 .ne. 10) then
 		print *, '  for test 36, expecting arg10 value of 10, got ',
      &		test1_36_globalVariable10
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(alpha_dec_osf4_0_test)
 		print *, '  not an error since it needs to be implemented',
      &		' on this platform'
 #else

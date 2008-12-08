@@ -57,14 +57,6 @@ MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g -I../src
 # TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
 # CALL35_1_SRC = call35_1_x86_linux.s
 
-# Definition used for test6 assembly
-# NASM ?= nasm
-M_nasm ?= $(NASM)
-# TEST6_AS_GNU = $(NASM)
-# TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
-# TEST6_AS_SRC = test6LS-x86.asm
-# TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
-
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 
 # see discussion in make.module.tmpl for the format of this variable
@@ -77,5 +69,7 @@ STRIP_SO = strip -g
 # .PHONY: force_default
 # force_default: make.vars.gen all
 # force_default: solo_mutatees # FIXME This is a temporary entry
+
+TESTDRIVER_LDFLAGS = -liberty
 
 include ../make.module.tmpl

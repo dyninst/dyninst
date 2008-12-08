@@ -266,7 +266,7 @@ test_results_t test_fork_13_Mutator::executeTest() {
 }
 
 test_results_t test_fork_13_Mutator::setup(ParameterDict &param) {
-#ifdef os_windows
+#ifdef os_windows_test
   return SKIPPED;
 #else
   bpatch = (BPatch *)(param["bpatch"]->getPtr());

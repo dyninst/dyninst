@@ -35,7 +35,7 @@ string SimpleShellEscape(string &str)
 // Sets up the command string to run the tests and executes test_driver
 int RunTest(unsigned int iteration, bool useLog, bool staticTests,
 string logfile, int testLimit, vector<char *> child_argv,
-char *pidFilename) {
+            char *pidFilename, char * /*memcpu_file*/) {
 	string shellString;
 
 	generateTestString(iteration > 0, useLog, staticTests, logfile,

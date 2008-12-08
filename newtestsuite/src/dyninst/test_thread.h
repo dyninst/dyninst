@@ -5,7 +5,7 @@
 
 void sleep_ms(int ms);
 
-#if defined (os_windows)
+#if defined (os_windows_test)
 #error
 #else
 typedef void *(*ThreadMain_t)(void *);
@@ -24,7 +24,7 @@ int destroyLock(Lock_t *lock);
 int lockLock(Lock_t *lock);
 int unlockLock(Lock_t *lock);
 
-#endif /* !defined(os_windows) */
+#endif /* !defined(os_windows_test) */
 
 
 #endif /* !defined(TEST_THREAD_H) */

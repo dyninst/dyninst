@@ -46,11 +46,11 @@
 #define TEST_PTR_48BIT	((void *)0x4321abcd8967UL)
 #define TEST_PTR_64BIT	((void *)0x5678bbcb9541dabaUL)
 
-#if defined(alpha_dec_osf4_0)	/* Always 64 bits, 48 bit addresses. */
+#if defined(alpha_dec_osf4_0_test)	/* Always 64 bits, 48 bit addresses. */
 #define TEST_PTR_SIZE	8
 #define TEST_PTR	TEST_PTR_48BIT
 
-#elif defined(mips_sgi_irix6_4)	/* Can be 64 or 32 bits. */
+#elif defined(mips_sgi_irix6_4_test)	/* Can be 64 or 32 bits. */
 #if (_MIPS_SZPTR == 64)
 #define TEST_PTR_SIZE	8
 #define TEST_PTR	TEST_PTR_64BIT
@@ -59,14 +59,14 @@
 #define TEST_PTR	TEST_PTR_32BIT
 #endif
 
-#elif defined(ia64_unknown_linux2_4)
+#elif defined(ia64_unknown_linux2_4_test)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
 
 #elif defined(i386_unknown_linux2_4)
 #define TEST_PTR_SIZE	4
 #define TEST_PTR	TEST_PTR_32BIT
-#elif defined(x86_64_unknown_linux2_4)
+#elif defined(x86_64_unknown_linux2_4_test)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
 
@@ -75,7 +75,7 @@
 #define TEST_PTR	TEST_PTR_32BIT
 #endif
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 #endif
 
 #endif /* _test1_h_ */

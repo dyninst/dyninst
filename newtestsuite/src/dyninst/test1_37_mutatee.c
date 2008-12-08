@@ -36,7 +36,7 @@ static volatile int globalVariable37_3 = 0;
 
 int test1_37_mutatee() {
 /* Alpha is no longer supported, so I'm commenting out this check
- * #if defined(os_osf)
+ * #if defined(os_osf_test)
  *    passedTest [ 37 ] = TRUE;
  *    logerror( "Skipped test #37 (instrument loops)\n" );
  *    logerror( "\t- known to be a problem on this platform-- hah!\n" );

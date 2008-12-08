@@ -128,8 +128,6 @@ ComponentTester *Module::loadModuleLibrary()
 
    HINSTANCE handle = LoadLibrary(dllname);
    if (!handle) {
-      fprintf(stderr, "Error opening lib: %s\n", dllname);
-      fprintf(stderr, "%s\n", GetLastError());
       return NULL;
    }
    libhandle = (void *) handle;

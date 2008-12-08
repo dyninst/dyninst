@@ -32,21 +32,10 @@ void func1();
  */
 void stop_process()
 {
-#ifdef i386_unknown_nt4_0
+#ifdef os_windows_test
     DebugBreak();
 #else
-
-#ifdef DETACH_ON_THE_FLY
-    dotf_stop_process();
-    return;
-#endif
-
-#if !defined(bug_irix_broken_sigstop)
     kill(getpid(), SIGSTOP);
-#else
-    kill(getpid(), SIGEMT);
-#endif
-
 #endif
 }
 
@@ -58,18 +47,18 @@ int test2_6_mutatee() {
 }
 
 void func1() {
-/* #if defined(sparc_sun_solaris2_4) \ */
-/*  || defined(i386_unknown_solaris2_5) \ */
-/*  || defined(i386_unknown_linux2_0) \ */
-/*  || defined(x86_64_unknown_linux2_4) /\* Blind duplication - Ray *\/ \ */
-/*  || defined(mips_sgi_irix6_4) \ */
-/*  || defined(alpha_dec_osf4_0) \ */
-/*  || defined(rs6000_ibm_aix4_1) \ */
-/*  || defined(ia64_unknown_linux2_4) */
+/* #if defined(sparc_sun_solaris2_4_test) \ */
+/*  || defined(i386_unknown_solaris2_5_test) \ */
+/*  || defined(i386_unknown_linux2_0_test) \ */
+/*  || defined(x86_64_unknown_linux2_4_test) /\* Blind duplication - Ray *\/ \ */
+/*  || defined(mips_sgi_irix6_4_test) \ */
+/*  || defined(alpha_dec_osf4_0_test) \ */
+/*  || defined(rs6000_ibm_aix4_1_test) \ */
+/*  || defined(ia64_unknown_linux2_4_test) */
 
     void *ref;
     /* now use the dlopen interface to force an object to load. */
-#if defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0_test)
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW);
 #else
     ref = dlopen(TEST_DYNAMIC_LIB, RTLD_NOW | RTLD_GLOBAL);
