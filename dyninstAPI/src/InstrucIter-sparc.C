@@ -595,7 +595,6 @@ void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs)
    std::vector<InsnRegister> *write_regs_p = NULL;
 
    extern AnnotationClass<std::vector<InsnRegister> > RegisterReadSetAnno;
-   extern AnnotationClass<std::vector<InsnRegister> > RegisterWriteSetAnno;
 
    bool have_read_regs = insn.getAnnotation(read_regs_p, RegisterReadSetAnno);
    bool have_write_regs = insn.getAnnotation(write_regs_p, RegisterReadSetAnno);

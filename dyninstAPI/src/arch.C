@@ -265,8 +265,8 @@ void *codeGen::start_ptr() const {
 void *codeGen::cur_ptr() const {
     assert(buffer_);
     if (sizeof(codeBuf_t) != CODE_GEN_OFFSET_SIZE)
-        fprintf(stderr, "ERROR: sizeof codeBuf %d, OFFSET %d\n",
-                sizeof(codeBuf_t), CODE_GEN_OFFSET_SIZE);
+        fprintf(stderr, "ERROR: sizeof codeBuf %ld, OFFSET %d\n",
+                (long) sizeof(codeBuf_t), CODE_GEN_OFFSET_SIZE);
     assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
     codeBuf_t *ret = buffer_;
     ret += offset_;

@@ -2816,25 +2816,19 @@ bool process::finalizeDyninstLib()
        // Install our system call tracing
        tracedSyscalls_ = new syscallNotification(this);
 
-       //#ifdef i386_unknown_linux2_0
-       //if(pdFlavor != "mpi") {
-       //#endif
-          // TODO: prefork and pre-exit should depend on whether a callback is defined
-          if (!tracedSyscalls_->installPreFork()) 
-             cerr << "Warning: failed pre-fork notification setup" << endl;
-          if (!tracedSyscalls_->installPostFork()) 
-             cerr << "Warning: failed post-fork notification setup" << endl;
-          if (!tracedSyscalls_->installPreExec()) 
-             cerr << "Warning: failed pre-exec notification setup" << endl;
-          if (!tracedSyscalls_->installPostExec()) 
-             cerr << "Warning: failed post-exec notification setup" << endl;
-          if (!tracedSyscalls_->installPreExit()) 
-             cerr << "Warning: failed pre-exit notification setup" << endl;
-          if (!tracedSyscalls_->installPreLwpExit()) 
-             cerr << "Warning: failed pre-lwp-exit notification setup" << endl;
-          //#ifdef i386_unknown_linux2_0
-          //}
-          //#endif
+       // TODO: prefork and pre-exit should depend on whether a callback is defined
+       if (!tracedSyscalls_->installPreFork()) 
+          cerr << "Warning: failed pre-fork notification setup" << endl;
+       if (!tracedSyscalls_->installPostFork()) 
+          cerr << "Warning: failed post-fork notification setup" << endl;
+       if (!tracedSyscalls_->installPreExec()) 
+          cerr << "Warning: failed pre-exec notification setup" << endl;
+       if (!tracedSyscalls_->installPostExec()) 
+          cerr << "Warning: failed post-exec notification setup" << endl;
+       if (!tracedSyscalls_->installPreExit()) 
+          cerr << "Warning: failed pre-exit notification setup" << endl;
+       if (!tracedSyscalls_->installPreLwpExit()) 
+          cerr << "Warning: failed pre-lwp-exit notification setup" << endl;
    }
    else { // called from a forking process
        process *parentProcess = process::findProcess(bs_record.ppid);
@@ -4288,8 +4282,8 @@ bool process::handleStopThread(EventRecord &ev)
             return false;
         }
         if (vars.size() != 1) {
-            fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                    FILE__, __LINE__, vars.size(), arg_str.c_str());
+            fprintf(stderr, "%s[%d]:  ERROR:  %ld vars matching %s, not 1\n", 
+                    FILE__, __LINE__, (long) vars.size(), arg_str.c_str());
             return false;
         }
         sh->sync_event_arg2_addr = vars[0]->getAddress();
@@ -4304,8 +4298,8 @@ bool process::handleStopThread(EventRecord &ev)
             return false;
         }
         if (vars.size() != 1) {
-            fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                    FILE__, __LINE__, vars.size(), arg_str.c_str());
+            fprintf(stderr, "%s[%d]:  ERROR:  %ld vars matching %s, not 1\n", 
+                    FILE__, __LINE__, (long) vars.size(), arg_str.c_str());
             return false;
         }
         sh->sync_event_arg3_addr = vars[0]->getAddress();
