@@ -207,7 +207,8 @@ umd-nightly:
 	$(MAKE) DyninstAPI
 
 # Used for nightly builds
-nightly: DyninstAPI newtestsuite
+nightly: DyninstAPI
+	$(MAKE) -C newtestsuite/$(PLATFORM) all
 
 #nightly:
 #	$(MAKE) clean
