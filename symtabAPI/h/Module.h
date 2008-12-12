@@ -77,6 +77,8 @@ class Module : public LookupInterface,
    DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
+   DLLEXPORT bool getAllFunctions(std::vector<Function *>&ret);
+
    DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
          const std::string name,
          Symbol::SymbolType sType, 

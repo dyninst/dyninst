@@ -515,9 +515,18 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
       return false;
    }
 
+   startup_printf("%s[%d]: dumping maps info\n",
+                  FILE__, __LINE__);
+   for (unsigned i = 0; i < maps_size; i++) {
+       startup_printf("\t Entry %d, name %s, addr 0x%lx\n",
+                      i, maps[i].path, maps[i].start);
+   }
+
    do {
       string obj_name = link_elm->l_name();
       Address text = static_cast<Address>(link_elm->l_addr());
+      startup_printf("%s[%d]: processing element, name %s, text addr 0x%lx\n",
+                     FILE__, __LINE__, obj_name.c_str(), text);
       if (obj_name == "" && text == 0) {
          continue;
       }
@@ -525,8 +534,10 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
       if (obj_name == "") { // Augment using maps
          for (unsigned i = 0; i < maps_size; i++) {
             if (text == maps[i].start) {
-               obj_name = maps[i].path;
-               break;
+                startup_printf("%s[%d]: augmenting empty name with maps name %s\n",
+                               FILE__, __LINE__, maps[i].path);
+                obj_name = maps[i].path;
+                break;
             }
          }
       } /* else if (text == 0) { // Augment using maps
@@ -543,14 +554,20 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
          }
          }*/
 
-      if (obj_name.c_str()[0] == '[')
+      if (obj_name[0] == '[')
          continue;
+      if (obj_name == "") {
+          // Should we try to parse this out of memory?
+          continue;
+      }
       if (!link_elm->is_valid()) {
          delete link_elm;
          delete debug_elm;
          startup_printf("Link element invalid! (2)\n");
          return 0;
       }
+      startup_printf("%s[%d]: creating new file descriptor %s/0x%lx/0x%lx\n",
+                     FILE__, __LINE__, obj_name.c_str(), text, text);
       descs.push_back(fileDescriptor(obj_name, 
                                      text, text,
                                      true));
@@ -646,28 +663,20 @@ bool dynamic_linking::initialize() {
     Symtab *ldsoOne = new Symtab();
     string fileName = ld_path;
     ldsoOne->Symtab::openFile(ldsoOne, fileName);
-    pdvector< Symbol > rDebugSyms;
-    Symbol rDebugSym;
-    vector<Symbol *>syms;
-    if(!ldsoOne->findSymbolByType(syms,"_r_debug",Symbol::ST_UNKNOWN)){
+
+    vector<Variable *> vars;
+
+    if (!ldsoOne->findVariablesByName(vars, "_r_debug")) {
         startup_printf("Failed to find _r_debug, ret false from dyn::init\n");
-    	return false;
-    }	
-    for(unsigned index=0;index<syms.size();index++)
-       rDebugSyms.push_back(*(syms[index]));
-    if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; } else { 
-       startup_printf("rDebugSyms size %d, expecting 1, ret false from " 
-                      "dyn::init\n", rDebugSyms.size());
-       return false; 
+        return false;
     }
-    if( ! (rDebugSym.getType() == Symbol::ST_OBJECT) ) {
-       startup_printf("Unexpected type %d for rDebugSym, ret false from "
-                      "dyn::init\n", rDebugSym.getType());
-       return false; 
-    }
-    
-    // Set r_debug_addr
-    r_debug_addr = rDebugSym.getAddr();
+    if (vars.size() != 1) {
+        startup_printf("Found %d symbols for _r_debug, expecting 1, ret false from dyn::init\n", vars.size());
+        return false; 
+    }        
+
+    r_debug_addr = vars[0]->getAddress();
+
     if (!isValidMemory(r_debug_addr + ld_base, proc->getPid())) {
        ld_base = ld_base_backup;
     }
@@ -679,14 +688,19 @@ bool dynamic_linking::initialize() {
     assert( r_debug_addr );
     
     /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
-    syms.clear();
-    ldsoOne->findSymbolByType(syms,"_dl_map_object",Symbol::ST_UNKNOWN);
-    for(unsigned index=0;index<syms.size();index++)
-       rDebugSyms.push_back(*(syms[index]));
-    /* It's also apparently OK if this uses a garbage symbol. */
-    if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; }
-    if( ! (rDebugSym.getType() == Symbol::ST_FUNCTION) ) { ; } 
-    dlopen_addr = rDebugSym.getAddr() + ld_base;
+    vector<Function *> funcs;
+
+    if (!ldsoOne->findFunctionsByName(funcs, "_dl_map_object")) {
+        startup_printf("Failed to find _dl_map_object, ret false from dyn::init\n");
+        return false;
+    }
+
+    if (funcs.size() != 1) {
+        startup_printf("Found %d symbols for _dl_map_object, expecting 1, ret false from dyn::init\n", funcs.size());
+        return false;
+    }
+    
+    dlopen_addr = funcs[0]->getAddress() + ld_base;
     assert( dlopen_addr );
     
     dynlinked = true;

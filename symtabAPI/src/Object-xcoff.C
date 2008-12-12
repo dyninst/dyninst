@@ -135,8 +135,14 @@ unsigned long roundup4(unsigned long val) {
 
 // giri: Brought in here from dyninst/src/aix.C
 typedef void *Name;
-typedef enum { VirtualName, MemberVar, Function, MemberFunction, Class,
-               Special, Long } NameKind;
+typedef enum { VirtualName, 
+               MemberVar, 
+               // Don't collide with our Function class...
+               Function_, 
+               MemberFunction, 
+               Class,
+               Special, 
+               Long } NameKind;
 typedef enum { RegularNames = 0x1, ClassNames = 0x2, SpecialNames = 0x4,
                ParameterText = 0x8, QualifierText = 0x10 } DemanglingOptions;
 
@@ -229,7 +235,7 @@ char *P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTy
 
   char * demangled = NULL;
   switch( P_kind( name ) ) {
-   case Function:
+   case Function_:
                            if (includeTypes)
                                 demangled = (P_text)( name );
                            else
@@ -1894,19 +1900,6 @@ void Object::parseLineInformation(dyn_hash_map<std::string,  LineInformation> &l
          }
       } /* end iteration of include files */
 
-#if 0    
-      int_function * currentFunction = obj()->findFuncByAddr( funcStartAddress + trueBaseAddress );
-      if( currentFunction == NULL ) {
-         /* Some addresses point to gdb-inaccessible memory; others have symbols (gdb will disassemble them)
-            but the contents look like garbage, and may be data with symbol names.  (Who knows why.) */
-         // fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, funcStartAddress + trueBaseAddress );
-         return;
-      }
-      mapped_module * currentModule = currentFunction->mod();
-      assert( currentModule != NULL );
-      LineInformation & currentLineInformation = currentModule->lineInfo_; 
-#endif
-
       unsigned int previousLineNo = 0;
       Offset previousLineAddr = 0;
       bool isPreviousValid = false;
@@ -2019,9 +2012,9 @@ void Object::parseTypeInfo(Symtab *obj)
             }
          }
          currentSourceFile = std::string(moduleName);
-         if(!obj->findModule(mod, currentSourceFile))
+         if(!obj->findModuleByName(mod, currentSourceFile))
          {
-            if(!obj->findModule(mod,extract_pathname_tail(currentSourceFile)))
+            if(!obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile)))
                 parseActive = false;
             else{
                 parseActive = true;
@@ -2197,10 +2190,10 @@ void Object::parseTypeInfo(Symtab *obj)
          if(!mod){
             std::string modName = currentSourceFile;
             std::string fName = extract_pathname_tail(modName);
-            if(!obj->findModule(mod, fName))
+            if(!obj->findModuleByName(mod, fName))
             {
                modName = obj->file();
-               if(!obj->findModule(mod, modName))
+               if(!obj->findModuleByName(mod, modName))
                   continue;
             }
          }

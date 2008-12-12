@@ -57,13 +57,19 @@ TFLAGS		+= -fPIC
 VPATH	     += ../../symtabAPI/h
 
 SRCS	     +=	../src/Object.C \
+                ../src/Function.C \
+                ../src/Variable.C \
 		../src/LineInformation.C \
 		../src/Symtab.C \
+                ../src/Symtab-edit.C \
+                ../src/Symtab-lookup.C \
+                ../src/Symtab-deprecated.C \
 		../src/Module.C \
 		../src/Region.C \
 		../src/Collections.C \
 		../src/Type.C \
-      		../src/AddrLookup.C
+      		../src/AddrLookup.C \
+                ../src/annotations.C
 #		../src/serialize-bin.C \
 #		../src/serialize-xml.C \
 
@@ -77,8 +83,7 @@ PUBLIC_H   = AddrLookup.h \
              Module.h \
              Region.h \
              symutil.h \
-             Type.h \
-             Collections.h
+             Type.h
 
 #IGEN_GEN_SRCS = 
 

@@ -51,6 +51,7 @@ public:
     virtual ~InstructionSource() {}
     virtual bool isValidAddress(const Address&) const { return true; }
     virtual void* getPtrToInstruction(Address) const = 0;
+    virtual bool isExecutableAddress(const Address &) const = 0;
     virtual unsigned int getAddressWidth() const = 0;
 };
 

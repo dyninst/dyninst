@@ -4433,7 +4433,7 @@ void Object::parseStabTypes(Symtab *obj)
 	           ptr++;
 		   modName = ptr;
 	       }
-	       if (obj->findModule(mod, modName)) 
+	       if (obj->findModuleByName(mod, modName)) 
           {
                parseActive = true;
                if (!mod) 

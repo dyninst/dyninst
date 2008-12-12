@@ -635,12 +635,12 @@ void int_function::debugPrint() const {
 // Add to mapped_object if a "new" name (true return from internal)
 void int_function::addSymTabName(const std::string name, bool isPrimary) {
     if (ifunc()->addSymTabName(name, isPrimary))
-        obj()->addFunctionName(this, name, true);
+        obj()->addFunctionName(this, name, mapped_object::mangledName);
 }
 
 void int_function::addPrettyName(const std::string name, bool isPrimary) {
     if (ifunc()->addPrettyName(name, isPrimary))
-        obj()->addFunctionName(this, name, false);
+        obj()->addFunctionName(this, name, mapped_object::prettyName);
 }
 
 void int_function::getStaticCallers(pdvector< int_function * > &callers)

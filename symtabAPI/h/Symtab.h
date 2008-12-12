@@ -71,6 +71,13 @@ class Symtab : public LookupInterface,
    friend class emitElf;
    friend class emitElf64;
 
+ public:
+   typedef enum {
+       mangledName = 1,
+       prettyName = 2,
+       typedName = 4,
+       anyName = 7 } nameType_t;
+
    /***** Public Member Functions *****/
    public:
    DLLEXPORT Symtab(MappedFile *);
@@ -91,15 +98,19 @@ class Symtab : public LookupInterface,
    static Symtab *importBin(std::string filename);
 
 
-   /***** Lookup Functions *****/
-   DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-         const std::string name,
-         Symbol::SymbolType sType, 
-         bool isMangled = false,
-         bool isRegex = false, 
-         bool checkCase = false);
+   /**************************************
+    *** LOOKUP FUNCTIONS *****************
+    **************************************/
 
-   DLLEXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
+   // Symbol
+
+   DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
+                                           const std::string name,
+                                           Symbol::SymbolType sType, 
+                                           nameType_t nameType,
+                                           bool isRegex = false, 
+                                           bool checkCase = false);
+   DLLEXPORT virtual bool findAllSymbols(std::vector<Symbol *> &ret);
 
    DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
@@ -108,30 +119,57 @@ class Symtab : public LookupInterface,
    // the .o's in a static archive that have definitions of these symbols
    DLLEXPORT bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
 
+   // Function
+
+   DLLEXPORT bool findFuncByEntryOffset(Function *&ret, const Offset offset);
+   DLLEXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
+                                      nameType_t nameType = anyName, 
+                                      bool isRegex = false,
+                                      bool checkCase = true);
+   DLLEXPORT bool getAllFunctions(std::vector<Function *>&ret);
+
+   // Variable
+   DLLEXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
+   DLLEXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+                                      nameType_t nameType = anyName, 
+                                      bool isRegex = false, 
+                                      bool checkCase = true);
+   DLLEXPORT bool getAllVariables(std::vector<Variable *> &ret);
+
+   // Module
+
    DLLEXPORT bool getAllModules(std::vector<Module *>&ret);
+   DLLEXPORT bool findModuleByOffset(Module *&ret, Offset off);
+   DLLEXPORT bool findModuleByName(Module *&ret, const std::string name);
+
+
+   // Region
 
    DLLEXPORT bool getCodeRegions(std::vector<Region *>&ret);
    DLLEXPORT bool getDataRegions(std::vector<Region *>&ret);
    DLLEXPORT bool getAllRegions(std::vector<Region *>&ret);
    DLLEXPORT bool getAllNewRegions(std::vector<Region *>&ret);
-
-   DLLEXPORT bool findModule(Module *&ret, const std::string name);
    //  change me to use a hash
-   Module *findModuleByOffset(Offset off);
-
    DLLEXPORT bool findRegion(Region *&ret, std::string regname);
    DLLEXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
    DLLEXPORT Region *findEnclosingRegion(const Offset offset);
 
-   DLLEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
-   DLLEXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
-
+   // Exceptions
    DLLEXPORT bool findException(ExceptionBlock &excp,Offset addr);
    DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
    DLLEXPORT bool findCatchBlock(ExceptionBlock &excp, Offset addr, 
          unsigned size = 0);
 
+   // Relocation entries
    DLLEXPORT bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
+
+   /**************************************
+    *** SYMBOL ADDING FUNCS **************
+    **************************************/
+
+   DLLEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
+   DLLEXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
+
 
    /*****Query Functions*****/
    DLLEXPORT bool isExec() const;
@@ -239,6 +277,23 @@ class Symtab : public LookupInterface,
 
    DLLEXPORT bool extractInfo(Object *linkedFile);
 
+   // Parsing code
+
+   bool extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms);
+   bool fixSymModules(std::vector<Symbol *> &raw_syms);
+   bool demangleSymbols(std::vector<Symbol *> &rawsyms);
+   bool createIndices(std::vector<Symbol *> &raw_syms);
+   bool createAggregates();
+
+   bool fixSymModule(Symbol *&sym);
+   bool demangleSymbol(Symbol *&sym);
+   bool addSymbolToIndices(Symbol *&sym);
+   bool addSymbolToAggregates(Symbol *&sym);
+   bool updateIndices(Symbol *sym, std::string newName, nameType_t nameType);
+
+
+   void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
+
    void setupTypes();
    static void setupStdTypes();
 
@@ -247,45 +302,19 @@ class Symtab : public LookupInterface,
          std::string &typed,
          bool nativeCompiler, 
          supportedLanguages lang );
-   bool symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_funcs);
+
+   // Change the type of a symbol after the fact
    bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 
-   void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
    Module *getOrCreateModule(const std::string &modName, 
          const Offset modAddr);
    Module *newModule(const std::string &name, const Offset addr, supportedLanguages lang);
-   bool buildFunctionLists(std::vector <Symbol *> &raw_funcs);
-   void enterFunctionInTables(Symbol *func, bool wasSymtab);
+   
+   //bool buildFunctionLists(std::vector <Symbol *> &raw_funcs);
+   //void enterFunctionInTables(Symbol *func, bool wasSymtab);
+
+
    bool addSymtabVariables();
-   bool addSymbolInt(Symbol *newsym, bool from_user, bool isDynamic = false);
-
-   bool findFunction(std::vector <Symbol *> &ret, const std::string &name, 
-         bool isMangled=false, bool isRegex = false,
-         bool checkCase = false);
-   bool findVariable(std::vector <Symbol *> &ret, const std::string &name,
-         bool isMangled=false, bool isRegex = false,
-         bool checkCase = false);
-   bool findMod(std::vector <Symbol *> &ret, const std::string &name, 
-         bool isMangled=false, bool isRegex = false,
-         bool checkCase = false);
-   bool findFuncVectorByPretty(const std::string &name, std::vector<Symbol *> &ret);
-   bool findFuncVectorByMangled(const std::string &name, std::vector<Symbol *> &ret);
-   bool findVarVectorByPretty(const std::string &name, std::vector<Symbol *> &ret);
-   bool findVarVectorByMangled(const std::string &name, std::vector<Symbol *> &ret);
-
-   bool findFuncVectorByMangledRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findFuncVectorByPrettyRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findVarVectorByMangledRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findVarVectorByPrettyRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findModByRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool getAllFunctions(std::vector<Symbol *> &ret);
-   bool getAllVariables(std::vector<Symbol *> &ret);
-   bool getAllSymbols(std::vector<Symbol *> &ret);
 
    void checkPPC64DescriptorSymbols(Object *linkedFile);
 
@@ -294,17 +323,14 @@ class Symtab : public LookupInterface,
    void parseTypes();
    bool setDefaultNamespacePrefix(std::string &str);
 
-   void addFunctionName(Symbol *func,
-         const std::string newName,
-         bool isMangled /*=false*/);
-   void addVariableName(Symbol *var,
-         const std::string newName,
-         bool isMangled /*=false*/);
-   void addModuleName(Symbol *mod,
-         const std::string newName);
 
    bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
+
+
+
+
+
    /***** Private Data Members *****/
    private:
    std::string member_name_;
@@ -353,34 +379,76 @@ class Symtab : public LookupInterface,
    //symbols
    unsigned no_of_symbols;
 
-   dyn_hash_map <Offset, std::vector<Symbol *> > funcsByEntryAddr;
+   // Indices
+
+   std::vector<Symbol *> everyDefinedSymbol;
+   // Subset of the above
+   std::vector<Symbol *> userAddedSymbols;
+   // hashtable for looking up undefined symbols in the dynamic symbol
+   // tale. Entries are referred by the relocation table entries
+   // NOT a subset of everyDefinedSymbol
+   std::map <std::string, Symbol *> undefDynSyms;
+
+   // Symbols by offsets in the symbol table
+   dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
+
+   // The raw name from the symbol table
+   dyn_hash_map <std::string, std::vector<Symbol *> > symsByMangledName;
+
+   // The name after we've run it through the demangler
+   dyn_hash_map <std::string, std::vector<Symbol *> > symsByPrettyName;
+
+   // The name after we've derived the parameter types
+   dyn_hash_map <std::string, std::vector<Symbol *> > symsByTypedName;
+
+   // We also need per-Aggregate indices
+   std::vector<Function *> everyFunction;
+   // Since Functions are unique by address we require this structure to
+   // efficiently track them.
+   dyn_hash_map <Offset, Function *> funcsByOffset;
+
+   // Similar for Variables
+   std::vector<Variable *> everyVariable;
+   dyn_hash_map <Offset, Variable *> varsByOffset;
+
+   // For now, skip the index-by-name structures. We can use the Symbol
+   // ones instead. 
+   /*
+   dyn_hash_map <std::string, std::vector<Function *> *> funcsByMangledName;
+   dyn_hash_map <std::string, std::vector<Function *> *> funcsByPrettyName;
+   dyn_hash_map <std::string, std::vector<Function *> *> funcsByTypedName;
+   */
+
+   //dyn_hash_map <Offset, std::vector<Function *> > funcsByEntryAddr;
    // note, a prettyName is not unique, it may map to a function appearing
    // in several modules.  Also only contains instrumentable functions....
-   dyn_hash_map <std::string, std::vector<Symbol *>*> funcsByPretty;
+   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByPretty;
    // Hash table holding functions by mangled name.
    // Should contain same functions as funcsByPretty....
-   dyn_hash_map <std::string, std::vector<Symbol *>*> funcsByMangled;
+   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByMangled;
    // A way to iterate over all the functions efficiently
-   std::vector<Symbol *> everyUniqueFunction;
+   //std::vector<Symbol *> everyUniqueFunction;
+   //std::vector<Function *> allFunctions;
    // And the counterpart "ones that are there right away"
-   std::vector<Symbol *> exportedFunctions;
+   //std::vector<Symbol *> exportedFunctions;
 
+   //dyn_hash_map <Address, Function *> funcsByAddr;
    dyn_hash_map <std::string, Module *> modsByFileName;
    dyn_hash_map <std::string, Module *> modsByFullName;
+   std::vector<Module *> _mods;
 
    // Variables indexed by pretty (non-mangled) name
+   /*
    dyn_hash_map <std::string, std::vector <Symbol *> *> varsByPretty;
    dyn_hash_map <std::string, std::vector <Symbol *> *> varsByMangled;
    dyn_hash_map <Offset, Symbol *> varsByAddr;
    std::vector<Symbol *> everyUniqueVariable;
-   std::vector<Symbol *> modSyms;
-   dyn_hash_map <std::string, std::vector <Symbol *> *> modsByName;
-   std::vector<Symbol *> notypeSyms;
-   std::vector<Module *> _mods;
+   */
 
-   // hashtable for looking up undefined symbols in the dynamic symbol
-   // tale. Entries are referred by the relocation table entries
-   std::map <std::string, Symbol *> undefDynSyms;
+   //dyn_hash_map <std::string, std::vector <Symbol *> *> modsByName;
+   //std::vector<Module *> _mods;
+
+
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
 
@@ -413,6 +481,20 @@ class Symtab : public LookupInterface,
    public:
    Type *type_Error;
    Type *type_Untyped;
+
+ public:
+   /********************************************************************/
+   /**** DEPRECATED ****************************************************/
+   /********************************************************************/
+   
+   DLLEXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
+   DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
+                                           const std::string name,
+                                           Symbol::SymbolType sType, 
+                                           bool isMangled = false,
+                                           bool isRegex = false, 
+                                           bool checkCase = false);
+
 
 };
 

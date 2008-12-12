@@ -315,11 +315,12 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 
 // Search an object for heapage
 
-bool process::getInfHeapList(const mapped_object *obj,
+bool process::getInfHeapList(mapped_object *obj,
                              pdvector<heapDescriptor> &infHeaps)
 {
 
-    pdvector<mapped_object::foundHeapDesc> foundHeaps;
+    vector<pair<string,Address> > foundHeaps;
+
     obj->getInferiorHeaps(foundHeaps);
 
     for (u_int j = 0; j < foundHeaps.size(); j++)
@@ -327,15 +328,15 @@ bool process::getInfHeapList(const mapped_object *obj,
         // The string layout is: DYNINSTstaticHeap_size_type_unique
         // Can't allocate a variable-size array on NT, so malloc
         // that sucker
-        char *temp_str = (char *)malloc(strlen(foundHeaps[j].name.c_str())+1);
-        strcpy(temp_str, foundHeaps[j].name.c_str());
+        char *temp_str = (char *)malloc(strlen(foundHeaps[j].first.c_str())+1);
+        strcpy(temp_str, foundHeaps[j].first.c_str());
         char *garbage_str = strtok(temp_str, "_"); // Don't care about beginning
         assert(!strcmp("DYNINSTstaticHeap", garbage_str));
         // Name is as is.
         // If address is zero, then skip (error condition)
-        if (foundHeaps[j].addr == 0)
+        if (foundHeaps[j].second == 0)
         {
-            cerr << "Skipping heap " << foundHeaps[j].name.c_str()
+            cerr << "Skipping heap " << foundHeaps[j].first.c_str()
                  << "with address 0" << endl;
             continue;
         }
@@ -386,8 +387,8 @@ bool process::getInfHeapList(const mapped_object *obj,
             free(temp_str);
             continue;
         }
-        infHeaps.push_back(heapDescriptor(foundHeaps[j].name.c_str(),
-                                          foundHeaps[j].addr, 
+        infHeaps.push_back(heapDescriptor(foundHeaps[j].first.c_str(),
+                                          foundHeaps[j].second, 
                                           heap_size, heap_type));
         free(temp_str);
     }
@@ -1042,7 +1043,7 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
  * (DYNINSTstaticHeap...) to the buffer pool.
  */
 
-void process::addInferiorHeap(const mapped_object *obj)
+void process::addInferiorHeap(mapped_object *obj)
 {
   pdvector<heapDescriptor> infHeaps;
   /* Get a list of inferior heaps in the new image */
@@ -1051,12 +1052,11 @@ void process::addInferiorHeap(const mapped_object *obj)
       /* Add the vector to the inferior heap structure */
         for (u_int j=0; j < infHeaps.size(); j++)
         {
-#ifdef DEBUG
-            fprintf(stderr, "Adding heap at 0x%x to 0x%x, name %s\n",
-                    infHeaps[j].addr(),
-                    infHeaps[j].addr() + infHeaps[j].size(),
-                    infHeaps[j].name().c_str());
-#endif
+            infmalloc_printf("%s[%d]: adding heap at 0x%lx to 0x%lx, name %s\n",
+                             FILE__, __LINE__,
+                             infHeaps[j].addr(),
+                             infHeaps[j].addr() + infHeaps[j].size(),
+                             infHeaps[j].name().c_str());
 #if defined(os_aix)
             // MT: I've seen problems writing into a "found" heap that
             // is in the application heap (IE a dlopen'ed
@@ -1065,8 +1065,10 @@ void process::addInferiorHeap(const mapped_object *obj)
             
             if ((infHeaps[j].addr() > 0x20000000) &&
                 (infHeaps[j].addr() < 0xd0000000) &&
-                (infHeaps[j].type() == uncopiedHeap))
+                (infHeaps[j].type() == uncopiedHeap)) {
+                infmalloc_printf("... never mind, AIX skipped heap\n");
                 continue;
+            }
 #endif            
 
             heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
@@ -2816,19 +2818,25 @@ bool process::finalizeDyninstLib()
        // Install our system call tracing
        tracedSyscalls_ = new syscallNotification(this);
 
-       // TODO: prefork and pre-exit should depend on whether a callback is defined
-       if (!tracedSyscalls_->installPreFork()) 
-          cerr << "Warning: failed pre-fork notification setup" << endl;
-       if (!tracedSyscalls_->installPostFork()) 
-          cerr << "Warning: failed post-fork notification setup" << endl;
-       if (!tracedSyscalls_->installPreExec()) 
-          cerr << "Warning: failed pre-exec notification setup" << endl;
-       if (!tracedSyscalls_->installPostExec()) 
-          cerr << "Warning: failed post-exec notification setup" << endl;
-       if (!tracedSyscalls_->installPreExit()) 
-          cerr << "Warning: failed pre-exit notification setup" << endl;
-       if (!tracedSyscalls_->installPreLwpExit()) 
-          cerr << "Warning: failed pre-lwp-exit notification setup" << endl;
+       //#ifdef i386_unknown_linux2_0
+       //if(pdFlavor != "mpi") {
+       //#endif
+          // TODO: prefork and pre-exit should depend on whether a callback is defined
+          if (!tracedSyscalls_->installPreFork()) 
+             cerr << "Warning: failed pre-fork notification setup" << endl;
+          if (!tracedSyscalls_->installPostFork()) 
+             cerr << "Warning: failed post-fork notification setup" << endl;
+          if (!tracedSyscalls_->installPreExec()) 
+             cerr << "Warning: failed pre-exec notification setup" << endl;
+          if (!tracedSyscalls_->installPostExec()) 
+             cerr << "Warning: failed post-exec notification setup" << endl;
+          if (!tracedSyscalls_->installPreExit()) 
+             cerr << "Warning: failed pre-exit notification setup" << endl;
+          if (!tracedSyscalls_->installPreLwpExit()) 
+             cerr << "Warning: failed pre-lwp-exit notification setup" << endl;
+          //#ifdef i386_unknown_linux2_0
+          //}
+          //#endif
    }
    else { // called from a forking process
        process *parentProcess = process::findProcess(bs_record.ppid);
@@ -4282,8 +4290,8 @@ bool process::handleStopThread(EventRecord &ev)
             return false;
         }
         if (vars.size() != 1) {
-            fprintf(stderr, "%s[%d]:  ERROR:  %ld vars matching %s, not 1\n", 
-                    FILE__, __LINE__, (long) vars.size(), arg_str.c_str());
+            fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                    FILE__, __LINE__, vars.size(), arg_str.c_str());
             return false;
         }
         sh->sync_event_arg2_addr = vars[0]->getAddress();
@@ -4298,8 +4306,8 @@ bool process::handleStopThread(EventRecord &ev)
             return false;
         }
         if (vars.size() != 1) {
-            fprintf(stderr, "%s[%d]:  ERROR:  %ld vars matching %s, not 1\n", 
-                    FILE__, __LINE__, (long) vars.size(), arg_str.c_str());
+            fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                    FILE__, __LINE__, vars.size(), arg_str.c_str());
             return false;
         }
         sh->sync_event_arg3_addr = vars[0]->getAddress();
@@ -4362,9 +4370,19 @@ BPatchSnippetHandle *handle; //ccw 17 jul 2002
 #endif
 #endif
 
+// A copy of the BPatch-level instrumentation installer. 
 
 void process::installInstrRequests(const pdvector<instMapping*> &requests) 
 {
+    if (requests.size() == 0) {
+        return;
+    }
+
+    // Instrumentation is now generated on a per-function basis, while
+    // the requests are per-inst, not per-function. So 
+    // accumulate functions, then generate afterwards. 
+
+    vector<int_function *> instrumentedFuncs;
 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
 
@@ -4376,8 +4394,15 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         
         pdvector<int_function *> matchingFuncs;
         
-        findFuncsByAll(req->func, matchingFuncs, req->lib);
-        
+        if (!findFuncsByAll(req->func, matchingFuncs, req->lib)) {
+            inst_printf("%s[%d]: failed to find any functions matching %s (lib %s), returning failure from installInstrRequests\n", FILE__, __LINE__, req->func.c_str(), req->lib.c_str());
+            return;
+        }
+        else {
+            inst_printf("%s[%d]: found %d functions matching %s (lib %s), instrumenting...\n",
+                        FILE__, __LINE__, matchingFuncs.size(), req->func.c_str(), req->lib.c_str());
+        }
+
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
             int_function *func = matchingFuncs[funcIter];
             if (!func) {
@@ -4454,24 +4479,17 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
             default:
                 fprintf(stderr, "Unknown where: %d\n",
                         req->where);
+            } // switch
+            pdvector<instPoint *> failedPoints; 
+            if (func->performInstrumentation(false, failedPoints)) {
+                for (unsigned i = 0; i < minis.size(); i++) {
+                    req->miniTramps.push_back(minis[i]);
+                }
             }
-            
-        }
+        } // matchingFuncs        
         
-        for (unsigned m = 0; m < minis.size(); m++) {
-            miniTramp *mt = minis[m];
-            
-            if (!mt->instP()->generateInst())
-                continue;
-            if (!mt->instP()->installInst())
-                continue;
-            if (!mt->instP()->linkInst())
-                continue;
-            
-            req->miniTramps.push_back(mt);
-        }
-    }
-
+    } // requests
+    return;
 }
 
 

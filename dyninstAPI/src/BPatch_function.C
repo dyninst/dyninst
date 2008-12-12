@@ -564,7 +564,7 @@ void BPatch_function::constructVarsAndParams(){
 
     //Check flag to see if vars & params are already constructed
     std::vector<localVar *>vars;
-    if(lowlevel_func()->ifunc()->symbol()->getLocalVariables(vars)) {
+    if(lowlevel_func()->ifunc()->getSymtabFunction()->getLocalVariables(vars)) {
         for(unsigned i = 0; i< vars.size(); i++) 
 	    {
             if (mod) {
@@ -574,7 +574,7 @@ void BPatch_function::constructVarsAndParams(){
 	    }    
     }
     std::vector<localVar *>parameters;
-    if(lowlevel_func()->ifunc()->symbol()->getParams(parameters)) {
+    if(lowlevel_func()->ifunc()->getSymtabFunction()->getParams(parameters)) {
         for(unsigned i = 0; i< parameters.size(); i++) {
             if (mod) {
                 parameters[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
@@ -584,15 +584,15 @@ void BPatch_function::constructVarsAndParams(){
 	        params.push_back(lparam);
     	}    
     }
-    if(!lowlevel_func()->ifunc()->symbol()->getReturnType()) {
+    if(!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()) {
         varsAndParamsValid = true;
         return;
     }
         
-    if(!lowlevel_func()->ifunc()->symbol()->getReturnType()->getUpPtr())
-        retType = new BPatch_type(lowlevel_func()->ifunc()->symbol()->getReturnType());
+    if(!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()->getUpPtr())
+        retType = new BPatch_type(lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType());
     else
-        retType = (BPatch_type *)lowlevel_func()->ifunc()->symbol()->getReturnType()->getUpPtr();
+        retType = (BPatch_type *)lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()->getUpPtr();
     varsAndParamsValid = true;
 }
 

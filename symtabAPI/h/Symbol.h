@@ -68,6 +68,8 @@ class Module;
 class typeCommon;
 class localVarCollection;
 class Region;
+class Function;
+ class Variable;
 
 /************************************************************************
  * class Symbol
@@ -136,17 +138,23 @@ class Symbol : public Serializable,
    DLLEXPORT bool              isInSymtab()            const;
    DLLEXPORT bool              isAbsolute()            const;
 
+   DLLEXPORT bool              isFunction()            const;
+   DLLEXPORT bool              setFunction(Function * func);
+   DLLEXPORT Function *        getFunction()           const;
+
+   DLLEXPORT bool              isVariable()            const;
+   DLLEXPORT bool              setVariable(Variable *var);
+   DLLEXPORT Variable *        getVariable()           const;
 
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   DLLEXPORT const std::string&      getName ()              const;
-   DLLEXPORT const std::string&	getPrettyName()       	const;
-   DLLEXPORT const std::string& 	getTypedName() 		const;
+   DLLEXPORT const std::string&      getMangledName ()              const;
+   DLLEXPORT const std::string&	     getPrettyName()       	const;
+   DLLEXPORT const std::string&      getTypedName() 		const;
 
-   DLLEXPORT const std::vector<std::string>&	getAllMangledNames()    const;
-   DLLEXPORT const std::vector<std::string>&	getAllPrettyNames()     const;
-   DLLEXPORT const std::vector<std::string>&	getAllTypedNames()      const;
+   /* Deprecated */
+   DLLEXPORT const std::string &getName() const { return getMangledName(); }
 
    DLLEXPORT bool setAddr (Offset newAddr);
 
@@ -164,10 +172,6 @@ class Symbol : public Serializable,
    DLLEXPORT bool  setIsAbsolute();
    DLLEXPORT bool  clearIsAbsolute();
 
-   DLLEXPORT Type  *getReturnType();
-   DLLEXPORT bool	setReturnType(Type *);
-   DLLEXPORT bool  setFramePtrRegnum(int regnum);
-   DLLEXPORT int   getFramePtrRegnum();
    DLLEXPORT bool  setVersionFileName(std::string &fileName);
    DLLEXPORT bool  setVersions(std::vector<std::string> &vers);
    DLLEXPORT bool  setVersionNum(unsigned verNum);
@@ -175,28 +179,17 @@ class Symbol : public Serializable,
    DLLEXPORT bool  getVersions(std::vector<std::string> *&vers);
    DLLEXPORT bool  VersionNum(unsigned &verNum);
 
-   // Bool: returns true if the name is new (and therefore added)
-   DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-   DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-   DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
-
-   /***** Local Variable Information *****/
-   DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
-   DLLEXPORT bool getLocalVariables(std::vector<localVar *>&vars);
-   DLLEXPORT bool getParams(std::vector<localVar *>&params);
-
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
    public:
    static std::string emptyString;
 
-   //  convenience functions, not really meant to be called outside symtabAPI
-   bool addLocalVar(localVar *);
-   bool addParam(localVar *);
-
 
    private:
+   void setPrettyName(std::string pN) { prettyName_ = pN; };
+   void setTypedName(std::string tN) { typedName_ = tN; };
+
    Module*       module_;
    SymbolType    type_;
    SymbolLinkage linkage_;
@@ -207,9 +200,14 @@ class Symbol : public Serializable,
    bool          isInSymtab_;
    bool          isAbsolute_;
 
-   std::vector<std::string> mangledNames;
-   std::vector<std::string> prettyNames;
-   std::vector<std::string> typedNames;
+   Function*     function_;  // if this symbol represents a function, this is a pointer
+                             // to the corresponding Function object
+   Variable     *variable_;  // Should combine into an "Aggregate" parent class...
+
+   std::string mangledName_;
+   std::string prettyName_;
+   std::string typedName_;
+
    SymbolTag     tag_;
    int           framePtrRegNum_;
    Type          *retType_;
@@ -264,9 +262,9 @@ Symbol::operator==(const Symbol& s) const
          && (isInSymtab_ == s.isInSymtab_)
          && (isAbsolute_ == s.isAbsolute_)
          && (retType_    == s.retType_)
-         && (mangledNames == s.mangledNames)
-         && (prettyNames == s.prettyNames)
-         && (typedNames == s.typedNames)
+         && (mangledName_ == s.mangledName_)
+         && (prettyName_ == s.prettyName_)
+         && (typedName_ == s.typedName_)
          && (moduleName_ == s.moduleName_));
 }
 
@@ -287,6 +285,7 @@ class LookupInterface
 
       DLLEXPORT virtual ~LookupInterface();
 };
+
 
 }//namespace SymtabAPI
 }//namespace Dyninst

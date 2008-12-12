@@ -185,6 +185,8 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    if (!p) return NULL;
 
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
+   startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
+                  FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
    image *img = image::parseImage(desc, parseGaps);
    if (!img)  {
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
@@ -207,14 +209,13 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       // More specifically, x86 and x86_64 linux
 #if defined(arch_x86) || defined(arch_x86_64)
 
-      vector <Symbol *>mainsyms;
-      if (p->proc() && p->proc()->getTraceState() == noTracing_ts
-            && !p->proc()->wasCreatedViaAttach() 
-            && !img->getObject()->findSymbolByType
-            (mainsyms,"main",Symbol::ST_UNKNOWN)
-            && !img->getObject()->findSymbolByType
-            (mainsyms,"_main",Symbol::ST_UNKNOWN)) {
-         fprintf(stderr, "[%s][%d] Module: %s in process %d:\n"
+      vector <Function *> main;
+      if (p->proc() && 
+          (p->proc()->getTraceState() == noTracing_ts) &&
+          !p->proc()->wasCreatedViaAttach() &&
+          (!img->getObject()->findFunctionsByName(main,"main") &&
+           !img->getObject()->findFunctionsByName(main,"_main"))) {
+          fprintf(stderr, "[%s][%d] Module: %s in process %d:\n"
                "\t  is not a shared object so it should contain a symbol for \n"
                "\t  function main. Initial attempt to locate main failed,\n"
                "\t  possibly due to the lack of a .text section\n",
@@ -339,8 +340,7 @@ mapped_object::~mapped_object()
 
    // codeRangesByAddr_ is static
     // Remainder are static
-
-    image::removeImage(image_);
+   image::removeImage(image_);
 }
 
 bool mapped_object::analyze() 
@@ -497,7 +497,7 @@ mapped_module *mapped_object::findModule(pdmodule *pdmod)
    assert(pdmod);
 
    if (pdmod->imExec() != parse_img()) {
-      fprintf(stderr, "%s[%d]: WARNING: lookup for module in wrong mapped object! %p != %p", FILE__, __LINE__, pdmod->imExec(), parse_img()); 
+      fprintf(stderr, "%s[%d]: WARNING: lookup for module in wrong mapped object! %p != %p\n", FILE__, __LINE__, pdmod->imExec(), parse_img()); 
       fprintf(stderr, "%s[%d]:  \t\t %s \n", FILE__, __LINE__, parse_img()->name().c_str());
       fprintf(stderr, "%s[%d]:  \t %s != \n", FILE__, __LINE__, pdmod->imExec()->name().c_str());
       return NULL;
@@ -550,25 +550,24 @@ const pdvector<int_function *> *mapped_object::findFuncVectorByPretty(const std:
    if (allFunctionsByPrettyName.defines(funcname)) {
       // Okay, we've pulled in some of the functions before (this can happen as a
       // side effect of adding functions). But did we get them all?
-      pdvector<int_function *> *map_funcs = allFunctionsByPrettyName[funcname];
-      if (map_funcs->size() == img_funcs->size()) {
-         // We're allocating at the lower level....
-         delete img_funcs;
-         return map_funcs;
-      }
+       pdvector<int_function *> *map_funcs = allFunctionsByPrettyName[funcname];
+       if (map_funcs->size() == img_funcs->size()) {
+           // We're allocating at the lower level....
+           delete img_funcs;
+           return map_funcs;
+       }
    }
-
+   
    // Slow path: check each img_func, add those we don't already have, and return.
    for (unsigned i = 0; i < img_funcs->size(); i++) {
-      image_func *func = (*img_funcs)[i];
-      if (!everyUniqueFunction.defines(func)) {
-         findFunction(func);
-      }
-      assert(everyUniqueFunction[func]);
-  }
-  assert(allFunctionsByPrettyName.defines(funcname));
-  delete img_funcs;
-  return allFunctionsByPrettyName[funcname];
+       image_func *func = (*img_funcs)[i];
+       if (!everyUniqueFunction.defines(func)) {
+           findFunction(func);
+       }
+       assert(everyUniqueFunction[func]);
+   }
+   delete img_funcs;
+   return allFunctionsByPrettyName[funcname];
 } 
 
 const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const std::string &funcname)
@@ -599,7 +598,6 @@ const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const st
         }
         assert(everyUniqueFunction[func]);
     }
-    assert(allFunctionsByMangledName.defines(funcname));
     delete img_funcs;
     return allFunctionsByMangledName[funcname];
 } 
@@ -633,7 +631,6 @@ const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const std::
         }
         assert(everyUniqueVariable[var]);
     }
-    //assert(allVarsByPrettyName.defines(varname));
     delete img_vars;
     return allVarsByPrettyName[varname];
 } 
@@ -666,7 +663,6 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const std
       }
       assert(everyUniqueVariable[var]);
   }
-  //assert(allVarsByMangledName.defines(varname));
   delete img_vars;
   return allVarsByMangledName[varname];
 } 
@@ -771,16 +767,24 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
 
 // Enter a function in all the appropriate tables
 int_function *mapped_object::findFunction(image_func *img_func) {
-    if (!img_func) return NULL;
+    if (!img_func) {
+        fprintf(stderr, "Warning: findFunction with null img_func\n");
+        return NULL;
+    }
+    assert(img_func->getSymtabFunction());
+
     mapped_module *mod = findModule(img_func->pdmod());
     if (!mod) {
-       fprintf(stderr, "%s[%d]:  ERROR:  Cannot find module %s\n", FILE__, __LINE__, img_func->pdmod()->fileName().c_str());
+        fprintf(stderr, "%s[%d]: ERROR: cannot find module %p\n", FILE__, __LINE__, img_func->pdmod());
+        fprintf(stderr, "%s[%d]:  ERROR:  Cannot find module %s\n", FILE__, __LINE__, img_func->pdmod()->fileName().c_str());
     }
     assert(mod);
     
-    if (everyUniqueFunction.defines(img_func))
+
+    if (everyUniqueFunction.defines(img_func)) {
         return everyUniqueFunction[img_func];
-    
+    }
+
     int_function *func = new int_function(img_func, 
                                           codeBase_,
                                           mod);
@@ -790,30 +794,51 @@ int_function *mapped_object::findFunction(image_func *img_func) {
 
 void mapped_object::addFunctionName(int_function *func,
                                     const std::string newName,
-                                    bool isMangled) { /* = false */    
+                                    nameType_t nameType) {
+    // DEBUG
     pdvector<int_function *> *funcsByName = NULL;
     
-    // Ensure a vector exists
-    if (isMangled == false) {
-        if (!allFunctionsByPrettyName.find(newName,
-                                           funcsByName)) {
-            funcsByName = new pdvector<int_function *>;
-            allFunctionsByPrettyName[newName] = funcsByName;
-        }
-    }
-    else {
+    if (nameType & mangledName) {
         if (!allFunctionsByMangledName.find(newName,
                                             funcsByName)) {
             funcsByName = new pdvector<int_function *>;
             allFunctionsByMangledName[newName] = funcsByName;
         }
     }
+    if (nameType & prettyName) {
+        if (!allFunctionsByPrettyName.find(newName,
+                                           funcsByName)) {
+            funcsByName = new pdvector<int_function *>;
+            allFunctionsByPrettyName[newName] = funcsByName;
+        }
+    }
+    if (nameType & typedName) {
+        return; 
+        /*
+          // TODO add?
+        if (!allFunctionsByPrettyName.find(newName,
+                                           funcsByName)) {
+            funcsByName = new pdvector<int_function *>;
+            allFunctionsByPrettyName[newName] = funcsByName;
+        }
+        */
+    }
+
     assert(funcsByName != NULL);
     funcsByName->push_back(func);
 }
     
 
 void mapped_object::addFunction(int_function *func) {
+    /*
+    fprintf(stderr, "Adding function %s/%p: %d mangled, %d pretty, %d typed names\n",
+            func->symTabName().c_str(),
+            func,
+            func->symTabNameVector().size(),
+            func->prettyNameVector().size(),
+            func->typedNameVector().size());
+    */
+
     // Possibly multiple demangled (pretty) names...
     // And multiple functions (different addr) with the same pretty
     // name. So we have a many::many mapping...
@@ -821,14 +846,14 @@ void mapped_object::addFunction(int_function *func) {
          pretty_iter < func->prettyNameVector().size();
          pretty_iter++) {
         string pretty_name = func->prettyNameVector()[pretty_iter];
-        addFunctionName(func, pretty_name.c_str(), false);
+        addFunctionName(func, pretty_name.c_str(), prettyName);
     }
 
     for (unsigned typed_iter = 0; 
          typed_iter < func->typedNameVector().size();
          typed_iter++) {
         string typed_name = func->typedNameVector()[typed_iter];
-        addFunctionName(func, typed_name.c_str(), false);
+        addFunctionName(func, typed_name.c_str(), typedName);
     }
     
     // And multiple symtab names...
@@ -836,7 +861,7 @@ void mapped_object::addFunction(int_function *func) {
          symtab_iter < func->symTabNameVector().size();
          symtab_iter++) {
         string symtab_name = func->symTabNameVector()[symtab_iter];
-        addFunctionName(func, symtab_name.c_str(), true);
+        addFunctionName(func, symtab_name.c_str(), mangledName);
     }  
     everyUniqueFunction[func->ifunc()] = func;
     func->mod()->addFunction(func);
@@ -927,108 +952,98 @@ const std::string mapped_object::debugString() const
 // This gets called once per image. Poke through to the internals;
 // all we care about, amusingly, is symbol table information. 
 
-void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
+void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
 {
-   pdvector<Symbol *> foundHeapSyms;
+    vector<pair<string, Address> > code_heaps;
+    vector<pair<string, Address> > data_heaps;
 
-   parse_img()->findSymByPrefix("DYNINSTstaticHeap", foundHeapSyms);
-   parse_img()->findSymByPrefix("_DYNINSTstaticHeap", foundHeapSyms);
+    if (!parse_img()->getInferiorHeaps(code_heaps, data_heaps)) {
+#if !defined(os_aix)
+        // AIX: see auxiliary lookup, below.
+        return;
+#endif
+    }
 
-   for (unsigned i = 0; i < foundHeapSyms.size(); i++) {
-      foundHeapDesc foo;
-      foo.name = foundHeapSyms[i]->getName().c_str();
-      foo.addr = foundHeapSyms[i]->getAddr();
-      // foo.addr is now relative to the start of the heap; check the type of the symbol to 
-      // determine whether it's a function (off codeBase_) or variable (off dataBase_)
-      switch(foundHeapSyms[i]->getType()) {
-         case Symbol::ST_FUNCTION:
-            foo.addr += codeBase_;
-            foundHeaps.push_back(foo);
-            break;
-         case Symbol::ST_OBJECT:
-            foo.addr += dataBase_;
-            foundHeaps.push_back(foo);
-            break;
-         default:
-            // We don't know what this is, and can't tell the base. Skip it (but warn)
-            fprintf(stderr, "Warning: skipping inferior heap with type %d, %s@0x%lx\n", foundHeapSyms[i]->getType(), foo.name.c_str(), foo.addr);
-            break;
-      }
-   }
 
-   // AIX: we scavenge space. Do that here.
-
+    // We have a bunch of offsets, now add in the base addresses
+    for (unsigned i = 0; i < code_heaps.size(); i++) {
+        foundHeaps.push_back(pair<string,Address>(code_heaps[i].first,
+                                                  code_heaps[i].second + codeBase()));
+    }
+    for (unsigned i = 0; i < data_heaps.size(); i++) {
+        foundHeaps.push_back(pair<string,Address>(data_heaps[i].first,
+                                                  data_heaps[i].second + dataBase()));
+    }
+    
+    // AIX: we scavenge space. Do that here.
+    
 #if defined(os_aix)
-   // ...
-
-   // a.out: from the end of the loader to 0x20000000
-   // Anything in 0x2....: skip
-   // Anything in 0xd....: to the next page
-
-   foundHeapDesc tmp;
-   Address start = 0;
-   unsigned size = 0;
-
+    // ...
+    
+    // a.out: from the end of the loader to 0x20000000
+    // Anything in 0x2....: skip
+    // Anything in 0xd....: to the next page
+    
+    Address start = 0;
+    unsigned size = 0;
+    
 #if 0
-   fprintf(stderr, "Looking for inferior heap in %s/%s, codeAbs 0x%x (0x%x/0x%x)\n",
-         getFileDesc().file().c_str(),
-         getFileDesc().member().c_str(),
-         codeAbs(),
-         codeBase(),
-         codeOffset());
+    fprintf(stderr, "Looking for inferior heap in %s/%s, codeAbs 0x%x (0x%x/0x%x)\n",
+            getFileDesc().file().c_str(),
+            getFileDesc().member().c_str(),
+            codeAbs(),
+            codeBase(),
+            codeOffset());
 #endif
-
-   if (codeAbs() >= 0xd0000000) {
-      // This caused problems on sp3-01.cs.wisc.edu; apparently we were overwriting
-      // necessary library information. For now I'm disabling it (10FEB06) until
-      // we can get a better idea of what was going on.
+    
+    if (codeAbs() >= 0xd0000000) {
+        // This caused problems on sp3-01.cs.wisc.edu; apparently we were overwriting
+        // necessary library information. For now I'm disabling it (10FEB06) until
+        // we can get a better idea of what was going on.
 #if 0
-      start = codeAbs() + imageSize();
-      start += instruction::size() - (start % (Address)instruction::size());
-      size = PAGESIZE - (start % PAGESIZE);
+        start = codeAbs() + imageSize();
+        start += instruction::size() - (start % (Address)instruction::size());
+        size = PAGESIZE - (start % PAGESIZE);
 #endif
-   }
-   else if (codeAbs() > 0x20000000) {
-      // ...
-   }
-   else if (codeAbs() > 0x10000000) {
-      // We also have the loader; there is no information on where
-      // it goes (ARGH) so we pad the end of the code segment to
-      // try and avoid it.
+    }
+    else if (codeAbs() > 0x20000000) {
+        // ...
+    }
+    else if (codeAbs() > 0x10000000) {
+        // We also have the loader; there is no information on where
+        // it goes (ARGH) so we pad the end of the code segment to
+        // try and avoid it.
+        
+        Region *sec;
+        image_->getObject()->findRegion(sec, ".loader");
+        Address loader_end = codeAbs() + 
+            //sec.getSecAddr() +
+            image_->getObject()->getLoadOffset() +
+            sec->getDiskSize();
+        //Address loader_end = codeAbs() + 
+        //    image_->getObject()->loader_off() +
+        //    image_->getObject()->loader_len();
+        // If we loaded it up in the data segment, don't use...
+        if (loader_end > 0x20000000)
+            loader_end = 0;
+        Address code_end = codeAbs() + imageSize();
+        
+        start = (loader_end > code_end) ? loader_end : code_end;
+        
+        start += instruction::size() - (start % (Address)instruction::size());
+        size = (0x20000000 - start);
+    }
+    
+    
+    if (start) {
+        char name_scratch[1024];
+        snprintf(name_scratch, 1023,
+                 "DYNINSTstaticHeap_%i_uncopiedHeap_0x%lx_scratchpage_%s",
+                 (unsigned) size,
+                 start,
+                 fileName().c_str());
 
-      Region *sec;
-      image_->getObject()->findRegion(sec, ".loader");
-      Address loader_end = codeAbs() + 
-         //sec.getSecAddr() +
-         image_->getObject()->getLoadOffset() +
-         sec->getDiskSize();
-      //Address loader_end = codeAbs() + 
-      //    image_->getObject()->loader_off() +
-      //    image_->getObject()->loader_len();
-      // If we loaded it up in the data segment, don't use...
-      if (loader_end > 0x20000000)
-         loader_end = 0;
-      Address code_end = codeAbs() + imageSize();
-
-      start = (loader_end > code_end) ? loader_end : code_end;
-
-      start += instruction::size() - (start % (Address)instruction::size());
-      size = (0x20000000 - start);
-   }
-
-
-   if (start) {
-      char name_scratch[1024];
-      snprintf(name_scratch, 1023,
-            "DYNINSTstaticHeap_%i_uncopiedHeap_0x%lx_scratchpage_%s",
-            (unsigned) size,
-            start,
-            fileName().c_str());
-
-      tmp.name = std::string(name_scratch);
-      tmp.addr = start;
-      //fprintf(stderr, "Adding heap %s\n", name_scratch);
-        foundHeaps.push_back(tmp);
+        foundHeaps.push_back(pair<string,Address>(string(name_scratch),start)); 
     }
 #endif
 }
@@ -1036,8 +1051,12 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const
 
 void *mapped_object::getPtrToInstruction(Address addr) const 
 {
-   if (addr < codeAbs()) return NULL;
-   if (addr >= (codeAbs() + imageSize())) return NULL;
+   if (addr < codeAbs()) {
+       return NULL;
+   }
+   if (addr >= (codeAbs() + imageSize())) {
+       return NULL;
+   }
 
    // Only subtract off the codeBase, not the codeBase plus
    // codeOffset -- the image class includes the codeOffset.

@@ -66,6 +66,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/InstructionSource.h"
 
+#include "dyninstAPI/src/infHeap.h"
 
 #include "common/h/Types.h"
 #include "dyninstAPI/src/inst.h"
@@ -77,6 +78,8 @@
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Module.h"
 #include "symtabAPI/h/Type.h"
+#include "symtabAPI/h/Function.h"
+#include "symtabAPI/h/Variable.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -205,12 +208,12 @@ class image_variable {
                    const std::string &name,
                    pdmodule *mod);
 
-    image_variable(Symbol *sym,
+    image_variable(Variable *var,
     		   pdmodule *mod);
 
     Address getOffset() const;
 
-    const string &symTabName() const { return sym_->getName(); }
+    const string &symTabName() const { return var_->getAllMangledNames()[0]; }
     const vector<string>&  symTabNameVector() const;
     const vector<string>& prettyNameVector() const;
 
@@ -218,9 +221,9 @@ class image_variable {
     bool addPrettyName(const std::string &, bool isPrimary = false);
 
     pdmodule *pdmod() const { return pdmod_; }
-    Symbol *symbol() const { return sym_; }
+    Variable *svar() const { return var_; }
 
-    Symbol *sym_;	
+    Variable *var_;
     pdmodule *pdmod_;
     
 };
@@ -347,11 +350,11 @@ class image : public codeRange, public InstructionSource {
                                                      void *user_data, 
                                                      pdvector<image_func *> *found);
 
-   image_func *findOnlyOneFunction(const std::string &name);
+   //image_func *findOnlyOneFunction(const std::string &name);
 
    // Given an address (offset into the image), find the function that occupies
    // that address
-   image_func *findFuncByOffset(const Address &offset);
+   //image_func *findFuncByOffset(const Address &offset);
    // (Possibly) faster version checking only entry address
    image_func *findFuncByEntry(const Address &entry);
 
@@ -416,6 +419,7 @@ class image : public codeRange, public InstructionSource {
    bool isCode(const Address &where) const;
    bool isData(const Address &where) const;
    virtual bool isValidAddress(const Address &where) const;
+   virtual bool isExecutableAddress(const Address &where) const;
    bool isAligned(const Address where) const;
 
    bool isNativeCompiler() const { return nativeCompiler; }
@@ -435,6 +439,9 @@ class image : public codeRange, public InstructionSource {
 
    const pdvector<image_variable *> &getExportedVariables() const;
    const pdvector<image_variable *> &getCreatedVariables();
+
+   bool getInferiorHeaps(vector<pair<string, Address> > &codeHeaps,
+                         vector<pair<string, Address> > &dataHeaps);
 
    const pdvector<pdmodule*> &getModules();
 
@@ -461,7 +468,7 @@ class image : public codeRange, public InstructionSource {
    int removeFuncFromInstrumentable(image_func *func);
 
    image_func *makeOneFunction(vector<Symbol *> &mods,
-                                Symbol *lookUp);
+                                Function *lookUp);
 
 
    //
@@ -497,6 +504,7 @@ class image : public codeRange, public InstructionSource {
 
    void getModuleLanguageInfo(dictionary_hash<std::string, supportedLanguages> *mod_langs);
    void setModuleLanguages(dictionary_hash<std::string, supportedLanguages> *mod_langs);
+
 
    // We have a _lot_ of lookup types; this handles proper entry
    // wasSymtab: name was found in symbol table. False if invented name
@@ -611,6 +619,8 @@ class image : public codeRange, public InstructionSource {
 */   
    dictionary_hash <Address, image_variable *> varsByAddr;
 
+   vector<pair<string, Address> > codeHeaps_;
+   vector<pair<string, Address> > dataHeaps_;
 
    int refCount;
    imageParseState_t parseState_;
