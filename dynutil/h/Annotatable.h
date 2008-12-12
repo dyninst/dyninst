@@ -50,16 +50,13 @@
 #include "dyntypes.h"
 #include "../../common/h/Types.h"
 
-#if 0
 namespace Dyninst
 {
-#endif
 
 typedef short AnnotationClassID;
 
 // since can't have a single static in a temlated class that spans all template instances.
-extern int AnnotationClass_nextId;
-
+COMMONEXPORT int AnnotationClass_nextId;
 template <class T> 
 class AnnotationClass {
    public:
@@ -177,20 +174,19 @@ class AnnotatableSparse
          {
             return (size_t) a;
          }
-		 static const size_t min_buckets = 8;
-		 static const size_t bucket_size = 4;
-		bool operator()(const void* a, const void* b) const
-		{
-			return (a < b);
-		}
       };
 
+#if defined (os_windows)
+      typedef dyn_hash_map<void *, void *> annos_by_type_t;
+#else
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
+#endif
+
       typedef std::vector<annos_by_type_t *> annos_t;
 
    private:
 
-      static annos_t annos;
+      //static annos_t annos;
 
       template <class T>
       annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
@@ -386,8 +382,9 @@ class AnnotatableSparse
 
 };
 
+COMMONEXPORT AnnotatableSparse::annos_t annos;
+
 //AnnotatableSparse::annos_t AnnotatableSparse::annos;
-#if 0
 } // namespace
-#endif
+
 #endif

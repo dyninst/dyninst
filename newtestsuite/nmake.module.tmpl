@@ -13,7 +13,7 @@ RELEASE_NUM	= 4.2
 DEST		= $(TO_CORE)\$(PROGRAM_DEST)\newtestsuite
 
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src /D_DEBUG /Zi
-CXXFLAGS_NORM = $(CXXFLAGS)
+CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/newtestsuite/src
 CXXFLAGS     = $(CXXFLAGS) -DTESTLIB_DLL_BUILD
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
@@ -97,7 +97,4 @@ DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
 # Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
 	$(LINK) $(LDFLAGS) -DLL -out:$@ $(TESTDRIVER_LIBS) Advapi32.lib Ws2_32.lib $**
 
-mutators: $(dyninst_MUTATORS_SO)
 
-#$(dyninst_OBJS_ALL_MUTATORS): ../src/$*.C
-#	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VCC++.exe -I../src/ -I../src/dyninst -c ../src/dyninst/$**

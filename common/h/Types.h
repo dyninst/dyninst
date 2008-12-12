@@ -220,6 +220,18 @@ static const Register REG_NULL = (Register)(-1);
 #endif
 #endif
 
+#if !defined(COMMONEXPORT)
+#if defined (_MSC_VER)
+/* If we're on Windows, we need to explicetely export these functions: */
+	#if defined(LIBCOMMON_BUILD)
+		#define COMMONEXPORT __declspec(dllexport)
+	#else
+		#define COMMONEXPORT __declspec(dllimport)	
+	#endif
+#else
+	#define COMMONEXPORT
+#endif
+#endif
 
 #ifdef __cplusplus
 

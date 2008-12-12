@@ -1,12 +1,25 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
+ * Copyright (c) 1996 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * described as Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
  * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
@@ -14,28 +27,24 @@
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 // $Id: list.C,v
-#if (!defined (__XLC__) && !defined(__xlC__)) || defined (LIST_C_IS_HEADER)
-#ifndef LIST_C
-#define LIST_C
+
 #include <iostream>
 #include "common/h/List.h"
 
+using namespace std;
 
 template <class DataType, class KeyType> DO_INLINE_F typename 
 ListBase<DataType, KeyType>::node *ListBase<DataType, KeyType>::getLastNode()
@@ -54,7 +63,7 @@ template <class DataType, class KeyType> void
 ListBase<DataType, KeyType>::__push_front(DataType &data, 
 					  const KeyType &key)
 {
-   TYPENAME ListBase<DataType, KeyType>::node *ni = new node(data, key, head);
+   ListBase<DataType, KeyType>::node *ni = new node(data, key, head);
    head = ni;
 }
 
@@ -167,5 +176,4 @@ bool ListBase<DataType, KeyType>::__find_with_val(const DataType &dataVal)
    return false;
 }
 
-#endif
-#endif
+

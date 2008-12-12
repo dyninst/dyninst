@@ -56,9 +56,21 @@
 #include <set>
 #include <algorithm>
 #include "arch.h"
+#if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-
+#else
+namespace Dyninst
+{
+	namespace InstructionAPI
+	{
+		struct RegisterAST
+		{
+			typedef boost::shared_ptr<RegisterAST> Ptr;
+		};
+	};
+};
+#endif
 /**************************************************************
  *
  *  machine dependent methods of pdFunction
@@ -602,11 +614,15 @@ bool image_func::archGetMultipleJumpTargets(
             }
         }
 
-        InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(tableInsnAddr), 
+#if defined(cap_instruction_api)
+		InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(tableInsnAddr), 
                              tableInsn.size());
         Instruction tableInsn_iapi = d.decode();
         std::set<RegisterAST::Ptr> regsRead;
         tableInsn_iapi.getReadSet(regsRead);
+#else
+		std::set<RegisterAST::Ptr> regsRead;
+#endif
         /* Previous comment said:	
         // search backward over the blocks that reach this one. we're looking
         // for a comparison on this register. if we find an assignment to the

@@ -44,8 +44,8 @@
 #include "common/h/headers.h"
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/Annotatable.h"
-static int AnnotationClass_nextId = 0;
-AnnotatableSparse::annos_t AnnotatableSparse::annos;
+//COMMONEXPORT int Dyninst::AnnotationClass_nextId;
+//AnnotatableSparse::annos_t AnnotatableSparse::annos;
 #if 0
 
 
