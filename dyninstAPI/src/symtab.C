@@ -226,7 +226,7 @@ image_func *image::makeOneFunction(vector<Symbol *> &mods,
 
 #if defined(os_solaris)
    if(strstr(lookUp->getFirstSymbol()->getName().c_str(), "_$") != NULL){
-      image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
+      image_parRegion * pR = new image_parRegion(lookUp->getAddress(),func);    
       parallelRegions.push_back(pR);
    }
 #endif 
