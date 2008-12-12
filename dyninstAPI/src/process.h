@@ -363,10 +363,10 @@ class process : public AddressSpace {
     // Get the list of inferior heaps from:
     
     bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
-    bool getInfHeapList(const mapped_object *theObj,
+    bool getInfHeapList(mapped_object *theObj,
                         pdvector<heapDescriptor> &infHeaps); // Single mapped object
     
-    void addInferiorHeap(const mapped_object *obj);
+    void addInferiorHeap(mapped_object *obj);
     
     void initInferiorHeap();
     

@@ -28,10 +28,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <string.h>
+
 #include "Annotatable.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "Collections.h"
+#include "Function.h"
 
 #include "common/h/pathName.h"
 
@@ -338,7 +341,7 @@ bool Module::setLineInfo(LineInformation *lineInfo)
       if (li != lineInfo)
          delete li;
 
-      //      fprintf(stderr, "%s[%d]:  weird, already have line info anno, check this\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  weird, already have line info anno, check this\n", FILE__, __LINE__);
       if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
       {
          fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
@@ -365,9 +368,9 @@ bool Module::setLineInfo(LineInformation *lineInfo)
 bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
    exec_->parseTypesNow();
-   std::vector<Symbol *>mod_funcs;
+   std::vector<Function *>mod_funcs;
 
-   if (!getAllSymbolsByType(mod_funcs, Symbol::ST_FUNCTION))
+   if (!exec_->getAllFunctions(mod_funcs))
    {
       return false;
    }
@@ -428,7 +431,7 @@ Module::~Module()
       fprintf(stderr, "%s[%d]:  failed to clear annotations\n", FILE__, __LINE__);
    }
 #endif
-   fprintf(stderr, "%s[%d]:  FIXME:  need to clear annotations??\n", FILE__, __LINE__);
+   //fprintf(stderr, "%s[%d]:  FIXME:  need to clear annotations??\n", FILE__, __LINE__);
 
 }
 
@@ -458,6 +461,11 @@ bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolTyp
 
    serr = No_Such_Symbol;
    return false;
+}
+
+bool Module::getAllFunctions(std::vector<Function *> &ret)
+{
+    return exec()->getAllFunctions(ret);
 }
 
 bool Module::operator==(Module &mod) 

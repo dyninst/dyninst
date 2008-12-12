@@ -546,19 +546,24 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     
     if(instructions_->isValidAddress(tableEntry))
     {
-      if(addrWidth == sizeof(Address))
-      {
-	jumpAddress = *(const Address *)instructions_->getPtrToInstruction(tableEntry);
-      }
-      else
-      {
-	jumpAddress = *(const int *)instructions_->getPtrToInstruction(tableEntry);
-      }
+        if(addrWidth == sizeof(Address)) {
+            // Unparseable jump table
+            jumpAddress = *(const Address *)instructions_->getPtrToInstruction(tableEntry);
+        }
+        else {
+            assert(instructions_->getPtrToInstruction(tableEntry));
+            jumpAddress = *(const int *)instructions_->getPtrToInstruction(tableEntry);
+        }
+    }
+    if (!instructions_->isExecutableAddress(jumpAddress)) {
+        parsing_printf("\tentry %d [0x%lx] -> 0x%x, invalid, skipping\n",
+                       i, tableEntry, jumpAddress);
+        continue;
     }
 
     parsing_printf("\tentry %d [0x%lx] -> 0x%x\n",i,tableEntry,jumpAddress);
 
-    if (jumpAddress)
+    if (instructions_->isExecutableAddress(jumpAddress))
     {
       if(tableOffsetFromThunk)
       {

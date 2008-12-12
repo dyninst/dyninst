@@ -28,6 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+
+#include <string.h>
 			     
 #include <stdio.h>
 
@@ -36,8 +38,7 @@
 #include "Symtab.h"
 #include "Module.h"
 #include "Collections.h"
-
-#include <string.h>
+#include "Function.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -1092,10 +1093,10 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
 	// localVar->addField() TODO????
 	//fieldList[j]->getOffset()+(Offset) baseAddr, -1, storageAddr);
 	
-        if (!func->addLocalVar(locVar) )
-        {
-           fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-        }
+      if (!func->getFunction()->addLocalVar(locVar)) 
+      {
+         fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+      }
     }
 
     // look to see if the field list matches an existing block

@@ -1023,7 +1023,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         trampAddr_ = proc()->inferiorMalloc(size_required,
                                             heapToUse,
                                             instAddr_);
-        inst_printf("inferiorMalloc Returned %x\n", trampAddr_);
+        inst_printf("%s[%d]: inferiorMalloc returned %x\n", FILE__, __LINE__, trampAddr_);
         if (!trampAddr_) {
             fprintf(stderr, "Failed to inferiorMalloc, ret false\n");
             return false;
@@ -1051,6 +1051,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     if (!generated_) {
         jumpBuf_.allocate(instSize_);
         jumpBuf_.setAddrSpace(proc());
+
         // We set this = true before we call generateBranchToTramp
         generated_ = true;
         if (!generateBranchToTramp(jumpBuf_)) {
@@ -1262,6 +1263,9 @@ bool multiTramp::installCode() {
 
 bool multiTramp::linkCode() {
 
+    inst_printf("%s[%d]: Entering multiTramp::linkCode (%p)\n",
+                FILE__, __LINE__, this);
+
     // Relocation should be done before this is called... not sure when though.
 
     // We may already be linked in, and getting called because of a regeneration.
@@ -1277,7 +1281,8 @@ bool multiTramp::linkCode() {
         codeRange *prevRange = proc()->findModByAddr(instAddr_);
         if (prevRange != NULL) {
             
-            inst_printf("Someone already present at this address...\n");
+            inst_printf("%s[%d]: this address already modified: %p (cur) %p (prev)\n",
+                        FILE__, __LINE__, this, prevRange);
 
             // Someone's already here....
             if (prevRange->is_function_replacement()) {
@@ -1291,6 +1296,8 @@ bool multiTramp::linkCode() {
                 return true;
             }
             else if (prevRange->is_multitramp()) {
+                inst_printf("%s[%d]: previous range was multiTramp, overwriting\n",
+                            FILE__, __LINE__);
                 // This is okay...
             }
             else {
@@ -1359,21 +1366,34 @@ bool multiTramp::linkCode() {
         obj->linkCode();
         assert(obj->linked());
     }
+
+    inst_printf("%s[%d]: returning true from multiTramp::linkCode (%p)\n",
+                FILE__, __LINE__, this);
     return true;
 }
 
 // And a wrapper for the above
 multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
+    inst_printf("%s[%d]: multiTramp::linkMultiTramp(%p)\n",
+                FILE__, __LINE__, this);
 
     // We can call generate, return an error, then call install anyway.
-    if (!installed_) return mtError;
+    if (!installed_) {
+        inst_printf("%s[%d]: multiTramp::linkMultiTramp(%p): not installed, ret mtError\n",
+                    FILE__, __LINE__, this);
+        return mtError;
+    }
 
     assert(!hasChanged()); // since we generated code...
 
-    if (linkCode())
+    if (linkCode()) {
+        inst_printf("%s[%d]: multiTramp::linkMultiTramp(%p): linked, ret mtSuccess\n",
+                    FILE__, __LINE__, this);
         return mtSuccess;
+    }
     else {
-        fprintf(stderr, "Linking multiTramp failed!\n");
+        inst_printf("%s[%d]: multiTramp::linkMultiTramp(%p): failed linko, ret mtError\n",
+                    FILE__, __LINE__, this);
         return mtError;
     }
 }
@@ -1564,7 +1584,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
     }
 
     // Ran out of iterator... 
-    fprintf(stderr, "Checking %ld deleted objects\n", (long) deletedObjs.size());
+    fprintf(stderr, "Checking %d deleted objects\n", deletedObjs.size());
     for (unsigned i = 0; i < deletedObjs.size(); i++) {
         obj = deletedObjs[i];
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
@@ -2626,7 +2646,6 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
         return true;
     }
 #endif
-
     instruction::generateBranch(gen, instAddr_, trampAddr_);
 
     branchSize_ = gen.used() - origUsed;

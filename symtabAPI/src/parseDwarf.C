@@ -36,6 +36,7 @@
 
 #include "Type.h"
 #include "Symbol.h"
+#include "Function.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "symtabAPI/src/Object.h"
@@ -952,7 +953,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       Dwarf_Off cuOffset,
       char **srcFiles,
       Address lowpc,
-      Symbol * currentFunction = NULL,
+      Function * currentFunction = NULL,
       typeCommon * currentCommonBlock = NULL,
       typeEnum *currentEnum = NULL,
       fieldListType * currentEnclosure = NULL )
@@ -976,7 +977,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
    /* If this entry is a function, common block, or structure (class),
       its children will be in its scope, rather than its
       enclosing scope. */
-   Symbol * newFunction = currentFunction;
+   Function * newFunction = currentFunction;
    typeCommon * newCommonBlock = currentCommonBlock;
    typeEnum *newEnum = currentEnum;
    fieldListType * newEnclosure = currentEnclosure;
@@ -988,7 +989,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       case DW_TAG_subprogram:
       case DW_TAG_entry_point:
          {
-
             /* Is this entry specified elsewhere?  We may need to look there for its name. */
             Dwarf_Bool hasSpecification;
             status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
@@ -1036,6 +1036,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             } /* end if there's a linkage name. */
             else {
                hasLinkageName = false;
+
                status = dwarf_diename( specEntry, & functionName, NULL );
                DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
             } /* end if there isn't a linkage name. */
@@ -1053,68 +1054,26 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                break;
             } /* end if there's no name at all. */
 
-            /* Try to find the function by its mangled name. */
-            Dwarf_Addr baseAddr = 0;
-            std::vector< Symbol * > ret_funcs;
-            std::vector<Symbol *> functions;
-            if (objFile->findSymbolByType(ret_funcs, functionName, Symbol::ST_FUNCTION, true)) {
-               for (unsigned foo = 0; foo < ret_funcs.size(); foo++)
-                  functions.push_back(ret_funcs[foo]);
-               ret_funcs.clear();	
+            vector<Function *> ret_funcs;
+            // newFunction is scoped at the function level...
+
+            if (objFile->findFunctionsByName(ret_funcs, functionName)) {
+                // Assert a single one?
+                newFunction = ret_funcs[0];
             }
             else {
-               /* If we can't find it by mangled name, try searching by address. */
-               status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
-               if ( status == DW_DLV_OK ) {
-                  /* The base addresses in DWARF appear to be image-relative. */
-                  // Symbol * intFunction = objFile->findFuncByAddr( baseAddr );
-                  Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
-                  std::vector<Symbol *>funcs;
-                  if (objFile->findFuncByEntryOffset(funcs, absAddr)){
-                     functions.push_back(funcs[0]);
-                  }
-               }
+                // Didn't find by name (???), try to look up by address...
+                Dwarf_Addr baseAddr = 0;
+                status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
+                
+                if (status != DW_DLV_OK) break;
+
+                Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
+                if (!objFile->findFuncByEntryOffset(newFunction, absAddr)) {
+                    dwarf_printf( "Failed to find function '%s'\n", functionName );
+                    break;
+                }
             }
-            if ( functions.size() == 0 ) { // Still....
-               /* If we can't find it by address, try searching by pretty name. */
-               if ( baseAddr != 0 ) { dwarf_printf( "%s[%d]: unable to locate function %s by address 0x%llx\n", __FILE__, __LINE__, functionName, baseAddr ); 
-               }
-               std::vector<Symbol *> prettyFuncs;
-               if (objFile->findSymbolByType(prettyFuncs, functionName, Symbol::ST_FUNCTION)) {
-                  for (unsigned bar = 0; bar < prettyFuncs.size(); bar++) {
-                     functions.push_back(prettyFuncs[bar]);
-                  }
-               }
-            }
-
-            if ( functions.size() == 0 ) {
-               /* Don't parse the children, since we can't add them. */
-               dwarf_printf( "Failed to find function '%s'\n", functionName );
-               parsedChild = true;
-
-               //Add the function to the list of functions and continue parsing the FDE ??
-
-               if ( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
-               dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
-               break;
-            }
-            else if ( functions.size() > 1 ) {
-               dwarf_printf( "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
-
-               /* Don't parse the children, since we can't add them. */
-               parsedChild = true;
-
-               if ( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
-               dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
-               break;		
-            }
-            else {
-               Symbol * newIntFunction = functions[0];
-               assert( newIntFunction != NULL );
-               //newFunction = objFile->newFunctionCB( newIntFunction );
-               newFunction = newIntFunction;
-               assert( newFunction != NULL );
-            } /* end findFunction() cases */
 
             /* Once we've found the Symbol pointer corresponding to this
                DIE, record its frame base.  A declaration entry may not have a 
@@ -2008,7 +1967,7 @@ gracefully, that is, without an error. :)
             } /* end if not a bit field member. */
 
             if ( memberName != NULL ) {
-               // /* DEBUG */ fprint( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, loc->frameOffset, memberType->getSize() );
+                // /* DEBUG */ fprintf( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName().c_str(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, (*locs)[0]->frameOffset, memberType->getSize() );
                std::string fName = convertCharToString(memberName);
                currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
                dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
@@ -2239,13 +2198,13 @@ void Object::parseDwarfTypes( Symtab *objFile)
 //          lowpc = (Address)lowPCdwarf;
 
       /* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
-      if (!objFile->findModule(mod, moduleName)){
+      if (!objFile->findModuleByName(mod, moduleName)){
          std::string modName = moduleName;
          std::string fName = extract_pathname_tail(modName);
-         if (!objFile->findModule(mod, fName))
+         if (!objFile->findModuleByName(mod, fName))
          {
             modName = objFile->file();
-            if (!objFile->findModule(mod, modName))
+            if (!objFile->findModuleByName(mod, modName))
                continue;
          }
       }

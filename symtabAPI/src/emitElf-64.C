@@ -214,7 +214,9 @@ bool emitElf64::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsign
 #endif
        return true;
    }
-   std::vector<string> names = symbol->getAllMangledNames();
+   std::vector<string> names;
+   names.push_back(symbol->getMangledName());
+
    for(unsigned i=1;i<names.size();i++)
    {
        	sym = new Elf64_Sym();

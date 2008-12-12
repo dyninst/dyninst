@@ -111,62 +111,6 @@ bool dynamic_linking::installTracing() {
       return true;
   else
       return false;
-
-
-#if 0
-      // Seriously deprecated
-      const pdvector<mapped_object *> &objs = proc->mappedObjects();
-      
-      // Get libc
-      mapped_object *libc = NULL;
-      for (unsigned i = 0; i < objs.size(); i++) {
-          const fileDescriptor &desc = objs[i]->getFileDesc();
-          if ((objs[i]->fileName().suffixed_by("libc.a")) &&
-              (desc.member() == "shr.o")) {
-              libc = (objs[i]);
-          }
-      }
-      assert(libc);
-    
-      // Now, libc may have been parsed... in which case we pull the function vector
-      // from it. If not, we parse it manually.
-      
-      const pdvector<int_function *> *loadFuncs = libc->findFuncVectorByPretty(std::string("load1"));
-      assert(loadFuncs);
-      assert(loadFuncs->size() > 0);
-      
-      int_function *loadFunc = (*loadFuncs)[0];
-      assert(loadFunc);
-      
-    // There is no explicit place to put a trap, so we'll replace
-    // the final instruction (brl) with a trap, and emulate the branch
-    // mutator-side
-    //
-    //  JAW-- Alas this only works on AIX < 5.2.  The AIX 5.2 version of 
-    //  load1 has 2 'blr' exit points, and we really want the first one.
-    //  the last one is (apparently) the return that is used when there is
-    //  is a failure.
-    //
-    // We used to find multiple exit points in findInstPoints. Now that
-    // Laune's got a new version, we don't hack that any more. Instead, we
-    // read in the function image, find the blr instructions, and overwrite
-    // them by hand. This should be replaced with either a) instrumentation
-    // or b) a better hook (aka r_debug in Linux/Solaris)
-
-    InstrucIter funcIter(loadFunc);
-
-    while (*funcIter) {
-        instruction insn = funcIter.getInstruction();
-
-        if (insn.raw() == BRraw) {
-            sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, 
-                                                          *funcIter);
-            sharedLibHooks_.push_back(sharedHook);
-        }
-        funcIter++;
-    }
-  }
-#endif
 }
 
 // If result has entries, use them as a base (don't double-create)
