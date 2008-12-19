@@ -300,7 +300,7 @@ class SerDesXML : public SerDes {
       DLLEXPORT void xml_value(const char *val, const char *tag);
 };
 
-class AnnotatableBase;
+//class AnnotatableBase;
 
 class SerDesBin : public SerDes {
 
@@ -316,7 +316,7 @@ class SerDesBin : public SerDes {
 
    public:
 
-   DLLEXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
+   //DLLEXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
    DLLEXPORT static FILE *init(std::string fname, iomode_t mode, bool verbose);
 
    DLLEXPORT SerDesBin() {assert(0);}
@@ -328,7 +328,7 @@ class SerDesBin : public SerDes {
 
    DLLEXPORT virtual ~SerDesBin();
 
-   DLLEXPORT static AnnotatableBase *findAnnotatee(void *id); 
+   //DLLEXPORT static AnnotatableBase *findAnnotatee(void *id); 
 
    DLLEXPORT virtual void file_start(std::string &full_file_path);
    DLLEXPORT virtual void vector_start(unsigned int &size, 

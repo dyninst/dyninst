@@ -155,7 +155,8 @@ static int mutatorTest()
 
    for (unsigned int i = 1; i <= PART1_TESTS; ++i) 
    {
-#if defined (cap_serialization)
+//#if defined (cap_serialization)
+#if 1
       if (!subTest(i, "test0.mutatee_g++")) 
       {
          fprintf(stderr, "%s[%d]:  subtest %d failed\n", FILE__, __LINE__, i);
@@ -167,7 +168,6 @@ static int mutatorTest()
 #endif
    }
 
-#if defined (cap_serialization)
    //  actually this one doesn't need to be under this flag...  
    //  just here because its still being fleshed out
 
@@ -178,7 +178,6 @@ static int mutatorTest()
       fprintf(stderr, "%s[%d]:  subtest 0 failed\n", FILE__, __LINE__);
       return -1;
    }
-#endif
 
 #if 0
    for (unsigned int i = 1; i <= PART2_TESTS; ++i) 

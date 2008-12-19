@@ -40,7 +40,7 @@
 
 using namespace Dyninst;
 
-DLLEXPORT dyn_hash_map<Address, AnnotatableBase *> SerDesBin::annotatable_id_map;
+//DLLEXPORT dyn_hash_map<Address, AnnotatableBase *> SerDesBin::annotatable_id_map;
 
 
 DLLEXPORT dyn_hash_map<std::string, SerializerBase::subsystem_serializers_t> SerializerBase::all_serializers;
@@ -1018,6 +1018,7 @@ void SerDesBin::translate(std::vector<std::string> &param, const char *tag, cons
    }
 }
 
+#if 0
 AnnotatableBase *SerDesBin::findAnnotatee(void *id) 
 {
    Address id_a = (Address) id;
@@ -1031,6 +1032,7 @@ AnnotatableBase *SerDesBin::findAnnotatee(void *id)
    
    return iter->second;
 }
+#endif
 
 
 
