@@ -133,10 +133,10 @@ class ZeroOne : public Serializable {
                zero_one_int, 
                zero_one_int == cmp.zero_one_int ? "==" : "!=", 
                cmp.zero_one_int);
-         fprintf(stderr, "%s[%d]: %l %s %l\n", __FILE__, __LINE__,
-               zero_one_long, 
-               zero_one_long == cmp.zero_one_long ? "==" : "!=", 
-               cmp.zero_one_long);
+         fprintf(stderr, "%s[%d]: %lu %s %lu\n", __FILE__, __LINE__,
+               (long) zero_one_long, 
+               (const char *) (zero_one_long == cmp.zero_one_long ? "==" : "!="), 
+               (long) cmp.zero_one_long);
 #if 0
          fprintf(stderr, "%s[%d]: %hu %s %hu\n", __FILE__, __LINE__, 
                zero_one_short, 
@@ -402,7 +402,7 @@ class ZeroThree : public Serializable {
       {
          if (zero_three_ints.size() != cmp.zero_three_ints.size()) 
          {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_three_ints.size(), zero_three_ints.size());
          }
 
@@ -497,7 +497,7 @@ class ZeroFour : public Serializable {
       {
          if (zero_four_ints.size() != cmp.zero_four_ints.size()) 
          {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_four_ints.size(), zero_four_ints.size());
          }
 
@@ -609,7 +609,7 @@ class ZeroFive : public Serializable {
       {
          if (zero_five_ints.size() != cmp.zero_five_ints.size()) 
          {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_five_ints.size(), zero_five_ints.size());
          }
 
@@ -731,7 +731,7 @@ class ZeroSix : public Serializable {
       {
          if (dictionary6.size() != cmp.dictionary6.size()) 
          {
-            fprintf(stderr, "%s[%d]:  hashes have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  hashes have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.dictionary6.size(), dictionary6.size());
          }
 
@@ -757,7 +757,7 @@ class ZeroSix : public Serializable {
       {
          try 
          {
-            fprintf(stderr, "%s[%d]:  before gtranslate:  hash size = %d\n", 
+            fprintf(stderr, "%s[%d]:  before gtranslate:  hash size = %lu\n", 
                   FILE__, __LINE__, dictionary6.size());
             gtranslate(sb,dictionary6);
          } 
@@ -1016,7 +1016,7 @@ class ZeroEight : public Serializable {
       {
          if (v8.size() != cmp.v8.size()) 
          {
-            fprintf(stderr, "%s[%d]:  vector sizes differ %d -- %d\n", 
+            fprintf(stderr, "%s[%d]:  vector sizes differ %lu -- %lu\n", 
                   FILE__, __LINE__, v8.size(), cmp.v8.size());
 
             return;
@@ -1097,9 +1097,10 @@ typedef struct {} zero_nine_anno;
 
 #if 0
 class ZeroNine : public Serializable,
-                 public Annotatable<int, zero_nine_anno, true> {
+                 public AnnotatableSparse 
+{
    public:
-      ZeroNine() : Annotatable<int, zero_nine_anno, true>("BinSerializer") {}
+      ZeroNine() : AnnotatableSparse() {}
       int i9;
 
       bool operator==(ZeroNine &cmp) 
