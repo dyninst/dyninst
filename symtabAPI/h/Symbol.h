@@ -91,6 +91,7 @@ class Symbol : public Serializable,
       ST_FUNCTION,
       ST_OBJECT,
       ST_MODULE,
+	  ST_SECTION,
       ST_NOTYPE
    };
 
@@ -114,12 +115,22 @@ class Symbol : public Serializable,
 
    static const char *symbolTag2Str(SymbolTag t);
 
+   enum SymbolVisibility {
+       SV_UNKNOWN,
+       SV_DEFAULT,
+       SV_INTERNAL,
+       SV_HIDDEN,
+       SV_PROTECTED
+   };
+
+   static const char *symbolVisibility2Str(SymbolVisibility t);
+
    DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
    DLLEXPORT Symbol (unsigned);
-   DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
+   DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage, SymbolVisibility,
          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
          bool isInSymtab_ = true, bool isAbsolute_ = false);
-   DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
+   DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage, SymbolVisibility,
          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
          bool isInSymtab_ = true, bool isAbsolute_ = false);
    DLLEXPORT Symbol (const Symbol &);
@@ -132,6 +143,7 @@ class Symbol : public Serializable,
    DLLEXPORT Module*	        getModule()		        const; 
    DLLEXPORT SymbolType        getType ()              const;
    DLLEXPORT SymbolLinkage     getLinkage ()           const;
+   DLLEXPORT SymbolVisibility  getVisibility ()        const;
    DLLEXPORT Offset            getAddr ()              const;
    DLLEXPORT Region		    *getSec ()      	    const;
    DLLEXPORT bool              isInDynSymtab()         const;
@@ -193,6 +205,7 @@ class Symbol : public Serializable,
    Module*       module_;
    SymbolType    type_;
    SymbolLinkage linkage_;
+   SymbolVisibility visibility_;
    Offset        addr_;
    Region*      sec_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.

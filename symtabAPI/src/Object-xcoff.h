@@ -236,7 +236,7 @@ class Object : public AObject {
     bool isEEL() const { return false; }
 
     void parseTypeInfo(Symtab *obj);
-    bool emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
+    bool emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, unsigned flag);
 
 private:
 

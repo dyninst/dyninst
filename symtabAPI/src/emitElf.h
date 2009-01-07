@@ -41,7 +41,7 @@ class emitElf{
   public:
     emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, void (*)(const char *) = log_msg);
     ~emitElf();
-    bool checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Symbol *>&variables, vector<Symbol *>&mods, vector<Symbol *>&notypes, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt);
+    bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt);
     bool driver(Symtab *obj, std::string fName);
  
   private:
@@ -110,7 +110,7 @@ class emitElf{
 
     void (*err_func_)(const char*);
 
-    bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols, bool dynSymFlag = false);
+    bool createElfSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols, bool dynSymFlag = false);
     void findSegmentEnds();
     void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
     void fixPhdrs(unsigned &, unsigned &);
