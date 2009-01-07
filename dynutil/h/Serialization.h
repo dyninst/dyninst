@@ -34,6 +34,10 @@ DLLEXPORT bool &serializer_debug_flag();
 
 class SerializerBase;
 typedef enum {sd_serialize, sd_deserialize} iomode_t;
+typedef bool (*deserialize_and_annotate_t)(SerializerBase *, void *parent);
+
+bool addDeserializeFuncForType(deserialize_and_annotate_t, const std::type_info *);
+deserialize_and_annotate_t getDeserializeFuncForType(const std::type_info *);
 
 class DLLEXPORT Serializable {
    protected:

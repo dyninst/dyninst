@@ -123,7 +123,7 @@ endif
 	$(MAKE) $(SRCS)
 ### TODO: remove this in favor of native compiler support
 ifeq ($(MODCC),cc)
-	gcc -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
 ifdef IBM_BPATCH_COMPAT
   ifeq ($(DEPCC), xlC)

@@ -2085,6 +2085,16 @@ test_runmode('test_lookup_var', 'createProcess').
 test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
 
+% should this really be groupable?
+test('test_anno_basic_types', 'test_anno_basic_types', none).
+test_description('test_anno_basic_types', 'Annotate objects with basic types').
+test_runs_everywhere('test_anno_basic_types').
+groupable_test('test_anno_basic_types').
+mutator('test_anno_basic_types', ['test_anno_basic_types.C']).
+test_runmode('test_anno_basic_types', 'createProcess').
+test_start_state('test_anno_basic_types', 'selfstart').
+tests_module('test_anno_basic_types', 'symtab').
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}

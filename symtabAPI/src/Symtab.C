@@ -83,7 +83,7 @@ extern void print_sym_map( dyn_hash_map < string, std::vector < Symbol* > > & sy
  
 void pd_log_perror(const char *msg)
 {
-   errMsg = msg;
+   errMsg = std::string(msg);
 };
 
 int symtab_printf(const char *format, ...);

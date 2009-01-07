@@ -85,6 +85,39 @@ int serializer_printf(const char *format, ...)
    return ret;
 } 
 
+dyn_hash_map<const char*, deserialize_and_annotate_t> annotation_deserializers;
+
+bool addDeserializeFuncForType(deserialize_and_annotate_t f, const std::type_info *ti)
+{
+   dyn_hash_map<const char *, deserialize_and_annotate_t>::iterator iter;
+   iter = annotation_deserializers.find(ti->name());
+
+   if (iter != annotation_deserializers.end())
+   {
+      fprintf(stderr, "%s[%d]:  WARN:  already have deserialization function for type %s\n", 
+            FILE__, __LINE__, ti->name());
+      return false;
+   }
+
+   annotation_deserializers[ti->name()] = f;
+   return true;
+}
+
+deserialize_and_annotate_t getDeserializeFuncForType(const std::type_info *ti)
+{
+   dyn_hash_map<const char *, deserialize_and_annotate_t>::iterator iter;
+   iter = annotation_deserializers.find(ti->name());
+
+   if (iter == annotation_deserializers.end())
+   {
+      fprintf(stderr, "%s[%d]:  WARN:  no deserialization function for type %s\n", 
+            FILE__, __LINE__, ti->name());
+      return NULL;
+   }
+
+   return iter->second;
+}
+
 void printSerErr(const SerializerError &err) 
 {
    fprintf(stderr, "\tserializer exception %s from \n\t%s[%d]\n", 
@@ -1097,7 +1130,8 @@ bool SerializerBase::addSerializer(std::string subsystem, std::string fname, Ser
    sbiter = ss_serializers.find(fname);
    if (sbiter != ss_serializers.end()) 
    {
-      fprintf(stderr, "%s[%d]:  already have serializer for filename %s\n", FILE__, __LINE__, fname.c_str());
+      fprintf(stderr, "%s[%d]:  already have serializer for filename %s\n", 
+            FILE__, __LINE__, fname.c_str());
       return false;
    }
 

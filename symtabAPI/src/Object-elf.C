@@ -3414,7 +3414,8 @@ int read_except_table_gcc3(Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
       if (!data.isValid()) {
          return false;
       }
-      const unsigned char *datap = (unsigned char *) data.get_string();
+
+      const unsigned char *datap = (const unsigned char *) data.get_string();
       unsigned long int except_size = data.d_size();
 
       except_off = (unsigned long) (lsda_ptr - except_scn->sh_addr());
