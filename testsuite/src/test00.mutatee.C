@@ -305,7 +305,7 @@ bool test0()
 
       if (mods.size() != TEST1_MUTATEE_NUM_EXPECTED_MODS) 
       {
-         fprintf(stderr, "%s[%d]:  symtab for %s: wrong number of modules: %d, not %d\n", 
+         fprintf(stderr, "%s[%d]:  symtab for %s: wrong number of modules: %lu, not %d\n", 
                FILE__, __LINE__, mutatee_name.c_str(), mods.size(), TEST1_MUTATEE_NUM_EXPECTED_MODS);
          dumpModules(mods, test1_mutatee);
          return false;
@@ -688,7 +688,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -713,7 +713,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -746,7 +746,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -771,7 +771,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -852,7 +852,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -877,7 +877,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -911,7 +911,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -936,7 +936,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -1269,11 +1269,13 @@ class ZeroThree : public Serializable {
          return (! (*this == cmp));
       }
       void printcmp(const ZeroThree &cmp) {
-         if (zero_three_ints.size() != cmp.zero_three_ints.size()) {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+         if (zero_three_ints.size() != cmp.zero_three_ints.size()) 
+	 {
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_three_ints.size(), zero_three_ints.size());
          }
-         for (unsigned int i = 0; i < cmp.zero_three_ints.size(); ++i) {
+         for (unsigned int i = 0; i < cmp.zero_three_ints.size(); ++i) 
+	 {
             if ((zero_three_ints[i] != cmp.zero_three_ints[i])) 
                fprintf(stderr, "elem %d: %d -- %d\n", i, zero_three_ints[i], 
                      cmp.zero_three_ints[i]);
@@ -1282,7 +1284,8 @@ class ZeroThree : public Serializable {
 
       void serialize(SerializerBase *sb, const char *)
       {
-         try {
+         try 
+	 {
             gtranslate(sb, zero_three_ints);
          } SER_CATCH("ZeroThree");
       }

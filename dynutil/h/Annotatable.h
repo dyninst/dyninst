@@ -46,6 +46,7 @@
 #include <map>
 #include <typeinfo>
 #include <string>
+#include <string.h> // for strrchr()
 #include <assert.h>
 #include <stdlib.h>
 #include "dyntypes.h"

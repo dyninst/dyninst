@@ -682,7 +682,7 @@ bool test5b(const char *cachefile)
 
 class ZeroSix : public Serializable {
    public:
-      hash_map<char, std::string> dictionary6;
+      dyn_hash_map<char, std::string> dictionary6;
 
       bool operator==(ZeroSix &cmp) 
       {
@@ -691,8 +691,8 @@ class ZeroSix : public Serializable {
             return false;
          }
 
-         hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
-         hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
 
          while ((iter1 != dictionary6.end()) && (iter2 != cmp.dictionary6.end())) 
          {
@@ -735,8 +735,8 @@ class ZeroSix : public Serializable {
                   FILE__, __LINE__, cmp.dictionary6.size(), dictionary6.size());
          }
 
-         hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
-         hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
 
          while (iter1 != dictionary6.end() && iter2 != cmp.dictionary6.end()) 
          {

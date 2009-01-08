@@ -7,7 +7,7 @@
 %%%%%%%%%%
 
 % Include some utility definitions
-:- include('test.pl').
+:- include('src/specification/test.pl').
 
 % Allow the user to specify new clauses as they want throughout this file
 :- discontiguous([library/2, object_suffix/2, library_suffix/2,
@@ -139,7 +139,8 @@ compiler_for_mutatee('dyninst_cxx_group_test', Compiler) :-
 
 mutatee('symtab_group_test', [
    'test_lookup_func_mutatee.c',
-	'test_lookup_var_mutatee.c'
+	'test_lookup_var_mutatee.c',
+   'test_anno_basic_types_mutatee.c'
    ]).
 compiler_for_mutatee('symtab_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -2092,7 +2093,7 @@ test_runs_everywhere('test_anno_basic_types').
 groupable_test('test_anno_basic_types').
 mutator('test_anno_basic_types', ['test_anno_basic_types.C']).
 test_runmode('test_anno_basic_types', 'createProcess').
-test_start_state('test_anno_basic_types', 'selfstart').
+test_start_state('test_anno_basic_types', 'stopped').
 tests_module('test_anno_basic_types', 'symtab').
 
 % test_start_state/2

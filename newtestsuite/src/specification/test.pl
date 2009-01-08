@@ -1,6 +1,6 @@
 % Dyninst test suite specification compiler: tuple generator
 
-:- include('util.pl').
+:- include('src/specification/util.pl').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% UTILITY FUNCTIONS
