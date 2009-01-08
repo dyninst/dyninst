@@ -77,63 +77,63 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
 
 class AObject {
 public:
-    DLLEXPORT AObject();
-    DLLEXPORT unsigned nsymbols () const;
+    SYMTAB_EXPORT AObject();
+    SYMTAB_EXPORT unsigned nsymbols () const;
     
-    DLLEXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
+    SYMTAB_EXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
 
-    DLLEXPORT char*       code_ptr () const; 
-    DLLEXPORT Offset           code_off () const;
-    DLLEXPORT Offset           code_len () const;
+    SYMTAB_EXPORT char*       code_ptr () const; 
+    SYMTAB_EXPORT Offset           code_off () const;
+    SYMTAB_EXPORT Offset           code_len () const;
 
-    DLLEXPORT char*       data_ptr () const;
-    DLLEXPORT Offset           data_off () const;
-    DLLEXPORT Offset           data_len () const;
+    SYMTAB_EXPORT char*       data_ptr () const;
+    SYMTAB_EXPORT Offset           data_off () const;
+    SYMTAB_EXPORT Offset           data_len () const;
 
-    DLLEXPORT bool 	      is_aout  () const;
-    DLLEXPORT bool        isDynamic() const;
+    SYMTAB_EXPORT bool 	      is_aout  () const;
+    SYMTAB_EXPORT bool        isDynamic() const;
 
-    DLLEXPORT unsigned	      no_of_sections () const;
-    DLLEXPORT unsigned	      no_of_symbols  ()	const;
+    SYMTAB_EXPORT unsigned	      no_of_sections () const;
+    SYMTAB_EXPORT unsigned	      no_of_symbols  ()	const;
 
-    DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
-    DLLEXPORT std::vector<Region *> getAllRegions() const;
+    SYMTAB_EXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
+    SYMTAB_EXPORT std::vector<Region *> getAllRegions() const;
 
 
-    DLLEXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
+    SYMTAB_EXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
                                                                     supportedLanguages working_lang);
 
-    DLLEXPORT Offset loader_off() const;
-    DLLEXPORT unsigned loader_len() const;
-    DLLEXPORT int getAddressWidth() const;
+    SYMTAB_EXPORT Offset loader_off() const;
+    SYMTAB_EXPORT unsigned loader_len() const;
+    SYMTAB_EXPORT int getAddressWidth() const;
 
-    DLLEXPORT virtual char *  mem_image() const;
+    SYMTAB_EXPORT virtual char *  mem_image() const;
 
-    DLLEXPORT virtual  bool   needs_function_binding()  const;
-    DLLEXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
-    DLLEXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
-    DLLEXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
-    DLLEXPORT bool   getSegments(std::vector<Segment> &segs) const;
+    SYMTAB_EXPORT virtual  bool   needs_function_binding()  const;
+    SYMTAB_EXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
+    SYMTAB_EXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
+    SYMTAB_EXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
+    SYMTAB_EXPORT bool   getSegments(std::vector<Segment> &segs) const;
 
-    DLLEXPORT bool have_deferred_parsing( void ) const;
+    SYMTAB_EXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....
-    DLLEXPORT const std::ostream &dump_state_info(std::ostream &s);
+    SYMTAB_EXPORT const std::ostream &dump_state_info(std::ostream &s);
 
-    DLLEXPORT void * getErrFunc() const;
-    DLLEXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
-    DLLEXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
+    SYMTAB_EXPORT void * getErrFunc() const;
+    SYMTAB_EXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+    SYMTAB_EXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
 
 
 
 protected:
-    DLLEXPORT virtual ~AObject();
+    SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
-    DLLEXPORT AObject(MappedFile * , MappedFile *, void (*err_func)(const char *));
-    DLLEXPORT AObject(MappedFile * , MappedFile *, 
+    SYMTAB_EXPORT AObject(MappedFile * , MappedFile *, void (*err_func)(const char *));
+    SYMTAB_EXPORT AObject(MappedFile * , MappedFile *, 
                       dyn_hash_map<std::string, LineInformation> &, 
                       void (*)(const char *)) { assert(0); }
-    DLLEXPORT AObject(const AObject &obj);
-    DLLEXPORT AObject&  operator= (const AObject &obj);
+    SYMTAB_EXPORT AObject(const AObject &obj);
+    SYMTAB_EXPORT AObject&  operator= (const AObject &obj);
 
     MappedFile *mf;
     MappedFile *mfForDebugInfo;

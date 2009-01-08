@@ -141,7 +141,7 @@ Symbol * Variable::getFirstSymbol() const
     return symbols_[0];
 }
 
-DLLEXPORT bool Variable::addMangledName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Variable::addMangledName(string name, bool isPrimary) 
 {
     // Check to see if we're duplicating
     for (unsigned i = 0; i < mangledNames_.size(); i++) {
@@ -166,7 +166,7 @@ DLLEXPORT bool Variable::addMangledName(string name, bool isPrimary)
     return true;
 }																	
 
-DLLEXPORT bool Variable::addPrettyName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Variable::addPrettyName(string name, bool isPrimary) 
 {
     // Check to see if we're duplicating
     for (unsigned i = 0; i < prettyNames_.size(); i++) {
@@ -190,7 +190,7 @@ DLLEXPORT bool Variable::addPrettyName(string name, bool isPrimary)
     return true;
 }																	
 
-DLLEXPORT bool Variable::addTypedName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Variable::addTypedName(string name, bool isPrimary) 
 {
     // Check to see if we're duplicating
     for (unsigned i = 0; i < typedNames_.size(); i++) {

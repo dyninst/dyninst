@@ -35,11 +35,11 @@
 
 #include <vector>
 #include <set>
-#include "../h/Expression.h"
-#include "../h/Operation.h"
+#include "Expression.h"
+#include "Operation.h"
+#include "Operand.h"
 
-#include "../h/Operand.h"
-
+#include "util.h"
 
 namespace Dyninst
 {
@@ -89,36 +89,36 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, size_t size,
+      INSTRUCTION_EXPORT Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, size_t size,
 		  const unsigned char* raw);
-      Instruction();
+      INSTRUCTION_EXPORT Instruction();
       
-      virtual ~Instruction();
+      INSTRUCTION_EXPORT virtual ~Instruction();
 
-      Instruction(const Instruction& o);
-      const Instruction& operator=(const Instruction& rhs);
+      INSTRUCTION_EXPORT Instruction(const Instruction& o);
+      INSTRUCTION_EXPORT const Instruction& operator=(const Instruction& rhs);
       
 
       /// \return The %Operation used by the %Instruction
       ///
       /// See Operation for details of the %Operation interface.
-      const Operation& getOperation() const;
+      INSTRUCTION_EXPORT const Operation& getOperation() const;
 
       /// The vector \c operands has the instruction's operands appended to it
       /// in the same order that they were decoded.
-      void getOperands(std::vector<Operand>& operands) const;
+      INSTRUCTION_EXPORT void getOperands(std::vector<Operand>& operands) const;
 
       /// The \c getOperand method returns the operand at position \c index, or
       /// an empty operand if \c index does not correspond to a valid operand in this
       /// instruction.
-      Operand getOperand(int index) const;
+      INSTRUCTION_EXPORT Operand getOperand(int index) const;
   
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
-      const unsigned char* rawInsn() const;
+      INSTRUCTION_EXPORT const unsigned char* rawInsn() const;
 
       /// Returns the size of the corresponding machine instruction, in bytes.
-      size_t size() const;
+      INSTRUCTION_EXPORT size_t size() const;
   
       /// \param regsWritten Insert the set of registers written by the instruction into \c regsWritten.
       ///
@@ -137,23 +137,23 @@ namespace Dyninst
       /// read.  Any element of the write set or read set that is not explicitly written or read is implicitly
       /// written or read.  
 
-      void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
+      INSTRUCTION_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
       /// \param regsRead Insert the set of registers read by the instruction into \c regsRead.
       ///
       /// If an operand is used to compute an effective address, the registers
       /// involved are read but not written, regardless of the effect on the operand.
-      void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
+      INSTRUCTION_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
 
       /// \param candidate Subexpression to search for among the values read by this %Instruction object.
       ///
       /// Returns true if \c candidate is read by this %Instruction.
-      bool isRead(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
 
       /// \param candidate Subexpression to search for among the values written by this %Instruction object.
       ///
       /// Returns true if \c candidate is written by this %Instruction.
-      bool isWritten(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
       
 
       /// \return Returns true if the instruction reads at least one memory address as data.
@@ -162,7 +162,7 @@ namespace Dyninst
       /// reads the memory at that address.
       /// Also, on platforms where a stack pop is guaranteed to read memory,
       /// \c readsMemory will return true for a pop operation.
-      bool readsMemory() const;
+      INSTRUCTION_EXPORT bool readsMemory() const;
 
       /// \return Returns true if the instruction writes at least one memory address.
       ///
@@ -170,7 +170,7 @@ namespace Dyninst
       /// writes the memory at that address.
       /// Also, on platforms where a stack push is guaranteed to write memory,
       /// \c writesMemory will return true for a push operation.
-      bool writesMemory() const;
+      INSTRUCTION_EXPORT bool writesMemory() const;
 
       /// \param memAccessors Addresses read by this instruction are inserted into \c memAccessors
       ///
@@ -179,12 +179,12 @@ namespace Dyninst
       /// Note that this method returns ASTs representing address computations, and not address accesses.  For instance,
       /// an instruction accessing memory through a register dereference would return a %Expression tree containing
       /// just the register that determines the address being accessed, not a tree representing a dereference of that register.
-      void getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const;
+      INSTRUCTION_EXPORT void getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const;
 
       /// \param memAccessors Addresses written by this instruction are inserted into \c memAccessors
       ///
       /// The addresses written are in the same form as those returned by \c getMemoryReadOperands above.
-      void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
+      INSTRUCTION_EXPORT void getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const;
   
       /// \return An expression evaluating to the non-fallthrough control flow targets, if any, of this instruction.
       ///
@@ -202,22 +202,22 @@ namespace Dyninst
       /// in the %Instruction API; if other code performs this type of analysis,
       /// it may update the information in the %Dereference object using the setValue method in the %Expression interface.
       /// More details about this may be found in Expression and Dereference.
-      Expression::Ptr getControlFlowTarget() const;
+      INSTRUCTION_EXPORT Expression::Ptr getControlFlowTarget() const;
 
       /// \return False if control flow will unconditionally go to the result of
       /// \c getControlFlowTarget after executing this instruction.
-      bool allowsFallThrough() const;
+      INSTRUCTION_EXPORT bool allowsFallThrough() const;
 
       /// \return The instruction as a string of assembly language
       ///
       /// \c format is principally a helper function; %Instructions are meant to be written to
       /// output streams via \c operator<<.  \c format is included in the public interface for
       /// diagnostic purposes.
-      std::string format() const;
+      INSTRUCTION_EXPORT std::string format() const;
       
       /// Returns true if this %Instruction object is valid.  Invalid instructions indicate that
       /// an %InstructionDecoder has reached the end of its assigned range, and that decoding should terminate.
-      bool isValid() const;
+      INSTRUCTION_EXPORT bool isValid() const;
       
     private:
       std::vector<Operand> m_Operands;

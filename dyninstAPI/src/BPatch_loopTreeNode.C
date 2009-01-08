@@ -57,7 +57,7 @@ void BPatch_loopTreeNode::BPatch_loopTreeNodeCtor(BPatch_basicBlockLoop *l,
     loop = l;
     hierarchicalName = NULL;
     if (n != NULL) {
-        hierarchicalName = strdup(n);
+        hierarchicalName = P_strdup(n);
     }
 }
  

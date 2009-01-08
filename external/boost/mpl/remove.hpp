@@ -11,9 +11,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/mpl/remove.hpp,v $
-// $Date: 2008/07/14 21:54:40 $
-// $Revision: 1.1 $
+// $Id: remove.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/mpl/remove_if.hpp>
 #include <boost/mpl/same_as.hpp>

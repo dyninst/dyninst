@@ -36,14 +36,14 @@
 #include "dynutil/h/dyntypes.h"
 #include "common/h/serialize.h"
 #include "common/h/Types.h"
-
+#include "common/h/headers.h"
 
 using namespace Dyninst;
 
-DLLEXPORT dyn_hash_map<Address, AnnotatableBase *> SerDesBin::annotatable_id_map;
+COMMON_EXPORT dyn_hash_map<Address, AnnotatableBase *> SerDesBin::annotatable_id_map;
 
 
-DLLEXPORT dyn_hash_map<std::string, SerializerBase::subsystem_serializers_t> SerializerBase::all_serializers;
+COMMON_EXPORT dyn_hash_map<std::string, SerializerBase::subsystem_serializers_t> SerializerBase::all_serializers;
 
 
 bool dyn_debug_serializer = false;
@@ -163,7 +163,7 @@ void trans_adapt(SerializerBase *ser, double  &it, const char *tag)
    ser->translate_base(it, tag);
 }
 
-DLLEXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag)
+COMMON_EXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
    if (!sxml) {
@@ -180,7 +180,7 @@ DLLEXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag)
    return true;
 }
 
-DLLEXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
+COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
    if (!sxml) {
@@ -382,7 +382,7 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
    if (0 != stat(dot_dyninst_dir.c_str(), &statbuf)) {
       if (errno == ENOENT) {
 #if defined (os_windows)
-         if (0 != mkdir(dot_dyninst_dir.c_str())) {
+         if (0 != P_mkdir(dot_dyninst_dir.c_str(), 0)) {
             fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
                   dot_dyninst_dir.c_str(), strerror(errno));
             return false;
@@ -419,7 +419,7 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
    if (0 != stat(path.c_str(), &statbuf)) {
       if (errno == ENOENT) {
 #if defined (os_windows)
-         if (0 != mkdir(path.c_str())) {
+         if (0 != P_mkdir(path.c_str(), 0)) {
             fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
                   path.c_str(), strerror(errno));
             return false;
@@ -633,7 +633,7 @@ bool SerDesBin::verifyChecksum(std::string &full_file_path,
 
 bool SerDesBin::invalidateCache(std::string cache_name) 
 {
-   if (-1 == unlink(cache_name.c_str())) {
+   if (-1 == P_unlink(cache_name.c_str())) {
       fprintf(stderr, "%s[%d]:  unlink(%s): %s\n", FILE__, __LINE__, 
             cache_name.c_str(), strerror(errno));
       return false;

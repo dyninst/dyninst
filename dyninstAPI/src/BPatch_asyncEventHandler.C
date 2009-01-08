@@ -1173,7 +1173,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
 
    //  The (int) argument to this function is our pid
    BPatch_Vector<BPatch_snippet *> args;
-   args.push_back(new BPatch_constExpr(getpid()));
+   args.push_back(new BPatch_constExpr(P_getpid()));
    BPatch_funcCallExpr disconnectcall(*funcs[0], args);
 
    //  Run the connect call as oneTimeCode

@@ -129,6 +129,7 @@ namespace Dyninst
 	break;
       default:
 	assert(!"FIXME: Unimplemented opType");
+	return Expression::Ptr();
       }
     }
     

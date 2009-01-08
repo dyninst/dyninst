@@ -1,6 +1,6 @@
 // tuple_comparison.hpp -----------------------------------------------------
 //  
-// Copyright (C) 2001 Jaakko Järvi (jaakko.jarvi@cs.utu.fi)
+// Copyright (C) 2001 Jaakko Jarvi (jaakko.jarvi@cs.utu.fi)
 // Copyright (C) 2001 Gary Powell (gary.powell@sierra.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See

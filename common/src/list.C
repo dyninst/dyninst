@@ -41,9 +41,11 @@
 
 // $Id: list.C,v
 
-#include <iostream.h>
+#include <iostream>
+#include <ostream>
 #include "common/h/List.h"
 
+using namespace std;
 
 template <class DataType, class KeyType> DO_INLINE_F typename 
 ListBase<DataType, KeyType>::node *ListBase<DataType, KeyType>::getLastNode()

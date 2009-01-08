@@ -1,36 +1,61 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.10"
+	Version="9.00"
 	Name="testsuite"
 	ProjectGUID="{73BD9B12-EDAE-48F5-9118-250FF506ED16}"
-	Keyword="MakeFileProj">
+	Keyword="MakeFileProj"
+	TargetFrameworkVersion="131072"
+	>
 	<Platforms>
 		<Platform
-			Name="Win32"/>
+			Name="Win32"
+		/>
 	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="Debug"
 			IntermediateDirectory="Debug"
-			ConfigurationType="0">
+			ConfigurationType="0"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			>
 			<Tool
 				Name="VCNMakeTool"
 				BuildCommandLine="nmake install"
 				ReBuildCommandLine="nmake install"
-				CleanCommandLine="nmake clean"/>
+				CleanCommandLine="nmake clean"
+				Output=""
+				PreprocessorDefinitions=""
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
-			ConfigurationType="0">
+			ConfigurationType="0"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			>
 			<Tool
 				Name="VCNMakeTool"
 				BuildCommandLine="nmake install"
 				ReBuildCommandLine="nmake install"
-				CleanCommandLine="nmake clean"/>
+				CleanCommandLine="nmake clean"
+				Output=""
+				PreprocessorDefinitions=""
+				IncludeSearchPath=""
+				ForcedIncludes=""
+				AssemblySearchPath=""
+				ForcedUsingAssemblies=""
+				CompileAsManaged=""
+			/>
 		</Configuration>
 	</Configurations>
 	<References>
@@ -39,527 +64,700 @@
 		<Filter
 			Name="Source Files"
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
 			<File
-				RelativePath="..\src\call35_1.c">
+				RelativePath="..\src\call35_1.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\Callbacks.C">
+				RelativePath="..\src\Callbacks.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\libInstMe.c">
+				RelativePath="..\src\libInstMe.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\libLoadMe.c">
+				RelativePath="..\src\libLoadMe.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\libTest12.c">
+				RelativePath="..\src\libTest12.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\libtestA.c">
+				RelativePath="..\src\libtestA.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\libtestB.c">
+				RelativePath="..\src\libtestB.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\mutatee_util.c">
+				RelativePath="..\src\mutatee_util.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\mutatee_util_mt.c">
+				RelativePath="..\src\mutatee_util_mt.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\ParameterDict.C">
+				RelativePath="..\src\ParameterDict.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\Process_data.C">
+				RelativePath="..\src\Process_data.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\runTests-utils-nt.C">
+				RelativePath="..\src\runTests-utils-nt.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\runTests-utils.C">
+				RelativePath="..\src\runTests-utils.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\runTests.C">
+				RelativePath="..\src\runTests.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1.mutatee.c">
+				RelativePath="..\src\test1.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1.mutateeCommon.c">
+				RelativePath="..\src\test1.mutateeCommon.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1.mutateeFortC.c">
+				RelativePath="..\src\test1.mutateeFortC.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test10.mutatee.c">
+				RelativePath="..\src\test10.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test10_1.C">
+				RelativePath="..\src\test10_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test10_2.C">
+				RelativePath="..\src\test10_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test10_3.C">
+				RelativePath="..\src\test10_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test10_4.C">
+				RelativePath="..\src\test10_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test12.mutatee.c">
+				RelativePath="..\src\test12.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test12_1.C">
+				RelativePath="..\src\test12_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test12_2.C">
+				RelativePath="..\src\test12_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test12_3.C">
+				RelativePath="..\src\test12_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test12_4.C">
+				RelativePath="..\src\test12_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test13.mutatee.c">
+				RelativePath="..\src\test13.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test13_1.C">
+				RelativePath="..\src\test13_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test14.mutatee.c">
+				RelativePath="..\src\test14.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test14_1.C">
+				RelativePath="..\src\test14_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test15.mutatee.c">
+				RelativePath="..\src\test15.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test15_1.C">
+				RelativePath="..\src\test15_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_1.C">
+				RelativePath="..\src\test1_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_10.C">
+				RelativePath="..\src\test1_10.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_11.C">
+				RelativePath="..\src\test1_11.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_12.C">
+				RelativePath="..\src\test1_12.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_13.C">
+				RelativePath="..\src\test1_13.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_14.C">
+				RelativePath="..\src\test1_14.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_15.C">
+				RelativePath="..\src\test1_15.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_16.C">
+				RelativePath="..\src\test1_16.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_17.C">
+				RelativePath="..\src\test1_17.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_18.C">
+				RelativePath="..\src\test1_18.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_19.C">
+				RelativePath="..\src\test1_19.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_2.C">
+				RelativePath="..\src\test1_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_20.C">
+				RelativePath="..\src\test1_20.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_21.C">
+				RelativePath="..\src\test1_21.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_22.C">
+				RelativePath="..\src\test1_22.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_23.C">
+				RelativePath="..\src\test1_23.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_24.C">
+				RelativePath="..\src\test1_24.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_25.C">
+				RelativePath="..\src\test1_25.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_26.C">
+				RelativePath="..\src\test1_26.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_27.C">
+				RelativePath="..\src\test1_27.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_28.C">
+				RelativePath="..\src\test1_28.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_29.C">
+				RelativePath="..\src\test1_29.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_3.C">
+				RelativePath="..\src\test1_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_30.C">
+				RelativePath="..\src\test1_30.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_31.C">
+				RelativePath="..\src\test1_31.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_32.C">
+				RelativePath="..\src\test1_32.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_33.C">
+				RelativePath="..\src\test1_33.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_34.C">
+				RelativePath="..\src\test1_34.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_35.C">
+				RelativePath="..\src\test1_35.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_36.C">
+				RelativePath="..\src\test1_36.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_37.C">
+				RelativePath="..\src\test1_37.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_38.C">
+				RelativePath="..\src\test1_38.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_39.C">
+				RelativePath="..\src\test1_39.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_4.C">
+				RelativePath="..\src\test1_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_40.C">
+				RelativePath="..\src\test1_40.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_5.C">
+				RelativePath="..\src\test1_5.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_6.C">
+				RelativePath="..\src\test1_6.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_7.C">
+				RelativePath="..\src\test1_7.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_8.C">
+				RelativePath="..\src\test1_8.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_9.C">
+				RelativePath="..\src\test1_9.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2.mutatee.c">
+				RelativePath="..\src\test2.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_1.C">
+				RelativePath="..\src\test2_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_10.C">
+				RelativePath="..\src\test2_10.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_11.C">
+				RelativePath="..\src\test2_11.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_12.C">
+				RelativePath="..\src\test2_12.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_13.C">
+				RelativePath="..\src\test2_13.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_14.C">
+				RelativePath="..\src\test2_14.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_2.C">
+				RelativePath="..\src\test2_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_3.C">
+				RelativePath="..\src\test2_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_4.C">
+				RelativePath="..\src\test2_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_5.C">
+				RelativePath="..\src\test2_5.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_6.C">
+				RelativePath="..\src\test2_6.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_7.C">
+				RelativePath="..\src\test2_7.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_8.C">
+				RelativePath="..\src\test2_8.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2_9.C">
+				RelativePath="..\src\test2_9.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test3.mutatee.c">
+				RelativePath="..\src\test3.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test3_1.C">
+				RelativePath="..\src\test3_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test3_2.C">
+				RelativePath="..\src\test3_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test3_3.C">
+				RelativePath="..\src\test3_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test3_4.C">
+				RelativePath="..\src\test3_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test3_5.C">
+				RelativePath="..\src\test3_5.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test4_1.C">
+				RelativePath="..\src\test4_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test4_2.C">
+				RelativePath="..\src\test4_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test4_3.C">
+				RelativePath="..\src\test4_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test4_4.C">
+				RelativePath="..\src\test4_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test4a.mutatee.c">
+				RelativePath="..\src\test4a.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test4b.mutatee.c">
+				RelativePath="..\src\test4b.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5.mutatee.C">
+				RelativePath="..\src\test5.mutatee.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_1.C">
+				RelativePath="..\src\test5_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_2.C">
+				RelativePath="..\src\test5_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_3.C">
+				RelativePath="..\src\test5_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_4.C">
+				RelativePath="..\src\test5_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_5.C">
+				RelativePath="..\src\test5_5.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_6.C">
+				RelativePath="..\src\test5_6.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_7.C">
+				RelativePath="..\src\test5_7.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_8.C">
+				RelativePath="..\src\test5_8.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test5_9.C">
+				RelativePath="..\src\test5_9.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6.mutatee.c">
+				RelativePath="..\src\test6.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_1.C">
+				RelativePath="..\src\test6_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_2.C">
+				RelativePath="..\src\test6_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_3.C">
+				RelativePath="..\src\test6_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_4.C">
+				RelativePath="..\src\test6_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_5.C">
+				RelativePath="..\src\test6_5.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_6.C">
+				RelativePath="..\src\test6_6.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_7.C">
+				RelativePath="..\src\test6_7.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6_8.C">
+				RelativePath="..\src\test6_8.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7.mutatee.c">
+				RelativePath="..\src\test7.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_1.C">
+				RelativePath="..\src\test7_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_2.C">
+				RelativePath="..\src\test7_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_3.C">
+				RelativePath="..\src\test7_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_4.C">
+				RelativePath="..\src\test7_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_5.C">
+				RelativePath="..\src\test7_5.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_6.C">
+				RelativePath="..\src\test7_6.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_7.C">
+				RelativePath="..\src\test7_7.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_8.C">
+				RelativePath="..\src\test7_8.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test7_9.C">
+				RelativePath="..\src\test7_9.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test8.mutatee.c">
+				RelativePath="..\src\test8.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test8_1.C">
+				RelativePath="..\src\test8_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test8_2.C">
+				RelativePath="..\src\test8_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test8_3.C">
+				RelativePath="..\src\test8_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9.mutatee.c">
+				RelativePath="..\src\test9.mutatee.c"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9_1.C">
+				RelativePath="..\src\test9_1.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9_2.C">
+				RelativePath="..\src\test9_2.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9_3.C">
+				RelativePath="..\src\test9_3.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9_4.C">
+				RelativePath="..\src\test9_4.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9_5.C">
+				RelativePath="..\src\test9_5.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9_6.C">
+				RelativePath="..\src\test9_6.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9_7.C">
+				RelativePath="..\src\test9_7.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_driver.C">
+				RelativePath="..\src\test_driver.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_driver_templates.C">
+				RelativePath="..\src\test_driver_templates.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib.C">
+				RelativePath="..\src\test_lib.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_dllExecution.C">
+				RelativePath="..\src\test_lib_dllExecution.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_mutateeStart.C">
+				RelativePath="..\src\test_lib_mutateeStart.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_templates.C">
+				RelativePath="..\src\test_lib_templates.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_test7.C">
+				RelativePath="..\src\test_lib_test7.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_test9.C">
+				RelativePath="..\src\test_lib_test9.C"
+				>
 			</File>
 			<File
-				RelativePath="..\src\TestData.C">
+				RelativePath="..\src\TestData.C"
+				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			>
 			<File
-				RelativePath="..\src\Callbacks.h">
+				RelativePath="..\src\Callbacks.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\cpp_test.h">
+				RelativePath="..\src\cpp_test.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\error.h">
+				RelativePath="..\src\error.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\mutatee_util.h">
+				RelativePath="..\src\mutatee_util.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\ParameterDict.h">
+				RelativePath="..\src\ParameterDict.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\Process_data.h">
+				RelativePath="..\src\Process_data.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\runTests-utils.h">
+				RelativePath="..\src\runTests-utils.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1.h">
+				RelativePath="..\src\test1.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1.mutateeCommon.h">
+				RelativePath="..\src\test1.mutateeCommon.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test12.h">
+				RelativePath="..\src\test12.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test1_common.h">
+				RelativePath="..\src\test1_common.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test2.h">
+				RelativePath="..\src\test2.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test6.h">
+				RelativePath="..\src\test6.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test9.h">
+				RelativePath="..\src\test9.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_info.h">
+				RelativePath="..\src\test_info.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib.h">
+				RelativePath="..\src\test_lib.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_dll.h">
+				RelativePath="..\src\test_lib_dll.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_test7.h">
+				RelativePath="..\src\test_lib_test7.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\test_lib_test9.h">
+				RelativePath="..\src\test_lib_test9.h"
+				>
 			</File>
 			<File
-				RelativePath="..\src\TestData.h">
+				RelativePath="..\src\TestData.h"
+				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			>
 		</Filter>
 	</Files>
 	<Globals>

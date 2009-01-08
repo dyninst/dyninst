@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/mpl/alias.hpp,v $
-// $Date: 2008/07/14 21:54:35 $
-// $Revision: 1.1 $
+// $Id: alias.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 namespace {
 namespace mpl = boost::mpl;

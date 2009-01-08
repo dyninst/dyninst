@@ -11,9 +11,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/mpl/aux_/preprocessor/is_seq.hpp,v $
-// $Date: 2008/07/14 21:54:49 $
-// $Revision: 1.1 $
+// $Id: is_seq.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/preprocessor/seq/size.hpp>
 #include <boost/preprocessor/arithmetic/dec.hpp>
@@ -27,7 +27,7 @@
 //   BOOST_PP_ASSERT( BOOST_MPL_PP_IS_SEQ( (int) ) )
 //   BOOST_PP_ASSERT( BOOST_MPL_PP_IS_SEQ( (1)(2) ) )
 
-#if BOOST_PP_CONFIG_FLAGS() & BOOST_PP_CONFIG_BCC()
+#if (BOOST_PP_CONFIG_FLAGS() & BOOST_PP_CONFIG_BCC()) || defined(_MSC_VER) && defined(__INTEL_COMPILER) && __INTEL_COMPILER == 1010
 
 #   define BOOST_MPL_PP_IS_SEQ(seq) BOOST_PP_DEC( BOOST_PP_SEQ_SIZE( BOOST_MPL_PP_IS_SEQ_(seq) ) )
 #   define BOOST_MPL_PP_IS_SEQ_(seq) BOOST_MPL_PP_IS_SEQ_SEQ_( BOOST_MPL_PP_IS_SEQ_SPLIT_ seq )

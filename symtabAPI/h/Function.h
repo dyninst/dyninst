@@ -48,39 +48,39 @@ class Symbol;
 class Function : public AnnotatableSparse 
 {
    public:
-      DLLEXPORT Function();
+      SYMTAB_EXPORT Function();
 
-      DLLEXPORT static Function *createFunction(Symbol *sym);
+      SYMTAB_EXPORT static Function *createFunction(Symbol *sym);
 
-      DLLEXPORT Offset   getAddress() const;
-      DLLEXPORT Module * getModule() const;
+      SYMTAB_EXPORT Offset   getAddress() const;
+      SYMTAB_EXPORT Module * getModule() const;
 
       /***** Symbol Collection Management *****/
-      DLLEXPORT bool addSymbol(Symbol *sym);
-      DLLEXPORT bool removeSymbol(Symbol *sym);
-      DLLEXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      DLLEXPORT Symbol * getFirstSymbol() const;
+      SYMTAB_EXPORT bool addSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
+      SYMTAB_EXPORT Symbol * getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      DLLEXPORT const vector<std::string> &getAllMangledNames();
-      DLLEXPORT const vector<std::string> &getAllPrettyNames();
-      DLLEXPORT const vector<std::string> &getAllTypedNames();
-      DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT const vector<std::string> &getAllMangledNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllPrettyNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllTypedNames();
+      SYMTAB_EXPORT bool addMangledName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT bool addPrettyName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT bool addTypedName(std::string name, bool isPrimary = false);
 
       /***** Return Type Information *****/
-      DLLEXPORT Type  * getReturnType() const;
-      DLLEXPORT bool	setReturnType(Type *);
+      SYMTAB_EXPORT Type  * getReturnType() const;
+      SYMTAB_EXPORT bool	setReturnType(Type *);
 
       /***** IA64-Specific Frame Pointer Information *****/
-      DLLEXPORT bool  setFramePtrRegnum(int regnum);
-      DLLEXPORT int   getFramePtrRegnum() const;
+      SYMTAB_EXPORT bool  setFramePtrRegnum(int regnum);
+      SYMTAB_EXPORT int   getFramePtrRegnum() const;
 
       /***** Local Variable Information *****/
-      DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
-      DLLEXPORT bool getLocalVariables(std::vector<localVar *>&vars);
-      DLLEXPORT bool getParams(std::vector<localVar *>&params);
+      SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+      SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
+      SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
 
       /* internal helper functions */
       bool addLocalVar(localVar *);

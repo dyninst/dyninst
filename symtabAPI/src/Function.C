@@ -303,7 +303,7 @@ bool Function::addParam(localVar *param)
 }
 
 
-DLLEXPORT bool Function::addMangledName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Function::addMangledName(string name, bool isPrimary) 
 {
     // Check to see if we're duplicating
     for (unsigned i = 0; i < mangledNames_.size(); i++) {
@@ -328,7 +328,7 @@ DLLEXPORT bool Function::addMangledName(string name, bool isPrimary)
     return true;
 }																	
 
-DLLEXPORT bool Function::addPrettyName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Function::addPrettyName(string name, bool isPrimary) 
 {
     // Check to see if we're duplicating
     for (unsigned i = 0; i < prettyNames_.size(); i++) {
@@ -352,7 +352,7 @@ DLLEXPORT bool Function::addPrettyName(string name, bool isPrimary)
     return true;
 }																	
 
-DLLEXPORT bool Function::addTypedName(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Function::addTypedName(string name, bool isPrimary) 
 {
     // Check to see if we're duplicating
     for (unsigned i = 0; i < typedNames_.size(); i++) {

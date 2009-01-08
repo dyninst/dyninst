@@ -14,10 +14,11 @@
 #if defined (_MSC_VER)
   //**************** Windows ********************
   #include <hash_map>
-#if 0
+#if 1
   #define dyn_hash_map stdext::hash_map
-#endif
+#else
   #define dyn_hash_map std::hash_map
+#endif
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #include <functional>
