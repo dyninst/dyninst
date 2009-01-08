@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <assert.h>
 #include "test_results.h"
 #include "test_info_new.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
 
 static bool enableLog = false;
-static char *resumelog_name = "resumelog";
+static const char *resumelog_name = "resumelog";
 
 #define RESULT_REPORTED -1
 #define RESUME_POINT -2

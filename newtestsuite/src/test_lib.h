@@ -80,8 +80,8 @@ TESTLIB_DLL_EXPORT FILE *getOutputLog();
 TESTLIB_DLL_EXPORT FILE *getErrorLog();
 TESTLIB_DLL_EXPORT void setOutputLogFilename(char *log_fn);
 TESTLIB_DLL_EXPORT void setErrorLogFilename(char *log_fn);
-TESTLIB_DLL_EXPORT char *getOutputLogFilename();
-TESTLIB_DLL_EXPORT char *getErrorLogFilename();
+TESTLIB_DLL_EXPORT const char *getOutputLogFilename();
+TESTLIB_DLL_EXPORT const char *getErrorLogFilename();
 
 // Functions to print messages to the log files
 TESTLIB_DLL_EXPORT void logstatus(const char *fmt, ...);

@@ -50,6 +50,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <errno.h>
+#include <assert.h>
 
 #if !defined(i386_unknown_nt4_0)
 #include <fnmatch.h>
@@ -95,8 +96,8 @@ int debugPrint = 0;
 // output logging
 FILE *outlog = NULL;
 FILE *errlog = NULL;
-char *outlogname = "-";
-char *errlogname = "-";
+const char *outlogname = "-";
+const char *errlogname = "-";
 
 TestOutputDriver * output = NULL;
 
@@ -149,11 +150,11 @@ void setErrorLogFilename(char *log_fn) {
   }
 }
 
-char *getOutputLogFilename() {
+const char *getOutputLogFilename() {
   return outlogname;
 }
 
-char *getErrorLogFilename() {
+const char *getErrorLogFilename() {
   return errlogname;
 }
 

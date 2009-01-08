@@ -2212,9 +2212,10 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
    /* Initialize libdwarf. */
    Dwarf_Debug dbg;
    Dwarf_Unsigned hdr;
+   Dwarf_Err err;
 
    int status = dwarf_elf_init( elf.e_elfp(), DW_DLC_READ, 
-         & pd_dwarf_handler, getErrFunc(), & dbg, NULL);
+         & pd_dwarf_handler, getErrFunc(), & dbg, &err);
 
    if ( status != DW_DLV_OK ) 
    {
@@ -3819,7 +3820,8 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
    if (hasDwarfInfo())
 	{
       Dwarf_Debug dbg;
-      int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
+      Dwarf_Error err;
+      int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, &err );
       if (status != DW_DLV_OK) {
          return;
       }	 
@@ -4163,7 +4165,8 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
 void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
    Dwarf_Debug dbg;
-   int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
+   Dwarf_Error err;
+   int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, &err );
    if ( status != DW_DLV_OK ) { 
 //      fprintf(stderr, "%s[%d]:  dwarf init failed, no dwarf I guess\n", FILE__, __LINE__);
       return; 
