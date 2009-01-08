@@ -44,7 +44,7 @@
  * #Name: test5_2
  * #Desc: Overload Functions
  * #Dep: 
- * #Arch: sparc_sun_solaris2_4,i386_unknown_linux2_0,x86_64_unknown_linux2_4,ia64_unknown_linux2_4
+ * #Arch: sparc_sun_solaris2_4_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,ia64_unknown_linux2_4_test
  * #Notes:
  */
 
@@ -60,7 +60,7 @@ class test5_2_Mutator : public DyninstMutator {
 public:
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test5_2_factory() {
+extern "C" DLLEXPORT TestMutator *test5_2_factory() {
   return new test5_2_Mutator();
 }
 

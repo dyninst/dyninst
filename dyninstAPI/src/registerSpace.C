@@ -931,8 +931,8 @@ void registerSpace::debugPrint() {
 
 	// Dump out our data
 	fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
-	fprintf(stderr, "GPRs: %d, FPRs: %d, SPRs: %d\n", 
-                GPRs_.size(), FPRs_.size(), SPRs_.size());
+	fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n", 
+           (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
 	fprintf(stderr, "Stack pointer is at %d\n",
                 currStackPointer);
 	fprintf(stderr, "Register dump:");

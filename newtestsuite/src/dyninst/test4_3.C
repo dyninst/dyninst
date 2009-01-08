@@ -44,7 +44,7 @@
  * #Name: test4_3
  * #Desc: Exec Callback
  * #Dep: 
- * #Arch: !(i386_unknown_nt4_0,alpha_dec_osf4_0)
+ * #Arch: !(i386_unknown_nt4_0_test,alpha_dec_osf4_0_test)
  * #Notes:
  */
 
@@ -68,7 +68,7 @@ public:
   virtual test_results_t executeTest();
   virtual test_results_t mutatorTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test4_3_factory() {
+extern "C" DLLEXPORT  TestMutator *test4_3_factory() {
   return new test4_3_Mutator();
 }
 
@@ -165,7 +165,7 @@ static void execFunc(BPatch_thread *thread)
 }
 
 test_results_t test4_3_Mutator::mutatorTest() {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
     logerror("Skipping test #3 (exec callback)\n");
     logerror("    not implemented on this platform\n");
     return SKIPPED;

@@ -5,7 +5,7 @@
 
 #include "mutatee_util.h"
 
-#if !defined(os_windows)
+#if !defined(os_windows_test)
 #include <unistd.h>
 #else
 #include <windows.h>
@@ -30,7 +30,7 @@ int test_thread_6_mutatee() {
    thread_t threads[NTHRD];
    int startedall = 0;
 
-#ifndef os_windows
+#ifndef os_windows_test
    char c = 'T';
 #endif
 
@@ -61,7 +61,7 @@ int test_thread_6_mutatee() {
     */
    /* FIXME Remove this cruft */
 #if 0
-#ifndef os_windows
+#ifndef os_windows_test
    if (attached_fd) {
       if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
          output->log(STDERR, "*ERROR*: Writing to pipe\n");

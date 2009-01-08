@@ -37,15 +37,15 @@ static unsigned long globalVariable30_2 = 0;
 
 /* Function definitions follow */
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(alpha_dec_osf4_0) \
- || defined(ia64_unknown_linux2_4) \
- || defined(os_linux) /* Use OS #define instead of platform - Greg */
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(i386_unknown_solaris2_5_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0_test) \
+ || defined(rs6000_ibm_aix4_1_test) \
+ || defined(alpha_dec_osf4_0_test) \
+ || defined(ia64_unknown_linux2_4_test) \
+ || defined(os_linux_test) /* Use OS #define instead of platform - Greg */
 
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines have to be together otherwise test30 will fail */
@@ -59,19 +59,19 @@ int test1_30_mutatee() {
                     instruction */
   int passed, retval;
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) \
- || defined(i386_unknown_nt4_0) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(alpha_dec_osf4_0)
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(i386_unknown_solaris2_5_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4_test) \
+ || defined(i386_unknown_nt4_0_test) \
+ || defined(rs6000_ibm_aix4_1_test) \
+ || defined(alpha_dec_osf4_0_test)
     
     func30_2();
 
     passed = !test1_30_globalVariable3 ||
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1_test)
              ((test1_30_globalVariable8 <= test1_30_globalVariable3) &&
 #else
 	     ((globalVariable30_2 <= test1_30_globalVariable3) &&
@@ -84,7 +84,7 @@ int test1_30_mutatee() {
     }
 
     passed = !test1_30_globalVariable4 ||
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1_test)
 	     ((test1_30_globalVariable8 <= test1_30_globalVariable4) &&
 #else
 	     ((globalVariable30_2 <= test1_30_globalVariable4) &&
@@ -97,7 +97,7 @@ int test1_30_mutatee() {
     }
 
     passed = !test1_30_globalVariable5 ||
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1_test)
 	      ((test1_30_globalVariable8 <= test1_30_globalVariable5) &&
 #else
 	      ((globalVariable30_2 <= test1_30_globalVariable5) &&

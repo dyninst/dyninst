@@ -67,7 +67,7 @@ class test1_15_Mutator : public DyninstMutator {
   int mutatorTest15a();
   int mutatorTest15b();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_15_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_15_factory() {
   return new test1_15_Mutator();
 }
 
@@ -78,21 +78,6 @@ int test1_15_Mutator::mutatorTest15a() {
     RETURNONFAIL(insertCallSnippetAt(appThread, appImage, "test1_15_func2",
 				     BPatch_entry, "test1_15_call1", 15,
 				     "setMutationsActive"));
-
-    /*
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-    // On the Sparc, functions containing system calls are relocated into the
-    // heap when instrumented, making a special case we should check.
-
-    // "access" makes the "access" system call, so we'll instrument it
-    RETURNONFAIL(insertCallSnippetAt(appThread, appImage, "access", BPatch_entry,
-	"call15_2", 15, "setMutationsActive"));
-
-    // We want to instrument more than one point, so do exit as well
-    RETURNONFAIL(insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
-	"call15_2", 15, "setMutationsActive"));
-#endif
-    */
 
     RETURNONFAIL(replaceFunctionCalls(appThread, appImage, "test1_15_func4",
 				      "test1_15_func3",	"test1_15_call3", 15,
@@ -123,33 +108,16 @@ int test1_15_Mutator::mutatorTest15b() {
 // {
 test_results_t test1_15_Mutator::executeTest() {
   if (mutatorTest15a() != 0) {
-    // Kill mutatee
-    appThread->getProcess()->terminateExecution();
     return FAILED;
   }
-  while (!appThread->isStopped()) { // Necessary in fast & loose mode
+  while (!appThread->isStopped()) { 
     bpatch->waitForStatusChange();
   }
   appThread->continueExecution();
   if (mutatorTest15b() != 0) {
-    // Kill mutatee
-    appThread->getProcess()->terminateExecution();
     return FAILED;
   }
-
-  while (!appThread->isTerminated()) {
-    bpatch->waitForStatusChange();
-  }
-  // I need to check the return code of the mutatee also
-  if (appThread->getProcess()->terminationStatus() == ExitedNormally) {
-    if (appThread->getProcess()->getExitCode() == 0) {
-      return PASSED;
-    } else {
-      return FAILED;
-    }
-  } else {
-    return FAILED;
-  }
+  return PASSED;
 }
 
 test_results_t test1_15_Mutator::setup(ParameterDict &param) {

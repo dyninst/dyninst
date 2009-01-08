@@ -34,7 +34,7 @@ void test_fork_5_func1() {
 }
 
 int test_fork_5_mutatee() {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
   return 0; /* Skipped is not an error */
 #endif
   int pid;

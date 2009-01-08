@@ -170,42 +170,42 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    DLLEXPORT Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
-    DLLEXPORT Object(){};
+    SYMTABEXPORT Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
+    SYMTABEXPORT Object(){};
   
-    DLLEXPORT virtual ~Object( void );
+    SYMTABEXPORT virtual ~Object( void );
 
-    DLLEXPORT bool isForwarded( Offset addr );
-    DLLEXPORT bool isEEL() const { return false; }
-    DLLEXPORT bool isText( const Offset addr ) const; 
-    DLLEXPORT Offset get_base_addr() const { return (Offset)mf->base_addr();} 
-    DLLEXPORT Module* GetCurrentModule( void )				    { return curModule; }
+    SYMTABEXPORT bool isForwarded( Offset addr );
+    SYMTABEXPORT bool isEEL() const { return false; }
+    SYMTABEXPORT bool isText( const Offset addr ) const; 
+    SYMTABEXPORT Offset get_base_addr() const { return (Offset)mf->base_addr();} 
+    SYMTABEXPORT Module* GetCurrentModule( void )				    { return curModule; }
    
-    DLLEXPORT bool getCatchBlock(ExceptionBlock &b, Offset addr, unsigned size = 0) const;
-    DLLEXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
-    DLLEXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
-    DLLEXPORT PVOID GetMapAddr( void ) const                      { return mf->base_addr(); }
-    DLLEXPORT Offset getEntryPoint( void ) const                { if (peHdr) return peHdr->OptionalHeader.AddressOfEntryPoint; return 0;}
+    SYMTABEXPORT bool getCatchBlock(ExceptionBlock &b, Offset addr, unsigned size = 0) const;
+    SYMTABEXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
+    SYMTABEXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
+    SYMTABEXPORT PVOID GetMapAddr( void ) const                      { return mf->base_addr(); }
+    SYMTABEXPORT Offset getEntryPoint( void ) const                { if (peHdr) return peHdr->OptionalHeader.AddressOfEntryPoint; return 0;}
     //+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
     // TODO. Change these later.
-    DLLEXPORT Offset getLoadAddress() const { return imageBase; }
-    DLLEXPORT Offset getEntryAddress() const { return getEntryPoint(); }
-    DLLEXPORT Offset getBaseAddress() const { return get_base_addr(); }
-    DLLEXPORT Offset getTOCoffset() const { return 0; }
-    DLLEXPORT ObjectType objType() const;
-    DLLEXPORT const char *interpreter_name() const { return NULL; }
-    DLLEXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
-    DLLEXPORT void parseTypeInfo(Symtab *obj);
+    SYMTABEXPORT Offset getLoadAddress() const { return imageBase; }
+    SYMTABEXPORT Offset getEntryAddress() const { return getEntryPoint(); }
+    SYMTABEXPORT Offset getBaseAddress() const { return get_base_addr(); }
+    SYMTABEXPORT Offset getTOCoffset() const { return 0; }
+    SYMTABEXPORT ObjectType objType() const;
+    SYMTABEXPORT const char *interpreter_name() const { return NULL; }
+    SYMTABEXPORT dyn_hash_map <std::string, LineInformation> &getLineInfo();
+    SYMTABEXPORT void parseTypeInfo(Symtab *obj);
    
-    DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
-    DLLEXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
-    DLLEXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-    DLLEXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
+    SYMTABEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
+    SYMTABEXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
+    SYMTABEXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
+    SYMTABEXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
 
 private:
-    DLLEXPORT void    ParseSymbolInfo( bool );
-    DLLEXPORT void    parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &);
-    DLLEXPORT void    FindInterestingSections( bool );
+    SYMTABEXPORT void    ParseSymbolInfo( bool );
+    SYMTABEXPORT void    parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &);
+    SYMTABEXPORT void    FindInterestingSections( bool );
     Region *          findEnclosingRegion(const Offset where);
 
     Offset baseAddr;     // location of this object in mutatee address space

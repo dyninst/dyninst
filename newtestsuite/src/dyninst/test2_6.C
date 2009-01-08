@@ -44,7 +44,7 @@
  * #Name: test2_6
  * #Desc: Load a dynamically linked library from the mutatee
  * #Dep: 
- * #Arch: !(sparc_sun_solaris2_4,i386_unknown_solaris2_5,i386_unknown_linux2_0,mips_sgi_irix6_4,alpha_dec_osf4_0,rs6000_ibm_aix4_1,ia64_unknown_linux2_4,x86_64_unknown_linux2_4)
+ * #Arch: !(sparc_sun_solaris2_4_test,i386_unknown_solaris2_5_test,i386_unknown_linux2_0_test,mips_sgi_irix6_4_test,alpha_dec_osf4_0_test,rs6000_ibm_aix4_1_test,ia64_unknown_linux2_4_test,x86_64_unknown_linux2_4_test)
  * #Notes:
  */
 
@@ -64,7 +64,7 @@ class test2_6_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test2_6_factory() {
+extern "C" DLLEXPORT  TestMutator *test2_6_factory() {
   return new test2_6_Mutator();
 }
 
@@ -88,7 +88,7 @@ test_results_t test2_6_Mutator::executeTest() {
 	    char name[80];
 	    (*m)[i]->getName(name, sizeof(name));
 	    if (strstr(name, TEST_DYNAMIC_LIB) ||
-#ifdef rs6000_ibm_aix4_1
+#ifdef os_aix_test
 		strcmp(name, TEST_DYNAMIC_LIB_NOPATH) == 0 ||
 #endif
 		strcmp(name, match2) == 0) {
@@ -118,7 +118,7 @@ test_results_t test2_6_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_6_mutatorMAIN(ParameterDict &param)
 test_results_t test2_6_Mutator::setup(ParameterDict &param) {
-  test_results_t retval = TestMutator::setup(param);
+  test_results_t retval = DyninstMutator::setup(param);
   if (PASSED == retval) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
   }

@@ -1,11 +1,11 @@
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(ia64_unknown_linux2_4) \
- || defined(os_aix) \
- || defined(os_linux) /* better off using os #defines than whole platforms */
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(alpha_dec_osf4_0_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5_test) \
+ || defined(ia64_unknown_linux2_4_test) \
+ || defined(os_aix_test) \
+ || defined(os_linux_test) /* better off using os #defines than whole platforms */
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -45,9 +45,9 @@ static volatile int _unused; /* move decl here to dump compiler warning - jkh */
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-#if defined(x86_64_unknown_linux2_4) && (__WORDSIZE == 32)
+#if defined(x86_64_unknown_linux2_4_test) && (__WORDSIZE == 32)
 static const char *libNameA = "libtestA_m32.so";
-#elif defined(os_windows)
+#elif defined(os_windows_test)
 static const char *libNameA = "libtestA.dll";
 #else
 static const char *libNameA = "libtestA.so";
@@ -67,7 +67,7 @@ typedef int (*call_type)(int);
 
 /* A couple of dlopen-related functions. Moved here from mutatee_util
    so as not to introduce the libdl dependency on all mutatees */
-#if defined(os_windows)
+#if defined(os_windows_test)
 void printSysError(unsigned errNo) {
     char buf[1000];
     int result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
@@ -105,7 +105,7 @@ void *getFuncFromDLL(void *libhandle, char *func_name) {
 #else
 void *loadDynamicLibrary(char *name) {
     void *result;
-#if defined(os_solaris)
+#if defined(os_solaris_test)
     int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
 #else
     int dlopenMode = RTLD_NOW;
@@ -129,10 +129,10 @@ void *getFuncFromDLL(void *libhandle, char *func_name) {
 int test1_22_mutatee()
 {
     int retval = 0;
-#if defined(os_solaris) \
- || defined(alpha_dec_osf4_0) \
- || defined(os_linux) \
- || defined(os_windows)
+#if defined(os_solaris_test) \
+ || defined(alpha_dec_osf4_0_test) \
+ || defined(os_linux_test) \
+ || defined(os_windows_test)
     /* libtestA.so should already be loaded (by the mutator), but we
        need to use the dl interface to get pointers to the functions
        it defines. */

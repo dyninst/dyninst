@@ -69,7 +69,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test3_5_factory() {
+extern "C" DLLEXPORT  TestMutator *test3_5_factory() {
   return new test3_5_Mutator();
 }
 
@@ -137,7 +137,7 @@ test_results_t test3_5_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
-#if defined (sparc_sun_solaris2_4)
+#if defined (sparc_sun_solaris2_4_test)
     // we use some unsafe type operations in the test cases.
     bpatch->setTypeChecking(false);
 #endif

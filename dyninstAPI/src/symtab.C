@@ -156,7 +156,7 @@ pdmodule *image::newModule(const string &name, const Address addr, supportedLang
 
    // /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
    Module *mod;
-   if (linkedFile->findModule(mod, fileNm))
+   if (linkedFile->findModuleByName(mod, fileNm))
       ret = new pdmodule(mod, this);
    else {
 #if 0
@@ -189,18 +189,18 @@ pdmodule *image::newModule(const string &name, const Address addr, supportedLang
 //   #3 - file name (a.out, libXXX.so)
 // (in order of decreasing reliability)
 image_func *image::makeOneFunction(vector<Symbol *> &mods,
-      Symbol *lookUp) 
+      Function *lookUp) 
 {
    // find module name
    Address modAddr = 0;
-   string modName = lookUp->getModuleName();
+   string modName = lookUp->getModule()->fullName();
    // /* DEBUG */ fprintf( stderr, "%s[%d]: makeOneFunction()'s module: %s\n", FILE__, __LINE__, modName.c_str() );
 
    if (modName == "") {
       modName = name_ + "_module";
    } else if (modName == "DEFAULT_MODULE") {
       string modName_3 = modName;
-      findModByAddr(lookUp, mods, modName, modAddr, modName_3);
+      findModByAddr(lookUp->getFirstSymbol(), mods, modName, modAddr, modName_3);
    }
 
    pdmodule *use = getOrCreateModule(modName, modAddr);
@@ -208,12 +208,12 @@ image_func *image::makeOneFunction(vector<Symbol *> &mods,
 
 #if defined(arch_ia64)
    parsing_printf("New function %s at 0x%llx\n",
-         lookUp->getName().c_str(), 
-         lookUp->getAddr());
+         lookUp->getFirstSymbol()->getName().c_str(), 
+         lookUp->getAddress());
 #else
    parsing_printf("New function %s at 0x%x\n",
-         lookUp->getName().c_str(), 
-         lookUp->getAddr());
+         lookUp->getFirstSymbol()->getName().c_str(), 
+         lookUp->getAddress());
 #endif
 
    image_func *func = new image_func(lookUp, 
@@ -225,8 +225,8 @@ image_func *image::makeOneFunction(vector<Symbol *> &mods,
       closer analysis is done */
 
 #if defined(os_solaris)
-   if(strstr(lookUp->getName().c_str(), "_$") != NULL){
-      image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
+   if(strstr(lookUp->getFirstSymbol()->getName().c_str(), "_$") != NULL){
+      image_parRegion * pR = new image_parRegion(lookUp->getAddress(),func);    
       parallelRegions.push_back(pR);
    }
 #endif 
@@ -234,8 +234,8 @@ image_func *image::makeOneFunction(vector<Symbol *> &mods,
 
 #if defined(os_aix)
 
-   if(strstr(lookUp->getName().c_str(), "@OL@") != NULL){
-      image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
+   if(strstr(lookUp->getFirstSymbol()->getName().c_str(), "@OL@") != NULL){
+      image_parRegion * pR = new image_parRegion(lookUp->getAddress(),func);    
       parallelRegions.push_back(pR);
    } 
 #endif
@@ -264,13 +264,14 @@ void image::findMain()
     	bool foundStart = false;
     	bool foundFini = false;
     	//check if 'main' is in allsymbols
-    	vector <Symbol *>syms;
-    	if((linkedFile->findSymbolByType(syms,"main",Symbol::ST_UNKNOWN)==true)||(linkedFile->findSymbolByType(syms,"_main",Symbol::ST_UNKNOWN)==true))
-    		foundMain = true;
-    	else if(linkedFile->findSymbolByType(syms,"_start",Symbol::ST_UNKNOWN)==true)
-    		foundStart = true;
-    	else if(linkedFile->findSymbolByType(syms,"_fini",Symbol::ST_UNKNOWN)==true)
-    		foundFini = true;
+        vector <Function *> funcs;
+        if (linkedFile->findFunctionsByName(funcs, "main") ||
+            linkedFile->findFunctionsByName(funcs, "_main"))
+            foundMain = true;
+        else if (linkedFile->findFunctionsByName(funcs, "_start"))
+            foundStart = true;
+        else if (linkedFile->findFunctionsByName(funcs, "_fini"))
+            foundFini = true;
     
     	Region *textsec = NULL;
     	bool foundText = linkedFile->findRegion(textsec, ".text");
@@ -396,10 +397,10 @@ void image::findMain()
 #elif defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
    
    bool foundMain = false;
-   vector <Symbol *> syms;
-   if(linkedFile->findSymbolByType(syms,"main",Symbol::ST_UNKNOWN)==true ||
-      linkedFile->findSymbolByType(syms,"usla_main",Symbol::ST_UNKNOWN)==true)
-   	foundMain = true;
+   vector <Function *> funcs;
+   if (linkedFile->findFunctionsByName(funcs, "main") ||
+       linkedFile->findFunctionsByName(funcs, "usla_main"))
+       foundMain = true;
 
    Region *sec;
    linkedFile->findRegion(sec, ".text"); 	
@@ -475,68 +476,66 @@ void image::findMain()
 
 #elif defined(i386_unknown_nt4_0)
 
-	#define NUMBER_OF_MAIN_POSSIBILITIES 7
-	char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
-						"main",
-						"DYNINST_pltMain",
-						"_main",
-						"WinMain",
-						"_WinMain",
-						"wWinMain",
-						"_wWinMain"};
-																	
-	if(linkedFile->isExec())
-	//if( !( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL ) )
-    {
-		vector <Symbol *>syms;
-		Address eAddr = linkedFile->getEntryOffset();
-
-        bool found_main = false;
-        for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
-			if(linkedFile->findSymbolByType(syms,main_function_names[i],Symbol::ST_UNKNOWN)) {
-        //    if (symbols_.defines(main_function_names[i])) {
-                found_main = true;
-                break;
-            }
-        }
-        if (!found_main) {
-            syms.clear();
-            if(linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Symbol::ST_UNKNOWN)) {
-                //make up a symbol for default module too
-                Symbol *modSym = new Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Symbol::ST_MODULE, 
-                                            Symbol::SL_GLOBAL, imageOffset_, NULL, 0);
-                linkedFile->addSymbol(modSym);
-            }
-            syms.clear();
-            if(linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN)) {
-                //use 'start' for mainCRTStartup.
-                Symbol *startSym = new Symbol( "start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                                               Symbol::SL_GLOBAL, eAddr , 0, UINT_MAX );
-                linkedFile->addSymbol(startSym);
-            }
-            syms.clear();
-            if(linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN)) {
-                //make up a func name for the start of the text section
-                Symbol *sSym = new Symbol( "winStart", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                                           Symbol::SL_GLOBAL, imageOffset_, 0, UINT_MAX );
-                linkedFile->addSymbol(sSym);
-            }
-            syms.clear();
-            if(linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN)) {
-                //make up one for the end of the text section
-                Symbol *fSym = new Symbol( "winFini", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                                           Symbol::SL_GLOBAL, imageOffset_ + linkedFile->imageLength() - 1, 
-                                           0, UINT_MAX );
-                linkedFile->addSymbol(fSym);
-            }
-            // add entry point as main given that nothing else was found
-            startup_printf("[%s:%u] - findmain could not find symbol "
-                           "for main, using binary entry point %x\n",
-                           __FILE__, __LINE__, eAddr);
-            linkedFile->addSymbol(new Symbol("main","DEFAULT_MODULE",
-                                     Symbol::ST_FUNCTION,Symbol::SL_GLOBAL, eAddr));
-        }
-    }
+#define NUMBER_OF_MAIN_POSSIBILITIES 7
+   char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
+       "main",
+       "DYNINST_pltMain",
+       "_main",
+       "WinMain",
+       "_WinMain",
+       "wWinMain",
+       "_wWinMain"};
+   
+   if(linkedFile->isExec()) {
+       vector <Symbol *>syms;
+       vector<Function *> funcs;
+       Address eAddr = linkedFile->getEntryOffset();
+       
+       bool found_main = false;
+       for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
+           if(linkedFile->findFunctionsByName(funcs, main_function_names[i])) {
+               found_main = true;
+               break;
+           }
+       }
+       if (!found_main) {
+           syms.clear();
+           if(!linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Symbol::ST_UNKNOWN)) {
+               //make up a symbol for default module too
+               Symbol *modSym = new Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Symbol::ST_MODULE, 
+                                           Symbol::SL_GLOBAL, imageOffset_, NULL, 0);
+               linkedFile->addSymbol(modSym);
+           }
+           syms.clear();
+           if(!linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN)) {
+               //use 'start' for mainCRTStartup.
+               Symbol *startSym = new Symbol( "start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
+                                              Symbol::SL_GLOBAL, eAddr , 0, UINT_MAX );
+               linkedFile->addSymbol(startSym);
+           }
+           syms.clear();
+           if(!linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN)) {
+               //make up a func name for the start of the text section
+               Symbol *sSym = new Symbol( "winStart", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
+                                          Symbol::SL_GLOBAL, imageOffset_, 0, UINT_MAX );
+               linkedFile->addSymbol(sSym);
+           }
+           syms.clear();
+           if(!linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN)) {
+               //make up one for the end of the text section
+               Symbol *fSym = new Symbol( "winFini", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
+                                          Symbol::SL_GLOBAL, imageOffset_ + linkedFile->imageLength() - 1, 
+                                          0, UINT_MAX );
+               linkedFile->addSymbol(fSym);
+           }
+           // add entry point as main given that nothing else was found
+           startup_printf("[%s:%u] - findmain could not find symbol "
+                          "for main, using binary entry point %x\n",
+                          __FILE__, __LINE__, eAddr);
+           linkedFile->addSymbol(new Symbol("main","DEFAULT_MODULE",
+                                            Symbol::ST_FUNCTION,Symbol::SL_GLOBAL, eAddr));
+       }
+   }
 #endif    
 }
 
@@ -556,119 +555,56 @@ bool image::symbolsToFunctions(vector<Symbol *> &mods,
   gettimeofday(&starttime, NULL);
 #endif
 
-  Symbol *lookUp;
-
-  // is_a_out is a member variable
-  Symbol *mainFuncSymbol = NULL;  //Keeps track of info on "main" function
-
   //Checking "main" function names in same order as in the inst-*.C files
-  vector <Symbol *>syms;
-   if (linkedFile->findSymbolByType(syms,"main",Symbol::ST_FUNCTION)       ||
-   	linkedFile->findSymbolByType(syms,"_main",Symbol::ST_FUNCTION)     
+  vector <Function *>funcs;
+  if (linkedFile->findFunctionsByName(funcs,"main")       ||
+      linkedFile->findFunctionsByName(funcs,"_main")     
 #if defined(os_windows)
-	|| linkedFile->findSymbolByType(syms,"WinMain",Symbol::ST_FUNCTION)   ||
-	linkedFile->findSymbolByType(syms,"_WinMain",Symbol::ST_FUNCTION)  ||
-	linkedFile->findSymbolByType(syms,"wWinMain",Symbol::ST_FUNCTION)  ||
-	linkedFile->findSymbolByType(syms,"_wWinMain",Symbol::ST_FUNCTION) 
+      || linkedFile->findFunctionsByName(funcs,"WinMain")   ||
+      linkedFile->findFunctionsByName(funcs,"_WinMain")  ||
+      linkedFile->findFunctionsByName(funcs,"wWinMain")  ||
+      linkedFile->findFunctionsByName(funcs,"_wWinMain") 
 #endif
-      )
-  {
-      assert( syms.size() == 1 );
-      lookUp = syms[0];
-      
-      mainFuncSymbol = lookUp;
+      ) {
       is_a_out = true;
-      if (lookUp->getType() == Symbol::ST_FUNCTION) {
-          if (!isValidAddress(lookUp->getAddr())) {
-              string msg;
-              char tempBuffer[40];
-              sprintf(tempBuffer,"0x%lx",lookUp->getAddr());
-              msg = string("Function ") + lookUp->getName().c_str() + string(" has bad address ")
-              + string(tempBuffer);
-              statusLine(msg.c_str());
-              showErrorCallback(29, msg.c_str());
-              bperr( "Whoops\n");
-              
-              return false;
-          }      
-          image_func *main_pdf = makeOneFunction(mods, lookUp);
-          //lookUp->setUpPtr((void *)main_pdf);	// set the back ptr in the symbol;
-          assert(main_pdf);
-          if (!lookUp->addAnnotation(main_pdf, ImageFuncUpPtrAnno))
-          {
-             fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-             return false;
-          }
-#if 0
-          annotate(lookUp, main_pdf, std::string("image_func_ptr"));
-#endif
-
-          raw_funcs->push_back(main_pdf);
-      }
-      else {
-          bperr( "Type not function!\n");
-      }
-      
   }
   else
-    is_a_out = false;
-
+      is_a_out = false;
+  
   // Checking for libdyninstRT (DYNINSTinit())
-  vector< Symbol *>symvector;
-  if (linkedFile->findSymbolByType(symvector,"DYNINSTinit",Symbol::ST_UNKNOWN) ||
-      linkedFile->findSymbolByType(symvector,"_DYNINSTinit",Symbol::ST_UNKNOWN))
-    is_libdyninstRT = true;
-  else
-    is_libdyninstRT = false;
- 
-  // find the real functions -- those with the correct type in the symbol table
-  vector<Symbol *> allFuncs;
-  if(!linkedFile->getAllSymbolsByType(allFuncs,Symbol::ST_FUNCTION))
-  	return true;
-  vector<Symbol *>::iterator symIter = allFuncs.begin();
-  for(; symIter!=allFuncs.end();symIter++) {
-    Symbol *lookUp = *symIter;
-    const char *np = lookUp->getName().c_str();
-
-    //parsing_printf("Scanning file: symbol %s\n", lookUp.getName().c_str());
-
-    //    fprintf(stderr,"np %s\n",np);
-
-    if (np[0] == '.')
-         /* ignore these EEL symbols; we don't understand their values */
-	 continue; 
-    if (is_a_out && 
-	(lookUp->getAddr() == mainFuncSymbol->getAddr()) &&
-	(lookUp->getName() == mainFuncSymbol->getName()))
-      // We already added main(), so skip it now
-      continue;
-
-    if (lookUp->getModuleName() == "DYNINSTheap") {
-        // Do nothing for now; we really don't want to report it as
-        // a real symbol.
-    }
-    else 
-    {
-        image_func *new_func = makeOneFunction(mods, lookUp);
-		//new_func->symbol()->setUpPtr(new_func);
-		//lookUp->setUpPtr((void *)new_func);
-        if (!new_func)
-            fprintf(stderr, "%s[%d]:  makeOneFunction failed\n", FILE__, __LINE__);
-        else {
-            raw_funcs->push_back(new_func);
-            if (!lookUp->addAnnotation(new_func, ImageFuncUpPtrAnno))
-            {
-               fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-               continue;
-            }
-#if 0
-            annotate(lookUp, new_func, std::string("image_func_ptr"));
-#endif
-        }
-
-    }
-  }  
-
+   if (linkedFile->findFunctionsByName(funcs, "DYNINSTinit") ||
+       linkedFile->findFunctionsByName(funcs, "_DYNINSTinit"))
+       is_libdyninstRT = true;
+   else
+       is_libdyninstRT = false;
+   
+   // find the real functions -- those with the correct type in the symbol table
+   vector<Function *> allFuncs;
+   if(!linkedFile->getAllFunctions(allFuncs))
+       return true;
+   vector<Function *>::iterator funcIter = allFuncs.begin();
+   for(; funcIter!=allFuncs.end();funcIter++) {
+       Function *lookUp = *funcIter;
+       
+       if (lookUp->getModule()->fullName() == "DYNINSTheap") {
+           // Do nothing for now; we really don't want to report it as
+           // a real symbol.
+       }
+       else {
+           image_func *new_func = makeOneFunction(mods, lookUp);
+           if (!new_func)
+               fprintf(stderr, "%s[%d]:  makeOneFunction failed\n", FILE__, __LINE__);
+           else {
+               raw_funcs->push_back(new_func);
+               if (!lookUp->addAnnotation(new_func, ImageFuncUpPtrAnno))
+                   {
+                       fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+                       continue;
+                   }
+           }
+       }
+   }  
+   
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);
@@ -686,6 +622,21 @@ bool image::addDiscoveredVariables() {
     return true;
 }
 
+bool image::getInferiorHeaps(vector<pair<string,Address> > &codeHeaps,
+                             vector<pair<string,Address> > &dataHeaps) {
+    if ((codeHeaps_.size() == 0) &&
+        (dataHeaps_.size() == 0)) return false;
+
+    for (unsigned i = 0; i < codeHeaps_.size(); i++) {
+        codeHeaps.push_back(codeHeaps_[i]);
+    }
+
+    for (unsigned i = 0; i < dataHeaps_.size(); i++) {
+        dataHeaps.push_back(dataHeaps_[i]);
+    }
+    return true;
+}
+
 bool image::addSymtabVariables()
 {
    /* Eventually we'll have to do this on all platforms (because we'll retrieve
@@ -699,60 +650,35 @@ bool image::addSymtabVariables()
 
    std::string mangledName; 
 
-   vector<Symbol *> allVars;
-   linkedFile->getAllSymbolsByType(allVars,Symbol::ST_OBJECT);
-   vector<Symbol *>::iterator symIter = allVars.begin();
+   vector<Variable *> allVars;
 
-   for(; symIter!=allVars.end() ; symIter++) {
-      const std::string &mangledName = (*symIter)->getName().c_str();
-      Symbol *symInfo = *symIter;
-#if 0
-      fprintf(stderr, "Symbol %s, mod %s, addr 0x%lx, type %d, linkage %d (obj %d, func %d)\n",
-              symInfo->getName().c_str(),
-              symInfo->getModuleName().c_str(),
-              symInfo->getAddr(),
-              symInfo->getType(),
-              symInfo->getLinkage(),
-              Symbol::ST_OBJECT,
-              Symbol::ST_FUNCTION);
-#endif
-#if !defined(os_windows)
-      // Windows: variables are created with an empty module
-      if (symInfo->getModuleName().length() == 0) {
-          //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
-          continue;
-      }
-#endif
+   linkedFile->getAllVariables(allVars); 
 
-      image_variable *var;
-      //bool addToPretty = false;
-      if (varsByAddr.defines(symInfo->getAddr())) {
-          var = varsByAddr[symInfo->getAddr()];
-          var->addSymTabName(mangledName);
-	  //addVariableName(var,mangledName,true);
-	  //addVariableName(var,symInfo->getPrettyName().c_str(),false);
-      }
-      else {
-          parsing_printf("New variable, mangled %s, module %s...\n",
-                          mangledName.c_str(),
-                          symInfo->getModuleName().c_str());
-          pdmodule *use = getOrCreateModule(symInfo->getModuleName().c_str(),
-                                              symInfo->getAddr());
-          assert(use);
-	  var = new image_variable(symInfo, use);
-     if (!var->symbol()->addAnnotation(var, ImageVariableUpPtrAnno))
-     {
-        fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
-        return false;
-     }
-#if 0
-     annotate(var->symbol(), var, std::string("image_variable_ptr"));
-#endif
+   for (vector<Variable *>::iterator varIter = allVars.begin();
+        varIter != allVars.end(); 
+        varIter++) {
+       Variable *symVar = *varIter;
+       parsing_printf("New variable, mangled %s, module %s...\n",
+                      symVar->getAllMangledNames()[0].c_str(),
+                      symVar->getFirstSymbol()->getModuleName().c_str());
+       pdmodule *use = getOrCreateModule(symVar->getFirstSymbol()->getModuleName().c_str(),
+                                         symVar->getAddress());
+       assert(use);
+       image_variable *var = new image_variable(symVar, use);
+       if (!var->svar()->addAnnotation(var, ImageVariableUpPtrAnno)) {
+           fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
+           return false;
+       }
 
-	  //var->symbol()->setUpPtr((void *)var);
-          exportedVariables.push_back(var);
-          everyUniqueVariable.push_back(var);
-      }
+       // If this is a Dyninst dynamic heap placeholder, add it to the
+       // list of inferior heaps...
+       string compString = "DYNINSTstaticHeap";
+       if (!var->symTabName().compare(0, compString.size(), compString)) {
+           dataHeaps_.push_back(pair<string,Address>(var->symTabName(), var->getOffset()));
+       }
+
+       exportedVariables.push_back(var);
+       everyUniqueVariable.push_back(var);
    }
 
 #if defined(TIMED_PARSE)
@@ -767,44 +693,6 @@ bool image::addSymtabVariables()
 
    return true;
 }
-
-/*
- * will search for symbol NAME or _NAME
- * returns false on failure 
- */
-#if 0
-bool image::findInternalSymbol(const std::string &name, 
-			       const bool warn, 
-			       internalSym &ret_sym)
-{
-   pdvector< Symbol > lookUps;
-   Symbol lookUp;
-
-   if(linkedFile->get_symbols(name,lookUps)){
-      if( lookUps.size() == 1 ) { lookUp = lookUps[0]; }
-      else { return false; } 
-      ret_sym = internalSym(lookUp.addr(),name); 
-      return true;
-   }
-   else {
-       std::string new_sym;
-       new_sym = std::string("_") + name;
-       if(linkedFile->get_symbols(new_sym,lookUps)){
-          if( lookUps.size() == 1 ) { lookUp = lookUps[0]; }
-          else { return false; } 
-          ret_sym = internalSym(lookUp.addr(),name); 
-          return true;
-       }
-   } 
-   if(warn){
-      std::string msg;
-      msg = std::string("Unable to find symbol: ") + name;
-      statusLine(msg.c_str());
-      showErrorCallback(28, msg);
-   }
-   return false;
-}
-#endif
 
 pdmodule *image::findModule(const string &name, bool wildcard)
 {
@@ -968,6 +856,7 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
   for (unsigned u=0; u<numImages; u++) {
       if (desc.isSameFile(allImages[u]->desc())) {
           // We reference count...
+          startup_printf("%s[%d]: returning pre-parsed image\n", FILE__, __LINE__);
           return allImages[u]->clone();
       }
   }
@@ -990,9 +879,10 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
   if(desc.isSharedObject()) 
-    statusLine("Processing a shared object file");
+      startup_printf("%s[%d]: processing shared object\n", FILE__, __LINE__);
   else  
-    statusLine("Processing an executable file");
+      startup_printf("%s[%d]: processing executable object\n", FILE__, __LINE__);
+      
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -1006,7 +896,9 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
 
   if (err || !ret) {
      if (ret) {
-        delete ret;
+         startup_printf("%s[%d]: error in processing, deleting image and returning\n",
+                        FILE__, __LINE__);
+         delete ret;
      }
      else {
         fprintf(stderr, "Failed to allocate memory for parsing %s!\n", 
@@ -1085,10 +977,7 @@ int image::destroy() {
     if (refCount == 0) {
         if (!desc().isSharedObject()) {
             // a.out... destroy it
-#if defined(os_aix)
-            // "If we're on a platform where the Object-class destructor is trusted...
-            delete this;
-#endif
+            //delete this;
             return 0;
         }
     }
@@ -1110,7 +999,7 @@ void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
         // TODO: out-of-line insertion here
         if (func->get_size())
           funcsByRange.insert(func);
-        Symbol *sym = func->symbol();
+        Symbol *sym = func->getSymtabFunction()->getFirstSymbol();
         getObject()->addSymbol(sym);
     }
     
@@ -1131,7 +1020,7 @@ bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs)
 {
     for (unsigned int i = 0; i < raw_funcs.size(); i++) {
         image_func *raw = raw_funcs[i];
-
+        
 	// Now, we see if there's already a function object for this
         // address. If so, add a new name;
 
@@ -1331,7 +1220,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    }
  
    //Now done in the symtab land
- #if 0  
+#if 0  
    // wait until all modules are defined before applying languages to
    // them we want to do it this way so that module information comes
    // from the function symbols, first and foremost, to avoid any
@@ -1342,7 +1231,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    dictionary_hash<std::string, supportedLanguages> mod_langs(std::string::hash);
    getModuleLanguageInfo(&mod_langs);
    setModuleLanguages(&mod_langs);
- #endif  
+#endif  
 
    // Once languages are assigned, we can build demangled names (in
    // the wider sense of demangling which includes stripping _'s from
@@ -1537,16 +1426,19 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
          snprintf( funcName, 32, "entry_%lx", functionEntryAddr);	
      }
      Symbol *funcSym = new Symbol(funcName, "DEFAULT_MODULE",
-                                 Symbol::ST_FUNCTION,
-                                 Symbol::SL_GLOBAL, 
-                                 functionEntryAddr, 
-                                0,
-                                UINT_MAX);
+                                  Symbol::ST_FUNCTION,
+                                  Symbol::SL_GLOBAL, 
+                                  functionEntryAddr, 
+                                  0,
+                                  UINT_MAX);
      // create function stub, update datastructures
      linkedFile->addSymbol( funcSym );
-     image_func *func = new image_func(funcSym, mod, this);
+     
+     // Adding the symbol finds or creates a Function object...
+     assert(funcSym->getFunction());
+     image_func *func = new image_func(funcSym->getFunction(), mod, this);
      //func->symbol()->setUpPtr(func);
-     if (!func->symbol()->addAnnotation(func, ImageFuncUpPtrAnno))
+     if (!func->getSymtabFunction()->addAnnotation(func, ImageFuncUpPtrAnno))
      {
         fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
         return NULL;
@@ -1554,6 +1446,13 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
 #if 0
      annotate(func->symbol(), func, std::string("image_func_ptr"));
 #endif
+
+     // If this is a Dyninst dynamic heap placeholder, add it to the
+     // list of inferior heaps...
+     string compString = "DYNINSTstaticHeap";
+     if (!func->symTabName().compare(0, compString.size(), compString)) {
+         codeHeaps_.push_back(pair<string, Address>(func->symTabName(), func->getOffset()));
+     }
 
      func->addSymTabName( funcName ); 
      func->addPrettyName( funcName );
@@ -1643,13 +1542,6 @@ codeRange *image::findCodeRangeByOffset(const Address &offset) {
     return range;
 }
 
-image_func *image::findFuncByOffset(const Address &offset)  {
-    codeRange *range = findCodeRangeByOffset(offset);
-    image_func *func = range->is_image_func();
-
-    return func;
-}
-
 // Similar to above, but checking by entry (only). Useful for 
 // "who does this call" lookups
 image_func *image::findFuncByEntry(const Address &entry) {
@@ -1676,39 +1568,24 @@ image_basicBlock *image::findBlockByAddr(const Address &addr) {
 const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
     pdvector<image_func *>* res = new pdvector<image_func *>;
-    vector<Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Symbol::ST_FUNCTION);
-    for(unsigned index=0; index<syms.size(); index++)
+    vector<Function *> funcs;
+    linkedFile->findFunctionsByName(funcs, name.c_str(), Symtab::prettyName);
+
+    for(unsigned index=0; index < funcs.size(); index++)
     {
-       Symbol *sym = syms[index];
-       image_func *imf = NULL;
+        Function *symFunc = funcs[index];
+        image_func *imf = NULL;
+        
+        if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
+            fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            return NULL;
+        }
+        
+        if (imf) {
+            res->push_back(imf);
+        }
 
-       if (!sym->getAnnotation(imf, ImageFuncUpPtrAnno)) 
-       {
-          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
-          return NULL;
-       }
 
-       if (imf) 
-       {
-          res->push_back(imf);
-       }
-#if 0
-       std::vector<image_func *> *image_funcs 
-          = getAnnotations<Symbol, image_func *>(sym, std::string("image_func_ptr"));
-       if (image_funcs->size()) {
-          if (image_funcs->size() > 1) {
-             fprintf(stderr, "%s[%d]:  WARNING:  %d image_func annotations for symbol\n", FILE__, __LINE__, image_funcs->size());
-          }
-          //  the most correct thing to do here is to return them all, but this is probably
-          //  closest to the legacy implementation (choosing the last one on the list)
-          image_func *imf = (*image_funcs)[image_funcs->size() -1];
-          res->push_back(imf);
-       }
-#endif
-
-          //if(syms[index]->getUpPtr())
-	   // res->push_back((image_func *)syms[index]->getUpPtr());
     }		
     if(res->size())	
 	return res;	    
@@ -1716,13 +1593,6 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
         delete res;
     	return NULL;
     }
-    /*
-    if (funcsByPretty.defines(name)) {
-        //analyzeIfNeeded();
-        return funcsByPretty[name];
-    }
-    
-    return NULL;*/
 }
 
 // Return the vector of functions associated with a mangled name
@@ -1730,44 +1600,24 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
 
 const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string &name)
 {
-
-    //    fprintf(stderr,"findFuncVectorByMangled %s\n",name.c_str());
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  bperr( "%s[%d]:  inside findFuncVectorByMangled\n", FILE__, __LINE__);
-#endif
-    
     pdvector<image_func *>* res = new pdvector<image_func *>;
-    vector<Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Symbol::ST_FUNCTION,true);
-    for(unsigned index=0; index<syms.size(); index++)
-    {
-       Symbol *sym = syms[index];
-       image_func *imf = NULL;
-       if (!sym->getAnnotation(imf, ImageFuncUpPtrAnno)) 
-       {
-          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
-          return NULL;
-       }
 
-       if (imf) 
-       {
-          res->push_back(imf);
-       }
-#if 0
-       std::vector<image_func *> *image_funcs
-          = getAnnotations<Symbol, image_func *>(sym, std::string("image_func_ptr"));
-       if (image_funcs->size()) {
-          if (image_funcs->size() > 1) {
-             fprintf(stderr, "%s[%d]:  WARNING:  %d image_func annotations for symbol\n",
-                   FILE__, __LINE__, image_funcs->size());
-          }
-          image_func *imf = (*image_funcs)[image_funcs->size() -1];
-          res->push_back(imf);
-       }
-#endif
+    vector<Function *> funcs;
+    linkedFile->findFunctionsByName(funcs, name.c_str(), Symtab::mangledName);
 
-          //if(syms[index]->getUpPtr())				//Every Symbol might not have a corresponding image_func
-          //    res->push_back((image_func *)syms[index]->getUpPtr());
+    for(unsigned index=0; index < funcs.size(); index++) {
+        Function *symFunc = funcs[index];
+        image_func *imf = NULL;
+        
+        if (!symFunc->getAnnotation(imf, ImageFuncUpPtrAnno)) {
+            fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            return NULL;
+        }
+        
+        if (imf) {
+            res->push_back(imf);
+        }
+
     }	    
     if(res->size()) 
 	return res;	    
@@ -1779,43 +1629,23 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string 
 
 const pdvector <image_variable *> *image::findVarVectorByPretty(const std::string &name)
 {
-    //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
-#endif
-
     pdvector<image_variable *>* res = new pdvector<image_variable *>;
-    vector<Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Symbol::ST_OBJECT);
-    for(unsigned index=0; index<syms.size(); index++)
-    {
-       Symbol *sym = syms[index];
-       image_variable *imv = NULL;
-       if (!sym->getAnnotation(imv, ImageVariableUpPtrAnno)) 
-       {
-          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
-          return NULL;
-       }
 
-       if (imv) 
-       {
-          res->push_back(imv);
-       }
-#if 0
-       std::vector<image_variable *> *image_vars
-          = getAnnotations<Symbol, image_variable *>(sym, std::string("image_variable_ptr"));
-       if (image_vars->size()) {
-          if (image_vars->size() > 1) {
-             fprintf(stderr, "%s[%d]:  WARNING:  %d image_variable annotations for symbol\n",
-                   FILE__, __LINE__, image_vars->size());
-          }
-          image_variable *image_var = (*image_vars)[image_vars->size() -1];
-          res->push_back(image_var);
-       }
-#endif
+    vector<Variable *> vars;
+    linkedFile->findVariablesByName(vars, name.c_str(), Symtab::prettyName);
+    
+    for (unsigned index=0; index < vars.size(); index++) {
+        Variable *symVar = vars[index];
+        image_variable *imv = NULL;
+        
+        if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
+            fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            return NULL;
+        }
 
-          //if(syms[index]->getUpPtr())
-          //    res->push_back((image_variable *)syms[index]->getUpPtr());
+       if (imv) {
+           res->push_back(imv);
+       }
     }	    
     if(res->size())	
 	return res;	    
@@ -1829,40 +1659,25 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
+    bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
 #endif
     pdvector<image_variable *>* res = new pdvector<image_variable *>;
-    vector<Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Symbol::ST_OBJECT,true);
-    for(unsigned index=0; index<syms.size(); index++)
-    {
-       Symbol *sym = syms[index];
-       image_variable *imv = NULL;
-       if (!sym->getAnnotation(imv, ImageVariableUpPtrAnno)) 
-       {
-          fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
-          return NULL;
-       }
 
-       if (imv) 
-       {
-          res->push_back(imv);
-       }
-#if 0
-       std::vector<image_variable *> *image_vars
-          = getAnnotations<Symbol, image_variable *>(sym, std::string("image_variable_ptr"));
-       if (image_vars->size()) {
-          if (image_vars->size() > 1) {
-             fprintf(stderr, "%s[%d]:  WARNING:  %d image_variable annotations for symbol\n",
-                   FILE__, __LINE__, image_vars->size());
-          }
-          image_variable *im_var = (*image_vars)[image_vars->size() -1];
-          res->push_back(im_var);
-       }
-#endif
+    vector<Variable *> vars;
+    linkedFile->findVariablesByName(vars, name.c_str(), Symtab::mangledName);
+    
+    for (unsigned index=0; index < vars.size(); index++) {
+        Variable *symVar = vars[index];
+        image_variable *imv = NULL;
+        
+        if (!symVar->getAnnotation(imv, ImageVariableUpPtrAnno)) {
+            fprintf(stderr, "%s[%d]:  failed to getAnnotations here\n", FILE__, __LINE__);
+            return NULL;
+        }
 
-       //if(syms[index]->getUpPtr())
-    	//    res->push_back((image_variable *)syms[index]->getUpPtr());
+        if (imv) {
+            res->push_back(imv);
+        }
     }	    
     if(res->size())	
 	return res;	    
@@ -1877,258 +1692,6 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
   }
   return NULL;*/
 }
-
-
-//  image::findOnlyOneFunction(const std::string &name
-//  
-//  searches for function with name <name> and fails if it finds more than
-//  one match.
-//
-//  In order to be as comprehensive as possible, if no <name> is found in the 
-//  "pretty" list, a search on the mangled list is performed.  Due to
-//  duplication between many pretty and mangled names, this function does not
-//  care about the same name appearing in both the pretty and mangled lists.
-image_func *image::findOnlyOneFunction(const std::string &name) {
-  const pdvector<image_func *> *pdfv;
-
-  pdfv = findFuncVectorByPretty(name);
-  if (pdfv != NULL && pdfv->size() > 0) {
-    // fail if more than one match
-    if (pdfv->size() > 1) {
-      fprintf(stderr, "%s[%d]:  findOnlyOneFunction(%s), found more than one, failing\n",
-              FILE__, __LINE__, name.c_str());
-      return NULL;
-    }
-    //analyzeIfNeeded();
-    return (*pdfv)[0];
-  }
-
-  pdfv = findFuncVectorByMangled(name);
-  if (pdfv != NULL && pdfv->size() > 0) {
-    if (pdfv->size() > 1) {
-      fprintf(stderr, "%s[%d]:  findOnlyOneFunction(%s), found more than one, failing\n",
-              FILE__, __LINE__, name.c_str());
-      return NULL;
-    }
-    //analyzeIfNeeded();
-    return (*pdfv)[0];
-  }
-  
-  return NULL;
-}
-
-#if 0
-#if !defined(os_windows)
-int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, std::string pattern,
-				       bool case_sensitive)
-{
-  // This function compiles regex patterns and then calls its overloaded variant,
-  // which does not.  This behavior is desirable so we can avoid re-compiling
-  // expressions for broad searches (across images) -- allowing for higher level
-  // functions to compile expressions just once. jaw 01-03
-
-
-  regex_t comp_pat;
-  int err, cflags = REG_NOSUB;
-  
-  if( !case_sensitive )
-    cflags |= REG_ICASE;
-  
-  if (0 == (err = regcomp( &comp_pat, pattern.c_str(), cflags ))) {
-    int ret = findFuncVectorByPrettyRegex(found, &comp_pat); 
-    regfree(&comp_pat);
-    analyzeIfNeeded();
-    return ret;  
-  }
-  
-  // errors fall through
-  char errbuf[80];
-  regerror( err, &comp_pat, errbuf, 80 );
-  cerr << FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-  
-  return -1;
-}
-
-int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, std::string pattern,
-					bool case_sensitive)
-{
-  // Almost identical to its "Pretty" counterpart
-  regex_t comp_pat;
-  int err, cflags = REG_NOSUB;
-  
-  if( !case_sensitive )
-    cflags |= REG_ICASE;
-  
-  if (0 == (err = regcomp( &comp_pat, pattern.c_str(), cflags ))) {
-    int ret = findFuncVectorByMangledRegex(found, &comp_pat); 
-    regfree(&comp_pat);
-
-    analyzeIfNeeded();
-    return ret;
-  }
-  // errors fall through
-  char errbuf[80];
-  regerror( err, &comp_pat, errbuf, 80 );
-  cerr << FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-  
-  return -1;
-}
-#endif
-
-#endif
-
-#if 0		
-pdvector<image_func *> *image::findFuncVectorByPretty(functionNameSieve_t bpsieve, 
-						       void *user_data,
-						       pdvector<image_func *> *found)
-{
-  pdvector<image_func *>::iterator iter = everyUniqueFunction.begin();
-  while(iter!= everyUniqueFunction.end())
-  {
-  	if(*(bpsieve)(*iter->symTabName().c_str(), user_data))
-		found->push_back(iter);
-	iter++;	
-  }
-  if(found->size())
-  	return found;
-  return NULL;	
-  
- #if 0 
-  pdvector<pdvector<image_func *> *> result;
-  //result = funcsByPretty.linear_filter(bpsieve, user_data);
-  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByPretty);
-  std::string fname;
-  pdvector<image_func *> *fmatches;
-  while (iter.next(fname, fmatches)) {
-    if ((*bpsieve)(iter.currkey().c_str(), user_data)) {
-      result.push_back(fmatches);
-    }
-  }
-
-  // Need to consolodate vector of vectors into just one vector  
-  // This is wasteful in general, but hopefully result.size() is small
-  // Besides, a more efficient approach would probably require different
-  // data structs
-  for (unsigned int i = 0; i < result.size(); ++i) 
-    for (unsigned int j = 0; j < result[i]->size(); ++j) 
-      found->push_back((*result[i])[j]);
-
-  if (found->size()) {
-    //analyzeIfNeeded();
-    return found;
-  }
-  return NULL;
- #endif 
-}
-
-pdvector<image_func *> *image::findFuncVectorByMangled(functionNameSieve_t bpsieve, 
-							void *user_data,
-							pdvector<image_func *> *found)
-{
-  pdvector<image_func *>::iterator iter = everyUniqueVariable.begin();
-  while(iter!= everyUniqueVariable.end())
-  {
-  	if(*(bpsieve)(*iter->symTabName().c_str(), user_data))
-		found->push_back(iter);
-	iter++;	
-  }
-  if(found->size())
-  	return found;
-  return NULL;	
-
- #if 0
-  pdvector<pdvector<image_func *> *> result;
-  // result = funcsByMangled.linear_filter(bpsieve, user_data);
-
-  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByMangled);
-  std::string fname;
-  pdvector<image_func *> *fmatches;
-  while (iter.next(fname, fmatches)) {
-    if ((*bpsieve)(fname.c_str(), user_data)) {
-      result.push_back(fmatches);
-    }
-  }
-
-
-  // Need to consolodate vector of vectors into just one vector  
-  // This is wasteful in general, but hopefully result.size() is small
-  // Besides, a more efficient approach would probably require different
-  // data structs
-  for (unsigned int i = 0; i < result.size(); ++i) 
-    for (unsigned int j = 0; j < result[i]->size(); ++j) 
-      found->push_back((*result[i])[j]);
-
-  if (found->size()) {
-    //analyzeIfNeeded();
-    return found;
-  }
-  return NULL;
- #endif 
-}
-#endif
-
-#if 0
-int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, regex_t *comp_pat)
-{
-  //  This is a bit ugly in that it has to iterate through the entire dict hash 
-  //  to find matches.  If this turns out to be a popular way of searching for
-  //  functions (in particular "name*"), we might consider adding a data struct that
-  //  preserves the std::string ordering realation to make this O(1)-ish in that special case.
-  //  jaw 01-03
-
-  pdvector<pdvector<image_func *> *> result;
-  //  result = funcsByPretty.linear_filter(&regex_filter_func, (void *) comp_pat);
-
-  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByPretty);
-  std::string fname;
-  pdvector<image_func *> *fmatches;
-  while (iter.next(fname, fmatches)) {
-    if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
-      result.push_back(fmatches);
-    }
-  }
-
-  // Need to consolodate vector of vectors into just one vector  
-  // This is wasteful in general, but hopefully result.size() is small
-  // Besides, a more efficient approach would probably require different
-  // data structs
-  //cerr <<"pretty regex result.size() = " << result.size() <<endl;
-  for (unsigned int i = 0; i < result.size(); ++i) 
-    for (unsigned int j = 0; j < result[i]->size(); ++j) 
-      found->push_back((*result[i])[j]);
-
-  if (found->size()) {
-    analyzeIfNeeded();
-  }
-  return found->size();
-}
-
-int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, regex_t *comp_pat)
-{
-  // almost identical to its "Pretty" counterpart.
-
-  pdvector<pdvector<image_func *> *> result;
-  //result = funcsByMangled.linear_filter(&regex_filter_func, (void *) comp_pat);
-  //cerr <<"mangled regex result.size() = " << result.size() <<endl;
-  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByMangled);
-  std::string fname;
-  pdvector<image_func *> *fmatches;
-  while (iter.next(fname, fmatches)) {
-    if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
-      result.push_back(fmatches);
-    }
-  }
-
-  for (unsigned int i = 0; i < result.size(); ++i) 
-    for (unsigned int j = 0; j < result[i]->size(); ++j) 
-      found->push_back((*result[i])[j]);
-  
-  if (found->size()) {
-    analyzeIfNeeded();
-  }
-  return found->size();
-}
-#endif // !windows
 
 
 /* Instrumentable-only, by the last version's source. */
@@ -2173,12 +1736,17 @@ void *image::getPtrToDataInText( Address offset ) const {
 void *image::getPtrToData(Address offset) const {
     if (!isData(offset)) return NULL;
     Region *reg = linkedFile->findEnclosingRegion(offset);
+#if 0
     if (reg != NULL &&
         (reg->getRegionPermissions() == Region::RP_RW ||
          reg->getRegionPermissions() == Region::RP_RWX)) {
         return (void*) ((Address)reg->getPtrToRawData() + offset 
                         - reg->getRegionAddr());
     }
+#endif
+    if (reg) return (void *) ((Address)reg->getPtrToRawData() +
+                              offset -
+                              reg->getRegionAddr());
     return NULL;
 }
     
@@ -2190,6 +1758,7 @@ void *image::getPtrToInstruction(Address offset) const
 
    if (isCode(offset)) {
       Region *reg = linkedFile->findEnclosingRegion(offset);
+#if 0
       if (reg != NULL &&
           (reg->getRegionPermissions() == Region::RP_RX ||
            reg->getRegionPermissions() == Region::RP_RWX ||
@@ -2198,7 +1767,11 @@ void *image::getPtrToInstruction(Address offset) const
           return (void*) ((Address)reg->getPtrToRawData() 
                           + offset - reg->getRegionAddr());
       }
-      return NULL;
+#endif
+      if (reg) return (void *) ((Address)reg->getPtrToRawData() +
+                                offset -
+                                reg->getRegionAddr());
+      //return NULL;
    }
    else if (isData(offset)) { // not sure why we allow this
        return getPtrToData(offset);
@@ -2213,6 +1786,10 @@ bool image::isValidAddress(const Address &where) const{
     return linkedFile->isValidOffset(addr) && isAligned(addr);
 }
 
+bool image::isExecutableAddress(const Address &where) const {
+    return isCode(where);
+}
+
 bool image::isCode(const Address &where)  const{
    Address addr = where;
    return linkedFile->isCode(addr); 
@@ -2224,20 +1801,13 @@ bool image::isData(const Address &where)  const{
 }
 
 bool image::symbol_info(const std::string& symbol_name, Symbol &ret_sym) {
-
-   /* We temporarily adopt the position that an image has exactly one
-      symbol per name.  While local functions (etc) make this untrue, it
-      dramatically minimizes the amount of rewriting. */
    vector< Symbol *> symbols;
-   if(!(linkedFile->findSymbolByType(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN)))
-   	return false;
-   if(symbols.size() == 1 ) {
-       ret_sym = *(symbols[0]);
-	   return true;
-   }
-   else if ( symbols.size() > 1 )
+   if(!(linkedFile->findSymbolByType(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN))) 
        return false;
-   return false;
+
+   
+   ret_sym = *(symbols[0]);
+   return true;
 }
 
 

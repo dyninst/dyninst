@@ -56,21 +56,26 @@ TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
 }
 
 // Constructor for RunGroup, with an initial test specified
-RunGroup::RunGroup(char *mutatee_name, start_state_t state_init,
+RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
                    create_mode_t attach_init, bool ex, TestInfo *test_init,
-                   char *modname_)
+                   const char *modname_, const char *compiler_, const char *optlevel_, 
+                   const char *abi_)
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
-    customExecution(ex), disabled(false), mod(NULL)
+    customExecution(ex), disabled(false), mod(NULL), 
+    compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
   Module::registerGroupInModule(std::string(modname_), this);
   tests.push_back(test_init);
 }
 
 // Constructor for RunGroup with no initial test specified
-RunGroup::RunGroup(char *mutatee_name, start_state_t state_init,
-                   create_mode_t attach_init, bool ex, char *modname_)
+RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
+                   create_mode_t attach_init, bool ex, const char *modname_,
+                   const char *compiler_, const char *optlevel_, 
+                   const char *abi_)
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
-    customExecution(ex), disabled(false), mod(NULL)
+    customExecution(ex), disabled(false), mod(NULL),
+    compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
    Module::registerGroupInModule(std::string(modname_), this);
 }
@@ -89,10 +94,13 @@ Module::Module(std::string name_)
    name = name_;
    tester = loadModuleLibrary();
    creation_error = (tester == NULL);
-   if (creation_error)
+   if (creation_error) {
       allmods[name] = NULL;
-   else
+      return;
+   }
       allmods[name] = this;
+   initialized = true;
+   setup_run = false;
 }
 
 bool Module::registerGroupInModule(std::string modname, RunGroup *group)
@@ -130,6 +138,26 @@ void Module::getAllModules(std::vector<Module *> &mods)
          mods.push_back((*i).second);
       }
    }
+}
+
+bool Module::setupRun()
+{
+   return setup_run;
+}
+
+void Module::setSetupRun(bool result)
+{
+   setup_run = result;
+}
+
+bool Module::isInitialized()
+{
+  return initialized;
+}
+
+void Module::setInitialized(bool result)
+{
+  initialized = result;
 }
 
 std::map<std::string, Module *> Module::allmods;

@@ -44,7 +44,7 @@
  * #Name: test8_3
  * #Desc: getCallStack through instrumentation
  * #Dep: 
- * #Arch: !(arch_alpha && os_osf)
+ * #Arch: !(arch_alpha && os_osf_test)
  * #Notes:
  */
 
@@ -65,7 +65,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test_stack_3_factory() {
+extern "C" DLLEXPORT TestMutator *test_stack_3_factory() {
   return new test_stack_3_Mutator();
 }
 
@@ -79,21 +79,21 @@ test_results_t test_stack_3_Mutator::executeTest() {
   appThread->continueExecution();
   static const frameInfo_t correct_frame_info[] = {
 	
-#if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
+#if defined( os_linux_test ) && (defined( arch_x86_test ) || defined( arch_x86_64_test ))
     { true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
 #endif
-#if defined( os_aix ) && defined( arch_power )
+#if defined( os_aix_test ) && defined( arch_power )
     /* AIX uses kill(), but the PC of a process in a syscall can
        not be correctly determined, and appears to be the address
        to which the syscall function will return. */
-#elif defined( os_windows ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
+#elif defined( os_windows_test ) && (defined( arch_x86 ) || defined( arch_x86_64_test ))
     /* Windows/x86 does not use kill(), so its lowermost frame will be 
        something unidentifiable in a system DLL. */
     { false, false, BPatch_frameNormal, NULL },
 #else
     { true, false, BPatch_frameNormal, "kill" },	
 #endif
-#if ! defined( os_windows )
+#if ! defined( os_windows_test )
     /* Windows/x86's stop_process_() calls DebugBreak(); it's 
        apparently normal to lose this frame. */
     { true, false, BPatch_frameNormal, "stop_process_" },
@@ -258,7 +258,7 @@ test_results_t test_stack_3_Mutator::executeTest() {
 
 // External Interface
 test_results_t test_stack_3_Mutator::setup(ParameterDict &param) {
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;
 }

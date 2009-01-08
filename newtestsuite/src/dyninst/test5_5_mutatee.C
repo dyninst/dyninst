@@ -44,7 +44,7 @@ void namespace_test::pass() {
 }
 
 int test5_5_mutatee() {
-#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
+#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_windows_test)
 
     logerror("Skipped test #5 (namespace)\n");
     logerror("\t- not implemented on this platform\n");

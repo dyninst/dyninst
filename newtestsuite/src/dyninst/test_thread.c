@@ -26,7 +26,7 @@ void sleep_ms(int ms)
 
 }
 
-#if defined (os_windows)
+#if defined (os_windows_test)
 #error
 #else
   /*

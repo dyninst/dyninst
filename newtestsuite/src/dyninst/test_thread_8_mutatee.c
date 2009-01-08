@@ -7,7 +7,7 @@
 #include <limits.h>
 #include "mutatee_util.h"
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define TVOLATILE
 #else
 #define TVOLATILE volatile
@@ -129,7 +129,7 @@ void *init_func(void *arg)
 int test_thread_8_mutatee() {
    unsigned i;
    int startedall = 0;
-#ifndef os_windows
+#ifndef os_windows_test
    char c = 'T';
 #endif
 

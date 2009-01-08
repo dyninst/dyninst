@@ -65,7 +65,7 @@ class test1_28_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_28_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_28_factory() {
   return new test1_28_Mutator();
 }
 
@@ -113,12 +113,22 @@ test_results_t test1_28_Mutator::executeTest() {
     // now create variables of these types.
     BPatch_variableExpr *globalVariable28_1 = 
 	appImage->findVariable("test1_28_globalVariable1");
-    assert(globalVariable28_1);
+    if (!globalVariable28_1)
+    {
+       logerror("[%s:%u] - Unable to find variable test1_28_globalVariable1\n", 
+                __FILE__, __LINE__);
+       return FAILED;
+    }
     globalVariable28_1->setType(type28_2);
 
     BPatch_variableExpr *globalVariable28_8 = 
 	appImage->findVariable("test1_28_globalVariable8");
-    assert(globalVariable28_8);
+    if (!globalVariable28_8)
+    {
+       logerror("[%s:%u] - Unable to find variable test1_28_globalVariable8\n", 
+                __FILE__, __LINE__);
+       return FAILED;
+    }
     globalVariable28_8->setType(union28_1);
 
     //     Next verify that we can find a local variable in call28
@@ -149,7 +159,7 @@ test_results_t test1_28_Mutator::executeTest() {
 	gvar[i] = appImage->findVariable(name);
 	if (!gvar[i]) {
 	    logerror("**Failed** test #28 (user defined fields)\n");
-	    logerror("  can't find variable %s\n", i, name);
+	    logerror("  can't find variable %s\n", name);
 	    return FAILED;
 	}
     }
@@ -276,7 +286,7 @@ test_results_t test1_28_Mutator::executeTest() {
 }
 
 // External Interface
-// extern "C" TEST_DLL_EXPORT int test1_28_mutatorMAIN(ParameterDict &param)
+// extern "C" DLLEXPORT TEST_DLL_EXPORT int test1_28_mutatorMAIN(ParameterDict &param)
 // {
 test_results_t test1_28_Mutator::setup(ParameterDict &param) {
     bool useAttach = param["useAttach"]->getInt();

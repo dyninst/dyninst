@@ -63,7 +63,8 @@ public:
 };
 
 // Factory function.
-extern "C" TEST_DLL_EXPORT TestMutator *test1_1_factory() {
+extern "C" DLLEXPORT TestMutator* test1_1_factory()
+{
   return new test1_1_Mutator();
 }
 

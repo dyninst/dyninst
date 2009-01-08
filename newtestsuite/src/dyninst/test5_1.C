@@ -44,7 +44,7 @@
  * #Name: test5_1
  * #Desc: C++ Argument Pass
  * #Dep: 
- * #Arch: sparc_sun_solaris2_4,i386_unknown_linux2_0,x86_64_unknown_linux2_4,ia64_unknown_linux2_4
+ * #Arch: sparc_sun_solaris2_4_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,ia64_unknown_linux2_4_test
  * #Notes:
  */
 
@@ -63,7 +63,7 @@ public:
   virtual test_results_t executeTest();
 };
 
-extern "C" TEST_DLL_EXPORT TestMutator *test5_1_factory() {
+extern "C" DLLEXPORT TestMutator *test5_1_factory() {
   return new test5_1_Mutator();
 }
 
@@ -72,7 +72,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_1_factory() {
 //       
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_1_Mutator::executeTest() {
-#if defined(os_solaris) || defined(os_linux) || defined(os_windows)
+#if defined(os_solaris_test) || defined(os_linux_test) || defined(os_windows_test)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "arg_test::call_cpp";

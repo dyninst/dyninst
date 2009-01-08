@@ -41,7 +41,7 @@ void test4_4_func2()
 
 int test4_4_mutatee()
 {
-#ifndef i386_unknown_nt4_0
+#ifndef i386_unknown_nt4_0_test
     int i;
     int pid;
 
@@ -94,7 +94,7 @@ int test4_4_mutatee()
 	registerPID(pid); /* Register for cleanup */
       }
       test4_4_func2();
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1_test)
       /* On AIX the child dies when the parent exits, so wait */
       /* and the parent needs to wake up occasionally to keep dyninst happy*/
       dprintf("%d SLEEPING\n",getpid());

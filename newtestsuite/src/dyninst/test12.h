@@ -21,7 +21,7 @@
 #define MAX_TEST 8 
 #define TIMEOUT 15000 /* ms */
 #define SLEEP_INTERVAL 100 /*100 ms*/
-#if defined (os_windows)
+#if defined (os_windows_test)
 #error
 #else
 #define MUTEX_INIT_FUNC "pthread_mutex_init"

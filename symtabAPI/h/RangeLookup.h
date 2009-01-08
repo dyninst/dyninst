@@ -51,7 +51,7 @@ namespace Dyninst{
 namespace SymtabAPI{
 
 /* The Windows C++ compiler is broken and won't instantiate this function when it's in RangeLookup proper. */
-class DLLEXPORT RangeLookupImpl {
+class SYMTABEXPORT RangeLookupImpl {
  public:
   typedef std::pair< Offset, Offset >	AddressRange;
 		
@@ -62,7 +62,7 @@ class DLLEXPORT RangeLookupImpl {
   };
 }; /* end class RangeLookupImpl */
 
-template< class Value, class ValueLess > class DLLEXPORT RangeLookup {
+template< class Value, class ValueLess > class SYMTABEXPORT RangeLookup {
  protected:
 	 typedef RangeLookupImpl::AddressRange AddressRange;
 	 typedef RangeLookupImpl::AddressRangeLess AddressRangeLess;

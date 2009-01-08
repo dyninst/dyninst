@@ -44,7 +44,7 @@
  * #Name: test2_10
  * #Desc: Dump image
  * #Dep: 
- * #Arch: (rs6000_ibm_aix4_1,sparc_sun_sunos4_1_3,sparc_sun_solaris2_4,i386_unknown_linux2_0,mips_sgi_irix6_4,alpha_dec_osf4_0,ia64_unknown_linux2_4,x86_64_unknown_linux2_4
+ * #Arch: (rs6000_ibm_aix4_1_test,sparc_sun_sunos4_1_3_test,sparc_sun_solaris2_4_test,i386_unknown_linux2_0_test,mips_sgi_irix6_4_test,alpha_dec_osf4_0_test,ia64_unknown_linux2_4_test,x86_64_unknown_linux2_4_test
  * #Notes:
  */
 
@@ -60,7 +60,7 @@
 class test2_10_Mutator : public DyninstMutator {
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test2_10_factory() {
+extern "C" DLLEXPORT  TestMutator *test2_10_factory() {
   return new test2_10_Mutator();
 }
 
@@ -75,14 +75,14 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_10_factory() {
 //
 // static int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
 test_results_t test2_10_Mutator::executeTest() {
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(sparc_sun_sunos4_1_3) \
- && !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */ \
+#if !defined(rs6000_ibm_aix4_1_test) \
+ && !defined(sparc_sun_sunos4_1_3_test) \
+ && !defined(sparc_sun_solaris2_4_test) \
+ && !defined(i386_unknown_linux2_0_test) \
+ && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ && !defined(mips_sgi_irix6_4_test) \
+ && !defined(alpha_dec_osf4_0_test) \
+ && !defined(ia64_unknown_linux2_4_test) /* Temporary duplication - TLM */ \
  && !defined(ppc32_linux) 
   // Looks like it runs on everything but Windows - Greg
 

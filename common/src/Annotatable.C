@@ -44,8 +44,6 @@
 #include "common/h/headers.h"
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/Annotatable.h"
-//COMMONEXPORT int Dyninst::AnnotationClass_nextId;
-//AnnotatableSparse::annos_t AnnotatableSparse::annos;
 #if 0
 
 

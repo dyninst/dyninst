@@ -51,6 +51,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_point.h"
 
 #include "test_lib.h"
 #include "Callbacks.h"
@@ -64,7 +65,7 @@ class test1_20_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_20_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_20_factory() {
   return new test1_20_Mutator();
 }
 

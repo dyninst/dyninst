@@ -28,7 +28,7 @@ public:
 
   // Informs the output driver that any log messages or results should be
   // associated with the test passed in through the attributes parameter
-  virtual void startNewTest(std::map<std::string, std::string> &attributes) = 0;
+  virtual void startNewTest(std::map<std::string, std::string> &attributes, TestInfo *test, RunGroup *group) = 0;
 
   // Specifies a file to redirect one of the output streams to.  The default
   // file can be specified with a filename of "-".  Defaults are as follows:
@@ -39,7 +39,7 @@ public:
   // Before calling any of the log* methods or finalizeOutput(), the user
   // must have initialized the test output driver with a call to startNewTest()
 
-  virtual void logResult(test_results_t result) = 0;
+  virtual void logResult(test_results_t result, int stage=-1) = 0;
   // Log that the last test run by a test driver with pid crashedPID crashed
   virtual void logCrash(std::string testname) = 0;
   virtual void log(TestOutputStream stream, const char *fmt, ...) = 0;

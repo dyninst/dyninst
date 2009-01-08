@@ -64,7 +64,7 @@ class test1_36_Mutator : public DyninstMutator {
 
   BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId);
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_36_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_36_factory() {
   return new test1_36_Mutator();
 }
 
@@ -176,17 +176,17 @@ test_results_t test1_36_Mutator::executeTest() {
    snippet_seq.push_back(makeTest36paramExpr(expr36_4, 3));
    snippet_seq.push_back(makeTest36paramExpr(expr36_5, 4));
    snippet_seq.push_back(makeTest36paramExpr(expr36_6, 5));
-#if !defined(alpha_dec_osf4_0) && !defined(arch_x86_64)  /* alpha and AMD64 don't handle more than 6 */
+#if !defined(alpha_dec_osf4_0_test) && !defined(arch_x86_64_test)  /* alpha and AMD64 don't handle more than 6 */
    snippet_seq.push_back(makeTest36paramExpr(expr36_7, 6));
    snippet_seq.push_back(makeTest36paramExpr(expr36_8, 7));
 
    // Solaris Fortran skips 9th paramter
-#if defined(sparc_sun_solaris2_4) 
+#if defined(sparc_sun_solaris2_4_test) 
    if (!mutateeFortran)
 #endif
        snippet_seq.push_back(makeTest36paramExpr(expr36_9, 8));
 
-#if !defined(sparc_sun_solaris2_4)
+#if !defined(sparc_sun_solaris2_4_test)
    snippet_seq.push_back(makeTest36paramExpr(expr36_10, 9));
 #endif
 #endif

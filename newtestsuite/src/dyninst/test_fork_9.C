@@ -65,7 +65,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test_fork_9_factory() {
+extern "C" DLLEXPORT TestMutator *test_fork_9_factory() {
   return new test_fork_9_Mutator();
 }
 
@@ -328,7 +328,7 @@ test_results_t test_fork_9_Mutator::executeTest() {
 
 // extern "C" int test7_5_mutatorMAIN(ParameterDict &param)
 test_results_t test_fork_9_Mutator::setup(ParameterDict &param) {
-#ifdef os_windows
+#ifdef os_windows_test
   return SKIPPED;
 #else
   bpatch = (BPatch *)(param["bpatch"]->getPtr());

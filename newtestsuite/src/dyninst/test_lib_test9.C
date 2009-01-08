@@ -1,19 +1,20 @@
 #include "test_lib.h"
 #include "test_lib_test9.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 extern FILE *outlog;
 extern FILE *errlog;
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4)
+#if !defined(os_windows_test)
 #include <sys/types.h>
 #include <errno.h>
 #include <sys/wait.h>
 #endif
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -26,14 +27,14 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
    int status, died;
  	char *mutatedBinary;
 
-#if defined(rs6000_ibm_aix4_1) \
+#if defined(rs6000_ibm_aix4_1_test) \
  || defined(rs6000_ibm_aix5_1)
 	char *aixBinary="dyninst_mutatedBinary";
 #endif
 	char *realfileName;
 
 	realfileName = fileName;
-#if defined(rs6000_ibm_aix4_1) \
+#if defined(rs6000_ibm_aix4_1_test) \
  || defined(rs6000_ibm_aix5_1)
 	realfileName = aixBinary;
 #endif
@@ -53,7 +54,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 			//child
 			logerror(" running: %s %s %s\n", mutatedBinary, realfileName, testID);
 #if defined(rs6000_ibm_aix5_1) \
- || defined(rs6000_ibm_aix4_1)
+ || defined(rs6000_ibm_aix4_1_test)
 			changePath(path);
 #endif
 
@@ -65,18 +66,18 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 		default: 
 			//parent
 			delete [] mutatedBinary;
-#if defined(sparc_sun_solaris2_4) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(rs6000_ibm_aix4_1_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix5_1)
 			died= waitpid(pid, &status, 0); 
 #endif
    	}
-#if defined(sparc_sun_solaris2_4) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(rs6000_ibm_aix4_1_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix5_1)
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
@@ -145,14 +146,14 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
    int status, died;
 
 	char *mutatedBinary;
-#if defined(rs6000_ibm_aix4_1) \
+#if defined(rs6000_ibm_aix4_1_test) \
  || defined(rs6000_ibm_aix5_1)
 	char *aixBinary="dyninst_mutatedBinary";
 #endif
 	char *realFileName;
 
 	realFileName = fileName;
-#if defined(rs6000_ibm_aix4_1) \
+#if defined(rs6000_ibm_aix4_1_test) \
  || defined(rs6000_ibm_aix5_1)
 	realFileName = aixBinary;
 #endif
@@ -191,7 +192,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			dup2(errlog_fd, 2); // stderr
 
 #if defined(rs6000_ibm_aix5_1) \
- || defined(rs6000_ibm_aix4_1)
+ || defined(rs6000_ibm_aix4_1_test)
 			changePath(path);
 #endif
 			for(int i=0;environ[i]!= '\0';i++){
@@ -203,8 +204,8 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			if (preloadMutatedRT(path) < 0) {
 			    return (-1);
 			}
-#if  defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4)
+#if  defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test)
 			struct stat buf;
 			retVal = stat("/usr/bin/setarch", &buf);
 			if(retVal != -1 ){
@@ -225,19 +226,19 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			//parent
 			delete [] command;
 			delete [] mutatedBinary;
-#if defined(sparc_sun_solaris2_4) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(rs6000_ibm_aix4_1_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix5_1)
 			died= waitpid(pid, &status, 0); 
 #endif
    	}
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+#if defined(sparc_sun_solaris2_4_test) \
+ || defined(rs6000_ibm_aix4_1_test) \
+ || defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix5_1)
 	if(WIFEXITED(status)){
 		int exitStatus = WEXITSTATUS(status);
@@ -255,7 +256,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
 void sleep_ms(int ms) 
 {
-//#if defined(os_solaris) && (os_solaris < 9)
+//#if defined(os_solaris_test) && (os_solaris_test < 9)
 #ifdef NOTDEF
   if (ms < 1000) {
     usleep(ms * 1000);

@@ -50,7 +50,7 @@ unsigned int bcListCC[1000];
 void* eaExpCC[1000];
 unsigned int bcExpCC[1000];
 
-#ifdef sparc_sun_solaris2_4
+#ifdef sparc_sun_solaris2_4_test
 /* const */ unsigned int loadExp=15;
 /* const */ unsigned int storeExp=13;
 /* const */ unsigned int prefeExp=2;
@@ -107,9 +107,9 @@ int eaExpOffset[] =    { 0,3,2,0,0,3,3,  0,0,0,  0,0,0,0,0,
     bcExpCC[i] = bcExp[i];
   }
 }
-#endif /* defined(sparc_sun_solaris2_4) */
+#endif /* defined(sparc_sun_solaris2_4_test) */
 
-#ifdef rs6000_ibm_aix4_1
+#ifdef rs6000_ibm_aix4_1_test
 const unsigned int loadExp=41;
 const unsigned int storeExp=32;
 const unsigned int prefeExp=0;
@@ -178,10 +178,10 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
     bcExpCC[i] = bcExp[i];
   }
 }
-#endif /* defined(rs6000_ibm_aix4_1) */
+#endif /* defined(rs6000_ibm_aix4_1_test) */
 
-#if defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(i386_unknown_nt4_0_test)
 unsigned int loadExp=65;
 unsigned int storeExp=23;
 unsigned int prefeExp=2;
@@ -324,9 +324,9 @@ void init_test_data()
   if(!(caps & CAP_MMX))
     reduce(mmxRed);
 }
-#endif /* defined(i386_unknown_linux2_0) || defined(i386_unknown_nt4_0) */
+#endif /* defined(i386_unknown_linux2_0_test) || defined(i386_unknown_nt4_0_test) */
 
-#ifdef x86_64_unknown_linux2_4
+#ifdef x86_64_unknown_linux2_4_test
 unsigned int loadExp = 73;
 unsigned int storeExp = 25;
 unsigned int prefeExp = 2;
@@ -472,9 +472,9 @@ void init_test_data()
   for(i = 91; i < 97; i++)
       bcExpCC[i] = bcExp[i+1];
 }
-#endif /* defined(x86_64_unknown_linux2_4) */
+#endif /* defined(x86_64_unknown_linux2_4_test) */
 
-#ifdef ia64_unknown_linux2_4
+#ifdef ia64_unknown_linux2_4_test
 unsigned int bcExp[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
 unsigned int bcExpCC_init[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
 
@@ -482,9 +482,9 @@ void init_test_data()
 {
   memcpy(bcExpCC, bcExpCC_init, sizeof (bcExpCC_init));
 }
-#endif /* defined(ia64_unknown_linux2_4) */
+#endif /* defined(ia64_unknown_linux2_4_test) */
 
-#ifdef mips_sgi_irix6_4
+#ifdef mips_sgi_irix6_4_test
 long loadsnstores(long x, long y, long z)
 {
   return x + y + z;
@@ -495,9 +495,9 @@ unsigned int bcExp[] = { 0 };
 void init_test_data()
 {
 }
-#endif /* defined(mips_sgi_irix6_4) */
+#endif /* defined(mips_sgi_irix6_4_test) */
 
-#ifdef alpha_dec_osf4_0
+#ifdef alpha_dec_osf4_0_test
 long loadsnstores(long x, long y, long z)
 {
   return x + y + z;
@@ -508,9 +508,9 @@ unsigned int bcExp[] = { 0 };
 void init_test_data()
 {
 }
-#endif /* defined(alpha_dec_osf4_0) */
+#endif /* defined(alpha_dec_osf4_0_test) */
 
-#if defined(arch_power) && defined(os_linux)
+#if defined(arch_power) && defined(os_linux_test)
 
 long loadsnstores(long x, long y, long z)
 {

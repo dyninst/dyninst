@@ -809,6 +809,7 @@ bool AddressSpace::findFuncsByAll(const std::string &funcname,
             }
         }
     }
+
     return (res.size() != starting_entries);
 }
 
@@ -927,7 +928,16 @@ void *AddressSpace::getPtrToInstruction(Address addr) const {
         assert(data);
         return data->obj->getPtrToData(addr);
     }
+    assert(0);
     return NULL;
+}
+
+bool AddressSpace::isExecutableAddress(const Address &addr) const {
+    codeRange *dontcare;
+    if (textRanges_.find(addr, dontcare))
+        return true;
+    else
+        return false;
 }
 
 bool AddressSpace::isValidAddress(const Address& addr) const{
@@ -937,8 +947,6 @@ bool AddressSpace::isValidAddress(const Address& addr) const{
         return true;
     if (dataRanges_.find(addr, dontcare))
         return true;
-    fprintf(stderr, "Warning: address 0x%p not valid!\n",
-            (void *)addr);
     return false;
 }        
 

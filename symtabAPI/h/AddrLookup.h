@@ -71,25 +71,25 @@ class AddressLookup : public AnnotatableSparse
 
 
  public:
-   DLLEXPORT static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
-   DLLEXPORT static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL);
-   DLLEXPORT static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &name_addrs);
+   SYMTABEXPORT static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
+   SYMTABEXPORT static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL);
+   SYMTABEXPORT static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &name_addrs);
    
-   DLLEXPORT bool getAddress(Symtab *tab, Symbol *sym, Address &addr);
-   DLLEXPORT bool getAddress(Symtab *tab, Offset off, Address &addr);
+   SYMTABEXPORT bool getAddress(Symtab *tab, Symbol *sym, Address &addr);
+   SYMTABEXPORT bool getAddress(Symtab *tab, Offset off, Address &addr);
 
-   DLLEXPORT bool getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close = false);
-   DLLEXPORT bool getOffset(Address addr, Symtab* &tab, Offset &off);
+   SYMTABEXPORT bool getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close = false);
+   SYMTABEXPORT bool getOffset(Address addr, Symtab* &tab, Offset &off);
    
-   DLLEXPORT bool getAllSymtabs(std::vector<Symtab *> &tabs);
-   DLLEXPORT bool getLoadAddress(Symtab* sym, Address &load_addr);
-   DLLEXPORT bool getDataLoadAddress(Symtab* sym, Address &load_addr);
+   SYMTABEXPORT bool getAllSymtabs(std::vector<Symtab *> &tabs);
+   SYMTABEXPORT bool getLoadAddress(Symtab* sym, Address &load_addr);
+   SYMTABEXPORT bool getDataLoadAddress(Symtab* sym, Address &load_addr);
 
-   DLLEXPORT bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
+   SYMTABEXPORT bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
 
-   DLLEXPORT bool refresh();
+   SYMTABEXPORT bool refresh();
    
-   DLLEXPORT virtual ~AddressLookup();
+   SYMTABEXPORT virtual ~AddressLookup();
 };
 
 }

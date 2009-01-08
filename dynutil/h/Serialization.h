@@ -4,10 +4,12 @@
 //  Hopefully just a few definitions allowing for a public interface to 
 //  serializing user-providede annotations
 
-#include <stdexcept>
 #include <stdio.h>
+#include <assert.h>
+#include <stdexcept>
 #include <typeinfo>
 #include <vector>
+#include <assert.h>
 #include "dyntypes.h"
 #include "util.h"
 

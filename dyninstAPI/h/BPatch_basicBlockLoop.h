@@ -67,7 +67,10 @@ class BPatch_loopTreeNode;
 #endif
 #define DYNINST_CLASS_NAME BPatch_basicBlockLoop
 
-class BPATCH_DLL_EXPORT BPatch_basicBlockLoop : public BPatch_eventLock, public AnnotatableSparse {
+class BPATCH_DLL_EXPORT BPatch_basicBlockLoop : 
+   public BPatch_eventLock, 
+   public Dyninst::AnnotatableSparse 
+{
 	friend class BPatch_flowGraph;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
 	friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,

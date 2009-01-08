@@ -37,7 +37,7 @@ static int test_failed = FALSE;
  */
 int test1_23_mutatee() {
 /* We don't support MIPS any more, so we don't need to check for it
- * #if defined(mips_sgi_irix6_4)
+ * #if defined(mips_sgi_irix6_4_test)
  *   logerror("Skipped test #23 (local variables)\n");
  *   logerror("\t- not implemented on this platform\n");
  *   passedTest[23] = TRUE;

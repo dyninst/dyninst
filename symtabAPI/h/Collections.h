@@ -32,7 +32,7 @@
 #ifndef _Collections_h_
 #define _Collections_h_
 
-#include "symtabAPI/h/Type.h"
+#include "Type.h"
 
 using namespace std;
 namespace Dyninst {
@@ -48,7 +48,7 @@ class Symtab;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
-class DLLEXPORT localVarCollection : public Serializable, public AnnotatableSparse {
+class SYMTABEXPORT localVarCollection : public Serializable, public AnnotatableSparse {
   
   dyn_hash_map<std::string, localVar *> localVariablesByName;
   vector<localVar *> localVars;
@@ -70,7 +70,7 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class DLLEXPORT typeCollection : public Serializable, public AnnotatableSparse {
+class SYMTABEXPORT typeCollection : public Serializable, public AnnotatableSparse {
     friend class Symtab;
     friend class Object;
     friend class Module;
@@ -136,7 +136,7 @@ public:
  *
  */
 
-class DLLEXPORT builtInTypeCollection {
+class SYMTABEXPORT builtInTypeCollection {
    
     dyn_hash_map<std::string, Type *> builtInTypesByName;
     dyn_hash_map<int, Type *> builtInTypesByID;

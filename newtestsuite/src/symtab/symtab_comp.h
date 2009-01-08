@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,29 +39,51 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#if !defined(symtab_comp_h_)
+#define symtab_comp_h_
 
-/*
- * void *DYNINSTdlopen_fake_ret(const char *filename, int flag,
- *				const char *fake_ret);
- * dlopen on Suse 9.1 has a "security" check in it so that only
- * registered modules can call it. We fool this check around by
- * calling _dl_open(filename, flag, NULL) and pretending it was
- * called from libc (by pushing fake_ret on the stack). The
- * fake_ret argument should point to a ret instruction somewhere
- * in libc -- ret will pop another word from the stack and return to us.
- */
-	.text
-	.globl DYNINSTdlopen_fake_ret
-DYNINSTdlopen_fake_ret:
-	push	%ebp
-	mov	%esp, %ebp
-	push	$1f	 /* Push the proper ret addr on the stack */
-	mov	0x8(%ebp),%eax
-	mov	0xc(%ebp),%edx
-	mov	0x10(%ebp),%ecx
-	push	%ecx	 /* Push the provided addr of a ret insn in libc */
-	xor	%ecx,%ecx
-	jmp	_dl_open /* Will return to the pushed addr of ret when done */
-1:		
-	leave
-	ret
+#include "test_lib.h"
+#include "TestMutator.h"
+#include "comptester.h"
+#include "ParameterDict.h"
+
+#include "Symtab.h"
+
+class COMPLIB_DLL_EXPORT SymtabMutator : public TestMutator {
+ public:
+   Dyninst::SymtabAPI::Symtab *symtab;
+   SymtabMutator();
+   virtual test_results_t setup(ParameterDict &param);
+   virtual ~SymtabMutator();
+};
+
+extern "C" {
+   TEST_DLL_EXPORT TestMutator *TestMutator_factory();
+}
+
+class SymtabComponent : public ComponentTester
+{
+ private:
+   ParamPtr symtab_ptr;
+ public:
+   Dyninst::SymtabAPI::Symtab *symtab;
+
+   SymtabComponent();
+   virtual test_results_t program_setup(ParameterDict &params);
+   virtual test_results_t program_teardown(ParameterDict &params);
+   virtual test_results_t group_setup(RunGroup *group, ParameterDict &params);
+   virtual test_results_t group_teardown(RunGroup *group, ParameterDict &params);
+   virtual test_results_t test_setup(TestInfo *test, ParameterDict &parms);
+   virtual test_results_t test_teardown(TestInfo *test, ParameterDict &parms);
+
+   virtual std::string getLastErrorMsg();
+
+   virtual ~SymtabComponent();
+};
+
+extern "C" {
+   ComponentTester *componentTesterFactory();
+}
+
+
+#endif

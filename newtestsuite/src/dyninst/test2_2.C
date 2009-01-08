@@ -64,7 +64,7 @@ class test2_2_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test2_2_factory() {
+extern "C" DLLEXPORT  TestMutator *test2_2_factory() {
   return new test2_2_Mutator();
 }
 
@@ -85,7 +85,7 @@ test_results_t test2_2_Mutator::executeTest() {
     // try to run a file that is not a valid program
 
     char *mutatee_name;
-#ifdef i386_unknown_nt4_0
+#ifdef os_windows_test
     mutatee_name = "nul:";
 #else
     mutatee_name = "/dev/null";

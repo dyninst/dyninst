@@ -1240,8 +1240,8 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
    //  Store the need-to-catchup flag in the BPatchSnippetHandle for the time being
 
    if (dyn_debug_catchup) {
-      fprintf(stderr, "%s[%d]:  BEGIN CATCHUP ANALYSIS:  num inst req: %d\n", 
-              FILE__, __LINE__, pendingInsertions->size());
+      fprintf(stderr, "%s[%d]:  BEGIN CATCHUP ANALYSIS:  num inst req: %ld\n", 
+              FILE__, __LINE__, (long) pendingInsertions->size());
       for (unsigned int i = 0; i < stacks.size(); ++i) {
         fprintf(stderr, "%s[%d]:Stack for thread %d\n", FILE__, __LINE__, i);
         pdvector<Frame> &one_stack = stacks[i];

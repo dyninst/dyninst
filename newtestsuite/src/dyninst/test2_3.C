@@ -44,7 +44,7 @@
  * #Name: test2_3
  * #Desc: Attatch to an invalid pid
  * #Dep: 
- * #Arch: !sparc_sun_sunos4_1_3
+ * #Arch: !sparc_sun_sunos4_1_3_test
  * #Notes:
  */
 
@@ -64,7 +64,7 @@ class test2_3_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test2_3_factory() {
+extern "C" DLLEXPORT  TestMutator *test2_3_factory() {
   return new test2_3_Mutator();
 }
 
@@ -102,7 +102,7 @@ test_results_t test2_3_Mutator::setup(ParameterDict &param) {
 //   setOutputLog(outlog);
 //   setErrorLog(errlog);
 
-#if defined(sparc_sun_sunos4_1_3)
+#if defined(sparc_sun_sunos4_1_3_test)
     logerror("Skipping test #3 (attach to an invalid pid)\n");
     logerror("    attach is not supported on this platform\n");
     return SKIPPED;

@@ -263,7 +263,8 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
 }
 
 bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
-        instruction &branchInsn, const std::set<Dyninst::InstructionAPI::RegisterAST::Ptr>& regsRead)
+                       instruction &branchInsn, 
+                       const std::set<Dyninst::InstructionAPI::RegisterAST::Ptr>& /*regsRead*/)
 {
 using namespace Dyninst::InstructionAPI;
 

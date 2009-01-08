@@ -31,13 +31,15 @@
 
 // $Id: Object.C,v 1.31 2008/11/03 15:19:25 jaw Exp $
 
+#include "symutil.h"
 #include "Annotatable.h"
 #include "common/h/serialize.h"
 
 #include "Symtab.h"
-#include "symutil.h"
 #include "Module.h"
 #include "Collections.h"
+#include "annotations.h"
+#include "Symbol.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -46,11 +48,6 @@
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-
-AnnotationClass<localVarCollection> FunctionLocalVariablesAnno(std::string("FunctionLocalVariablesAnno"));
-AnnotationClass<localVarCollection> FunctionParametersAnno(std::string("FunctionParametersAnno"));
-AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersionNamesAnno");
-AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
 
 string Symbol::emptyString("");
 
@@ -139,21 +136,21 @@ char *AObject::mem_image() const
 	return NULL;
 }
 
-DLLEXPORT ExceptionBlock::~ExceptionBlock() 
+SYMTABEXPORT ExceptionBlock::~ExceptionBlock() 
 {
 }
 
-DLLEXPORT ExceptionBlock::ExceptionBlock() : tryStart_(0), trySize_(0), 
+SYMTABEXPORT ExceptionBlock::ExceptionBlock() : tryStart_(0), trySize_(0), 
 								catchStart_(0), hasTry_(false) 
 {
 }
 
-DLLEXPORT Offset ExceptionBlock::catchStart() const 
+SYMTABEXPORT Offset ExceptionBlock::catchStart() const 
 {
 	return catchStart_;
 }
 
-DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
+SYMTABEXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
    Serializable(),
    target_addr_(ra.target_addr_), 
    rel_addr_(ra.rel_addr_), 
@@ -164,43 +161,39 @@ DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra) :
 {
 }
 
-DLLEXPORT Offset relocationEntry::target_addr() const 
+SYMTABEXPORT Offset relocationEntry::target_addr() const 
 {
 	return target_addr_;
 }
 
-DLLEXPORT Offset relocationEntry::rel_addr() const 
+SYMTABEXPORT Offset relocationEntry::rel_addr() const 
 {
 	return rel_addr_;
 }
 
-DLLEXPORT const string &relocationEntry::name() const 
+SYMTABEXPORT const string &relocationEntry::name() const 
 {
 	return name_;
 }
 
-DLLEXPORT Symbol *relocationEntry::getDynSym() const 
+SYMTABEXPORT Symbol *relocationEntry::getDynSym() const 
 {
     return dynref_;
 }
 
-DLLEXPORT bool relocationEntry::addDynSym(Symbol *dynref) 
+SYMTABEXPORT bool relocationEntry::addDynSym(Symbol *dynref) 
 {
     dynref_ = dynref;
     return true;
 }
 
-DLLEXPORT unsigned long relocationEntry::getRelType() const 
+SYMTABEXPORT unsigned long relocationEntry::getRelType() const 
 {
     return relType_;
 }
 
-DLLEXPORT Symbol::~Symbol ()
+SYMTABEXPORT Symbol::~Symbol ()
 {
-   mangledNames.clear();
-   prettyNames.clear();
-   typedNames.clear();
-
    std::string *sfa_p = NULL;
 
    if (getAnnotation(sfa_p, SymbolFileNameAnno))
@@ -216,7 +209,7 @@ DLLEXPORT Symbol::~Symbol ()
    }
 }
 
-DLLEXPORT Symbol::Symbol(const Symbol& s) :
+SYMTABEXPORT Symbol::Symbol(const Symbol& s) :
    Serializable(),
    AnnotatableSparse(),
    module_(s.module_), 
@@ -224,9 +217,11 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
-   mangledNames(s.mangledNames), 
-   prettyNames(s.prettyNames), 
-   typedNames(s.typedNames), 
+   function_(s.function_),
+   variable_(s.variable_),
+   mangledName_(s.mangledName_), 
+   prettyName_(s.prettyName_), 
+   typedName_(s.typedName_), 
    tag_(s.tag_), 
    framePtrRegNum_(s.framePtrRegNum_),
    retType_(s.retType_), 
@@ -335,7 +330,7 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    }
 }
 
-DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) 
+SYMTABEXPORT Symbol& Symbol::operator=(const Symbol& s) 
 {
    module_  = s.module_;
    type_    = s.type_;
@@ -346,10 +341,12 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    isInDynsymtab_ = s.isInDynsymtab_;
    isInSymtab_ = s.isInSymtab_;
    isAbsolute_ = s.isAbsolute_;
+   function_ = s.function_;
+   variable_ = s.variable_;
    tag_     = s.tag_;
-   mangledNames = s.mangledNames;
-   prettyNames = s.prettyNames;
-   typedNames = s.typedNames;
+   mangledName_ = s.mangledName_;
+   prettyName_ = s.prettyName_;
+   typedName_ = s.typedName_;
    framePtrRegNum_ = s.framePtrRegNum_;
 
    std::string *sfa_p = NULL;
@@ -459,28 +456,22 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    return *this;
 }
 
-DLLEXPORT const string& Symbol::getName() const 
+SYMTABEXPORT const string& Symbol::getMangledName() const 
 {
-   if (mangledNames.size() > 0)
-      return mangledNames[0];
-   return emptyString;
+    return mangledName_;
 }
 
-DLLEXPORT const string& Symbol::getPrettyName() const 
+SYMTABEXPORT const string& Symbol::getPrettyName() const 
 {
-   if (prettyNames.size() > 0)
-      return prettyNames[0];
-   return emptyString;
+    return prettyName_;
 }
 
-DLLEXPORT const string& Symbol::getTypedName() const 
+SYMTABEXPORT const string& Symbol::getTypedName() const 
 {
-   if (typedNames.size() > 0)
-    	return typedNames[0];
-    return emptyString;
+    return typedName_;
 }
 
-DLLEXPORT const string& Symbol::getModuleName() const 
+SYMTABEXPORT const string& Symbol::getModuleName() const 
 {
     if (module_)
         return module_->fullName();
@@ -488,183 +479,162 @@ DLLEXPORT const string& Symbol::getModuleName() const
         return moduleName_;
 }
 
-DLLEXPORT Module* Symbol::getModule() const 
+SYMTABEXPORT Module* Symbol::getModule() const 
 {
     return module_;
 }
 
-DLLEXPORT bool Symbol::setModule(Module *mod) 
+SYMTABEXPORT bool Symbol::setModule(Module *mod) 
 {
 	module_ = mod; 
 	return true;
 }
 
-DLLEXPORT Symbol::SymbolType Symbol::getType() const 
+SYMTABEXPORT Symbol::SymbolType Symbol::getType() const 
 {
     return type_;
 }
 
-DLLEXPORT Symbol::SymbolLinkage Symbol::getLinkage() const 
+SYMTABEXPORT Symbol::SymbolLinkage Symbol::getLinkage() const 
 {
     return linkage_;
 }
 
-DLLEXPORT Offset Symbol::getAddr() const 
+SYMTABEXPORT Offset Symbol::getAddr() const 
 {
     return addr_;
 }
 
-DLLEXPORT Region *Symbol::getSec() const 
+SYMTABEXPORT Region *Symbol::getSec() const 
 {
     return sec_;
 }
 
-bool Symbol::addLocalVar(localVar *locVar)
-{
-   localVarCollection *lvs = NULL;
-
-   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
-   {
-      lvs = new localVarCollection();
-
-      if (!addAnnotation(lvs, FunctionLocalVariablesAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-   }
-
-   lvs->addLocalVar(locVar);
-   return true;
-}
-
-bool Symbol::addParam(localVar *param)
-{
-   localVarCollection *ps = NULL;
-
-   if (!getAnnotation(ps, FunctionParametersAnno))
-   {
-      ps = new localVarCollection();
-
-      if (!addAnnotation(ps, FunctionParametersAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-   }
-
-   ps->addLocalVar(param);
-
-   return true;
-}
-        
-DLLEXPORT bool Symbol::isInDynSymtab() const 
+SYMTABEXPORT bool Symbol::isInDynSymtab() const 
 {
     return isInDynsymtab_;
 }
 
-DLLEXPORT bool Symbol::isInSymtab() const 
+SYMTABEXPORT bool Symbol::isInSymtab() const 
 {
     return isInSymtab_;
 }
 
-DLLEXPORT bool Symbol::isAbsolute() const
+SYMTABEXPORT bool Symbol::isAbsolute() const
 {
     return isAbsolute_;
 }
 
-DLLEXPORT unsigned Symbol::getSize() const 
+SYMTABEXPORT bool Symbol::isFunction() const
+{
+    return (function_ != NULL);
+}
+
+SYMTABEXPORT bool Symbol::setFunction(Function *func)
+{
+    function_ = func;
+    return true;
+}
+
+SYMTABEXPORT Function * Symbol::getFunction() const
+{
+    return function_;
+}
+
+SYMTABEXPORT bool Symbol::isVariable() const 
+{
+    return variable_ != NULL;
+}
+
+SYMTABEXPORT bool Symbol::setVariable(Variable *var) 
+{
+    variable_ = var;
+    return true;
+}
+
+SYMTABEXPORT Variable * Symbol::getVariable() const
+{
+    return variable_;
+}
+
+SYMTABEXPORT unsigned Symbol::getSize() const 
 {
     return size_;
 }
 
-DLLEXPORT bool	Symbol::setSize(unsigned ns)
+SYMTABEXPORT bool	Symbol::setSize(unsigned ns)
 {
 	size_ = ns;
 	return true;
 }
 
-DLLEXPORT Symbol::SymbolTag Symbol::tag() const 
+SYMTABEXPORT Symbol::SymbolTag Symbol::tag() const 
 {
     return tag_;
 }
 
-DLLEXPORT bool Symbol::setModuleName(string module)
+SYMTABEXPORT bool Symbol::setModuleName(string module)
 {
 	moduleName_ = module;
 	return true;
 }
 
-DLLEXPORT bool Symbol::setAddr (Offset newAddr) 
+SYMTABEXPORT bool Symbol::setAddr (Offset newAddr) 
 {
       addr_ = newAddr;
       return true;
 }
 
-DLLEXPORT bool Symbol::setDynSymtab() 
+SYMTABEXPORT bool Symbol::setDynSymtab() 
 {
     isInDynsymtab_= true;
     return true;
 }
 
-DLLEXPORT bool Symbol::clearDynSymtab() 
+SYMTABEXPORT bool Symbol::clearDynSymtab() 
 {
     isInDynsymtab_ = false;
     return true;
 }
 
-DLLEXPORT bool Symbol::setIsInSymtab() 
+SYMTABEXPORT bool Symbol::setIsInSymtab() 
 {
     isInSymtab_= true;
     return true;
 }
 
-DLLEXPORT bool Symbol::clearIsInSymtab() 
+SYMTABEXPORT bool Symbol::clearIsInSymtab() 
 {
     isInSymtab_= false;
     return true;
 }
 
-DLLEXPORT bool Symbol::setIsAbsolute()
+SYMTABEXPORT bool Symbol::setIsAbsolute()
 {
     isAbsolute_= true;
     return true;
 }
 
-DLLEXPORT bool Symbol::clearIsAbsolute()
+SYMTABEXPORT bool Symbol::clearIsAbsolute()
 {
     isAbsolute_= false;
     return true;
 }
 
-DLLEXPORT Symbol::Symbol()
+SYMTABEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
+    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), 
+    function_(NULL),
+    variable_(NULL),
+    tag_(TAG_UNKNOWN),
     framePtrRegNum_(-1), retType_(NULL), moduleName_("")
 {
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
 }
 
-DLLEXPORT const std::vector<string>& Symbol::getAllMangledNames() const 
-{
-    return mangledNames;
-}
-
-DLLEXPORT const std::vector<string>& Symbol::getAllPrettyNames() const 
-{
-	return prettyNames;
-}		
-    
-DLLEXPORT const std::vector<string>& Symbol::getAllTypedNames() const 
-{
-    	return typedNames;
-}
-
-DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
+SYMTABEXPORT Symbol::Symbol(const string iname, const string imodule,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
@@ -675,10 +645,10 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
 {
         module_ = NULL;
     	moduleName_ = imodule;
-    	mangledNames.push_back(iname);
+        mangledName_ = iname;
 }
 
-DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
+SYMTABEXPORT Symbol::Symbol(const string iname, Module *mod,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
@@ -687,152 +657,28 @@ DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
-    	mangledNames.push_back(iname);
+    mangledName_ = iname;
 }
 
-DLLEXPORT bool Symbol::addMangledName(string name, bool isPrimary) 
+
+SYMTABEXPORT bool Symbol::setSymbolType(SymbolType sType)
 {
-   std::vector<string> newMangledNames;
-
-   // isPrimary defaults to false
-   if (isPrimary)
-      newMangledNames.push_back(name);
-   bool found = false;
-   for (unsigned i = 0; i < mangledNames.size(); i++) {
-      if (mangledNames[i] == name) {
-         found = true;
-      }
-      else {
-         newMangledNames.push_back(mangledNames[i]);
-      }
-   }
-   if (!isPrimary)
-      newMangledNames.push_back(name);
-   mangledNames = newMangledNames;
-
-   if (!found && module_->exec())
-   {		//add it to the lookUps
-      if(type_ == ST_FUNCTION)
-         module_->exec()->addFunctionName(this,name,true);
-      else if(type_ == ST_OBJECT)
-         module_->exec()->addVariableName(this,name,true);
-      else if(type_ == ST_MODULE)
-         module_->exec()->addModuleName(this,name);
-   }
-
-   // Bool: true if the name is new; AKA !found
-   return (!found);
-}																	
-
-DLLEXPORT bool Symbol::addPrettyName(string name, bool isPrimary) 
-{
-   std::vector<string> newPrettyNames;
-
-   // isPrimary defaults to false
-   if (isPrimary)
-      newPrettyNames.push_back(name);
-   bool found = false;
-   for (unsigned i = 0; i < prettyNames.size(); i++) {
-      if (prettyNames[i] == name) {
-         found = true;
-      }
-      else {
-         newPrettyNames.push_back(prettyNames[i]);
-      }
-   }
-
-   if (!isPrimary)
-      newPrettyNames.push_back(name);
-   prettyNames = newPrettyNames;
-
-   if (!found && module_->exec())
-   {		//add it to the lookUps
-      if (type_ == ST_FUNCTION)
-         module_->exec()->addFunctionName(this,name,false);
-      else if (type_ == ST_OBJECT)
-         module_->exec()->addVariableName(this,name,false);
-      else if (type_ == ST_MODULE)
-         module_->exec()->addModuleName(this,name);
-   }
-
-   // Bool: true if the name is new; AKA !found
-   return (!found);
+    if ((sType != ST_UNKNOWN)&&
+        (sType != ST_FUNCTION)&&
+        (sType != ST_OBJECT)&&
+        (sType != ST_MODULE)&&
+        (sType != ST_NOTYPE))
+        return false;
+    
+    SymbolType oldType = type_;	
+    type_ = sType;
+    if (module_->exec())
+        module_->exec()->changeType(this, oldType);
+    
+    return true;
 }
 
-DLLEXPORT bool Symbol::addTypedName(string name, bool isPrimary) 
-{
-   std::vector<string> newTypedNames;
-
-   // isPrimary defaults to false
-   if (isPrimary)
-      newTypedNames.push_back(name);
-
-   bool found = false;
-   for (unsigned i = 0; i < typedNames.size(); i++) {
-      if (typedNames[i] == name) {
-         found = true;
-      }
-      else {
-         newTypedNames.push_back(typedNames[i]);
-      }
-   }
-
-   if (!isPrimary)
-      newTypedNames.push_back(name);
-   typedNames = newTypedNames;
-
-   if (!found && module_->exec())
-   {		//add it to the lookUps
-      if (type_ == ST_FUNCTION)
-         module_->exec()->addFunctionName(this,name,false);
-      else if (type_ == ST_OBJECT)
-         module_->exec()->addVariableName(this,name,false);
-   }
-
-   // Bool: true if the name is new; AKA !found
-   return (!found);
-}
-
-DLLEXPORT bool Symbol::setSymbolType(SymbolType sType)
-{
-   if ((sType != ST_UNKNOWN)&&
-         (sType != ST_FUNCTION)&&
-         (sType != ST_OBJECT)&&
-         (sType != ST_MODULE)&&
-         (sType != ST_NOTYPE))
-      return false;
-
-   SymbolType oldType = type_;	
-   type_ = sType;
-   if (module_->exec())
-      module_->exec()->changeType(this, oldType);
-
-   return true;
-}
-
-DLLEXPORT Type *Symbol::getReturnType()
-{
-   return retType_;
-}
-
-DLLEXPORT bool  Symbol::setReturnType(Type *retType)
-{
-   retType_ = retType;
-   return true;
-}
-
-DLLEXPORT bool Symbol::setFramePtrRegnum(int regnum)
-{
-   framePtrRegNum_ = regnum;
-   return true;
-}
-
-DLLEXPORT int Symbol::getFramePtrRegnum()
-{
-   return framePtrRegNum_;
-}
-
-DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
+SYMTABEXPORT bool Symbol::setVersionFileName(std::string &fileName)
 {
    std::string *fn_p = NULL;
    if (getAnnotation(fn_p, SymbolFileNameAnno)) 
@@ -844,7 +690,7 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
       else
       {
          fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", 
-               FILE__, __LINE__, getName().c_str());
+                 FILE__, __LINE__, getMangledName().c_str());
       }
       return false;
    }
@@ -863,7 +709,7 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
    return false;
 }
 
-DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
+SYMTABEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
 {
    std::vector<std::string> *vn_p = NULL;
    if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
@@ -873,7 +719,7 @@ DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
          fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
       }
       else
-         fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
+         fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getMangledName().c_str());
       return false;
    }
    else
@@ -887,7 +733,7 @@ DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    return true;
 }
 
-DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
+SYMTABEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 {
    std::string *fn_p = NULL;
 
@@ -915,7 +761,7 @@ DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 #endif
 }
 
-DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
+SYMTABEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 {
    std::vector<std::string> *vn_p = NULL;
 
@@ -944,102 +790,6 @@ DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 #endif
 }
 
-DLLEXPORT bool Symbol::getLocalVariables(std::vector<localVar *>&vars)
-{
-   if (type_ != ST_FUNCTION || !module_ )
-      return false;
-
-   module_->exec()->parseTypesNow();	
-
-   localVarCollection *lvs = NULL;
-   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
-   {
-      return false;
-   }
-   if (!lvs)
-   {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
-      return false;
-   }
-
-   vars = *(lvs->getAllVars());
-
-   if (vars.size())
-      return true;
-
-   //  this should not occur since annotation should not exist if no data inside it
-   fprintf(stderr, "%s[%d]:  FIXME:  bad sizing for annotation\n", FILE__, __LINE__);
-   return false;
-
-}
-
-DLLEXPORT bool Symbol::getParams(std::vector<localVar *>&params)
-{
-   if (type_ != ST_FUNCTION || !module_ )
-      return false;
-
-   module_->exec()->parseTypesNow();	
-
-   localVarCollection *lvs = NULL;
-   if (!getAnnotation(lvs, FunctionParametersAnno))
-   {
-      return false;
-   }
-
-   if (!lvs)
-   {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
-      return false;
-   }
-
-   params = *(lvs->getAllVars());
-
-   if (params.size())
-      return true;
-
-   //  this should not occur since annotation should not exist if no data inside it
-   fprintf(stderr, "%s[%d]:  FIXME:  bad sizing for annotation\n", FILE__, __LINE__);
-   return false;
-
-}
-
-DLLEXPORT bool Symbol::findLocalVariable(std::vector<localVar *>&vars, string name)
-{
-   if (type_ != ST_FUNCTION || !module_ )
-      return false;
-
-   module_->exec()->parseTypesNow();	
-
-   localVarCollection *lvs = NULL, *lps = NULL;
-   bool res1 = false, res2 = false;
-   res1 = getAnnotation(lvs, FunctionLocalVariablesAnno);
-   res2 = getAnnotation(lps, FunctionParametersAnno);
-
-   if (!res1 && !res2)
-      return false;
-
-   unsigned origSize = vars.size();	
-
-   if (lvs)
-   {
-      localVar *var = lvs->findLocalVar(name);
-      if (var) 
-         vars.push_back(var);
-   }
-
-   if (lps)
-   {
-      localVar *var = lps->findLocalVar(name);
-      if (var) 
-         vars.push_back(var);
-   }
-
-   if (vars.size() > origSize)
-      return true;
-
-   return false;
-}
-
 void Symbol::serialize(SerializerBase *s, const char *tag) 
 {
    try {
@@ -1052,9 +802,9 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, isInDynsymtab_, "isInDynsymtab");
       gtranslate(s, isInSymtab_, "isInSymtab");
       gtranslate(s, isAbsolute_, "isAbsolute");
-      gtranslate(s, prettyNames, "prettyNames", "prettyName");
-      gtranslate(s, mangledNames, "mangledNames", "mangledName");
-      gtranslate(s, typedNames, "typedNames", "typedName");
+      gtranslate(s, prettyName_, "prettyName", "prettyName");
+      gtranslate(s, mangledName_, "mangledName", "mangledName");
+      gtranslate(s, typedName_, "typedName", "typedName");
       gtranslate(s, framePtrRegNum_, "framePtrRegNum");
       //  Note:  have to deal with retType_ here?? Probably use type id.
       gtranslate(s, moduleName_, "moduleName");
@@ -1068,9 +818,9 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       getSD().translate(param.size_, "size");
       getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
       getSD().translate(param.isInSymtab_, "isInSymtab");
-      getSD().translate(param.prettyNames, "prettyNames", "prettyName");
-      getSD().translate(param.mangledNames, "mangledNames", "mangledName");
-      getSD().translate(param.typedNames, "typedNames", "typedName");
+      getSD().translate(param.prettyName_, "prettyName", "prettyName");
+      getSD().translate(param.mangledName_, "mangledName", "mangledName");
+      getSD().translate(param.typedName_, "typedName", "typedName");
       getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
       //  Note:  have to deal with retType_ here?? Probably use type id.
       getSD().translate(param.moduleName_, "moduleName");
@@ -1082,13 +832,20 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
    return os << "{"
-      << " mangled=" << s.getName()
+      << " mangled=" << s.getMangledName()
       << " pretty="  << s.getPrettyName()
       << " module="  << s.module_
-      << " type="    << (unsigned) s.type_
-      << " linkage=" << (unsigned) s.linkage_
-      << " addr="    << s.addr_
-      << " tag="     << (unsigned) s.tag_
+      //<< " type="    << (unsigned) s.type_
+      << " type="    << s.symbolType2Str(s.type_)
+      //<< " linkage=" << (unsigned) s.linkage_
+      << " linkage=" << s.symbolLinkage2Str(s.linkage_)
+      << " addr=0x"    << hex << s.addr_ << dec
+      //<< " tag="     << (unsigned) s.tag_
+      << " tag="     << s.symbolTag2Str(s.tag_)
+      << " isAbs="   << s.isAbsolute_
+      << (s.function_!=NULL ? " [FUNC]" : "")
+      << (s.isInSymtab_ ? " [STA]" : "")
+      << (s.isInDynsymtab_ ? " [DYN]" : "")
       << " }" << endl;
 }
 
@@ -1149,16 +906,16 @@ const ostream &AObject::dump_state_info(ostream &s) {
 
 #endif
 
-DLLEXPORT AObject::AObject()
+SYMTABEXPORT AObject::AObject()
 {
 }	
 
-DLLEXPORT unsigned AObject::nsymbols () const 
+SYMTABEXPORT unsigned AObject::nsymbols () const 
 { 
    return symbols_.size(); 
 }
 
-DLLEXPORT bool AObject::get_symbols(string & name, 
+SYMTABEXPORT bool AObject::get_symbols(string & name, 
       std::vector<Symbol *> &symbols ) 
 {
    if ( symbols_.find(name) == symbols_.end()) {
@@ -1169,57 +926,57 @@ DLLEXPORT bool AObject::get_symbols(string & name,
    return true;
 }
 
-DLLEXPORT char* AObject::code_ptr () const 
+SYMTABEXPORT char* AObject::code_ptr () const 
 { 
    return code_ptr_; 
 }
 
-DLLEXPORT Offset AObject::code_off () const 
+SYMTABEXPORT Offset AObject::code_off () const 
 { 
    return code_off_; 
 }
 
-DLLEXPORT Offset AObject::code_len () const 
+SYMTABEXPORT Offset AObject::code_len () const 
 { 
    return code_len_; 
 }
 
-DLLEXPORT char* AObject::data_ptr () const 
+SYMTABEXPORT char* AObject::data_ptr () const 
 { 
    return data_ptr_; 
 }
 
-DLLEXPORT Offset AObject::data_off () const 
+SYMTABEXPORT Offset AObject::data_off () const 
 { 
    return data_off_; 
 }
 
-DLLEXPORT Offset AObject::data_len () const 
+SYMTABEXPORT Offset AObject::data_len () const 
 { 
    return data_len_; 
 }
 
-DLLEXPORT bool AObject::is_aout() const 
+SYMTABEXPORT bool AObject::is_aout() const 
 {
    return is_aout_;  
 }
 
-DLLEXPORT bool AObject::isDynamic() const 
+SYMTABEXPORT bool AObject::isDynamic() const 
 {
    return is_dynamic_;  
 }
 
-DLLEXPORT unsigned AObject::no_of_sections() const 
+SYMTABEXPORT unsigned AObject::no_of_sections() const 
 { 
    return no_of_sections_; 
 }
 
-DLLEXPORT unsigned AObject::no_of_symbols() const 
+SYMTABEXPORT unsigned AObject::no_of_symbols() const 
 { 
    return no_of_symbols_;  
 }
 
-DLLEXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
+SYMTABEXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
 {
    for (unsigned i=0;i<catch_addrs_.size();i++)
       excpBlocks.push_back(new ExceptionBlock(catch_addrs_[i]));
@@ -1227,47 +984,47 @@ DLLEXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlock
    return true;
 }
 
-DLLEXPORT std::vector<Region *> AObject::getAllRegions() const
+SYMTABEXPORT std::vector<Region *> AObject::getAllRegions() const
 {
    return regions_;	
 }
 
-DLLEXPORT Offset AObject::loader_off() const 
+SYMTABEXPORT Offset AObject::loader_off() const 
 { 
    return loader_off_; 
 }
 
-DLLEXPORT unsigned AObject::loader_len() const 
+SYMTABEXPORT unsigned AObject::loader_len() const 
 { 
    return loader_len_; 
 }
 
-DLLEXPORT int AObject::getAddressWidth() const 
+SYMTABEXPORT int AObject::getAddressWidth() const 
 { 
    return addressWidth_nbytes; 
 }
 
-DLLEXPORT bool AObject::have_deferred_parsing(void) const
+SYMTABEXPORT bool AObject::have_deferred_parsing(void) const
 { 
    return deferredParse;
 }
 
-DLLEXPORT void * AObject::getErrFunc() const 
+SYMTABEXPORT void * AObject::getErrFunc() const 
 {
    return (void *) err_func_; 
 }
 
-DLLEXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
+SYMTABEXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
 { 
    return &(symbols_);
 }
 
-DLLEXPORT AObject::~AObject() 
+SYMTABEXPORT AObject::~AObject() 
 {
 }
 
 // explicitly protected
-DLLEXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *)) 
+SYMTABEXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *)) 
 : mf(mf_), mfForDebugInfo(mfd), code_ptr_(0), code_off_(0),
    code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
    loader_len_(0), is_dynamic_(false), deferredParse(false), err_func_(err_func),
@@ -1275,7 +1032,7 @@ DLLEXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(co
 {
 }
 
-DLLEXPORT AObject::AObject(const AObject &obj)
+SYMTABEXPORT AObject::AObject(const AObject &obj)
 : mf(obj.mf), mfForDebugInfo(obj.mfForDebugInfo), symbols_(obj.symbols_), 
    code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
    code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
@@ -1285,7 +1042,7 @@ DLLEXPORT AObject::AObject(const AObject &obj)
 {
 } 
 
-DLLEXPORT AObject& AObject::operator=(const AObject &obj) 
+SYMTABEXPORT AObject& AObject::operator=(const AObject &obj) 
 {   
    if (this == &obj) {
       return *this;
@@ -1430,3 +1187,4 @@ Symbol *SymbolIter::currval()
 {
    return ((symbolIterator->second)[ currentPositionInVector ]);
 }
+

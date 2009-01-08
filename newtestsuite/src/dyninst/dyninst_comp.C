@@ -51,12 +51,11 @@
 #include "BPatch_process.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM
 #include "test_lib.h"
 #include "ResumeLog.h"
 #include "dyninst_comp.h"
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define snprintf _snprintf
 #endif
 class DyninstComponent : public ComponentTester
@@ -86,8 +85,8 @@ public:
    virtual ~DyninstComponent();
 };
 
-bool isMutateeMABI32(char *name);
-bool isMutateeXLC(char *name);
+bool isMutateeMABI32(const char *name);
+bool isMutateeXLC(const char *name);
 static bool debugPrint;
 
 DyninstComponent::DyninstComponent() :
@@ -185,7 +184,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
       if (!appThread) {
          err_msg = std::string("Unable to run test program: ") + 
             std::string(group->mutatee) + std::string("\n");
-         return FAILED;
+         return SKIPPED;
       }
 
       if (group->state == RUNNING)
@@ -262,7 +261,7 @@ test_results_t DyninstComponent::test_teardown(TestInfo *test, ParameterDict &pa
    return PASSED;
 }
 
-bool isNameExt(char *name, char *ext, int ext_len)
+bool isNameExt(const char *name, const char *ext, int ext_len)
 {
    int name_len = strlen(name);
 
@@ -283,12 +282,12 @@ bool isNameExt(char *name, char *ext, int ext_len)
    }
 }
 
-bool isMutateeMABI32(char *name)
+bool isMutateeMABI32(const char *name)
 {
    return (name != NULL) && isNameExt(name, "_m32", 4);
 }
 
-bool isMutateeXLC(char *name)
+bool isMutateeXLC(const char *name)
 {
    if (!name)
       return false;
@@ -301,10 +300,10 @@ std::string DyninstComponent::getLastErrorMsg()
 }
 
 extern "C" {
-   ComponentTester *componentTesterFactory();
+   COMPLIB_DLL_EXPORT ComponentTester *componentTesterFactory();
 }
 
-ComponentTester *componentTesterFactory() {
+COMPLIB_DLL_EXPORT ComponentTester *componentTesterFactory() {
    return new DyninstComponent();
 }
 
@@ -327,6 +326,11 @@ DyninstMutator::~DyninstMutator() {
 // instrumentation and let the mutatee do its thing.
 test_results_t DyninstMutator::setup(ParameterDict &param) {
   bool useAttach = param["useAttach"]->getInt();
+  if(param["appThread"] == NULL)
+  {
+	  logerror("No app thread found.  Check test groups.\n");
+	  return FAILED;
+  }
   appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
   // Read the program's image and get an associated image object
@@ -360,7 +364,7 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
         logerror("thread is not stopped\n");
         return -1;
     }
-#if defined(os_windows) //ccw 10 apr 2001
+#if defined(os_windows_test) //ccw 10 apr 2001
     else if (appThread->stopSignal() != EXCEPTION_BREAKPOINT && appThread->stopSignal() != -1) {
 	logerror("**Failed test #%d (%s)\n", testnum, testname);
 	logerror("    process stopped on signal %d, not SIGTRAP\n", 
@@ -368,20 +372,9 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
         return -1;
     }
 #else
-#ifdef DETACH_ON_THE_FLY
-    /* FIXME: Why add SIGILL here? */
     else if ((appThread->stopSignal() != SIGSTOP) &&
-	     (appThread->stopSignal() != SIGHUP) &&
-	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
-	     (appThread->stopSignal() != SIGILL)) {
-#else
-    else if ((appThread->stopSignal() != SIGSTOP) &&
-	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
-#if defined(bug_irix_broken_sigstop)
-	     (appThread->stopSignal() != SIGEMT) &&
-#endif
+	     (appThread->stopSignal() != SIGBUS) &&
 	     (appThread->stopSignal() != SIGHUP)) {
-#endif /* DETACH_ON_THE_FLY */
 	logerror("**Failed test #%d (%s)\n", testnum, testname);
  	logerror("    process stopped on signal %d, not SIGSTOP\n", 
 		 appThread->stopSignal());
@@ -693,26 +686,21 @@ void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
    dest_len = strlen(dest);
 
    // Patch up alternate ABI filenames
-#if defined(rs6000_ibm_aix64)
+#if defined(rs6000_ibm_aix64_test)
    if(psize == 4) {
      strncat(dest, "_32", dest_max_len - dest_len);
      dest_len += 3;
    }
 #endif
 
-#if defined(arch_x86_64)
+#if defined(arch_x86_64_test)
    if (psize == 4) {
       strncat(dest,"_m32", dest_max_len - dest_len);
       dest_len += 4;   
    }
 #endif
 
-#if defined(mips_sgi_irix6_4)
-   strncat(dest,"_n32", dest_max_len - dest_len);
-   dest_len += 4;
-#endif
-
-#if defined(os_windows)
+#if defined(os_windows_test)
    strncat(dest, ".dll", dest_max_len - dest_len);
    dest_len += 4;
 #else
@@ -722,7 +710,7 @@ void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
 }
 
 int pointerSize(BPatch_image *img) {
-#if defined(mips_sgi_irix6_4) || defined(arch_x86_64)
+#if defined(mips_sgi_irix6_4_test) || defined(arch_x86_64_test)
    BPatch_variableExpr *pointerSizeVar = img->findVariable("pointerSize");
 
    if (!pointerSizeVar) {
@@ -1133,7 +1121,7 @@ int instCall(BPatch_thread* bpthr, const char* fname,
 
   for(unsigned int i=0;i<(*res).size();i++){
 
-#if defined(rs6000_ibm_aix4_1) && defined(AIX5)
+#if defined(os_aix_test)
   	const BPatch_memoryAccess* memAccess;
 	memAccess = (*res)[i]->getMemoryAccess() ;
 
@@ -1172,7 +1160,7 @@ int instEffAddr(BPatch_thread* bpthr, const char* fname,
 
   BPatch_callWhen whenToCall = BPatch_callBefore;
   for(unsigned int i=0;i<(*res).size();i++){
-#if defined(rs6000_ibm_aix4_1) && defined(AIX5) 
+#if defined(os_aix_test)
   	const BPatch_memoryAccess* memAccess;
 
 	memAccess = (*res)[i]->getMemoryAccess() ;
@@ -1187,9 +1175,9 @@ int instEffAddr(BPatch_thread* bpthr, const char* fname,
 	  }
   }
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0_test)
   BPatch_effectiveAddressExpr eae2(1);
   BPatch_Vector<BPatch_snippet*> listArgs2;
   listArgs2.push_back(&eae2);
@@ -1236,7 +1224,7 @@ int instByteCnt(BPatch_thread* bpthr, const char* fname,
 
   for(unsigned int i=0;i<(*res).size();i++){
 
-#if defined(rs6000_ibm_aix4_1) && defined(AIX5)
+#if defined(os_aix_test)
   	const BPatch_memoryAccess* memAccess;
 	memAccess = (*res)[i]->getMemoryAccess() ;
 
@@ -1252,9 +1240,9 @@ int instByteCnt(BPatch_thread* bpthr, const char* fname,
 	  }
   }
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0_test)
   BPatch_bytesAccessedExpr bae2(1);
   BPatch_Vector<BPatch_snippet*> listArgs2;
   listArgs2.push_back(&bae2);
@@ -1353,8 +1341,8 @@ bool checkStack(BPatch_thread *appThread,
     }
 
     for (i = 0, j = 0; i < num_correct_names; i++, j++) {
-#if !defined(i386_unknown_nt4_0)
-	if (j < stack.size()-1 && stack[j].getFP() == 0) {
+#if !defined(i386_unknown_nt4_0_test)
+        if (stack.size() && j < stack.size()-1 && stack[j].getFP() == 0) {
 	    logerror("**Failed** test %d (%s)\n", test_num, test_name);
 	    logerror("    A stack frame other than the lowest has a null FP.\n");
 	    failed = true;

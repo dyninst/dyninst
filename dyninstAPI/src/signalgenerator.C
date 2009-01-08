@@ -1151,8 +1151,8 @@ bool SignalGeneratorCommon::decodeRTSignal(EventRecord &ev)
        }
        
        if (vars.size() != 1) {
-           fprintf(stderr, "%s[%d]:  ERROR, found %d copies of var %s\n", 
-                   FILE__, __LINE__, vars.size(), status_str.c_str());
+           fprintf(stderr, "%s[%d]:  ERROR, found %ld copies of var %s\n", 
+                   FILE__, __LINE__, (long) vars.size(), status_str.c_str());
            return false;
        }
 
@@ -1211,8 +1211,8 @@ bool SignalGeneratorCommon::decodeRTSignal(EventRecord &ev)
        }
        
        if (vars.size() != 1) {
-           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                   FILE__, __LINE__, vars.size(), status_str.c_str());
+           fprintf(stderr, "%s[%d]:  ERROR:  %ld vars matching %s, not 1\n", 
+                   FILE__, __LINE__, (long) vars.size(), status_str.c_str());
            return false;
        }
 
@@ -1247,8 +1247,8 @@ bool SignalGeneratorCommon::decodeRTSignal(EventRecord &ev)
        }
        
        if (vars.size() != 1) {
-           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                   FILE__, __LINE__, vars.size(), arg_str.c_str());
+           fprintf(stderr, "%s[%d]:  ERROR:  %ld vars matching %s, not 1\n", 
+                   FILE__, __LINE__, (long) vars.size(), arg_str.c_str());
            return false;
        }
        sync_event_arg1_addr = vars[0]->getAddress();

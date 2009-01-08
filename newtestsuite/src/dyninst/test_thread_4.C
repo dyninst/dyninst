@@ -73,7 +73,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test_thread_4_factory() {
+extern "C" DLLEXPORT TestMutator *test_thread_4_factory() {
   return new test_thread_4_Mutator();
 }
 
@@ -219,7 +219,7 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test_thread_4_Mutator::setup(ParameterDict &param) {
   return SKIPPED; // This test appears to be disabled for all platforms..
 
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   debugPrint = param["debugPrint"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;

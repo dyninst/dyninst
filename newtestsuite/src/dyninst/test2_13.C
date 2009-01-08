@@ -44,7 +44,7 @@
  * #Name: test2_13
  * #Desc: loadLibrary failure test
  * #Dep: 
- * #Arch: !(i386_unknown_nt4_0,alpha_dec_osf4_0)
+ * #Arch: !(i386_unknown_nt4_0_test,alpha_dec_osf4_0_test)
  * #Notes:
  */
 
@@ -66,7 +66,7 @@ class test2_13_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test2_13_factory() {
+extern "C" DLLEXPORT  TestMutator *test2_13_factory() {
   return new test2_13_Mutator();
 }
 

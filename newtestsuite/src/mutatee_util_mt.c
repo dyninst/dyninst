@@ -43,7 +43,7 @@
 #include <assert.h>
 #include "mutatee_util.h"
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

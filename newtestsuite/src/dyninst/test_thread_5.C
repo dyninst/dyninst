@@ -76,7 +76,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test_thread_5_factory() {
+extern "C" DLLEXPORT TestMutator *test_thread_5_factory() {
   return new test_thread_5_Mutator();
 }
 
@@ -264,7 +264,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
     // load libtest12.so -- currently only used by subtest 5, but make it generally
     // available
     char *libname = "./libTest12.so";    
-#if defined(arch_x86_64)
+#if defined(arch_x86_64_test)
     if (appThread->getProcess()->getAddressWidth() == 4)
       libname = "./libTest12_m32.so";
 #endif
@@ -384,7 +384,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
 
 // extern "C" int test12_8_mutatorMAIN(ParameterDict &param)
 test_results_t test_thread_5_Mutator::setup(ParameterDict &param) {
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   debugPrint = param["debugPrint"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;

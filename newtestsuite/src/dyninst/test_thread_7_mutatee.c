@@ -148,7 +148,7 @@ int test_thread_7_mutatee() {
    unsigned i;
    int startedall = 0;
 
-#ifndef os_windows
+#ifndef os_windows_test
    char c = 'T';
 #endif
 

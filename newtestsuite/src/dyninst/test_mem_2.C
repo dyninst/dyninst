@@ -44,7 +44,7 @@
  * #Name: test6_2
  * #Desc: Store Instrumentation
  * #Dep: 
- * #Arch: !(sparc_sun_solaris2_4,,rs6000_ibm_aix4_1,i386_unknown_linux2_0,x86_64_unknown_linux2_4,i386_unknown_nt4_0,ia64_unknown_linux2_4)
+ * #Arch: !(sparc_sun_solaris2_4_test,,rs6000_ibm_aix4_1_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,i386_unknown_nt4_0_test,ia64_unknown_linux2_4_test)
  * #Notes:
  */
 
@@ -61,11 +61,11 @@ class test_mem_2_Mutator : public DyninstMutator {
 public:
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test_mem_2_factory() {
+extern "C" DLLEXPORT TestMutator *test_mem_2_factory() {
   return new test_mem_2_Mutator();
 }
 
-#ifdef sparc_sun_solaris2_4
+#ifdef arch_sparc_test
 static const unsigned int nstores = 13;
 static BPatch_memoryAccess* storeList[nstores];
 
@@ -90,7 +90,7 @@ static void init_test_data()
 }
 #endif
 
-#ifdef rs6000_ibm_aix4_1
+#ifdef arch_power_test
 static const unsigned int nstores = 32;
 static BPatch_memoryAccess* storeList[nstores];
 
@@ -163,8 +163,7 @@ static void get_vars_addrs(BPatch_image* bip) // from mutatee
 }
 
 
-#if defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+#if arch_x86_test
 static const unsigned int nstores = 23;
 static BPatch_memoryAccess* storeList[nstores];
 
@@ -208,7 +207,7 @@ static void init_test_data()
 }
 #endif
 
-#ifdef ia64_unknown_linux2_4
+#ifdef arch_ia64_test
 static const unsigned int nstores = 3;
 static BPatch_memoryAccess* storeList[nstores];
 static void init_test_data() {
@@ -219,7 +218,7 @@ static void init_test_data() {
 #endif
 
 
-#ifdef x86_64_unknown_linux2_4
+#ifdef arch_x86_64_test
 static const unsigned int nstores = 25;
 
 static BPatch_memoryAccess* storeList[nstores];
@@ -276,34 +275,16 @@ static void init_test_data()
 #endif
 
 
-#ifdef mips_sgi_irix6_4
-static void init_test_data()
-{
-}
-#endif
-
-#ifdef alpha_dec_osf4_0
-static void init_test_data()
-{
-}
-#endif
-
-
 // Find and instrument loads with a simple function call snippet
 // static int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 test_results_t test_mem_2_Mutator::executeTest() {
   int testnum = 2;
   const char* testdesc = "store instrumentation";
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(arch_sparc_test) && !defined(arch_power_test) && !defined(arch_x86_test) && !defined(arch_x86_64_test) && !defined(arch_ia64_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86_test) || defined(arch_x86_64_test)
   get_vars_addrs(appImage);
 #endif
   init_test_data();

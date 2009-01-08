@@ -169,6 +169,7 @@ image_func::image_func(const std::string &symbol,
     if (st)
        st->findRegion(sec, ".text");
 
+    Symbol *sym_;
     sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
                       offset, sec, symTabSize);
     std::vector<Module *> mods;
@@ -176,25 +177,27 @@ image_func::image_func(const std::string &symbol,
     if (mods.size())
         sym_->setModule(mods[0]);
 
+    i->getObject()->addSymbol(sym_);
+    func_ = sym_->getFunction();
+    assert(func_);
+
     //i->getObject()->addSymbol(sym_);								
     //sym_->setUpPtr(this);
     //symTabNames_.push_back(symbol);
     image_func *th = this;
     extern AnnotationClass<image_func> ImageFuncUpPtrAnno;
-    if (!sym_->addAnnotation(th, ImageFuncUpPtrAnno))
+    if (!func_->addAnnotation(th, ImageFuncUpPtrAnno))
     {
        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
     }
-#if 0
-    annotate<Symbol, image_func *>(sym_, th, std::string("image_func_ptr"));
-#endif
+
 }
 
-image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
+image_func::image_func(Function *func, pdmodule *m, image *i):
 #if defined(arch_ia64)
   usedFPregs(NULL),
 #endif
-  sym_(symbol),
+  func_(func),
   mod_(m),
   image_(i),
   parsed_(false),
@@ -225,7 +228,7 @@ image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
         fprintf(stderr, "image_func_count: %d (%d)\n",
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
-    endOffset_ = symbol->getAddr() + symbol->getSize();
+    endOffset_ = func->getAddress() + func->getFirstSymbol()->getSize();
  }	
 
 
@@ -238,139 +241,40 @@ image_func::~image_func()
 #if defined(arch_ia64)
 int image_func::getFramePointerCalculator()
 {
-    return sym_->getFramePtrRegnum();
+    return func_->getFramePtrRegnum();
 }
 #endif
 
 // Two-copy version... can't really do better.
 bool image_func::addSymTabName(std::string name, bool isPrimary) 
 {
-    if(sym_->addMangledName(name.c_str(), isPrimary)){
-        // Add to image class...
-//        image_->addFunctionName(this, name, true);
+    if(func_->addMangledName(name.c_str(), isPrimary)){
 	return true;
     }
 
     // Bool: true if the name is new; AKA !found
     return false;
-
-#if 0
-    pdvector<std::string> newSymTabName;
-
-    // isPrimary defaults to false
-    if (isPrimary)
-        newSymTabName.push_back(name);
-
-    bool found = false;
-    for (unsigned i = 0; i < symTabNames_.size(); i++) {
-        if (symTabNames_[i] == name) {
-            found = true;
-        }
-        else {
-            newSymTabName.push_back(symTabNames_[i]);
-        }
-    }
-    if (!isPrimary)
-        newSymTabName.push_back(name);
-
-    symTabNames_ = newSymTabName;
-
-    if (!found) {
-        // Add to image class...
-        image_->addFunctionName(this, name, true);
-    }
-
-    // Bool: true if the name is new; AKA !found
-    return (!found);
-#endif
-
 }
 
 // Two-copy version... can't really do better.
 bool image_func::addPrettyName(std::string name, bool isPrimary) {
-   if (sym_->addPrettyName(name.c_str(), isPrimary)) {
-      // Add to image class...
-      //        image_->addFunctionName(this, name, false);
+   if (func_->addPrettyName(name.c_str(), isPrimary)) {
       return true;
    }
    
    // Bool: true if the name is new; AKA !found
    return false;
- 
-#if 0 
-    pdvector<std::string> newPrettyName;
-
-    // isPrimary defaults to false
-    if (isPrimary)
-        newPrettyName.push_back(name);
-
-    bool found = false;
-    for (unsigned i = 0; i < prettyNames_.size(); i++) {
-       if (prettyNames_[i] == name) {
-          found = true;
-       }
-       else {
-          newPrettyName.push_back(prettyNames_[i]);
-       }
-    }
-    if (!isPrimary)
-       newPrettyName.push_back(name);
-
-    prettyNames_ = newPrettyName;
-    
-    if (!found) {
-       // Add to image class...
-       image_->addFunctionName(this, name, false);
-    }
-    
-    // Bool: true if the name is new; AKA !found
-    return (!found);
-#endif
-
 }
 
 // Two-copy version... can't really do better.
 bool image_func::addTypedName(std::string name, bool isPrimary) {
     // Count this as a pretty name in function lookup...
-    if (sym_->addTypedName(name.c_str(), isPrimary)) {
-        // Add to image class...
-//        image_->addFunctionName(this, name, false);
+    if (func_->addTypedName(name.c_str(), isPrimary)) {
 	return true;
     }
 
     // Bool: true if the name is new; AKA !found
     return false;
-
-#if 0
-    pdvector<std::string> newTypedName;
-
-    // isPrimary defaults to false
-    if (isPrimary)
-        newTypedName.push_back(name);
-
-    bool found = false;
-    for (unsigned i = 0; i < typedNames_.size(); i++) {
-        if (typedNames_[i] == name) {
-            found = true;
-        }
-        else {
-            newTypedName.push_back(typedNames_[i]);
-        }
-    }
-    if (!isPrimary)
-        newTypedName.push_back(name);
-
-    typedNames_ = newTypedName;
-
-    // Count this as a pretty name in function lookup...
-    if (!found) {
-        // Add to image class...
-        image_->addFunctionName(this, name, false);
-    }
-
-    // Bool: true if the name is new; AKA !found
-    return (!found);
-#endif    
 
 }
 
@@ -1189,7 +1093,7 @@ void image_func::checkCallPoints() {
             continue;
         }
         
-        image_func *pdf = image_->findFuncByOffset(destOffset);
+        image_func *pdf = image_->findFuncByEntry(destOffset);
         
         if (pdf) {
             p->setCallee(pdf);

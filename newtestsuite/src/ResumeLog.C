@@ -45,6 +45,10 @@
 #include "ResumeLog.h"
 #include <assert.h>
 
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
 static bool enableLog = false;
 static char *resumelog_name = "resumelog";
 
@@ -139,8 +143,15 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
          break;
 
       assert(groupnum >= 0 && groupnum < groups.size());
-      assert(testnum >= 0 && testnum < groups[groupnum]->tests.size());
-
+	  assert(groups[groupnum]);
+	  logerror("Test number %d, group size %d\n", testnum, groups[groupnum]->tests.size());
+      assert(testnum >= 0);
+	  fprintf(stderr, "test %d, group %d has %d tests\n", 
+		  testnum, groupnum, groups[groupnum]->tests.size());
+	  // This is *not* a fencepost error.
+	  // The resume log can have a "testnum" value of 0 (group setup)
+	  // or 1...n for n tests.
+	  assert(testnum <= groups[groupnum]->tests.size());
       if (runstate_int == RESULT_REPORTED)
       {
          groups[groupnum]->tests[testnum]->disabled = true;
@@ -173,17 +184,26 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
          case test_init_rs:
          case test_execute_rs:
          case test_teardown_rs:
-            groups[groupnum]->tests[testnum]->results[runstate] = CRASHED;
+            groups[groupnum]->tests[testnum]->results[runstate] = result;
             break;
          case group_setup_rs:
          case group_teardown_rs:
             for (unsigned i=0; i<groups[groupnum]->tests.size(); i++)
             {
-               groups[groupnum]->tests[i]->results[runstate] = CRASHED;
+               groups[groupnum]->tests[i]->results[runstate] = result;
             }
             break;
          case program_setup_rs:
-            //TODO: Mark every group in program set as CRASHED
+         case program_teardown_rs:
+            for (unsigned i=0; i<groups.size(); i++)
+            {
+               if (groups[i]->mod != groups[groupnum]->mod)
+                  continue;
+               for (unsigned j=0; j<groups[i]->tests.size(); j++)
+               {
+                  groups[i]->tests[j]->results[runstate] = result;
+               }
+            }
             break;
       }
       if (res != 1)

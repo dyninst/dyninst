@@ -44,7 +44,7 @@
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
  * #Dep: 
- * #Arch: !,alpha_dec_osf4_0,ia64_unknown_linux2_4,!mips_sgi_irix6_4,os_windows
+ * #Arch: !,alpha_dec_osf4_0_test,ia64_unknown_linux2_4_test,!mips_sgi_irix6_4_test,os_windows
  * #Notes:
  */
 
@@ -63,7 +63,7 @@ class test1_40_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_40_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_40_factory() {
   return new test1_40_Mutator();
 }
 

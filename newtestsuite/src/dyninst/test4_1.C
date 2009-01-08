@@ -44,7 +44,7 @@
  * #Name: test4_1
  * #Desc: Exit Callback
  * #Dep: 
- * #Arch: !(i386_unknown_nt4_0,alpha_dec_osf4_0)
+ * #Arch: !(i386_unknown_nt4_0_test,alpha_dec_osf4_0_test)
  * #Notes:
  */
 
@@ -70,7 +70,7 @@ public:
   virtual test_results_t executeTest();
   test_results_t mutatorTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test4_1_factory() {
+extern "C" DLLEXPORT  TestMutator *test4_1_factory() {
   return new test4_1_Mutator();
 }
 

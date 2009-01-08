@@ -44,7 +44,7 @@
  * #Name: test4_4
  * #Desc: Fork and Exec Callback
  * #Dep: 
- * #Arch: !(i386_unknown_nt4_0,alpha_dec_osf4_0)
+ * #Arch: !(i386_unknown_nt4_0_test,alpha_dec_osf4_0_test)
  * #Notes:
  */
 
@@ -69,7 +69,7 @@ public:
   virtual test_results_t executeTest();
   virtual test_results_t mutatorTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test4_4_factory() {
+extern "C" DLLEXPORT  TestMutator *test4_4_factory() {
   return new test4_4_Mutator();
 }
 
@@ -221,8 +221,8 @@ static void execFunc(BPatch_thread *thread)
 }
 
 test_results_t test4_4_Mutator::mutatorTest() {
-#if defined(i386_unknown_nt4_0) \
- || defined(alpha_dec_osf4_0)
+#if defined(i386_unknown_nt4_0_test) \
+ || defined(alpha_dec_osf4_0_test)
     logerror("Skipping test #4 (fork & exec)\n");
     logerror("    not implemented on this platform\n");
     return SKIPPED;
@@ -289,7 +289,7 @@ test_results_t test4_4_Mutator::executeTest() {
   return rv;
 }
 
-// extern "C" TEST_DLL_EXPORT int test4_4_mutatorMAIN(ParameterDict &param)
+// extern "C" DLLEXPORT TEST_DLL_EXPORT int test4_4_mutatorMAIN(ParameterDict &param)
 test_results_t test4_4_Mutator::setup(ParameterDict &param) {
     pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

@@ -186,8 +186,6 @@ template class pdvector<instMapping *>;
 class mapped_module;
 template class pdvector<mapped_module *>;
 
-#include "mapped_object.h"
-template class pdvector<mapped_object::foundHeapDesc>;
 
 #include "InstrucIter.h"
 template class std::vector<Address>;

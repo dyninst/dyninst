@@ -44,7 +44,7 @@
  * #Name: test1_21
  * #Desc: findFunction in module
  * #Dep: 
- * #Arch: sparc_sun_solaris2_4,alpha_dec_osf4_0,i386_unknown_solaris2_5,i386_unknown_linux2_0,ia64_unknown_linux2_4,mips_sgi_irix6_4,rs6000_ibm_aix4_1,x86_64_unknown_linux2_4
+ * #Arch: sparc_sun_solaris2_4_test,alpha_dec_osf4_0_test,i386_unknown_solaris2_5_test,i386_unknown_linux2_0_test,ia64_unknown_linux2_4_test,mips_sgi_irix6_4_test,rs6000_ibm_aix4_1_test,x86_64_unknown_linux2_4_test
  * #Notes: This test uses some special magic for libNameA and libNameB that should probably be altered
  */
 
@@ -61,7 +61,7 @@
 
 // static char libNameA[128], libNameB[128];
 
-#ifdef os_windows
+#ifdef os_windows_test
 #define snprintf _snprintf
 #endif
 
@@ -80,7 +80,7 @@ public:
 };
 test1_21_Mutator::test1_21_Mutator() : libNameAroot("libtestA"),
 				       libNameBroot("libtestB") {}
-extern "C" TEST_DLL_EXPORT TestMutator *test1_21_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_21_factory() {
   return new test1_21_Mutator();
 }
 
@@ -94,11 +94,11 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_21_factory() {
 
 
 test_results_t test1_21_Mutator::mutatorTest21() {
-#if defined(os_aix) \
- || defined(os_osf) \
- || defined(os_solaris) \
- || defined(os_linux) \
- || defined(os_windows)
+#if defined(os_aix_test) \
+ || defined(os_osf_test) \
+ || defined(os_solaris_test) \
+ || defined(os_linux_test) \
+ || defined(os_windows_test)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
 
@@ -167,7 +167,7 @@ test_results_t test1_21_Mutator::mutatorTest21() {
     //  the basic mechanism that deals with regexes is not broken
 
     bpmv.clear();
-#if !defined(os_windows)
+#if !defined(os_windows_test)
     //   regex "^cb" should match all functions that begin with "cb"
     //   We dont use existing "call" functions here since (at least on
     //   linux, we also find call_gmon_start().  Thus the dummy fns.
@@ -204,7 +204,7 @@ test_results_t test1_21_Mutator::mutatorTest21() {
 // {
 test_results_t test1_21_Mutator::executeTest() {
    int pointer_size = 0;
-#if defined(arch_x86_64)
+#if defined(arch_x86_64_test)
    pointer_size = pointerSize(appImage);
 #endif
    strncpy(libNameA, libNameAroot, 128);

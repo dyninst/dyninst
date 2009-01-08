@@ -41,7 +41,7 @@ void test4_4_func2()
 }
 
 int test4_4b_mutatee() {
-#ifndef i386_unknown_nt4_0
+#ifndef i386_unknown_nt4_0_test
     dprintf("in test4b func4_1\n");
 
     test4_4_func2();

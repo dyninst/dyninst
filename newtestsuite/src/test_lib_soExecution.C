@@ -45,6 +45,7 @@
 
 #include <dlfcn.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "test_lib.h"
 #include "ParameterDict.h"
@@ -82,15 +83,13 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
 static void* openSO(const char *soname)
 {
    char *fullSoPath;
-#if defined(os_aix)
+#if defined(os_aix_test)
    fullSoPath = searchPath(getenv("LIBPATH"), soname);
 #else
    fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
 #endif
    
    if (!fullSoPath) {
-      fprintf(stderr, "Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n",
-              soname);
       return NULL; // Error
    }
    void *handle = dlopen(fullSoPath, RTLD_NOW);
@@ -148,8 +147,11 @@ ComponentTester *Module::loadModuleLibrary()
 {
    libhandle = NULL;
    char libname[256];
+#if defined(os_aix_test)
+   snprintf(libname, 256, "libtest%s.a", name.c_str());
+#else   
    snprintf(libname, 256, "libtest%s.so", name.c_str());
-   
+#endif
    //TODO: Open the so that goes with this group.
    libhandle = openSO(libname);
    if (!libhandle)

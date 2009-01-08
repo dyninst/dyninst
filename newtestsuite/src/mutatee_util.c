@@ -53,7 +53,7 @@ extern "C" {
 
 #include "mutatee_util.h"
 
-#ifdef os_windows
+#ifdef os_windows_test
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <io.h>
@@ -77,7 +77,7 @@ extern "C" {
  * Stop the process (in order to wait for the mutator to finish what it's
  * doing and restart us).
  */
-#if defined(alpha_dec_osf4_0) && defined(__GNUC__)
+#if defined(alpha_dec_osf4_0_test) && defined(__GNUC__)
 static long long int  beginFP;
 #endif
 
@@ -318,7 +318,7 @@ void flushErrorLog() {
 /* Support functions for database output driver */
 /************************************************/
 
-static const char *temp_logfilename = "mutatee_dblog";
+static char *temp_logfilename = "mutatee_dblog";
 static char *dblog_filename = NULL;
 
 /* Redirect all output to a file, so test_driver can pick it up when it's
@@ -467,16 +467,15 @@ char *getPIDFilename() {
    return pidFilename;
 }
 void registerPID(int pid) {
-   if (NULL == pidFilename) {
-      logerror("[%d:%u] - Error registering mutatee PID: pid file not set\n", __FILE__, __LINE__);
+   FILE *pidFile;
+   if (NULL == pidFilename) 
+      return;
+   pidFile = fopen(pidFilename, "a");
+   if (NULL == pidFile) {
+      logerror("[%s:%u] - Error registering mutatee PID: error opening pid file\n", __FILE__, __LINE__);
    } else {
-      FILE *pidFile = fopen(pidFilename, "a");
-      if (NULL == pidFile) {
-         logerror("[%s:%u] - Error registering mutatee PID: error opening pid file\n", __FILE__, __LINE__);
-      } else {
-         fprintf(pidFile, "%d\n", pid);
-         fclose(pidFile);
-      }
+      fprintf(pidFile, "%d\n", pid);
+      fclose(pidFile);
    }
 }
 
@@ -606,7 +605,7 @@ void printResultHumanLog(const char *testname, test_results_t result)
 
 void stop_process_()
 {
-#if defined(os_windows)
+#if defined(os_windows_test)
    DebugBreak();
 #else
    kill(getpid(), SIGSTOP);

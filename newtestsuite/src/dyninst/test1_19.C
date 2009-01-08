@@ -63,7 +63,7 @@ class test1_19_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_19_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_19_factory() {
   return new test1_19_Mutator();
 }
 
@@ -88,7 +88,6 @@ test_results_t test1_19_Mutator::executeTest() {
     appThread->continueExecution();
     // RETURNONFAIL(waitUntilStopped(bpatch, appThread, 19, "oneTimeCode"));
     if (waitUntilStopped(bpatch, appThread, 19, "oneTimeCode") < 0) {
-      appThread->getProcess()->terminateExecution();
       return FAILED;
     }
 
@@ -97,7 +96,6 @@ test_results_t test1_19_Mutator::executeTest() {
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
       logerror("    Unable to find function %s\n", fn);
-      appThread->getProcess()->terminateExecution();
       return FAILED;
     }
 
@@ -115,7 +113,6 @@ test_results_t test1_19_Mutator::executeTest() {
     // Wait for the next test
     // RETURNONFAIL(waitUntilStopped(bpatch, appThread, 19, "oneTimeCode"));
     if (waitUntilStopped(bpatch, appThread, 19, "oneTimeCode") < 0) {
-      appThread->getProcess()->terminateExecution();
       return FAILED;
     }
 
@@ -124,7 +121,6 @@ test_results_t test1_19_Mutator::executeTest() {
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
       logerror("    Unable to find function %s\n", fn2);
-      appThread->getProcess()->terminateExecution();
       return FAILED;
     }
 
@@ -137,7 +133,7 @@ test_results_t test1_19_Mutator::executeTest() {
 
     // Register a callback that will set the flag callbackFlag
     BPatchOneTimeCodeCallback oldCallback = 
-	bpatch->registerOneTimeCodeCallback(test19_oneTimeCodeCallback);
+       bpatch->registerOneTimeCodeCallback(test19_oneTimeCodeCallback);
 
     appThread->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
 
@@ -154,10 +150,6 @@ test_results_t test1_19_Mutator::executeTest() {
 
     // Restore old callback (if there was one)
     bpatch->registerOneTimeCodeCallback(oldCallback);
-
-    while (!appThread->isTerminated()) {
-      bpatch->waitForStatusChange();
-    }
 
     return PASSED;
 } // test1_19_Mutator::executeTest()

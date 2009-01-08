@@ -56,57 +56,59 @@ class Module : public LookupInterface,
 
    public:
 
-   DLLEXPORT Module();
-   DLLEXPORT Module(supportedLanguages lang, Offset adr, std::string fullNm,
+   SYMTABEXPORT Module();
+   SYMTABEXPORT Module(supportedLanguages lang, Offset adr, std::string fullNm,
          Symtab *img);
-   DLLEXPORT Module(const Module &mod);
-   DLLEXPORT bool operator==(Module &mod);
+   SYMTABEXPORT Module(const Module &mod);
+   SYMTABEXPORT bool operator==(Module &mod);
 
-   DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "Module");
+   SYMTABEXPORT void serialize(SerializerBase *sb, const char *tag = "Module");
 
-   DLLEXPORT const std::string &fileName() const;
-   DLLEXPORT const std::string &fullName() const;
-   DLLEXPORT bool setName(std::string newName);
+   SYMTABEXPORT const std::string &fileName() const;
+   SYMTABEXPORT const std::string &fullName() const;
+   SYMTABEXPORT bool setName(std::string newName);
 
-   DLLEXPORT supportedLanguages language() const;
-   DLLEXPORT void setLanguage(supportedLanguages lang);
+   SYMTABEXPORT supportedLanguages language() const;
+   SYMTABEXPORT void setLanguage(supportedLanguages lang);
 
-   DLLEXPORT Offset addr() const;
-   DLLEXPORT Symtab *exec() const;
+   SYMTABEXPORT Offset addr() const;
+   SYMTABEXPORT Symtab *exec() const;
 
-   DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
+   SYMTABEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
-   DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
+   SYMTABEXPORT bool getAllFunctions(std::vector<Function *>&ret);
+
+   SYMTABEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
          const std::string name,
          Symbol::SymbolType sType, 
          bool isMangled = false,
          bool isRegex = false, 
          bool checkCase = false);
 
-   DLLEXPORT bool isShared() const;
-   DLLEXPORT ~Module();
+   SYMTABEXPORT bool isShared() const;
+   SYMTABEXPORT ~Module();
 
    /***** Type Information *****/
-   DLLEXPORT virtual bool findType(Type *&type, std::string name);
-   DLLEXPORT virtual bool findVariableType(Type *&type, std::string name);
+   SYMTABEXPORT virtual bool findType(Type *&type, std::string name);
+   SYMTABEXPORT virtual bool findVariableType(Type *&type, std::string name);
 
-   DLLEXPORT std::vector<Type *> *getAllTypes();
-   DLLEXPORT std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
-   DLLEXPORT typeCollection *getModuleTypes();
+   SYMTABEXPORT std::vector<Type *> *getAllTypes();
+   SYMTABEXPORT std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
+   SYMTABEXPORT typeCollection *getModuleTypes();
 
    /***** Local Variable Information *****/
-   DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   SYMTABEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
    /***** Line Number Information *****/
-   DLLEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
+   SYMTABEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
          std::string lineSource, unsigned int LineNo);
-   DLLEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines,
+   SYMTABEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines,
          Offset addressInRange);
-   DLLEXPORT bool setLineInfo(LineInformation *lineInfo);
-   DLLEXPORT LineInformation *getLineInformation();
-   DLLEXPORT bool hasLineInformation();
-   DLLEXPORT bool setDefaultNamespacePrefix(std::string str);
+   SYMTABEXPORT bool setLineInfo(LineInformation *lineInfo);
+   SYMTABEXPORT LineInformation *getLineInformation();
+   SYMTABEXPORT bool hasLineInformation();
+   SYMTABEXPORT bool setDefaultNamespacePrefix(std::string str);
 
    private:
 

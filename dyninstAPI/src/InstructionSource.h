@@ -50,6 +50,7 @@ public:
     InstructionSource() {}
     virtual ~InstructionSource() {}
     virtual bool isValidAddress(const Address&) const { return true; }
+	virtual bool isExecutableAddress(const Address&) const = 0;
     virtual void* getPtrToInstruction(Address) const = 0;
     virtual unsigned int getAddressWidth() const = 0;
 };

@@ -1,3 +1,4 @@
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -19,7 +20,10 @@
 #include "DatabaseOutputDriver.h"
 
 extern "C" {
-TestOutputDriver *outputDriver_factory(void * data) { return new DatabaseOutputDriver(data); }
+	TestOutputDriver *outputDriver_factory(void * data) 
+	{ 
+		return new DatabaseOutputDriver(data); 
+	}
 }
 
 DatabaseOutputDriver::DatabaseOutputDriver(void * data)
@@ -44,7 +48,7 @@ DatabaseOutputDriver::~DatabaseOutputDriver() {
 
 void
 DatabaseOutputDriver::startNewTest(std::map<std::string,
-				            std::string> &attrs)
+				            std::string> &attrs, TestInfo *test, RunGroup *group)
 {
   // This needs to set up a log file to store output from all streams
   if (attributes != NULL) {
@@ -73,7 +77,7 @@ void DatabaseOutputDriver::redirectStream(TestOutputStream stream, const char * 
   // This is a no-op for database output
 }
 
-void DatabaseOutputDriver::logResult(test_results_t res) {
+void DatabaseOutputDriver::logResult(test_results_t res, int stage) {
   // What does this do, exactly?  Store the result code for database check-in
   // I guess..
   // Do I want to submit the results to the database in this method, or use

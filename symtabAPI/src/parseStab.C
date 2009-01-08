@@ -39,6 +39,7 @@
 #include "symutil.h"
 #include "Symtab.h" // For looking up compiler type
 #include "Symbol.h" 
+#include "Function.h"
 #include "Module.h" 
 #include "Collections.h"
 #include "common/h/headers.h"
@@ -53,7 +54,7 @@ using namespace Dyninst::SymtabAPI;
 
 extern std::string symt_current_func_name;
 extern std::string symt_current_mangled_func_name;
-extern Symbol *symt_current_func;
+extern Function *symt_current_func;
 namespace Dyninst{
 namespace SymtabAPI{
     std::string parseStabString(Module *mod, int linenum, char *stabstr, 
@@ -91,31 +92,35 @@ std::string convertCharToString(const char *ptr){
 //    the non-terminal parsing function
 //	
 
-void vectorNameMatchKLUDGE(Module *mod, char *demangled_sym, std::vector<Symbol *> &bpfv, std::vector<int> &matches)
+void vectorNameMatchKLUDGE(Module *mod, char *demangled_sym, std::vector<Function *> &bpfv, std::vector<int> &matches)
 {
   // iterate through all matches and demangle names with extra parameters, compare
   for (unsigned int i = 0; i < bpfv.size(); ++i) {
     std::string l_mangled;
-    l_mangled = bpfv[i]->getName();
-    
-    char * l_demangled_raw = P_cplus_demangle(l_mangled.c_str(), mod->exec()->isNativeCompiler());
-    if( l_demangled_raw == NULL ) {
-    	l_demangled_raw = strdup(l_mangled.c_str());
+    std::vector<Symbol *> syms;
+    bpfv[i]->getAllSymbols(syms);
+    if (syms.size()) {
+        l_mangled = syms[0]->getMangledName();
+        
+        char * l_demangled_raw = P_cplus_demangle(l_mangled.c_str(), mod->exec()->isNativeCompiler());
+        if( l_demangled_raw == NULL ) {
+            l_demangled_raw = strdup(l_mangled.c_str());
+        }
+        
+        if (!strcmp(l_demangled_raw, demangled_sym)) {
+           matches.push_back(i);
+        }
+        free(l_demangled_raw);
     }
-    
-    if (!strcmp(l_demangled_raw, demangled_sym)) {
-       matches.push_back(i);
-    }
-    free(l_demangled_raw);
   } /* end iteration over function vector */
 }
 
-Symbol *mangledNameMatchKLUDGE(const char *pretty, const char *mangled, 
+Function *mangledNameMatchKLUDGE(const char *pretty, const char *mangled, 
 					Module *mod)
 {
 
-  std::vector<Symbol *> bpfv;
-  if (!mod->findSymbolByType(bpfv, pretty, Symbol::ST_FUNCTION)) {
+  std::vector<Function *> bpfv;
+  if (!mod->exec()->findFunctionsByName(bpfv, pretty)) {
      //cerr << __FILE__ << __LINE__ << ":  KLUDGE Cannot find " << pretty << endl;
      return NULL;  // no pretty name hits, expecting multiple
   }
@@ -144,7 +149,7 @@ Symbol *mangledNameMatchKLUDGE(const char *pretty, const char *mangled,
 
   vectorNameMatchKLUDGE(mod, demangled_sym, bpfv, matches);
 
-  Symbol *ret = NULL;
+  Function *ret = NULL;
 
   if (matches.size() == 1) {ret = bpfv[matches[0]]; goto clean_up;}
   if (matches.size() > 1) goto clean_up;
@@ -192,7 +197,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    int ID = 0;
    int symdescID = 0;
    int funcReturnID = 0;
-   Symbol  *fp = NULL;
+   Function  *fp = NULL;
    Type * ptrType = NULL;
    Type * newType = NULL; // For new types to add to the collection
    localVar *locVar = NULL;
@@ -315,7 +320,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    } 
    else if (stabstr[cnt]) 
    {
-      std::vector<Symbol *> bpfv;
+      std::vector<Function *> bpfv;
 
       switch (stabstr[cnt]) {
          case 'f': /*Local Function*/ 
@@ -355,17 +360,17 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
                   if ( !ptrType) ptrType = mod->exec()->type_Untyped;
 
-                  if (!(mod->findSymbolByType( bpfv, name, Symbol::ST_FUNCTION ))) 
+                  if (!(mod->exec()->findFunctionsByName(bpfv, name)))
                   {
-                     if (!(mod->findSymbolByType( bpfv, name, Symbol::ST_FUNCTION, true ))) 
-                     {
-                        //showInfoCallback(string("missing local function ") +
-                        //					     name + "\n");
-                        // It's very possible that we might not find a function
-                        // that's a weak reference, and defined in multiple places
-                        // as we only store an object from the last definition
-                        fp = NULL;
-                     }   
+                      //showInfoCallback(string("missing local function ") +
+                      //					     name + "\n");
+                      // It's very possible that we might not find a function
+                      // that's a weak reference, and defined in multiple places
+                      // as we only store an object from the last definition
+                      //
+                      // 12/08 - not sure this is necessary anymore
+                      // due to the Function abstraction
+                      fp = NULL;
                   } 
                   else 
                   {
@@ -428,8 +433,9 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
                if (!ptrType) ptrType = mod->exec()->type_Untyped;
 
-               std::vector<Symbol *>fpv;
-               if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)) 
+               std::vector<Function *>fpv;
+               if (!mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
+               //if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)) 
                {
                   std::string modName = mod->fileName();
 
@@ -439,7 +445,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                      //bpwarn("%s L%d - Cannot find global function with mangled name '%s' or pretty name '%s' with return type '%s' in module '%s', possibly extern\n",
                      //       __FILE__, __LINE__,
                      //       symt_current_mangled_func_name.c_str(), current_func_name.c_str(),
-                     //       ((ptrType->getName() == NULL) ? "" : ptrType->getName()), 
+                     //       ((ptrType->getMangledName() == NULL) ? "" : ptrType->getMangledName()), 
                      //       modName);
                      //char prefix[5];
                      //strncpy(prefix, current_mangled_func_name, 4);
@@ -567,8 +573,9 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                if (symt_current_mangled_func_name.length()) 
                {
-                  std::vector<Symbol *>fpv;
-                  if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true))
+                  std::vector<Function *>fpv;
+                  if (!mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
+                  //if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true))
                   {
                      //showInfoCallback(string("missing local function ") + 
                      //		            symt_current_func_name + "\n");

@@ -82,8 +82,8 @@ int test1_15_mutatee() {
 
 #if 0
     // Deprecated pending rewrite of function relocation
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3_test) \
+ || defined(sparc_sun_solaris2_4_test)
     /* Test a function that makes a system call (is a special case on Sparc) */
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 2,
@@ -103,8 +103,8 @@ int test1_15_mutatee() {
     check15result("globalVariable15_1", globalVariable15_1, 1,
 		  "after second call to instrumented function", &failed);
 #if 0
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3_test) \
+ || defined(sparc_sun_solaris2_4_test)
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 2,
 		  "after second call to instrumented function", &failed);
@@ -123,8 +123,8 @@ int test1_15_mutatee() {
     check15result("globalVariable15_1", globalVariable15_1, 2,
 		  "after third call to instrumented function", &failed);
 #if 0
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_sunos4_1_3_test) \
+ || defined(sparc_sun_solaris2_4_test)
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 4,
 		  "after third call to instrumented function", &failed);

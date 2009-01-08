@@ -345,7 +345,8 @@ bool emitElf::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs,
       return true;
    }
 
-   std::vector<string> names = symbol->getAllMangledNames();
+   std::vector<string> names;
+   names.push_back(symbol->getMangledName());
 
    for (unsigned i=1;i<names.size();i++)
    {

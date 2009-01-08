@@ -71,157 +71,195 @@ class Symtab : public LookupInterface,
    friend class emitElf;
    friend class emitElf64;
 
+ public:
+   typedef enum {
+       mangledName = 1,
+       prettyName = 2,
+       typedName = 4,
+       anyName = 7 } nameType_t;
+
    /***** Public Member Functions *****/
    public:
-   DLLEXPORT Symtab(MappedFile *);
+   SYMTABEXPORT Symtab(MappedFile *);
 
-   DLLEXPORT Symtab();
+   SYMTABEXPORT Symtab();
 
-   DLLEXPORT Symtab(const Symtab& obj);
+   SYMTABEXPORT Symtab(const Symtab& obj);
 
-   DLLEXPORT static bool openFile(Symtab *&obj, std::string filename);
-   DLLEXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
+   SYMTABEXPORT static bool openFile(Symtab *&obj, std::string filename);
+   SYMTABEXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
 
-   DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "Symtab");
+   SYMTABEXPORT void serialize(SerializerBase *sb, const char *tag = "Symtab");
    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
 
-   DLLEXPORT bool exportXML(std::string filename);
-   DLLEXPORT bool exportBin(std::string filename);
+   SYMTABEXPORT bool exportXML(std::string filename);
+   SYMTABEXPORT bool exportBin(std::string filename);
    static Symtab *importBin(std::string filename);
 
 
-   /***** Lookup Functions *****/
-   DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-         const std::string name,
-         Symbol::SymbolType sType, 
-         bool isMangled = false,
-         bool isRegex = false, 
-         bool checkCase = false);
+   /**************************************
+    *** LOOKUP FUNCTIONS *****************
+    **************************************/
 
-   DLLEXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
+   // Symbol
 
-   DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
+   SYMTABEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
+                                           const std::string name,
+                                           Symbol::SymbolType sType, 
+                                           nameType_t nameType,
+                                           bool isRegex = false, 
+                                           bool checkCase = false);
+   SYMTABEXPORT virtual bool findAllSymbols(std::vector<Symbol *> &ret);
+
+   SYMTABEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
-   DLLEXPORT bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
+   SYMTABEXPORT bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
 
-   DLLEXPORT bool getAllModules(std::vector<Module *>&ret);
+   // Function
 
-   DLLEXPORT bool getCodeRegions(std::vector<Region *>&ret);
-   DLLEXPORT bool getDataRegions(std::vector<Region *>&ret);
-   DLLEXPORT bool getAllRegions(std::vector<Region *>&ret);
-   DLLEXPORT bool getAllNewRegions(std::vector<Region *>&ret);
+   SYMTABEXPORT bool findFuncByEntryOffset(Function *&ret, const Offset offset);
+   SYMTABEXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
+                                      nameType_t nameType = anyName, 
+                                      bool isRegex = false,
+                                      bool checkCase = true);
+   SYMTABEXPORT bool getAllFunctions(std::vector<Function *>&ret);
 
-   DLLEXPORT bool findModule(Module *&ret, const std::string name);
+   // Variable
+   SYMTABEXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
+   SYMTABEXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+                                      nameType_t nameType = anyName, 
+                                      bool isRegex = false, 
+                                      bool checkCase = true);
+   SYMTABEXPORT bool getAllVariables(std::vector<Variable *> &ret);
+
+   // Module
+
+   SYMTABEXPORT bool getAllModules(std::vector<Module *>&ret);
+   SYMTABEXPORT bool findModuleByOffset(Module *&ret, Offset off);
+   SYMTABEXPORT bool findModuleByName(Module *&ret, const std::string name);
+
+
+   // Region
+
+   SYMTABEXPORT bool getCodeRegions(std::vector<Region *>&ret);
+   SYMTABEXPORT bool getDataRegions(std::vector<Region *>&ret);
+   SYMTABEXPORT bool getAllRegions(std::vector<Region *>&ret);
+   SYMTABEXPORT bool getAllNewRegions(std::vector<Region *>&ret);
    //  change me to use a hash
-   Module *findModuleByOffset(Offset off);
+   SYMTABEXPORT bool findRegion(Region *&ret, std::string regname);
+   SYMTABEXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
+   SYMTABEXPORT Region *findEnclosingRegion(const Offset offset);
 
-   DLLEXPORT bool findRegion(Region *&ret, std::string regname);
-   DLLEXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
-   DLLEXPORT Region *findEnclosingRegion(const Offset offset);
-
-   DLLEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
-   DLLEXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
-
-   DLLEXPORT bool findException(ExceptionBlock &excp,Offset addr);
-   DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
-   DLLEXPORT bool findCatchBlock(ExceptionBlock &excp, Offset addr, 
+   // Exceptions
+   SYMTABEXPORT bool findException(ExceptionBlock &excp,Offset addr);
+   SYMTABEXPORT bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
+   SYMTABEXPORT bool findCatchBlock(ExceptionBlock &excp, Offset addr, 
          unsigned size = 0);
 
-   DLLEXPORT bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
+   // Relocation entries
+   SYMTABEXPORT bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
+
+   /**************************************
+    *** SYMBOL ADDING FUNCS **************
+    **************************************/
+
+   SYMTABEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
+   SYMTABEXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
+
 
    /*****Query Functions*****/
-   DLLEXPORT bool isExec() const;
-   DLLEXPORT bool isStripped();
-   DLLEXPORT ObjectType getObjectType() const;
+   SYMTABEXPORT bool isExec() const;
+   SYMTABEXPORT bool isStripped();
+   SYMTABEXPORT ObjectType getObjectType() const;
 
-   DLLEXPORT bool isCode(const Offset where) const;
-   DLLEXPORT bool isData(const Offset where) const;
-   DLLEXPORT bool isValidOffset(const Offset where) const;
+   SYMTABEXPORT bool isCode(const Offset where) const;
+   SYMTABEXPORT bool isData(const Offset where) const;
+   SYMTABEXPORT bool isValidOffset(const Offset where) const;
 
-   DLLEXPORT bool isNativeCompiler() const;
-   DLLEXPORT bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
+   SYMTABEXPORT bool isNativeCompiler() const;
+   SYMTABEXPORT bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 
    /***** Line Number Information *****/
-   DLLEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
+   SYMTABEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
          std::string lineSource, unsigned int LineNo);
-   DLLEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines, 
+   SYMTABEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines, 
          Offset addressInRange);
-   DLLEXPORT bool addLine(std::string lineSource, unsigned int lineNo,
+   SYMTABEXPORT bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,
          Offset highExclAddr);
-   DLLEXPORT bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
+   SYMTABEXPORT bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
          unsigned int lineNo, unsigned int lineOffset = 0);
 
    /***** Type Information *****/
-   DLLEXPORT virtual bool findType(Type *&type, std::string name);
-   DLLEXPORT virtual bool findVariableType(Type *&type, std::string name);
+   SYMTABEXPORT virtual bool findType(Type *&type, std::string name);
+   SYMTABEXPORT virtual bool findVariableType(Type *&type, std::string name);
 
-   DLLEXPORT bool addType(Type *typ);
+   SYMTABEXPORT bool addType(Type *typ);
 
-   DLLEXPORT static std::vector<Type *> *getAllstdTypes();
-   DLLEXPORT static std::vector<Type *> *getAllbuiltInTypes();
+   SYMTABEXPORT static std::vector<Type *> *getAllstdTypes();
+   SYMTABEXPORT static std::vector<Type *> *getAllbuiltInTypes();
 
-   DLLEXPORT void parseTypesNow();
+   SYMTABEXPORT void parseTypesNow();
 
    /***** Local Variable Information *****/
-   DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   SYMTABEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
    /***** Relocation Sections *****/
-   DLLEXPORT bool hasRel() const;
-   DLLEXPORT bool hasRela() const;
+   SYMTABEXPORT bool hasRel() const;
+   SYMTABEXPORT bool hasRela() const;
 
    /***** Write Back binary functions *****/
-   DLLEXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
-   DLLEXPORT bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
+   SYMTABEXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
+   SYMTABEXPORT bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
          std::string name, Region::RegionType rType_, bool loadable = false);
-   DLLEXPORT bool addRegion(Region *newreg);
-   DLLEXPORT bool emit(std::string filename, unsigned flag = 0);
+   SYMTABEXPORT bool addRegion(Region *newreg);
+   SYMTABEXPORT bool emit(std::string filename, unsigned flag = 0);
 
-   DLLEXPORT void addDynLibSubstitution(std::string oldName, std::string newName);
-   DLLEXPORT std::string getDynLibSubstitution(std::string name);
+   SYMTABEXPORT void addDynLibSubstitution(std::string oldName, std::string newName);
+   SYMTABEXPORT std::string getDynLibSubstitution(std::string name);
 
-   DLLEXPORT bool getSegments(std::vector<Segment> &segs) const;
-   DLLEXPORT bool updateCode(void *buffer, unsigned size);
-   DLLEXPORT bool updateData(void *buffer, unsigned size);
-   DLLEXPORT Offset getFreeOffset(unsigned size);
+   SYMTABEXPORT bool getSegments(std::vector<Segment> &segs) const;
+   SYMTABEXPORT bool updateCode(void *buffer, unsigned size);
+   SYMTABEXPORT bool updateData(void *buffer, unsigned size);
+   SYMTABEXPORT Offset getFreeOffset(unsigned size);
 
    /***** Data Member Access *****/
-   DLLEXPORT std::string file() const;
-   DLLEXPORT std::string name() const;
+   SYMTABEXPORT std::string file() const;
+   SYMTABEXPORT std::string name() const;
 
-   DLLEXPORT char *mem_image() const;
+   SYMTABEXPORT char *mem_image() const;
 
-   DLLEXPORT Offset imageOffset() const;
-   DLLEXPORT Offset dataOffset() const;
-   DLLEXPORT Offset dataLength() const;
-   DLLEXPORT Offset imageLength() const;
-   //   DLLEXPORT char*  image_ptr ()  const;
-   //   DLLEXPORT char*  data_ptr ()  const;
+   SYMTABEXPORT Offset imageOffset() const;
+   SYMTABEXPORT Offset dataOffset() const;
+   SYMTABEXPORT Offset dataLength() const;
+   SYMTABEXPORT Offset imageLength() const;
+   //   SYMTABEXPORT char*  image_ptr ()  const;
+   //   SYMTABEXPORT char*  data_ptr ()  const;
 
-   DLLEXPORT const char*  getInterpreterName() const;
+   SYMTABEXPORT const char*  getInterpreterName() const;
 
-   DLLEXPORT unsigned getAddressWidth() const;
-   DLLEXPORT Offset getLoadOffset() const;
-   DLLEXPORT Offset getEntryOffset() const;
-   DLLEXPORT Offset getBaseOffset() const;
-   DLLEXPORT Offset getTOCoffset() const;
+   SYMTABEXPORT unsigned getAddressWidth() const;
+   SYMTABEXPORT Offset getLoadOffset() const;
+   SYMTABEXPORT Offset getEntryOffset() const;
+   SYMTABEXPORT Offset getBaseOffset() const;
+   SYMTABEXPORT Offset getTOCoffset() const;
 
-   DLLEXPORT std::string getDefaultNamespacePrefix() const;
+   SYMTABEXPORT std::string getDefaultNamespacePrefix() const;
 
-   DLLEXPORT unsigned getNumberofRegions() const;
-   DLLEXPORT unsigned getNumberofSymbols() const;
+   SYMTABEXPORT unsigned getNumberofRegions() const;
+   SYMTABEXPORT unsigned getNumberofSymbols() const;
 
-   DLLEXPORT std::vector<std::string> &getDependencies();
+   SYMTABEXPORT std::vector<std::string> &getDependencies();
 
    /***** Error Handling *****/
-   DLLEXPORT static SymtabError getLastSymtabError();
-   DLLEXPORT static std::string printError(SymtabError serr);
+   SYMTABEXPORT static SymtabError getLastSymtabError();
+   SYMTABEXPORT static std::string printError(SymtabError serr);
 
-   DLLEXPORT ~Symtab();
+   SYMTABEXPORT ~Symtab();
 
    bool delSymbol(Symbol *sym); 
 
@@ -234,10 +272,27 @@ class Symtab : public LookupInterface,
 
    /***** Private Member Functions *****/
    private:
-   DLLEXPORT Symtab(std::string filename, bool &err); 
-   DLLEXPORT Symtab(char *mem_image, size_t image_size, bool &err);
+   SYMTABEXPORT Symtab(std::string filename, bool &err); 
+   SYMTABEXPORT Symtab(char *mem_image, size_t image_size, bool &err);
 
-   DLLEXPORT bool extractInfo(Object *linkedFile);
+   SYMTABEXPORT bool extractInfo(Object *linkedFile);
+
+   // Parsing code
+
+   bool extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms);
+   bool fixSymModules(std::vector<Symbol *> &raw_syms);
+   bool demangleSymbols(std::vector<Symbol *> &rawsyms);
+   bool createIndices(std::vector<Symbol *> &raw_syms);
+   bool createAggregates();
+
+   bool fixSymModule(Symbol *&sym);
+   bool demangleSymbol(Symbol *&sym);
+   bool addSymbolToIndices(Symbol *&sym);
+   bool addSymbolToAggregates(Symbol *&sym);
+   bool updateIndices(Symbol *sym, std::string newName, nameType_t nameType);
+
+
+   void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
 
    void setupTypes();
    static void setupStdTypes();
@@ -247,45 +302,19 @@ class Symtab : public LookupInterface,
          std::string &typed,
          bool nativeCompiler, 
          supportedLanguages lang );
-   bool symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_funcs);
+
+   // Change the type of a symbol after the fact
    bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 
-   void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
    Module *getOrCreateModule(const std::string &modName, 
          const Offset modAddr);
    Module *newModule(const std::string &name, const Offset addr, supportedLanguages lang);
-   bool buildFunctionLists(std::vector <Symbol *> &raw_funcs);
-   void enterFunctionInTables(Symbol *func, bool wasSymtab);
+   
+   //bool buildFunctionLists(std::vector <Symbol *> &raw_funcs);
+   //void enterFunctionInTables(Symbol *func, bool wasSymtab);
+
+
    bool addSymtabVariables();
-   bool addSymbolInt(Symbol *newsym, bool from_user, bool isDynamic = false);
-
-   bool findFunction(std::vector <Symbol *> &ret, const std::string &name, 
-         bool isMangled=false, bool isRegex = false,
-         bool checkCase = false);
-   bool findVariable(std::vector <Symbol *> &ret, const std::string &name,
-         bool isMangled=false, bool isRegex = false,
-         bool checkCase = false);
-   bool findMod(std::vector <Symbol *> &ret, const std::string &name, 
-         bool isMangled=false, bool isRegex = false,
-         bool checkCase = false);
-   bool findFuncVectorByPretty(const std::string &name, std::vector<Symbol *> &ret);
-   bool findFuncVectorByMangled(const std::string &name, std::vector<Symbol *> &ret);
-   bool findVarVectorByPretty(const std::string &name, std::vector<Symbol *> &ret);
-   bool findVarVectorByMangled(const std::string &name, std::vector<Symbol *> &ret);
-
-   bool findFuncVectorByMangledRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findFuncVectorByPrettyRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findVarVectorByMangledRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findVarVectorByPrettyRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool findModByRegex(const std::string &rexp, bool checkCase,
-         std::vector<Symbol *>&ret);
-   bool getAllFunctions(std::vector<Symbol *> &ret);
-   bool getAllVariables(std::vector<Symbol *> &ret);
-   bool getAllSymbols(std::vector<Symbol *> &ret);
 
    void checkPPC64DescriptorSymbols(Object *linkedFile);
 
@@ -294,17 +323,14 @@ class Symtab : public LookupInterface,
    void parseTypes();
    bool setDefaultNamespacePrefix(std::string &str);
 
-   void addFunctionName(Symbol *func,
-         const std::string newName,
-         bool isMangled /*=false*/);
-   void addVariableName(Symbol *var,
-         const std::string newName,
-         bool isMangled /*=false*/);
-   void addModuleName(Symbol *mod,
-         const std::string newName);
 
    bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
+
+
+
+
+
    /***** Private Data Members *****/
    private:
    std::string member_name_;
@@ -353,34 +379,76 @@ class Symtab : public LookupInterface,
    //symbols
    unsigned no_of_symbols;
 
-   dyn_hash_map <Offset, std::vector<Symbol *> > funcsByEntryAddr;
+   // Indices
+
+   std::vector<Symbol *> everyDefinedSymbol;
+   // Subset of the above
+   std::vector<Symbol *> userAddedSymbols;
+   // hashtable for looking up undefined symbols in the dynamic symbol
+   // tale. Entries are referred by the relocation table entries
+   // NOT a subset of everyDefinedSymbol
+   std::map <std::string, Symbol *> undefDynSyms;
+
+   // Symbols by offsets in the symbol table
+   dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
+
+   // The raw name from the symbol table
+   dyn_hash_map <std::string, std::vector<Symbol *> > symsByMangledName;
+
+   // The name after we've run it through the demangler
+   dyn_hash_map <std::string, std::vector<Symbol *> > symsByPrettyName;
+
+   // The name after we've derived the parameter types
+   dyn_hash_map <std::string, std::vector<Symbol *> > symsByTypedName;
+
+   // We also need per-Aggregate indices
+   std::vector<Function *> everyFunction;
+   // Since Functions are unique by address we require this structure to
+   // efficiently track them.
+   dyn_hash_map <Offset, Function *> funcsByOffset;
+
+   // Similar for Variables
+   std::vector<Variable *> everyVariable;
+   dyn_hash_map <Offset, Variable *> varsByOffset;
+
+   // For now, skip the index-by-name structures. We can use the Symbol
+   // ones instead. 
+   /*
+   dyn_hash_map <std::string, std::vector<Function *> *> funcsByMangledName;
+   dyn_hash_map <std::string, std::vector<Function *> *> funcsByPrettyName;
+   dyn_hash_map <std::string, std::vector<Function *> *> funcsByTypedName;
+   */
+
+   //dyn_hash_map <Offset, std::vector<Function *> > funcsByEntryAddr;
    // note, a prettyName is not unique, it may map to a function appearing
    // in several modules.  Also only contains instrumentable functions....
-   dyn_hash_map <std::string, std::vector<Symbol *>*> funcsByPretty;
+   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByPretty;
    // Hash table holding functions by mangled name.
    // Should contain same functions as funcsByPretty....
-   dyn_hash_map <std::string, std::vector<Symbol *>*> funcsByMangled;
+   //dyn_hash_map <std::string, std::vector<Function *>*> funcsByMangled;
    // A way to iterate over all the functions efficiently
-   std::vector<Symbol *> everyUniqueFunction;
+   //std::vector<Symbol *> everyUniqueFunction;
+   //std::vector<Function *> allFunctions;
    // And the counterpart "ones that are there right away"
-   std::vector<Symbol *> exportedFunctions;
+   //std::vector<Symbol *> exportedFunctions;
 
+   //dyn_hash_map <Address, Function *> funcsByAddr;
    dyn_hash_map <std::string, Module *> modsByFileName;
    dyn_hash_map <std::string, Module *> modsByFullName;
+   std::vector<Module *> _mods;
 
    // Variables indexed by pretty (non-mangled) name
+   /*
    dyn_hash_map <std::string, std::vector <Symbol *> *> varsByPretty;
    dyn_hash_map <std::string, std::vector <Symbol *> *> varsByMangled;
    dyn_hash_map <Offset, Symbol *> varsByAddr;
    std::vector<Symbol *> everyUniqueVariable;
-   std::vector<Symbol *> modSyms;
-   dyn_hash_map <std::string, std::vector <Symbol *> *> modsByName;
-   std::vector<Symbol *> notypeSyms;
-   std::vector<Module *> _mods;
+   */
 
-   // hashtable for looking up undefined symbols in the dynamic symbol
-   // tale. Entries are referred by the relocation table entries
-   std::map <std::string, Symbol *> undefDynSyms;
+   //dyn_hash_map <std::string, std::vector <Symbol *> *> modsByName;
+   //std::vector<Module *> _mods;
+
+
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
 
@@ -414,6 +482,20 @@ class Symtab : public LookupInterface,
    Type *type_Error;
    Type *type_Untyped;
 
+ public:
+   /********************************************************************/
+   /**** DEPRECATED ****************************************************/
+   /********************************************************************/
+   
+   SYMTABEXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
+   SYMTABEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
+                                           const std::string name,
+                                           Symbol::SymbolType sType, 
+                                           bool isMangled = false,
+                                           bool isRegex = false, 
+                                           bool checkCase = false);
+
+
 };
 
 /**
@@ -423,19 +505,19 @@ class Symtab : public LookupInterface,
 class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
-      DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "exceptionBlock");
-      DLLEXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
-      DLLEXPORT ExceptionBlock(Offset cStart);
-      DLLEXPORT ExceptionBlock(const ExceptionBlock &eb);
-      DLLEXPORT ~ExceptionBlock();
-      DLLEXPORT ExceptionBlock();
+      SYMTABEXPORT void serialize(SerializerBase *sb, const char *tag = "exceptionBlock");
+      SYMTABEXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
+      SYMTABEXPORT ExceptionBlock(Offset cStart);
+      SYMTABEXPORT ExceptionBlock(const ExceptionBlock &eb);
+      SYMTABEXPORT ~ExceptionBlock();
+      SYMTABEXPORT ExceptionBlock();
 
-      DLLEXPORT bool hasTry() const;
-      DLLEXPORT Offset tryStart() const;
-      DLLEXPORT Offset tryEnd() const;
-      DLLEXPORT Offset trySize() const;
-      DLLEXPORT Offset catchStart() const;
-      DLLEXPORT bool contains(Offset a) const;
+      SYMTABEXPORT bool hasTry() const;
+      SYMTABEXPORT Offset tryStart() const;
+      SYMTABEXPORT Offset tryEnd() const;
+      SYMTABEXPORT Offset trySize() const;
+      SYMTABEXPORT Offset catchStart() const;
+      SYMTABEXPORT bool contains(Offset a) const;
 
    private:
       Offset tryStart_;
@@ -452,30 +534,30 @@ class ExceptionBlock : public Serializable, public AnnotatableSparse {
 class relocationEntry : public Serializable, public AnnotatableSparse {
    public:
 
-      DLLEXPORT relocationEntry();
-      DLLEXPORT relocationEntry(Offset ta, Offset ra, Offset add, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-      DLLEXPORT relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-      DLLEXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
+      SYMTABEXPORT relocationEntry();
+      SYMTABEXPORT relocationEntry(Offset ta, Offset ra, Offset add, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+      SYMTABEXPORT relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+      SYMTABEXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
 
-      DLLEXPORT relocationEntry(const relocationEntry& ra);
+      SYMTABEXPORT relocationEntry(const relocationEntry& ra);
 
-      DLLEXPORT const relocationEntry& operator= (const relocationEntry &ra);
-      DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "relocationEntry");
+      SYMTABEXPORT const relocationEntry& operator= (const relocationEntry &ra);
+      SYMTABEXPORT void serialize(SerializerBase *sb, const char *tag = "relocationEntry");
 
-      DLLEXPORT Offset target_addr() const;
-      DLLEXPORT Offset rel_addr() const;
-      DLLEXPORT Offset addend() const;
-      DLLEXPORT Region::RegionType regionType() const;
-      DLLEXPORT void setAddend(const Offset);
-      DLLEXPORT void setRegionType(const Region::RegionType);
-      DLLEXPORT const std::string &name() const;
-      DLLEXPORT Symbol *getDynSym() const;
-      DLLEXPORT bool addDynSym(Symbol *dynref);
-      DLLEXPORT unsigned long getRelType() const;
+      SYMTABEXPORT Offset target_addr() const;
+      SYMTABEXPORT Offset rel_addr() const;
+      SYMTABEXPORT Offset addend() const;
+      SYMTABEXPORT Region::RegionType regionType() const;
+      SYMTABEXPORT void setAddend(const Offset);
+      SYMTABEXPORT void setRegionType(const Region::RegionType);
+      SYMTABEXPORT const std::string &name() const;
+      SYMTABEXPORT Symbol *getDynSym() const;
+      SYMTABEXPORT bool addDynSym(Symbol *dynref);
+      SYMTABEXPORT unsigned long getRelType() const;
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
-      DLLEXPORT std::ostream & operator<<(std::ostream &s) const;
+      SYMTABEXPORT std::ostream & operator<<(std::ostream &s) const;
       friend std::ostream &operator<<(std::ostream &os, relocationEntry &q);
 
       enum {pltrel = 1, dynrel = 2} relocationType;

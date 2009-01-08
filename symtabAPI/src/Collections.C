@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <string>
 
+#include "symutil.h"
+
 #include "Collections.h"
 #include "Symtab.h"
 #include "Module.h"

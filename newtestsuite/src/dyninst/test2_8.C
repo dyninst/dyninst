@@ -66,7 +66,7 @@ class test2_8_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test2_8_factory() {
+extern "C" DLLEXPORT  TestMutator *test2_8_factory() {
   return new test2_8_Mutator();
 }
 
@@ -132,8 +132,6 @@ int test2_8_Mutator::test8b()
 test_results_t test2_8_Mutator::executeTest() {
    // Insert a breakpoint into the mutatee
    if ( test8a() < 0 ) {
-     // I need to terminate the mutatee here
-     appThread->getProcess()->terminateExecution();
      return FAILED;
    }
    // Let the mutatee run until it hits the breakpoint.
@@ -142,32 +140,21 @@ test_results_t test2_8_Mutator::executeTest() {
    if (test8b() < 0) {
      // Something went wrong in test8b.  Probably we got the wrong signal code
      // from the mutatee
-     if (!appThread->getProcess()->isTerminated()) {
-       // Kill the mutatee if it's still running
-       appThread->getProcess()->terminateExecution();
-     }
      return FAILED;
+   } 
+   // TODO set the variable test2_8_passed in the mutatee
+   BPatch_variableExpr *passed_expr =
+      appImage->findVariable("test2_8_passed");
+   if (passed_expr == NULL) {
+      logerror("**Failed** test #8 (BPatch_breakPointExpr)\n");
+      logerror("    Unable to locate test2_8_passed\n");
+      return FAILED;
    } else {
-     // TODO set the variable test2_8_passed in the mutatee
-     BPatch_variableExpr *passed_expr =
-       appImage->findVariable("test2_8_passed");
-     if (passed_expr == NULL) {
-       logerror("**Failed** test #8 (BPatch_breakPointExpr)\n");
-       logerror("    Unable to locate test2_8_passed\n");
-       if (!appThread->getProcess()->isTerminated()) {
-	 appThread->getProcess()->terminateExecution();
-       }
-       return FAILED;
-     } else {
-       int pvalue = 1;
-       passed_expr->writeValue(&pvalue);
-       // Continue the mutatee from the breakpoint so it can exit
-       appThread->continueExecution();
-       while (!appThread->getProcess()->isTerminated()) {
-	 bpatch->waitForStatusChange();
-       }
-       return PASSED;
-     }
+      int pvalue = 1;
+      passed_expr->writeValue(&pvalue);
+      // Continue the mutatee from the breakpoint so it can exit
+      appThread->continueExecution();
+      return PASSED;
    }
 }
 
@@ -180,11 +167,6 @@ test_results_t test2_8_Mutator::setup(ParameterDict &param) {
 
     // Read the program's image and get an associated image object
     appImage = appThread->getImage();
-
-    // Signal the child that we've attached
-    if (useAttach) {
-	signalAttached(appThread, appImage);
-    }
 
     return PASSED;
 }

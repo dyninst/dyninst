@@ -1897,8 +1897,8 @@ bool process::initMT()
    findThreadFuncs(this, "pthread_self", pthread_self_funcs);   
    if (pthread_self_funcs.size() != 1)
    {
-      fprintf(stderr, "[%s:%d] - Found %d pthread_self functions, expected 1\n",
-              __FILE__, __LINE__, pthread_self_funcs.size());
+      fprintf(stderr, "[%s:%d] - Found %ld pthread_self functions, expected 1\n",
+              __FILE__, __LINE__, (long) pthread_self_funcs.size());
       for (unsigned j=0; j<pthread_self_funcs.size(); j++)
       {
          int_function *ps = pthread_self_funcs[j];

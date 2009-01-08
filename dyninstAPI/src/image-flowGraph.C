@@ -284,7 +284,8 @@ bool image::analyzeImage()
                          enterFunctionInTables(pdf, false);
                          
                          // Update size
-                         pdf->symbol()->setSize(pdf->get_size());
+                         // TODO FIXME: should update _all_ symbol sizes....
+                         pdf->getSymtabFunction()->getFirstSymbol()->setSize(pdf->get_size());
                          
                          // If any calls were discovered, adjust our
                          // position in the function vector accordingly
@@ -451,16 +452,14 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
             if(parseFunction(pdf,newTargets,preParseStubs))
             {
 
-	      parsing_printf(" ***** Adding %s (0x%lx) to tables\n",
-                    pdf->symTabName().c_str(),pdf->getOffset());
-		
-		// Update the Symbol's impression of size
-		pdf->symbol()->setSize(pdf->get_size());
-
+                parsing_printf(" ***** Adding %s (0x%lx) to tables\n",
+                               pdf->symTabName().c_str(),pdf->getOffset());
+                
                 enterFunctionInTables(pdf,false);
-
+                
                 // Update the Symbol's impression of size
-                pdf->symbol()->setSize(pdf->get_size());
+                // TODO FIXME: should update _all_ symbol sizes....
+                pdf->getSymtabFunction()->getFirstSymbol()->setSize(pdf->get_size());
                 
                 // mangled name
                 pdf->addSymTabName(pdf->symTabName().c_str());

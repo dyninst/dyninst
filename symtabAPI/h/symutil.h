@@ -37,17 +37,6 @@
 #include "dyntypes.h"
 #include <string>
 
-#if defined(_MSC_VER)	
-#if !defined(DLLEXPORT)
-#define DLLEXPORT __declspec(dllexport)
-#endif
-#include <set>
-
-#else
-#if !defined(DLLEXPORT)
-#define DLLEXPORT
-#endif
-
 #include <regex.h>
 #include <string>
 

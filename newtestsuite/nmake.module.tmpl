@@ -14,7 +14,7 @@ DEST		= $(TO_CORE)\$(PROGRAM_DEST)\newtestsuite
 
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src /D_DEBUG /Zi
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/newtestsuite/src
-CXXFLAGS     = $(CXXFLAGS) -DTESTLIB_DLL_BUILD
+CXXFLAGS     = $(CXXFLAGS)
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
@@ -23,8 +23,9 @@ SYSLIBS		=
 
 LIBTESTSUITE = libtestSuite.dll
 LIBDYNINSTCOMP = libtestdyninst.dll
+LIBSYMTABCOMP = libtestsymtab.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
@@ -41,13 +42,22 @@ SRCS_DYNINSTCOMP = ../src/dyninst/dyninst_comp.C \
                    ../src/dyninst/Callbacks.C \
                    ../src/dyninst/Process_data.C
 
+SRCS_SYMTABCOMP = ../src/symtab/symtab_comp.C
+
 OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
 OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
 
 OBJS_DYNINSTCOMP = $(SRCS_DYNINSTCOMP:.C=.obj)
 OBJS_DYNINSTCOMP = $(OBJS_DYNINSTCOMP:../src/dyninst/=)
 
-TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib
+OBJS_SYMTABCOMP = $(SRCS_SYMTABCOMP:.C=.obj)
+OBJS_SYMTABCOMP = $(OBJS_SYMTABCOMP:../src/symtab/=)
+
+SRCS_TEMPLATES = ../src/test_driver_templates.C
+OBJS_TEMPLATES = $(SRCS_TEMPLATES:.C=.obj)
+OBJS_TEMPLATES = $(OBJS_TEMPLATES:../src/=)
+
+TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib
 
 all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll # libtestA.dll libtestB.dll
 
@@ -61,7 +71,7 @@ install: all
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
-LIBS    = libdyninstAPI.lib
+LIBS    = libdyninstAPI.lib libsymtabAPI.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)
@@ -69,26 +79,39 @@ $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 $(LIBDYNINSTCOMP): $(OBJS_DYNINSTCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_DYNINSTCOMP) $(LIBS) libtestSuite.lib
 
+$(LIBSYMTABCOMP): $(OBJS_SYMTABCOMP) ../src/test_lib.h
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_SYMTABCOMP) $(LIBS) libtestSuite.lib
+
 $(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
-	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+	$(CXX) $(CXXFLAGS_NORM) -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
-	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
+$(OBJS_SYMTABCOMP): $(SRCS_SYMTABCOMP)
+	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
+#CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
+
+$(OBJS_TEMPLATES): $(SRCS_TEMPLATES)
+	$(CXX) $(CXXFLAGS) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 test_info_new.gen.obj: test_info_new.gen.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
-test_driver.exe:  test_driver.obj test_lib.obj test_info_new.gen.obj $(LIBTESTSUITE)
+test_driver.exe:  test_driver.obj test_lib.obj test_info_new.gen.obj $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP)
 	$(LINK) $(LDFLAGS) test_driver.obj test_info_new.gen.obj $(TESTDRIVER_LIBS)
 
 test_driver.obj: ../src/test_driver.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -Dnative_cxx=_VC++.exe -c $**
 
-runTests.exe: runTests.obj runTests-utils-nt.obj
-	$(LINK) $(LDFLAGS) runTests.obj runTests-utils-nt.obj
+runTests.exe: runTests.obj runTests-utils-nt.obj $(OBJS_TEMPLATES)
+	$(LINK) $(LDFLAGS) runTests.obj runTests-utils-nt.obj $(OBJS_TEMPLATES)
 
-runTests.obj:  ../src/runTests.C ../src/runTests-utils-nt.C
-	$(CXX) $(CXXFLAGS_NORM) ../src/runTests.C ../src/runTests-utils-nt.C
+runTests.obj:  ../src/runTests.C
+	$(CXX) $(CXXFLAGS_NORM) -c $**
+runTests-utils-nt.obj: ../src/runTests-utils-nt.C
+	$(CXX) $(CXXFLAGS_NORM) -c $**
 
 DatabaseOutputDriver.obj: ../src/DatabaseOutputDriver.C
 	$(CXX) $(CXXFLAGS_NORM) -c -I../src/ $**

@@ -270,7 +270,7 @@ bool MappedFile::map_file()
 
    map_addr = mmap(0, file_size, PROT_READ, MAP_SHARED, fd, 0);
    if (MAP_FAILED == map_addr) {
-      sprintf(ebuf, "mmap(0, %d, PROT_READ, MAP_SHARED, %d, 0): %s", 
+      sprintf(ebuf, "mmap(0, %lu, PROT_READ, MAP_SHARED, %d, 0): %s", 
             file_size, fd, strerror(errno));
       goto err;
    }

@@ -67,7 +67,7 @@ void exception_test::func_cpp()
 }
 
 int test5_6_mutatee() {
-#if defined(os_linux) && defined(arch_x86) && !defined(arch_x86_64)
+#if defined(os_linux_test) && (defined(arch_x86_test) || defined(arch_x86_64_test))
   test6.func_cpp();
   // FIXME Make sure the error reporting works
   // I need to have this guy call test_passes(testname) if the test passes..

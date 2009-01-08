@@ -51,6 +51,7 @@
 #include "Collections.h"
 #include "Symtab.h"
 #include "Module.h"
+#include "Function.h"
 
 #include "common/h/headers.h"
 
@@ -832,7 +833,7 @@ Object::Object(MappedFile *mf_,
    ParseSymbolInfo(alloc_syms);
 }
 
-DLLEXPORT ObjectType Object::objType() const 
+SYMTABEXPORT ObjectType Object::objType() const 
 {
 	return is_aout() ? obj_Executable : obj_SharedLib;
 }
@@ -909,7 +910,7 @@ void Object::parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li)
 }
 
 typedef struct localsStruct {
-    Symbol *func;
+    Function *func;
     Offset base;
     HANDLE p;
     map<unsigned, unsigned> foundSyms;
@@ -920,7 +921,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
                                void *userContext)
 {
     Type *type;
-    Symbol *func;
+    Function *func;
     storageClass storage;
     localVar *newvar;
     int reg;
@@ -1011,8 +1012,9 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
       paramType = "local";
    }
    else {
+	   
       fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
-              __FILE__, __LINE__, pSymInfo->Name, func->getPrettyName().c_str());
+              __FILE__, __LINE__, pSymInfo->Name, func->getAllPrettyNames()[0].c_str());
       paramType = "unknown";
    }
 
@@ -1029,14 +1031,13 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 }
 
 
-static void enumLocalVars(Symbol *func, 
-//                          const std::vector<instPoint *> &points,
+static void enumLocalVars(Function *func, 
                           localsStruct *locals) 
 {
     IMAGEHLP_STACK_FRAME frame;
     memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
 
-	frame.InstructionOffset = locals->base +func->getAddr();
+	frame.InstructionOffset = locals->base + func->getAddress();
     int result = SymSetContext(locals->p, &frame, NULL);
 	/*if (!result) {            
 		fprintf(stderr, "[%s:%u] - Couldn't SymSetContext\n", __FILE__, __LINE__);
@@ -1048,11 +1049,13 @@ static void enumLocalVars(Symbol *func,
         printSysError(GetLastError());
     }*/
 	
-	if(!func->getSize())
+	if (!func->getSize())
 	{
 		memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
 
-		frame.InstructionOffset = locals->base +func->getAddr()+func->getSize();
+		frame.InstructionOffset = locals->base +
+								  func->getAddress() + 
+								  func->getSize();
 		result = SymSetContext(locals->p, &frame, NULL);
 		result = SymEnumSymbols(locals->p, 0, NULL, enumLocalSymbols, locals);
 	}
@@ -1720,7 +1723,7 @@ typedef struct proc_mod_pair {
     Offset base_addr;
 } proc_mod_pair;
 
-static void findLocalVars(Symbol *func, proc_mod_pair base) {
+static void findLocalVars(Function *func, proc_mod_pair base) {
     Module *mod = func->getModule();
     localsStruct locals;
     HANDLE p = base.handle;
@@ -1829,8 +1832,8 @@ void Object::parseTypeInfo(Symtab *obj) {
     //
     // Parse local variables and local type information
     //
-    std::vector<Symbol *> funcs;
-	obj->getAllSymbolsByType(funcs, Symbol::ST_FUNCTION);
+    std::vector<Function *> funcs;
+	obj->getAllFunctions(funcs);
     for (unsigned i=0; i < funcs.size(); i++) {
         findLocalVars(funcs[i], pair);
     }
