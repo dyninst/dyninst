@@ -209,6 +209,7 @@ void trans_adapt(SerializerBase *ser, double  &it, const char *tag)
    ser->translate_base(it, tag);
 }
 
+#if 0
 DLLEXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
@@ -242,6 +243,7 @@ DLLEXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 
    return true;
 }
+#endif
 
 bool sb_is_input(SerializerBase *sb) 
 {

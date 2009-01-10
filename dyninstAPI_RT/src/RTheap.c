@@ -134,9 +134,9 @@ static Address trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
   Address addr;
   void *result;
-  //We have a possibly large region (beg to end) and a hopefully smaller 
-  // allocation size (len).  We try to map at every page in the region
-  // until we get one that succeeds.
+  /*We have a possibly large region (beg to end) and a hopefully smaller */
+  /* allocation size (len).  We try to map at every page in the region*/
+  /* until we get one that succeeds.*/
   for (addr = beg; addr + len <= end; addr += inc) {
     result = map_region((void *) addr, len, fd);
     if (result)

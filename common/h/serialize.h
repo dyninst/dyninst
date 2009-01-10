@@ -38,11 +38,15 @@
 #include <stdio.h>
 
 #if defined(os_windows)
+#if defined (cap_have_libxml)
 #include <libxml/xmlversion.h>
 #undef LIBXML_ICONV_ENABLED
 #endif
+#endif
 
+#if defined (cap_have_libxml)
 #include <libxml/xmlwriter.h>
+#endif
 
 #include "dynutil/h/util.h"
 //#include "dynutil/h/Annotatable.h"
@@ -258,15 +262,24 @@ class SerDes {
 };
 
 class SerDesXML : public SerDes {
+   friend class SerFile;
+   friend class SerializerXML;
+   friend bool ifxml_start_element(SerializerBase *, const char *);
+   friend bool ifxml_end_element(SerializerBase *, const char *);
+
+
+
+#if defined (cap_have_libxml)
+      xmlTextWriterPtr writer;
+      DLLEXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
+      DLLEXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
+#else
+      void *writer;
+      DLLEXPORT SerDesXML(void * w, iomode_t mode)  : SerDes(mode), writer(w) { }
+#endif
 
    public:
-
-      xmlTextWriterPtr writer;
-
-      DLLEXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
-
       DLLEXPORT SerDesXML() { assert(0);}
-      DLLEXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
       DLLEXPORT virtual ~SerDesXML();
 
       DLLEXPORT virtual void vector_start(unsigned int &size, 
@@ -295,9 +308,11 @@ class SerDesXML : public SerDes {
       DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
       DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
             const char *elem_tag = NULL);
+#if 0
       DLLEXPORT void start_element(const char *tag);
       DLLEXPORT void end_element();
       DLLEXPORT void xml_value(const char *val, const char *tag);
+#endif
 };
 
 //class AnnotatableBase;
@@ -381,7 +396,11 @@ class SerDesBin : public SerDes {
 class DLLEXPORT SerFile {
 
    SerDes *sd;
+#if defined (cap_have_libxml)
    xmlTextWriterPtr writer;
+#else
+   void * writer;
+#endif
    FILE *f;
 
    public:
@@ -421,6 +440,7 @@ class DLLEXPORT SerFile {
             assert(0);
          }
 
+#if defined (cap_have_libxml)
          writer = SerDesXML::init(fname, mode, verbose);
 
          if (!writer) 
@@ -428,6 +448,9 @@ class DLLEXPORT SerFile {
             fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
             assert(0);
          }
+#else
+         writer = NULL;
+#endif
 
          sd = new SerDesXML(writer, mode);
 
