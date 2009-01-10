@@ -71,6 +71,11 @@ endif
 
 include ../../make.library.tmpl
 
+# We wrap the native compiler demangle library. This doesn't appear to have a source file, but actually
+# pulls code from <native compiler location>/lib/libdemangle.a. We use xlC because it knows the magic
+# native compiler path. If xlC isn't installed then libdemangle.a won't be there either, and this silently
+# (and harmlessly) fails.
+
 libdemangle.so.1:
 	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -u kind -u varName -u text -lc 
 

@@ -78,10 +78,12 @@ distclean: clean
 $(DEST)/$(TARGET): $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
 
-install_generic: $(DEST)/$(TARGET)
+install_generic: $(DEST)/$(TARGET) public_includes
 
+# A definition of OVERRIDE_INSTALL will skip this definition, so it shouldn't contain
+# anything other than "install_generic". 
 ifndef OVERRIDE_INSTALL
-install: install_generic public_includes
+install: install_generic
 endif
 
 #
