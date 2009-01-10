@@ -1345,7 +1345,7 @@ class ZeroFour : public Serializable {
       }
       void printcmp(const ZeroFour &cmp) {
          if (zero_four_ints.size() != cmp.zero_four_ints.size()) {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_four_ints.size(), zero_four_ints.size());
          }
          for (unsigned int i = 0; i < cmp.zero_four_ints.size(); ++i) {
@@ -1431,7 +1431,7 @@ class ZeroFive : public Serializable {
       }
       void printcmp(const ZeroFive &cmp) {
          if (zero_five_ints.size() != cmp.zero_five_ints.size()) {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_five_ints.size(), zero_five_ints.size());
          }
          for (unsigned int i = 0; i < cmp.zero_five_ints.size(); ++i) {
@@ -1491,13 +1491,13 @@ bool test5b(const char *cachefile)
  */
 class ZeroSix : public Serializable {
    public:
-      hash_map<char, std::string> dictionary6;
+      dyn_hash_map<char, std::string> dictionary6;
       bool operator==(ZeroSix &cmp) {
          if (dictionary6.size() != cmp.dictionary6.size()) {
             return false;
          }
-         hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
-         hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
          while ((iter1 != dictionary6.end()) && (iter2 != cmp.dictionary6.end())) {
             char key1 = iter1->first;
             char key2 = iter2->first;
@@ -1528,8 +1528,8 @@ class ZeroSix : public Serializable {
             fprintf(stderr, "%s[%d]:  hashes have sizes %d and %d\n", 
                   FILE__, __LINE__, cmp.dictionary6.size(), dictionary6.size());
          }
-         hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
-         hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
          while (iter1 != dictionary6.end() && iter2 != cmp.dictionary6.end()) {
             char key1 = iter1->first;
             char key2 = iter2->first;
