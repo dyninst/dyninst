@@ -183,7 +183,7 @@ bool emitElf::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs,
 
    if (dynSymFlag) 
    {
-       /*printf("dynamic symbol: %s\n", symbol->getName().c_str());*/
+       //printf("dynamic symbol: %s\n", symbol->getName().c_str());
 
 #if !defined(os_solaris)
       char msg[2048];
@@ -200,10 +200,12 @@ bool emitElf::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs,
             if (symbol->getLinkage() == Symbol::SL_GLOBAL)
             {
                versionSymTable.push_back(1);
+               mpos += sprintf(mpos, "  global\n");
             }
             else
             {
                versionSymTable.push_back(0);
+               mpos += sprintf(mpos, "  local\n");
             }
          }
          else 
@@ -263,12 +265,15 @@ bool emitElf::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs,
                   unversionedNeededEntries.push_back(fileName);
                }
 
-               if (symbol->getLinkage() == Symbol::SL_GLOBAL)
+               if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
+                  mpos += sprintf(mpos, "  global (w/ filename)\n");
                   versionSymTable.push_back(1);
                }
                else {
+                  mpos += sprintf(mpos, "  local (w/ filename)\n");
                   versionSymTable.push_back(0);
                }
+            }
          } 
          else 
          {
@@ -319,44 +324,7 @@ bool emitElf::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs,
       printf("%s", msg);
 #endif
 #endif
-      //return true;
    }
-
-   // old code to handle multiple names--not needed anymore?
-#if 0
-   std::vector<string> names;
-   names.push_back(symbol->getMangledName());
-
-   for (unsigned i=1;i<names.size();i++)
-   {
-      sym = new Elf32_Sym();
-      sym->st_name = symbolNamesLength;
-      symbolStrs.push_back(names[i]);
-      symbolNamesLength += names[i].length()+1;
-      sym->st_value = symbol->getAddr();
-      sym->st_size = 0;
-      sym->st_other = 0;
-      sym->st_info = (unsigned char) ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), 
-            elfSymType (symbol->getType()));
-      if (symbol->getSec())
-      {
-#if defined(os_solaris)
-         sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
-#else
-         sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
-#endif
-      }
-    	else if (symbol->isAbsolute())
-        {
-    	    sym->st_shndx = SHN_ABS;
-        }
-        else
-        {
-            sym->st_shndx = 0;
-        }
-       	symbols.push_back(sym);
-   }
-#endif
 
    return true;
 }
