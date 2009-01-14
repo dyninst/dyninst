@@ -30,24 +30,16 @@
  */
 
 #include "serialize.h"
+
 #if !defined(os_windows)
 #include "common/h/pathName.h"
 #include <dlfcn.h>
 #else
 #include "windows.h"
-#include <libxml/xmlversion.h>
-#undef LIBXML_ICONV_ENABLED
 #endif
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-
-#if !defined(os_windows)
-    //libxml2 functions
-extern void *hXML;
-#else
-extern HINSTANCE hXML;
-#endif
 
 namespace Dyninst {
    namespace SymtabAPI {

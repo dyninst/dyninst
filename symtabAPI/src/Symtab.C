@@ -51,23 +51,12 @@
 
 #include "symtabAPI/src/Object.h"
 
-#if defined (os_linux) | defined (os_aix)
-//  gcc is complaining about the constness of the library-provided
-//  typecast (XMLCHAR_CAST) (which is defined in xmlstring.h), so we make our own
-#define XMLCHAR_CAST (const xmlChar *)
-#else
-#define XMLCHAR_CAST BAD_CAST
-#endif
-
 #if !defined(os_windows)
 #include <dlfcn.h>
 #else
 #include <windows.h>
-#include <libxml/xmlversion.h>
-#undef LIBXML_ICONV_ENABLED
 #endif
 
-#include <libxml/xmlwriter.h>
 #include <iomanip>
 #include <stdarg.h>
 
