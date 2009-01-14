@@ -184,7 +184,7 @@ xmlTextWriterPtr SerDesXML::init(std::string fname, iomode_t /*mode*/, bool /*ve
 #if defined (cap_have_libxml)
 //int (*my_xmlTextWriterStartElement)(xmlTextWriterPtr, 
 //      const xmlChar *) = NULL;
-bool start_xml_elem(void *writer, const char *xmlChar)
+bool start_xml_elem(void *writer, const char *tag)
 {
     int rc = my_xmlTextWriterStartElement((xmlTextWriterPtr) writer, XMLCHAR_CAST tag);
     return (rc >= 0);
@@ -202,7 +202,7 @@ bool write_xml_elem(void *writer, const char *tag, const char *fmt, ...)
    va_list ap;
    va_start(ap, fmt);
 
-   int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag, fmt, ap);
+   int rc = my_xmlTextWriterWriteFormatElement((xmlTextWriterPtr) writer, XMLCHAR_CAST tag, fmt, ap);
 
    if (rc < 0) 
    {
@@ -341,7 +341,7 @@ SerDesXML::~SerDesXML()
 
 void SerDesXML::vector_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
-   bool rc = start_xml_elem(writer, XMLCHAR_CAST tag);
+   bool rc = start_xml_elem(writer, tag);
 
    if (!rc)
    {
@@ -374,7 +374,7 @@ void SerDesXML::vector_end()
 
 void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
-   bool rc = start_xml_elem(writer, XMLCHAR_CAST tag);
+   bool rc = start_xml_elem(writer, tag);
 
    if (!rc)
    {
@@ -406,7 +406,7 @@ void SerDesXML::multimap_end()
 
 void SerDesXML::hash_map_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
-   bool rc = start_xml_elem(writer, XMLCHAR_CAST tag);
+   bool rc = start_xml_elem(writer,  tag);
 
    if (!rc)
    {
@@ -438,7 +438,7 @@ void SerDesXML::hash_map_end()
 
 void SerDesXML::annotation_start(const char * /*id*/, const char * tag) 
 {
-   bool rc = start_xml_elem(writer, XMLCHAR_CAST tag);
+   bool rc = start_xml_elem(writer, tag);
 
    if (!rc)
    {
