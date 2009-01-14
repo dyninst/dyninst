@@ -241,6 +241,8 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags){
                 return Region::RT_DATA;
         case SHT_DYNAMIC:
             return Region::RT_DYNAMIC;
+        case SHT_HASH:
+            return Region::RT_HASH;
 #if !defined(os_solaris)            
         case SHT_GNU_versym:
             return Region::RT_SYMVERSIONS;

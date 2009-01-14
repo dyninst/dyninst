@@ -570,6 +570,10 @@ bool emitElf::driver(Symtab *obj, string fName){
             newshdr->sh_type = SHT_PROGBITS;
             renameSection(".rel.dyn", ".old.dyn", false);
         }
+        if(!strcmp(name, ".hash")){
+            newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".hash", ".nill", false);
+        }
     	// Change offsets of sections based on the newly added sections
         if(addNewSegmentFlag)
 			newshdr->sh_offset += pgSize;
@@ -732,6 +736,7 @@ void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
         case DT_RELASZ:
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
+        case DT_HASH:
         case DT_SYMTAB:
         case DT_STRTAB:
         case DT_REL:
@@ -934,11 +939,29 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                     newdata->d_type = ELF_T_DYN;
                     newdata->d_align = 4;
                 }
-                newshdr->sh_link = strtabIndex;   //.dynamic section should have sh_link = index of .strtab for .dynsym
+                newshdr->sh_link = strtabIndex;   //.dynamic section should have sh_link = index of .dynstr
                 newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
                 dynSegOff = newshdr->sh_offset;
                 dynSegAddr = newshdr->sh_addr;
                 dynSegSize = newSecs[i]->getDiskSize();
+            }
+            else if(newSecs[i]->getRegionType() == Region::RT_HASH)
+            {
+                newshdr->sh_entsize = sizeof(Elf32_Word);
+                newshdr->sh_type = SHT_HASH;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_WORD;
+                    newdata64->d_align = 4;
+                } else {
+                    newdata->d_type = ELF_T_WORD;
+                    newdata->d_align = 4;
+                }
+                newshdr->sh_link = dynsymIndex;   //.hash section should have sh_link = index of .dynsym
+                newshdr->sh_flags=  SHF_ALLOC;
+                newshdr->sh_info = 0;
+#if !defined(os_solaris)
+                updateDynamic(DT_HASH, newshdr->sh_addr);
+#endif
             }
 #if !defined(os_solaris)
             else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
@@ -954,7 +977,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                     newdata->d_type = ELF_T_HALF;
                     newdata->d_align = 2;
                 }
-                newshdr->sh_link = dynsymIndex;   //.symtab section should have sh_link = index of .strtab for .dynsym
+                newshdr->sh_link = dynsymIndex;   //.gnu.version section should have sh_link = index of .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
                 updateDynamic(DT_VERSYM, newshdr->sh_addr);
             }
@@ -971,7 +994,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                     newdata->d_type = ELF_T_VNEED;
                     newdata->d_align = 4;
                 }
-                newshdr->sh_link = strtabIndex;   //.symtab section should have sh_link = index of .strtab for .dynsym
+                newshdr->sh_link = strtabIndex;   //.gnu.version section should have sh_link = index of .dynstr
                 newshdr->sh_flags = SHF_ALLOC ;
                 newshdr->sh_info = verneednum;
                 updateDynamic(DT_VERNEED, newshdr->sh_addr);
@@ -1289,12 +1312,13 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     std::vector<Elf32_Sym *> dynsymbols;
 
     unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
-    vector<string> symbolStrs, dynsymbolStrs;
-    symbolStrs.push_back("");
-    dynsymbolStrs.push_back("");
+    std::vector<std::string> symbolStrs, dynsymbolStrs;
+    std::vector<Symbol *> dynsymVector;
 
     // recreate a "dummy symbol"
     Elf32_Sym *sym = new Elf32_Sym();
+    symbolStrs.push_back("");
+    dynsymbolStrs.push_back("");
     sym->st_name = 0;
     sym->st_value = 0;
     sym->st_size = 0;
@@ -1304,13 +1328,18 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
 
     symbols.push_back(sym);
     dynsymbols.push_back(sym);
+    dynsymVector.push_back(
+            new Symbol("", NULL, Symbol::ST_NOTYPE, Symbol::SL_LOCAL, 
+                       Symbol::SV_DEFAULT, 0, 0, 0));
     versionSymTable.push_back(0);
 
     for(i=0; i<allSymbols.size();i++) {
         if(allSymbols[i]->isInSymtab())
             createElfSymbol(allSymbols[i], symbolStrs, symbolNamesLength, symbols);
-        if(allSymbols[i]->isInDynSymtab())
+        if(allSymbols[i]->isInDynSymtab()) {
             createElfSymbol(allSymbols[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
+            dynsymVector.push_back(allSymbols[i]);
+        }
     }
 
     //reconstruct .symtab section
@@ -1360,14 +1389,22 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
 #if !defined(os_solaris)
     Elf32_Half *symVers;
     char *verneedSecData, *verdefSecData;
-    unsigned verneedSecSize = 0, verdefSecSize = 0, dynsecSize = 0;
+    unsigned verneedSecSize = 0, verdefSecSize = 0;
                
     createSymbolVersions(obj, symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
     Region *sec;
     if(obj->findRegion(sec, ".dynstr"))
         olddynStrData = (char *)sec->getPtrToRawData();
 
+    // build new .hash section
+    Elf32_Word *hashsecData;
+    unsigned hashsecSize = 0;
+    createHashSection(hashsecData, hashsecSize, dynsymVector);
+    if(hashsecSize)
+        obj->addRegion(0, hashsecData, hashsecSize*sizeof(Elf32_Word), ".hash", Region::RT_HASH, true);
+
     Elf32_Dyn *dynsecData;
+    unsigned dynsecSize = 0;
     if(obj->findRegion(sec, ".dynamic"))
         createDynamicSection(sec->getPtrToRawData(), sec->getDiskSize(), dynsecData, dynsecSize, dynsymbolNamesLength, dynsymbolStrs);
 #endif
@@ -1430,8 +1467,9 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
             rels[j].r_offset = relocation_table[i].rel_addr();
             if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
                 rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
-            //} else {
-                //printf("relocation symbol not found: %s\n", relocation_table[i].name().c_str());
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    relocation_table[i].name().c_str());
             }
             j++;
         } else {
@@ -1439,6 +1477,9 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
             relas[k].r_addend = relocation_table[i].addend();
             if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
                 relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    relocation_table[i].name().c_str());
             }
             k++;
         }
@@ -1457,8 +1498,9 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 #elif defined(arch_power)
                 rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
-            //} else {
-                //printf("new relocation symbol not found: %s\n", newRels[i].name().c_str());
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    newRels[i].name().c_str());
             }
             j++;
         } else {
@@ -1474,6 +1516,9 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 #elif defined(arch_power)
                 relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    newRels[i].name().c_str());
             }
             k++;
         }
@@ -1631,6 +1676,32 @@ void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&vern
         curpos += verdef->vd_next;
     }
     return;
+}
+
+void emitElf::createHashSection(Elf32_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
+{
+    vector<Symbol *>::iterator iter;
+    dyn_hash_map<unsigned, unsigned> lastHash; // bucket number to symbol index
+    unsigned nbuckets = (unsigned)dynSymbols.size()*2/3;
+    unsigned nchains = (unsigned)dynSymbols.size();
+    hashsecSize = 2 + nbuckets + nchains;
+    hashsecData = (Elf32_Word *)malloc(hashsecSize*sizeof(Elf32_Word));
+    hashsecData[0] = (Elf32_Word)nbuckets;
+    hashsecData[1] = (Elf32_Word)nchains;
+    unsigned i=0, key;
+    for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
+        key = elfHash((*iter)->getName().c_str()) % nbuckets;
+        //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
+        if (lastHash.find(key) != lastHash.end()) {
+            hashsecData[2+nbuckets+lastHash[key]] = i;
+        }
+        else {
+            hashsecData[2+key] = i;
+        }
+        lastHash[key] = i;
+        hashsecData[2+nbuckets+i] = STN_UNDEF;
+        i++;
+    }
 }
 
 void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs) {
