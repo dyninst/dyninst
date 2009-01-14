@@ -75,6 +75,7 @@ class Region : public Serializable, public AnnotatableSparse {
       RT_REL,
       RT_RELA,
       RT_DYNAMIC,
+      RT_HASH,
       RT_OTHER
    };
 

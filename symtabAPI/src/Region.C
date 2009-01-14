@@ -143,6 +143,7 @@ const char *Region::regionType2Str(RegionType rt)
       CASE_RETURN_STR(RT_REL);
       CASE_RETURN_STR(RT_RELA);
       CASE_RETURN_STR(RT_DYNAMIC);
+      CASE_RETURN_STR(RT_HASH);
       CASE_RETURN_STR(RT_OTHER);
    };
    return "bad_RegionTypeype";
