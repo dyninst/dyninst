@@ -66,6 +66,7 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
     for (unsigned i=0; i<allsymbols.size(); i++) {
         sym = allsymbols[i];
         modname = sym->getModuleName();
+        //if (sym->getName() == "__gmon_start__") {
         //if (modname == "libspecial.so" || modname == "libprofile.so") {
         //if (sym->getLinkage() == Symbol::SL_WEAK) {
         //if (sym->isInDynSymtab()) {
