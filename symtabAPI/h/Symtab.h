@@ -110,14 +110,17 @@ class Symtab : public LookupInterface,
                                            nameType_t nameType,
                                            bool isRegex = false, 
                                            bool checkCase = false);
-   DLLEXPORT virtual bool findAllSymbols(std::vector<Symbol *> &ret);
 
+   DLLEXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
    DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
    DLLEXPORT bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
+
+   // Inversely, return all non-undefined symbols in the binary
+   DLLEXPORT bool getAllDefinedSymbols(std::vector<Symbol *> &ret);
 
    // Function
 
@@ -387,7 +390,7 @@ class Symtab : public LookupInterface,
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
    // NOT a subset of everyDefinedSymbol
-   std::map <std::string, Symbol *> undefDynSyms;
+   std::map <std::string, std::vector<Symbol *> > undefDynSyms;
 
    // Symbols by offsets in the symbol table
    dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;

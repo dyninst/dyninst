@@ -140,9 +140,16 @@ bool Symtab::findSymbolByType(std::vector<Symbol *> &ret, const std::string name
     }
 }
 
-bool Symtab::findAllSymbols(std::vector<Symbol *> &ret)
+bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
 {
     ret = everyDefinedSymbol;
+
+    // add undefined symbols
+    std::vector<Symbol *> temp;
+    std::vector<Symbol *>::iterator it;
+    getAllUndefinedSymbols(temp);
+    for (it = temp.begin(); it != temp.end(); it++)
+        ret.push_back(*it);
 
     if(ret.size() > 0)
         return true;
@@ -153,7 +160,7 @@ bool Symtab::findAllSymbols(std::vector<Symbol *> &ret)
 bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType sType)
 {
     if (sType == Symbol::ST_UNKNOWN)
-        return findAllSymbols(ret);
+        return getAllSymbols(ret);
 
     unsigned old_size = ret.size();
     // Filter by the given type
@@ -161,6 +168,14 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
         if (everyDefinedSymbol[i]->getType() == sType)
             ret.push_back(everyDefinedSymbol[i]);
     }
+    // add undefined symbols
+    std::vector<Symbol *> temp;
+    getAllUndefinedSymbols(temp);
+    for (unsigned i = 0; i < temp.size(); i++) {
+        if (temp[i]->getType() == sType)
+            ret.push_back(temp[i]);
+    }
+
     if (ret.size() > old_size) {
         return true;
     }
@@ -170,12 +185,23 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
     }
 }
 
+bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
+{
+    ret = everyDefinedSymbol;
+
+    if(ret.size() > 0)
+        return true;
+    serr = No_Such_Symbol;
+    return false;
+}
  
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
-    map<string, Symbol *>::iterator it = undefDynSyms.begin();
-    for(;it!=undefDynSyms.end();it++)
-        ret.push_back(it->second);
+    map<string, std::vector<Symbol *> >::iterator it;
+    std::vector<Symbol *>::iterator it2;
+    for (it = undefDynSyms.begin(); it != undefDynSyms.end(); it++)
+        for (it2 = it->second.begin(); it2 != it->second.end(); it2++)
+            ret.push_back(*it2);
     if(ret.size()>size)
         return true;
     serr = No_Such_Symbol;

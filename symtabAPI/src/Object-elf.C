@@ -92,49 +92,6 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
                               std::vector<ExceptionBlock> &catch_addrs);
 #endif
     
-#ifdef BINEDIT_DEBUG
-bool ____sym_hdr_printed = false;
-void print_symbols( std::vector< Symbol *>& allsymbols ) {
-    FILE* fd = stdout;
-    Symbol *sym;
-    std::string modname;
-    if (!____sym_hdr_printed) {
-        fprintf(fd, "%-20s  %-15s  %-10s  %5s  SEC  TYP  LN\n", 
-                "SYMBOL", "MODULE", "ADDR", "SIZE");
-        ____sym_hdr_printed = true;
-    }
-    for (unsigned i=0; i<allsymbols.size(); i++) {
-        sym = allsymbols[i];
-        modname = sym->getModuleName();
-        //if (modname == "libspecial.so" || modname == "libprofile.so") {
-        //if (sym->getLinkage() == Symbol::SL_WEAK) {
-        if (1) {
-            fprintf(fd, "%-20s  %-15s  0x%08lx  %5lu  %3u", 
-                sym->getName().substr(0,20).c_str(), 
-                modname.size() > 15 ? modname.substr(modname.size()-15,15).c_str() : modname.c_str(),
-                (unsigned)sym->getAddr(),
-                (unsigned)sym->getSize(),
-                sym->getSec() ? sym->getSec()->getRegionNumber() : 0
-                );
-            switch (sym->getType()) {
-                case Symbol::ST_UNKNOWN:  fprintf(fd, "  ???"); break;
-                case Symbol::ST_FUNCTION: fprintf(fd, "  FUN"); break;
-                case Symbol::ST_OBJECT:   fprintf(fd, "  OBJ"); break;
-                case Symbol::ST_MODULE:   fprintf(fd, "  MOD"); break;
-                case Symbol::ST_NOTYPE:   fprintf(fd, "   - "); break;
-            }
-            switch (sym->getLinkage()) {
-                case Symbol::SL_UNKNOWN: fprintf(fd, "  ??"); break;
-                case Symbol::SL_GLOBAL:  fprintf(fd, "  GL"); break;
-                case Symbol::SL_LOCAL:   fprintf(fd, "  LO"); break;
-                case Symbol::SL_WEAK:    fprintf(fd, "  WK"); break;
-            }
-            fprintf(fd,"\n");
-        }
-    }
-}
-#endif
-
 string symt_current_func_name;
 string symt_current_mangled_func_name;
 Symbol *symt_current_func = NULL;
@@ -142,6 +99,9 @@ Symbol *symt_current_func = NULL;
 #if defined(os_solaris)
 #include <dlfcn.h>
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
+
+extern void print_symbols( std::vector< Symbol *>& allsymbols );
+extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
 
 int (*P_native_demangle)(const char *, char *, size_t);
 
@@ -577,7 +537,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	    // If the two linkers set the entry size differently, we may
 	    // need to re-evaluate this code.
 	    //
-	    plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
+		//plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
+        plt_entry_size_ = 16;
 	    assert( plt_entry_size_ == 16 );
 #else
 
@@ -1010,13 +971,15 @@ void Object::load_object(bool alloc_syms)
             parse_symbols(allsymbols, symdata, strdata, false, module);
          }   
 
-         sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
+         // don't reorder symbols anymore
+         //sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
          //VECTOR_SORT(allsymbols,symbol_compare);
 
          no_of_symbols_ = allsymbols.size();
-         fix_zero_function_sizes(allsymbols, 0);
 
-         override_weak_symbols(allsymbols);
+         // Dyninst functionality--not needed anymore?
+         //fix_zero_function_sizes(allsymbols, 0);
+         //override_weak_symbols(allsymbols);
 
          // dump "allsymbols" into "symbols_" (data member)
          insert_symbols_static(allsymbols);
@@ -1168,23 +1131,27 @@ void Object::load_shared_object(bool alloc_syms)
             }
             parse_symbols(allsymbols, symdata, strdata, false, module);
          } 
-         sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
-         //VECTOR_SORT(allsymbols,symbol_compare);
-         no_of_symbols_ = allsymbols.size();
 
-         fix_zero_function_sizes(allsymbols, 0);
-         override_weak_symbols(allsymbols);
+         // don't reorder symbols anymore
+         //sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
+         //VECTOR_SORT(allsymbols,symbol_compare);
+         
+         // Dyninst functionality--not needed anymore?
+         //fix_zero_function_sizes(allsymbols, 0);
+         //override_weak_symbols(allsymbols);
+         
+         no_of_symbols_ = allsymbols.size();
          insert_symbols_shared(allsymbols);
 
          //	// try to resolve the module names of global symbols
          //	// Sun compiler stab.index section 
-         //	fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
+         //fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
 
          //	// STABS format (.stab section)
-         //	fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+         //fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
 
          //	// DWARF format (.debug_info section)
-         //	fix_global_symbol_modules_static_dwarf(elfHdr);
+         //fix_global_symbol_modules_static_dwarf(elfHdr);
 
          if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
          {
@@ -1243,7 +1210,9 @@ static Symbol::SymbolType pdelf_type(int elf_type)
 {
    switch (elf_type) {
       case STT_FILE:   return Symbol::ST_MODULE;
+      case STT_SECTION:return Symbol::ST_SECTION;
       case STT_OBJECT: return Symbol::ST_OBJECT;
+      case STT_TLS:    return Symbol::ST_OBJECT;  // TODO: new type for thread-local storage?
       case STT_FUNC:   return Symbol::ST_FUNCTION;
       case STT_NOTYPE: return Symbol::ST_NOTYPE;
    }
@@ -1258,6 +1227,17 @@ static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
       case STB_GLOBAL: return Symbol::SL_GLOBAL;
    }
    return Symbol::SL_UNKNOWN;
+}
+
+static Symbol::SymbolVisibility pdelf_visibility(int elf_visibility)
+{
+   switch (elf_visibility) {
+      case STV_DEFAULT:    return Symbol::SV_DEFAULT;
+      case STV_INTERNAL:   return Symbol::SV_INTERNAL;
+      case STV_HIDDEN:     return Symbol::SV_HIDDEN;
+      case STV_PROTECTED:  return Symbol::SV_PROTECTED;
+   }
+   return Symbol::SV_UNKNOWN;
 }
 
 //============================================================================
@@ -1320,29 +1300,29 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
    Elf_X_Sym syms = symdata.get_sym();
    const char *strs = strdata.get_string();
    for (unsigned i = 0; i < syms.count(); i++) {
-      // skip undefined symbols
       //If it is not a dynamic executable then we need undefined symbols
       //in symtab section so that we can resolve symbol references. So 
       //we parse & store undefined symbols only if there is no dynamic
       //symbol table
-      //if (is_dynamic_ && (syms.st_shndx(i) == SHN_UNDEF)) continue;
-      //if (syms.st_shndx(i) == SHN_UNDEF) continue;
+      //1/09: not so anymore--we want to preserve all symbols,
+      //regardless of file type
+      
       int etype = syms.ST_TYPE(i);
       int ebinding = syms.ST_BIND(i);
+      int evisibility = syms.ST_VISIBILITY(i);
 
       // resolve symbol elements
       string sname = &strs[ syms.st_name(i) ];
       Symbol::SymbolType stype = pdelf_type(etype);
       Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+      Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
       unsigned ssize = syms.st_size(i);
       Offset saddr = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
 
-      //Get rid of weak symbols which are undefined 
-      //if((slinkage == Symbol::SL_WEAK) && (secNumber == SHN_UNDEF)) continue;
-      
-      if (stype == Symbol::ST_UNKNOWN) continue;
-      if (slinkage == Symbol::SL_UNKNOWN) continue;
+      // discard "dummy" symbol at beginning of file
+      if (i==0 && sname == "" && saddr == (Offset)0)
+          continue;
 
       Region *sec;
       if(secNumber >= 1 && secNumber <= regions_.size())
@@ -1350,10 +1330,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       else
          sec = NULL;
       
-      //if((secNumber == SHN_ABS) && regions_.size())
-         //sec = regions_[0];
-      
-      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
+      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, saddr, sec, ssize);
       if (secNumber == SHN_ABS)
           newsym->setIsAbsolute();
       // register symbol in dictionary
@@ -1466,20 +1443,25 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 #endif
   
    for (unsigned i = 0; i < syms.count(); i++) {
-      // skip undefined symbols
       int etype = syms.ST_TYPE(i);
       int ebinding = syms.ST_BIND(i);
+      int evisibility = syms.ST_VISIBILITY(i);
       
       // resolve symbol elements
       string sname = &strs[ syms.st_name(i) ];
-      if(sname == "")
-          continue;
       Symbol::SymbolType stype = pdelf_type(etype);
       Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+      Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
       unsigned ssize = syms.st_size(i);
       Offset saddr = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
+
+      // discard "dummy" symbol at beginning of file
+      if (i==0 && sname == "" && saddr == (Offset)0)
+          continue;
+
       /* 11/4/08: don't discard symbols with same name and address */
+#if 0
       if(symbols_.find(sname) != symbols_.end()) {
           vector<Symbol *> syms = symbols_[sname];
           for(unsigned j = 0; j < syms.size(); j++){
@@ -1492,14 +1474,11 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
                           syms[j]->setVersions(versionMapping[symVersions.get(i)]);
                   }
 #endif
-                  syms[j]->setDynSymtab();
               }
           }
           continue;
        }
-      
-      if (stype == Symbol::ST_UNKNOWN) continue;
-      if (slinkage == Symbol::SL_UNKNOWN) continue;
+#endif
      
       Region *sec;
       if(secNumber >= 1 && secNumber <= regions_.size())
@@ -1507,32 +1486,26 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       else
          sec = NULL;		
 
-      //if((secNumber == SHN_ABS) && regions_.size())
-         //sec = regions_[0];     
-
-      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, /*NULL,*/ true, false);
+      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, saddr, sec, ssize, /*NULL,*/ true, false);
       if (secNumber == SHN_ABS)
           newsym->setIsAbsolute();
 #if !defined(os_solaris)
       if(versymSec) {
-          if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
+          if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end()) {
+              //printf("version filename for %s: %s\n", sname.c_str(),
+                  //versionFileNameMapping[symVersions.get(i)].c_str());
               newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
-          if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
-              newsym->setVersions(versionMapping[symVersions.get(i)]);
-#ifdef BINEDIT_DEBUG
-          if (smodule == "libspecial.so") {
-              printf(" [%s] %s: ", smodule.c_str(), sname.c_str());
-              std::vector<std::string> svers = versionMapping[symVersions.get(i)];
-              for (unsigned j=0; j<svers.size(); j++)
-                  printf(" %s", svers[j].c_str());
-              printf("\n");
           }
-#endif
+          if(versionMapping.find(symVersions.get(i)) != versionMapping.end()) {
+              //printf("versions for %s: ", sname.c_str());
+              //for (unsigned k=0; k < versionMapping[symVersions.get(i)].size(); k++)
+                  //printf(" %s", versionMapping[symVersions.get(i)][k].c_str());
+              newsym->setVersions(versionMapping[symVersions.get(i)]);
+              //printf("\n");
+          }
       }
 #endif
       // register symbol in dictionary
-         
-      // symbols_[sname] = newsym; // special case
       symbols_[sname].push_back( newsym );
    }
 
@@ -2764,6 +2737,9 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
       log_perror(err_func_,"Invalid filetype in Elf header");
       return;
    }
+#ifdef BINEDIT_DEBUG
+   print_symbol_map(&symbols_);
+#endif
 #if defined(TIMED_PARSE)
    struct timeval endtime;
    gettimeofday(&endtime, NULL);
@@ -2814,6 +2790,9 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offse
             log_perror(err_func_,"Invalid filetype in Elf header");
             return;
          }
+#ifdef BINEDIT_DEBUG
+         print_symbol_map(&symbols_);
+#endif
 #if defined(TIMED_PARSE)
          struct timeval endtime;
          gettimeofday(&endtime, NULL);
@@ -3938,24 +3917,27 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, 
-      std::vector<Symbol *>&functions, 
-      std::vector<Symbol *>&variables, 
-      std::vector<Symbol *>&mods, 
-      std::vector<Symbol *>&notypes, 
+bool Object::emitDriver(Symtab *obj, string fName,
+      std::vector<Symbol *>&allSymbols,
       unsigned flag)
 {
+    printf("emitting...\n");
+#ifdef BINEDIT_DEBUG
+    //print_symbol_map(&symbols_);
+    print_symbols(allSymbols);
+    printf("%d total symbol(s)\n", allSymbols.size());
+#endif
    if (elfHdr.e_ident()[EI_CLASS] == 1) 
    {
       emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
-      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_, fbt_); 
+      em->createSymbolTables(obj, allSymbols, relocation_table_, fbt_); 
       return em->driver(obj, fName);
    }
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
    else if (elfHdr.e_ident()[EI_CLASS] == 2) 
    {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
-      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_, fbt_); 
+      em->createSymbolTables(obj, allSymbols, relocation_table_, fbt_); 
       return em->driver(obj, fName);
    }
 #endif
