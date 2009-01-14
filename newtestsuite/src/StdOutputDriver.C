@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-TESTLIB_DLL_EXPORT StdOutputDriver::StdOutputDriver(void * data) : attributes(NULL), streams() {
+StdOutputDriver::StdOutputDriver(void * data) : attributes(NULL), streams() {
   streams[STDOUT] = std::string("-");
   streams[STDERR] = std::string("-");
   streams[LOGINFO] = std::string("-");

@@ -24,13 +24,14 @@ gen-all: $(ALL_GENERATED_FILES)
 gen-clean:
 	-rm -f $(ALL_GENERATED_FILES)
 
+
 $(SUBDIRS:%=%/tuples): %/tuples: $(PROLOG_FILES)
-	gprolog --entry-goal "['$(TO_SPEC)/spec-grouped.pl']" \
+	cd $(TO_SPEC); gprolog --entry-goal "['spec-grouped.pl']" \
 		--entry-goal "test_init('$*')" \
-		--entry-goal "write_tuples('$@', '$*')" \
+		--entry-goal "write_tuples('../../$@', '$*')" \
 		--entry-goal "halt"
 
-$(SUBDIRS:%=%/make.mutators.gen): %/make.mutators.gen: $(PYTHON_FILES) %/make.mutators.gen
+$(SUBDIRS:%=%/make.mutators.gen): %/make.mutators.gen: $(PYTHON_FILES) %/make.mutators.gen %/tuples
 	python -c "import sys; import os; os.environ['PLATFORM'] = '$*'; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_mutators_gen('$*/make.mutators.gen', '$*/tuples')"
 
 $(SUBDIRS:%=%/make.solo_mutatee.gen): %/make.solo_mutatee.gen: $(PYTHON_FILES) %/tuples

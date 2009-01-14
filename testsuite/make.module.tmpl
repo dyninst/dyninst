@@ -406,12 +406,12 @@ endif
 	$(CXX) $(STD_ABI_FLAG) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
 
 $(TEST_DEST)/%: %
-	-$(CP) $< $(TEST_DEST)
-	-$(CHMOD) 750 $(TEST_DEST)/$<
+	echo -$(CP) $< $(TEST_DEST)
+	echo -$(CHMOD) 750 $(TEST_DEST)/$<
 
 $(LIB_DEST)/%: %
-	-$(CP) $< $(LIB_DEST)
-	-$(CHMOD) 750 $(LIB_DEST)/$<
+	echo -$(CP) $< $(LIB_DEST)
+	echo -$(CHMOD) 750 $(LIB_DEST)/$<
 
 $(TEST_DEST_LN)/%: %
 	-$(LN) $< $(TEST_DEST)

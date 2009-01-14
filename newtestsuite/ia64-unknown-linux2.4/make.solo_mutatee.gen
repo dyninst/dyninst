@@ -11,427 +11,427 @@ dyninst_SOLO_MUTATEES_gnu_cxx = dyninst_cxx_group_test.mutatee_solo_g++_64_high 
 # Now a list of rules for compiling the mutatees with g++
 
 dyninst_cxx_group_test.mutatee_solo_g++_64_high: dyninst_cxx_group_test_group_g++_64_high.o test5_1_mutatee_solo_g++_64_high.o test5_2_mutatee_solo_g++_64_high.o test5_3_mutatee_solo_g++_64_high.o test5_4_mutatee_solo_g++_64_high.o test5_5_mutatee_solo_g++_64_high.o test5_6_mutatee_solo_g++_64_high.o test5_7_mutatee_solo_g++_64_high.o test5_8_mutatee_solo_g++_64_high.o test5_9_mutatee_solo_g++_64_high.o cpp_test_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 dyninst_cxx_group_test.mutatee_solo_g++_64_low: dyninst_cxx_group_test_group_g++_64_low.o test5_1_mutatee_solo_g++_64_low.o test5_2_mutatee_solo_g++_64_low.o test5_3_mutatee_solo_g++_64_low.o test5_4_mutatee_solo_g++_64_low.o test5_5_mutatee_solo_g++_64_low.o test5_6_mutatee_solo_g++_64_low.o test5_7_mutatee_solo_g++_64_low.o test5_8_mutatee_solo_g++_64_low.o test5_9_mutatee_solo_g++_64_low.o cpp_test_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 dyninst_cxx_group_test.mutatee_solo_g++_64_max: dyninst_cxx_group_test_group_g++_64_max.o test5_1_mutatee_solo_g++_64_max.o test5_2_mutatee_solo_g++_64_max.o test5_3_mutatee_solo_g++_64_max.o test5_4_mutatee_solo_g++_64_max.o test5_5_mutatee_solo_g++_64_max.o test5_6_mutatee_solo_g++_64_max.o test5_7_mutatee_solo_g++_64_max.o test5_8_mutatee_solo_g++_64_max.o test5_9_mutatee_solo_g++_64_max.o cpp_test_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 dyninst_cxx_group_test.mutatee_solo_g++_64_none: dyninst_cxx_group_test_group_g++_64_none.o test5_1_mutatee_solo_g++_64_none.o test5_2_mutatee_solo_g++_64_none.o test5_3_mutatee_solo_g++_64_none.o test5_4_mutatee_solo_g++_64_none.o test5_5_mutatee_solo_g++_64_none.o test5_6_mutatee_solo_g++_64_none.o test5_7_mutatee_solo_g++_64_none.o test5_8_mutatee_solo_g++_64_none.o test5_9_mutatee_solo_g++_64_none.o cpp_test_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 dyninst_group_test.mutatee_solo_g++_64_high: dyninst_group_test_group_g++_64_high.o test1_1_mutatee_solo_g++_64_high.o test1_2_mutatee_solo_g++_64_high.o test1_3_mutatee_solo_g++_64_high.o test1_4_mutatee_solo_g++_64_high.o test1_5_mutatee_solo_g++_64_high.o test1_6_mutatee_solo_g++_64_high.o test1_7_mutatee_solo_g++_64_high.o test1_8_mutatee_solo_g++_64_high.o test1_9_mutatee_solo_g++_64_high.o test1_10_mutatee_solo_g++_64_high.o test1_11_mutatee_solo_g++_64_high.o test1_13_mutatee_solo_g++_64_high.o test1_16_mutatee_solo_g++_64_high.o test1_17_mutatee_solo_g++_64_high.o test1_18_mutatee_solo_g++_64_high.o test1_20_mutatee_solo_g++_64_high.o test1_21_mutatee_solo_g++_64_high.o test1_22_mutatee_solo_g++_64_high.o test1_23_mutatee_solo_g++_64_high.o test1_24_mutatee_solo_g++_64_high.o test1_25_mutatee_solo_g++_64_high.o test1_26_mutatee_solo_g++_64_high.o test1_27_mutatee_solo_g++_64_high.o test1_28_mutatee_solo_g++_64_high.o test1_30_mutatee_solo_g++_64_high.o test1_31_mutatee_solo_g++_64_high.o test1_32_mutatee_solo_g++_64_high.o test1_33_mutatee_solo_g++_64_high.o test1_34_mutatee_solo_g++_64_high.o test1_36_mutatee_solo_g++_64_high.o test1_37_mutatee_solo_g++_64_high.o test1_38_mutatee_solo_g++_64_high.o test1_39_mutatee_solo_g++_64_high.o test2_5_mutatee_solo_g++_64_high.o test2_7_mutatee_solo_g++_64_high.o test2_9_mutatee_solo_g++_64_high.o test2_10_mutatee_solo_g++_64_high.o test2_11_mutatee_solo_g++_64_high.o test2_12_mutatee_solo_g++_64_high.o test2_13_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 dyninst_group_test.mutatee_solo_g++_64_low: dyninst_group_test_group_g++_64_low.o test1_1_mutatee_solo_g++_64_low.o test1_2_mutatee_solo_g++_64_low.o test1_3_mutatee_solo_g++_64_low.o test1_4_mutatee_solo_g++_64_low.o test1_5_mutatee_solo_g++_64_low.o test1_6_mutatee_solo_g++_64_low.o test1_7_mutatee_solo_g++_64_low.o test1_8_mutatee_solo_g++_64_low.o test1_9_mutatee_solo_g++_64_low.o test1_10_mutatee_solo_g++_64_low.o test1_11_mutatee_solo_g++_64_low.o test1_13_mutatee_solo_g++_64_low.o test1_16_mutatee_solo_g++_64_low.o test1_17_mutatee_solo_g++_64_low.o test1_18_mutatee_solo_g++_64_low.o test1_20_mutatee_solo_g++_64_low.o test1_21_mutatee_solo_g++_64_low.o test1_22_mutatee_solo_g++_64_low.o test1_23_mutatee_solo_g++_64_low.o test1_24_mutatee_solo_g++_64_low.o test1_25_mutatee_solo_g++_64_low.o test1_26_mutatee_solo_g++_64_low.o test1_27_mutatee_solo_g++_64_low.o test1_28_mutatee_solo_g++_64_low.o test1_30_mutatee_solo_g++_64_low.o test1_31_mutatee_solo_g++_64_low.o test1_32_mutatee_solo_g++_64_low.o test1_33_mutatee_solo_g++_64_low.o test1_34_mutatee_solo_g++_64_low.o test1_36_mutatee_solo_g++_64_low.o test1_37_mutatee_solo_g++_64_low.o test1_38_mutatee_solo_g++_64_low.o test1_39_mutatee_solo_g++_64_low.o test2_5_mutatee_solo_g++_64_low.o test2_7_mutatee_solo_g++_64_low.o test2_9_mutatee_solo_g++_64_low.o test2_10_mutatee_solo_g++_64_low.o test2_11_mutatee_solo_g++_64_low.o test2_12_mutatee_solo_g++_64_low.o test2_13_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 dyninst_group_test.mutatee_solo_g++_64_max: dyninst_group_test_group_g++_64_max.o test1_1_mutatee_solo_g++_64_max.o test1_2_mutatee_solo_g++_64_max.o test1_3_mutatee_solo_g++_64_max.o test1_4_mutatee_solo_g++_64_max.o test1_5_mutatee_solo_g++_64_max.o test1_6_mutatee_solo_g++_64_max.o test1_7_mutatee_solo_g++_64_max.o test1_8_mutatee_solo_g++_64_max.o test1_9_mutatee_solo_g++_64_max.o test1_10_mutatee_solo_g++_64_max.o test1_11_mutatee_solo_g++_64_max.o test1_13_mutatee_solo_g++_64_max.o test1_16_mutatee_solo_g++_64_max.o test1_17_mutatee_solo_g++_64_max.o test1_18_mutatee_solo_g++_64_max.o test1_20_mutatee_solo_g++_64_max.o test1_21_mutatee_solo_g++_64_max.o test1_22_mutatee_solo_g++_64_max.o test1_23_mutatee_solo_g++_64_max.o test1_24_mutatee_solo_g++_64_max.o test1_25_mutatee_solo_g++_64_max.o test1_26_mutatee_solo_g++_64_max.o test1_27_mutatee_solo_g++_64_max.o test1_28_mutatee_solo_g++_64_max.o test1_30_mutatee_solo_g++_64_max.o test1_31_mutatee_solo_g++_64_max.o test1_32_mutatee_solo_g++_64_max.o test1_33_mutatee_solo_g++_64_max.o test1_34_mutatee_solo_g++_64_max.o test1_36_mutatee_solo_g++_64_max.o test1_37_mutatee_solo_g++_64_max.o test1_38_mutatee_solo_g++_64_max.o test1_39_mutatee_solo_g++_64_max.o test2_5_mutatee_solo_g++_64_max.o test2_7_mutatee_solo_g++_64_max.o test2_9_mutatee_solo_g++_64_max.o test2_10_mutatee_solo_g++_64_max.o test2_11_mutatee_solo_g++_64_max.o test2_12_mutatee_solo_g++_64_max.o test2_13_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 dyninst_group_test.mutatee_solo_g++_64_none: dyninst_group_test_group_g++_64_none.o test1_1_mutatee_solo_g++_64_none.o test1_2_mutatee_solo_g++_64_none.o test1_3_mutatee_solo_g++_64_none.o test1_4_mutatee_solo_g++_64_none.o test1_5_mutatee_solo_g++_64_none.o test1_6_mutatee_solo_g++_64_none.o test1_7_mutatee_solo_g++_64_none.o test1_8_mutatee_solo_g++_64_none.o test1_9_mutatee_solo_g++_64_none.o test1_10_mutatee_solo_g++_64_none.o test1_11_mutatee_solo_g++_64_none.o test1_13_mutatee_solo_g++_64_none.o test1_16_mutatee_solo_g++_64_none.o test1_17_mutatee_solo_g++_64_none.o test1_18_mutatee_solo_g++_64_none.o test1_20_mutatee_solo_g++_64_none.o test1_21_mutatee_solo_g++_64_none.o test1_22_mutatee_solo_g++_64_none.o test1_23_mutatee_solo_g++_64_none.o test1_24_mutatee_solo_g++_64_none.o test1_25_mutatee_solo_g++_64_none.o test1_26_mutatee_solo_g++_64_none.o test1_27_mutatee_solo_g++_64_none.o test1_28_mutatee_solo_g++_64_none.o test1_30_mutatee_solo_g++_64_none.o test1_31_mutatee_solo_g++_64_none.o test1_32_mutatee_solo_g++_64_none.o test1_33_mutatee_solo_g++_64_none.o test1_34_mutatee_solo_g++_64_none.o test1_36_mutatee_solo_g++_64_none.o test1_37_mutatee_solo_g++_64_none.o test1_38_mutatee_solo_g++_64_none.o test1_39_mutatee_solo_g++_64_none.o test2_5_mutatee_solo_g++_64_none.o test2_7_mutatee_solo_g++_64_none.o test2_9_mutatee_solo_g++_64_none.o test2_10_mutatee_solo_g++_64_none.o test2_11_mutatee_solo_g++_64_none.o test2_12_mutatee_solo_g++_64_none.o test2_13_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_g++_64_high: test1_12_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_g++_64_low: test1_12_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_g++_64_max: test1_12_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_g++_64_none: test1_12_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_g++_64_high: test1_14_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_g++_64_low: test1_14_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_g++_64_max: test1_14_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_g++_64_none: test1_14_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_g++_64_high: test1_15_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_g++_64_low: test1_15_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_g++_64_max: test1_15_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_g++_64_none: test1_15_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_g++_64_high: test1_19_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_g++_64_low: test1_19_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_g++_64_max: test1_19_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_g++_64_none: test1_19_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_g++_64_high: test1_29_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_g++_64_low: test1_29_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_g++_64_max: test1_29_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_g++_64_none: test1_29_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_g++_64_high: test1_41_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_g++_64_low: test1_41_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_g++_64_max: test1_41_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_g++_64_none: test1_41_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_g++_64_high: test2_14_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_g++_64_low: test2_14_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_g++_64_max: test2_14_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_g++_64_none: test2_14_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_6.mutatee_solo_g++_64_high: test2_6_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_6.mutatee_solo_g++_64_low: test2_6_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_6.mutatee_solo_g++_64_max: test2_6_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_6.mutatee_solo_g++_64_none: test2_6_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_8.mutatee_solo_g++_64_high: test2_8_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_8.mutatee_solo_g++_64_low: test2_8_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_8.mutatee_solo_g++_64_max: test2_8_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_8.mutatee_solo_g++_64_none: test2_8_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_g++_64_high: test3_1_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_g++_64_low: test3_1_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_g++_64_max: test3_1_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_g++_64_none: test3_1_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_g++_64_high: test3_2_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_g++_64_low: test3_2_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_g++_64_max: test3_2_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_g++_64_none: test3_2_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_g++_64_high: test3_3_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_g++_64_low: test3_3_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_g++_64_max: test3_3_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_g++_64_none: test3_3_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_g++_64_high: test3_4_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_g++_64_low: test3_4_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_g++_64_max: test3_4_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_g++_64_none: test3_4_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_g++_64_high: test3_5_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_g++_64_low: test3_5_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_g++_64_max: test3_5_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_g++_64_none: test3_5_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_g++_64_high: test3_6_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_g++_64_low: test3_6_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_g++_64_max: test3_6_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_g++_64_none: test3_6_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_g++_64_high: test3_7_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_g++_64_low: test3_7_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_g++_64_max: test3_7_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_g++_64_none: test3_7_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_g++_64_high: test4_1_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_g++_64_low: test4_1_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_g++_64_max: test4_1_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_g++_64_none: test4_1_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_g++_64_high: test4_2_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_g++_64_low: test4_2_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_g++_64_max: test4_2_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_g++_64_none: test4_2_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_g++_64_high: test4_3_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_g++_64_low: test4_3_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_g++_64_max: test4_3_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_g++_64_none: test4_3_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_g++_64_high: test4_3b_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_g++_64_low: test4_3b_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_g++_64_max: test4_3b_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_g++_64_none: test4_3b_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_g++_64_high: test4_4_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_g++_64_low: test4_4_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_g++_64_max: test4_4_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_g++_64_none: test4_4_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_g++_64_high: test4_4b_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_g++_64_low: test4_4b_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_g++_64_max: test4_4b_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_g++_64_none: test4_4b_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_g++_64_high: test_callback_1_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_g++_64_low: test_callback_1_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_g++_64_max: test_callback_1_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_g++_64_none: test_callback_1_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_g++_64_high: test_callback_2_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_g++_64_low: test_callback_2_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_g++_64_max: test_callback_2_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_g++_64_none: test_callback_2_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_g++_64_high: test_fork_10_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_g++_64_low: test_fork_10_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_g++_64_max: test_fork_10_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_g++_64_none: test_fork_10_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_g++_64_high: test_fork_11_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_g++_64_low: test_fork_11_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_g++_64_max: test_fork_11_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_g++_64_none: test_fork_11_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_g++_64_high: test_fork_12_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_g++_64_low: test_fork_12_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_g++_64_max: test_fork_12_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_g++_64_none: test_fork_12_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_g++_64_high: test_fork_13_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_g++_64_low: test_fork_13_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_g++_64_max: test_fork_13_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_g++_64_none: test_fork_13_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_g++_64_high: test_fork_5_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_g++_64_low: test_fork_5_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_g++_64_max: test_fork_5_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_g++_64_none: test_fork_5_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_g++_64_high: test_fork_6_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_g++_64_low: test_fork_6_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_g++_64_max: test_fork_6_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_g++_64_none: test_fork_6_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_g++_64_high: test_fork_7_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_g++_64_low: test_fork_7_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_g++_64_max: test_fork_7_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_g++_64_none: test_fork_7_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_g++_64_high: test_fork_8_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_g++_64_low: test_fork_8_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_g++_64_max: test_fork_8_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_g++_64_none: test_fork_8_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_g++_64_high: test_fork_9_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_g++_64_low: test_fork_9_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_g++_64_max: test_fork_9_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_g++_64_none: test_fork_9_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_g++_64_high: test_mem_1_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_g++_64_low: test_mem_1_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_g++_64_max: test_mem_1_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_g++_64_none: test_mem_1_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_g++_64_high: test_mem_2_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_g++_64_low: test_mem_2_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_g++_64_max: test_mem_2_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_g++_64_none: test_mem_2_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_g++_64_high: test_mem_3_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_g++_64_low: test_mem_3_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_g++_64_max: test_mem_3_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_g++_64_none: test_mem_3_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_g++_64_high: test_mem_4_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_g++_64_low: test_mem_4_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_g++_64_max: test_mem_4_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_g++_64_none: test_mem_4_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_g++_64_high: test_mem_5_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_g++_64_low: test_mem_5_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_g++_64_max: test_mem_5_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_g++_64_none: test_mem_5_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_g++_64_high: test_mem_6_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_g++_64_low: test_mem_6_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_g++_64_max: test_mem_6_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_g++_64_none: test_mem_6_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_g++_64_high: test_mem_7_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_g++_64_low: test_mem_7_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_g++_64_max: test_mem_7_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_g++_64_none: test_mem_7_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_g++_64_high: test_mem_8_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_g++_64_low: test_mem_8_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_g++_64_max: test_mem_8_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_g++_64_none: test_mem_8_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_g++_64_high: test_stack_1_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_g++_64_low: test_stack_1_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_g++_64_max: test_stack_1_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_g++_64_none: test_stack_1_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_g++_64_high: test_stack_2_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_g++_64_low: test_stack_2_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_g++_64_max: test_stack_2_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_g++_64_none: test_stack_2_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_g++_64_high: test_stack_3_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_g++_64_low: test_stack_3_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_g++_64_max: test_stack_3_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_g++_64_none: test_stack_3_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_thread_1.mutatee_solo_g++_64_high: test_thread_1_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test_thread_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_1.mutatee_solo_g++_64_low: test_thread_1_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test_thread_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_1.mutatee_solo_g++_64_max: test_thread_1_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test_thread_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_1.mutatee_solo_g++_64_none: test_thread_1_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test_thread_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_g++_64_high: test_thread_2_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test_thread_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_g++_64_low: test_thread_2_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test_thread_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_g++_64_max: test_thread_2_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test_thread_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_g++_64_none: test_thread_2_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test_thread_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_g++_64_high: test_thread_3_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test_thread_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_g++_64_low: test_thread_3_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test_thread_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_g++_64_max: test_thread_3_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test_thread_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_g++_64_none: test_thread_3_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test_thread_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_g++_64_high: test_thread_5_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o test_thread_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_g++_64_low: test_thread_5_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o test_thread_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_g++_64_max: test_thread_5_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o test_thread_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_g++_64_none: test_thread_5_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o test_thread_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_6.mutatee_solo_g++_64_high: test_thread_6_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_util_mt_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_6.mutatee_solo_g++_64_low: test_thread_6_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_util_mt_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_6.mutatee_solo_g++_64_max: test_thread_6_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_util_mt_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_6.mutatee_solo_g++_64_none: test_thread_6_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_util_mt_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_7.mutatee_solo_g++_64_high: test_thread_7_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_util_mt_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_7.mutatee_solo_g++_64_low: test_thread_7_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_util_mt_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_7.mutatee_solo_g++_64_none: test_thread_7_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_util_mt_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_g++_64_high: test_thread_8_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_util_mt_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_g++_64_low: test_thread_8_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_util_mt_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_g++_64_max: test_thread_8_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_util_mt_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_g++_64_none: test_thread_8_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_util_mt_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 ######################################################################
 # Mutatees compiled with g++
 ######################################################################
@@ -441,13 +441,13 @@ symtab_SOLO_MUTATEES_gnu_cxx = symtab_group_test.mutatee_solo_g++_64_high symtab
 # Now a list of rules for compiling the mutatees with g++
 
 symtab_group_test.mutatee_solo_g++_64_high: symtab_group_test_group_g++_64_high.o test_lookup_func_mutatee_solo_g++_64_high.o test_lookup_var_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 symtab_group_test.mutatee_solo_g++_64_low: symtab_group_test_group_g++_64_low.o test_lookup_func_mutatee_solo_g++_64_low.o test_lookup_var_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 symtab_group_test.mutatee_solo_g++_64_max: symtab_group_test_group_g++_64_max.o test_lookup_func_mutatee_solo_g++_64_max.o test_lookup_var_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 symtab_group_test.mutatee_solo_g++_64_none: symtab_group_test_group_g++_64_none.o test_lookup_func_mutatee_solo_g++_64_none.o test_lookup_var_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 
 # Exceptional rules for mutatees compiled with g++
 
@@ -1781,419 +1781,419 @@ dyninst_SOLO_MUTATEES_gnu_cc = dyninst_group_test.mutatee_solo_gcc_64_high dynin
 # Now a list of rules for compiling the mutatees with gcc
 
 dyninst_group_test.mutatee_solo_gcc_64_high: dyninst_group_test_group_gcc_64_high.o test1_1_mutatee_solo_gcc_64_high.o test1_2_mutatee_solo_gcc_64_high.o test1_3_mutatee_solo_gcc_64_high.o test1_4_mutatee_solo_gcc_64_high.o test1_5_mutatee_solo_gcc_64_high.o test1_6_mutatee_solo_gcc_64_high.o test1_7_mutatee_solo_gcc_64_high.o test1_8_mutatee_solo_gcc_64_high.o test1_9_mutatee_solo_gcc_64_high.o test1_10_mutatee_solo_gcc_64_high.o test1_11_mutatee_solo_gcc_64_high.o test1_13_mutatee_solo_gcc_64_high.o test1_16_mutatee_solo_gcc_64_high.o test1_17_mutatee_solo_gcc_64_high.o test1_18_mutatee_solo_gcc_64_high.o test1_20_mutatee_solo_gcc_64_high.o test1_21_mutatee_solo_gcc_64_high.o test1_22_mutatee_solo_gcc_64_high.o test1_23_mutatee_solo_gcc_64_high.o test1_24_mutatee_solo_gcc_64_high.o test1_25_mutatee_solo_gcc_64_high.o test1_26_mutatee_solo_gcc_64_high.o test1_27_mutatee_solo_gcc_64_high.o test1_28_mutatee_solo_gcc_64_high.o test1_30_mutatee_solo_gcc_64_high.o test1_31_mutatee_solo_gcc_64_high.o test1_32_mutatee_solo_gcc_64_high.o test1_33_mutatee_solo_gcc_64_high.o test1_34_mutatee_solo_gcc_64_high.o test1_36_mutatee_solo_gcc_64_high.o test1_37_mutatee_solo_gcc_64_high.o test1_38_mutatee_solo_gcc_64_high.o test1_39_mutatee_solo_gcc_64_high.o test2_5_mutatee_solo_gcc_64_high.o test2_7_mutatee_solo_gcc_64_high.o test2_9_mutatee_solo_gcc_64_high.o test2_10_mutatee_solo_gcc_64_high.o test2_11_mutatee_solo_gcc_64_high.o test2_12_mutatee_solo_gcc_64_high.o test2_13_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 dyninst_group_test.mutatee_solo_gcc_64_low: dyninst_group_test_group_gcc_64_low.o test1_1_mutatee_solo_gcc_64_low.o test1_2_mutatee_solo_gcc_64_low.o test1_3_mutatee_solo_gcc_64_low.o test1_4_mutatee_solo_gcc_64_low.o test1_5_mutatee_solo_gcc_64_low.o test1_6_mutatee_solo_gcc_64_low.o test1_7_mutatee_solo_gcc_64_low.o test1_8_mutatee_solo_gcc_64_low.o test1_9_mutatee_solo_gcc_64_low.o test1_10_mutatee_solo_gcc_64_low.o test1_11_mutatee_solo_gcc_64_low.o test1_13_mutatee_solo_gcc_64_low.o test1_16_mutatee_solo_gcc_64_low.o test1_17_mutatee_solo_gcc_64_low.o test1_18_mutatee_solo_gcc_64_low.o test1_20_mutatee_solo_gcc_64_low.o test1_21_mutatee_solo_gcc_64_low.o test1_22_mutatee_solo_gcc_64_low.o test1_23_mutatee_solo_gcc_64_low.o test1_24_mutatee_solo_gcc_64_low.o test1_25_mutatee_solo_gcc_64_low.o test1_26_mutatee_solo_gcc_64_low.o test1_27_mutatee_solo_gcc_64_low.o test1_28_mutatee_solo_gcc_64_low.o test1_30_mutatee_solo_gcc_64_low.o test1_31_mutatee_solo_gcc_64_low.o test1_32_mutatee_solo_gcc_64_low.o test1_33_mutatee_solo_gcc_64_low.o test1_34_mutatee_solo_gcc_64_low.o test1_36_mutatee_solo_gcc_64_low.o test1_37_mutatee_solo_gcc_64_low.o test1_38_mutatee_solo_gcc_64_low.o test1_39_mutatee_solo_gcc_64_low.o test2_5_mutatee_solo_gcc_64_low.o test2_7_mutatee_solo_gcc_64_low.o test2_9_mutatee_solo_gcc_64_low.o test2_10_mutatee_solo_gcc_64_low.o test2_11_mutatee_solo_gcc_64_low.o test2_12_mutatee_solo_gcc_64_low.o test2_13_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 dyninst_group_test.mutatee_solo_gcc_64_max: dyninst_group_test_group_gcc_64_max.o test1_1_mutatee_solo_gcc_64_max.o test1_2_mutatee_solo_gcc_64_max.o test1_3_mutatee_solo_gcc_64_max.o test1_4_mutatee_solo_gcc_64_max.o test1_5_mutatee_solo_gcc_64_max.o test1_6_mutatee_solo_gcc_64_max.o test1_7_mutatee_solo_gcc_64_max.o test1_8_mutatee_solo_gcc_64_max.o test1_9_mutatee_solo_gcc_64_max.o test1_10_mutatee_solo_gcc_64_max.o test1_11_mutatee_solo_gcc_64_max.o test1_13_mutatee_solo_gcc_64_max.o test1_16_mutatee_solo_gcc_64_max.o test1_17_mutatee_solo_gcc_64_max.o test1_18_mutatee_solo_gcc_64_max.o test1_20_mutatee_solo_gcc_64_max.o test1_21_mutatee_solo_gcc_64_max.o test1_22_mutatee_solo_gcc_64_max.o test1_23_mutatee_solo_gcc_64_max.o test1_24_mutatee_solo_gcc_64_max.o test1_25_mutatee_solo_gcc_64_max.o test1_26_mutatee_solo_gcc_64_max.o test1_27_mutatee_solo_gcc_64_max.o test1_28_mutatee_solo_gcc_64_max.o test1_30_mutatee_solo_gcc_64_max.o test1_31_mutatee_solo_gcc_64_max.o test1_32_mutatee_solo_gcc_64_max.o test1_33_mutatee_solo_gcc_64_max.o test1_34_mutatee_solo_gcc_64_max.o test1_36_mutatee_solo_gcc_64_max.o test1_37_mutatee_solo_gcc_64_max.o test1_38_mutatee_solo_gcc_64_max.o test1_39_mutatee_solo_gcc_64_max.o test2_5_mutatee_solo_gcc_64_max.o test2_7_mutatee_solo_gcc_64_max.o test2_9_mutatee_solo_gcc_64_max.o test2_10_mutatee_solo_gcc_64_max.o test2_11_mutatee_solo_gcc_64_max.o test2_12_mutatee_solo_gcc_64_max.o test2_13_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 dyninst_group_test.mutatee_solo_gcc_64_none: dyninst_group_test_group_gcc_64_none.o test1_1_mutatee_solo_gcc_64_none.o test1_2_mutatee_solo_gcc_64_none.o test1_3_mutatee_solo_gcc_64_none.o test1_4_mutatee_solo_gcc_64_none.o test1_5_mutatee_solo_gcc_64_none.o test1_6_mutatee_solo_gcc_64_none.o test1_7_mutatee_solo_gcc_64_none.o test1_8_mutatee_solo_gcc_64_none.o test1_9_mutatee_solo_gcc_64_none.o test1_10_mutatee_solo_gcc_64_none.o test1_11_mutatee_solo_gcc_64_none.o test1_13_mutatee_solo_gcc_64_none.o test1_16_mutatee_solo_gcc_64_none.o test1_17_mutatee_solo_gcc_64_none.o test1_18_mutatee_solo_gcc_64_none.o test1_20_mutatee_solo_gcc_64_none.o test1_21_mutatee_solo_gcc_64_none.o test1_22_mutatee_solo_gcc_64_none.o test1_23_mutatee_solo_gcc_64_none.o test1_24_mutatee_solo_gcc_64_none.o test1_25_mutatee_solo_gcc_64_none.o test1_26_mutatee_solo_gcc_64_none.o test1_27_mutatee_solo_gcc_64_none.o test1_28_mutatee_solo_gcc_64_none.o test1_30_mutatee_solo_gcc_64_none.o test1_31_mutatee_solo_gcc_64_none.o test1_32_mutatee_solo_gcc_64_none.o test1_33_mutatee_solo_gcc_64_none.o test1_34_mutatee_solo_gcc_64_none.o test1_36_mutatee_solo_gcc_64_none.o test1_37_mutatee_solo_gcc_64_none.o test1_38_mutatee_solo_gcc_64_none.o test1_39_mutatee_solo_gcc_64_none.o test2_5_mutatee_solo_gcc_64_none.o test2_7_mutatee_solo_gcc_64_none.o test2_9_mutatee_solo_gcc_64_none.o test2_10_mutatee_solo_gcc_64_none.o test2_11_mutatee_solo_gcc_64_none.o test2_12_mutatee_solo_gcc_64_none.o test2_13_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_gcc_64_high: test1_12_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_gcc_64_low: test1_12_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_gcc_64_max: test1_12_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_gcc_64_none: test1_12_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_gcc_64_high: test1_14_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_gcc_64_low: test1_14_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_gcc_64_max: test1_14_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_14.mutatee_solo_gcc_64_none: test1_14_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_gcc_64_high: test1_15_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_gcc_64_low: test1_15_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_gcc_64_max: test1_15_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_15.mutatee_solo_gcc_64_none: test1_15_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_gcc_64_high: test1_19_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_gcc_64_low: test1_19_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_gcc_64_max: test1_19_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_19.mutatee_solo_gcc_64_none: test1_19_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_gcc_64_high: test1_29_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_gcc_64_low: test1_29_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_gcc_64_max: test1_29_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_29.mutatee_solo_gcc_64_none: test1_29_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_gcc_64_high: test1_41_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_gcc_64_low: test1_41_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_gcc_64_max: test1_41_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_41.mutatee_solo_gcc_64_none: test1_41_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_gcc_64_high: test2_14_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_gcc_64_low: test2_14_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_gcc_64_max: test2_14_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_14.mutatee_solo_gcc_64_none: test2_14_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_6.mutatee_solo_gcc_64_high: test2_6_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_6.mutatee_solo_gcc_64_low: test2_6_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_6.mutatee_solo_gcc_64_max: test2_6_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_6.mutatee_solo_gcc_64_none: test2_6_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test2_8.mutatee_solo_gcc_64_high: test2_8_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_8.mutatee_solo_gcc_64_low: test2_8_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_8.mutatee_solo_gcc_64_max: test2_8_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test2_8.mutatee_solo_gcc_64_none: test2_8_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_gcc_64_high: test3_1_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_gcc_64_low: test3_1_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_gcc_64_max: test3_1_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_1.mutatee_solo_gcc_64_none: test3_1_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_gcc_64_high: test3_2_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_gcc_64_low: test3_2_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_gcc_64_max: test3_2_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_2.mutatee_solo_gcc_64_none: test3_2_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_gcc_64_high: test3_3_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_gcc_64_low: test3_3_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_gcc_64_max: test3_3_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_3.mutatee_solo_gcc_64_none: test3_3_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_gcc_64_high: test3_4_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_gcc_64_low: test3_4_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_gcc_64_max: test3_4_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_4.mutatee_solo_gcc_64_none: test3_4_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_gcc_64_high: test3_5_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_gcc_64_low: test3_5_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_gcc_64_max: test3_5_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_5.mutatee_solo_gcc_64_none: test3_5_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_gcc_64_high: test3_6_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_gcc_64_low: test3_6_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_gcc_64_max: test3_6_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_6.mutatee_solo_gcc_64_none: test3_6_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_gcc_64_high: test3_7_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_gcc_64_low: test3_7_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_gcc_64_max: test3_7_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test3_7.mutatee_solo_gcc_64_none: test3_7_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_gcc_64_high: test4_1_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_gcc_64_low: test4_1_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_gcc_64_max: test4_1_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_1.mutatee_solo_gcc_64_none: test4_1_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_gcc_64_high: test4_2_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_gcc_64_low: test4_2_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_gcc_64_max: test4_2_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_2.mutatee_solo_gcc_64_none: test4_2_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_gcc_64_high: test4_3_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_gcc_64_low: test4_3_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_gcc_64_max: test4_3_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3.mutatee_solo_gcc_64_none: test4_3_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_gcc_64_high: test4_3b_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_gcc_64_low: test4_3b_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_gcc_64_max: test4_3b_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_3b.mutatee_solo_gcc_64_none: test4_3b_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_gcc_64_high: test4_4_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_gcc_64_low: test4_4_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_gcc_64_max: test4_4_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4.mutatee_solo_gcc_64_none: test4_4_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_gcc_64_high: test4_4b_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_gcc_64_low: test4_4b_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_gcc_64_max: test4_4b_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test4_4b.mutatee_solo_gcc_64_none: test4_4b_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_gcc_64_high: test_callback_1_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_gcc_64_low: test_callback_1_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_gcc_64_max: test_callback_1_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_1.mutatee_solo_gcc_64_none: test_callback_1_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_gcc_64_high: test_callback_2_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_gcc_64_low: test_callback_2_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_gcc_64_max: test_callback_2_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_callback_2.mutatee_solo_gcc_64_none: test_callback_2_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_gcc_64_high: test_fork_10_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_gcc_64_low: test_fork_10_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_gcc_64_max: test_fork_10_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_10.mutatee_solo_gcc_64_none: test_fork_10_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_gcc_64_high: test_fork_11_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_gcc_64_low: test_fork_11_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_gcc_64_max: test_fork_11_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_11.mutatee_solo_gcc_64_none: test_fork_11_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_gcc_64_high: test_fork_12_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_gcc_64_low: test_fork_12_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_gcc_64_max: test_fork_12_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_12.mutatee_solo_gcc_64_none: test_fork_12_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_gcc_64_high: test_fork_13_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_gcc_64_low: test_fork_13_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_gcc_64_max: test_fork_13_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_13.mutatee_solo_gcc_64_none: test_fork_13_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_gcc_64_high: test_fork_5_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_gcc_64_low: test_fork_5_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_gcc_64_max: test_fork_5_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_5.mutatee_solo_gcc_64_none: test_fork_5_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_gcc_64_high: test_fork_6_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_gcc_64_low: test_fork_6_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_gcc_64_max: test_fork_6_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_6.mutatee_solo_gcc_64_none: test_fork_6_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_gcc_64_high: test_fork_7_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_gcc_64_low: test_fork_7_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_gcc_64_max: test_fork_7_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_7.mutatee_solo_gcc_64_none: test_fork_7_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_gcc_64_high: test_fork_8_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_gcc_64_low: test_fork_8_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_gcc_64_max: test_fork_8_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_8.mutatee_solo_gcc_64_none: test_fork_8_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_gcc_64_high: test_fork_9_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_gcc_64_low: test_fork_9_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_gcc_64_max: test_fork_9_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_fork_9.mutatee_solo_gcc_64_none: test_fork_9_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_gcc_64_high: test_mem_1_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_gcc_64_low: test_mem_1_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_gcc_64_max: test_mem_1_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_1.mutatee_solo_gcc_64_none: test_mem_1_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_gcc_64_high: test_mem_2_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_gcc_64_low: test_mem_2_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_gcc_64_max: test_mem_2_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_2.mutatee_solo_gcc_64_none: test_mem_2_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_gcc_64_high: test_mem_3_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_gcc_64_low: test_mem_3_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_gcc_64_max: test_mem_3_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_3.mutatee_solo_gcc_64_none: test_mem_3_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_gcc_64_high: test_mem_4_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_gcc_64_low: test_mem_4_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_gcc_64_max: test_mem_4_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_4.mutatee_solo_gcc_64_none: test_mem_4_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_gcc_64_high: test_mem_5_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_gcc_64_low: test_mem_5_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_gcc_64_max: test_mem_5_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_5.mutatee_solo_gcc_64_none: test_mem_5_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_gcc_64_high: test_mem_6_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_gcc_64_low: test_mem_6_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_gcc_64_max: test_mem_6_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_6.mutatee_solo_gcc_64_none: test_mem_6_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_gcc_64_high: test_mem_7_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_gcc_64_low: test_mem_7_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_gcc_64_max: test_mem_7_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_7.mutatee_solo_gcc_64_none: test_mem_7_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_gcc_64_high: test_mem_8_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test6LS-ia64_gcc_64_high.o test_mem_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_gcc_64_low: test_mem_8_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test6LS-ia64_gcc_64_low.o test_mem_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_gcc_64_max: test_mem_8_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test6LS-ia64_gcc_64_max.o test_mem_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_mem_8.mutatee_solo_gcc_64_none: test_mem_8_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test6LS-ia64_gcc_64_none.o test_mem_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_gcc_64_high: test_stack_1_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_gcc_64_low: test_stack_1_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_gcc_64_max: test_stack_1_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_1.mutatee_solo_gcc_64_none: test_stack_1_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_gcc_64_high: test_stack_2_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_gcc_64_low: test_stack_2_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_gcc_64_max: test_stack_2_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_2.mutatee_solo_gcc_64_none: test_stack_2_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_gcc_64_high: test_stack_3_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_gcc_64_low: test_stack_3_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_gcc_64_max: test_stack_3_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_stack_3.mutatee_solo_gcc_64_none: test_stack_3_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test_thread_1.mutatee_solo_gcc_64_high: test_thread_1_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test_thread_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_1.mutatee_solo_gcc_64_low: test_thread_1_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test_thread_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_1.mutatee_solo_gcc_64_max: test_thread_1_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test_thread_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_1.mutatee_solo_gcc_64_none: test_thread_1_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test_thread_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_gcc_64_high: test_thread_2_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test_thread_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_gcc_64_low: test_thread_2_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test_thread_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_gcc_64_max: test_thread_2_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test_thread_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_2.mutatee_solo_gcc_64_none: test_thread_2_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test_thread_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_gcc_64_high: test_thread_3_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test_thread_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_gcc_64_low: test_thread_3_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test_thread_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_gcc_64_max: test_thread_3_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test_thread_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_3.mutatee_solo_gcc_64_none: test_thread_3_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test_thread_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_gcc_64_high: test_thread_5_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o test_thread_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_gcc_64_low: test_thread_5_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o test_thread_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_gcc_64_max: test_thread_5_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o test_thread_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_5.mutatee_solo_gcc_64_none: test_thread_5_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o test_thread_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -ldl -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 test_thread_6.mutatee_solo_gcc_64_high: test_thread_6_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_util_mt_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_6.mutatee_solo_gcc_64_low: test_thread_6_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_util_mt_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_6.mutatee_solo_gcc_64_max: test_thread_6_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_util_mt_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_6.mutatee_solo_gcc_64_none: test_thread_6_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_util_mt_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_7.mutatee_solo_gcc_64_high: test_thread_7_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_util_mt_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_7.mutatee_solo_gcc_64_low: test_thread_7_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_util_mt_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_7.mutatee_solo_gcc_64_none: test_thread_7_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_util_mt_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_gcc_64_high: test_thread_8_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_util_mt_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_gcc_64_low: test_thread_8_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_util_mt_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_gcc_64_max: test_thread_8_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_util_mt_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 test_thread_8.mutatee_solo_gcc_64_none: test_thread_8_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_util_mt_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   -lpthread 
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 ######################################################################
 # Mutatees compiled with gcc
 ######################################################################
@@ -2203,13 +2203,13 @@ symtab_SOLO_MUTATEES_gnu_cc = symtab_group_test.mutatee_solo_gcc_64_high symtab_
 # Now a list of rules for compiling the mutatees with gcc
 
 symtab_group_test.mutatee_solo_gcc_64_high: symtab_group_test_group_gcc_64_high.o test_lookup_func_mutatee_solo_gcc_64_high.o test_lookup_var_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 symtab_group_test.mutatee_solo_gcc_64_low: symtab_group_test_group_gcc_64_low.o test_lookup_func_mutatee_solo_gcc_64_low.o test_lookup_var_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 symtab_group_test.mutatee_solo_gcc_64_max: symtab_group_test_group_gcc_64_max.o test_lookup_func_mutatee_solo_gcc_64_max.o test_lookup_var_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 symtab_group_test.mutatee_solo_gcc_64_none: symtab_group_test_group_gcc_64_none.o test_lookup_func_mutatee_solo_gcc_64_none.o test_lookup_var_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^)   
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 
 # Exceptional rules for mutatees compiled with gcc
 
