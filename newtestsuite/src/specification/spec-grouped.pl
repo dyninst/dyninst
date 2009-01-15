@@ -7,7 +7,7 @@
 %%%%%%%%%%
 
 % Include some utility definitions
-:- include('src/specification/test.pl').
+:- include('test.pl').
 
 % Allow the user to specify new clauses as they want throughout this file
 :- discontiguous([library/2, object_suffix/2, library_suffix/2,
@@ -2384,6 +2384,8 @@ compiler_presence_def('pgcc', 'PGI').
 compiler_presence_def('pgCC', 'PGI').
 compiler_presence_def('icc', 'ICC').
 compiler_presence_def('iCC', 'ICC').
+compiler_presence_def('xlc', 'XLC').
+compiler_presence_def('xlC', 'XLC').
 
 % Translations between compiler names and compiler #defines
 compiler_define_string('gcc', 'gnu_cc').
@@ -2476,7 +2478,7 @@ mutator_comp('CC').
 mutator_comp('xlC').
 
 % Per-compiler link options for building mutatees
-mutatee_link_options(gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(gnu_family, ['icc', 'gcc', 'g++', 'iCC']).
+mutatee_link_options(Gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(Gnu_family, ['icc', 'gcc', 'g++', 'iCC']).
 mutatee_link_options(Native_cc, '$(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
     member(Native_cc, ['cc', 'sun_cc', 'xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-

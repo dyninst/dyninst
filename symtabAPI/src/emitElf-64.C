@@ -217,12 +217,13 @@ bool emitElf64::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs, unsi
                   unversionedNeededEntries.push_back(fileName);
                }
 
-               if (symbol->getLinkage() == Symbol::SL_GLOBAL)
+               if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
                   versionSymTable.push_back(1);
                }
                else {
                   versionSymTable.push_back(0);
                }
+            }
          } 
          else 
          {

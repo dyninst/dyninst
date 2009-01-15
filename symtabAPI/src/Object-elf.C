@@ -100,9 +100,6 @@ Symbol *symt_current_func = NULL;
 #include <dlfcn.h>
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
-extern void print_symbols( std::vector< Symbol *>& allsymbols );
-extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
-
 int (*P_native_demangle)(const char *, char *, size_t);
 
 void loadNativeDemangler() {
@@ -115,6 +112,9 @@ void loadNativeDemangler() {
 }
 		
 #endif
+
+extern void print_symbols( std::vector< Symbol *>& allsymbols );
+extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
 
 void (*dwarf_err_func)(const char *);   // error callback for dwarf errors
 
@@ -3923,8 +3923,8 @@ bool Object::emitDriver(Symtab *obj, string fName,
       std::vector<Symbol *>&allSymbols,
       unsigned flag)
 {
-    printf("emitting...\n");
 #ifdef BINEDIT_DEBUG
+    printf("emitting...\n");
     //print_symbol_map(&symbols_);
     print_symbols(allSymbols);
     printf("%d total symbol(s)\n", allSymbols.size());
