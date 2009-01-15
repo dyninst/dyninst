@@ -69,8 +69,6 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_5_factory() {
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_5_Mutator::executeTest() {
-#if defined(os_solaris_test) || defined(os_linux_test) || defined(os_windows_test)
-
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "namespace_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
@@ -90,7 +88,7 @@ test_results_t test5_5_Mutator::executeTest() {
    BPatch_variableExpr *var3 = appImage->findVariable(*(*point5_1)[0],
                                                       "CPP_DEFLT_ARG");
    
-   if (!var1 || !var2 || !var3) {
+   if (!var1 || !var3) {
       logerror("**Failed** test #5 (namespace)\n");
       if (!var1)
          logerror("  can't find local variable local_fn_var\n");
@@ -100,6 +98,17 @@ test_results_t test5_5_Mutator::executeTest() {
          logerror("  can't find global variable CPP_DEFLT_ARG\n");
       return FAILED;
     }
+
+   // AIX doesn't keep symbols for local variables; however, we can test the
+   // remainder of the functionality.
+#if !defined(os_aix_test) 
+   if (!var2) {
+      logerror("**Failed** test #5 (namespace)\n");
+      if (!var2)
+         logerror("  can't find file local variable local_file_var\n");
+      return FAILED;
+   }
+#endif
 
    bpfv.clear();
    char *fn2 = "main";
@@ -116,10 +125,10 @@ test_results_t test5_5_Mutator::executeTest() {
       logerror("Unable to find point in main.\n");
       return FAILED;
    }
-   BPatch_variableExpr *expr5_1=appImage->findVariable(*(*point5_2)[0], "test5");
+   BPatch_variableExpr *expr5_1=appImage->findVariable(*(*point5_2)[0], "test5_5_test5");
    if (!expr5_1) {
       logerror("**Failed** test #5 (namespace)\n");
-      logerror("    Unable to locate test5 in main\n");
+      logerror("    Unable to locate test5_5_test5 in main\n");
    }
    
    BPatch_Vector<BPatch_variableExpr *> *fields = expr5_1->getComponents();
@@ -143,10 +152,10 @@ test_results_t test5_5_Mutator::executeTest() {
 	}
 	BPatch_function *call5_func = bpfv2[0];  
             
-         BPatch_variableExpr *this5 = appImage->findVariable("test5");
+         BPatch_variableExpr *this5 = appImage->findVariable("test5_5_test5");
          if (this5 == NULL) {
             logerror("**Failed** test #5 (namespace)\n");
-            logerror("Unable to find variable \"test5\"\n");
+            logerror("Unable to find variable \"test5_5_test5\"\n");
             return FAILED;
          }
          
@@ -164,10 +173,6 @@ test_results_t test5_5_Mutator::executeTest() {
    logerror("**Failed** test #5 (namespace)\n");
    logerror("    Can't find class member variables\n");
    return FAILED;
-#else
-   // Test skipped on unsupported platforms
-   return SKIPPED;
-#endif
 }
 
 // External Interface

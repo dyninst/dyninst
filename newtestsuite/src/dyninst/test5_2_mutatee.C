@@ -22,7 +22,7 @@
  * group.
  */
 
-static overload_func_test test2;
+overload_func_test test5_2_test2;
 static int passed = 0;
 
 /* Function definitions follow */
@@ -59,7 +59,7 @@ void overload_func_test::pass() {
 }
 
 int test5_2_mutatee() {
-  test2.func_cpp();
+  test5_2_test2.func_cpp();
   if (1 == passed) {
     // Test passed
     test_passes(testname);
