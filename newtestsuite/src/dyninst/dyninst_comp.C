@@ -224,6 +224,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       return UNKNOWN;
    }
 
+   if (appThread == NULL) {
+       // I saw this happen during a broken resumeLog cleanup, so handle
+       // it as an error... - bernat, 12JAN09
+       return UNKNOWN;
+   }
+
    do {
       appThread->continueExecution();
       bpatch->waitForStatusChange();
