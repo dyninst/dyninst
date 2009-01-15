@@ -11,7 +11,6 @@ RELEASE_NUM	= 1.0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 DEFINES		     += -UMT_THREAD
-		
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
@@ -57,6 +56,7 @@ TFLAGS		+= -fPIC
 VPATH	     += ../../symtabAPI/h
 
 SRCS	     +=	../src/Object.C \
+                ../src/Aggregate.C \
                 ../src/Function.C \
                 ../src/Variable.C \
 		../src/LineInformation.C \
@@ -68,8 +68,9 @@ SRCS	     +=	../src/Object.C \
 		../src/Region.C \
 		../src/Collections.C \
 		../src/Type.C \
-      		../src/AddrLookup.C \
-                ../src/annotations.C
+		../src/AddrLookup.C \
+                ../src/annotations.C \
+                ../src/debug.C 
 #		../src/serialize-bin.C \
 #		../src/serialize-xml.C \
 
