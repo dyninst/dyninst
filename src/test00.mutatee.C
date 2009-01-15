@@ -49,6 +49,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <iostream>
 
 #include "../../common/h/serialize.h"
 #include "../../symtabAPI/h/Symbol.h"
@@ -495,6 +496,7 @@ bool test0()
          {
             fprintf(stderr, "%s[%d]:  Unnamed Symbol !!!\n", 
                   FILE__, __LINE__);
+            cerr << *sym << endl;
             return false;
          }
 
