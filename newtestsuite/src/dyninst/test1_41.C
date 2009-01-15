@@ -119,12 +119,29 @@ test_results_t test1_41_Mutator::executeTest() {
 	}
 
 	BPatch_module *module = image->findModule("test1_41_mutatee.c", true);
+        if (!module) {
+            module = image->findModule("solo_mutatee_boilerplate.c", true);
+        }
+
 	if (!module) {
 	  // First try again for 'test1_41_solo_me.c'
 	  module = image->findModule("test1_41_solo_me.c", true);
 	  if (!module) {
 	    logerror("*ERROR*: unable to get module from image\n");
+            logerror("Looking for \"test1_41_solo_me.c\" or \"solo_mutatee_boilerplate.c\". Available modules:\n");
+            BPatch_Vector<BPatch_module *> *mods = image->getModules();
+            char buffer[512];
+            for (unsigned i = 0; i < mods->size(); i++) {
+                BPatch_module *mod = (*mods)[i];
+                char name[512];
+                mod->getName(name, 512);
+                sprintf(buffer, "\t%s\n",
+                        name);
+                logerror(buffer);
+            }
+
 	    logerror("**Failed** test #41 (repeated line information)\n");
+
 	    return FAILED;
 	  }
 	}
