@@ -44,6 +44,8 @@
 #include "Collections.h"
 #include "common/h/headers.h"
 
+#include "debug.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -690,7 +692,10 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   ptrType = mod->exec()->type_Untyped;
                }
 
-               newType = new typeTypedef(symdescID, ptrType, name);
+               // We assume that IDs are unique per type. Instead of reusing the 
+               // underlying base ID, use a SymtabAPI-generated ID.
+
+               typeTypedef *newType = new typeTypedef(ptrType, name);
 
                if (newType) 
                {
@@ -943,6 +948,7 @@ int parseSymDesc(char *stabstr, int &cnt)
 
     id = hid * 65536 + lid;
     id = id * sign;
+    
     return id;
 }
 
@@ -1101,7 +1107,7 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
             if(newType) { newType2 = moduleTypes->addOrUpdateType(newType); }
             if(!newType2) {
                 //bperr(" Can't Allocate new type ");
-                symtab_printf("%s[%d]: parse-cross reference: unable to allocate new type\n", FILE__, __LINE__);
+                types_printf("%s[%d]: parse-cross reference: unable to allocate new type\n", FILE__, __LINE__);
                 //exit(-1);
             } else if(newType2 != newType)
                 newType->decrRefCount();
@@ -1215,7 +1221,7 @@ static Type *parseArrayDef(Module *mod, const char *name,
                 newType->decrRefCount();
         } else {
             //bperr( " Could not create newType Array\n");
-            symtab_printf("%s[%d]: parse array reference: could not create new type array\n", FILE__, __LINE__);
+            types_printf("%s[%d]: parse array reference: could not create new type array\n", FILE__, __LINE__);
             newType2 = NULL;
             //exit(-1);
         }
@@ -1453,7 +1459,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
             // //bperr("\tSize of Type : %d bytes\n",size);
             //Create new type
 
-            newType = new typeScalar(ID, size, name);
+            newType = new typeScalar(ID, size, convertCharToString(name));
             //Add to Collection
             newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
             if(newType2 != newType)
@@ -1640,7 +1646,7 @@ static char *parseRefType(Module *mod, const char *name,
         mod->getModuleTypes()->addOrUpdateType(newType);
     } else {
         //bperr(" Can't Allocate new type ");
-        symtab_printf("%s[%d]: parseRefType: can't allocate new type\n", FILE__, __LINE__);
+        types_printf("%s[%d]: parseRefType: can't allocate new type\n", FILE__, __LINE__);
         //exit(-1);
     }
     
@@ -2064,7 +2070,7 @@ static char *parseCPlusPlusInfo(Module *mod,
 // It adds the typeDef to the type definition with the name name, and id ID.
 //
 static char *parseTypeDef(Module *mod, char *stabstr, 
-                         	const char *name, int ID, unsigned int sizeHint)
+                          const char *name, int ID, unsigned int sizeHint)
 {
     Type * newType = NULL, *newType2 = NULL;
     fieldListType * newFieldType = NULL, *newFieldType2 = NULL;
@@ -2102,7 +2108,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         if (newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
         if(!newType2) {
             //bpfatal(" Can't Allocate newType ");
-                symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                types_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
                 //exit(-1);
         } else if(newType2 != newType)
             newType->decrRefCount();
@@ -2128,7 +2134,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         if(newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
         if(!newType2) {
             //bpfatal(" Can't Allocate newType ");
-                symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                types_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
                 //exit(-1);
         } else if(newType2 != newType)
             newType->decrRefCount();
@@ -2155,7 +2161,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    if(newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
 	    if(!newType2) {
 		//bpfatal(" Can't Allocate new type ");
-                        symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                        types_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
                         //exit(-1);
 	    } else if(newType2 != newType)
             newType->decrRefCount();
@@ -2194,7 +2200,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                    }
                    if (!newFunction2) {
                       //bpfatal(" Can't Allocate new type ");
-                            symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                            types_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
                             //exit(-1);
                    }
                    
@@ -2226,7 +2232,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		if (newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
 		if (!newType2) {
 		  //bpfatal(" Can't Allocate new type ");
-                        symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                        types_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
                         //exit(-1);
 		} else if(newType2 != newType)
             newType->decrRefCount();
