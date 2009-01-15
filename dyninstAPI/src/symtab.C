@@ -350,22 +350,22 @@ void image::findMain()
             {
             	//logLine( "No static symbol for function main\n" );
                 Symbol *newSym = new Symbol("DYNINST_pltMain", "DEFAULT_MODULE",
-                          Symbol::ST_FUNCTION,
-                          Symbol::SL_GLOBAL, mainAddress,textsec, UINT_MAX );
+                          Symbol::ST_FUNCTION, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
+                          mainAddress,textsec, UINT_MAX );
         
                 linkedFile->addSymbol( newSym );
            }
            else
            {
            	Symbol *newSym= new Symbol( "main", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                           Symbol::SL_GLOBAL, mainAddress,textsec, UINT_MAX );
+                           Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, mainAddress,textsec, UINT_MAX );
 	        linkedFile->addSymbol(newSym);		
             }
         }
     	if( !foundStart )
     	{
             Symbol *startSym = new Symbol( "_start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                   Symbol::SL_GLOBAL, textsec->getRegionAddr(),textsec, UINT_MAX );
+                   Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, textsec->getRegionAddr(),textsec, UINT_MAX );
     
             //cout << "sim for start!" << endl;
         
@@ -376,7 +376,7 @@ void image::findMain()
 	    Region *finisec;
 	    linkedFile->findRegion(finisec,".fini");
             Symbol *finiSym = new Symbol( "_fini","DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                        Symbol::SL_GLOBAL, finisec->getRegionAddr(), finisec, UINT_MAX );
+                        Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, finisec->getRegionAddr(), finisec, UINT_MAX );
 	    linkedFile->addSymbol(finiSym);		
     	}
     }
@@ -388,7 +388,7 @@ void image::findMain()
         if(linkedFile->findSymbolByType(syms,"_DYNAMIC",Symbol::ST_UNKNOWN)==false)
         {
 	    Symbol *newSym = new Symbol( "_DYNAMIC", "DEFAULT_MODULE", 
-					Symbol::ST_OBJECT, Symbol::SL_GLOBAL,
+					Symbol::ST_OBJECT, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
 					dynamicsec->getRegionAddr(), dynamicsec, 0 );
 	    linkedFile->addSymbol(newSym);
 	}
@@ -463,14 +463,14 @@ void image::findMain()
        }  
        
        Symbol *sym = new Symbol( "main",  "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                   Symbol::SL_GLOBAL, mainAddr, sec);
+                   Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, mainAddr, sec);
        linkedFile->addSymbol(sym);
       
    
        //since we are here make up a sym for _start as well
 
        Symbol *sym1 = new Symbol( "__start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                   Symbol::SL_GLOBAL, sec->getRegionAddr(), sec);
+                   Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, sec->getRegionAddr(), sec);
        linkedFile->addSymbol(sym1);
    }
 
@@ -503,28 +503,28 @@ void image::findMain()
            if(!linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Symbol::ST_UNKNOWN)) {
                //make up a symbol for default module too
                Symbol *modSym = new Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Symbol::ST_MODULE, 
-                                           Symbol::SL_GLOBAL, imageOffset_, NULL, 0);
+                                           Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, imageOffset_, NULL, 0);
                linkedFile->addSymbol(modSym);
            }
            syms.clear();
            if(!linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN)) {
                //use 'start' for mainCRTStartup.
                Symbol *startSym = new Symbol( "start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                                              Symbol::SL_GLOBAL, eAddr , 0, UINT_MAX );
+                                              Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, eAddr , 0, UINT_MAX );
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
            if(!linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN)) {
                //make up a func name for the start of the text section
                Symbol *sSym = new Symbol( "winStart", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL, imageOffset_, 0, UINT_MAX );
+                                          Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, imageOffset_, 0, UINT_MAX );
                linkedFile->addSymbol(sSym);
            }
            syms.clear();
            if(!linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN)) {
                //make up one for the end of the text section
                Symbol *fSym = new Symbol( "winFini", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL, imageOffset_ + linkedFile->imageLength() - 1, 
+                                          Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, imageOffset_ + linkedFile->imageLength() - 1, 
                                           0, UINT_MAX );
                linkedFile->addSymbol(fSym);
            }
@@ -533,7 +533,7 @@ void image::findMain()
                           "for main, using binary entry point %x\n",
                           __FILE__, __LINE__, eAddr);
            linkedFile->addSymbol(new Symbol("main","DEFAULT_MODULE",
-                                            Symbol::ST_FUNCTION,Symbol::SL_GLOBAL, eAddr));
+                                            Symbol::ST_FUNCTION, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, eAddr));
        }
    }
 #endif    
@@ -1428,6 +1428,7 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      Symbol *funcSym = new Symbol(funcName, "DEFAULT_MODULE",
                                   Symbol::ST_FUNCTION,
                                   Symbol::SL_GLOBAL, 
+                                  Symbol::SV_DEFAULT,
                                   functionEntryAddr, 
                                   0,
                                   UINT_MAX);

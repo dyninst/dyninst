@@ -2373,6 +2373,8 @@ compiler_presence_def('pgcc', 'PGI').
 compiler_presence_def('pgCC', 'PGI').
 compiler_presence_def('icc', 'ICC').
 compiler_presence_def('iCC', 'ICC').
+compiler_presence_def('xlc', 'XLC').
+compiler_presence_def('xlC', 'XLC').
 
 % Translations between compiler names and compiler #defines
 compiler_define_string('gcc', 'gnu_cc').

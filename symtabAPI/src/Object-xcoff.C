@@ -688,6 +688,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    struct syment *symbols = NULL;
    unsigned char *scnh_base = NULL;
    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
+   Symbol::SymbolVisibility visibility = Symbol::SV_DEFAULT;
    unsigned toc_offset = 0;
    std::string modName;
    baseAddress_ = (Offset)fo_->getPtrAtOffset(offset);
@@ -1290,7 +1291,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
             modName = name;
          }
          Symbol *modSym = new Symbol(modName, modName,
-                                     Symbol::ST_MODULE, linkage,
+                                     Symbol::ST_MODULE, linkage, visibility,
                                      UINT_MAX // dummy address for now!
                                      );
                              
@@ -1608,10 +1609,7 @@ ObjectType Object::objType() const {
 
 bool Object::emitDriver(Symtab * /*obj*/, 
       string /*fName*/, 
-      std::vector<Symbol *>&/*functions*/, 
-      std::vector<Symbol *>&/*variables*/, 
-      std::vector<Symbol *>&/*mods*/, 
-      std::vector<Symbol *>&/*notypes*/, 
+      std::vector<Symbol *>&/*allSymbols*/, 
       unsigned /*flag*/) 
 {
    return true;

@@ -80,9 +80,6 @@ using namespace std;
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
 
-extern void print_symbols( std::vector< Symbol *>& allsymbols );
-extern void print_sym_map( dyn_hash_map < string, std::vector < Symbol* > > & symbols_ );
- 
 void pd_log_perror(const char *msg)
 {
    errMsg = msg;
@@ -532,11 +529,6 @@ bool Symtab::buildDemangledName( const std::string &mangled,
  * we will be rewriting these symbols and so we need our own
  * copy. 
  *
- * We also use this opportunity to ignore certain symbols. This includes:
- *
- * 1) Symbols starting with ".", as they are likely labels and so don't
- *    represent a "real" symbol. TODO: create a "label" type?
- * 
  * TODO: delete the linkedFile once we're done?
  */
 
@@ -547,30 +539,33 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
 
         // If a symbol starts with "." we want to skip it. These indicate labels in the
         // code. 
+        
+        // removed 1/09: this should be done in Dyninst, not Symtab
+#if 0
         if (sym->getMangledName()[0] == '.') 
             continue;
+#endif
 
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
         
-        if (sym->getSec() == NULL) {
-            undefDynSyms[sym->getMangledName()] = sym;
+        if (sym->getSec() == NULL && !sym->isAbsolute()) {
+            undefDynSyms[sym->getMangledName()].push_back(sym);
             continue;
         }
 
         // Check whether this symbol has a valid offset. If they do not we have a
         // consistency issue. This should be a null check.
 
-        /*
-          // Symbols can have an offset of 0 if they don't refer to things within a file.
+        // Symbols can have an offset of 0 if they don't refer to things within a file.
+#if 0
         if (!isValidOffset(sym->getAddr())) {
             fprintf(stderr, "Symbol %s has invalid offset 0x%lx\n", sym->getName().c_str(), sym->getAddr());
             fprintf(stderr, "... in file %s\n", name().c_str());
             return false;
         }
-        */
-
+#endif
 
         raw_syms.push_back(sym);
     }
@@ -1056,6 +1051,10 @@ bool sort_reg_by_addr(const Region* a, const Region* b)
    return a->getRegionAddr() < b->getRegionAddr();
 }
 
+
+extern void print_symbols( std::vector< Symbol *>& allsymbols );
+extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
+
 bool Symtab::extractInfo(Object *linkedFile)
 {
 #if defined(TIMED_PARSE)
@@ -1164,18 +1163,37 @@ bool Symtab::extractInfo(Object *linkedFile)
     checkPPC64DescriptorSymbols(linkedFile);
 #endif
 
-    // a vector to hold all created functions until they are properly classified
-    std::vector<Symbol *> raw_funcs;
+    // a vector to hold all created symbols until they are properly classified
+    std::vector<Symbol *> raw_syms;
 
-    if (!extractSymbolsFromFile(linkedFile, raw_funcs)) {
+#ifdef BINEDIT_DEBUG
+    printf("== from linkedFile...\n");
+    print_symbol_map(linkedFile->getAllSymbols());
+#endif
+
+    if (!extractSymbolsFromFile(linkedFile, raw_syms)) {
         err = false;
         serr = Syms_To_Functions;
         return false;
     }
 
-    sort(raw_funcs.begin(),raw_funcs.end(),symbol_compare);
+#ifdef BINEDIT_DEBUG
+    printf("== in Symtab now...\n");
+    //print_symbols(raw_syms);
+    std::vector<Symbol *> undefsyms;
+    std::map<std::string, std::vector<Symbol *> >::iterator iter;
+    std::vector<Symbol *>::iterator siter;
+    for (iter = undefDynSyms.begin(); iter != undefDynSyms.end(); iter++)
+        for (siter = iter->second.begin(); siter != iter->second.end(); siter++)
+            undefsyms.push_back(*siter);
+    //print_symbols(undefsyms);
+    printf("%d total symbol(s)\n", raw_syms.size() + undefsyms.size());
+#endif
 
-    if (!fixSymModules(raw_funcs)) {
+    // don't sort the symbols--preserve the original ordering
+    //sort(raw_syms.begin(),raw_syms.end(),symbol_compare);
+
+    if (!fixSymModules(raw_syms)) {
         err = false;
         serr = Syms_To_Functions;
         return false;
@@ -1195,13 +1213,13 @@ bool Symtab::extractInfo(Object *linkedFile)
     // Be sure that module languages are set before demangling, or
     // we won't get very far.
 
-    if (!demangleSymbols(raw_funcs)) {
+    if (!demangleSymbols(raw_syms)) {
         err = false;
         serr = Syms_To_Functions;
         return false;
     }
 
-    if (!createIndices(raw_funcs)) {
+    if (!createIndices(raw_syms)) {
         err = false;
         serr = Syms_To_Functions;
         return false;
@@ -1215,7 +1233,7 @@ bool Symtab::extractInfo(Object *linkedFile)
 	
 #if 0
     // define all of the functions, this also defines all of the modules
-    if (!symbolsToFunctions(linkedFile, &raw_funcs))
+    if (!symbolsToFunctions(linkedFile, &raw_syms))
     {
         fprintf(stderr, "%s[%d] Error converting symbols to functions in file %s\n", 
                 __FILE__, __LINE__, mf->filename().c_str());
@@ -1284,7 +1302,8 @@ Symtab::Symtab(const Symtab& obj) :
     
     for(i=0; i<relocation_table_.size();i++) {
         relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-        undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+        //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+        undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
     }
     
     for(i=0;i<excpBlocks.size();i++)
@@ -1919,81 +1938,27 @@ bool Symtab::setDefaultNamespacePrefix(string &str){
 
 DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
-
-    // TODO: rewrite the emitting code to handle a single giant list of symbols.
-    // Until then...
-    std::vector<Symbol *> funcSyms;
-    std::vector<Symbol *> varSyms;
-    std::vector<Symbol *> modSyms;
-    std::vector<Symbol *> otherSyms;
-
+    // Start with all the defined symbols
+    std::vector<Symbol *> allSyms;
     for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
-        Symbol *sym = everyDefinedSymbol[i];
-        switch(sym->getType()) {
-        case Symbol::ST_FUNCTION:
-            funcSyms.push_back(sym);
-            break;
-        case Symbol::ST_OBJECT:
-            varSyms.push_back(sym);
-            break;
-        case Symbol::ST_MODULE:
-            modSyms.push_back(sym);
-        default:
-            otherSyms.push_back(sym);
-        }
+        allSyms.push_back(everyDefinedSymbol[i]);
     }
 
-    // Add the undefined dynamic symbols so that they are added when emitting the binary
-    map<string, Symbol *>::iterator iter = undefDynSyms.begin();
-    while(iter!=undefDynSyms.end()){
-        otherSyms.push_back(iter->second);
-        iter++;
-    }
-    return linkedFile->emitDriver(this, filename, funcSyms, varSyms, modSyms, otherSyms, flag);
+    // Add the undefined dynamic symbols
+    map<string, std::vector<Symbol *> >::iterator iter;
+    std::vector<Symbol *>::iterator siter;
+
+    for (iter = undefDynSyms.begin(); iter != undefDynSyms.end(); iter++)
+        for (siter=iter->second.begin(); siter != iter->second.end(); siter++)
+            allSyms.push_back(*siter);
+
+    // Write the new file
+    return linkedFile->emitDriver(this, filename, allSyms, flag);
 }
 
 DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
-
-    // TODO: rewrite the emitting code to handle a single giant list of symbols.
-    // Until then...
-    std::vector<Symbol *> funcSyms;
-    std::vector<Symbol *> varSyms;
-    std::vector<Symbol *> modSyms;
-    std::vector<Symbol *> otherSyms;
-
-
-    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
-        Symbol *sym = everyDefinedSymbol[i];
-        switch(sym->getType()) {
-        case Symbol::ST_FUNCTION:
-            funcSyms.push_back(sym);
-            break;
-        case Symbol::ST_OBJECT:
-            varSyms.push_back(sym);
-            break;
-        case Symbol::ST_MODULE:
-            modSyms.push_back(sym);
-        default:
-            otherSyms.push_back(sym);
-        }
-    }
-
-    // Add the undefined dynamic symbols so that they are added when emitting the binary
-    map<string, Symbol *>::iterator iter = undefDynSyms.begin();
-    while(iter!=undefDynSyms.end()){
-        otherSyms.push_back(iter->second);
-        iter++;
-    }
-
-    Object *linkedFile = getObject();
-    assert(linkedFile);
-    
-    //fprintf(stderr, "%s[%d]:  about to emit %s\n", FILE__, __LINE__, filename.c_str());
-    
-    bool ret = linkedFile->emitDriver(this, filename, funcSyms, varSyms, modSyms, otherSyms, flag);
-    
-    return ret;
+    return emitSymbols(getObject(), filename, flag);
 }
 
 DLLEXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
@@ -2316,6 +2281,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_FUNCTION);
       CASE_RETURN_STR(ST_OBJECT);
       CASE_RETURN_STR(ST_MODULE);
+      CASE_RETURN_STR(ST_SECTION);
       CASE_RETURN_STR(ST_NOTYPE);
    }
    return "invalid symbol type";
@@ -2341,6 +2307,18 @@ const char *Symbol::symbolTag2Str(SymbolTag t)
       CASE_RETURN_STR(TAG_INTERNAL);
    }
    return "invalid symbol tag";
+}
+
+const char *Symbol::symbolVisibility2Str(SymbolVisibility t) 
+{
+   switch(t) {
+      CASE_RETURN_STR(SV_UNKNOWN);
+      CASE_RETURN_STR(SV_DEFAULT);
+      CASE_RETURN_STR(SV_INTERNAL);
+      CASE_RETURN_STR(SV_HIDDEN);
+      CASE_RETURN_STR(SV_PROTECTED);
+   }
+   return "invalid symbol visibility";
 }
 
 
