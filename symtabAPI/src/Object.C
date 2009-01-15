@@ -923,10 +923,11 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
+   std::string modname = s.module_ ? s.module_->fileName() : std::string("no_module");
    return os << "{"
       << " mangled=" << s.getMangledName()
       << " pretty="  << s.getPrettyName()
-      << " module="  << s.module_
+      << " module="  << modname << "[" << s.module_ << "]"
       //<< " type="    << (unsigned) s.type_
       << " type="    << s.symbolType2Str(s.type_)
       //<< " linkage=" << (unsigned) s.linkage_

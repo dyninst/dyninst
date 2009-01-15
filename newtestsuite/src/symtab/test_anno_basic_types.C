@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <iostream>
 #include "symtab_comp.h"
 #include "test_lib.h"
 
@@ -59,30 +60,47 @@ extern "C" DLLEXPORT TestMutator* test_anno_basic_types_factory()
    return new test_anno_basic_types_Mutator();
 }
 
+class TestClassSparse : public AnnotatableSparse
+{
+   public:
+   TestClassSparse() {}
+   ~TestClassSparse() {}
+};
+
+AnnotationClass<int> SingleIntAnno("SingleIntAnno");
+
 test_results_t test_anno_basic_types_Mutator::executeTest()
 {
-   std::vector<Symbol *> funcs;
-   assert(symtab);
-   fprintf(stderr, "%s[%d]:  hello\n", FILE__, __LINE__);
+   TestClassSparse tcs;
+   int five = 5;
 
-   bool result = symtab->findSymbolByType(funcs, std::string("foo"),
-                                          Symbol::ST_FUNCTION);
-
-   if (!result || funcs.size() != 1)
+   if (!tcs.addAnnotation(&five, SingleIntAnno))
    {
-      logerror("[%s:%u] - Unable to find foo\n", 
-               __FILE__, __LINE__);
+      logerror("%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
       return FAILED;
    }
 
-   Symbol *func = funcs[0];
-   if (func->getType() != Symbol::ST_FUNCTION)
+   int *out = NULL;
+
+   if (!tcs.getAnnotation(out, SingleIntAnno))
    {
-      logerror("[%s:%u] - Symbol foo was not a function\n", 
-               __FILE__, __LINE__);
+      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if (!out)
+   {
+      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if ((*out) != five)
+   {
+      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
       return FAILED;
    }
 
    return PASSED;
+
 }
 
