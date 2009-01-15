@@ -41,6 +41,10 @@
 #include "annotations.h"
 #include "Symbol.h"
 
+#include "Aggregate.h"
+#include "Function.h"
+#include "Variable.h"
+
 #include "symtabAPI/src/Object.h"
 
 #include <iostream>
@@ -217,8 +221,7 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
-   function_(s.function_),
-   variable_(s.variable_),
+   aggregate_(s.aggregate_),
    mangledName_(s.mangledName_), 
    prettyName_(s.prettyName_), 
    typedName_(s.typedName_), 
@@ -341,8 +344,7 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    isInDynsymtab_ = s.isInDynsymtab_;
    isInSymtab_ = s.isInSymtab_;
    isAbsolute_ = s.isAbsolute_;
-   function_ = s.function_;
-   variable_ = s.variable_;
+   aggregate_ = s.aggregate_;
    tag_     = s.tag_;
    mangledName_ = s.mangledName_;
    prettyName_ = s.prettyName_;
@@ -527,34 +529,34 @@ DLLEXPORT bool Symbol::isAbsolute() const
 
 DLLEXPORT bool Symbol::isFunction() const
 {
-    return (function_ != NULL);
+    return (getFunction() != NULL);
 }
 
 DLLEXPORT bool Symbol::setFunction(Function *func)
 {
-    function_ = func;
+    aggregate_ = func;
     return true;
 }
 
 DLLEXPORT Function * Symbol::getFunction() const
 {
-    return function_;
+    return dynamic_cast<Function *>(aggregate_);
 }
 
 DLLEXPORT bool Symbol::isVariable() const 
 {
-    return variable_ != NULL;
+    return (getVariable() != NULL);
 }
 
 DLLEXPORT bool Symbol::setVariable(Variable *var) 
 {
-    variable_ = var;
+    aggregate_ = var;
     return true;
 }
 
 DLLEXPORT Variable * Symbol::getVariable() const
 {
-    return variable_;
+    return dynamic_cast<Variable *>(aggregate_);
 }
 
 DLLEXPORT unsigned Symbol::getSize() const 
@@ -625,8 +627,7 @@ DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
     isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), 
-    function_(NULL),
-    variable_(NULL),
+    aggregate_(NULL),
     tag_(TAG_UNKNOWN),
     framePtrRegNum_(-1), retType_(NULL), moduleName_("")
 {
@@ -646,6 +647,7 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
         module_ = NULL;
     	moduleName_ = imodule;
         mangledName_ = iname;
+        aggregate_ = NULL;
 }
 
 DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
@@ -658,6 +660,7 @@ DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     retType_(NULL)
 {
     mangledName_ = iname;
+    aggregate_ = NULL;
 }
 
 
@@ -674,6 +677,8 @@ DLLEXPORT bool Symbol::setSymbolType(SymbolType sType)
     type_ = sType;
     if (module_->exec())
         module_->exec()->changeType(this, oldType);
+
+    // TODO: update aggregate with information
     
     return true;
 }
@@ -831,22 +836,23 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
-   return os << "{"
-      << " mangled=" << s.getMangledName()
-      << " pretty="  << s.getPrettyName()
-      << " module="  << s.module_
-      //<< " type="    << (unsigned) s.type_
-      << " type="    << s.symbolType2Str(s.type_)
-      //<< " linkage=" << (unsigned) s.linkage_
-      << " linkage=" << s.symbolLinkage2Str(s.linkage_)
-      << " addr=0x"    << hex << s.addr_ << dec
-      //<< " tag="     << (unsigned) s.tag_
-      << " tag="     << s.symbolTag2Str(s.tag_)
-      << " isAbs="   << s.isAbsolute_
-      << (s.function_!=NULL ? " [FUNC]" : "")
-      << (s.isInSymtab_ ? " [STA]" : "")
-      << (s.isInDynsymtab_ ? " [DYN]" : "")
-      << " }" << endl;
+    return os << "{"
+              << " mangled=" << s.getMangledName()
+              << " pretty="  << s.getPrettyName()
+              << " module="  << s.module_
+        //<< " type="    << (unsigned) s.type_
+              << " type="    << s.symbolType2Str(s.type_)
+        //<< " linkage=" << (unsigned) s.linkage_
+              << " linkage=" << s.symbolLinkage2Str(s.linkage_)
+              << " addr=0x"    << hex << s.addr_ << dec
+        //<< " tag="     << (unsigned) s.tag_
+              << " tag="     << s.symbolTag2Str(s.tag_)
+              << " isAbs="   << s.isAbsolute_
+              << (s.isFunction() ? " [FUNC]" : "")
+              << (s.isVariable() ? " [VAR]" : "")
+              << (s.isInSymtab_ ? " [STA]" : "")
+              << (s.isInDynsymtab_ ? " [DYN]" : "")
+              << " }" << endl;
 }
 
 #ifdef DEBUG 

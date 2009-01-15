@@ -68,8 +68,9 @@ class Module;
 class typeCommon;
 class localVarCollection;
 class Region;
+class Aggregate;
 class Function;
- class Variable;
+class Variable;
 
 /************************************************************************
  * class Symbol
@@ -200,9 +201,7 @@ class Symbol : public Serializable,
    bool          isInSymtab_;
    bool          isAbsolute_;
 
-   Function*     function_;  // if this symbol represents a function, this is a pointer
-                             // to the corresponding Function object
-   Variable     *variable_;  // Should combine into an "Aggregate" parent class...
+   Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
 
    std::string mangledName_;
    std::string prettyName_;
