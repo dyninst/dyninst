@@ -17,11 +17,11 @@ include $(TO_CORE)/make.config
 # Uncomment M_G77 (at yr own risk) to do g77 build
 #M_G77 = g77
 
-NATIVE_FC = xlf90
+#NATIVE_FC = xlf90
 NATIVE_FORTRAN_CC = gcc
-NATIVE_CC = xlc
-NATIVE_CXX = xlC
-NATIVE_CXX_OMP = xlC_r
+#NATIVE_CC = xlc
+#NATIVE_CXX = xlC
+#NATIVE_CXX_OMP = xlC_r
 
 COMMA=,
 
@@ -60,7 +60,7 @@ MUTATEE_NATIVE_CXX_CFLAGS = -qsmp=omp
 MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
 
 MUTATEE_CFLAGS_GNU = $(UNIFIED_DEF)
-MUTATEE_LDFLAGS_GNU += -Wl,-bgcbypass:3  -Wl,-bnoobjreorder 
+MUTATEE_LDFLAGS_GNU += -Wl,-bexpall -Wl,-bnoobjreorder 
 MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
