@@ -2087,7 +2087,7 @@ test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
 
 % should this really be groupable?
-test('test_anno_basic_types', 'test_anno_basic_types', none).
+test('test_anno_basic_types', 'test_anno_basic_types', 'symtab_group_test').
 test_description('test_anno_basic_types', 'Annotate objects with basic types').
 test_runs_everywhere('test_anno_basic_types').
 groupable_test('test_anno_basic_types').
