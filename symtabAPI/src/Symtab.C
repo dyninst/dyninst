@@ -323,14 +323,14 @@ DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
    mfForDebugInfo(mf_),
    obj_private(NULL)
 {   
-    init_debug();
+    init_debug_symtabAPI();
 }   
 
 
 DLLEXPORT Symtab::Symtab() :
    obj_private(NULL)
 {
-    init_debug();
+    init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
     defaultNamespacePrefix = "";
 }
@@ -937,7 +937,7 @@ Symtab::Symtab(std::string filename,bool &err) :
    type_Error(NULL), 
    type_Untyped(NULL)
 {
-    init_debug();
+    init_debug_symtabAPI();
    // Initialize error parameter
    err = false;
    
@@ -1556,7 +1556,7 @@ Symtab::~Symtab()
    for (unsigned i=0;i<excpBlocks.size();i++)
       delete excpBlocks[i];
 
-   symtab_printf("%s[%d]: Symtab::~Symtab removing %p from allSymtabs\n", 
+   create_printf("%s[%d]: Symtab::~Symtab removing %p from allSymtabs\n", 
          FILE__, __LINE__, this);
 
    deps_.clear();
