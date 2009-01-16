@@ -41,7 +41,7 @@ int sym_debug_aggregate = 0;
 int sym_debug_object = 0;
 int sym_debug_types = 0;
 
-bool init_debug() {
+bool init_debug_symtabAPI() {
     static bool initialized = false;
     if (initialized) return true;
     initialized = true;

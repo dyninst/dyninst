@@ -57,6 +57,6 @@ extern int object_printf(const char *format, ...);
 extern int types_printf(const char *format, ...);
 
 // And initialization
-extern bool init_debug();
+extern bool init_debug_symtabAPI();
 
 #endif /* SYMTAB_DEBUG_H */
