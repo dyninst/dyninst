@@ -12,7 +12,7 @@
 class TestMutator;
 class ComponentTester;
 
-#define NUM_RUNSTATES 7
+#define NUM_RUNSTATES 8
 typedef enum {
    program_setup_rs = 0,
    test_init_rs,
