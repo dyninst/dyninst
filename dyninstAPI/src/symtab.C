@@ -159,18 +159,6 @@ pdmodule *image::newModule(const string &name, const Address addr, supportedLang
    if (linkedFile->findModuleByName(mod, fileNm))
       ret = new pdmodule(mod, this);
    else {
-#if 0
-      fprintf(stderr, "%s[%d]: FIXME:  pdmodule without underlying module=%s, have modules:\n", FILE__, __LINE__, fileNm.c_str());
-      std::vector<Module *> mods;
-      bool ok = linkedFile->getAllModules(mods);
-      if (!ok) {
-         fprintf(stderr, "%s[%d]:  failed to getAllModules\n", FILE__, __LINE__);
-         assert(0);
-      }
-      for (unsigned int  i =0; i < mods.size(); ++i) {
-         fprintf(stderr, "\t%s\n", mods[i]->fileName().c_str());
-      }
-#endif
       ret = new pdmodule(lang, addr, fullNm, this);
    }
    modsByFileName[ret->fileName()] = ret;

@@ -652,15 +652,7 @@ bool SignalGeneratorCommon::getEvents(pdvector<EventRecord> &events)
     if (stop_request) return false;
     assert(proc);
     
-    bool ret = waitForEventsInternal(events);
-
-    if (ret == false) {
-        return false;
-    }
-
-    // Will be set to false when we've assigned the event to a signal handler
-    
-    return true;
+    return waitForEventsInternal(events);
 }
 
 
