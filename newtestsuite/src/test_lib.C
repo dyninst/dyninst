@@ -576,6 +576,8 @@ bool shouldRunTest(RunGroup *group, TestInfo *test)
 
    for (unsigned i=0; i<NUM_RUNSTATES; i++)
    {
+      if (i == program_teardown_rs)
+         continue;
       if (test->results[i] == FAILED ||
           test->results[i] == SKIPPED ||
           test->results[i] == CRASHED)
@@ -600,6 +602,8 @@ void reportTestResult(RunGroup *group, TestInfo *test)
 
    for (unsigned i=0; i<NUM_RUNSTATES; i++)
    {
+      if (i == program_teardown_rs)
+         continue;
       if (test->results[i] == FAILED ||
           test->results[i] == CRASHED || 
           test->results[i] == SKIPPED) {
