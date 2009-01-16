@@ -1272,21 +1272,29 @@ int parseArgs(int argc, char *argv[])
       }
       else if (strcmp(argv[i], "-max") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_max;
       }
       else if (strcmp(argv[i], "-high") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_high;
       }
       else if (strcmp(argv[i], "-low") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_low;
       }
       else if (strcmp(argv[i], "-none") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_none;
       }
