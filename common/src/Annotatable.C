@@ -55,16 +55,25 @@ bool void_ptr_cmp_func(void *v1, void *v2)
 }
 };
 
-std::vector<AnnotationClassBase *> AnnotationClassBase::annotation_types;
+std::vector<AnnotationClassBase *> *AnnotationClassBase::annotation_types;
 AnnotationClassBase::AnnotationClassBase(anno_cmp_func_t cmp_func_)
 {
+    // Using a static vector led to the following pattern on AIX:
+    //   dyninstAPI static initialization
+    //     ... add annotation types
+    //   common static initialization
+    //     ... vector constructor called, resetting size to 0.
+
+    if (annotation_types == NULL)
+        annotation_types = new std::vector<AnnotationClassBase *>;
+
    if (NULL == cmp_func_)
       cmp_func = void_ptr_cmp_func;
    else
       cmp_func = cmp_func_;
 
-   annotation_types.push_back(this);
-   id = (AnnotationClassID) annotation_types.size();
+   annotation_types->push_back(this);
+   id = (AnnotationClassID) annotation_types->size();
 }
 
 #if 0

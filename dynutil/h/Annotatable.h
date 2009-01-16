@@ -69,7 +69,7 @@ class SerializerBase;
 class AnnotationClassBase
 {
    private:
-      static std::vector<AnnotationClassBase *> annotation_types;
+      static std::vector<AnnotationClassBase *> *annotation_types;
       anno_cmp_func_t cmp_func;
       AnnotationClassID id;
 
