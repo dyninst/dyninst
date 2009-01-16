@@ -55,7 +55,7 @@
 #define	TEST_DYNAMIC_LIB	"libXaw.so"
 #define TEST_DYNAMIC_LIB2	"libXt.so"
 
-#elif defined(arch_power) && defined(os_linux_test)
+#elif defined(arch_power_test) && defined(os_linux_test)
 #define TEST_DYNAMIC_LIB        "libutil.so"
 #define TEST_DYNAMIC_LIB2       "libm.so"
 

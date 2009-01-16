@@ -82,7 +82,7 @@ test_results_t test_stack_3_Mutator::executeTest() {
 #if defined( os_linux_test ) && (defined( arch_x86_test ) || defined( arch_x86_64_test ))
     { true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
 #endif
-#if defined( os_aix_test ) && defined( arch_power )
+#if defined( os_aix_test ) && defined( arch_power_test )
     /* AIX uses kill(), but the PC of a process in a syscall can
        not be correctly determined, and appears to be the address
        to which the syscall function will return. */
