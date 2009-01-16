@@ -37,10 +37,13 @@
 #include "dyntypes.h"
 #include <string>
 
+#if defined(_MSC_VER)	
+#include <set>
+#else
 #include <regex.h>
 #include <string>
-
 #endif
+
 namespace Dyninst{
 namespace SymtabAPI{
 

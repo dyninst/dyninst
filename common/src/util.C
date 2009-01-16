@@ -1,7 +1,10 @@
+#include "common/h/ntHeaders.h"
 #include <string>
 #include "dynutil/h/util.h"
+
+
 namespace Dyninst {
-DLLEXPORT_COMMON unsigned addrHashCommon(const Address &addr)
+COMMON_EXPORT unsigned addrHashCommon(const Address &addr)
 {
    // inspired by hashs of string class
 
@@ -17,29 +20,29 @@ DLLEXPORT_COMMON unsigned addrHashCommon(const Address &addr)
    return result;
 }
 
-DLLEXPORT_COMMON unsigned addrHash(const Address & iaddr)
+COMMON_EXPORT unsigned addrHash(const Address & iaddr)
 {
    return Dyninst::addrHashCommon(iaddr);
 }
 
-DLLEXPORT_COMMON unsigned ptrHash(const void * iaddr)
+COMMON_EXPORT unsigned ptrHash(const void * iaddr)
 {
    return Dyninst::addrHashCommon((Address)iaddr);
 }
 
-DLLEXPORT_COMMON unsigned ptrHash(void * iaddr)
+COMMON_EXPORT unsigned ptrHash(void * iaddr)
 {
    return Dyninst::addrHashCommon((Address)iaddr);
 }
 
-DLLEXPORT_COMMON unsigned addrHash4(const Address &iaddr)
+COMMON_EXPORT unsigned addrHash4(const Address &iaddr)
 {
    // call when you know that the low 2 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
    return Dyninst::addrHashCommon(iaddr >> 2);
 }
 
-DLLEXPORT_COMMON unsigned addrHash16(const Address &iaddr)
+COMMON_EXPORT unsigned addrHash16(const Address &iaddr)
 {
    // call when you know that the low 4 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
@@ -64,14 +67,14 @@ unsigned stringhash(const std::string &s)
 std::string itos(int in)
 {
   char buf[16];
-  sprintf(buf, "%d", in);
+  snprintf(buf, 16, "%d", in);
   return std::string(buf);
 }
 
 std::string utos(unsigned in)
 {
   char buf[16];
-  sprintf(buf, "%u", in);
+  snprintf(buf, 16, "%u", in);
   return std::string(buf);
 }
 

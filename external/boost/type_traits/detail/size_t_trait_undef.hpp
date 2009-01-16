@@ -7,9 +7,9 @@
 // (See accompanying file LICENSE_1_0.txt or copy at 
 // http://www.boost.org/LICENSE_1_0.txt)
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/type_traits/detail/size_t_trait_undef.hpp,v $
-// $Date: 2007/12/04 21:53:45 $
-// $Revision: 1.1 $
+// $Source$
+// $Date: 2004-09-02 11:41:37 -0400 (Thu, 02 Sep 2004) $
+// $Revision: 24874 $
 
 #undef BOOST_TT_AUX_SIZE_T_TRAIT_DEF1
 #undef BOOST_TT_AUX_SIZE_T_TRAIT_SPEC1

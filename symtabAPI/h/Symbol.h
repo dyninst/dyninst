@@ -114,70 +114,70 @@ class Symbol : public Serializable,
 
    static const char *symbolTag2Str(SymbolTag t);
 
-   SYMTABEXPORT Symbol (); // note: this ctor is called surprisingly often!
-   SYMTABEXPORT Symbol (unsigned);
-   SYMTABEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
+   SYMTAB_EXPORT Symbol (); // note: this ctor is called surprisingly often!
+   SYMTAB_EXPORT Symbol (unsigned);
+   SYMTAB_EXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
          bool isInSymtab_ = true, bool isAbsolute_ = false);
-   SYMTABEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
+   SYMTAB_EXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
          bool isInSymtab_ = true, bool isAbsolute_ = false);
-   SYMTABEXPORT Symbol (const Symbol &);
-   SYMTABEXPORT ~Symbol();
+   SYMTAB_EXPORT Symbol (const Symbol &);
+   SYMTAB_EXPORT ~Symbol();
 
-   SYMTABEXPORT Symbol&        operator= (const Symbol &);
-   SYMTABEXPORT bool          operator== (const Symbol &) const;
+   SYMTAB_EXPORT Symbol&        operator= (const Symbol &);
+   SYMTAB_EXPORT bool          operator== (const Symbol &) const;
 
-   SYMTABEXPORT const std::string&getModuleName ()        const;
-   SYMTABEXPORT Module*	        getModule()		        const; 
-   SYMTABEXPORT SymbolType        getType ()              const;
-   SYMTABEXPORT SymbolLinkage     getLinkage ()           const;
-   SYMTABEXPORT Offset            getAddr ()              const;
-   SYMTABEXPORT Region		    *getSec ()      	    const;
-   SYMTABEXPORT bool              isInDynSymtab()         const;
-   SYMTABEXPORT bool              isInSymtab()            const;
-   SYMTABEXPORT bool              isAbsolute()            const;
+   SYMTAB_EXPORT const std::string&getModuleName ()        const;
+   SYMTAB_EXPORT Module*	        getModule()		        const; 
+   SYMTAB_EXPORT SymbolType        getType ()              const;
+   SYMTAB_EXPORT SymbolLinkage     getLinkage ()           const;
+   SYMTAB_EXPORT Offset            getAddr ()              const;
+   SYMTAB_EXPORT Region		    *getSec ()      	    const;
+   SYMTAB_EXPORT bool              isInDynSymtab()         const;
+   SYMTAB_EXPORT bool              isInSymtab()            const;
+   SYMTAB_EXPORT bool              isAbsolute()            const;
 
-   SYMTABEXPORT bool              isFunction()            const;
-   SYMTABEXPORT bool              setFunction(Function * func);
-   SYMTABEXPORT Function *        getFunction()           const;
+   SYMTAB_EXPORT bool              isFunction()            const;
+   SYMTAB_EXPORT bool              setFunction(Function * func);
+   SYMTAB_EXPORT Function *        getFunction()           const;
 
-   SYMTABEXPORT bool              isVariable()            const;
-   SYMTABEXPORT bool              setVariable(Variable *var);
-   SYMTABEXPORT Variable *        getVariable()           const;
+   SYMTAB_EXPORT bool              isVariable()            const;
+   SYMTAB_EXPORT bool              setVariable(Variable *var);
+   SYMTAB_EXPORT Variable *        getVariable()           const;
 
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   SYMTABEXPORT const std::string&      getMangledName ()              const;
-   SYMTABEXPORT const std::string&	     getPrettyName()       	const;
-   SYMTABEXPORT const std::string&      getTypedName() 		const;
+   SYMTAB_EXPORT const std::string&      getMangledName ()              const;
+   SYMTAB_EXPORT const std::string&	     getPrettyName()       	const;
+   SYMTAB_EXPORT const std::string&      getTypedName() 		const;
 
    /* Deprecated */
-   SYMTABEXPORT const std::string &getName() const { return getMangledName(); }
+   SYMTAB_EXPORT const std::string &getName() const { return getMangledName(); }
 
-   SYMTABEXPORT bool setAddr (Offset newAddr);
+   SYMTAB_EXPORT bool setAddr (Offset newAddr);
 
-   SYMTABEXPORT bool setSymbolType(SymbolType sType);
+   SYMTAB_EXPORT bool setSymbolType(SymbolType sType);
 
-   SYMTABEXPORT unsigned            getSize ()               const;
-   SYMTABEXPORT SymbolTag            tag ()               const;
-   SYMTABEXPORT bool	setSize(unsigned ns);
-   SYMTABEXPORT bool	setModuleName(std::string module);
-   SYMTABEXPORT bool 	setModule(Module *mod);
-   SYMTABEXPORT bool  setDynSymtab();
-   SYMTABEXPORT bool  clearDynSymtab();
-   SYMTABEXPORT bool  setIsInSymtab();
-   SYMTABEXPORT bool  clearIsInSymtab();
-   SYMTABEXPORT bool  setIsAbsolute();
-   SYMTABEXPORT bool  clearIsAbsolute();
+   SYMTAB_EXPORT unsigned            getSize ()               const;
+   SYMTAB_EXPORT SymbolTag            tag ()               const;
+   SYMTAB_EXPORT bool	setSize(unsigned ns);
+   SYMTAB_EXPORT bool	setModuleName(std::string module);
+   SYMTAB_EXPORT bool 	setModule(Module *mod);
+   SYMTAB_EXPORT bool  setDynSymtab();
+   SYMTAB_EXPORT bool  clearDynSymtab();
+   SYMTAB_EXPORT bool  setIsInSymtab();
+   SYMTAB_EXPORT bool  clearIsInSymtab();
+   SYMTAB_EXPORT bool  setIsAbsolute();
+   SYMTAB_EXPORT bool  clearIsAbsolute();
 
-   SYMTABEXPORT bool  setVersionFileName(std::string &fileName);
-   SYMTABEXPORT bool  setVersions(std::vector<std::string> &vers);
-   SYMTABEXPORT bool  setVersionNum(unsigned verNum);
-   SYMTABEXPORT bool  getVersionFileName(std::string &fileName);
-   SYMTABEXPORT bool  getVersions(std::vector<std::string> *&vers);
-   SYMTABEXPORT bool  VersionNum(unsigned &verNum);
+   SYMTAB_EXPORT bool  setVersionFileName(std::string &fileName);
+   SYMTAB_EXPORT bool  setVersions(std::vector<std::string> &vers);
+   SYMTAB_EXPORT bool  setVersionNum(unsigned verNum);
+   SYMTAB_EXPORT bool  getVersionFileName(std::string &fileName);
+   SYMTAB_EXPORT bool  getVersions(std::vector<std::string> *&vers);
+   SYMTAB_EXPORT bool  VersionNum(unsigned &verNum);
 
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
@@ -222,7 +222,7 @@ class Symbol : public Serializable,
 #endif
 
    public:
-   SYMTABEXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
+   SYMTAB_EXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
 };
 
 inline
@@ -271,19 +271,19 @@ Symbol::operator==(const Symbol& s) const
 class LookupInterface 
 {
    public:
-      SYMTABEXPORT LookupInterface();
-      SYMTABEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
+      SYMTAB_EXPORT LookupInterface();
+      SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
             Symbol::SymbolType sType) = 0;
-      SYMTABEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
+      SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
             const std::string name,
             Symbol::SymbolType sType,
             bool isMangled = false,
             bool isRegex = false,
             bool checkCase = false) = 0;
-      SYMTABEXPORT virtual bool findType(Type *&type, std::string name) = 0;
-      SYMTABEXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
+      SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name) = 0;
+      SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
 
-      SYMTABEXPORT virtual ~LookupInterface();
+      SYMTAB_EXPORT virtual ~LookupInterface();
 };
 
 

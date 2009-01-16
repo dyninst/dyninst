@@ -115,5 +115,6 @@ test_results_t test1_1_Mutator::executeTest() {
   checkCost(call1Expr);
   appThread->insertSnippet(call1Expr, *point1_1);
   dprintf("Inserted snippet\n");
+
   return PASSED;
 } // test1_1_Mutator::executeTest()

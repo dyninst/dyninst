@@ -44,7 +44,7 @@
 #include <list>
 #include <cstring>
 #include "boost/functional/hash.hpp"
-
+#include "common/h/headers.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -137,7 +137,7 @@ bool LineInformation::addLine( const char * lineSource,
 
    if ( found == sourceLineNames.end() ) 
    {
-      lineSourceInternal = strdup( lineSource );
+      lineSourceInternal = P_strdup( lineSource );
       assert( lineSourceInternal != NULL );
       sourceLineNames.insert( lineSourceInternal );
    }

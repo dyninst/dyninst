@@ -81,8 +81,8 @@ class SymtabComponent : public ComponentTester
    virtual ~SymtabComponent();
 };
 
-extern "C" {
-   ComponentTester *componentTesterFactory();
+extern "C"  {
+   TEST_DLL_EXPORT ComponentTester *componentTesterFactory();
 }
 
 

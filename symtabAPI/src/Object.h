@@ -77,63 +77,61 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
 
 class AObject {
 public:
-    SYMTABEXPORT AObject();
-    SYMTABEXPORT unsigned nsymbols () const;
+    SYMTAB_EXPORT AObject();
+    SYMTAB_EXPORT unsigned nsymbols () const;
     
-    SYMTABEXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
+    SYMTAB_EXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
 
-    SYMTABEXPORT char*       code_ptr () const; 
-    SYMTABEXPORT Offset           code_off () const;
-    SYMTABEXPORT Offset           code_len () const;
+    SYMTAB_EXPORT char*       code_ptr () const; 
+    SYMTAB_EXPORT Offset           code_off () const;
+    SYMTAB_EXPORT Offset           code_len () const;
 
-    SYMTABEXPORT char*       data_ptr () const;
-    SYMTABEXPORT Offset           data_off () const;
-    SYMTABEXPORT Offset           data_len () const;
+    SYMTAB_EXPORT char*       data_ptr () const;
+    SYMTAB_EXPORT Offset           data_off () const;
+    SYMTAB_EXPORT Offset           data_len () const;
 
-    SYMTABEXPORT bool 	      is_aout  () const;
-    SYMTABEXPORT bool        isDynamic() const;
+    SYMTAB_EXPORT bool 	      is_aout  () const;
+    SYMTAB_EXPORT bool        isDynamic() const;
 
-    SYMTABEXPORT unsigned	      no_of_sections () const;
-    SYMTABEXPORT unsigned	      no_of_symbols  ()	const;
+    SYMTAB_EXPORT unsigned	      no_of_sections () const;
+    SYMTAB_EXPORT unsigned	      no_of_symbols  ()	const;
 
-    SYMTABEXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
-    SYMTABEXPORT std::vector<Region *> getAllRegions() const;
+    SYMTAB_EXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
+    SYMTAB_EXPORT std::vector<Region *> getAllRegions() const;
 
 
-    SYMTABEXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
+    SYMTAB_EXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
                                                                     supportedLanguages working_lang);
 
-    SYMTABEXPORT Offset loader_off() const;
-    SYMTABEXPORT unsigned loader_len() const;
-    SYMTABEXPORT int getAddressWidth() const;
+    SYMTAB_EXPORT Offset loader_off() const;
+    SYMTAB_EXPORT unsigned loader_len() const;
+    SYMTAB_EXPORT int getAddressWidth() const;
 
-    SYMTABEXPORT virtual char *  mem_image() const;
+    SYMTAB_EXPORT virtual char *  mem_image() const;
 
-    SYMTABEXPORT virtual  bool   needs_function_binding()  const;
-    SYMTABEXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
-    SYMTABEXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
-    SYMTABEXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
-    SYMTABEXPORT bool   getSegments(std::vector<Segment> &segs) const;
+    SYMTAB_EXPORT virtual  bool   needs_function_binding()  const;
+    SYMTAB_EXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
+    SYMTAB_EXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
+    SYMTAB_EXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
+    SYMTAB_EXPORT bool   getSegments(std::vector<Segment> &segs) const;
 
-    SYMTABEXPORT bool have_deferred_parsing( void ) const;
+    SYMTAB_EXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....
-    SYMTABEXPORT const std::ostream &dump_state_info(std::ostream &s);
+    SYMTAB_EXPORT const std::ostream &dump_state_info(std::ostream &s);
 
-    SYMTABEXPORT void * getErrFunc() const;
-    SYMTABEXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
-    SYMTABEXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
-
-
+    SYMTAB_EXPORT void * getErrFunc() const;
+    SYMTAB_EXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+    SYMTAB_EXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
 
 protected:
-    SYMTABEXPORT virtual ~AObject();
+    SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
-    SYMTABEXPORT AObject(MappedFile * , MappedFile *, void (*err_func)(const char *));
-    SYMTABEXPORT AObject(MappedFile * , MappedFile *, 
+    SYMTAB_EXPORT AObject(MappedFile * , MappedFile *, void (*err_func)(const char *));
+    SYMTAB_EXPORT AObject(MappedFile * , MappedFile *, 
                       dyn_hash_map<std::string, LineInformation> &, 
                       void (*)(const char *)) { assert(0); }
-    SYMTABEXPORT AObject(const AObject &obj);
-    SYMTABEXPORT AObject&  operator= (const AObject &obj);
+    SYMTAB_EXPORT AObject(const AObject &obj);
+    SYMTAB_EXPORT AObject&  operator= (const AObject &obj);
 
     MappedFile *mf;
     MappedFile *mfForDebugInfo;

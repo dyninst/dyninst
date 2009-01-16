@@ -57,9 +57,9 @@ char *Address_str (Address addr)
     static int i=0;
     i=(i+1)%_numaddrstrs;
     if (sizeof(Address) == sizeof(int))
-        sprintf(_addrstr[i],"0x%08X",(unsigned int)addr);
+        snprintf(_addrstr[i],19,"0x%08X",(unsigned int)addr);
     else
-        sprintf(_addrstr[i],"0x%016lX",(unsigned long)addr);
+        snprintf(_addrstr[i],19,"0x%016lX",(unsigned long)addr);
     return (_addrstr[i]);
 }
 

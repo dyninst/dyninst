@@ -32,8 +32,8 @@
 
 // $Id: String.C,v 1.39 2008/07/01 19:26:47 legendre Exp $
 
-#include <assert.h>
 #include "common/h/headers.h"
+#include <assert.h>
 #if !defined (os_windows)
 #include <sys/types.h>
 #include <regex.h>
@@ -60,7 +60,7 @@ void dedemangle( char * demangled, char * result )
       resultBegins = strrchr( demangled, ')' ) + 3;
 
       /* End it at the right-most space, if any. */
-      resultEnds = strrchr( resultBegins, ' ' );
+      resultEnds = const_cast<char *>(strrchr( resultBegins, ' ' ));
       if ( resultEnds != NULL ) { * resultEnds = '\0'; }
    }
    else if ( strrchr( demangled, '(' ) != NULL ) 
@@ -252,7 +252,7 @@ bool prefixed_by(std::string &haystack, std::string &prefix)
    if (!haystack.c_str()) 
       return false;
 
-   char *res = strstr(haystack.c_str(), prefix.c_str());
+   const char *res = strstr(haystack.c_str(), prefix.c_str());
 
    if (res == haystack.c_str())
       return true;

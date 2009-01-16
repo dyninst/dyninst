@@ -71,25 +71,25 @@ class AddressLookup : public AnnotatableSparse
 
 
  public:
-   SYMTABEXPORT static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
-   SYMTABEXPORT static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL);
-   SYMTABEXPORT static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &name_addrs);
+   SYMTAB_EXPORT static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
+   SYMTAB_EXPORT static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL);
+   SYMTAB_EXPORT static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &name_addrs);
    
-   SYMTABEXPORT bool getAddress(Symtab *tab, Symbol *sym, Address &addr);
-   SYMTABEXPORT bool getAddress(Symtab *tab, Offset off, Address &addr);
+   SYMTAB_EXPORT bool getAddress(Symtab *tab, Symbol *sym, Address &addr);
+   SYMTAB_EXPORT bool getAddress(Symtab *tab, Offset off, Address &addr);
 
-   SYMTABEXPORT bool getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close = false);
-   SYMTABEXPORT bool getOffset(Address addr, Symtab* &tab, Offset &off);
+   SYMTAB_EXPORT bool getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close = false);
+   SYMTAB_EXPORT bool getOffset(Address addr, Symtab* &tab, Offset &off);
    
-   SYMTABEXPORT bool getAllSymtabs(std::vector<Symtab *> &tabs);
-   SYMTABEXPORT bool getLoadAddress(Symtab* sym, Address &load_addr);
-   SYMTABEXPORT bool getDataLoadAddress(Symtab* sym, Address &load_addr);
+   SYMTAB_EXPORT bool getAllSymtabs(std::vector<Symtab *> &tabs);
+   SYMTAB_EXPORT bool getLoadAddress(Symtab* sym, Address &load_addr);
+   SYMTAB_EXPORT bool getDataLoadAddress(Symtab* sym, Address &load_addr);
 
-   SYMTABEXPORT bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
+   SYMTAB_EXPORT bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
 
-   SYMTABEXPORT bool refresh();
+   SYMTAB_EXPORT bool refresh();
    
-   SYMTABEXPORT virtual ~AddressLookup();
+   SYMTAB_EXPORT virtual ~AddressLookup();
 };
 
 }

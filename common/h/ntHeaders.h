@@ -105,28 +105,29 @@ int P_getopt(int argc, char *argv[], const char *optstring);
 
 /* POSIX */
 inline void P_abort (void) { abort();}
-inline int P_close (int FILEDES) { return (close(FILEDES));}
+inline int P_close (int FILEDES) { return (_close(FILEDES));}
 inline int P__dup2(int OLD, int NEW) { return (_dup2(OLD, NEW)); }
 inline int P__execvp(const char *fname, const char *const argv[]) {
   return (_execvp(fname, argv)); }
 inline void P__exit (int STATUS) { _exit(STATUS);}
 inline FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
-  return (fdopen(FILEDES, OPENTYPE));}
+  return (_fdopen(FILEDES, OPENTYPE));}
 inline FILE * P_fopen (const char *FILENAME, const char *OPENTYPE) {
-  return (fopen(FILENAME, OPENTYPE));}
+  return fopen(FILENAME, OPENTYPE);
+}
 inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
-inline int P_getpid () { return (getpid());}
+inline int P_getpid () { return (_getpid());}
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
-  return (lseek(FILEDES, OFFSET, WHENCE));}
+  return (_lseek(FILEDES, OFFSET, WHENCE));}
 inline int P__open(const char *FILENAME, int FLAGS, int MODE) {
-  return (open(FILENAME, FLAGS, MODE));}
+  return (_open(FILENAME, FLAGS, MODE));}
 inline int P__pclose (FILE *STREAM) { return (_pclose(STREAM));}
 inline FILE *P__popen (const char *COMMAND, const char *MODE) {
   return (_popen(COMMAND, MODE));}
 inline size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
-  return (write(FILEDES, BUFFER, SIZE));}
-inline int P_chdir(const char *path) { return (chdir(path)); }
-inline int P_putenv(char *str) { return putenv(str); }
+  return (_write(FILEDES, BUFFER, SIZE));}
+inline int P_chdir(const char *path) { return (_chdir(path)); }
+inline int P_putenv(char *str) { return _putenv(str); }
 
 /* ANSI */
 inline void P_exit (int STATUS) { exit(STATUS);}
@@ -152,7 +153,7 @@ inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
 inline char * P_strcpy (char *TO, const char *FROM) {
   return (strcpy(TO, FROM));}
-inline char *P_strdup(const char *S) { return (strdup(S));}
+inline char *P_strdup(const char *S) { return (_strdup(S));}
 inline size_t P_strlen (const char *S) { return (strlen(S));}
 inline char * P_strncat (char *TO, const char *FROM, size_t SIZE) {
   return (strncat(TO, FROM, SIZE)); }
@@ -201,6 +202,13 @@ inline int P_recv(int s, void *buf, size_t len, int flags) {
    return (recv(s, (char*)buf, len, flags));
 }
 
+inline int P_mkdir(const char *pathname, int) {
+	return _mkdir(pathname);
+}
+
+inline int P_unlink(const char *pathname) {
+	return _unlink(pathname);
+}
 extern char *cplus_demangle(char *, int, bool );
 inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool includeTypes = false ) {
    return cplus_demangle( (char *)symbol, 0, includeTypes );

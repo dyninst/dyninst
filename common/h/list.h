@@ -46,7 +46,7 @@
 
 #include "common/h/language.h"
 
-#include <iostream>
+#include <ostream>
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P

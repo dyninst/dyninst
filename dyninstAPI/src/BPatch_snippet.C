@@ -172,7 +172,7 @@ float BPatch_snippet::getCostAtPointInt(BPatch_point *pt)
                            + getInsnCost(trampTrailer);
 
     timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
-    float frequency = getPointFrequency(pt->point);
+    float frequency = 1.0f;
     timeLength value = unitCost * frequency;
 
   float retCost = static_cast<float>(value.getD(timeUnit::sec()));

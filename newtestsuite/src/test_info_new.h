@@ -100,6 +100,6 @@ public:
 
 //extern std::vector<RunGroup *> tests;
 
-//extern void initialize_mutatees(std::vector<RunGroup *> &tests);
+extern void initialize_mutatees(std::vector<RunGroup *> &tests);
 
 #endif // !defined(TEST_INFO_NEW_H)

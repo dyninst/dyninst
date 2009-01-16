@@ -58,6 +58,7 @@
 #define vsnprintf _vsnprintf
 #define snprintf _snprintf
 #pragma warning(disable:4786)
+#include <direct.h>
 #else
 #include <fnmatch.h>
 #include <dirent.h>
@@ -643,26 +644,24 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
       }
    }
 
-   for(std::vector<TestInfo*>::iterator curTest = group->tests.begin(); 
-	   curTest != group->tests.end();
-	   ++curTest)
+   for(unsigned i = 0; i < group->tests.size(); i++)
    {
       // Print mutator log header
-	  assert(*curTest);
-      printLogOptionHeader(*curTest);
+	  assert(group->tests[i]);
+      printLogOptionHeader(group->tests[i]);
 
-      if (shouldRunTest(group, *curTest)) {
+      if (shouldRunTest(group, group->tests[i])) {
          log_teststart(groupnum, i, test_init_rs);
-		 if((*curTest)->mutator)
+		 if(group->tests[i]->mutator)
 		 {
-	         (*curTest)->results[test_init_rs] = (*curTest)->mutator->setup(param);
+	         group->tests[i]->results[test_init_rs] = group->tests[i]->mutator->setup(param);
 		 }
 		 else
 		 {
-			 logerror("No mutator object found for test: %s\n", (*curTest)->name);
-			(*curTest)->results[test_init_rs] = FAILED;
+			 logerror("No mutator object found for test: %s\n", group->tests[i]->name);
+			group->tests[i]->results[test_init_rs] = FAILED;
 		 }
-         log_testresult((*curTest)->results[test_init_rs]);
+         log_testresult(group->tests[i]->results[test_init_rs]);
       }
    }
       
@@ -804,9 +803,16 @@ void startAllTests(std::vector<RunGroup *> &groups,
       runScript("date");
       runScript("uname -a");
    }
-#endif
    getOutput()->log(LOGINFO, "TESTDIR=%s\n", getenv("PWD"));
-
+#else
+	char* cwd = _getcwd(NULL, 0);
+	if(cwd) {
+	   getOutput()->log(LOGINFO, "TESTDIR=%s\n", cwd);
+	} else {
+		getOutput()->log(LOGERR, "Couldn't get working directory!\n");
+	}
+	free(cwd);
+#endif
    // Sets the disable flag on groups and tests that weren't selected by
    // options or have alread been passed according to the resumelog
    std::sort(groups.begin(), groups.end(), groupcmp());

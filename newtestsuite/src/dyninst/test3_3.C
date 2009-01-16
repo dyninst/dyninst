@@ -132,7 +132,9 @@ test_results_t test3_3_Mutator::executeTest() {
         if (!appThread[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test #3 (instrument multiple processes)\n");
-            MopUpMutatees(n-1,appThread);
+			if(n > 0) {
+	            MopUpMutatees(n-1,appThread);
+			}
             return FAILED;
         }
         pid[n] = appThread[n]->getPid();

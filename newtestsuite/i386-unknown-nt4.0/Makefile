@@ -13,7 +13,7 @@ NO_OPT_FLAG=true
 # in the paradyn tree.
 
 !include $(TO_CORE)/nmake.config
-DEFCFLAGS = $(DEFCFLAGS) -MD # ccw 12 july 2001
+DEFCFLAGS = $(DEFCFLAGS) -MDd # ccw 12 july 2001
 LDFLAGS = $(LDFLAGS) /NODEFAULTLIB:LIBC.lib  # ccw 12 july 2001
 # Now make any necessary architecture specific changes to variables:
 
@@ -26,6 +26,8 @@ CFLAGS = $(CFLAGS) -Dos_windows_test -Di386_unknown_nt4_0_test
 NATIVE_CC = VC
 NATIVE_CXX = VC++
 TEST_LINKS = libdyninstAPI.lib libtestSuite.lib
+
+TESTLIB_FLAGS = -nologo -dll -debug
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

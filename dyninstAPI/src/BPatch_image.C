@@ -896,7 +896,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
       }
    }
 
-   char *nameCopy = strdup(name);
+   char *nameCopy = P_strdup(name);
    assert(nameCopy);
    BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
          addSpace, (void *)var->getAddress(), 

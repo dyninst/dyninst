@@ -12,9 +12,10 @@ RELEASE_NUM	= 4.2
 
 DEST		= $(TO_CORE)\$(PROGRAM_DEST)\newtestsuite
 
-CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src /D_DEBUG /Zi
+CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
+	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src \
+	/D_DEBUG /Zi
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/newtestsuite/src
-CXXFLAGS     = $(CXXFLAGS)
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
@@ -41,6 +42,25 @@ SRCS_DYNINSTCOMP = ../src/dyninst/dyninst_comp.C \
                    ../src/dyninst/test_lib_mutateeStart.C \
                    ../src/dyninst/Callbacks.C \
                    ../src/dyninst/Process_data.C
+SRCS_DYNINSTTESTLIB = ../src/dyninst/libtestA.c \
+                      ../src/dyninst/libtestB.c \
+                      ../src/dyninst/libInstMe.c \
+                      ../src/dyninst/libLoadMe.c
+!ifdef M_ABI
+DYNINST_TESTLIBS = $(SRCS_DYNINSTTESTLIB:.c=.dll)
+DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/dyninst/=)
+# no ABIs on windows yet, this should be $src_$m_abi.dll
+DYNINST_TESTLIBS_ABI =
+!else
+DYNINST_TESTLIBS = $(SRCS_DYNINSTTESTLIB:.c=.dll)
+DYNINST_TESTLIBS = $(DYNINST_TESTLIBS:../src/dyninst/=)
+DYNINST_TESTLIBS_ABI =
+!endif
+
+TESTLIBS = $(DYNINST_TESTLIBS)
+
+DYNINST_TESTLIBS_OBJS = $(SRCS_DYNINSTTESTLIB:.c=.obj)
+DYNINST_TESTLIBS_OBJS = $(DYNINST_TESTLIBS_OBJS:../src/dyninst/=)
 
 SRCS_SYMTABCOMP = ../src/symtab/symtab_comp.C
 
@@ -59,12 +79,27 @@ OBJS_TEMPLATES = $(OBJS_TEMPLATES:../src/=)
 
 TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib
 
-all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll # libtestA.dll libtestB.dll
+all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
 
 
 UNCOMMON_INSTALL=true
 
 install: all
+
+clean: 
+	$(RM) *.ilk *.exp *.lib *.obj
+	$(RM) $(TESTLIBS) 
+	$(RM) $(TESTLIBS_ABI) 
+	$(RM) $(LIBTESTSUITE) 
+	$(RM) test_driver.exe runTests.exe libTest12.dll
+	$(RM) $(dyninst_MUTATORS_SO)
+	$(RM) $(dyninst_SOLO_MUTATEES)
+	$(RM) $(symtab_MUTATORS_SO)
+	$(RM) $(symtab_SOLO_MUTATEES)
+	$(RM) $(OUTPUT_DRIVERS)
+	$(RM) $(LIBDYNINSTCOMP)
+	$(RM) $(LIBSYMTABCOMP)
+	$(RM) test11.exe
 
 # Old Install commands if we actually want to install
 # -$(MKDIR) $(DEST)
@@ -90,6 +125,13 @@ $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
 
 $(OBJS_SYMTABCOMP): $(SRCS_SYMTABCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
+$(DYNINST_TESTLIBS_OBJS) : $(SRCS_DYNINSTTESTLIB)
+	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS)$**
+
+$(DYNINST_TESTLIBS): $(DYNINST_TESTLIBS_OBJS)
+	$(LINK) $(TESTLIB_FLAGS) $*.obj -out:$@
+
 
 #CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 

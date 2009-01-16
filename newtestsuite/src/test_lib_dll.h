@@ -28,13 +28,20 @@
 #define TESTLIB_DLL_EXPORT __declspec(dllimport)
 #define TEST_DLL_EXPORT __declspec(dllimport)
 
+
 #endif /* TESTLIB_DLL_BUILD */
+// Individual mutators should never be importing/imported
+#if !defined(DLLEXPORT)
+#define DLLEXPORT __declspec(dllexport)
+#endif
+
 #else
 
 // we are not building for a Windows target 
 #define TESTLIB_DLL_EXPORT
 #define TEST_DLL_EXPORT
 #define COMPLIB_DLL_EXPORT
+#define DLLEXPORT
 #endif /* _MSC_VER */
 
 #endif /* TEST_LIB_DLL_H */

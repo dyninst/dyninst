@@ -47,26 +47,26 @@ class Symbol;
 class Variable : public AnnotatableSparse 
 {
    public:
-      SYMTABEXPORT Variable();
+      SYMTAB_EXPORT Variable();
       
-      SYMTABEXPORT static Variable *createVariable(Symbol *sym);
+      SYMTAB_EXPORT static Variable *createVariable(Symbol *sym);
 
-      SYMTABEXPORT Offset   getAddress() const;
-      SYMTABEXPORT Module * getModule() const;
+      SYMTAB_EXPORT Offset   getAddress() const;
+      SYMTAB_EXPORT Module * getModule() const;
 
       /***** Symbol Collection Management *****/
-      SYMTABEXPORT bool addSymbol(Symbol *sym);
-      SYMTABEXPORT bool removeSymbol(Symbol *sym);
-      SYMTABEXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      SYMTABEXPORT Symbol * getFirstSymbol() const;
+      SYMTAB_EXPORT bool addSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
+      SYMTAB_EXPORT Symbol * getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      SYMTABEXPORT const vector<std::string> &getAllMangledNames();
-      SYMTABEXPORT const vector<std::string> &getAllPrettyNames();
-      SYMTABEXPORT const vector<std::string> &getAllTypedNames();
-      SYMTABEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      SYMTABEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      SYMTABEXPORT bool addTypedName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT const vector<std::string> &getAllMangledNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllPrettyNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllTypedNames();
+      SYMTAB_EXPORT bool addMangledName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT bool addPrettyName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT bool addTypedName(std::string name, bool isPrimary = false);
 
    private:
       Offset        address_;

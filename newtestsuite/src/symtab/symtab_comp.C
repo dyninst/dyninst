@@ -116,7 +116,7 @@ std::string SymtabComponent::getLastErrorMsg()
    return std::string("");
 }
 
-ComponentTester *componentTesterFactory()
+TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {
    return new SymtabComponent();
 }

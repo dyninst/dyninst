@@ -49,7 +49,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "dyntypes.h"
-#include "../../common/h/Types.h"
+#include "util.h"
 
 namespace Dyninst
 {
@@ -57,7 +57,8 @@ namespace Dyninst
 typedef short AnnotationClassID;
 
 // since can't have a single static in a temlated class that spans all template instances.
-COMMONEXPORT int AnnotationClass_nextId;
+COMMON_EXPORT extern int AnnotationClass_nextId;
+
 template <class T> 
 class AnnotationClass {
    public:
@@ -177,7 +178,7 @@ class AnnotatableSparse
          }
       };
 
-#if defined (os_windows)
+#if defined (_MSC_VER)
       typedef dyn_hash_map<void *, void *> annos_by_type_t;
 #else
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
@@ -187,7 +188,7 @@ class AnnotatableSparse
 
    private:
 
-      //static annos_t annos;
+      COMMON_EXPORT static annos_t annos;
 
       template <class T>
       annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
@@ -383,7 +384,7 @@ class AnnotatableSparse
 
 };
 
-COMMONEXPORT AnnotatableSparse::annos_t annos;
+COMMON_EXPORT AnnotatableSparse::annos_t annos;
 
 //AnnotatableSparse::annos_t AnnotatableSparse::annos;
 } // namespace

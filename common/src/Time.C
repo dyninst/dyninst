@@ -451,39 +451,39 @@ timeParent::timeParent(int64_t _ns)
 { 
 }
 
-DLLEXPORT timeStamp::timeStamp(int64_t iTime, const timeUnit &u, timeBase b) 
+COMMON_EXPORT timeStamp::timeStamp(int64_t iTime, const timeUnit &u, timeBase b) 
   : timeParent()
 {
   initI(iTime, u, b);
 }
 
-DLLEXPORT timeStamp::timeStamp(int iTime, const timeUnit &u, timeBase b) 
+COMMON_EXPORT timeStamp::timeStamp(int iTime, const timeUnit &u, timeBase b) 
   : timeParent() 
 {
   initI(iTime, u, b);
 }
 
-DLLEXPORT relTimeStamp::relTimeStamp(int64_t iTime, const timeUnit &u) : timeParent() {
+COMMON_EXPORT relTimeStamp::relTimeStamp(int64_t iTime, const timeUnit &u) : timeParent() {
   initI(iTime, u);
 }
 
-DLLEXPORT relTimeStamp::relTimeStamp(int iTime, const timeUnit &u) : timeParent() {
+COMMON_EXPORT relTimeStamp::relTimeStamp(int iTime, const timeUnit &u) : timeParent() {
   initI(iTime, u);
 }
 
-DLLEXPORT timeLength::timeLength(int64_t iTime, const timeUnit &u)
+COMMON_EXPORT timeLength::timeLength(int64_t iTime, const timeUnit &u)
   : timeParent() 
 {
   initI(iTime, u);
 }
 
-DLLEXPORT timeLength::timeLength(int iTime, const timeUnit &u)  
+COMMON_EXPORT timeLength::timeLength(int iTime, const timeUnit &u)  
   : timeParent() 
 {
   initI(static_cast<int64_t>(iTime), u);
 }
 
-DLLEXPORT timeStamp::timeStamp(int64_t ns_)
+COMMON_EXPORT timeStamp::timeStamp(int64_t ns_)
   : timeParent(ns_)
 {
 }
@@ -535,7 +535,7 @@ const timeStamp operator+=(timeStamp &ts, timeLength tl) {
   ts.assign(ts.get_ns() + tl.get_ns());
   return ts;
 }
-DLLEXPORT const timeStamp operator-=(timeStamp &ts, timeLength tl) {
+COMMON_EXPORT const timeStamp operator-=(timeStamp &ts, timeLength tl) {
   assert(ts.isInitialized() && tl.isInitialized());
   ts.assign(ts.get_ns() - tl.get_ns());
   return ts;
@@ -930,7 +930,7 @@ const timeStamp &timeStamp::tsFarOffTime() {
   return timeStamp::ts2200();
 }
 
-DLLEXPORT relTimeStamp::relTimeStamp() { }
+COMMON_EXPORT relTimeStamp::relTimeStamp() { }
 
 double relTimeStamp::getD(const timeUnit &u) const {
   return u.cvtFrom_nsD(get_ns());
@@ -947,7 +947,7 @@ const relTimeStamp &relTimeStamp::Zero() {
   return *_Zero;
 }
 
-DLLEXPORT timeLength::timeLength() 
+COMMON_EXPORT timeLength::timeLength() 
 {
 }
 

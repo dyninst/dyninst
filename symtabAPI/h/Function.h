@@ -48,45 +48,44 @@ class Symbol;
 class Function : public AnnotatableSparse 
 {
    public:
-      SYMTABEXPORT Function();
+      SYMTAB_EXPORT Function();
 
-      SYMTABEXPORT static Function *createFunction(Symbol *sym);
+      SYMTAB_EXPORT static Function *createFunction(Symbol *sym);
 
-      SYMTABEXPORT Offset   getAddress() const;
-	  SYMTABEXPORT unsigned getSize() const { return getFirstSymbol()->getSize(); };
-      SYMTABEXPORT Module * getModule() const;
+      SYMTAB_EXPORT Offset   getAddress() const;
+      SYMTAB_EXPORT Module * getModule() const;
+	  SYMTAB_EXPORT int getSize() const { return getFirstSymbol()->getSize(); };
 
       /***** Symbol Collection Management *****/
-      SYMTABEXPORT bool addSymbol(Symbol *sym);
-      SYMTABEXPORT bool removeSymbol(Symbol *sym);
-      SYMTABEXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      SYMTABEXPORT Symbol * getFirstSymbol() const;
+      SYMTAB_EXPORT bool addSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
+      SYMTAB_EXPORT Symbol * getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      SYMTABEXPORT const vector<std::string> &getAllMangledNames();
-      SYMTABEXPORT const vector<std::string> &getAllPrettyNames();
-      SYMTABEXPORT const vector<std::string> &getAllTypedNames();
-      SYMTABEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      SYMTABEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      SYMTABEXPORT bool addTypedName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT const vector<std::string> &getAllMangledNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllPrettyNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllTypedNames();
+      SYMTAB_EXPORT bool addMangledName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT bool addPrettyName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT bool addTypedName(std::string name, bool isPrimary = false);
 
       /***** Return Type Information *****/
-      SYMTABEXPORT Type  * getReturnType() const;
-      SYMTABEXPORT bool	setReturnType(Type *);
+      SYMTAB_EXPORT Type  * getReturnType() const;
+      SYMTAB_EXPORT bool	setReturnType(Type *);
 
       /***** IA64-Specific Frame Pointer Information *****/
-      SYMTABEXPORT bool  setFramePtrRegnum(int regnum);
-      SYMTABEXPORT int   getFramePtrRegnum() const;
+      SYMTAB_EXPORT bool  setFramePtrRegnum(int regnum);
+      SYMTAB_EXPORT int   getFramePtrRegnum() const;
 
       /***** Local Variable Information *****/
-      SYMTABEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
-      SYMTABEXPORT bool getLocalVariables(std::vector<localVar *>&vars);
-      SYMTABEXPORT bool getParams(std::vector<localVar *>&params);
+      SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+      SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
+      SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
 
       /* internal helper functions */
       bool addLocalVar(localVar *);
       bool addParam(localVar *);
-
    private:
       Offset        address_;
       Module*       module_;

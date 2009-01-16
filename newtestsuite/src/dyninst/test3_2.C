@@ -104,7 +104,9 @@ test_results_t test3_2_Mutator::executeTest() {
         if (!appThread[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test #2 (simultaneous multiple-process management - exit)\n");
-            MopUpMutatees(n-1,appThread);
+			if(n > 0) {
+				MopUpMutatees(n-1,appThread);
+			}
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());

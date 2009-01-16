@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#define COMPLIB_DLL_BUILD
+//#define COMPLIB_DLL_BUILD
 
 #include <string>
 
@@ -223,11 +223,14 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       appThread->getProcess()->terminateExecution();
       return UNKNOWN;
    }
-
+	if(appThread == NULL)
+	{
+		return CRASHED;
+	}
    do {
       appThread->continueExecution();
       bpatch->waitForStatusChange();
-   } while (!appThread->isTerminated());
+   } while (appThread && !appThread->isTerminated());
 
    if (appThread->terminationStatus() == ExitedNormally &&
        appThread->getExitCode() == 0)
@@ -335,12 +338,12 @@ test_results_t DyninstMutator::setup(ParameterDict &param) {
 
   // Read the program's image and get an associated image object
   appImage = appThread->getImage();
-
   if ( useAttach ) {
-    if ( ! signalAttached(appThread, appImage) ) {
-      return FAILED;
-    }
+	  if ( ! signalAttached(appThread, appImage) ) {
+		  return FAILED;
+	  }
   }
+
 
   return PASSED;
 }

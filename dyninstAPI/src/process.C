@@ -2575,7 +2575,7 @@ bool process::setDyninstLibInitParams()
 {
    startup_cerr << "process::setDYNINSTinitArguments()" << endl;
 
-   int pid = getpid();
+   int pid = P_getpid();
    
    // Cause: 
    // 1 = created
@@ -2657,7 +2657,7 @@ bool process::iRPCDyninstInit()
 {
     startup_printf("%s[%d]: Running DYNINSTinit via irpc\n", FILE__, __LINE__);
     // Duplicates the parameter code in setDyninstLibInitParams()
-    int pid = getpid();
+    int pid = P_getpid();
     int maxthreads = maxNumberOfThreads();
     extern int dyn_debug_rtlib;
 
@@ -3769,7 +3769,7 @@ bool process::addASharedObject(mapped_object *new_obj)
     }
 
 	std::string dyninstRT_shortname;
-	char *last_slash;
+	const char *last_slash;
 #if defined(os_windows)
     last_slash = strrchr(new_obj->fileName().c_str(), '\\');
 	if (!last_slash) last_slash = strrchr(new_obj->fileName().c_str(), '/');

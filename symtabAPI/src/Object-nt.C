@@ -52,6 +52,7 @@
 #include "Symtab.h"
 #include "Module.h"
 #include "Function.h"
+#include "Variable.h"
 
 #include "common/h/headers.h"
 
@@ -131,21 +132,21 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
 	stripAtSuffix(buf);
 	if (buf[0] == '\0') 
 		return 0; // avoid null names which seem to annoy Paradyn
-	return strdup(buf);
+	return P_strdup(buf);
     }
     else {
        if (includeTypes) {
 	  if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
 	    //	 printf("Undecorate with types: %s = %s\n", c, buf);
 	    stripAtSuffix(buf);
-	    return strdup(buf);
+	    return P_strdup(buf);
 	  }
        }
        else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
 	 //else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
 	 //printf("Undecorate: %s = %s\n", c, buf);
 	 stripAtSuffix(buf);	      
-	 return strdup(buf);
+	 return P_strdup(buf);
        }
     }
     return 0;
@@ -833,7 +834,7 @@ Object::Object(MappedFile *mf_,
    ParseSymbolInfo(alloc_syms);
 }
 
-SYMTABEXPORT ObjectType Object::objType() const 
+SYMTAB_EXPORT ObjectType Object::objType() const 
 {
 	return is_aout() ? obj_Executable : obj_SharedLib;
 }
@@ -988,6 +989,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 
     //Store the variable as a local or parameter appropriately
    if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_PARAMETER) {
+      assert(func);
       if (!func->addParam(newvar)) {
          fprintf(stderr, "%s[%d]:  addParam failed\n", FILE__, __LINE__);
          return false;
@@ -1000,6 +1002,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
       paramType = "parameter";
    }
    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
+	  assert(func);
       if (!func->addLocalVar(newvar)) {
          fprintf(stderr, "%s[%d]:  addLocalVar failed\n", FILE__, __LINE__);
          return false;
@@ -1406,12 +1409,12 @@ static Type *getUDTType(HANDLE p, Offset base, int typeIndex, Module *mod) {
         childName = NULL;
         result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_SYMTAG, &symtag);
         if (result && symtag == SymTagBaseClass) {
-            childName = strdup("{superclass}");
+            childName = P_strdup("{superclass}");
         }
         if (!childName)
             childName = getTypeName(p, base, children->ChildId[i]);
         if (!childName) 
-            childName = strdup(child_type->getName().c_str());
+            childName = P_strdup(child_type->getName().c_str());
 
         // Find the offset of this member in the structure
         result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_OFFSET, &child_offset);

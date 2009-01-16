@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/mpl/aux_/preprocessor/def_params_tail.hpp,v $
-// $Date: 2007/12/04 21:48:04 $
-// $Revision: 1.1 $
+// $Id: def_params_tail.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/mpl/limits/arity.hpp>
 #include <boost/mpl/aux_/config/dtp.hpp>

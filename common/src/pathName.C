@@ -30,11 +30,10 @@
  */
 
 // pathName.C
-
+#include "common/h/headers.h"  // P_strrchr()
 #include <ctype.h>
 #include "common/h/String.h"
 #include "common/h/pathName.h"
-#include "common/h/headers.h"  // P_strrchr()
 
 #if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
 

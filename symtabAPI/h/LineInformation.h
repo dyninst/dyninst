@@ -55,11 +55,11 @@ namespace SymtabAPI{
 namespace LineInformationImpl {
    class LineNoTuple{
       public:
-         SYMTABEXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
+         SYMTAB_EXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
          const char *first; // really file
          unsigned int second; // really line
          unsigned int column;
-         SYMTABEXPORT bool operator==(const LineNoTuple &cmp) const;
+         SYMTAB_EXPORT bool operator==(const LineNoTuple &cmp) const;
    };
 
    /* Explicit comparison functors seems slightly less confusing than using
@@ -69,7 +69,7 @@ namespace LineInformationImpl {
    };
 } /* end namespace LineInformationImpl */			
 
-SYMTABEXPORT typedef LineInformationImpl::LineNoTuple LineNoTuple;
+SYMTAB_EXPORT typedef LineInformationImpl::LineNoTuple LineNoTuple;
 class SourceLineInternalTableWrapper;
 
 class LineInformation : public Serializable, 
@@ -77,35 +77,35 @@ class LineInformation : public Serializable,
                         private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > 
 {
    public:
-      SYMTABEXPORT void serialize(SerializerBase *, const char * = "LineInformation");
+      SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "LineInformation");
       typedef LineInformationImpl::LineNoTuple LineNoTuple;
       typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::const_iterator const_iterator;
       typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::AddressRange AddressRange;
 
-      SYMTABEXPORT LineInformation();
+      SYMTAB_EXPORT LineInformation();
 
       /* You MAY freely deallocate the lineSource strings you pass in. */
-      SYMTABEXPORT bool addLine( const char * lineSource, 
+      SYMTAB_EXPORT bool addLine( const char * lineSource, 
             unsigned int lineNo, 
             unsigned int lineOffset, 
             Offset lowInclusiveAddr, 
             Offset highExclusiveAddr );
-      SYMTABEXPORT void addLineInfo(LineInformation *lineInfo);	      
-      SYMTABEXPORT bool addAddressRange( Offset lowInclusiveAddr, 
+      SYMTAB_EXPORT void addLineInfo(LineInformation *lineInfo);	      
+      SYMTAB_EXPORT bool addAddressRange( Offset lowInclusiveAddr, 
             Offset highExclusiveAddr, 
             const char * lineSource, 
             unsigned int lineNo, 
             unsigned int lineOffset = 0 );
 
       /* You MUST NOT deallocate the strings returned. */
-      SYMTABEXPORT bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines );
-      SYMTABEXPORT bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
+      SYMTAB_EXPORT bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines );
+      SYMTAB_EXPORT bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
 
-      SYMTABEXPORT const_iterator begin() const;
-      SYMTABEXPORT const_iterator end() const;
-      SYMTABEXPORT unsigned getSize() const;
+      SYMTAB_EXPORT const_iterator begin() const;
+      SYMTAB_EXPORT const_iterator end() const;
+      SYMTAB_EXPORT unsigned getSize() const;
 
-      SYMTABEXPORT ~LineInformation();
+      SYMTAB_EXPORT ~LineInformation();
 
       // double secret private:
       SourceLineInternalTableWrapper *getSourceLineNamesW();

@@ -37,6 +37,8 @@
 #include <set>
 #include <string>
 
+#include "util.h"
+
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -84,33 +86,33 @@ namespace Dyninst
 
       /// \brief Get the registers read by this operand
       /// \param regsRead Has the registers read inserted into it
-      void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
+      INSTRUCTION_EXPORT void getReadSet(std::set<RegisterAST::Ptr>& regsRead) const;
       /// \brief Get the registers written by this operand
       /// \param regsWritten Has the registers written  inserted into it
-      void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
+      INSTRUCTION_EXPORT void getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const;
 
       /// Returns true if this operand is read
-      bool isRead(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
       /// Returns true if this operand is written
-      bool isWritten(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
       
       /// Returns true if this operand reads memory
-      bool readsMemory() const;
+      INSTRUCTION_EXPORT bool readsMemory() const;
       /// Returns true if this operand writes memory
-      bool writesMemory() const;
+      INSTRUCTION_EXPORT bool writesMemory() const;
       /// \brief Inserts the effective addresses read by this operand into memAccessors
       /// \param memAccessors If this is a memory read operand, insert the \c %Expression::Ptr representing
       /// the address being read into \c memAccessors.
-      void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
+      INSTRUCTION_EXPORT void addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const;
       /// \brief Inserts the effective addresses written by this operand into memAccessors
       /// \param memAccessors If this is a memory write operand, insert the \c %Expression::Ptr representing
       /// the address being written into \c memAccessors.
-      void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
+      INSTRUCTION_EXPORT void addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const;
       /// \brief Return a printable string representation of the operand
       /// \return The operand in a disassembly format
-      std::string format() const;
+      INSTRUCTION_EXPORT std::string format() const;
       /// The \c getValue method returns an %Expression::Ptr to the AST contained by the operand.
-      Expression::Ptr getValue() const;
+      INSTRUCTION_EXPORT Expression::Ptr getValue() const;
       
     private:
       Expression::Ptr op_value;

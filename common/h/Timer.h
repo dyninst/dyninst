@@ -41,16 +41,15 @@
 /************************************************************************
  * header files.
 ************************************************************************/
-
-#include "common/h/std_namesp.h"
 #include "common/h/headers.h"
+#include "common/h/std_namesp.h"
 
 
 /************************************************************************
  * class timer
 ************************************************************************/
 
-class DLLEXPORT timer {
+class COMMON_EXPORT timer {
 public:
      timer ();
      timer (const timer &);

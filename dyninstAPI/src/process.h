@@ -502,8 +502,8 @@ class process : public AddressSpace {
           bootstrapState = state;
       */
       bootstrapState = (state > bootstrapState) ? state : bootstrapState;
-      startup_printf("%s[%d]:  setting bootstrap state for process %d to %s\n",
-                     FILE__, __LINE__, getPid(), getBootstrapStateAsString().c_str());
+      startup_printf("%s[%d]:  setting bootstrap state for process %d (0x%x) to %s\n",
+                     FILE__, __LINE__, getPid(), this, getBootstrapStateAsString().c_str());
   }  
 
   void resetBootstrapState(bootstrapState_t state) {

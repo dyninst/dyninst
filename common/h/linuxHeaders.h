@@ -287,5 +287,10 @@ inline bool_t P_xdrrec_endofrecord(XDR *x, int now) {
   return (xdrrec_endofrecord(x, now));}
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
 inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
-
+inline int P_mkdir(const char *pathname, mode_t mode) {
+	return mkdir(pathname, mode);
+}
+inline int P_unlink(const char *pathname) {
+	return unlink(pathname);
+}
 #endif

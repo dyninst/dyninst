@@ -130,7 +130,6 @@ BPatch::BPatch()
        bpatch = this;
     }
     
-    initDefaultPointFrequencyTable();
     BPatch::bpatch->registerErrorCallback(defaultErrorFunc);
     bpinfo("installed default error reporting function");
     initCyclesPerSecond();

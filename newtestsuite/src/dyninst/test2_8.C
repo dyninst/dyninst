@@ -167,6 +167,11 @@ test_results_t test2_8_Mutator::setup(ParameterDict &param) {
 
     // Read the program's image and get an associated image object
     appImage = appThread->getImage();
+  if ( useAttach ) {
+	  if ( ! signalAttached(appThread, appImage) ) {
+		  return FAILED;
+	  }
+  }
 
     return PASSED;
 }

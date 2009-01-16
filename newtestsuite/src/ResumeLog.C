@@ -146,12 +146,7 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
 	  assert(groups[groupnum]);
 	  logerror("Test number %d, group size %d\n", testnum, groups[groupnum]->tests.size());
       assert(testnum >= 0);
-	  fprintf(stderr, "test %d, group %d has %d tests\n", 
-		  testnum, groupnum, groups[groupnum]->tests.size());
-	  // This is *not* a fencepost error.
-	  // The resume log can have a "testnum" value of 0 (group setup)
-	  // or 1...n for n tests.
-	  assert(testnum <= groups[groupnum]->tests.size());
+	  assert(testnum < groups[groupnum]->tests.size());
       if (runstate_int == RESULT_REPORTED)
       {
          groups[groupnum]->tests[testnum]->disabled = true;

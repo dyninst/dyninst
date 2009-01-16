@@ -4,244 +4,244 @@ M_masm = ml
 M_native_cxx = cl
 
 ######################################################################
-# Mutatees compiled with VC++
+# Mutatees compiled with VC++ for dyninst
 ######################################################################
 
-dyninst_SOLO_MUTATEES_native_cxx = dyninst_cxx_group_test.mutatee_solo_VC++_32_high.exe dyninst_cxx_group_test.mutatee_solo_VC++_32_low.exe dyninst_cxx_group_test.mutatee_solo_VC++_32_max.exe dyninst_cxx_group_test.mutatee_solo_VC++_32_none.exe dyninst_group_test.mutatee_solo_VC++_32_high.exe dyninst_group_test.mutatee_solo_VC++_32_low.exe dyninst_group_test.mutatee_solo_VC++_32_max.exe dyninst_group_test.mutatee_solo_VC++_32_none.exe test1_12.mutatee_solo_VC++_32_high.exe test1_12.mutatee_solo_VC++_32_low.exe test1_12.mutatee_solo_VC++_32_max.exe test1_12.mutatee_solo_VC++_32_none.exe test1_14.mutatee_solo_VC++_32_high.exe test1_14.mutatee_solo_VC++_32_low.exe test1_14.mutatee_solo_VC++_32_max.exe test1_14.mutatee_solo_VC++_32_none.exe test1_15.mutatee_solo_VC++_32_high.exe test1_15.mutatee_solo_VC++_32_low.exe test1_15.mutatee_solo_VC++_32_max.exe test1_15.mutatee_solo_VC++_32_none.exe test1_19.mutatee_solo_VC++_32_high.exe test1_19.mutatee_solo_VC++_32_low.exe test1_19.mutatee_solo_VC++_32_max.exe test1_19.mutatee_solo_VC++_32_none.exe test1_29.mutatee_solo_VC++_32_high.exe test1_29.mutatee_solo_VC++_32_low.exe test1_29.mutatee_solo_VC++_32_max.exe test1_29.mutatee_solo_VC++_32_none.exe test2_14.mutatee_solo_VC++_32_high.exe test2_14.mutatee_solo_VC++_32_low.exe test2_14.mutatee_solo_VC++_32_max.exe test2_14.mutatee_solo_VC++_32_none.exe test2_8.mutatee_solo_VC++_32_high.exe test2_8.mutatee_solo_VC++_32_low.exe test2_8.mutatee_solo_VC++_32_max.exe test2_8.mutatee_solo_VC++_32_none.exe test3_1.mutatee_solo_VC++_32_high.exe test3_1.mutatee_solo_VC++_32_low.exe test3_1.mutatee_solo_VC++_32_max.exe test3_1.mutatee_solo_VC++_32_none.exe test3_2.mutatee_solo_VC++_32_high.exe test3_2.mutatee_solo_VC++_32_low.exe test3_2.mutatee_solo_VC++_32_max.exe test3_2.mutatee_solo_VC++_32_none.exe test3_3.mutatee_solo_VC++_32_high.exe test3_3.mutatee_solo_VC++_32_low.exe test3_3.mutatee_solo_VC++_32_max.exe test3_3.mutatee_solo_VC++_32_none.exe test3_4.mutatee_solo_VC++_32_high.exe test3_4.mutatee_solo_VC++_32_low.exe test3_4.mutatee_solo_VC++_32_max.exe test3_4.mutatee_solo_VC++_32_none.exe test3_5.mutatee_solo_VC++_32_high.exe test3_5.mutatee_solo_VC++_32_low.exe test3_5.mutatee_solo_VC++_32_max.exe test3_5.mutatee_solo_VC++_32_none.exe test3_7.mutatee_solo_VC++_32_high.exe test3_7.mutatee_solo_VC++_32_low.exe test3_7.mutatee_solo_VC++_32_max.exe test3_7.mutatee_solo_VC++_32_none.exe test4_1.mutatee_solo_VC++_32_high.exe test4_1.mutatee_solo_VC++_32_low.exe test4_1.mutatee_solo_VC++_32_max.exe test4_1.mutatee_solo_VC++_32_none.exe test_mem_1.mutatee_solo_VC++_32_high.exe test_mem_1.mutatee_solo_VC++_32_low.exe test_mem_1.mutatee_solo_VC++_32_max.exe test_mem_1.mutatee_solo_VC++_32_none.exe test_mem_2.mutatee_solo_VC++_32_high.exe test_mem_2.mutatee_solo_VC++_32_low.exe test_mem_2.mutatee_solo_VC++_32_max.exe test_mem_2.mutatee_solo_VC++_32_none.exe test_mem_3.mutatee_solo_VC++_32_high.exe test_mem_3.mutatee_solo_VC++_32_low.exe test_mem_3.mutatee_solo_VC++_32_max.exe test_mem_3.mutatee_solo_VC++_32_none.exe test_mem_4.mutatee_solo_VC++_32_high.exe test_mem_4.mutatee_solo_VC++_32_low.exe test_mem_4.mutatee_solo_VC++_32_max.exe test_mem_4.mutatee_solo_VC++_32_none.exe test_mem_5.mutatee_solo_VC++_32_high.exe test_mem_5.mutatee_solo_VC++_32_low.exe test_mem_5.mutatee_solo_VC++_32_max.exe test_mem_5.mutatee_solo_VC++_32_none.exe test_mem_6.mutatee_solo_VC++_32_high.exe test_mem_6.mutatee_solo_VC++_32_low.exe test_mem_6.mutatee_solo_VC++_32_max.exe test_mem_6.mutatee_solo_VC++_32_none.exe test_mem_7.mutatee_solo_VC++_32_high.exe test_mem_7.mutatee_solo_VC++_32_low.exe test_mem_7.mutatee_solo_VC++_32_max.exe test_mem_7.mutatee_solo_VC++_32_none.exe test_mem_8.mutatee_solo_VC++_32_high.exe test_mem_8.mutatee_solo_VC++_32_low.exe test_mem_8.mutatee_solo_VC++_32_max.exe test_mem_8.mutatee_solo_VC++_32_none.exe test_stack_1.mutatee_solo_VC++_32_high.exe test_stack_1.mutatee_solo_VC++_32_low.exe test_stack_1.mutatee_solo_VC++_32_max.exe test_stack_1.mutatee_solo_VC++_32_none.exe test_stack_3.mutatee_solo_VC++_32_high.exe test_stack_3.mutatee_solo_VC++_32_low.exe test_stack_3.mutatee_solo_VC++_32_max.exe test_stack_3.mutatee_solo_VC++_32_none.exe test_thread_6.mutatee_solo_VC++_32_high.exe test_thread_6.mutatee_solo_VC++_32_low.exe test_thread_6.mutatee_solo_VC++_32_max.exe test_thread_6.mutatee_solo_VC++_32_none.exe test_thread_7.mutatee_solo_VC++_32_high.exe test_thread_7.mutatee_solo_VC++_32_low.exe test_thread_7.mutatee_solo_VC++_32_max.exe test_thread_7.mutatee_solo_VC++_32_none.exe test_thread_8.mutatee_solo_VC++_32_high.exe test_thread_8.mutatee_solo_VC++_32_low.exe test_thread_8.mutatee_solo_VC++_32_max.exe test_thread_8.mutatee_solo_VC++_32_none.exe 
+dyninst_SOLO_MUTATEES_native_cxx = dyninst_cxx_group_test_mutatee_solo_VC++_32_high.exe dyninst_cxx_group_test_mutatee_solo_VC++_32_low.exe dyninst_cxx_group_test_mutatee_solo_VC++_32_max.exe dyninst_cxx_group_test_mutatee_solo_VC++_32_none.exe dyninst_group_test_mutatee_solo_VC++_32_high.exe dyninst_group_test_mutatee_solo_VC++_32_low.exe dyninst_group_test_mutatee_solo_VC++_32_max.exe dyninst_group_test_mutatee_solo_VC++_32_none.exe test1_12_mutatee_solo_VC++_32_high.exe test1_12_mutatee_solo_VC++_32_low.exe test1_12_mutatee_solo_VC++_32_max.exe test1_12_mutatee_solo_VC++_32_none.exe test1_14_mutatee_solo_VC++_32_high.exe test1_14_mutatee_solo_VC++_32_low.exe test1_14_mutatee_solo_VC++_32_max.exe test1_14_mutatee_solo_VC++_32_none.exe test1_15_mutatee_solo_VC++_32_high.exe test1_15_mutatee_solo_VC++_32_low.exe test1_15_mutatee_solo_VC++_32_max.exe test1_15_mutatee_solo_VC++_32_none.exe test1_19_mutatee_solo_VC++_32_high.exe test1_19_mutatee_solo_VC++_32_low.exe test1_19_mutatee_solo_VC++_32_max.exe test1_19_mutatee_solo_VC++_32_none.exe test1_29_mutatee_solo_VC++_32_high.exe test1_29_mutatee_solo_VC++_32_low.exe test1_29_mutatee_solo_VC++_32_max.exe test1_29_mutatee_solo_VC++_32_none.exe test2_14_mutatee_solo_VC++_32_high.exe test2_14_mutatee_solo_VC++_32_low.exe test2_14_mutatee_solo_VC++_32_max.exe test2_14_mutatee_solo_VC++_32_none.exe test2_8_mutatee_solo_VC++_32_high.exe test2_8_mutatee_solo_VC++_32_low.exe test2_8_mutatee_solo_VC++_32_max.exe test2_8_mutatee_solo_VC++_32_none.exe test3_1_mutatee_solo_VC++_32_high.exe test3_1_mutatee_solo_VC++_32_low.exe test3_1_mutatee_solo_VC++_32_max.exe test3_1_mutatee_solo_VC++_32_none.exe test3_2_mutatee_solo_VC++_32_high.exe test3_2_mutatee_solo_VC++_32_low.exe test3_2_mutatee_solo_VC++_32_max.exe test3_2_mutatee_solo_VC++_32_none.exe test3_3_mutatee_solo_VC++_32_high.exe test3_3_mutatee_solo_VC++_32_low.exe test3_3_mutatee_solo_VC++_32_max.exe test3_3_mutatee_solo_VC++_32_none.exe test3_4_mutatee_solo_VC++_32_high.exe test3_4_mutatee_solo_VC++_32_low.exe test3_4_mutatee_solo_VC++_32_max.exe test3_4_mutatee_solo_VC++_32_none.exe test3_5_mutatee_solo_VC++_32_high.exe test3_5_mutatee_solo_VC++_32_low.exe test3_5_mutatee_solo_VC++_32_max.exe test3_5_mutatee_solo_VC++_32_none.exe test3_7_mutatee_solo_VC++_32_high.exe test3_7_mutatee_solo_VC++_32_low.exe test3_7_mutatee_solo_VC++_32_max.exe test3_7_mutatee_solo_VC++_32_none.exe test4_1_mutatee_solo_VC++_32_high.exe test4_1_mutatee_solo_VC++_32_low.exe test4_1_mutatee_solo_VC++_32_max.exe test4_1_mutatee_solo_VC++_32_none.exe test_mem_1_mutatee_solo_VC++_32_high.exe test_mem_1_mutatee_solo_VC++_32_low.exe test_mem_1_mutatee_solo_VC++_32_max.exe test_mem_1_mutatee_solo_VC++_32_none.exe test_mem_2_mutatee_solo_VC++_32_high.exe test_mem_2_mutatee_solo_VC++_32_low.exe test_mem_2_mutatee_solo_VC++_32_max.exe test_mem_2_mutatee_solo_VC++_32_none.exe test_mem_3_mutatee_solo_VC++_32_high.exe test_mem_3_mutatee_solo_VC++_32_low.exe test_mem_3_mutatee_solo_VC++_32_max.exe test_mem_3_mutatee_solo_VC++_32_none.exe test_mem_4_mutatee_solo_VC++_32_high.exe test_mem_4_mutatee_solo_VC++_32_low.exe test_mem_4_mutatee_solo_VC++_32_max.exe test_mem_4_mutatee_solo_VC++_32_none.exe test_mem_5_mutatee_solo_VC++_32_high.exe test_mem_5_mutatee_solo_VC++_32_low.exe test_mem_5_mutatee_solo_VC++_32_max.exe test_mem_5_mutatee_solo_VC++_32_none.exe test_mem_6_mutatee_solo_VC++_32_high.exe test_mem_6_mutatee_solo_VC++_32_low.exe test_mem_6_mutatee_solo_VC++_32_max.exe test_mem_6_mutatee_solo_VC++_32_none.exe test_mem_7_mutatee_solo_VC++_32_high.exe test_mem_7_mutatee_solo_VC++_32_low.exe test_mem_7_mutatee_solo_VC++_32_max.exe test_mem_7_mutatee_solo_VC++_32_none.exe test_mem_8_mutatee_solo_VC++_32_high.exe test_mem_8_mutatee_solo_VC++_32_low.exe test_mem_8_mutatee_solo_VC++_32_max.exe test_mem_8_mutatee_solo_VC++_32_none.exe test_stack_1_mutatee_solo_VC++_32_high.exe test_stack_1_mutatee_solo_VC++_32_low.exe test_stack_1_mutatee_solo_VC++_32_max.exe test_stack_1_mutatee_solo_VC++_32_none.exe test_stack_3_mutatee_solo_VC++_32_high.exe test_stack_3_mutatee_solo_VC++_32_low.exe test_stack_3_mutatee_solo_VC++_32_max.exe test_stack_3_mutatee_solo_VC++_32_none.exe test_thread_6_mutatee_solo_VC++_32_high.exe test_thread_6_mutatee_solo_VC++_32_low.exe test_thread_6_mutatee_solo_VC++_32_max.exe test_thread_6_mutatee_solo_VC++_32_none.exe test_thread_7_mutatee_solo_VC++_32_high.exe test_thread_7_mutatee_solo_VC++_32_low.exe test_thread_7_mutatee_solo_VC++_32_max.exe test_thread_7_mutatee_solo_VC++_32_none.exe test_thread_8_mutatee_solo_VC++_32_high.exe test_thread_8_mutatee_solo_VC++_32_low.exe test_thread_8_mutatee_solo_VC++_32_max.exe test_thread_8_mutatee_solo_VC++_32_none.exe 
 
 # Now a list of rules for compiling the mutatees with VC++
 
-dyninst_cxx_group_test.mutatee_solo_VC++_32_high.exe: dyninst_cxx_group_test_group_VC++_32_high.obj test5_1_mutatee_solo_VC++_32_high.obj test5_2_mutatee_solo_VC++_32_high.obj test5_3_mutatee_solo_VC++_32_high.obj test5_4_mutatee_solo_VC++_32_high.obj test5_5_mutatee_solo_VC++_32_high.obj test5_6_mutatee_solo_VC++_32_high.obj test5_7_mutatee_solo_VC++_32_high.obj test5_8_mutatee_solo_VC++_32_high.obj test5_9_mutatee_solo_VC++_32_high.obj cpp_test_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+dyninst_cxx_group_test_mutatee_solo_VC++_32_high.exe: dyninst_cxx_group_test_group_VC++_32_high.obj test5_1_mutatee_solo_VC++_32_high.obj test5_2_mutatee_solo_VC++_32_high.obj test5_3_mutatee_solo_VC++_32_high.obj test5_4_mutatee_solo_VC++_32_high.obj test5_5_mutatee_solo_VC++_32_high.obj test5_6_mutatee_solo_VC++_32_high.obj test5_7_mutatee_solo_VC++_32_high.obj test5_8_mutatee_solo_VC++_32_high.obj test5_9_mutatee_solo_VC++_32_high.obj cpp_test_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_cxx_group_test.mutatee_solo_VC++_32_low.exe: dyninst_cxx_group_test_group_VC++_32_low.obj test5_1_mutatee_solo_VC++_32_low.obj test5_2_mutatee_solo_VC++_32_low.obj test5_3_mutatee_solo_VC++_32_low.obj test5_4_mutatee_solo_VC++_32_low.obj test5_5_mutatee_solo_VC++_32_low.obj test5_6_mutatee_solo_VC++_32_low.obj test5_7_mutatee_solo_VC++_32_low.obj test5_8_mutatee_solo_VC++_32_low.obj test5_9_mutatee_solo_VC++_32_low.obj cpp_test_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+dyninst_cxx_group_test_mutatee_solo_VC++_32_low.exe: dyninst_cxx_group_test_group_VC++_32_low.obj test5_1_mutatee_solo_VC++_32_low.obj test5_2_mutatee_solo_VC++_32_low.obj test5_3_mutatee_solo_VC++_32_low.obj test5_4_mutatee_solo_VC++_32_low.obj test5_5_mutatee_solo_VC++_32_low.obj test5_6_mutatee_solo_VC++_32_low.obj test5_7_mutatee_solo_VC++_32_low.obj test5_8_mutatee_solo_VC++_32_low.obj test5_9_mutatee_solo_VC++_32_low.obj cpp_test_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_cxx_group_test.mutatee_solo_VC++_32_max.exe: dyninst_cxx_group_test_group_VC++_32_max.obj test5_1_mutatee_solo_VC++_32_max.obj test5_2_mutatee_solo_VC++_32_max.obj test5_3_mutatee_solo_VC++_32_max.obj test5_4_mutatee_solo_VC++_32_max.obj test5_5_mutatee_solo_VC++_32_max.obj test5_6_mutatee_solo_VC++_32_max.obj test5_7_mutatee_solo_VC++_32_max.obj test5_8_mutatee_solo_VC++_32_max.obj test5_9_mutatee_solo_VC++_32_max.obj cpp_test_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+dyninst_cxx_group_test_mutatee_solo_VC++_32_max.exe: dyninst_cxx_group_test_group_VC++_32_max.obj test5_1_mutatee_solo_VC++_32_max.obj test5_2_mutatee_solo_VC++_32_max.obj test5_3_mutatee_solo_VC++_32_max.obj test5_4_mutatee_solo_VC++_32_max.obj test5_5_mutatee_solo_VC++_32_max.obj test5_6_mutatee_solo_VC++_32_max.obj test5_7_mutatee_solo_VC++_32_max.obj test5_8_mutatee_solo_VC++_32_max.obj test5_9_mutatee_solo_VC++_32_max.obj cpp_test_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_cxx_group_test.mutatee_solo_VC++_32_none.exe: dyninst_cxx_group_test_group_VC++_32_none.obj test5_1_mutatee_solo_VC++_32_none.obj test5_2_mutatee_solo_VC++_32_none.obj test5_3_mutatee_solo_VC++_32_none.obj test5_4_mutatee_solo_VC++_32_none.obj test5_5_mutatee_solo_VC++_32_none.obj test5_6_mutatee_solo_VC++_32_none.obj test5_7_mutatee_solo_VC++_32_none.obj test5_8_mutatee_solo_VC++_32_none.obj test5_9_mutatee_solo_VC++_32_none.obj cpp_test_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+dyninst_cxx_group_test_mutatee_solo_VC++_32_none.exe: dyninst_cxx_group_test_group_VC++_32_none.obj test5_1_mutatee_solo_VC++_32_none.obj test5_2_mutatee_solo_VC++_32_none.obj test5_3_mutatee_solo_VC++_32_none.obj test5_4_mutatee_solo_VC++_32_none.obj test5_5_mutatee_solo_VC++_32_none.obj test5_6_mutatee_solo_VC++_32_none.obj test5_7_mutatee_solo_VC++_32_none.obj test5_8_mutatee_solo_VC++_32_none.obj test5_9_mutatee_solo_VC++_32_none.obj cpp_test_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test.mutatee_solo_VC++_32_high.exe: dyninst_group_test_group_VC++_32_high.obj test1_1_mutatee_solo_VC++_32_high.obj test1_2_mutatee_solo_VC++_32_high.obj test1_3_mutatee_solo_VC++_32_high.obj test1_4_mutatee_solo_VC++_32_high.obj test1_5_mutatee_solo_VC++_32_high.obj test1_6_mutatee_solo_VC++_32_high.obj test1_7_mutatee_solo_VC++_32_high.obj test1_8_mutatee_solo_VC++_32_high.obj test1_9_mutatee_solo_VC++_32_high.obj test1_10_mutatee_solo_VC++_32_high.obj test1_11_mutatee_solo_VC++_32_high.obj test1_13_mutatee_solo_VC++_32_high.obj test1_16_mutatee_solo_VC++_32_high.obj test1_17_mutatee_solo_VC++_32_high.obj test1_18_mutatee_solo_VC++_32_high.obj test1_20_mutatee_solo_VC++_32_high.obj test1_21_mutatee_solo_VC++_32_high.obj test1_22_mutatee_solo_VC++_32_high.obj test1_23_mutatee_solo_VC++_32_high.obj test1_24_mutatee_solo_VC++_32_high.obj test1_25_mutatee_solo_VC++_32_high.obj test1_26_mutatee_solo_VC++_32_high.obj test1_27_mutatee_solo_VC++_32_high.obj test1_28_mutatee_solo_VC++_32_high.obj test1_30_mutatee_solo_VC++_32_high.obj test1_31_mutatee_solo_VC++_32_high.obj test1_32_mutatee_solo_VC++_32_high.obj test1_33_mutatee_solo_VC++_32_high.obj test1_34_mutatee_solo_VC++_32_high.obj test1_36_mutatee_solo_VC++_32_high.obj test1_37_mutatee_solo_VC++_32_high.obj test1_38_mutatee_solo_VC++_32_high.obj test1_39_mutatee_solo_VC++_32_high.obj test2_5_mutatee_solo_VC++_32_high.obj test2_7_mutatee_solo_VC++_32_high.obj test2_9_mutatee_solo_VC++_32_high.obj test2_10_mutatee_solo_VC++_32_high.obj test2_11_mutatee_solo_VC++_32_high.obj test2_12_mutatee_solo_VC++_32_high.obj test2_13_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+dyninst_group_test_mutatee_solo_VC++_32_high.exe: dyninst_group_test_group_VC++_32_high.obj test1_1_mutatee_solo_VC++_32_high.obj test1_2_mutatee_solo_VC++_32_high.obj test1_3_mutatee_solo_VC++_32_high.obj test1_4_mutatee_solo_VC++_32_high.obj test1_5_mutatee_solo_VC++_32_high.obj test1_6_mutatee_solo_VC++_32_high.obj test1_7_mutatee_solo_VC++_32_high.obj test1_8_mutatee_solo_VC++_32_high.obj test1_9_mutatee_solo_VC++_32_high.obj test1_10_mutatee_solo_VC++_32_high.obj test1_11_mutatee_solo_VC++_32_high.obj test1_13_mutatee_solo_VC++_32_high.obj test1_16_mutatee_solo_VC++_32_high.obj test1_17_mutatee_solo_VC++_32_high.obj test1_18_mutatee_solo_VC++_32_high.obj test1_20_mutatee_solo_VC++_32_high.obj test1_21_mutatee_solo_VC++_32_high.obj test1_22_mutatee_solo_VC++_32_high.obj test1_23_mutatee_solo_VC++_32_high.obj test1_24_mutatee_solo_VC++_32_high.obj test1_25_mutatee_solo_VC++_32_high.obj test1_26_mutatee_solo_VC++_32_high.obj test1_27_mutatee_solo_VC++_32_high.obj test1_28_mutatee_solo_VC++_32_high.obj test1_30_mutatee_solo_VC++_32_high.obj test1_31_mutatee_solo_VC++_32_high.obj test1_32_mutatee_solo_VC++_32_high.obj test1_33_mutatee_solo_VC++_32_high.obj test1_34_mutatee_solo_VC++_32_high.obj test1_36_mutatee_solo_VC++_32_high.obj test1_37_mutatee_solo_VC++_32_high.obj test1_38_mutatee_solo_VC++_32_high.obj test1_39_mutatee_solo_VC++_32_high.obj test2_5_mutatee_solo_VC++_32_high.obj test2_7_mutatee_solo_VC++_32_high.obj test2_9_mutatee_solo_VC++_32_high.obj test2_10_mutatee_solo_VC++_32_high.obj test2_11_mutatee_solo_VC++_32_high.obj test2_12_mutatee_solo_VC++_32_high.obj test2_13_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test.mutatee_solo_VC++_32_low.exe: dyninst_group_test_group_VC++_32_low.obj test1_1_mutatee_solo_VC++_32_low.obj test1_2_mutatee_solo_VC++_32_low.obj test1_3_mutatee_solo_VC++_32_low.obj test1_4_mutatee_solo_VC++_32_low.obj test1_5_mutatee_solo_VC++_32_low.obj test1_6_mutatee_solo_VC++_32_low.obj test1_7_mutatee_solo_VC++_32_low.obj test1_8_mutatee_solo_VC++_32_low.obj test1_9_mutatee_solo_VC++_32_low.obj test1_10_mutatee_solo_VC++_32_low.obj test1_11_mutatee_solo_VC++_32_low.obj test1_13_mutatee_solo_VC++_32_low.obj test1_16_mutatee_solo_VC++_32_low.obj test1_17_mutatee_solo_VC++_32_low.obj test1_18_mutatee_solo_VC++_32_low.obj test1_20_mutatee_solo_VC++_32_low.obj test1_21_mutatee_solo_VC++_32_low.obj test1_22_mutatee_solo_VC++_32_low.obj test1_23_mutatee_solo_VC++_32_low.obj test1_24_mutatee_solo_VC++_32_low.obj test1_25_mutatee_solo_VC++_32_low.obj test1_26_mutatee_solo_VC++_32_low.obj test1_27_mutatee_solo_VC++_32_low.obj test1_28_mutatee_solo_VC++_32_low.obj test1_30_mutatee_solo_VC++_32_low.obj test1_31_mutatee_solo_VC++_32_low.obj test1_32_mutatee_solo_VC++_32_low.obj test1_33_mutatee_solo_VC++_32_low.obj test1_34_mutatee_solo_VC++_32_low.obj test1_36_mutatee_solo_VC++_32_low.obj test1_37_mutatee_solo_VC++_32_low.obj test1_38_mutatee_solo_VC++_32_low.obj test1_39_mutatee_solo_VC++_32_low.obj test2_5_mutatee_solo_VC++_32_low.obj test2_7_mutatee_solo_VC++_32_low.obj test2_9_mutatee_solo_VC++_32_low.obj test2_10_mutatee_solo_VC++_32_low.obj test2_11_mutatee_solo_VC++_32_low.obj test2_12_mutatee_solo_VC++_32_low.obj test2_13_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+dyninst_group_test_mutatee_solo_VC++_32_low.exe: dyninst_group_test_group_VC++_32_low.obj test1_1_mutatee_solo_VC++_32_low.obj test1_2_mutatee_solo_VC++_32_low.obj test1_3_mutatee_solo_VC++_32_low.obj test1_4_mutatee_solo_VC++_32_low.obj test1_5_mutatee_solo_VC++_32_low.obj test1_6_mutatee_solo_VC++_32_low.obj test1_7_mutatee_solo_VC++_32_low.obj test1_8_mutatee_solo_VC++_32_low.obj test1_9_mutatee_solo_VC++_32_low.obj test1_10_mutatee_solo_VC++_32_low.obj test1_11_mutatee_solo_VC++_32_low.obj test1_13_mutatee_solo_VC++_32_low.obj test1_16_mutatee_solo_VC++_32_low.obj test1_17_mutatee_solo_VC++_32_low.obj test1_18_mutatee_solo_VC++_32_low.obj test1_20_mutatee_solo_VC++_32_low.obj test1_21_mutatee_solo_VC++_32_low.obj test1_22_mutatee_solo_VC++_32_low.obj test1_23_mutatee_solo_VC++_32_low.obj test1_24_mutatee_solo_VC++_32_low.obj test1_25_mutatee_solo_VC++_32_low.obj test1_26_mutatee_solo_VC++_32_low.obj test1_27_mutatee_solo_VC++_32_low.obj test1_28_mutatee_solo_VC++_32_low.obj test1_30_mutatee_solo_VC++_32_low.obj test1_31_mutatee_solo_VC++_32_low.obj test1_32_mutatee_solo_VC++_32_low.obj test1_33_mutatee_solo_VC++_32_low.obj test1_34_mutatee_solo_VC++_32_low.obj test1_36_mutatee_solo_VC++_32_low.obj test1_37_mutatee_solo_VC++_32_low.obj test1_38_mutatee_solo_VC++_32_low.obj test1_39_mutatee_solo_VC++_32_low.obj test2_5_mutatee_solo_VC++_32_low.obj test2_7_mutatee_solo_VC++_32_low.obj test2_9_mutatee_solo_VC++_32_low.obj test2_10_mutatee_solo_VC++_32_low.obj test2_11_mutatee_solo_VC++_32_low.obj test2_12_mutatee_solo_VC++_32_low.obj test2_13_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test.mutatee_solo_VC++_32_max.exe: dyninst_group_test_group_VC++_32_max.obj test1_1_mutatee_solo_VC++_32_max.obj test1_2_mutatee_solo_VC++_32_max.obj test1_3_mutatee_solo_VC++_32_max.obj test1_4_mutatee_solo_VC++_32_max.obj test1_5_mutatee_solo_VC++_32_max.obj test1_6_mutatee_solo_VC++_32_max.obj test1_7_mutatee_solo_VC++_32_max.obj test1_8_mutatee_solo_VC++_32_max.obj test1_9_mutatee_solo_VC++_32_max.obj test1_10_mutatee_solo_VC++_32_max.obj test1_11_mutatee_solo_VC++_32_max.obj test1_13_mutatee_solo_VC++_32_max.obj test1_16_mutatee_solo_VC++_32_max.obj test1_17_mutatee_solo_VC++_32_max.obj test1_18_mutatee_solo_VC++_32_max.obj test1_20_mutatee_solo_VC++_32_max.obj test1_21_mutatee_solo_VC++_32_max.obj test1_22_mutatee_solo_VC++_32_max.obj test1_23_mutatee_solo_VC++_32_max.obj test1_24_mutatee_solo_VC++_32_max.obj test1_25_mutatee_solo_VC++_32_max.obj test1_26_mutatee_solo_VC++_32_max.obj test1_27_mutatee_solo_VC++_32_max.obj test1_28_mutatee_solo_VC++_32_max.obj test1_30_mutatee_solo_VC++_32_max.obj test1_31_mutatee_solo_VC++_32_max.obj test1_32_mutatee_solo_VC++_32_max.obj test1_33_mutatee_solo_VC++_32_max.obj test1_34_mutatee_solo_VC++_32_max.obj test1_36_mutatee_solo_VC++_32_max.obj test1_37_mutatee_solo_VC++_32_max.obj test1_38_mutatee_solo_VC++_32_max.obj test1_39_mutatee_solo_VC++_32_max.obj test2_5_mutatee_solo_VC++_32_max.obj test2_7_mutatee_solo_VC++_32_max.obj test2_9_mutatee_solo_VC++_32_max.obj test2_10_mutatee_solo_VC++_32_max.obj test2_11_mutatee_solo_VC++_32_max.obj test2_12_mutatee_solo_VC++_32_max.obj test2_13_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+dyninst_group_test_mutatee_solo_VC++_32_max.exe: dyninst_group_test_group_VC++_32_max.obj test1_1_mutatee_solo_VC++_32_max.obj test1_2_mutatee_solo_VC++_32_max.obj test1_3_mutatee_solo_VC++_32_max.obj test1_4_mutatee_solo_VC++_32_max.obj test1_5_mutatee_solo_VC++_32_max.obj test1_6_mutatee_solo_VC++_32_max.obj test1_7_mutatee_solo_VC++_32_max.obj test1_8_mutatee_solo_VC++_32_max.obj test1_9_mutatee_solo_VC++_32_max.obj test1_10_mutatee_solo_VC++_32_max.obj test1_11_mutatee_solo_VC++_32_max.obj test1_13_mutatee_solo_VC++_32_max.obj test1_16_mutatee_solo_VC++_32_max.obj test1_17_mutatee_solo_VC++_32_max.obj test1_18_mutatee_solo_VC++_32_max.obj test1_20_mutatee_solo_VC++_32_max.obj test1_21_mutatee_solo_VC++_32_max.obj test1_22_mutatee_solo_VC++_32_max.obj test1_23_mutatee_solo_VC++_32_max.obj test1_24_mutatee_solo_VC++_32_max.obj test1_25_mutatee_solo_VC++_32_max.obj test1_26_mutatee_solo_VC++_32_max.obj test1_27_mutatee_solo_VC++_32_max.obj test1_28_mutatee_solo_VC++_32_max.obj test1_30_mutatee_solo_VC++_32_max.obj test1_31_mutatee_solo_VC++_32_max.obj test1_32_mutatee_solo_VC++_32_max.obj test1_33_mutatee_solo_VC++_32_max.obj test1_34_mutatee_solo_VC++_32_max.obj test1_36_mutatee_solo_VC++_32_max.obj test1_37_mutatee_solo_VC++_32_max.obj test1_38_mutatee_solo_VC++_32_max.obj test1_39_mutatee_solo_VC++_32_max.obj test2_5_mutatee_solo_VC++_32_max.obj test2_7_mutatee_solo_VC++_32_max.obj test2_9_mutatee_solo_VC++_32_max.obj test2_10_mutatee_solo_VC++_32_max.obj test2_11_mutatee_solo_VC++_32_max.obj test2_12_mutatee_solo_VC++_32_max.obj test2_13_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test.mutatee_solo_VC++_32_none.exe: dyninst_group_test_group_VC++_32_none.obj test1_1_mutatee_solo_VC++_32_none.obj test1_2_mutatee_solo_VC++_32_none.obj test1_3_mutatee_solo_VC++_32_none.obj test1_4_mutatee_solo_VC++_32_none.obj test1_5_mutatee_solo_VC++_32_none.obj test1_6_mutatee_solo_VC++_32_none.obj test1_7_mutatee_solo_VC++_32_none.obj test1_8_mutatee_solo_VC++_32_none.obj test1_9_mutatee_solo_VC++_32_none.obj test1_10_mutatee_solo_VC++_32_none.obj test1_11_mutatee_solo_VC++_32_none.obj test1_13_mutatee_solo_VC++_32_none.obj test1_16_mutatee_solo_VC++_32_none.obj test1_17_mutatee_solo_VC++_32_none.obj test1_18_mutatee_solo_VC++_32_none.obj test1_20_mutatee_solo_VC++_32_none.obj test1_21_mutatee_solo_VC++_32_none.obj test1_22_mutatee_solo_VC++_32_none.obj test1_23_mutatee_solo_VC++_32_none.obj test1_24_mutatee_solo_VC++_32_none.obj test1_25_mutatee_solo_VC++_32_none.obj test1_26_mutatee_solo_VC++_32_none.obj test1_27_mutatee_solo_VC++_32_none.obj test1_28_mutatee_solo_VC++_32_none.obj test1_30_mutatee_solo_VC++_32_none.obj test1_31_mutatee_solo_VC++_32_none.obj test1_32_mutatee_solo_VC++_32_none.obj test1_33_mutatee_solo_VC++_32_none.obj test1_34_mutatee_solo_VC++_32_none.obj test1_36_mutatee_solo_VC++_32_none.obj test1_37_mutatee_solo_VC++_32_none.obj test1_38_mutatee_solo_VC++_32_none.obj test1_39_mutatee_solo_VC++_32_none.obj test2_5_mutatee_solo_VC++_32_none.obj test2_7_mutatee_solo_VC++_32_none.obj test2_9_mutatee_solo_VC++_32_none.obj test2_10_mutatee_solo_VC++_32_none.obj test2_11_mutatee_solo_VC++_32_none.obj test2_12_mutatee_solo_VC++_32_none.obj test2_13_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+dyninst_group_test_mutatee_solo_VC++_32_none.exe: dyninst_group_test_group_VC++_32_none.obj test1_1_mutatee_solo_VC++_32_none.obj test1_2_mutatee_solo_VC++_32_none.obj test1_3_mutatee_solo_VC++_32_none.obj test1_4_mutatee_solo_VC++_32_none.obj test1_5_mutatee_solo_VC++_32_none.obj test1_6_mutatee_solo_VC++_32_none.obj test1_7_mutatee_solo_VC++_32_none.obj test1_8_mutatee_solo_VC++_32_none.obj test1_9_mutatee_solo_VC++_32_none.obj test1_10_mutatee_solo_VC++_32_none.obj test1_11_mutatee_solo_VC++_32_none.obj test1_13_mutatee_solo_VC++_32_none.obj test1_16_mutatee_solo_VC++_32_none.obj test1_17_mutatee_solo_VC++_32_none.obj test1_18_mutatee_solo_VC++_32_none.obj test1_20_mutatee_solo_VC++_32_none.obj test1_21_mutatee_solo_VC++_32_none.obj test1_22_mutatee_solo_VC++_32_none.obj test1_23_mutatee_solo_VC++_32_none.obj test1_24_mutatee_solo_VC++_32_none.obj test1_25_mutatee_solo_VC++_32_none.obj test1_26_mutatee_solo_VC++_32_none.obj test1_27_mutatee_solo_VC++_32_none.obj test1_28_mutatee_solo_VC++_32_none.obj test1_30_mutatee_solo_VC++_32_none.obj test1_31_mutatee_solo_VC++_32_none.obj test1_32_mutatee_solo_VC++_32_none.obj test1_33_mutatee_solo_VC++_32_none.obj test1_34_mutatee_solo_VC++_32_none.obj test1_36_mutatee_solo_VC++_32_none.obj test1_37_mutatee_solo_VC++_32_none.obj test1_38_mutatee_solo_VC++_32_none.obj test1_39_mutatee_solo_VC++_32_none.obj test2_5_mutatee_solo_VC++_32_none.obj test2_7_mutatee_solo_VC++_32_none.obj test2_9_mutatee_solo_VC++_32_none.obj test2_10_mutatee_solo_VC++_32_none.obj test2_11_mutatee_solo_VC++_32_none.obj test2_12_mutatee_solo_VC++_32_none.obj test2_13_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC++_32_high.exe: symtab_group_test_group_VC++_32_high.obj test_lookup_func_mutatee_solo_VC++_32_high.obj test_lookup_var_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test1_12_mutatee_solo_VC++_32_high.exe: test1_12_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC++_32_low.exe: symtab_group_test_group_VC++_32_low.obj test_lookup_func_mutatee_solo_VC++_32_low.obj test_lookup_var_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test1_12_mutatee_solo_VC++_32_low.exe: test1_12_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC++_32_max.exe: symtab_group_test_group_VC++_32_max.obj test_lookup_func_mutatee_solo_VC++_32_max.obj test_lookup_var_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test1_12_mutatee_solo_VC++_32_max.exe: test1_12_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC++_32_none.exe: symtab_group_test_group_VC++_32_none.obj test_lookup_func_mutatee_solo_VC++_32_none.obj test_lookup_var_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test1_12_mutatee_solo_VC++_32_none.exe: test1_12_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC++_32_high.exe: test1_12_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test1_14_mutatee_solo_VC++_32_high.exe: test1_14_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC++_32_low.exe: test1_12_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test1_14_mutatee_solo_VC++_32_low.exe: test1_14_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC++_32_max.exe: test1_12_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test1_14_mutatee_solo_VC++_32_max.exe: test1_14_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC++_32_none.exe: test1_12_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test1_14_mutatee_solo_VC++_32_none.exe: test1_14_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC++_32_high.exe: test1_14_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test1_15_mutatee_solo_VC++_32_high.exe: test1_15_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC++_32_low.exe: test1_14_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test1_15_mutatee_solo_VC++_32_low.exe: test1_15_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC++_32_max.exe: test1_14_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test1_15_mutatee_solo_VC++_32_max.exe: test1_15_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC++_32_none.exe: test1_14_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test1_15_mutatee_solo_VC++_32_none.exe: test1_15_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC++_32_high.exe: test1_15_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test1_19_mutatee_solo_VC++_32_high.exe: test1_19_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC++_32_low.exe: test1_15_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test1_19_mutatee_solo_VC++_32_low.exe: test1_19_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC++_32_max.exe: test1_15_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test1_19_mutatee_solo_VC++_32_max.exe: test1_19_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC++_32_none.exe: test1_15_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test1_19_mutatee_solo_VC++_32_none.exe: test1_19_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC++_32_high.exe: test1_19_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test1_29_mutatee_solo_VC++_32_high.exe: test1_29_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC++_32_low.exe: test1_19_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test1_29_mutatee_solo_VC++_32_low.exe: test1_29_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC++_32_max.exe: test1_19_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test1_29_mutatee_solo_VC++_32_max.exe: test1_29_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC++_32_none.exe: test1_19_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test1_29_mutatee_solo_VC++_32_none.exe: test1_29_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC++_32_high.exe: test1_29_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test2_14_mutatee_solo_VC++_32_high.exe: test2_14_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC++_32_low.exe: test1_29_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test2_14_mutatee_solo_VC++_32_low.exe: test2_14_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC++_32_max.exe: test1_29_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test2_14_mutatee_solo_VC++_32_max.exe: test2_14_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC++_32_none.exe: test1_29_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test2_14_mutatee_solo_VC++_32_none.exe: test2_14_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC++_32_high.exe: test2_14_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test2_8_mutatee_solo_VC++_32_high.exe: test2_8_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC++_32_low.exe: test2_14_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test2_8_mutatee_solo_VC++_32_low.exe: test2_8_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC++_32_max.exe: test2_14_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test2_8_mutatee_solo_VC++_32_max.exe: test2_8_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC++_32_none.exe: test2_14_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test2_8_mutatee_solo_VC++_32_none.exe: test2_8_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC++_32_high.exe: test2_8_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test3_1_mutatee_solo_VC++_32_high.exe: test3_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC++_32_low.exe: test2_8_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test3_1_mutatee_solo_VC++_32_low.exe: test3_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC++_32_max.exe: test2_8_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test3_1_mutatee_solo_VC++_32_max.exe: test3_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC++_32_none.exe: test2_8_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test3_1_mutatee_solo_VC++_32_none.exe: test3_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC++_32_high.exe: test3_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test3_2_mutatee_solo_VC++_32_high.exe: test3_2_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC++_32_low.exe: test3_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test3_2_mutatee_solo_VC++_32_low.exe: test3_2_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC++_32_max.exe: test3_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test3_2_mutatee_solo_VC++_32_max.exe: test3_2_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC++_32_none.exe: test3_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test3_2_mutatee_solo_VC++_32_none.exe: test3_2_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC++_32_high.exe: test3_2_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test3_3_mutatee_solo_VC++_32_high.exe: test3_3_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC++_32_low.exe: test3_2_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test3_3_mutatee_solo_VC++_32_low.exe: test3_3_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC++_32_max.exe: test3_2_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test3_3_mutatee_solo_VC++_32_max.exe: test3_3_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC++_32_none.exe: test3_2_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test3_3_mutatee_solo_VC++_32_none.exe: test3_3_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC++_32_high.exe: test3_3_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test3_4_mutatee_solo_VC++_32_high.exe: test3_4_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC++_32_low.exe: test3_3_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test3_4_mutatee_solo_VC++_32_low.exe: test3_4_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC++_32_max.exe: test3_3_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test3_4_mutatee_solo_VC++_32_max.exe: test3_4_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC++_32_none.exe: test3_3_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test3_4_mutatee_solo_VC++_32_none.exe: test3_4_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC++_32_high.exe: test3_4_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test3_5_mutatee_solo_VC++_32_high.exe: test3_5_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC++_32_low.exe: test3_4_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test3_5_mutatee_solo_VC++_32_low.exe: test3_5_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC++_32_max.exe: test3_4_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test3_5_mutatee_solo_VC++_32_max.exe: test3_5_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC++_32_none.exe: test3_4_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test3_5_mutatee_solo_VC++_32_none.exe: test3_5_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC++_32_high.exe: test3_5_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test3_7_mutatee_solo_VC++_32_high.exe: test3_7_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC++_32_low.exe: test3_5_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test3_7_mutatee_solo_VC++_32_low.exe: test3_7_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC++_32_max.exe: test3_5_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test3_7_mutatee_solo_VC++_32_max.exe: test3_7_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC++_32_none.exe: test3_5_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test3_7_mutatee_solo_VC++_32_none.exe: test3_7_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC++_32_high.exe: test3_7_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test4_1_mutatee_solo_VC++_32_high.exe: test4_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC++_32_low.exe: test3_7_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test4_1_mutatee_solo_VC++_32_low.exe: test4_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC++_32_max.exe: test3_7_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test4_1_mutatee_solo_VC++_32_max.exe: test4_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC++_32_none.exe: test3_7_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test4_1_mutatee_solo_VC++_32_none.exe: test4_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC++_32_high.exe: test4_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_1_mutatee_solo_VC++_32_high.exe: test_mem_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC++_32_low.exe: test4_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_1_mutatee_solo_VC++_32_low.exe: test_mem_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC++_32_max.exe: test4_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_1_mutatee_solo_VC++_32_max.exe: test_mem_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC++_32_none.exe: test4_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_1_mutatee_solo_VC++_32_none.exe: test_mem_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC++_32_high.exe: test_mem_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_2_mutatee_solo_VC++_32_high.exe: test_mem_2_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC++_32_low.exe: test_mem_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_2_mutatee_solo_VC++_32_low.exe: test_mem_2_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC++_32_max.exe: test_mem_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_2_mutatee_solo_VC++_32_max.exe: test_mem_2_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC++_32_none.exe: test_mem_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_2_mutatee_solo_VC++_32_none.exe: test_mem_2_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC++_32_high.exe: test_mem_2_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_3_mutatee_solo_VC++_32_high.exe: test_mem_3_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC++_32_low.exe: test_mem_2_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_3_mutatee_solo_VC++_32_low.exe: test_mem_3_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC++_32_max.exe: test_mem_2_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_3_mutatee_solo_VC++_32_max.exe: test_mem_3_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC++_32_none.exe: test_mem_2_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_3_mutatee_solo_VC++_32_none.exe: test_mem_3_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC++_32_high.exe: test_mem_3_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_4_mutatee_solo_VC++_32_high.exe: test_mem_4_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC++_32_low.exe: test_mem_3_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_4_mutatee_solo_VC++_32_low.exe: test_mem_4_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC++_32_max.exe: test_mem_3_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_4_mutatee_solo_VC++_32_max.exe: test_mem_4_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC++_32_none.exe: test_mem_3_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_4_mutatee_solo_VC++_32_none.exe: test_mem_4_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC++_32_high.exe: test_mem_4_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_5_mutatee_solo_VC++_32_high.exe: test_mem_5_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC++_32_low.exe: test_mem_4_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_5_mutatee_solo_VC++_32_low.exe: test_mem_5_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC++_32_max.exe: test_mem_4_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_5_mutatee_solo_VC++_32_max.exe: test_mem_5_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC++_32_none.exe: test_mem_4_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_5_mutatee_solo_VC++_32_none.exe: test_mem_5_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC++_32_high.exe: test_mem_5_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_6_mutatee_solo_VC++_32_high.exe: test_mem_6_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC++_32_low.exe: test_mem_5_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_6_mutatee_solo_VC++_32_low.exe: test_mem_6_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC++_32_max.exe: test_mem_5_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_6_mutatee_solo_VC++_32_max.exe: test_mem_6_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC++_32_none.exe: test_mem_5_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_6_mutatee_solo_VC++_32_none.exe: test_mem_6_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC++_32_high.exe: test_mem_6_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_7_mutatee_solo_VC++_32_high.exe: test_mem_7_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC++_32_low.exe: test_mem_6_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_7_mutatee_solo_VC++_32_low.exe: test_mem_7_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC++_32_max.exe: test_mem_6_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_7_mutatee_solo_VC++_32_max.exe: test_mem_7_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC++_32_none.exe: test_mem_6_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_7_mutatee_solo_VC++_32_none.exe: test_mem_7_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC++_32_high.exe: test_mem_7_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_mem_8_mutatee_solo_VC++_32_high.exe: test_mem_8_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC++_32_low.exe: test_mem_7_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_mem_8_mutatee_solo_VC++_32_low.exe: test_mem_8_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC++_32_max.exe: test_mem_7_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_mem_8_mutatee_solo_VC++_32_max.exe: test_mem_8_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC++_32_none.exe: test_mem_7_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_mem_8_mutatee_solo_VC++_32_none.exe: test_mem_8_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC++_32_high.exe: test_mem_8_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_stack_1_mutatee_solo_VC++_32_high.exe: test_stack_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC++_32_low.exe: test_mem_8_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_stack_1_mutatee_solo_VC++_32_low.exe: test_stack_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC++_32_max.exe: test_mem_8_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_stack_1_mutatee_solo_VC++_32_max.exe: test_stack_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC++_32_none.exe: test_mem_8_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_stack_1_mutatee_solo_VC++_32_none.exe: test_stack_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC++_32_high.exe: test_stack_1_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_stack_3_mutatee_solo_VC++_32_high.exe: test_stack_3_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC++_32_low.exe: test_stack_1_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_stack_3_mutatee_solo_VC++_32_low.exe: test_stack_3_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC++_32_max.exe: test_stack_1_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_stack_3_mutatee_solo_VC++_32_max.exe: test_stack_3_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC++_32_none.exe: test_stack_1_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_stack_3_mutatee_solo_VC++_32_none.exe: test_stack_3_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC++_32_high.exe: test_stack_3_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_thread_6_mutatee_solo_VC++_32_high.exe: test_thread_6_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_util_mt_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC++_32_low.exe: test_stack_3_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_thread_6_mutatee_solo_VC++_32_low.exe: test_thread_6_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_util_mt_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC++_32_max.exe: test_stack_3_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_thread_6_mutatee_solo_VC++_32_max.exe: test_thread_6_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_util_mt_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC++_32_none.exe: test_stack_3_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_thread_6_mutatee_solo_VC++_32_none.exe: test_thread_6_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC++_32_high.exe: test_thread_6_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_util_mt_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_thread_7_mutatee_solo_VC++_32_high.exe: test_thread_7_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_util_mt_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC++_32_low.exe: test_thread_6_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_util_mt_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_thread_7_mutatee_solo_VC++_32_low.exe: test_thread_7_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_util_mt_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC++_32_max.exe: test_thread_6_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_util_mt_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_thread_7_mutatee_solo_VC++_32_max.exe: test_thread_7_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_util_mt_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC++_32_none.exe: test_thread_6_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_thread_7_mutatee_solo_VC++_32_none.exe: test_thread_7_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC++_32_high.exe: test_thread_7_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_util_mt_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+test_thread_8_mutatee_solo_VC++_32_high.exe: test_thread_8_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_util_mt_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC++_32_low.exe: test_thread_7_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_util_mt_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+test_thread_8_mutatee_solo_VC++_32_low.exe: test_thread_8_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_util_mt_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC++_32_max.exe: test_thread_7_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_util_mt_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+test_thread_8_mutatee_solo_VC++_32_max.exe: test_thread_8_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_util_mt_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC++_32_none.exe: test_thread_7_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+test_thread_8_mutatee_solo_VC++_32_none.exe: test_thread_8_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_util_mt_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 test_mem_util_VC++_32_max.obj: ../src/dyninst/test_mem_util.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -Dsnprintf=_snprintf -Fo$@ $**
@@ -278,20 +278,20 @@ mutatee_util_mt_VC++_32_none.obj: ../src/mutatee_util_mt.c
 mutatee_util_VC++_32_none.obj: ../src/mutatee_util.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -Dsnprintf=_snprintf -Fo$@ $**
 ######################################################################
-# Mutatees compiled with VC++
+# Mutatees compiled with VC++ for symtab
 ######################################################################
 
-symtab_SOLO_MUTATEES_native_cxx = symtab_group_test.mutatee_solo_VC++_32_high.exe symtab_group_test.mutatee_solo_VC++_32_low.exe symtab_group_test.mutatee_solo_VC++_32_max.exe symtab_group_test.mutatee_solo_VC++_32_none.exe 
+symtab_SOLO_MUTATEES_native_cxx = symtab_group_test_mutatee_solo_VC++_32_high.exe symtab_group_test_mutatee_solo_VC++_32_low.exe symtab_group_test_mutatee_solo_VC++_32_max.exe symtab_group_test_mutatee_solo_VC++_32_none.exe 
 
 # Now a list of rules for compiling the mutatees with VC++
 
-symtab_group_test.mutatee_solo_VC++_32_high.exe: dyninst_cxx_group_test_group_VC++_32_high.obj test5_1_mutatee_solo_VC++_32_high.obj test5_2_mutatee_solo_VC++_32_high.obj test5_3_mutatee_solo_VC++_32_high.obj test5_4_mutatee_solo_VC++_32_high.obj test5_5_mutatee_solo_VC++_32_high.obj test5_6_mutatee_solo_VC++_32_high.obj test5_7_mutatee_solo_VC++_32_high.obj test5_8_mutatee_solo_VC++_32_high.obj test5_9_mutatee_solo_VC++_32_high.obj cpp_test_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+symtab_group_test_mutatee_solo_VC++_32_high.exe: symtab_group_test_group_VC++_32_high.obj test_lookup_func_mutatee_solo_VC++_32_high.obj test_lookup_var_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test.mutatee_solo_VC++_32_low.exe: dyninst_cxx_group_test_group_VC++_32_low.obj test5_1_mutatee_solo_VC++_32_low.obj test5_2_mutatee_solo_VC++_32_low.obj test5_3_mutatee_solo_VC++_32_low.obj test5_4_mutatee_solo_VC++_32_low.obj test5_5_mutatee_solo_VC++_32_low.obj test5_6_mutatee_solo_VC++_32_low.obj test5_7_mutatee_solo_VC++_32_low.obj test5_8_mutatee_solo_VC++_32_low.obj test5_9_mutatee_solo_VC++_32_low.obj cpp_test_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+symtab_group_test_mutatee_solo_VC++_32_low.exe: symtab_group_test_group_VC++_32_low.obj test_lookup_func_mutatee_solo_VC++_32_low.obj test_lookup_var_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test.mutatee_solo_VC++_32_max.exe: dyninst_cxx_group_test_group_VC++_32_max.obj test5_1_mutatee_solo_VC++_32_max.obj test5_2_mutatee_solo_VC++_32_max.obj test5_3_mutatee_solo_VC++_32_max.obj test5_4_mutatee_solo_VC++_32_max.obj test5_5_mutatee_solo_VC++_32_max.obj test5_6_mutatee_solo_VC++_32_max.obj test5_7_mutatee_solo_VC++_32_max.obj test5_8_mutatee_solo_VC++_32_max.obj test5_9_mutatee_solo_VC++_32_max.obj cpp_test_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+symtab_group_test_mutatee_solo_VC++_32_max.exe: symtab_group_test_group_VC++_32_max.obj test_lookup_func_mutatee_solo_VC++_32_max.obj test_lookup_var_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test.mutatee_solo_VC++_32_none.exe: dyninst_cxx_group_test_group_VC++_32_none.obj test5_1_mutatee_solo_VC++_32_none.obj test5_2_mutatee_solo_VC++_32_none.obj test5_3_mutatee_solo_VC++_32_none.obj test5_4_mutatee_solo_VC++_32_none.obj test5_5_mutatee_solo_VC++_32_none.obj test5_6_mutatee_solo_VC++_32_none.obj test5_7_mutatee_solo_VC++_32_none.obj test5_8_mutatee_solo_VC++_32_none.obj test5_9_mutatee_solo_VC++_32_none.obj cpp_test_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+symtab_group_test_mutatee_solo_VC++_32_none.exe: symtab_group_test_group_VC++_32_none.obj test_lookup_func_mutatee_solo_VC++_32_none.obj test_lookup_var_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 
 # Generic rules for VC++'s mutatees and varying optimization levels
@@ -989,236 +989,236 @@ mutatee_driver_solo_VC++_32_none.obj: ../src/mutatee_driver.c
 mutatee_driver_solo_VC++_32_low.obj: ../src/mutatee_driver.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) /O1  -Dsnprintf=_snprintf -Fo$@ -c $**
 ######################################################################
-# Mutatees compiled with VC
+# Mutatees compiled with VC for dyninst
 ######################################################################
 
-dyninst_SOLO_MUTATEES_native_cc = dyninst_group_test.mutatee_solo_VC_32_high.exe dyninst_group_test.mutatee_solo_VC_32_low.exe dyninst_group_test.mutatee_solo_VC_32_max.exe dyninst_group_test.mutatee_solo_VC_32_none.exe test1_12.mutatee_solo_VC_32_high.exe test1_12.mutatee_solo_VC_32_low.exe test1_12.mutatee_solo_VC_32_max.exe test1_12.mutatee_solo_VC_32_none.exe test1_14.mutatee_solo_VC_32_high.exe test1_14.mutatee_solo_VC_32_low.exe test1_14.mutatee_solo_VC_32_max.exe test1_14.mutatee_solo_VC_32_none.exe test1_15.mutatee_solo_VC_32_high.exe test1_15.mutatee_solo_VC_32_low.exe test1_15.mutatee_solo_VC_32_max.exe test1_15.mutatee_solo_VC_32_none.exe test1_19.mutatee_solo_VC_32_high.exe test1_19.mutatee_solo_VC_32_low.exe test1_19.mutatee_solo_VC_32_max.exe test1_19.mutatee_solo_VC_32_none.exe test1_29.mutatee_solo_VC_32_high.exe test1_29.mutatee_solo_VC_32_low.exe test1_29.mutatee_solo_VC_32_max.exe test1_29.mutatee_solo_VC_32_none.exe test2_14.mutatee_solo_VC_32_high.exe test2_14.mutatee_solo_VC_32_low.exe test2_14.mutatee_solo_VC_32_max.exe test2_14.mutatee_solo_VC_32_none.exe test2_8.mutatee_solo_VC_32_high.exe test2_8.mutatee_solo_VC_32_low.exe test2_8.mutatee_solo_VC_32_max.exe test2_8.mutatee_solo_VC_32_none.exe test3_1.mutatee_solo_VC_32_high.exe test3_1.mutatee_solo_VC_32_low.exe test3_1.mutatee_solo_VC_32_max.exe test3_1.mutatee_solo_VC_32_none.exe test3_2.mutatee_solo_VC_32_high.exe test3_2.mutatee_solo_VC_32_low.exe test3_2.mutatee_solo_VC_32_max.exe test3_2.mutatee_solo_VC_32_none.exe test3_3.mutatee_solo_VC_32_high.exe test3_3.mutatee_solo_VC_32_low.exe test3_3.mutatee_solo_VC_32_max.exe test3_3.mutatee_solo_VC_32_none.exe test3_4.mutatee_solo_VC_32_high.exe test3_4.mutatee_solo_VC_32_low.exe test3_4.mutatee_solo_VC_32_max.exe test3_4.mutatee_solo_VC_32_none.exe test3_5.mutatee_solo_VC_32_high.exe test3_5.mutatee_solo_VC_32_low.exe test3_5.mutatee_solo_VC_32_max.exe test3_5.mutatee_solo_VC_32_none.exe test3_7.mutatee_solo_VC_32_high.exe test3_7.mutatee_solo_VC_32_low.exe test3_7.mutatee_solo_VC_32_max.exe test3_7.mutatee_solo_VC_32_none.exe test4_1.mutatee_solo_VC_32_high.exe test4_1.mutatee_solo_VC_32_low.exe test4_1.mutatee_solo_VC_32_max.exe test4_1.mutatee_solo_VC_32_none.exe test_mem_1.mutatee_solo_VC_32_high.exe test_mem_1.mutatee_solo_VC_32_low.exe test_mem_1.mutatee_solo_VC_32_max.exe test_mem_1.mutatee_solo_VC_32_none.exe test_mem_2.mutatee_solo_VC_32_high.exe test_mem_2.mutatee_solo_VC_32_low.exe test_mem_2.mutatee_solo_VC_32_max.exe test_mem_2.mutatee_solo_VC_32_none.exe test_mem_3.mutatee_solo_VC_32_high.exe test_mem_3.mutatee_solo_VC_32_low.exe test_mem_3.mutatee_solo_VC_32_max.exe test_mem_3.mutatee_solo_VC_32_none.exe test_mem_4.mutatee_solo_VC_32_high.exe test_mem_4.mutatee_solo_VC_32_low.exe test_mem_4.mutatee_solo_VC_32_max.exe test_mem_4.mutatee_solo_VC_32_none.exe test_mem_5.mutatee_solo_VC_32_high.exe test_mem_5.mutatee_solo_VC_32_low.exe test_mem_5.mutatee_solo_VC_32_max.exe test_mem_5.mutatee_solo_VC_32_none.exe test_mem_6.mutatee_solo_VC_32_high.exe test_mem_6.mutatee_solo_VC_32_low.exe test_mem_6.mutatee_solo_VC_32_max.exe test_mem_6.mutatee_solo_VC_32_none.exe test_mem_7.mutatee_solo_VC_32_high.exe test_mem_7.mutatee_solo_VC_32_low.exe test_mem_7.mutatee_solo_VC_32_max.exe test_mem_7.mutatee_solo_VC_32_none.exe test_mem_8.mutatee_solo_VC_32_high.exe test_mem_8.mutatee_solo_VC_32_low.exe test_mem_8.mutatee_solo_VC_32_max.exe test_mem_8.mutatee_solo_VC_32_none.exe test_stack_1.mutatee_solo_VC_32_high.exe test_stack_1.mutatee_solo_VC_32_low.exe test_stack_1.mutatee_solo_VC_32_max.exe test_stack_1.mutatee_solo_VC_32_none.exe test_stack_3.mutatee_solo_VC_32_high.exe test_stack_3.mutatee_solo_VC_32_low.exe test_stack_3.mutatee_solo_VC_32_max.exe test_stack_3.mutatee_solo_VC_32_none.exe test_thread_6.mutatee_solo_VC_32_high.exe test_thread_6.mutatee_solo_VC_32_low.exe test_thread_6.mutatee_solo_VC_32_max.exe test_thread_6.mutatee_solo_VC_32_none.exe test_thread_7.mutatee_solo_VC_32_high.exe test_thread_7.mutatee_solo_VC_32_low.exe test_thread_7.mutatee_solo_VC_32_max.exe test_thread_7.mutatee_solo_VC_32_none.exe test_thread_8.mutatee_solo_VC_32_high.exe test_thread_8.mutatee_solo_VC_32_low.exe test_thread_8.mutatee_solo_VC_32_max.exe test_thread_8.mutatee_solo_VC_32_none.exe 
+dyninst_SOLO_MUTATEES_native_cc = dyninst_group_test_mutatee_solo_VC_32_high.exe dyninst_group_test_mutatee_solo_VC_32_low.exe dyninst_group_test_mutatee_solo_VC_32_max.exe dyninst_group_test_mutatee_solo_VC_32_none.exe test1_12_mutatee_solo_VC_32_high.exe test1_12_mutatee_solo_VC_32_low.exe test1_12_mutatee_solo_VC_32_max.exe test1_12_mutatee_solo_VC_32_none.exe test1_14_mutatee_solo_VC_32_high.exe test1_14_mutatee_solo_VC_32_low.exe test1_14_mutatee_solo_VC_32_max.exe test1_14_mutatee_solo_VC_32_none.exe test1_15_mutatee_solo_VC_32_high.exe test1_15_mutatee_solo_VC_32_low.exe test1_15_mutatee_solo_VC_32_max.exe test1_15_mutatee_solo_VC_32_none.exe test1_19_mutatee_solo_VC_32_high.exe test1_19_mutatee_solo_VC_32_low.exe test1_19_mutatee_solo_VC_32_max.exe test1_19_mutatee_solo_VC_32_none.exe test1_29_mutatee_solo_VC_32_high.exe test1_29_mutatee_solo_VC_32_low.exe test1_29_mutatee_solo_VC_32_max.exe test1_29_mutatee_solo_VC_32_none.exe test2_14_mutatee_solo_VC_32_high.exe test2_14_mutatee_solo_VC_32_low.exe test2_14_mutatee_solo_VC_32_max.exe test2_14_mutatee_solo_VC_32_none.exe test2_8_mutatee_solo_VC_32_high.exe test2_8_mutatee_solo_VC_32_low.exe test2_8_mutatee_solo_VC_32_max.exe test2_8_mutatee_solo_VC_32_none.exe test3_1_mutatee_solo_VC_32_high.exe test3_1_mutatee_solo_VC_32_low.exe test3_1_mutatee_solo_VC_32_max.exe test3_1_mutatee_solo_VC_32_none.exe test3_2_mutatee_solo_VC_32_high.exe test3_2_mutatee_solo_VC_32_low.exe test3_2_mutatee_solo_VC_32_max.exe test3_2_mutatee_solo_VC_32_none.exe test3_3_mutatee_solo_VC_32_high.exe test3_3_mutatee_solo_VC_32_low.exe test3_3_mutatee_solo_VC_32_max.exe test3_3_mutatee_solo_VC_32_none.exe test3_4_mutatee_solo_VC_32_high.exe test3_4_mutatee_solo_VC_32_low.exe test3_4_mutatee_solo_VC_32_max.exe test3_4_mutatee_solo_VC_32_none.exe test3_5_mutatee_solo_VC_32_high.exe test3_5_mutatee_solo_VC_32_low.exe test3_5_mutatee_solo_VC_32_max.exe test3_5_mutatee_solo_VC_32_none.exe test3_7_mutatee_solo_VC_32_high.exe test3_7_mutatee_solo_VC_32_low.exe test3_7_mutatee_solo_VC_32_max.exe test3_7_mutatee_solo_VC_32_none.exe test4_1_mutatee_solo_VC_32_high.exe test4_1_mutatee_solo_VC_32_low.exe test4_1_mutatee_solo_VC_32_max.exe test4_1_mutatee_solo_VC_32_none.exe test_mem_1_mutatee_solo_VC_32_high.exe test_mem_1_mutatee_solo_VC_32_low.exe test_mem_1_mutatee_solo_VC_32_max.exe test_mem_1_mutatee_solo_VC_32_none.exe test_mem_2_mutatee_solo_VC_32_high.exe test_mem_2_mutatee_solo_VC_32_low.exe test_mem_2_mutatee_solo_VC_32_max.exe test_mem_2_mutatee_solo_VC_32_none.exe test_mem_3_mutatee_solo_VC_32_high.exe test_mem_3_mutatee_solo_VC_32_low.exe test_mem_3_mutatee_solo_VC_32_max.exe test_mem_3_mutatee_solo_VC_32_none.exe test_mem_4_mutatee_solo_VC_32_high.exe test_mem_4_mutatee_solo_VC_32_low.exe test_mem_4_mutatee_solo_VC_32_max.exe test_mem_4_mutatee_solo_VC_32_none.exe test_mem_5_mutatee_solo_VC_32_high.exe test_mem_5_mutatee_solo_VC_32_low.exe test_mem_5_mutatee_solo_VC_32_max.exe test_mem_5_mutatee_solo_VC_32_none.exe test_mem_6_mutatee_solo_VC_32_high.exe test_mem_6_mutatee_solo_VC_32_low.exe test_mem_6_mutatee_solo_VC_32_max.exe test_mem_6_mutatee_solo_VC_32_none.exe test_mem_7_mutatee_solo_VC_32_high.exe test_mem_7_mutatee_solo_VC_32_low.exe test_mem_7_mutatee_solo_VC_32_max.exe test_mem_7_mutatee_solo_VC_32_none.exe test_mem_8_mutatee_solo_VC_32_high.exe test_mem_8_mutatee_solo_VC_32_low.exe test_mem_8_mutatee_solo_VC_32_max.exe test_mem_8_mutatee_solo_VC_32_none.exe test_stack_1_mutatee_solo_VC_32_high.exe test_stack_1_mutatee_solo_VC_32_low.exe test_stack_1_mutatee_solo_VC_32_max.exe test_stack_1_mutatee_solo_VC_32_none.exe test_stack_3_mutatee_solo_VC_32_high.exe test_stack_3_mutatee_solo_VC_32_low.exe test_stack_3_mutatee_solo_VC_32_max.exe test_stack_3_mutatee_solo_VC_32_none.exe test_thread_6_mutatee_solo_VC_32_high.exe test_thread_6_mutatee_solo_VC_32_low.exe test_thread_6_mutatee_solo_VC_32_max.exe test_thread_6_mutatee_solo_VC_32_none.exe test_thread_7_mutatee_solo_VC_32_high.exe test_thread_7_mutatee_solo_VC_32_low.exe test_thread_7_mutatee_solo_VC_32_max.exe test_thread_7_mutatee_solo_VC_32_none.exe test_thread_8_mutatee_solo_VC_32_high.exe test_thread_8_mutatee_solo_VC_32_low.exe test_thread_8_mutatee_solo_VC_32_max.exe test_thread_8_mutatee_solo_VC_32_none.exe 
 
 # Now a list of rules for compiling the mutatees with VC
 
-dyninst_group_test.mutatee_solo_VC_32_high.exe: dyninst_group_test_group_VC_32_high.obj test1_1_mutatee_solo_VC_32_high.obj test1_2_mutatee_solo_VC_32_high.obj test1_3_mutatee_solo_VC_32_high.obj test1_4_mutatee_solo_VC_32_high.obj test1_5_mutatee_solo_VC_32_high.obj test1_6_mutatee_solo_VC_32_high.obj test1_7_mutatee_solo_VC_32_high.obj test1_8_mutatee_solo_VC_32_high.obj test1_9_mutatee_solo_VC_32_high.obj test1_10_mutatee_solo_VC_32_high.obj test1_11_mutatee_solo_VC_32_high.obj test1_13_mutatee_solo_VC_32_high.obj test1_16_mutatee_solo_VC_32_high.obj test1_17_mutatee_solo_VC_32_high.obj test1_18_mutatee_solo_VC_32_high.obj test1_20_mutatee_solo_VC_32_high.obj test1_21_mutatee_solo_VC_32_high.obj test1_22_mutatee_solo_VC_32_high.obj test1_23_mutatee_solo_VC_32_high.obj test1_24_mutatee_solo_VC_32_high.obj test1_25_mutatee_solo_VC_32_high.obj test1_26_mutatee_solo_VC_32_high.obj test1_27_mutatee_solo_VC_32_high.obj test1_28_mutatee_solo_VC_32_high.obj test1_30_mutatee_solo_VC_32_high.obj test1_31_mutatee_solo_VC_32_high.obj test1_32_mutatee_solo_VC_32_high.obj test1_33_mutatee_solo_VC_32_high.obj test1_34_mutatee_solo_VC_32_high.obj test1_36_mutatee_solo_VC_32_high.obj test1_37_mutatee_solo_VC_32_high.obj test1_38_mutatee_solo_VC_32_high.obj test1_39_mutatee_solo_VC_32_high.obj test2_5_mutatee_solo_VC_32_high.obj test2_7_mutatee_solo_VC_32_high.obj test2_9_mutatee_solo_VC_32_high.obj test2_10_mutatee_solo_VC_32_high.obj test2_11_mutatee_solo_VC_32_high.obj test2_12_mutatee_solo_VC_32_high.obj test2_13_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+dyninst_group_test_mutatee_solo_VC_32_high.exe: dyninst_group_test_group_VC_32_high.obj test1_1_mutatee_solo_VC_32_high.obj test1_2_mutatee_solo_VC_32_high.obj test1_3_mutatee_solo_VC_32_high.obj test1_4_mutatee_solo_VC_32_high.obj test1_5_mutatee_solo_VC_32_high.obj test1_6_mutatee_solo_VC_32_high.obj test1_7_mutatee_solo_VC_32_high.obj test1_8_mutatee_solo_VC_32_high.obj test1_9_mutatee_solo_VC_32_high.obj test1_10_mutatee_solo_VC_32_high.obj test1_11_mutatee_solo_VC_32_high.obj test1_13_mutatee_solo_VC_32_high.obj test1_16_mutatee_solo_VC_32_high.obj test1_17_mutatee_solo_VC_32_high.obj test1_18_mutatee_solo_VC_32_high.obj test1_20_mutatee_solo_VC_32_high.obj test1_21_mutatee_solo_VC_32_high.obj test1_22_mutatee_solo_VC_32_high.obj test1_23_mutatee_solo_VC_32_high.obj test1_24_mutatee_solo_VC_32_high.obj test1_25_mutatee_solo_VC_32_high.obj test1_26_mutatee_solo_VC_32_high.obj test1_27_mutatee_solo_VC_32_high.obj test1_28_mutatee_solo_VC_32_high.obj test1_30_mutatee_solo_VC_32_high.obj test1_31_mutatee_solo_VC_32_high.obj test1_32_mutatee_solo_VC_32_high.obj test1_33_mutatee_solo_VC_32_high.obj test1_34_mutatee_solo_VC_32_high.obj test1_36_mutatee_solo_VC_32_high.obj test1_37_mutatee_solo_VC_32_high.obj test1_38_mutatee_solo_VC_32_high.obj test1_39_mutatee_solo_VC_32_high.obj test2_5_mutatee_solo_VC_32_high.obj test2_7_mutatee_solo_VC_32_high.obj test2_9_mutatee_solo_VC_32_high.obj test2_10_mutatee_solo_VC_32_high.obj test2_11_mutatee_solo_VC_32_high.obj test2_12_mutatee_solo_VC_32_high.obj test2_13_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test.mutatee_solo_VC_32_low.exe: dyninst_group_test_group_VC_32_low.obj test1_1_mutatee_solo_VC_32_low.obj test1_2_mutatee_solo_VC_32_low.obj test1_3_mutatee_solo_VC_32_low.obj test1_4_mutatee_solo_VC_32_low.obj test1_5_mutatee_solo_VC_32_low.obj test1_6_mutatee_solo_VC_32_low.obj test1_7_mutatee_solo_VC_32_low.obj test1_8_mutatee_solo_VC_32_low.obj test1_9_mutatee_solo_VC_32_low.obj test1_10_mutatee_solo_VC_32_low.obj test1_11_mutatee_solo_VC_32_low.obj test1_13_mutatee_solo_VC_32_low.obj test1_16_mutatee_solo_VC_32_low.obj test1_17_mutatee_solo_VC_32_low.obj test1_18_mutatee_solo_VC_32_low.obj test1_20_mutatee_solo_VC_32_low.obj test1_21_mutatee_solo_VC_32_low.obj test1_22_mutatee_solo_VC_32_low.obj test1_23_mutatee_solo_VC_32_low.obj test1_24_mutatee_solo_VC_32_low.obj test1_25_mutatee_solo_VC_32_low.obj test1_26_mutatee_solo_VC_32_low.obj test1_27_mutatee_solo_VC_32_low.obj test1_28_mutatee_solo_VC_32_low.obj test1_30_mutatee_solo_VC_32_low.obj test1_31_mutatee_solo_VC_32_low.obj test1_32_mutatee_solo_VC_32_low.obj test1_33_mutatee_solo_VC_32_low.obj test1_34_mutatee_solo_VC_32_low.obj test1_36_mutatee_solo_VC_32_low.obj test1_37_mutatee_solo_VC_32_low.obj test1_38_mutatee_solo_VC_32_low.obj test1_39_mutatee_solo_VC_32_low.obj test2_5_mutatee_solo_VC_32_low.obj test2_7_mutatee_solo_VC_32_low.obj test2_9_mutatee_solo_VC_32_low.obj test2_10_mutatee_solo_VC_32_low.obj test2_11_mutatee_solo_VC_32_low.obj test2_12_mutatee_solo_VC_32_low.obj test2_13_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+dyninst_group_test_mutatee_solo_VC_32_low.exe: dyninst_group_test_group_VC_32_low.obj test1_1_mutatee_solo_VC_32_low.obj test1_2_mutatee_solo_VC_32_low.obj test1_3_mutatee_solo_VC_32_low.obj test1_4_mutatee_solo_VC_32_low.obj test1_5_mutatee_solo_VC_32_low.obj test1_6_mutatee_solo_VC_32_low.obj test1_7_mutatee_solo_VC_32_low.obj test1_8_mutatee_solo_VC_32_low.obj test1_9_mutatee_solo_VC_32_low.obj test1_10_mutatee_solo_VC_32_low.obj test1_11_mutatee_solo_VC_32_low.obj test1_13_mutatee_solo_VC_32_low.obj test1_16_mutatee_solo_VC_32_low.obj test1_17_mutatee_solo_VC_32_low.obj test1_18_mutatee_solo_VC_32_low.obj test1_20_mutatee_solo_VC_32_low.obj test1_21_mutatee_solo_VC_32_low.obj test1_22_mutatee_solo_VC_32_low.obj test1_23_mutatee_solo_VC_32_low.obj test1_24_mutatee_solo_VC_32_low.obj test1_25_mutatee_solo_VC_32_low.obj test1_26_mutatee_solo_VC_32_low.obj test1_27_mutatee_solo_VC_32_low.obj test1_28_mutatee_solo_VC_32_low.obj test1_30_mutatee_solo_VC_32_low.obj test1_31_mutatee_solo_VC_32_low.obj test1_32_mutatee_solo_VC_32_low.obj test1_33_mutatee_solo_VC_32_low.obj test1_34_mutatee_solo_VC_32_low.obj test1_36_mutatee_solo_VC_32_low.obj test1_37_mutatee_solo_VC_32_low.obj test1_38_mutatee_solo_VC_32_low.obj test1_39_mutatee_solo_VC_32_low.obj test2_5_mutatee_solo_VC_32_low.obj test2_7_mutatee_solo_VC_32_low.obj test2_9_mutatee_solo_VC_32_low.obj test2_10_mutatee_solo_VC_32_low.obj test2_11_mutatee_solo_VC_32_low.obj test2_12_mutatee_solo_VC_32_low.obj test2_13_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test.mutatee_solo_VC_32_max.exe: dyninst_group_test_group_VC_32_max.obj test1_1_mutatee_solo_VC_32_max.obj test1_2_mutatee_solo_VC_32_max.obj test1_3_mutatee_solo_VC_32_max.obj test1_4_mutatee_solo_VC_32_max.obj test1_5_mutatee_solo_VC_32_max.obj test1_6_mutatee_solo_VC_32_max.obj test1_7_mutatee_solo_VC_32_max.obj test1_8_mutatee_solo_VC_32_max.obj test1_9_mutatee_solo_VC_32_max.obj test1_10_mutatee_solo_VC_32_max.obj test1_11_mutatee_solo_VC_32_max.obj test1_13_mutatee_solo_VC_32_max.obj test1_16_mutatee_solo_VC_32_max.obj test1_17_mutatee_solo_VC_32_max.obj test1_18_mutatee_solo_VC_32_max.obj test1_20_mutatee_solo_VC_32_max.obj test1_21_mutatee_solo_VC_32_max.obj test1_22_mutatee_solo_VC_32_max.obj test1_23_mutatee_solo_VC_32_max.obj test1_24_mutatee_solo_VC_32_max.obj test1_25_mutatee_solo_VC_32_max.obj test1_26_mutatee_solo_VC_32_max.obj test1_27_mutatee_solo_VC_32_max.obj test1_28_mutatee_solo_VC_32_max.obj test1_30_mutatee_solo_VC_32_max.obj test1_31_mutatee_solo_VC_32_max.obj test1_32_mutatee_solo_VC_32_max.obj test1_33_mutatee_solo_VC_32_max.obj test1_34_mutatee_solo_VC_32_max.obj test1_36_mutatee_solo_VC_32_max.obj test1_37_mutatee_solo_VC_32_max.obj test1_38_mutatee_solo_VC_32_max.obj test1_39_mutatee_solo_VC_32_max.obj test2_5_mutatee_solo_VC_32_max.obj test2_7_mutatee_solo_VC_32_max.obj test2_9_mutatee_solo_VC_32_max.obj test2_10_mutatee_solo_VC_32_max.obj test2_11_mutatee_solo_VC_32_max.obj test2_12_mutatee_solo_VC_32_max.obj test2_13_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+dyninst_group_test_mutatee_solo_VC_32_max.exe: dyninst_group_test_group_VC_32_max.obj test1_1_mutatee_solo_VC_32_max.obj test1_2_mutatee_solo_VC_32_max.obj test1_3_mutatee_solo_VC_32_max.obj test1_4_mutatee_solo_VC_32_max.obj test1_5_mutatee_solo_VC_32_max.obj test1_6_mutatee_solo_VC_32_max.obj test1_7_mutatee_solo_VC_32_max.obj test1_8_mutatee_solo_VC_32_max.obj test1_9_mutatee_solo_VC_32_max.obj test1_10_mutatee_solo_VC_32_max.obj test1_11_mutatee_solo_VC_32_max.obj test1_13_mutatee_solo_VC_32_max.obj test1_16_mutatee_solo_VC_32_max.obj test1_17_mutatee_solo_VC_32_max.obj test1_18_mutatee_solo_VC_32_max.obj test1_20_mutatee_solo_VC_32_max.obj test1_21_mutatee_solo_VC_32_max.obj test1_22_mutatee_solo_VC_32_max.obj test1_23_mutatee_solo_VC_32_max.obj test1_24_mutatee_solo_VC_32_max.obj test1_25_mutatee_solo_VC_32_max.obj test1_26_mutatee_solo_VC_32_max.obj test1_27_mutatee_solo_VC_32_max.obj test1_28_mutatee_solo_VC_32_max.obj test1_30_mutatee_solo_VC_32_max.obj test1_31_mutatee_solo_VC_32_max.obj test1_32_mutatee_solo_VC_32_max.obj test1_33_mutatee_solo_VC_32_max.obj test1_34_mutatee_solo_VC_32_max.obj test1_36_mutatee_solo_VC_32_max.obj test1_37_mutatee_solo_VC_32_max.obj test1_38_mutatee_solo_VC_32_max.obj test1_39_mutatee_solo_VC_32_max.obj test2_5_mutatee_solo_VC_32_max.obj test2_7_mutatee_solo_VC_32_max.obj test2_9_mutatee_solo_VC_32_max.obj test2_10_mutatee_solo_VC_32_max.obj test2_11_mutatee_solo_VC_32_max.obj test2_12_mutatee_solo_VC_32_max.obj test2_13_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test.mutatee_solo_VC_32_none.exe: dyninst_group_test_group_VC_32_none.obj test1_1_mutatee_solo_VC_32_none.obj test1_2_mutatee_solo_VC_32_none.obj test1_3_mutatee_solo_VC_32_none.obj test1_4_mutatee_solo_VC_32_none.obj test1_5_mutatee_solo_VC_32_none.obj test1_6_mutatee_solo_VC_32_none.obj test1_7_mutatee_solo_VC_32_none.obj test1_8_mutatee_solo_VC_32_none.obj test1_9_mutatee_solo_VC_32_none.obj test1_10_mutatee_solo_VC_32_none.obj test1_11_mutatee_solo_VC_32_none.obj test1_13_mutatee_solo_VC_32_none.obj test1_16_mutatee_solo_VC_32_none.obj test1_17_mutatee_solo_VC_32_none.obj test1_18_mutatee_solo_VC_32_none.obj test1_20_mutatee_solo_VC_32_none.obj test1_21_mutatee_solo_VC_32_none.obj test1_22_mutatee_solo_VC_32_none.obj test1_23_mutatee_solo_VC_32_none.obj test1_24_mutatee_solo_VC_32_none.obj test1_25_mutatee_solo_VC_32_none.obj test1_26_mutatee_solo_VC_32_none.obj test1_27_mutatee_solo_VC_32_none.obj test1_28_mutatee_solo_VC_32_none.obj test1_30_mutatee_solo_VC_32_none.obj test1_31_mutatee_solo_VC_32_none.obj test1_32_mutatee_solo_VC_32_none.obj test1_33_mutatee_solo_VC_32_none.obj test1_34_mutatee_solo_VC_32_none.obj test1_36_mutatee_solo_VC_32_none.obj test1_37_mutatee_solo_VC_32_none.obj test1_38_mutatee_solo_VC_32_none.obj test1_39_mutatee_solo_VC_32_none.obj test2_5_mutatee_solo_VC_32_none.obj test2_7_mutatee_solo_VC_32_none.obj test2_9_mutatee_solo_VC_32_none.obj test2_10_mutatee_solo_VC_32_none.obj test2_11_mutatee_solo_VC_32_none.obj test2_12_mutatee_solo_VC_32_none.obj test2_13_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+dyninst_group_test_mutatee_solo_VC_32_none.exe: dyninst_group_test_group_VC_32_none.obj test1_1_mutatee_solo_VC_32_none.obj test1_2_mutatee_solo_VC_32_none.obj test1_3_mutatee_solo_VC_32_none.obj test1_4_mutatee_solo_VC_32_none.obj test1_5_mutatee_solo_VC_32_none.obj test1_6_mutatee_solo_VC_32_none.obj test1_7_mutatee_solo_VC_32_none.obj test1_8_mutatee_solo_VC_32_none.obj test1_9_mutatee_solo_VC_32_none.obj test1_10_mutatee_solo_VC_32_none.obj test1_11_mutatee_solo_VC_32_none.obj test1_13_mutatee_solo_VC_32_none.obj test1_16_mutatee_solo_VC_32_none.obj test1_17_mutatee_solo_VC_32_none.obj test1_18_mutatee_solo_VC_32_none.obj test1_20_mutatee_solo_VC_32_none.obj test1_21_mutatee_solo_VC_32_none.obj test1_22_mutatee_solo_VC_32_none.obj test1_23_mutatee_solo_VC_32_none.obj test1_24_mutatee_solo_VC_32_none.obj test1_25_mutatee_solo_VC_32_none.obj test1_26_mutatee_solo_VC_32_none.obj test1_27_mutatee_solo_VC_32_none.obj test1_28_mutatee_solo_VC_32_none.obj test1_30_mutatee_solo_VC_32_none.obj test1_31_mutatee_solo_VC_32_none.obj test1_32_mutatee_solo_VC_32_none.obj test1_33_mutatee_solo_VC_32_none.obj test1_34_mutatee_solo_VC_32_none.obj test1_36_mutatee_solo_VC_32_none.obj test1_37_mutatee_solo_VC_32_none.obj test1_38_mutatee_solo_VC_32_none.obj test1_39_mutatee_solo_VC_32_none.obj test2_5_mutatee_solo_VC_32_none.obj test2_7_mutatee_solo_VC_32_none.obj test2_9_mutatee_solo_VC_32_none.obj test2_10_mutatee_solo_VC_32_none.obj test2_11_mutatee_solo_VC_32_none.obj test2_12_mutatee_solo_VC_32_none.obj test2_13_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC_32_high.exe: symtab_group_test_group_VC_32_high.obj test_lookup_func_mutatee_solo_VC_32_high.obj test_lookup_var_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test1_12_mutatee_solo_VC_32_high.exe: test1_12_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC_32_low.exe: symtab_group_test_group_VC_32_low.obj test_lookup_func_mutatee_solo_VC_32_low.obj test_lookup_var_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test1_12_mutatee_solo_VC_32_low.exe: test1_12_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC_32_max.exe: symtab_group_test_group_VC_32_max.obj test_lookup_func_mutatee_solo_VC_32_max.obj test_lookup_var_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test1_12_mutatee_solo_VC_32_max.exe: test1_12_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_12.mutatee_solo_VC_32_none.exe: symtab_group_test_group_VC_32_none.obj test_lookup_func_mutatee_solo_VC_32_none.obj test_lookup_var_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test1_12_mutatee_solo_VC_32_none.exe: test1_12_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC_32_high.exe: test1_12_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test1_14_mutatee_solo_VC_32_high.exe: test1_14_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC_32_low.exe: test1_12_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test1_14_mutatee_solo_VC_32_low.exe: test1_14_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC_32_max.exe: test1_12_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test1_14_mutatee_solo_VC_32_max.exe: test1_14_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_14.mutatee_solo_VC_32_none.exe: test1_12_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test1_14_mutatee_solo_VC_32_none.exe: test1_14_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC_32_high.exe: test1_14_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test1_15_mutatee_solo_VC_32_high.exe: test1_15_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC_32_low.exe: test1_14_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test1_15_mutatee_solo_VC_32_low.exe: test1_15_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC_32_max.exe: test1_14_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test1_15_mutatee_solo_VC_32_max.exe: test1_15_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_15.mutatee_solo_VC_32_none.exe: test1_14_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test1_15_mutatee_solo_VC_32_none.exe: test1_15_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC_32_high.exe: test1_15_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test1_19_mutatee_solo_VC_32_high.exe: test1_19_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC_32_low.exe: test1_15_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test1_19_mutatee_solo_VC_32_low.exe: test1_19_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC_32_max.exe: test1_15_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test1_19_mutatee_solo_VC_32_max.exe: test1_19_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_19.mutatee_solo_VC_32_none.exe: test1_15_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test1_19_mutatee_solo_VC_32_none.exe: test1_19_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC_32_high.exe: test1_19_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test1_29_mutatee_solo_VC_32_high.exe: test1_29_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC_32_low.exe: test1_19_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test1_29_mutatee_solo_VC_32_low.exe: test1_29_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC_32_max.exe: test1_19_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test1_29_mutatee_solo_VC_32_max.exe: test1_29_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test1_29.mutatee_solo_VC_32_none.exe: test1_19_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test1_29_mutatee_solo_VC_32_none.exe: test1_29_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC_32_high.exe: test1_29_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test2_14_mutatee_solo_VC_32_high.exe: test2_14_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC_32_low.exe: test1_29_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test2_14_mutatee_solo_VC_32_low.exe: test2_14_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC_32_max.exe: test1_29_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test2_14_mutatee_solo_VC_32_max.exe: test2_14_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_14.mutatee_solo_VC_32_none.exe: test1_29_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test2_14_mutatee_solo_VC_32_none.exe: test2_14_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC_32_high.exe: test2_14_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test2_8_mutatee_solo_VC_32_high.exe: test2_8_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC_32_low.exe: test2_14_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test2_8_mutatee_solo_VC_32_low.exe: test2_8_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC_32_max.exe: test2_14_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test2_8_mutatee_solo_VC_32_max.exe: test2_8_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test2_8.mutatee_solo_VC_32_none.exe: test2_14_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test2_8_mutatee_solo_VC_32_none.exe: test2_8_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC_32_high.exe: test2_8_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test3_1_mutatee_solo_VC_32_high.exe: test3_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC_32_low.exe: test2_8_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test3_1_mutatee_solo_VC_32_low.exe: test3_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC_32_max.exe: test2_8_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test3_1_mutatee_solo_VC_32_max.exe: test3_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_1.mutatee_solo_VC_32_none.exe: test2_8_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test3_1_mutatee_solo_VC_32_none.exe: test3_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC_32_high.exe: test3_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test3_2_mutatee_solo_VC_32_high.exe: test3_2_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC_32_low.exe: test3_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test3_2_mutatee_solo_VC_32_low.exe: test3_2_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC_32_max.exe: test3_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test3_2_mutatee_solo_VC_32_max.exe: test3_2_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_2.mutatee_solo_VC_32_none.exe: test3_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test3_2_mutatee_solo_VC_32_none.exe: test3_2_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC_32_high.exe: test3_2_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test3_3_mutatee_solo_VC_32_high.exe: test3_3_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC_32_low.exe: test3_2_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test3_3_mutatee_solo_VC_32_low.exe: test3_3_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC_32_max.exe: test3_2_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test3_3_mutatee_solo_VC_32_max.exe: test3_3_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_3.mutatee_solo_VC_32_none.exe: test3_2_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test3_3_mutatee_solo_VC_32_none.exe: test3_3_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC_32_high.exe: test3_3_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test3_4_mutatee_solo_VC_32_high.exe: test3_4_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC_32_low.exe: test3_3_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test3_4_mutatee_solo_VC_32_low.exe: test3_4_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC_32_max.exe: test3_3_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test3_4_mutatee_solo_VC_32_max.exe: test3_4_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_4.mutatee_solo_VC_32_none.exe: test3_3_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test3_4_mutatee_solo_VC_32_none.exe: test3_4_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC_32_high.exe: test3_4_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test3_5_mutatee_solo_VC_32_high.exe: test3_5_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC_32_low.exe: test3_4_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test3_5_mutatee_solo_VC_32_low.exe: test3_5_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC_32_max.exe: test3_4_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test3_5_mutatee_solo_VC_32_max.exe: test3_5_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_5.mutatee_solo_VC_32_none.exe: test3_4_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test3_5_mutatee_solo_VC_32_none.exe: test3_5_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC_32_high.exe: test3_5_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test3_7_mutatee_solo_VC_32_high.exe: test3_7_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC_32_low.exe: test3_5_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test3_7_mutatee_solo_VC_32_low.exe: test3_7_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC_32_max.exe: test3_5_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test3_7_mutatee_solo_VC_32_max.exe: test3_7_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test3_7.mutatee_solo_VC_32_none.exe: test3_5_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test3_7_mutatee_solo_VC_32_none.exe: test3_7_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC_32_high.exe: test3_7_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test4_1_mutatee_solo_VC_32_high.exe: test4_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC_32_low.exe: test3_7_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test4_1_mutatee_solo_VC_32_low.exe: test4_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC_32_max.exe: test3_7_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test4_1_mutatee_solo_VC_32_max.exe: test4_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test4_1.mutatee_solo_VC_32_none.exe: test3_7_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test4_1_mutatee_solo_VC_32_none.exe: test4_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC_32_high.exe: test4_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_1_mutatee_solo_VC_32_high.exe: test_mem_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC_32_low.exe: test4_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_1_mutatee_solo_VC_32_low.exe: test_mem_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC_32_max.exe: test4_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_1_mutatee_solo_VC_32_max.exe: test_mem_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_1.mutatee_solo_VC_32_none.exe: test4_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_1_mutatee_solo_VC_32_none.exe: test_mem_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC_32_high.exe: test_mem_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_2_mutatee_solo_VC_32_high.exe: test_mem_2_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC_32_low.exe: test_mem_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_2_mutatee_solo_VC_32_low.exe: test_mem_2_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC_32_max.exe: test_mem_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_2_mutatee_solo_VC_32_max.exe: test_mem_2_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_2.mutatee_solo_VC_32_none.exe: test_mem_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_2_mutatee_solo_VC_32_none.exe: test_mem_2_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC_32_high.exe: test_mem_2_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_3_mutatee_solo_VC_32_high.exe: test_mem_3_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC_32_low.exe: test_mem_2_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_3_mutatee_solo_VC_32_low.exe: test_mem_3_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC_32_max.exe: test_mem_2_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_3_mutatee_solo_VC_32_max.exe: test_mem_3_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_3.mutatee_solo_VC_32_none.exe: test_mem_2_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_3_mutatee_solo_VC_32_none.exe: test_mem_3_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC_32_high.exe: test_mem_3_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_4_mutatee_solo_VC_32_high.exe: test_mem_4_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC_32_low.exe: test_mem_3_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_4_mutatee_solo_VC_32_low.exe: test_mem_4_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC_32_max.exe: test_mem_3_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_4_mutatee_solo_VC_32_max.exe: test_mem_4_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_4.mutatee_solo_VC_32_none.exe: test_mem_3_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_4_mutatee_solo_VC_32_none.exe: test_mem_4_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC_32_high.exe: test_mem_4_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_5_mutatee_solo_VC_32_high.exe: test_mem_5_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC_32_low.exe: test_mem_4_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_5_mutatee_solo_VC_32_low.exe: test_mem_5_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC_32_max.exe: test_mem_4_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_5_mutatee_solo_VC_32_max.exe: test_mem_5_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_5.mutatee_solo_VC_32_none.exe: test_mem_4_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_5_mutatee_solo_VC_32_none.exe: test_mem_5_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC_32_high.exe: test_mem_5_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_6_mutatee_solo_VC_32_high.exe: test_mem_6_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC_32_low.exe: test_mem_5_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_6_mutatee_solo_VC_32_low.exe: test_mem_6_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC_32_max.exe: test_mem_5_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_6_mutatee_solo_VC_32_max.exe: test_mem_6_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_6.mutatee_solo_VC_32_none.exe: test_mem_5_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_6_mutatee_solo_VC_32_none.exe: test_mem_6_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC_32_high.exe: test_mem_6_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_7_mutatee_solo_VC_32_high.exe: test_mem_7_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC_32_low.exe: test_mem_6_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_7_mutatee_solo_VC_32_low.exe: test_mem_7_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC_32_max.exe: test_mem_6_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_7_mutatee_solo_VC_32_max.exe: test_mem_7_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_7.mutatee_solo_VC_32_none.exe: test_mem_6_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_7_mutatee_solo_VC_32_none.exe: test_mem_7_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC_32_high.exe: test_mem_7_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_mem_8_mutatee_solo_VC_32_high.exe: test_mem_8_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC_32_low.exe: test_mem_7_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_mem_8_mutatee_solo_VC_32_low.exe: test_mem_8_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC_32_max.exe: test_mem_7_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_mem_8_mutatee_solo_VC_32_max.exe: test_mem_8_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_mem_8.mutatee_solo_VC_32_none.exe: test_mem_7_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_mem_8_mutatee_solo_VC_32_none.exe: test_mem_8_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC_32_high.exe: test_mem_8_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_stack_1_mutatee_solo_VC_32_high.exe: test_stack_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC_32_low.exe: test_mem_8_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_stack_1_mutatee_solo_VC_32_low.exe: test_stack_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC_32_max.exe: test_mem_8_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_stack_1_mutatee_solo_VC_32_max.exe: test_stack_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_1.mutatee_solo_VC_32_none.exe: test_mem_8_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj test6LS-masm_masm_32_none.obj test_mem_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_stack_1_mutatee_solo_VC_32_none.exe: test_stack_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC_32_high.exe: test_stack_1_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_stack_3_mutatee_solo_VC_32_high.exe: test_stack_3_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC_32_low.exe: test_stack_1_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_stack_3_mutatee_solo_VC_32_low.exe: test_stack_3_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC_32_max.exe: test_stack_1_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_stack_3_mutatee_solo_VC_32_max.exe: test_stack_3_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_stack_3.mutatee_solo_VC_32_none.exe: test_stack_1_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_stack_3_mutatee_solo_VC_32_none.exe: test_stack_3_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC_32_high.exe: test_stack_3_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_thread_6_mutatee_solo_VC_32_high.exe: test_thread_6_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_util_mt_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC_32_low.exe: test_stack_3_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_thread_6_mutatee_solo_VC_32_low.exe: test_thread_6_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_util_mt_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC_32_max.exe: test_stack_3_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_thread_6_mutatee_solo_VC_32_max.exe: test_thread_6_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_util_mt_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_6.mutatee_solo_VC_32_none.exe: test_stack_3_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_thread_6_mutatee_solo_VC_32_none.exe: test_thread_6_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC_32_high.exe: test_thread_6_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_util_mt_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_thread_7_mutatee_solo_VC_32_high.exe: test_thread_7_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_util_mt_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC_32_low.exe: test_thread_6_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_util_mt_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_thread_7_mutatee_solo_VC_32_low.exe: test_thread_7_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_util_mt_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC_32_max.exe: test_thread_6_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_util_mt_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_thread_7_mutatee_solo_VC_32_max.exe: test_thread_7_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_util_mt_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_7.mutatee_solo_VC_32_none.exe: test_thread_6_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_thread_7_mutatee_solo_VC_32_none.exe: test_thread_7_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC_32_high.exe: test_thread_7_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_util_mt_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+test_thread_8_mutatee_solo_VC_32_high.exe: test_thread_8_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_util_mt_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC_32_low.exe: test_thread_7_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_util_mt_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+test_thread_8_mutatee_solo_VC_32_low.exe: test_thread_8_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_util_mt_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC_32_max.exe: test_thread_7_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_util_mt_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+test_thread_8_mutatee_solo_VC_32_max.exe: test_thread_8_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_util_mt_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-test_thread_8.mutatee_solo_VC_32_none.exe: test_thread_7_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+test_thread_8_mutatee_solo_VC_32_none.exe: test_thread_8_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_util_mt_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 mutatee_util_mt_VC_32_low.obj: ../src/mutatee_util_mt.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -Dsnprintf=_snprintf -Fo$@ $**
@@ -1245,20 +1245,20 @@ mutatee_util_VC_32_max.obj: ../src/mutatee_util.c
 mutatee_util_VC_32_none.obj: ../src/mutatee_util.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -Dsnprintf=_snprintf -Fo$@ $**
 ######################################################################
-# Mutatees compiled with VC
+# Mutatees compiled with VC for symtab
 ######################################################################
 
-symtab_SOLO_MUTATEES_native_cc = symtab_group_test.mutatee_solo_VC_32_high.exe symtab_group_test.mutatee_solo_VC_32_low.exe symtab_group_test.mutatee_solo_VC_32_max.exe symtab_group_test.mutatee_solo_VC_32_none.exe 
+symtab_SOLO_MUTATEES_native_cc = symtab_group_test_mutatee_solo_VC_32_high.exe symtab_group_test_mutatee_solo_VC_32_low.exe symtab_group_test_mutatee_solo_VC_32_max.exe symtab_group_test_mutatee_solo_VC_32_none.exe 
 
 # Now a list of rules for compiling the mutatees with VC
 
-symtab_group_test.mutatee_solo_VC_32_high.exe: dyninst_group_test_group_VC_32_high.obj test1_1_mutatee_solo_VC_32_high.obj test1_2_mutatee_solo_VC_32_high.obj test1_3_mutatee_solo_VC_32_high.obj test1_4_mutatee_solo_VC_32_high.obj test1_5_mutatee_solo_VC_32_high.obj test1_6_mutatee_solo_VC_32_high.obj test1_7_mutatee_solo_VC_32_high.obj test1_8_mutatee_solo_VC_32_high.obj test1_9_mutatee_solo_VC_32_high.obj test1_10_mutatee_solo_VC_32_high.obj test1_11_mutatee_solo_VC_32_high.obj test1_13_mutatee_solo_VC_32_high.obj test1_16_mutatee_solo_VC_32_high.obj test1_17_mutatee_solo_VC_32_high.obj test1_18_mutatee_solo_VC_32_high.obj test1_20_mutatee_solo_VC_32_high.obj test1_21_mutatee_solo_VC_32_high.obj test1_22_mutatee_solo_VC_32_high.obj test1_23_mutatee_solo_VC_32_high.obj test1_24_mutatee_solo_VC_32_high.obj test1_25_mutatee_solo_VC_32_high.obj test1_26_mutatee_solo_VC_32_high.obj test1_27_mutatee_solo_VC_32_high.obj test1_28_mutatee_solo_VC_32_high.obj test1_30_mutatee_solo_VC_32_high.obj test1_31_mutatee_solo_VC_32_high.obj test1_32_mutatee_solo_VC_32_high.obj test1_33_mutatee_solo_VC_32_high.obj test1_34_mutatee_solo_VC_32_high.obj test1_36_mutatee_solo_VC_32_high.obj test1_37_mutatee_solo_VC_32_high.obj test1_38_mutatee_solo_VC_32_high.obj test1_39_mutatee_solo_VC_32_high.obj test2_5_mutatee_solo_VC_32_high.obj test2_7_mutatee_solo_VC_32_high.obj test2_9_mutatee_solo_VC_32_high.obj test2_10_mutatee_solo_VC_32_high.obj test2_11_mutatee_solo_VC_32_high.obj test2_12_mutatee_solo_VC_32_high.obj test2_13_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+symtab_group_test_mutatee_solo_VC_32_high.exe: symtab_group_test_group_VC_32_high.obj test_lookup_func_mutatee_solo_VC_32_high.obj test_lookup_var_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test.mutatee_solo_VC_32_low.exe: dyninst_group_test_group_VC_32_low.obj test1_1_mutatee_solo_VC_32_low.obj test1_2_mutatee_solo_VC_32_low.obj test1_3_mutatee_solo_VC_32_low.obj test1_4_mutatee_solo_VC_32_low.obj test1_5_mutatee_solo_VC_32_low.obj test1_6_mutatee_solo_VC_32_low.obj test1_7_mutatee_solo_VC_32_low.obj test1_8_mutatee_solo_VC_32_low.obj test1_9_mutatee_solo_VC_32_low.obj test1_10_mutatee_solo_VC_32_low.obj test1_11_mutatee_solo_VC_32_low.obj test1_13_mutatee_solo_VC_32_low.obj test1_16_mutatee_solo_VC_32_low.obj test1_17_mutatee_solo_VC_32_low.obj test1_18_mutatee_solo_VC_32_low.obj test1_20_mutatee_solo_VC_32_low.obj test1_21_mutatee_solo_VC_32_low.obj test1_22_mutatee_solo_VC_32_low.obj test1_23_mutatee_solo_VC_32_low.obj test1_24_mutatee_solo_VC_32_low.obj test1_25_mutatee_solo_VC_32_low.obj test1_26_mutatee_solo_VC_32_low.obj test1_27_mutatee_solo_VC_32_low.obj test1_28_mutatee_solo_VC_32_low.obj test1_30_mutatee_solo_VC_32_low.obj test1_31_mutatee_solo_VC_32_low.obj test1_32_mutatee_solo_VC_32_low.obj test1_33_mutatee_solo_VC_32_low.obj test1_34_mutatee_solo_VC_32_low.obj test1_36_mutatee_solo_VC_32_low.obj test1_37_mutatee_solo_VC_32_low.obj test1_38_mutatee_solo_VC_32_low.obj test1_39_mutatee_solo_VC_32_low.obj test2_5_mutatee_solo_VC_32_low.obj test2_7_mutatee_solo_VC_32_low.obj test2_9_mutatee_solo_VC_32_low.obj test2_10_mutatee_solo_VC_32_low.obj test2_11_mutatee_solo_VC_32_low.obj test2_12_mutatee_solo_VC_32_low.obj test2_13_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+symtab_group_test_mutatee_solo_VC_32_low.exe: symtab_group_test_group_VC_32_low.obj test_lookup_func_mutatee_solo_VC_32_low.obj test_lookup_var_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test.mutatee_solo_VC_32_max.exe: dyninst_group_test_group_VC_32_max.obj test1_1_mutatee_solo_VC_32_max.obj test1_2_mutatee_solo_VC_32_max.obj test1_3_mutatee_solo_VC_32_max.obj test1_4_mutatee_solo_VC_32_max.obj test1_5_mutatee_solo_VC_32_max.obj test1_6_mutatee_solo_VC_32_max.obj test1_7_mutatee_solo_VC_32_max.obj test1_8_mutatee_solo_VC_32_max.obj test1_9_mutatee_solo_VC_32_max.obj test1_10_mutatee_solo_VC_32_max.obj test1_11_mutatee_solo_VC_32_max.obj test1_13_mutatee_solo_VC_32_max.obj test1_16_mutatee_solo_VC_32_max.obj test1_17_mutatee_solo_VC_32_max.obj test1_18_mutatee_solo_VC_32_max.obj test1_20_mutatee_solo_VC_32_max.obj test1_21_mutatee_solo_VC_32_max.obj test1_22_mutatee_solo_VC_32_max.obj test1_23_mutatee_solo_VC_32_max.obj test1_24_mutatee_solo_VC_32_max.obj test1_25_mutatee_solo_VC_32_max.obj test1_26_mutatee_solo_VC_32_max.obj test1_27_mutatee_solo_VC_32_max.obj test1_28_mutatee_solo_VC_32_max.obj test1_30_mutatee_solo_VC_32_max.obj test1_31_mutatee_solo_VC_32_max.obj test1_32_mutatee_solo_VC_32_max.obj test1_33_mutatee_solo_VC_32_max.obj test1_34_mutatee_solo_VC_32_max.obj test1_36_mutatee_solo_VC_32_max.obj test1_37_mutatee_solo_VC_32_max.obj test1_38_mutatee_solo_VC_32_max.obj test1_39_mutatee_solo_VC_32_max.obj test2_5_mutatee_solo_VC_32_max.obj test2_7_mutatee_solo_VC_32_max.obj test2_9_mutatee_solo_VC_32_max.obj test2_10_mutatee_solo_VC_32_max.obj test2_11_mutatee_solo_VC_32_max.obj test2_12_mutatee_solo_VC_32_max.obj test2_13_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+symtab_group_test_mutatee_solo_VC_32_max.exe: symtab_group_test_group_VC_32_max.obj test_lookup_func_mutatee_solo_VC_32_max.obj test_lookup_var_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test.mutatee_solo_VC_32_none.exe: dyninst_group_test_group_VC_32_none.obj test1_1_mutatee_solo_VC_32_none.obj test1_2_mutatee_solo_VC_32_none.obj test1_3_mutatee_solo_VC_32_none.obj test1_4_mutatee_solo_VC_32_none.obj test1_5_mutatee_solo_VC_32_none.obj test1_6_mutatee_solo_VC_32_none.obj test1_7_mutatee_solo_VC_32_none.obj test1_8_mutatee_solo_VC_32_none.obj test1_9_mutatee_solo_VC_32_none.obj test1_10_mutatee_solo_VC_32_none.obj test1_11_mutatee_solo_VC_32_none.obj test1_13_mutatee_solo_VC_32_none.obj test1_16_mutatee_solo_VC_32_none.obj test1_17_mutatee_solo_VC_32_none.obj test1_18_mutatee_solo_VC_32_none.obj test1_20_mutatee_solo_VC_32_none.obj test1_21_mutatee_solo_VC_32_none.obj test1_22_mutatee_solo_VC_32_none.obj test1_23_mutatee_solo_VC_32_none.obj test1_24_mutatee_solo_VC_32_none.obj test1_25_mutatee_solo_VC_32_none.obj test1_26_mutatee_solo_VC_32_none.obj test1_27_mutatee_solo_VC_32_none.obj test1_28_mutatee_solo_VC_32_none.obj test1_30_mutatee_solo_VC_32_none.obj test1_31_mutatee_solo_VC_32_none.obj test1_32_mutatee_solo_VC_32_none.obj test1_33_mutatee_solo_VC_32_none.obj test1_34_mutatee_solo_VC_32_none.obj test1_36_mutatee_solo_VC_32_none.obj test1_37_mutatee_solo_VC_32_none.obj test1_38_mutatee_solo_VC_32_none.obj test1_39_mutatee_solo_VC_32_none.obj test2_5_mutatee_solo_VC_32_none.obj test2_7_mutatee_solo_VC_32_none.obj test2_9_mutatee_solo_VC_32_none.obj test2_10_mutatee_solo_VC_32_none.obj test2_11_mutatee_solo_VC_32_none.obj test2_12_mutatee_solo_VC_32_none.obj test2_13_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+symtab_group_test_mutatee_solo_VC_32_none.exe: symtab_group_test_group_VC_32_none.obj test_lookup_func_mutatee_solo_VC_32_none.obj test_lookup_var_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 
 # Generic rules for VC's mutatees and varying optimization levels

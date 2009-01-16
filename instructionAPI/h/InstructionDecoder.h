@@ -76,12 +76,12 @@ namespace Dyninst
 	delete decodedInstruction;
       }
 
-      Instruction decode(const unsigned char* buffer, size_t size);
+      INSTRUCTION_EXPORT Instruction decode(const unsigned char* buffer, size_t size);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
-      Instruction decode();
+      INSTRUCTION_EXPORT Instruction decode();
       
     protected:
       void decodeOperands(std::vector<Expression::Ptr>& operands);

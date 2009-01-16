@@ -92,7 +92,7 @@ bool AddressTranslateWin::init()
 
 void printSysError(unsigned errNo) {
     char buf[1000];
-    bool result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
+    DWORD result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
 		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		  buf, 1000, NULL);
     if (!result) {

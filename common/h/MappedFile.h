@@ -1,28 +1,29 @@
 #ifndef __MAPPEDFILE_H__
 #define __MAPPEDFILE_H__
-#include <string>
 
 #include "headers.h"
+
+#include <string>
 #include "Types.h"
 
 class MappedFile {
      static dyn_hash_map<std::string, MappedFile *> mapped_files;
 
    public:
-      DLLEXPORT static MappedFile *createMappedFile(std::string fullpath_);
-      DLLEXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_);
-      DLLEXPORT static void closeMappedFile(MappedFile *&mf);
+      COMMON_EXPORT static MappedFile *createMappedFile(std::string fullpath_);
+      COMMON_EXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_);
+      COMMON_EXPORT static void closeMappedFile(MappedFile *&mf);
 
-      DLLEXPORT std::string pathname();
-      DLLEXPORT std::string filename();
-      DLLEXPORT void *base_addr() {return map_addr;}
+      COMMON_EXPORT std::string pathname();
+      COMMON_EXPORT std::string filename();
+      COMMON_EXPORT void *base_addr() {return map_addr;}
 #if defined(os_windows)
-      DLLEXPORT HANDLE getFileHandle() {return hFile;}
+      COMMON_EXPORT HANDLE getFileHandle() {return hFile;}
 #else
-      DLLEXPORT int getFD() {return fd;}
+      COMMON_EXPORT int getFD() {return fd;}
 #endif
-      DLLEXPORT unsigned long size() {return file_size;}
-      DLLEXPORT MappedFile *clone() { refCount++; return this; }
+      COMMON_EXPORT unsigned long size() {return file_size;}
+      COMMON_EXPORT MappedFile *clone() { refCount++; return this; }
 
    private:
 
