@@ -50,8 +50,17 @@ all: ready world
 # target can be passed down to the lower-level Makefiles by listing it
 # as a target here:
 
-clean depend distclean:
+depend:
 	+@for subsystem in $(fullSystem); do 			\
+	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
+			$(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
+	    else						\
+			true;						\
+	    fi							\
+	done
+
+clean distclean:
+	+@for subsystem in $(allSubdirs); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 			$(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
 	    else						\
