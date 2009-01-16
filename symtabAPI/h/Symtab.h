@@ -40,8 +40,6 @@
 #include "Serialization.h"
 
 
-int symtab_printf(const char *format, ...);
-
 typedef struct {} user_funcs_a;
 typedef struct {} user_regions_a;
 typedef struct {} user_types_a;
