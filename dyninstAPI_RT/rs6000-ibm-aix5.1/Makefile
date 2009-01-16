@@ -76,6 +76,7 @@ libDyninstText.a: space.o
 
 else
 # GCC
+CC = gcc
 LD		= $(GCC) -shared
 # Initialization method
 LDFLAGS		+= -Wl,-binitfini:libdyninstAPI_RT_init
