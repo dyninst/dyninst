@@ -21,7 +21,7 @@
  */
 
 static int passed = 0;
-static template_test test7;
+template_test test5_7_test7;
 
 /* Function definitions follow */
 
@@ -32,7 +32,7 @@ template <class T> T sample_template <T>::content()
 }
 
 // Why do we have this section?  We don't run this test on AIX...
-#ifdef os_aix_test
+#ifdef os_aix_test && 0
 /* xlC's static libC has strangely undefined symbols, so just fake them ... */
 // BUG(?) I don't know if these will work when declared as static.  Need to
 // test
@@ -63,11 +63,7 @@ void test5_7_passed()
 }
 
 int test5_7_mutatee() {
-#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_windows_test)
-    logerror("Skipped test #7 (template)\n");
-    logerror("\t- not implemented on this platform\n");
-#else
-  test7.func_cpp();
+  test5_7_test7.func_cpp();
   // FIXME Make sure the error reporting works
   // I need to have this guy call test_passes(testname) if the test passes..
   if (1 == passed) {
@@ -78,5 +74,5 @@ int test5_7_mutatee() {
     // Test failed
     return -1;
   }
-#endif
+
 }

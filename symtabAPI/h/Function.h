@@ -38,6 +38,7 @@
 #define _Function_h_
 
 #include "Annotatable.h"
+#include "Aggregate.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -45,26 +46,14 @@ namespace SymtabAPI{
 class Symbol;
 
 
-class Function : public AnnotatableSparse 
+class Function : public Aggregate
 {
    public:
       DLLEXPORT Function();
 
       DLLEXPORT static Function *createFunction(Symbol *sym);
 
-      DLLEXPORT Offset   getAddress() const;
-      DLLEXPORT Module * getModule() const;
-
-      /***** Symbol Collection Management *****/
-      DLLEXPORT bool addSymbol(Symbol *sym);
-      DLLEXPORT bool removeSymbol(Symbol *sym);
-      DLLEXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      DLLEXPORT Symbol * getFirstSymbol() const;
-
       /***** Symbol naming *****/
-      DLLEXPORT const vector<std::string> &getAllMangledNames();
-      DLLEXPORT const vector<std::string> &getAllPrettyNames();
-      DLLEXPORT const vector<std::string> &getAllTypedNames();
       DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
       DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
       DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
@@ -87,16 +76,8 @@ class Function : public AnnotatableSparse
       bool addParam(localVar *);
 
    private:
-      Offset        address_;
-      Module*       module_;
       Type          *retType_;
       int           framePtrRegNum_;
-
-      std::vector<Symbol *> symbols_;
-
-      std::vector<std::string> mangledNames_;
-      std::vector<std::string> prettyNames_;
-      std::vector<std::string> typedNames_;
 };
 
 

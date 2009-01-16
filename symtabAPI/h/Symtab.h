@@ -40,8 +40,6 @@
 #include "Serialization.h"
 
 
-int symtab_printf(const char *format, ...);
-
 typedef struct {} user_funcs_a;
 typedef struct {} user_regions_a;
 typedef struct {} user_types_a;
@@ -489,6 +487,14 @@ class Symtab : public LookupInterface,
    /********************************************************************/
    /**** DEPRECATED ****************************************************/
    /********************************************************************/
+   dyn_hash_map <std::string, Module *> &getModsByFileName()
+   {
+      return modsByFileName;
+   }
+   dyn_hash_map <std::string, Module *> &getModsByFullName()
+   {
+      return modsByFullName;
+   }
    
    DLLEXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
    DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 

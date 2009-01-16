@@ -105,12 +105,12 @@ const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_16M_anyHeap_1 );
  **/
 DYNINST_synch_event_t DYNINST_synch_event_id = DSE_undefined;
 void *DYNINST_synch_event_arg1;
-// Code to read args 2,3 would have to be moved from dyninstAPI's
-// process::handleStopThread to signalgenerator::decodeRTSignal in
-// order for other signals to make use of them, as currently only the
-// stopThread event needs makes use of them.  
-void *DYNINST_synch_event_arg2 = NULL; // not read in dyninst's decodeRTSignal
-void *DYNINST_synch_event_arg3 = NULL; // not read in dyninst's decodeRTSignal
+/* Code to read args 2,3 would have to be moved from dyninstAPI's*/
+/* process::handleStopThread to signalgenerator::decodeRTSignal in*/
+/* order for other signals to make use of them, as currently only the*/
+/* stopThread event needs makes use of them.  */
+void *DYNINST_synch_event_arg2 = NULL; /* not read in dyninst's decodeRTSignal*/
+void *DYNINST_synch_event_arg3 = NULL; /* not read in dyninst's decodeRTSignal*/
 int DYNINST_break_point_event = 0;
 
 /**
@@ -190,9 +190,9 @@ static void initTrampGuards(unsigned maxthreads)
 	/*fprintf(stderr,"TRAMP GUARDS 0x%x (sbrk 0x%x)\n", DYNINST_tramp_guards,sbrk(0));*/
 
 #else
-   //We allocate maxthreads+1 because maxthreads is sometimes used as an
-   //error value to mean we don't know what thread this is.  Sometimes used
-   //during the early setup phases.
+   /*We allocate maxthreads+1 because maxthreads is sometimes used as an*/
+   /*error value to mean we don't know what thread this is.  Sometimes used*/
+   /*during the early setup phases.*/
    DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
 #endif
    for (i=0; i<maxthreads; i++)
@@ -623,6 +623,6 @@ void* dyninstTrapTranslate(void *source)
       }         
    } while (local_version != dyninstTrapTableVersion);
 
-   //   fprintf(stderr, "Mapped %p to %p\n", source, target);
+   /*   fprintf(stderr, "Mapped %p to %p\n", source, target);*/
    return target;
 }

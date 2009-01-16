@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2008 Barton P. Miller
+ * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,55 +39,24 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "symtab_comp.h"
-#include "test_lib.h"
+#ifndef SYMTAB_DEBUG_H
+#define SYMTAB_DEBUG_H
 
-#include "Symtab.h"
-#include "Symbol.h"
+#include <string>
 
-using namespace Dyninst;
-using namespace SymtabAPI;
+extern int sym_debug_parsing;
+extern int sym_debug_aggregates;
+extern int sym_debug_create;
+extern int sym_debug_object;
+extern int sym_debug_types;
 
-class test_lookup_func_Mutator : public SymtabMutator {
-public:
-   test_lookup_func_Mutator() { };
-   virtual test_results_t executeTest();
-};
+extern int parsing_printf(const char *format, ...);
+extern int aggregate_printf(const char *format, ...);
+extern int create_printf(const char *format, ...);
+extern int object_printf(const char *format, ...);
+extern int types_printf(const char *format, ...);
 
-extern "C" DLLEXPORT TestMutator* test_lookup_var_factory()
-{
-   return new test_lookup_func_Mutator();
-}
+// And initialization
+extern bool init_debug_symtabAPI();
 
-test_results_t test_lookup_func_Mutator::executeTest()
-{
-   std::vector<Variable *> vars;
-   bool result = symtab->findVariablesByName(vars, std::string("lookup_var"));
-
-   if (!result || !vars.size())
-   {
-      logerror("[%s:%u] - Unable to find lookup_var\n", 
-               __FILE__, __LINE__);
-      return FAILED;
-   }
-
-   if (vars.size() != 1)
-   {
-      logerror("[%s:%u] - found too many (%d) lookup_var\n", 
-               __FILE__, __LINE__, vars.size());
-      return FAILED;
-   }
-
-#if 0
-    Variable *var = vars[0];
-
-   if (var->getType() != Symbol::ST_OBJECT)
-   {
-      logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
-               __FILE__, __LINE__);
-      return FAILED;
-   }
-#endif
-
-   return PASSED;
-}
+#endif /* SYMTAB_DEBUG_H */

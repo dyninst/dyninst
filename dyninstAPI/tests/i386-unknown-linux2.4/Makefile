@@ -18,6 +18,7 @@ include $(TO_CORE)/make.config
 
 #if M_G77 is defined, g77 mutatees will be built
 M_G77 = g77
+CC = $(GCC)
 
 # there is no "native" or OS-provided compiler for Linux!
 # we use the Portland Group compilers, as that's what we've currently got

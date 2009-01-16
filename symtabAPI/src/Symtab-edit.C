@@ -265,12 +265,3 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
     return true;
 }
 
-const vector<std::string> &Variable::getAllMangledNames() {
-    return mangledNames_;
-}
-const vector<std::string> &Variable::getAllPrettyNames() {
-    return prettyNames_;
-}
-const vector<std::string> &Variable::getAllTypedNames() {
-    return typedNames_;
-}

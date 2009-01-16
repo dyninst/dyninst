@@ -44,9 +44,9 @@ $(SUBDIRS:%=%/test_info_new.gen.C): %/test_info_new.gen.C: $(PYTHON_FILES) %/tup
 
 # Do the same as above for windows
 $(SUBDIR_WINDOWS:%=%/tuples): %/tuples: $(PROLOG_FILES)
-	gprolog --entry-goal "['$(TO_SPEC)/spec-grouped.pl']" \
+	cd $(TO_SPEC); gprolog --entry-goal "['spec-grouped.pl']" \
 		--entry-goal "test_init('$*')" \
-		--entry-goal "write_tuples('$*/tuples', '$*')" \
+		--entry-goal "write_tuples('../../$@', '$*')" \
 		--entry-goal "halt"
 
 $(SUBDIR_WINDOWS:%=%/nmake.mutators.gen): %/nmake.mutators.gen: $(PYTHON_FILES) %/tuples

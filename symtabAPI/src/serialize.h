@@ -32,12 +32,6 @@
 #ifndef __ST_SERIALIZE__H__
 #define __ST_SERIALIZE__H__
 
-#if defined(os_windows)
-#include <libxml/xmlversion.h>
-#undef LIBXML_ICONV_ENABLED
-#endif
-
-#include <libxml/xmlwriter.h>
 #include "common/h/headers.h"
 #include "common/h/serialize.h"
 

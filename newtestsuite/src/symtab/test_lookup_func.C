@@ -61,24 +61,33 @@ extern "C" DLLEXPORT TestMutator* test_lookup_func_factory()
 
 test_results_t test_lookup_func_Mutator::executeTest()
 {
-   std::vector<Symbol *> funcs;
-   bool result = symtab->findSymbolByType(funcs, std::string("lookup_func"),
-                                          Symbol::ST_FUNCTION);
+   std::vector<Function *> funcs;
+   bool result = symtab->findFunctionsByName(funcs, std::string("lookup_func"));
 
-   if (!result || funcs.size() != 1)
+   if (!result || !funcs.size() )
    {
       logerror("[%s:%u] - Unable to find test_lookup_func\n", 
                __FILE__, __LINE__);
       return FAILED;
    }
 
-   Symbol *func = funcs[0];
+   if (funcs.size() != 1)
+   {
+      logerror("[%s:%u] - Too many functions found??: %d\n", 
+               __FILE__, __LINE__, funcs.size());
+      return FAILED;
+   }
+
+#if 0
+   Function *func = funcs[0];
+
    if (func->getType() != Symbol::ST_FUNCTION)
    {
       logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
                __FILE__, __LINE__);
       return FAILED;
    }
+#endif
 
    return PASSED;
 }

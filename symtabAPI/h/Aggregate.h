@@ -29,30 +29,62 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#if !defined(_Variable_h_)
-#define _Variable_h_
+/************************************************************************
+ * $Id: Symbol.h,v 1.20 2008/11/03 15:19:24 jaw Exp $
+
+************************************************************************/
+
+// Present a common superclass for all Symbol aggregates. 
+// We never create an Aggregate directly, but only via a child class.
+
+#if !defined(_Aggregate_h_)
+#define _Aggregate_h_
 
 #include "Annotatable.h"
-#include "Aggregate.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
 
 class Symbol;
 
-class Variable : public Aggregate
+class Aggregate : public AnnotatableSparse 
 {
    public:
-      DLLEXPORT Variable();
+      DLLEXPORT Aggregate();
       
-      DLLEXPORT static Variable *createVariable(Symbol *sym);
+      virtual ~Aggregate() {};
+
+      DLLEXPORT Offset   getAddress() const;
+      DLLEXPORT Module * getModule() const;
+
+      /***** Symbol Collection Management *****/
+      DLLEXPORT bool addSymbol(Symbol *sym);
+      DLLEXPORT bool removeSymbol(Symbol *sym);
+      DLLEXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
+      DLLEXPORT Symbol * getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
+      DLLEXPORT const vector<std::string> &getAllMangledNames();
+      DLLEXPORT const vector<std::string> &getAllPrettyNames();
+      DLLEXPORT const vector<std::string> &getAllTypedNames();
 
-   private:
+   protected:
+
+      bool addMangledNameInt(string name, bool isPrimary);
+      bool addPrettyNameInt(string name, bool isPrimary);
+      bool addTypedNameInt(string name, bool isPrimary);
+
+
+      // Offset comes from a symbol
+      // Module we keep here so we can have the correct "primary"
+      // (AKA 'not DEFAULT_MODULE') module
+      Module *module_;
+
+      std::vector<Symbol *> symbols_;
+
+      std::vector<std::string> mangledNames_;
+      std::vector<std::string> prettyNames_;
+      std::vector<std::string> typedNames_;
 };
 
 }

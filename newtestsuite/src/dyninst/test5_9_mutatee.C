@@ -21,7 +21,7 @@
  */
 
 static int passed = 0;
-static derivation_test test9;
+derivation_test test5_9_test9;
 
 /* Function definitions follow */
 
@@ -36,12 +36,7 @@ void test5_9_passed() {
 }
 
 int test5_9_mutatee() {
-#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_windows_test)
-    logerror("Skipped test #8 (declaration)\n");
-    logerror("\t- not implemented on this platform\n");
-    return 0;
-#else
-  test9.func_cpp();
+  test5_9_test9.func_cpp();
   if (1 == passed) {
     // Test passed
     test_passes(testname);
@@ -52,5 +47,4 @@ int test5_9_mutatee() {
     logerror("    Instrumentation not called?\n");
     return -1;
   }
-#endif
 }

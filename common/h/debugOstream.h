@@ -82,9 +82,12 @@ class DLLEXPORT debug_ostream {
    // is included
    debug_ostream &operator<<(long l);
    debug_ostream &operator<<(unsigned long l);
-#endif
+#else
+   //  These are creating probs with gcc 3.2.3
+   //  (default gcc for fresh install on x86_64 systems)
    debug_ostream &operator<<(int64_t l);
    debug_ostream &operator<<(uint64_t l);
+#endif
 
    debug_ostream &operator<<(const char *str);
    debug_ostream &operator<<(const unsigned char *str);

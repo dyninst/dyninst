@@ -77,7 +77,9 @@ class LineInformation : public Serializable,
                         private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > 
 {
    public:
-      DLLEXPORT void serialize(SerializerBase *, const char * = "LineInformation");
+           //virtual void serialize(SerializerBase *,  const char * = NULL) = 0;
+
+      void serialize(SerializerBase *, const char * = "LineInformation");
       typedef LineInformationImpl::LineNoTuple LineNoTuple;
       typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::const_iterator const_iterator;
       typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::AddressRange AddressRange;

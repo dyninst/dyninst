@@ -39,55 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "symtab_comp.h"
-#include "test_lib.h"
-
-#include "Symtab.h"
-#include "Symbol.h"
-
-using namespace Dyninst;
-using namespace SymtabAPI;
-
-class test_lookup_func_Mutator : public SymtabMutator {
-public:
-   test_lookup_func_Mutator() { };
-   virtual test_results_t executeTest();
-};
-
-extern "C" DLLEXPORT TestMutator* test_lookup_var_factory()
+int foo()
 {
-   return new test_lookup_func_Mutator();
+   return 4;
 }
 
-test_results_t test_lookup_func_Mutator::executeTest()
+int test_anno_basic_types_mutatee() 
 {
-   std::vector<Variable *> vars;
-   bool result = symtab->findVariablesByName(vars, std::string("lookup_var"));
-
-   if (!result || !vars.size())
-   {
-      logerror("[%s:%u] - Unable to find lookup_var\n", 
-               __FILE__, __LINE__);
-      return FAILED;
-   }
-
-   if (vars.size() != 1)
-   {
-      logerror("[%s:%u] - found too many (%d) lookup_var\n", 
-               __FILE__, __LINE__, vars.size());
-      return FAILED;
-   }
-
-#if 0
-    Variable *var = vars[0];
-
-   if (var->getType() != Symbol::ST_OBJECT)
-   {
-      logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
-               __FILE__, __LINE__);
-      return FAILED;
-   }
-#endif
-
-   return PASSED;
+   /*If mutatee should run, things go here.*/
+   return 0;
 }
+

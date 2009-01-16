@@ -13,6 +13,7 @@
 #include "dyntypes.h"
 #include "util.h"
 
+namespace Dyninst {
 //  SER_ERR("msg") -- an attempt at "graceful" failure.  If debug flag is set
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
 //  to the next (hopefully top-level) exception handler.
@@ -33,6 +34,10 @@ DLLEXPORT bool &serializer_debug_flag();
 
 class SerializerBase;
 typedef enum {sd_serialize, sd_deserialize} iomode_t;
+typedef bool (*deserialize_and_annotate_t)(SerializerBase *, void *parent);
+
+bool addDeserializeFuncForType(deserialize_and_annotate_t, const std::type_info *);
+deserialize_and_annotate_t getDeserializeFuncForType(const std::type_info *);
 
 class DLLEXPORT Serializable {
    protected:
@@ -326,6 +331,9 @@ DLLEXPORT void trans_adapt(SerializerBase *ser, std::string &it,  const char *ta
 DLLEXPORT void trans_adapt(SerializerBase *ser, float &it,  const char *tag);
 DLLEXPORT void trans_adapt(SerializerBase *ser, double &it,  const char *tag);
 
+DLLEXPORT bool isBinary(Dyninst::SerializerBase *ser);
+DLLEXPORT bool isOutput(Dyninst::SerializerBase *ser);
+
 typedef void NOTYPE_T;
 template<class S, class T, class T2 = NOTYPE_T>
 class trans_adaptor {
@@ -550,8 +558,6 @@ void trans_enum(S *ser, TT &it, std::vector<std::string> *enum_tags_ptr)
 }
 #endif
 
-DLLEXPORT bool isBinary(SerializerBase *ser);
-DLLEXPORT bool isOutput(SerializerBase *ser);
 
 template <class S, class T>
 void gtranslate(S *ser, 
@@ -602,4 +608,5 @@ bool gtranslate_w_err(S *ser, T&it, const char *tag = NULL, const char *tag2 = N
    return true;
 }
 
+} /* namespace Dyninst */
 #endif
