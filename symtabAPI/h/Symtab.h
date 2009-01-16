@@ -489,6 +489,14 @@ class Symtab : public LookupInterface,
    /********************************************************************/
    /**** DEPRECATED ****************************************************/
    /********************************************************************/
+   dyn_hash_map <std::string, Module *> &getModsByFileName()
+   {
+      return modsByFileName;
+   }
+   dyn_hash_map <std::string, Module *> &getModsByFullName()
+   {
+      return modsByFullName;
+   }
    
    DLLEXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
    DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 

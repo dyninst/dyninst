@@ -95,6 +95,7 @@ ready:
         elif [ `basename $(CXX)` = "insure" ]; then \
 		echo "insure"; \
 	else \
+	echo CXX = $(CXX); \
 	  $(CXX) -v; \
      true; \
 	fi

@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <iostream>
 #include "symtab_comp.h"
 #include "test_lib.h"
 
@@ -48,46 +49,58 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-class test_lookup_func_Mutator : public SymtabMutator {
+class test_anno_basic_types_Mutator : public SymtabMutator {
 public:
-   test_lookup_func_Mutator() { };
+   test_anno_basic_types_Mutator() { };
    virtual test_results_t executeTest();
 };
 
-extern "C" DLLEXPORT TestMutator* test_lookup_var_factory()
+extern "C" DLLEXPORT TestMutator* test_anno_basic_types_factory()
 {
-   return new test_lookup_func_Mutator();
+   return new test_anno_basic_types_Mutator();
 }
 
-test_results_t test_lookup_func_Mutator::executeTest()
+class TestClassSparse : public AnnotatableSparse
 {
-   std::vector<Variable *> vars;
-   bool result = symtab->findVariablesByName(vars, std::string("lookup_var"));
+   public:
+   TestClassSparse() {}
+   ~TestClassSparse() {}
+};
 
-   if (!result || !vars.size())
+AnnotationClass<int> SingleIntAnno("SingleIntAnno");
+
+test_results_t test_anno_basic_types_Mutator::executeTest()
+{
+   TestClassSparse tcs;
+   int five = 5;
+
+   if (!tcs.addAnnotation(&five, SingleIntAnno))
    {
-      logerror("[%s:%u] - Unable to find lookup_var\n", 
-               __FILE__, __LINE__);
+      logerror("%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
       return FAILED;
    }
 
-   if (vars.size() != 1)
+   int *out = NULL;
+
+   if (!tcs.getAnnotation(out, SingleIntAnno))
    {
-      logerror("[%s:%u] - found too many (%d) lookup_var\n", 
-               __FILE__, __LINE__, vars.size());
+      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
       return FAILED;
    }
 
-#if 0
-    Variable *var = vars[0];
-
-   if (var->getType() != Symbol::ST_OBJECT)
+   if (!out)
    {
-      logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
-               __FILE__, __LINE__);
+      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
       return FAILED;
    }
-#endif
+
+   if ((*out) != five)
+   {
+      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
+      return FAILED;
+   }
 
    return PASSED;
+
 }
+

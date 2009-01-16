@@ -47,7 +47,7 @@
 #include <stdarg.h>
 
 void DYNINSTbreakPoint();
-// Use a signal that is safe if we're not attached.
+/* Use a signal that is safe if we're not attached. */
 void DYNINSTsafeBreakPoint();
 void DYNINSTos_init(int calledByFork, int calledByAttach);
 void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag);
@@ -74,7 +74,7 @@ extern void mark_heaps_exec(void);
 
 extern int DYNINSTdebugRTlib;
 #if (os_solaris == 8)
-//  solaris 2.8 is having some trouble with varargs...  
+/*  solaris 2.8 is having some trouble with varargs... */  
 #define rtdebug_printf if (DYNINSTdebugPrintRT) printf
 #else
 int rtdebug_printf(char *format, ...);

@@ -44,8 +44,39 @@
 #include "common/h/headers.h"
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/Annotatable.h"
-int Dyninst::AnnotationClass_nextId;
+std::vector<void *> annotation_classes;
+
 AnnotatableSparse::annos_t AnnotatableSparse::annos;
+
+namespace Dyninst {
+bool void_ptr_cmp_func(void *v1, void *v2)
+{
+   return v1 == v2;
+}
+};
+
+std::vector<AnnotationClassBase *> AnnotationClassBase::annotation_types;
+AnnotationClassBase::AnnotationClassBase(anno_cmp_func_t cmp_func_)
+{
+   if (NULL == cmp_func_)
+      cmp_func = void_ptr_cmp_func;
+   else
+      cmp_func = cmp_func_;
+
+   annotation_types.push_back(this);
+   id = (AnnotationClassID) annotation_types.size();
+}
+
+#if 0
+int Dyninst::AnnotationClass_nextId;
+int newAnnotationClass(void *ptr)
+{
+   annotation_classes.push_back(ptr);
+   assert(annotation_classes.size() == AnnotationClass_nextID);
+   return AnnotationClass_nextID++;
+}
+#endif
+
 #if 0
 
 

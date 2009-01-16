@@ -49,6 +49,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <iostream>
 
 #include "../../common/h/serialize.h"
 #include "../../symtabAPI/h/Symbol.h"
@@ -160,6 +161,41 @@ class ZeroFour;
 class ZeroFive;
 class ZeroSix;
 
+void dumpModules(std::vector<Module *> &mods, Symtab *st = NULL)
+{
+   fprintf(stderr, "Have Modules:\n");
+   if (mods.size())
+   {
+      for (unsigned int i = 0; i < mods.size(); ++i) 
+      {
+         Module *m = mods[i];
+         std::string modname = m->fileName();
+         fprintf(stderr, "\t\"%s\"\n", modname.c_str());
+      }
+   }
+   else
+   {
+      fprintf(stderr, "\tNO MODULES\n");
+   }
+
+   if (st)
+   {
+      dyn_hash_map <std::string, Module *> &map1 = st->getModsByFileName(); 
+      dyn_hash_map <std::string, Module *>::iterator iter1 = map1.begin();
+
+      fprintf(stderr, "%s[%d]:  mods by file name:\n", FILE__, __LINE__);
+      while (iter1 != map1.end())
+      {
+         std::string nm = iter1->first; 
+         Module *m = iter1->second; 
+         std::string modname = m->fileName();
+         fprintf(stderr, "\t%s:%s\n", nm.c_str(), modname.c_str());
+         iter1++;
+      }
+   }
+
+}
+
 bool test0()
 {
    //  some basic symtabAPI tests
@@ -234,27 +270,62 @@ bool test0()
       return false;
    }
 
-   if (mods.size() != 5) 
-   {
-      fprintf(stderr, "%s[%d]:  symtab for %s: wrong number of modules: %d, not 5\n", 
-            FILE__, __LINE__, mutatee_name.c_str(), mods.size());
-      return false;
-   }
-
    std::vector<const char *> expected_modnames;
-   expected_modnames.push_back("DEFAULT_MODULE");
    expected_modnames.push_back("test1.mutatee.c");
    expected_modnames.push_back("mutatee_util.c");
    expected_modnames.push_back("test1.mutateeCommon.c");
+
+#if defined (os_linux)
+#define TEST1_MUTATEE_NUM_EXPECTED_MODS 5
+   expected_modnames.push_back("DEFAULT_MODULE");
+#elif defined (os_aix)
+#define TEST1_MUTATEE_NUM_EXPECTED_MODS 16
+   //  Note: some of these modnames may not be portable -- ie exist
+   //  only with one toolchain and/or os configuration.  
+   //  Some more detail may be required here
+   expected_modnames.push_back( "ccZRJjDw.c" );
+   expected_modnames.push_back( "unwind-dw2-fde.c" );
+   expected_modnames.push_back( "__threads_init.c" );
+   expected_modnames.push_back( "moveeq.s" );
+   expected_modnames.push_back( "unwind-c.c" );
+   expected_modnames.push_back( "Global_Linkage" );
+   expected_modnames.push_back( "unwind-dw2.c" );
+   expected_modnames.push_back( "noname" );
+   expected_modnames.push_back( "strcmp.s" );
+   expected_modnames.push_back( "memset.s" );
+   expected_modnames.push_back( "gthr-gnat.c" );
+   expected_modnames.push_back( "libgcc2.c" );
+   expected_modnames.push_back( "crt0main.s" );
+
+#elif defined (os_solaris)
+#define TEST1_MUTATEE_NUM_EXPECTED_MODS 5
+   expected_modnames.push_back("DEFAULT_MODULE");
+#else
+#error
+#endif
+
+      if (mods.size() != TEST1_MUTATEE_NUM_EXPECTED_MODS) 
+      {
+         fprintf(stderr, "%s[%d]:  symtab for %s: wrong number of modules: %lu, not %d\n", 
+               FILE__, __LINE__, mutatee_name.c_str(), mods.size(), TEST1_MUTATEE_NUM_EXPECTED_MODS);
+         dumpModules(mods, test1_mutatee);
+         return false;
+      }
+
 
 #if defined (os_linux)
 #if defined (arch_x86)
    expected_modnames.push_back("call35_1_x86_linux.s");
 #elif defined (arch_x86_64)
    expected_modnames.push_back("call35_1_x86_64_linux.s");
+#elif defined (arch_ia64)
+   expected_modnames.push_back("lib1funcs.asm");
+   //  no call35_1 for ia64
 #endif
 #elif defined (os_solaris)
    expected_modnames.push_back("call35_1_sparc_solaris.s");
+#elif defined (os_aix)
+   //  no call35_1 on aix
 #else
    expected_modnames.push_back("call35_1.c");
 #endif
@@ -267,8 +338,9 @@ bool test0()
 
       for (unsigned int j = 0; j < expected_modnames.size(); ++j) 
       {
-         std::string checkname(expected_modnames[i]);
-         if (modname == checkname) {
+         std::string checkname(expected_modnames[j]);
+         if (modname == checkname) 
+         {
             found = true;
             break;
          }
@@ -276,8 +348,16 @@ bool test0()
 
       if (!found) 
       {
-         fprintf(stderr, "%s[%d]:  symtab for %s: cannot find module %s\n", 
-               FILE__, __LINE__, mutatee_name.c_str(), modname.c_str());
+         fprintf(stderr, "%s[%d]:  symtab(%p) for %s: cannot find module %s\n", 
+               FILE__, __LINE__, test1_mutatee, mutatee_name.c_str(), modname.c_str());
+         dumpModules(mods, test1_mutatee);
+
+         fprintf(stderr, "%s[%d]:  expected modules:\n", FILE__, __LINE__);
+         for (unsigned int i = 0; i < expected_modnames.size(); ++i)
+         {
+            fprintf(stderr, "\t'%s'\n", expected_modnames[i]);
+         }
+
          return false;
       }
    }
@@ -289,7 +369,7 @@ bool test0()
       Module *m = NULL;
       std::string modname(expected_modnames[i]);
 
-      if (!test1_mutatee->findModule(m, modname)) 
+      if (!test1_mutatee->findModuleByName(m, modname)) 
       {
          fprintf(stderr, "%s[%d]:  failed to find module %s\n", FILE__, __LINE__, 
                expected_modnames[i]);
@@ -416,6 +496,7 @@ bool test0()
          {
             fprintf(stderr, "%s[%d]:  Unnamed Symbol !!!\n", 
                   FILE__, __LINE__);
+            cerr << *sym << endl;
             return false;
          }
 
@@ -609,7 +690,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -634,7 +715,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -667,7 +748,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -692,7 +773,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -704,7 +785,7 @@ bool test0()
    Module *m = NULL;
    Module *d_m = NULL;
 
-   if (!test1_mutatee->findModule(m, "test1.mutatee.c")) 
+   if (!test1_mutatee->findModuleByName(m, "test1.mutatee.c")) 
    {
       fprintf(stderr, "%s[%d]:  failed to find module 'test1.mutatee.c'\n", 
             FILE__, __LINE__); 
@@ -720,7 +801,8 @@ bool test0()
       return false;
    }
 
-   if (!test1_mutatee->findModule(d_m, "DEFAULT_MODULE")) 
+#if !defined (os_aix) && !defined (os_solaris)
+   if (!test1_mutatee->findModuleByName(d_m, "DEFAULT_MODULE")) 
    {
       fprintf(stderr, "%s[%d]:  failed to find module 'DEFAULT_MODULE'\n", 
             FILE__, __LINE__); 
@@ -735,6 +817,13 @@ bool test0()
 
       return false;
    }
+#else
+   //  This works for AIX and solaris.  We sould probably consider standardizing what 
+   // module gets global 
+   // variables attributed to it.  As of this writing there is no default_module on aix
+   //  at least by default -- heh.
+   d_m = m;
+#endif
 
    //  We expect to find global variables in DEFAULT_MODULE since they
    //  are, well, global, and thus should not be attributable to any
@@ -765,7 +854,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -790,7 +879,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -824,7 +913,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -849,7 +938,7 @@ bool test0()
 
       if (symbols.size() > 1) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  found %d symbols called '%s'\n", 
+         fprintf(stderr, "%s[%d]:  WARN:  found %lu symbols called '%s'\n", 
                FILE__, __LINE__, symbols.size(), search_str.c_str());
          return false;
       }
@@ -860,11 +949,14 @@ bool test0()
 
 
 
-   fprintf(stderr, "\n%s[%d]:  Have modules:\n", FILE__, __LINE__);
-   for (unsigned int i = 0; i < mods.size(); ++i) 
+   if (debugPrint)
    {
-      Module *m = mods[i];
-      fprintf(stderr, "\t%s--%s\n", m->fileName().c_str(), m->fullName().c_str());
+      fprintf(stderr, "\n%s[%d]:  Have modules:\n", FILE__, __LINE__);
+      for (unsigned int i = 0; i < mods.size(); ++i) 
+      {
+         Module *m = mods[i];
+         fprintf(stderr, "\t%s--%s\n", m->fileName().c_str(), m->fullName().c_str());
+      }
    }
 
    fprintf(stderr, "%s[%d]:  passed test0 so far\n", FILE__, __LINE__);
@@ -882,7 +974,8 @@ bool test0()
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
-class ZeroOne : public Serializable{
+class ZeroOne : public Serializable
+{
    public:
       int zero_one_int;
       unsigned int zero_one_unsigned_int;
@@ -895,7 +988,8 @@ class ZeroOne : public Serializable{
       char zero_one_char;
       //unsigned char zero_two_unsigned_char;
 
-      bool operator==(const ZeroOne &cmp) {
+      bool operator==(const ZeroOne &cmp) 
+      {
          if (zero_one_int != cmp.zero_one_int) return false;
          if (zero_one_long != cmp.zero_one_long) return false;
 #if 0
@@ -904,9 +998,12 @@ class ZeroOne : public Serializable{
          if (zero_one_char != cmp.zero_one_char) return false;
          return true;
       }
-      bool operator!=(const ZeroOne &cmp) {
+
+      bool operator!=(const ZeroOne &cmp) 
+      {
          return (! (*this == cmp));
       }
+
       void printcmp(const ZeroOne &cmp) 
       {
          fprintf(stderr, "%s[%d]: %d %s %d\n", __FILE__, __LINE__,
@@ -933,7 +1030,8 @@ class ZeroOne : public Serializable{
 
       void serialize(SerializerBase *sb, const char *) 
       {
-         try {
+         try 
+         {
             gtranslate(sb, zero_one_int, NULL);
             gtranslate(sb, zero_one_unsigned_int, NULL);
             gtranslate(sb, zero_one_long, NULL);
@@ -963,15 +1061,19 @@ bool setup_control(ZeroOne &zero1)
 
 bool test1b(const char *cachefile)
 {
-   if (!cachefile) {
+   if (!cachefile) 
+   {
       fprintf(stderr, "%s[%d]:  NULL param\n", FILE__, __LINE__);
       abort();
    }
 
    bool res = deserialize_verify<ZeroOne>(cachefile);
-   if (!res) {
+
+   if (!res) 
+   {
       fprintf(stderr, "%s[%d]:  test1b failed\n", FILE__, __LINE__);
    }
+
    return res;
 }
 
@@ -995,7 +1097,8 @@ bool test1()
  * Test #2 
  */
 
-class ZeroTwo : public Serializable {
+class ZeroTwo : public Serializable 
+{
    public:
    std::string zero_two_string1;
    std::string zero_two_string2;
@@ -1014,7 +1117,8 @@ class ZeroTwo : public Serializable {
    float zero_two_float5;
 
    public:
-      bool operator==(const ZeroTwo &cmp) {
+      bool operator==(const ZeroTwo &cmp) 
+      {
          if (zero_two_int1 != cmp.zero_two_int1) return false;
          if (zero_two_int2 != cmp.zero_two_int2) return false;
          if (zero_two_int3 != cmp.zero_two_int3) return false;
@@ -1032,10 +1136,14 @@ class ZeroTwo : public Serializable {
          if (zero_two_string5 != cmp.zero_two_string5) return false;
          return true;
       }
-      bool operator!=(const ZeroTwo &cmp) {
+
+      bool operator!=(const ZeroTwo &cmp) 
+      {
          return (! (*this == cmp));
       }
-      void printcmp(const ZeroTwo &cmp) {
+
+      void printcmp(const ZeroTwo &cmp) 
+      {
          if (zero_two_int1 != cmp.zero_two_int1) 
             fprintf(stderr, "%s[%d]: fail here\n", FILE__, __LINE__);
          if (zero_two_int2 != cmp.zero_two_int2) 
@@ -1070,7 +1178,8 @@ class ZeroTwo : public Serializable {
 
       void serialize(SerializerBase *sb, const char *)
       {
-         try {
+         try 
+         {
             gtranslate(sb, zero_two_int1);
             gtranslate(sb, zero_two_int2);
             gtranslate(sb, zero_two_int3);
@@ -1113,7 +1222,9 @@ bool setup_control(ZeroTwo &control)
 bool test2()
 {
    bool res = serialize_test<ZeroTwo>(2, prog_name);
-   if (!res) {
+   
+   if (!res) 
+   {
       fprintf(stderr, "%s[%d]:  test2 failed\n", FILE__, __LINE__);
    }
 
@@ -1122,15 +1233,19 @@ bool test2()
 
 bool test2b(const char *cachefile)
 {
-   if (!cachefile) {
+   if (!cachefile) 
+   {
       fprintf(stderr, "%s[%d]:  NULL param\n", FILE__, __LINE__);
       abort();
    }
 
    bool res = deserialize_verify<ZeroTwo>(cachefile);
-   if (!res) {
+
+   if (!res) 
+   {
       fprintf(stderr, "%s[%d]:  test2b failed\n", FILE__, __LINE__);
    }
+
    return res;
 }
 
@@ -1156,11 +1271,13 @@ class ZeroThree : public Serializable {
          return (! (*this == cmp));
       }
       void printcmp(const ZeroThree &cmp) {
-         if (zero_three_ints.size() != cmp.zero_three_ints.size()) {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+         if (zero_three_ints.size() != cmp.zero_three_ints.size()) 
+	 {
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_three_ints.size(), zero_three_ints.size());
          }
-         for (unsigned int i = 0; i < cmp.zero_three_ints.size(); ++i) {
+         for (unsigned int i = 0; i < cmp.zero_three_ints.size(); ++i) 
+	 {
             if ((zero_three_ints[i] != cmp.zero_three_ints[i])) 
                fprintf(stderr, "elem %d: %d -- %d\n", i, zero_three_ints[i], 
                      cmp.zero_three_ints[i]);
@@ -1169,7 +1286,8 @@ class ZeroThree : public Serializable {
 
       void serialize(SerializerBase *sb, const char *)
       {
-         try {
+         try 
+	 {
             gtranslate(sb, zero_three_ints);
          } SER_CATCH("ZeroThree");
       }
@@ -1229,7 +1347,7 @@ class ZeroFour : public Serializable {
       }
       void printcmp(const ZeroFour &cmp) {
          if (zero_four_ints.size() != cmp.zero_four_ints.size()) {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_four_ints.size(), zero_four_ints.size());
          }
          for (unsigned int i = 0; i < cmp.zero_four_ints.size(); ++i) {
@@ -1315,7 +1433,7 @@ class ZeroFive : public Serializable {
       }
       void printcmp(const ZeroFive &cmp) {
          if (zero_five_ints.size() != cmp.zero_five_ints.size()) {
-            fprintf(stderr, "%s[%d]:  vectors have sizes %d and %d\n", 
+            fprintf(stderr, "%s[%d]:  vectors have sizes %lu and %lu\n", 
                   FILE__, __LINE__, cmp.zero_five_ints.size(), zero_five_ints.size());
          }
          for (unsigned int i = 0; i < cmp.zero_five_ints.size(); ++i) {
@@ -1375,13 +1493,13 @@ bool test5b(const char *cachefile)
  */
 class ZeroSix : public Serializable {
    public:
-      hash_map<char, std::string> dictionary6;
+      dyn_hash_map<char, std::string> dictionary6;
       bool operator==(ZeroSix &cmp) {
          if (dictionary6.size() != cmp.dictionary6.size()) {
             return false;
          }
-         hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
-         hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
          while ((iter1 != dictionary6.end()) && (iter2 != cmp.dictionary6.end())) {
             char key1 = iter1->first;
             char key2 = iter2->first;
@@ -1412,8 +1530,8 @@ class ZeroSix : public Serializable {
             fprintf(stderr, "%s[%d]:  hashes have sizes %d and %d\n", 
                   FILE__, __LINE__, cmp.dictionary6.size(), dictionary6.size());
          }
-         hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
-         hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter1 = dictionary6.begin();
+         dyn_hash_map<char, std::string>::iterator iter2 = cmp.dictionary6.begin();
          while (iter1 != dictionary6.end() && iter2 != cmp.dictionary6.end()) {
             char key1 = iter1->first;
             char key2 = iter2->first;
@@ -1504,7 +1622,9 @@ int main(int iargc, char *argv[])
    prog_name = argv[0];
 
    fprintf(stderr, "%s[%d]:  welcome to \"%s", __FILE__, __LINE__, argv[0]);
-   for (unsigned int ii=1; ii < argc; ++ii) {
+
+   for (unsigned int ii=1; ii < argc; ++ii) 
+   {
       fprintf(stderr, " %s", argv[ii]);
    }
    fprintf(stderr, "\"\n");

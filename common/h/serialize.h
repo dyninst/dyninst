@@ -38,11 +38,15 @@
 #include <stdio.h>
 
 #if defined(os_windows)
+#if defined (cap_have_libxml)
 #include <libxml/xmlversion.h>
 #undef LIBXML_ICONV_ENABLED
 #endif
+#endif
 
+#if defined (cap_have_libxml)
 #include <libxml/xmlwriter.h>
+#endif
 
 #include "dynutil/h/util.h"
 //#include "dynutil/h/Annotatable.h"
@@ -51,6 +55,8 @@
 #include "common/h/Types.h"
 #include "common/h/sha1.h"
 #include "common/h/pathName.h"
+
+namespace Dyninst {
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
 #define DEFAULT_DYNINST_DIR ".dyninstAPI"
@@ -256,15 +262,24 @@ class SerDes {
 };
 
 class SerDesXML : public SerDes {
+   friend class SerFile;
+   friend class SerializerXML;
+   friend bool ifxml_start_element(SerializerBase *, const char *);
+   friend bool ifxml_end_element(SerializerBase *, const char *);
+
+
+
+#if defined (cap_have_libxml)
+      xmlTextWriterPtr writer;
+      DLLEXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
+      DLLEXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
+#else
+      void *writer;
+      DLLEXPORT SerDesXML(void * w, iomode_t mode)  : SerDes(mode), writer(w) { }
+#endif
 
    public:
-
-      xmlTextWriterPtr writer;
-
-      DLLEXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
-
       DLLEXPORT SerDesXML() { assert(0);}
-      DLLEXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
       DLLEXPORT virtual ~SerDesXML();
 
       DLLEXPORT virtual void vector_start(unsigned int &size, 
@@ -293,12 +308,14 @@ class SerDesXML : public SerDes {
       DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
       DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
             const char *elem_tag = NULL);
+#if 0
       DLLEXPORT void start_element(const char *tag);
       DLLEXPORT void end_element();
       DLLEXPORT void xml_value(const char *val, const char *tag);
+#endif
 };
 
-class AnnotatableBase;
+//class AnnotatableBase;
 
 class SerDesBin : public SerDes {
 
@@ -314,7 +331,7 @@ class SerDesBin : public SerDes {
 
    public:
 
-   DLLEXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
+   //DLLEXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
    DLLEXPORT static FILE *init(std::string fname, iomode_t mode, bool verbose);
 
    DLLEXPORT SerDesBin() {assert(0);}
@@ -326,7 +343,7 @@ class SerDesBin : public SerDes {
 
    DLLEXPORT virtual ~SerDesBin();
 
-   DLLEXPORT static AnnotatableBase *findAnnotatee(void *id); 
+   //DLLEXPORT static AnnotatableBase *findAnnotatee(void *id); 
 
    DLLEXPORT virtual void file_start(std::string &full_file_path);
    DLLEXPORT virtual void vector_start(unsigned int &size, 
@@ -379,7 +396,11 @@ class SerDesBin : public SerDes {
 class DLLEXPORT SerFile {
 
    SerDes *sd;
+#if defined (cap_have_libxml)
    xmlTextWriterPtr writer;
+#else
+   void * writer;
+#endif
    FILE *f;
 
    public:
@@ -419,6 +440,7 @@ class DLLEXPORT SerFile {
             assert(0);
          }
 
+#if defined (cap_have_libxml)
          writer = SerDesXML::init(fname, mode, verbose);
 
          if (!writer) 
@@ -426,6 +448,9 @@ class DLLEXPORT SerFile {
             fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
             assert(0);
          }
+#else
+         writer = NULL;
+#endif
 
          sd = new SerDesXML(writer, mode);
 
@@ -567,4 +592,5 @@ class SerTest : public Serializable {
       serialize( &sb);
    }
 };
+} /*namespace Dyninst*/
 #endif
