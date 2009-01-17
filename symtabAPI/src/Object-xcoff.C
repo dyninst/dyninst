@@ -1226,7 +1226,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
          object_printf("Creating new symbol: %s, %s, %d, %d, 0x%lx, %d, %d\n",
                        name.c_str(), modName.c_str(), type, linkage, value, sec, size);
 
-         Symbol *sym = new Symbol(name, modName, type, linkage, value, sec, size);
+         Symbol *sym = new Symbol(name, modName, type, linkage, Symbol::SV_DEFAULT, value, sec, size);
        
          symbols_[name].push_back( sym );
          if (symbols_.find(modName)!=symbols_.end()) {

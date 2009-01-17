@@ -130,7 +130,8 @@ bool Aggregate::removeSymbol(Symbol *sym) {
     return false;
 }
 
-bool Aggregate::getAllSymbols(std::vector<Symbol *> &syms) const {
+bool Aggregate::getAllSymbols(std::vector<Symbol *> &syms) const 
+{
     syms = symbols_;
     return true;
 }

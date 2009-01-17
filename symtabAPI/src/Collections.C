@@ -69,8 +69,9 @@ localVarCollection::~localVarCollection()
  * for function.
  */
 
-void localVarCollection::addLocalVar(localVar * var){
-  localVariablesByName[var->getName()]= var;
+void localVarCollection::addLocalVar(localVar * var)
+{
+  localVariablesByName[var->getName()] = var;
   localVars.push_back(var);
 }
 
