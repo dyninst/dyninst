@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
+ * Copyright (c) 1996-2009 Barton P. Miller
  *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -57,6 +57,7 @@ class CBlock;
 class typeCollection;
 class fieldListType;
 class localVarCollection;
+class TypeMemManager;
 
 //TODO?? class BPatch(to be  ??)function;
 
@@ -164,7 +165,8 @@ class DLLEXPORT Field{
 class Type : public Serializable, public AnnotatableSparse  {
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
-                          typeCommon *);
+				      typeCommon *);
+   static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
    public:
   DLLEXPORT void serialize(SerializerBase *, const char *);
  protected:
@@ -194,8 +196,6 @@ protected:
    DLLEXPORT virtual void updateSize() {}
 
    // Simple Destructor
-   DLLEXPORT virtual ~Type();
-
    DLLEXPORT virtual void merge( Type * /* other */ ) { }
 
 public:
@@ -203,6 +203,8 @@ public:
    DLLEXPORT virtual bool isCompatible(Type *oType);
    DLLEXPORT virtual void fixupUnknowns(Module *);
 
+   DLLEXPORT Type();
+   DLLEXPORT virtual ~Type();
    DLLEXPORT Type(std::string name, typeId_t ID, dataClass dataTyp = dataNullType);
    DLLEXPORT Type(std::string name, dataClass dataTyp = dataNullType);
 
@@ -225,9 +227,7 @@ public:
    // INTERNAL METHODS
    DLLEXPORT void incrRefCount();
    DLLEXPORT void decrRefCount(); 
-   Type () {}
-   
-   
+
    //Methods to dynamically cast generic Type Object to specific types.
    
    DLLEXPORT typeEnum *getEnumType();
@@ -277,6 +277,7 @@ class fieldListType : public Type, public fieldListInterface {
    DLLEXPORT fieldListType(std::string &name, typeId_t ID, dataClass typeDes);
    /* Each subclass may need to update its size after adding a field */
  public:
+   DLLEXPORT fieldListType();
    DLLEXPORT ~fieldListType();
    DLLEXPORT bool operator==(const Type &) const;
    DLLEXPORT std::vector<Field *> *getComponents() const;
@@ -306,6 +307,7 @@ class rangedType : public Type, public rangedInterface {
    DLLEXPORT rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, int low, int hi);
    DLLEXPORT rangedType(std::string &name, dataClass typeDes, int size, int low, int hi);
  public:
+   DLLEXPORT rangedType();
    DLLEXPORT ~rangedType();
    DLLEXPORT bool operator==(const Type &) const;
    DLLEXPORT int getLow() const { return low_; }
@@ -319,6 +321,7 @@ class derivedType : public Type, public derivedInterface {
    DLLEXPORT derivedType(std::string &name, typeId_t id, int size, dataClass typeDes);
    DLLEXPORT derivedType(std::string &name, int size, dataClass typeDes);
  public:
+   DLLEXPORT derivedType();
    DLLEXPORT ~derivedType();
    DLLEXPORT bool operator==(const Type &) const;
    DLLEXPORT Type *getConstituentType() const;
@@ -330,6 +333,7 @@ class typeEnum : public Type {
  private:  
 	std::vector<std::pair<std::string, int> *> consts;
  public:
+   DLLEXPORT typeEnum();
    DLLEXPORT typeEnum(typeId_t ID, std::string name = "");
    DLLEXPORT typeEnum(std::string name);
    DLLEXPORT static typeEnum *create(std::string &name, std::vector<std::pair<std::string, int> *>&elements, 
@@ -349,6 +353,7 @@ class typeFunction : public Type {
    Type *retType_; /* Return type of the function */
    std::vector<Type *> params_; 
  public:
+   DLLEXPORT typeFunction();
    DLLEXPORT typeFunction(typeId_t ID, Type *retType, std::string name = "");
    DLLEXPORT typeFunction(Type *retType, std::string name = "");
    DLLEXPORT static typeFunction *create(std::string &name, Type *retType, 
@@ -366,6 +371,7 @@ class typeScalar : public Type {
  private:
    bool isSigned_;
  public:
+   DLLEXPORT typeScalar();
    DLLEXPORT typeScalar(typeId_t ID, unsigned int size, std::string name = "", bool isSigned = false);
    DLLEXPORT typeScalar(unsigned int size, std::string name = "", bool isSigned = false);
    DLLEXPORT static typeScalar *create(std::string &name, int size, Symtab *obj = NULL);
@@ -381,6 +387,7 @@ class typeCommon : public fieldListType {
    //void postFieldInsert(int offset, int nsize) { if ((unsigned int) (offset + nsize) > size_) size_ = offset + nsize; }
    DLLEXPORT void fixupUnknowns(Module *);
  public:
+   DLLEXPORT typeCommon();
    DLLEXPORT typeCommon(typeId_t ID, std::string name = "");
    DLLEXPORT typeCommon(std::string name);
    DLLEXPORT static typeCommon *create(std::string &name, Symtab *obj = NULL);
@@ -417,6 +424,7 @@ class typeStruct : public fieldListType {
    DLLEXPORT void fixupUnknowns(Module *);
    DLLEXPORT void merge(Type *other);
  public:
+   DLLEXPORT typeStruct();
    DLLEXPORT typeStruct(typeId_t ID, std::string name = "");
    DLLEXPORT typeStruct(std::string name);
    DLLEXPORT static typeStruct *create(std::string &name, std::vector< std::pair<std::string, Type *> *> &flds,
@@ -434,6 +442,7 @@ class typeUnion : public fieldListType {
    DLLEXPORT void merge(Type *other);
    DLLEXPORT void fixupUnknowns(Module *);
  public:
+   DLLEXPORT typeUnion();
    DLLEXPORT typeUnion(typeId_t ID, std::string name = "");
    DLLEXPORT typeUnion(std::string name);
    DLLEXPORT static typeUnion *create(std::string &name, std::vector<std::pair<std::string, Type *> *> &fieldNames,
@@ -447,6 +456,7 @@ class typePointer : public derivedType {
  protected: 
    DLLEXPORT void fixupUnknowns(Module *);
  public:
+   DLLEXPORT typePointer();
    DLLEXPORT typePointer(typeId_t ID, Type *ptr, std::string name = "");
    DLLEXPORT typePointer(Type *ptr, std::string name = "");
    DLLEXPORT static typePointer *create(std::string &name, Type *ptr, Symtab *obj = NULL);
@@ -465,6 +475,7 @@ class typeTypedef: public derivedType {
    DLLEXPORT void fixupUnknowns(Module *);
       
  public:
+   DLLEXPORT typeTypedef();
    DLLEXPORT typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int sizeHint = 0);
    DLLEXPORT typeTypedef(Type *base, std::string name, unsigned int sizeHint = 0);
    
@@ -477,6 +488,7 @@ class typeRef : public derivedType {
  protected:
    DLLEXPORT void fixupUnknowns(Module *);
  public:
+   DLLEXPORT typeRef();
    DLLEXPORT typeRef(typeId_t ID, Type *refType, std::string name);
    DLLEXPORT typeRef(Type *refType, std::string name);
    DLLEXPORT static typeRef *create(std::string &name, Type *ptr, Symtab * obj = NULL);
@@ -488,6 +500,7 @@ class typeSubrange : public rangedType {
  private:
    //typeSubrange(int ID, int size, const char *low, const char *hi, const char *name);
  public:
+   DLLEXPORT typeSubrange();
    DLLEXPORT typeSubrange(typeId_t ID, int size, int low, int hi, std::string name);
    DLLEXPORT typeSubrange( int size, int low, int hi, std::string name);
    DLLEXPORT static typeSubrange *create(std::string &name, int size, int low, int hi, Symtab *obj = NULL);
@@ -502,6 +515,7 @@ class typeArray : public rangedType {
    DLLEXPORT void updateSize();
    DLLEXPORT void merge(Type *other); 
  public:
+   DLLEXPORT typeArray();
    DLLEXPORT typeArray(typeId_t ID, Type *base, int low, int hi, std::string name, unsigned int sizeHint = 0);
    DLLEXPORT typeArray(Type *base, int low, int hi, std::string name, unsigned int sizeHint = 0);
    DLLEXPORT static typeArray *create(std::string &name, Type *typ,  int low, int hi, Symtab *obj = NULL);
