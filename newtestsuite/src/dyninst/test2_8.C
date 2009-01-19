@@ -63,7 +63,7 @@ class test2_8_Mutator : public DyninstMutator {
   int test8b();
 
   virtual bool hasCustomExecutionPath() { return true; }
-  virtual test_results_t setup(ParameterDict &param);
+   //  virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
 extern "C" TEST_DLL_EXPORT TestMutator *test2_8_factory() {
@@ -131,6 +131,8 @@ int test2_8_Mutator::test8b()
 
 test_results_t test2_8_Mutator::executeTest() {
    // Insert a breakpoint into the mutatee
+   bpatch = BPatch::getBPatch();
+
    if ( test8a() < 0 ) {
      return FAILED;
    }
@@ -156,17 +158,4 @@ test_results_t test2_8_Mutator::executeTest() {
       appThread->continueExecution();
       return PASSED;
    }
-}
-
-// extern "C" TEST_DLL_EXPORT int test2_8_mutatorMAIN(ParameterDict &param)
-test_results_t test2_8_Mutator::setup(ParameterDict &param) {
-    bool useAttach = param["useAttach"]->getInt();
-    bpatch = (BPatch *)(param["bpatch"]->getPtr());
-
-    appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-    // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
-
-    return PASSED;
 }
