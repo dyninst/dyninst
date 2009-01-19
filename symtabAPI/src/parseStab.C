@@ -1216,11 +1216,7 @@ static Type *parseArrayDef(Module *mod, const char *name,
 }
 
 int guessSize(const char *low, const char *hi) {
-#ifdef i386_unknown_nt4_0
-   LONGLONG l, h;
-#else
    long long l, h;
-#endif
 
    if (low[0] == '0')
       sscanf(low, "%llo", &l);
@@ -1336,7 +1332,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        //Create new type
        Type *newType = new typeScalar(ID, size, name);
        //Add to Collection
-       mod->getModuleTypes()->addOrUpdateType(newType);
+       newType = mod->getModuleTypes()->addOrUpdateType((typeScalar *) newType);
    }
    else {
        //Range
@@ -1348,7 +1344,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        else
            newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi), tName);
        //Add to Collection
-       mod->getModuleTypes()->addOrUpdateType(newType);
+       mod->getModuleTypes()->addOrUpdateType((typeSubrange *) newType);
    }
    free(low);
    free(hi);
