@@ -1890,7 +1890,6 @@ void Symtab::parseLineInformation()
    isLineInfoValid_ = true;	
    dyn_hash_map <std::string, LineInformation>::iterator iter;
 
-   //fprintf(stderr, "%s[%d]:  after parse of line information, found info for mods:\n", FILE__, __LINE__);
    for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
    {
       Module *mod = NULL;
@@ -1909,7 +1908,11 @@ void Symtab::parseLineInformation()
          {
             lineInformation->addLineInfo(&(iter->second));
             mod->setLineInfo(lineInformation);
-         }	
+         }
+      }
+      else {
+	object_printf("[%s:%u] - Couldn't find module %s to go with line info\n",
+		     __FILE__, __LINE__, iter->first.c_str()); 
       }
    }
 }

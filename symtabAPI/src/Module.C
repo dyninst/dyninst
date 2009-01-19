@@ -157,30 +157,6 @@ LineInformation *Module::getLineInformation()
    }
 
    return li;
-
-#if 0
-   Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
-
-   if (exec_->isLineInfoValid_) {
-      if (!mt.size()) {
-          // There is no line info valid for this module
-         return NULL;
-      }
-      if (mt.size() > 1) {
-        // fprintf(stderr, "%s[%d]:  weird, multiple line info for %s: FIXME\n", 
-        //       FILE__, __LINE__, fileName_.c_str());
-      }
-      if (!mt[0]) {
-         fprintf(stderr, "%s[%d]:  FIXME:  Line info annotation is NULL!\n", FILE__, __LINE__);
-      }
-      return mt[0];
-   }
-#endif
-
-   fprintf(stderr, "%s[%d]:  FIXME:  line info not valid after parse\n",
-         FILE__, __LINE__);
-
-   return NULL;
 }
 
 bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,

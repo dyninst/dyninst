@@ -4153,7 +4153,6 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
    Dwarf_Error err;
    int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, &err );
    if ( status != DW_DLV_OK ) { 
-//      fprintf(stderr, "%s[%d]:  dwarf init failed, no dwarf I guess\n", FILE__, __LINE__);
       return; 
    }
 
@@ -4168,6 +4167,23 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
          break;
       }
 
+      char * cuName, *moduleName;
+      status = dwarf_diename( cuDIE, &cuName, NULL );
+      if ( status == DW_DLV_NO_ENTRY ) {
+	cuName = NULL;
+	moduleName = "DEFAULT_MODULE";
+      }
+      else {
+	moduleName = strrchr(cuName, '/');
+	if (!moduleName)
+	  moduleName = strrchr(cuName, '\\');
+	if (moduleName)
+	  moduleName++;
+	else
+	  moduleName = cuName;
+      }
+      //fprintf(stderr, "[%s:%u] - llparsing for module %s\n", __FILE__, __LINE__, moduleName);
+
       /* Acquire this CU's source lines. */
       Dwarf_Line * lineBuffer;
       Dwarf_Signed lineCount;
@@ -4176,9 +4192,6 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
       /* See if we can get anything useful out of the next CU
          if this one is corrupt. */
       assert( status != DW_DLV_ERROR );
-      //{
-      //      dwarf_printf( "%s[%d]: dwarf_srclines() error.\n" );
-      //  }
 
       /* It's OK for a CU not to have line information. */
       if ( status != DW_DLV_OK ) {
@@ -4234,15 +4247,6 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
                continue;
             } /* end if we can coalesce this range */
 
-            /* Determine into which mapped_module this line information should be inserted. */
-            //int_function * currentFunction = obj()->findFuncByAddr( previousLineAddr );
-            //if ( currentFunction == NULL ) {
-            // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line 1111number information will be lost.\n", __FILE__, __LINE__, lineAddr );
-            //}
-            //else {
-            //mapped_module * currentModule = currentFunction->mod();
-            //assert( currentModule != NULL );
-
             char *canonicalLineSource;
             if (truncateLineFilenames) {
                canonicalLineSource = strrchr( previousLineSource, '/' );
@@ -4253,18 +4257,13 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
                canonicalLineSource = previousLineSource;
             }
 
-                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, canonicalLineSource, previousLineNo, previousLineAddr, lineAddr);
-            li[canonicalLineSource].addLine(canonicalLineSource, 
-                                            (unsigned int) previousLineNo, 
-                                            (unsigned int) previousLineColumn, 
-                                            (Dyninst::Offset) previousLineAddr, 
-                                            (Dyninst::Offset) lineAddr );
+	    //fprintf(stderr, "[%s:%u]:  addLine(%s:%u [%lx-%lx]\n", FILE__, __LINE__, canonicalLineSource, (unsigned) previousLineNo, (unsigned long) previousLineAddr, (unsigned long) lineAddr);
+            li[std::string(moduleName)].addLine(canonicalLineSource, 
+						(unsigned int) previousLineNo, 
+						(unsigned int) previousLineColumn, 
+						(Dyninst::Offset) previousLineAddr, 
+						(Dyninst::Offset) lineAddr );
             /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
-            //currentModule->lineInfo_.addLine(canonicalLineSource, previousLineNo, 
-            //                                  previousLineColumn, previousLineAddr, lineAddr );
-            //currentModule->lineInfoValid_ = true;
-
-            // if(previousLineNo == 597 || previousLineNo == 596)
             ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
             //} /* end if we found the function by its address */
          } /* end if the previous* variables are valid */
@@ -4290,6 +4289,8 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
          dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
       }
       dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+      if (cuName)
+      dwarf_dealloc( dbg, cuName, DW_DLA_STRING );  
 
       /* Free this CU's DIE. */
       dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
