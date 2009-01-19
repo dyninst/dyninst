@@ -42,6 +42,7 @@
 #include "symtabAPI/src/Object.h"
 #include "Collections.h"
 #include "common/h/pathName.h"
+#include "Type-mem.h"
 
 #include <stdarg.h>
 int dwarf_printf(const char *format, ...);
@@ -1826,7 +1827,6 @@ gracefully, that is, without an error. :)
             char * typeName = NULL;
             status = dwarf_diename( dieEntry, & typeName, NULL );
             DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
             Dwarf_Attribute sizeAttr;
             Dwarf_Unsigned typeSize = 0;
             status = dwarf_attr( dieEntry, DW_AT_byte_size, & sizeAttr, NULL );
@@ -1843,17 +1843,18 @@ gracefully, that is, without an error. :)
             std::string tName = convertCharToString(typeName);
             switch ( dieTag ) {
                case DW_TAG_structure_type: 
-               case DW_TAG_class_type: 
-                  containingType = new typeStruct( (typeId_t) dieOffset, tName);
+               case DW_TAG_class_type: {
+		  typeStruct *ts = new typeStruct( (typeId_t) dieOffset, tName);
+		  containingType = dynamic_cast<fieldListType *>(module->getModuleTypes()->addOrUpdateType(ts));
                   break;
-               case DW_TAG_union_type: 
-                  containingType = new typeUnion( (typeId_t) dieOffset, tName);
+	       }
+               case DW_TAG_union_type: {
+		  typeUnion *tu = new typeUnion( (typeId_t) dieOffset, tName);
+		  containingType = dynamic_cast<fieldListType *>(module->getModuleTypes()->addOrUpdateType(tu));
                   break;
+	       }
             }
 
-            assert( containingType != NULL );
-            // //bperr ( "Adding structure, union, or class type '%s' (%lu)\n", typeName, (unsigned long)dieOffset );
-            containingType = dynamic_cast<fieldListType *>(module->getModuleTypes()->addOrUpdateType( containingType ));
             newEnclosure = containingType;
 
             dwarf_dealloc( dbg, typeName, DW_DLA_STRING );

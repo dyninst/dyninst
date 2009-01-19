@@ -43,6 +43,7 @@
 #include "Module.h" 
 #include "Collections.h"
 #include "common/h/headers.h"
+#include "Type-mem.h"
 
 #include "debug.h"
 
@@ -1666,7 +1667,7 @@ void addBaseClassToClass(Module *mod, int baseID,
         std::string modName = mod->fileName();
         //bpwarn( "can't find base class id %d in module %s\n", baseID, modName);
         baseCl = new typeStruct(baseID);
-        fieldListType *baseCl2 = dynamic_cast<typeStruct *>(mod->getModuleTypes()->addOrUpdateType( baseCl ));
+        fieldListType *baseCl2 = dynamic_cast<typeStruct *>(mod->getModuleTypes()->addOrUpdateType( (typeStruct *)baseCl ));
         std::string fName = "{superclass}";
         newType->addField( fName, baseCl2, -1, visUnknown );
         baseCl->decrRefCount();
@@ -1696,190 +1697,181 @@ void addBaseClassToClass(Module *mod, int baseID,
 static char *parseFieldList(Module *mod, fieldListType *newType, 
 			    char *stabstr, bool sunCPlusPlus)
 {
-    int cnt = 0;
-    int size = 0;
-    char *compname;
-    int comptype= 0;
-    int beg_offset=0;
-    visibility_t _vis = visUnknown;
-    dataClass typedescr;
-    bool hasVirtuals = false;
-
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-      //bperr( "%s[%d]:  inside parseFieldList\n", __FILE__, __LINE__);
-#endif
-
-    if (stabstr[cnt] == '!') {
-	//Inheritance definition, Add base class field list to the current one
-	//according to visibility rules.
-
-	cnt++; //Skip '!'
-
-	//Get # of base classes
-	int baseClNum = atoi(getIdentifier(stabstr, cnt).c_str());
-	cnt++; //Skip ','
-
-        typeStruct *newStructType = dynamic_cast<typeStruct *>(newType);
-	//Skip information for each base class
-	for(int i=0; i<baseClNum; ++i) {
-		//Skip virtual inheritance flag, base visibility flag and base offset
-		getIdentifier(stabstr, cnt);
-		cnt++; //Skip ','
-
-		//Find base class type identifier
-		int baseID = parseSymDesc(stabstr, cnt);
-
-		cnt++; //Skip ';'
-
-		addBaseClassToClass(mod, baseID, newStructType, 0);
-	}
-     }
-
-     while (stabstr[cnt] && (stabstr[cnt] != ';')) {
-	typedescr = dataScalar;
-
-	if (stabstr[cnt] == '~') {
-		//End of virtual class
-		while(stabstr[cnt] != ';') cnt++;
-		break; //End of class is reached
-	}
-
-	// skip <letter>cG
-	if (sunCPlusPlus) cnt += 3;
-
-	if ((stabstr[cnt] == 'u') && (stabstr[cnt+1] == ':') && (!isdigit(stabstr[cnt+2]))) {
-	    cnt += 2;
-	}
-
-	compname = getFieldName(stabstr, cnt);
-/*
-	if (strlen(compname) == 0) {
-		//Something wrong! Most probably unhandled C++ type
-		//Skip the rest of the structure
-		while(stabstr[cnt]) cnt++;
-		return(&stabstr[cnt]);
-	}
-*/
-	cnt++;	// Skip ":"
-
-	if ((stabstr[cnt]) == ':') {
-	  //Method definition
-	  typedescr = dataFunction;
-	  cnt++;
-	}
-
-	if ((stabstr[cnt]) == '/') { // visibility C++
-	  cnt++; /* get '/' */
-	  switch (stabstr[cnt]) {
-	  case '0':
-	    _vis = visPrivate;
-	    break;
-	  case '1':
-	    _vis = visProtected;
-	    break;
-	  case '2':
-	    _vis = visPublic;
-	    break;
-	  default:
-	    _vis = visUnknown;
-	  }
-	  cnt++; // get visibility value
-	}
-
-	// should be a typeDescriptor
-	comptype = parseTypeUse(mod, stabstr, cnt, "");
-
-        if (stabstr[cnt] == ':') {
-           while (stabstr[cnt] == ':') {
-              cnt++; //Discard ':'
-              beg_offset = 0;
-              size = 0;
-              std::string varName = getIdentifier(stabstr, cnt);
-              if (typedescr == dataFunction) {
-                 // Additional qualifiers for methods
-                 cnt++; //Skip ';'
-                 cnt++; //Skip visibility
-                 cnt++; //Skip method modifier
-                 if (stabstr[cnt] == '*') {
-                    //Virtual fcn definition
-                    hasVirtuals = true;
-                    cnt++; //Skip '*'
-                    while(stabstr[cnt] != ';') cnt++; //Skip vtable index
-                    cnt++; //Skip ';'
-                    if (stabstr[cnt] != ';') {
-                       parseTypeUse(mod, stabstr, cnt, ""); //Skip type number to the base class
-                    }
-                    cnt++; //Skip ';'
-                    if (isSymId(stabstr[cnt])) {
-                       parseTypeUse(mod, stabstr, cnt, "");
-                    }
-                 } else if ( (stabstr[cnt] == '.') || 
-                             (stabstr[cnt] == '?') ) {
-                    cnt++; //Skip '.' or '?'
-                    if (isSymId(stabstr[cnt])) {
-                       parseTypeUse(mod, stabstr, cnt, "");
-                    }
-                 }
-              }
-              if (stabstr[cnt] == ';')
-                 cnt++; //Skip ';'
-           }
-        } else if (stabstr[cnt] == ',') {
-           cnt++;	// skip ','
-           beg_offset = parseSymDesc(stabstr, cnt);
-           
-           if (stabstr[cnt] == ',') {
-              cnt++;	// skip ','
-              size = parseSymDesc(stabstr, cnt);
-           }
-           else
-              size = 0;
-        }
-           
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-	//bperr( "%s[%d]:  asserting last char of stabstr == ';':  stabstr = %s\n", 
-		__FILE__, __LINE__, stabstr);
-#endif
-	
-	if (stabstr[cnt] == ';') // jaw 03/15/02-- major kludge here for DPCL compat
-	  cnt++;  // needs further examination
-	// //bperr("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
-	// Add struct field to type
-	Type *fieldType = mod->getModuleTypes()->findOrCreateType( comptype );
-	if (fieldType == NULL) {
-		//C++ compilers may add extra fields whose types might not available.
-		//Assign void type to these kind of fields. --Mehmet
-		fieldType = mod->getModuleTypes()->findType("void");
-	}
-	std::string fName = convertCharToString(compname);
-	if (_vis == visUnknown) {
-	    newType->addField(fName, fieldType, beg_offset);
-	} else {
-	    // //bperr( "Adding field '%s' to type '%s' @ 0x%x\n", compname, newType->getName(), newType );
-	    newType->addField(fName, fieldType, beg_offset, _vis);
-	    ////bperr("Adding Component with VISIBILITY STRUCT\n");
-	}
-        free(compname);
-     }
-
-     if (hasVirtuals && 
-         stabstr[cnt] == ';' &&
-         stabstr[cnt+1] == '~' &&
-         stabstr[cnt+2] == '%') {
-        cnt+=3;
-        while (stabstr[cnt] != ';') cnt++;
-     }         
-
-    // should end with a ';'
-    if (stabstr[cnt] == ';') {
-	return &stabstr[cnt+1];
-    } else if (stabstr[cnt] == '\0') {
-	return &stabstr[cnt];
-    } else {
-	//bperr("invalid stab record: %s\n", &stabstr[cnt]);
-	abort();
-	return NULL; // should not get here
+  int cnt = 0;
+  int size = 0;
+  char *compname;
+  int comptype= 0;
+  int beg_offset=0;
+  visibility_t _vis = visUnknown;
+  dataClass typedescr;
+  bool hasVirtuals = false;
+  
+  if (stabstr[cnt] == '!') {
+    //Inheritance definition, Add base class field list to the current one
+    //according to visibility rules.
+    
+    cnt++; //Skip '!'
+    
+    //Get # of base classes
+    int baseClNum = atoi(getIdentifier(stabstr, cnt).c_str());
+    cnt++; //Skip ','
+    
+    typeStruct *newStructType = dynamic_cast<typeStruct *>(newType);
+    //Skip information for each base class
+    for(int i=0; i<baseClNum; ++i) {
+      //Skip virtual inheritance flag, base visibility flag and base offset
+      getIdentifier(stabstr, cnt);
+      cnt++; //Skip ','
+      
+      //Find base class type identifier
+      int baseID = parseSymDesc(stabstr, cnt);
+      
+      cnt++; //Skip ';'
+      
+      addBaseClassToClass(mod, baseID, newStructType, 0);
     }
+  }
+  
+  while (stabstr[cnt] && (stabstr[cnt] != ';')) {
+    typedescr = dataScalar;
+    
+    if (stabstr[cnt] == '~') {
+      //End of virtual class
+      while(stabstr[cnt] != ';') cnt++;
+      break; //End of class is reached
+    }
+    
+    // skip <letter>cG
+    if (sunCPlusPlus) cnt += 3;
+    
+    if ((stabstr[cnt] == 'u') && (stabstr[cnt+1] == ':') && (!isdigit(stabstr[cnt+2]))) {
+      cnt += 2;
+    }
+    
+    compname = getFieldName(stabstr, cnt);
+    /*
+      if (strlen(compname) == 0) {
+      //Something wrong! Most probably unhandled C++ type
+      //Skip the rest of the structure
+      while(stabstr[cnt]) cnt++;
+      return(&stabstr[cnt]);
+      }
+    */
+    cnt++;	// Skip ":"
+    
+    if ((stabstr[cnt]) == ':') {
+      //Method definition
+      typedescr = dataFunction;
+      cnt++;
+    }
+    
+    if ((stabstr[cnt]) == '/') { // visibility C++
+      cnt++; /* get '/' */
+      switch (stabstr[cnt]) {
+      case '0':
+	_vis = visPrivate;
+	break;
+      case '1':
+	_vis = visProtected;
+	break;
+      case '2':
+	_vis = visPublic;
+	break;
+      default:
+	_vis = visUnknown;
+      }
+      cnt++; // get visibility value
+    }
+
+    // should be a typeDescriptor
+    comptype = parseTypeUse(mod, stabstr, cnt, "");
+    
+    if (stabstr[cnt] == ':') {
+      while (stabstr[cnt] == ':') {
+	cnt++; //Discard ':'
+	beg_offset = 0;
+	size = 0;
+	std::string varName = getIdentifier(stabstr, cnt);
+	if (typedescr == dataFunction) {
+	  // Additional qualifiers for methods
+	  cnt++; //Skip ';'
+	  cnt++; //Skip visibility
+	  cnt++; //Skip method modifier
+	  if (stabstr[cnt] == '*') {
+	    //Virtual fcn definition
+	    hasVirtuals = true;
+	    cnt++; //Skip '*'
+	    while(stabstr[cnt] != ';') cnt++; //Skip vtable index
+	    cnt++; //Skip ';'
+	    if (stabstr[cnt] != ';') {
+	      parseTypeUse(mod, stabstr, cnt, ""); //Skip type number to the base class
+	    }
+	    cnt++; //Skip ';'
+	    if (isSymId(stabstr[cnt])) {
+	      parseTypeUse(mod, stabstr, cnt, "");
+	    }
+	  } else if ( (stabstr[cnt] == '.') || 
+		      (stabstr[cnt] == '?') ) {
+	    cnt++; //Skip '.' or '?'
+	    if (isSymId(stabstr[cnt])) {
+	      parseTypeUse(mod, stabstr, cnt, "");
+	    }
+	  }
+	}
+	if (stabstr[cnt] == ';')
+	  cnt++; //Skip ';'
+      }
+    } else if (stabstr[cnt] == ',') {
+      cnt++;	// skip ','
+      beg_offset = parseSymDesc(stabstr, cnt);
+      
+      if (stabstr[cnt] == ',') {
+	cnt++;	// skip ','
+	size = parseSymDesc(stabstr, cnt);
+      }
+      else
+	size = 0;
+    }
+    
+    if (stabstr[cnt] == ';') // jaw 03/15/02-- major kludge here for DPCL compat
+      cnt++;  // needs further examination
+    // //bperr("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
+    // Add struct field to type
+    Type *fieldType = mod->getModuleTypes()->findOrCreateType( comptype );
+    if (fieldType == NULL) {
+      //C++ compilers may add extra fields whose types might not available.
+      //Assign void type to these kind of fields. --Mehmet
+      fieldType = mod->getModuleTypes()->findType("void");
+    }
+    std::string fName = convertCharToString(compname);
+    if (_vis == visUnknown) {
+      newType->addField(fName, fieldType, beg_offset);
+    } else {
+      // //bperr( "Adding field '%s' to type '%s' @ 0x%x\n", compname, newType->getName(), newType );
+      newType->addField(fName, fieldType, beg_offset, _vis);
+      ////bperr("Adding Component with VISIBILITY STRUCT\n");
+    }
+    free(compname);
+  }
+  
+  if (hasVirtuals && 
+      stabstr[cnt] == ';' &&
+      stabstr[cnt+1] == '~' &&
+      stabstr[cnt+2] == '%') {
+    cnt+=3;
+    while (stabstr[cnt] != ';') cnt++;
+  }         
+  
+  // should end with a ';'
+  if (stabstr[cnt] == ';') {
+    return &stabstr[cnt+1];
+  } else if (stabstr[cnt] == '\0') {
+    return &stabstr[cnt];
+  } else {
+    //bperr("invalid stab record: %s\n", &stabstr[cnt]);
+    abort();
+    return NULL; // should not get here
+  }
 }
 
 
@@ -1964,19 +1956,19 @@ static char *parseCPlusPlusInfo(Module *mod,
     //Create new type
     switch (typdescr) {
     case dataTypeClass:
-       newType = new typeStruct(ID, tName);
-       break;
     case dataStructure:
        newType = new typeStruct(ID, tName);
+       newType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType((typeStruct *) newType));
        break;
     case dataUnion:
        newType = new typeUnion(ID, tName);
+       newType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType((typeUnion *) newType));
        break;
     default:
        assert(0);
     }
     //add to type collection
-    newType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType(newType));
+
     if(newType2 != newType)
         newType->decrRefCount();
 
@@ -2395,12 +2387,16 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	   
 	    std::string tName = convertCharToString(name);
 	    //Create new type
-            if (typdescr == dataStructure)
+            if (typdescr == dataStructure) {
                newFieldType = new typeStruct(ID, tName);
-            else
+	       newFieldType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType((typeStruct *) newFieldType));
+	    }
+            else {
                newFieldType = new typeUnion(ID, tName);
+	       newFieldType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType((typeUnion *) newFieldType));
+	    }
 	    //add to type collection
-	    newFieldType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType(newFieldType));
+
         //TODO What if two different files have the same structure?? // on AIX
         if(!newFieldType2)
 	        newFieldType2 = dynamic_cast<fieldListType *>(newFieldType);
