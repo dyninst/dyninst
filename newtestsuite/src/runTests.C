@@ -26,7 +26,7 @@
 #define MAX_ITER 1000
 
 // Default name for the resume log file
-#define DEFAULT_RESUMELOG "bresumelog"
+#define DEFAULT_RESUMELOG "resumelog"
 // Default name for the crash log file
 #define DEFAULT_CRASHLOG "crashlog"
 
