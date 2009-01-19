@@ -18,13 +18,13 @@ dyninst_cxx_group_test.mutatee_solo_g++_64_max: dyninst_cxx_group_test_group_g++
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 dyninst_cxx_group_test.mutatee_solo_g++_64_none: dyninst_cxx_group_test_group_g++_64_none.o test5_1_mutatee_solo_g++_64_none.o test5_2_mutatee_solo_g++_64_none.o test5_3_mutatee_solo_g++_64_none.o test5_4_mutatee_solo_g++_64_none.o test5_5_mutatee_solo_g++_64_none.o test5_6_mutatee_solo_g++_64_none.o test5_7_mutatee_solo_g++_64_none.o test5_8_mutatee_solo_g++_64_none.o test5_9_mutatee_solo_g++_64_none.o cpp_test_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-dyninst_group_test.mutatee_solo_g++_64_high: dyninst_group_test_group_g++_64_high.o test1_1_mutatee_solo_g++_64_high.o test1_2_mutatee_solo_g++_64_high.o test1_3_mutatee_solo_g++_64_high.o test1_4_mutatee_solo_g++_64_high.o test1_5_mutatee_solo_g++_64_high.o test1_6_mutatee_solo_g++_64_high.o test1_7_mutatee_solo_g++_64_high.o test1_8_mutatee_solo_g++_64_high.o test1_9_mutatee_solo_g++_64_high.o test1_10_mutatee_solo_g++_64_high.o test1_11_mutatee_solo_g++_64_high.o test1_13_mutatee_solo_g++_64_high.o test1_16_mutatee_solo_g++_64_high.o test1_17_mutatee_solo_g++_64_high.o test1_18_mutatee_solo_g++_64_high.o test1_20_mutatee_solo_g++_64_high.o test1_21_mutatee_solo_g++_64_high.o test1_22_mutatee_solo_g++_64_high.o test1_23_mutatee_solo_g++_64_high.o test1_24_mutatee_solo_g++_64_high.o test1_25_mutatee_solo_g++_64_high.o test1_26_mutatee_solo_g++_64_high.o test1_27_mutatee_solo_g++_64_high.o test1_28_mutatee_solo_g++_64_high.o test1_30_mutatee_solo_g++_64_high.o test1_31_mutatee_solo_g++_64_high.o test1_32_mutatee_solo_g++_64_high.o test1_33_mutatee_solo_g++_64_high.o test1_34_mutatee_solo_g++_64_high.o test1_36_mutatee_solo_g++_64_high.o test1_37_mutatee_solo_g++_64_high.o test1_38_mutatee_solo_g++_64_high.o test1_39_mutatee_solo_g++_64_high.o test2_5_mutatee_solo_g++_64_high.o test2_7_mutatee_solo_g++_64_high.o test2_9_mutatee_solo_g++_64_high.o test2_10_mutatee_solo_g++_64_high.o test2_11_mutatee_solo_g++_64_high.o test2_12_mutatee_solo_g++_64_high.o test2_13_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
+dyninst_group_test.mutatee_solo_g++_64_high: dyninst_group_test_group_g++_64_high.o test1_1_mutatee_solo_g++_64_high.o test1_2_mutatee_solo_g++_64_high.o test1_3_mutatee_solo_g++_64_high.o test1_4_mutatee_solo_g++_64_high.o test1_5_mutatee_solo_g++_64_high.o test1_6_mutatee_solo_g++_64_high.o test1_7_mutatee_solo_g++_64_high.o test1_8_mutatee_solo_g++_64_high.o test1_9_mutatee_solo_g++_64_high.o test1_10_mutatee_solo_g++_64_high.o test1_11_mutatee_solo_g++_64_high.o test1_13_mutatee_solo_g++_64_high.o test1_16_mutatee_solo_g++_64_high.o test1_17_mutatee_solo_g++_64_high.o test1_18_mutatee_solo_g++_64_high.o test1_20_mutatee_solo_g++_64_high.o test1_21_mutatee_solo_g++_64_high.o test1_22_mutatee_solo_g++_64_high.o test1_23_mutatee_solo_g++_64_high.o test1_24_mutatee_solo_g++_64_high.o test1_25_mutatee_solo_g++_64_high.o test1_26_mutatee_solo_g++_64_high.o test1_27_mutatee_solo_g++_64_high.o test1_28_mutatee_solo_g++_64_high.o test1_30_mutatee_solo_g++_64_high.o test1_31_mutatee_solo_g++_64_high.o test1_32_mutatee_solo_g++_64_high.o test1_33_mutatee_solo_g++_64_high.o test1_34_mutatee_solo_g++_64_high.o test1_36_mutatee_solo_g++_64_high.o test1_37_mutatee_solo_g++_64_high.o test1_38_mutatee_solo_g++_64_high.o test1_39_mutatee_solo_g++_64_high.o test2_5_mutatee_solo_g++_64_high.o test2_7_mutatee_solo_g++_64_high.o test2_9_mutatee_solo_g++_64_high.o test2_11_mutatee_solo_g++_64_high.o test2_12_mutatee_solo_g++_64_high.o test2_13_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
-dyninst_group_test.mutatee_solo_g++_64_low: dyninst_group_test_group_g++_64_low.o test1_1_mutatee_solo_g++_64_low.o test1_2_mutatee_solo_g++_64_low.o test1_3_mutatee_solo_g++_64_low.o test1_4_mutatee_solo_g++_64_low.o test1_5_mutatee_solo_g++_64_low.o test1_6_mutatee_solo_g++_64_low.o test1_7_mutatee_solo_g++_64_low.o test1_8_mutatee_solo_g++_64_low.o test1_9_mutatee_solo_g++_64_low.o test1_10_mutatee_solo_g++_64_low.o test1_11_mutatee_solo_g++_64_low.o test1_13_mutatee_solo_g++_64_low.o test1_16_mutatee_solo_g++_64_low.o test1_17_mutatee_solo_g++_64_low.o test1_18_mutatee_solo_g++_64_low.o test1_20_mutatee_solo_g++_64_low.o test1_21_mutatee_solo_g++_64_low.o test1_22_mutatee_solo_g++_64_low.o test1_23_mutatee_solo_g++_64_low.o test1_24_mutatee_solo_g++_64_low.o test1_25_mutatee_solo_g++_64_low.o test1_26_mutatee_solo_g++_64_low.o test1_27_mutatee_solo_g++_64_low.o test1_28_mutatee_solo_g++_64_low.o test1_30_mutatee_solo_g++_64_low.o test1_31_mutatee_solo_g++_64_low.o test1_32_mutatee_solo_g++_64_low.o test1_33_mutatee_solo_g++_64_low.o test1_34_mutatee_solo_g++_64_low.o test1_36_mutatee_solo_g++_64_low.o test1_37_mutatee_solo_g++_64_low.o test1_38_mutatee_solo_g++_64_low.o test1_39_mutatee_solo_g++_64_low.o test2_5_mutatee_solo_g++_64_low.o test2_7_mutatee_solo_g++_64_low.o test2_9_mutatee_solo_g++_64_low.o test2_10_mutatee_solo_g++_64_low.o test2_11_mutatee_solo_g++_64_low.o test2_12_mutatee_solo_g++_64_low.o test2_13_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
+dyninst_group_test.mutatee_solo_g++_64_low: dyninst_group_test_group_g++_64_low.o test1_1_mutatee_solo_g++_64_low.o test1_2_mutatee_solo_g++_64_low.o test1_3_mutatee_solo_g++_64_low.o test1_4_mutatee_solo_g++_64_low.o test1_5_mutatee_solo_g++_64_low.o test1_6_mutatee_solo_g++_64_low.o test1_7_mutatee_solo_g++_64_low.o test1_8_mutatee_solo_g++_64_low.o test1_9_mutatee_solo_g++_64_low.o test1_10_mutatee_solo_g++_64_low.o test1_11_mutatee_solo_g++_64_low.o test1_13_mutatee_solo_g++_64_low.o test1_16_mutatee_solo_g++_64_low.o test1_17_mutatee_solo_g++_64_low.o test1_18_mutatee_solo_g++_64_low.o test1_20_mutatee_solo_g++_64_low.o test1_21_mutatee_solo_g++_64_low.o test1_22_mutatee_solo_g++_64_low.o test1_23_mutatee_solo_g++_64_low.o test1_24_mutatee_solo_g++_64_low.o test1_25_mutatee_solo_g++_64_low.o test1_26_mutatee_solo_g++_64_low.o test1_27_mutatee_solo_g++_64_low.o test1_28_mutatee_solo_g++_64_low.o test1_30_mutatee_solo_g++_64_low.o test1_31_mutatee_solo_g++_64_low.o test1_32_mutatee_solo_g++_64_low.o test1_33_mutatee_solo_g++_64_low.o test1_34_mutatee_solo_g++_64_low.o test1_36_mutatee_solo_g++_64_low.o test1_37_mutatee_solo_g++_64_low.o test1_38_mutatee_solo_g++_64_low.o test1_39_mutatee_solo_g++_64_low.o test2_5_mutatee_solo_g++_64_low.o test2_7_mutatee_solo_g++_64_low.o test2_9_mutatee_solo_g++_64_low.o test2_11_mutatee_solo_g++_64_low.o test2_12_mutatee_solo_g++_64_low.o test2_13_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
-dyninst_group_test.mutatee_solo_g++_64_max: dyninst_group_test_group_g++_64_max.o test1_1_mutatee_solo_g++_64_max.o test1_2_mutatee_solo_g++_64_max.o test1_3_mutatee_solo_g++_64_max.o test1_4_mutatee_solo_g++_64_max.o test1_5_mutatee_solo_g++_64_max.o test1_6_mutatee_solo_g++_64_max.o test1_7_mutatee_solo_g++_64_max.o test1_8_mutatee_solo_g++_64_max.o test1_9_mutatee_solo_g++_64_max.o test1_10_mutatee_solo_g++_64_max.o test1_11_mutatee_solo_g++_64_max.o test1_13_mutatee_solo_g++_64_max.o test1_16_mutatee_solo_g++_64_max.o test1_17_mutatee_solo_g++_64_max.o test1_18_mutatee_solo_g++_64_max.o test1_20_mutatee_solo_g++_64_max.o test1_21_mutatee_solo_g++_64_max.o test1_22_mutatee_solo_g++_64_max.o test1_23_mutatee_solo_g++_64_max.o test1_24_mutatee_solo_g++_64_max.o test1_25_mutatee_solo_g++_64_max.o test1_26_mutatee_solo_g++_64_max.o test1_27_mutatee_solo_g++_64_max.o test1_28_mutatee_solo_g++_64_max.o test1_30_mutatee_solo_g++_64_max.o test1_31_mutatee_solo_g++_64_max.o test1_32_mutatee_solo_g++_64_max.o test1_33_mutatee_solo_g++_64_max.o test1_34_mutatee_solo_g++_64_max.o test1_36_mutatee_solo_g++_64_max.o test1_37_mutatee_solo_g++_64_max.o test1_38_mutatee_solo_g++_64_max.o test1_39_mutatee_solo_g++_64_max.o test2_5_mutatee_solo_g++_64_max.o test2_7_mutatee_solo_g++_64_max.o test2_9_mutatee_solo_g++_64_max.o test2_10_mutatee_solo_g++_64_max.o test2_11_mutatee_solo_g++_64_max.o test2_12_mutatee_solo_g++_64_max.o test2_13_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
+dyninst_group_test.mutatee_solo_g++_64_max: dyninst_group_test_group_g++_64_max.o test1_1_mutatee_solo_g++_64_max.o test1_2_mutatee_solo_g++_64_max.o test1_3_mutatee_solo_g++_64_max.o test1_4_mutatee_solo_g++_64_max.o test1_5_mutatee_solo_g++_64_max.o test1_6_mutatee_solo_g++_64_max.o test1_7_mutatee_solo_g++_64_max.o test1_8_mutatee_solo_g++_64_max.o test1_9_mutatee_solo_g++_64_max.o test1_10_mutatee_solo_g++_64_max.o test1_11_mutatee_solo_g++_64_max.o test1_13_mutatee_solo_g++_64_max.o test1_16_mutatee_solo_g++_64_max.o test1_17_mutatee_solo_g++_64_max.o test1_18_mutatee_solo_g++_64_max.o test1_20_mutatee_solo_g++_64_max.o test1_21_mutatee_solo_g++_64_max.o test1_22_mutatee_solo_g++_64_max.o test1_23_mutatee_solo_g++_64_max.o test1_24_mutatee_solo_g++_64_max.o test1_25_mutatee_solo_g++_64_max.o test1_26_mutatee_solo_g++_64_max.o test1_27_mutatee_solo_g++_64_max.o test1_28_mutatee_solo_g++_64_max.o test1_30_mutatee_solo_g++_64_max.o test1_31_mutatee_solo_g++_64_max.o test1_32_mutatee_solo_g++_64_max.o test1_33_mutatee_solo_g++_64_max.o test1_34_mutatee_solo_g++_64_max.o test1_36_mutatee_solo_g++_64_max.o test1_37_mutatee_solo_g++_64_max.o test1_38_mutatee_solo_g++_64_max.o test1_39_mutatee_solo_g++_64_max.o test2_5_mutatee_solo_g++_64_max.o test2_7_mutatee_solo_g++_64_max.o test2_9_mutatee_solo_g++_64_max.o test2_11_mutatee_solo_g++_64_max.o test2_12_mutatee_solo_g++_64_max.o test2_13_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
-dyninst_group_test.mutatee_solo_g++_64_none: dyninst_group_test_group_g++_64_none.o test1_1_mutatee_solo_g++_64_none.o test1_2_mutatee_solo_g++_64_none.o test1_3_mutatee_solo_g++_64_none.o test1_4_mutatee_solo_g++_64_none.o test1_5_mutatee_solo_g++_64_none.o test1_6_mutatee_solo_g++_64_none.o test1_7_mutatee_solo_g++_64_none.o test1_8_mutatee_solo_g++_64_none.o test1_9_mutatee_solo_g++_64_none.o test1_10_mutatee_solo_g++_64_none.o test1_11_mutatee_solo_g++_64_none.o test1_13_mutatee_solo_g++_64_none.o test1_16_mutatee_solo_g++_64_none.o test1_17_mutatee_solo_g++_64_none.o test1_18_mutatee_solo_g++_64_none.o test1_20_mutatee_solo_g++_64_none.o test1_21_mutatee_solo_g++_64_none.o test1_22_mutatee_solo_g++_64_none.o test1_23_mutatee_solo_g++_64_none.o test1_24_mutatee_solo_g++_64_none.o test1_25_mutatee_solo_g++_64_none.o test1_26_mutatee_solo_g++_64_none.o test1_27_mutatee_solo_g++_64_none.o test1_28_mutatee_solo_g++_64_none.o test1_30_mutatee_solo_g++_64_none.o test1_31_mutatee_solo_g++_64_none.o test1_32_mutatee_solo_g++_64_none.o test1_33_mutatee_solo_g++_64_none.o test1_34_mutatee_solo_g++_64_none.o test1_36_mutatee_solo_g++_64_none.o test1_37_mutatee_solo_g++_64_none.o test1_38_mutatee_solo_g++_64_none.o test1_39_mutatee_solo_g++_64_none.o test2_5_mutatee_solo_g++_64_none.o test2_7_mutatee_solo_g++_64_none.o test2_9_mutatee_solo_g++_64_none.o test2_10_mutatee_solo_g++_64_none.o test2_11_mutatee_solo_g++_64_none.o test2_12_mutatee_solo_g++_64_none.o test2_13_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
+dyninst_group_test.mutatee_solo_g++_64_none: dyninst_group_test_group_g++_64_none.o test1_1_mutatee_solo_g++_64_none.o test1_2_mutatee_solo_g++_64_none.o test1_3_mutatee_solo_g++_64_none.o test1_4_mutatee_solo_g++_64_none.o test1_5_mutatee_solo_g++_64_none.o test1_6_mutatee_solo_g++_64_none.o test1_7_mutatee_solo_g++_64_none.o test1_8_mutatee_solo_g++_64_none.o test1_9_mutatee_solo_g++_64_none.o test1_10_mutatee_solo_g++_64_none.o test1_11_mutatee_solo_g++_64_none.o test1_13_mutatee_solo_g++_64_none.o test1_16_mutatee_solo_g++_64_none.o test1_17_mutatee_solo_g++_64_none.o test1_18_mutatee_solo_g++_64_none.o test1_20_mutatee_solo_g++_64_none.o test1_21_mutatee_solo_g++_64_none.o test1_22_mutatee_solo_g++_64_none.o test1_23_mutatee_solo_g++_64_none.o test1_24_mutatee_solo_g++_64_none.o test1_25_mutatee_solo_g++_64_none.o test1_26_mutatee_solo_g++_64_none.o test1_27_mutatee_solo_g++_64_none.o test1_28_mutatee_solo_g++_64_none.o test1_30_mutatee_solo_g++_64_none.o test1_31_mutatee_solo_g++_64_none.o test1_32_mutatee_solo_g++_64_none.o test1_33_mutatee_solo_g++_64_none.o test1_34_mutatee_solo_g++_64_none.o test1_36_mutatee_solo_g++_64_none.o test1_37_mutatee_solo_g++_64_none.o test1_38_mutatee_solo_g++_64_none.o test1_39_mutatee_solo_g++_64_none.o test2_5_mutatee_solo_g++_64_none.o test2_7_mutatee_solo_g++_64_none.o test2_9_mutatee_solo_g++_64_none.o test2_11_mutatee_solo_g++_64_none.o test2_12_mutatee_solo_g++_64_none.o test2_13_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_g++_64_high: test1_12_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
@@ -658,9 +658,9 @@ test2_13_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 #g 64, high, test1_4_mutatee.c
 test1_4_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, high, test2_11_mutatee.c
-test2_11_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, high, test1_10_mutatee.c
+test1_10_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, high, test1_28_mutatee.c
 test1_28_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -697,9 +697,6 @@ test1_3_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 #g 64, high, test1_9_mutatee.c
 test1_9_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, high, test1_10_mutatee.c
-test1_10_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, high, test5_6_mutatee.C
 test5_6_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -721,9 +718,9 @@ test1_21_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 #g 64, high, test1_31_mutatee.c
 test1_31_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, high, test2_10_mutatee.c
-test2_10_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, high, test2_11_mutatee.c
+test2_11_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, high, test1_13_mutatee.c
 test1_13_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
@@ -958,9 +955,9 @@ test2_13_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 #g 64, max, test1_4_mutatee.c
 test1_4_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, max, test2_11_mutatee.c
-test2_11_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, max, test1_10_mutatee.c
+test1_10_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, max, test1_28_mutatee.c
 test1_28_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -997,9 +994,6 @@ test1_3_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 #g 64, max, test1_9_mutatee.c
 test1_9_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, max, test1_10_mutatee.c
-test1_10_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, max, test5_6_mutatee.C
 test5_6_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -1021,9 +1015,9 @@ test1_21_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 #g 64, max, test1_31_mutatee.c
 test1_31_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, max, test2_10_mutatee.c
-test2_10_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, max, test2_11_mutatee.c
+test2_11_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, max, test1_13_mutatee.c
 test1_13_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
@@ -1258,9 +1252,9 @@ test2_13_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 #g 64, none, test1_4_mutatee.c
 test1_4_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, none, test2_11_mutatee.c
-test2_11_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, none, test1_10_mutatee.c
+test1_10_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, none, test1_28_mutatee.c
 test1_28_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -1297,9 +1291,6 @@ test1_3_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 #g 64, none, test1_9_mutatee.c
 test1_9_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, none, test1_10_mutatee.c
-test1_10_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, none, test5_6_mutatee.C
 test5_6_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -1321,9 +1312,9 @@ test1_21_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 #g 64, none, test1_31_mutatee.c
 test1_31_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, none, test2_10_mutatee.c
-test2_10_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, none, test2_11_mutatee.c
+test2_11_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, none, test1_13_mutatee.c
 test1_13_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
@@ -1558,9 +1549,9 @@ test2_13_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 #g 64, low, test1_4_mutatee.c
 test1_4_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, low, test2_11_mutatee.c
-test2_11_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, low, test1_10_mutatee.c
+test1_10_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, low, test1_28_mutatee.c
 test1_28_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -1597,9 +1588,6 @@ test1_3_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 #g 64, low, test1_9_mutatee.c
 test1_9_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, low, test1_10_mutatee.c
-test1_10_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, low, test5_6_mutatee.C
 test5_6_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -1621,9 +1609,9 @@ test1_21_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 #g 64, low, test1_31_mutatee.c
 test1_31_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, low, test2_10_mutatee.c
-test2_10_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, low, test2_11_mutatee.c
+test2_11_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, low, test1_13_mutatee.c
 test1_13_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cxx) $(dyninst_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
@@ -1792,13 +1780,13 @@ dyninst_SOLO_MUTATEES_gnu_cc = dyninst_group_test.mutatee_solo_gcc_64_high dynin
 
 # Now a list of rules for compiling the mutatees with gcc
 
-dyninst_group_test.mutatee_solo_gcc_64_high: dyninst_group_test_group_gcc_64_high.o test1_1_mutatee_solo_gcc_64_high.o test1_2_mutatee_solo_gcc_64_high.o test1_3_mutatee_solo_gcc_64_high.o test1_4_mutatee_solo_gcc_64_high.o test1_5_mutatee_solo_gcc_64_high.o test1_6_mutatee_solo_gcc_64_high.o test1_7_mutatee_solo_gcc_64_high.o test1_8_mutatee_solo_gcc_64_high.o test1_9_mutatee_solo_gcc_64_high.o test1_10_mutatee_solo_gcc_64_high.o test1_11_mutatee_solo_gcc_64_high.o test1_13_mutatee_solo_gcc_64_high.o test1_16_mutatee_solo_gcc_64_high.o test1_17_mutatee_solo_gcc_64_high.o test1_18_mutatee_solo_gcc_64_high.o test1_20_mutatee_solo_gcc_64_high.o test1_21_mutatee_solo_gcc_64_high.o test1_22_mutatee_solo_gcc_64_high.o test1_23_mutatee_solo_gcc_64_high.o test1_24_mutatee_solo_gcc_64_high.o test1_25_mutatee_solo_gcc_64_high.o test1_26_mutatee_solo_gcc_64_high.o test1_27_mutatee_solo_gcc_64_high.o test1_28_mutatee_solo_gcc_64_high.o test1_30_mutatee_solo_gcc_64_high.o test1_31_mutatee_solo_gcc_64_high.o test1_32_mutatee_solo_gcc_64_high.o test1_33_mutatee_solo_gcc_64_high.o test1_34_mutatee_solo_gcc_64_high.o test1_36_mutatee_solo_gcc_64_high.o test1_37_mutatee_solo_gcc_64_high.o test1_38_mutatee_solo_gcc_64_high.o test1_39_mutatee_solo_gcc_64_high.o test2_5_mutatee_solo_gcc_64_high.o test2_7_mutatee_solo_gcc_64_high.o test2_9_mutatee_solo_gcc_64_high.o test2_10_mutatee_solo_gcc_64_high.o test2_11_mutatee_solo_gcc_64_high.o test2_12_mutatee_solo_gcc_64_high.o test2_13_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
+dyninst_group_test.mutatee_solo_gcc_64_high: dyninst_group_test_group_gcc_64_high.o test1_1_mutatee_solo_gcc_64_high.o test1_2_mutatee_solo_gcc_64_high.o test1_3_mutatee_solo_gcc_64_high.o test1_4_mutatee_solo_gcc_64_high.o test1_5_mutatee_solo_gcc_64_high.o test1_6_mutatee_solo_gcc_64_high.o test1_7_mutatee_solo_gcc_64_high.o test1_8_mutatee_solo_gcc_64_high.o test1_9_mutatee_solo_gcc_64_high.o test1_10_mutatee_solo_gcc_64_high.o test1_11_mutatee_solo_gcc_64_high.o test1_13_mutatee_solo_gcc_64_high.o test1_16_mutatee_solo_gcc_64_high.o test1_17_mutatee_solo_gcc_64_high.o test1_18_mutatee_solo_gcc_64_high.o test1_20_mutatee_solo_gcc_64_high.o test1_21_mutatee_solo_gcc_64_high.o test1_22_mutatee_solo_gcc_64_high.o test1_23_mutatee_solo_gcc_64_high.o test1_24_mutatee_solo_gcc_64_high.o test1_25_mutatee_solo_gcc_64_high.o test1_26_mutatee_solo_gcc_64_high.o test1_27_mutatee_solo_gcc_64_high.o test1_28_mutatee_solo_gcc_64_high.o test1_30_mutatee_solo_gcc_64_high.o test1_31_mutatee_solo_gcc_64_high.o test1_32_mutatee_solo_gcc_64_high.o test1_33_mutatee_solo_gcc_64_high.o test1_34_mutatee_solo_gcc_64_high.o test1_36_mutatee_solo_gcc_64_high.o test1_37_mutatee_solo_gcc_64_high.o test1_38_mutatee_solo_gcc_64_high.o test1_39_mutatee_solo_gcc_64_high.o test2_5_mutatee_solo_gcc_64_high.o test2_7_mutatee_solo_gcc_64_high.o test2_9_mutatee_solo_gcc_64_high.o test2_11_mutatee_solo_gcc_64_high.o test2_12_mutatee_solo_gcc_64_high.o test2_13_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
-dyninst_group_test.mutatee_solo_gcc_64_low: dyninst_group_test_group_gcc_64_low.o test1_1_mutatee_solo_gcc_64_low.o test1_2_mutatee_solo_gcc_64_low.o test1_3_mutatee_solo_gcc_64_low.o test1_4_mutatee_solo_gcc_64_low.o test1_5_mutatee_solo_gcc_64_low.o test1_6_mutatee_solo_gcc_64_low.o test1_7_mutatee_solo_gcc_64_low.o test1_8_mutatee_solo_gcc_64_low.o test1_9_mutatee_solo_gcc_64_low.o test1_10_mutatee_solo_gcc_64_low.o test1_11_mutatee_solo_gcc_64_low.o test1_13_mutatee_solo_gcc_64_low.o test1_16_mutatee_solo_gcc_64_low.o test1_17_mutatee_solo_gcc_64_low.o test1_18_mutatee_solo_gcc_64_low.o test1_20_mutatee_solo_gcc_64_low.o test1_21_mutatee_solo_gcc_64_low.o test1_22_mutatee_solo_gcc_64_low.o test1_23_mutatee_solo_gcc_64_low.o test1_24_mutatee_solo_gcc_64_low.o test1_25_mutatee_solo_gcc_64_low.o test1_26_mutatee_solo_gcc_64_low.o test1_27_mutatee_solo_gcc_64_low.o test1_28_mutatee_solo_gcc_64_low.o test1_30_mutatee_solo_gcc_64_low.o test1_31_mutatee_solo_gcc_64_low.o test1_32_mutatee_solo_gcc_64_low.o test1_33_mutatee_solo_gcc_64_low.o test1_34_mutatee_solo_gcc_64_low.o test1_36_mutatee_solo_gcc_64_low.o test1_37_mutatee_solo_gcc_64_low.o test1_38_mutatee_solo_gcc_64_low.o test1_39_mutatee_solo_gcc_64_low.o test2_5_mutatee_solo_gcc_64_low.o test2_7_mutatee_solo_gcc_64_low.o test2_9_mutatee_solo_gcc_64_low.o test2_10_mutatee_solo_gcc_64_low.o test2_11_mutatee_solo_gcc_64_low.o test2_12_mutatee_solo_gcc_64_low.o test2_13_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
+dyninst_group_test.mutatee_solo_gcc_64_low: dyninst_group_test_group_gcc_64_low.o test1_1_mutatee_solo_gcc_64_low.o test1_2_mutatee_solo_gcc_64_low.o test1_3_mutatee_solo_gcc_64_low.o test1_4_mutatee_solo_gcc_64_low.o test1_5_mutatee_solo_gcc_64_low.o test1_6_mutatee_solo_gcc_64_low.o test1_7_mutatee_solo_gcc_64_low.o test1_8_mutatee_solo_gcc_64_low.o test1_9_mutatee_solo_gcc_64_low.o test1_10_mutatee_solo_gcc_64_low.o test1_11_mutatee_solo_gcc_64_low.o test1_13_mutatee_solo_gcc_64_low.o test1_16_mutatee_solo_gcc_64_low.o test1_17_mutatee_solo_gcc_64_low.o test1_18_mutatee_solo_gcc_64_low.o test1_20_mutatee_solo_gcc_64_low.o test1_21_mutatee_solo_gcc_64_low.o test1_22_mutatee_solo_gcc_64_low.o test1_23_mutatee_solo_gcc_64_low.o test1_24_mutatee_solo_gcc_64_low.o test1_25_mutatee_solo_gcc_64_low.o test1_26_mutatee_solo_gcc_64_low.o test1_27_mutatee_solo_gcc_64_low.o test1_28_mutatee_solo_gcc_64_low.o test1_30_mutatee_solo_gcc_64_low.o test1_31_mutatee_solo_gcc_64_low.o test1_32_mutatee_solo_gcc_64_low.o test1_33_mutatee_solo_gcc_64_low.o test1_34_mutatee_solo_gcc_64_low.o test1_36_mutatee_solo_gcc_64_low.o test1_37_mutatee_solo_gcc_64_low.o test1_38_mutatee_solo_gcc_64_low.o test1_39_mutatee_solo_gcc_64_low.o test2_5_mutatee_solo_gcc_64_low.o test2_7_mutatee_solo_gcc_64_low.o test2_9_mutatee_solo_gcc_64_low.o test2_11_mutatee_solo_gcc_64_low.o test2_12_mutatee_solo_gcc_64_low.o test2_13_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
-dyninst_group_test.mutatee_solo_gcc_64_max: dyninst_group_test_group_gcc_64_max.o test1_1_mutatee_solo_gcc_64_max.o test1_2_mutatee_solo_gcc_64_max.o test1_3_mutatee_solo_gcc_64_max.o test1_4_mutatee_solo_gcc_64_max.o test1_5_mutatee_solo_gcc_64_max.o test1_6_mutatee_solo_gcc_64_max.o test1_7_mutatee_solo_gcc_64_max.o test1_8_mutatee_solo_gcc_64_max.o test1_9_mutatee_solo_gcc_64_max.o test1_10_mutatee_solo_gcc_64_max.o test1_11_mutatee_solo_gcc_64_max.o test1_13_mutatee_solo_gcc_64_max.o test1_16_mutatee_solo_gcc_64_max.o test1_17_mutatee_solo_gcc_64_max.o test1_18_mutatee_solo_gcc_64_max.o test1_20_mutatee_solo_gcc_64_max.o test1_21_mutatee_solo_gcc_64_max.o test1_22_mutatee_solo_gcc_64_max.o test1_23_mutatee_solo_gcc_64_max.o test1_24_mutatee_solo_gcc_64_max.o test1_25_mutatee_solo_gcc_64_max.o test1_26_mutatee_solo_gcc_64_max.o test1_27_mutatee_solo_gcc_64_max.o test1_28_mutatee_solo_gcc_64_max.o test1_30_mutatee_solo_gcc_64_max.o test1_31_mutatee_solo_gcc_64_max.o test1_32_mutatee_solo_gcc_64_max.o test1_33_mutatee_solo_gcc_64_max.o test1_34_mutatee_solo_gcc_64_max.o test1_36_mutatee_solo_gcc_64_max.o test1_37_mutatee_solo_gcc_64_max.o test1_38_mutatee_solo_gcc_64_max.o test1_39_mutatee_solo_gcc_64_max.o test2_5_mutatee_solo_gcc_64_max.o test2_7_mutatee_solo_gcc_64_max.o test2_9_mutatee_solo_gcc_64_max.o test2_10_mutatee_solo_gcc_64_max.o test2_11_mutatee_solo_gcc_64_max.o test2_12_mutatee_solo_gcc_64_max.o test2_13_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
+dyninst_group_test.mutatee_solo_gcc_64_max: dyninst_group_test_group_gcc_64_max.o test1_1_mutatee_solo_gcc_64_max.o test1_2_mutatee_solo_gcc_64_max.o test1_3_mutatee_solo_gcc_64_max.o test1_4_mutatee_solo_gcc_64_max.o test1_5_mutatee_solo_gcc_64_max.o test1_6_mutatee_solo_gcc_64_max.o test1_7_mutatee_solo_gcc_64_max.o test1_8_mutatee_solo_gcc_64_max.o test1_9_mutatee_solo_gcc_64_max.o test1_10_mutatee_solo_gcc_64_max.o test1_11_mutatee_solo_gcc_64_max.o test1_13_mutatee_solo_gcc_64_max.o test1_16_mutatee_solo_gcc_64_max.o test1_17_mutatee_solo_gcc_64_max.o test1_18_mutatee_solo_gcc_64_max.o test1_20_mutatee_solo_gcc_64_max.o test1_21_mutatee_solo_gcc_64_max.o test1_22_mutatee_solo_gcc_64_max.o test1_23_mutatee_solo_gcc_64_max.o test1_24_mutatee_solo_gcc_64_max.o test1_25_mutatee_solo_gcc_64_max.o test1_26_mutatee_solo_gcc_64_max.o test1_27_mutatee_solo_gcc_64_max.o test1_28_mutatee_solo_gcc_64_max.o test1_30_mutatee_solo_gcc_64_max.o test1_31_mutatee_solo_gcc_64_max.o test1_32_mutatee_solo_gcc_64_max.o test1_33_mutatee_solo_gcc_64_max.o test1_34_mutatee_solo_gcc_64_max.o test1_36_mutatee_solo_gcc_64_max.o test1_37_mutatee_solo_gcc_64_max.o test1_38_mutatee_solo_gcc_64_max.o test1_39_mutatee_solo_gcc_64_max.o test2_5_mutatee_solo_gcc_64_max.o test2_7_mutatee_solo_gcc_64_max.o test2_9_mutatee_solo_gcc_64_max.o test2_11_mutatee_solo_gcc_64_max.o test2_12_mutatee_solo_gcc_64_max.o test2_13_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
-dyninst_group_test.mutatee_solo_gcc_64_none: dyninst_group_test_group_gcc_64_none.o test1_1_mutatee_solo_gcc_64_none.o test1_2_mutatee_solo_gcc_64_none.o test1_3_mutatee_solo_gcc_64_none.o test1_4_mutatee_solo_gcc_64_none.o test1_5_mutatee_solo_gcc_64_none.o test1_6_mutatee_solo_gcc_64_none.o test1_7_mutatee_solo_gcc_64_none.o test1_8_mutatee_solo_gcc_64_none.o test1_9_mutatee_solo_gcc_64_none.o test1_10_mutatee_solo_gcc_64_none.o test1_11_mutatee_solo_gcc_64_none.o test1_13_mutatee_solo_gcc_64_none.o test1_16_mutatee_solo_gcc_64_none.o test1_17_mutatee_solo_gcc_64_none.o test1_18_mutatee_solo_gcc_64_none.o test1_20_mutatee_solo_gcc_64_none.o test1_21_mutatee_solo_gcc_64_none.o test1_22_mutatee_solo_gcc_64_none.o test1_23_mutatee_solo_gcc_64_none.o test1_24_mutatee_solo_gcc_64_none.o test1_25_mutatee_solo_gcc_64_none.o test1_26_mutatee_solo_gcc_64_none.o test1_27_mutatee_solo_gcc_64_none.o test1_28_mutatee_solo_gcc_64_none.o test1_30_mutatee_solo_gcc_64_none.o test1_31_mutatee_solo_gcc_64_none.o test1_32_mutatee_solo_gcc_64_none.o test1_33_mutatee_solo_gcc_64_none.o test1_34_mutatee_solo_gcc_64_none.o test1_36_mutatee_solo_gcc_64_none.o test1_37_mutatee_solo_gcc_64_none.o test1_38_mutatee_solo_gcc_64_none.o test1_39_mutatee_solo_gcc_64_none.o test2_5_mutatee_solo_gcc_64_none.o test2_7_mutatee_solo_gcc_64_none.o test2_9_mutatee_solo_gcc_64_none.o test2_10_mutatee_solo_gcc_64_none.o test2_11_mutatee_solo_gcc_64_none.o test2_12_mutatee_solo_gcc_64_none.o test2_13_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
+dyninst_group_test.mutatee_solo_gcc_64_none: dyninst_group_test_group_gcc_64_none.o test1_1_mutatee_solo_gcc_64_none.o test1_2_mutatee_solo_gcc_64_none.o test1_3_mutatee_solo_gcc_64_none.o test1_4_mutatee_solo_gcc_64_none.o test1_5_mutatee_solo_gcc_64_none.o test1_6_mutatee_solo_gcc_64_none.o test1_7_mutatee_solo_gcc_64_none.o test1_8_mutatee_solo_gcc_64_none.o test1_9_mutatee_solo_gcc_64_none.o test1_10_mutatee_solo_gcc_64_none.o test1_11_mutatee_solo_gcc_64_none.o test1_13_mutatee_solo_gcc_64_none.o test1_16_mutatee_solo_gcc_64_none.o test1_17_mutatee_solo_gcc_64_none.o test1_18_mutatee_solo_gcc_64_none.o test1_20_mutatee_solo_gcc_64_none.o test1_21_mutatee_solo_gcc_64_none.o test1_22_mutatee_solo_gcc_64_none.o test1_23_mutatee_solo_gcc_64_none.o test1_24_mutatee_solo_gcc_64_none.o test1_25_mutatee_solo_gcc_64_none.o test1_26_mutatee_solo_gcc_64_none.o test1_27_mutatee_solo_gcc_64_none.o test1_28_mutatee_solo_gcc_64_none.o test1_30_mutatee_solo_gcc_64_none.o test1_31_mutatee_solo_gcc_64_none.o test1_32_mutatee_solo_gcc_64_none.o test1_33_mutatee_solo_gcc_64_none.o test1_34_mutatee_solo_gcc_64_none.o test1_36_mutatee_solo_gcc_64_none.o test1_37_mutatee_solo_gcc_64_none.o test1_38_mutatee_solo_gcc_64_none.o test1_39_mutatee_solo_gcc_64_none.o test2_5_mutatee_solo_gcc_64_none.o test2_7_mutatee_solo_gcc_64_none.o test2_9_mutatee_solo_gcc_64_none.o test2_11_mutatee_solo_gcc_64_none.o test2_12_mutatee_solo_gcc_64_none.o test2_13_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_gcc_64_high: test1_12_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
@@ -2484,9 +2472,9 @@ test2_13_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 #g 64, high, test1_4_mutatee.c
 test1_4_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, high, test2_11_mutatee.c
-test2_11_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, high, test1_10_mutatee.c
+test1_10_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, high, test1_28_mutatee.c
 test1_28_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -2523,9 +2511,6 @@ test1_3_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 #g 64, high, test1_9_mutatee.c
 test1_9_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, high, test1_10_mutatee.c
-test1_10_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, high, test5_6_mutatee.C
 test5_6_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -2547,9 +2532,9 @@ test1_21_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 #g 64, high, test1_31_mutatee.c
 test1_31_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, high, test2_10_mutatee.c
-test2_10_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, high, test2_11_mutatee.c
+test2_11_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, high, test1_13_mutatee.c
 test1_13_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
@@ -2784,9 +2769,9 @@ test2_13_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 #g 64, max, test1_4_mutatee.c
 test1_4_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, max, test2_11_mutatee.c
-test2_11_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, max, test1_10_mutatee.c
+test1_10_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, max, test1_28_mutatee.c
 test1_28_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -2823,9 +2808,6 @@ test1_3_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 #g 64, max, test1_9_mutatee.c
 test1_9_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, max, test1_10_mutatee.c
-test1_10_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, max, test5_6_mutatee.C
 test5_6_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -2847,9 +2829,9 @@ test1_21_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 #g 64, max, test1_31_mutatee.c
 test1_31_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, max, test2_10_mutatee.c
-test2_10_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, max, test2_11_mutatee.c
+test2_11_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, max, test1_13_mutatee.c
 test1_13_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
@@ -3084,9 +3066,9 @@ test2_13_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 #g 64, none, test1_4_mutatee.c
 test1_4_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, none, test2_11_mutatee.c
-test2_11_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, none, test1_10_mutatee.c
+test1_10_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, none, test1_28_mutatee.c
 test1_28_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -3123,9 +3105,6 @@ test1_3_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 #g 64, none, test1_9_mutatee.c
 test1_9_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, none, test1_10_mutatee.c
-test1_10_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, none, test5_6_mutatee.C
 test5_6_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -3147,9 +3126,9 @@ test1_21_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 #g 64, none, test1_31_mutatee.c
 test1_31_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, none, test2_10_mutatee.c
-test2_10_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, none, test2_11_mutatee.c
+test2_11_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, none, test1_13_mutatee.c
 test1_13_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
@@ -3384,9 +3363,9 @@ test2_13_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 #g 64, low, test1_4_mutatee.c
 test1_4_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -o $@ $<
-#g 64, low, test2_11_mutatee.c
-test2_11_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
+#g 64, low, test1_10_mutatee.c
+test1_10_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, low, test1_28_mutatee.c
 test1_28_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -o $@ $<
@@ -3423,9 +3402,6 @@ test1_3_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 #g 64, low, test1_9_mutatee.c
 test1_9_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -o $@ $<
-#g 64, low, test1_10_mutatee.c
-test1_10_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -o $@ $<
 #g 64, low, test5_6_mutatee.C
 test5_6_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.C
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -o $@ $<
@@ -3447,9 +3423,9 @@ test1_21_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 #g 64, low, test1_31_mutatee.c
 test1_31_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -o $@ $<
-#g 64, low, test2_10_mutatee.c
-test2_10_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
-	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -o $@ $<
+#g 64, low, test2_11_mutatee.c
+test2_11_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
+	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -o $@ $<
 #g 64, low, test1_13_mutatee.c
 test1_13_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c
 	$(M_gnu_cc) $(dyninst_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/dyninst -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -o $@ $<
