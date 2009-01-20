@@ -8,6 +8,7 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 
+using namespace Dyninst;
 #ifndef FILE__
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
