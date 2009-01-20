@@ -41,6 +41,10 @@
 #include "annotations.h"
 #include "Symbol.h"
 
+#include "Aggregate.h"
+#include "Function.h"
+#include "Variable.h"
+
 #include "symtabAPI/src/Object.h"
 
 #include <iostream>
@@ -50,6 +54,92 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 string Symbol::emptyString("");
+
+
+//#ifdef BINEDIT_DEBUG
+bool ____sym_hdr_printed = false;
+void print_symbols( std::vector< Symbol *>& allsymbols ) {
+    FILE* fd = stdout;
+    Symbol *sym;
+    std::string modname;
+    if (!____sym_hdr_printed) {
+        fprintf(fd, "%-20s  %-15s  %-10s  %5s  SEC  TYP  LN  VIS  INFO\n", 
+                "SYMBOL", "MODULE", "ADDR", "SIZE");
+        ____sym_hdr_printed = true;
+    }
+    for (unsigned i=0; i<allsymbols.size(); i++) {
+        sym = allsymbols[i];
+        modname = sym->getModuleName();
+        //if (sym->getName() == "__gmon_start__") {
+        //if (modname == "libspecial.so" || modname == "libprofile.so") {
+        //if (sym->getLinkage() == Symbol::SL_WEAK) {
+        //if (sym->isInDynSymtab()) {
+        if (1) {
+            fprintf(fd, "%-20s  %-15s  0x%08x  %5u  %3u", 
+                sym->getName().substr(0,20).c_str(), 
+                //modname.size() > 15 ? modname.substr(modname.size()-15,15).c_str() : modname.c_str(),
+                "",
+                (unsigned)sym->getAddr(),
+                (unsigned)sym->getSize(),
+                sym->getSec() ? sym->getSec()->getRegionNumber() : 0
+                );
+            switch (sym->getType()) {
+                case Symbol::ST_UNKNOWN:  fprintf(fd, "  ???"); break;
+                case Symbol::ST_FUNCTION: fprintf(fd, "  FUN"); break;
+                case Symbol::ST_OBJECT:   fprintf(fd, "  OBJ"); break;
+                case Symbol::ST_MODULE:   fprintf(fd, "  MOD"); break;
+                case Symbol::ST_SECTION:  fprintf(fd, "  SEC"); break;
+                case Symbol::ST_NOTYPE:   fprintf(fd, "   - "); break;
+            }
+            switch (sym->getLinkage()) {
+                case Symbol::SL_UNKNOWN: fprintf(fd, "  ??"); break;
+                case Symbol::SL_GLOBAL:  fprintf(fd, "  GL"); break;
+                case Symbol::SL_LOCAL:   fprintf(fd, "  LO"); break;
+                case Symbol::SL_WEAK:    fprintf(fd, "  WK"); break;
+            }
+            switch (sym->getVisibility()) {
+                case Symbol::SV_UNKNOWN:   fprintf(fd, "  ???"); break;
+                case Symbol::SV_DEFAULT:   fprintf(fd, "   - "); break;
+                case Symbol::SV_INTERNAL:  fprintf(fd, "  INT"); break;
+                case Symbol::SV_HIDDEN:    fprintf(fd, "  HID"); break;
+                case Symbol::SV_PROTECTED: fprintf(fd, "  PRO"); break;
+            }
+            fprintf(fd, " ");
+            if (sym->isInSymtab())
+                fprintf(fd, " STA");
+            if (sym->isInDynSymtab())
+                fprintf(fd, " DYN");
+            if (sym->isAbsolute())
+                fprintf(fd, " ABS");
+            std::string fileName;
+            std::vector<std::string> *vers;
+            if (sym->getVersionFileName(fileName))
+                fprintf(fd, "  [%s]", fileName.c_str());
+            if (sym->getVersions(vers)) {
+                fprintf(fd, " {");
+                for (unsigned j=0; j < vers->size(); j++) {
+                    if (j > 0)
+                        fprintf(fd, ", ");
+                    fprintf(fd, "%s", (*vers)[j].c_str());
+                }
+                fprintf(fd, "}");
+            }
+            fprintf(fd,"\n");
+        }
+    }
+}
+void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols) {
+    dyn_hash_map< std::string, std::vector< Symbol *> >::iterator siter = symbols->begin();
+    int total_syms = 0;
+    while (siter != symbols->end()) {
+        print_symbols(siter->second);
+        total_syms += siter->second.size();
+        siter++;
+    }
+    printf("%d total symbol(s)\n", total_syms);
+}
+//#endif
+
 
 const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)
 {
@@ -213,12 +303,11 @@ SYMTAB_EXPORT Symbol::Symbol(const Symbol& s) :
    Serializable(),
    AnnotatableSparse(),
    module_(s.module_), 
-   type_(s.type_), linkage_(s.linkage_),
+   type_(s.type_), linkage_(s.linkage_), visibility_(s.visibility_),
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
-   function_(s.function_),
-   variable_(s.variable_),
+   aggregate_(s.aggregate_),
    mangledName_(s.mangledName_), 
    prettyName_(s.prettyName_), 
    typedName_(s.typedName_), 
@@ -341,8 +430,7 @@ SYMTAB_EXPORT Symbol& Symbol::operator=(const Symbol& s)
    isInDynsymtab_ = s.isInDynsymtab_;
    isInSymtab_ = s.isInSymtab_;
    isAbsolute_ = s.isAbsolute_;
-   function_ = s.function_;
-   variable_ = s.variable_;
+   aggregate_ = s.aggregate_;
    tag_     = s.tag_;
    mangledName_ = s.mangledName_;
    prettyName_ = s.prettyName_;
@@ -500,6 +588,11 @@ SYMTAB_EXPORT Symbol::SymbolLinkage Symbol::getLinkage() const
     return linkage_;
 }
 
+SYMTAB_EXPORT Symbol::SymbolVisibility Symbol::getVisibility() const 
+{
+    return visibility_;
+}
+
 SYMTAB_EXPORT Offset Symbol::getAddr() const 
 {
     return addr_;
@@ -527,34 +620,34 @@ SYMTAB_EXPORT bool Symbol::isAbsolute() const
 
 SYMTAB_EXPORT bool Symbol::isFunction() const
 {
-    return (function_ != NULL);
+    return (getFunction() != NULL);
 }
 
 SYMTAB_EXPORT bool Symbol::setFunction(Function *func)
 {
-    function_ = func;
+    aggregate_ = func;
     return true;
 }
 
 SYMTAB_EXPORT Function * Symbol::getFunction() const
 {
-    return function_;
+    return dynamic_cast<Function *>(aggregate_);
 }
 
 SYMTAB_EXPORT bool Symbol::isVariable() const 
 {
-    return variable_ != NULL;
+    return (getVariable() != NULL);
 }
 
 SYMTAB_EXPORT bool Symbol::setVariable(Variable *var) 
 {
-    variable_ = var;
+    aggregate_ = var;
     return true;
 }
 
 SYMTAB_EXPORT Variable * Symbol::getVariable() const
 {
-    return variable_;
+    return dynamic_cast<Variable *>(aggregate_);
 }
 
 SYMTAB_EXPORT unsigned Symbol::getSize() const 
@@ -625,8 +718,7 @@ SYMTAB_EXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
     isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), 
-    function_(NULL),
-    variable_(NULL),
+    aggregate_(NULL),
     tag_(TAG_UNKNOWN),
     framePtrRegNum_(-1), retType_(NULL), moduleName_("")
 {
@@ -635,29 +727,31 @@ SYMTAB_EXPORT Symbol::Symbol()
 }
 
 SYMTAB_EXPORT Symbol::Symbol(const string iname, const string imodule,
-    SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
+    SymbolType itype, SymbolLinkage ilinkage, SymbolVisibility ivisibility, Offset iaddr,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
-    : type_(itype),
-    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
+    : type_(itype), linkage_(ilinkage), visibility_(ivisibility),
+    addr_(iaddr), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
         module_ = NULL;
     	moduleName_ = imodule;
         mangledName_ = iname;
+        aggregate_ = NULL;
 }
 
 SYMTAB_EXPORT Symbol::Symbol(const string iname, Module *mod,
-    SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
+    SymbolType itype, SymbolLinkage ilinkage, SymbolVisibility ivisibility, Offset iaddr,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
-    : module_(mod), type_(itype),
-    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
+    : module_(mod), type_(itype), linkage_(ilinkage), visibility_(ivisibility),
+    addr_(iaddr), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
     mangledName_ = iname;
+    aggregate_ = NULL;
 }
 
 
@@ -674,6 +768,8 @@ SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
     type_ = sType;
     if (module_->exec())
         module_->exec()->changeType(this, oldType);
+
+    // TODO: update aggregate with information
     
     return true;
 }
@@ -797,6 +893,7 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, type_, symbolType2Str, "type");
       gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
       gtranslate(s, tag_, symbolTag2Str, "tag");
+      gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
       gtranslate(s, addr_, "addr");
       gtranslate(s, size_, "size");
       gtranslate(s, isInDynsymtab_, "isInDynsymtab");
@@ -831,22 +928,23 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
-   return os << "{"
-      << " mangled=" << s.getMangledName()
-      << " pretty="  << s.getPrettyName()
-      << " module="  << s.module_
-      //<< " type="    << (unsigned) s.type_
-      << " type="    << s.symbolType2Str(s.type_)
-      //<< " linkage=" << (unsigned) s.linkage_
-      << " linkage=" << s.symbolLinkage2Str(s.linkage_)
-      << " addr=0x"    << hex << s.addr_ << dec
-      //<< " tag="     << (unsigned) s.tag_
-      << " tag="     << s.symbolTag2Str(s.tag_)
-      << " isAbs="   << s.isAbsolute_
-      << (s.function_!=NULL ? " [FUNC]" : "")
-      << (s.isInSymtab_ ? " [STA]" : "")
-      << (s.isInDynsymtab_ ? " [DYN]" : "")
-      << " }" << endl;
+    return os << "{"
+              << " mangled=" << s.getMangledName()
+              << " pretty="  << s.getPrettyName()
+              << " module="  << s.module_
+        //<< " type="    << (unsigned) s.type_
+              << " type="    << s.symbolType2Str(s.type_)
+        //<< " linkage=" << (unsigned) s.linkage_
+              << " linkage=" << s.symbolLinkage2Str(s.linkage_)
+              << " addr=0x"    << hex << s.addr_ << dec
+        //<< " tag="     << (unsigned) s.tag_
+              << " tag="     << s.symbolTag2Str(s.tag_)
+              << " isAbs="   << s.isAbsolute_
+              << (s.isFunction() ? " [FUNC]" : "")
+              << (s.isVariable() ? " [VAR]" : "")
+              << (s.isInSymtab_ ? " [STA]" : "")
+              << (s.isInDynsymtab_ ? " [DYN]" : "")
+              << " }" << endl;
 }
 
 #ifdef DEBUG 

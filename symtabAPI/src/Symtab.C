@@ -49,25 +49,16 @@
 
 #include "annotations.h"
 
-#include "symtabAPI/src/Object.h"
+#include "debug.h"
 
-#if defined (os_linux) | defined (os_aix)
-//  gcc is complaining about the constness of the library-provided
-//  typecast (XMLCHAR_CAST) (which is defined in xmlstring.h), so we make our own
-#define XMLCHAR_CAST (const xmlChar *)
-#else
-#define XMLCHAR_CAST BAD_CAST
-#endif
+#include "symtabAPI/src/Object.h"
 
 #if !defined(os_windows)
 #include <dlfcn.h>
 #else
 #include <windows.h>
-#include <libxml/xmlversion.h>
-#undef LIBXML_ICONV_ENABLED
 #endif
 
-#include <libxml/xmlwriter.h>
 #include <iomanip>
 #include <stdarg.h>
 
@@ -78,15 +69,11 @@ using namespace std;
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
 
-extern void print_symbols( std::vector< Symbol *>& allsymbols );
-extern void print_sym_map( dyn_hash_map < string, std::vector < Symbol* > > & symbols_ );
- 
 void pd_log_perror(const char *msg)
 {
-   errMsg = msg;
+   errMsg = std::string(msg);
 };
 
-int symtab_printf(const char *format, ...);
 
 SymtabError serr;
 
@@ -336,14 +323,15 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    mfForDebugInfo(mf_),
    obj_private(NULL)
 {   
-
+    init_debug_symtabAPI();
 }   
 
 
 SYMTAB_EXPORT Symtab::Symtab() :
    obj_private(NULL)
 {
-  symtab_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
+    init_debug_symtabAPI();
+    create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
     defaultNamespacePrefix = "";
 }
 
@@ -530,11 +518,6 @@ bool Symtab::buildDemangledName( const std::string &mangled,
  * we will be rewriting these symbols and so we need our own
  * copy. 
  *
- * We also use this opportunity to ignore certain symbols. This includes:
- *
- * 1) Symbols starting with ".", as they are likely labels and so don't
- *    represent a "real" symbol. TODO: create a "label" type?
- * 
  * TODO: delete the linkedFile once we're done?
  */
 
@@ -545,30 +528,33 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
 
         // If a symbol starts with "." we want to skip it. These indicate labels in the
         // code. 
+        
+        // removed 1/09: this should be done in Dyninst, not Symtab
+#if 0
         if (sym->getMangledName()[0] == '.') 
             continue;
+#endif
 
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
         
-        if (sym->getSec() == NULL) {
-            undefDynSyms[sym->getMangledName()] = sym;
+        if (sym->getSec() == NULL && !sym->isAbsolute()) {
+            undefDynSyms[sym->getMangledName()].push_back(sym);
             continue;
         }
 
         // Check whether this symbol has a valid offset. If they do not we have a
         // consistency issue. This should be a null check.
 
-        /*
-          // Symbols can have an offset of 0 if they don't refer to things within a file.
+        // Symbols can have an offset of 0 if they don't refer to things within a file.
+#if 0
         if (!isValidOffset(sym->getAddr())) {
             fprintf(stderr, "Symbol %s has invalid offset 0x%lx\n", sym->getName().c_str(), sym->getAddr());
             fprintf(stderr, "... in file %s\n", name().c_str());
             return false;
         }
-        */
-
+#endif
 
         raw_syms.push_back(sym);
     }
@@ -902,9 +888,12 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     Module *ret = new Module();
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
-    if (findModuleByName(ret, name)) {
+
+    if (findModuleByName(ret, name)) 
+    {
         return(ret);
     }
+
     delete ret;
 
     //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
@@ -914,13 +903,28 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     fullNm = name;
     fileNm = extract_pathname_tail(name);
 
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
+     // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
+
     ret = new Module(lang, addr, fullNm, this);
+    assert(ret);
+
+    if (modsByFileName.end() != modsByFileName.find(ret->fileName()))
+    {
+       fprintf(stderr, "%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
+             FILE__, __LINE__, ret->fileName().c_str());
+    }
+
+    if (modsByFullName.end() != modsByFullName.find(ret->fullName()))
+    {
+       fprintf(stderr, "%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
+             FILE__, __LINE__, ret->fullName().c_str());
+    }
+
     modsByFileName[ret->fileName()] = ret;
     modsByFullName[ret->fullName()] = ret;
     _mods.push_back(ret);
     
-    return(ret);
+    return (ret);
 }
 
 Symtab::Symtab(std::string filename,bool &err) :
@@ -933,30 +937,36 @@ Symtab::Symtab(std::string filename,bool &err) :
    type_Error(NULL), 
    type_Untyped(NULL)
 {
+    init_debug_symtabAPI();
    // Initialize error parameter
    err = false;
    
-   symtab_printf("%s[%d]: created symtab for %s\n", FILE__, __LINE__, filename.c_str());
+   create_printf("%s[%d]: created symtab for %s\n", FILE__, __LINE__, filename.c_str());
+
 #if defined (os_windows)
    extern void fixup_filename(std::string &);
    fixup_filename(filename);
 #endif
+
    //  createMappedFile handles reference counting
    mf = MappedFile::createMappedFile(filename);
    if (!mf) {
-      symtab_printf("%s[%d]: WARNING: creating symtab for %s, " 
+      create_printf("%s[%d]: WARNING: creating symtab for %s, " 
                     "createMappedFile() failed\n", FILE__, __LINE__, 
                     filename.c_str());
       err = true;
       return;
    }
+
    obj_private = new Object(mf, mfForDebugInfo, pd_log_perror, true);
-   if(!extractInfo(obj_private))
+
+   if (!extractInfo(obj_private))
    {
-      symtab_printf("%s[%d]: WARNING: creating symtab for %s, extractInfo() " 
+      create_printf("%s[%d]: WARNING: creating symtab for %s, extractInfo() " 
                     "failed\n", FILE__, __LINE__, filename.c_str());
       err = true;
    }
+
    defaultNamespacePrefix = "";
 }
 
@@ -974,24 +984,28 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    // Initialize error parameter
    err = false;
   
-   symtab_printf("%s[%d]: created symtab for memory image at addr %u\n", 
+   create_printf("%s[%d]: created symtab for memory image at addr %u\n", 
                  FILE__, __LINE__, mem_image);
+
    //  createMappedFile handles reference counting
    mf = MappedFile::createMappedFile(mem_image, image_size);
    if (!mf) {
-      symtab_printf("%s[%d]: WARNING: creating symtab for memory image at " 
+      create_printf("%s[%d]: WARNING: creating symtab for memory image at " 
                     "addr %u, createMappedFile() failed\n", FILE__, __LINE__, 
                     mem_image);
       err = true;
       return;
    }
+
    obj_private = new Object(mf, mfForDebugInfo, pd_log_perror, true);
-   if(!extractInfo(obj_private))
+
+   if (!extractInfo(obj_private))
    {
-      symtab_printf("%s[%d]: WARNING: creating symtab for memory image at addr" 
+      create_printf("%s[%d]: WARNING: creating symtab for memory image at addr" 
                     "%u, extractInfo() failed\n", FILE__, __LINE__, mem_image);
       err = true;
    }
+
    defaultNamespacePrefix = "";
 }
 
@@ -1053,6 +1067,10 @@ bool sort_reg_by_addr(const Region* a, const Region* b)
    return a->getRegionAddr() < b->getRegionAddr();
 }
 
+
+extern void print_symbols( std::vector< Symbol *>& allsymbols );
+extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
+
 bool Symtab::extractInfo(Object *linkedFile)
 {
 #if defined(TIMED_PARSE)
@@ -1068,7 +1086,8 @@ bool Symtab::extractInfo(Object *linkedFile)
     imageLen_ = linkedFile->code_len();
     dataLen_ = linkedFile->data_len();
     
-    if (0 == imageLen_ || 0 == linkedFile->code_ptr()) {
+    if (0 == imageLen_ || 0 == linkedFile->code_ptr()) 
+    {
         // for AIX, code_ptr()==NULL is normal behavior
 #if !defined(os_aix)
        if (0 == linkedFile->code_ptr()) {
@@ -1097,21 +1116,31 @@ bool Symtab::extractInfo(Object *linkedFile)
     hasRel_ = false;
     hasRela_ = false;
     regions_ = linkedFile->getAllRegions();
-    for(unsigned index=0;index<regions_.size();index++){
-        if ( regions_[index]->isLoadable() ) {
-            if( (regions_[index]->getRegionPermissions() == Region::RP_RX) || 
-                (regions_[index]->getRegionPermissions() == Region::RP_RWX)) {
-                codeRegions_.push_back(regions_[index]);
-            }
-            else {
+
+    for (unsigned index=0;index<regions_.size();index++)
+    {
+        if ( regions_[index]->isLoadable() ) 
+        {
+           if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
+                 || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
+           {
+              codeRegions_.push_back(regions_[index]);
+           }
+           else 
+           {
                 dataRegions_.push_back(regions_[index]);
             }
         }
+
         regionsByEntryAddr[regions_[index]->getRegionAddr()] = regions_[index];
-        if (regions_[index]->getRegionType() == Region::RT_REL) {
+
+        if (regions_[index]->getRegionType() == Region::RT_REL) 
+        {
             hasRel_ = true;
         }
-        if (regions_[index]->getRegionType() == Region::RT_RELA) {
+
+        if (regions_[index]->getRegionType() == Region::RT_RELA) 
+        {
             hasRela_ = true;
         }
     }
@@ -1129,6 +1158,7 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     if (linkedFile->interpreter_name())
        interpreter_name_ = std::string(linkedFile->interpreter_name());
+
     entry_address_ = linkedFile->getEntryAddress();
     base_address_ = linkedFile->getBaseAddress();
     load_address_ = linkedFile->getLoadAddress();
@@ -1161,18 +1191,39 @@ bool Symtab::extractInfo(Object *linkedFile)
     checkPPC64DescriptorSymbols(linkedFile);
 #endif
 
-    // a vector to hold all created functions until they are properly classified
-    std::vector<Symbol *> raw_funcs;
+    // a vector to hold all created symbols until they are properly classified
+    std::vector<Symbol *> raw_syms;
 
-    if (!extractSymbolsFromFile(linkedFile, raw_funcs)) {
+#ifdef BINEDIT_DEBUG
+    printf("== from linkedFile...\n");
+    print_symbol_map(linkedFile->getAllSymbols());
+#endif
+
+    if (!extractSymbolsFromFile(linkedFile, raw_syms)) 
+    {
         err = false;
         serr = Syms_To_Functions;
         return false;
     }
 
-    sort(raw_funcs.begin(),raw_funcs.end(),symbol_compare);
+#ifdef BINEDIT_DEBUG
+    printf("== in Symtab now...\n");
+    //print_symbols(raw_syms);
+    std::vector<Symbol *> undefsyms;
+    std::map<std::string, std::vector<Symbol *> >::iterator iter;
+    std::vector<Symbol *>::iterator siter;
+    for (iter = undefDynSyms.begin(); iter != undefDynSyms.end(); iter++)
+        for (siter = iter->second.begin(); siter != iter->second.end(); siter++)
+            undefsyms.push_back(*siter);
+    //print_symbols(undefsyms);
+    printf("%d total symbol(s)\n", raw_syms.size() + undefsyms.size());
+#endif
 
-    if (!fixSymModules(raw_funcs)) {
+    // don't sort the symbols--preserve the original ordering
+    //sort(raw_syms.begin(),raw_syms.end(),symbol_compare);
+
+    if (!fixSymModules(raw_syms)) 
+    {
         err = false;
         serr = Syms_To_Functions;
         return false;
@@ -1185,6 +1236,7 @@ bool Symtab::extractInfo(Object *linkedFile)
             
     // get Information on the language each modules is written in
     // (prior to making modules)
+
     dyn_hash_map<std::string, supportedLanguages> mod_langs;
     linkedFile->getModuleLanguageInfo(&mod_langs);
     setModuleLanguages(&mod_langs);
@@ -1192,19 +1244,22 @@ bool Symtab::extractInfo(Object *linkedFile)
     // Be sure that module languages are set before demangling, or
     // we won't get very far.
 
-    if (!demangleSymbols(raw_funcs)) {
+    if (!demangleSymbols(raw_syms)) 
+    {
         err = false;
         serr = Syms_To_Functions;
         return false;
     }
 
-    if (!createIndices(raw_funcs)) {
+    if (!createIndices(raw_syms)) 
+    {
         err = false;
         serr = Syms_To_Functions;
         return false;
     }
 
-    if (!createAggregates()) {
+    if (!createAggregates()) 
+    {
         err = false;
         serr = Syms_To_Functions;
         return false;
@@ -1212,7 +1267,7 @@ bool Symtab::extractInfo(Object *linkedFile)
 	
 #if 0
     // define all of the functions, this also defines all of the modules
-    if (!symbolsToFunctions(linkedFile, &raw_funcs))
+    if (!symbolsToFunctions(linkedFile, &raw_syms))
     {
         fprintf(stderr, "%s[%d] Error converting symbols to functions in file %s\n", 
                 __FILE__, __LINE__, mf->filename().c_str());
@@ -1244,7 +1299,7 @@ Symtab::Symtab(const Symtab& obj) :
    Serializable(),
    AnnotatableSparse()
 {
-  symtab_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
+    create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
     member_name_ = obj.member_name_;
     imageOffset_ = obj.imageOffset_;
@@ -1252,9 +1307,48 @@ Symtab::Symtab(const Symtab& obj) :
     dataOffset_ = obj.dataOffset_;
     dataLen_ = obj.dataLen_;
 
-    isLineInfoValid_ = obj.isLineInfoValid_;
-    isTypeInfoValid_ = obj.isTypeInfoValid_;
+   isLineInfoValid_ = obj.isLineInfoValid_;
+   isTypeInfoValid_ = obj.isTypeInfoValid_;
 
+   is_a_out = obj.is_a_out;
+   main_call_addr_ = obj.main_call_addr_; // address of call to main()
+
+   nativeCompiler = obj.nativeCompiler;
+   defaultNamespacePrefix = obj.defaultNamespacePrefix;
+
+   //sections
+   no_of_sections = obj.no_of_sections;
+   unsigned i;
+
+   for (i=0;i<obj.regions_.size();i++)
+      regions_.push_back(new Region(*(obj.regions_[i])));
+
+   for (i=0;i<regions_.size();i++)
+      regionsByEntryAddr[regions_[i]->getRegionAddr()] = regions_[i];
+
+   // TODO FIXME: copying symbols/Functions/Variables
+
+   for (i=0;i<obj._mods.size();i++)
+   {
+      Module *m = new Module(*(obj._mods[i]));
+      _mods.push_back(m);
+      modsByFileName[m->fileName()] = m;
+      modsByFullName[m->fullName()] = m;
+      fprintf(stderr, "%s[%d]:  copy ctor creating new module %s\n", 
+            FILE__, __LINE__, m->fileName().c_str());
+   }
+
+   for (i=0; i<relocation_table_.size();i++) 
+   {
+      relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
+      //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+      undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
+
+   }
+
+
+
+#if 0
     is_a_out = obj.is_a_out;
     main_call_addr_ = obj.main_call_addr_; // address of call to main()
     
@@ -1281,21 +1375,28 @@ Symtab::Symtab(const Symtab& obj) :
     
     for(i=0; i<relocation_table_.size();i++) {
         relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-        undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+        //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+        undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
     }
     
     for(i=0;i<excpBlocks.size();i++)
         excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
+#endif
 
-    deps_ = obj.deps_;
-    setupTypes();
+   for (i=0;i<excpBlocks.size();i++)
+   {
+      excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
+   }
+
+   deps_ = obj.deps_;
+   setupTypes();
 }
 
 // Address must be in code or data range since some code may end up
 // in the data segment
 bool Symtab::isValidOffset(const Offset where) const
 {
-    return isCode(where) || isData(where);
+   return isCode(where) || isData(where);
 }
 
 /* Performs a binary search on the codeRegions_ vector, which must
@@ -1303,73 +1404,85 @@ bool Symtab::isValidOffset(const Offset where) const
  */
 bool Symtab::isCode(const Offset where)  const
 {
-    if(!codeRegions_.size()) {
-        fprintf(stderr, "%s[%d] No code regions in %s \n",
-                __FILE__,__LINE__,mf->filename().c_str());
-        return false;
-    }
+   if (!codeRegions_.size()) 
+   {
+      fprintf(stderr, "%s[%d] No code regions in %s \n",
+            __FILE__, __LINE__, mf->filename().c_str());
+      return false;
+   }
 
-    // search for "where" in codeRegions_ (code regions must not overlap)
-    int first = 0; 
-    int last = codeRegions_.size() - 1;
-    while (last >= first) {
-        Region *curreg = codeRegions_[(first + last) / 2];
-        if (where >= curreg->getRegionAddr()
+   // search for "where" in codeRegions_ (code regions must not overlap)
+   int first = 0; 
+   int last = codeRegions_.size() - 1;
+
+   while (last >= first) 
+   {
+      Region *curreg = codeRegions_[(first + last) / 2];
+      if (where >= curreg->getRegionAddr()
             && where < (curreg->getRegionAddr()
-                        + curreg->getDiskSize())) {
-            return true;
-        }
-        else if (where < curreg->getRegionAddr()) {
-            last = ((first + last) / 2) - 1;
-        }
-        else if (where >= (curreg->getRegionAddr()
-                           + curreg->getMemSize())) {
-            first = ((first + last) / 2) + 1;
-        }
-        else { // "where" is in the range: 
-               // [memOffset + diskSize , memOffset + memSize)
-               // meaning that it's in an uninitialized data region 
-            return false;
-        }
-    }
+               + curreg->getDiskSize())) 
+      {
+         return true;
+      }
+      else if (where < curreg->getRegionAddr()) 
+      {
+         last = ((first + last) / 2) - 1;
+      }
+      else if (where >= (curreg->getRegionAddr() + curreg->getMemSize()))
+      {
+         first = ((first + last) / 2) + 1;
+      }
+      else 
+      {  // "where" is in the range: 
+         // [memOffset + diskSize , memOffset + memSize)
+         // meaning that it's in an uninitialized data region 
+         return false;
+      }
+   }
 
-    return false;
+   return false;
 }
 
 /* Performs a binary search on the dataRegions_ vector, which must
  * be kept in sorted order */
 bool Symtab::isData(const Offset where)  const
 {
-    if(!dataRegions_.size()) {
-        fprintf(stderr, "%s[%d] No data regions in %s \n",
-                __FILE__,__LINE__,mf->filename().c_str());
-        return false;
-    }
+   if (!dataRegions_.size()) 
+   {
+      fprintf(stderr, "%s[%d] No data regions in %s \n",
+            __FILE__,__LINE__,mf->filename().c_str());
+      return false;
+   }
 
-    int first = 0; 
-    int last = dataRegions_.size() - 1;
-    while (last >= first) {
-        Region *curreg = dataRegions_[(first + last) / 2];
-        if (where >= curreg->getRegionAddr()
-            && where < (curreg->getRegionAddr()
-                        + curreg->getRegionSize())) {
-            return true;
-        }
-        else if (where < curreg->getRegionAddr()) {
-            last = ((first + last) / 2) - 1;
-        }
-        else {
-            first = ((first + last) / 2) + 1;
-        }
-    }
+   int first = 0; 
+   int last = dataRegions_.size() - 1;
 
-    return false;
+   while (last >= first) 
+   {
+      Region *curreg = dataRegions_[(first + last) / 2];
+
+      if (     (where >= curreg->getRegionAddr())
+            && (where < (curreg->getRegionAddr() + curreg->getRegionSize())))
+      {
+         return true;
+      }
+      else if (where < curreg->getRegionAddr()) 
+      {
+         last = ((first + last) / 2) - 1;
+      }
+      else 
+      {
+         first = ((first + last) / 2) + 1;
+      }
+   }
+
+   return false;
 }
 
 bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
 {
-    fbt = relocation_table_;
-    return true;
+   fbt = relocation_table_;
+   return true;
 }
 
 SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
@@ -1382,78 +1495,87 @@ Symtab::~Symtab()
    // Doesn't do anything yet, moved here so we don't mess with symtab.h
    // Only called if we fail to create a process.
    // Or delete the a.out...
-	
-    
-    for (unsigned i = 0; i < regions_.size(); i++) 
-    {
-        delete regions_[i];
-    }
-    regions_.clear();
-    codeRegions_.clear();
-    dataRegions_.clear();
-    regionsByEntryAddr.clear();
-    
-    std::vector<Region *> *user_regions = NULL;
-    getAnnotation(user_regions, UserRegionsAnno);
-    if (user_regions)
-    {
-        for (unsigned i = 0; i < user_regions->size(); ++i) 
-          delete (*user_regions)[i];
-       user_regions->clear();
-    }
 
-    // Symbols are copied from linkedFile, and NOT deleted
-    everyDefinedSymbol.clear();
-    undefDynSyms.clear();
 
-    // TODO make annotation
-    userAddedSymbols.clear();
-    symsByOffset.clear();
-    symsByMangledName.clear();
-    symsByPrettyName.clear();
-    symsByTypedName.clear();
+   for (unsigned i = 0; i < regions_.size(); i++) 
+   {
+      delete regions_[i];
+   }
 
-    for (unsigned i = 0; i < everyFunction.size(); i++) {
-        delete everyFunction[i];
-    }
-    everyFunction.clear();
-    funcsByOffset.clear();
+   regions_.clear();
+   codeRegions_.clear();
+   dataRegions_.clear();
+   regionsByEntryAddr.clear();
 
-    for (unsigned i = 0; i < everyVariable.size(); i++) {
-        delete everyVariable[i];
-    }
-    everyVariable.clear();
-    varsByOffset.clear();
+   std::vector<Region *> *user_regions = NULL;
+   getAnnotation(user_regions, UserRegionsAnno);
 
-    for (unsigned i = 0; i < _mods.size(); i++) {
-        delete _mods[i];
-    }
-    _mods.clear();
-    modsByFileName.clear();
-    modsByFullName.clear();
+   if (user_regions)
+   {
+      for (unsigned i = 0; i < user_regions->size(); ++i) 
+         delete (*user_regions)[i];
+      user_regions->clear();
+   }
 
-    for (unsigned i=0;i<excpBlocks.size();i++)
-        delete excpBlocks[i];
-    symtab_printf("%s[%d]: Symtab::~Symtab removing %p from allSymtabs\n", 
-                  FILE__, __LINE__, this);
-    
-    deps_.clear();
-    
-    for (unsigned i = 0; i < allSymtabs.size(); i++) 
-    {
-        if (allSymtabs[i] == this)
-            allSymtabs.erase(allSymtabs.begin()+i);
-    }
+   // Symbols are copied from linkedFile, and NOT deleted
+   everyDefinedSymbol.clear();
+   undefDynSyms.clear();
 
-    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
-    //if (mf) MappedFile::closeMappedFile(mf);
-    //if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
+   // TODO make annotation
+   userAddedSymbols.clear();
+   symsByOffset.clear();
+   symsByMangledName.clear();
+   symsByPrettyName.clear();
+   symsByTypedName.clear();
+
+   for (unsigned i = 0; i < everyFunction.size(); i++) 
+   {
+      delete everyFunction[i];
+   }
+
+   everyFunction.clear();
+   funcsByOffset.clear();
+
+   for (unsigned i = 0; i < everyVariable.size(); i++) 
+   {
+      delete everyVariable[i];
+   }
+
+   everyVariable.clear();
+   varsByOffset.clear();
+
+   for (unsigned i = 0; i < _mods.size(); i++) 
+   {
+      delete _mods[i];
+   }
+   _mods.clear();
+   modsByFileName.clear();
+   modsByFullName.clear();
+
+   for (unsigned i=0;i<excpBlocks.size();i++)
+      delete excpBlocks[i];
+
+   create_printf("%s[%d]: Symtab::~Symtab removing %p from allSymtabs\n", 
+         FILE__, __LINE__, this);
+
+   deps_.clear();
+
+   for (unsigned i = 0; i < allSymtabs.size(); i++) 
+   {
+      if (allSymtabs[i] == this)
+         allSymtabs.erase(allSymtabs.begin()+i);
+   }
+
+   //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
+   //if (mf) MappedFile::closeMappedFile(mf);
+   //if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
 }	
 
 bool Symtab::exportXML(string file)
 {
 #if defined (cap_serialization)
-   try {
+   try 
+   {
       SerializerXML sb("XMLTranslator", file, sd_serialize, true);
       serialize(&sb, "Symtab");
 #if 0
@@ -1461,7 +1583,9 @@ bool Symtab::exportXML(string file)
       if ( serialize(*this, trans))
          return true;
 #endif
-   } catch (const SerializerError &err) {
+   } 
+   catch (const SerializerError &err) 
+   {
       fprintf(stderr, "%s[%d]: error serializing xml: %s\n", FILE__, __LINE__, err.what());
       return false;
    }
@@ -1496,17 +1620,18 @@ bool Symtab::exportBin(string file)
    }
    catch (const SerializerError &err)
    {
-      if (err.code() == SerializerError::ser_err_disabled) {
+      if (err.code() == SerializerError::ser_err_disabled) 
+      {
          fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
                FILE__, __LINE__, file.c_str());
          return true;
       }
-      else {
+      else 
+      {
          fprintf(stderr, "%s[%d]: %s\n\tfrom %s[%d], code %d\n", FILE__, __LINE__,
                err.what(), err.file().c_str(), err.line(), err.code());
       }
    }
-
 
    fprintf(stderr, "%s[%d]:  error doing binary serialization\n", __FILE__, __LINE__);
    return false;
@@ -1523,7 +1648,8 @@ Symtab *Symtab::importBin(std::string file)
 {
 #if defined (cap_serialization)
    MappedFile *mf= MappedFile::createMappedFile(file);
-   if (!mf) {
+   if (!mf) 
+   {
       fprintf(stderr, "%s[%d]:  failed to map file %s\n", FILE__, __LINE__, file.c_str());
       return NULL;
    }
@@ -1550,11 +1676,13 @@ Symtab *Symtab::importBin(std::string file)
 
    catch (const SerializerError &err)
    {
-      if (err.code() == SerializerError::ser_err_disabled) {
+      if (err.code() == SerializerError::ser_err_disabled) 
+      {
          fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
                FILE__, __LINE__, file.c_str());
          return NULL;
       }
+
       fprintf(stderr, "%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
             err.what(), err.file().c_str(), err.line());
    }
@@ -1581,102 +1709,117 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
    // AIX: it's possible that we're reparsing a file with better information
    // about it. If so, yank the old one out of the allSymtabs std::vector -- replace
    // it, basically.
-   if(filename.find("/proc") == std::string::npos)
+   if ( filename.find("/proc") == std::string::npos)
    {
-      for (unsigned u=0; u<numSymtabs; u++) {
+      for (unsigned u=0; u<numSymtabs; u++) 
+      {
          assert(allSymtabs[u]);
-            if (filename == allSymtabs[u]->file()) {
-                // return it
-                obj = allSymtabs[u];
-                return true;
-            }
-        }   
-    }
+         if (filename == allSymtabs[u]->file()) 
+         {
+            // return it
+            obj = allSymtabs[u];
+            return true;
+         }
+      }   
+   }
 
 #if defined (cap_serialization)
-    obj = importBin(filename);
-    if (!obj) { 
-       fprintf(stderr, "%s[%d]:  importBin failed\n", FILE__, __LINE__);
-    }
-    else {
-       return true;
-    }
+   obj = importBin(filename);
+
+   if (!obj) 
+   {
+      fprintf(stderr, "%s[%d]:  importBin failed\n", FILE__, __LINE__);
+   }
+   else 
+   {
+      return true;
+   }
 #endif
 
-    obj = new Symtab(filename, err);
+   obj = new Symtab(filename, err);
 #if defined(TIMED_PARSE)
-    struct timeval endtime;
-    gettimeofday(&endtime, NULL);
-    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-    unsigned long difftime = lendtime - lstarttime;
-    double dursecs = difftime/(1000 );
-    cout << __FILE__ << ":" << __LINE__ <<": openFile "<< filename<< " took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": openFile "<< filename<< " took "<<dursecs <<" msecs" << endl;
 #endif
 
-    if (!err)
-    {
-        if (filename.find("/proc") == std::string::npos)
-            allSymtabs.push_back(obj);
+   if (!err)
+   {
+      if (filename.find("/proc") == std::string::npos)
+         allSymtabs.push_back(obj);
 
-        obj->setupTypes();	
+      obj->setupTypes();	
 
 #if defined (cap_serialization)
-        fprintf(stderr, "%s[%d]:  doing bin-serialize for %s\n", 
-              FILE__, __LINE__, filename.c_str());
+      fprintf(stderr, "%s[%d]:  doing bin-serialize for %s\n", 
+            FILE__, __LINE__, filename.c_str());
 
-        if (!obj->exportBin(filename))
-        {
-           fprintf(stderr, "%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
-        }
-        else
-           fprintf(stderr, "%s[%d]:  did bin-serialize for %s\n", 
-                 FILE__, __LINE__, filename.c_str());
+      if (!obj->exportBin(filename))
+      {
+         fprintf(stderr, "%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
+      }
+      else
+         fprintf(stderr, "%s[%d]:  did bin-serialize for %s\n", 
+               FILE__, __LINE__, filename.c_str());
 #endif
 
     }
     else
     {
-       symtab_printf("%s[%d]: WARNING: failed to open symtab for %s\n", 
+       create_printf("%s[%d]: WARNING: failed to open symtab for %s\n", 
              FILE__, __LINE__, filename.c_str());
        delete obj;
        obj = NULL;
     }
 
-    // returns true on success (not an error)
-    return !err;
+   // returns true on success (not an error)
+   return !err;
 }
-	
+
 bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::RegionType rType_, bool loadable)
 {
-    Region *sec;
-    unsigned i;
-    if(loadable)
-    {
-        sec = new Region(newSectionInsertPoint, name, vaddr, dataSize, vaddr, dataSize, (char *)data, Region::RP_R, rType_, true);
-        regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
-        for(i = newSectionInsertPoint+1; i < regions_.size(); i++)
-            regions_[i]->setRegionNumber(regions_[i]->getRegionNumber() + 1);
+   Region *sec;
+   unsigned i;
+   if (loadable)
+   {
+      sec = new Region(newSectionInsertPoint, name, vaddr, dataSize, vaddr, 
+            dataSize, (char *)data, Region::RP_R, rType_, true);
 
-        if((sec->getRegionType() == Region::RT_TEXT) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-            codeRegions_.push_back(sec);
-            std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
-        }
+      regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
 
-        if((sec->getRegionType() == Region::RT_DATA) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-            dataRegions_.push_back(sec);
-            std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
-        }
-    }
-    else
-    {
-        sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, (char *)data, Region::RP_R, rType_);
-        regions_.push_back(sec);
-    }
+      for (i = newSectionInsertPoint+1; i < regions_.size(); i++)
+      {
+         regions_[i]->setRegionNumber(regions_[i]->getRegionNumber() + 1);
+      }
 
-    addUserRegion(sec);
-    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-    return true;
+      if (    (sec->getRegionType() == Region::RT_TEXT) 
+            || (sec->getRegionType() == Region::RT_TEXTDATA))
+      {
+         codeRegions_.push_back(sec);
+         std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+      }
+
+      if (    (sec->getRegionType() == Region::RT_DATA) 
+            || (sec->getRegionType() == Region::RT_TEXTDATA))
+      {
+         dataRegions_.push_back(sec);
+         std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
+      }
+   }
+   else
+   {
+      sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, 
+            (char *)data, Region::RP_R, rType_);
+      regions_.push_back(sec);
+   }
+
+   addUserRegion(sec);
+   std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
+   return true;
 }
 
 bool Symtab::addUserRegion(Region *reg)
@@ -1692,6 +1835,7 @@ bool Symtab::addUserRegion(Region *reg)
          return false;
       }
    }
+
    if (!user_regions)
    {
       fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
@@ -1729,10 +1873,10 @@ bool Symtab::addUserType(Type *t)
 
 bool Symtab::addRegion(Region *sec)
 {
-    regions_.push_back(sec);
-    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-    addUserRegion(sec);
-    return true;
+   regions_.push_back(sec);
+   std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
+   addUserRegion(sec);
+   return true;
 }
 
 void Symtab::parseLineInformation()
@@ -1750,13 +1894,18 @@ void Symtab::parseLineInformation()
    {
       Module *mod = NULL;
       if (findModuleByName(mod, iter->first))
+      {
          mod->setLineInfo(&(iter->second));
+      }
       else if (findModuleByName(mod, mf->filename()))
       {
          LineInformation *lineInformation = mod->getLineInformation();
-         if (!lineInformation) {
+         if (!lineInformation) 
+         {
             mod->setLineInfo(&(iter->second));
-         } else {
+         } 
+         else 
+         {
             lineInformation->addLineInfo(&(iter->second));
             mod->setLineInfo(lineInformation);
          }	
@@ -1769,31 +1918,42 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&r
 {
    unsigned int originalSize = ranges.size();
 
-    /* Iteratate over the modules, looking for ranges in each. */
-    for( unsigned int i = 0; i < _mods.size(); i++ ) {
-        LineInformation *lineInformation = _mods[i]->getLineInformation();
-        if(lineInformation)
-	     lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
-     } /* end iteration over modules */
-     if( ranges.size() != originalSize )
-     	return true;
-     return false;
+   /* Iteratate over the modules, looking for ranges in each. */
+
+   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
+   {
+      LineInformation *lineInformation = _mods[i]->getLineInformation();
+
+      if (lineInformation)
+         lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
+
+   } /* end iteration over modules */
+
+   if ( ranges.size() != originalSize )
+      return true;
+
+   return false;
 }
 
 SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
-    unsigned int originalSize = lines.size();
+   unsigned int originalSize = lines.size();
 
-    /* Iteratate over the modules, looking for ranges in each. */
-    for( unsigned int i = 0; i < _mods.size(); i++ ) {
-        LineInformation *lineInformation = _mods[i]->getLineInformation();
-        if(lineInformation)
-	    lineInformation->getSourceLines( addressInRange, lines );
-     } /* end iteration over modules */
-     if( lines.size() != originalSize )
-     	return true;
-     return false;
-	    
+   /* Iteratate over the modules, looking for ranges in each. */
+   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
+   {
+      LineInformation *lineInformation = _mods[i]->getLineInformation();
+
+      if (lineInformation)
+         lineInformation->getSourceLines( addressInRange, lines );
+
+   } /* end iteration over modules */
+
+   if ( lines.size() != originalSize )
+      return true;
+
+   return false;
+
 }
 
 SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
@@ -1801,19 +1961,25 @@ SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
       Offset highExclAddr)
 {
    Module *mod;
-   if(!findModuleByName(mod, lineSource))
+
+   if (!findModuleByName(mod, lineSource))
    {
       std::string fileNm = extract_pathname_tail(lineSource);
-      if(!findModuleByName(mod, fileNm))
+
+      if (!findModuleByName(mod, fileNm))
       {
-         if(!findModuleByName(mod, mf->pathname()))
+         if (!findModuleByName(mod, mf->pathname()))
             return false;
       }    
    }
+
    LineInformation *lineInfo = mod->getLineInformation();
-   if(!lineInfo)
+
+   if (!lineInfo)
       return false;
-   return(lineInfo->addLine(lineSource.c_str(), lineNo, lineOffset, lowInclAddr, highExclAddr));
+
+   return (lineInfo->addLine(lineSource.c_str(), lineNo, lineOffset, 
+            lowInclAddr, highExclAddr));
 }
 
 SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExclusiveAddr,
@@ -1821,16 +1987,22 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
       unsigned int lineOffset)
 {
    Module *mod;
-   if(!findModuleByName(mod, lineSource))
+
+   if (!findModuleByName(mod, lineSource))
    {
       std::string fileNm = extract_pathname_tail(lineSource);
-      if(!findModuleByName(mod, fileNm))
+
+      if (!findModuleByName(mod, fileNm))
          return false;
    }
+
    LineInformation *lineInfo = mod->getLineInformation();
-   if(!lineInfo)
+
+   if (!lineInfo)
       return false;
-   return(lineInfo->addAddressRange(lowInclusiveAddr, highExclusiveAddr, lineSource.c_str(), lineNo, lineOffset));
+
+   return (lineInfo->addAddressRange(lowInclusiveAddr, highExclusiveAddr, 
+            lineSource.c_str(), lineNo, lineOffset));
 }
 
 
@@ -1856,250 +2028,247 @@ bool Symtab::addType(Type *type)
 
 SYMTAB_EXPORT vector<Type *> *Symtab::getAllstdTypes()
 {
-    setupStdTypes();
-    return stdTypes->getAllTypes(); 	
+   setupStdTypes();
+   return stdTypes->getAllTypes(); 	
 }
 
 SYMTAB_EXPORT vector<Type *> *Symtab::getAllbuiltInTypes()
 {
-    setupStdTypes();
-    return builtInTypes->getAllBuiltInTypes();
+   setupStdTypes();
+   return builtInTypes->getAllBuiltInTypes();
 }
 
 SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
 {
-    parseTypesNow();
-    if(!_mods.size())
-    	return false;
-    type = _mods[0]->getModuleTypes()->findType(name);
-    if(type == NULL)
-    	return false;
-    return true;	
+   parseTypesNow();
+
+   if (!_mods.size())
+      return false;
+
+   type = _mods[0]->getModuleTypes()->findType(name);
+
+   if (type == NULL)
+      return false;
+
+   return true;	
 }
 
 SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
 {
-	parseTypesNow();
-    if(!_mods.size())
-    	return false;
-    type = _mods[0]->getModuleTypes()->findVariableType(name);
-    if(type == NULL)
-    	return false;
-    return true;	
+   parseTypesNow();
+
+   if (!_mods.size())
+      return false;
+
+   type = _mods[0]->getModuleTypes()->findVariableType(name);
+
+   if (type == NULL)
+      return false;
+
+   return true;	
 }
 
 SYMTAB_EXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
-    parseTypesNow();
-    unsigned i, origSize = vars.size();
-    for(i=0;i<everyFunction.size();i++)
-        everyFunction[i]->findLocalVariable(vars, name);
-    if(vars.size()>origSize)
-   	return true;
-    return false;	
+   parseTypesNow();
+   unsigned origSize = vars.size();
+
+   for (unsigned i = 0; i < everyFunction.size(); i++)
+   {
+      everyFunction[i]->findLocalVariable(vars, name);
+   }
+
+   if (vars.size()>origSize)
+      return true;
+
+   return false;	
 }
 
 SYMTAB_EXPORT bool Symtab::hasRel() const
 {
-    return hasRel_;
+   return hasRel_;
 }
 
 SYMTAB_EXPORT bool Symtab::hasRela() const
 {
-    return hasRela_;
+   return hasRela_;
 }
 
-bool Symtab::setDefaultNamespacePrefix(string &str){
-    defaultNamespacePrefix = str;
-    return true;
+bool Symtab::setDefaultNamespacePrefix(string &str)
+{
+   defaultNamespacePrefix = str;
+   return true;
 }
 
 SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
-
-    // TODO: rewrite the emitting code to handle a single giant list of symbols.
-    // Until then...
-    std::vector<Symbol *> funcSyms;
-    std::vector<Symbol *> varSyms;
-    std::vector<Symbol *> modSyms;
-    std::vector<Symbol *> otherSyms;
-
+    // Start with all the defined symbols
+    std::vector<Symbol *> allSyms;
     for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
-        Symbol *sym = everyDefinedSymbol[i];
-        switch(sym->getType()) {
-        case Symbol::ST_FUNCTION:
-            funcSyms.push_back(sym);
-            break;
-        case Symbol::ST_OBJECT:
-            varSyms.push_back(sym);
-            break;
-        case Symbol::ST_MODULE:
-            modSyms.push_back(sym);
-        default:
-            otherSyms.push_back(sym);
-        }
+        allSyms.push_back(everyDefinedSymbol[i]);
     }
 
-    // Add the undefined dynamic symbols so that they are added when emitting the binary
-    map<string, Symbol *>::iterator iter = undefDynSyms.begin();
-    while(iter!=undefDynSyms.end()){
-        otherSyms.push_back(iter->second);
-        iter++;
-    }
-    return linkedFile->emitDriver(this, filename, funcSyms, varSyms, modSyms, otherSyms, flag);
+    // Add the undefined dynamic symbols
+    map<string, std::vector<Symbol *> >::iterator iter;
+    std::vector<Symbol *>::iterator siter;
+
+    for (iter = undefDynSyms.begin(); iter != undefDynSyms.end(); iter++)
+        for (siter=iter->second.begin(); siter != iter->second.end(); siter++)
+            allSyms.push_back(*siter);
+
+    // Write the new file
+    return linkedFile->emitDriver(this, filename, allSyms, flag);
 }
 
 SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
-
-    // TODO: rewrite the emitting code to handle a single giant list of symbols.
-    // Until then...
-    std::vector<Symbol *> funcSyms;
-    std::vector<Symbol *> varSyms;
-    std::vector<Symbol *> modSyms;
-    std::vector<Symbol *> otherSyms;
-
-
-    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
-        Symbol *sym = everyDefinedSymbol[i];
-        switch(sym->getType()) {
-        case Symbol::ST_FUNCTION:
-            funcSyms.push_back(sym);
-            break;
-        case Symbol::ST_OBJECT:
-            varSyms.push_back(sym);
-            break;
-        case Symbol::ST_MODULE:
-            modSyms.push_back(sym);
-        default:
-            otherSyms.push_back(sym);
-        }
-    }
-
-    // Add the undefined dynamic symbols so that they are added when emitting the binary
-    map<string, Symbol *>::iterator iter = undefDynSyms.begin();
-    while(iter!=undefDynSyms.end()){
-        otherSyms.push_back(iter->second);
-        iter++;
-    }
-
-    Object *linkedFile = getObject();
-    assert(linkedFile);
-    
-    //fprintf(stderr, "%s[%d]:  about to emit %s\n", FILE__, __LINE__, filename.c_str());
-    
-    bool ret = linkedFile->emitDriver(this, filename, funcSyms, varSyms, modSyms, otherSyms, flag);
-    
-    return ret;
+    return emitSymbols(getObject(), filename, flag);
 }
 
 SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
 {
-    dynLibSubs[oldName] = newName;
+   dynLibSubs[oldName] = newName;
 }
 
 SYMTAB_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
 {
 #ifdef BINEDIT_DEBUG
-    map<std::string, std::string>::iterator iter = dynLibSubs.begin();
-    printf ("substitutions for %s:\n", mf->filename().c_str());
-    while (iter != dynLibSubs.end()) {
-       printf("  \"%s\" => \"%s\"\n", iter->first.c_str(), iter->second.c_str());
-       iter++;
-    }
+   map<std::string, std::string>::iterator iter = dynLibSubs.begin();
+
+   printf ("substitutions for %s:\n", mf->filename().c_str());
+
+   while (iter != dynLibSubs.end()) 
+   {
+      printf("  \"%s\" => \"%s\"\n", iter->first.c_str(), iter->second.c_str());
+      iter++;
+   }
 #endif
-    map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
-    if (loc == dynLibSubs.end())
-        return name;
-    else
-        return loc->second;
+
+   map<std::string, std::string>::iterator loc = dynLibSubs.find(name);
+
+   if (loc == dynLibSubs.end())
+      return name;
+   else
+      return loc->second;
 }
 
 SYMTAB_EXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
    segs = segments_;
-   if (!segments_.size()) return false;
+
+   if (!segments_.size()) 
+      return false;
+
    return true;
 }
 
 SYMTAB_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) const
 {
-    unsigned origSize = mappedRegs.size();
-	for(unsigned i = 0; i < regions_.size(); i++){
-		if(regions_[i]->isLoadable())
-			mappedRegs.push_back(regions_[i]);
-	}
-	if(mappedRegs.size() > origSize)
-		return true;
-	return false;
+   unsigned origSize = mappedRegs.size();
+
+   for (unsigned i = 0; i < regions_.size(); i++)
+   {
+      if (regions_[i]->isLoadable())
+         mappedRegs.push_back(regions_[i]);
+   }
+
+   if (mappedRegs.size() > origSize)
+      return true;
+
+   return false;
 }
 
 SYMTAB_EXPORT bool Symtab::updateCode(void *buffer, unsigned size)
 {
-    Region *sec;
-    if(!findRegion(sec, ".text"))
-    	return false;
-    sec->setPtrToRawData(buffer, size);
-    return true;
+   Region *sec;
+
+   if (!findRegion(sec, ".text"))
+      return false;
+
+   sec->setPtrToRawData(buffer, size);
+
+   return true;
 }
 
 SYMTAB_EXPORT bool Symtab::updateData(void *buffer, unsigned size)
 {
-    Region *sec;
-    if(!findRegion(sec, ".data"))
-    	return false;
-    sec->setPtrToRawData(buffer, size);
-    return true;
+   Region *sec;
+
+   if (!findRegion(sec, ".data"))
+      return false;
+
+   sec->setPtrToRawData(buffer, size);
+
+   return true;
 }
 
 SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size) 
 {
-    // Look through sections until we find a gap with
-    // sufficient space.
-    Offset highWaterMark = 0;
-    Offset secoffset = 0;
-    Offset prevSecoffset = 0;
+   // Look through sections until we find a gap with
+   // sufficient space.
+   Offset highWaterMark = 0;
+   Offset secoffset = 0;
+   Offset prevSecoffset = 0;
 
-    Object *linkedFile = getObject();
-    assert(linkedFile);
+   Object *linkedFile = getObject();
+   assert(linkedFile);
 
-    for (unsigned i = 0; i < regions_.size(); i++) {
-        Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
-        if (regions_[i]->getRegionAddr() == 0) continue;
-        prevSecoffset = secoffset;
-        if ((unsigned)((char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image()) < (unsigned)prevSecoffset)
-            secoffset += regions_[i]->getDiskSize();
-        else {
-            secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
-            secoffset += regions_[i]->getDiskSize();
-        }
-        /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
-	                i, regions_[i]->getSecAddr(), regions_[i]->getSecSize(),
-	                end,size);*/
-        if (end > highWaterMark) {
-            //fprintf(stderr, "Increasing highWaterMark...\n");
-            newSectionInsertPoint = i+1;
-            highWaterMark = end;
-        }
-        if ((i < (regions_.size()-2)) &&
-               ((end + size) < regions_[i+1]->getRegionAddr())) {
-            /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
-                    i, i+1);
-                    fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
-                    end, regions_[i+1]->getSecAddr());
-                    */   
-            newSectionInsertPoint = i+1;
-            highWaterMark = end;
-            break;
-        }
-    }
+   for (unsigned i = 0; i < regions_.size(); i++) 
+   {
+      Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
 
-    //   return highWaterMark;
-    unsigned pgSize = P_getpagesize();
-    Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
-    if(newaddr < highWaterMark)
-        newaddr += pgSize;
-    return newaddr;
+      if (regions_[i]->getRegionAddr() == 0) 
+         continue;
+
+      prevSecoffset = secoffset;
+
+      unsigned region_offset = (unsigned)((char *)(regions_[i]->getPtrToRawData())
+            - linkedFile->mem_image());
+
+      if (region_offset < (unsigned)prevSecoffset)
+      {
+         secoffset += regions_[i]->getDiskSize();
+      }
+      else 
+      {
+         secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
+         secoffset += regions_[i]->getDiskSize();
+      }
+
+      /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
+        i, regions_[i]->getSecAddr(), regions_[i]->getSecSize(),
+        end,size);*/
+
+      if (end > highWaterMark) 
+      {
+         //fprintf(stderr, "Increasing highWaterMark...\n");
+         newSectionInsertPoint = i+1;
+         highWaterMark = end;
+      }
+
+      if (     (i < (regions_.size()-2)) 
+            && ((end + size) < regions_[i+1]->getRegionAddr())) 
+      {
+         /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
+                 i, i+1);
+                 fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
+                 end, regions_[i+1]->getSecAddr());
+          */   
+         newSectionInsertPoint = i+1;
+         highWaterMark = end;
+         break;
+      }
+   }
+
+   //   return highWaterMark;
+
+   unsigned pgSize = P_getpagesize();
+   Offset newaddr = highWaterMark - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
+
+   if (newaddr < highWaterMark)
+      newaddr += pgSize;
+
+   return newaddr;
 }
 
 SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
@@ -2114,7 +2283,7 @@ SYMTAB_EXPORT char *Symtab::mem_image() const
 
 SYMTAB_EXPORT std::string Symtab::file() const 
 {
-  assert(mf);
+   assert(mf);
    return mf->pathname();
 }
 
@@ -2125,37 +2294,44 @@ SYMTAB_EXPORT std::string Symtab::name() const
 
 SYMTAB_EXPORT unsigned Symtab::getNumberofRegions() const 
 {
-    return no_of_sections; 
+   return no_of_sections; 
 }
 
 SYMTAB_EXPORT unsigned Symtab::getNumberofSymbols() const 
 {
-    return no_of_symbols; 
+   return no_of_symbols; 
 }
 
 bool Symtab::setup_module_up_ptrs(SerializerBase *, Symtab *st)
 {
    std::vector<Module *> &mods = st->_mods;
-   for (unsigned int i = 0; i < mods.size(); ++i) {
+
+   for (unsigned int i = 0; i < mods.size(); ++i) 
+   {
       Module *m = mods[i];
       m->exec_ = st;
    }
+
    return true;
 }
 
 bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
 {
    std::vector<Module *> &mods = st->_mods;
-   for (unsigned int i = 0; i < mods.size(); ++i) {
+
+   for (unsigned int i = 0; i < mods.size(); ++i) 
+   {
       Module *m = mods[i];
       m->exec_ = st;
    }
+
    return true;
 }
 
 void Symtab::serialize(SerializerBase *sb, const char *tag)
 {
-   try {
+   try 
+   {
       ifxml_start_element(sb, tag);
       gtranslate(sb, imageOffset_, "imageOffset");
       gtranslate(sb, imageLen_, "imageLen");
@@ -2206,35 +2382,35 @@ SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(const ExceptionBlock &eb) :
    catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) 
 {
 }
- 
 SYMTAB_EXPORT bool ExceptionBlock::hasTry() const
 { 
-    return hasTry_; 
+   return hasTry_; 
 }
 
 SYMTAB_EXPORT Offset ExceptionBlock::tryStart() const
 { 
-    return tryStart_; 
+   return tryStart_; 
 }
 
 SYMTAB_EXPORT Offset ExceptionBlock::tryEnd() const
 { 
-    return tryStart_ + trySize_; 
+   return tryStart_ + trySize_; 
 }
 
 SYMTAB_EXPORT Offset ExceptionBlock::trySize() const
 {
-    return trySize_; 
+   return trySize_; 
 }
 
 SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
 { 
-    return (a >= tryStart_ && a < tryStart_ + trySize_); 
+   return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
 void ExceptionBlock::serialize(SerializerBase *sb, const char *tag)
 {
-   try {
+   try 
+   {
       ifxml_start_element(sb, tag);
       gtranslate(sb, tryStart_, "tryStart");
       gtranslate(sb, trySize_, "trySize");
@@ -2244,36 +2420,64 @@ void ExceptionBlock::serialize(SerializerBase *sb, const char *tag)
    } SER_CATCH("Symtab");
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry()
-   :target_addr_(0), rel_addr_(0), addend_(0), rtype_(Region::RT_REL), name_(""), dynref_(NULL), relType_(0)
+
+SYMTAB_EXPORT relocationEntry::relocationEntry() :
+   target_addr_(0), 
+   rel_addr_(0), 
+   addend_(0), 
+   rtype_(Region::RT_REL), 
+   name_(""), 
+   dynref_(NULL), 
+   relType_(0)
 {
 }   
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref, unsigned long relType)
-   : target_addr_(ta), rel_addr_(ra), addend_(0), rtype_(Region::RT_REL), name_(n), dynref_(dynref), relType_(relType)
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n, 
+      Symbol *dynref, unsigned long relType) :
+   target_addr_(ta), 
+   rel_addr_(ra), 
+   addend_(0), 
+   rtype_(Region::RT_REL), 
+   name_(n), 
+   dynref_(dynref), 
+   relType_(relType)
 {
 }   
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add, std::string n, Symbol *dynref, unsigned long relType)
-   : target_addr_(ta), rel_addr_(ra), addend_(add), rtype_(Region::RT_REL), name_(n), dynref_(dynref), relType_(relType)
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add, 
+      std::string n, Symbol *dynref, unsigned long relType) :
+   target_addr_(ta), 
+   rel_addr_(ra), 
+   addend_(add), 
+   rtype_(Region::RT_REL), 
+   name_(n), 
+   dynref_(dynref), 
+   relType_(relType)
 {
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n, Symbol *dynref, unsigned long relType, Region::RegionType rtype)
-   : target_addr_(0), rel_addr_(ra), addend_(0), rtype_(rtype), name_(n), dynref_(dynref), relType_(relType)
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n, 
+      Symbol *dynref, unsigned long relType, Region::RegionType rtype) :
+   target_addr_(0), 
+   rel_addr_(ra), 
+   addend_(0), 
+   rtype_(rtype), 
+   name_(n), 
+   dynref_(dynref), 
+   relType_(relType)
 {
 }   
 
 SYMTAB_EXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
 {
-    target_addr_ = ra.target_addr_;
-    rel_addr_ = ra.rel_addr_;
-    addend_ = ra.addend_;
-    rtype_ = ra.rtype_;
-    name_ = ra.name_; 
-    dynref_ = ra.dynref_;
-    relType_ = ra.relType_;
-    return *this;
+   target_addr_ = ra.target_addr_;
+   rel_addr_ = ra.rel_addr_;
+   addend_ = ra.addend_;
+   rtype_ = ra.rtype_;
+   name_ = ra.name_; 
+   dynref_ = ra.dynref_;
+   relType_ = ra.relType_;
+   return *this;
 }
 
 SYMTAB_EXPORT void relocationEntry::setAddend(const Offset value) {
@@ -2289,12 +2493,13 @@ SYMTAB_EXPORT void relocationEntry::setRegionType(const Region::RegionType value
 }
 
 SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const {
-    return rtype_;
+	return rtype_;
 }
 
 void relocationEntry::serialize(SerializerBase *sb, const char *tag)
 {
-   try {
+   try 
+   {
       ifxml_start_element(sb, tag);
       gtranslate(sb, target_addr_, "targetAddress");
       gtranslate(sb, rel_addr_, "relocationAddress");
@@ -2305,70 +2510,58 @@ void relocationEntry::serialize(SerializerBase *sb, const char *tag)
    } SER_CATCH("relocationEntry");
 }
 
-int symtab_printf(const char *format, ...)
-{
-   static int dyn_debug_symtab = 0;
-
-   if (dyn_debug_symtab == -1) {
-      return 0;
-   }
-   if (!dyn_debug_symtab) {
-      char *p = getenv("DYNINST_DEBUG_SYMTAB");
-      if (!p)
-         p = getenv("SYMTAB_DEBUG_SYMTAB");
-      if (p) {
-         fprintf(stderr, "Enabling SymtabAPI debug logging\n");
-         dyn_debug_symtab = 1;
-      }
-      else {
-         dyn_debug_symtab = -1;
-         return 0;
-      }
-   }
-
-   if (!format)
-      return -1;
-   
-   va_list va;
-   va_start(va, format);
-   int ret = vfprintf(stderr, format, va);
-   va_end(va);
-   
-   return ret;
-}
 
 const char *Symbol::symbolType2Str(SymbolType t) 
 {
-   switch(t) {
+   switch (t) 
+   {
       CASE_RETURN_STR(ST_UNKNOWN);
       CASE_RETURN_STR(ST_FUNCTION);
       CASE_RETURN_STR(ST_OBJECT);
       CASE_RETURN_STR(ST_MODULE);
+      CASE_RETURN_STR(ST_SECTION);
       CASE_RETURN_STR(ST_NOTYPE);
-   }
+   };
+
    return "invalid symbol type";
 }
 
 const char *Symbol::symbolLinkage2Str(SymbolLinkage t) 
 {
-   switch(t) {
+   switch (t) 
+   {
       CASE_RETURN_STR(SL_UNKNOWN);
       CASE_RETURN_STR(SL_GLOBAL);
       CASE_RETURN_STR(SL_LOCAL);
       CASE_RETURN_STR(SL_WEAK);
-   }
+   };
+
    return "invalid symbol linkage";
 }
 
 const char *Symbol::symbolTag2Str(SymbolTag t) 
 {
-   switch(t) {
+   switch (t) 
+   {
       CASE_RETURN_STR(TAG_UNKNOWN);
       CASE_RETURN_STR(TAG_USER);
       CASE_RETURN_STR(TAG_LIBRARY);
       CASE_RETURN_STR(TAG_INTERNAL);
-   }
+   };
+
    return "invalid symbol tag";
+}
+
+const char *Symbol::symbolVisibility2Str(SymbolVisibility t) 
+{
+   switch(t) {
+      CASE_RETURN_STR(SV_UNKNOWN);
+      CASE_RETURN_STR(SV_DEFAULT);
+      CASE_RETURN_STR(SV_INTERNAL);
+      CASE_RETURN_STR(SV_HIDDEN);
+      CASE_RETURN_STR(SV_PROTECTED);
+   }
+   return "invalid symbol visibility";
 }
 
 
@@ -2394,11 +2587,14 @@ Object *Symtab::getObject()
 
 bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
 {
-   if (file == std::string("no_such_file")) {
-      if (!sb) {
+   if (file == std::string("no_such_file")) 
+   {
+      if (!sb) 
+      {
          fprintf(stderr, "%s[%d]:  really should not happen\n", FILE__, __LINE__);
          return false;
       }
+#if 0
       bool r = false;
       const char *sbb = "no_name_dummy";
       r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_parameters_a >(sbb);
@@ -2413,6 +2609,9 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
       r = init_anno_serialization<Dyninst::SymtabAPI::typeCollection *, module_type_info_a>(sbb);
       if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_type_info\n", FILE__, __LINE__);}
       r = false;
+#else
+      fprintf(stderr, "%s[%d]:  WARN:  disabled serializer init here\n", FILE__, __LINE__);
+#endif
    }
    return true;
 }

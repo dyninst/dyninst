@@ -211,7 +211,7 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    unsigned t, retval;
    unsigned long tid_val = (unsigned long) tid;
 
-   // Return an error if this tid already exists.
+   /* Return an error if this tid already exists.*/
    if( DYNINSTthreadIndexSLOW(tid) != DYNINST_NOT_IN_HASHTABLE ) {
       /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
@@ -244,13 +244,13 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
        goto done;
    }
 
-   //Initialize the dyninst_thread_t object
+   /*Initialize the dyninst_thread_t object*/
    DYNINST_thread_structs[t].tid = tid;
    DYNINST_thread_structs[t].thread_state = THREAD_ACTIVE;
    DYNINST_thread_structs[t].next_free = NONE;
    DYNINST_thread_structs[t].lwp = dyn_lwp_self();
    
-   //Put it in the hash table
+   /*Put it in the hash table*/
    hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;
    while (DYNINST_thread_hash[hash_id] != NONE)
@@ -304,7 +304,7 @@ int DYNINST_free_index(dyntid_t tid)
           {
               rtdebug_printf("%s[%d]:  DESTROY FAILURE:  tid not in hash\n", __FILE__, __LINE__);
               retval = -1;
-              goto done; //tid doesn't exist
+              goto done; /*tid doesn't exist*/
           }
    }
    /* Mark this entry as disabled */

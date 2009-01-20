@@ -370,6 +370,11 @@ class Elf_X_Sym {
                static_cast<unsigned char>(ELF32_ST_TYPE(sym32[i].st_info)) :
                static_cast<unsigned char>(ELF64_ST_TYPE(sym64[i].st_info))); 
     }
+    unsigned char ST_VISIBILITY(int i) const { 
+       return (!is64 ? 
+               static_cast<unsigned char>(ELF32_ST_VISIBILITY(sym32[i].st_other)) :
+               static_cast<unsigned char>(ELF64_ST_VISIBILITY(sym64[i].st_other))); 
+    }
 
     // Write Interface
     void st_name(int i, unsigned long input) { 

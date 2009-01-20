@@ -46,6 +46,7 @@
 #include <map>
 #include <typeinfo>
 #include <string>
+#include <string.h> // for strrchr()
 #include <assert.h>
 #include <stdlib.h>
 #include "dyntypes.h"
@@ -55,24 +56,63 @@ namespace Dyninst
 {
 
 typedef short AnnotationClassID;
+typedef bool (*anno_cmp_func_t)(void *, void*);
 
 // since can't have a single static in a temlated class that spans all template instances.
-COMMON_EXPORT extern int AnnotationClass_nextId;
+//COMMON_EXPORT extern int AnnotationClass_nextId;
+
+extern int newAnnotationClass();
+extern bool void_ptr_cmp_func(void *, void *);
+
+class SerializerBase;
+
+class AnnotationClassBase
+{
+   private:
+      static std::vector<AnnotationClassBase *> *annotation_types;
+      anno_cmp_func_t cmp_func;
+      AnnotationClassID id;
+
+   protected:
+      COMMON_TEMPLATE_EXPORT AnnotationClassBase(anno_cmp_func_t cmp_func_ = NULL);
+
+   public:
+
+      static AnnotationClassBase *findAnnotationClass(unsigned int id);
+
+      anno_cmp_func_t getCmpFunc()
+      {
+         return cmp_func;
+      }
+
+      AnnotationClassID getID() { return id; }
+};
 
 template <class T> 
-class AnnotationClass {
+class AnnotationClass : public AnnotationClassBase {
    public:
+      typedef bool (*ser_func_t) (SerializerBase &, T &);
       // typedef T annotation_realtype;
 
-      AnnotationClass(std::string n) {
-         id = AnnotationClass_nextId++;
-         name = n;
-      }
-      AnnotationClassID getID() { return id; }
+      COMMON_TEMPLATE_EXPORT AnnotationClass(std::string n, 
+            anno_cmp_func_t cmp_func_ = NULL, 
+            bool (*serializer)(SerializerBase &, T&) = NULL) :
+         AnnotationClassBase(cmp_func_),
+         name(n),
+         serialize_func(serializer)
+      {}
+
       std::string &getName() {return name;}
+
+      ser_func_t getSerializeFunc()
+      {
+         return serialize_func;
+      }
+
+
    private:
-      AnnotationClassID id;
       std::string name;
+      ser_func_t serialize_func;
 };
 
 typedef void *anno_list_t;
@@ -245,6 +285,91 @@ class AnnotatableSparse
       }
 
    public:
+      bool operator==(AnnotatableSparse &cmp)
+      {
+         unsigned this_ntypes = annos.size();
+         unsigned cmp_ntypes = cmp.annos.size();
+         unsigned ntypes = (cmp_ntypes > this_ntypes) ? cmp_ntypes : this_ntypes;
+
+         for (unsigned int i = 0; i < ntypes; ++i) 
+         {
+            if ((i >= cmp_ntypes) || (i >= this_ntypes)) 
+            {
+               //  compare is done since at least one set of annotations
+               //  has been exhausted
+               break;
+            }
+
+            annos_by_type_t *this_abt = annos[i];
+            annos_by_type_t *cmp_abt = cmp.annos[i];
+
+            if (!this_abt) 
+            {
+               fprintf(stderr, "%s[%d]:  WEIRD: FIXME\n", FILE__, __LINE__);
+               continue;
+            }
+
+            if (!cmp_abt) 
+            {
+               fprintf(stderr, "%s[%d]:  WEIRD: FIXME\n", FILE__, __LINE__);
+               continue;
+            }
+
+            annos_by_type_t::iterator this_abt_iter = this_abt->find(this);
+            annos_by_type_t::iterator cmp_abt_iter = cmp_abt->find(&cmp);
+
+            //  if one has annotations of this particular type and other other
+            //  doesn't, then we are def. not equal, so fail:
+
+            if (this_abt_iter == this_abt->end())
+            {
+               if (cmp_abt_iter != cmp_abt->end())
+               {
+                  return false;
+               }
+
+               //  both are at end()
+               continue;
+            }
+
+            if (   (cmp_abt_iter == cmp_abt->end())
+                  && (this_abt_iter != this_abt->end()))
+            {
+               return false;
+            }
+
+            AnnotationClassBase *acb = AnnotationClassBase::findAnnotationClass(i);
+
+            if (!acb)
+            {
+               fprintf(stderr, "%s[%d]:  cannot find annotation class for id %d\n", 
+                     FILE__, __LINE__, i);
+               return false;
+            }
+
+            //  both have annotation -- do the compare
+            anno_cmp_func_t cmpfunc = acb->getCmpFunc();
+
+            if (!cmpfunc)
+            {
+               //  even if not explicitly specified, a default pointer-compare
+               //  function should be returned here.
+
+               fprintf(stderr, "%s[%d]:  no cmp func for anno id %d\n", 
+                     FILE__, __LINE__, i);
+               return false;
+            }
+
+            void *arg1 = cmp_abt_iter->second;
+            void *arg2 = this_abt_iter->second;
+
+            bool ret = (*cmpfunc)(arg1, arg2);
+
+            return ret;
+         }
+
+         return true;
+      }
 
       template<class T>
       bool addAnnotation(T *a, AnnotationClass<T> &a_id)

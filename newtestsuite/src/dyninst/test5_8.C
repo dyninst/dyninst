@@ -109,10 +109,10 @@ test_results_t test5_8_Mutator::executeTest() {
   }
   BPatch_function *call8_func = bpfv[0];  
 
-  BPatch_variableExpr *this8 = appImage->findVariable("test8");
+  BPatch_variableExpr *this8 = appImage->findVariable("test5_8_test8");
   if (this8 == NULL) {
     logerror( "**Failed** test #8 (declaration)\n");
-    logerror( "Unable to find variable \"test8\"\n");
+    logerror( "Unable to find variable \"test5_8_test8\"\n");
     return FAILED;
   }
 
@@ -127,7 +127,7 @@ test_results_t test5_8_Mutator::executeTest() {
   // What *exactly* are we testing here?  Just finding variables of various
   // types with different point parameters to findVariable()?
   BPatch_variableExpr *expr8_2=appImage->findVariable("CPP_DEFLT_ARG");
-  BPatch_variableExpr *expr8_3=appImage->findVariable(*(*point8_2)[0], "test8");
+  BPatch_variableExpr *expr8_3=appImage->findVariable(*(*point8_2)[0], "test5_8_test8");
   BPatch_variableExpr *expr8_4=appImage->findVariable(*(*point8_1)[0], "CPP_DEFLT_ARG");
   if (!expr8_2 || !expr8_3 || !expr8_4) {
     logerror( "**Failed** test #8 (delcaration)\n");

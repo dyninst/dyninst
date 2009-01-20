@@ -42,7 +42,7 @@ namespace Dyninst
       return RegisterAST::Ptr(new RegisterAST(regID));
     }
 
-    Operation::Operation(Dyninst::InstructionAPI::ia32_entry* e, Dyninst::InstructionAPI::ia32_prefixes* p)
+    INSTRUCTION_EXPORT Operation::Operation(Dyninst::InstructionAPI::ia32_entry* e, Dyninst::InstructionAPI::ia32_prefixes* p)
     {
       if(!e || !e->name())
       {
@@ -197,7 +197,7 @@ namespace Dyninst
       }      
     }
     
-    Operation::Operation(const Operation& o)
+    INSTRUCTION_EXPORT Operation::Operation(const Operation& o)
     {
       readOperands = o.readOperands;
       writtenOperands = o.writtenOperands;
@@ -208,7 +208,7 @@ namespace Dyninst
       otherEffAddrsWritten = o.otherEffAddrsWritten;
       operationID = o.operationID;
     }
-    Operation Operation::operator=(const Operation& o)
+    INSTRUCTION_EXPORT Operation Operation::operator=(const Operation& o)
     {
       readOperands = o.readOperands;
       writtenOperands = o.writtenOperands;
@@ -220,34 +220,34 @@ namespace Dyninst
       operationID = o.operationID;
       return *this;
     }
-    Operation::Operation()
+    INSTRUCTION_EXPORT Operation::Operation()
     {
       mnemonic = "[INVALID]";
       operationID = e_No_Entry;
     }
     
-    const Operation::bitSet& Operation::read() const
+    INSTRUCTION_EXPORT const Operation::bitSet& Operation::read() const
     {
       return readOperands;
     }
-    const Operation::bitSet& Operation::written() const
+    INSTRUCTION_EXPORT const Operation::bitSet& Operation::written() const
     {
       return writtenOperands;
     }    
-    const Operation::registerSet&  Operation::implicitReads() const
+    INSTRUCTION_EXPORT const Operation::registerSet&  Operation::implicitReads() const
     {
       return otherRead;
     }
-    const Operation::registerSet&  Operation::implicitWrites() const
+    INSTRUCTION_EXPORT const Operation::registerSet&  Operation::implicitWrites() const
     {
 
       return otherWritten;
     }
-    std::string Operation::format() const
+    INSTRUCTION_EXPORT std::string Operation::format() const
     {
       return mnemonic;
     }
-    size_t Operation::numOperands() const
+    INSTRUCTION_EXPORT size_t Operation::numOperands() const
     {
       return readOperands.size();
       

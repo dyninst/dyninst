@@ -11,9 +11,7 @@ NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 OVERRIDE_INSTALL	= true
 
-DEBUG_FLAG = -g
-
-EXTRA_LIBS = libdemangle.so.1
+#DEBUG_FLAG = -g
 
 ifdef COVERAGE
 NO_OPT_FLAG		= true
@@ -75,13 +73,9 @@ endif
 
 include ../../make.library.tmpl
 
-libdemangle.so.1:
-	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -u kind -u varName -u text -lc 
-
 
 #
 # Install rule: install withOUT world-readable permissions
 # 
-install: install_generic libdemangle.so.1
-	-$(CP) libdemangle.so.1 $(DEST)
+install: install_generic
 	-chmod 750 $(DEST)/$(TARGET)

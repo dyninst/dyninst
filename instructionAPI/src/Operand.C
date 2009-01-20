@@ -43,7 +43,7 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
+    INSTRUCTION_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {
       RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
       if(m_isRead && (op_as_reg == NULL))
@@ -66,7 +66,7 @@ namespace Dyninst
       }
       
     }
-    void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
+    INSTRUCTION_EXPORT void Operand::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
     {
       RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
       if(m_isWritten && op_as_reg)
@@ -75,25 +75,25 @@ namespace Dyninst
       }
     }
 
-    bool Operand::isRead(Expression::Ptr candidate) const
+    INSTRUCTION_EXPORT bool Operand::isRead(Expression::Ptr candidate) const
     {
       // The whole expression of a read, any subexpression of a write
       return op_value->isUsed(candidate) && (m_isRead || !(*candidate == *op_value));
     }
-    bool Operand::isWritten(Expression::Ptr candidate) const
+    INSTRUCTION_EXPORT bool Operand::isWritten(Expression::Ptr candidate) const
     {
       // Whole expression of a write
       return m_isWritten && (*op_value == *candidate);
     }    
-    bool Operand::readsMemory() const
+    INSTRUCTION_EXPORT bool Operand::readsMemory() const
     {
       return (boost::dynamic_pointer_cast<Dereference::Ptr>(op_value) && m_isRead);
     }
-    bool Operand::writesMemory() const
+    INSTRUCTION_EXPORT bool Operand::writesMemory() const
     {
       return (boost::dynamic_pointer_cast<Dereference::Ptr>(op_value) && m_isWritten);
     }
-    void Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const
+    INSTRUCTION_EXPORT void Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const
     {
       if(m_isRead && boost::dynamic_pointer_cast<Dereference>(op_value))
       {
@@ -107,7 +107,7 @@ namespace Dyninst
 	}
       }
     }
-    void Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const
+    INSTRUCTION_EXPORT void Operand::addEffectiveWriteAddresses(std::set<Expression::Ptr>& memAccessors) const
     {
       if(m_isWritten && boost::dynamic_pointer_cast<Dereference>(op_value))
       {
@@ -121,12 +121,12 @@ namespace Dyninst
 	}
       }
     }
-    std::string Operand::format() const
+    INSTRUCTION_EXPORT std::string Operand::format() const
     {
       if(!op_value) return "ERROR: format() called on empty operand!";
       return op_value->format();
     }
-    Expression::Ptr Operand::getValue() const
+    INSTRUCTION_EXPORT Expression::Ptr Operand::getValue() const
     {
       return op_value;
     }

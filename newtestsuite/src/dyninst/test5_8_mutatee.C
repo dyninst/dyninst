@@ -21,7 +21,7 @@
  */
 
 static int passed = 0;
-static decl_test test8;
+decl_test test5_8_test8;
 static int inst_called = false;
 
 /* Function definitions follow */
@@ -55,7 +55,7 @@ void decl_test::call_cpp(int test)
 }
 
 int test5_8_mutatee() {
-  test8.func_cpp();
+  test5_8_test8.func_cpp();
   if (1 == passed) {
     // Test passed
     logstatus("Passed test #8 (declaration)\n");

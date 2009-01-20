@@ -30,6 +30,19 @@ namespace Dyninst {
   #endif
 #endif
 
+#if !defined(COMMON_TEMPLATE_EXPORT)
+  #if defined (_MSC_VER)
+    #if defined(COMMON_LIB) || defined(INSTRUCTION_LIB) || \
+		defined(SYMTAB_LIB)	|| defined(BPATCH_LIBRARY)
+       #define COMMON_TEMPLATE_EXPORT __declspec(dllexport)
+    #else
+       #define COMMON_TEMPLATE_EXPORT __declspec(dllimport)   
+    #endif
+  #else
+    #define COMMON_TEMPLATE_EXPORT
+  #endif
+#endif
+
 #if !defined(INSTRUCTION_EXPORT)
   #if defined(_MSC_VER)
     #if defined(INSTRUCTION_LIB)

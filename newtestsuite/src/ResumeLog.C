@@ -223,7 +223,7 @@ void parse_mutateelog(RunGroup *group)
       
       int passed;
       res = fscanf(f, "%d\n", &passed);
-      if (!res)
+      if (res == EOF)
          result = CRASHED;
       else if (passed == 1)
          result = PASSED;

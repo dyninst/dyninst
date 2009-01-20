@@ -963,6 +963,14 @@ void updateSearchPaths(const char *filename) {
 #if !defined(os_windows_test)
    // First, find the directory we reside in
 
+    bool include_cwd_always = false;
+#if defined(os_aix_test)
+    // AIX strips a ./ from the start of argv[0], so
+    // we will execute ./test_driver and see test_driver
+
+    include_cwd_always = true;
+#endif
+
    char *execpath;
    char pathname[PATH_MAX];
    getcwd(pathname, PATH_MAX);
@@ -970,7 +978,7 @@ void updateSearchPaths(const char *filename) {
    if (filename[0] == '/') {
       // If it begins with a slash, it's an absolute path
       execpath = strdup(filename);
-   } else if (strchr(filename,'/')) {
+   } else if (strchr(filename,'/') || include_cwd_always) {
       // If it contains slashes, it's a relative path
       char *filename_copy = strdup(filename);
       
@@ -1290,21 +1298,29 @@ int parseArgs(int argc, char *argv[])
       }
       else if (strcmp(argv[i], "-max") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_max;
       }
       else if (strcmp(argv[i], "-high") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_high;
       }
       else if (strcmp(argv[i], "-low") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_low;
       }
       else if (strcmp(argv[i], "-none") == 0)
       {
+         if (runDefaultOpts)
+            optLevel = 0;
          runDefaultOpts = false;
          optLevel |= opt_none;
       }

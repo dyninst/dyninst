@@ -29,54 +29,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/************************************************************************
- * $Id: Symbol.h,v 1.20 2008/11/03 15:19:24 jaw Exp $
-
-************************************************************************/
-
 #if !defined(_Variable_h_)
 #define _Variable_h_
 
 #include "Annotatable.h"
+#include "Aggregate.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
 
 class Symbol;
 
-class Variable : public AnnotatableSparse 
+class Variable : public Aggregate
 {
    public:
       SYMTAB_EXPORT Variable();
       
       SYMTAB_EXPORT static Variable *createVariable(Symbol *sym);
 
-      SYMTAB_EXPORT Offset   getAddress() const;
-      SYMTAB_EXPORT Module * getModule() const;
-
-      /***** Symbol Collection Management *****/
-      SYMTAB_EXPORT bool addSymbol(Symbol *sym);
-      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
-      SYMTAB_EXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      SYMTAB_EXPORT Symbol * getFirstSymbol() const;
-
-      /***** Symbol naming *****/
-      SYMTAB_EXPORT const vector<std::string> &getAllMangledNames();
-      SYMTAB_EXPORT const vector<std::string> &getAllPrettyNames();
-      SYMTAB_EXPORT const vector<std::string> &getAllTypedNames();
-      SYMTAB_EXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      SYMTAB_EXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      SYMTAB_EXPORT bool addTypedName(std::string name, bool isPrimary = false);
-
    private:
-      Offset        address_;
-      Module*       module_;
-
-      std::vector<Symbol *> symbols_;
-
-      std::vector<std::string> mangledNames_;
-      std::vector<std::string> prettyNames_;
-      std::vector<std::string> typedNames_;
 };
 
 }

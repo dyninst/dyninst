@@ -633,7 +633,7 @@ void typeArray::merge(Type *other) {
    // There are wierd cases where we may define an array with an element
    // that is a forward reference
    
-	   typeArray *otherarray = dynamic_cast<typeArray *>(other);
+    typeArray *otherarray = dynamic_cast<typeArray *>(other);
 
    if ( otherarray == NULL || this->ID_ != otherarray->ID_ || 
         this->arrayElem->getDataClass() != dataUnknownType) {
@@ -891,15 +891,15 @@ typeUnion *typeUnion::create(std::string &name, std::vector<Field *> &flds, Symt
 }
 
 void typeUnion::merge(Type *other) {
-   // Merging is only for forward references
-   assert(!fieldList.size());
-
    typeUnion *otherunion = dynamic_cast<typeUnion *>(other);
 
    if( otherunion == NULL || this->ID_ != otherunion->ID_) {
       //bperr( "Ignoring attempt to merge dissimilar types.\n" );
       return;
    }
+
+   // Merging is only for forward references
+   assert(!fieldList.size());
 
    if (otherunion->name_ != "")
       name_ = std::string(otherunion->name_);

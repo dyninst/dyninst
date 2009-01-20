@@ -38,6 +38,7 @@
 #define _Function_h_
 
 #include "Annotatable.h"
+#include "Aggregate.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -45,30 +46,15 @@ namespace SymtabAPI{
 class Symbol;
 
 
-class Function : public AnnotatableSparse 
+class Function : public Aggregate
 {
    public:
       SYMTAB_EXPORT Function();
 
       SYMTAB_EXPORT static Function *createFunction(Symbol *sym);
 
-      SYMTAB_EXPORT Offset   getAddress() const;
-      SYMTAB_EXPORT Module * getModule() const;
 	  SYMTAB_EXPORT int getSize() const { return getFirstSymbol()->getSize(); };
 
-      /***** Symbol Collection Management *****/
-      SYMTAB_EXPORT bool addSymbol(Symbol *sym);
-      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
-      SYMTAB_EXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      SYMTAB_EXPORT Symbol * getFirstSymbol() const;
-
-      /***** Symbol naming *****/
-      SYMTAB_EXPORT const vector<std::string> &getAllMangledNames();
-      SYMTAB_EXPORT const vector<std::string> &getAllPrettyNames();
-      SYMTAB_EXPORT const vector<std::string> &getAllTypedNames();
-      SYMTAB_EXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      SYMTAB_EXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      SYMTAB_EXPORT bool addTypedName(std::string name, bool isPrimary = false);
 
       /***** Return Type Information *****/
       SYMTAB_EXPORT Type  * getReturnType() const;
@@ -87,16 +73,8 @@ class Function : public AnnotatableSparse
       bool addLocalVar(localVar *);
       bool addParam(localVar *);
    private:
-      Offset        address_;
-      Module*       module_;
       Type          *retType_;
       int           framePtrRegNum_;
-
-      std::vector<Symbol *> symbols_;
-
-      std::vector<std::string> mangledNames_;
-      std::vector<std::string> prettyNames_;
-      std::vector<std::string> typedNames_;
 };
 
 

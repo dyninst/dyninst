@@ -21,7 +21,7 @@
  */
 
 static int passed = 0;
-static namespace_test test5;
+namespace_test test5_5_test5;
 
 static int local_file_var = 3;
 
@@ -44,14 +44,7 @@ void namespace_test::pass() {
 }
 
 int test5_5_mutatee() {
-#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_windows_test)
-
-    logerror("Skipped test #5 (namespace)\n");
-    logerror("\t- not implemented on this platform\n");
-    return 0;
-
-#else
-  test5.func_cpp();
+    test5_5_test5.func_cpp();
   // FIXME Make sure the error reporting works
   // I need to have this guy call test_passes(testname) if the test passes..
   if (1 == passed) {
@@ -62,5 +55,4 @@ int test5_5_mutatee() {
     // Test failed
     return -1;
   }
-#endif
 }

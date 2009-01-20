@@ -41,7 +41,7 @@ class emitElf64{
   public:
     emitElf64(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, void (*)(const char *) = log_msg);
     ~emitElf64();
-    bool checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Symbol *>&variables, vector<Symbol *>&mods, vector<Symbol *>&notypes, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt);
+    bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt);
     bool driver(Symtab *obj, std::string fName);
  
   private:
@@ -110,7 +110,7 @@ class emitElf64{
 
     void (*err_func_)(const char*);
 
-    bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols, bool dynSymFlag = false);
+    bool createElfSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols, bool dynSymFlag = false);
     void findSegmentEnds();
     void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
     void fixPhdrs(unsigned &, unsigned &);
@@ -123,7 +123,8 @@ class emitElf64{
 
 #if !defined(os_solaris)
     void updateDynamic(unsigned tag, Elf64_Addr val);
-    void createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+    void createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+    void createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
 #endif 
 

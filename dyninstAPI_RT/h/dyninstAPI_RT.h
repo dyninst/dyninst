@@ -117,12 +117,12 @@ typedef struct {
 } BPatch_dynamicCallRecord;
 
 typedef struct {
-   int ppid;         //Parent process's pid
-   dyntid_t tid;     //Thread library ID for thread
-   int lwp;          //OS id for thread
-   int index;        //The dyninst index for this thread
-   void *stack_addr; //The top of this thread's stack
-   void *start_pc;   //The pc of this threads initial function
+   int ppid;         /*Parent process's pid*/
+   dyntid_t tid;     /*Thread library ID for thread*/
+   int lwp;          /*OS id for thread*/
+   int index;        /*The dyninst index for this thread*/
+   void *stack_addr; /*The top of this thread's stack*/
+   void *start_pc;   /*The pc of this threads initial function*/
 } BPatch_newThreadEventRecord;
 
 #if defined(arch_x86_64) /* cannot use MUTATEE_32 here b/c libdyninstAPI.so compiles this */
@@ -133,18 +133,18 @@ typedef struct {
 } BPatch_dynamicCallRecord32;
 
 typedef struct {
-   int ppid;         //Parent process's pid
-   unsigned int tid;     //Thread library ID for thread
-   int lwp;          //OS id for thread
-   int index;        //The dyninst index for this thread
-   unsigned int stack_addr; //The top of this thread's stack
-   unsigned int start_pc;   //The pc of this threads initial function
+   int ppid;         /*Parent process's pid*/
+   unsigned int tid;     /*Thread library ID for thread*/
+   int lwp;          /*OS id for thread*/
+   int index;        /*The dyninst index for this thread*/
+   unsigned int stack_addr; /*The top of this thread's stack*/
+   unsigned int start_pc;   /*The pc of this threads initial function*/
 } BPatch_newThreadEventRecord32;
 #endif
 
 
 typedef struct {
-   int index;        //Index of the dead thread
+   int index;        /*Index of the dead thread*/
 } BPatch_deleteThreadEventRecord;
 
 #define UNALLOC 0

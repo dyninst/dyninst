@@ -235,7 +235,8 @@ Object::intSymbol::DefineSymbol(dyn_hash_map<std::string,std::vector<Symbol *> >
                                             modName,
                                             (Symbol::SymbolType) GetType(),
                                             (Symbol::SymbolLinkage) GetLinkage(),
-                                            (Offset)GetAddr(),
+											Symbol::SV_UNKNOWN,
+											(Offset)GetAddr(),
                                             GetRegion(),
                                             GetSize()) );
 }
@@ -261,6 +262,7 @@ Object::Module::DefineSymbols( const Object* obj,
                         "",
                         Symbol::ST_MODULE,
                         Symbol::SL_GLOBAL,
+						Symbol::SV_UNKNOWN,
                         obj->code_off(),	// TODO use real base of symbols for file
                         NULL, 0 ) );		  // TODO Pass Section pointer also
             // TODO also pass size
@@ -276,6 +278,7 @@ Object::Module::DefineSymbols( const Object* obj,
                     "",
                     Symbol::ST_MODULE,
                     Symbol::SL_GLOBAL,
+					Symbol::SV_UNKNOWN,
                     obj->code_off(),
                     NULL,					//TODO pass Sections pointer
                     obj->code_len()) );
@@ -1847,6 +1850,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag) {
+bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, 
+						unsigned flag) {
 	return true;
 }

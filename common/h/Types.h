@@ -77,6 +77,7 @@ WindowsNT    nonexistant
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
    typedef unsigned __int16 uint16_t;
+
 #elif defined(os_aix)  
 #if defined (arch_power)
 #  if defined(rs6000_ibm_aix64)
@@ -96,8 +97,8 @@ WindowsNT    nonexistant
         typedef long long int64_t;
         typedef unsigned long long uint64_t;
 #    endif
-#  endif // defined (arch_power)
 #  endif
+#  endif /* defined (arch_power) */
 
 #elif defined(arch_alpha)
 #define TYPE64BIT
@@ -180,7 +181,9 @@ WindowsNT    nonexistant
 #define UI32_MAX UINT32_MAX
 #endif
 
-//typedef int64_t time64;
+   /*
+typedef int64_t time64;
+*/
 
 #if defined(__cplusplus)
 #include "dynutil/h/dyntypes.h"

@@ -69,7 +69,6 @@ extern "C" DLLEXPORT TestMutator *test5_9_factory() {
 //
 // static int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 test_results_t test5_9_Mutator::executeTest() {
-#if defined(os_solaris_test) || defined(os_windows_test) || defined(os_linux_test)
    bool found = false;
    
   BPatch_Vector<BPatch_function *> bpfv;
@@ -102,7 +101,7 @@ test_results_t test5_9_Mutator::executeTest() {
     return FAILED;
   }
 
-   BPatch_variableExpr *expr9_0=appImage->findVariable(*(*point9_2)[0], "test9");
+   BPatch_variableExpr *expr9_0=appImage->findVariable(*(*point9_2)[0], "test5_9_test9");
    if (!expr9_0) {
       logerror("**Failed** test #9 (derivation)\n");
       logerror("    Unable to locate one of variables\n");
@@ -147,10 +146,6 @@ test_results_t test5_9_Mutator::executeTest() {
    appThread->insertSnippet(pass_expr, *point9_1);
    
   return PASSED;
-#else
-  // Unsupported platforms
-  return SKIPPED;
-#endif
 }
 
 // External Interface

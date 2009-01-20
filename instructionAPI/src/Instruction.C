@@ -41,7 +41,7 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    Instruction::Instruction(const Operation& what, 
+    INSTRUCTION_EXPORT Instruction::Instruction(const Operation& what, 
 			     const std::vector<Expression::Ptr>& operandSource,
 			     size_t size, const unsigned char* raw)
       : m_InsnOp(what), m_Valid(true)
@@ -64,16 +64,16 @@ namespace Dyninst
 	}
       }
     }
-    Instruction::Instruction() :
+    INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false)
     {
     }
     
-    Instruction::~Instruction()
+    INSTRUCTION_EXPORT Instruction::~Instruction()
     {
     }
 
-    Instruction::Instruction(const Instruction& o)
+    INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o)
     {
       m_Operands.clear();
       m_RawInsn.clear();
@@ -83,7 +83,7 @@ namespace Dyninst
       m_Valid = o.m_Valid;
     }
 
-    const Instruction& Instruction::operator=(const Instruction& rhs)
+    INSTRUCTION_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs)
     {
       m_Operands.clear();
       m_RawInsn.clear();
@@ -94,22 +94,22 @@ namespace Dyninst
       return *this;
     }    
     
-    bool Instruction::isValid() const
+    INSTRUCTION_EXPORT bool Instruction::isValid() const
     {
       return m_Valid;
     }
     
-    const Operation& Instruction::getOperation() const
+    INSTRUCTION_EXPORT const Operation& Instruction::getOperation() const
     {
       return m_InsnOp;
     }
     
-    void Instruction::getOperands(std::vector<Operand>& operands) const
+    INSTRUCTION_EXPORT void Instruction::getOperands(std::vector<Operand>& operands) const
     {
       std::copy(m_Operands.begin(), m_Operands.end(), std::back_inserter(operands));
     }
     
-     Operand Instruction::getOperand(int index) const
+    INSTRUCTION_EXPORT Operand Instruction::getOperand(int index) const
      {
         if(index < 0 || index >= (int)(m_Operands.size()))
         {
@@ -119,12 +119,12 @@ namespace Dyninst
         return m_Operands[index];
      }
     
-    size_t Instruction::size() const
+    INSTRUCTION_EXPORT size_t Instruction::size() const
     {
       return m_RawInsn.size();
     }
     
-    void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
+    INSTRUCTION_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -137,7 +137,7 @@ namespace Dyninst
       
     }
     
-    void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
+    INSTRUCTION_EXPORT void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -150,7 +150,7 @@ namespace Dyninst
       
     }
     
-    bool Instruction::isRead(Expression::Ptr candidate) const
+    INSTRUCTION_EXPORT bool Instruction::isRead(Expression::Ptr candidate) const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -164,7 +164,7 @@ namespace Dyninst
       return false;
     }
 
-    bool Instruction::isWritten(Expression::Ptr candidate) const
+    INSTRUCTION_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -178,7 +178,7 @@ namespace Dyninst
       return false;
     }
     
-    bool Instruction::readsMemory() const
+    INSTRUCTION_EXPORT bool Instruction::readsMemory() const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -192,7 +192,7 @@ namespace Dyninst
       return false;
     }
     
-    bool Instruction::writesMemory() const
+    INSTRUCTION_EXPORT bool Instruction::writesMemory() const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -206,7 +206,7 @@ namespace Dyninst
       return false;
     }
     
-    void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const
+    INSTRUCTION_EXPORT void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -216,7 +216,7 @@ namespace Dyninst
       }  
     }
     
-    void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
+    INSTRUCTION_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
     {
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
@@ -226,7 +226,7 @@ namespace Dyninst
       }  
     }
     
-    Expression::Ptr Instruction::getControlFlowTarget() const
+    INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
     {
       // We assume control flow transfer instructions have the PC as
       // an implicit write, and that we have decoded the control flow
@@ -244,7 +244,7 @@ namespace Dyninst
       return m_Operands[0].getValue();
     }
     
-    std::string Instruction::format() const
+    INSTRUCTION_EXPORT std::string Instruction::format() const
     {
       std::string retVal = m_InsnOp.format();
       retVal += " ";

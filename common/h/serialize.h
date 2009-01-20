@@ -40,11 +40,15 @@
 #include <stdio.h>
 
 #if defined(os_windows)
+#if defined (cap_have_libxml)
 #include <libxml/xmlversion.h>
 #undef LIBXML_ICONV_ENABLED
 #endif
+#endif
 
+#if defined (cap_have_libxml)
 #include <libxml/xmlwriter.h>
+#endif
 
 #include "dynutil/h/util.h"
 //#include "dynutil/h/Annotatable.h"
@@ -52,6 +56,8 @@
 #include "common/h/Types.h"
 #include "common/h/sha1.h"
 #include "common/h/pathName.h"
+
+namespace Dyninst {
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
 #define DEFAULT_DYNINST_DIR ".dyninstAPI"
@@ -256,15 +262,24 @@ class SerDes {
 };
 
 class SerDesXML : public SerDes {
+   friend class SerFile;
+   friend class SerializerXML;
+   friend bool COMMON_EXPORT ifxml_start_element(SerializerBase *, const char *);
+   friend bool COMMON_EXPORT ifxml_end_element(SerializerBase *, const char *);
+
+
+
+#if defined (cap_have_libxml)
+      xmlTextWriterPtr writer;
+      COMMON_EXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
+      COMMON_EXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
+#else
+      void *writer;
+      COMMON_EXPORT SerDesXML(void * w, iomode_t mode)  : SerDes(mode), writer(w) { }
+#endif
 
    public:
-
-      xmlTextWriterPtr writer;
-
-      COMMON_EXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
-
       COMMON_EXPORT SerDesXML() { assert(0);}
-      COMMON_EXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
       COMMON_EXPORT virtual ~SerDesXML();
 
       COMMON_EXPORT virtual void vector_start(unsigned int &size, 
@@ -293,12 +308,15 @@ class SerDesXML : public SerDes {
       COMMON_EXPORT virtual void translate(std::string &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
             const char *elem_tag = NULL);
+
+#if 0
       COMMON_EXPORT void start_element(const char *tag);
       COMMON_EXPORT void end_element();
       COMMON_EXPORT void xml_value(const char *val, const char *tag);
+#endif
 };
 
-class AnnotatableBase;
+//class AnnotatableBase;
 
 class SerDesBin : public SerDes {
 
@@ -314,7 +332,7 @@ class SerDesBin : public SerDes {
 
    public:
 
-   COMMON_EXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
+   //COMMON_EXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
    COMMON_EXPORT static FILE *init(std::string fname, iomode_t mode, bool verbose);
 
    COMMON_EXPORT SerDesBin() {assert(0);}
@@ -326,7 +344,7 @@ class SerDesBin : public SerDes {
 
    COMMON_EXPORT virtual ~SerDesBin();
 
-   COMMON_EXPORT static AnnotatableBase *findAnnotatee(void *id); 
+   //COMMON_EXPORT static AnnotatableBase *findAnnotatee(void *id); 
 
    COMMON_EXPORT virtual void file_start(std::string &full_file_path);
    COMMON_EXPORT virtual void vector_start(unsigned int &size, 
@@ -379,7 +397,11 @@ class SerDesBin : public SerDes {
 class COMMON_EXPORT SerFile {
 
    SerDes *sd;
+#if defined (cap_have_libxml)
    xmlTextWriterPtr writer;
+#else
+   void * writer;
+#endif
    FILE *f;
 
    public:
@@ -419,6 +441,7 @@ class COMMON_EXPORT SerFile {
             assert(0);
          }
 
+#if defined (cap_have_libxml)
          writer = SerDesXML::init(fname, mode, verbose);
 
          if (!writer) 
@@ -426,6 +449,9 @@ class COMMON_EXPORT SerFile {
             fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
             assert(0);
          }
+#else
+         writer = NULL;
+#endif
 
          sd = new SerDesXML(writer, mode);
 
@@ -567,4 +593,5 @@ class SerTest : public Serializable {
       serialize( &sb);
    }
 };
+} /*namespace Dyninst*/
 #endif

@@ -26,18 +26,10 @@ arg_test test1;
 
 void arg_test::func_cpp()
 {
-#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_windows_test)
-    logerror("Skipped test #1 (argument)\n");
-    logerror("\t- not implemented on this platform\n");
-    test_passes(testname);
-
-#else
-
   int test = 1;
   int arg2 = 1;
 
   call_cpp(test, arg2);
-#endif
 }
 
 void arg_test::arg_pass(int test)

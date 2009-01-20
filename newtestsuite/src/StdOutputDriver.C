@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-TESTLIB_DLL_EXPORT StdOutputDriver::StdOutputDriver(void * data) : attributes(NULL), streams() {
+StdOutputDriver::StdOutputDriver(void * data) : attributes(NULL), streams() {
   streams[STDOUT] = std::string("-");
   streams[STDERR] = std::string("-");
   streams[LOGINFO] = std::string("-");
@@ -75,11 +75,11 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       run_mode_str = orig_run_mode_str;
    assert(last_test && last_group);
 #if defined(cap_32_64_test)
-   fprintf(out, "%s:\tcompiler: %s\tabi: %s\tmode: %s\tresult: ",
-           last_test->name, last_group->compiler, last_group->abi, run_mode_str);
+   fprintf(out, "%s:\tcompiler: %s\topt: %s\tabi: %s\tmode: %s\tresult: ",
+           last_test->name, last_group->compiler, last_group->optlevel, last_group->abi, run_mode_str);
 #else
-   fprintf(out, "%s:\tcompiler: %s\tmode: %s\tresult: ",
-           last_test->name, last_group->compiler, run_mode_str);
+   fprintf(out, "%s:\tcompiler: %s\topt: %s\tmode: %s\tresult: ",
+           last_test->name, last_group->compiler, last_group->optlevel, run_mode_str);
 #endif
    switch(result) {
       case PASSED:

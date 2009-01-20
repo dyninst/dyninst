@@ -40,8 +40,6 @@
 #include "Serialization.h"
 
 
-int symtab_printf(const char *format, ...);
-
 typedef struct {} user_funcs_a;
 typedef struct {} user_regions_a;
 typedef struct {} user_types_a;
@@ -110,14 +108,16 @@ class Symtab : public LookupInterface,
                                            nameType_t nameType,
                                            bool isRegex = false, 
                                            bool checkCase = false);
-   SYMTAB_EXPORT virtual bool findAllSymbols(std::vector<Symbol *> &ret);
-
+   SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
    SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
    SYMTAB_EXPORT bool getAllUndefinedSymbols(std::vector<Symbol *> &ret);
+
+   // Inversely, return all non-undefined symbols in the binary
+   SYMTAB_EXPORT bool getAllDefinedSymbols(std::vector<Symbol *> &ret);
 
    // Function
 
@@ -387,7 +387,7 @@ class Symtab : public LookupInterface,
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
    // NOT a subset of everyDefinedSymbol
-   std::map <std::string, Symbol *> undefDynSyms;
+   std::map <std::string, std::vector<Symbol *> > undefDynSyms;
 
    // Symbols by offsets in the symbol table
    dyn_hash_map <Offset, std::vector<Symbol *> > symsByOffset;
@@ -486,6 +486,14 @@ class Symtab : public LookupInterface,
    /********************************************************************/
    /**** DEPRECATED ****************************************************/
    /********************************************************************/
+   dyn_hash_map <std::string, Module *> &getModsByFileName()
+   {
+      return modsByFileName;
+   }
+   dyn_hash_map <std::string, Module *> &getModsByFullName()
+   {
+      return modsByFullName;
+   }
    
    SYMTAB_EXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
    SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 

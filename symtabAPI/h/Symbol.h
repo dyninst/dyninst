@@ -68,8 +68,9 @@ class Module;
 class typeCommon;
 class localVarCollection;
 class Region;
+class Aggregate;
 class Function;
- class Variable;
+class Variable;
 
 /************************************************************************
  * class Symbol
@@ -91,6 +92,7 @@ class Symbol : public Serializable,
       ST_FUNCTION,
       ST_OBJECT,
       ST_MODULE,
+	  ST_SECTION,
       ST_NOTYPE
    };
 
@@ -114,13 +116,22 @@ class Symbol : public Serializable,
 
    static const char *symbolTag2Str(SymbolTag t);
 
+   enum SymbolVisibility {
+       SV_UNKNOWN,
+       SV_DEFAULT,
+       SV_INTERNAL,
+       SV_HIDDEN,
+       SV_PROTECTED
+   };
+   static const char *symbolVisibility2Str(SymbolVisibility t);
+
    SYMTAB_EXPORT Symbol (); // note: this ctor is called surprisingly often!
    SYMTAB_EXPORT Symbol (unsigned);
    SYMTAB_EXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-         Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
+         SymbolVisibility, Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
          bool isInSymtab_ = true, bool isAbsolute_ = false);
    SYMTAB_EXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-         Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
+         SymbolVisibility, Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
          bool isInSymtab_ = true, bool isAbsolute_ = false);
    SYMTAB_EXPORT Symbol (const Symbol &);
    SYMTAB_EXPORT ~Symbol();
@@ -145,6 +156,8 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool              isVariable()            const;
    SYMTAB_EXPORT bool              setVariable(Variable *var);
    SYMTAB_EXPORT Variable *        getVariable()           const;
+
+	SYMTAB_EXPORT SymbolVisibility getVisibility() const;
 
    /***********************************************************
      Name Output Functions
@@ -193,6 +206,7 @@ class Symbol : public Serializable,
    Module*       module_;
    SymbolType    type_;
    SymbolLinkage linkage_;
+   SymbolVisibility visibility_;
    Offset        addr_;
    Region*      sec_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
@@ -200,9 +214,7 @@ class Symbol : public Serializable,
    bool          isInSymtab_;
    bool          isAbsolute_;
 
-   Function*     function_;  // if this symbol represents a function, this is a pointer
-                             // to the corresponding Function object
-   Variable     *variable_;  // Should combine into an "Aggregate" parent class...
+   Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
 
    std::string mangledName_;
    std::string prettyName_;

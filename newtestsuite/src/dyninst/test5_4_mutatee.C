@@ -20,7 +20,7 @@
  * group.
  */
 
-static static_test test4;
+static_test test5_4_test4;
 static int passed = 0;
 
 int static_test::count = 0;
@@ -45,14 +45,7 @@ void static_test::func_cpp()
 }
 
 int test5_4_mutatee() {
-#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_windows_test)
-
-    logerror("Skipped test #4 (static member)\n");
-    logerror("\t- not implemented on this platform\n");
-    return 0;
-
-#else
-  test4.func_cpp();
+  test5_4_test4.func_cpp();
   // FIXME Make sure the error reporting works
   // I need to have this guy call test_passes(testname) if the test passes..
   if (1 == passed) {
@@ -63,5 +56,4 @@ int test5_4_mutatee() {
     // Test failed
     return -1;
   }
-#endif
 }

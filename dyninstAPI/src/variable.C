@@ -54,7 +54,8 @@ image_variable::image_variable(Address offset,
 {
     Symbol *sym  = new Symbol(name.c_str(), mod->fileName(), 
                               Symbol::ST_OBJECT, 
-                              Symbol::SL_GLOBAL, offset);
+                              Symbol::SL_GLOBAL, 
+                              Symbol::SV_DEFAULT, offset);
     mod->imExec()->getObject()->addSymbol(sym);
     var_ = sym->getVariable();
     image_variable *th = this;

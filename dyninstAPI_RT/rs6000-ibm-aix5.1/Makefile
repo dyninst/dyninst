@@ -76,7 +76,8 @@ libDyninstText.a: space.o
 
 else
 # GCC
-LD		= $(CC) -shared
+CC = gcc
+LD		= $(GCC) -shared
 # Initialization method
 LDFLAGS		+= -Wl,-binitfini:libdyninstAPI_RT_init
 
@@ -90,10 +91,10 @@ libDyninstAPI_RT.so.1: libDyninstText.a
 # ... and uses default AIX link line
 
 RTthread-power-asm.o:
-	$(CC) -c $(CFLAGS) ../src/RTthread-power-asm.s
+	$(GCC) -c $(CFLAGS) ../src/RTthread-power-asm.s
 
 space.o: 
-	$(CC) -c -o space.o ../src/libSpace.s
+	$(GCC) -c -o space.o ../src/libSpace.s
 
 install: install_generic libDyninstText.a
 	-chmod 640 $(DEST)/$(TARGET)

@@ -20,7 +20,7 @@
  * group.
  */
 
-static overload_op_test test3;
+overload_op_test test5_3_test3;
 static int passed = 0;
 
 /* Function definitions follow */
@@ -48,7 +48,7 @@ int overload_op_test::operator++()
 }
 
 int test5_3_mutatee() {
-  test3.func_cpp();
+  test5_3_test3.func_cpp();
   // FIXME Make sure the error reporting works
   // I need to have this guy call test_passes(testname) if the test passes..
   if (1 == passed) {

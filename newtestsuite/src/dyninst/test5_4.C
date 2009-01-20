@@ -69,7 +69,6 @@ extern "C" DLLEXPORT TestMutator *test5_4_factory() {
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_4_Mutator::executeTest() {
-#if defined(os_solaris_test) || defined(os_linux_test) || defined(os_windows_test)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "static_test::func_cpp";
@@ -139,10 +138,10 @@ test_results_t test5_4_Mutator::executeTest() {
   }
   BPatch_function *call4_func = bpfv[0];  
 
-  BPatch_variableExpr *this2 = appImage->findVariable("test4");
+  BPatch_variableExpr *this2 = appImage->findVariable("test5_4_test4");
   if (this2 == NULL) {
     logerror( "**Failed** test #4 (static member)\n");
-    logerror( "Unable to find variable \"test4\"\n");
+    logerror( "Unable to find variable \"test5_4_test4\"\n");
     return FAILED;
   }
   
@@ -155,10 +154,6 @@ test_results_t test5_4_Mutator::executeTest() {
   appThread->insertSnippet(call4Expr, *point4_3);
   
   return PASSED;
-#else
-  // Not a platform we support this test on
-  return SKIPPED;
-#endif
 }
 
 // External Interface

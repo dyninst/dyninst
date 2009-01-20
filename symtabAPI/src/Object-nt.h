@@ -200,7 +200,8 @@ class Object : public AObject
     SYMTAB_EXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     SYMTAB_EXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
     SYMTAB_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-    SYMTAB_EXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
+    SYMTAB_EXPORT bool emitDriver(Symtab *obj, std::string fName, 
+		std::vector<Symbol *>&allSymbols, unsigned flag);
 
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );

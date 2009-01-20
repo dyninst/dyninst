@@ -78,10 +78,12 @@ distclean: clean
 $(DEST)/$(TARGET): $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
 
-install_generic: $(DEST)/$(TARGET)
+install_generic: $(DEST)/$(TARGET) public_includes
 
+# A definition of OVERRIDE_INSTALL will skip this definition, so it shouldn't contain
+# anything other than "install_generic". 
 ifndef OVERRIDE_INSTALL
-install: install_generic public_includes
+install: install_generic
 endif
 
 #
@@ -123,7 +125,7 @@ endif
 	$(MAKE) $(SRCS)
 ### TODO: remove this in favor of native compiler support
 ifeq ($(MODCC),cc)
-	gcc -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
 ifdef IBM_BPATCH_COMPAT
   ifeq ($(DEPCC), xlC)
