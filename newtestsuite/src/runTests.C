@@ -2,6 +2,7 @@
 //needed for Sleep
 #include <windows.h>
 #define sleep(x) Sleep(x * 1000)
+#define unlink _unlink
 #endif
 
 #include <stdlib.h>
@@ -66,7 +67,7 @@ void parseMEMCPUFile()
       stime_total += stime;
    }
    fclose(f);
-   _unlink(memcpu_name);
+   unlink(memcpu_name);
 
    if (strcmp(memcpu_orig_name, "-") == 0)
    {
@@ -217,14 +218,14 @@ int main(int argc, char *argv[])
    // Remove a stale resumelog, if it exists
    if ( getenv("RESUMELOG") && isRegFile(string(getenv("RESUMELOG"))) )
    {
-	   if(_unlink(getenv("RESUMELOG")) == -1) {
+	   if(unlink(getenv("RESUMELOG")) == -1) {
 		   fprintf(stderr, "Couldn't delete resume log: %s\n", getenv("RESUMELOG"));
 	   }
 	   else {
 		   fprintf(stderr, "Cleaned up resume log OK: %s\n", getenv("RESUMELOG"));
 	   }
    } else if (isRegFile(string(DEFAULT_RESUMELOG))) {
-	   if(_unlink(DEFAULT_RESUMELOG) == -1) {
+	   if(unlink(DEFAULT_RESUMELOG) == -1) {
 		   fprintf(stderr, "Couldn't delete resume log: %s\n", DEFAULT_RESUMELOG);
 	   }
 	   else {
@@ -234,12 +235,12 @@ int main(int argc, char *argv[])
 
    // Remove a stale crashlog, if it exists
    if (getenv("CRASHLOG") && isRegFile(string(getenv("CRASHLOG")))) {
-	   if(_unlink(getenv("CRASHLOG")) == -1) {
+	   if(unlink(getenv("CRASHLOG")) == -1) {
 		   fprintf(stderr, "Couldn't delete crash log: %s\n", getenv("CRASHLOG"));
 	   };
-      _unlink(getenv("CRASHLOG"));
+      unlink(getenv("CRASHLOG"));
    } else if (isRegFile(string(DEFAULT_CRASHLOG))) {
-	   if(_unlink(DEFAULT_CRASHLOG) == -1) {
+	   if(unlink(DEFAULT_CRASHLOG) == -1) {
 		   fprintf(stderr, "Couldn't delete crash log: %s\n", DEFAULT_CRASHLOG);
 	   };
    }
@@ -275,10 +276,10 @@ int main(int argc, char *argv[])
 
    // Remove the PID file, now that we're done with it
    if (pidFilename && isRegFile(string(pidFilename))) {
-      _unlink(pidFilename);
+      unlink(pidFilename);
    }
-   _unlink(DEFAULT_RESUMELOG);
-   _unlink(getenv("RESUMELOG"));
+   unlink(DEFAULT_RESUMELOG);
+   unlink(getenv("RESUMELOG"));
    
 
    parseMEMCPUFile();

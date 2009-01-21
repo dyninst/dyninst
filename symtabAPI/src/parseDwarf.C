@@ -42,6 +42,7 @@
 #include "symtabAPI/src/Object.h"
 #include "Collections.h"
 #include "common/h/pathName.h"
+#include "Type-mem.h"
 
 #include <stdarg.h>
 int dwarf_printf(const char *format, ...);
@@ -312,7 +313,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dereferencing DWARF pointer\n", __FILE__, __LINE__ );
 
    std::string srName = subrangeName;
-   Type * rangeType = new typeSubrange( (int) subrangeOffset, 0, atoi(loBound.c_str()), atoi(hiBound.c_str()), srName );
+   typeSubrange * rangeType = new typeSubrange( (int) subrangeOffset, 0, atoi(loBound.c_str()), atoi(hiBound.c_str()), srName );
    assert( rangeType != NULL );
    rangeType = module->getModuleTypes()->addOrUpdateType( rangeType );
    if ( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }	
@@ -478,7 +479,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
       Dwarf_Signed listLength, 
       Symtab *,
-      vector<loc_t *>*& locs, Address lowpc, 
+      vector<loc_t *>*& locs, Address lowpc,
       long int * initialStackValue = NULL)
 #endif
 {
@@ -1254,7 +1255,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
                /* The typeOffset forms a module-unique type identifier,
                   so the Type look-ups by it rather than name. */
-               dwarf_printf( "%s/%d: %s/%d\n", __FILE__, __LINE__, variableName, typeOffset );
                Type * variableType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
                dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
@@ -1316,7 +1316,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                /* We can't do anything with an anonymous variable. */
                if ( status == DW_DLV_NO_ENTRY ) { break; }
                DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
                /* If we're fortran, get rid of the trailing _ */
                supportedLanguages lang = module->language();
                if ( ( lang == lang_Fortran ||
@@ -1414,7 +1413,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                   std::string vName = convertCharToString(variableName);
                   currentEnclosure->addField( vName, variableType, (*locs)[0]->frameOffset);
                } /* end if a C++ static member. */
-            } /* end if this variable is not global */
+            } /* end if this ariable is not global */
          } break;
 
          /* It's probably worth noting that a formal parameter may have a
@@ -1615,7 +1614,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                    reliable way to distinguish between a built-in and a scalar,
                    we don't bother to try. */
                 std::string tName = convertCharToString(typeName);   
-                Type * baseType = new typeScalar( (typeId_t) dieOffset, (unsigned int) byteSize, tName );
+                typeScalar * baseType = new typeScalar( (typeId_t) dieOffset, (unsigned int) byteSize, tName );
                 assert( baseType != NULL );
 
                 /* Add the basic type to our collection. */
@@ -1681,7 +1680,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                tName = convertCharToString(definedName);
             }
 
-            Type * typedefType = new typeTypedef( (typeId_t) dieOffset, referencedType, tName);
+            typeTypedef * typedefType = new typeTypedef( (typeId_t) dieOffset, referencedType, tName);
             typedefType = module->getModuleTypes()->addOrUpdateType( typedefType );
 
             /* Sanity check: typedefs should not have children. */
@@ -1736,11 +1735,10 @@ gracefully, that is, without an error. :)
             /* The baseArrayType is an anonymous type with its own typeID.  Extract
                the information and add an array type for this DIE. */
             std::string aName = convertCharToString(arrayName);
-            Type * arrayType = new typeArray( (typeId_t) dieOffset, baseArrayType->getBaseType(), baseArrayType->getLow(),
+            typeArray *arrayType = new typeArray( (typeId_t) dieOffset, baseArrayType->getBaseType(), baseArrayType->getLow(),
                   baseArrayType->getHigh(), aName);
             assert( arrayType != NULL );
             //setArraySize( arrayType, baseArrayType->getLow(), baseArrayType->getHigh() );
-            // //bperr ( "Adding array type '%s' (%lu) [%s, %s] @ %p\n", arrayName, (unsigned long)dieOffset, baseArrayType->getLow(), baseArrayType->getHigh(), arrayType );
             arrayType = module->getModuleTypes()->addOrUpdateType( arrayType );
 
             /* Don't parse the children again. */
@@ -1826,7 +1824,6 @@ gracefully, that is, without an error. :)
             char * typeName = NULL;
             status = dwarf_diename( dieEntry, & typeName, NULL );
             DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
             Dwarf_Attribute sizeAttr;
             Dwarf_Unsigned typeSize = 0;
             status = dwarf_attr( dieEntry, DW_AT_byte_size, & sizeAttr, NULL );
@@ -1843,17 +1840,17 @@ gracefully, that is, without an error. :)
             std::string tName = convertCharToString(typeName);
             switch ( dieTag ) {
                case DW_TAG_structure_type: 
-               case DW_TAG_class_type: 
-                  containingType = new typeStruct( (typeId_t) dieOffset, tName);
+               case DW_TAG_class_type: {
+		  typeStruct *ts = new typeStruct( (typeId_t) dieOffset, tName);
+		  containingType = dynamic_cast<fieldListType *>(module->getModuleTypes()->addOrUpdateType(ts));
                   break;
-               case DW_TAG_union_type: 
-                  containingType = new typeUnion( (typeId_t) dieOffset, tName);
+	       }
+               case DW_TAG_union_type: {
+		  typeUnion *tu = new typeUnion( (typeId_t) dieOffset, tName);
+		  containingType = dynamic_cast<fieldListType *>(module->getModuleTypes()->addOrUpdateType(tu));
                   break;
+	       }
             }
-
-            assert( containingType != NULL );
-            // //bperr ( "Adding structure, union, or class type '%s' (%lu)\n", typeName, (unsigned long)dieOffset );
-            containingType = dynamic_cast<fieldListType *>(module->getModuleTypes()->addOrUpdateType( containingType ));
             newEnclosure = containingType;
 
             dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1967,7 +1964,6 @@ gracefully, that is, without an error. :)
             } /* end if not a bit field member. */
 
             if ( memberName != NULL ) {
-                // /* DEBUG */ fprintf( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName().c_str(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, (*locs)[0]->frameOffset, memberType->getSize() );
                std::string fName = convertCharToString(memberName);
                currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
                dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
@@ -2024,8 +2020,7 @@ gracefully, that is, without an error. :)
 			    // I'm taking out the type qualifiers for right now
                 tName = convertCharToString(typeName);
 
-//			Type * modifierType = new Type( typeName, dieOffset, TypeAttrib, typeSize, typeModified, dieTag );
-			Type * modifierType = new typeTypedef((typeId_t) dieOffset, typeModified, tName);
+	                typeTypedef * modifierType = new typeTypedef((typeId_t) dieOffset, typeModified, tName);
 			assert( modifierType != NULL );
 			// //bperr ( "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			modifierType = module->getModuleTypes()->addOrUpdateType( modifierType );
@@ -2067,19 +2062,21 @@ gracefully, that is, without an error. :)
 			switch ( dieTag ) {
 			case DW_TAG_subroutine_type:
 			   indirectType = new typeFunction((typeId_t) dieOffset, typePointedTo, tName);
+			   indirectType = module->getModuleTypes()->addOrUpdateType((typeFunction *) indirectType );
 			   break;
 			case DW_TAG_ptr_to_member_type:
 			case DW_TAG_pointer_type:
 			   indirectType = new typePointer((typeId_t) dieOffset, typePointedTo, tName);
+			   indirectType = module->getModuleTypes()->addOrUpdateType((typePointer *) indirectType );
 			   break;
 			case DW_TAG_reference_type:
 			   indirectType = new typeRef((typeId_t) dieOffset, typePointedTo, tName);
+			   indirectType = module->getModuleTypes()->addOrUpdateType((typeRef *) indirectType );
 			   break;
 			}
 
 			assert( indirectType != NULL );
-			dwarf_printf( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
-			indirectType = module->getModuleTypes()->addOrUpdateType( indirectType );
+			dwarf_printf( "Added indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
 		} break;
@@ -2243,7 +2240,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
       typeIter->second->fixupUnknowns(fixUnknownMod);
    } /* end iteratation over types. */
 
-   /* Fix the types of variables. */   
+   /* Fix the types of variabls. */   
    std::string variableName;
    dyn_hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
    for(;variableIter!=moduleTypes->globalVarsByName.end();variableIter++){ 

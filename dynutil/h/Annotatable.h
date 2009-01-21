@@ -509,7 +509,7 @@ class AnnotatableSparse
 
 };
 
-COMMON_EXPORT AnnotatableSparse::annos_t annos;
+//COMMON_EXPORT AnnotatableSparse::annos_t annos;
 
 //AnnotatableSparse::annos_t AnnotatableSparse::annos;
 } // namespace

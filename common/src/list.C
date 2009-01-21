@@ -63,7 +63,7 @@ template <class DataType, class KeyType> void
 ListBase<DataType, KeyType>::__push_front(DataType &data, 
 					  const KeyType &key)
 {
-   ListBase<DataType, KeyType>::node *ni = new node(data, key, head);
+   typename ListBase<DataType, KeyType>::node *ni = new node(data, key, head);
    head = ni;
 }
 

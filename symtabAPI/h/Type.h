@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
+ * Copyright (c) 1996-2009 Barton P. Miller
  *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -58,6 +58,7 @@ class CBlock;
 class typeCollection;
 class fieldListType;
 class localVarCollection;
+class TypeMemManager;
 
 //TODO?? class BPatch(to be  ??)function;
 
@@ -165,7 +166,8 @@ class SYMTAB_EXPORT Field{
 class Type : public Serializable, public AnnotatableSparse  {
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
-                          typeCommon *);
+				      typeCommon *);
+   static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
    public:
   SYMTAB_EXPORT void serialize(SerializerBase *, const char *);
  protected:
@@ -194,9 +196,6 @@ class Type : public Serializable, public AnnotatableSparse  {
 protected:
    SYMTAB_EXPORT virtual void updateSize() {}
 
-   // Simple Destructor
-   SYMTAB_EXPORT virtual ~Type();
-
    SYMTAB_EXPORT virtual void merge( Type * /* other */ ) { }
 
 public:
@@ -206,6 +205,9 @@ public:
 
    SYMTAB_EXPORT Type(std::string name, typeId_t ID, dataClass dataTyp = dataNullType);
    SYMTAB_EXPORT Type(std::string name, dataClass dataTyp = dataNullType);
+
+   SYMTAB_EXPORT Type();
+   SYMTAB_EXPORT virtual ~Type();
 
    // A few convenience functions
    SYMTAB_EXPORT static Type *createFake(std::string name);
@@ -226,9 +228,6 @@ public:
    // INTERNAL METHODS
    SYMTAB_EXPORT void incrRefCount();
    SYMTAB_EXPORT void decrRefCount(); 
-   Type () {}
-   
-   
    //Methods to dynamically cast generic Type Object to specific types.
    
    SYMTAB_EXPORT typeEnum *getEnumType();
@@ -278,6 +277,7 @@ class fieldListType : public Type, public fieldListInterface {
    SYMTAB_EXPORT fieldListType(std::string &name, typeId_t ID, dataClass typeDes);
    /* Each subclass may need to update its size after adding a field */
  public:
+   SYMTAB_EXPORT fieldListType();
    SYMTAB_EXPORT ~fieldListType();
    SYMTAB_EXPORT bool operator==(const Type &) const;
    SYMTAB_EXPORT std::vector<Field *> *getComponents() const;
@@ -307,6 +307,7 @@ class rangedType : public Type, public rangedInterface {
    SYMTAB_EXPORT rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, int low, int hi);
    SYMTAB_EXPORT rangedType(std::string &name, dataClass typeDes, int size, int low, int hi);
  public:
+   SYMTAB_EXPORT rangedType();
    SYMTAB_EXPORT ~rangedType();
    SYMTAB_EXPORT bool operator==(const Type &) const;
    SYMTAB_EXPORT int getLow() const { return low_; }
@@ -320,6 +321,7 @@ class derivedType : public Type, public derivedInterface {
    SYMTAB_EXPORT derivedType(std::string &name, typeId_t id, int size, dataClass typeDes);
    SYMTAB_EXPORT derivedType(std::string &name, int size, dataClass typeDes);
  public:
+   SYMTAB_EXPORT derivedType();
    SYMTAB_EXPORT ~derivedType();
    SYMTAB_EXPORT bool operator==(const Type &) const;
    SYMTAB_EXPORT Type *getConstituentType() const;
@@ -331,12 +333,12 @@ class typeEnum : public Type {
  private:  
 	std::vector<std::pair<std::string, int> *> consts;
  public:
+   SYMTAB_EXPORT typeEnum();
    SYMTAB_EXPORT typeEnum(typeId_t ID, std::string name = "");
    SYMTAB_EXPORT typeEnum(std::string name);
    SYMTAB_EXPORT static typeEnum *create(std::string &name, std::vector<std::pair<std::string, int> *>&elements, 
    								Symtab *obj = NULL);
-   SYMTAB_EXPORT static typeEnum *create(std::string &name, std::vector<std::string> &elementNames,
-								Symtab *obj = NULL);
+   SYMTAB_EXPORT static typeEnum *typeEnum::create(std::string &name, std::vector<std::string> &constNames, Symtab *obj);
    SYMTAB_EXPORT bool addConstant(const std::string &fieldname,int value);
    SYMTAB_EXPORT std::vector<std::pair<std::string, int> *> &getConstants();
    SYMTAB_EXPORT bool setName(const char *name);
@@ -350,6 +352,7 @@ class typeFunction : public Type {
    Type *retType_; /* Return type of the function */
    std::vector<Type *> params_; 
  public:
+   SYMTAB_EXPORT typeFunction();
    SYMTAB_EXPORT typeFunction(typeId_t ID, Type *retType, std::string name = "");
    SYMTAB_EXPORT typeFunction(Type *retType, std::string name = "");
    SYMTAB_EXPORT static typeFunction *create(std::string &name, Type *retType, 
@@ -367,6 +370,7 @@ class typeScalar : public Type {
  private:
    bool isSigned_;
  public:
+   SYMTAB_EXPORT typeScalar();
    SYMTAB_EXPORT typeScalar(typeId_t ID, unsigned int size, std::string name = "", bool isSigned = false);
    SYMTAB_EXPORT typeScalar(unsigned int size, std::string name = "", bool isSigned = false);
    SYMTAB_EXPORT static typeScalar *create(std::string &name, int size, Symtab *obj = NULL);
@@ -382,6 +386,7 @@ class typeCommon : public fieldListType {
    //void postFieldInsert(int offset, int nsize) { if ((unsigned int) (offset + nsize) > size_) size_ = offset + nsize; }
    SYMTAB_EXPORT void fixupUnknowns(Module *);
  public:
+   SYMTAB_EXPORT typeCommon();
    SYMTAB_EXPORT typeCommon(typeId_t ID, std::string name = "");
    SYMTAB_EXPORT typeCommon(std::string name);
    SYMTAB_EXPORT static typeCommon *create(std::string &name, Symtab *obj = NULL);
@@ -418,9 +423,11 @@ class typeStruct : public fieldListType {
    SYMTAB_EXPORT void fixupUnknowns(Module *);
    SYMTAB_EXPORT void merge(Type *other);
  public:
+   SYMTAB_EXPORT typeStruct();
    SYMTAB_EXPORT typeStruct(typeId_t ID, std::string name = "");
    SYMTAB_EXPORT typeStruct(std::string name);
    SYMTAB_EXPORT static typeStruct *create(std::string &name, std::vector< std::pair<std::string, Type *> *> &flds,
+
    				 				Symtab *obj = NULL);
    SYMTAB_EXPORT static typeStruct *create(std::string &name, std::vector<Field *> &fields, 
 								Symtab *obj = NULL);
@@ -435,6 +442,7 @@ class typeUnion : public fieldListType {
    SYMTAB_EXPORT void merge(Type *other);
    SYMTAB_EXPORT void fixupUnknowns(Module *);
  public:
+   SYMTAB_EXPORT typeUnion();
    SYMTAB_EXPORT typeUnion(typeId_t ID, std::string name = "");
    SYMTAB_EXPORT typeUnion(std::string name);
    SYMTAB_EXPORT static typeUnion *create(std::string &name, std::vector<std::pair<std::string, Type *> *> &fieldNames,
@@ -448,6 +456,7 @@ class typePointer : public derivedType {
  protected: 
    SYMTAB_EXPORT void fixupUnknowns(Module *);
  public:
+   SYMTAB_EXPORT typePointer();
    SYMTAB_EXPORT typePointer(typeId_t ID, Type *ptr, std::string name = "");
    SYMTAB_EXPORT typePointer(Type *ptr, std::string name = "");
    SYMTAB_EXPORT static typePointer *create(std::string &name, Type *ptr, Symtab *obj = NULL);
@@ -466,6 +475,7 @@ class typeTypedef: public derivedType {
    SYMTAB_EXPORT void fixupUnknowns(Module *);
       
  public:
+   SYMTAB_EXPORT typeTypedef();
    SYMTAB_EXPORT typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int sizeHint = 0);
    SYMTAB_EXPORT typeTypedef(Type *base, std::string name, unsigned int sizeHint = 0);
    
@@ -478,6 +488,7 @@ class typeRef : public derivedType {
  protected:
    SYMTAB_EXPORT void fixupUnknowns(Module *);
  public:
+   SYMTAB_EXPORT typeRef();
    SYMTAB_EXPORT typeRef(typeId_t ID, Type *refType, std::string name);
    SYMTAB_EXPORT typeRef(Type *refType, std::string name);
    SYMTAB_EXPORT static typeRef *create(std::string &name, Type *ptr, Symtab * obj = NULL);
@@ -489,6 +500,7 @@ class typeSubrange : public rangedType {
  private:
    //typeSubrange(int ID, int size, const char *low, const char *hi, const char *name);
  public:
+   SYMTAB_EXPORT typeSubrange();
    SYMTAB_EXPORT typeSubrange(typeId_t ID, int size, int low, int hi, std::string name);
    SYMTAB_EXPORT typeSubrange( int size, int low, int hi, std::string name);
    SYMTAB_EXPORT static typeSubrange *create(std::string &name, int size, int low, int hi, Symtab *obj = NULL);
@@ -503,6 +515,7 @@ class typeArray : public rangedType {
    SYMTAB_EXPORT void updateSize();
    SYMTAB_EXPORT void merge(Type *other); 
  public:
+   SYMTAB_EXPORT typeArray();
    SYMTAB_EXPORT typeArray(typeId_t ID, Type *base, int low, int hi, std::string name, unsigned int sizeHint = 0);
    SYMTAB_EXPORT typeArray(Type *base, int low, int hi, std::string name, unsigned int sizeHint = 0);
    SYMTAB_EXPORT static typeArray *create(std::string &name, Type *typ,  int low, int hi, Symtab *obj = NULL);

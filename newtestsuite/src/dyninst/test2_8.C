@@ -131,6 +131,8 @@ int test2_8_Mutator::test8b()
 
 test_results_t test2_8_Mutator::executeTest() {
    // Insert a breakpoint into the mutatee
+   bpatch = BPatch::getBPatch();
+
    if ( test8a() < 0 ) {
      return FAILED;
    }

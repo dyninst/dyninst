@@ -117,7 +117,8 @@ public:
        One True Pointer for each type (in parseStab.C), when
        updating a type, return that One True Pointer. */
     Type * findOrCreateType( const int ID );
-    Type * addOrUpdateType( Type * type );
+    template<class T>
+    T* addOrUpdateType(T* type);
 
     Type *findVariableType(std::string &name);
 

@@ -69,7 +69,6 @@ void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
 }
 
 int test5_1_mutatee() {
-	DebugBreak();
   test1.func_cpp();
   // FIXME Make sure the error reporting works
   // I need to have this guy call test_passes(testname) if the test passes..
