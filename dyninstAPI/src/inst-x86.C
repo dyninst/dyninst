@@ -1322,7 +1322,16 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
             showErrorCallback(80, msg);
             assert(0);
         }
+
+        // try to find a dynamic symbol
+        // (take first static symbol if none are found)
         Symbol *referring = syms[0];
+        for (unsigned k=0; k<syms.size(); k++) {
+            if (syms[k]->isInDynSymtab()) {
+                referring = syms[k];
+                break;
+            }
+        }
 
         // have we added this relocation already?
         dest = binEdit->getDependentRelocationAddr(referring);
