@@ -238,7 +238,7 @@ inline std::ostream &operator<<(std::ostream &os,
    TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
    
    for(; curr != endMarker; ++curr) {
-      os << *curr << endl;
+      os << *curr << std::endl;
    }
    return os;
 }
@@ -477,20 +477,20 @@ template <class Type> DO_INLINE_F  bool HTable<Type>::remove(void *key)
 
 template <class Type> class StringList: public List<Type> {
     public:
-	DO_INLINE_F Type find(void *key);
+	DO_INLINE_F Type find(void *key)
+	{
+	  // This didn't use to have StringList<Type>::, but it barfs without it, 
+	  //so... - TLM (2002/08/06)
+	  typename StringList<Type>::node *it;
+	  
+	  for (it=this->head; it; it=it->next) {
+	    if (!strcmp((char *) it->key, (char *) key)) {
+	      return(it->data);
+	    }
+	  }
+	  return((Type) 0);
+	}
 };
 
-template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
-{
-    // This didn't use to have StringList<Type>::, but it barfs without it, so... - TLM (2002/08/06)
-    TYPENAME StringList<Type>::node *curr;
-
-    for (curr=head; curr; curr=curr->next) {
-	if (!strcmp((char *) curr->key, (char *) data)) {
-	    return(curr->data);
-	}
-    }
-    return((Type) 0);
-}
 
 #endif /* LIST_H */
