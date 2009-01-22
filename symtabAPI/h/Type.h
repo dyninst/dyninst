@@ -338,7 +338,7 @@ class typeEnum : public Type {
    SYMTAB_EXPORT typeEnum(std::string name);
    SYMTAB_EXPORT static typeEnum *create(std::string &name, std::vector<std::pair<std::string, int> *>&elements, 
    								Symtab *obj = NULL);
-   SYMTAB_EXPORT static typeEnum *typeEnum::create(std::string &name, std::vector<std::string> &constNames, Symtab *obj);
+   SYMTAB_EXPORT static typeEnum *create(std::string &name, std::vector<std::string> &constNames, Symtab *obj);
    SYMTAB_EXPORT bool addConstant(const std::string &fieldname,int value);
    SYMTAB_EXPORT std::vector<std::pair<std::string, int> *> &getConstants();
    SYMTAB_EXPORT bool setName(const char *name);
