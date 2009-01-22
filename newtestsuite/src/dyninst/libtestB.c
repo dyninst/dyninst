@@ -45,7 +45,6 @@
 #if defined(os_windows_test)
 #define DLLEXPORT __declspec( dllexport )
 #else
-#error debug
 #define DLLEXPORT
 #endif
 
