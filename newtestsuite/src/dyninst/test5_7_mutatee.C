@@ -32,7 +32,9 @@ template <class T> T sample_template <T>::content()
 }
 
 // Why do we have this section?  We don't run this test on AIX...
-#ifdef os_aix_test && 0
+// lines like the following one break some compilers; please never do it.
+//#ifdef os_aix_test && 0
+#if 0
 /* xlC's static libC has strangely undefined symbols, so just fake them ... */
 // BUG(?) I don't know if these will work when declared as static.  Need to
 // test

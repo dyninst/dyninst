@@ -64,6 +64,26 @@ const pdvector<int_function *> &mapped_module::getAllFunctions()
       obj()->findFunction(pdfuncs[i]);
    }
 
+   // FIXME this is debugging code that should be removed
+   if(everyUniqueFunction.size() != pdfuncs.size()) {
+    fprintf(stderr,"[%s:%u] EUF.size %u != pdfuncs.size %u\n",
+     FILE__,__LINE__,everyUniqueFunction.size(),pdfuncs.size());
+
+        fprintf(stderr,"everyUniqueFunction[]:\n");
+        for(unsigned i=0;i<everyUniqueFunction.size();++i){
+            fprintf(stderr,"%u %s 0x%lx\n",
+                i,
+                everyUniqueFunction[i]->symTabName().c_str(),
+                everyUniqueFunction[i]->getAddress());
+        }
+        fprintf(stderr,"pdfuncs[]:\n");
+        for(unsigned i=0;i<pdfuncs.size();++i) {
+            fprintf(stderr,"%u %s 0x%lx\n",
+                i,
+                pdfuncs[i]->symTabName().c_str(),
+                pdfuncs[i]->getOffset());
+        }
+    }
    assert(everyUniqueFunction.size() == pdfuncs.size());
 
    return everyUniqueFunction;

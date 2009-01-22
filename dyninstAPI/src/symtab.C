@@ -81,6 +81,8 @@ AnnotationClass<image_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
 
 using namespace Dyninst;
+using namespace std;
+
 string fileDescriptor::emptyString(string(""));
 fileDescriptor::fileDescriptor() {
     // This shouldn't be called... must be public for pdvector, though
@@ -206,7 +208,8 @@ image_func *image::makeOneFunction(vector<Symbol *> &mods,
 
    image_func *func = new image_func(lookUp, 
          use, 
-         this);
+         this,
+         FS_SYMTAB);
 
    /* Among symbol table functions, the ones with @ in the name are most likely OpenMP functions,
       if any non-OpenMP functions sneak in here we'll take care of them later when 
@@ -975,24 +978,30 @@ int image::destroy() {
 }
 
 // Enter a function in all the appropriate tables
-void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
+void image::enterFunctionInTables(image_func *func) {
     if (!func) return;
 
+    parsing_printf("[%s:%u] entering function at 0x%lx (%s) (%p) in tables\n",
+        FILE__,__LINE__,func->getOffset(),func->symTabName().c_str(),func);
+
     funcsByEntryAddr[func->getOffset()] = func;
-    
-    // Functions added during symbol table parsing do not necessarily
-    // have valid sizes set, and should therefor not be added to
-    // the code range tree. They will be added after parsing. 
-    if(!wasSymtab) {
-        // TODO: out-of-line insertion here
-        if (func->get_size())
-          funcsByRange.insert(func);
+   
+    // XXX the origin & meaning of the following comment is unknown; preserving.
+    // TODO: out-of-line insertion here
+    if(func->get_size()) {
+        funcsByRange.insert(func);
+    }
+
+    // This has already been done for symtab functions
+    if(func->howDiscovered() != FS_SYMTAB) {
         Symbol *sym = func->getSymtabFunction()->getFirstSymbol();
         getObject()->addSymbol(sym);
     }
-    
+   
+    // List of all image_func objects 
     everyUniqueFunction.push_back(func);
-    if (wasSymtab)
+
+    if(func->howDiscovered() == FS_SYMTAB)
         exportedFunctions.push_back(func);
     else
         createdFunctions.push_back(func);
@@ -1003,37 +1012,38 @@ void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
 //were built) so that language information could be obtained _after_ the 
 //functions and modules were built, but before name demangling takes place.  
 //Thus we can use language information during the demangling process.
+//
+//  * Adds functions to funcsByEntryAddr hash
+//  * Consolidates duplicate functions created from symbols at the same addr.
+//  * Adds functions to symtabCandidateFuncs list for future parsing
 
 bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs) 
 {
     for (unsigned int i = 0; i < raw_funcs.size(); i++) {
         image_func *raw = raw_funcs[i];
-        
-	// Now, we see if there's already a function object for this
-        // address. If so, add a new name;
+        image_func *existingFunction = NULL;
 
-	image_func *possiblyExistingFunction = NULL;
-	funcsByEntryAddr.find(raw->getOffset(), possiblyExistingFunction);
-        if (!possiblyExistingFunction)
-	{
+        funcsByEntryAddr.find(raw->getOffset(), existingFunction);
+        if(!existingFunction)
+        {
             funcsByEntryAddr[raw->getOffset()] = raw;
-	    std::string name = (raw->symTabNameVector())[raw->symTabNameVector().size()-1].c_str();
+            std::string name = raw->symTabNameVector().back();
+            // Apparently there's some logic here that needs to be invoked,
+            // despite this name already being know for this function
             raw->addSymTabName(name);
+    
+            // add to parsing list
+            symtabCandidateFuncs.push_back(raw);
+        } else {
+            // Add this [possible] alias to the existing function
+            existingFunction->addSymTabName(raw->symTabName());
+
+            // clean up this unused function
+            raw_funcs[i] = NULL;
+            delete raw;
         }
     }
-    
-    // Now that we have a 1) unique and 2) demangled list of function
-    // names, loop through once more and build the address range tree
-    // and name lookup tables. 
-    for (unsigned j = 0; j < raw_funcs.size(); j++) {
-        image_func *func = raw_funcs[j];
-        if (!func) continue;
-        	
-        // May be NULL if it was an alias.
-        enterFunctionInTables(func, true);
-    }
-    
-    // Conspicuous lack: inst points. We're delaying.
+
     return true;
 }
 
@@ -1061,9 +1071,9 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    is_a_out(false),
    main_call_addr_(0),
    nativeCompiler(false),    
-   knownJumpTargets(int_addrHash, 8192),
    _mods(0),
    funcsByEntryAddr(addrHash4),
+   activelyParsing(addrHash4),
    nextBlockID_(0),
    pltFuncs(NULL),
    varsByAddr(addrHash4),
@@ -1145,7 +1155,6 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 
    imageLen_ = linkedFile->imageLength();
    dataLen_ = linkedFile->dataLength();
-
 
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
@@ -1425,16 +1434,14 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      
      // Adding the symbol finds or creates a Function object...
      assert(funcSym->getFunction());
-     image_func *func = new image_func(funcSym->getFunction(), mod, this);
-     //func->symbol()->setUpPtr(func);
+     image_func *func = 
+        new image_func(funcSym->getFunction(), mod, this, FS_ONDEMAND);
+
      if (!func->getSymtabFunction()->addAnnotation(func, ImageFuncUpPtrAnno))
      {
         fprintf(stderr, "%s[%d]: failed to add annotation here\n", FILE__, __LINE__);
         return NULL;
      }
-#if 0
-     annotate(func->symbol(), func, std::string("image_func_ptr"));
-#endif
 
      // If this is a Dyninst dynamic heap placeholder, add it to the
      // list of inferior heaps...
