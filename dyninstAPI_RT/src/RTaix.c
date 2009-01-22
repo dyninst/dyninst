@@ -120,6 +120,8 @@ int DYNINSTloadLibrary(char *libname)
 void DYNINST_ThreadPInfo(void* tls, void** stkbase, dyntid_t* tid, 
                          long *pc, int* lwp, void** rs) 
 {
+#if 0 
+    /* Outdated?*/
    unsigned pthread_context;
    int *func_ptr;
    struct __pthrdsinfo *ptr = (struct __pthrdsinfo *) tls;
@@ -135,6 +137,21 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, dyntid_t* tid,
    pthread_context+=92;
    func_ptr = (int *)*((int *)pthread_context);
    *pc = *func_ptr;
+#endif
+   /* Use the __pthrdsinfo struct defined in /usr/include/pthread.h */
+   struct __pthrdsinfo *ptr = (struct __pthrdsinfo *) tls;
+   /* Want: 
+      Stack base
+      TID
+      initial PC (entry to provided "start" function)
+      LWP
+      RS (thread context)
+   */
+   *stkbase = (void *) ptr->__pi_stackaddr;
+   *tid = ptr->__pi_ptid; /* pthread_t as opposed to tid_t */
+   *pc = ptr->__pi_func;
+   *lwp = ptr->__pi_tid;
+   *rs = (void *) (&ptr->__pi_context);
 }
 
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
