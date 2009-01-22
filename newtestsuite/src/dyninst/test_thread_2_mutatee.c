@@ -22,8 +22,8 @@
  */
 
 Thread_t test3_threads[TEST3_THREADS];
-static Lock_t test3lock;
-static int mutateeIdle = 0;
+Lock_t test3lock;
+int mutateeIdle = 0;
 
 /* Function definitions follow */
 
