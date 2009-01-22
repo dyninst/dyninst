@@ -21,7 +21,7 @@
  * group.
  */
 
-static Thread_t test3_threads[TEST3_THREADS];
+Thread_t test3_threads[TEST3_THREADS];
 static Lock_t test3lock;
 static int mutateeIdle = 0;
 
