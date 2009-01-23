@@ -353,7 +353,7 @@ using namespace Dyninst::InstructionAPI;
             for(unsigned i=0;i<sources.size();i++)
             {
                 if(sources[i]->getType() == ET_CALL)
-                    continue;
+                    return false;
 
                 image_basicBlock * src = sources[i]->getSource();
                 if( !visited.contains( src ) ) {
