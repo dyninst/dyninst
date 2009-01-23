@@ -22,6 +22,8 @@ NATIVE_FORTRAN_CC = gcc
 #NATIVE_CC = xlc
 #NATIVE_CXX = xlC
 #NATIVE_CXX_OMP = xlC_r
+CC = gcc
+
 
 COMMA=,
 
@@ -65,11 +67,13 @@ MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
 MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -ldl -lpthread -lxlsmp
- 
+
 CFLAGS_TESTLIBS = -I../src -I$(TO_CORE)/dyninstAPI_RT/h
-TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
-LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -lc -L$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) -ldyninstAPI_RT -lpthread
-MAKE_SHARED_LIB = ld
+#TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
+TESTLIB_FLAGS = -shared -Wl,-bexpall -L$(TO_CORE)/../$(PLATFORM)/lib -pthread -ldyninstAPI_RT
+#LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -lc -L$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) -ldyninstAPI_RT -lpthread
+LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -pthread -ldyninstAPI_RT
+MAKE_SHARED_LIB = gcc
 
 TESTSUITE_FLAGS += -Wl,-bexpall   
 
