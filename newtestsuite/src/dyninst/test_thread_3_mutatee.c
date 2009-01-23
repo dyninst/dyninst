@@ -21,9 +21,9 @@
  * group.
  */
 
-static Thread_t test4_threads[TEST3_THREADS];
-static Lock_t test4lock;
-static int mutateeIdle = 0;
+Thread_t test4_threads[TEST3_THREADS];
+Lock_t test4lock;
+int mutateeIdle = 0;
 
 /* Function definitions follow */
 
