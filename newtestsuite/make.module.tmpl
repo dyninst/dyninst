@@ -112,9 +112,11 @@ SRCS_DYNINSTCOMP_LIB = dyninst/dyninst_comp.C \
 OBJS_DYNINSTCOMP_LIB = $(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.o))
 SRCS_DYNINSTTESTLIB = dyninst/libtestA.c \
                       dyninst/libtestB.c \
-                      dyninst/libInstMe.c \
-                      dyninst/libLoadMe.c \
                       dyninst/libTest12.c
+
+#                      dyninst/libInstMe.c \
+#                      dyninst/libLoadMe.c \
+
 dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI
 
 ifdef M_ABI
