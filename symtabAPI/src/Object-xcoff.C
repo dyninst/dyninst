@@ -1049,7 +1049,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    no_of_symbols_ = nsyms;
    // Now the symbol table itself:
    if (alloc_syms) {
-       object_printf("%lld symbols present in file\n", nsyms);
+       object_printf("%d symbols present in file\n", nsyms);
    for (i=0; i < (signed)nsyms; i++) 
    {
       /* do the pointer addition by hand since sizeof(struct syment)
@@ -1488,7 +1488,6 @@ Object::Object(const Object& obj) :
 Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
    AObject(mf_, mfd, err_func), offset_(offset)
 {    
-    object_printf("Loading file: %s\n", mf_->filename().c_str());
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
    fo_->set_file(mf_->filename());
@@ -1498,7 +1497,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
 Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset, void (*err_func)(const char *), void *) :
    AObject(mf_, mfd, err_func), member_(member_name), offset_(offset)
 {    
-    object_printf("Loading member %s from file %s\n", member_name.c_str(), mf_->filename().c_str());
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
    fo_->set_file(member_name);
