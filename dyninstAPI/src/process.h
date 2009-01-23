@@ -339,7 +339,9 @@ class process : public AddressSpace {
 #endif
     
     void installInstrRequests(const pdvector<instMapping*> &requests);
-    void recognize_threads(process *parent = NULL);
+
+    // Returns false if process exited while recognizing threads
+    bool recognize_threads(process *parent = NULL);
     // Get LWP handles from /proc (or as appropriate)
     
     bool determineLWPs(pdvector<unsigned> &lwp_ids);

@@ -1083,7 +1083,7 @@ void BPatch::registerExecExit(process *proc)
    else
       asyncActive = true;
 #endif
-   process->updateThreadInfo();
+   if (!process->updateThreadInfo()) return;
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
@@ -1496,7 +1496,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
    asyncActive = true;
 #endif
 
-   ret->updateThreadInfo();
+   if (!ret->updateThreadInfo()) return NULL;
 
    return ret;
 }
@@ -1559,7 +1559,7 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
    } 
    asyncActive = true;
 #endif
-   ret->updateThreadInfo();
+   if (!ret->updateThreadInfo()) return false;
 
    return ret;
 }

@@ -175,6 +175,7 @@ Address process::getTOCoffsetInfo(Address dest)
     // Very odd case if this is not defined.
     assert(mobj);
     Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset(); 
+
     if (!TOCOffset)
        return 0;
     return TOCOffset + mobj->dataBase();
@@ -1950,7 +1951,8 @@ bool process::setupFork()
     // Find new threads
     /////////////////////////    
 
-    recognize_threads(parent);
+    if (!recognize_threads(parent))
+        return false;
 
     // Tag the garbage collection list...
     for (unsigned ii = 0; ii < parent->pendingGCInstrumentation.size(); ii++) {
@@ -5178,7 +5180,7 @@ static int doneRegistering(process *, unsigned, void *data, void *result)
    return 0;
 }
 
-void process::recognize_threads(process *parent) 
+bool process::recognize_threads(process *parent) 
 {
   pdvector<unsigned> lwp_ids;
   unsigned i;
@@ -5194,7 +5196,7 @@ void process::recognize_threads(process *parent)
       if (!result) {
           startup_printf("Error. Recognize_threads couldn't determine LWPs\n");
           suppress_bpatch_callbacks_ = false;
-          return;
+          return false;
       }
   }
 
@@ -5217,7 +5219,7 @@ void process::recognize_threads(process *parent)
         // thus it's safe to not keep a pointer to the new thread
      }
      suppress_bpatch_callbacks_ =false;
-     return;
+     return true;
   }
 
   if (dyn_debug_startup) {
@@ -5246,6 +5248,9 @@ void process::recognize_threads(process *parent)
      // events on them).  Stop them all now.
      pause();
 #endif
+     if (status() == exited) 
+         return false;
+
      assert(status() == stopped);
 
 
@@ -5334,7 +5339,7 @@ void process::recognize_threads(process *parent)
          if(hasExited()) {
              fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
              suppress_bpatch_callbacks_ =false;
-             return;
+             return false;
          }
          
          sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone, 
@@ -5350,6 +5355,10 @@ void process::recognize_threads(process *parent)
      // Don't assert these... the RPCs can fail (well DYNINSTthreadIndex can fail).
      // assert(ret_lwps.size() == expected);
      // assert(ret_indexes.size() == expected);
+
+     if (hasExited()) {
+         return false;
+     }
 
      assert(status() == stopped);
      
@@ -5375,7 +5384,7 @@ void process::recognize_threads(process *parent)
 
      assert(status() == stopped);
      suppress_bpatch_callbacks_ =false;
-     return;
+     return true;
   } // end non-fork case
 
   // Fork case
@@ -5453,7 +5462,7 @@ void process::recognize_threads(process *parent)
      }
   }
   suppress_bpatch_callbacks_ =false;
-  return;
+  return true;
 }
 
 int process::maxNumberOfThreads()

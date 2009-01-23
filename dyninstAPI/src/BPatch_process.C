@@ -2091,17 +2091,19 @@ BPatch_function *BPatch_process::get_function(int_function *f)
 }
 
 extern void dyninst_yield();
-void BPatch_process::updateThreadInfo()
+bool BPatch_process::updateThreadInfo()
 {
    if (!llproc->multithread_capable())
-      return;
+      return true;
    
-   llproc->recognize_threads(NULL);
+   if (!llproc->recognize_threads(NULL))
+       return false;
    
    //We want to startup the event handler thread even if there's
    // no registered handlers so we can start getting MT events.
    if (!getAsync()->startupThread())
-       return;
+       return false;
+   return true;
 }
 
 /**
