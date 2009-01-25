@@ -1948,94 +1948,105 @@ unsigned long globalVariable30_8 = 0;
 unsigned long globalVariable30_9 = 0;
 int func30_1()
 {
-    kludge = 1;	/* Here so that the following function call isn't the first
-		   instruction */
+   kludge = 1;	/* Here so that the following function call isn't the first
+                  instruction */
 
 #if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) \
- || defined(i386_unknown_nt4_0) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(alpha_dec_osf4_0)
-    
-    func30_2();
+   || defined(i386_unknown_solaris2_5) \
+   || defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+   || defined(ia64_unknown_linux2_4) \
+   || defined(i386_unknown_nt4_0) \
+   || defined(rs6000_ibm_aix4_1) \
+   || defined(alpha_dec_osf4_0)
 
-    passedTest[30] = !globalVariable30_3 ||
+   func30_2();
+
+   passedTest[30] = !globalVariable30_3 ||
 #if defined(rs6000_ibm_aix4_1)
-		     ((globalVariable30_8 <= globalVariable30_3) &&
+      ((globalVariable30_8 <= globalVariable30_3) 
 #else
-		     ((globalVariable30_2 <= globalVariable30_3) &&
+       ((globalVariable30_2 <= globalVariable30_3) 
 #endif
-		      (globalVariable30_3 <= globalVariable30_9));
+        && (globalVariable30_3 <= globalVariable30_9));
 
-    if (!passedTest[30]){
-    	logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	return 0;
-    }
 
-    passedTest[30] = !globalVariable30_4 ||
+       if (!passedTest[30])
+       {
+       logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+       logerror("\t gv30_3 = %lu (nonzero?)\n", globalVariable30_3 );
+       logerror("\t gv30_3 = %lu, (? <=) gv30_9 = %lu\n", globalVariable30_3, globalVariable30_9 );
+
 #if defined(rs6000_ibm_aix4_1)
-		     ((globalVariable30_8 <= globalVariable30_4) &&
+       logerror("\t gv30_8 = %lu, (? <=) gv30_3 = %lu\n", globalVariable30_8, globalVariable30_3 );
 #else
-		     ((globalVariable30_2 <= globalVariable30_4) &&
+       logerror("\t gv30_2 = %lu, (? <=) gv30_3 = %lu\n", globalVariable30_2, globalVariable30_3 );
 #endif
-		      (globalVariable30_4 <= globalVariable30_9));
+       return 0;
+       }
 
-    if (!passedTest[30]){
-    	logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	return 0;
-    }
-
-    passedTest[30] = !globalVariable30_5 ||
+       passedTest[30] = !globalVariable30_4 ||
 #if defined(rs6000_ibm_aix4_1)
-		     ((globalVariable30_8 <= globalVariable30_5) &&
+          ((globalVariable30_8 <= globalVariable30_4) &&
 #else
-		     ((globalVariable30_2 <= globalVariable30_5) &&
+           ((globalVariable30_2 <= globalVariable30_4) &&
 #endif
-		      (globalVariable30_5 <= globalVariable30_9));
+            (globalVariable30_4 <= globalVariable30_9));
 
-		      if (!passedTest[30]){
-			logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-			logerror("gv30_5 = %lu, gv30_2 = %lu, gv30_9 = %lu\n", globalVariable30_5,
-			       globalVariable30_2, globalVariable30_9);
-			return 0;
-		      }
+           if (!passedTest[30])
+           {
+           logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+           return 0;
+           }
 
-    passedTest[30] = !globalVariable30_6 ||
-		     (globalVariable30_1 == globalVariable30_6);
-    if (!passedTest[30]){
-    	logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	logerror("gv30_6 = %lu, gv30_1 = %lu, should be equal and nonzero!\n", globalVariable30_6,
-	       globalVariable30_1);
-	return 0;
-    }
+           passedTest[30] = !globalVariable30_5 ||
+#if defined(rs6000_ibm_aix4_1)
+           ((globalVariable30_8 <= globalVariable30_5) &&
+#else
+            ((globalVariable30_2 <= globalVariable30_5) &&
+#endif
+             (globalVariable30_5 <= globalVariable30_9));
 
-    logerror("Passed test #30 (line information)\n");
+            if (!passedTest[30]){
+            logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+            logerror("gv30_5 = %lu, gv30_2 = %lu, gv30_9 = %lu\n", globalVariable30_5,
+               globalVariable30_2, globalVariable30_9);
+            return 0;
+            }
+
+            passedTest[30] = !globalVariable30_6 ||
+            (globalVariable30_1 == globalVariable30_6);
+            if (!passedTest[30]){
+            logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+            logerror("gv30_6 = %lu, gv30_1 = %lu, should be equal and nonzero!\n", globalVariable30_6,
+               globalVariable30_1);
+            return 0;
+            }
+
+            logerror("Passed test #30 (line information)\n");
 
 #else
-    logerror("Skipped test #30 (line information)\n");
-    logerror("\t- not implemented on this platform\n");
-    passedTest[30] = TRUE;
+            logerror("Skipped test #30 (line information)\n");
+            logerror("\t- not implemented on this platform\n");
+            passedTest[30] = TRUE;
 #endif
-    return 1;
+            return 1;
 }
 
 void func31_2()
 {
-  globalVariable31_2 = 1;
+   globalVariable31_2 = 1;
 }
 
 void func31_3()
 {
-  globalVariable31_3 = 1;
+   globalVariable31_3 = 1;
 }
 
 void func31_4( int value )
 {
-  if( value == 0 )
-    {
+   if( value == 0 )
+   {
       logerror( "func_31_4 called with value = 0 !\n" );
     }
   globalVariable31_4 += value;

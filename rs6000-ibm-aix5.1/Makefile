@@ -17,6 +17,8 @@ include $(TO_CORE)/make.config
 # Uncomment M_G77 (at yr own risk) to do g77 build
 #M_G77 = g77
 
+CC = gcc
+CXX = g++
 NATIVE_FC = xlf90
 NATIVE_FORTRAN_CC = gcc
 NATIVE_CC = xlc
