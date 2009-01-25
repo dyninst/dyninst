@@ -306,18 +306,18 @@ void Symtab::setupStdTypes()
    return;
 }
 
-DLLEXPORT unsigned Symtab::getAddressWidth() const 
+SYMTAB_EXPORT unsigned Symtab::getAddressWidth() const 
 {
    return address_width_;
 }
  
-DLLEXPORT bool Symtab::isNativeCompiler() const 
+SYMTAB_EXPORT bool Symtab::isNativeCompiler() const 
 {
     return nativeCompiler; 
 }
  
 
-DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
+SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    AnnotatableSparse(),
    mf(mf_), 
    mfForDebugInfo(mf_),
@@ -327,7 +327,7 @@ DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
 }   
 
 
-DLLEXPORT Symtab::Symtab() :
+SYMTAB_EXPORT Symtab::Symtab() :
    obj_private(NULL)
 {
     init_debug_symtabAPI();
@@ -335,12 +335,12 @@ DLLEXPORT Symtab::Symtab() :
     defaultNamespacePrefix = "";
 }
 
-DLLEXPORT bool Symtab::isExec() const 
+SYMTAB_EXPORT bool Symtab::isExec() const 
 {
     return is_a_out; 
 }
 
-DLLEXPORT bool Symtab::isStripped() 
+SYMTAB_EXPORT bool Symtab::isStripped() 
 {
 #if defined(os_linux) || defined(os_solaris)
     Region *sec;
@@ -350,64 +350,64 @@ DLLEXPORT bool Symtab::isStripped()
 #endif
 }
 
-DLLEXPORT Offset Symtab::imageOffset() const 
+SYMTAB_EXPORT Offset Symtab::imageOffset() const 
 {
     return imageOffset_;
 }
 
-DLLEXPORT Offset Symtab::dataOffset() const 
+SYMTAB_EXPORT Offset Symtab::dataOffset() const 
 { 
     return dataOffset_;
 }
 
-DLLEXPORT Offset Symtab::dataLength() const 
+SYMTAB_EXPORT Offset Symtab::dataLength() const 
 {
     return dataLen_;
 } 
 
-DLLEXPORT Offset Symtab::imageLength() const 
+SYMTAB_EXPORT Offset Symtab::imageLength() const 
 {
     return imageLen_;
 }
 /*
-DLLEXPORT char* Symtab::image_ptr ()  const 
+SYMTAB_EXPORT char* Symtab::image_ptr ()  const 
 {
    return code_ptr_;
 }
 
-DLLEXPORT char* Symtab::data_ptr ()  const 
+SYMTAB_EXPORT char* Symtab::data_ptr ()  const 
 { 
    return data_ptr_;
 }
 */
-DLLEXPORT const char*  Symtab::getInterpreterName() const 
+SYMTAB_EXPORT const char*  Symtab::getInterpreterName() const 
 {
    if (interpreter_name_.length())
       return interpreter_name_.c_str();
    return NULL;
 }
  
-DLLEXPORT Offset Symtab::getEntryOffset() const 
+SYMTAB_EXPORT Offset Symtab::getEntryOffset() const 
 { 
    return entry_address_;
 }
 
-DLLEXPORT Offset Symtab::getBaseOffset() const 
+SYMTAB_EXPORT Offset Symtab::getBaseOffset() const 
 {
    return base_address_;
 }
 
-DLLEXPORT Offset Symtab::getLoadOffset() const 
+SYMTAB_EXPORT Offset Symtab::getLoadOffset() const 
 { 
    return load_address_;
 }
 
-DLLEXPORT Offset Symtab::getTOCoffset() const 
+SYMTAB_EXPORT Offset Symtab::getTOCoffset() const 
 {
    return toc_offset_;
 }
 
-DLLEXPORT string Symtab::getDefaultNamespacePrefix() const
+SYMTAB_EXPORT string Symtab::getDefaultNamespacePrefix() const
 {
     return defaultNamespacePrefix;
 }
@@ -438,7 +438,7 @@ bool Symtab::buildDemangledName( const std::string &mangled,
    {
       if ( mangled[ mangled.length() - 1 ] == '_' ) 
       {
-         char * demangled = strdup( mangled.c_str() );
+         char * demangled = P_strdup( mangled.c_str() );
          demangled[ mangled.length() - 1 ] = '\0';
          pretty = std::string( demangled );
 
@@ -1485,9 +1485,8 @@ bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
    return true;
 }
 
-DLLEXPORT std::vector<std::string> &Symtab::getDependencies()
-{
-   return deps_;
+SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
+    return deps_;
 }
 
 
@@ -1890,7 +1889,6 @@ void Symtab::parseLineInformation()
    isLineInfoValid_ = true;	
    dyn_hash_map <std::string, LineInformation>::iterator iter;
 
-   //fprintf(stderr, "%s[%d]:  after parse of line information, found info for mods:\n", FILE__, __LINE__);
    for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
    {
       Module *mod = NULL;
@@ -1909,12 +1907,16 @@ void Symtab::parseLineInformation()
          {
             lineInformation->addLineInfo(&(iter->second));
             mod->setLineInfo(lineInformation);
-         }	
+         }
+      }
+      else {
+	object_printf("[%s:%u] - Couldn't find module %s to go with line info\n",
+		     __FILE__, __LINE__, iter->first.c_str()); 
       }
    }
 }
 
-DLLEXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
+SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
    unsigned int originalSize = ranges.size();
@@ -1936,7 +1938,7 @@ DLLEXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&range
    return false;
 }
 
-DLLEXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
@@ -1957,7 +1959,7 @@ DLLEXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
 
 }
 
-DLLEXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
+SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
       unsigned int lineOffset, Offset lowInclAddr,
       Offset highExclAddr)
 {
@@ -1983,7 +1985,7 @@ DLLEXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
             lowInclAddr, highExclAddr));
 }
 
-DLLEXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExclusiveAddr,
+SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExclusiveAddr,
       std::string lineSource, unsigned int lineNo,
       unsigned int lineOffset)
 {
@@ -2027,19 +2029,19 @@ bool Symtab::addType(Type *type)
    return true;
 }
 
-DLLEXPORT vector<Type *> *Symtab::getAllstdTypes()
+SYMTAB_EXPORT vector<Type *> *Symtab::getAllstdTypes()
 {
    setupStdTypes();
    return stdTypes->getAllTypes(); 	
 }
 
-DLLEXPORT vector<Type *> *Symtab::getAllbuiltInTypes()
+SYMTAB_EXPORT vector<Type *> *Symtab::getAllbuiltInTypes()
 {
    setupStdTypes();
    return builtInTypes->getAllBuiltInTypes();
 }
 
-DLLEXPORT bool Symtab::findType(Type *&type, std::string name)
+SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
 {
    parseTypesNow();
 
@@ -2054,7 +2056,7 @@ DLLEXPORT bool Symtab::findType(Type *&type, std::string name)
    return true;	
 }
 
-DLLEXPORT bool Symtab::findVariableType(Type *&type, std::string name)
+SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
 {
    parseTypesNow();
 
@@ -2069,7 +2071,7 @@ DLLEXPORT bool Symtab::findVariableType(Type *&type, std::string name)
    return true;	
 }
 
-DLLEXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::string name)
+SYMTAB_EXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
    parseTypesNow();
    unsigned origSize = vars.size();
@@ -2085,12 +2087,12 @@ DLLEXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::stri
    return false;	
 }
 
-DLLEXPORT bool Symtab::hasRel() const
+SYMTAB_EXPORT bool Symtab::hasRel() const
 {
    return hasRel_;
 }
 
-DLLEXPORT bool Symtab::hasRela() const
+SYMTAB_EXPORT bool Symtab::hasRela() const
 {
    return hasRela_;
 }
@@ -2101,7 +2103,7 @@ bool Symtab::setDefaultNamespacePrefix(string &str)
    return true;
 }
 
-DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
+SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Start with all the defined symbols
     std::vector<Symbol *> allSyms;
@@ -2121,17 +2123,17 @@ DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsi
     return linkedFile->emitDriver(this, filename, allSyms, flag);
 }
 
-DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
+SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
     return emitSymbols(getObject(), filename, flag);
 }
 
-DLLEXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
+SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
 {
    dynLibSubs[oldName] = newName;
 }
 
-DLLEXPORT std::string Symtab::getDynLibSubstitution(std::string name)
+SYMTAB_EXPORT std::string Symtab::getDynLibSubstitution(std::string name)
 {
 #ifdef BINEDIT_DEBUG
    map<std::string, std::string>::iterator iter = dynLibSubs.begin();
@@ -2153,7 +2155,7 @@ DLLEXPORT std::string Symtab::getDynLibSubstitution(std::string name)
       return loc->second;
 }
 
-DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const
+SYMTAB_EXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
    segs = segments_;
 
@@ -2163,7 +2165,7 @@ DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const
    return true;
 }
 
-DLLEXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) const
+SYMTAB_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) const
 {
    unsigned origSize = mappedRegs.size();
 
@@ -2179,7 +2181,7 @@ DLLEXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) const
    return false;
 }
 
-DLLEXPORT bool Symtab::updateCode(void *buffer, unsigned size)
+SYMTAB_EXPORT bool Symtab::updateCode(void *buffer, unsigned size)
 {
    Region *sec;
 
@@ -2191,7 +2193,7 @@ DLLEXPORT bool Symtab::updateCode(void *buffer, unsigned size)
    return true;
 }
 
-DLLEXPORT bool Symtab::updateData(void *buffer, unsigned size)
+SYMTAB_EXPORT bool Symtab::updateData(void *buffer, unsigned size)
 {
    Region *sec;
 
@@ -2203,7 +2205,7 @@ DLLEXPORT bool Symtab::updateData(void *buffer, unsigned size)
    return true;
 }
 
-DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) 
+SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size) 
 {
    // Look through sections until we find a gap with
    // sufficient space.
@@ -2272,33 +2274,33 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
    return newaddr;
 }
 
-DLLEXPORT ObjectType Symtab::getObjectType() const 
+SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
 {
    return object_type_;
 }
 
-DLLEXPORT char *Symtab::mem_image() const 
+SYMTAB_EXPORT char *Symtab::mem_image() const 
 {
    return (char *)mf->base_addr();
 }
 
-DLLEXPORT std::string Symtab::file() const 
+SYMTAB_EXPORT std::string Symtab::file() const 
 {
    assert(mf);
    return mf->pathname();
 }
 
-DLLEXPORT std::string Symtab::name() const 
+SYMTAB_EXPORT std::string Symtab::name() const 
 {
    return mf->filename();
 }
 
-DLLEXPORT unsigned Symtab::getNumberofRegions() const 
+SYMTAB_EXPORT unsigned Symtab::getNumberofRegions() const 
 {
    return no_of_sections; 
 }
 
-DLLEXPORT unsigned Symtab::getNumberofSymbols() const 
+SYMTAB_EXPORT unsigned Symtab::getNumberofSymbols() const 
 {
    return no_of_symbols; 
 }
@@ -2356,55 +2358,54 @@ void Symtab::serialize(SerializerBase *sb, const char *tag)
    } SER_CATCH("Symtab");
 }
 
-DLLEXPORT LookupInterface::LookupInterface() 
+SYMTAB_EXPORT LookupInterface::LookupInterface() 
 {
 }
 
-DLLEXPORT LookupInterface::~LookupInterface()
+SYMTAB_EXPORT LookupInterface::~LookupInterface()
 {
 }
 
 
-DLLEXPORT ExceptionBlock::ExceptionBlock(Offset tStart, 
+SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset tStart, 
       unsigned tSize, 
       Offset cStart) 
 : tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) 
 {
 }
 
-   DLLEXPORT ExceptionBlock::ExceptionBlock(Offset cStart) 
+   SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(Offset cStart) 
 : tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) 
 {
 }
 
-DLLEXPORT ExceptionBlock::ExceptionBlock(const ExceptionBlock &eb) :
+SYMTAB_EXPORT ExceptionBlock::ExceptionBlock(const ExceptionBlock &eb) :
    Serializable(),
    tryStart_(eb.tryStart_), trySize_(eb.trySize_), 
    catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) 
 {
 }
-
-DLLEXPORT bool ExceptionBlock::hasTry() const
+SYMTAB_EXPORT bool ExceptionBlock::hasTry() const
 { 
    return hasTry_; 
 }
 
-DLLEXPORT Offset ExceptionBlock::tryStart() const
+SYMTAB_EXPORT Offset ExceptionBlock::tryStart() const
 { 
    return tryStart_; 
 }
 
-DLLEXPORT Offset ExceptionBlock::tryEnd() const
+SYMTAB_EXPORT Offset ExceptionBlock::tryEnd() const
 { 
    return tryStart_ + trySize_; 
 }
 
-DLLEXPORT Offset ExceptionBlock::trySize() const
+SYMTAB_EXPORT Offset ExceptionBlock::trySize() const
 {
    return trySize_; 
 }
 
-DLLEXPORT bool ExceptionBlock::contains(Offset a) const
+SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
 { 
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
@@ -2422,7 +2423,8 @@ void ExceptionBlock::serialize(SerializerBase *sb, const char *tag)
    } SER_CATCH("Symtab");
 }
 
-DLLEXPORT relocationEntry::relocationEntry() :
+
+SYMTAB_EXPORT relocationEntry::relocationEntry() :
    target_addr_(0), 
    rel_addr_(0), 
    addend_(0), 
@@ -2433,7 +2435,7 @@ DLLEXPORT relocationEntry::relocationEntry() :
 {
 }   
 
-DLLEXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n, 
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n, 
       Symbol *dynref, unsigned long relType) :
    target_addr_(ta), 
    rel_addr_(ra), 
@@ -2445,7 +2447,7 @@ DLLEXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, std::string n,
 {
 }   
 
-DLLEXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add, 
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add, 
       std::string n, Symbol *dynref, unsigned long relType) :
    target_addr_(ta), 
    rel_addr_(ra), 
@@ -2457,7 +2459,7 @@ DLLEXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
 {
 }
 
-DLLEXPORT relocationEntry::relocationEntry(Offset ra, std::string n, 
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n, 
       Symbol *dynref, unsigned long relType, Region::RegionType rtype) :
    target_addr_(0), 
    rel_addr_(ra), 
@@ -2469,7 +2471,7 @@ DLLEXPORT relocationEntry::relocationEntry(Offset ra, std::string n,
 {
 }   
 
-DLLEXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
+SYMTAB_EXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
 {
    target_addr_ = ra.target_addr_;
    rel_addr_ = ra.rel_addr_;
@@ -2481,24 +2483,20 @@ DLLEXPORT const relocationEntry& relocationEntry::operator=(const relocationEntr
    return *this;
 }
 
-DLLEXPORT void relocationEntry::setAddend(const Offset value) 
-{
-   addend_ = value;
+SYMTAB_EXPORT void relocationEntry::setAddend(const Offset value) {
+    addend_ = value;
 }
 
-DLLEXPORT Offset relocationEntry::addend() const 
-{
-   return addend_;
+SYMTAB_EXPORT Offset relocationEntry::addend() const {
+    return addend_;
 }
 
-DLLEXPORT void relocationEntry::setRegionType(const Region::RegionType value) 
-{
-   rtype_ = value;
+SYMTAB_EXPORT void relocationEntry::setRegionType(const Region::RegionType value) {
+    rtype_ = value;
 }
 
-DLLEXPORT Region::RegionType relocationEntry::regionType() const 
-{
-    return rtype_;
+SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const {
+	return rtype_;
 }
 
 void relocationEntry::serialize(SerializerBase *sb, const char *tag)

@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <string>
 
+#include "symutil.h"
+
 #include "Collections.h"
 #include "Symtab.h"
 #include "Module.h"
@@ -253,76 +255,19 @@ Type * typeCollection::findOrCreateType( const int ID ) {
     Type * returnType = NULL;
     if( Symtab::builtInTypes ) {
         returnType = Symtab::builtInTypes->findBuiltInType(ID);
+	if (returnType)
+	  return returnType;
     }
 
-    if( returnType == NULL ) {
-        /* Create a placeholder type. */
-        returnType = Type::createPlaceholder(ID);
-	assert( returnType != NULL );
+    /* Create a placeholder type. */
+    returnType = Type::createPlaceholder(ID);
+    assert( returnType != NULL );
+    
+    /* Having created the type, add it. */
+    addType( returnType );
 
-        /* Having created the type, add it. */
-        addType( returnType );
-    }
-  
     return returnType;
 } /* end findOrCreateType() */
-
-Type * typeCollection::addOrUpdateType( Type * type ) {
-//    if(type->getID() == 14)
-//        cout << "found type with ID 14" << endl;
-    Type * existingType = findTypeLocal( type->getID() );
-    if( existingType == NULL ) {
-        if( type->getName() != "" ) {
-            typesByName[ type->getName() ] = type;
-            typesByID[ type->getID() ] = type;
-            type->incrRefCount();
-        }
-        else{
-            typesByID[ type->getID() ] = type;
-            type->incrRefCount();
-        }
-        return type;
-    } else {
-        /* Multiple inclusions of the same object file can result
-           in us parsing the same module types repeatedly. GCC does this
-           with some of its internal routines */
-        if (*existingType == *type) {
-           return existingType;
-        }
-#ifdef notdef
-	//#if defined( USES_DWARF_DEBUG )
-        /* Replace the existing type wholesale. */
-        // bperr( "Updating existing type '%s' %d at %p with %p\n", type->getName(), type->getID(), existingType, type );
-	memmove( existingType, type, sizeof( type ) );
-#else
-        if (existingType->getDataClass() == dataUnknownType) {
-           typesByID[type->getID()] = type;
-           type->incrRefCount();
-           existingType->decrRefCount();
-           existingType = type;
-        } else {
-           /* Merge the type information. */
-           existingType->merge(type);
-        }
-#endif
-    /* The type may have gained a name. */
-    if( existingType->getName() != "") {
-       if (typesByName.find(existingType->getName()) != typesByName.end()) {
-          if (typesByName[ existingType->getName() ] != existingType) {
-             typesByName[ existingType->getName() ]->decrRefCount();
-             typesByName[ existingType->getName() ] = existingType;
-             existingType->incrRefCount();
-          }
-       } else {
-          typesByName[ existingType->getName() ] = existingType;
-          existingType->incrRefCount();
-       }
-    }
-
-    /* Tell the parser to update its type pointer. */
-    return existingType;
-    }
-} /* end addOrUpdateType() */
 
 Type *typeCollection::findType(const int ID)
 {

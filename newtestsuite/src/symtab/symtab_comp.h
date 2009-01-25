@@ -54,10 +54,11 @@ class COMPLIB_DLL_EXPORT SymtabMutator : public TestMutator {
    Dyninst::SymtabAPI::Symtab *symtab;
    SymtabMutator();
    virtual test_results_t setup(ParameterDict &param);
+   virtual ~SymtabMutator();
 };
 
 extern "C" {
-   TestMutator *TestMutator_factory();
+   TEST_DLL_EXPORT TestMutator *TestMutator_factory();
 }
 
 class SymtabComponent : public ComponentTester
@@ -80,8 +81,8 @@ class SymtabComponent : public ComponentTester
    virtual ~SymtabComponent();
 };
 
-extern "C" {
-   ComponentTester *componentTesterFactory();
+extern "C"  {
+   TEST_DLL_EXPORT ComponentTester *componentTesterFactory();
 }
 
 

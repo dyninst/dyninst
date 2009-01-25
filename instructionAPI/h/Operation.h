@@ -38,6 +38,7 @@
 #include <set>
 #include <boost/dynamic_bitset.hpp>
 
+#include "util.h"
 
 // OpCode = operation + encoding
 // contents:
@@ -83,7 +84,7 @@ namespace Dyninst
     ///
     /// %Operations are constructed by the %InstructionDecoder as part of the process
     /// of constructing an %Instruction.
-    class ia32_entry;
+    struct ia32_entry;
     class ia32_prefixes;
     
     class Operation
@@ -94,31 +95,31 @@ namespace Dyninst
       typedef std::set<Expression::Ptr> VCSet;
   
     public:
-      Operation(Dyninst::InstructionAPI::ia32_entry* e, Dyninst::InstructionAPI::ia32_prefixes* p = NULL);
-      Operation(const Operation& o);
-      Operation();
+      INSTRUCTION_EXPORT Operation(Dyninst::InstructionAPI::ia32_entry* e, Dyninst::InstructionAPI::ia32_prefixes* p = NULL);
+      INSTRUCTION_EXPORT Operation(const Operation& o);
+      INSTRUCTION_EXPORT Operation();
       
-      Operation operator=(const Operation& o);
+      INSTRUCTION_EXPORT Operation operator=(const Operation& o);
       
       /// \brief Return which operands are read
       /// \return vector such that:
       ///   - the size of the vector is the number of operands for this operation
       ///   - each element is true if and only if the corresponding operand is read by the operation
-      const bitSet& read() const;
+      INSTRUCTION_EXPORT const bitSet& read() const;
       /// \brief Return which operands are written
       /// \return vector such that:
       ///   - the size of the vector is the number of operands for this operation
       ///   - each element is true if and only if the corresponding operand is written by the operation
-      const bitSet& written() const;
+      INSTRUCTION_EXPORT const bitSet& written() const;
       /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
-      const registerSet& implicitReads() const;
+      INSTRUCTION_EXPORT const registerSet& implicitReads() const;
       /// Returns the set of registers implicitly written (i.e. those not included in the operands, but written anyway)
-      const registerSet& implicitWrites() const;
+      INSTRUCTION_EXPORT const registerSet& implicitWrites() const;
       /// Returns the mnemonic for the operation.  Like \c instruction::format, this is exposed for debugging
       /// and will be replaced with stream operators in the public interface.
-      std::string format() const;
+      INSTRUCTION_EXPORT std::string format() const;
       /// Returns the number of operands accepted by this operation.
-      size_t numOperands() const;
+      INSTRUCTION_EXPORT size_t numOperands() const;
       /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
       /// to assembly mnemonics.
       entryID getID() const

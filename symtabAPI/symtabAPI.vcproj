@@ -22,7 +22,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="h;..;../dynutil/h;&quot;../../i386-unknown-nt4.0/include&quot;;../external"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;DLL_BUILD"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;SYMTAB_LIB"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
@@ -35,7 +35,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib libcommon.lib"
+				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib"
 				OutputFile="$(OutDir)\libsymtabAPI.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
@@ -86,7 +86,7 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="h;..;../dynutil/h;&quot;../../i386-unknown-nt4.0/include&quot;;../external"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
+				PreprocessorDefinitions="SYMTAB_DLL_BUILD"
 				MinimalRebuild="FALSE"
 				RuntimeLibrary="0"
 				WarningLevel="3"
@@ -169,6 +169,24 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Aggregate.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\annotations.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Collections.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -178,7 +196,37 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\debug.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\debug.h">
+			</File>
+			<File
+				RelativePath=".\src\Function.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\LineInformation.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Module.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -205,7 +253,7 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Function.C">
+				RelativePath=".\src\Region.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -214,16 +262,7 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Variable.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Symtab.C">
+				RelativePath=".\src\Symtab-deprecated.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -250,25 +289,7 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Symtab-deprecated.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Module.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Region.C">
+				RelativePath=".\src\Symtab.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -286,7 +307,7 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\annotations.C">
+				RelativePath=".\src\Variable.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -306,6 +327,9 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\addrtranslate.h">
 			</File>
 			<File
+				RelativePath=".\h\Aggregate.h">
+			</File>
+			<File
 				RelativePath="..\dynutil\h\Annotatable.h">
 			</File>
 			<File
@@ -315,7 +339,13 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath="..\dynutil\h\dyntypes.h">
 			</File>
 			<File
+				RelativePath=".\h\Function.h">
+			</File>
+			<File
 				RelativePath=".\h\LineInformation.h">
+			</File>
+			<File
+				RelativePath=".\h\Module.h">
 			</File>
 			<File
 				RelativePath=".\src\Object-nt.h">
@@ -327,6 +357,9 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\RangeLookup.h">
 			</File>
 			<File
+				RelativePath=".\h\Region.h">
+			</File>
+			<File
 				RelativePath=".\src\serialize.h">
 			</File>
 			<File
@@ -336,12 +369,6 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\Symtab.h">
 			</File>
 			<File
-				RelativePath=".\h\Module.h">
-			</File>
-			<File
-				RelativePath=".\h\Region.h">
-			</File>
-			<File
 				RelativePath=".\h\symutil.h">
 			</File>
 			<File
@@ -349,6 +376,9 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath="..\dynutil\h\util.h">
+			</File>
+			<File
+				RelativePath=".\h\Variable.h">
 			</File>
 		</Filter>
 		<Filter

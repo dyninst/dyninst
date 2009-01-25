@@ -44,7 +44,7 @@ namespace Dyninst
     
     static const unsigned char modrm_use_sib = 4;
     
-    Instruction InstructionDecoder::decode()
+    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
     {
       if(rawInstruction < bufferBegin || rawInstruction > bufferBegin + bufferSize) return Instruction();
       vector<Expression::Ptr> operands;
@@ -54,7 +54,7 @@ namespace Dyninst
       return Instruction(m_Operation, operands, decodedSize, rawInstruction - decodedSize);      
     }
     
-    Instruction InstructionDecoder::decode(const unsigned char* buffer, size_t /*len*/)
+    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* buffer, size_t /*len*/)
     {
       vector<Expression::Ptr> operands;
       rawInstruction = buffer;
@@ -129,6 +129,7 @@ namespace Dyninst
 	break;
       default:
 	assert(!"FIXME: Unimplemented opType");
+	return Expression::Ptr();
       }
     }
     

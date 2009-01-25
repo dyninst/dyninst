@@ -176,7 +176,7 @@ bool ErrorCallback::operator()(BPatchErrorLevel severity, int number,
    //  Assume that we are already locked upon entry
    assert(lock->depth());
    assert(error_string);
-   str = strdup(error_string);
+   str = P_strdup(error_string);
    num = number;
    sev = severity;    
 

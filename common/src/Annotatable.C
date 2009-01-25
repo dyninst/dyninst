@@ -44,9 +44,9 @@
 #include "common/h/headers.h"
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/Annotatable.h"
-std::vector<void *> annotation_classes;
 
-AnnotatableSparse::annos_t AnnotatableSparse::annos;
+COMMON_EXPORT int AnnotationClass_nextId;
+COMMON_EXPORT AnnotatableSparse::annos_t AnnotatableSparse::annos;
 
 namespace Dyninst {
 bool void_ptr_cmp_func(void *v1, void *v2)

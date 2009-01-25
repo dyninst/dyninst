@@ -71,7 +71,7 @@ class test1_12_Mutator : public DyninstMutator {
   int mutatorTesta();
   int mutatorTestb();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_12_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_12_factory() {
   return new test1_12_Mutator();
 }
 

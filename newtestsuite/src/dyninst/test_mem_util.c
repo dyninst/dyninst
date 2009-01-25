@@ -2,8 +2,8 @@
 #include <assert.h>
 #include <string.h>
 
-#include "test_mem_util.h"
-#include "mutatee_util.h"
+#include "../src/dyninst/test_mem_util.h"
+#include "../src/mutatee_util.h"
 
 /* Sun Forte/WorkShop cc releases older than 6.2 do not like these defines: */
 /* (macro versions of these calls are in test_mem_util.h) */

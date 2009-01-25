@@ -71,7 +71,7 @@ class test1_41_Mutator : public DyninstMutator {
 public:
   test1_41_Mutator();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_41_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_41_factory() {
   return new test1_41_Mutator();
 }
 
@@ -82,118 +82,111 @@ test1_41_Mutator::test1_41_Mutator()
 
 // static int mutatorTest(char *pathname, BPatch *bpatch)
 test_results_t test1_41_Mutator::executeTest() {
-    unsigned int n=0;
-    const char *child_argv[5];
-    child_argv[n++] = pathname;
-    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
-    child_argv[n++] = const_cast<char*>("-run");
-    child_argv[n++] = const_cast<char*>("test1_41"); // run test41 in mutatee
-    child_argv[n++] = NULL;
+   unsigned int n=0;
+   const char *child_argv[5];
+   child_argv[n++] = pathname;
+   if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+   child_argv[n++] = const_cast<char*>("-run");
+   child_argv[n++] = const_cast<char*>("test1_41"); // run test41 in mutatee
+   child_argv[n++] = NULL;
 
-    int counts[iterations];
+   int counts[iterations];
 
-    // Run the mutatee twice, querying line info each time & store the info
-    for (n = 0; n < iterations; n++) {
-        dprintf("Starting \"%s\"\n", pathname);
-	BPatch_thread *thread = bpatch->createProcess(pathname, child_argv,
-						      NULL);
-        if (!thread) {
-            logerror("*ERROR*: unable to create handle for executable\n", n);
-            logerror("**Failed** test #41 (repeated line information)\n");
-            return FAILED;
-        }
-        dprintf("Mutatee started, pid=%d\n", n, thread->getPid());
-	registerPID(thread->getProcess()->getPid()); // register for cleanup
+   // Run the mutatee twice, querying line info each time & store the info
+   for (n = 0; n < iterations; n++) {
+      dprintf("Starting \"%s\"\n", pathname);
+      BPatch_thread *thread = bpatch->createProcess(pathname, child_argv,
+                                                    NULL);
+      if (!thread) {
+         logerror("*ERROR*: unable to create handle for executable\n", n);
+         logerror("**Failed** test #41 (repeated line information)\n");
+         return FAILED;
+      }
+      dprintf("Mutatee started, pid=%d\n", n, thread->getPid());
+      registerPID(thread->getProcess()->getPid()); // register for cleanup
 
-	BPatch_image *image = thread->getImage();
-	if (!image) {
-	  logerror("*ERROR*: unable to get image from thread\n");
-	  logerror("**Failed** test #41 (repeated line information)\n");
-	  return FAILED;
-	}
-	if (isMutateeFortran(image)) {
-	  // This shouldn't happen..
-	  thread->getProcess()->terminateExecution();
-	  logerror("Skipped test #41 (repeated line information)\n");
-	  return SKIPPED;
-	}
+      BPatch_image *image = thread->getImage();
+      if (!image) {
+         logerror("*ERROR*: unable to get image from thread\n");
+         logerror("**Failed** test #41 (repeated line information)\n");
+         return FAILED;
+      }
+      if (isMutateeFortran(image)) {
+         // This shouldn't happen..
+         thread->getProcess()->terminateExecution();
+         logerror("Skipped test #41 (repeated line information)\n");
+         return SKIPPED;
+      }
 
-	BPatch_module *module = image->findModule("test1_41_mutatee.c", true);
-        if (!module) {
-            module = image->findModule("solo_mutatee_boilerplate.c", true);
-        }
+      BPatch_module *module = image->findModule("test1_41_mutatee.c", true);
+      if (!module) {
+         module = image->findModule("solo_mutatee_boilerplate.c", true);
+      }
 
-	if (!module) {
-	  // First try again for 'test1_41_solo_me.c'
-	  module = image->findModule("test1_41_solo_me.c", true);
-	  if (!module) {
-	    logerror("*ERROR*: unable to get module from image\n");
+      if (!module) {
+         // First try again for 'test1_41_solo_me.c'
+         module = image->findModule("test1_41_solo_me.c", true);
+         if (!module) {
+            logerror("*ERROR*: unable to get module from image\n");
             logerror("Looking for \"test1_41_solo_me.c\" or \"solo_mutatee_boilerplate.c\". Available modules:\n");
             BPatch_Vector<BPatch_module *> *mods = image->getModules();
             char buffer[512];
             for (unsigned i = 0; i < mods->size(); i++) {
-                BPatch_module *mod = (*mods)[i];
-                char name[512];
-                mod->getName(name, 512);
-                sprintf(buffer, "\t%s\n",
-                        name);
-                logerror(buffer);
+               BPatch_module *mod = (*mods)[i];
+               char name[512];
+               mod->getName(name, 512);
+               sprintf(buffer, "\t%s\n",
+                       name);
+               logerror(buffer);
             }
 
-	    logerror("**Failed** test #41 (repeated line information)\n");
+            logerror("**Failed** test #41 (repeated line information)\n");
 
-	    return FAILED;
-	  }
-	}
+            return FAILED;
+         }
+      }
 
-	char buffer[16384]; // FIXME ugly magic number; No module name should be that long..
-	module->getName(buffer, sizeof(buffer));
+      char buffer[16384]; // FIXME ugly magic number; No module name should be that long..
+      module->getName(buffer, sizeof(buffer));
 
-#if 0
-	int statement_count = 0;
-	for (LineInformation::const_iterator i = module->getLineInformation().begin();
-	     i != module->getLineInformation().end();
-	     i++, statement_count++)
-	  { /* empty loop */ }
-#endif
-        BPatch_Vector<BPatch_statement> statements;
-        bool res = module->getStatements(statements);
-        if (!res) {
-           fprintf(stderr, "%s[%d]:  getStatements()\n", __FILE__, __LINE__);
-           abort();
-        }
+      BPatch_Vector<BPatch_statement> statements;
+      bool res = module->getStatements(statements);
+      if (!res) {
+         fprintf(stderr, "%s[%d]:  getStatements()\n", __FILE__, __LINE__);
+         return FAILED;
+      }
 
-	counts[n] = statements.size();
-	dprintf("Trial %d: found %d statements\n", n, statements.size());
+      counts[n] = statements.size();
+      dprintf("Trial %d: found %d statements\n", n, statements.size());
 
-	thread->getProcess()->terminateExecution();
-    }
+      thread->getProcess()->terminateExecution();
+   }
 
-    // Make sure we got the same info each time we ran the mutatee
-    int last_count = -1;
-    for (int i = 0; i < iterations; i++) {
+   // Make sure we got the same info each time we ran the mutatee
+   int last_count = -1;
+   for (int i = 0; i < iterations; i++) {
       if ((last_count >= 0) && (last_count != counts[i])) {
-	logerror("*ERROR*: statement counts didn't match: %d vs. %d\n", last_count, counts[i]);
-	logerror("**Failed** test #41 (repeated line information)\n");
-	return FAILED;
+         logerror("*ERROR*: statement counts didn't match: %d vs. %d\n", last_count, counts[i]);
+         logerror("**Failed** test #41 (repeated line information)\n");
+         return FAILED;
       }
       last_count = counts[i];
-    }
+   }
 
-    logerror("Passed test #41 (repeated line information)\n");
-    return PASSED;
+   logerror("Passed test #41 (repeated line information)\n");
+   return PASSED;
 }
 
 // extern "C" TEST_DLL_EXPORT int test1_41_mutatorMAIN(ParameterDict &param)
 test_results_t test1_41_Mutator::setup(ParameterDict &param) {
-    pathname = param["pathname"]->getString();
-    bpatch = (BPatch *)(param["bpatch"]->getPtr());
-    debugPrint = param["debugPrint"]->getInt();
+   pathname = param["pathname"]->getString();
+   bpatch = (BPatch *)(param["bpatch"]->getPtr());
+   debugPrint = param["debugPrint"]->getInt();
 
 #if defined (sparc_sun_solaris2_4_test)
-    // we use some unsafe type operations in the test cases.
-    bpatch->setTypeChecking(false);
+   // we use some unsafe type operations in the test cases.
+   bpatch->setTypeChecking(false);
 #endif
 
-    return PASSED;
+   return PASSED;
 }

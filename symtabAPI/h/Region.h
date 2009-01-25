@@ -31,7 +31,7 @@
 
 #ifndef __REGION__H__ 
 #define __REGION__H__
- 
+#include "symutil.h"
 #include "Serialization.h"
 #include "Annotatable.h"
 
@@ -81,51 +81,51 @@ class Region : public Serializable, public AnnotatableSparse {
 
    static const char *regionType2Str(RegionType);
 
-   DLLEXPORT Region();
-   DLLEXPORT static bool createRegion( Offset diskOff, perm_t perms, RegionType regType,
+   SYMTAB_EXPORT Region();
+   SYMTAB_EXPORT static bool createRegion( Offset diskOff, perm_t perms, RegionType regType,
          unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
          std::string name = "", char *rawDataPtr = NULL);
-   DLLEXPORT Region(const Region &reg);
-   DLLEXPORT Region& operator=(const Region &reg);
-   DLLEXPORT void serialize(SerializerBase *sb, const char *tag = "Region");
-   DLLEXPORT std::ostream& operator<< (std::ostream &os);
-   DLLEXPORT bool operator== (const Region &reg);
+   SYMTAB_EXPORT Region(const Region &reg);
+   SYMTAB_EXPORT Region& operator=(const Region &reg);
+   SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Region");
+   SYMTAB_EXPORT std::ostream& operator<< (std::ostream &os);
+   SYMTAB_EXPORT bool operator== (const Region &reg);
 
-   DLLEXPORT ~Region();
+   SYMTAB_EXPORT ~Region();
 
-   DLLEXPORT unsigned getRegionNumber() const;
-   DLLEXPORT bool setRegionNumber(unsigned regnumber);
-   DLLEXPORT std::string getRegionName() const;
+   SYMTAB_EXPORT unsigned getRegionNumber() const;
+   SYMTAB_EXPORT bool setRegionNumber(unsigned regnumber);
+   SYMTAB_EXPORT std::string getRegionName() const;
 
    //  getRegionAddr returns diskOffset on unixes, memory offset on windows
-   DLLEXPORT Offset getRegionAddr() const;
-   DLLEXPORT unsigned long getRegionSize() const;
+   SYMTAB_EXPORT Offset getRegionAddr() const;
+   SYMTAB_EXPORT unsigned long getRegionSize() const;
 
-   DLLEXPORT Offset getDiskOffset() const;
-   DLLEXPORT unsigned long getDiskSize() const;
-   DLLEXPORT Offset getMemOffset() const;
-   DLLEXPORT unsigned long getMemSize() const;
-   DLLEXPORT void *getPtrToRawData() const;
-   DLLEXPORT bool setPtrToRawData(void *, unsigned long); 
+   SYMTAB_EXPORT Offset getDiskOffset() const;
+   SYMTAB_EXPORT unsigned long getDiskSize() const;
+   SYMTAB_EXPORT Offset getMemOffset() const;
+   SYMTAB_EXPORT unsigned long getMemSize() const;
+   SYMTAB_EXPORT void *getPtrToRawData() const;
+   SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long); 
 
-   DLLEXPORT bool isBSS() const;
-   DLLEXPORT bool isText() const;
-   DLLEXPORT bool isData() const;
-   DLLEXPORT bool isOffsetInRegion(const Offset &offset) const;
-   DLLEXPORT bool isLoadable() const;
-   DLLEXPORT bool setLoadable(bool isLoadable);
-   DLLEXPORT bool isDirty() const;
-   DLLEXPORT std::vector<relocationEntry> &getRelocations();
-   DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
+   SYMTAB_EXPORT bool isBSS() const;
+   SYMTAB_EXPORT bool isText() const;
+   SYMTAB_EXPORT bool isData() const;
+   SYMTAB_EXPORT bool isOffsetInRegion(const Offset &offset) const;
+   SYMTAB_EXPORT bool isLoadable() const;
+   SYMTAB_EXPORT bool setLoadable(bool isLoadable);
+   SYMTAB_EXPORT bool isDirty() const;
+   SYMTAB_EXPORT std::vector<relocationEntry> &getRelocations();
+   SYMTAB_EXPORT bool patchData(Offset off, void *buf, unsigned size);
 
-   DLLEXPORT perm_t getRegionPermissions() const;
-   DLLEXPORT bool setRegionPermissions(perm_t newPerms);
-   DLLEXPORT RegionType getRegionType() const;
+   SYMTAB_EXPORT perm_t getRegionPermissions() const;
+   SYMTAB_EXPORT bool setRegionPermissions(perm_t newPerms);
+   SYMTAB_EXPORT RegionType getRegionType() const;
 
-   DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
+   SYMTAB_EXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
 
    protected:                     
-   DLLEXPORT Region(unsigned regnum, std::string name, Offset diskOff,
+   SYMTAB_EXPORT Region(unsigned regnum, std::string name, Offset diskOff,
          unsigned long diskSize, Offset memOff, unsigned long memSize,
          char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable = false);
    private:

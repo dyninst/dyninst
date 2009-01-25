@@ -35,6 +35,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include "debug.h"
+
 int sym_debug_create = 0;
 int sym_debug_parsing = 0;
 int sym_debug_aggregate = 0;

@@ -47,9 +47,27 @@
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 typedef int (*mutatorM_t)(ParameterDict &);
 const char* ext = ".dll";
+
+void printErrorString()
+{
+	LPTSTR errMessage;
+	DWORD lastError = GetLastError();
+	FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		lastError,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPTSTR)&errMessage,
+		0, NULL );
+	fprintf(stderr, "(%d): %s\n", lastError, errMessage);
+	LocalFree(errMessage);
+}
 
 TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
 	std::string fname (odname);
@@ -58,7 +76,8 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
 //	void *odhandle = dlopen(fname.str().c_str(), RTLD_NOW);
 	HINSTANCE odhandle = LoadLibrary(fname.c_str());
 	if (NULL == odhandle) {
-		fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, GetLastError());
+		fprintf(stderr, "[%s:%u] - Error loading output driver: ", __FILE__, __LINE__);
+		printErrorString();
 		return NULL;
 	}
 
@@ -69,7 +88,8 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
 //	char *errmsg = dlerror();
 	if (factory == NULL) {
 		// TODO Handle error
-		fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, GetLastError());
+		fprintf(stderr, "[%s:%u] - Error loading output driver: ", __FILE__, __LINE__);
+		printErrorString();
 		return NULL;
 	}
 
@@ -77,6 +97,7 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
 
 	return retval;
 }
+
 
 int setupMutatorsForRunGroup(RunGroup * group)
 {
@@ -90,8 +111,9 @@ int setupMutatorsForRunGroup(RunGroup * group)
 		HINSTANCE handle = LoadLibrary(dllname.c_str());
 		if (!handle) {
 			fprintf(stderr, "Error opening lib: %s\n", dllname.c_str());
-			fprintf(stderr, "%s\n", GetLastError());
-			return -1;
+			printErrorString();
+			continue;
+//			return -1;
 		}
 
 		typedef TestMutator *(*mutator_factory_t)();
@@ -101,11 +123,12 @@ int setupMutatorsForRunGroup(RunGroup * group)
 		mutator_factory_t factory = (mutator_factory_t)GetProcAddress(handle, mutator_name);
 		if (NULL == factory) {
 			fprintf(stderr, "Error funding function: %s, in %s\n", mutator_name,
-				dllname);
-			fprintf(stderr, "%s\n", GetLastError());
-			FreeLibrary(handle);
-         return -1;
-      }
+				dllname.c_str());
+			printErrorString();
+//			FreeLibrary(handle);
+//			return -1;
+			continue;
+		}
 
 		TestMutator *mutator = factory();
 		if (NULL == mutator) {
@@ -123,20 +146,23 @@ typedef ComponentTester* (*comptester_factory_t)();
 ComponentTester *Module::loadModuleLibrary()
 {
    libhandle = NULL;
-   char libname[256];
-   snprintf(libname, 256, "libtest%s.dll", name.c_str());
+   std::string dllname = "libtest";
+   dllname += name;
+   dllname += ".dll";
 
-   HINSTANCE handle = LoadLibrary(dllname);
+   HINSTANCE handle = LoadLibrary(dllname.c_str());
    if (!handle) {
-      return NULL;
+	   fprintf(stderr, "Error opening library %s ", dllname.c_str());
+		printErrorString();
+	   return NULL;
    }
    libhandle = (void *) handle;
    comptester_factory_t factory;
    factory = (comptester_factory_t) GetProcAddress(handle, "componentTesterFactory");
    if (NULL == factory) {
-      fprintf(stderr, "Error finding componentTesterFactory");
-      fprintf(stderr, "%s\n", GetLastError());
-      FreeLibrary(handle);
+	   fprintf(stderr, "Error finding componentTesterFactory ", dllname.c_str());
+		printErrorString();
+	   FreeLibrary(handle);
       return NULL;
    }
    

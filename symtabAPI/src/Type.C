@@ -40,6 +40,8 @@
 #include "Collections.h"
 #include "Function.h"
 
+#include "Type-mem.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
@@ -50,12 +52,18 @@ using namespace Dyninst::SymtabAPI;
 #define snprintf _snprintf
 #endif
 
+
 static int findIntrensicType(std::string &name);
 
 // This is the ID that is decremented for each type a user defines. It is
 // Global so that every type that the user defines has a unique ID.
 typeId_t Type::USER_TYPE_ID = -1000;
 
+namespace Dyninst {
+  namespace SymtabAPI {
+    std::map<void *, size_t> type_memory;
+  }
+}
 
 /* These are the wrappers for constructing a type.  Since we can create
    types six ways to Sunday, let's do them all in one centralized place. */
@@ -71,9 +79,38 @@ Type *Type::createFake(std::string name) {
    return t;
 }
 
+#if !defined MAX
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#endif
+
 Type *Type::createPlaceholder(typeId_t ID, std::string name)
 {
-    return new Type(name ,ID, dataUnknownType);
+  static size_t max_size = 0;
+  if (!max_size) {
+    max_size = sizeof(Type);
+    max_size = MAX(sizeof(fieldListType), max_size);
+    max_size = MAX(sizeof(rangedType), max_size);
+    max_size = MAX(sizeof(derivedType), max_size);
+    max_size = MAX(sizeof(typeEnum), max_size);
+    max_size = MAX(sizeof(typeFunction), max_size);
+    max_size = MAX(sizeof(typeScalar), max_size);
+    max_size = MAX(sizeof(typeCommon), max_size);
+    max_size = MAX(sizeof(typeStruct), max_size);
+    max_size = MAX(sizeof(typeUnion), max_size);
+    max_size = MAX(sizeof(typePointer), max_size);
+    max_size = MAX(sizeof(typeTypedef), max_size);
+    max_size = MAX(sizeof(typeRef), max_size);
+    max_size = MAX(sizeof(typeSubrange), max_size);
+    max_size = MAX(sizeof(typeArray), max_size);
+    max_size += 32; //Some safey padding
+  }
+
+  void *mem = malloc(max_size);
+  assert(mem);
+  type_memory[mem] = max_size;
+  
+  Type *placeholder_type = new(mem) Type(name, ID, dataUnknownType);
+  return placeholder_type;
 }
 
 /*
@@ -1730,4 +1767,20 @@ bool CBlock::setUpPtr(void *upPtr) {
     upPtr_ = upPtr;
     return true;
 }
+
+Type::Type() {}
+fieldListType::fieldListType() {}
+rangedType::rangedType() {}
+derivedType::derivedType() {}
+typeEnum::typeEnum() {}
+typeFunction::typeFunction() {}
+typeScalar::typeScalar() {}
+typeCommon::typeCommon() {}
+typeStruct::typeStruct() {}
+typeUnion::typeUnion() {}
+typePointer::typePointer() {}
+typeTypedef::typeTypedef() {}
+typeRef::typeRef() {}
+typeSubrange::typeSubrange() {}
+typeArray::typeArray() {}
 

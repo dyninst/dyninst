@@ -208,26 +208,12 @@ static const Register Null_Register = (Register)(-1);   /* '255' */
 /* Easily noticeable name... */
 static const Register REG_NULL = (Register)(-1);
 
-/* This file is now included by the rtinst library also, so all
-   C++ constructs need to be in #ifdef _cplusplus... 7/9/99 -bhs */
-#if !defined(DLLEXPORT)
-#if defined (_MSC_VER)
-/* If we're on Windows, we need to explicetely export these functions: */
-	#if defined(DLL_BUILD)
-		#define DLLEXPORT __declspec(dllexport)
-	#else
-		#define DLLEXPORT __declspec(dllimport)	
-	#endif
-#else
-	#define DLLEXPORT
-#endif
-#endif
-
-
 #ifdef __cplusplus
 
-DLLEXPORT void Address_chk ();
-DLLEXPORT char *Address_str (Address addr);
+#include "dynutil/h/util.h"
+
+COMMON_EXPORT void Address_chk ();
+COMMON_EXPORT char *Address_str (Address addr);
 
 // NB: this is probably inappropriate for 64-bit addresses!
 inline unsigned hash_address(const Address& addr) {

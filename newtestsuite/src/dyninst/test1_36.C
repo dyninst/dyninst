@@ -64,7 +64,7 @@ class test1_36_Mutator : public DyninstMutator {
 
   BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId);
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_36_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_36_factory() {
   return new test1_36_Mutator();
 }
 

@@ -63,7 +63,7 @@ class test1_25_Mutator : public DyninstMutator {
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_25_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_25_factory() {
   return new test1_25_Mutator();
 }
 
@@ -156,7 +156,7 @@ test_results_t test1_25_Mutator::executeTest() {
 }
 
 // External Interface
-// extern "C" TEST_DLL_EXPORT int test1_25_mutatorMAIN(ParameterDict &param)
+// extern "C" DLLEXPORT TEST_DLL_EXPORT int test1_25_mutatorMAIN(ParameterDict &param)
 // {
 test_results_t test1_25_Mutator::setup(ParameterDict &param) {
     bool useAttach = param["useAttach"]->getInt();

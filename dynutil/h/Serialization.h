@@ -19,7 +19,7 @@ namespace Dyninst {
 //  to the next (hopefully top-level) exception handler.
 
 
-DLLEXPORT bool &serializer_debug_flag();
+COMMON_EXPORT bool &serializer_debug_flag();
 
 #define SER_ERR(cmsg) \
    do { \
@@ -39,7 +39,7 @@ typedef bool (*deserialize_and_annotate_t)(SerializerBase *, void *parent);
 bool addDeserializeFuncForType(deserialize_and_annotate_t, const std::type_info *);
 deserialize_and_annotate_t getDeserializeFuncForType(const std::type_info *);
 
-class DLLEXPORT Serializable {
+class COMMON_EXPORT Serializable {
    protected:
       Serializable() {}
       virtual ~Serializable() {}
@@ -91,7 +91,7 @@ class SerializerError : public std::runtime_error {
 };
 
 
-DLLEXPORT void printSerErr(const SerializerError &err);
+COMMON_EXPORT void printSerErr(const SerializerError &err);
 
 template <class S, class T>
 void translate_vector(S *ser, std::vector<T> &vec,
@@ -317,22 +317,22 @@ void translate_hash_map(S *ser, dyn_hash_map<K, char *> &hash,
 }
 
 
-DLLEXPORT void trans_adapt(SerializerBase *ser, Serializable &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, Serializable *itp,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, Serializable &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, Serializable *itp,  const char *tag);
 
-DLLEXPORT void trans_adapt(SerializerBase *ser, bool &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, int &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, unsigned int &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, long &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, unsigned long &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, char &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, char *&it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, std::string &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, float &it,  const char *tag);
-DLLEXPORT void trans_adapt(SerializerBase *ser, double &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, bool &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, int &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, unsigned int &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, long &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, unsigned long &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, char &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, char *&it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, std::string &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, float &it,  const char *tag);
+COMMON_EXPORT void trans_adapt(SerializerBase *ser, double &it,  const char *tag);
 
-DLLEXPORT bool isBinary(Dyninst::SerializerBase *ser);
-DLLEXPORT bool isOutput(Dyninst::SerializerBase *ser);
+COMMON_EXPORT bool isBinary(Dyninst::SerializerBase *ser);
+COMMON_EXPORT bool isOutput(Dyninst::SerializerBase *ser);
 
 typedef void NOTYPE_T;
 template<class S, class T, class T2 = NOTYPE_T>
@@ -482,14 +482,14 @@ void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
    }
 }
 
-DLLEXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag);
-DLLEXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/);
+COMMON_EXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag);
+COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/);
 
 class SerializerBin;
 class SerializerXML;
 
-DLLEXPORT_COMMON bool sb_is_input(SerializerBase *sb);
-DLLEXPORT_COMMON bool sb_is_output(SerializerBase *sb);
+COMMON_EXPORT bool sb_is_input(SerializerBase *sb);
+COMMON_EXPORT bool sb_is_output(SerializerBase *sb);
 
 template <class T>
 bool ifinput(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)

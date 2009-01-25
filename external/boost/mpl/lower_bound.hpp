@@ -10,16 +10,16 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/mpl/lower_bound.hpp,v $
-// $Date: 2008/07/14 21:54:39 $
-// $Revision: 1.1 $
+// $Id: lower_bound.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #include <boost/mpl/less.hpp>
 #include <boost/mpl/lambda.hpp>
 #include <boost/mpl/aux_/na_spec.hpp>
 #include <boost/mpl/aux_/config/workaround.hpp>
 
-#if BOOST_WORKAROUND(__BORLANDC__, < 0x600)
+#if BOOST_WORKAROUND(__BORLANDC__, BOOST_TESTED_AT(0x610))
 #   define BOOST_MPL_CFG_STRIPPED_DOWN_LOWER_BOUND_IMPL
 #endif
 

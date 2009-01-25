@@ -43,14 +43,9 @@ class Symbol;
 class Variable : public Aggregate
 {
    public:
-      DLLEXPORT Variable();
+      SYMTAB_EXPORT Variable();
       
-      DLLEXPORT static Variable *createVariable(Symbol *sym);
-
-      /***** Symbol naming *****/
-      DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
+      SYMTAB_EXPORT static Variable *createVariable(Symbol *sym);
 
    private:
 };

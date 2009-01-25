@@ -115,7 +115,6 @@ mutatee('dyninst_group_test', ['test1_1_mutatee.c',
 	'test2_5_mutatee.c',
 	'test2_7_mutatee.c',
 	'test2_9_mutatee.c',
-	'test2_10_mutatee.c',
 	'test2_11_mutatee.c',
 	'test2_12_mutatee.c',
 	'test2_13_mutatee.c'
@@ -670,16 +669,6 @@ test_runmode('test2_9', 'both'). % Is this correct?
 test_start_state('test2_9', 'stopped').
 groupable_test('test2_9').
 tests_module('test2_9', 'dyninst').
-
-test('test2_10', 'test2_10', 'dyninst_group_test').
-% test2_10 runs on everything but Windows
-test_platform('test2_10', Platform) :-
-    platform(Platform), \+ platform(_, 'windows', _, Platform).
-mutator('test2_10', ['test2_10.C']).
-test_runmode('test2_10', 'both').
-test_start_state('test2_10', 'stopped').
-groupable_test('test2_10').
-tests_module('test2_10', 'dyninst').
 
 test('test2_11', 'test2_11', 'dyninst_group_test').
 test_runs_everywhere('test2_11').

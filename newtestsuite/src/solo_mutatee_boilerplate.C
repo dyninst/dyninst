@@ -43,13 +43,13 @@
  * Start of test_skeleton_solo
  */
 
+/*
+ * mutatee_utils.h and solo_mutatee.h are required for all solo test mutatees
+ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
- * mutatee_utils.h and solo_mutatee.h are required for all solo test mutatees
- */
 #include "mutatee_util.h"
 #include "solo_mutatee.h"
 
@@ -81,19 +81,25 @@ int CONCAT(TEST_NAME, _mutatee());
 
 static const char *testname = QUOTE(TEST_NAME);
 
+/* The variable groupable flags whether or not this test can be run as part
+ * of a group mutatee.  The mutatee driver uses this flag to tell whether it
+ * is supposed to print the results of the test or not.
+ */
 static int groupable_mutatee = GROUPABLE;
 
-/* The macro SOLO_MUTATEE(<testname>) (from solo.h) defines a few variables
- * that are required by the mutatee driver.  This macro needs to be called
- * *after* the declaration of the main mutatee function.
+/* The macro SOLO_MUTATEE(<testname>) (from solo_mutatee.h) defines a few
+ * variables that are required by the mutatee driver.  This macro needs to be
+ * called *after* the declaration of the main mutatee function.
  */
 
-/* SOLO_MUTATEE(@<testname>@); */
 #if (GROUPABLE==0)
+/* SOLO_MUTATEE(@<testname>@); */
+/* Why am I using a macro here?  I'm just going to include the body of the
+ * macro directly.
+ */
 mutatee_call_info_t mutatee_funcs[] = {
   {QUOTE(TEST_NAME), CONCAT(TEST_NAME, _mutatee), SOLO, "@<label>@"}
 };
-
 int runTest[1];
 int passedTest[1];
 int max_tests = 1;

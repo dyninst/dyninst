@@ -50,7 +50,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "dyntypes.h"
-
+#include "util.h"
 
 namespace Dyninst
 {
@@ -59,7 +59,7 @@ typedef short AnnotationClassID;
 typedef bool (*anno_cmp_func_t)(void *, void*);
 
 // since can't have a single static in a temlated class that spans all template instances.
-//extern int AnnotationClass_nextId;
+//COMMON_EXPORT extern int AnnotationClass_nextId;
 
 extern int newAnnotationClass();
 extern bool void_ptr_cmp_func(void *, void *);
@@ -74,7 +74,7 @@ class AnnotationClassBase
       AnnotationClassID id;
 
    protected:
-      AnnotationClassBase(anno_cmp_func_t cmp_func_ = NULL);
+      COMMON_TEMPLATE_EXPORT AnnotationClassBase(anno_cmp_func_t cmp_func_ = NULL);
 
    public:
 
@@ -94,7 +94,7 @@ class AnnotationClass : public AnnotationClassBase {
       typedef bool (*ser_func_t) (SerializerBase &, T &);
       // typedef T annotation_realtype;
 
-      AnnotationClass(std::string n, 
+      COMMON_TEMPLATE_EXPORT AnnotationClass(std::string n, 
             anno_cmp_func_t cmp_func_ = NULL, 
             bool (*serializer)(SerializerBase &, T&) = NULL) :
          AnnotationClassBase(cmp_func_),
@@ -218,7 +218,7 @@ class AnnotatableSparse
          }
       };
 
-#if defined (os_windows)
+#if defined (_MSC_VER)
       typedef dyn_hash_map<void *, void *> annos_by_type_t;
 #else
       typedef dyn_hash_map<void *, void *, void_ptr_hasher> annos_by_type_t;
@@ -228,7 +228,7 @@ class AnnotatableSparse
 
    private:
 
-      static annos_t annos;
+      COMMON_EXPORT static annos_t annos;
 
       template <class T>
       annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
@@ -508,6 +508,8 @@ class AnnotatableSparse
       }
 
 };
+
+//COMMON_EXPORT AnnotatableSparse::annos_t annos;
 
 //AnnotatableSparse::annos_t AnnotatableSparse::annos;
 } // namespace

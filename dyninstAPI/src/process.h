@@ -339,7 +339,9 @@ class process : public AddressSpace {
 #endif
     
     void installInstrRequests(const pdvector<instMapping*> &requests);
-    void recognize_threads(process *parent = NULL);
+
+    // Returns false if process exited while recognizing threads
+    bool recognize_threads(process *parent = NULL);
     // Get LWP handles from /proc (or as appropriate)
     
     bool determineLWPs(pdvector<unsigned> &lwp_ids);
@@ -502,8 +504,8 @@ class process : public AddressSpace {
           bootstrapState = state;
       */
       bootstrapState = (state > bootstrapState) ? state : bootstrapState;
-      startup_printf("%s[%d]:  setting bootstrap state for process %d to %s\n",
-                     FILE__, __LINE__, getPid(), getBootstrapStateAsString().c_str());
+      startup_printf("%s[%d]:  setting bootstrap state for process %d (0x%x) to %s\n",
+                     FILE__, __LINE__, getPid(), this, getBootstrapStateAsString().c_str());
   }  
 
   void resetBootstrapState(bootstrapState_t state) {

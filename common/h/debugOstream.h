@@ -35,20 +35,6 @@
 #ifndef _DEBUG_OSTREAM_H_
 #define _DEBUG_OSTREAM_H_
 
-
-#if !defined(DLLEXPORT)
-#if defined (_MSC_VER)
-/* If we're on Windows, we need to explicetely export these functions: */
-	#if defined(DLL_BUILD)
-		#define DLLEXPORT __declspec(dllexport)
-	#else
-		#define DLLEXPORT __declspec(dllimport)	
-	#endif
-#else
-	#define DLLEXPORT 
-#endif
-#endif
-
 #include "common/h/std_namesp.h"
 #include "common/h/Types.h"
 
@@ -60,7 +46,7 @@ class timeStamp;
 class relTimeStamp;
 #endif
 
-class DLLEXPORT debug_ostream {
+class COMMON_EXPORT debug_ostream {
  private:
    ostream &actual_ostream; // probably cerr or cout
    bool on;

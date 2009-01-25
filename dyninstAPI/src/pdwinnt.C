@@ -538,7 +538,7 @@ bool SignalGenerator::decodeException(EventRecord &ev)
              Address violationAddr = ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
              codeRange *range = ev.proc->findOrigByAddr(violationAddr);
              if (range) {
-                 fprintf(stderr,"%s[%d] Program attempted to overwrite code at 0x%x\n", __FILE__,__LINE__);
+                 fprintf(stderr,"%s[%d] Program attempted to overwrite code at 0x%x\n", __FILE__,__LINE__, violationAddr);
              }
          }
          // trigger callback if a signalHandlerCallback is registered
@@ -1034,19 +1034,19 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
        buf[i-1]='\0';
        stripAtSuffix(buf);
        if (buf[0] == '\0') return 0; // avoid null names which seem to annoy Paradyn
-       return strdup(buf);
+       return P_strdup(buf);
     } else {
        if (includeTypes) {
           if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
             //   printf("Undecorate with types: %s = %s\n", c, buf);
             stripAtSuffix(buf);
-            return strdup(buf);
+            return P_strdup(buf);
           }
        }  else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
          //     else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
          //	printf("Undecorate: %s = %s\n", c, buf);
          stripAtSuffix(buf);          
-         return strdup(buf);
+         return P_strdup(buf);
        }
     }
     return 0;
@@ -1422,7 +1422,7 @@ std::string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
       errorCheck = EnumProcessModules(currentProcess,
                                           loadedModules,
                                           sizeof(HMODULE)*num_modules_needed,
-                                          NULL);
+                                          &num_modules_needed);
       HMODULE* candidateModule = loadedModules; 
       while(candidateModule < loadedModules + num_modules_needed)
       {
@@ -1597,7 +1597,7 @@ bool process::getDyninstRTLibName() {
         }
     }
     //Canonicalize name
-    char *sptr = strdup(dyninstRT_name.c_str());
+    char *sptr = P_strdup(dyninstRT_name.c_str());
     for (unsigned i=0; i<strlen(sptr); i++)
        if (sptr[i] == '/') sptr[i] = '\\';
     dyninstRT_name = sptr;
@@ -1883,7 +1883,7 @@ callType int_function::getCallingConvention() {
     const char *name = symTabName().c_str();
     const int buffer_size = 1024;
     char buffer[buffer_size];
-    char *pos;
+    const char *pos;
 
     if (callingConv != unknown_call)
         return callingConv;

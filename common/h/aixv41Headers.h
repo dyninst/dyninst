@@ -178,6 +178,14 @@ inline int P_ptrace(int req, pid_t pid, Address addr, Address data, Address addr
   { return(ptrace(req, pid, (int *)addr, data, (int *)addr2));}
 #endif
 
+inline int P_mkdir(const char *pathname, mode_t mode) {
+	return mkdir(pathname, mode);
+}
+
+inline int P_unlink(const char *pathname) {
+	return unlink(pathname);
+}
+
 extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char *cmd, int *fd2p);
 
 extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval *tm);

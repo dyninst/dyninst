@@ -60,7 +60,7 @@ class test5_5_Mutator : public DyninstMutator {
 public:
   test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test5_5_factory() {
+extern "C" DLLEXPORT TestMutator *test5_5_factory() {
   return new test5_5_Mutator();
 }
 
@@ -129,6 +129,7 @@ test_results_t test5_5_Mutator::executeTest() {
    if (!expr5_1) {
       logerror("**Failed** test #5 (namespace)\n");
       logerror("    Unable to locate test5_5_test5 in main\n");
+	  return FAILED;
    }
    
    BPatch_Vector<BPatch_variableExpr *> *fields = expr5_1->getComponents();

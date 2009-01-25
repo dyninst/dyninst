@@ -2,6 +2,7 @@
 //needed for Sleep
 #include <windows.h>
 #define sleep(x) Sleep(x * 1000)
+#define unlink _unlink
 #endif
 
 #include <stdlib.h>
@@ -217,21 +218,36 @@ int main(int argc, char *argv[])
    // Remove a stale resumelog, if it exists
    if ( getenv("RESUMELOG") && isRegFile(string(getenv("RESUMELOG"))) )
    {
-      unlink(getenv("RESUMELOG"));
+	   if(unlink(getenv("RESUMELOG")) == -1) {
+		   fprintf(stderr, "Couldn't delete resume log: %s\n", getenv("RESUMELOG"));
+	   }
+	   else {
+		   fprintf(stderr, "Cleaned up resume log OK: %s\n", getenv("RESUMELOG"));
+	   }
    } else if (isRegFile(string(DEFAULT_RESUMELOG))) {
-      unlink(DEFAULT_RESUMELOG);
+	   if(unlink(DEFAULT_RESUMELOG) == -1) {
+		   fprintf(stderr, "Couldn't delete resume log: %s\n", DEFAULT_RESUMELOG);
+	   }
+	   else {
+		   fprintf(stderr, "Cleaned up resume log OK: %s\n", DEFAULT_RESUMELOG);
+	   }
    }
 
    // Remove a stale crashlog, if it exists
    if (getenv("CRASHLOG") && isRegFile(string(getenv("CRASHLOG")))) {
+	   if(unlink(getenv("CRASHLOG")) == -1) {
+		   fprintf(stderr, "Couldn't delete crash log: %s\n", getenv("CRASHLOG"));
+	   };
       unlink(getenv("CRASHLOG"));
    } else if (isRegFile(string(DEFAULT_CRASHLOG))) {
-      unlink(DEFAULT_CRASHLOG);
+	   if(unlink(DEFAULT_CRASHLOG) == -1) {
+		   fprintf(stderr, "Couldn't delete crash log: %s\n", DEFAULT_CRASHLOG);
+	   };
    }
 
    // Create a PIDs file, to track mutatee PIDs
-   char *pidFilename = NULL;
-
+   char *pidFilename = new char[80];
+   initPIDFilename(pidFilename, 80);
    // result == 2 indicates that there are no more tests to run
    while ( result != NOTESTS && invocation < MAX_ITER )
    {
@@ -263,7 +279,7 @@ int main(int argc, char *argv[])
       unlink(pidFilename);
    }
    unlink(DEFAULT_RESUMELOG);
-   unlink("");
+   unlink(getenv("RESUMELOG"));
    
 
    parseMEMCPUFile();

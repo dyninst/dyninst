@@ -1016,18 +1016,12 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                BPatch_dynamicCallRecord32 call_rec_32;
 
                retval = P_socketRead<BPatch_dynamicCallRecord32>(ev.fd, call_rec_32);
-<<<<<<< BPatch_asyncEventHandler.C
                call_rec.call_site_addr = (void*)call_rec_32.call_site_addr;
                call_rec.call_target = (void*)call_rec_32.call_target;
             } else
                retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
 #else
             retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
-=======
-               call_rec.call_site_addr = (void*)(long)call_rec_32.call_site_addr;
-               call_rec.call_target = (void*)(long)call_rec_32.call_target;
-            }else
->>>>>>> 1.54
 #endif
 
             async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
@@ -1173,7 +1167,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
 
    //  The (int) argument to this function is our pid
    BPatch_Vector<BPatch_snippet *> args;
-   args.push_back(new BPatch_constExpr(getpid()));
+   args.push_back(new BPatch_constExpr(P_getpid()));
    BPatch_funcCallExpr disconnectcall(*funcs[0], args);
 
    //  Run the connect call as oneTimeCode

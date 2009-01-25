@@ -51,6 +51,8 @@
 #include "Collections.h"
 #include "Symtab.h"
 #include "Module.h"
+#include "Function.h"
+#include "Variable.h"
 
 #include "common/h/headers.h"
 
@@ -130,21 +132,21 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
 	stripAtSuffix(buf);
 	if (buf[0] == '\0') 
 		return 0; // avoid null names which seem to annoy Paradyn
-	return strdup(buf);
+	return P_strdup(buf);
     }
     else {
        if (includeTypes) {
 	  if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
 	    //	 printf("Undecorate with types: %s = %s\n", c, buf);
 	    stripAtSuffix(buf);
-	    return strdup(buf);
+	    return P_strdup(buf);
 	  }
        }
        else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
 	 //else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
 	 //printf("Undecorate: %s = %s\n", c, buf);
 	 stripAtSuffix(buf);	      
-	 return strdup(buf);
+	 return P_strdup(buf);
        }
     }
     return 0;
@@ -233,7 +235,8 @@ Object::intSymbol::DefineSymbol(dyn_hash_map<std::string,std::vector<Symbol *> >
                                             modName,
                                             (Symbol::SymbolType) GetType(),
                                             (Symbol::SymbolLinkage) GetLinkage(),
-                                            (Offset)GetAddr(),
+											Symbol::SV_UNKNOWN,
+											(Offset)GetAddr(),
                                             GetRegion(),
                                             GetSize()) );
 }
@@ -259,6 +262,7 @@ Object::Module::DefineSymbols( const Object* obj,
                         "",
                         Symbol::ST_MODULE,
                         Symbol::SL_GLOBAL,
+						Symbol::SV_UNKNOWN,
                         obj->code_off(),	// TODO use real base of symbols for file
                         NULL, 0 ) );		  // TODO Pass Section pointer also
             // TODO also pass size
@@ -274,6 +278,7 @@ Object::Module::DefineSymbols( const Object* obj,
                     "",
                     Symbol::ST_MODULE,
                     Symbol::SL_GLOBAL,
+					Symbol::SV_UNKNOWN,
                     obj->code_off(),
                     NULL,					//TODO pass Sections pointer
                     obj->code_len()) );
@@ -832,7 +837,7 @@ Object::Object(MappedFile *mf_,
    ParseSymbolInfo(alloc_syms);
 }
 
-DLLEXPORT ObjectType Object::objType() const 
+SYMTAB_EXPORT ObjectType Object::objType() const 
 {
 	return is_aout() ? obj_Executable : obj_SharedLib;
 }
@@ -909,7 +914,7 @@ void Object::parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li)
 }
 
 typedef struct localsStruct {
-    Symbol *func;
+    Function *func;
     Offset base;
     HANDLE p;
     map<unsigned, unsigned> foundSyms;
@@ -920,7 +925,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
                                void *userContext)
 {
     Type *type;
-    Symbol *func;
+    Function *func;
     storageClass storage;
     localVar *newvar;
     int reg;
@@ -987,6 +992,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 
     //Store the variable as a local or parameter appropriately
    if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_PARAMETER) {
+      assert(func);
       if (!func->addParam(newvar)) {
          fprintf(stderr, "%s[%d]:  addParam failed\n", FILE__, __LINE__);
          return false;
@@ -999,6 +1005,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
       paramType = "parameter";
    }
    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
+	  assert(func);
       if (!func->addLocalVar(newvar)) {
          fprintf(stderr, "%s[%d]:  addLocalVar failed\n", FILE__, __LINE__);
          return false;
@@ -1011,8 +1018,9 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
       paramType = "local";
    }
    else {
+	   
       fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
-              __FILE__, __LINE__, pSymInfo->Name, func->getPrettyName().c_str());
+              __FILE__, __LINE__, pSymInfo->Name, func->getAllPrettyNames()[0].c_str());
       paramType = "unknown";
    }
 
@@ -1029,14 +1037,13 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 }
 
 
-static void enumLocalVars(Symbol *func, 
-//                          const std::vector<instPoint *> &points,
+static void enumLocalVars(Function *func, 
                           localsStruct *locals) 
 {
     IMAGEHLP_STACK_FRAME frame;
     memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
 
-	frame.InstructionOffset = locals->base +func->getAddr();
+	frame.InstructionOffset = locals->base + func->getAddress();
     int result = SymSetContext(locals->p, &frame, NULL);
 	/*if (!result) {            
 		fprintf(stderr, "[%s:%u] - Couldn't SymSetContext\n", __FILE__, __LINE__);
@@ -1048,11 +1055,13 @@ static void enumLocalVars(Symbol *func,
         printSysError(GetLastError());
     }*/
 	
-	if(!func->getSize())
+	if (!func->getSize())
 	{
 		memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
 
-		frame.InstructionOffset = locals->base +func->getAddr()+func->getSize();
+		frame.InstructionOffset = locals->base +
+								  func->getAddress() + 
+								  func->getSize();
 		result = SymSetContext(locals->p, &frame, NULL);
 		result = SymEnumSymbols(locals->p, 0, NULL, enumLocalSymbols, locals);
 	}
@@ -1403,12 +1412,12 @@ static Type *getUDTType(HANDLE p, Offset base, int typeIndex, Module *mod) {
         childName = NULL;
         result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_SYMTAG, &symtag);
         if (result && symtag == SymTagBaseClass) {
-            childName = strdup("{superclass}");
+            childName = P_strdup("{superclass}");
         }
         if (!childName)
             childName = getTypeName(p, base, children->ChildId[i]);
         if (!childName) 
-            childName = strdup(child_type->getName().c_str());
+            childName = P_strdup(child_type->getName().c_str());
 
         // Find the offset of this member in the structure
         result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_OFFSET, &child_offset);
@@ -1720,7 +1729,7 @@ typedef struct proc_mod_pair {
     Offset base_addr;
 } proc_mod_pair;
 
-static void findLocalVars(Symbol *func, proc_mod_pair base) {
+static void findLocalVars(Function *func, proc_mod_pair base) {
     Module *mod = func->getModule();
     localsStruct locals;
     HANDLE p = base.handle;
@@ -1829,8 +1838,8 @@ void Object::parseTypeInfo(Symtab *obj) {
     //
     // Parse local variables and local type information
     //
-    std::vector<Symbol *> funcs;
-	obj->getAllSymbolsByType(funcs, Symbol::ST_FUNCTION);
+    std::vector<Function *> funcs;
+	obj->getAllFunctions(funcs);
     for (unsigned i=0; i < funcs.size(); i++) {
         findLocalVars(funcs[i], pair);
     }
@@ -1841,6 +1850,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag) {
+bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, 
+						unsigned flag) {
 	return true;
 }

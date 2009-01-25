@@ -321,6 +321,18 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 
 bool BPatch_image::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
+    /* One test called this after the process exited, resulting in a crash. Determine if 
+       we have objects to look through before operating...
+    */
+    if (addSpace == NULL) {
+        return NULL;
+    }
+    AddressSpace *as = addSpace->getAS();
+
+    if ((as == NULL) ||
+        (as->mappedObjects().size() == 0) ||
+        (as->getAOut() == NULL)) return NULL;
+
    BPatch_Vector<BPatch_variableExpr *> *temp = BPatch_image::getGlobalVariables();
 
    if (temp) {
@@ -810,7 +822,20 @@ bool BPatch_image::findFunctionInt(Dyninst::Address addr,
 BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showError)
 {
     pdvector<int_variable *> vars;
+
+    /* One test called this after the process exited, resulting in a crash. Determine if 
+       we have objects to look through before operating...
+    */
+    if (addSpace == NULL) {
+        return NULL;
+    }
     AddressSpace *as = addSpace->getAS();
+
+    if ((as == NULL) ||
+        (as->mappedObjects().size() == 0) ||
+        (as->getAOut() == NULL)) return NULL;
+
+
 
     if (!as->findVarsByAll(name,vars)) {
         // _name?
@@ -896,7 +921,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
       }
    }
 
-   char *nameCopy = strdup(name);
+   char *nameCopy = P_strdup(name);
    assert(nameCopy);
    BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
          addSpace, (void *)var->getAddress(), 

@@ -88,14 +88,14 @@ public:
    ComponentTester *tester;
    std::vector<RunGroup *> groups;
 
-   bool isInitialized();
-   void setInitialized(bool result);
+   TESTLIB_DLL_EXPORT bool isInitialized();
+   TESTLIB_DLL_EXPORT void setInitialized(bool result);
 
-   bool setupRun();
-   void setSetupRun(bool result);
+   TESTLIB_DLL_EXPORT bool setupRun();
+   TESTLIB_DLL_EXPORT void setSetupRun(bool result);
 
-   static bool registerGroupInModule(std::string modname, RunGroup *group);
-   static void getAllModules(std::vector<Module *> &mods);
+   TESTLIB_DLL_EXPORT static bool registerGroupInModule(std::string modname, RunGroup *group);
+   TESTLIB_DLL_EXPORT static void getAllModules(std::vector<Module *> &mods);
 };
 
 //extern std::vector<RunGroup *> tests;

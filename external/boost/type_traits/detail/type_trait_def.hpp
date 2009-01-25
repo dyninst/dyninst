@@ -7,9 +7,9 @@
 // (See accompanying file LICENSE_1_0.txt or copy at 
 // http://www.boost.org/LICENSE_1_0.txt)
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/type_traits/detail/type_trait_def.hpp,v $
-// $Date: 2007/12/04 21:53:47 $
-// $Revision: 1.1 $
+// $Source$
+// $Date: 2004-09-02 11:41:37 -0400 (Thu, 02 Sep 2004) $
+// $Revision: 24874 $
 
 #include <boost/type_traits/detail/template_arity_spec.hpp>
 #include <boost/mpl/aux_/lambda_support.hpp>

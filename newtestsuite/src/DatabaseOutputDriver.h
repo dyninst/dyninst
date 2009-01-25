@@ -1,3 +1,4 @@
+
 #include <sstream>
 #include <string>
 #include <vector>
@@ -5,6 +6,7 @@
 #include "TestOutputDriver.h"
 
 #include "test_results.h"
+#include "test_lib.h"
 
 // FIXME Magic numbers..  These should be changed to test_driver parameters
 #define DB_HOSTNAME "bryce.cs.umd.edu"
@@ -45,5 +47,5 @@ public:
 };
 
 extern "C" {
-extern TEST_DLL_EXPORT TestOutputDriver *outputDriver_factory(void * data);
+	DLLEXPORT TestOutputDriver *outputDriver_factory(void * data);
 }

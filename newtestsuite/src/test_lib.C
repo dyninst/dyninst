@@ -209,6 +209,8 @@ void registerPID(int pid) {
 
 void cleanPIDFile()
 {
+	if(!pidFilename)
+		return;
    FILE *f = fopen(pidFilename, "r");
    if (!f)
       return;
@@ -218,14 +220,14 @@ void cleanPIDFile()
       int res = fscanf(f, "%d\n", &pid);
       if (res != 1)
          break;
-#if !defined(os_windows)
+#if !defined(os_windows_test)
       kill(pid, SIGKILL);
 #else
       HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
       if (h == NULL) {
-         return false;
+         return;
       }
-      bool res = TerminateProcess(h,0);
+      bool dummy = TerminateProcess(h,0);
       CloseHandle(h);
 #endif
    }
@@ -336,7 +338,21 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
                              FILE *outlog, FILE *errlog) {
 #if defined(os_windows_test)
    // TODO Fix Windows code to work with log file
-   char child_args[1024];
+	LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
+	HANDLE mutatee_signal_pipe = CreateNamedPipe(pipeName,
+		PIPE_ACCESS_INBOUND,
+		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+		1, // num instances
+		1024, // read buffer
+		1024, // write buffer
+		5000, //timeout
+		NULL); // security descriptor
+	if(mutatee_signal_pipe == INVALID_HANDLE_VALUE)
+	{
+      fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+      return -1;
+	}
+	char child_args[1024];
    strcpy(child_args, "");
    if (argv[0] != NULL) {
       strcpy(child_args, pathname);
@@ -361,10 +377,55 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
                       NULL,		// current directory
                       &si,
                       &pi)) {
+						  LPTSTR lastErrorMsg;
+						  DWORD lastError = GetLastError();
+						  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+							  FORMAT_MESSAGE_FROM_SYSTEM |
+							  FORMAT_MESSAGE_IGNORE_INSERTS,
+							  NULL,
+							  lastError,
+							  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+							  (LPTSTR)&lastErrorMsg,
+							  0, NULL );
+						  fprintf(stderr, "CreateProcess failed: (%d) %s\n",
+							  lastError, lastErrorMsg);
+						  LocalFree(lastErrorMsg);
+
       return -1;
    }
 
    registerPID(pi.dwProcessId);
+	// Keep synchronization pattern the same as on Unix...
+	BOOL conn_ok = ConnectNamedPipe(mutatee_signal_pipe, NULL) ?
+		TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
+	if(!conn_ok)
+	{
+		CloseHandle(mutatee_signal_pipe);
+		return -1;
+	}
+	char mutatee_ready = 0x0;
+	DWORD bytes_read;
+	BOOL read_ok = ReadFile(mutatee_signal_pipe,
+		&mutatee_ready, // buffer
+		1,	// size
+		&bytes_read,
+		NULL); // not overlapped I/O
+	if (!read_ok || (bytes_read != 1))
+	{
+		fprintf(stderr, "Couldn't read from mutatee pipe\n");
+		DisconnectNamedPipe(mutatee_signal_pipe);
+		CloseHandle(mutatee_signal_pipe);
+		return -1;
+	}
+	if(mutatee_ready != 'T')
+	{
+		fprintf(stderr, "Got unexpected message from mutatee, aborting\n");
+		DisconnectNamedPipe(mutatee_signal_pipe);
+		CloseHandle(mutatee_signal_pipe);
+		return -1;
+	}
+	DisconnectNamedPipe(mutatee_signal_pipe);
+	CloseHandle(mutatee_signal_pipe);
    return pi.dwProcessId;
 #else
    /* Make a pipe that we will use to signal that the mutatee has started. */

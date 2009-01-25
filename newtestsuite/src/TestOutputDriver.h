@@ -28,8 +28,7 @@ public:
 
   // Informs the output driver that any log messages or results should be
   // associated with the test passed in through the attributes parameter
-   virtual void startNewTest(std::map<std::string, std::string> &attributes, TestInfo *test,
-			     RunGroup *group) = 0;
+  virtual void startNewTest(std::map<std::string, std::string> &attributes, TestInfo *test, RunGroup *group) = 0;
 
   // Specifies a file to redirect one of the output streams to.  The default
   // file can be specified with a filename of "-".  Defaults are as follows:

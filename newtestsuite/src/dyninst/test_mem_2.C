@@ -61,7 +61,7 @@ class test_mem_2_Mutator : public DyninstMutator {
 public:
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test_mem_2_factory() {
+extern "C" DLLEXPORT TestMutator *test_mem_2_factory() {
   return new test_mem_2_Mutator();
 }
 

@@ -41,9 +41,10 @@
 
 // $Id: list.C,v
 
-#include <iostream.h>
+#include <ostream>
 #include "common/h/List.h"
 
+using namespace std;
 
 template <class DataType, class KeyType> DO_INLINE_F typename 
 ListBase<DataType, KeyType>::node *ListBase<DataType, KeyType>::getLastNode()
@@ -62,7 +63,7 @@ template <class DataType, class KeyType> void
 ListBase<DataType, KeyType>::__push_front(DataType &data, 
 					  const KeyType &key)
 {
-   ListBase<DataType, KeyType>::node *ni = new node(data, key, head);
+   typename ListBase<DataType, KeyType>::node *ni = new node(data, key, head);
    head = ni;
 }
 

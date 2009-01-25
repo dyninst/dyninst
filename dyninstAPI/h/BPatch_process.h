@@ -265,7 +265,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
                             unsigned long stack_top, unsigned long start_pc, process *proc = NULL);
     void deleteBPThread(BPatch_thread *thrd);
 
-    void updateThreadInfo();
+    bool updateThreadInfo();
 
         
     public:

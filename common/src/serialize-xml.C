@@ -260,7 +260,7 @@ bool ifxml_start_element(SerializerBase *sb, const char *tag)
 }
 
 namespace Dyninst {
-bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
+COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
@@ -329,12 +329,6 @@ SerDesXML::~SerDesXML()
 {
 #if defined (cap_have_libxml)
     my_xmlFreeTextWriter(writer);
-#endif
-
-#if defined(_MSC_VER)
-    FreeLibrary(hXML);
-#else
-    //  should we dlclose??
 #endif
 
 }

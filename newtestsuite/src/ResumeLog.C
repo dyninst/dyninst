@@ -43,6 +43,7 @@
 #include "test_info_new.h"
 #include "test_lib.h"
 #include "ResumeLog.h"
+#include <assert.h>
 
 #include <assert.h>
 #include <stdlib.h>
@@ -142,8 +143,10 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
          break;
 
       assert(groupnum >= 0 && groupnum < groups.size());
-      assert(testnum >= 0 && testnum < groups[groupnum]->tests.size());
-
+	  assert(groups[groupnum]);
+	  logerror("Test number %d, group size %d\n", testnum, groups[groupnum]->tests.size());
+      assert(testnum >= 0);
+	  assert(testnum < groups[groupnum]->tests.size());
       if (runstate_int == RESULT_REPORTED)
       {
          groups[groupnum]->tests[testnum]->disabled = true;
@@ -220,7 +223,7 @@ void parse_mutateelog(RunGroup *group)
       
       int passed;
       res = fscanf(f, "%d\n", &passed);
-      if (!res)
+      if (res == EOF)
          result = CRASHED;
       else if (passed == 1)
          result = PASSED;

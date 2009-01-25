@@ -50,23 +50,26 @@ class Symbol;
 class Aggregate : public AnnotatableSparse 
 {
    public:
-      DLLEXPORT Aggregate();
+      SYMTAB_EXPORT Aggregate();
       
       virtual ~Aggregate() {};
 
-      DLLEXPORT Offset   getAddress() const;
-      DLLEXPORT Module * getModule() const;
+      SYMTAB_EXPORT Offset   getAddress() const;
+      SYMTAB_EXPORT Module * getModule() const;
 
       /***** Symbol Collection Management *****/
-      DLLEXPORT bool addSymbol(Symbol *sym);
-      DLLEXPORT bool removeSymbol(Symbol *sym);
-      DLLEXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      DLLEXPORT Symbol * getFirstSymbol() const;
+      SYMTAB_EXPORT bool addSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
+      SYMTAB_EXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
+      SYMTAB_EXPORT Symbol * getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      DLLEXPORT const vector<std::string> &getAllMangledNames();
-      DLLEXPORT const vector<std::string> &getAllPrettyNames();
-      DLLEXPORT const vector<std::string> &getAllTypedNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllMangledNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllPrettyNames();
+      SYMTAB_EXPORT const vector<std::string> &getAllTypedNames();
+	 SYMTAB_EXPORT virtual bool addMangledName(string name, bool isPrimary);
+	 SYMTAB_EXPORT virtual bool addPrettyName(string name, bool isPrimary);
+	 SYMTAB_EXPORT virtual bool addTypedName(string name, bool isPrimary);
 
    protected:
 

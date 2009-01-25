@@ -59,9 +59,9 @@
 #include "dyninst_comp.h"
 
 class test1_2_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+  virtual DLLEXPORT test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test1_2_factory() {
+extern "C" DLLEXPORT TestMutator *test1_2_factory() {
   return new test1_2_Mutator();
 }
 
@@ -70,7 +70,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_2_factory() {
 //
 // extern "C" TEST_DLL_EXPORT int test1_2_mutatorTest(BPatch_thread *appThread,
 // 						   BPatch_image *appImage) {
-test_results_t test1_2_Mutator::executeTest() {
+test_results_t DLLEXPORT test1_2_Mutator::executeTest() {
   const char *funcName = "test1_2_func2_1";
   const char* testName = "four parameter function";
   int testNo = 2;

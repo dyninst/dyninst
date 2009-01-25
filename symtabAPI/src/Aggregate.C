@@ -36,7 +36,6 @@
 #include "symutil.h"
 #include "Module.h"
 #include "Collections.h"
-#include "Variable.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -141,6 +140,61 @@ Symbol * Aggregate::getFirstSymbol() const
     assert( symbols_.size()>0 );
     return symbols_[0];
 }
+
+SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary) 
+ {
+    // Check to see if we're duplicating
+    for (unsigned i = 0; i < mangledNames_.size(); i++) {
+        if (mangledNames_[i] == name)
+            return false;
+    }
+
+    if (isPrimary) {
+        std::vector<std::string>::iterator iter = mangledNames_.begin();
+        mangledNames_.insert(iter, name);
+    }
+    else
+        mangledNames_.push_back(name);
+
+    if (addMangledNameInt(name, isPrimary) == false) return false;
+     return true;
+ }																	
+ 
+ SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
+ {
+    // Check to see if we're duplicating
+    for (unsigned i = 0; i < prettyNames_.size(); i++) {
+        if (prettyNames_[i] == name)
+            return false;
+    }
+
+    if (isPrimary) {
+        std::vector<std::string>::iterator iter = prettyNames_.begin();
+        prettyNames_.insert(iter, name);
+    }
+    else
+        prettyNames_.push_back(name);
+    if (addPrettyNameInt(name, isPrimary) == false) return false;
+     return true;
+ }																	
+ 
+ SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
+ {
+    // Check to see if we're duplicating
+    for (unsigned i = 0; i < typedNames_.size(); i++) {
+        if (typedNames_[i] == name)
+            return false;
+    }
+    if (addTypedNameInt(name, isPrimary) == false) return false;
+
+    if (isPrimary) {
+        std::vector<std::string>::iterator iter = typedNames_.begin();
+        typedNames_.insert(iter, name);
+    }
+    else
+        typedNames_.push_back(name);
+	return true;
+ }
 
 bool Aggregate::addMangledNameInt(string name, bool isPrimary) {
     // Check to see if we're duplicating

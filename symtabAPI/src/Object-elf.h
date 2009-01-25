@@ -314,7 +314,7 @@ class Object : public AObject {
      return (char *)mf->base_addr();
   }
 
-  DLLEXPORT ObjectType objType() const;
+  SYMTAB_EXPORT ObjectType objType() const;
   const char *interpreter_name() const;
 
 

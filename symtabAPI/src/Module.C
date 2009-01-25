@@ -157,30 +157,6 @@ LineInformation *Module::getLineInformation()
    }
 
    return li;
-
-#if 0
-   Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
-
-   if (exec_->isLineInfoValid_) {
-      if (!mt.size()) {
-          // There is no line info valid for this module
-         return NULL;
-      }
-      if (mt.size() > 1) {
-        // fprintf(stderr, "%s[%d]:  weird, multiple line info for %s: FIXME\n", 
-        //       FILE__, __LINE__, fileName_.c_str());
-      }
-      if (!mt[0]) {
-         fprintf(stderr, "%s[%d]:  FIXME:  Line info annotation is NULL!\n", FILE__, __LINE__);
-      }
-      return mt[0];
-   }
-#endif
-
-   fprintf(stderr, "%s[%d]:  FIXME:  line info not valid after parse\n",
-         FILE__, __LINE__);
-
-   return NULL;
 }
 
 bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
@@ -319,50 +295,31 @@ void Symtab::parseTypesNow()
 bool Module::setLineInfo(LineInformation *lineInfo)
 {
    LineInformation *li =  NULL;
+
    if (!getAnnotation(li, ModuleLineInfoAnno)) 
    {
       if (li) 
       {
-         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
-               FILE__, __LINE__);
          return false;
       }
 
       if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
       {
-         fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
          return false;
       }
 
       return true;
    }
-   else 
+   if (li != lineInfo)
+     delete li;
+   
+   if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
    {
-      if (li != lineInfo)
-         delete li;
-
-      fprintf(stderr, "%s[%d]:  weird, already have line info anno, check this\n", FILE__, __LINE__);
-      if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
-         return false;
-      }
+     fprintf(stderr, "%s[%d]:  failed to add lineInfo annotation\n", FILE__, __LINE__);
+     return false;
    }
 
    return false;
-
-#if 0
-   Annotatable<LineInformation *, module_line_info_a,  true> &mt = *this;
-
-   if (mt.size()) 
-   {
-      // We need to remove the existing annotation and make sure there is only one annotation.
-      mt.clearAnnotations();
-      //fprintf(stderr, "%s[%d]:  WARNING, already have lineInfo set for module %s\n", FILE__, __LINE__, fileName_.c_str());
-   }
-   mt.addAnnotation(lineInfo);
-   return true;
-#endif
 }
 
 bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)

@@ -46,7 +46,7 @@
 
 #include "common/h/language.h"
 
-#include <iostream.h>
+#include <ostream>
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -153,7 +153,7 @@ template <class DataType, class KeyType> class ListBase {
    ~ListBase() {
       clear();
    }
-   friend ostream &operator<<(ostream &os, 
+   friend std::ostream &operator<<(std::ostream &os, 
 			      const ListBase<DataType, KeyType> &data);
 
    // returns the first element
@@ -232,13 +232,13 @@ template <class DataType, class KeyType> class ListBase {
 };
 
 template <class DataType, class KeyType>
-inline ostream &operator<<(ostream &os, 
+inline std::ostream &operator<<(std::ostream &os, 
 			   const ListBase<DataType, KeyType> &data) {
    TYPENAME ListBase<DataType, KeyType>::iterator curr = data.begin();
    TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
    
    for(; curr != endMarker; ++curr) {
-      os << *curr << endl;
+      os << *curr << std::endl;
    }
    return os;
 }
@@ -249,7 +249,7 @@ template <class DataType> class List : public ListBase<DataType, void*> {
    List() : ListBase<DataType, KeyType>() { };
    List(const List &fromList) : ListBase<DataType, KeyType>(fromList) { }
    ~List() { }  // ~ListBase will be called
-   friend ostream &operator<<(ostream &os, 
+   friend std::ostream &operator<<(std::ostream &os, 
 			      const List<DataType> &data) {
       return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
    }
@@ -279,7 +279,7 @@ public ListBase<DataType, KeyType> {
    ListWithKey(const ListWithKey &fromList) : 
       ListBase<DataType, KeyType>(fromList) {}
    ~ListWithKey() { }  // ~ListBase will be called
-   friend ostream &operator<<(ostream &os,
+   friend std::ostream &operator<<(std::ostream &os,
 			      const ListWithKey<DataType, KeyType> &data)
    {
       return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
@@ -309,7 +309,7 @@ public ListBase<DataType, KeyType> {
 };
 
 
-template <class Type> ostream &operator<<(ostream &os, 
+template <class Type> std::ostream &operator<<(std::ostream &os, 
                                           HTable<Type> &data);
 
 template <class Type> class HTable {
@@ -324,9 +324,9 @@ template <class Type> class HTable {
   // write something that compiles (as was the case before).
   // BTW, is this operator used anywhere?
 #if (defined(i386_unknown_nt4_0) && _MSC_VER < 1300) || defined(mips_sgi_irix6_4)
-  friend ostream& operator<< (ostream &os, HTable<Type> &data);
+  friend std::ostream& operator<< (std::ostream &os, HTable<Type> &data);
 #else
-  friend ostream& operator<< <> (ostream &os, HTable<Type> &data);
+  friend std::ostream& operator<< <> (std::ostream &os, HTable<Type> &data);
 #endif
 
 	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
@@ -401,7 +401,7 @@ template <class Type> class HTable {
 };
 
 
-template <class Type> ostream &operator<<(ostream &os,
+template <class Type> std::ostream &operator<<(std::ostream &os,
                                           HTable<Type> &data) {
   int i, total;
   
@@ -477,20 +477,20 @@ template <class Type> DO_INLINE_F  bool HTable<Type>::remove(void *key)
 
 template <class Type> class StringList: public List<Type> {
     public:
-	DO_INLINE_F Type find(void *key);
+	DO_INLINE_F Type find(void *key)
+	{
+	  // This didn't use to have StringList<Type>::, but it barfs without it, 
+	  //so... - TLM (2002/08/06)
+	  typename StringList<Type>::node *it;
+	  
+	  for (it=this->head; it; it=it->next) {
+	    if (!strcmp((char *) it->key, (char *) key)) {
+	      return(it->data);
+	    }
+	  }
+	  return((Type) 0);
+	}
 };
 
-template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
-{
-    // This didn't use to have StringList<Type>::, but it barfs without it, so... - TLM (2002/08/06)
-    TYPENAME StringList<Type>::node *curr;
-
-    for (curr=head; curr; curr=curr->next) {
-	if (!strcmp((char *) curr->key, (char *) data)) {
-	    return(curr->data);
-	}
-    }
-    return((Type) 0);
-}
 
 #endif /* LIST_H */
