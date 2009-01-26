@@ -53,6 +53,10 @@
 #include "function.h"
 #include "InstrucIter.h"
 #include "BPatch_instruction.h"
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+#endif
 #include "BPatch_libInfo.h"
 #include "BPatch_edge.h"
 
@@ -402,6 +406,27 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 
   return instructions;
 }
+
+/*
+ * BPatch_basicBlock::getInstructions
+ *
+ * Returns a vector of the instructions contained within this block
+ *
+ */
+#if defined(cap_instruction_api)
+bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction>& insns) {
+  using namespace InstructionAPI;
+  InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())), size());
+  Instruction curInsn = d.decode();
+  while(curInsn.isValid())
+  {
+    insns.push_back(curInsn);
+    curInsn = d.decode();
+  }
+  return !insns.empty();
+  
+}
+#endif // defined(cap_instruction_api)
 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {

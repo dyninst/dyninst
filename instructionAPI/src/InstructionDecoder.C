@@ -42,6 +42,14 @@ namespace Dyninst
   namespace InstructionAPI
   {
     
+    INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
+    {
+      delete decodedInstruction;
+      delete cond;
+      delete locs;
+      delete[] mac;
+      
+    }
     static const unsigned char modrm_use_sib = 4;
     
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
@@ -68,7 +76,7 @@ namespace Dyninst
       unsigned scale;
       Register index;
       Register base;
-      decode_SIB(locs.sib_byte, scale, index, base);
+      decode_SIB(locs->sib_byte, scale, index, base);
       // 0x04 is both a "use SIB" and a "don't scale, just use the base" code
       // rename later
       if(index == modrm_use_sib)
@@ -87,9 +95,9 @@ namespace Dyninst
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
       // This handles the rm and reg fields; the mod field affects how this expression is wrapped
-      if(locs.modrm_rm != modrm_use_sib || locs.modrm_mod == 0x03)
+      if(locs->modrm_rm != modrm_use_sib || locs->modrm_mod == 0x03)
       {
-	return Expression::Ptr(new RegisterAST(makeRegisterID(locs.modrm_rm, opType)));
+	return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType)));
       }
       else
       {
@@ -137,15 +145,15 @@ namespace Dyninst
     {
       int disp_pos;
       
-      if(locs.sib_position != -1)
+      if(locs->sib_position != -1)
       {
-	disp_pos = locs.sib_position + 1;
+	disp_pos = locs->sib_position + 1;
       }
       else
       {
-	disp_pos = locs.modrm_position + 1;
+	disp_pos = locs->modrm_position + 1;
       }
-      switch(locs.modrm_mod)
+      switch(locs->modrm_mod)
       {
       case 1:
 	return Expression::Ptr(new Immediate(Result(s8, (*(const byte_t*)(rawInstruction + disp_pos)))));
@@ -191,7 +199,7 @@ namespace Dyninst
       
     int InstructionDecoder::makeRegisterID(unsigned int intelReg, unsigned int opType)
     {
-      if(locs.rex_w)
+      if(locs->rex_w)
       {
 	// AMD64 with 64-bit operands
 	return IntelRegTable[4][intelReg];
@@ -280,20 +288,20 @@ namespace Dyninst
 	return;
       case am_A:
 	{
-	  Expression::Ptr addr(decodeImmediate(operand.optype, locs.disp_position));
+	  Expression::Ptr addr(decodeImmediate(operand.optype, locs->disp_position));
 	  Expression::Ptr op(new Dereference(addr, makeSizeType(operand.optype)));
 	  outputOperands.push_back(op);
 	}
 	break;
       case am_C:
 	{
-	  Expression::Ptr op(new RegisterAST(IntelRegTable[7][locs.modrm_reg]));
+	  Expression::Ptr op(new RegisterAST(IntelRegTable[7][locs->modrm_reg]));
 	  outputOperands.push_back(op);
 	}
 	break;
       case am_D:
 	{
-	  Expression::Ptr op(new RegisterAST(IntelRegTable[8][locs.modrm_reg]));
+	  Expression::Ptr op(new RegisterAST(IntelRegTable[8][locs->modrm_reg]));
 	  outputOperands.push_back(op);
 	}
 	break;
@@ -303,7 +311,7 @@ namespace Dyninst
       case am_M:
 	// am_R is the inverse of am_M; it should only have a mod of 3
       case am_R:
-	switch(locs.modrm_mod)
+	switch(locs->modrm_mod)
 	{
 	  // direct dereference
 	case 0x00:
@@ -343,14 +351,14 @@ namespace Dyninst
 	break;
       case am_G:
 	outputOperands.push_back(Expression::Ptr(new RegisterAST(makeRegisterID
-								 (locs.modrm_reg, operand.optype))));
+								 (locs->modrm_reg, operand.optype))));
 	break;
       case am_I:
-	outputOperands.push_back(Expression::Ptr(decodeImmediate(operand.optype, locs.imm_position)));
+	outputOperands.push_back(Expression::Ptr(decodeImmediate(operand.optype, locs->imm_position)));
 	break;
       case am_J:
 	{
-	  Expression::Ptr Offset(decodeImmediate(operand.optype, locs.imm_position));
+	  Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position));
 	  Expression::Ptr EIP(new RegisterAST(r_EIP));
 	  outputOperands.push_back(Expression::Ptr(makeAddExpression(Offset, EIP, u32)));
 	}
@@ -360,7 +368,7 @@ namespace Dyninst
 	  // Address/offset width, which is *not* what's encoded by the optype...
 	  // The deref's width is what's actually encoded here.  Need to address this issue somehow.
 	  int pseudoOpType;
-	  switch(locs.address_size)
+	  switch(locs->address_size)
 	  {
 	  case 1:
 	    pseudoOpType = op_b;
@@ -382,14 +390,14 @@ namespace Dyninst
 	  }
 	  
 
-	  int offset_position = locs.opcode_position;
-	  if(locs.modrm_position > offset_position && locs.modrm_operand < (int)(outputOperands.size()))
+	  int offset_position = locs->opcode_position;
+	  if(locs->modrm_position > offset_position && locs->modrm_operand < (int)(outputOperands.size()))
 	  {
-	    offset_position = locs.modrm_position;
+	    offset_position = locs->modrm_position;
 	  }
-	  if(locs.sib_position > offset_position)
+	  if(locs->sib_position > offset_position)
 	  {
-	    offset_position = locs.sib_position;
+	    offset_position = locs->sib_position;
 	  }
 	  offset_position++;
 	  outputOperands.push_back(Expression::Ptr(new Dereference(decodeImmediate(pseudoOpType, 
@@ -398,10 +406,10 @@ namespace Dyninst
 	}
 	break;
       case am_P:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[6][locs.modrm_reg])));
+	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[6][locs->modrm_reg])));
 	break;
       case am_Q:
-	switch(locs.modrm_mod)
+	switch(locs->modrm_mod)
 	{
 	  // direct dereference
 	case 0x00:
@@ -424,7 +432,7 @@ namespace Dyninst
 	case 0x03:
 	  // use of actual register
 	  {
-	    outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[6][locs.modrm_rm])));
+	    outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[6][locs->modrm_rm])));
 	    break;
 	  }
 	default:
@@ -435,16 +443,16 @@ namespace Dyninst
 	break;
       case am_S:
 	// Segment register in modrm reg field.
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[3][locs.modrm_reg])));
+	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[3][locs->modrm_reg])));
 	break;
       case am_T:
 	assert(!"Not implemented, mod r/m reg = test");
 	break;
       case am_V:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[5][locs.modrm_reg])));
+	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[5][locs->modrm_reg])));
 	break;
       case am_W:
-	switch(locs.modrm_mod)
+	switch(locs->modrm_mod)
 	{
 	  // direct dereference
 	case 0x00:
@@ -467,7 +475,7 @@ namespace Dyninst
 	case 0x03:
 	  // use of actual register
 	  {
-	    outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[5][locs.modrm_rm])));
+	    outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[5][locs->modrm_rm])));
 	    break;
 	  }
 	default:
@@ -517,8 +525,15 @@ namespace Dyninst
     unsigned int InstructionDecoder::decodeOpcode()
     {
       delete decodedInstruction;
-      decodedInstruction = new Dyninst::InstructionAPI::ia32_instruction(mac, &cond, &locs);
-      Dyninst::InstructionAPI::ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, 
+      delete cond;
+      delete locs;
+      delete[] mac;
+      
+      cond = new ia32_condition;
+      locs = new ia32_locations;
+      mac = new ia32_memacc[3];
+      decodedInstruction = new ia32_instruction(mac, cond, locs);
+      ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, 
 					   rawInstruction, *decodedInstruction);
       m_Operation = Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix());
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);

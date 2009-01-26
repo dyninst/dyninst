@@ -42,7 +42,7 @@ namespace Dyninst
       return RegisterAST::Ptr(new RegisterAST(regID));
     }
 
-    INSTRUCTION_EXPORT Operation::Operation(Dyninst::InstructionAPI::ia32_entry* e, Dyninst::InstructionAPI::ia32_prefixes* p)
+    INSTRUCTION_EXPORT Operation::Operation(ia32_entry* e, ia32_prefixes* p)
     {
       if(!e || !e->name())
       {

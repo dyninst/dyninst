@@ -60,6 +60,10 @@
 #include "BPatch_function.h"
 #include "BPatch_parRegion.h"
 #include "InstrucIter.h"
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+#endif
 #include "callbacks.h"
 
 BPatch_parRegion::BPatch_parRegion(int_parRegion * _parReg, BPatch_function * _func)
@@ -96,6 +100,24 @@ BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructionsInt(void) {
 
   return instructions;
 }
+
+#if defined(cap_instruction_api)
+bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instruction>& insns) {
+  using namespace InstructionAPI;
+  const unsigned char* buffer = 
+  (const unsigned char*)(lowlevel_region()->intFunc()->proc()->getPtrToInstruction(getStartAddress()));
+  
+  InstructionDecoder d(buffer, size());
+  Instruction curInsn = d.decode();
+  while(curInsn.isValid())
+  {
+    insns.push_back(curInsn);
+    curInsn = d.decode();
+  }
+  return !insns.empty();
+  
+}
+#endif // defined(cap_instruction_api)
 
 unsigned long BPatch_parRegion::getStartAddressInt() CONST_EXPORT 
 {
