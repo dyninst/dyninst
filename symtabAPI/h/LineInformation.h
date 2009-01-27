@@ -52,35 +52,33 @@ namespace SymtabAPI{
 
 /* This is clumsy. */
 
-namespace LineInformationImpl {
-   class LineNoTuple{
-      public:
-         SYMTAB_EXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
-         const char *first; // really file
-         unsigned int second; // really line
-         unsigned int column;
-         SYMTAB_EXPORT bool operator==(const LineNoTuple &cmp) const;
-   };
+class LineNoTuple {
+   public:
+      /* Explicit comparison functors seems slightly less confusing than using
+         operator <() via an implicit Less<> template argument to the maps. */
 
-   /* Explicit comparison functors seems slightly less confusing than using
-      operator <() via an implicit Less<> template argument to the maps. */
-   struct LineNoTupleLess {
-      bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
-   };
-} /* end namespace LineInformationImpl */			
+      struct LineNoTupleLess {
+         bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
+      };
 
-SYMTAB_EXPORT typedef LineInformationImpl::LineNoTuple LineNoTuple;
+      SYMTAB_EXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
+      const char *first; // really file
+      unsigned int second; // really line
+      unsigned int column;
+      SYMTAB_EXPORT bool operator==(const LineNoTuple &cmp) const;
+};
+
+
 class SourceLineInternalTableWrapper;
 
 class LineInformation : public Serializable, 
                         public AnnotatableSparse,
-                        private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > 
+                        private RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess > 
 {
    public:
       SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "LineInformation");
-      typedef LineInformationImpl::LineNoTuple LineNoTuple;
-      typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::const_iterator const_iterator;
-      typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::AddressRange AddressRange;
+      typedef RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::const_iterator const_iterator;
+      typedef RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::AddressRange AddressRange;
 
       SYMTAB_EXPORT LineInformation();
 

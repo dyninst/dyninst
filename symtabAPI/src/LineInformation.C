@@ -110,8 +110,7 @@ SourceLineInternTable &getSourceLineNames(LineInformation *li)
 }
 
 LineInformation::LineInformation() : 
-   Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, 
-   LineInformationImpl::LineNoTupleLess >(),
+   Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >(),
    sourceLineNamesPtr(NULL) 
 {
    size_ = 0;
@@ -182,17 +181,17 @@ bool LineInformation::getSourceLines( Offset addressInRange,
 bool LineInformation::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, vector< AddressRange > & ranges ) 
 {
-   return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
+   return Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
 } /* end getAddressRangesFromLine() */
 
 LineInformation::const_iterator LineInformation::begin() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::begin();
+   return Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::begin();
 } /* end begin() */
 
 LineInformation::const_iterator LineInformation::end() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::end();
+   return Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::end();
 } /* end begin() */
 
 unsigned LineInformation::getSize() const
@@ -200,7 +199,7 @@ unsigned LineInformation::getSize() const
    return size_;
 }
 
-bool LineInformationImpl::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNoTuple rhs ) const 
+bool LineNoTuple::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNoTuple rhs ) const 
 {
    //  dont bother with ordering by column information yet.
 
@@ -257,15 +256,14 @@ LineInformation::~LineInformation()
 
 } /* end LineInformation destructor */
 
-LineInformationImpl::LineNoTuple::LineNoTuple(const char *file_, unsigned int line_, 
-      unsigned int col_) :
+LineNoTuple::LineNoTuple(const char *file_, unsigned int line_, unsigned int col_) :
    first(file_),
    second(line_),
    column(col_) 
 {
 }
 
-bool LineInformationImpl::LineNoTuple::operator==(const LineNoTuple &cmp) const 
+bool LineNoTuple::operator==(const LineNoTuple &cmp) const 
 {
    if (second != cmp.second) return false;
    if (column != cmp.column) return false;
