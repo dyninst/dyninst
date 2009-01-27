@@ -53,11 +53,6 @@
 #ifndef _ARCH_X86_IAPI_H
 #define _ARCH_X86_IAPI_H
 
-namespace Dyninst
-{
-  namespace InstructionAPI
-  {
-    
 #if defined(i386_unknown_nt4_0)
 // disable VC++ warning C4800: (performance warning)
 // forcing 'unsigned int' value to bool 'true' or 'false'
@@ -790,8 +785,5 @@ inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
 bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 bool insn_hasDisp8(unsigned ModRM);
  bool insn_hasDisp32(unsigned ModRM);
-  };
-};
-
 
 #endif
