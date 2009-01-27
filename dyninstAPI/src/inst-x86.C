@@ -173,7 +173,7 @@ void registerSpace::initialize32() {
     
     // "Virtual" registers
     for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
-        char buf[128];
+		char buf[128];
         sprintf(buf, "virtGPR%d", i);
 
         registerSlot *virt = new registerSlot(i,
@@ -183,7 +183,6 @@ void registerSpace::initialize32() {
                                               registerSlot::GPR);
         registers.push_back(virt);
     }
-
     // Create a single FPR representation to represent
     // whether any FPR is live
     registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
@@ -1269,6 +1268,7 @@ Register EmitterIA32::emitCall(opCode op,
    emitCallCleanup(gen, callee, param_size, saves);
 
    // allocate a (virtual) register to store the return value
+   // Virtual register
    Register ret = gen.rs()->allocateRegister(gen, noCost);
    emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
 
@@ -1280,11 +1280,12 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee)
     // make the call
     // we are using an indirect call here because we don't know the
     // address of this instruction, so we can't use a relative call.
-    // TODO: change this to use a direct call
-    Register ptr = gen.rs()->allocateRegister(gen, false);
-    emitMovImmToReg(ptr, callee->getAddress(), gen);  // mov e_x, addr
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, ptr, gen);   // call *(e_x)
-    gen.rs()->freeRegister(ptr);
+	// The only direct, absolute calls available on x86 are far calls,
+	// which require the callee to be aware that they're being far-called.
+	// So we grit our teeth and deal with the indirect call.
+	// Physical register
+    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);  // mov eax, addr
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
     return true;
 }
 
@@ -1301,6 +1302,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
+	// Physical register
     Register ptr = gen.rs()->allocateRegister(gen, false);
 
     // find int_function reference in address space

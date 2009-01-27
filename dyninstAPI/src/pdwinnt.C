@@ -1990,10 +1990,10 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     case thiscall_call:
         //Allocate the ecx register for the 'this' parameter
         if (num_operands) {
-            result = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
-            if (!result) {
-                emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
-            }
+            //result = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
+            //if (!result) {
+            //    emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
+            //}
             if (!operands[0]->generateCode_phase2(gen, 
                                                   noCost, 
                                                   unused, ecx_target)) assert(0);
@@ -2011,17 +2011,17 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     case fastcall_call:
         if (num_operands) {
             //Allocate the ecx register for the first parameter
-            ecx_target = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
-            if (!ecx_target) {
-                emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
-            }
+            //ecx_target = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
+            //if (!ecx_target) {
+            //    emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
+            //}
         }
         if (num_operands > 1) {
             //Allocate the edx register for the second parameter
-            edx_target = gen.rs()->allocateSpecificRegister(gen, REGNUM_EDX, false);
-            if (!edx_target) {
-                emitNeededCallSaves(gen, REGNUM_EDX, extra_saves);
-            }
+            //edx_target = gen.rs()->allocateSpecificRegister(gen, REGNUM_EDX, false);
+            //if (!edx_target) {
+            //    emitNeededCallSaves(gen, REGNUM_EDX, extra_saves);
+            //}
         }
         if (num_operands) {
             if (!operands[0]->generateCode_phase2(gen, 
@@ -2082,7 +2082,7 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen, int_function *target,
 
     //Restore extra registers we may have saved when storing parameters in
     // specific registers
-    emitNeededCallRestores(gen, extra_saves);
+    //emitNeededCallRestores(gen, extra_saves);
     return 0;
 }
 
