@@ -2327,7 +2327,7 @@ bool BPatch_module::getAddressRangesInt( const char * fileName,
       }
       else 
       {
-         fprintf(stderr, "%s[%d]:  failed to get address ranges for %s:%d, lineInfo %p, lowlevel module = %p:%s\n", FILE__, __LINE__, fileName, lineNo, li, mod->pmod(), mod->pmod().fileName().c_str());
+         fprintf(stderr, "%s[%d]:  failed to get address ranges for %s:%d, lineInfo %p, lowlevel module = %p:%s\n", FILE__, __LINE__, fileName, lineNo, li, mod->pmod(), mod->pmod()->fileName().c_str());
       }
 
       return ok;
