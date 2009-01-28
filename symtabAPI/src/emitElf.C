@@ -428,7 +428,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     Elf_Scn *scn = NULL, *newscn;
     Elf_Data *newdata = NULL, *olddata = NULL;
     Elf32_Shdr *newshdr, *shdr = NULL;
-    
+
     unsigned scncount;
     for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
 
@@ -467,7 +467,7 @@ bool emitElf::driver(Symtab *obj, string fName){
             newdata->d_buf = (char *)malloc(olddata->d_size);
             memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
     	}
-	
+
 	    if(BSSExpandFlag) {
 	        // Add the expanded SHT_NOBITS section size if the section comes after those sections 
     	    if(scncount > NOBITSstartPoint)
@@ -542,6 +542,11 @@ bool emitElf::driver(Symtab *obj, string fName){
             newshdr->sh_type = SHT_PROGBITS;
             renameSection(".hash", ".nill", false);
         }
+        if(!strcmp(name, ".gnu.hash")){
+            newshdr->sh_type = SHT_PROGBITS;
+            renameSection(".gnu.hash", ".old.hash", false);
+        }
+
     	// Change offsets of sections based on the newly added sections
         if(addNewSegmentFlag)
 			newshdr->sh_offset += pgSize;
@@ -667,10 +672,12 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
     	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
         		newPhdr->p_paddr = newPhdr->p_vaddr;
             }
-            if ((tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
+            // update first segment header with the page size offset
+	        if ((tmp->p_type == PT_LOAD && tmp->p_flags == 5 && tmp->p_vaddr == 0) ||
+                (tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
                 tmp->p_type == PT_NOTE || 
                 tmp->p_type == PT_INTERP)
-	            newPhdr->p_offset += pgSize;
+				newPhdr->p_offset += pgSize;
     	} 
 	    newPhdr++;
     	if(addNewSegmentFlag) {
@@ -1651,6 +1658,10 @@ void emitElf::createHashSection(Elf32_Word *&hashsecData, unsigned &hashsecSize,
     vector<Symbol *>::iterator iter;
     dyn_hash_map<unsigned, unsigned> lastHash; // bucket number to symbol index
     unsigned nbuckets = (unsigned)dynSymbols.size()*2/3;
+    if (nbuckets % 2 == 0)
+        nbuckets--;
+    if (nbuckets < 1)
+        nbuckets = 1;
     unsigned nchains = (unsigned)dynSymbols.size();
     hashsecSize = 2 + nbuckets + nchains;
     hashsecData = (Elf32_Word *)malloc(hashsecSize*sizeof(Elf32_Word));
@@ -1689,6 +1700,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
     for(unsigned i = 0; i< count;i++){
         switch(dyns[i].d_tag){
             case DT_NULL:
+            case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
                 break;
             case DT_NEEDED:
                 rpathstr = &olddynStrData[dyns[i].d_un.d_val];
