@@ -28,6 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+
+#include <string.h>
 			     
 #include <stdio.h>
 
@@ -36,6 +38,7 @@
 #include "Symtab.h"
 #include "Module.h"
 #include "Collections.h"
+#include "Function.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -1090,7 +1093,7 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
 	// localVar->addField() TODO????
 	//fieldList[j]->getOffset()+(Offset) baseAddr, -1, storageAddr);
 	
-      if (!func->addLocalVar(locVar)) 
+      if (!func->getFunction()->addLocalVar(locVar)) 
       {
          fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
       }
@@ -1593,7 +1596,7 @@ void Field::fixupUnknown(Module *module) {
  * localVar Constructor
  *
  */
-localVar::localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t *>* locs)
+localVar::localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t>* locs)
  :name_(name), type_(typ), fileName_(fileName), lineNum_(lineNum), locs_(locs), upPtr_(NULL)
 {
     type_->incrRefCount();
@@ -1608,16 +1611,9 @@ localVar::localVar(localVar &lvar)
    if(!lvar.locs_)
        locs_ = NULL;
    else {
-       locs_ = new vector<loc_t *>;
+       locs_ = new vector<loc_t>;
        for(unsigned i=0;i<lvar.locs_->size();i++){
-           loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
-	   loc->stClass = (*(lvar.locs_))[i]->stClass;
-	   loc->refClass = (*(lvar.locs_))[i]->refClass;
-	   loc->reg = (*(lvar.locs_))[i]->reg;
-	   loc->frameOffset = (*(lvar.locs_))[i]->frameOffset;
-	   loc->lowPC = (*(lvar.locs_))[i]->lowPC;
-	   loc->hiPC = (*(lvar.locs_))[i]->hiPC;
-	   locs_->push_back(loc);
+          locs_->push_back((*lvar.locs_)[i]);
        }
    }	
    upPtr_ = lvar.upPtr_;
@@ -1628,15 +1624,16 @@ localVar::localVar(localVar &lvar)
 bool localVar::addLocation(loc_t *location)
 {
     if(!locs_)
-    	locs_ = new std::vector<loc_t *>;
-    locs_->push_back(location);
+    	locs_ = new std::vector<loc_t>;
+    locs_->push_back(*location);
     return true;
 }
 
-bool localVar::setLocation(vector<loc_t *> *locs) {
+bool localVar::setLocation(vector<loc_t> &locs) {
     if(locs_)
         return false;
-    locs_ = locs;
+    locs_ = new vector<loc_t>;
+    *locs_ = locs;
     return true;
 }
 
@@ -1648,8 +1645,8 @@ localVar::~localVar()
 {
     //XXX jdd 5/25/99 More to do later
     type_->decrRefCount();
-    for(unsigned i=0;i<locs_->size();i++)
-    	delete (*locs_)[i];
+    delete locs_;
+    locs_ = NULL;
     delete locs_;
 }
 
@@ -1687,7 +1684,7 @@ std::string &localVar::getFileName() {
 	return fileName_; 
 }
 
-std::vector<Dyninst::SymtabAPI::loc_t *> *localVar::getLocationLists() { 
+std::vector<Dyninst::SymtabAPI::loc_t> *localVar::getLocationLists() { 
 	return locs_; 
 }
 

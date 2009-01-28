@@ -69,10 +69,10 @@ using namespace Dyninst::SymtabAPI;
 //int BPatch_type::USER_BPATCH_TYPE_ID = -1000;
 
 
+std::map<Dyninst::SymtabAPI::Type*, BPatch_type *> BPatch_type::type_map;
+
 /* These are the wrappers for constructing a type.  Since we can create
    types six ways to Sunday, let's do them all in one centralized place. */
-
-
 BPatch_type *BPatch_type::createFake(const char *_name) {
    // Creating a fake type without a name is just silly
    assert(_name != NULL);
@@ -95,6 +95,7 @@ BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
 {
     typ_->setUpPtr(this);
     type_ = convertToBPatchdataClass(typ_->getDataClass());
+    type_map[typ] = this;
 }
 
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
@@ -105,6 +106,19 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
   else
      typ = new Type("", ID, convertToSymtabType(_type));
   typ->setUpPtr(this);
+  type_map[typ] = this;
+}
+
+BPatch_type *BPatch_type::findOrCreateType(Dyninst::SymtabAPI::Type *type)
+{
+   std::map<Dyninst::SymtabAPI::Type*, BPatch_type *>::iterator elem = type_map.find(type);
+   if (elem != type_map.end()) {
+      return (*elem).second;
+   }
+   
+   BPatch_type *bptype = new BPatch_type(type);
+   assert(bptype);
+   return bptype;
 }
 
 /* BPatch_type destructor
@@ -558,11 +572,11 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
     if (!type)
         type = new BPatch_type(lVar->getType());
     type->incrRefCount();
-    vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar_->getLocationLists();
+    vector<Dyninst::SymtabAPI::loc_t> *locs = lVar_->getLocationLists();
     if (!locs)
-   	    storageClass = BPatch_storageFrameOffset;
+       storageClass = BPatch_storageFrameOffset;
     else
-        storageClass = convertToBPatchStorage((*locs)[0]);
+       storageClass = convertToBPatchStorage(& (*locs)[0]);
     lVar->setUpPtr(this);
 }
 
@@ -606,17 +620,17 @@ int BPatch_localVar::getLineNum() {
 
 //TODO?? - get the first frame offset
 long BPatch_localVar::getFrameOffset() { 
-    vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar->getLocationLists();
-    if(!locs)
-        return -1;
-    return (*(locs))[0]->frameOffset;
+   vector<Dyninst::SymtabAPI::loc_t> *locs = lVar->getLocationLists();
+   if(!locs)
+      return -1;
+   return (*(locs))[0].frameOffset;
 }
 
 int BPatch_localVar::getRegister() { 
-    vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar->getLocationLists();
+    vector<Dyninst::SymtabAPI::loc_t> *locs = lVar->getLocationLists();
     if(!locs)
         return -1;
-    return (*(locs))[0]->reg;
+    return (*(locs))[0].reg;
 }
 
 BPatch_storageClass BPatch_localVar::getStorageClass() {
@@ -677,3 +691,4 @@ BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctionsInt()
 //TODO
   return NULL;
 }
+

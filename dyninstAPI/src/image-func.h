@@ -57,6 +57,8 @@
 #include "dyninstAPI/src/bitArray.h"
 #include <set>
 
+#include "symtabAPI/h/Function.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -332,7 +334,7 @@ class image_func : public codeRange {
 	      pdmodule *m,
 	      image *i);
   
-   image_func(Symbol *symbol, pdmodule *m, image *i);
+   image_func(Function *func, pdmodule *m, image *i);
 
    ~image_func();
 
@@ -341,23 +343,29 @@ class image_func : public codeRange {
    // Basic output functions
    ////////////////////////////////////////////////
 
-   Symbol* symbol() const{
-   	return sym_;
+   Function* getSymtabFunction() const{
+      return  func_; 
    }	
 
    const string &symTabName() const { 
-       return sym_->getName();
+       return func_->getFirstSymbol()->getName();
    }
    const string &prettyName() const {
-       return sym_->getPrettyName();
+       return func_->getFirstSymbol()->getPrettyName();
    }
    const string &typedName() const {
-       return sym_->getTypedName();
+       return func_->getFirstSymbol()->getTypedName();
    }
 
-   const vector<string> &symTabNameVector() const { return sym_->getAllMangledNames(); }
-   const vector<string> &prettyNameVector() const { return sym_->getAllPrettyNames(); }
-   const vector<string> &typedNameVector() const { return sym_->getAllTypedNames(); }
+   const vector<string> &symTabNameVector() const {
+       return func_->getAllMangledNames();
+   }
+   const vector<string> &prettyNameVector() const {
+       return func_->getAllPrettyNames();
+   }
+   const vector<string> &typedNameVector() const {
+       return func_->getAllTypedNames();
+   }
    void copyNames(image_func *duplicate);
 
    // Bool: returns true if the name is new (and therefore added)
@@ -365,9 +373,9 @@ class image_func : public codeRange {
    bool addPrettyName(std::string name, bool isPrimary = false);
    bool addTypedName(std::string name, bool isPrimary = false);
 
-   Address getOffset() const {return sym_->getAddr();}
+   Address getOffset() const {return func_->getFirstSymbol()->getAddr();}
    Address getEndOffset(); // May trigger parsing
-   unsigned getSymTabSize() const { return sym_->getSize(); }
+   unsigned getSymTabSize() const { return func_->getFirstSymbol()->getSize(); }
 
    // coderange needs a get_address...
    Address get_address() const { return getOffset();}
@@ -563,6 +571,7 @@ class image_func : public codeRange {
    void calcBlockLevelLiveness();
 #endif
    
+   const Function *func() const { return func_; }
 
  private:
    
@@ -570,7 +579,7 @@ class image_func : public codeRange {
                           it just refers to the stored values and returns that */
 
    ///////////////////// Basic func info
-   Symbol *sym_;			/* pointer to the underlying Symbol */
+   Function *func_;			/* pointer to the underlying symtab Function */
 
 #if 0
 //   Now a part of Symbol. Moved to Symbol.h - giri

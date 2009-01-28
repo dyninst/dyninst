@@ -130,7 +130,7 @@ InstrucIter::InstrucIter(image_basicBlock *b) :
 
 
 InstrucIter::InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
-  instructions_(bpBasicBlock->flowGraph->getAddSpace()->getAS()),
+  instructions_(bpBasicBlock->flowGraph->getllAddSpace()),
   base(bpBasicBlock->getStartAddress()),
   range(bpBasicBlock->size()),
   current(base)

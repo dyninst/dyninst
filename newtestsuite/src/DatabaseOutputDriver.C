@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#ifdef os_windows
+#ifdef os_windows_test
 #define MAX_USER_NAME	256
 #include <windows.h>
 #else
@@ -44,7 +44,9 @@ DatabaseOutputDriver::~DatabaseOutputDriver() {
 
 void
 DatabaseOutputDriver::startNewTest(std::map<std::string,
-				            std::string> &attrs)
+				   std::string> &attrs,
+				   TestInfo *,
+				   RunGroup *)
 {
   // This needs to set up a log file to store output from all streams
   if (attributes != NULL) {
@@ -73,7 +75,7 @@ void DatabaseOutputDriver::redirectStream(TestOutputStream stream, const char * 
   // This is a no-op for database output
 }
 
-void DatabaseOutputDriver::logResult(test_results_t res) {
+void DatabaseOutputDriver::logResult(test_results_t res, int stage) {
   // What does this do, exactly?  Store the result code for database check-in
   // I guess..
   // Do I want to submit the results to the database in this method, or use
@@ -101,7 +103,7 @@ void DatabaseOutputDriver::vlog(TestOutputStream stream, const char *fmt,
   FILE *dbout = NULL;
 
   if (dblogFilename.empty()) {
-#if defined(os_windows)
+#if defined(os_windows_test)
      char *tfile = _tempnam(".", "dts");
      if (tfile) {
         dbout = fopen(tfile, "w+b");
@@ -199,7 +201,7 @@ void DatabaseOutputDriver::finalizeOutput() {
 		
 		std::string userName;
 
-#ifdef os_windows
+#ifdef os_windows_test
 		char * szUserName = new char[MAX_USER_NAME + 1];
 		LPDWORD lpnSize = (LPDWORD)malloc(sizeof(DWORD));
 		*lpnSize = MAX_USER_NAME + 1;

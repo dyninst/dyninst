@@ -21,7 +21,8 @@ class MappedFile {
 #else
       DLLEXPORT int getFD() {return fd;}
 #endif
-      DLLEXPORT unsigned size() {return file_size;}
+      DLLEXPORT unsigned long size() {return file_size;}
+      DLLEXPORT MappedFile *clone() { refCount++; return this; }
 
    private:
 
@@ -46,7 +47,7 @@ class MappedFile {
 #endif
       bool did_mmap;
       bool did_open;
-      unsigned file_size;
+      unsigned long file_size;
       int refCount;
 };
 

@@ -51,6 +51,7 @@
 #include "ast.h"
 #include <map>
 #include <functional>
+#include <queue>
 
 class fileDescriptor;
 class int_function;
@@ -129,7 +130,7 @@ class BinaryEdit : public AddressSpace {
     void deleteBinaryEdit();
 
     // And the "open" factory method.
-    static BinaryEdit *openFile(const std::string &file, int openSharedLibs = 1);
+    static BinaryEdit *openFile(const std::string &file);
 
     bool writeFile(const std::string &newFileName);
     
@@ -137,16 +138,7 @@ class BinaryEdit : public AddressSpace {
 
     // resolve a dynamic library name to a full path
     // returns NULL if the library cannot be found
-    std::string* resolveLibraryName(const std::string &filename);
-
-    // open all dependencies of the current a.out
-    bool openAllDependencies();
-    
-    // open all dependencies of a given file
-    bool openAllDependencies(const std::string &file);
-
-    // open all dependencies of a given object
-    bool openAllDependencies(Symtab *st);
+    std::string resolveLibraryName(std::string filename);
 
     // open a shared library and (optionally) all its dependencies
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
@@ -156,6 +148,8 @@ class BinaryEdit : public AddressSpace {
 
     // search for a shared library relocation
 	Address getDependentRelocationAddr(Symbol *referring);
+
+   bool getAllDependencies(std::queue<std::string> &deps);
 
  private:
 
@@ -171,7 +165,7 @@ class BinaryEdit : public AddressSpace {
 
     bool initialize();
 
-    std::map<mapped_object*, codeRangeTree*> memoryTrackers_;
+    codeRangeTree* memoryTracker_;
 
     mapped_object * addSharedObject(const std::string *fullPath);
 
@@ -179,6 +173,7 @@ class BinaryEdit : public AddressSpace {
 
     void buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
                              Region *newSec);
+    mapped_object *mobj;
 };
 
 class depRelocation {

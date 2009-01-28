@@ -590,7 +590,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
         else {
             trampGuardAddr = AstNode::operandNode(AstNode::DataIndir,
                                                   proc()->trampGuardAST());
-	    trampGuardAddr->setType( BPatch::getBPatch()->builtInTypes->findBuiltInType( "unsigned int" ) );
+            trampGuardAddr->setType( BPatch::getBPatch()->builtInTypes->findBuiltInType( "unsigned int" ) );
         }
     }
 
@@ -632,13 +632,6 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     }
     else {
         // Oh, boy. 
-#if 0
-        baseTramp = AstNode::operatorNode(ifOp,
-                                          AstNode::operatorNode(eqOp,
-                                                                trampGuardAddr,
-                                                                AstNode::operandNode(AstNode::Constant, (void *)1)),
-                                          baseTrampSequence);
-#endif
         // Short form of the above
         baseTramp = AstNode::operatorNode(ifOp,
                                           trampGuardAddr,
@@ -781,26 +774,6 @@ bool baseTramp::inSavedRegion (Address addr) {
   }
   return false;
 }
-
-#if 0
-void
-baseTramp::updateTrampCost(int trampCost) {
-#ifndef alpha_dec_osf4_0 /* XXX We don't calculate cost yet on Alpha */
-    cost = cost + trampCost;
-    if (cost < 0) cost = 0;
-
-    char costInsn[40];
-    Address csize = 0;
-    Address caddr = proc()->getObservedCostAddr();    
-    if (caddr == 0) {
-      bpwarn("Observed cost address 0, skipping cost calculation");
-      return;
-    }
-    emitVupdate(updateCostOp, cost, 0, caddr, costInsn, csize, false);
-    proc()->writeDataSpace((caddr_t)costAddr, csize, costInsn);
-#endif
-}
-#endif
 
 // Add a miniTramp to the appropriate place: at the start or end of
 // its instPoint minis.

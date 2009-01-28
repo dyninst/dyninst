@@ -76,5 +76,7 @@ MUTATEE_TEST9_EXTRA_LIB_ABI = 9.-L./ 9.-lInstMe_$(M_ABI)
 
 LIBS_LIBTESTSUITE = -ldl
 
+TESTDRIVER_LDFLAGS = -liberty
+
 include ../make.module.tmpl
 

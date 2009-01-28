@@ -72,11 +72,13 @@
 /*
  * Private constructor, insn
  */
-BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, instPoint *_point,
-                           BPatch_procedureLocation _pointType) :
-    // Note: MIPSPro compiler complains about redefinition of default argument
-    addSpace(_addSpace), func(_func), point(_point), pointType(_pointType), memacc(NULL),
-    dynamic_point_monitor_func(NULL),edge_(NULL)
+BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, 
+                           BPatch_function *_func, instPoint *_point,
+                           BPatch_procedureLocation _pointType,
+                           AddressSpace *as) :
+   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   pointType(_pointType), memacc(NULL), dynamic_point_monitor_func(NULL),
+   edge_(NULL)
 {
     if (_pointType == BPatch_subroutine)
         dynamic_call_site_flag = 2; // dynamic status unknown
@@ -134,11 +136,13 @@ BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_fun
 /*
  * Private constructor, edge
  */
-BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, 
-                           BPatch_edge *_edge, instPoint *_point) :
-    // Note: MIPSPro compiler complains about redefinition of default argument
-    addSpace(_addSpace), func(_func), point(_point), pointType(BPatch_locInstruction), memacc(NULL),
-    dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
+BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, 
+                           BPatch_function *_func, 
+                           BPatch_edge *_edge, instPoint *_point,
+                           AddressSpace *as) :
+   addSpace(_addSpace), lladdSpace(as), func(_func), point(_point), 
+   pointType(BPatch_locInstruction), memacc(NULL),
+   dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
 {
   // I'd love to have a "loop" constructor, but the code structure
   // doesn't work right. We create an entry point as a set of edge points,
@@ -433,7 +437,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // the second the (address of the) callsite. 
 
   pdvector<AstNodePtr> args;
-  if (!addSpace->getAS()->getDynamicCallSiteArgs(point, args))
+  if (!lladdSpace->getDynamicCallSiteArgs(point, args))
       return NULL;
   if (args.size() != 2)
       return NULL;
@@ -636,15 +640,14 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
     // createArbitraryInstPoint(addr, proc);
     
     Address internalAddr = (Address) address;
-    AddressSpace *internalAS = addSpace->getAS();
 
     instPoint *iPoint = instPoint::createArbitraryInstPoint(internalAddr,
-                                                            internalAS,
+                                                            bpf->lladdSpace,
                                                             bpf->lowlevel_func());
 
     if (!iPoint)
-        return NULL;
-
+       return NULL;
+    
     return addSpace->findOrCreateBPPoint(bpf, iPoint, BPatch_arbitrary);
 }
 
@@ -737,4 +740,9 @@ bool BPatch_point::getCFTargetInt(BPatch_Vector<Address> *targets)
     }
     targets->push_back(targ);
     return true;
+}
+
+AddressSpace *BPatch_point::getAS()
+{
+   return lladdSpace;
 }

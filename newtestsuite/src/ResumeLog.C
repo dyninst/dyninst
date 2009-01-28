@@ -45,6 +45,10 @@
 #include "test_lib.h"
 #include "ResumeLog.h"
 
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
 static bool enableLog = false;
 static const char *resumelog_name = "resumelog";
 
@@ -173,17 +177,26 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
          case test_init_rs:
          case test_execute_rs:
          case test_teardown_rs:
-            groups[groupnum]->tests[testnum]->results[runstate] = CRASHED;
+            groups[groupnum]->tests[testnum]->results[runstate] = result;
             break;
          case group_setup_rs:
          case group_teardown_rs:
             for (unsigned i=0; i<groups[groupnum]->tests.size(); i++)
             {
-               groups[groupnum]->tests[i]->results[runstate] = CRASHED;
+               groups[groupnum]->tests[i]->results[runstate] = result;
             }
             break;
          case program_setup_rs:
-            //TODO: Mark every group in program set as CRASHED
+         case program_teardown_rs:
+            for (unsigned i=0; i<groups.size(); i++)
+            {
+               if (groups[i]->mod != groups[groupnum]->mod)
+                  continue;
+               for (unsigned j=0; j<groups[i]->tests.size(); j++)
+               {
+                  groups[i]->tests[j]->results[runstate] = result;
+               }
+            }
             break;
       }
       if (res != 1)

@@ -48,7 +48,7 @@
  * #Notes:useAttach does not apply
  */
 
-#if !defined(os_windows)
+#if !defined(os_windows_test)
 #include <sys/types.h>
 #include <sys/wait.h>
 #endif
@@ -83,7 +83,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test3_6_factory() {
 
 test3_6_Mutator::test3_6_Mutator()
   : Mutatees(3), bpatch(NULL), pathname(NULL) {
-#if defined(os_windows)
+#if defined(os_windows_test)
   expectedSignal = ExitedNormally;
 #else
   expectedSignal = ExitedViaSignal;
@@ -95,7 +95,7 @@ test3_6_Mutator::test3_6_Mutator()
 //     Just let them run a while, then kill them, no instrumentation added.
 //
 
-#if !defined (os_windows)
+#if !defined (os_windows_test)
 static int forkNewMutatee(const char *filename, const char *child_argv[])
 {
   int pid;
@@ -220,7 +220,7 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
 
 // static int mutatorTest(char *pathname, BPatch *bpatch)
 test_results_t test3_6_Mutator::executeTest() {
-#if !defined (os_windows)
+#if !defined (os_windows_test)
     unsigned int n=0;
     const char *child_argv[5];
     child_argv[n++] = pathname;
@@ -271,7 +271,7 @@ test_results_t test3_6_Mutator::executeTest() {
             logerror("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
-#if !defined(os_aix) && !defined(os_solaris) && !defined(os_osf)
+#if !defined(os_aix_test) && !defined(os_solaris_test) && !defined(os_osf_test)
         if(appThread[n]->terminationStatus() != expectedSignal) {
             logerror("**Failed** test3_6 (simultaneous multiple-process management - terminate (fork))\n");
             logerror("    mutatee process [%d] didn't get notice of termination\n", n);
@@ -301,7 +301,7 @@ test_results_t test3_6_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
-#if defined (sparc_sun_solaris2_4)
+#if defined (sparc_sun_solaris2_4_test)
     // we use some unsafe type operations in the test cases.
     bpatch->setTypeChecking(false);
 #endif

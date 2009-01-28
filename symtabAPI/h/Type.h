@@ -531,7 +531,7 @@ class DLLEXPORT localVar
     Type *type_;
     std::string fileName_;
     int lineNum_;
-    std::vector<loc_t *> *locs_;
+    std::vector<loc_t> *locs_;
     void *upPtr_;
     
     // scope_t scope;
@@ -539,11 +539,11 @@ class DLLEXPORT localVar
   public:
     localVar() {}
       //  Internal use only
-      localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t *> *locs = NULL);
+      localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t> *locs = NULL);
       // Copy constructor
       localVar(localVar &lvar);
       bool addLocation(loc_t *location);
-      bool setLocation(std::vector<loc_t *> *locs);
+      bool setLocation(std::vector<loc_t> &locs);
       ~localVar();
       void fixupUnknown(Module *);
  public:
@@ -553,7 +553,7 @@ class DLLEXPORT localVar
       bool setType(Type *newType);
       int  getLineNum();
       std::string &getFileName();
-      std::vector<loc_t *> *getLocationLists();
+      std::vector<loc_t> *getLocationLists();
 
       void *getUpPtr() const;
       bool setUpPtr(void *);

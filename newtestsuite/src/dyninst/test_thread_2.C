@@ -274,7 +274,7 @@ test_results_t test_thread_2_Mutator::executeTest() {
 }
 // extern "C" int test12_3_mutatorMAIN(ParameterDict &param)
 test_results_t test_thread_2_Mutator::setup(ParameterDict &param) {
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   debugPrint = param["debugPrint"]->getInt();
 

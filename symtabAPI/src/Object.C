@@ -38,6 +38,8 @@
 #include "symutil.h"
 #include "Module.h"
 #include "Collections.h"
+#include "annotations.h"
+#include "Symbol.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -46,11 +48,6 @@
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
-
-AnnotationClass<localVarCollection> FunctionLocalVariablesAnno(std::string("FunctionLocalVariablesAnno"));
-AnnotationClass<localVarCollection> FunctionParametersAnno(std::string("FunctionParametersAnno"));
-AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersionNamesAnno");
-AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
 
 string Symbol::emptyString("");
 
@@ -197,10 +194,6 @@ DLLEXPORT unsigned long relocationEntry::getRelType() const
 
 DLLEXPORT Symbol::~Symbol ()
 {
-   mangledNames.clear();
-   prettyNames.clear();
-   typedNames.clear();
-
    std::string *sfa_p = NULL;
 
    if (getAnnotation(sfa_p, SymbolFileNameAnno))
@@ -224,9 +217,11 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
-   mangledNames(s.mangledNames), 
-   prettyNames(s.prettyNames), 
-   typedNames(s.typedNames), 
+   function_(s.function_),
+   variable_(s.variable_),
+   mangledName_(s.mangledName_), 
+   prettyName_(s.prettyName_), 
+   typedName_(s.typedName_), 
    tag_(s.tag_), 
    framePtrRegNum_(s.framePtrRegNum_),
    retType_(s.retType_), 
@@ -346,10 +341,12 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    isInDynsymtab_ = s.isInDynsymtab_;
    isInSymtab_ = s.isInSymtab_;
    isAbsolute_ = s.isAbsolute_;
+   function_ = s.function_;
+   variable_ = s.variable_;
    tag_     = s.tag_;
-   mangledNames = s.mangledNames;
-   prettyNames = s.prettyNames;
-   typedNames = s.typedNames;
+   mangledName_ = s.mangledName_;
+   prettyName_ = s.prettyName_;
+   typedName_ = s.typedName_;
    framePtrRegNum_ = s.framePtrRegNum_;
 
    std::string *sfa_p = NULL;
@@ -459,25 +456,19 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    return *this;
 }
 
-DLLEXPORT const string& Symbol::getName() const 
+DLLEXPORT const string& Symbol::getMangledName() const 
 {
-   if (mangledNames.size() > 0)
-      return mangledNames[0];
-   return emptyString;
+    return mangledName_;
 }
 
 DLLEXPORT const string& Symbol::getPrettyName() const 
 {
-   if (prettyNames.size() > 0)
-      return prettyNames[0];
-   return emptyString;
+    return prettyName_;
 }
 
 DLLEXPORT const string& Symbol::getTypedName() const 
 {
-   if (typedNames.size() > 0)
-    	return typedNames[0];
-    return emptyString;
+    return typedName_;
 }
 
 DLLEXPORT const string& Symbol::getModuleName() const 
@@ -519,47 +510,6 @@ DLLEXPORT Region *Symbol::getSec() const
     return sec_;
 }
 
-bool Symbol::addLocalVar(localVar *locVar)
-{
-   localVarCollection *lvs = NULL;
-
-   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
-   {
-      lvs = new localVarCollection();
-
-      if (!addAnnotation(lvs, FunctionLocalVariablesAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-   }
-
-   lvs->addLocalVar(locVar);
-   return true;
-}
-
-bool Symbol::addParam(localVar *param)
-{
-   localVarCollection *ps = NULL;
-
-   if (!getAnnotation(ps, FunctionParametersAnno))
-   {
-      ps = new localVarCollection();
-
-      if (!addAnnotation(ps, FunctionParametersAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-   }
-
-   ps->addLocalVar(param);
-
-   return true;
-}
-        
 DLLEXPORT bool Symbol::isInDynSymtab() const 
 {
     return isInDynsymtab_;
@@ -573,6 +523,38 @@ DLLEXPORT bool Symbol::isInSymtab() const
 DLLEXPORT bool Symbol::isAbsolute() const
 {
     return isAbsolute_;
+}
+
+DLLEXPORT bool Symbol::isFunction() const
+{
+    return (function_ != NULL);
+}
+
+DLLEXPORT bool Symbol::setFunction(Function *func)
+{
+    function_ = func;
+    return true;
+}
+
+DLLEXPORT Function * Symbol::getFunction() const
+{
+    return function_;
+}
+
+DLLEXPORT bool Symbol::isVariable() const 
+{
+    return variable_ != NULL;
+}
+
+DLLEXPORT bool Symbol::setVariable(Variable *var) 
+{
+    variable_ = var;
+    return true;
+}
+
+DLLEXPORT Variable * Symbol::getVariable() const
+{
+    return variable_;
 }
 
 DLLEXPORT unsigned Symbol::getSize() const 
@@ -642,26 +624,14 @@ DLLEXPORT bool Symbol::clearIsAbsolute()
 DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
+    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), 
+    function_(NULL),
+    variable_(NULL),
+    tag_(TAG_UNKNOWN),
     framePtrRegNum_(-1), retType_(NULL), moduleName_("")
 {
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
-}
-
-DLLEXPORT const std::vector<string>& Symbol::getAllMangledNames() const 
-{
-    return mangledNames;
-}
-
-DLLEXPORT const std::vector<string>& Symbol::getAllPrettyNames() const 
-{
-	return prettyNames;
-}		
-    
-DLLEXPORT const std::vector<string>& Symbol::getAllTypedNames() const 
-{
-    	return typedNames;
 }
 
 DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
@@ -675,7 +645,7 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
 {
         module_ = NULL;
     	moduleName_ = imodule;
-    	mangledNames.push_back(iname);
+        mangledName_ = iname;
 }
 
 DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
@@ -687,149 +657,25 @@ DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
-    	mangledNames.push_back(iname);
+    mangledName_ = iname;
 }
 
-DLLEXPORT bool Symbol::addMangledName(string name, bool isPrimary) 
-{
-   std::vector<string> newMangledNames;
-
-   // isPrimary defaults to false
-   if (isPrimary)
-      newMangledNames.push_back(name);
-   bool found = false;
-   for (unsigned i = 0; i < mangledNames.size(); i++) {
-      if (mangledNames[i] == name) {
-         found = true;
-      }
-      else {
-         newMangledNames.push_back(mangledNames[i]);
-      }
-   }
-   if (!isPrimary)
-      newMangledNames.push_back(name);
-   mangledNames = newMangledNames;
-
-   if (!found && module_->exec())
-   {		//add it to the lookUps
-      if(type_ == ST_FUNCTION)
-         module_->exec()->addFunctionName(this,name,true);
-      else if(type_ == ST_OBJECT)
-         module_->exec()->addVariableName(this,name,true);
-      else if(type_ == ST_MODULE)
-         module_->exec()->addModuleName(this,name);
-   }
-
-   // Bool: true if the name is new; AKA !found
-   return (!found);
-}																	
-
-DLLEXPORT bool Symbol::addPrettyName(string name, bool isPrimary) 
-{
-   std::vector<string> newPrettyNames;
-
-   // isPrimary defaults to false
-   if (isPrimary)
-      newPrettyNames.push_back(name);
-   bool found = false;
-   for (unsigned i = 0; i < prettyNames.size(); i++) {
-      if (prettyNames[i] == name) {
-         found = true;
-      }
-      else {
-         newPrettyNames.push_back(prettyNames[i]);
-      }
-   }
-
-   if (!isPrimary)
-      newPrettyNames.push_back(name);
-   prettyNames = newPrettyNames;
-
-   if (!found && module_->exec())
-   {		//add it to the lookUps
-      if (type_ == ST_FUNCTION)
-         module_->exec()->addFunctionName(this,name,false);
-      else if (type_ == ST_OBJECT)
-         module_->exec()->addVariableName(this,name,false);
-      else if (type_ == ST_MODULE)
-         module_->exec()->addModuleName(this,name);
-   }
-
-   // Bool: true if the name is new; AKA !found
-   return (!found);
-}
-
-DLLEXPORT bool Symbol::addTypedName(string name, bool isPrimary) 
-{
-   std::vector<string> newTypedNames;
-
-   // isPrimary defaults to false
-   if (isPrimary)
-      newTypedNames.push_back(name);
-
-   bool found = false;
-   for (unsigned i = 0; i < typedNames.size(); i++) {
-      if (typedNames[i] == name) {
-         found = true;
-      }
-      else {
-         newTypedNames.push_back(typedNames[i]);
-      }
-   }
-
-   if (!isPrimary)
-      newTypedNames.push_back(name);
-   typedNames = newTypedNames;
-
-   if (!found && module_->exec())
-   {		//add it to the lookUps
-      if (type_ == ST_FUNCTION)
-         module_->exec()->addFunctionName(this,name,false);
-      else if (type_ == ST_OBJECT)
-         module_->exec()->addVariableName(this,name,false);
-   }
-
-   // Bool: true if the name is new; AKA !found
-   return (!found);
-}
 
 DLLEXPORT bool Symbol::setSymbolType(SymbolType sType)
 {
-   if ((sType != ST_UNKNOWN)&&
-         (sType != ST_FUNCTION)&&
-         (sType != ST_OBJECT)&&
-         (sType != ST_MODULE)&&
-         (sType != ST_NOTYPE))
-      return false;
-
-   SymbolType oldType = type_;	
-   type_ = sType;
-   if (module_->exec())
-      module_->exec()->changeType(this, oldType);
-
-   return true;
-}
-
-DLLEXPORT Type *Symbol::getReturnType()
-{
-   return retType_;
-}
-
-DLLEXPORT bool  Symbol::setReturnType(Type *retType)
-{
-   retType_ = retType;
-   return true;
-}
-
-DLLEXPORT bool Symbol::setFramePtrRegnum(int regnum)
-{
-   framePtrRegNum_ = regnum;
-   return true;
-}
-
-DLLEXPORT int Symbol::getFramePtrRegnum()
-{
-   return framePtrRegNum_;
+    if ((sType != ST_UNKNOWN)&&
+        (sType != ST_FUNCTION)&&
+        (sType != ST_OBJECT)&&
+        (sType != ST_MODULE)&&
+        (sType != ST_NOTYPE))
+        return false;
+    
+    SymbolType oldType = type_;	
+    type_ = sType;
+    if (module_->exec())
+        module_->exec()->changeType(this, oldType);
+    
+    return true;
 }
 
 DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
@@ -844,7 +690,7 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
       else
       {
          fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", 
-               FILE__, __LINE__, getName().c_str());
+                 FILE__, __LINE__, getMangledName().c_str());
       }
       return false;
    }
@@ -873,7 +719,7 @@ DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
          fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
       }
       else
-         fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
+         fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getMangledName().c_str());
       return false;
    }
    else
@@ -944,102 +790,6 @@ DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 #endif
 }
 
-DLLEXPORT bool Symbol::getLocalVariables(std::vector<localVar *>&vars)
-{
-   if (type_ != ST_FUNCTION || !module_ )
-      return false;
-
-   module_->exec()->parseTypesNow();	
-
-   localVarCollection *lvs = NULL;
-   if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
-   {
-      return false;
-   }
-   if (!lvs)
-   {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
-      return false;
-   }
-
-   vars = *(lvs->getAllVars());
-
-   if (vars.size())
-      return true;
-
-   //  this should not occur since annotation should not exist if no data inside it
-   fprintf(stderr, "%s[%d]:  FIXME:  bad sizing for annotation\n", FILE__, __LINE__);
-   return false;
-
-}
-
-DLLEXPORT bool Symbol::getParams(std::vector<localVar *>&params)
-{
-   if (type_ != ST_FUNCTION || !module_ )
-      return false;
-
-   module_->exec()->parseTypesNow();	
-
-   localVarCollection *lvs = NULL;
-   if (!getAnnotation(lvs, FunctionParametersAnno))
-   {
-      return false;
-   }
-
-   if (!lvs)
-   {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL ptr for annotation\n", FILE__, __LINE__);
-      return false;
-   }
-
-   params = *(lvs->getAllVars());
-
-   if (params.size())
-      return true;
-
-   //  this should not occur since annotation should not exist if no data inside it
-   fprintf(stderr, "%s[%d]:  FIXME:  bad sizing for annotation\n", FILE__, __LINE__);
-   return false;
-
-}
-
-DLLEXPORT bool Symbol::findLocalVariable(std::vector<localVar *>&vars, string name)
-{
-   if (type_ != ST_FUNCTION || !module_ )
-      return false;
-
-   module_->exec()->parseTypesNow();	
-
-   localVarCollection *lvs = NULL, *lps = NULL;
-   bool res1 = false, res2 = false;
-   res1 = getAnnotation(lvs, FunctionLocalVariablesAnno);
-   res2 = getAnnotation(lps, FunctionParametersAnno);
-
-   if (!res1 && !res2)
-      return false;
-
-   unsigned origSize = vars.size();	
-
-   if (lvs)
-   {
-      localVar *var = lvs->findLocalVar(name);
-      if (var) 
-         vars.push_back(var);
-   }
-
-   if (lps)
-   {
-      localVar *var = lps->findLocalVar(name);
-      if (var) 
-         vars.push_back(var);
-   }
-
-   if (vars.size() > origSize)
-      return true;
-
-   return false;
-}
-
 void Symbol::serialize(SerializerBase *s, const char *tag) 
 {
    try {
@@ -1052,9 +802,9 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, isInDynsymtab_, "isInDynsymtab");
       gtranslate(s, isInSymtab_, "isInSymtab");
       gtranslate(s, isAbsolute_, "isAbsolute");
-      gtranslate(s, prettyNames, "prettyNames", "prettyName");
-      gtranslate(s, mangledNames, "mangledNames", "mangledName");
-      gtranslate(s, typedNames, "typedNames", "typedName");
+      gtranslate(s, prettyName_, "prettyName", "prettyName");
+      gtranslate(s, mangledName_, "mangledName", "mangledName");
+      gtranslate(s, typedName_, "typedName", "typedName");
       gtranslate(s, framePtrRegNum_, "framePtrRegNum");
       //  Note:  have to deal with retType_ here?? Probably use type id.
       gtranslate(s, moduleName_, "moduleName");
@@ -1068,9 +818,9 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       getSD().translate(param.size_, "size");
       getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
       getSD().translate(param.isInSymtab_, "isInSymtab");
-      getSD().translate(param.prettyNames, "prettyNames", "prettyName");
-      getSD().translate(param.mangledNames, "mangledNames", "mangledName");
-      getSD().translate(param.typedNames, "typedNames", "typedName");
+      getSD().translate(param.prettyName_, "prettyName", "prettyName");
+      getSD().translate(param.mangledName_, "mangledName", "mangledName");
+      getSD().translate(param.typedName_, "typedName", "typedName");
       getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
       //  Note:  have to deal with retType_ here?? Probably use type id.
       getSD().translate(param.moduleName_, "moduleName");
@@ -1082,13 +832,20 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
    return os << "{"
-      << " mangled=" << s.getName()
+      << " mangled=" << s.getMangledName()
       << " pretty="  << s.getPrettyName()
       << " module="  << s.module_
-      << " type="    << (unsigned) s.type_
-      << " linkage=" << (unsigned) s.linkage_
-      << " addr="    << s.addr_
-      << " tag="     << (unsigned) s.tag_
+      //<< " type="    << (unsigned) s.type_
+      << " type="    << s.symbolType2Str(s.type_)
+      //<< " linkage=" << (unsigned) s.linkage_
+      << " linkage=" << s.symbolLinkage2Str(s.linkage_)
+      << " addr=0x"    << hex << s.addr_ << dec
+      //<< " tag="     << (unsigned) s.tag_
+      << " tag="     << s.symbolTag2Str(s.tag_)
+      << " isAbs="   << s.isAbsolute_
+      << (s.function_!=NULL ? " [FUNC]" : "")
+      << (s.isInSymtab_ ? " [STA]" : "")
+      << (s.isInDynsymtab_ ? " [DYN]" : "")
       << " }" << endl;
 }
 
@@ -1430,3 +1187,4 @@ Symbol *SymbolIter::currval()
 {
    return ((symbolIterator->second)[ currentPositionInVector ]);
 }
+

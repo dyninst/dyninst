@@ -47,6 +47,7 @@
 #include <typeinfo>
 #include <string>
 #include <assert.h>
+#include <stdlib.h>
 #include "dyntypes.h"
 
 
@@ -88,7 +89,7 @@ class AnnotatableDense
 
       typedef anno_list_t anno_map_t;
 
-      typedef struct aInfo {
+      struct aInfo {
          anno_map_t *data;
          int max;
       };
@@ -194,7 +195,7 @@ class AnnotatableSparse
       {
          int aid = a_id.getID();
 
-         int nelems_to_create = aid - annos.size() + 1;
+         long nelems_to_create = aid - annos.size() + 1;
 
          if (nelems_to_create > 0)
          {
@@ -332,7 +333,7 @@ class AnnotatableSparse
          if (aid >= annos.size()) 
          {
             fprintf(stderr, "%s[%d]:  failed to remove nonexistant annotation\n", 
-                  FILE__, __LINE__);
+                    __FILE__, __LINE__);
             return false;
          }
 

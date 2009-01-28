@@ -113,7 +113,7 @@ BPatch_process *test_thread_7_Mutator::getProcess() {
 
   // Set up log file!
   args[n++] = "-log";
-  args[n++] = getOutputLogFilename();
+  args[n++] = const_cast<char*>(getOutputLogFilename());
 
   args[n] = NULL;
 
@@ -142,7 +142,7 @@ BPatch_process *test_thread_7_Mutator::getProcess() {
       } else if (pid > 0) {
 	registerPID(pid); // Register for cleanup
       }
-#if defined(os_windows)
+#if defined(os_windows_test)
       P_sleep(1);
 #endif
       dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);

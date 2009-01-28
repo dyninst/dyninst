@@ -964,3 +964,8 @@ bool BPatch_flowGraph::containsDynamicCallsitesInt()
 int_function *BPatch_flowGraph::ll_func() const {
    return func_->lowlevel_func();
 }
+
+AddressSpace *BPatch_flowGraph::getllAddSpace() const 
+{ 
+   return func_->lladdSpace; 
+}

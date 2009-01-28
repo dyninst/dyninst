@@ -49,7 +49,7 @@
 #include <stdlib.h>
 
 
-BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach)
+BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool useAttach)
 {
    BPatch_thread *appThread;
    if (useAttach) {
@@ -64,7 +64,6 @@ BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const cha
          dprintf("New mutatee process pid %d started; attaching...\n", pid);
          registerPID(pid); // Register PID for cleanup
       }
-      P_sleep(1); // let the mutatee catch its breath for a moment
       dprintf("Attaching to process: %s, %d\n", pathname, pid);
       appThread = bpatch->attachProcess(pathname, pid);
       dprintf("Attached to process\n");
@@ -80,7 +79,7 @@ BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const cha
    return appThread;
 }
 
-BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname,
+BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname,
                                 bool useAttach, char *logfilename,
                                 char *humanlogname)
 {

@@ -57,12 +57,12 @@
 #include "dyntypes.h"
 
 #include <vector>
+#include <map>
 
 typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
 class process;
 class image;
-
-class AddrToVarExprHash;
+class int_variable;
 
 #ifdef IBM_BPATCH_COMPAT
 
@@ -89,10 +89,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     friend class BPatch_addressSpace;
     friend class BPatch_binaryEdit;
 
-    //BPatch_process *proc;
-
-    char *defaultNamespacePrefix;
-
+    BPatch_variableExpr *findOrCreateVariable(int_variable *);
  public:
 
     // The following functions are for internal use by  the library only:
@@ -102,8 +99,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     BPatch_image();
     virtual ~BPatch_image();
 
-    BPatch_variableExpr	*createVarExprByName(BPatch_module *mod, const char *name);
-    void setDefaultNamespacePrefix(char *name) { defaultNamespacePrefix = name; }
     // End functions for internal use only
 
     //  BPatch_image::getThr
@@ -153,9 +148,10 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  Returns a list of all procedures in the image upon success,
     //  NULL upon failure
     API_EXPORT(Int, (incUninstrumentable),
-
-    BPatch_Vector<BPatch_function *> *,
-    getProcedures,(bool incUninstrumentable = false));
+    BPatch_Vector<BPatch_function *> *,getProcedures,(bool incUninstrumentable = false));
+    
+    API_EXPORT(Int, (procs, incUninstrumentable),
+    bool,getProcedures,(BPatch_Vector<BPatch_function*> &procs, bool incUninstrumentable = false));
 
     //  BPatch_image::getParRegions
     //  
@@ -170,8 +166,10 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  
     //  Returns a vector of all modules in this image
     API_EXPORT(Int, (),
-
     BPatch_Vector<BPatch_module *> *,getModules,());
+
+    API_EXPORT(Int, (mods),
+    bool,getModules,(BPatch_Vector<BPatch_module*> &mods));
 
     //  BPatch_image::findModule
     //  
@@ -371,8 +369,6 @@ private:
     BPatch_module *findOrCreateModule(mapped_module *base);
     void removeModule(BPatch_module *mod);
     void removeAllModules();
-
-    AddrToVarExprHash *AddrToVarExpr;
 
     BPatch_Vector<BPatch_point *> unresolvedCF;
 

@@ -51,7 +51,6 @@
 //#include "BPatch_function.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_callbacks.h"
-
 #include "BPatch_instruction.h" // for register type
 
 class AstNode;
@@ -430,63 +429,47 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     friend class BPatch_image;
     friend class BPatch_function;
 
-    char		*name;
-    BPatch_process	*appProcess;
+    const char		*name;
     BPatch_addressSpace     *appAddSpace;
+    AddressSpace *lladdrSpace;
     void		*address;
     int			size;
     BPatch_point	*scope;
     bool		isLocal;
-    /*
-    BPatch_variableExpr(BPatch_process *in_process, void *in_address,
-                        int in_size);
-    BPatch_variableExpr(char *in_name, 
-                        BPatch_process *in_process, 
-                        AstNodePtr *ast_wrapper_,
-                        BPatch_type *type);
-    BPatch_variableExpr(char *in_name, 
-                        BPatch_process *in_process, 
-                        AstNodePtr *ast_wrapper_,
-                        BPatch_type *type, void* in_address);
-    BPatch_variableExpr(BPatch_process *in_process, void *in_address, 
-                        int in_register, BPatch_type *type, 
-                        BPatch_storageClass storage = BPatch_storageAddr,
-                        BPatch_point *scp = NULL);
-    */
+    BPatch_type *type;
 
- public:
-    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, void *in_address,
-                        int in_size);
+    AddressSpace *getAS();
  private:
+    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
+                        AddressSpace *in_addSpace,
+                        void *in_address,
+                        int in_size);
     BPatch_variableExpr(char *in_name, 
                         BPatch_addressSpace *in_addSpace,
+                        AddressSpace *as,
                         AstNodePtr *ast_wrapper_,
                         BPatch_type *type);
     BPatch_variableExpr(char *in_name, 
                         BPatch_addressSpace *in_addSpace,
+                        AddressSpace *as,
                         AstNodePtr *ast_wrapper_,
                         BPatch_type *type, void* in_address);
-    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, void *in_address, 
+    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
+                        AddressSpace *as,
+                        void *in_address, 
                         int in_register, BPatch_type *type, 
                         BPatch_storageClass storage = BPatch_storageAddr,
                         BPatch_point *scp = NULL);
-    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
+    BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
+                        AddressSpace *as,
                         BPatch_localVar *lv, BPatch_type *type,
                         BPatch_point *scp);
+    
+    BPatch_variableExpr(const char *name, BPatch_addressSpace *in_addSpace,
+                        AddressSpace *ll_addSpace, void *in_address, 
+                        BPatch_type *type);
 
   public:
-    //  BPatch_variableExpr::BPatch_variableExpr
-    //  Represents a variable in the target application
-    //
-    //  The following constructor _should_ be private, but paradyn needs
-    //  some way of declaring its own variables in its shared memory
-    //  (counters, etc).  Until there is a way to do this in a better way,
-    //  this needs to remain public (consider this a warning, API user,
-    //  avoid using this constructor, it may not be here in the future).
-    API_EXPORT_CTOR(Int, (name, in_addSpace, in_address, type),
-		    BPatch_variableExpr,(char *name, /*BPatch_process *in_process,*/
-		    BPatch_addressSpace *in_addSpace,
-                    void *in_address, BPatch_type *type));
 
     // Public functions for use by users of the library:
 
@@ -540,7 +523,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     //  BPatch_variableExpr::getName
     //  Returns the symbol table name for this variable
     API_EXPORT(Int, (),
-    char *,getName,());
+    const char *,getName,());
 
     //  BPatch_variableExpr::getBaseAddr
     //  Returns base address of this variable in the target's address space

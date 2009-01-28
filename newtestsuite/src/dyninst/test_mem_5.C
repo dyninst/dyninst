@@ -44,7 +44,7 @@
  * #Name: test6_5
  * #Desc: Instrumentation w/effective address snippet
  * #Dep: 
- * #Arch: !(sparc_sun_solaris2_4,,rs6000_ibm_aix4_1,i386_unknown_linux2_0,x86_64_unknown_linux2_4,i386_unknown_nt4_0,ia64_unknown_linux2_4)
+ * #Arch: !(sparc_sun_solaris2_4_test,,rs6000_ibm_aix4_1_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,i386_unknown_nt4_0_test,ia64_unknown_linux2_4_test)
  * #Notes:
  */
 
@@ -70,12 +70,12 @@ extern "C" TEST_DLL_EXPORT TestMutator *test_mem_5_factory() {
 test_results_t test_mem_5_Mutator::executeTest() {
   int testnum = 5;
   const char* testdesc = "instrumentation w/effective address snippet";
-#if !defined(sparc_sun_solaris2_4) \
- &&(!defined(rs6000_ibm_aix4_1) || defined(AIX5)) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4_test) \
+ &&(!defined(rs6000_ibm_aix4_1_test) || defined(AIX5)) \
+ && !defined(i386_unknown_linux2_0_test) \
+ && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0_test) \
+ && !defined(ia64_unknown_linux2_4_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else

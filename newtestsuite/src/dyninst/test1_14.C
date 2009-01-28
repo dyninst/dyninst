@@ -83,29 +83,3 @@ test_results_t test1_14_Mutator::executeTest() {
     return PASSED;
 } // test1_14_Mutator::executeTest()
 
-// External Interface
-// extern "C" TEST_DLL_EXPORT int test1_14_mutatorMAIN(ParameterDict &param)
-// {
-//     BPatch *bpatch;
-//     bool useAttach = param["useAttach"]->getInt();
-//     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     if ( useAttach )
-//     {
-//       if ( ! signalAttached(appThread, appImage) )
-//          return -1;
-//     }
-
-//     // Run mutator code
-//     return mutatorTest(appThread, appImage);
-// }

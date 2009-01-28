@@ -69,20 +69,7 @@
 
 #include "ast.h"
 using namespace Dyninst;
-
-
-//
-// We made this a seperate class to allow us to only expose a pointer to
-//    it in the public header files of the dyninst API.  This keeps 
-//    dictionary_hash and other internal dyninst things hidden.  The
-//    things we do decouple interface from implementation! - jkh 8/28/99
-//
-
-class AddrToVarExprHash {
-   public:
-      AddrToVarExprHash(): hash(addrHash) { }
-      dictionary_hash <Address, BPatch_variableExpr*> hash;
-};
+using namespace std;
 
 /*
  * BPatch_image::BPatch_image
@@ -91,24 +78,19 @@ class AddrToVarExprHash {
  */
 
 BPatch_image::BPatch_image(BPatch_addressSpace *_addSpace) :
-   defaultNamespacePrefix(NULL), addSpace(_addSpace)
+   addSpace(_addSpace)
 {
-   AddrToVarExpr = new AddrToVarExprHash();
    _srcType = BPatch_sourceProgram;
 }
-
 
 /*
  * BPatch_image::BPatch_image
  *
  * Construct a BPatch_image.
  */
-
 BPatch_image::BPatch_image() :
-   defaultNamespacePrefix(NULL),
    addSpace(NULL)
 {
-   AddrToVarExpr = new AddrToVarExprHash();
    _srcType = BPatch_sourceProgram;
 }
 
@@ -116,7 +98,6 @@ BPatch_image::BPatch_image() :
  * Cleanup the image's memory usage when done.
  *
  */
-
 BPatch_image::~BPatch_image()
 {
    for (unsigned int i = 0; i < modlist.size(); i++) {
@@ -126,8 +107,6 @@ BPatch_image::~BPatch_image()
    for (unsigned j = 0; j < removed_list.size(); j++) {
       delete removed_list[j];
    }
-
-   delete AddrToVarExpr;
 }
 
 
@@ -135,7 +114,6 @@ BPatch_image::~BPatch_image()
  * getThr - Return the BPatch_thread
  *
  */
-
 BPatch_thread *BPatch_image::getThrInt()
 {
    assert(addSpace->getType() == TRADITIONAL_PROCESS);
@@ -192,43 +170,57 @@ BPatch_sourceObj *BPatch_image::getObjParentInt()
 
 BPatch_Vector<BPatch_function *> *BPatch_image::getProceduresInt(bool incUninstrumentable)
 {
-   BPatch_Vector<BPatch_function *> *proclist =
-      new BPatch_Vector<BPatch_function *>;
-
+   BPatch_Vector<BPatch_function *> *proclist = new BPatch_Vector<BPatch_function *>;
+   bool some_succeeded = false;
    if (proclist == NULL) return NULL;
 
-   // XXX Also, what should we do about getting rid of this?  Should
-   //     the BPatch_functions already be made and kept around as long
-   //     as the process is, so the user doesn't have to delete them?
    BPatch_Vector<BPatch_module *> *mods = getModules();
 
    for (unsigned int i = 0; i < (unsigned) mods->size(); i++) {
-      BPatch_Vector<BPatch_function *> *funcs = (*mods)[i]->getProcedures(incUninstrumentable);
-      for (unsigned int j=0; j < (unsigned) funcs->size(); j++) {
-         proclist->push_back((*funcs)[j]);
-      }
+      bool result = (*mods)[i]->getProcedures(*proclist, incUninstrumentable);
+      if (result)
+         some_succeeded = true;
    }
-
+   if (!some_succeeded) {
+      delete proclist;
+      return NULL;
+   }
+   
    return proclist;
+}
+
+bool BPatch_image::getProceduresInt(BPatch_Vector<BPatch_function*> &procs, bool incUninstrumentable)
+{
+   bool some_succeeded = false;
+   BPatch_Vector<BPatch_module *> *mods = getModules();
+
+   for (unsigned int i = 0; i < (unsigned) mods->size(); i++) {
+      bool result = (*mods)[i]->getProcedures(procs, incUninstrumentable);
+      if (result)
+         some_succeeded = true;
+   }
+   return some_succeeded;
 }
 
 
 BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegionsInt(bool incUninstrumentable)
 {
-   BPatch_Vector<BPatch_parRegion *> *parRegionList = 
-      new BPatch_Vector<BPatch_parRegion *>;
+   BPatch_Vector<BPatch_function *> procList;
+   bool result = getProcedures(procList, incUninstrumentable);
+   if (!result)
+      return NULL;
 
+   BPatch_Vector<BPatch_parRegion *> *parRegionList = new BPatch_Vector<BPatch_parRegion *>;
    if (parRegionList == NULL) return NULL;
 
-   BPatch_Vector<BPatch_function *> *procList = getProcedures(incUninstrumentable);
 
-   for (unsigned int i=0; i < (unsigned) procList->size(); i++) {
-      int_function * intF = (*procList)[i]->lowlevel_func();
+   for (unsigned int i=0; i < (unsigned) procList.size(); i++) {
+      int_function * intF = procList[i]->lowlevel_func();
       const pdvector<int_parRegion *> intPR = intF->parRegions();
 
       for (unsigned int j=0; j < (unsigned) intPR.size(); j++)
       {
-         BPatch_parRegion * pR = new BPatch_parRegion(intPR[j], (*procList)[i]);
+         BPatch_parRegion * pR = new BPatch_parRegion(intPR[j], procList[i]);
          parRegionList->push_back(pR);
       }
    }
@@ -236,100 +228,41 @@ BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegionsInt(bool incUninst
    return parRegionList;
 }
 
-BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const char *name)
-{
-   Symbol syminfo;
-   BPatch_type *type;
-
-   type = mod->getModuleTypes()->globalVarsByName[name];
-
-   if (!type) {
-      switch (syminfo.getSize()) {
-         case 1:
-            type = findType("char");
-            break;
-         case 2:
-            type = findType("short");
-            break;
-         case 8:
-            type = findType("integer*8");
-            break;
-         case 4:
-         default:
-            type = findType("int");
-            break;
-      }
-   }
-
-   if (!type) return NULL;
-
-   if (!addSpace->getAS()->getSymbolInfo(name, syminfo))
-      return NULL;
-
-
-   // Error case. 
-   if (syminfo.getAddr() == 0)
-      return NULL;
-
-   BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.getAddr()];
-   if (!var) {
-      var = new BPatch_variableExpr( const_cast<char *>(name), addSpace,
-            (void *)syminfo.getAddr(), type);
-      AddrToVarExpr->hash[syminfo.getAddr()] = var;
-   }
-   return var;
-}
-
-
 /*
- * BPatch_image::getProcedures
+ * BPatch_image::getGlobalVariables
  *
- * Returns a list of all procedures in the image upon success, and NULL
+ * Returns a list of all variables in the image upon success, and NULL
  * upon failure.
  */
-
 BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 {
-   BPatch_variableExpr *var;
-   BPatch_Vector<BPatch_variableExpr *> *varlist =
-      new BPatch_Vector<BPatch_variableExpr *>;
+   BPatch_Vector<BPatch_variableExpr *> *varlist = new BPatch_Vector<BPatch_variableExpr *>;
+   if (!varlist) return NULL;
 
-   if (varlist == NULL) return NULL;
-
-   // XXX - should this stuff really be by image ??? jkh 3/19/99
-   BPatch_Vector<BPatch_module *> *mods = getModules();
-
-   for (unsigned int m = 0; m < mods->size(); m++) {
-      BPatch_module *module = (*mods)[m];
-      char name[255];
-      module->getName(name, sizeof(name));
-      pdvector<std::string> keys = module->getModuleTypes()->globalVarsByName.keys();
-
-      int limit = keys.size();
-      for (int j = 0; j < limit; j++) {
-         std::string name = keys[j];
-         var = createVarExprByName(module, name.c_str());
-
-         if (var != NULL) {
-            varlist->push_back(var);
-         }
-      }
+   bool result = getVariablesInt(*varlist);
+   if (!result) {
+      delete varlist;
+      return NULL;
    }
-
    return varlist;
 }
 
 bool BPatch_image::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
-   BPatch_Vector<BPatch_variableExpr *> *temp = BPatch_image::getGlobalVariables();
+   bool some_succeeded = false;
 
-   if (temp) {
-      vars = *temp;
-      return true;
-   } else {
-      vars = BPatch_Vector<BPatch_variableExpr *>();
-      return false;
+   BPatch_Vector<BPatch_module *> mods;
+   getModules(mods);
+   
+   for (unsigned int m = 0; m < mods.size(); m++) {
+      BPatch_module *module = mods[m];
+      
+      bool result = module->getVariables(vars);
+      if (result)
+         some_succeeded = true;
    }
+
+   return some_succeeded;
 }
 
 bool BPatch_image::setFuncModulesCallback(BPatch_function *bpf, void *data)
@@ -348,20 +281,31 @@ bool BPatch_image::setFuncModulesCallback(BPatch_function *bpf, void *data)
    return true;
 }
 
+bool BPatch_image::getModulesInt(BPatch_Vector<BPatch_module *> &mods)
+{
+   BPatch_Vector<BPatch_module *> *ret = getModulesInt();
+   if (!ret) {
+      return false;
+   }
+   mods = *ret;
+   return true;
+}
+
 BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() 
 {
    pdvector<mapped_module *> modules;
+   std::vector<AddressSpace *> as;
+   addSpace->getAS(as);
+   
+   for (unsigned i=0; i<as.size(); i++) {
+      as[i]->getAllModules(modules);
 
-   addSpace->getAS()->getAllModules(modules);
-
-   if (modules.size() == modlist.size())
-      return &modlist;
-
-   // We may have created a singleton module already -- check to see that we 
-   // don't double-create
-   for (unsigned i = 0; i < modules.size(); i++ ) {
-      mapped_module *map_mod = modules[i];
-      findOrCreateModule(map_mod);
+      // We may have created a singleton module already -- check to see that we 
+      // don't double-create
+      for (unsigned i = 0; i < modules.size(); i++ ) {
+         mapped_module *map_mod = modules[i];
+         findOrCreateModule(map_mod);
+      }
    }
 
    return &modlist;
@@ -372,7 +316,6 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt()
  *
  * Returns module with <name>, NULL if not found
  */
-
 BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_match) 
 {
    char buf[512];
@@ -414,14 +357,20 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
    else 
       sprintf(tmp, "%s", name);
 
-
-   mapped_module *mod = addSpace->getAS()->findModule(tmp,substring_match);
+   std::vector<AddressSpace *> as;
+   addSpace->getAS(as);
+   
+   mapped_module *mod = NULL;
+   for (unsigned i=0; i<as.size(); i++) {
+      mod = as[i]->findModule(tmp,substring_match);
+      if (mod)
+         break;
+   }
 
    free(tmp);
    if (!mod) return false;
 
    target = findOrCreateModule(mod);
-
    return target;
 }
 
@@ -466,7 +415,10 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
 
    unsigned i;
 
-   AddressSpace *llAS = addSpace->getAS();
+   std::vector<AddressSpace *> as;
+   addSpace->getAS(as);
+   assert(as.size());   
+   AddressSpace *llAS = as[0];
 
    int_function *func = NULL;
 
@@ -547,13 +499,18 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
       bool regex_case_sensitive,
       bool incUninstrumentable)
 {
-   AddressSpace *as = addSpace->getAS();
+   std::vector<AddressSpace *> as;
+   addSpace->getAS(as);
+   assert(as.size());
 
    if (NULL == strpbrk(name, REGEX_CHARSET)) {
       //  usual case, no regex
       pdvector<int_function *> foundIntFuncs;
-      if (!as->findFuncsByAll(std::string(name), 
-               foundIntFuncs)) {
+      for (unsigned i=0; i<as.size(); i++) {
+         as[i]->findFuncsByAll(std::string(name), foundIntFuncs);
+      }
+      if (!foundIntFuncs.size())
+      {
          // Error callback...
          if (showError) {
             std::string msg = std::string("Image: Unable to find function: ") + 
@@ -567,25 +524,21 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
       for (unsigned int fi = 0; fi < foundIntFuncs.size(); fi++) {
          if (foundIntFuncs[fi]->isInstrumentable() || incUninstrumentable) {
             BPatch_function *foo = addSpace->findOrCreateBPFunc(foundIntFuncs[fi], NULL);
-            //	BPatch_function *foo = proc->findOrCreateBPFunc(foundIntFuncs[fi], NULL);
             funcs.push_back(foo);
          }
       }
 
-      if (funcs.size() > 0) {
+      if (funcs.size() > 0)
          return &funcs;
-      } else {
-
-         if (showError) {
-            std::string msg = std::string("Image: Unable to find function: ") + 
-               std::string(name);
-            BPatch_reportError(BPatchSerious, 100, msg.c_str());
-         }
-         return NULL;
+      if (showError) {
+         std::string msg = std::string("Image: Unable to find function: ") + 
+            std::string(name);
+         BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
+      return NULL;
    }
 
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
+#if !defined(os_windows)
    // REGEX falls through:
    regex_t comp_pat;
    int err, cflags = REG_NOSUB | REG_EXTENDED;
@@ -616,15 +569,18 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
    // excellent candidate for a "value-added" library.
 
    pdvector<int_function *> all_funcs;
-   //llproc->getAllFunctions(all_funcs);
-   as->getAllFunctions(all_funcs);
+   for (unsigned i=0; i<as.size(); i++) {
+      as[i]->getAllFunctions(all_funcs);
+   }
 
    for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
       int_function *func = all_funcs[ai];
       // If it matches, push onto the vector
-      // Check all pretty names (and then all mangled names if there is no match)
+      // Check all pretty names (and then all mangled names if 
+      // there is no match)
       bool found_match = false;
-      for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
+      unsigned piter, miter;
+      for (piter = 0; piter < func->prettyNameVector().size(); piter++) {
          const string &pName = func->prettyNameVector()[piter];
          int err;
 
@@ -640,7 +596,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
       }
       if (found_match) continue; // Don't check mangled names
 
-      for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
+      for (miter = 0; miter < func->symTabNameVector().size(); miter++) {
          const string &mName = func->symTabNameVector()[miter];
          int err;
 
@@ -702,9 +658,12 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
       bool incUninstrumentable)
 {
    pdvector<int_function *> all_funcs;
+   std::vector<AddressSpace *> as;
+   addSpace->getAS(as);
+   assert(as.size());
 
-   addSpace->getAS()->getAllFunctions(all_funcs);
-   //    proc->llproc->getAllFunctions(all_funcs);
+   for (unsigned i=0; i<as.size(); i++)
+      as[i]->getAllFunctions(all_funcs);
 
    for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
       int_function *func = all_funcs[ai];
@@ -767,7 +726,10 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
 
 BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
 {
-   int_function *ifunc = addSpace->getAS()->findFuncByAddr(addr);
+   std::vector<AddressSpace *> as;
+   addSpace->getAS(as);
+   assert(as.size());
+   int_function *ifunc = as[0]->findFuncByAddr(addr);
    if (!ifunc)
       return NULL;
 
@@ -777,10 +739,14 @@ BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
 bool BPatch_image::findFunctionInt(Dyninst::Address addr, 
                                    BPatch_Vector<BPatch_function *> &funcs)
 {
+   std::vector<AddressSpace *> as;
    std::vector<int_function *> ifuncs;
    bool result;
 
-   result = addSpace->getAS()->findFuncsByAddr(addr, ifuncs);
+   addSpace->getAS(as);
+   assert(as.size());
+
+   result = as[0]->findFuncsByAddr(addr, ifuncs);
    if (!result)
       return false;
 
@@ -806,103 +772,62 @@ bool BPatch_image::findFunctionInt(Dyninst::Address addr,
  * First look for the name with an `_' prepended to it, and if that is not
  *   found try the original name.
  */
-
-BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showError)
+BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, 
+                                                   bool showError)
 {
     pdvector<int_variable *> vars;
-    AddressSpace *as = addSpace->getAS();
+    std::vector<AddressSpace *> as;
+    int_variable *var = NULL;
+    AddressSpace *var_as = NULL;
+    addSpace->getAS(as);
 
-    if (!as->findVarsByAll(name,vars)) {
-        // _name?
-        std::string under_name = std::string("_") + std::string(name);
-        if (!as->findVarsByAll(under_name,vars)) {
-            // "default Namespace prefix?
-            string defaultNamespacePref = as->getAOut()->parse_img()->getObject()->getDefaultNamespacePrefix();
-            if (defaultNamespacePref != "") {
-                std::string prefix_name = std::string(defaultNamespacePref.c_str()) + std::string(".") + std::string(name);
-                if (!as->findVarsByAll(prefix_name, vars) ) {
-                    if (showError) {
-                        std::string msg = std::string("Unable to find variable: ") + std::string(prefix_name);
-                        showErrorCallback(100, msg);
-                    }
-                    return NULL;
-                }
-            } else {
-                if (showError) {
-                    std::string msg = std::string("Unable to find variable: ") + std::string(name);
-                    showErrorCallback(100, msg);
-                }
-                return NULL;
-            }
-        } else {
-            if (showError) {
-                std::string msg = std::string("Unable to find variable: ") + std::string(name);
-                showErrorCallback(100, msg);
-            }
-            return NULL;
-        }
+    for (unsigned i=0; i<as.size(); i++) {
+       as[i]->findVarsByAll(name, vars);
+       if (vars.size()) {
+          var = vars[0];
+          var_as = as[i];
+          break;
+       }
     }
 
-   assert(vars.size());
+    if (!var) {
+       std::string under_name = std::string("_") + std::string(name);
+       for (unsigned i=0; i<as.size(); i++) {
+          as[i]->findVarsByAll(under_name, vars);
+          if (vars.size()) {
+             var = vars[0];
+             var_as = as[i];
+             break;
+          }
+       }
+    }
+       
+    if (!var) {
+       for (unsigned i=0; i<as.size(); i++) {
+          string defaultNamespacePref = as[i]->getAOut()->parse_img()->
+             getObject()->getDefaultNamespacePrefix();
+          string prefix_name = defaultNamespacePref + string(".") + string(name);
+          as[i]->findVarsByAll(prefix_name, vars);
+          if (vars.size()) {
+             var = vars[0];
+             var_as = as[i];
+             break;
+          }
+       }
+    }
 
-   if (vars.size() > 1) {
-      cerr << "Warning: found multiple matches for var " << name << endl;
-   }
+    if (!var) {
+       if (showError) {
+          string msg = std::string("Unable to find variable: ") + 
+             string(name);
+          showErrorCallback(100, msg);
+       }
+       return NULL;
+    }
 
-   int_variable *var = vars[0];
-
-   BPatch_variableExpr *bpvar = AddrToVarExpr->hash[var->getAddress()];
-   if (bpvar) {
-      return bpvar;
-   }
-
-   // XXX - should this stuff really be by image ??? jkh 3/19/99
-   BPatch_Vector<BPatch_module *> *mods = getModules();
-   BPatch_type *type = NULL;
-
-   // XXX look up the type off of the int_variable's module
-   BPatch_module *module = NULL;
-   for (unsigned int m = 0; m < mods->size(); m++) {
-      if ( (*mods)[m]->lowlevel_mod() == var->mod() ) {
-         module = (*mods)[m];
-         break;
-      }
-   }
-   if (module) {
-      type = module->getModuleTypes()->findVariableType(name);
-   }
-   else {
-      bperr("findVariable: failed look up module %s\n",
-            var->mod()->fileName().c_str()); 
-   }
-   if (!type) {
-      //  if we can't find the type in the module, check the other modules
-      //  (fixes prob on alpha) --  actually seems like most missing types 
-      //  end up in DEFAULT_MODULE
-      for (unsigned int m = 0; m < mods->size(); m++) {
-         BPatch_module *tm = (*mods)[m];
-         type = tm->getModuleTypes()->findVariableType(name); 
-         if (type) {
-            break;
-         }
-
-      }
-
-      if (!type) {
-         char buf[128];
-         sprintf(buf, "%s[%d]:  cannot find type for var %s\n", FILE__, __LINE__, name);
-         BPatch_reportError(BPatchWarning, 0, buf);
-         type = BPatch::bpatch->type_Untyped;
-      }
-   }
-
-   char *nameCopy = strdup(name);
-   assert(nameCopy);
-   BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
-         addSpace, (void *)var->getAddress(), 
-         type);
-   AddrToVarExpr->hash[var->getAddress()] = ret;
-   return ret;
+   BPatch_variableExpr *bpvar = addSpace->findOrCreateVariable(var);
+   assert(bpvar);
+   return bpvar;
 }
 
 //
@@ -922,6 +847,7 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
       showErrorCallback(100, msg);
       return NULL;
    }
+   AddressSpace *as = func->lladdSpace;
 
    BPatch_localVar *lv = func->findLocalVar(name);
 
@@ -931,11 +857,7 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
    }
 
    if (lv) {
-      // create a local expr with the correct frame offset or absolute
-      //   address if that is what is needed
-      return new BPatch_variableExpr(addSpace, lv, lv->getType(), &scp); 
-//      return new BPatch_variableExpr(addSpace, (void *) lv->getFrameOffset(), 
-//            lv->getRegister(), lv->getType(), lv->getStorageClass(), &scp);
+      return new BPatch_variableExpr(addSpace, as, lv, lv->getType(), &scp); 
    }
 
    // finally check the global scope.
@@ -1046,12 +968,15 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource,
 
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
-   if (!addSpace->getAS()->mappedObjects().size()) {
-      // No program defined yet
+   std::vector<AddressSpace*> as;
+   addSpace->getAS(as);
+   AddressSpace *aout = as[0];
+
+   if (!aout->mappedObjects().size()) {
       strncpy(name, "<no program defined>", len);
    }
 
-   const char *imname =  addSpace->getAS()->getAOut()->fullName().c_str();
+   const char *imname =  aout->getAOut()->fullName().c_str();
    if (NULL == imname) imname = "<unnamed image>";
 
    strncpy(name, imname, len);
@@ -1060,12 +985,16 @@ char *BPatch_image::getProgramNameInt(char *name, unsigned int len)
 
 char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
 {
-   if (!addSpace->getAS()->mappedObjects().size()) {
+   std::vector<AddressSpace*> as;
+   addSpace->getAS(as);
+   AddressSpace *aout = as[0];
+
+   if (!aout->mappedObjects().size()) {
       // No program defined yet
       strncpy(name, "<no program defined>", len);
    }
 
-   const char *imname =  addSpace->getAS()->getAOut()->fileName().c_str();
+   const char *imname =  aout->getAOut()->fileName().c_str();
    if (NULL == imname) imname = "<unnamed image file>";
 
    strncpy(name, imname, len);
@@ -1105,9 +1034,9 @@ BPatch_module *BPatch_image::findModule(mapped_module *base)
 BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) 
 {
    BPatch_module *bpm = findModule(base);
-
+   
    if (bpm == NULL) {
-      bpm = new BPatch_module( addSpace, base, this );
+      bpm = new BPatch_module( addSpace, base->proc(), base, this );
       modlist.push_back( bpm );
    }
    assert(bpm != NULL);
@@ -1180,7 +1109,7 @@ BPatch_module *parseRegion(BPatch_process *bpProc,
                 FILE__, __LINE__, regionStart, regionEnd);
         return NULL;
     }
-    return new BPatch_module(bpProc, mods[0], bpProc->getImage());
+    return new BPatch_module(bpProc, mods[0]->proc(), mods[0], bpProc->getImage());
 }
 
 /* Object re-parsed, if new modules need to be created in order to do
@@ -1386,7 +1315,10 @@ bool BPatch_image::parseNewFunctionsInt
         return false;
     }
 
-    pdvector<mapped_object *> allobjs = addSpace->getAS()->mappedObjects();
+    std::vector<AddressSpace*> asv;
+    addSpace->getAS(asv);
+    AddressSpace *as = asv[0];
+    pdvector<mapped_object *> allobjs = as->mappedObjects();
 
     // group funcEntryAddrs by the mapped_objects that they fit into
     vector<Address> funcEntryAddrs_(funcEntryAddrs); // make an editable copy
@@ -1443,7 +1375,7 @@ bool BPatch_image::parseNewFunctionsInt
                              regionEndVec, 
                              regionEntries, 
                              regionNames,
-                             (process*)addSpace->getAS());
+                             (process*)as);
         for (unsigned ridx=0; ridx < regionStartVec.size(); ridx++) {
             BPatch_module *mod = parseRegion((BPatch_process*)addSpace, 
                                              regionStartVec[ridx], 
@@ -1470,7 +1402,17 @@ bool BPatch_image::parseNewFunctionsInt
 BPatch_Vector<BPatch_point *> *BPatch_image::getUnresolvedControlFlowInt()
 {
    unresolvedCF.clear();
-   pdvector<mapped_object *> objs = addSpace->getAS()->mappedObjects();
+   pdvector<mapped_object *> objs;
+   
+   std::vector<AddressSpace *> asv;
+   addSpace->getAS(asv);
+   for (unsigned i=0; i<asv.size(); i++) {
+      const pdvector<mapped_object *> &mobjs = asv[i]->mappedObjects();
+      for (unsigned j=0; j<mobjs.size(); j++) {
+         objs.push_back(mobjs[j]);
+      }
+   }
+
    for (unsigned i=0; i < objs.size(); i++) {
       pdvector<mapped_module *> mods = objs[i]->getModules();
       if (mods.size()) {
@@ -1546,12 +1488,18 @@ bool BPatch_image::readStringInt(Address addr, std::string &str, unsigned size_l
    bool should_continue = false;
 
    BPatch_process *proc = dynamic_cast<BPatch_process *>(getAddressSpace());
+   if (!proc) {
+      //Only works with dynamic processes;
+      return false;
+   }
    if (proc && !proc->isStoppedInt()) {
       should_continue = true;
       proc->stopExecution();
    }
 
-   AddressSpace *as = getAddressSpace()->getAS();;
+   std::vector<AddressSpace *> asv;
+   getAddressSpace()->getAS(asv);
+   AddressSpace *as = asv[0];
    assert(as);
 
    unsigned word_size = as->getAddressWidth();
@@ -1618,8 +1566,4 @@ bool BPatch_image::readStringInt(Address addr, std::string &str, unsigned size_l
    
    return result;
 }
-
-
-
-
 

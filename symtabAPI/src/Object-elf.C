@@ -2212,7 +2212,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
    /* Initialize libdwarf. */
    Dwarf_Debug dbg;
    Dwarf_Unsigned hdr;
-   Dwarf_Err err;
+   Dwarf_Error err;
 
    int status = dwarf_elf_init( elf.e_elfp(), DW_DLC_READ, 
          & pd_dwarf_handler, getErrFunc(), & dbg, &err);
@@ -4433,7 +4433,7 @@ void Object::parseStabTypes(Symtab *obj)
 	           ptr++;
 		   modName = ptr;
 	       }
-	       if (obj->findModule(mod, modName)) 
+	       if (obj->findModuleByName(mod, modName)) 
           {
                parseActive = true;
                if (!mod) 

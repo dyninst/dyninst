@@ -90,13 +90,13 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
         signal_printf("%s[%d]: process exited normally\n", FILE__, __LINE__);
         ev.type = evtProcessExit;
         ev.status = statusNormal;
-        ev.what = (eventWhat_t) (unsigned int) WEXITSTATUS(status);
+        ev.what = (eventWhat_t) (WEXITSTATUS(status));
         return true;
     } 
     else if (WIFSIGNALED(status)) {
         ev.type = evtProcessExit;
         ev.status = statusSignalled;
-        ev.what = (eventWhat_t) (unsigned int) WTERMSIG(status);
+        ev.what = (eventWhat_t) (WTERMSIG(status));
         signal_printf("%s[%d]: process exited via signal %d\n", FILE__, __LINE__, ev.what);
         return true;
     }
@@ -104,7 +104,7 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
         signal_printf("%s[%d]: process stopped\n", FILE__, __LINE__);
         ev.type = evtSignalled;
         ev.status = statusSignalled;
-        ev.what = (eventWhat_t) (unsigned int) WSTOPSIG(status);
+        ev.what = (eventWhat_t) (WSTOPSIG(status));
         return true;
     }
     else {
@@ -1074,13 +1074,8 @@ bool forkNewProcess_real(std::string file,
                             int &/* traceLink */,
                             pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
 {
-   forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
-                   FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
-
    errno = 0;
-
    pid = fork();
-
    if (pid != 0) {
       // *** parent
       startup_printf("%s[%d][%s]:  ForkNewProcessCallback::execute(%s): " \
@@ -1125,7 +1120,7 @@ bool forkNewProcess_real(std::string file,
 
 #ifndef rs6000_ibm_aix4_1
       // define our own session id so we don't get the mutators signals
-      setsid();
+      //setsid();
 #endif
       /* indicate our desire to be traced */
       errno = 0;

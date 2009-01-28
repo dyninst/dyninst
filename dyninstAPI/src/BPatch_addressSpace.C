@@ -72,8 +72,6 @@
 #include "BPatch_instruction.h"
 
 BPatch_addressSpace::BPatch_addressSpace() :
-   func_map(NULL),
-   instp_map(NULL),
    image(NULL)
 {
 }
@@ -83,11 +81,15 @@ BPatch_addressSpace::~BPatch_addressSpace()
 
 
 BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
-      BPatch_module *bpmod)
+                                                         BPatch_module *bpmod)
 {
-   if ( func_map->defines(ifunc) ) {
-      assert( func_map->get(ifunc) != NULL );
-      return func_map->get(ifunc);
+   if (!bpmod)
+      bpmod = image->findOrCreateModule(ifunc->mod());
+   assert(bpmod);
+   if (bpmod->func_map.count(ifunc)) {
+      BPatch_function *bpf = bpmod->func_map[ifunc];
+      assert(bpf);
+      return bpf;
    }
 
    // Find the module that contains the function
@@ -97,9 +99,10 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
 
    // findModule has a tendency to make new function objects... so
    // check the map again
-   if (func_map->defines(ifunc)) {
-      assert( func_map->get(ifunc) != NULL );
-      return func_map->get(ifunc);
+   if (bpmod->func_map.count(ifunc)) {
+      BPatch_function *bpf = bpmod->func_map[ifunc];
+      assert(bpf);
+      return bpf;
    }
 
    BPatch_function *ret = new BPatch_function(this, ifunc, bpmod);
@@ -110,26 +113,51 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
 
 
 
-BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc, 
-      instPoint *ip, 
-      BPatch_procedureLocation pointType)
+BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
+                              instPoint *ip, BPatch_procedureLocation pointType)
 {
    assert(ip);
-   if (instp_map->defines(ip)) 
-      return instp_map->get(ip);
+   
+   BPatch_module *mod = image->findOrCreateModule(ip->func()->mod());
+   assert(mod);
+   
+   if (mod->instp_map.count(ip)) 
+      return mod->instp_map[ip];
 
-   if (bpfunc == NULL) 
-      bpfunc = findOrCreateBPFunc(ip->func(), NULL);
+   if (pointType == BPatch_locUnknownLocation)
+      return NULL;
 
+   AddressSpace *lladdrSpace = ip->func()->proc();
+   if (!bpfunc) 
+      bpfunc = findOrCreateBPFunc(ip->func(), mod);
 
-
-   BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
-
-   instp_map->add(ip, pt);
+   BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType, lladdrSpace);
+   mod->instp_map[ip] = pt;
 
    return pt;
 }
 
+BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
+                                                               BPatch_type *type)
+{
+   BPatch_module *mod = image->findOrCreateModule(v->mod());
+   assert(mod);
+   if (mod->var_map.count(v))
+      return mod->var_map[v];
+
+   AddressSpace *as = v->mod()->proc();
+   
+   if (!type) {
+      SymtabAPI::Type *stype = v->ivar()->svar()->getType();
+      type = BPatch_type::findOrCreateType(stype);
+   }
+   
+   BPatch_variableExpr *var;
+   var = new BPatch_variableExpr(v->symTabName().c_str(), this, as,
+                                 (void *) v->getAddress(), type);
+   return var;
+}
+                                                               
 
 
 BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_function *f)
@@ -139,12 +167,19 @@ BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_functi
    return aS->findOrCreateBPFunc(f, NULL);
 }
 
-BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a, int_function *f, 
-      instPoint *ip, int type)
+BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a, 
+                                                   int_function *f, 
+                                                   instPoint *ip, int type)
 {
    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
    assert(aS);
-   BPatch_function *func = aS->func_map->get(f);
+
+   BPatch_module *bpmod = aS->getImageInt()->findOrCreateModule(f->mod());
+   assert(bpmod);
+
+   BPatch_function *func = aS->findOrCreateBPFunc(f, bpmod);
+   assert(func);
+   
    return aS->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
 }
 
@@ -277,7 +312,8 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
-   return getAS()->replaceFunctionCall(point.point, newFunc.lowlevel_func());
+   return point.getAS()->replaceFunctionCall(point.point, 
+                                             newFunc.lowlevel_func());
 }
 
 /*
@@ -296,7 +332,7 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 
    assert(point.point);
 
-   return getAS()->replaceFunctionCall(point.point, NULL);
+   return point.getAS()->replaceFunctionCall(point.point, NULL);
 }
 
 
@@ -395,14 +431,19 @@ bool BPatch_addressSpace::getSourceLinesInt( unsigned long addr,
  * Returns:
  * 	A pointer to a BPatch_variableExpr representing the memory.
  *
+ * If otherwise unspecified when binary rewriting, then the allocation
+ * happens in the original object.
  */
 
 BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
 {
+   std::vector<AddressSpace *> as;
    assert(BPatch::bpatch != NULL);
-   void *ptr = (void *) getAS()->inferiorMalloc(n, dataHeap);
+   getAS(as);
+   assert(as.size());
+   void *ptr = (void *) as[0]->inferiorMalloc(n, dataHeap);
    if (!ptr) return NULL;
-   return new BPatch_variableExpr(this, ptr, Null_Register, 
+   return new BPatch_variableExpr(this, as[0], ptr, Null_Register, 
          BPatch::bpatch->type_Untyped);
 }
 
@@ -425,11 +466,14 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
 
 BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
 {
+   std::vector<AddressSpace *> as;
    assert(BPatch::bpatch != NULL);
+   getAS(as);
+   assert(as.size());
    BPatch_type &t = const_cast<BPatch_type &>(type);
-   void *mem = (void *) getAS()->inferiorMalloc(t.getSize(), dataHeap);
+   void *mem = (void *) as[0]->inferiorMalloc(t.getSize(), dataHeap);
    if (!mem) return NULL;
-   return new BPatch_variableExpr(this, mem, Null_Register, &t);
+   return new BPatch_variableExpr(this, as[0], mem, Null_Register, &t);
 }
 
 
@@ -443,7 +487,7 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
 
 bool BPatch_addressSpace::freeInt(BPatch_variableExpr &ptr)
 {
-   getAS()->inferiorFree((Address)ptr.getBaseAddr());
+   ptr.getAS()->inferiorFree((Address)ptr.getBaseAddr());
    return true;
 }
 
@@ -460,9 +504,12 @@ bool BPatch_addressSpace::freeInt(BPatch_variableExpr &ptr)
 
 BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 {
-   int_function *func;
+   int_function *func;   
+   std::vector<AddressSpace *> as;
 
-   codeRange *range = getAS()->findOrigByAddr((Address) addr);
+   getAS(as);
+   assert(as.size());
+   codeRange *range = as[0]->findOrigByAddr((Address) addr);
    if (!range)
       return NULL;
 
@@ -670,11 +717,14 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPoints(
 
 std::vector<BPatch_register> BPatch_addressSpace::getRegistersInt() {
 #if defined(arch_power) || defined(arch_x86_64)
+   std::vector<AddressSpace *> as;
     if (registers_.size()) {
         return registers_;
     }
+    getAS(as);
+    assert(as.size();
 
-    registerSpace *rs = registerSpace::getRegisterSpace(getAS());
+    registerSpace *rs = registerSpace::getRegisterSpace(as[0]);
     std::vector<std::string> regNames;
     rs->getAllRegisterNames(regNames);
     for (unsigned i = 0; i < rs->GPRs().size(); i++) {

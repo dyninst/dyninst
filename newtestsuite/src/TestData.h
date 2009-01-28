@@ -44,7 +44,7 @@ typedef std::vector<char*> mutatee_list_t;
 typedef struct {
    bool alpha_dec_osf5_1;
    bool i386_unknown_linux2_4; 
-   bool _i386_unknown_nt4_0; 
+   bool _i386_unknown_nt4_0_test; 
    bool _ia64_unknown_linux2_4;
    bool _x86_64_unknown_linux2_4;
    bool mips_sgi_irix6_5;

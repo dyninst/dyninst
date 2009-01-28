@@ -51,7 +51,7 @@ class Region : public Serializable, public AnnotatableSparse {
 
    public:  
 
-   typedef enum perm_t
+   enum perm_t
    {
       RP_R, 
       RP_RW, 
@@ -61,7 +61,7 @@ class Region : public Serializable, public AnnotatableSparse {
 
    static const char *permissions2Str(perm_t);
 
-   typedef enum RegionType 
+   enum RegionType 
    {
       RT_TEXT,
       RT_DATA,

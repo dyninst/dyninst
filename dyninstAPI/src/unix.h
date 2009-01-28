@@ -104,7 +104,7 @@ extern int SYSSET_MAP(int, int);
 
 typedef unsigned long eventInfo_t;
 typedef void * eventMoreInfo_t;
-typedef unsigned int eventWhat_t;
+typedef int eventWhat_t;
 #define THREAD_RETURN void *
 #define DO_THREAD_RETURN return NULL
 

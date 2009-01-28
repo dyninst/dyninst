@@ -88,10 +88,10 @@ int test4_3_mutatee() {
       }
     }
 
-    globalVariable3_1 = 3000001;
+    globalVariable3_1 = 3000001; 
     dprintf("Starting \"%s\"\n", newArgv[0]);
     errno = 0;
-    dprintf("Going into exec...\n");
+    dprintf("Going into exec for %s...\n", newArgv[0]);
     execvp(newArgv[0], newArgv);
     perror("execvp");
     return -1; /* Never reached */

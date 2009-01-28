@@ -45,9 +45,8 @@
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
-//#include "BPatch_addressSpace.h"
 #include <vector>
-
+#include <map>
 #if defined(IBM_BPATCH_COMPAT)
 #include <string>
 #endif
@@ -62,6 +61,10 @@ class BPatch_builtInTypeCollection;
 class BPatch_addressSpace;
 class BPatch_process;
 class BPatch_statement;
+class int_function;
+class int_variable;
+class instPoint;
+class AddressSpace;
 
 extern BPatch_builtInTypeCollection * builtInTypes;
 
@@ -81,26 +84,27 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
+
+    typedef std::map<int_function*, BPatch_function*> BPatch_funcMap;
+    typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;
+    typedef std::map<instPoint*, BPatch_point*> BPatch_instpMap;
     
-    //BPatch_process *proc;
     BPatch_addressSpace *addSpace;
+    AddressSpace *lladdSpace;
     mapped_module      	 *mod;
     BPatch_image	 *img;
-    // Used in the destructor.
-    BPatch_Vector<BPatch_function *> all_funcs;
-    BPatch_Vector<BPatch_function *> *retfuncs;
+    AddressSpace *getAS();
 
-    bool nativeCompiler;
 public:
 
     //  This function should go away when paradyn is on top of dyninst
     mapped_module* lowlevel_mod() { return mod; }
 
     // The following functions are for internal use by  the library only:
-    BPatch_module(BPatch_addressSpace *_addSpace,/*BPatch_process *_proc*/mapped_module *_mod, BPatch_image *img);
-    BPatch_module() : mod(NULL), img(NULL), retfuncs(NULL), nativeCompiler(false) {
-	_srcType = BPatch_sourceModule;
-    };
+    BPatch_module(BPatch_addressSpace *_addSpace,
+                  AddressSpace *as,
+                  mapped_module *_mod, 
+                  BPatch_image *img);
     virtual ~BPatch_module();
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *>&);
     BPatch_sourceObj *getObjParent();
@@ -144,8 +148,10 @@ public:
     // BPatch_module::getProcedures
     // Returns a vector of all functions in this module
     API_EXPORT(Int, (incUninstrumentable),
-
     BPatch_Vector<BPatch_function *> *,getProcedures,(bool incUninstrumentable = false));
+
+    API_EXPORT(Int, (procs, incUninstrumentable),
+               bool, getProcedures,(BPatch_Vector<BPatch_function*> &procs, bool incUninstrumentable = false));
 
     // BPatch_module::findFunction
     // Returns a vector of BPatch_function *, matching specified <name>
@@ -294,6 +300,13 @@ private:
     bool isSystemLib();
 	// vector of unresolved control flow instructions
 	BPatch_Vector<BPatch_point *> unresolvedCF;
+
+   BPatch_funcMap func_map;
+   BPatch_instpMap instp_map;
+   BPatch_varMap var_map;
+   
+   bool full_func_parse;
+   bool full_var_parse;
 };
 
 #ifdef IBM_BPATCH_COMPAT

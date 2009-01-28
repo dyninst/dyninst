@@ -99,9 +99,7 @@ typedef enum eBPatch_procedureLocation {
     BPatch_locLongJump,
     BPatch_locAllLocations,
     BPatch_locInstruction,
-#ifdef IBM_BPATCH_COMPAT
     BPatch_locUnknownLocation,
-#endif
     BPatch_locSourceBlockEntry,		// not yet used
     BPatch_locSourceBlockExit,		// not yet used
     BPatch_locSourceLoopEntry,		// not yet used
@@ -162,6 +160,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
                                                     BPatch_function *bpf);
 
     BPatch_addressSpace *addSpace;
+    AddressSpace *lladdSpace;
     BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
     instPoint	*point;
@@ -170,11 +169,12 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     BPatch_memoryAccess *memacc;
     // Instruction constructor...
     BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, 
-                 instPoint *_point, BPatch_procedureLocation _pointType);
+                 instPoint *_point, BPatch_procedureLocation _pointType,
+                 AddressSpace *as);
 
     // Edge constructor...
     BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func,
-                 BPatch_edge *_edge, instPoint *_point);
+                 BPatch_edge *_edge, instPoint *_point, AddressSpace *as);
 
 
     void setLoop(BPatch_basicBlockLoop *l);
@@ -206,6 +206,8 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
                        BPatchSnippetHandle*);
 
     void attachMemAcc(BPatch_memoryAccess *memacc);
+
+    AddressSpace *getAS();
 
 public:
     //~BPatch_point() { delete memacc; };

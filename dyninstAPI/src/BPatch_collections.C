@@ -110,8 +110,8 @@ BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
 BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
     dictionary_hash_iter<std::string, BPatch_localVar *> li(localVariablesByName);
 
-    std::string               name;
-    BPatch_localVar     *localVar;
+    std::string name;
+    BPatch_localVar *localVar;
 
     BPatch_Vector<BPatch_localVar *> *localVarVec = new BPatch_Vector<BPatch_localVar *>;
 
@@ -142,7 +142,6 @@ BPatch_typeCollection *BPatch_typeCollection::getModTypeCollection(BPatch_module
 #if defined(USES_DWARF_DEBUG)
     // TODO: can we use this on other platforms as well?    
     if( fileToTypesMap.defines( moduleImage->fullName().c_str() ) ) {
-        // /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
         BPatch_typeCollection *cachedTC = fileToTypesMap [ moduleImage->fullName().c_str() ];
         cachedTC->refcount++;
         return cachedTC;

@@ -32,7 +32,7 @@ static volatile int globalVariable2_2 = 0;
 
 /* Function definitions follow */
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0_test)
 void test_stack_2_func4()
 {
     globalVariable2_1++;
@@ -60,14 +60,14 @@ void test_stack_2_func2()
     globalVariable2_1++;
     test_stack_2_func3();
 }
-#endif /* !i386_unknown_nt4_0 */
+#endif /* !i386_unknown_nt4_0_test */
 
 void test_stack_2_func1()
 {
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4) \
- || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(sparc_sun_solaris2_4_test) \
+ || defined(ia64_unknown_linux2_4_test)
     void (*old_handler)(int) = signal(SIGALRM, sigalrm_handler);
 
     globalVariable2_1++;
@@ -79,7 +79,7 @@ void test_stack_2_func1()
 
 /* skeleton test doesn't do anything besides say that it passed */
 int test_stack_2_mutatee() {
-#ifndef os_windows
+#ifndef os_windows_test
   /* Windows doesn't support signals */
   test_stack_2_func1();
 #endif

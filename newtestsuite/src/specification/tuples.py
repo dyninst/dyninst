@@ -99,7 +99,7 @@ def parse_mutators(tuplestring):
 def parse_mutatees(tuplestring):
 	mutatee_labels = ('name', 'preprocessed_sources', 'raw_sources',
 					  'libraries', 'platform', 'abi', 'compiler',
-					  'optimization', 'groupable')
+					  'optimization', 'groupable', 'module')
 	mutatee_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(mutatee_labels, x)), mutatee_list)
 

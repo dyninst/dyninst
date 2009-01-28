@@ -1048,7 +1048,7 @@ static void enumLocalVars(Symbol *func,
         printSysError(GetLastError());
     }*/
 	
-	if(!func->getSize())
+	if(func->getSize())
 	{
 		memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
 
@@ -1726,7 +1726,7 @@ static void findLocalVars(Symbol *func, proc_mod_pair base) {
     HANDLE p = base.handle;
 
     locals.func = func;
-	locals.base = base.base_addr;
+    locals.base = base.base_addr;
     locals.p = p;
 
 	enumLocalVars(func, &locals);

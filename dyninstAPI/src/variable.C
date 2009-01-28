@@ -52,38 +52,34 @@ image_variable::image_variable(Address offset,
       pdmodule *mod) :
    pdmod_(mod) 
 {
-   sym_ = new Symbol(name.c_str(), mod->fileName(), 
-         Symbol::ST_OBJECT , Symbol::SL_GLOBAL, offset);
-   mod->imExec()->getObject()->addSymbol(sym_);
-   image_variable *th = this;
-   extern AnnotationClass<image_variable> ImageVariableUpPtrAnno;
-   if (!sym_->addAnnotation(th, ImageVariableUpPtrAnno))
-   {
-      fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-   }
-#if 0
-   annotate(sym_, th, std::string("image_variable_ptr"));
-#endif
-
-   //sym_->setUpPtr(this);								    
+    Symbol *sym  = new Symbol(name.c_str(), mod->fileName(), 
+                              Symbol::ST_OBJECT, 
+                              Symbol::SL_GLOBAL, offset);
+    mod->imExec()->getObject()->addSymbol(sym);
+    var_ = sym->getVariable();
+    image_variable *th = this;
+    extern AnnotationClass<image_variable> ImageVariableUpPtrAnno;
+    if (!var_->addAnnotation(th, ImageVariableUpPtrAnno)) {
+        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+    }
+    
+    //sym_->setUpPtr(this);								    
 }
 
-image_variable::image_variable(Symbol *sym, pdmodule *mod) :
-   sym_(sym),			       
-   pdmod_(mod) 
+image_variable::image_variable(Variable *var, pdmodule *mod) :
+    var_(var),			       
+    pdmod_(mod) 
 {
 }								    
 
 Address image_variable::getOffset() const 
 {
-   return sym_->getAddr();
+   return var_->getAddress();
 }
 
 bool image_variable::addSymTabName(const std::string &name, bool isPrimary) 
 {
-   if (sym_->addMangledName(name.c_str(), isPrimary)){
-      // Add to image class...
-      //pdmod_->imExec()->addVariableName(this, name, true);
+   if (var_->addMangledName(name.c_str(), isPrimary)){
       return true;
    }
    // Bool: true if the name is new; AKA !found
@@ -92,9 +88,7 @@ bool image_variable::addSymTabName(const std::string &name, bool isPrimary)
 
 bool image_variable::addPrettyName(const std::string &name, bool isPrimary) 
 {
-   if (sym_->addPrettyName(name.c_str(), isPrimary)){
-      // Add to image class...
-      //pdmod_->imExec()->addVariableName(this, name, false);
+    if (var_->addPrettyName(name.c_str(), isPrimary)){
       return true;
    }
    // Bool: true if the name is new; AKA !found
@@ -103,12 +97,12 @@ bool image_variable::addPrettyName(const std::string &name, bool isPrimary)
 
 const vector<string>& image_variable::symTabNameVector() const 
 {
-   return sym_->getAllMangledNames();
+    return var_->getAllMangledNames();
 }
 
 const vector<string>& image_variable::prettyNameVector() const 
 {
-   return sym_->getAllPrettyNames();
+   return var_->getAllPrettyNames();
 }
 
 int_variable::int_variable(image_variable *var, 

@@ -953,11 +953,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         // Okay. The info we need is stored in the BPatch_point. We have the instPoint. 
         // Yay.
         
-        // Since someone who shall not be named removed the BPatch
-        // link from the process class, we perform a PID-based
-        // lookup.
-        BPatch_process *bproc = (BPatch_process *) gen.addrSpace()->up_ptr();
-        BPatch_point *bpoint = bproc->instp_map->get(gen.point());
+        BPatch_addressSpace *bproc = (BPatch_addressSpace *) gen.addrSpace()->up_ptr();
+        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
         
         const BPatch_memoryAccess* ma = bpoint->getMemoryAccess();
         assert(ma);
@@ -1373,9 +1370,8 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         // 1. get the point being instrumented & memory access info
         assert(gen.point());
         
-        BPatch_process *bproc = (BPatch_process *)gen.addrSpace()->up_ptr();
-
-        BPatch_point *bpoint = bproc->instp_map->get(gen.point());
+        BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
+        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
                     gen.point(), gen.point()->addr());
@@ -1401,8 +1397,8 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         // 1. get the point being instrumented & memory access info
         assert(gen.point());
         
-        BPatch_process *bproc = (BPatch_process *)gen.addrSpace()->up_ptr();
-        BPatch_point *bpoint = bproc->instp_map->get(gen.point());
+        BPatch_addressSpace *bproc = (BPatch_addressSpace *)gen.addrSpace()->up_ptr();
+        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
         ma = bpoint->getMemoryAccess();
         if(!ma) {
             bpfatal( "Memory access information not available at this point.\n");

@@ -44,7 +44,7 @@
  * #Name: test4_2
  * #Desc: Fork Callback
  * #Dep: 
- * #Arch: !(i386_unknown_nt4_0,alpha_dec_osf4_0)
+ * #Arch: !(i386_unknown_nt4_0_test,alpha_dec_osf4_0_test)
  * #Notes:
  */
 
@@ -103,7 +103,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
     // Make a race condition always show up -- we don't run
     // until the processes have had a chance.
-#if !defined(os_windows)
+#if !defined(os_windows_test)
     sleep(1);
 #endif
     // That'll make erroneous continues break...
@@ -222,7 +222,7 @@ static void execFunc(BPatch_thread *thread)
 }
 
 test_results_t test4_2_Mutator::mutatorTest() {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
     logerror("Skipping test #2 (fork callback)\n");
     logerror("    not implemented on this platform\n");
     return SKIPPED;
@@ -249,7 +249,7 @@ test_results_t test4_2_Mutator::mutatorTest() {
     BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
     dprintf("Process %p created", appThread);
     if (appThread == NULL) {
-	logerror("Unable to run test program.\n");
+       logerror("Unable to run test program.\n");
         return FAILED;
     }
     // Register for cleanup

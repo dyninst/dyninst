@@ -54,7 +54,7 @@
 
 class int_function;
 class process;
-
+class AddressSpace;
 class BPatch_edge;
 
 typedef BPatch_basicBlockLoop BPatch_loop;
@@ -91,6 +91,7 @@ public:
 
   //BPatch_process *getBProcess() const { return bproc; }
   BPatch_addressSpace *getAddSpace() const { return addSpace; }
+  AddressSpace *getllAddSpace() const;
   BPatch_function *getBFunction() const { return func_; }
   BPatch_module *getModule() const { return mod; }
   //  End of deprecated function

@@ -271,7 +271,7 @@ test_results_t test_thread_3_Mutator::executeTest() {
 }
 
 test_results_t test_thread_3_Mutator::setup(ParameterDict &param) {
-  TestMutator::setup(param);
+  DyninstMutator::setup(param);
   debugPrint = param["debugPrint"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   return PASSED;

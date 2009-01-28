@@ -165,12 +165,14 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     friend bool pollForStatusChange();
     friend class AsyncThreadEventCallback;
     friend class AstNode; // AST needs to translate instPoint to
-		      // BPatch_point via instp_map
     friend class AstOperatorNode;
     friend class AstMemoryNode;
     friend class rpcMgr;
     friend class EventRecord;
     friend bool handleThreadCreate(BPatch_process *, EventRecord &, unsigned, int, dynthread_t, unsigned long, unsigned long);
+
+    protected:
+    void getAS(std::vector<AddressSpace *> &as);
 
     public:
     void PDSEP_updateObservedCostAddr(unsigned long a);
@@ -227,7 +229,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     bool statusIsTerminated();
 
     bool getType();
-    AddressSpace * getAS();
     bool getTerminated() {return terminated;}
     bool getMutationsActive() {return mutationsActive;}
 
@@ -273,9 +274,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst
     process *lowlevel_process() { return llproc; }
-    // DO NOT USE
-    // this function should go away as soon as Paradyn links against Dyninst
-    BPatch_function *get_function(int_function *f);
 
     // DO NOT USE
     // These internal funcs trigger callbacks registered to matching events

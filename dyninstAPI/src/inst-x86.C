@@ -1313,9 +1313,8 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
 
         // find the Symbol corresponding to the int_function
         std::vector<Symbol *> syms;
-        callee->obj()->parse_img()->getObject()->findSymbolByType(
-                syms, callee->symTabName(), Symbol::ST_FUNCTION,
-                true, false, true);
+        callee->ifunc()->func()->getAllSymbols(syms);
+
         if (syms.size() == 0) {
             char msg[256];
             sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"

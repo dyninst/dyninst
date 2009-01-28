@@ -213,9 +213,9 @@ COMPLIB_DLL_EXPORT bool getVar(BPatch_image *appImage, const char *vname, void *
 //           or test_lib_dllExecution.C
 
 // Function in MutateeStart.C
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach);
+COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool useAttach);
 
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname, bool useAttach, char *logfilename, char *humanlogname);
+COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname, bool useAttach, char *logfilename, char *humanlogname);
 
 COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
 

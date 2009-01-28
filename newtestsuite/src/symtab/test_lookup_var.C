@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Barton P. Miller
+ * Copyright (c) 1996-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,29 +39,46 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include "symtab_comp.h"
+#include "test_lib.h"
 
-/*
- * void *DYNINSTdlopen_fake_ret(const char *filename, int flag,
- *				const char *fake_ret);
- * dlopen on Suse 9.1 has a "security" check in it so that only
- * registered modules can call it. We fool this check around by
- * calling _dl_open(filename, flag, NULL) and pretending it was
- * called from libc (by pushing fake_ret on the stack). The
- * fake_ret argument should point to a ret instruction somewhere
- * in libc -- ret will pop another word from the stack and return to us.
- */
-	.text
-	.globl DYNINSTdlopen_fake_ret
-DYNINSTdlopen_fake_ret:
-	push	%ebp
-	mov	%esp, %ebp
-	push	$1f	 /* Push the proper ret addr on the stack */
-	mov	0x8(%ebp),%eax
-	mov	0xc(%ebp),%edx
-	mov	0x10(%ebp),%ecx
-	push	%ecx	 /* Push the provided addr of a ret insn in libc */
-	xor	%ecx,%ecx
-	jmp	_dl_open /* Will return to the pushed addr of ret when done */
-1:		
-	leave
-	ret
+#include "Symtab.h"
+#include "Symbol.h"
+
+using namespace Dyninst;
+using namespace SymtabAPI;
+
+class test_lookup_func_Mutator : public SymtabMutator {
+public:
+   test_lookup_func_Mutator() { };
+   virtual test_results_t executeTest();
+};
+
+extern "C" DLLEXPORT TestMutator* test_lookup_var_factory()
+{
+   return new test_lookup_func_Mutator();
+}
+
+test_results_t test_lookup_func_Mutator::executeTest()
+{
+   std::vector<Symbol *> vars;
+   bool result = symtab->findSymbolByType(vars, std::string("lookup_var"),
+                                          Symbol::ST_OBJECT);
+
+   if (!result || vars.size() != 1)
+   {
+      logerror("[%s:%u] - Unable to find test_lookup_func\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   Symbol *var = vars[0];
+   if (var->getType() != Symbol::ST_OBJECT)
+   {
+      logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   return PASSED;
+}

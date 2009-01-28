@@ -526,7 +526,7 @@ namespace Dyninst
     
     void InstructionDecoder::decodeOperands(vector<Expression::Ptr>& operands)
     {
-      for(int i = 0; i < m_Operation.numOperands(); i++)
+      for(unsigned i = 0; i < m_Operation.numOperands(); i++)
       {
 	decodeOneOperand(decodedInstruction->getEntry()->operands[i], operands);
       }

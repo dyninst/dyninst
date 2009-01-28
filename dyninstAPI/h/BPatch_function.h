@@ -86,6 +86,7 @@ class BPATCH_DLL_EXPORT BPatch_function :
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
+    friend class BPatch_point;
     friend BPatch_Vector<BPatch_point*> *findPoint(
                      const BPatch_Set<BPatch_opCode>& ops,
 						   InstrucIter &ii, 
@@ -94,8 +95,10 @@ class BPATCH_DLL_EXPORT BPatch_function :
 
     //BPatch_process *proc;
     BPatch_addressSpace *addSpace;
-    BPatch_type * retType;
+    AddressSpace *lladdSpace;
+    BPatch_type *retType;
     BPatch_Vector<BPatch_localVar *> params;
+    std::map<BPatch_localVar *, BPatch_variableExpr *> local_vars;
     BPatch_module *mod;
     BPatch_flowGraph* cfg;
     bool cfgCreated;
@@ -118,9 +121,11 @@ public:
     BPatch_process *getProc() const;
     BPatch_addressSpace *getAddSpace() const { return addSpace; }
 
-    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func, BPatch_module *mod = NULL);
+    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func, 
+                    BPatch_module *mod = NULL);
     BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
-    	    BPatch_type * _retType, BPatch_module *);
+                    BPatch_type * _retType, 
+                    BPatch_module *);
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);
     BPatch_sourceObj *getObjParent();
     BPatch_localVarCollection * localVariables;
@@ -303,8 +308,10 @@ public:
     //  -- or global scope, if nothing found in this scope 
 
     API_EXPORT(Int, (name),
-
     BPatch_Vector<BPatch_variableExpr *> *,findVariable,(const char *name));
+
+    API_EXPORT(Int, (name, vars),
+    bool, findVariable,(const char *name, BPatch_Vector<BPatch_variableExpr*> &vars));
 
     //  BPatch_function::getVariables
     //  This returns false, and should probably not exist.  See getVars.

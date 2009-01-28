@@ -15,12 +15,13 @@ class ComponentTester;
 #define NUM_RUNSTATES 7
 typedef enum {
    program_setup_rs = 0,
-   group_setup_rs,
-   group_teardown_rs,
    test_init_rs,
    test_setup_rs,
    test_execute_rs,
-   test_teardown_rs
+   test_teardown_rs,
+   group_setup_rs,
+   group_teardown_rs,
+   program_teardown_rs
 } test_runstate_t;
 
 class TestInfo {
@@ -48,7 +49,7 @@ class Module;
 
 class RunGroup {
 public:
-  char *mutatee;
+  const char *mutatee;
   start_state_t state;
   create_mode_t useAttach;
   bool customExecution;
@@ -57,16 +58,26 @@ public:
   std::vector<TestInfo *> tests;
   bool disabled;
   Module *mod;
+  const char *compiler;
+  const char *optlevel;
+  const char *abi;
 
-  TESTLIB_DLL_EXPORT RunGroup(char *mutatee_name, start_state_t state_init,
-                              create_mode_t attach_init, bool ex, TestInfo *test_init, char *modname_);
-  TESTLIB_DLL_EXPORT RunGroup(char *mutatee_name, start_state_t state_init,
-                              create_mode_t attach_init, bool ex, char *modname_);
+  TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
+                   create_mode_t attach_init, bool ex, TestInfo *test_init,
+                   const char *modname_, const char *compiler_, const char *optlevel_, 
+                   const char *abi_);
+  TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
+                              create_mode_t attach_init, bool ex, const char *modname_,
+                              const char *compiler_, const char *optlevel_, 
+                              const char *abi_);
+
   TESTLIB_DLL_EXPORT ~RunGroup();
 };
 
 class Module {
    bool creation_error;
+   bool initialized;
+   bool setup_run;
    static std::map<std::string, Module *> allmods;
 
    Module(std::string name_);
@@ -76,6 +87,12 @@ public:
    std::string name;
    ComponentTester *tester;
    std::vector<RunGroup *> groups;
+
+   bool isInitialized();
+   void setInitialized(bool result);
+
+   bool setupRun();
+   void setSetupRun(bool result);
 
    static bool registerGroupInModule(std::string modname, RunGroup *group);
    static void getAllModules(std::vector<Module *> &mods);

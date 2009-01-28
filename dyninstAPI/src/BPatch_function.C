@@ -95,32 +95,26 @@ static AnnotationClass<std::vector<BPatch_dependenceGraphNode *> > DepHelperGrap
 
 int bpatch_function_count = 0;
 
-BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
-	BPatch_module *_mod) :
-	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func), 
+BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, 
+                                 int_function *_func,
+                                 BPatch_module *_mod) :
+	addSpace(_addSpace), 
+   lladdSpace(_func->proc()),
+   mod(_mod),
+   cfg(NULL), 
+   cfgCreated(false), 
+   liveInit(false),
+   func(_func), 
 	varsAndParamsValid(false)
 {
-#if defined(ROUGH_MEMORY_PROFILE)
-    bpatch_function_count++;
-    if ((bpatch_function_count % 10) == 0)
-        fprintf(stderr, "bpatch_function_count: %d (%d)\n",
-                bpatch_function_count, bpatch_function_count*sizeof(BPatch_function));
-#endif
-
-  // there should be at most one BPatch_func for each int_function per process
-    //  assert( proc && !proc->func_map->defines(func) );
-    assert( addSpace && !addSpace->func_map->defines(func) );
-  _srcType = BPatch_sourceFunction;
-
-  localVariables = new BPatch_localVarCollection;
-  funcParameters = new BPatch_localVarCollection;
-  retType = NULL;
-
-  addSpace->func_map->add(_func, this);
-  if (mod) {
-      // Track for deletion
-      mod->all_funcs.push_back(this);
-  }
+   _srcType = BPatch_sourceFunction;
+   
+   localVariables = new BPatch_localVarCollection;
+   funcParameters = new BPatch_localVarCollection;
+   retType = NULL;
+   
+   assert(mod && !mod->func_map.count(func));
+   mod->func_map[func] = this;
 };
 
 /*
@@ -131,40 +125,36 @@ BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_
  */
 BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
-	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func),
+	addSpace(_addSpace),
+   lladdSpace(_func->proc()),
+   mod(_mod),
+   cfg(NULL),
+   cfgCreated(false),
+   liveInit(false), 
+   func(_func),
 	varsAndParamsValid(false)
 {
-  //assert(proc && !proc->func_map->defines(_func));
-  assert(addSpace && !addSpace->func_map->defines(_func));
-
   _srcType = BPatch_sourceFunction;
 
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = _retType;
 
-  //proc->func_map->add(_func, this);
-  addSpace->func_map->add(_func,this);
-  if (mod) {
-      // Track for deletion
-      mod->all_funcs.push_back(this);
-  }
+  assert(mod);
+  mod->func_map[func] = this;
 };
 
 
 BPatch_function::~BPatch_function()
 {
-    if (localVariables) delete localVariables;
-    if (funcParameters) delete funcParameters;
-
-    if (cfg) delete cfg;
-
-    // Remove us from the proc map...
-    //if (proc && proc->func_map)
-    //  proc->func_map->undefine(lowlevel_func());
-
-    if (addSpace && addSpace->func_map)
-        addSpace->func_map->undefine(lowlevel_func());
+   if (localVariables) delete localVariables;
+   if (funcParameters) delete funcParameters;
+   
+   if (cfg) delete cfg;
+   
+   // Remove us from the proc map...
+   int num_erased = mod->func_map.erase(lowlevel_func());
+   assert(num_erased == 1);
 }
 
 /* 
@@ -564,7 +554,7 @@ void BPatch_function::constructVarsAndParams(){
 
     //Check flag to see if vars & params are already constructed
     std::vector<localVar *>vars;
-    if(lowlevel_func()->ifunc()->symbol()->getLocalVariables(vars)) {
+    if(lowlevel_func()->ifunc()->getSymtabFunction()->getLocalVariables(vars)) {
         for(unsigned i = 0; i< vars.size(); i++) 
 	    {
             if (mod) {
@@ -574,7 +564,7 @@ void BPatch_function::constructVarsAndParams(){
 	    }    
     }
     std::vector<localVar *>parameters;
-    if(lowlevel_func()->ifunc()->symbol()->getParams(parameters)) {
+    if(lowlevel_func()->ifunc()->getSymtabFunction()->getParams(parameters)) {
         for(unsigned i = 0; i< parameters.size(); i++) {
             if (mod) {
                 parameters[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
@@ -584,15 +574,15 @@ void BPatch_function::constructVarsAndParams(){
 	        params.push_back(lparam);
     	}    
     }
-    if(!lowlevel_func()->ifunc()->symbol()->getReturnType()) {
+    if(!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()) {
         varsAndParamsValid = true;
         return;
     }
         
-    if(!lowlevel_func()->ifunc()->symbol()->getReturnType()->getUpPtr())
-        retType = new BPatch_type(lowlevel_func()->ifunc()->symbol()->getReturnType());
+    if(!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()->getUpPtr())
+        retType = new BPatch_type(lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType());
     else
-        retType = (BPatch_type *)lowlevel_func()->ifunc()->symbol()->getReturnType()->getUpPtr();
+        retType = (BPatch_type *)lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()->getUpPtr();
     varsAndParamsValid = true;
 }
 
@@ -603,10 +593,10 @@ BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt()
     return localVariables->getAllVars(); 
 }
 
-BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
-        const char *name)
+bool BPatch_function::findVariableInt(const char *name, 
+                                      BPatch_Vector<BPatch_variableExpr *> &vars) 
 {
-    if (!mod->isValid()) return NULL;
+   if (!mod->isValid()) return false;
    constructVarsAndParams();
    BPatch_Vector<BPatch_variableExpr *> *ret;
    BPatch_localVar *lv = findLocalVar(name);
@@ -617,32 +607,45 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
    if (lv) {
       // create a local expr with the correct frame offset or absolute
       //   address if that is what is needed
-      ret = new BPatch_Vector<BPatch_variableExpr *>;
+      std::map<BPatch_localVar *, BPatch_variableExpr*>::iterator i;
+      i = local_vars.find(lv);
+      if (i != local_vars.end()) {
+         vars.push_back((*i).second);
+         return true;
+      }
       BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
       assert(points->size() == 1);
       BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
 
-      ret->push_back(new BPatch_variableExpr(imgPtr->getAddressSpace(),
-                        lv, lv->getType(), (*points)[0]));
-//      ret->push_back(new BPatch_variableExpr(imgPtr->getAddressSpace(),
-//					     (void *) lv->getFrameOffset(), 
-//                                             lv->getRegister(), lv->getType(), 
-//                                             lv->getStorageClass(), 
-//                                             (*points)[0]));
-      return ret;
-   } else {
-      // finally check the global scope.
-      BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
-      
-      if (!imgPtr) return NULL;
-      
-      BPatch_variableExpr *vars = imgPtr->findVariable(name);
-      if (!vars) return NULL;
-      
-      ret = new BPatch_Vector<BPatch_variableExpr *>;
-      ret->push_back(vars);
-      return ret;
+      BPatch_variableExpr *nv = new BPatch_variableExpr(imgPtr->getAddressSpace(),
+                                                        func->proc(),
+                                                        lv, lv->getType(), (*points)[0]);
+      vars.push_back(nv);
+      return true;
    }
+
+   // finally check the global scope.
+   BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
+   
+   if (!imgPtr) return false;
+   
+   BPatch_variableExpr *var = imgPtr->findVariable(name);
+   if (!var) return false;
+   
+   vars.push_back(var);
+   return ret;   
+}
+
+
+BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(const char *name)
+{
+   BPatch_Vector<BPatch_variableExpr *> *vars = new BPatch_Vector<BPatch_variableExpr*>;
+   bool result = findVariableInt(name, *vars);
+   if (!result) {
+      delete vars;
+      return NULL;
+   }
+   return vars;
 }
 
 bool BPatch_function::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &/*vect*/)
@@ -657,74 +660,74 @@ char *BPatch_function::getModuleNameInt(char *name, int maxLen) {
 BPatch_variableExpr *BPatch_function::getFunctionRefInt() 
 {
   Address remoteAddress = (Address)getBaseAddrInt();
-   char *fname = const_cast<char *>(func->prettyName().c_str());
+  char *fname = const_cast<char *>(func->prettyName().c_str());
 
-   //  Need to figure out the type for this effective function pointer,
-   //  of the form <return type> (*)(<arg1 type>, ... , <argn type>)
-
-   //  Note:  getParamsInt allocates the vector
-   assert(retType);
-   char typestr[1024];
-   sprintf(typestr, "%s (*)(", retType->getName());
-
-   BPatch_Vector<BPatch_localVar *> *params = getParamsInt();
-   assert(params);
-
-   for (unsigned int i = 0; i < params->size(); ++i) {
+  //  Need to figure out the type for this effective function pointer,
+  //  of the form <return type> (*)(<arg1 type>, ... , <argn type>)
+  
+  //  Note:  getParamsInt allocates the vector
+  assert(retType);
+  char typestr[1024];
+  sprintf(typestr, "%s (*)(", retType->getName());
+  
+  BPatch_Vector<BPatch_localVar *> *params = getParamsInt();
+  assert(params);
+  
+  for (unsigned int i = 0; i < params->size(); ++i) {
      if (i >= (params->size() -1)) {
         //  no comma after last parameter
         sprintf(typestr, "%s %s", typestr, (*params)[i]->getName());
      } else 
         sprintf(typestr, "%s %s,", typestr, (*params)[i]->getName());
-   }
-   sprintf(typestr, "%s)", typestr);
-
-   BPatch_type *type = addSpace->image->findType(typestr);
-   if (!type) {
+  }
+  sprintf(typestr, "%s)", typestr);
+  
+  BPatch_type *type = addSpace->image->findType(typestr);
+  if (!type) {
      fprintf(stderr, "%s[%d]:  cannot find type '%s'\n", FILE__, __LINE__, typestr);
-   }
-   assert(type);
-
-   //  only the vector was newly allocated, not the parameters themselves
-   delete [] params;
-
+  }
+  assert(type);
+  
+  //  only the vector was newly allocated, not the parameters themselves
+  delete [] params;
+  
 #if defined( arch_ia64 )
-   // IA-64 function pointers actually point to structures.  We insert such
-   // a structure in the mutatee so that instrumentation can use it. */
-   Address entryPoint = (Address)getBaseAddr();
-   
-   //RUTAR, need to change this over when we start to support IA64
-   assert(addSpace->getType() == TRADITIONAL_PROCESS);
-   BPatch_process * proc = dynamic_cast<BPatch_process *>(addSpace);
-   Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
-
-   remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
-   assert( remoteAddress != (Address)NULL );
-
-   if (!proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint ))
-          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-   if (!proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), 
-                                           sizeof( Address ), & gp ))
-   fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-
-   
-   AstNodePtr *wrapper = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
-   // variableExpr owns the AST
-   return new BPatch_variableExpr(fname, proc, wrapper, type, (void *) remoteAddress);
-	//return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
-
+  // IA-64 function pointers actually point to structures.  We insert such
+  // a structure in the mutatee so that instrumentation can use it. */
+  Address entryPoint = (Address)getBaseAddr();
+  
+  //RUTAR, need to change this over when we start to support IA64
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process * proc = dynamic_cast<BPatch_process *>(addSpace);
+  Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
+  
+  remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
+  assert( remoteAddress != (Address)NULL );
+  
+  if (!proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint ))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+  if (!proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), 
+                                     sizeof( Address ), & gp ))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+  
+  
+  AstNodePtr *wrapper = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
+  // variableExpr owns the AST
+  return new BPatch_variableExpr(fname, proc, lladdSpace, wrapper, type, (void *) remoteAddress);
+  //return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
+  
 #else
-   //  For other platforms, the baseAddr of the function should be sufficient.
-
-   //  In truth it would make more sense for this to be a BPatch_constExpr,
-   //  But since we are adding this as part of the DPCL compatibility process
-   //  we use the IBM API, to eliminate one API difference.
-
-   AstNodePtr *ast = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
-   
-   // the variableExpr owns the ast now.
-   return new BPatch_variableExpr(fname, addSpace, ast, type, (void *) remoteAddress);
-   
+  //  For other platforms, the baseAddr of the function should be sufficient.
+  
+  //  In truth it would make more sense for this to be a BPatch_constExpr,
+  //  But since we are adding this as part of the DPCL compatibility process
+  //  we use the IBM API, to eliminate one API difference.
+  
+  AstNodePtr *ast = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
+  
+  // the variableExpr owns the ast now.
+  return new BPatch_variableExpr(fname, addSpace, lladdSpace, ast, type, (void *) remoteAddress);
+  
 #endif
 
 } /* end getFunctionRef() */

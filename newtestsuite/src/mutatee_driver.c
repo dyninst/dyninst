@@ -50,7 +50,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
@@ -167,7 +167,7 @@ int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
    unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
    unsigned int i, j;
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0_test)
    int pfd;
 #endif
    int useAttach = FALSE;
@@ -177,6 +177,7 @@ int main(int iargc, char *argv[])
    char *mutatee_name = NULL;
    unsigned int label_count = 0;
    int print_labels = FALSE;
+   int has_pidfile = 0;
 
    gargc = argc;
    gargv = argv;
@@ -213,7 +214,7 @@ int main(int iargc, char *argv[])
          logfilename = argv[i];
       } else if (!strcmp(argv[i], "-attach")) {
          useAttach = TRUE;
-#if !defined(os_windows)
+#if !defined(os_windows_test)
          if (++i >= argc) {
             output->log(STDERR, "attach usage\n");
             output->log(STDERR, "%s\n", USAGE);
@@ -263,6 +264,7 @@ int main(int iargc, char *argv[])
             output->log(STDERR, "-pidfile must be followed by a file name\n");
             exit(-1);
          }
+         has_pidfile = 1;
          i += 1;
          setPIDFilename(argv[i]);
       } else if (!strcmp(argv[i], "-runall")) {
@@ -277,6 +279,14 @@ int main(int iargc, char *argv[])
           * important to a specific test.
           */
       }
+   }
+
+   if (has_pidfile)
+   {
+#if !defined(os_windows_test)
+      fprintf(stderr, "Registering pid %d\n", getpid());
+      registerPID(getpid());
+#endif
    }
 
    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
@@ -301,7 +311,7 @@ int main(int iargc, char *argv[])
 
    /* see if we should wait for the attach */
    if (useAttach) {
-#ifndef i386_unknown_nt4_0
+#ifndef i386_unknown_nt4_0_test
       char ch = 'T';
       if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
          output->log(STDERR, "*ERROR*: Writing to pipe\n");

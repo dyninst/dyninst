@@ -42,13 +42,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define DLLEXPORT __declspec( dllexport )
 #else
 #define DLLEXPORT
 #endif
 
-#if defined(os_windows) && defined(__cplusplus)
+#if defined(os_windows_test) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -124,6 +124,6 @@ void func_40_monitorFunc(unsigned int callee_addr, unsigned int callsite_addr)
 }
 #endif
 
-#if defined(os_windows) && defined(__cplusplus)
+#if defined(os_windows_test) && defined(__cplusplus)
 }
 #endif

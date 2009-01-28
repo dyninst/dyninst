@@ -380,7 +380,8 @@ void typeCollection::addType(Type *type)
 
 void typeCollection::addGlobalVariable(std::string &name, Type *type) 
 {
-    globalVarsByName[name] = type;
+   
+   globalVarsByName[name] = type;
 }
 
 void typeCollection::clearNumberedTypes() 

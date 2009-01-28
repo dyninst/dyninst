@@ -384,9 +384,6 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
   //     return
   __LOCK;
 
-#if 0
-  async_printf("%s[%d]: welcome to waitnextEvent\n", FILE__, __LINE__);
-#endif
   //  keep a static list of events in case we get several simultaneous
   //  events from select()...  just in case.
 
@@ -573,9 +570,6 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
        event_queue.push_back(new_ev);
     }
   }
-#if 0
-  async_printf("%s[%d]: leaving waitnextEvent\n",  FILE__, __LINE__);
-#endif
   
   __UNLOCK;
   return true;
@@ -688,27 +682,11 @@ bool handleDynamicCall(BPatch_process *appProc, process *llproc,
    //  find the BPatch_function...
 
    BPatch_function *bpf = NULL;
-   if (NULL == (bpf = appProc->get_function(f))) {
+   if (NULL == (bpf = appProc->findOrCreateBPFunc(f, NULL))) {
       fprintf(stderr, "%s[%d]:  failed to find BPatch_function\n",
             FILE__, __LINE__);
       return false;
    }
-#if 0
-   if (!appProc->func_map->defines(f)) {
-      bperr("%s[%d]:  failed to find BPatch_function\n",
-            FILE__, __LINE__);
-      return false;
-   }
-
-   BPatch_function *bpf = appProc->func_map->get(f);
-
-   if (!bpf) {
-      bperr("%s[%d]:  failed to find BPatch_function\n",
-            FILE__, __LINE__);
-      return false;
-   }
-#endif
-
    //  issue the callback(s) and we're done:
 
    pdvector<CallbackBase *> cbs;
@@ -889,38 +867,9 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                return false;
             }
 
-#if 0
-#if defined(x86_64_unknown_linux2_4)
-            //is the mutatee 32 or 64 bit?
-            if ( appProc->getAddressWidth() == 4){//32 bit
-               BPatch_newThreadEventRecord32 call_rec_32;
-               retval = P_socketRead<BPatch_newThreadEventRecord32>(ev.fd, call_rec_32);
-               
-               call_rec.ppid=call_rec_32.ppid;
-               call_rec.tid=(void*)(long)call_rec_32.tid;
-               call_rec.lwp=call_rec_32.lwp;
-               call_rec.index=call_rec_32.index;
-               call_rec.stack_addr=(void*)(long)call_rec_32.stack_addr;
-               call_rec.start_pc=(void*)(long)call_rec_32.start_pc;
-            } else {
-               retval = P_socketRead<BPatch_newThreadEventRecord>(ev.fd, call_rec);
-            }
-#else
-            retval = P_socketRead<BPatch_newThreadEventRecord>(ev.fd, call_rec);
-#endif
-
-#endif
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
-
-#if 0
-            if (retval != RRVsuccess) {
-               bperr("%s[%d]:  failed to read thread event call record\n",
-                     FILE__, __LINE__);
-               return false;
-            }
-#endif
 
             bool ret = handleThreadCreate(appProc, ev, index, lwpid, tid, stack_addr, start_pc);
 
@@ -937,11 +886,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Unlock(FILE__, __LINE__);
             }
-#if 0
-            asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
-                  (void *) &rec, 
-                  sizeof(BPatch_deleteThreadEventRecord));
-#endif
             readReturnValue_t retval = P_socketRead<BPatch_deleteThreadEventRecord>(ev.fd, rec);
             async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
 
@@ -965,28 +909,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                return false;
             }
 
-#if 0
-            BPatch_thread *appThread = appProc->getThreadByIndex(index);
-
-            //  this is a bit nasty:  since we need to ensure that the callbacks are 
-            //  called before the thread is deleted, we use a special callback function,
-            //  threadExitWrapper, specified above, which guarantees serialization.
-
-            BPatch::bpatch->mutateeStatusChange = true;
-
-            pdvector<CallbackBase *> cbs;
-            pdvector<AsyncThreadEventCallback *> *cbs_copy = new pdvector<AsyncThreadEventCallback *>;
-            getCBManager()->dispenseCallbacksMatching(ev.type, cbs);
-            for (unsigned int i = 0; i < cbs.size(); ++i) {
-               BPatch::bpatch->signalNotificationFD();
-               cbs_copy->push_back((AsyncThreadEventCallback *)cbs[i]); 
-            }
-
-            InternalThreadExitCallback *cb_ptr = new InternalThreadExitCallback(threadExitWrapper);
-            InternalThreadExitCallback &cb = *cb_ptr;
-            cb(appProc, appThread, cbs_copy); 
-#endif
-
             ev.proc->sh->signalEvent(evtThreadExit);
             return true;
          }
@@ -1009,42 +931,9 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                return false;
             }
 
-#if 0
-            //is the mutatee 32 or 64 bit?
-#if defined(x86_64_unknown_linux2_4)
-            if ( appProc->getAddressWidth() == 4 ){
-               BPatch_dynamicCallRecord32 call_rec_32;
-
-               retval = P_socketRead<BPatch_dynamicCallRecord32>(ev.fd, call_rec_32);
-<<<<<<< BPatch_asyncEventHandler.C
-               call_rec.call_site_addr = (void*)call_rec_32.call_site_addr;
-               call_rec.call_target = (void*)call_rec_32.call_target;
-            } else
-               retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
-#else
-            retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
-=======
-               call_rec.call_site_addr = (void*)(long)call_rec_32.call_site_addr;
-               call_rec.call_target = (void*)(long)call_rec_32.call_target;
-            }else
->>>>>>> 1.54
-#endif
-
-            async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
-#endif
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
-
-#if 0
-            if (retval != RRVsuccess) {
-               bperr("%s[%d]:  failed to read dynamic call record\n",
-                     FILE__, __LINE__);
-               return false;
-            }
-
-            Address func_addr = (Address) call_rec.call_target;
-#endif
 
             if (!handleDynamicCall(appProc, appProc->llproc, monitored_points, 
                      callsite_addr, func_addr)) {
@@ -1052,50 +941,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                      FILE__, __LINE__, (unsigned long) callsite_addr);
                return false;
             }
-
-#if 0
-            //  find the point that triggered this event
-            if (!monitored_points.defines(callsite_addr)) {
-               fprintf(stderr, "%s[%d]:  could not find point for address %lu\n", 
-                     FILE__, __LINE__, (unsigned long) callsite_addr);
-               return false;
-            }
-
-            BPatch_point *pt = monitored_points[callsite_addr];
-
-            //  found the record(s), now find the function that was called
-            int_function *f = appProc->llproc->findFuncByAddr(func_addr);
-            if (!f) {
-               bperr("%s[%d]:  failed to find BPatch_function\n",
-                     FILE__, __LINE__);
-               return false;
-            }
-
-            //  find the BPatch_function...
-
-            if (!appProc->func_map->defines(f)) {
-               bperr("%s[%d]:  failed to find BPatch_function\n",
-                     FILE__, __LINE__);
-               return false;
-            }
-
-            BPatch_function *bpf = appProc->func_map->get(f);
-
-            if (!bpf) {
-               bperr("%s[%d]:  failed to find BPatch_function\n",
-                     FILE__, __LINE__);
-               return false;
-            }
-
-            //  issue the callback(s) and we're done:
-
-            pdvector<CallbackBase *> cbs;
-            getCBManager()->dispenseCallbacksMatching(evtDynamicCall, cbs);
-            for (unsigned int i = 0; i < cbs.size(); ++i) {
-               DynamicCallsiteCallback &cb = * ((DynamicCallsiteCallback *) cbs[i]);
-               cb(pt, bpf);
-            }
-#endif
 
             return true;
          }
@@ -1110,9 +955,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                eventlock->_Unlock(FILE__, __LINE__);
             }
             //  Read auxilliary packet with user specifiedbuffer
-#if 0
-            asyncReadReturnValue_t retval = readEvent(ev.what, (void *) userbuf, ev.info);
-#endif
             readReturnValue_t retval = P_socketRead<char>(ev.what, *userbuf, ev.info);
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
@@ -1234,9 +1076,6 @@ eventType rt2EventType(rtBPatch_asyncEventType t)
 readReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRecord &ev)
 {
    rtBPatch_asyncEventRecord rt_ev;
-#if 0
-   asyncReadReturnValue_t retval = readEvent(fd, &rt_ev, sizeof(rtBPatch_asyncEventRecord));
-#endif
    readReturnValue_t retval = P_socketRead<rtBPatch_asyncEventRecord>(fd, rt_ev);
    if (retval != RRVsuccess) {
       async_printf("%s[%d]:  read failed\n", FILE__, __LINE__);
@@ -1260,69 +1099,6 @@ readReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRecord &
          ev.proc->getPid(), ev.fd);
    return RRVsuccess;
 }
-
-#if 0
-#if !defined(os_windows)
-asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev, ssize_t sz)
-{
-   ssize_t bytes_read = 0;
-try_again:
-   bytes_read = read(fd, ev, sz);
-
-   if ( (ssize_t)-1 == bytes_read ) {
-      if (errno == EAGAIN || errno == EINTR) 
-         goto try_again;
-
-      fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
-            strerror(errno), errno);
-      return REreadError;
-   }
-
-   if (0 == bytes_read) {
-      //  fd closed on other end (most likely)
-      //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
-      return REnoData;
-   }
-   if (bytes_read != sz) {
-      bperr("%s[%d]:  read wrong number of bytes! %d, not %d\n", 
-            FILE__, __LINE__, bytes_read, sz);
-      bperr("FIXME:  Need better logic to handle incomplete reads\n");
-      return REinsufficientData;
-   }
-
-   return REsuccess;
-}
-#else
-
-asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev, ssize_t sz)
-{
-   ssize_t bytes_read = 0;
-
-   bytes_read = recv( fd, (char *)ev, sz, 0 );
-
-   if ( PDSOCKET_ERROR == bytes_read && errno != 0 ) {
-      fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
-            strerror(errno), errno);
-      return REreadError;
-   }
-
-   if (0 == bytes_read || (PDSOCKET_ERROR == bytes_read && errno == 0)) {
-      //  fd closed on other end (most likely)
-      //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
-      return REnoData;
-   }
-
-   if (bytes_read != sz) {
-      bperr("%s[%d]:  read wrong number of bytes!\n", FILE__, __LINE__);
-      bperr("FIXME:  Need better logic to handle incomplete reads\n");
-      return REinsufficientData;
-   }
-
-   return REsuccess;
-}
-#endif
-#endif
-
 
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x

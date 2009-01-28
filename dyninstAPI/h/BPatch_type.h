@@ -286,10 +286,11 @@ class BPATCH_DLL_EXPORT BPatch_type : public BPatch_eventLock{
     friend class BPatch_typeCollection;
     friend class BPatch_localVar;
     friend class BPatch_field;
-
+    friend class BPatch_addressSpace;
+    
 protected:
   int           ID;                /* unique ID of type */
-
+  static std::map<Dyninst::SymtabAPI::Type*, BPatch_type *> type_map;
   BPatch_dataClass   type_;
 
   //Symtab type
@@ -307,6 +308,7 @@ protected:
   // Simple Destructor
   virtual ~BPatch_type();
   BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
+  static BPatch_type *findOrCreateType(Dyninst::SymtabAPI::Type *type);
   
   // A few convenience functions
   BPatch_dataClass convertToBPatchdataClass(Dyninst::SymtabAPI::dataClass type);
@@ -376,8 +378,6 @@ class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
 public:
     //  Internal use only
     BPatch_localVar(Dyninst::SymtabAPI::localVar *lVar_);
-    
-		    
     ~BPatch_localVar();
 
     void fixupUnknown(BPatch_module *);

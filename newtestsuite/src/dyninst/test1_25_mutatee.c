@@ -38,7 +38,7 @@ int test1_25_mutatee() {
   int retval;
 
 /* MIPS is no longer supported, so this test isn't necessary
- * #if defined(mips_sgi_irix6_4)
+ * #if defined(mips_sgi_irix6_4_test)
  *   logerror("Skipped test #25 (unary operators)\n");
  *   logerror("\t- not implemented on this platform\n");
  *   passedTest[25] = TRUE;

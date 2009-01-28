@@ -44,7 +44,7 @@
  * #Name: test6_4
  * #Desc: Mutator Side - If without else
  * #Dep: 
- * #Arch: !(sparc_sun_solaris2_4,,rs6000_ibm_aix4_1,i386_unknown_linux2_0,x86_64_unknown_linux2_4,i386_unknown_nt4_0,ia64_unknown_linux2_4)
+ * #Arch: !(sparc_sun_solaris2_4_test,,rs6000_ibm_aix4_1_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,i386_unknown_nt4_0_test,ia64_unknown_linux2_4_test)
  * #Notes:
  */
 
@@ -70,12 +70,12 @@ extern "C" TEST_DLL_EXPORT TestMutator *test_mem_4_factory() {
 test_results_t test_mem_4_Mutator::executeTest() {
   int testnum = 4;
   const char* testdesc = "access instrumentation";
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(sparc_sun_solaris2_4_test) \
+ && !defined(rs6000_ibm_aix4_1_test) \
+ && !defined(i386_unknown_linux2_0_test) \
+ && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ && !defined(i386_unknown_nt4_0_test) \
+ && !defined(ia64_unknown_linux2_4_test)
   //skiptest(testnum, testdesc);
   return SKIPPED;
 #else
@@ -111,9 +111,9 @@ test_results_t test_mem_4_Mutator::executeTest() {
   if (instCall(appThread, "Access", res1) < 0) {
     return FAILED;
   }
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_nt4_0_test)
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res1, 2);
   if (instCall(appThread, "Access", res2) < 0) {
     return FAILED;

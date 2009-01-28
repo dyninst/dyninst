@@ -163,16 +163,8 @@ class mapped_object : public codeRange {
     mapped_module *findModule(string m_name, bool wildcard = false);
     mapped_module *findModule(pdmodule *mod);
 
-    // This way we can avoid parsing everything as it comes in; we
-    // only care about existence and address, and only if they're in
-    // the symbol table.
-    class foundHeapDesc {
-    public:
-        std::string name;
-        Address addr;
-    };
+    void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
-    void getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const;
 
     // codeRange method
     void *getPtrToInstruction(Address addr) const;
@@ -275,7 +267,11 @@ private:
     void addVariable(int_variable *var);
 
     // Add a name after-the-fact
-    void addFunctionName(int_function *func, const std::string newName, bool isMangled = false);
+    typedef enum {
+        mangledName = 1,
+        prettyName = 2,
+        typedName = 4 } nameType_t;
+    void addFunctionName(int_function *func, const std::string newName, nameType_t nameType);
 
     bool dirty_; // marks the shared object as dirty 
     bool dirtyCalled_;//see comment for setDirtyCalled

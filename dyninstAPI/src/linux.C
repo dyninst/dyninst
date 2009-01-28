@@ -64,6 +64,7 @@
 #include <unistd.h>
 #include <string>
 
+#include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1897,8 +1898,8 @@ bool process::initMT()
    findThreadFuncs(this, "pthread_self", pthread_self_funcs);   
    if (pthread_self_funcs.size() != 1)
    {
-      fprintf(stderr, "[%s:%d] - Found %d pthread_self functions, expected 1\n",
-              __FILE__, __LINE__, pthread_self_funcs.size());
+      fprintf(stderr, "[%s:%d] - Found %ld pthread_self functions, expected 1\n",
+              __FILE__, __LINE__, (long) pthread_self_funcs.size());
       for (unsigned j=0; j<pthread_self_funcs.size(); j++)
       {
          int_function *ps = pthread_self_funcs[j];
@@ -2552,4 +2553,72 @@ bool process::readAuxvInfo()
    return true;
    
    
+}
+
+std::string BinaryEdit::resolveLibraryName(std::string filename)
+{
+   char *libPathStr, *libPath;
+   std::vector<std::string> libPaths;
+   struct stat dummy;
+   FILE *ldconfig;
+   char buffer[512];
+   char *pos, *key, *val;
+    
+   // prefer qualified file paths
+   if (stat(filename.c_str(), &dummy) == 0) {
+      return std::string(filename);
+   }
+
+   // search paths from environment variables
+   libPathStr = getenv("LD_LIBRARY_PATH");
+   libPath = strtok(libPathStr, ":");
+   while (libPath != NULL) {
+      libPaths.push_back(std::string(libPath));
+      libPath = strtok(NULL, ":");
+   }
+   //libPaths.push_back(std::string(getenv("PWD")));
+   for (unsigned int i = 0; i < libPaths.size(); i++) {
+      std::string str = libPaths[i] + "/" + filename;
+      if (stat(str.c_str(), &dummy)) {
+         return str;
+      }
+   }
+
+   // search ld.so.cache
+   ldconfig = popen("/sbin/ldconfig -p", "r");
+   if (ldconfig) {
+      fgets(buffer, 512, ldconfig); // ignore first line
+      while (fgets(buffer, 512, ldconfig) != NULL) {
+         pos = buffer;
+         while (*pos == ' ' || *pos == '\t') pos++;
+         key = pos;
+         while (*pos != ' ') pos++;
+         *pos = '\0';
+         while (*pos != '=' && *(pos+1) != '>') pos++;
+         pos += 2;
+         while (*pos == ' ' || *pos == '\t') pos++;
+         val = pos;
+         while (*pos != '\n' && *pos != '\0') pos++;
+         *pos = '\0';
+         if (strcmp(key, filename.c_str()) == 0) {
+            pclose(ldconfig);
+            return val;
+         }
+      }
+      pclose(ldconfig);
+   }
+ 
+   // search hard-coded system paths
+   libPaths.clear();
+   libPaths.push_back("/usr/local/lib");
+   libPaths.push_back("/usr/share/lib");
+   libPaths.push_back("/usr/lib");
+   libPaths.push_back("/lib");
+   for (unsigned int i = 0; i < libPaths.size(); i++) {
+      std::string str = libPaths[i] + "/" + filename;
+      if (stat(str.c_str(), &dummy) == 0) {
+         return str;
+      }
+   }
+   return std::string("");
 }

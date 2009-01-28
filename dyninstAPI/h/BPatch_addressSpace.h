@@ -61,14 +61,13 @@ class AddressSpace;
 class miniTrampHandle;
 class miniTramp;
 class BPatch;
-class BPatch_funcMap;
-class BPatch_instpMap;
+
 class int_function;
 struct batchInsertionRecord;
 
 typedef enum{
   TRADITIONAL_PROCESS, STATIC_EDITOR
-    } processType;
+} processType;
 
 
 #ifdef DYNINST_CLASS_NAME
@@ -140,13 +139,19 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     friend class BPatch_eventMailbox;
     friend class BPatch_instruction;
   
- protected:
+ public:
     
   BPatch_function *findOrCreateBPFunc(int_function *ifunc, 
-				      BPatch_module *bpmod);
+                                      BPatch_module *bpmod);
 
-  BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
-					    BPatch_procedureLocation pointType);
+  BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, 
+                                    instPoint *ip,
+                                    BPatch_procedureLocation pointType = BPatch_locUnknownLocation);
+
+  BPatch_variableExpr *findOrCreateVariable(int_variable *v,
+                                            BPatch_type *type = NULL);
+
+ protected:
   
   
   // These callbacks are triggered by lower-level code and forward
@@ -157,20 +162,19 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
   BPatch_Vector<batchInsertionRecord *> *pendingInsertions;
 
-  BPatch_funcMap *func_map;
-  BPatch_instpMap *instp_map;
-  
   BPatch_image *image;
 
   //  AddressSpace * as;
   
   std::vector<BPatch_register> registers_;
- 
+
+ protected:
+  virtual void getAS(std::vector<AddressSpace *> &as) = 0;
+
  public:
 
   BPatch_addressSpace();
 
-  virtual AddressSpace * getAS() = 0;
 
   virtual ~BPatch_addressSpace();
 

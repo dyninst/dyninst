@@ -67,7 +67,7 @@ bool BinaryEdit::readTextSpace(const void *inOther,
     
     // Look up this address in the code range tree of memory
     codeRange *range = NULL;
-    if (!memoryTrackers_[getAOut()]->find(addr, range))
+    if (!memoryTracker_->find(addr, range))
         return false;
     assert(addr >= range->get_address());
 
@@ -92,7 +92,7 @@ bool BinaryEdit::writeTextSpace(void *inOther,
     while (to_do) {
        // Look up this address in the code range tree of memory
        codeRange *range = NULL;
-       if (!memoryTrackers_[getAOut()]->find(addr, range)) {
+       if (!memoryTracker_->find(addr, range)) {
           assert(0);
           return false;
        }
@@ -234,7 +234,7 @@ void BinaryEdit::deleteBinaryEdit() {
     }
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file, int openSharedLibs) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -255,15 +255,15 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, int openSharedLibs) {
                        FILE__, __LINE__, file.c_str());
     }
 
-    mapped_object *bin = mapped_object::createMappedObject(desc, newBinaryEdit);
-    if (!bin) {
+    newBinaryEdit->mobj = mapped_object::createMappedObject(desc, newBinaryEdit);
+    if (!newBinaryEdit->mobj) {
         startup_printf("%s[%d]: failed to create mapped object for %s\n",
                        FILE__, __LINE__, file.c_str());
         return NULL;
     }
 
-    newBinaryEdit->mapped_objects.push_back(bin);
-    newBinaryEdit->addOrigRange(bin);
+    newBinaryEdit->mapped_objects.push_back(newBinaryEdit->mobj);
+    newBinaryEdit->addOrigRange(newBinaryEdit->mobj);
 
     // We now need to access the start of the new section we're creating.
 
@@ -276,242 +276,35 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, int openSharedLibs) {
 
 
     newBinaryEdit->createMemoryBackingStore(newBinaryEdit->getAOut());
-
     newBinaryEdit->initialize();
     
-    if (openSharedLibs != 0) {
-        // /* DEBUG */ printf(" opening shared libs\n");
-        newBinaryEdit->openAllDependencies();
-    }
-
     return newBinaryEdit;
 }
 
 bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &desc) {
-        desc = fileDescriptor(name.c_str(),
-                              0, // code base address
-                              0); // data base address
-    return true;
+   desc = fileDescriptor(name.c_str(),
+                         0, // code base address
+                         0); // data base address
+   return true;
 }
 
-#if defined(os_windows)
-std::string* BinaryEdit::resolveLibraryName(const std::string &)
+#if !defined(cap_binary_rewriter)
+std::string BinaryEdit::resolveLibraryName(std::string)
 {
 	return NULL;
 }
-#else
-std::string* BinaryEdit::resolveLibraryName(const std::string &filename)
-{
-    char *libPathStr, *libPath;
-    std::vector<std::string> libPaths;
-    struct stat dummy;
-    std::string* fullPath = NULL;
-    bool found = false;
-    FILE *ldconfig;
-    char buffer[512];
-    char *pos, *key, *val;
-    
-    // prefer qualified file paths
-    if (stat(filename.c_str(), &dummy) == 0) {
-        fullPath = new std::string(filename);
-        return fullPath;
-    }
-
-    // search paths from environment variables
-    libPathStr = getenv("LD_LIBRARY_PATH");
-    libPath = strtok(libPathStr, ":");
-    while (libPath != NULL) {
-        libPaths.push_back(std::string(libPath));
-        libPath = strtok(NULL, ":");
-    }
-    //libPaths.push_back(std::string(getenv("PWD")));
-    for (unsigned int i = 0; !found && i < libPaths.size(); i++) {
-        fullPath = new std::string(libPaths.at(i) + "/" + filename);
-        if (stat(fullPath->c_str(), &dummy) == 0) {
-            found = true;
-        } else {
-            delete fullPath;
-            fullPath = NULL;
-        }
-    }
-    if (fullPath != NULL)
-        return fullPath;
-
-    // search ld.so.cache
-    ldconfig = popen("/sbin/ldconfig -p", "r");
-    if (ldconfig != NULL) {
-        fgets(buffer, 512, ldconfig); // ignore first line
-        while (fullPath == NULL && fgets(buffer, 512, ldconfig) != NULL) {
-            pos = buffer;
-            while (*pos == ' ' || *pos == '\t') pos++;
-            key = pos;
-            while (*pos != ' ') pos++;
-            *pos = '\0';
-            while (*pos != '=' && *(pos+1) != '>') pos++;
-            pos += 2;
-            while (*pos == ' ' || *pos == '\t') pos++;
-            val = pos;
-            while (*pos != '\n' && *pos != '\0') pos++;
-            *pos = '\0';
-            if (strcmp(key, filename.c_str()) == 0)
-                fullPath = new std::string(val);
-        }
-        fclose(ldconfig);
-    }
-    if (fullPath != NULL)
-        return fullPath;
- 
-    // search hard-coded system paths
-    libPaths.clear();
-    libPaths.push_back("/usr/local/lib");
-    libPaths.push_back("/usr/share/lib");
-    libPaths.push_back("/usr/lib");
-    libPaths.push_back("/lib");
-    for (unsigned int i = 0; !found && i < libPaths.size(); i++) {
-        fullPath = new std::string(libPaths.at(i) + "/" + filename);
-        if (stat(fullPath->c_str(), &dummy) == 0) {
-            found = true;
-        } else {
-            delete fullPath;
-            fullPath = NULL;
-        }
-    }
-
-    return fullPath;
-}
 #endif
 
-bool BinaryEdit::openAllDependencies()
+bool BinaryEdit::getAllDependencies(std::queue<std::string> &deps)
 {
-    return openAllDependencies(getAOut()->parse_img()->getObject());
-}
-
-bool BinaryEdit::openAllDependencies(const std::string &file)
-{
-    Symtab *st;
-    bool result = false;
-    std::string* fullPath = resolveLibraryName(file);
-    if (fullPath != NULL) {
-        Symtab::openFile(st, fullPath->c_str());
-        result = openAllDependencies(st);
-    }
-    return result;
-}
-
-bool BinaryEdit::openAllDependencies(Symtab *st)
-{
-    // extract list of dependencies
-    std::vector<std::string> depends = st->getDependencies();
-
-    // for each dependency
-    unsigned int count = depends.size();
-    for (unsigned int i = 0; i < count; i++) {
-
-        // if we can find the file...
-        std::string* fullPath = resolveLibraryName(depends.at(i));
-        if (fullPath != NULL) {
-
-            // get list of subdependencies
-            Symtab *subst;
-            Symtab::openFile(subst, fullPath->c_str());
-            std::vector<std::string> subdepends = subst->getDependencies();
-
-            // add any new dependencies to the main list
-            for (unsigned int k = 0; k < subdepends.size(); k++) {
-                bool found = false;
-                for (unsigned int l = 0; !found && l < depends.size(); l++) {
-                    if (depends.at(l).compare(subdepends.at(k))==0) {
-                        found = true;
-                    }
-                }
-                if (!found) {
-                    depends.push_back(subdepends.at(k));
-                    count++;
-                }
-            }
-
-            mapped_object *bin = addSharedObject(fullPath);
-            if (bin == NULL) {
-                return false;
-            }
-
-            delete fullPath;
-        }
-    }
-    return true;
-}
-
-bool BinaryEdit::openSharedLibrary(const std::string &file, bool openDependencies)
-{
-    std::string* fullPath = resolveLibraryName(file);
-
-    if (!fullPath) {
-        fprintf(stderr, "ERROR:  unable to open shared library %s\n", file.c_str());
-        return false;
-    }
-
-    mapped_object *bin = addSharedObject(fullPath);
-
-    delete fullPath;
-    if (bin == NULL) {
-        return false;
-    }
-
-    if (openDependencies) {
-        return openAllDependencies(bin->parse_img()->getObject());
-    }
-    return true;
-}
-
-mapped_object * BinaryEdit::addSharedObject(const std::string *fullPath)
-{
-    inst_printf("opening new dependency: %s\n", fullPath->c_str());
-
-    // make sure the executable exists
-    if (!OS::executableExists(*fullPath)) {
-        startup_printf("%s[%d]:  failed to read file %s\n", 
-                FILE__, __LINE__, fullPath->c_str());
-        std::string msg = std::string("Can't read executable file ") + 
-            (*fullPath) + (": ") + strerror(errno);
-        showErrorCallback(68, msg.c_str());
-        return NULL;
-    }
-
-    // check to make sure the module hasn't already been loaded
-    mapped_object *bin = NULL;
-    bool found = false;
-    for (unsigned int i = 0; i < mapped_objects.size(); i++) {
-        if (*fullPath == mapped_objects[i]->fullName()) {
-            bin = mapped_objects[i];
-            found = true;
-            break;
-        }
-    }
-
-    if (!found) {
-
-        fileDescriptor desc(fullPath->c_str(), 
-           0, 0,    // code and data base addresses
-           true);   // not a.out
-
-        bin = mapped_object::createMappedObject(desc, this);
-        if (!bin) {
-            startup_printf("%s[%d]: failed to create mapped object for %s\n",
-                          FILE__, __LINE__, fullPath->c_str());
-            return NULL;
-        }
-
-        mapped_objects.push_back(bin);
-        addOrigRange(bin);
-
-        createMemoryBackingStore(bin);
-
-        inst_printf(" - added!\n");
-    } else {
-        inst_printf(" - duplicate\n");
-    }
-
-    return bin;
+   Symtab *symtab = mobj->parse_img()->getObject();
+   std::vector<std::string> depends = symtab->getDependencies();
+   for (unsigned i=0; i<depends.size(); i++) {
+      std::string full_name = resolveLibraryName(depends[i]);
+      if (full_name.length())
+         deps.push(full_name);
+   }
+   return true;
 }
 
 #if 1
@@ -582,7 +375,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
         // Now, we need to copy in the memory of the new segments
         for (unsigned i = 0; i < newSegs.size(); i++) {
             codeRange *segRange = NULL;
-            if (!memoryTrackers_[obj]->find(newSegs[i].loadaddr, segRange)) {
+            if (!memoryTracker_->find(newSegs[i].loadaddr, segRange)) {
                 // Looks like BSS
                 if (newSegs[i].name == ".bss")
                     continue;
@@ -602,7 +395,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
         void *newSectionPtr = malloc(highWaterMark_ - lowWaterMark_);
 
         pdvector<codeRange *> writes;
-        memoryTrackers_[obj]->elements(writes);
+        memoryTracker_->elements(writes);
 
         for (unsigned i = 0; i < writes.size(); i++) {
             memoryTracker *tracker = dynamic_cast<memoryTracker *>(writes[i]);
@@ -978,9 +771,8 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
 
     memoryTracker *newTracker = new memoryTracker(highWaterMark_, size);
     newTracker->alloced = true;
-    if (memoryTrackers_.find(getAOut()) == memoryTrackers_.end())
-        memoryTrackers_[getAOut()] = new codeRangeTree();
-    memoryTrackers_[getAOut()]->insert(newTracker);
+    memoryTracker_ = new codeRangeTree();
+    memoryTracker_->insert(newTracker);
 
     //inst_printf("  => New memory tracker at 0x%lx:  load=0x%lx  size=%d\n",
             //newTracker->get_local_ptr(), highWaterMark_, size);
@@ -1012,9 +804,9 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
                                            segs[i].data);
         }
         newTracker->alloced = false;
-        if (memoryTrackers_.find(obj) == memoryTrackers_.end())
-            memoryTrackers_[obj] = new codeRangeTree();
-        memoryTrackers_[obj]->insert(newTracker);
+        if (!memoryTracker_)
+           memoryTracker_ = new codeRangeTree();
+        memoryTracker_->insert(newTracker);
 
            //inst_printf("  => New memory tracker at 0x%lx:  load=0x%lx  size=%d  [%s]\n",
                     //newTracker->get_local_ptr(), segs[i].loadaddr, segs[i].size, segs[i].name.c_str());

@@ -242,7 +242,7 @@ test_results_t test_fork_10_Mutator::executeTest() {
 
 // extern "C" int test7_6_mutatorMAIN(ParameterDict &param)
 test_results_t test_fork_10_Mutator::setup(ParameterDict &param) {
-#ifdef os_windows
+#ifdef os_windows_test
   return SKIPPED;
 #else
   bpatch = (BPatch *)(param["bpatch"]->getPtr());

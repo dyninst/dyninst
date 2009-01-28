@@ -119,9 +119,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
      unstartedRPC(false), activeOneTimeCodes_(0),
      resumeAfterCompleted_(false)    
 {
-  image = NULL;
-   func_map = new BPatch_funcMap();
-   instp_map = new BPatch_instpMap();
+   image = NULL;
    pendingInsertions = NULL;
 
    isVisiblyStopped = true;
@@ -299,9 +297,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
      unreportedTermination(false), terminated(false), reportedExit(false),
      unstartedRPC(false), activeOneTimeCodes_(0), resumeAfterCompleted_(false)
 {
-  image = NULL;
-   func_map = new BPatch_funcMap();
-   instp_map = new BPatch_instpMap();
+   image = NULL;
    pendingInsertions = NULL;
 
    isVisiblyStopped = true;
@@ -380,10 +376,6 @@ BPatch_process::BPatch_process(process *nProc)
 
    BPatch::bpatch->registerProcess(this);
 
-
-   func_map = new BPatch_funcMap();
-   instp_map = new BPatch_instpMap();
-
    // Create an initial thread
    for (unsigned i=0; i<llproc->threads.size(); i++) {
       dyn_thread *dynthr = llproc->threads[i];
@@ -424,13 +416,6 @@ void BPatch_process::BPatch_process_dtor()
       delete image;
    
    image = NULL;
-
-   if (func_map)
-      delete func_map;
-   func_map = NULL;
-   if (instp_map)
-      delete instp_map;
-   instp_map = NULL;
 
    if (pendingInsertions) {
        for (unsigned f = 0; f < pendingInsertions->size(); f++) {
@@ -847,7 +832,8 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
       // parent process
       return NULL;
    }
-   return new BPatch_variableExpr(this, parentVar.getBaseAddr(), Null_Register,
+   
+   return new BPatch_variableExpr(this, llproc, parentVar.getBaseAddr(), Null_Register,
                                   const_cast<BPatch_type *>(parentVar.getType()));
 }
 
@@ -1240,8 +1226,8 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
    //  Store the need-to-catchup flag in the BPatchSnippetHandle for the time being
 
    if (dyn_debug_catchup) {
-      fprintf(stderr, "%s[%d]:  BEGIN CATCHUP ANALYSIS:  num inst req: %d\n", 
-              FILE__, __LINE__, pendingInsertions->size());
+      fprintf(stderr, "%s[%d]:  BEGIN CATCHUP ANALYSIS:  num inst req: %ld\n", 
+              FILE__, __LINE__, (long) pendingInsertions->size());
       for (unsigned int i = 0; i < stacks.size(); ++i) {
         fprintf(stderr, "%s[%d]:Stack for thread %d\n", FILE__, __LINE__, i);
         pdvector<Frame> &one_stack = stacks[i];
@@ -1999,9 +1985,9 @@ bool BPatch_process::getType()
   return TRADITIONAL_PROCESS;
 }
 
-AddressSpace * BPatch_process::getAS()
+void BPatch_process::getAS(std::vector<AddressSpace *> &as)
 {
-  return llproc;
+   as.push_back(static_cast<AddressSpace*>(llproc));
 }
 
 BPatch_thread *BPatch_process::createOrUpdateBPThread(
@@ -2080,15 +2066,6 @@ bool BPatch_process::addSharedObjectInt(const char *name,
    return loadLibraryInt(name);
 }
 #endif
-
-
-
-BPatch_function *BPatch_process::get_function(int_function *f) 
-{ 
-   if (!func_map->defines(f))
-      return NULL;
-   return func_map->get(f); 
-}
 
 extern void dyninst_yield();
 void BPatch_process::updateThreadInfo()

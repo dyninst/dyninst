@@ -234,14 +234,14 @@ test_results_t test_callback_1_Mutator::executeTest() {
 
 //extern "C" int test12_2_mutatorMAIN(ParameterDict &param)
 test_results_t test_callback_1_Mutator::setup(ParameterDict &param) {
-#ifdef os_windows
+#ifdef os_windows_test
   return SKIPPED;
 #else
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
     mutateeXLC = param["mutateeXLC"]->getInt();
 
-    if (TestMutator::setup(param) == FAILED) {
+    if (DyninstMutator::setup(param) == FAILED) {
       return FAILED;
     }
     

@@ -36,12 +36,13 @@
 
 #include "Type.h"
 #include "Symbol.h"
+#include "Function.h"
 #include "Module.h"
 #include "Symtab.h"
 #include "symtabAPI/src/Object.h"
 #include "Collections.h"
 #include "common/h/pathName.h"
-
+#include "Variable.h"
 #include <stdarg.h>
 int dwarf_printf(const char *format, ...);
 
@@ -471,13 +472,13 @@ int convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
       Dwarf_Signed listLength, 
       Symtab * objFile, 
-      vector<loc_t *>*& locs, Address lowpc,
+      vector<loc_t>& locs, Address lowpc,
       long int * initialStackValue = NULL)
 #else
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
       Dwarf_Signed listLength, 
       Symtab *,
-      vector<loc_t *>*& locs, Address lowpc, 
+      vector<loc_t>& locs, Address lowpc, 
       long int * initialStackValue = NULL)
 #endif
 {
@@ -512,11 +513,11 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
     */
    for(unsigned locIndex = 0 ; locIndex < listLength; locIndex++) {
       bool isLocSet = false;
-      loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+      loc_t loc;
       // Initialize location values.
-      loc->stClass = storageAddr;
-      loc->refClass = storageNoRef;
-      loc->reg = -1;
+      loc.stClass = storageAddr;
+      loc.refClass = storageNoRef;
+      loc.reg = -1;
 
       /* Initialize the stack. */
       std::stack< long int > opStack = std::stack<long int>();
@@ -524,8 +525,8 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 
       /* There is only one location. */
       Dwarf_Locdesc *location = locationList[locIndex];
-      loc->lowPC = (Offset)location->ld_lopc + lowpc;
-      loc->hiPC = (Offset)location->ld_hipc + lowpc;
+      loc.lowPC = (Offset)location->ld_lopc + lowpc;
+      loc.hiPC = (Offset)location->ld_hipc + lowpc;
       Dwarf_Loc * locations = location->ld_s;
       for( unsigned int i = 0; i < location->ld_cents; i++ ) {
          /* Handle the literals w/o 32 case statements. */
@@ -539,11 +540,11 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
          if ( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
             /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
             dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile) );
-            //loc->stClass = storageRegOffset;
-            loc->stClass = storageReg;
-            loc->refClass = storageNoRef;
-            loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
-            //loc->frameOffset = 0;
+            //loc.stClass = storageRegOffset;
+            loc.stClass = storageReg;
+            loc.refClass = storageNoRef;
+            loc.reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
+            //loc.frameOffset = 0;
             isLocSet = true;
             break;
          }	
@@ -551,9 +552,9 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
          /* Haandle registers w/o 32 case statements. */
          if ( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) {
             dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile), locations[i].lr_number );
-            loc->stClass = storageRegOffset;
-            loc->refClass = storageNoRef;
-            loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
+            loc.stClass = storageRegOffset;
+            loc.refClass = storageNoRef;
+            loc.reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
             opStack.push(static_cast<long int>(locations[i].lr_number)); 
          }
 
@@ -580,28 +581,28 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             case DW_OP_regx:
                /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
                dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile) );
-               //loc->stClass = storageRegOffset;
-               loc->stClass = storageReg;
-               loc->refClass = storageNoRef;
-               loc->reg = (int) DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
-               //loc->frameOffset = 0;
+               //loc.stClass = storageRegOffset;
+               loc.stClass = storageReg;
+               loc.refClass = storageNoRef;
+               loc.reg = (int) DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
+               //loc.frameOffset = 0;
                isLocSet = true;
                break;
 
             case DW_OP_fbreg:
                dwarf_printf( "setting storage class to frame base\n" );
                //if ( storageClass != NULL ) { * storageClass = storageFrameOffset; }
-               loc->stClass = storageRegOffset;
-               loc->refClass = storageNoRef;
+               loc.stClass = storageRegOffset;
+               loc.refClass = storageNoRef;
                opStack.push(static_cast<long int>(locations[i].lr_number));
                break;
 
             case DW_OP_bregx:
                dwarf_printf( "setting storage class to register, regNum to %d\n", locations[i].lr_number );
-               loc->stClass = storageRegOffset;
-               loc->refClass = storageNoRef;
-               loc->reg = (int) DWARF_TO_MACHINE_ENC( locations[i].lr_number, objFile );
-               loc->frameOffset = 0;
+               loc.stClass = storageRegOffset;
+               loc.refClass = storageNoRef;
+               loc.reg = (int) DWARF_TO_MACHINE_ENC( locations[i].lr_number, objFile );
+               loc.frameOffset = 0;
                opStack.push(static_cast<long int>(locations[i].lr_number2));
                break;
 
@@ -865,12 +866,12 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
          }
          else {
             dwarf_printf( "setting offset to %d\n", opStack.top() );
-            loc->frameOffset = opStack.top();
-            locs->push_back(loc);
+            loc.frameOffset = opStack.top();
+            locs.push_back(loc);
          }
       }
       else
-         locs->push_back(loc);
+         locs.push_back(loc);
    }
 
    /* decode successful */
@@ -952,7 +953,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       Dwarf_Off cuOffset,
       char **srcFiles,
       Address lowpc,
-      Symbol * currentFunction = NULL,
+      Function * currentFunction = NULL,
       typeCommon * currentCommonBlock = NULL,
       typeEnum *currentEnum = NULL,
       fieldListType * currentEnclosure = NULL )
@@ -976,7 +977,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
    /* If this entry is a function, common block, or structure (class),
       its children will be in its scope, rather than its
       enclosing scope. */
-   Symbol * newFunction = currentFunction;
+   Function * newFunction = currentFunction;
    typeCommon * newCommonBlock = currentCommonBlock;
    typeEnum *newEnum = currentEnum;
    fieldListType * newEnclosure = currentEnclosure;
@@ -988,7 +989,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       case DW_TAG_subprogram:
       case DW_TAG_entry_point:
          {
-
             /* Is this entry specified elsewhere?  We may need to look there for its name. */
             Dwarf_Bool hasSpecification;
             status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
@@ -1036,6 +1036,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             } /* end if there's a linkage name. */
             else {
                hasLinkageName = false;
+
                status = dwarf_diename( specEntry, & functionName, NULL );
                DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
             } /* end if there isn't a linkage name. */
@@ -1053,68 +1054,26 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                break;
             } /* end if there's no name at all. */
 
-            /* Try to find the function by its mangled name. */
-            Dwarf_Addr baseAddr = 0;
-            std::vector< Symbol * > ret_funcs;
-            std::vector<Symbol *> functions;
-            if (objFile->findSymbolByType(ret_funcs, functionName, Symbol::ST_FUNCTION, true)) {
-               for (unsigned foo = 0; foo < ret_funcs.size(); foo++)
-                  functions.push_back(ret_funcs[foo]);
-               ret_funcs.clear();	
+            vector<Function *> ret_funcs;
+            // newFunction is scoped at the function level...
+
+            if (objFile->findFunctionsByName(ret_funcs, functionName)) {
+                // Assert a single one?
+                newFunction = ret_funcs[0];
             }
             else {
-               /* If we can't find it by mangled name, try searching by address. */
-               status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
-               if ( status == DW_DLV_OK ) {
-                  /* The base addresses in DWARF appear to be image-relative. */
-                  // Symbol * intFunction = objFile->findFuncByAddr( baseAddr );
-                  Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
-                  std::vector<Symbol *>funcs;
-                  if (objFile->findFuncByEntryOffset(funcs, absAddr)){
-                     functions.push_back(funcs[0]);
-                  }
-               }
+                // Didn't find by name (???), try to look up by address...
+                Dwarf_Addr baseAddr = 0;
+                status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
+                
+                if (status != DW_DLV_OK) break;
+
+                Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
+                if (!objFile->findFuncByEntryOffset(newFunction, absAddr)) {
+                    dwarf_printf( "Failed to find function '%s'\n", functionName );
+                    break;
+                }
             }
-            if ( functions.size() == 0 ) { // Still....
-               /* If we can't find it by address, try searching by pretty name. */
-               if ( baseAddr != 0 ) { dwarf_printf( "%s[%d]: unable to locate function %s by address 0x%llx\n", __FILE__, __LINE__, functionName, baseAddr ); 
-               }
-               std::vector<Symbol *> prettyFuncs;
-               if (objFile->findSymbolByType(prettyFuncs, functionName, Symbol::ST_FUNCTION)) {
-                  for (unsigned bar = 0; bar < prettyFuncs.size(); bar++) {
-                     functions.push_back(prettyFuncs[bar]);
-                  }
-               }
-            }
-
-            if ( functions.size() == 0 ) {
-               /* Don't parse the children, since we can't add them. */
-               dwarf_printf( "Failed to find function '%s'\n", functionName );
-               parsedChild = true;
-
-               //Add the function to the list of functions and continue parsing the FDE ??
-
-               if ( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
-               dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
-               break;
-            }
-            else if ( functions.size() > 1 ) {
-               dwarf_printf( "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
-
-               /* Don't parse the children, since we can't add them. */
-               parsedChild = true;
-
-               if ( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
-               dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
-               break;		
-            }
-            else {
-               Symbol * newIntFunction = functions[0];
-               assert( newIntFunction != NULL );
-               //newFunction = objFile->newFunctionCB( newIntFunction );
-               newFunction = newIntFunction;
-               assert( newFunction != NULL );
-            } /* end findFunction() cases */
 
             /* Once we've found the Symbol pointer corresponding to this
                DIE, record its frame base.  A declaration entry may not have a 
@@ -1255,208 +1214,193 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             (It will, however, explain why certain variables that otherwise would
             don't have locations.) */
       case DW_TAG_variable: 
-         {
-            /* A variable may occur inside a function, as either static or local.
-               A variable may occur inside a container, as C++ static member.
-               A variable may not occur in either, as a global. 
-
-               For the first two cases, we need the variable's name, its type,
-               its line number, and its offset or address in order to tell
-               Dyninst about it.  Dyninst only needs to know the name and type
-               of a global.  (Actually, it already knows the names of the globals;
-               we're really just telling it the types.)
-
-               Variables may have two entries, the second, with a _specification,
-               being the only one with the location. */
-
-            /* We will begin by determining which kind of variable we think it is,
-               and the determining if we need to wait for the DIE with a _specification
-               before telling Dyninst about it. */
-
-            if ( currentFunction == NULL && currentEnclosure == NULL ) {
-               /* Then this variable must be a global.  Acquire its name and type. */
-               char * variableName;
-               status = dwarf_diename( dieEntry, & variableName, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               if ( status == DW_DLV_NO_ENTRY ) { break; }
+      {
+         /* A variable may occur inside a function, as either static or local.
+            A variable may occur inside a container, as C++ static member.
+            A variable may not occur in either, as a global. 
+            
+            For the first two cases, we need the variable's name, its type,
+            its line number, and its offset or address in order to tell
+            Dyninst about it.  Dyninst only needs to know the name and type
+            of a global.  (Actually, it already knows the names of the globals;
+            we're really just telling it the types.)
+            
+            Variables may have two entries, the second, with a _specification,
+            being the only one with the location. */
+         
+         /* We'll start with the location, since that's most likely to
+            require the _specification. */
+         Dwarf_Attribute locationAttribute;
+         status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
+         DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         if ( status == DW_DLV_NO_ENTRY ) { break; }
+         DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         Dwarf_Locdesc **locationList;
+         Dwarf_Signed listLength;
+         status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
+         dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
+         if ( status != DW_DLV_OK ) {
+            /* I think this is OK if the local variable was optimized away. */
+            break;
+         }
+         DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         
+         vector<loc_t> locs;
+         bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
+         deallocateLocationList( dbg, locationList, listLength );            
+         if ( ! decodedAddressOrOffset ) { break; }
+         
+         /* If this DIE has a _specification, use that for the rest of our inquiries. */
+         Dwarf_Die specEntry = dieEntry;
+         
+         Dwarf_Attribute specAttribute;
+         status = dwarf_attr( dieEntry, DW_AT_specification, & specAttribute, NULL );
+         DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         if ( status == DW_DLV_OK ) {
+            Dwarf_Off specOffset;
+            status = dwarf_global_formref( specAttribute, & specOffset, NULL );
+            DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+            
+            status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
+            DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+            
+            dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
+         } /* end if dieEntry has a _specification */
+         
+         /* Acquire the name, type, and line number. */
+         char * variableName = NULL;
+         status = dwarf_diename( specEntry, & variableName, NULL );
+         DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         /* If we're fortran, get rid of the trailing _ */
+         if (variableName && (currentFunction || currentEnclosure)) {
+            supportedLanguages lang = module->language();
+            if ( ( lang == lang_Fortran ||
+                   lang == lang_CMFortran ||
+                   lang == lang_Fortran_with_pretty_debug ) &&
+                 variableName[strlen(variableName)-1]=='_') 
+               variableName[strlen(variableName)-1]='\0';
+         }
+         
+         /* Acquire the parameter's type. */
+         Dwarf_Attribute typeAttribute;
+         status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
+         DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         if ( status == DW_DLV_NO_ENTRY ) { break; }
+         DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         Dwarf_Off typeOffset;
+         status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+         DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+         
+         /* The typeOffset forms a module-unique type identifier,
+            so the Type look-ups by it rather than name. */
+         Type * variableType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
+         dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+         
+         Dwarf_Unsigned variableLineNo;
+         bool hasLineNumber = false;
+         std::string fileName;
+         Dwarf_Unsigned fileNameDeclVal;
+         if (currentEnclosure || currentFunction) {
+            /* Acquire the variable's lineNo. We don't use this for globals */
+            
+            Dwarf_Attribute fileDeclAttribute;
+            status = dwarf_attr( specEntry, DW_AT_decl_file, & fileDeclAttribute, NULL );
+            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+            if ( status == DW_DLV_OK ) {
+               status = dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL);
                DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               Dwarf_Attribute typeAttribute;
-               status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               if ( status == DW_DLV_NO_ENTRY ) { break; }
+               dwarf_dealloc( dbg, fileDeclAttribute, DW_DLA_ATTR );			
+            }
+            if ( status == DW_DLV_NO_ENTRY )
+               fileName = "";
+            else	
+               fileName = convertCharToString(srcFiles[fileNameDeclVal-1]);
+            
+            Dwarf_Attribute lineNoAttribute;
+            status = dwarf_attr( specEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
+            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+            
+            /* We don't need to tell Dyninst a line number for C++ static variables,
+               so it's OK if there isn't one. */
+            if ( status == DW_DLV_OK ) {
+               hasLineNumber = true;
+               status = dwarf_formudata( lineNoAttribute, & variableLineNo, NULL );
                DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               Dwarf_Off typeOffset;
-               status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               /* The typeOffset forms a module-unique type identifier,
-                  so the Type look-ups by it rather than name. */
-               dwarf_printf( "%s/%d: %s/%d\n", __FILE__, __LINE__, variableName, typeOffset );
-               Type * variableType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
-               dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-
-               /* Tell Dyninst what this global's type is. */
-               std::string vName = convertCharToString(variableName);
-               module->getModuleTypes()->addGlobalVariable( vName, variableType );
-            } /* end if this variable is a global */
+               
+               dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );			
+            } /* end if there is a line number */
+         }
+         
+         std::string vName;
+         if (variableName)
+            vName = convertCharToString(variableName);
+         
+         if ( currentFunction == NULL && currentEnclosure == NULL ) {
+            /* The typeOffset forms a module-unique type identifier,
+               so the Type look-ups by it rather than name. */
+            dwarf_printf( "%s/%d: %s/%d\n", __FILE__, __LINE__, variableName ? variableName : "{NONAME}", typeOffset );
+            Dyninst::Offset addr = 0;
+            if (locs.size() && locs[0].stClass == storageAddr)
+               addr = locs[0].frameOffset;
+            assert(addr);
+            Variable *var;
+            bool result = module->exec()->findVariableByOffset(var, addr);
+            assert(var);
+            if (result) {
+               var->setType(variableType);
+            }
+            
+            module->getModuleTypes()->addGlobalVariable( vName, variableType);
+         } /* end if this variable is a global */
+         else if (currentFunction) {
+            /* We now have the variable name, type, offset, and line number.
+               Tell Dyninst about it. */
+            if (!variableName)
+               break;
+            dwarf_printf( "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
+            if (!hasLineNumber){
+               variableLineNo = 0;
+               fileName = "";
+            }
             else {
-               /* We'll start with the location, since that's most likely to
-                  require the _specification. */
-               Dwarf_Attribute locationAttribute;
-               status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               if ( status == DW_DLV_NO_ENTRY ) { break; }
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               Dwarf_Locdesc **locationList;
-               Dwarf_Signed listLength;
-               status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
-               dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
-               if ( status != DW_DLV_OK ) {
-                  /* I think this is OK if the local variable was optimized away. */
+               fileName = srcFiles[fileNameDeclVal-1];
+            }
+            localVar * newVariable = new localVar( vName, variableType, fileName, (int) variableLineNo);
+            newVariable->setLocation(locs);
+            localVarCollection *lvs = NULL; 
+            if (!currentFunction->getAnnotation(lvs, FunctionLocalVariablesAnno))
+            {
+               lvs = new localVarCollection();
+               if (!currentFunction->addAnnotation(lvs, FunctionLocalVariablesAnno))
+               {
+                  fprintf(stderr, "%s[%d]:  failed to add annotations here\n", 
+                          FILE__, __LINE__);
                   break;
                }
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-
-               //loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
-               vector<loc_t *>* locs = new vector<loc_t *>;
-               bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
-               deallocateLocationList( dbg, locationList, listLength );
-
-               if ( ! decodedAddressOrOffset ) { break; }
-
-               /* If this DIE has a _specification, use that for the rest of our inquiries. */
-               Dwarf_Die specEntry = dieEntry;
-
-               Dwarf_Attribute specAttribute;
-               status = dwarf_attr( dieEntry, DW_AT_specification, & specAttribute, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               if ( status == DW_DLV_OK ) {
-                  Dwarf_Off specOffset;
-                  status = dwarf_global_formref( specAttribute, & specOffset, NULL );
-                  DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-                  status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
-                  DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-                  dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
-               } /* end if dieEntry has a _specification */
-
-               /* Acquire the name, type, and line number. */
-               char * variableName;
-               status = dwarf_diename( specEntry, & variableName, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               /* We can't do anything with an anonymous variable. */
-               if ( status == DW_DLV_NO_ENTRY ) { break; }
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               /* If we're fortran, get rid of the trailing _ */
-               supportedLanguages lang = module->language();
-               if ( ( lang == lang_Fortran ||
-                        lang == lang_CMFortran ||
-                        lang == lang_Fortran_with_pretty_debug ) &&
-                     variableName[strlen(variableName)-1]=='_') 
-                  variableName[strlen(variableName)-1]='\0';
-
-               /* Acquire the parameter's type. */
-               Dwarf_Attribute typeAttribute;
-               status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               if ( status == DW_DLV_NO_ENTRY ) { break; }
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               Dwarf_Off typeOffset;
-               status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               /* The typeOffset forms a module-unique type identifier,
-                  so the Type look-ups by it rather than name. */
-               Type * variableType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
-
-               dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-
-               /* Acquire the variable's lineNo. */
-               Dwarf_Unsigned variableLineNo;
-               bool hasLineNumber = false;
-               std::string fileName;
-
-               Dwarf_Attribute fileDeclAttribute;
-               status = dwarf_attr( specEntry, DW_AT_decl_file, & fileDeclAttribute, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-               Dwarf_Unsigned fileNameDeclVal;
-               if ( status == DW_DLV_OK ) {
-                  status = dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL);
-                  DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-                  dwarf_dealloc( dbg, fileDeclAttribute, DW_DLA_ATTR );			
-               }
-               if ( status == DW_DLV_NO_ENTRY )
-                  fileName = "";
-               else	
-                  fileName = convertCharToString(srcFiles[fileNameDeclVal-1]);
-
-               Dwarf_Attribute lineNoAttribute;
-               status = dwarf_attr( specEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-               /* We don't need to tell Dyninst a line number for C++ static variables,
-                  so it's OK if there isn't one. */
-               if ( status == DW_DLV_OK ) {
-                  hasLineNumber = true;
-                  status = dwarf_formudata( lineNoAttribute, & variableLineNo, NULL );
-                  DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-
-                  dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );			
-               } /* end if there is a line number */
-
-               /* We now have the variable name, type, offset, and line number.
-                  Tell Dyninst about it. */
-               dwarf_printf( "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
-               if ( currentFunction != NULL ) {
-                  if (!hasLineNumber){
-                     variableLineNo = 0;
-                     fileName = "";
-                  }
-                  else
-                     fileName = srcFiles[fileNameDeclVal-1];
-                  std::string vName = convertCharToString(variableName);
-                  localVar * newVariable = new localVar( vName, variableType, fileName, (int) variableLineNo);
-                  newVariable->setLocation(locs);
-                  localVarCollection *lvs = NULL; 
-                  if (!currentFunction->getAnnotation(lvs, FunctionLocalVariablesAnno))
-                  {
-                     lvs = new localVarCollection();
-                     if (!currentFunction->addAnnotation(lvs, FunctionLocalVariablesAnno))
-                     {
-                        fprintf(stderr, "%s[%d]:  failed to add annotations here\n", 
-                              FILE__, __LINE__);
-                        break;
-                     }
-                  }
-                  if (!lvs)
-                  {
-                     fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", 
-                           FILE__, __LINE__);
-                     break;
-                  }
-                  lvs->addLocalVar(newVariable);
-               } /* end if a local or static variable. */
-               else if ( currentEnclosure != NULL ) {
-                  //assert( sClass != storageFrameOffset );
-                  assert( (*locs)[0]->stClass != storageRegOffset );
-                  std::string vName = convertCharToString(variableName);
-                  currentEnclosure->addField( vName, variableType, (*locs)[0]->frameOffset);
-               } /* end if a C++ static member. */
-            } /* end if this variable is not global */
-         } break;
+            }
+            if (!lvs)
+            {
+               fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", 
+                       FILE__, __LINE__);
+               break;
+            }
+            lvs->addLocalVar(newVariable);
+         } /* end if a local or static variable. */
+         else if ( currentEnclosure != NULL ) {
+            if (!variableName)
+               break;
+            assert( locs[0].stClass != storageRegOffset );
+            currentEnclosure->addField( vName, variableType, locs[0].frameOffset);
+         } /* end if this variable is not global */
+      } 
+      break;
 
          /* It's probably worth noting that a formal parameter may have a
             default value.  Since, AFAIK, Dyninst does nothing with this information,
@@ -1507,8 +1451,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             }
             DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            //loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
-            vector<loc_t *>* locs = new vector<loc_t *>;
+            vector<loc_t> locs;
             bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
             deallocateLocationList( dbg, locationList, listLength );
 
@@ -1517,7 +1460,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                break;
             }
 
-            assert( (*locs)[0]->stClass != storageAddr );
+            assert( locs[0].stClass != storageAddr );
 
             /* If the DIE has an _abstract_origin, we'll use that for the
                remainder of our inquiries. */
@@ -1960,8 +1903,7 @@ gracefully, that is, without an error. :)
 
             dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
-            //loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
-            vector<loc_t *>* locs = new vector<loc_t *>;
+            vector<loc_t> locs;
             long int baseAddress = 0;
             bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, & baseAddress );
             deallocateLocationList( dbg, locationList, listLength );
@@ -1969,7 +1911,7 @@ gracefully, that is, without an error. :)
             if ( ! decodedAddress ) { break; }
             assert( decodedAddress );
 
-            assert( (*locs)[0]->stClass == storageAddr );
+            assert( locs[0].stClass == storageAddr );
 
             /* DWARF stores offsets in bytes unless the member is a bit field.
                Correct memberOffset as indicated.  Also, memberSize is in bytes
@@ -1982,7 +1924,7 @@ gracefully, that is, without an error. :)
             DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
             if ( status == DW_DLV_OK ) {
-               Dwarf_Unsigned memberOffset_du = (*locs)[0]->frameOffset;
+               Dwarf_Unsigned memberOffset_du = locs[0].frameOffset;
                status = dwarf_formudata( bitOffset, &memberOffset_du, NULL );
                DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
@@ -2003,19 +1945,19 @@ gracefully, that is, without an error. :)
                   bitfields right in getComponents() anyway...) */
             }
             else {
-               (*locs)[0]->frameOffset *= 8;
+               locs[0].frameOffset *= 8;
                memberSize *= 8;
             } /* end if not a bit field member. */
 
             if ( memberName != NULL ) {
-               // /* DEBUG */ fprint( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, loc->frameOffset, memberType->getSize() );
+                // /* DEBUG */ fprintf( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName().c_str(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, locs[0]->frameOffset, memberType->getSize() );
                std::string fName = convertCharToString(memberName);
-               currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
+               currentEnclosure->addField( fName, memberType, locs[0].frameOffset);
                dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
             } else {
                 /* An anonymous union [in a struct]. */
                 std::string fName = "[anonymous union]";
-                currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
+                currentEnclosure->addField( fName, memberType, locs[0].frameOffset);
             }
 		} break;
 
@@ -2239,13 +2181,13 @@ void Object::parseDwarfTypes( Symtab *objFile)
 //          lowpc = (Address)lowPCdwarf;
 
       /* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
-      if (!objFile->findModule(mod, moduleName)){
+      if (!objFile->findModuleByName(mod, moduleName)){
          std::string modName = moduleName;
          std::string fName = extract_pathname_tail(modName);
-         if (!objFile->findModule(mod, fName))
+         if (!objFile->findModuleByName(mod, fName))
          {
             modName = objFile->file();
-            if (!objFile->findModule(mod, modName))
+            if (!objFile->findModuleByName(mod, modName))
                continue;
          }
       }

@@ -214,7 +214,9 @@ bool emitElf64::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsign
 #endif
        return true;
    }
-   std::vector<string> names = symbol->getAllMangledNames();
+   std::vector<string> names;
+   names.push_back(symbol->getMangledName());
+
    for(unsigned i=1;i<names.size();i++)
    {
        	sym = new Elf64_Sym();
@@ -577,7 +579,7 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
     	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
         		newPhdr->p_paddr = newPhdr->p_vaddr;
             }
-    	    if(tmp->p_type == PT_LOAD && tmp->p_flags == 6 || tmp->p_type == PT_NOTE || tmp->p_type == PT_INTERP)
+            if ((tmp->p_type == PT_LOAD && tmp->p_flags == 6) || tmp->p_type == PT_NOTE || tmp->p_type == PT_INTERP)
 	            newPhdr->p_offset += pgSize;
     	} 
 #ifdef BINEDIT_DEBUG

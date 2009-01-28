@@ -44,7 +44,7 @@
  * #Name: test1_25
  * #Desc: Unary Operators
  * #Dep: 
- * #Arch: !mips_sgi_irix6_4
+ * #Arch: !mips_sgi_irix6_4_test
  * #Notes: A small part of this test is excluded on most platforms
  */
 
@@ -105,20 +105,20 @@ test_results_t test1_25_Mutator::executeTest() {
 
 	if (!gvar[i]) {
 	    logerror("**Failed** test #25 (unary operaors)\n");
-	    logerror("  can't find variable %s\n", i, name);
+	    logerror("  can't find variable %s\n", name);
 	    return FAILED;
 	}
     }
 
     //     globalVariable25_2 = &globalVariable25_1
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_nt4_0)
+#if !defined(sparc_sun_solaris2_4_test) \
+ && !defined(rs6000_ibm_aix4_1_test) \
+ && !defined(alpha_dec_osf4_0_test) \
+ && !defined(i386_unknown_linux2_0_test) \
+ && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+ && !defined(ia64_unknown_linux2_4_test) \
+ && !defined(i386_unknown_solaris2_5_test) \
+ && !defined(i386_unknown_nt4_0_test)
 
     // without type info need to inform
     BPatch_type *type = appImage->findType("void *");

@@ -33,7 +33,7 @@ void test_fork_13_func1() {
 }
 
 int test_fork_13_mutatee() {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
   return 0;
 #endif
   int pid;

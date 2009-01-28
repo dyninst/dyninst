@@ -88,24 +88,24 @@
                                                                -1, true))
 
 // naxses
-#ifdef sparc_sun_solaris2_4
+#ifdef sparc_sun_solaris2_4_test
 const unsigned int naxses = 26;
 #endif
 
-#ifdef rs6000_ibm_aix4_1
+#ifdef rs6000_ibm_aix4_1_test
 const unsigned int naxses = 73;
 #endif
 
-#if defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(i386_unknown_nt4_0_test)
 const unsigned int naxses = 85;
 #endif
 
-#ifdef ia64_unknown_linux2_4
+#ifdef ia64_unknown_linux2_4_test
 const unsigned int naxses = 12;
 #endif
 
-#ifdef x86_64_unknown_linux2_4
+#ifdef x86_64_unknown_linux2_4_test
 const unsigned int naxses = 95;
 #endif
 

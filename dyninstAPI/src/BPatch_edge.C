@@ -132,15 +132,6 @@ void BPatch_edge::dumpInt()
 
 }
 
-
-#if 0
-// Only edges created by conditional jumps need edge trampolines
-bool BPatch_edge::needsEdgeTrampInt()
-{
-    return type == CondJumpNottaken || type == CondJumpTaken;
-}
-#endif
-
 BPatch_basicBlock *BPatch_edge::getSourceInt() {
   return source;
 }
@@ -160,7 +151,7 @@ BPatch_point *BPatch_edge::getPointInt()
       Address lastInsnAddr = (Address) source->getLastInsnAddress();
       
       
-      AddressSpace *as = flowGraph->getAddSpace()->getAS();
+      AddressSpace *as = flowGraph->getllAddSpace();
       assert(as);
       int_function *f = flowGraph->getBFunction()->lowlevel_func();
 
@@ -175,7 +166,8 @@ BPatch_point *BPatch_edge::getPointInt()
       BPatch_point *newPoint = new BPatch_point(flowGraph->getAddSpace(),
                                                 flowGraph->getBFunction(),
                                                 this,
-                                                ip);
+                                                ip,
+                                                as);
       if (newPoint) {
          point = newPoint;
       }

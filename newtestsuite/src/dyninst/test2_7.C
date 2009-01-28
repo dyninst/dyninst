@@ -44,7 +44,7 @@
  * #Name: test2_7
  * #Desc: Load a dynamically linked lbibraryr from the mutator
  * #Dep: 
- * #Arch: !(sparc_sun_solaris2_4,i386_unknown_solaris2_5,i386_unknown_linux2_0,mips_sgi_irix6_4,rs6000_ibm_aix4_1,ia64_unknown_linux2_4,x86_64_unknown_linux2_4)
+ * #Arch: !(sparc_sun_solaris2_4_test,i386_unknown_solaris2_5_test,i386_unknown_linux2_0_test,mips_sgi_irix6_4_test,rs6000_ibm_aix4_1_test,ia64_unknown_linux2_4_test,x86_64_unknown_linux2_4_test)
  * #Notes:
  */
 
@@ -74,8 +74,8 @@ static void lcase(char *s) {
 
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 test_results_t test2_7_Mutator::executeTest() {
-#if !defined(os_solaris) && !defined(os_linux) && !defined(os_irix) && \
-    !defined(os_aix) && !defined(os_windows)
+#if !defined(os_solaris_test) && !defined(os_linux_test) && !defined(os_irix) && \
+    !defined(os_aix_test) && !defined(os_windows_test)
     logerror("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     logerror("    feature not implemented on this platform\n");
     return SKIPPED;
@@ -95,13 +95,13 @@ test_results_t test2_7_Mutator::executeTest() {
 	for (unsigned int i=0; i < m->size(); i++) {
 		char name[80];
 		(*m)[i]->getName(name, sizeof(name));
-#if defined(os_windows)
+#if defined(os_windows_test)
         //Windows files don't have case sensitive names, so make
         //sure we have a consistent name.
         lcase(name);
 #endif
 		if (strstr(name, TEST_DYNAMIC_LIB2) ||
-#ifdef rs6000_ibm_aix4_1
+#ifdef os_aix_test
 		    strcmp(name, TEST_DYNAMIC_LIB2_NOPATH) == 0 ||
 #endif
 		    strcmp(name, match2) == 0) {

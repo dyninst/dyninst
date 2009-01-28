@@ -44,7 +44,7 @@
  * #Name: test5_7
  * #Desc: Template
  * #Dep: 
- * #Arch: sparc_sun_solaris2_4,i386_unknown_linux2_0,x86_64_unknown_linux2_4,ia64_unknown_linux2_4
+ * #Arch: sparc_sun_solaris2_4_test,i386_unknown_linux2_0_test,x86_64_unknown_linux2_4_test,ia64_unknown_linux2_4_test
  * #Notes:
  */
 
@@ -69,7 +69,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_7_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_7_Mutator::executeTest() {
-#if defined(os_solaris) || defined(os_windows) || defined(os_linux)
+#if defined(os_solaris_test) || defined(os_windows_test) || defined(os_linux_test)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "template_test::func_cpp";

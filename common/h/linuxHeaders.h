@@ -99,7 +99,7 @@ int P_system(const char *string);
 inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
 inline pid_t P_getpid () { return (getpid());}
 inline int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
-inline int P_tkill(pid_t PID, int SIGNUM) { return (syscall(SYS_tkill, PID, SIGNUM));}
+inline long int P_tkill(pid_t PID, int SIGNUM) { return (syscall(SYS_tkill, PID, SIGNUM));}
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
   return (lseek(FILEDES, OFFSET, WHENCE));}
 inline int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {
@@ -186,9 +186,9 @@ inline unsigned long int P_strtoul(const char *P_STRING, char **TAILPTR, int BAS
 /* BSD */
 inline int P_accept (int SOCK, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
   return (accept(SOCK, ADDR, LENGTH_PTR));}
-inline int P_bind(int socket, struct sockaddr *addr, size_t len) {
+inline int P_bind(int socket, struct sockaddr *addr, socklen_t len) {
   return (bind(socket, addr, len));}
-inline int P_connect(int socket, struct sockaddr *addr, size_t len) {
+inline int P_connect(int socket, struct sockaddr *addr, socklen_t len) {
   return (connect(socket, addr, len));}
 inline struct hostent * P_gethostbyname (const char *NAME) {
   return (gethostbyname(NAME));}
@@ -227,7 +227,7 @@ inline int P_strncasecmp (const char *S1, const char *S2, size_t N) {
    so P_endservent() should be a void function */
 inline void P_endservent(void) { endservent(); }
 
-inline int P_recv(int s, void *buf, size_t len, int flags) {
+inline ssize_t P_recv(int s, void *buf, int len, int flags) {
    return (recv(s, buf, len, flags));
 }
 

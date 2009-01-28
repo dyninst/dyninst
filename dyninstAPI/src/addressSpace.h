@@ -157,6 +157,7 @@ class AddressSpace : public InstructionSource {
 
     virtual void *getPtrToInstruction(Address) const;
     virtual bool isValidAddress(const Address &) const;
+    virtual bool isExecutableAddress(const Address &) const;
 
     // Trap address to base tramp address (for trap instrumentation)
     trampTrapMappings trapMapping;

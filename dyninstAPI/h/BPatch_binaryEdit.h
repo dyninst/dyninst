@@ -86,19 +86,22 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     friend class BPatch_funcCallExpr;
     friend class BPatch_instruction;
     friend class AstNode; // AST needs to translate instPoint to
-		      // BPatch_point via instp_map
     friend class AstOperatorNode;
     friend class AstMemoryNode;
 
     private:
-    BinaryEdit *llBinEdit;
+    std::map<std::string, BinaryEdit *> llBinEdits;
+    BinaryEdit *origBinEdit;
+
     BPatch_binaryEdit(const char *path, bool openDependencies);
     bool creation_error;
+
+    protected:
+    void getAS(std::vector<AddressSpace *> &as);
 
     public:
 
     bool getType();
-    AddressSpace * getAS();
     bool getTerminated() {return false;}
     bool getMutationsActive() {return true;}
 

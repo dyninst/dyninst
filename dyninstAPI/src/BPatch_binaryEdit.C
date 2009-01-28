@@ -68,7 +68,7 @@
 #include "callbacks.h"
 
 #include "BPatch_private.h"
-
+#include <queue>
 
 
 #include "ast.h"
@@ -91,34 +91,59 @@
  */
 BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
-   llBinEdit(NULL),
    creation_error(false)
 {
-  func_map = new BPatch_funcMap();
-  instp_map = new BPatch_instpMap();
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
  
   pdvector<std::string> argv_vec;
   pdvector<std::string> envp_vec;
   
   std::string directoryName = "";
-  
-  llBinEdit = BinaryEdit::openFile(std::string(path), openDependencies);
-  if (!llBinEdit){
+
+  startup_printf("[%s:%u] - Opening original file %s\n", 
+                 FILE__, __LINE__, path);
+  origBinEdit = BinaryEdit::openFile(std::string(path));
+  if (!origBinEdit){
+     startup_printf("[%s:%u] - Creation error opening %s\n", 
+                    FILE__, __LINE__, path);
      creation_error = true;
      return;
   }
+  llBinEdits[path] = origBinEdit;
   
-  startup_cerr << "Registering function callback..." << endl;
-  llBinEdit->registerFunctionCallback(createBPFuncCB);
+  std::queue<std::string> files;
+  if (openDependencies) {
+     origBinEdit->getAllDependencies(files);
+     
+     while (files.size()) {
+        string s = files.front(); 
+        files.pop();
+
+        if (llBinEdits.count(s))
+           continue;
+        startup_printf("[%s:%u] - Opening dependant file %s\n", 
+                       FILE__, __LINE__, s.c_str());
+        BinaryEdit *lib = BinaryEdit::openFile(s);
+        if (!lib) {
+           startup_printf("[%s:%u] - Creation error opening %s\n", 
+                          FILE__, __LINE__, s.c_str());
+           creation_error = true;
+           return;
+        }
+        llBinEdits[s] = lib;
+        lib->getAllDependencies(files);
+     }
+  }
   
-  startup_cerr << "Registering instPoint callback..." << endl;
-  llBinEdit->registerInstPointCallback(createBPPointCB);
-  
-  llBinEdit->set_up_ptr(this);
+  std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
+  for(; i != llBinEdits.end(); i++) {
+     BinaryEdit *llBinEdit = (*i).second;
+     llBinEdit->registerFunctionCallback(createBPFuncCB);
+     llBinEdit->registerInstPointCallback(createBPPointCB);
+     llBinEdit->set_up_ptr(this);
+  }
 
   image = new BPatch_image(this);
-  
 }
 
 BPatch_image * BPatch_binaryEdit::getImageInt() {
@@ -132,13 +157,6 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
    
    image = NULL;
 
-   if (func_map)
-      delete func_map;
-   func_map = NULL;
-   if (instp_map)
-      delete instp_map;
-   instp_map = NULL;
-
    if (pendingInsertions) {
      for (unsigned f = 0; f < pendingInsertions->size(); f++) {
        delete (*pendingInsertions)[f];
@@ -147,10 +165,14 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
      pendingInsertions = NULL;
    }
 
-   delete llBinEdit;
-   llBinEdit = NULL;
-
-   assert(BPatch::bpatch != NULL);
+  std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
+  for(; i != llBinEdits.end(); i++) {
+     delete (*i).second;
+  }
+  llBinEdits.clear();
+  origBinEdit = NULL;
+  
+  assert(BPatch::bpatch != NULL);
 }
 
 bool BPatch_binaryEdit::writeFileInt(const char * outFile)
@@ -232,80 +254,14 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
        }
    }
 
-#if 0
-   // All generation first. Actually, all generation per function...
-   // but this is close enough.
-   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
-       batchInsertionRecord *&bir = (*pendingInsertions)[i];
-       assert(bir);
-        if (!bir->points_.size()) {
-          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
-          fprintf(stderr, "%s[%d]:  failing to generateInst\n", FILE__, __LINE__);
-        }
-       for (unsigned j = 0; j < bir->points_.size(); j++) {
-           BPatch_point *bppoint = bir->points_[j];
-           instPoint *point = bppoint->point;
-
-           point->optimizeBaseTramps(bir->when_[j]);
-           if (!point->generateInst()) {
-               err = true;
-               if (atomic && err) break;
-           }
-       }
-       if (atomic && err) break;
-   }
-
-   if (atomic && err) goto cleanup;
-
-   //  next, all installing 
-   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
-       batchInsertionRecord *&bir = (*pendingInsertions)[i];
-       assert(bir);
-        if (!bir->points_.size()) {
-          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
-          fprintf(stderr, "%s[%d]:  failing to installInst\n", FILE__, __LINE__);
-        }
-       for (unsigned j = 0; j < bir->points_.size(); j++) {
-           BPatch_point *bppoint = bir->points_[j];
-           instPoint *point = bppoint->point;
-             
-           if (!point->installInst()) {
-              err = true;
-           }
-
-           if (atomic && err) break;
-       }
-       if (atomic && err) break;
-   }
-
-   if (atomic && err) goto cleanup;
-
-   //  finally, do all linking 
-   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
-       batchInsertionRecord *&bir = (*pendingInsertions)[i];
-       assert(bir);
-        if (!bir->points_.size()) {
-          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
-          fprintf(stderr, "%s[%d]:  failing to linklInst\n", FILE__, __LINE__);
-        }
-       for (unsigned j = 0; j < bir->points_.size(); j++) {
-           BPatch_point *bppoint = bir->points_[j];
-           instPoint *point = bppoint->point;
-             
-          if (!point->linkInst(false)) {
-               err = true;
-           }
-
-           if (atomic && err) break;
-       }
-       if (atomic && err) break;
-   }
-#endif
-
    if (atomic && err) 
       goto cleanup;
 
-   llBinEdit->trapMapping.flush();
+   for(std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
+       i != llBinEdits.end(); i++) 
+   {
+      (*i).second->trapMapping.flush();
+   }
 
   cleanup:
     bool ret = true;
@@ -326,7 +282,9 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 
     pendingInsertions->clear();
 
-    llBinEdit->writeFile(outFile);
+    std::map<std::string, BinaryEdit *>::iterator i;
+    for (i = llBinEdits.begin(); i != llBinEdits.end(); i++)
+       (*i).second->writeFile(outFile);
 
     return ret;
 }
@@ -338,9 +296,16 @@ bool BPatch_binaryEdit::getType()
   return STATIC_EDITOR;
 }
 
-AddressSpace * BPatch_binaryEdit::getAS()
+
+void BPatch_binaryEdit::getAS(std::vector<AddressSpace *> &as)
 {
-  return llBinEdit;
+   std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
+   as.push_back(origBinEdit);
+   for(; i != llBinEdits.end(); i++) {
+      if ((*i).second == origBinEdit)
+         continue;
+      as.push_back((*i).second);
+   }
 }
 
 /*
@@ -362,13 +327,8 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
     return true;
 }
 
-#if defined(cap_save_the_world)
-bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool reload)
-#else
 bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool)
-#endif
 {
-    // open with dependencies
-    return llBinEdit->openSharedLibrary(std::string(libname), true);
+   return false;//TODO
 }
 

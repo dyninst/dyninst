@@ -106,8 +106,9 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
          // poke through the mapping table. If there isn't a point, we
          // skip this instrumentation frame instead
          instPoint *iP = frame.getPoint();
-         if (iP && proc->instp_map->defines(iP))
-            point = proc->instp_map->get(iP);
+         if (iP) {
+            point = proc->findOrCreateBPPoint(NULL, iP);
+         }
          if (point) {
             stack.push_back(BPatch_frame(this,
                                          (void*)stackWalk[i].getPC(),
