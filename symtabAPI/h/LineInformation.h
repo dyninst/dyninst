@@ -88,7 +88,9 @@ class LineInformation : public Serializable,
             unsigned int lineOffset, 
             Offset lowInclusiveAddr, 
             Offset highExclusiveAddr );
+
       SYMTAB_EXPORT void addLineInfo(LineInformation *lineInfo);	      
+
       SYMTAB_EXPORT bool addAddressRange( Offset lowInclusiveAddr, 
             Offset highExclusiveAddr, 
             const char * lineSource, 

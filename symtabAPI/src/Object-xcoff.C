@@ -1623,7 +1623,7 @@ bool AObject::getSegments(vector<Segment> &/*segs*/) const
 /* FIXME: hack. */
 Offset trueBaseAddress = 0;
 
-void Object::parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li)
+void Object::parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li)
 {
     static set<std::string> haveParsedFileMap;
 

@@ -1040,16 +1040,22 @@ bool BPatch_image::getSourceLinesInt(unsigned long addr,
 
    /* Iteratate over the modules, looking for addr in each. */
 
-   for (unsigned int i = 0; i < modules->size(); i++ ) {
+   for (unsigned int i = 0; i < modules->size(); i++ ) 
+   {
       BPatch_module *m = (*modules)[i];
       //  address-to-offset conversion done in module routine 
       m->getSourceLinesInt(addr,lines);
    }
 
-   if ( lines.size() != originalSize ) { return true; }	
+   if ( lines.size() != originalSize ) 
+   {
+      return true; 
+   }	
+
+   //fprintf(stderr, "%s[%d]:  fail to getSourceLines for addr %lu\n", FILE__, __LINE__, addr);
 
    return false;
-} /* eng getSourceLines() */
+} /* end getSourceLines() */
 
 bool BPatch_image::getAddressRangesInt( const char * lineSource, 
       unsigned int lineNo, 

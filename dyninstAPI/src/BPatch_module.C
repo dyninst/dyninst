@@ -2243,7 +2243,10 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
       BPatch_Vector< BPatch_statement> &lines) 
 {
    if (!isValid()) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to getSourceLines: invalid\n", FILE__, __LINE__);
       return false;
+   }
 
    unsigned int originalSize = lines.size();
    LineInformation *li = mod->getLineInformation();
