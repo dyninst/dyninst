@@ -82,6 +82,20 @@ bool Function::setFramePtrRegnum(int regnum)
     return true;
 }
 
+std::vector<Dyninst::SymtabAPI::loc_t *> *Function::getFramePtr() const 
+{
+    return locs_;
+}
+
+bool Function::setFramePtr(vector<loc_t *> *locs) 
+{
+    if(locs_)
+        return false;
+    locs_ = locs;
+    return true;
+}
+
+
 bool Function::findLocalVariable(std::vector<localVar *> &vars, std::string name)
 {
    module_->exec()->parseTypesNow();	
