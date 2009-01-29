@@ -97,7 +97,7 @@ class registerSlot {
     // Are we off limits for allocation in this particular instance?
     const bool offLimits; 
 
-    typedef enum { invalid, GPR, FPR, SPR } regType_t;
+    typedef enum { invalid, GPR, FPR, SPR, realReg} regType_t;
     const regType_t type; 
 
     ////////// Code generation
@@ -295,7 +295,10 @@ class registerSpace {
     pdvector <registerSlot *> &GPRs() { return GPRs_; }
     pdvector <registerSlot *> &FPRs() { return FPRs_; }
     pdvector <registerSlot *> &SPRs() { return SPRs_; }
-    
+#if defined(cap_virtual_registers)
+    pdvector <registerSlot *> &realRegs() { return realRegisters_; }
+#endif
+
     registerSlot *operator[](Register);
 
     // For platforms with "save all" semantics...
@@ -331,6 +334,12 @@ class registerSpace {
     pdvector<registerSlot *> GPRs_;
     pdvector<registerSlot *> FPRs_;
     pdvector<registerSlot *> SPRs_;
+
+    // Used on platforms that have "virtual" registers to provide a mapping
+    // for real (e.g., architectural) registers
+#if defined(cap_virtual_registers)
+    pdvector<registerSlot *> realRegisters_;
+#endif
 
     static void initialize();
     static void initialize32();
