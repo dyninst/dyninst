@@ -243,6 +243,8 @@ int dyn_debug_ast = 0;
 int dyn_debug_write = 0;
 int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
+int dyn_debug_crash = 0;
+char *dyn_debug_crash_debugger = NULL;
 
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
@@ -359,7 +361,11 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI inferior malloc debugging\n");
     dyn_debug_infmalloc = 1;
   }
-
+  if (p=getenv("DYNINST_DEBUG_CRASH")) {
+     fprintf(stderr, "Enable DyninstAPI crash debugging\n");
+     dyn_debug_crash = 1;
+     dyn_debug_crash_debugger = p;
+  }
   debugPrintLock = new eventLock();
 
   return true;

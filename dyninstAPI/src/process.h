@@ -427,6 +427,9 @@ class process : public AddressSpace {
     // Detach from a process, deleting data to prep for reattaching
     // NOTE: external callers should use this function, not ::detach
     bool detachProcess(const bool leaveRunning);
+    bool detachForDebugger(const EventRecord &crash_event);
+    bool startDebugger();
+
     
  private:
     bool detach(const bool leaveRunning);
