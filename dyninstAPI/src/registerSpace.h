@@ -295,9 +295,8 @@ class registerSpace {
     pdvector <registerSlot *> &GPRs() { return GPRs_; }
     pdvector <registerSlot *> &FPRs() { return FPRs_; }
     pdvector <registerSlot *> &SPRs() { return SPRs_; }
-#if defined(cap_virtual_registers)
-    pdvector <registerSlot *> &realRegs() { return realRegisters_; }
-#endif
+
+    pdvector <registerSlot *> &realRegs();
 
     registerSlot *operator[](Register);
 
@@ -337,9 +336,7 @@ class registerSpace {
 
     // Used on platforms that have "virtual" registers to provide a mapping
     // for real (e.g., architectural) registers
-#if defined(cap_virtual_registers)
     pdvector<registerSlot *> realRegisters_;
-#endif
 
     static void initialize();
     static void initialize32();

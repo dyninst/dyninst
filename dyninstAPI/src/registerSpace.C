@@ -1100,3 +1100,12 @@ std::string registerSpace::getRegByNumber(Register reg) {
     return registers_[reg]->name;
 }
 
+// If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64) 
+// return that. Otherwise return GPRs. 
+pdvector<registerSlot *> &realRegs() {
+    if (realRegisters_.size())
+        return realRegisters_;
+    else
+        return GPRs();
+}
+
