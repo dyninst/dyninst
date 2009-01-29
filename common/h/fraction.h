@@ -42,7 +42,7 @@
 #endif
 
 
-class DLLEXPORT fraction {
+class COMMON_EXPORT fraction {
   mutable int64_t numer;
   mutable int64_t denom;
   // largest multiplicand until an interim overflow will occur, and need to 
@@ -138,8 +138,8 @@ const fraction &operator+(const fraction &a, const fraction &b); {
 const fraction &operator-(const fraction &a, const fraction &b);
 */
 
-DLLEXPORT int64_t gcd(int64_t a, int64_t b);
-DLLEXPORT int64_t lcd(int64_t a, int64_t b);
+COMMON_EXPORT int64_t gcd(int64_t a, int64_t b);
+COMMON_EXPORT int64_t lcd(int64_t a, int64_t b);
 
 inline void fraction::reduce() const {
   int64_t igcd = gcd(numer, denom);

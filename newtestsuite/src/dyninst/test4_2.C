@@ -69,7 +69,7 @@ public:
   virtual test_results_t executeTest();
   test_results_t mutatorTest();
 };
-extern "C" TestMutator *test4_2_factory() {
+extern "C" DLLEXPORT TestMutator *test4_2_factory() {
   return new test4_2_Mutator();
 }
 

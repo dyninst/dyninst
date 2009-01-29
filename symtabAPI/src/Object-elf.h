@@ -282,7 +282,7 @@ class Object : public AObject {
   virtual ~Object();
   const Object& operator=(const Object &);
 
-  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);  
+  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&allSymbols, unsigned flag);  
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
@@ -314,7 +314,7 @@ class Object : public AObject {
      return (char *)mf->base_addr();
   }
 
-  DLLEXPORT ObjectType objType() const;
+  SYMTAB_EXPORT ObjectType objType() const;
   const char *interpreter_name() const;
 
 

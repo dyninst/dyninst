@@ -68,7 +68,10 @@
 #include "BPatch_edge.h"
 #include "ast.h"
 #include "mapped_module.h"
-
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+#endif
 /*
  * Private constructor, insn
  */
@@ -293,6 +296,21 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     attachMemAcc(ma);
     return ma;
 }
+#if defined(cap_instruction_api)
+#if defined(arch_x86)
+static const unsigned maxInsnSize = 15;
+#else
+// RISC default = 32-bit instructions
+static const unsigned maxInsnSize = 4;
+#endif
+InstructionAPI::Instruction BPatch_point::getInsnAtPointInt()
+{
+  using namespace InstructionAPI;
+  InstructionDecoder d(static_cast<const unsigned char*>(point->proc()->getPtrToInstruction(point->addr())), maxInsnSize);
+  Instruction i = d.decode();
+  return i;
+}
+#endif
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt() 
 {

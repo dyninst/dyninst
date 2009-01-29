@@ -6,51 +6,72 @@
 #include "dyntypes.h"
 namespace Dyninst {
 
-#if !defined(DLLEXPORT)
-#if defined (_MSC_VER)
-   /* If we're on Windows, we need to explicetely export these functions: */
-      #if defined(DLL_BUILD)
-         #define DLLEXPORT __declspec(dllexport)
-      #else
-         #define DLLEXPORT __declspec(dllimport)   
-      #endif
-#else
-      #define DLLEXPORT
+#if !defined(SYMTAB_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined SYMTAB_LIB
+      #define SYMTAB_EXPORT __declspec(dllexport)
+    #else
+      #define SYMTAB_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define SYMTAB_EXPORT
+  #endif
+#endif
+
+#if !defined(COMMON_EXPORT)
+  #if defined (_MSC_VER)
+    #if defined(COMMON_LIB)
+       #define COMMON_EXPORT __declspec(dllexport)
+    #else
+       #define COMMON_EXPORT __declspec(dllimport)   
+    #endif
+  #else
+    #define COMMON_EXPORT
+  #endif
+#endif
+
+#if !defined(COMMON_TEMPLATE_EXPORT)
+  #if defined (_MSC_VER)
+    #if defined(COMMON_LIB) || defined(INSTRUCTION_LIB) || \
+		defined(SYMTAB_LIB)	|| defined(BPATCH_LIBRARY)
+       #define COMMON_TEMPLATE_EXPORT __declspec(dllexport)
+    #else
+       #define COMMON_TEMPLATE_EXPORT __declspec(dllimport)   
+    #endif
+  #else
+    #define COMMON_TEMPLATE_EXPORT
+  #endif
+#endif
+
+#if !defined(INSTRUCTION_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(INSTRUCTION_LIB)
+      #define INSTRUCTION_EXPORT __declspec(dllexport)
+    #else
+      #define INSTRUCTION_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define INSTRUCTION_EXPORT
 #endif
 #endif
 
-#if !defined(DLLEXPORT_COMMON)
-#if defined (_MSC_VER)
-/* If we're on Windows, we need to explicetely export these functions: */
-   #if defined(DLL_BUILD)
-      #define DLLEXPORT_COMMON __declspec(dllexport)
-   #else
-      #define DLLEXPORT_COMMON __declspec(dllimport)   
-   #endif
-#else
-   #define DLLEXPORT_COMMON
-#endif
-#endif
 
+COMMON_EXPORT unsigned addrHashCommon(const Address &addr);
+COMMON_EXPORT unsigned ptrHash(const void * addr);
+COMMON_EXPORT unsigned ptrHash(void * addr);
 
+COMMON_EXPORT unsigned addrHash(const Address &addr);
+COMMON_EXPORT unsigned addrHash4(const Address &addr);
+COMMON_EXPORT unsigned addrHash16(const Address &addr);
 
-
-DLLEXPORT_COMMON unsigned addrHashCommon(const Address &addr);
-DLLEXPORT_COMMON unsigned ptrHash(const void * addr);
-DLLEXPORT_COMMON unsigned ptrHash(void * addr);
-
-DLLEXPORT_COMMON unsigned addrHash(const Address &addr);
-DLLEXPORT_COMMON unsigned addrHash4(const Address &addr);
-DLLEXPORT_COMMON unsigned addrHash16(const Address &addr);
-
-DLLEXPORT_COMMON unsigned stringhash(const std::string &s);
-DLLEXPORT_COMMON std::string itos(int);
-DLLEXPORT_COMMON std::string utos(unsigned);
+COMMON_EXPORT unsigned stringhash(const std::string &s);
+COMMON_EXPORT std::string itos(int);
+COMMON_EXPORT std::string utos(unsigned);
 
 #define WILDCARD_CHAR '?'
 #define MULTIPLE_WILDCARD_CHAR '*'
 
-DLLEXPORT_COMMON bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCase = false );
+COMMON_EXPORT bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCase = false );
 
 }
 #endif

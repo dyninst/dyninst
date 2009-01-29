@@ -170,6 +170,13 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    std::vector< std::pair< unsigned long, unsigned long > > ranges;
    if ( appImage->getAddressRanges( "test1.mutatee.c", call30_1_line_no, ranges ) ) {
       n = ranges[0].first;
+#if 0
+      fprintf(stderr, "%s[%d]:  num ranges = %d\n", FILE__, __LINE__, ranges.size());
+      int lastrange = ranges.size() -1;
+      fprintf(stderr, "%s[%d]:  module address ranges  0 from %lu to %lu\n", FILE__, __LINE__, n, ranges[0].second);
+      fprintf(stderr, "%s[%d]:  module address range  %d from %lu to %lu\n", FILE__, __LINE__, lastrange, ranges[lastrange].first, ranges[lastrange].second);
+      fprintf(stderr, "%s[%d]:  setting globalVariable30_3 to %lu\n", FILE__, __LINE__, n);
+#endif
       expr30_3->writeValue( & n );
    }
     	

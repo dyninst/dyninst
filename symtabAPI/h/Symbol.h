@@ -68,8 +68,9 @@ class Module;
 class typeCommon;
 class localVarCollection;
 class Region;
+class Aggregate;
 class Function;
- class Variable;
+class Variable;
 
 /************************************************************************
  * class Symbol
@@ -91,6 +92,7 @@ class Symbol : public Serializable,
       ST_FUNCTION,
       ST_OBJECT,
       ST_MODULE,
+	  ST_SECTION,
       ST_NOTYPE
    };
 
@@ -114,70 +116,81 @@ class Symbol : public Serializable,
 
    static const char *symbolTag2Str(SymbolTag t);
 
-   DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
-   DLLEXPORT Symbol (unsigned);
-   DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-         Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
+   enum SymbolVisibility {
+       SV_UNKNOWN,
+       SV_DEFAULT,
+       SV_INTERNAL,
+       SV_HIDDEN,
+       SV_PROTECTED
+   };
+   static const char *symbolVisibility2Str(SymbolVisibility t);
+
+   SYMTAB_EXPORT Symbol (); // note: this ctor is called surprisingly often!
+   SYMTAB_EXPORT Symbol (unsigned);
+   SYMTAB_EXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
+         SymbolVisibility, Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
          bool isInSymtab_ = true, bool isAbsolute_ = false);
-   DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-         Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
+   SYMTAB_EXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
+         SymbolVisibility, Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
          bool isInSymtab_ = true, bool isAbsolute_ = false);
-   DLLEXPORT Symbol (const Symbol &);
-   DLLEXPORT ~Symbol();
+   SYMTAB_EXPORT Symbol (const Symbol &);
+   SYMTAB_EXPORT ~Symbol();
 
-   DLLEXPORT Symbol&        operator= (const Symbol &);
-   DLLEXPORT bool          operator== (const Symbol &) const;
+   SYMTAB_EXPORT Symbol&        operator= (const Symbol &);
+   SYMTAB_EXPORT bool          operator== (const Symbol &) const;
 
-   DLLEXPORT const std::string&getModuleName ()        const;
-   DLLEXPORT Module*	        getModule()		        const; 
-   DLLEXPORT SymbolType        getType ()              const;
-   DLLEXPORT SymbolLinkage     getLinkage ()           const;
-   DLLEXPORT Offset            getAddr ()              const;
-   DLLEXPORT Region		    *getSec ()      	    const;
-   DLLEXPORT bool              isInDynSymtab()         const;
-   DLLEXPORT bool              isInSymtab()            const;
-   DLLEXPORT bool              isAbsolute()            const;
+   SYMTAB_EXPORT const std::string&getModuleName ()        const;
+   SYMTAB_EXPORT Module*	        getModule()		        const; 
+   SYMTAB_EXPORT SymbolType        getType ()              const;
+   SYMTAB_EXPORT SymbolLinkage     getLinkage ()           const;
+   SYMTAB_EXPORT Offset            getAddr ()              const;
+   SYMTAB_EXPORT Region		    *getSec ()      	    const;
+   SYMTAB_EXPORT bool              isInDynSymtab()         const;
+   SYMTAB_EXPORT bool              isInSymtab()            const;
+   SYMTAB_EXPORT bool              isAbsolute()            const;
 
-   DLLEXPORT bool              isFunction()            const;
-   DLLEXPORT bool              setFunction(Function * func);
-   DLLEXPORT Function *        getFunction()           const;
+   SYMTAB_EXPORT bool              isFunction()            const;
+   SYMTAB_EXPORT bool              setFunction(Function * func);
+   SYMTAB_EXPORT Function *        getFunction()           const;
 
-   DLLEXPORT bool              isVariable()            const;
-   DLLEXPORT bool              setVariable(Variable *var);
-   DLLEXPORT Variable *        getVariable()           const;
+   SYMTAB_EXPORT bool              isVariable()            const;
+   SYMTAB_EXPORT bool              setVariable(Variable *var);
+   SYMTAB_EXPORT Variable *        getVariable()           const;
+
+	SYMTAB_EXPORT SymbolVisibility getVisibility() const;
 
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
-   DLLEXPORT const std::string&      getMangledName ()              const;
-   DLLEXPORT const std::string&	     getPrettyName()       	const;
-   DLLEXPORT const std::string&      getTypedName() 		const;
+   SYMTAB_EXPORT const std::string&      getMangledName ()              const;
+   SYMTAB_EXPORT const std::string&	     getPrettyName()       	const;
+   SYMTAB_EXPORT const std::string&      getTypedName() 		const;
 
    /* Deprecated */
-   DLLEXPORT const std::string &getName() const { return getMangledName(); }
+   SYMTAB_EXPORT const std::string &getName() const { return getMangledName(); }
 
-   DLLEXPORT bool setAddr (Offset newAddr);
+   SYMTAB_EXPORT bool setAddr (Offset newAddr);
 
-   DLLEXPORT bool setSymbolType(SymbolType sType);
+   SYMTAB_EXPORT bool setSymbolType(SymbolType sType);
 
-   DLLEXPORT unsigned            getSize ()               const;
-   DLLEXPORT SymbolTag            tag ()               const;
-   DLLEXPORT bool	setSize(unsigned ns);
-   DLLEXPORT bool	setModuleName(std::string module);
-   DLLEXPORT bool 	setModule(Module *mod);
-   DLLEXPORT bool  setDynSymtab();
-   DLLEXPORT bool  clearDynSymtab();
-   DLLEXPORT bool  setIsInSymtab();
-   DLLEXPORT bool  clearIsInSymtab();
-   DLLEXPORT bool  setIsAbsolute();
-   DLLEXPORT bool  clearIsAbsolute();
+   SYMTAB_EXPORT unsigned            getSize ()               const;
+   SYMTAB_EXPORT SymbolTag            tag ()               const;
+   SYMTAB_EXPORT bool	setSize(unsigned ns);
+   SYMTAB_EXPORT bool	setModuleName(std::string module);
+   SYMTAB_EXPORT bool 	setModule(Module *mod);
+   SYMTAB_EXPORT bool  setDynSymtab();
+   SYMTAB_EXPORT bool  clearDynSymtab();
+   SYMTAB_EXPORT bool  setIsInSymtab();
+   SYMTAB_EXPORT bool  clearIsInSymtab();
+   SYMTAB_EXPORT bool  setIsAbsolute();
+   SYMTAB_EXPORT bool  clearIsAbsolute();
 
-   DLLEXPORT bool  setVersionFileName(std::string &fileName);
-   DLLEXPORT bool  setVersions(std::vector<std::string> &vers);
-   DLLEXPORT bool  setVersionNum(unsigned verNum);
-   DLLEXPORT bool  getVersionFileName(std::string &fileName);
-   DLLEXPORT bool  getVersions(std::vector<std::string> *&vers);
-   DLLEXPORT bool  VersionNum(unsigned &verNum);
+   SYMTAB_EXPORT bool  setVersionFileName(std::string &fileName);
+   SYMTAB_EXPORT bool  setVersions(std::vector<std::string> &vers);
+   SYMTAB_EXPORT bool  setVersionNum(unsigned verNum);
+   SYMTAB_EXPORT bool  getVersionFileName(std::string &fileName);
+   SYMTAB_EXPORT bool  getVersions(std::vector<std::string> *&vers);
+   SYMTAB_EXPORT bool  VersionNum(unsigned &verNum);
 
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
@@ -193,6 +206,7 @@ class Symbol : public Serializable,
    Module*       module_;
    SymbolType    type_;
    SymbolLinkage linkage_;
+   SymbolVisibility visibility_;
    Offset        addr_;
    Region*      sec_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
@@ -200,9 +214,7 @@ class Symbol : public Serializable,
    bool          isInSymtab_;
    bool          isAbsolute_;
 
-   Function*     function_;  // if this symbol represents a function, this is a pointer
-                             // to the corresponding Function object
-   Variable     *variable_;  // Should combine into an "Aggregate" parent class...
+   Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
 
    std::string mangledName_;
    std::string prettyName_;
@@ -222,7 +234,7 @@ class Symbol : public Serializable,
 #endif
 
    public:
-   DLLEXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
+   SYMTAB_EXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
 };
 
 inline
@@ -271,19 +283,19 @@ Symbol::operator==(const Symbol& s) const
 class LookupInterface 
 {
    public:
-      DLLEXPORT LookupInterface();
-      DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
+      SYMTAB_EXPORT LookupInterface();
+      SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret,
             Symbol::SymbolType sType) = 0;
-      DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
+      SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret,
             const std::string name,
             Symbol::SymbolType sType,
             bool isMangled = false,
             bool isRegex = false,
             bool checkCase = false) = 0;
-      DLLEXPORT virtual bool findType(Type *&type, std::string name) = 0;
-      DLLEXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
+      SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name) = 0;
+      SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name)= 0;
 
-      DLLEXPORT virtual ~LookupInterface();
+      SYMTAB_EXPORT virtual ~LookupInterface();
 };
 
 

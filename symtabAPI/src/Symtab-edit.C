@@ -219,7 +219,7 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
     }
 
     //Check again. Is this an ok thing to do??
-    undefDynSyms[newSym->getPrettyName()] = newSym;
+    undefDynSyms[newSym->getPrettyName()].push_back(newSym);
 
     return addSymbol(newSym, true);
 }
@@ -265,12 +265,3 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
     return true;
 }
 
-const vector<std::string> &Variable::getAllMangledNames() {
-    return mangledNames_;
-}
-const vector<std::string> &Variable::getAllPrettyNames() {
-    return prettyNames_;
-}
-const vector<std::string> &Variable::getAllTypedNames() {
-    return typedNames_;
-}

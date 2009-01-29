@@ -71,10 +71,6 @@ MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new2
 LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
 
-ICC = /s/intel_cc/bin/icc
-M_intel_CC = /s/intel_cc/bin/icpc
-M_intel_cc = /s/intel_cc/bin/icc
-
 #######################################################################
 ###  Basic definitions (filename prefixes)
 #######################################################################
@@ -116,9 +112,11 @@ SRCS_DYNINSTCOMP_LIB = dyninst/dyninst_comp.C \
 OBJS_DYNINSTCOMP_LIB = $(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.o))
 SRCS_DYNINSTTESTLIB = dyninst/libtestA.c \
                       dyninst/libtestB.c \
-                      dyninst/libInstMe.c \
-                      dyninst/libLoadMe.c \
                       dyninst/libTest12.c
+
+#                      dyninst/libInstMe.c \
+#                      dyninst/libLoadMe.c \
+
 dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI
 
 ifdef M_ABI
@@ -240,7 +238,11 @@ clean: clean_solo_mutatees
 	@$(RM) *.da *.bb. *.bbg 
 	@$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so
 	@$(RM) $(dyninst_MUTATORS_SO)
-	@$(RM) $(dyninst_SOLO_MUTATEES)
+#	@$(RM) $(dyninst_SOLO_MUTATEES)
+	@$(RM) $(dyninst_SOLO_MUTATEES_gnu_cxx)
+	@$(RM) $(dyninst_SOLO_MUTATEES_native_cxx)
+	@$(RM) $(dyninst_SOLO_MUTATEES_gnu_cc)
+	@$(RM) $(dyninst_SOLO_MUTATEES_native_cc)
 	@$(RM) $(symtab_MUTATORS_SO)
 	@$(RM) $(symtab_SOLO_MUTATEES)
 	@$(RM) $(OUTPUT_DRIVERS)

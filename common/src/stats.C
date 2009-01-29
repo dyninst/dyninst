@@ -44,11 +44,11 @@
  * $Id: stats.C,v 1.2 2008/07/01 19:26:49 legendre Exp $
  */
 
-#include <sstream>
-#include <string>
+#include "common/h/headers.h"
 #include "common/h/stats.h"
 #include "dynutil/h/util.h"
-
+#include <sstream>
+#include <string>
 #if 0
 #include "dyninstAPI/src/stats.h"
 

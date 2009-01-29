@@ -453,8 +453,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                 referring = dependentRelocations[i]->getReferring();
                 newSymbol = new Symbol(
                         referring->getName(), "DEFAULT_MODULE",
-                        Symbol::ST_FUNCTION, Symbol::SL_UNKNOWN,
-                        to, newSec, 8);
+                        Symbol::ST_FUNCTION, Symbol::SL_LOCAL,
+                        Symbol::SV_DEFAULT, to, newSec, 8, true, false);
                 symObj->addSymbol(newSymbol, referring);
                 if (!symObj->hasRel() && !symObj->hasRela()) {
                     // TODO: probably should add new relocation section and
@@ -681,6 +681,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName) {
                                         "DyninstInst",
                                         Symbol::ST_FUNCTION,
                                         Symbol::SL_GLOBAL,
+                                        Symbol::SV_DEFAULT,
                                         newStuff[i]->get_address(),
                                         newSec,
                                         newStuff[i]->get_size(),
@@ -838,6 +839,12 @@ bool BinaryEdit::initialize() {
 }
 
 void BinaryEdit::addDependentRelocation(Address to, Symbol *referring) {
+    // prevent duplicate relocations
+    std::vector<depRelocation *>::iterator it;
+    for (it = dependentRelocations.begin(); it != dependentRelocations.end(); it++)
+        if ((*it)->getAddress() == to && (*it)->getReferring() == referring)
+            return;
+    // create a new relocation and add it to the collection
 	depRelocation *reloc = new depRelocation(to, referring);
 	dependentRelocations.push_back(reloc);
 }
@@ -909,6 +916,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                                         "DyninstInst",
                                         Symbol::ST_FUNCTION,
                                         Symbol::SL_GLOBAL,
+                                        Symbol::SV_DEFAULT,
                                         startAddr,
                                         newSec,
                                         size,

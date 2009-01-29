@@ -171,7 +171,7 @@ image_func::image_func(const std::string &symbol,
 
     Symbol *sym_;
     sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
-                      offset, sec, symTabSize);
+                      Symbol::SV_DEFAULT, offset, sec, symTabSize);
     std::vector<Module *> mods;
     st->getAllModules(mods);
     if (mods.size())

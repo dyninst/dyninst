@@ -62,7 +62,7 @@ public:
   virtual ~DyninstMutator();
 };
 extern "C" {
-TestMutator *TestMutator_factory();
+	TEST_DLL_EXPORT TestMutator *TestMutator_factory();
 }
 
 COMPLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 

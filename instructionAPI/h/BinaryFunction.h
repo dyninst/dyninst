@@ -50,6 +50,7 @@ namespace Dyninst
     /// supported by the %Instruction API.
     class BinaryFunction : public Expression
     {
+    public:
       class funcT
       {
       public:
@@ -100,9 +101,7 @@ namespace Dyninst
 	  return arg1 + arg2;
 	}
       };      
-      
-      
-    public:
+            
       /// \param arg1 first input to function
       /// \param arg2 second input to function
       /// \param result_type type of the function's result

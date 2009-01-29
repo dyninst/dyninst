@@ -47,6 +47,7 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+#include "debug.h"
 
 #include <procinfo.h>
 
@@ -533,63 +534,6 @@ fileOpener::~fileOpener() {
    assert(size_ == 0);
 }
 
-#if 0
-   bool fileOpener::open() {
-      if (fd_ != 0)
-         return true;
-      fd_ = ::open(file_.c_str(), O_RDONLY, 0); 
-      if (fd_ < 0) {
-         sprintf(errorLine, "Unable to open %s: %s\n",
-               file_.c_str(), strerror(errno));
-         //statusLine(errorLine);
-         //showErrorCallback(27, errorLine);
-         fd_ = 0;
-         return false;
-      }
-
-    // Set size
-    struct stat statBuf;
-    int ret;
-    ret = fstat(fd_, &statBuf);
-    if (ret == -1) {
-        sprintf(errorLine, "Unable to stat %s: %s\n",
-                file_.c_str(), strerror(errno));
-        //statusLine(errorLine);
-        //showErrorCallback(27, errorLine);
-        return false;
-    }
-    assert(ret == 0);
-
-    size_ = statBuf.st_size;
-    assert(size_);
-    return true;
-}
-#endif
-
-#if 0
-bool fileOpener::mmap() {
-    assert(fd_);
-    assert(size_);
-
-    if (mmapStart_ != NULL)
-        return true;
-
-    assert(0);
-    mmapStart_ = ::mmap(NULL, size_, PROT_READ, MAP_SHARED, fd_, 0);
-
-    if (mmapStart_ == MAP_FAILED) {
-        sprintf(errorLine, "Unable to mmap %s: %s\n",
-                file().c_str(), strerror(errno));
-        //statusLine(errorLine);
-        //showErrorCallback(27, errorLine);
-        mmapStart_ = NULL;
-        return false;
-    }
-
-    return true;
-}
-#endif
-    
 bool fileOpener::set(unsigned addr) 
 {
     //assert(fd_);     may not be present if its a mem image
@@ -744,6 +688,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    struct syment *symbols = NULL;
    unsigned char *scnh_base = NULL;
    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
+   Symbol::SymbolVisibility visibility = Symbol::SV_DEFAULT;
    unsigned toc_offset = 0;
    std::string modName;
    baseAddress_ = (Offset)fo_->getPtrAtOffset(offset);
@@ -1056,14 +1001,10 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    }	
 
    // And some debug output
-#if defined(DEBUG)
-   fprintf(stderr, "Data dump from %s/%s\n",
-           file_.c_str(), member_.c_str());
-   fprintf(stderr, "Text offset in file: 0x%x (0x%x + 0x%x), virtual address 0x%x, size %d (0x%x) bytes\n",
-           fileTextOffset + offset, fileTextOffset, offset, code_off_, code_len_, code_len_);
-   fprintf(stderr, "Data offset in file: 0x%x (0x%x + 0x%x), virtual address 0x%x, size %d (0x%x) bytes\n",
-           fileDataOffset + offset, fileDataOffset, offset, data_off_, data_len_, data_len_);
-#endif
+   object_printf("Text offset in file: 0x%x (0x%x + 0x%x), virtual address 0x%x, size %d (0x%x) bytes\n",
+                 fileTextOffset + offset, fileTextOffset, offset, code_off_, code_len_, code_len_);
+   object_printf("Data offset in file: 0x%x (0x%x + 0x%x), virtual address 0x%x, size %d (0x%x) bytes\n",
+                 fileDataOffset + offset, fileDataOffset, offset, data_off_, data_len_, data_len_);
    
    foundDebug = false;
 
@@ -1108,6 +1049,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    no_of_symbols_ = nsyms;
    // Now the symbol table itself:
    if (alloc_syms) {
+       object_printf("%d symbols present in file\n", nsyms);
    for (i=0; i < (signed)nsyms; i++) 
    {
       /* do the pointer addition by hand since sizeof(struct syment)
@@ -1116,7 +1058,8 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
       unsigned long sym_value = (is64 ? sym->n_value64 : sym->n_value32);
 
       if (sym->n_sclass & DBXMASK) {
-         continue;
+          object_printf("Skipping DBXMASK symbol %s\n", name.c_str());
+          continue;
       }
 
       secno = sym->n_scnum;
@@ -1171,6 +1114,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
                //if (toc_offset);
                //logLine("Found more than one XMC_TC0 entry.");
                toc_offset = sym_value;
+               object_printf("Found TOC offset: 0x%lx\n", toc_offset);
                continue;
             }
 
@@ -1178,13 +1122,16 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
                 (csect->x_csect.x_smclas == XMC_DS)) {
                // table of contents related entry not a real symbol.
                //dump << " toc entry -- ignoring" << endl;
-               continue;
+                object_printf("TOC entry (%s/%d), ignoring (%s)\n", name.c_str(),sym_value,
+                              (csect->x_csect.x_smclas == XMC_TC) ? "TC" : "DS");
+                continue;
             }
             type = Symbol::ST_OBJECT;
 
             if (foundData && sym_value < SCNH_PADDR(dataSecNo)) {
                // Very strange; skip
-               continue;
+                object_printf("Skipping odd case of data symbol not in data section (%s)\n", name.c_str());
+                continue;
             }
 
             value = sym_value;
@@ -1197,7 +1144,8 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
 
          // skip .text entries
          if (name == ".text")  {
-            continue;
+             object_printf("Skipping .text symbol\n");
+             continue;
          }
        
          if (name[0] == '.' ) {
@@ -1207,7 +1155,8 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
          else if (type == Symbol::ST_FUNCTION) {
             // text segment without a leading . is a toc item
             //dump << " (no leading . so assuming toc item & ignoring)" << endl;
-            continue;
+             object_printf("Skipping text symbol without leading .\n");
+             continue;
          }
        
          if (type == Symbol::ST_FUNCTION) {
@@ -1268,26 +1217,16 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
             }
          }
 
-         /*giri: Dyninst related. Moved there.
-         // HACK. This avoids double-loading various tramp spaces
-         if (name.prefixed_by("DYNINSTstaticHeap") &&
-         size == 0x18) {
-         continue;
-         }*/
-
-         //parsing_printf("Symbol %s, addr 0x%lx, mod %s, size %d\n",
-         //              name.c_str(), value, modName.c_str(), size);
          Region *sec;
          if(secno >= 1 && secno <= regions_.size())
             sec = regions_[secno-1];
          else
             sec = NULL;
-         Symbol *sym = new Symbol(name, modName, type, linkage, value, sec, size);
-       
-         // If we don't want the function size for some reason, comment out
-         // the above and use this:
-         // Symbol sym(name, modName, type, linkage, value, false);
-         // fprintf( stderr, "Added symbol %s at addr 0x%lx, size 0x%lx, module %s\n", name.c_str(), value, size, modName.c_str());
+
+         object_printf("Creating new symbol: %s, %s, %d, %d, 0x%lx, %d, %d\n",
+                       name.c_str(), modName.c_str(), type, linkage, value, sec, size);
+
+         Symbol *sym = new Symbol(name, modName, type, linkage, Symbol::SV_DEFAULT, value, sec, size);
        
          symbols_[name].push_back( sym );
          if (symbols_.find(modName)!=symbols_.end()) {
@@ -1352,7 +1291,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
             modName = name;
          }
          Symbol *modSym = new Symbol(modName, modName,
-                                     Symbol::ST_MODULE, linkage,
+                                     Symbol::ST_MODULE, linkage, visibility,
                                      UINT_MAX // dummy address for now!
                                      );
                              
@@ -1670,10 +1609,7 @@ ObjectType Object::objType() const {
 
 bool Object::emitDriver(Symtab * /*obj*/, 
       string /*fName*/, 
-      std::vector<Symbol *>&/*functions*/, 
-      std::vector<Symbol *>&/*variables*/, 
-      std::vector<Symbol *>&/*mods*/, 
-      std::vector<Symbol *>&/*notypes*/, 
+      std::vector<Symbol *>&/*allSymbols*/, 
       unsigned /*flag*/) 
 {
    return true;

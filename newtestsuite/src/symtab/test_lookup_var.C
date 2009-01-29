@@ -61,24 +61,33 @@ extern "C" DLLEXPORT TestMutator* test_lookup_var_factory()
 
 test_results_t test_lookup_func_Mutator::executeTest()
 {
-   std::vector<Symbol *> vars;
-   bool result = symtab->findSymbolByType(vars, std::string("lookup_var"),
-                                          Symbol::ST_OBJECT);
+   std::vector<Variable *> vars;
+   bool result = symtab->findVariablesByName(vars, std::string("lookup_var"));
 
-   if (!result || vars.size() != 1)
+   if (!result || !vars.size())
    {
-      logerror("[%s:%u] - Unable to find test_lookup_func\n", 
+      logerror("[%s:%u] - Unable to find lookup_var\n", 
                __FILE__, __LINE__);
       return FAILED;
    }
 
-   Symbol *var = vars[0];
+   if (vars.size() != 1)
+   {
+      logerror("[%s:%u] - found too many (%d) lookup_var\n", 
+               __FILE__, __LINE__, vars.size());
+      return FAILED;
+   }
+
+#if 0
+    Variable *var = vars[0];
+
    if (var->getType() != Symbol::ST_OBJECT)
    {
       logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
                __FILE__, __LINE__);
       return FAILED;
    }
+#endif
 
    return PASSED;
 }

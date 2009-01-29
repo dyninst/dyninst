@@ -35,20 +35,6 @@
 #ifndef _DEBUG_OSTREAM_H_
 #define _DEBUG_OSTREAM_H_
 
-
-#if !defined(DLLEXPORT)
-#if defined (_MSC_VER)
-/* If we're on Windows, we need to explicetely export these functions: */
-	#if defined(DLL_BUILD)
-		#define DLLEXPORT __declspec(dllexport)
-	#else
-		#define DLLEXPORT __declspec(dllimport)	
-	#endif
-#else
-	#define DLLEXPORT 
-#endif
-#endif
-
 #include "common/h/std_namesp.h"
 #include "common/h/Types.h"
 
@@ -60,7 +46,7 @@ class timeStamp;
 class relTimeStamp;
 #endif
 
-class DLLEXPORT debug_ostream {
+class COMMON_EXPORT debug_ostream {
  private:
    ostream &actual_ostream; // probably cerr or cout
    bool on;
@@ -82,9 +68,12 @@ class DLLEXPORT debug_ostream {
    // is included
    debug_ostream &operator<<(long l);
    debug_ostream &operator<<(unsigned long l);
-#endif
+#else
+   //  These are creating probs with gcc 3.2.3
+   //  (default gcc for fresh install on x86_64 systems)
    debug_ostream &operator<<(int64_t l);
    debug_ostream &operator<<(uint64_t l);
+#endif
 
    debug_ostream &operator<<(const char *str);
    debug_ostream &operator<<(const unsigned char *str);

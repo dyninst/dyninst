@@ -75,7 +75,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test3_1_factory() {
+extern "C" DLLEXPORT  TestMutator *test3_1_factory() {
   return new test3_1_Mutator();
 }
 
@@ -120,7 +120,10 @@ test_results_t test3_1_Mutator::executeTest() {
         if (!appThread[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
-            MopUpMutatees(n-1,appThread);
+			// If we failed on our first mutatee, we don't need to do cleanup...
+			if(n > 0) {
+				MopUpMutatees(n-1,appThread);
+			}
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());

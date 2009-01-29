@@ -81,7 +81,7 @@ public:
 test1_22_Mutator::test1_22_Mutator() : libNameAroot("libtestA"),
 				       libNameBroot("libtestB") {
 }
-extern "C" TEST_DLL_EXPORT TestMutator *test1_22_factory() {
+extern "C" DLLEXPORT  TestMutator *test1_22_factory() {
   return new test1_22_Mutator();
 }
 

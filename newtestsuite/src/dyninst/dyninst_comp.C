@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#define COMPLIB_DLL_BUILD
+//#define COMPLIB_DLL_BUILD
 
 #include <string>
 
@@ -223,11 +223,16 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       appThread->getProcess()->terminateExecution();
       return UNKNOWN;
    }
+   if (appThread == NULL) {
+       // I saw this happen during a broken resumeLog cleanup, so handle
+       // it as an error... - bernat, 12JAN09
+       return UNKNOWN;
+   }
 
    do {
       appThread->continueExecution();
       bpatch->waitForStatusChange();
-   } while (!appThread->isTerminated());
+   } while (appThread && !appThread->isTerminated());
 
    if (appThread->terminationStatus() == ExitedNormally &&
        appThread->getExitCode() == 0)
@@ -300,10 +305,10 @@ std::string DyninstComponent::getLastErrorMsg()
 }
 
 extern "C" {
-   ComponentTester *componentTesterFactory();
+   COMPLIB_DLL_EXPORT ComponentTester *componentTesterFactory();
 }
 
-ComponentTester *componentTesterFactory() {
+COMPLIB_DLL_EXPORT ComponentTester *componentTesterFactory() {
    return new DyninstComponent();
 }
 
@@ -326,16 +331,21 @@ DyninstMutator::~DyninstMutator() {
 // instrumentation and let the mutatee do its thing.
 test_results_t DyninstMutator::setup(ParameterDict &param) {
   bool useAttach = param["useAttach"]->getInt();
+  if(param["appThread"] == NULL)
+  {
+	  logerror("No app thread found.  Check test groups.\n");
+	  return FAILED;
+  }
   appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
   // Read the program's image and get an associated image object
   appImage = appThread->getImage();
-
   if ( useAttach ) {
-    if ( ! signalAttached(appThread, appImage) ) {
-      return FAILED;
-    }
+	  if ( ! signalAttached(appThread, appImage) ) {
+		  return FAILED;
+	  }
   }
+
 
   return PASSED;
 }

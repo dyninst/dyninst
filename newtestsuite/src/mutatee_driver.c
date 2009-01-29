@@ -50,9 +50,10 @@
 #include <assert.h>
 #include <errno.h>
 
-#if defined(i386_unknown_nt4_0_test)
+#if defined(os_windows_test)
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include <Windows.h>
+#define snprintf _snprintf
 #else
 #include <unistd.h>
 #endif
@@ -318,6 +319,42 @@ int main(int iargc, char *argv[])
          exit(-1);
       }
       close(pfd);
+#else
+	   char ch = 'T';
+	   LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
+	   DWORD bytes_written = 0;
+	   BOOL wrote_ok = FALSE;
+	   HANDLE signalPipe = CreateFile(pipeName,
+		   GENERIC_WRITE,
+		   0,
+		   NULL,
+		   OPEN_EXISTING,
+		   0,
+		   NULL);
+	   if(signalPipe == INVALID_HANDLE) 
+	   {
+		   if(GetLastError() != ERROR_PIPE_BUSY)
+		   {
+			   output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+			   exit(-1);
+		   }
+		   if(!WaitNamedPipe(pipeName, 2000))
+		   {
+			   output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+			   exit(-1);
+		   }
+	   }
+	   wrote_ok = WriteFile(signalPipe,
+		   &ch,
+		   1,
+		   &bytes_written,
+		   NULL);
+	   if(!wrote_ok ||(bytes_written != 1))
+	   {
+		   output->log(STDERR, "*ERROR*: Couldn't write to pipe\n");
+		   exit(-1);
+	   }
+	   CloseHandle(signalPipe);
 #endif
       setUseAttach(TRUE);
       logstatus("Waiting for mutator to attach...\n");

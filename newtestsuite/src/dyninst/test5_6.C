@@ -60,7 +60,7 @@ class test5_6_Mutator : public DyninstMutator {
 public:
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test5_6_factory() {
+extern "C" DLLEXPORT TestMutator *test5_6_factory() {
   return new test5_6_Mutator();
 }
 
@@ -69,8 +69,6 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_6_factory() {
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_6_Mutator::executeTest() {
-#if defined(os_linux_test) && (defined(arch_x86_test) || defined(arch_x86_64_test))
-
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
@@ -133,9 +131,6 @@ test_results_t test5_6_Mutator::executeTest() {
   logerror("**Failed** test #6 (exception)\n");
   logerror("    Can't find call to exception object method in catch block\n");
   return FAILED; // FIXME This doesn't look right..
-#else
-  return SKIPPED;
-#endif
 }
 
 // External Interface

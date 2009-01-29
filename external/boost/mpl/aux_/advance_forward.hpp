@@ -14,9 +14,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Source: /home/jaw/CVSROOT_20081103/CVSROOT/core/external/boost/mpl/aux_/advance_forward.hpp,v $
-// $Date: 2008/07/14 21:54:45 $
-// $Revision: 1.1 $
+// $Id: advance_forward.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
+// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
+// $Revision: 49267 $
 
 #if !defined(BOOST_MPL_PREPROCESSING_MODE)
 #   include <boost/mpl/next.hpp>
@@ -79,7 +79,10 @@ struct advance_forward
 
 ///// iteration, depth == 1
 
-#elif BOOST_PP_ITERATION_DEPTH() == 1
+// For gcc 4.4 compatability, we must include the
+// BOOST_PP_ITERATION_DEPTH test inside an #else clause.
+#else // BOOST_PP_IS_ITERATING
+#if BOOST_PP_ITERATION_DEPTH() == 1
 #define i_ BOOST_PP_FRAME_ITERATION(1)
 
 template<>
@@ -120,4 +123,5 @@ struct advance_forward< BOOST_PP_FRAME_ITERATION(1) >
 #   undef AUX778076_ITER_1
 #   undef AUX778076_ITER_0
 
+#endif // BOOST_PP_ITERATION_DEPTH()
 #endif // BOOST_PP_IS_ITERATING

@@ -29,57 +29,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/************************************************************************
- * $Id: Symbol.h,v 1.20 2008/11/03 15:19:24 jaw Exp $
-
-************************************************************************/
-
 #if !defined(_Variable_h_)
 #define _Variable_h_
 
 #include "Annotatable.h"
+#include "Aggregate.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
 
 class Symbol;
 
-class Variable : public AnnotatableSparse 
+class Variable : public Aggregate
 {
-   public:
-      DLLEXPORT Variable();
-      
-      DLLEXPORT static Variable *createVariable(Symbol *sym);
-
-      DLLEXPORT Offset   getAddress() const;
-      DLLEXPORT Module * getModule() const;
-
-      /***** Symbol Collection Management *****/
-      DLLEXPORT bool addSymbol(Symbol *sym);
-      DLLEXPORT bool removeSymbol(Symbol *sym);
-      DLLEXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
-      DLLEXPORT Symbol * getFirstSymbol() const;
-
-      /***** Symbol naming *****/
-      DLLEXPORT const vector<std::string> &getAllMangledNames();
-      DLLEXPORT const vector<std::string> &getAllPrettyNames();
-      DLLEXPORT const vector<std::string> &getAllTypedNames();
-      DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addPrettyName(std::string name, bool isPrimary = false);
-      DLLEXPORT bool addTypedName(std::string name, bool isPrimary = false);
-
-      DLLEXPORT void setType(Type *type);
-      DLLEXPORT Type *getType();
-   private:
-      Offset        address_;
-      Module*       module_;
-      Type *type_;
-
-      std::vector<Symbol *> symbols_;
-
-      std::vector<std::string> mangledNames_;
-      std::vector<std::string> prettyNames_;
-      std::vector<std::string> typedNames_;
+ public:
+   SYMTAB_EXPORT Variable();
+   
+   SYMTAB_EXPORT static Variable *createVariable(Symbol *sym);
+   
+   SYMTAB_EXPORT void setType(Type *type);
+   SYMTAB_EXPORT Type *getType();
+ private:
+   Type *type_;
 };
 
 }

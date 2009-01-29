@@ -62,30 +62,30 @@ extern "C" {
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-int call22_5(int x)
+DLLEXPORT int call22_5(int x)
 {
     return x + MAGIC22_5B;
 }
 /* function to make regex (test 21)search non-trivial */
-void cbll21_1()
+DLLEXPORT void cbll21_1()
 {
      printf("This function was not meant to be called!\n");
 }
 /* function to make regex (test 21)search non-trivial */
-void cbll22_1()
+DLLEXPORT void cbll22_1()
 {
      printf("This function was not meant to be called!\n");
 }
 
 /* function to make regex (test21) search non-trivial */
-void acbll22_1()
+DLLEXPORT void acbll22_1()
 {
      printf("This function was not meant to be called!\n");
 }
 
 /* Keep this function at the end of this file to kludgily ensure that
    its base address differs from its counterpart in libtestA.c */
-void call21_1()
+DLLEXPORT void call21_1()
 {
      printf("This function was not meant to be called!\n");
 }

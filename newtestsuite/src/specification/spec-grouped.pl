@@ -115,7 +115,6 @@ mutatee('dyninst_group_test', ['test1_1_mutatee.c',
 	'test2_5_mutatee.c',
 	'test2_7_mutatee.c',
 	'test2_9_mutatee.c',
-	'test2_10_mutatee.c',
 	'test2_11_mutatee.c',
 	'test2_12_mutatee.c',
 	'test2_13_mutatee.c'
@@ -139,7 +138,8 @@ compiler_for_mutatee('dyninst_cxx_group_test', Compiler) :-
 
 mutatee('symtab_group_test', [
    'test_lookup_func_mutatee.c',
-	'test_lookup_var_mutatee.c'
+	'test_lookup_var_mutatee.c',
+   'test_anno_basic_types_mutatee.c'
    ]).
 compiler_for_mutatee('symtab_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -670,16 +670,6 @@ test_start_state('test2_9', 'stopped').
 groupable_test('test2_9').
 tests_module('test2_9', 'dyninst').
 
-test('test2_10', 'test2_10', 'dyninst_group_test').
-% test2_10 runs on everything but Windows
-test_platform('test2_10', Platform) :-
-    platform(Platform), \+ platform(_, 'windows', _, Platform).
-mutator('test2_10', ['test2_10.C']).
-test_runmode('test2_10', 'both').
-test_start_state('test2_10', 'stopped').
-groupable_test('test2_10').
-tests_module('test2_10', 'dyninst').
-
 test('test2_11', 'test2_11', 'dyninst_group_test').
 test_runs_everywhere('test2_11').
 mutator('test2_11', ['test2_11.C']).
@@ -837,7 +827,7 @@ test('test5_1', 'test5_1', 'dyninst_cxx_group_test').
 % test5_1 only runs on Linux, Solaris, and Windows
 test_platform('test5_1', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_1', ['test5_1.C']).
 test_runmode('test5_1', 'createProcess').
 test_start_state('test5_1', 'stopped').
@@ -849,7 +839,7 @@ test('test5_2', 'test5_2', 'dyninst_cxx_group_test').
 % test5_2 only runs on Linux, Solaris, and Windows
 test_platform('test5_2', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_2', ['test5_2.C']).
 test_runmode('test5_2', 'createProcess').
 test_start_state('test5_2', 'stopped').
@@ -870,7 +860,7 @@ test('test5_4', 'test5_4', 'dyninst_cxx_group_test').
 % test5_4 only runs on Linux, Solaris, and Windows
 test_platform('test5_4', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_4', ['test5_4.C']).
 test_runmode('test5_4', 'createProcess').
 test_start_state('test5_4', 'stopped').
@@ -882,7 +872,7 @@ test('test5_5', 'test5_5', 'dyninst_cxx_group_test').
 % test5_5 only runs on Linux, Solaris, and Windows
 test_platform('test5_5', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_5', ['test5_5.C']).
 test_runmode('test5_5', 'createProcess').
 test_start_state('test5_5', 'stopped').
@@ -905,7 +895,7 @@ test('test5_7', 'test5_7', 'dyninst_cxx_group_test').
 % test5_7 only runs on Linux, Solaris, and Windows
 test_platform('test5_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_7', ['test5_7.C']).
 test_runmode('test5_7', 'createProcess').
 test_start_state('test5_7', 'stopped').
@@ -917,7 +907,7 @@ test('test5_8', 'test5_8', 'dyninst_cxx_group_test').
 % test5_8 only runs on Linux, Solaris, and Windows
 test_platform('test5_8', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_8', ['test5_8.C']).
 test_runmode('test5_8', 'createProcess').
 test_start_state('test5_8', 'stopped').
@@ -929,7 +919,7 @@ test('test5_9', 'test5_9', 'dyninst_cxx_group_test').
 % test5_9 only runs on Linus, Solaris, and Windows
 test_platform('test5_9', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_9', ['test5_9.C']).
 test_runmode('test5_9', 'createProcess').
 test_start_state('test5_9', 'stopped').
@@ -2085,6 +2075,16 @@ test_runmode('test_lookup_var', 'createProcess').
 test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
 
+% should this really be groupable?
+test('test_anno_basic_types', 'test_anno_basic_types', 'symtab_group_test').
+test_description('test_anno_basic_types', 'Annotate objects with basic types').
+test_runs_everywhere('test_anno_basic_types').
+groupable_test('test_anno_basic_types').
+mutator('test_anno_basic_types', ['test_anno_basic_types.C']).
+test_runmode('test_anno_basic_types', 'createProcess').
+test_start_state('test_anno_basic_types', 'stopped').
+tests_module('test_anno_basic_types', 'symtab').
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}
@@ -2373,6 +2373,8 @@ compiler_presence_def('pgcc', 'PGI').
 compiler_presence_def('pgCC', 'PGI').
 compiler_presence_def('icc', 'ICC').
 compiler_presence_def('iCC', 'ICC').
+compiler_presence_def('xlc', 'XLC').
+compiler_presence_def('xlC', 'XLC').
 
 % Translations between compiler names and compiler #defines
 compiler_define_string('gcc', 'gnu_cc').
@@ -2465,7 +2467,7 @@ mutator_comp('CC').
 mutator_comp('xlC').
 
 % Per-compiler link options for building mutatees
-mutatee_link_options(gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(gnu_family, ['icc', 'gcc', 'g++', 'iCC']).
+mutatee_link_options(Gnu_family, '$(MUTATEE_LDFLAGS_GNU)') :- member(Gnu_family, ['icc', 'gcc', 'g++', 'iCC']).
 mutatee_link_options(Native_cc, '$(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-
     member(Native_cc, ['cc', 'sun_cc', 'xlc', 'pgcc']).
 mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)') :-

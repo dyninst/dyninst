@@ -21,7 +21,7 @@
  */
 
 static int passed = 0;
-static exception_test test6;
+exception_test test5_6_test6;
 
 /* Function definitions follow */
 
@@ -67,8 +67,7 @@ void exception_test::func_cpp()
 }
 
 int test5_6_mutatee() {
-#if defined(os_linux_test) && (defined(arch_x86_test) || defined(arch_x86_64_test))
-  test6.func_cpp();
+  test5_6_test6.func_cpp();
   // FIXME Make sure the error reporting works
   // I need to have this guy call test_passes(testname) if the test passes..
   if (1 == passed) {
@@ -79,9 +78,4 @@ int test5_6_mutatee() {
     // Test failed
     return -1;
   }
-#else
-  logerror("Skipped test #6 (exception)\n");
-  logerror("\t- not implemented on this platform\n");
-  return 0;
-#endif
 }

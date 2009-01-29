@@ -2,8 +2,8 @@
 #include <assert.h>
 #include <string.h>
 
-#include "test_mem_util.h"
-#include "mutatee_util.h"
+#include "../src/dyninst/test_mem_util.h"
+#include "../src/mutatee_util.h"
 
 /* Sun Forte/WorkShop cc releases older than 6.2 do not like these defines: */
 /* (macro versions of these calls are in test_mem_util.h) */
@@ -510,7 +510,7 @@ void init_test_data()
 }
 #endif /* defined(alpha_dec_osf4_0_test) */
 
-#if defined(arch_power) && defined(os_linux_test)
+#if defined(arch_power_test) && defined(os_linux_test)
 
 long loadsnstores(long x, long y, long z)
 {

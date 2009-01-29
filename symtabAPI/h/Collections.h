@@ -48,7 +48,7 @@ class Symtab;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
-class DLLEXPORT localVarCollection : public Serializable, public AnnotatableSparse {
+class SYMTAB_EXPORT localVarCollection : public Serializable, public AnnotatableSparse {
   
   dyn_hash_map<std::string, localVar *> localVariablesByName;
   vector<localVar *> localVars;
@@ -70,7 +70,7 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class DLLEXPORT typeCollection : public Serializable, public AnnotatableSparse {
+class SYMTAB_EXPORT typeCollection : public Serializable, public AnnotatableSparse {
     friend class Symtab;
     friend class Object;
     friend class Module;
@@ -117,7 +117,8 @@ public:
        One True Pointer for each type (in parseStab.C), when
        updating a type, return that One True Pointer. */
     Type * findOrCreateType( const int ID );
-    Type * addOrUpdateType( Type * type );
+    template<class T>
+    T* addOrUpdateType(T* type);
 
     Type *findVariableType(std::string &name);
 
@@ -136,7 +137,7 @@ public:
  *
  */
 
-class DLLEXPORT builtInTypeCollection {
+class SYMTAB_EXPORT builtInTypeCollection {
    
     dyn_hash_map<std::string, Type *> builtInTypesByName;
     dyn_hash_map<int, Type *> builtInTypesByID;

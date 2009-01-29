@@ -94,7 +94,6 @@ loadMiniTramp_result loadMergedTramp(miniTramp *&mtHandle,
 #endif
 /* Utility functions */
 
-float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, const instPoint *point);
 
 

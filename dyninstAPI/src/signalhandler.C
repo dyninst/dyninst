@@ -417,7 +417,7 @@ bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
      extern pdvector<process*> processVec;
      int childPid = INFO_TO_PID(ev.info);
 
-     if (childPid == getpid()) {
+     if (childPid == P_getpid()) {
          // this is a special case where the normal createProcess code
          // has created this process, but the attach routine runs soon
          // enough that the child (of the mutator) gets a fork exit

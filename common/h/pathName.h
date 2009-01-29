@@ -69,14 +69,14 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 				      const pdstring &i_argv0,
 				      const pdstring &path,
 				      const pdstring &cwd);
-DLLEXPORT pdstring extract_pathname_tail(const pdstring &path);
+COMMON_EXPORT pdstring extract_pathname_tail(const pdstring &path);
 #else
 bool executableFromArgv0AndPathAndCwd(std::string &result,
 				      const std::string &i_argv0,
 				      const std::string &path,
 				      const std::string &cwd);
-DLLEXPORT string extract_pathname_tail(const string &path);
+COMMON_EXPORT string extract_pathname_tail(const string &path);
 #endif
 
-DLLEXPORT char *resolve_file_path(const char *fname, char *resolved_name);
+COMMON_EXPORT char *resolve_file_path(const char *fname, char *resolved_name);
 #endif

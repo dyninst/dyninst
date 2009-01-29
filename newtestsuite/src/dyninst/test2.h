@@ -48,14 +48,14 @@
 #define TEST_DYNAMIC_LIB2	"libXt.so"
 
 #elif defined(x86_64_unknown_linux2_4_test)
-#define	TEST_DYNAMIC_LIB	"libX11.so.6"
-#define TEST_DYNAMIC_LIB2	"libXt.so.6"
+#define	TEST_DYNAMIC_LIB	"libform.so.5.6"
+#define TEST_DYNAMIC_LIB2	"libresolv.so"
 
 #elif defined(mips_sgi_irix6_4_test) || defined(alpha_dec_osf4_0_test)
 #define	TEST_DYNAMIC_LIB	"libXaw.so"
 #define TEST_DYNAMIC_LIB2	"libXt.so"
 
-#elif defined(arch_power) && defined(os_linux_test)
+#elif defined(arch_power_test) && defined(os_linux_test)
 #define TEST_DYNAMIC_LIB        "libutil.so"
 #define TEST_DYNAMIC_LIB2       "libm.so"
 

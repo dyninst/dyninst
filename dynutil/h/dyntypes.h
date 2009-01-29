@@ -14,10 +14,11 @@
 #if defined (_MSC_VER)
   //**************** Windows ********************
   #include <hash_map>
-#if 0
+#if 1
   #define dyn_hash_map stdext::hash_map
-#endif
+#else
   #define dyn_hash_map std::hash_map
+#endif
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #include <functional>
@@ -34,6 +35,7 @@
       //**************** GCC < 4.3.0 ************
       #include <ext/hash_map>
       #include <ext/hash_set>
+      #include <string>
       #define dyn_hash_set __gnu_cxx::hash_set
       #define dyn_hash_map __gnu_cxx::hash_map    
       using namespace __gnu_cxx;
@@ -41,8 +43,10 @@
  
         template<> struct hash<std::string> {
            hash<char*> h;
-           unsigned operator()(const std::string &s) const {
-             return h(s.c_str());
+           unsigned operator()(const std::string &s) const 
+	   {
+	   const char *cstr = s.c_str();
+             return h(cstr);
            };
         };
       }

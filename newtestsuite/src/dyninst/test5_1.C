@@ -63,7 +63,7 @@ public:
   virtual test_results_t executeTest();
 };
 
-extern "C" TEST_DLL_EXPORT TestMutator *test5_1_factory() {
+extern "C" DLLEXPORT TestMutator *test5_1_factory() {
   return new test5_1_Mutator();
 }
 
@@ -72,7 +72,6 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_1_factory() {
 //       
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_1_Mutator::executeTest() {
-#if defined(os_solaris_test) || defined(os_linux_test) || defined(os_windows_test)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "arg_test::call_cpp";
@@ -181,8 +180,4 @@ test_results_t test5_1_Mutator::executeTest() {
    checkCost(call1Expr);
    appThread->insertSnippet(call1Expr, *point1_2);
    return PASSED;
-#else
-   logerror("Not supported on this platform\n");
-   return SKIPPED;
-#endif
 }

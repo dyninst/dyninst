@@ -34,8 +34,8 @@ string SimpleShellEscape(string &str)
 // RunTest:
 // Sets up the command string to run the tests and executes test_driver
 int RunTest(unsigned int iteration, bool useLog, bool staticTests,
-string logfile, int testLimit, vector<char *> child_argv,
-            char *pidFilename, char * /*memcpu_file*/) {
+			std::string logfile, int testLimit, std::vector<char *> child_argv,
+            char *pidFilename, char const * /*memcpu_file*/) {
 	string shellString;
 
 	generateTestString(iteration > 0, useLog, staticTests, logfile,
@@ -54,10 +54,16 @@ string logfile, int testLimit, vector<char *> child_argv,
 	strcpy(lpsz_shellString, shellString.c_str());
 	
 	//execute
+	// -4 = we couldn't run test driver; thus if CreateProcess fails,
+	// we want to return something meaningful that will keep us from infinite
+	// looping
+	DWORD exitcode = -4;
 	if (CreateProcess(NULL, lpsz_shellString, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
 		// wait for process, or timeout
 		WaitForSingleObject(pi.hProcess, timeout * 1000);
-		
+		GetExitCodeProcess(pi.hProcess, &exitcode);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
 		// TODO catch crash, etc
 	} else {
 		// TODO failed to create process, handle error
@@ -68,12 +74,7 @@ string logfile, int testLimit, vector<char *> child_argv,
 
 	free(lpsz_shellString);
 	
-//	int ret = executeTests(shellString);
-//	int ret = system(SimpleShellEscape(shellString).c_str());
-
-//	return WEXITSTATUS(ret);
-	//TODO actual value here
-	return 0;
+	return exitcode;
 }
 
 void generateTestString(bool resume, bool useLog, bool staticTests,

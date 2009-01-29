@@ -49,6 +49,9 @@
 #include "BPatch_sourceBlock.h" 
 #include "BPatch_instruction.h"
 #include "BPatch_eventLock.h"
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/Instruction.h"
+#endif
 //#include "BPatch_edge.h"
 
 class image;
@@ -258,6 +261,10 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
    API_EXPORT(Int, (),
              BPatch_Vector<BPatch_instruction *> *,getInstructions,());
+#if defined(cap_instruction_api)
+   API_EXPORT(Int, (insns),
+	      bool, getInstructions, (std::vector<InstructionAPI::Instruction>& insns));
+#endif   
 
 	/** BPatch_basicBlock::getIncomingEdges   */
  	/** returns the incoming edges */

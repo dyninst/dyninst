@@ -31,15 +31,19 @@
 
 // $Id: Object.C,v 1.31 2008/11/03 15:19:25 jaw Exp $
 
+#include "symutil.h"
 #include "Annotatable.h"
 #include "common/h/serialize.h"
 
 #include "Symtab.h"
-#include "symutil.h"
 #include "Module.h"
 #include "Collections.h"
 #include "annotations.h"
 #include "Symbol.h"
+
+#include "Aggregate.h"
+#include "Function.h"
+#include "Variable.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -50,6 +54,92 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 string Symbol::emptyString("");
+
+
+//#ifdef BINEDIT_DEBUG
+bool ____sym_hdr_printed = false;
+void print_symbols( std::vector< Symbol *>& allsymbols ) {
+    FILE* fd = stdout;
+    Symbol *sym;
+    std::string modname;
+    if (!____sym_hdr_printed) {
+        fprintf(fd, "%-20s  %-15s  %-10s  %5s  SEC  TYP  LN  VIS  INFO\n", 
+                "SYMBOL", "MODULE", "ADDR", "SIZE");
+        ____sym_hdr_printed = true;
+    }
+    for (unsigned i=0; i<allsymbols.size(); i++) {
+        sym = allsymbols[i];
+        modname = sym->getModuleName();
+        //if (sym->getName() == "__gmon_start__") {
+        //if (modname == "libspecial.so" || modname == "libprofile.so") {
+        //if (sym->getLinkage() == Symbol::SL_WEAK) {
+        //if (sym->isInDynSymtab()) {
+        if (1) {
+            fprintf(fd, "%-20s  %-15s  0x%08x  %5u  %3u", 
+                sym->getName().substr(0,20).c_str(), 
+                //modname.size() > 15 ? modname.substr(modname.size()-15,15).c_str() : modname.c_str(),
+                "",
+                (unsigned)sym->getAddr(),
+                (unsigned)sym->getSize(),
+                sym->getSec() ? sym->getSec()->getRegionNumber() : 0
+                );
+            switch (sym->getType()) {
+                case Symbol::ST_UNKNOWN:  fprintf(fd, "  ???"); break;
+                case Symbol::ST_FUNCTION: fprintf(fd, "  FUN"); break;
+                case Symbol::ST_OBJECT:   fprintf(fd, "  OBJ"); break;
+                case Symbol::ST_MODULE:   fprintf(fd, "  MOD"); break;
+                case Symbol::ST_SECTION:  fprintf(fd, "  SEC"); break;
+                case Symbol::ST_NOTYPE:   fprintf(fd, "   - "); break;
+            }
+            switch (sym->getLinkage()) {
+                case Symbol::SL_UNKNOWN: fprintf(fd, "  ??"); break;
+                case Symbol::SL_GLOBAL:  fprintf(fd, "  GL"); break;
+                case Symbol::SL_LOCAL:   fprintf(fd, "  LO"); break;
+                case Symbol::SL_WEAK:    fprintf(fd, "  WK"); break;
+            }
+            switch (sym->getVisibility()) {
+                case Symbol::SV_UNKNOWN:   fprintf(fd, "  ???"); break;
+                case Symbol::SV_DEFAULT:   fprintf(fd, "   - "); break;
+                case Symbol::SV_INTERNAL:  fprintf(fd, "  INT"); break;
+                case Symbol::SV_HIDDEN:    fprintf(fd, "  HID"); break;
+                case Symbol::SV_PROTECTED: fprintf(fd, "  PRO"); break;
+            }
+            fprintf(fd, " ");
+            if (sym->isInSymtab())
+                fprintf(fd, " STA");
+            if (sym->isInDynSymtab())
+                fprintf(fd, " DYN");
+            if (sym->isAbsolute())
+                fprintf(fd, " ABS");
+            std::string fileName;
+            std::vector<std::string> *vers;
+            if (sym->getVersionFileName(fileName))
+                fprintf(fd, "  [%s]", fileName.c_str());
+            if (sym->getVersions(vers)) {
+                fprintf(fd, " {");
+                for (unsigned j=0; j < vers->size(); j++) {
+                    if (j > 0)
+                        fprintf(fd, ", ");
+                    fprintf(fd, "%s", (*vers)[j].c_str());
+                }
+                fprintf(fd, "}");
+            }
+            fprintf(fd,"\n");
+        }
+    }
+}
+void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols) {
+    dyn_hash_map< std::string, std::vector< Symbol *> >::iterator siter = symbols->begin();
+    int total_syms = 0;
+    while (siter != symbols->end()) {
+        print_symbols(siter->second);
+        total_syms += siter->second.size();
+        siter++;
+    }
+    printf("%d total symbol(s)\n", total_syms);
+}
+//#endif
+
 
 const char *Dyninst::SymtabAPI::supportedLanguages2Str(supportedLanguages s)
 {
@@ -136,21 +226,21 @@ char *AObject::mem_image() const
 	return NULL;
 }
 
-DLLEXPORT ExceptionBlock::~ExceptionBlock() 
+SYMTAB_EXPORT ExceptionBlock::~ExceptionBlock() 
 {
 }
 
-DLLEXPORT ExceptionBlock::ExceptionBlock() : tryStart_(0), trySize_(0), 
+SYMTAB_EXPORT ExceptionBlock::ExceptionBlock() : tryStart_(0), trySize_(0), 
 								catchStart_(0), hasTry_(false) 
 {
 }
 
-DLLEXPORT Offset ExceptionBlock::catchStart() const 
+SYMTAB_EXPORT Offset ExceptionBlock::catchStart() const 
 {
 	return catchStart_;
 }
 
-DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
+SYMTAB_EXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
    Serializable(),
    target_addr_(ra.target_addr_), 
    rel_addr_(ra.rel_addr_), 
@@ -161,38 +251,38 @@ DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra) :
 {
 }
 
-DLLEXPORT Offset relocationEntry::target_addr() const 
+SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
 {
 	return target_addr_;
 }
 
-DLLEXPORT Offset relocationEntry::rel_addr() const 
+SYMTAB_EXPORT Offset relocationEntry::rel_addr() const 
 {
 	return rel_addr_;
 }
 
-DLLEXPORT const string &relocationEntry::name() const 
+SYMTAB_EXPORT const string &relocationEntry::name() const 
 {
 	return name_;
 }
 
-DLLEXPORT Symbol *relocationEntry::getDynSym() const 
+SYMTAB_EXPORT Symbol *relocationEntry::getDynSym() const 
 {
     return dynref_;
 }
 
-DLLEXPORT bool relocationEntry::addDynSym(Symbol *dynref) 
+SYMTAB_EXPORT bool relocationEntry::addDynSym(Symbol *dynref) 
 {
     dynref_ = dynref;
     return true;
 }
 
-DLLEXPORT unsigned long relocationEntry::getRelType() const 
+SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const 
 {
     return relType_;
 }
 
-DLLEXPORT Symbol::~Symbol ()
+SYMTAB_EXPORT Symbol::~Symbol ()
 {
    std::string *sfa_p = NULL;
 
@@ -209,16 +299,15 @@ DLLEXPORT Symbol::~Symbol ()
    }
 }
 
-DLLEXPORT Symbol::Symbol(const Symbol& s) :
+SYMTAB_EXPORT Symbol::Symbol(const Symbol& s) :
    Serializable(),
    AnnotatableSparse(),
    module_(s.module_), 
-   type_(s.type_), linkage_(s.linkage_),
+   type_(s.type_), linkage_(s.linkage_), visibility_(s.visibility_),
    addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
-   function_(s.function_),
-   variable_(s.variable_),
+   aggregate_(s.aggregate_),
    mangledName_(s.mangledName_), 
    prettyName_(s.prettyName_), 
    typedName_(s.typedName_), 
@@ -330,7 +419,7 @@ DLLEXPORT Symbol::Symbol(const Symbol& s) :
    }
 }
 
-DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) 
+SYMTAB_EXPORT Symbol& Symbol::operator=(const Symbol& s) 
 {
    module_  = s.module_;
    type_    = s.type_;
@@ -341,8 +430,7 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    isInDynsymtab_ = s.isInDynsymtab_;
    isInSymtab_ = s.isInSymtab_;
    isAbsolute_ = s.isAbsolute_;
-   function_ = s.function_;
-   variable_ = s.variable_;
+   aggregate_ = s.aggregate_;
    tag_     = s.tag_;
    mangledName_ = s.mangledName_;
    prettyName_ = s.prettyName_;
@@ -456,22 +544,22 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s)
    return *this;
 }
 
-DLLEXPORT const string& Symbol::getMangledName() const 
+SYMTAB_EXPORT const string& Symbol::getMangledName() const 
 {
     return mangledName_;
 }
 
-DLLEXPORT const string& Symbol::getPrettyName() const 
+SYMTAB_EXPORT const string& Symbol::getPrettyName() const 
 {
     return prettyName_;
 }
 
-DLLEXPORT const string& Symbol::getTypedName() const 
+SYMTAB_EXPORT const string& Symbol::getTypedName() const 
 {
     return typedName_;
 }
 
-DLLEXPORT const string& Symbol::getModuleName() const 
+SYMTAB_EXPORT const string& Symbol::getModuleName() const 
 {
     if (module_)
         return module_->fullName();
@@ -479,154 +567,158 @@ DLLEXPORT const string& Symbol::getModuleName() const
         return moduleName_;
 }
 
-DLLEXPORT Module* Symbol::getModule() const 
+SYMTAB_EXPORT Module* Symbol::getModule() const 
 {
     return module_;
 }
 
-DLLEXPORT bool Symbol::setModule(Module *mod) 
+SYMTAB_EXPORT bool Symbol::setModule(Module *mod) 
 {
 	module_ = mod; 
 	return true;
 }
 
-DLLEXPORT Symbol::SymbolType Symbol::getType() const 
+SYMTAB_EXPORT Symbol::SymbolType Symbol::getType() const 
 {
     return type_;
 }
 
-DLLEXPORT Symbol::SymbolLinkage Symbol::getLinkage() const 
+SYMTAB_EXPORT Symbol::SymbolLinkage Symbol::getLinkage() const 
 {
     return linkage_;
 }
 
-DLLEXPORT Offset Symbol::getAddr() const 
+SYMTAB_EXPORT Symbol::SymbolVisibility Symbol::getVisibility() const 
+{
+    return visibility_;
+}
+
+SYMTAB_EXPORT Offset Symbol::getAddr() const 
 {
     return addr_;
 }
 
-DLLEXPORT Region *Symbol::getSec() const 
+SYMTAB_EXPORT Region *Symbol::getSec() const 
 {
     return sec_;
 }
 
-DLLEXPORT bool Symbol::isInDynSymtab() const 
+SYMTAB_EXPORT bool Symbol::isInDynSymtab() const 
 {
     return isInDynsymtab_;
 }
 
-DLLEXPORT bool Symbol::isInSymtab() const 
+SYMTAB_EXPORT bool Symbol::isInSymtab() const 
 {
     return isInSymtab_;
 }
 
-DLLEXPORT bool Symbol::isAbsolute() const
+SYMTAB_EXPORT bool Symbol::isAbsolute() const
 {
     return isAbsolute_;
 }
 
-DLLEXPORT bool Symbol::isFunction() const
+SYMTAB_EXPORT bool Symbol::isFunction() const
 {
-    return (function_ != NULL);
+    return (getFunction() != NULL);
 }
 
-DLLEXPORT bool Symbol::setFunction(Function *func)
+SYMTAB_EXPORT bool Symbol::setFunction(Function *func)
 {
-    function_ = func;
+    aggregate_ = func;
     return true;
 }
 
-DLLEXPORT Function * Symbol::getFunction() const
+SYMTAB_EXPORT Function * Symbol::getFunction() const
 {
-    return function_;
+    return dynamic_cast<Function *>(aggregate_);
 }
 
-DLLEXPORT bool Symbol::isVariable() const 
+SYMTAB_EXPORT bool Symbol::isVariable() const 
 {
-    return variable_ != NULL;
+    return (getVariable() != NULL);
 }
 
-DLLEXPORT bool Symbol::setVariable(Variable *var) 
+SYMTAB_EXPORT bool Symbol::setVariable(Variable *var) 
 {
-    variable_ = var;
+    aggregate_ = var;
     return true;
 }
 
-DLLEXPORT Variable * Symbol::getVariable() const
+SYMTAB_EXPORT Variable * Symbol::getVariable() const
 {
-    return variable_;
+    return dynamic_cast<Variable *>(aggregate_);
 }
 
-DLLEXPORT unsigned Symbol::getSize() const 
+SYMTAB_EXPORT unsigned Symbol::getSize() const 
 {
     return size_;
 }
 
-DLLEXPORT bool	Symbol::setSize(unsigned ns)
+SYMTAB_EXPORT bool	Symbol::setSize(unsigned ns)
 {
 	size_ = ns;
 	return true;
 }
 
-DLLEXPORT Symbol::SymbolTag Symbol::tag() const 
+SYMTAB_EXPORT Symbol::SymbolTag Symbol::tag() const 
 {
     return tag_;
 }
 
-DLLEXPORT bool Symbol::setModuleName(string module)
+SYMTAB_EXPORT bool Symbol::setModuleName(string module)
 {
 	moduleName_ = module;
 	return true;
 }
 
-DLLEXPORT bool Symbol::setAddr (Offset newAddr) 
+SYMTAB_EXPORT bool Symbol::setAddr (Offset newAddr) 
 {
       addr_ = newAddr;
       return true;
 }
 
-DLLEXPORT bool Symbol::setDynSymtab() 
+SYMTAB_EXPORT bool Symbol::setDynSymtab() 
 {
     isInDynsymtab_= true;
     return true;
 }
 
-DLLEXPORT bool Symbol::clearDynSymtab() 
+SYMTAB_EXPORT bool Symbol::clearDynSymtab() 
 {
     isInDynsymtab_ = false;
     return true;
 }
 
-DLLEXPORT bool Symbol::setIsInSymtab() 
+SYMTAB_EXPORT bool Symbol::setIsInSymtab() 
 {
     isInSymtab_= true;
     return true;
 }
 
-DLLEXPORT bool Symbol::clearIsInSymtab() 
+SYMTAB_EXPORT bool Symbol::clearIsInSymtab() 
 {
     isInSymtab_= false;
     return true;
 }
 
-DLLEXPORT bool Symbol::setIsAbsolute()
+SYMTAB_EXPORT bool Symbol::setIsAbsolute()
 {
     isAbsolute_= true;
     return true;
 }
 
-DLLEXPORT bool Symbol::clearIsAbsolute()
+SYMTAB_EXPORT bool Symbol::clearIsAbsolute()
 {
     isAbsolute_= false;
     return true;
 }
 
-DLLEXPORT Symbol::Symbol()
+SYMTAB_EXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
     isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), 
-    function_(NULL),
-    variable_(NULL),
+    aggregate_(NULL),
     tag_(TAG_UNKNOWN),
     framePtrRegNum_(-1), retType_(NULL), moduleName_("")
 {
@@ -634,34 +726,36 @@ DLLEXPORT Symbol::Symbol()
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
 }
 
-DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
-    SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
+SYMTAB_EXPORT Symbol::Symbol(const string iname, const string imodule,
+    SymbolType itype, SymbolLinkage ilinkage, SymbolVisibility ivisibility, Offset iaddr,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
-    : type_(itype),
-    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
+    : type_(itype), linkage_(ilinkage), visibility_(ivisibility),
+    addr_(iaddr), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
         module_ = NULL;
     	moduleName_ = imodule;
         mangledName_ = iname;
+        aggregate_ = NULL;
 }
 
-DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
-    SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
+SYMTAB_EXPORT Symbol::Symbol(const string iname, Module *mod,
+    SymbolType itype, SymbolLinkage ilinkage, SymbolVisibility ivisibility, Offset iaddr,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
-    : module_(mod), type_(itype),
-    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
+    : module_(mod), type_(itype), linkage_(ilinkage), visibility_(ivisibility),
+    addr_(iaddr), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
     mangledName_ = iname;
+    aggregate_ = NULL;
 }
 
 
-DLLEXPORT bool Symbol::setSymbolType(SymbolType sType)
+SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
 {
     if ((sType != ST_UNKNOWN)&&
         (sType != ST_FUNCTION)&&
@@ -674,11 +768,13 @@ DLLEXPORT bool Symbol::setSymbolType(SymbolType sType)
     type_ = sType;
     if (module_->exec())
         module_->exec()->changeType(this, oldType);
+
+    // TODO: update aggregate with information
     
     return true;
 }
 
-DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
+SYMTAB_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
 {
    std::string *fn_p = NULL;
    if (getAnnotation(fn_p, SymbolFileNameAnno)) 
@@ -709,7 +805,7 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName)
    return false;
 }
 
-DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
+SYMTAB_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
 {
    std::vector<std::string> *vn_p = NULL;
    if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
@@ -733,7 +829,7 @@ DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
    return true;
 }
 
-DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
+SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
 {
    std::string *fn_p = NULL;
 
@@ -761,7 +857,7 @@ DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName)
 #endif
 }
 
-DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
+SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 {
    std::vector<std::string> *vn_p = NULL;
 
@@ -797,6 +893,7 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, type_, symbolType2Str, "type");
       gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
       gtranslate(s, tag_, symbolTag2Str, "tag");
+      gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
       gtranslate(s, addr_, "addr");
       gtranslate(s, size_, "size");
       gtranslate(s, isInDynsymtab_, "isInDynsymtab");
@@ -831,22 +928,23 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
-   return os << "{"
-      << " mangled=" << s.getMangledName()
-      << " pretty="  << s.getPrettyName()
-      << " module="  << s.module_
-      //<< " type="    << (unsigned) s.type_
-      << " type="    << s.symbolType2Str(s.type_)
-      //<< " linkage=" << (unsigned) s.linkage_
-      << " linkage=" << s.symbolLinkage2Str(s.linkage_)
-      << " addr=0x"    << hex << s.addr_ << dec
-      //<< " tag="     << (unsigned) s.tag_
-      << " tag="     << s.symbolTag2Str(s.tag_)
-      << " isAbs="   << s.isAbsolute_
-      << (s.function_!=NULL ? " [FUNC]" : "")
-      << (s.isInSymtab_ ? " [STA]" : "")
-      << (s.isInDynsymtab_ ? " [DYN]" : "")
-      << " }" << endl;
+    return os << "{"
+              << " mangled=" << s.getMangledName()
+              << " pretty="  << s.getPrettyName()
+              << " module="  << s.module_
+        //<< " type="    << (unsigned) s.type_
+              << " type="    << s.symbolType2Str(s.type_)
+        //<< " linkage=" << (unsigned) s.linkage_
+              << " linkage=" << s.symbolLinkage2Str(s.linkage_)
+              << " addr=0x"    << hex << s.addr_ << dec
+        //<< " tag="     << (unsigned) s.tag_
+              << " tag="     << s.symbolTag2Str(s.tag_)
+              << " isAbs="   << s.isAbsolute_
+              << (s.isFunction() ? " [FUNC]" : "")
+              << (s.isVariable() ? " [VAR]" : "")
+              << (s.isInSymtab_ ? " [STA]" : "")
+              << (s.isInDynsymtab_ ? " [DYN]" : "")
+              << " }" << endl;
 }
 
 #ifdef DEBUG 
@@ -906,16 +1004,16 @@ const ostream &AObject::dump_state_info(ostream &s) {
 
 #endif
 
-DLLEXPORT AObject::AObject()
+SYMTAB_EXPORT AObject::AObject()
 {
 }	
 
-DLLEXPORT unsigned AObject::nsymbols () const 
+SYMTAB_EXPORT unsigned AObject::nsymbols () const 
 { 
    return symbols_.size(); 
 }
 
-DLLEXPORT bool AObject::get_symbols(string & name, 
+SYMTAB_EXPORT bool AObject::get_symbols(string & name, 
       std::vector<Symbol *> &symbols ) 
 {
    if ( symbols_.find(name) == symbols_.end()) {
@@ -926,57 +1024,57 @@ DLLEXPORT bool AObject::get_symbols(string & name,
    return true;
 }
 
-DLLEXPORT char* AObject::code_ptr () const 
+SYMTAB_EXPORT char* AObject::code_ptr () const 
 { 
    return code_ptr_; 
 }
 
-DLLEXPORT Offset AObject::code_off () const 
+SYMTAB_EXPORT Offset AObject::code_off () const 
 { 
    return code_off_; 
 }
 
-DLLEXPORT Offset AObject::code_len () const 
+SYMTAB_EXPORT Offset AObject::code_len () const 
 { 
    return code_len_; 
 }
 
-DLLEXPORT char* AObject::data_ptr () const 
+SYMTAB_EXPORT char* AObject::data_ptr () const 
 { 
    return data_ptr_; 
 }
 
-DLLEXPORT Offset AObject::data_off () const 
+SYMTAB_EXPORT Offset AObject::data_off () const 
 { 
    return data_off_; 
 }
 
-DLLEXPORT Offset AObject::data_len () const 
+SYMTAB_EXPORT Offset AObject::data_len () const 
 { 
    return data_len_; 
 }
 
-DLLEXPORT bool AObject::is_aout() const 
+SYMTAB_EXPORT bool AObject::is_aout() const 
 {
    return is_aout_;  
 }
 
-DLLEXPORT bool AObject::isDynamic() const 
+SYMTAB_EXPORT bool AObject::isDynamic() const 
 {
    return is_dynamic_;  
 }
 
-DLLEXPORT unsigned AObject::no_of_sections() const 
+SYMTAB_EXPORT unsigned AObject::no_of_sections() const 
 { 
    return no_of_sections_; 
 }
 
-DLLEXPORT unsigned AObject::no_of_symbols() const 
+SYMTAB_EXPORT unsigned AObject::no_of_symbols() const 
 { 
    return no_of_symbols_;  
 }
 
-DLLEXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
+SYMTAB_EXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
 {
    for (unsigned i=0;i<catch_addrs_.size();i++)
       excpBlocks.push_back(new ExceptionBlock(catch_addrs_[i]));
@@ -984,47 +1082,48 @@ DLLEXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlock
    return true;
 }
 
-DLLEXPORT std::vector<Region *> AObject::getAllRegions() const
+SYMTAB_EXPORT std::vector<Region *> AObject::getAllRegions() const
 {
    return regions_;	
 }
 
-DLLEXPORT Offset AObject::loader_off() const 
+SYMTAB_EXPORT Offset AObject::loader_off() const 
 { 
    return loader_off_; 
 }
 
-DLLEXPORT unsigned AObject::loader_len() const 
+SYMTAB_EXPORT unsigned AObject::loader_len() const 
 { 
    return loader_len_; 
 }
 
-DLLEXPORT int AObject::getAddressWidth() const 
+
+SYMTAB_EXPORT int AObject::getAddressWidth() const 
 { 
    return addressWidth_nbytes; 
 }
 
-DLLEXPORT bool AObject::have_deferred_parsing(void) const
+SYMTAB_EXPORT bool AObject::have_deferred_parsing(void) const
 { 
    return deferredParse;
 }
 
-DLLEXPORT void * AObject::getErrFunc() const 
+SYMTAB_EXPORT void * AObject::getErrFunc() const 
 {
    return (void *) err_func_; 
 }
 
-DLLEXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
+SYMTAB_EXPORT dyn_hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
 { 
    return &(symbols_);
 }
 
-DLLEXPORT AObject::~AObject() 
+SYMTAB_EXPORT AObject::~AObject() 
 {
 }
 
 // explicitly protected
-DLLEXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *)) 
+SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *)) 
 : mf(mf_), mfForDebugInfo(mfd), code_ptr_(0), code_off_(0),
    code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
    loader_len_(0), is_dynamic_(false), deferredParse(false), err_func_(err_func),
@@ -1032,7 +1131,7 @@ DLLEXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(co
 {
 }
 
-DLLEXPORT AObject::AObject(const AObject &obj)
+SYMTAB_EXPORT AObject::AObject(const AObject &obj)
 : mf(obj.mf), mfForDebugInfo(obj.mfForDebugInfo), symbols_(obj.symbols_), 
    code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
    code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
@@ -1042,7 +1141,7 @@ DLLEXPORT AObject::AObject(const AObject &obj)
 {
 } 
 
-DLLEXPORT AObject& AObject::operator=(const AObject &obj) 
+SYMTAB_EXPORT AObject& AObject::operator=(const AObject &obj) 
 {   
    if (this == &obj) {
       return *this;

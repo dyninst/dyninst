@@ -170,7 +170,7 @@ namespace Dyninst
 	  val.dblval = (double)(v);
 	  break;
 	case bit_flag:
-	  val.bitval = (bool)(v);
+	  val.bitval = (v != 0) ? 1 : 0;
 	  break;
 	case u48:
 	  val.u48val = (uint64_t)(v);
@@ -178,12 +178,12 @@ namespace Dyninst
 	case s48:
 	  val.s48val = (int64_t)(v);
 	  break;
-   case m512:
-      val.m512val = (void *) v;
-      break;
-   case dbl128:
-      assert(!"Not implemented yet");
-      break;
+	case m512:
+          val.m512val = (void *) v;
+	  break;
+        case dbl128:
+	  assert(!"Not implemented yet");
+	  break;
 	default:
 	  assert(!"Invalid type!");
 	  break;
@@ -245,16 +245,17 @@ namespace Dyninst
 	case s48:
 	  return val.s48val == o.val.s48val;
 	  break;
-   case m512:
-      return memcmp(val.m512val, o.val.m512val, 512) == 0;
-      break;
-   case dbl128:
-      assert(!"Not implemented yet");
-      break;
+	case m512:
+	  return memcmp(val.m512val, o.val.m512val, 512) == 0;
+	  break;
+	case dbl128:
+	  assert(!"Not implemented yet");
+	  break;
 	default:
 	  assert(!"Invalid type!");
 	  break;
 	}
+	return false;
       }
       /// %Results are formatted as strings containing their contents, represented as hexadecimal.
       /// The type of the %Result is not included in the output.

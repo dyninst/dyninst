@@ -31,6 +31,8 @@
 
 #ifndef __SERDES_H__
 #define __SERDES_H__
+#include "common/h/headers.h"
+
 #include <string>
 #include <vector>
 #include <map>
@@ -38,19 +40,24 @@
 #include <stdio.h>
 
 #if defined(os_windows)
+#if defined (cap_have_libxml)
 #include <libxml/xmlversion.h>
 #undef LIBXML_ICONV_ENABLED
 #endif
+#endif
 
+#if defined (cap_have_libxml)
 #include <libxml/xmlwriter.h>
+#endif
 
 #include "dynutil/h/util.h"
 //#include "dynutil/h/Annotatable.h"
 #include "dynutil/h/Serialization.h"
-#include "common/h/headers.h"
 #include "common/h/Types.h"
 #include "common/h/sha1.h"
 #include "common/h/pathName.h"
+
+namespace Dyninst {
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
 #define DEFAULT_DYNINST_DIR ".dyninstAPI"
@@ -73,11 +80,10 @@
          err.what(), err.file().c_str(), err.line()); \
    SER_ERR(x); }
 
-void DLLEXPORT serialize_debug_init();
+void COMMON_EXPORT serialize_debug_init();
 
 class SerDes;
 class SerFile;
-void printSerErr(const SerializerError &err);
 
 class SerializerBase {
 
@@ -87,43 +93,43 @@ class SerializerBase {
    std::string serializer_name;
 
    typedef dyn_hash_map<std::string, SerializerBase *> subsystem_serializers_t;
-   DLLEXPORT static dyn_hash_map<std::string, subsystem_serializers_t> all_serializers;
+   COMMON_EXPORT static dyn_hash_map<std::string, subsystem_serializers_t> all_serializers;
 
    public:
 
-   DLLEXPORT SerializerBase(const char *name_, std::string filename, 
+   COMMON_EXPORT SerializerBase(const char *name_, std::string filename, 
          iomode_t dir, bool verbose); 
 
-   DLLEXPORT virtual ~SerializerBase() 
+   COMMON_EXPORT virtual ~SerializerBase() 
    {
       fprintf(stderr, "%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, 
             this, serializer_name.c_str());
    }
 
-   DLLEXPORT virtual SerDes &getSD()  { assert(sd); return *sd;}
-   DLLEXPORT SerFile &getSF() {assert(sf); return *sf;}
-   DLLEXPORT std::string &name() {return serializer_name;}
-   DLLEXPORT static SerializerBase *getSerializer(std::string subsystem, std::string fname);
-   DLLEXPORT static bool addSerializer(std::string subsystem, std::string fname, SerializerBase *sb);
+   COMMON_EXPORT virtual SerDes &getSD()  { assert(sd); return *sd;}
+   COMMON_EXPORT SerFile &getSF() {assert(sf); return *sf;}
+   COMMON_EXPORT std::string &name() {return serializer_name;}
+   COMMON_EXPORT static SerializerBase *getSerializer(std::string subsystem, std::string fname);
+   COMMON_EXPORT static bool addSerializer(std::string subsystem, std::string fname, SerializerBase *sb);
 
-   DLLEXPORT virtual void vector_start(unsigned int &, const char * = NULL);
-   DLLEXPORT virtual void vector_end();
-   DLLEXPORT virtual void hash_map_start(unsigned int &size, const char *tag = NULL); 
-   DLLEXPORT virtual void hash_map_end();
-   DLLEXPORT void translate_base(bool &v, const char *&t);
-   DLLEXPORT void translate_base(short &v, const char *&t);
-   DLLEXPORT void translate_base(char &v, const char *&t);
-   DLLEXPORT void translate_base(int &v, const char *&t);
-   DLLEXPORT void translate_base(unsigned int &v, const char *&t);
-   DLLEXPORT void translate_base(unsigned long &v, const char *&t);
-   DLLEXPORT void translate_base(long &v, const char *&t);
-   DLLEXPORT void translate_base(float &v, const char *&t);
-   DLLEXPORT void translate_base(double &v, const char *&t);
-   DLLEXPORT void translate_base(const char * &v, int bufsize, const char *&t);
-   DLLEXPORT void translate_base(char * &v, int bufsize, const char *&t);
-   DLLEXPORT void translate_base(std::string &v, const char *t);
+   COMMON_EXPORT virtual void vector_start(unsigned int &, const char * = NULL);
+   COMMON_EXPORT virtual void vector_end();
+   COMMON_EXPORT virtual void hash_map_start(unsigned int &size, const char *tag = NULL); 
+   COMMON_EXPORT virtual void hash_map_end();
+   COMMON_EXPORT void translate_base(bool &v, const char *&t);
+   COMMON_EXPORT void translate_base(short &v, const char *&t);
+   COMMON_EXPORT void translate_base(char &v, const char *&t);
+   COMMON_EXPORT void translate_base(int &v, const char *&t);
+   COMMON_EXPORT void translate_base(unsigned int &v, const char *&t);
+   COMMON_EXPORT void translate_base(unsigned long &v, const char *&t);
+   COMMON_EXPORT void translate_base(long &v, const char *&t);
+   COMMON_EXPORT void translate_base(float &v, const char *&t);
+   COMMON_EXPORT void translate_base(double &v, const char *&t);
+   COMMON_EXPORT void translate_base(const char * &v, int bufsize, const char *&t);
+   COMMON_EXPORT void translate_base(char * &v, int bufsize, const char *&t);
+   COMMON_EXPORT void translate_base(std::string &v, const char *t);
 
-   DLLEXPORT virtual iomode_t iomode(); 
+   COMMON_EXPORT virtual iomode_t iomode(); 
 
    protected:
 
@@ -138,16 +144,16 @@ class SerializerXML : public SerializerBase {
 
    public:
 
-      DLLEXPORT SerializerXML(const char *name_, std::string filename, 
+      COMMON_EXPORT SerializerXML(const char *name_, std::string filename, 
             iomode_t dir, bool verbose) :
          SerializerBase(name_, filename, dir, verbose) {}
 
-      DLLEXPORT ~SerializerXML() {}
+      COMMON_EXPORT ~SerializerXML() {}
 
-      DLLEXPORT SerDesXML &getSD_xml();
+      COMMON_EXPORT SerDesXML &getSD_xml();
 
-      DLLEXPORT static bool start_xml_element(SerializerBase *, const char *);
-      DLLEXPORT static bool end_xml_element(SerializerBase *, const char *);
+      COMMON_EXPORT static bool start_xml_element(SerializerBase *, const char *);
+      COMMON_EXPORT static bool end_xml_element(SerializerBase *, const char *);
 };
 
 class SerializerBin : public SerializerBase {
@@ -158,12 +164,12 @@ class SerializerBin : public SerializerBase {
 
    public:
 
-   DLLEXPORT SerializerBin(const char *name_, std::string filename, 
+   COMMON_EXPORT SerializerBin(const char *name_, std::string filename, 
          iomode_t dir, bool verbose); 
 
-   DLLEXPORT ~SerializerBin(); 
+   COMMON_EXPORT ~SerializerBin(); 
 
-   DLLEXPORT SerDesBin &getSD_bin();
+   COMMON_EXPORT SerDesBin &getSD_bin();
    static void globalDisable();
    static void globalEnable();
 
@@ -173,8 +179,8 @@ class SerializerBin : public SerializerBase {
 };
 
 
-//DLLEXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
-//DLLEXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
+//COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
+//COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
 
 class SerDes {
 
@@ -193,7 +199,7 @@ class SerDes {
    public:
 
 #if 0
-      DLLEXPORT static dyn_hash_map<std::string, AnnoFunc > anno_funcs;
+      COMMON_EXPORT static dyn_hash_map<std::string, AnnoFunc > anno_funcs;
 
       //  old_anno_name_to_id_map keeps a running mapping of 
       //  annotation names onto annotation ids that was used when building
@@ -210,95 +216,107 @@ class SerDes {
    public:
 
 #if 0
-      DLLEXPORT AnnoFunc *findAnnoFunc(unsigned anno_type, 
+      COMMON_EXPORT AnnoFunc *findAnnoFunc(unsigned anno_type, 
             std::string anno_name = AnnotatableBase::emptyString);
 
-      DLLEXPORT static bool addAnnoFunc(std::string type_name, AnnoFunc sf);
+      COMMON_EXPORT static bool addAnnoFunc(std::string type_name, AnnoFunc sf);
 #endif
 
-      DLLEXPORT SerDes() {assert(0);}
-      DLLEXPORT SerDes(iomode_t mode) : iomode_(mode){}
-      DLLEXPORT virtual ~SerDes() {}
+      COMMON_EXPORT SerDes() {assert(0);}
+      COMMON_EXPORT SerDes(iomode_t mode) : iomode_(mode){}
+      COMMON_EXPORT virtual ~SerDes() {}
 
-      DLLEXPORT virtual void file_start(std::string &/*full_file_path*/) {}
-      DLLEXPORT virtual void vector_start(unsigned int &size, 
+      COMMON_EXPORT virtual void file_start(std::string &/*full_file_path*/) {}
+      COMMON_EXPORT virtual void vector_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError) = 0;
-      DLLEXPORT virtual void vector_end() = 0;
-      DLLEXPORT virtual void multimap_start(unsigned int &size, 
+      COMMON_EXPORT virtual void vector_end() = 0;
+      COMMON_EXPORT virtual void multimap_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError) = 0;
-      DLLEXPORT virtual void hash_map_start(unsigned int &size, 
+      COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError) = 0;
-      DLLEXPORT virtual void hash_map_end() = 0;
-      DLLEXPORT virtual void annotation_start(const char *string_id, 
+      COMMON_EXPORT virtual void hash_map_end() = 0;
+      COMMON_EXPORT virtual void annotation_start(const char *string_id, 
             const char *tag = NULL) = 0;
-      DLLEXPORT virtual void annotation_end() = 0;
+      COMMON_EXPORT virtual void annotation_end() = 0;
 
-      DLLEXPORT virtual void multimap_end() = 0;
+      COMMON_EXPORT virtual void multimap_end() = 0;
 
-      DLLEXPORT virtual void translate(bool &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(char &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(int &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(long &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(short &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(float &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(double &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(Address &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(const char * &param, int bufsize = 0, 
+      COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(char &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(int &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(long &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(short &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(unsigned int &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(float &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(double &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(Address &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(const char * &param, int bufsize = 0, 
             const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(char * &param, int bufsize = 0, 
+      COMMON_EXPORT virtual void translate(char * &param, int bufsize = 0, 
             const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL) = 0;
-      DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
+      COMMON_EXPORT virtual void translate(std::string &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
             const char *elem_tag = NULL) = 0;
 
-      DLLEXPORT virtual iomode_t iomode() {return iomode_;} 
+      COMMON_EXPORT virtual iomode_t iomode() {return iomode_;} 
 };
 
 class SerDesXML : public SerDes {
+   friend class SerFile;
+   friend class SerializerXML;
+   friend bool COMMON_EXPORT ifxml_start_element(SerializerBase *, const char *);
+   friend bool COMMON_EXPORT ifxml_end_element(SerializerBase *, const char *);
+
+
+
+#if defined (cap_have_libxml)
+      xmlTextWriterPtr writer;
+      COMMON_EXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
+      COMMON_EXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
+#else
+      void *writer;
+      COMMON_EXPORT SerDesXML(void * w, iomode_t mode)  : SerDes(mode), writer(w) { }
+#endif
 
    public:
+      COMMON_EXPORT SerDesXML() { assert(0);}
+      COMMON_EXPORT virtual ~SerDesXML();
 
-      xmlTextWriterPtr writer;
-
-      DLLEXPORT static xmlTextWriterPtr init(std::string fname, iomode_t mode, bool verbose);
-
-      DLLEXPORT SerDesXML() { assert(0);}
-      DLLEXPORT SerDesXML(xmlTextWriterPtr w, iomode_t mode)  : SerDes(mode), writer(w) { }
-      DLLEXPORT virtual ~SerDesXML();
-
-      DLLEXPORT virtual void vector_start(unsigned int &size, 
+      COMMON_EXPORT virtual void vector_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError);
-      DLLEXPORT virtual void vector_end();
-      DLLEXPORT virtual void multimap_start(unsigned int &size, 
+      COMMON_EXPORT virtual void vector_end();
+      COMMON_EXPORT virtual void multimap_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError);
-      DLLEXPORT virtual void multimap_end();
-      DLLEXPORT virtual void hash_map_start(unsigned int &size, 
+      COMMON_EXPORT virtual void multimap_end();
+      COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError);
-      DLLEXPORT virtual void hash_map_end();
-      DLLEXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
-      DLLEXPORT virtual void annotation_end();
-      DLLEXPORT virtual void translate(bool &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(char &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(int &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(long &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(short &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(float &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(double &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(Address &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(const char * &param, int bufsize = 0, 
+      COMMON_EXPORT virtual void hash_map_end();
+      COMMON_EXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
+      COMMON_EXPORT virtual void annotation_end();
+      COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(char &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(int &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(long &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(short &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(float &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(double &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(Address &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(const char * &param, int bufsize = 0, 
             const char *tag = NULL);
-      DLLEXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
-      DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
-      DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
+      COMMON_EXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(std::string &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
             const char *elem_tag = NULL);
-      DLLEXPORT void start_element(const char *tag);
-      DLLEXPORT void end_element();
-      DLLEXPORT void xml_value(const char *val, const char *tag);
+
+#if 0
+      COMMON_EXPORT void start_element(const char *tag);
+      COMMON_EXPORT void end_element();
+      COMMON_EXPORT void xml_value(const char *val, const char *tag);
+#endif
 };
 
-class AnnotatableBase;
+//class AnnotatableBase;
 
 class SerDesBin : public SerDes {
 
@@ -314,72 +332,76 @@ class SerDesBin : public SerDes {
 
    public:
 
-   DLLEXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
-   DLLEXPORT static FILE *init(std::string fname, iomode_t mode, bool verbose);
+   //COMMON_EXPORT static dyn_hash_map<Address, AnnotatableBase *> annotatable_id_map;
+   COMMON_EXPORT static FILE *init(std::string fname, iomode_t mode, bool verbose);
 
-   DLLEXPORT SerDesBin() {assert(0);}
+   COMMON_EXPORT SerDesBin() {assert(0);}
 
-   DLLEXPORT SerDesBin(FILE *ff, iomode_t mode, bool verbose) : 
+   COMMON_EXPORT SerDesBin(FILE *ff, iomode_t mode, bool verbose) : 
       SerDes(mode), 
       f(ff),  
       noisy(verbose) {}
 
-   DLLEXPORT virtual ~SerDesBin();
+   COMMON_EXPORT virtual ~SerDesBin();
 
-   DLLEXPORT static AnnotatableBase *findAnnotatee(void *id); 
+   //COMMON_EXPORT static AnnotatableBase *findAnnotatee(void *id); 
 
-   DLLEXPORT virtual void file_start(std::string &full_file_path);
-   DLLEXPORT virtual void vector_start(unsigned int &size, 
+   COMMON_EXPORT virtual void file_start(std::string &full_file_path);
+   COMMON_EXPORT virtual void vector_start(unsigned int &size, 
          const char *tag = NULL) DECLTHROW(SerializerError);
-   DLLEXPORT virtual void vector_end();
-   DLLEXPORT virtual void multimap_start(unsigned int &size, 
+   COMMON_EXPORT virtual void vector_end();
+   COMMON_EXPORT virtual void multimap_start(unsigned int &size, 
          const char *tag = NULL) DECLTHROW(SerializerError);
-   DLLEXPORT virtual void multimap_end();
-   DLLEXPORT virtual void hash_map_start(unsigned int &size, 
+   COMMON_EXPORT virtual void multimap_end();
+   COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
          const char *tag = NULL) DECLTHROW(SerializerError);
-   DLLEXPORT virtual void hash_map_end();
-   DLLEXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
-   DLLEXPORT virtual void annotation_end();
-   DLLEXPORT virtual void translate(bool &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(char &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(int &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(long &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(short &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(float &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(double &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(Address &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(const char * &param, 
+   COMMON_EXPORT virtual void hash_map_end();
+   COMMON_EXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
+   COMMON_EXPORT virtual void annotation_end();
+   COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(char &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(int &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(long &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(short &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(float &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(double &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(Address &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(const char * &param, 
          int bufsize = 0, const char *tag = NULL);
-   DLLEXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
-   DLLEXPORT virtual void translate(std::string &param, const char *tag = NULL);
-   DLLEXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
+   COMMON_EXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(std::string &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
          const char *elem_tag = NULL);
 
    // readHeaderAndVerify just opens, verifies (checksum, magic compare), and closes
    // cache file, unless the FILE * is provided, in which case the file pointer is
    // advanced past the preamble and is not closed;
 
-   DLLEXPORT static void readHeaderAndVerify(std::string full_file_path, 
+   COMMON_EXPORT static void readHeaderAndVerify(std::string full_file_path, 
          std::string cache_name, FILE *f = NULL);
 
-   DLLEXPORT static void writeHeaderPreamble(FILE *f, std::string full_file_path, 
+   COMMON_EXPORT static void writeHeaderPreamble(FILE *f, std::string full_file_path, 
          std::string cache_name);
 
-   DLLEXPORT static bool getDefaultCacheDir(std::string &cache_dir);
-   DLLEXPORT static bool resolveCachePath(std::string fname, std::string &cache_name);
-   DLLEXPORT static bool verifyChecksum(std::string &filename, 
+   COMMON_EXPORT static bool getDefaultCacheDir(std::string &cache_dir);
+   COMMON_EXPORT static bool resolveCachePath(std::string fname, std::string &cache_name);
+   COMMON_EXPORT static bool verifyChecksum(std::string &filename, 
          const char comp_checksum[SHA1_DIGEST_LEN]);
-   DLLEXPORT static bool cacheFileExists(std::string fname);
-   DLLEXPORT static bool invalidateCache(std::string cache_name);
+   COMMON_EXPORT static bool cacheFileExists(std::string fname);
+   COMMON_EXPORT static bool invalidateCache(std::string cache_name);
 
 };
 
 
-class DLLEXPORT SerFile {
+class COMMON_EXPORT SerFile {
 
    SerDes *sd;
+#if defined (cap_have_libxml)
    xmlTextWriterPtr writer;
+#else
+   void * writer;
+#endif
    FILE *f;
 
    public:
@@ -419,6 +441,7 @@ class DLLEXPORT SerFile {
             assert(0);
          }
 
+#if defined (cap_have_libxml)
          writer = SerDesXML::init(fname, mode, verbose);
 
          if (!writer) 
@@ -426,6 +449,9 @@ class DLLEXPORT SerFile {
             fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
             assert(0);
          }
+#else
+         writer = NULL;
+#endif
 
          sd = new SerDesXML(writer, mode);
 
@@ -567,4 +593,5 @@ class SerTest : public Serializable {
       serialize( &sb);
    }
 };
+} /*namespace Dyninst*/
 #endif

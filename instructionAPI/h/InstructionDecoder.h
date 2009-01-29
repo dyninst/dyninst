@@ -39,13 +39,19 @@
 #include "Operand.h"
 #include "Instruction.h"
 
-#include "../src/arch-x86.h"
 #include <vector>
 
+struct ia32_locations;
+struct ia32_condition;
+struct ia32_operand;
+struct ia32_instruction;
+struct ia32_memacc;
+    
 namespace Dyninst
 {
   namespace InstructionAPI
   {
+    
     /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length,
     /// and constructs an %Instruction.
     /// The %InstructionDecoder will, by default, be constructed to decode machine language
@@ -59,29 +65,26 @@ namespace Dyninst
     class InstructionDecoder
     {
     public:
-      InstructionDecoder() : decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
-      bufferBegin(NULL), bufferSize(0), rawInstruction(NULL)
+      INSTRUCTION_EXPORT InstructionDecoder() : decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
+      bufferBegin(NULL), bufferSize(0), rawInstruction(NULL), cond(NULL), locs(NULL), mac(NULL)
       {
       }
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
-      InstructionDecoder(const unsigned char* buffer, size_t size) : 
+      INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size) : 
       decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
-      bufferBegin(buffer), bufferSize(size), rawInstruction(bufferBegin)
+      bufferBegin(buffer), bufferSize(size), rawInstruction(bufferBegin), cond(NULL), locs(NULL), mac(NULL)
       {
       }
       
       
-      ~InstructionDecoder() 
-      {
-	delete decodedInstruction;
-      }
+      INSTRUCTION_EXPORT ~InstructionDecoder();
 
-      Instruction decode(const unsigned char* buffer, size_t size);
+      INSTRUCTION_EXPORT Instruction decode(const unsigned char* buffer, size_t size);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
-      Instruction decode();
+      INSTRUCTION_EXPORT Instruction decode();
       
     protected:
       void decodeOperands(std::vector<Expression::Ptr>& operands);
@@ -108,9 +111,9 @@ namespace Dyninst
       Result_Type makeSizeType(unsigned int opType);
       
     private:
-      ia32_locations locs;
-      ia32_condition cond;
-      ia32_memacc mac[3];
+      ia32_locations* locs;
+      ia32_condition* cond;
+      ia32_memacc* mac;
       ia32_instruction* decodedInstruction;
       Operation m_Operation;
       bool is32BitMode;

@@ -53,6 +53,7 @@ static int elfSymType(Symbol::SymbolType sType)
 {
   switch (sType) {
     case Symbol::ST_MODULE: return STT_FILE;
+    case Symbol::ST_SECTION: return STT_SECTION;
     case Symbol::ST_OBJECT: return STT_OBJECT;
     case Symbol::ST_FUNCTION: return STT_FUNC;
     case Symbol::ST_NOTYPE : return STT_NOTYPE;
@@ -67,6 +68,17 @@ static int elfSymBind(Symbol::SymbolLinkage sLinkage)
     case Symbol::SL_WEAK: return STB_WEAK;
     case Symbol::SL_GLOBAL: return STB_GLOBAL;
     default: return STB_LOPROC;
+  }
+}
+
+static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
+{
+  switch (sVisibility) {
+    case Symbol::SV_DEFAULT: return STV_DEFAULT;
+    case Symbol::SV_INTERNAL: return STV_INTERNAL;
+    case Symbol::SV_HIDDEN: return STV_HIDDEN;
+    case Symbol::SV_PROTECTED: return STV_PROTECTED;
+    default: return STV_DEFAULT;
   }
 }
 
@@ -92,146 +104,176 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_,
    curVersionNum = 2;
 }
 
-bool emitElf64::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols, bool dynSymFlag)
+bool emitElf64::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols, bool dynSymFlag)
 {
    Elf64_Sym *sym = new Elf64_Sym();
    sym->st_name = symbolNamesLength;
+
    symbolStrs.push_back(symbol->getName());
    symbolNamesLength += symbol->getName().length()+1;
    sym->st_value = symbol->getAddr();
    sym->st_size = symbol->getSize();
-   sym->st_other = 0;
-   sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
-   if(symbol->getSec())
-	sym->st_shndx = symbol->getSec()->getRegionNumber();
-   else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
+   sym->st_other = ELF64_ST_VISIBILITY(elfSymVisibility(symbol->getVisibility()));
+   sym->st_info = (unsigned char) ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+
+   if (symbol->getSec())
+   {
+#if defined(os_solaris)
+      sym->st_shndx = (Elf64_Half) symbol->getSec()->getRegionNumber();
+#else
+      sym->st_shndx = (Elf64_Section) symbol->getSec()->getRegionNumber();
+#endif
+   }
+   else if (symbol->isAbsolute())
+   {
         sym->st_shndx = SHN_ABS;
-   
+   }
+   else
+   {
+      sym->st_shndx = 0;
+   }
+
    symbols.push_back(sym);
-   //Do not emit aliases for dynamic symbols
-   if(dynSymFlag){
+
+   if (dynSymFlag) 
+   {
+       /*printf("dynamic symbol: %s\n", symbol->getName().c_str());*/
 
 #if !defined(os_solaris)
-       string fileName;
-       if(symbol->getLinkage() == Symbol::SL_WEAK){
-           versionSymTable.push_back(0);
-           return true;
-       }
-       
-       if(!symbol->getVersionFileName(fileName))   //verdef entry
-       {
-#ifdef BINEDIT_DEBUG
-           printf("verdef: symbol=%s\n", symbol->getName().c_str(), fileName.c_str());
-#endif
-           vector<string> *vers;
-           if(!symbol->getVersions(vers))
-                versionSymTable.push_back(1);
-           else {
-               if(vers->size() > 1){
-                   if(versionNames.find((*vers)[0]) == versionNames.end())
-                       versionNames[(*vers)[0]] = 0;
-                   if(verdefEntries.find((*vers)[0]) != verdefEntries.end())
-                        versionSymTable.push_back(verdefEntries[(*vers)[0]]);
-                   else{
-                       versionSymTable.push_back(curVersionNum);
-                       verdefEntries[(*vers)[0]] = curVersionNum;
-                       curVersionNum++;
-                   }
+      char msg[2048];
+      char *mpos = msg;
+      msg[0] = '\0';
+      string fileName;
+
+      if (!symbol->getVersionFileName(fileName))
+      {
+         //verdef entry
+         vector<string> *vers;
+         if (!symbol->getVersions(vers))
+         {
+            if (symbol->getLinkage() == Symbol::SL_GLOBAL)
+            {
+               versionSymTable.push_back(1);
+            }
+            else
+            {
+               versionSymTable.push_back(0);
+            }
+         }
+         else 
+         {
+            if (vers->size() > 0)
+            {
+               // new verdef entry
+			   mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
+               if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
+               {
+                  versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
                }
-               for(unsigned i=1; i< vers->size(); i++){
-                   if(versionNames.find((*vers)[i]) == versionNames.end())
-                       versionNames[(*vers)[i]] = 0;
+               else 
+               {
+                  versionSymTable.push_back((unsigned short) curVersionNum);
+                  verdefEntries[(*vers)[0]] = curVersionNum;
+                  curVersionNum++;
+               }
+            }
+            // add all versions to the verdef entry
+            for (unsigned i=0; i< vers->size(); i++)
+            {
+               mpos += sprintf(mpos, "  {%s}", (*vers)[i].c_str());
+               if (versionNames.find((*vers)[i]) == versionNames.end())
+               {
+                  versionNames[(*vers)[i]] = 0;
+               }
+
+               if (find( verdauxEntries[verdefEntries[(*vers)[0]]].begin(),
+                   verdauxEntries[verdefEntries[(*vers)[0]]].end(),
+                   (*vers)[i]) == verdauxEntries[verdefEntries[(*vers)[0]]].end())
+               {
                    verdauxEntries[verdefEntries[(*vers)[0]]].push_back((*vers)[i]);
                }
-           }
-       }
-       else {           //verneed entry
-           char msg[2048];
-           char *mpos = msg;
-           mpos += sprintf(mpos, "need: symbol=%s    filename=%s\n", symbol->getName().c_str(), fileName.c_str());
-           vector<string> *vers;
-           if(!symbol->getVersions(vers)) {
-                // add an unversioned dependency
-                if (fileName == "") {
-                    mpos += sprintf(mpos, "  local\n");
-                    versionSymTable.push_back(0);
-                } else {
-                    if (find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), fileName) == 
-                            unversionedNeededEntries.end()) {
-                        mpos += sprintf(mpos, "  unversioned: %s\n", fileName.c_str());
-                        unversionedNeededEntries.push_back(fileName);
-                    }
-                    versionSymTable.push_back(1);
-                    mpos += sprintf(mpos, "  global\n");
-                }
-           } else {
-               if(vers->size() == 1){        // There should only be one version string
-                    //If the verison name already exists then add the same version number to the version symbol table
-                    //Else give a new number and add it to the mapping.
-                    if(versionNames.find((*vers)[0]) == versionNames.end()) {
-                        mpos += sprintf(mpos, "  new version name: %s\n", (*vers)[0].c_str());
-                        versionNames[(*vers)[0]] = 0;
-                    }
-                    if(verneedEntries.find(fileName) != verneedEntries.end())
-                    {
-                        if(verneedEntries[fileName].find((*vers)[0]) != verneedEntries[fileName].end()) {
-                            mpos += sprintf(mpos, "  vernum: %d\n", verneedEntries[fileName][(*vers)[0]]);
-                            versionSymTable.push_back(verneedEntries[fileName][(*vers)[0]]);
-                        }
-                        else{
-                            mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", curVersionNum, (*vers)[0].c_str(), fileName.c_str());
-                            versionSymTable.push_back(curVersionNum);
-                            verneedEntries[fileName][(*vers)[0]] = curVersionNum;
-                            curVersionNum++;
-                        }
-                    }
-                    else{
-                        mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", curVersionNum, (*vers)[0].c_str(), fileName.c_str());
-                        versionSymTable.push_back(curVersionNum);
-                        verneedEntries[fileName][(*vers)[0]] = curVersionNum;
-                        curVersionNum++;
-                    }
-                } else {
-                    // add an unversioned dependency
-                    if (fileName == "") {
-                        mpos += sprintf(mpos, "  local\n");
-                        versionSymTable.push_back(0);
-                    } else {
-                        if (find(unversionedNeededEntries.begin(), unversionedNeededEntries.end(), fileName) == 
-                                unversionedNeededEntries.end()) {
-                            mpos += sprintf(mpos, "  unversioned: %s\n", fileName.c_str());
-                            unversionedNeededEntries.push_back(fileName);
-                        }
-                        versionSymTable.push_back(1);
-                        mpos += sprintf(mpos, "  global\n");
-                    }
-                }
-           }
-#ifdef BINEDIT_DEBUG
-           printf("%s", msg);
-#endif
-       }
-#endif
-       return true;
-   }
-   std::vector<string> names;
-   names.push_back(symbol->getMangledName());
+            }
+			mpos += sprintf(mpos, "\n");
+         }
+      }
+      else 
+      {           
+         //verneed entry
+         mpos += sprintf(mpos, "need: symbol=%s    filename=%s\n", 
+               symbol->getName().c_str(), fileName.c_str());
 
-   for(unsigned i=1;i<names.size();i++)
-   {
-       	sym = new Elf64_Sym();
-	    sym->st_name = symbolNamesLength;
-    	symbolStrs.push_back(names[i]);
-       	symbolNamesLength += names[i].length()+1;
-    	sym->st_value = symbol->getAddr();
-    	sym->st_size = 0;
-       	sym->st_other = 0;
-       	sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
-       	if(symbol->getSec())
-    	    sym->st_shndx = symbol->getSec()->getRegionNumber();
-    	else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
-    	    sym->st_shndx = SHN_ABS;
-       	symbols.push_back(sym);
+         vector<string> *vers;
+
+         if (!symbol->getVersions(vers) || (vers && vers->size() != 1)) 
+         {
+            // add an unversioned dependency
+            if (fileName != "") 
+            {
+               if (find(unversionedNeededEntries.begin(),
+                unversionedNeededEntries.end(),
+                fileName) == unversionedNeededEntries.end()) 
+               {
+                  mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
+                  unversionedNeededEntries.push_back(fileName);
+               }
+
+               if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
+                  versionSymTable.push_back(1);
+               }
+               else {
+                  versionSymTable.push_back(0);
+               }
+            }
+         } 
+         else 
+         {
+            if (!vers)
+            {
+               fprintf(stderr, "%s[%d]:  weird inconsistency here...  getVersions returned NULL\n",
+                     FILE__, __LINE__);
+            }
+            else
+            {
+               // There should only be one version string by this time
+               //If the verison name already exists then add the same version number to the version symbol table
+               //Else give a new number and add it to the mapping.
+               if (versionNames.find((*vers)[0]) == versionNames.end()) 
+               {
+                  mpos += sprintf(mpos, "  new version name: %s\n", (*vers)[0].c_str());
+                  versionNames[(*vers)[0]] = 0;
+               }
+
+               if (verneedEntries.find(fileName) != verneedEntries.end())
+               {
+                  if (verneedEntries[fileName].find((*vers)[0]) != verneedEntries[fileName].end()) 
+                  {
+                     mpos += sprintf(mpos, "  vernum: %d\n", verneedEntries[fileName][(*vers)[0]]);
+                     versionSymTable.push_back((unsigned short) verneedEntries[fileName][(*vers)[0]]);
+                  }
+                  else
+                  {
+                     mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", 
+                           curVersionNum, (*vers)[0].c_str(), fileName.c_str());
+                     versionSymTable.push_back((unsigned short) curVersionNum);
+                     verneedEntries[fileName][(*vers)[0]] = curVersionNum;
+                     curVersionNum++;
+                  }
+               }
+               else
+               {
+                  mpos += sprintf(mpos, "  new entry #%d: %s [%s]\n", 
+                        curVersionNum, (*vers)[0].c_str(), fileName.c_str());
+                  versionSymTable.push_back((unsigned short) curVersionNum);
+                  verneedEntries[fileName][(*vers)[0]] = curVersionNum;
+                  curVersionNum++;
+               }
+            } 
+         }
+      }
+#ifdef BINEDIT_DEBUG
+      printf("%s", msg);
+#endif
+#endif
    }
    return true;
 }
@@ -617,6 +659,7 @@ void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
         case DT_RELASZ:
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
+        case DT_HASH:
         case DT_SYMTAB:
         case DT_STRTAB:
         case DT_REL:
@@ -631,7 +674,7 @@ void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
             break;
         case DT_VERDEF:
             dynamicSecData[tag][0]->d_un.d_ptr = val;
-            dynamicSecData[DT_VERDEFNUM][0]->d_un.d_val = verneednum;
+            dynamicSecData[DT_VERDEFNUM][0]->d_un.d_val = verdefnum;
             break;
     }
 }
@@ -797,6 +840,19 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 dynSegOff = newshdr->sh_offset;
                 dynSegAddr = newshdr->sh_addr;
                 dynSegSize = newSecs[i]->getDiskSize();
+            }
+            else if(newSecs[i]->getRegionType() == Region::RT_HASH)
+            {
+                newshdr->sh_entsize = sizeof(Elf64_Word);
+                newshdr->sh_type = SHT_HASH;
+                newdata->d_type = ELF_T_WORD;
+                newdata->d_align = 4;
+                newshdr->sh_link = dynsymIndex;   //.hash section should have sh_link = index of .dynsym
+                newshdr->sh_flags=  SHF_ALLOC;
+                newshdr->sh_info = 0;
+#if !defined(os_solaris)
+                updateDynamic(DT_HASH, newshdr->sh_addr);
+#endif
             }
 #if !defined(os_solaris)
             else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
@@ -1058,11 +1114,11 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
 
 /* Regenerates the .symtab, .strtab sections from the symbols
  * Add new .dynsym, .dynstr sections for the newly added dynamic symbols
- * Method - For every symbol call getBackSymbol to get a Elf64_Sym corresposnding 
+ * Method - For every symbol call createElfSymbol to get a Elf64_Sym corresposnding 
  *          to a Symbol object. Accumulate all and their names to form the sections
  *          and add them to the list of new sections
  */
-bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Symbol *>&variables, vector<Symbol *>&mods, vector<Symbol *>&notypes, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt)
+bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt)
 {
     unsigned i;
 
@@ -1074,48 +1130,33 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 
     unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
     vector<string> symbolStrs, dynsymbolStrs;
+    std::vector<Symbol *> dynsymVector;
+
+    // recreate a "dummy symbol"
+    Elf64_Sym *sym = new Elf64_Sym();
     symbolStrs.push_back("");
     dynsymbolStrs.push_back("");
-
-    Elf64_Sym *sym = new Elf64_Sym();
     sym->st_name = 0;
     sym->st_value = 0;
     sym->st_size = 0;
     sym->st_other = 0;
     sym->st_info = ELF64_ST_INFO(elfSymBind(Symbol::SL_LOCAL), elfSymType (Symbol::ST_NOTYPE));
-    sym->st_shndx = SHN_ABS;
+    sym->st_shndx = SHN_UNDEF;
 
     symbols.push_back(sym);
     dynsymbols.push_back(sym);
+    dynsymVector.push_back(
+            new Symbol("", NULL, Symbol::ST_NOTYPE, Symbol::SL_LOCAL, 
+                       Symbol::SV_DEFAULT, 0, 0, 0));
     versionSymTable.push_back(0);
 
-    for(i=0; i<notypes.size();i++) {
-        //printf(" notype: %s\n", notypes[i]->getName().c_str());
-        if(notypes[i]->isInSymtab())
-            getBackSymbol(notypes[i], symbolStrs, symbolNamesLength, symbols);
-        if(notypes[i]->isInDynSymtab())
-            getBackSymbol(notypes[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
-    }
-    for(i=0; i<functions.size();i++) {
-        //printf(" function: %s\n", functions[i]->getName().c_str());
-        if(functions[i]->isInSymtab())
-            getBackSymbol(functions[i], symbolStrs, symbolNamesLength, symbols);
-        if(functions[i]->isInDynSymtab())
-            getBackSymbol(functions[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
-    }
-    for(i=0; i<variables.size();i++) {
-        //printf(" variable: %s\n", variables[i]->getName().c_str());
-        if(variables[i]->isInSymtab())
-            getBackSymbol(variables[i], symbolStrs, symbolNamesLength, symbols);
-        if(variables[i]->isInDynSymtab())
-            getBackSymbol(variables[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
-    }
-    for(i=0; i<mods.size();i++) {
-        //printf(" module: %s\n", mods[i]->getName().c_str());
-        if(mods[i]->isInSymtab())
-            getBackSymbol(mods[i], symbolStrs, symbolNamesLength, symbols);
-        if(mods[i]->isInDynSymtab())
-            getBackSymbol(mods[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
+    for(i=0; i<allSymbols.size();i++) {
+        if(allSymbols[i]->isInSymtab())
+            createElfSymbol(allSymbols[i], symbolStrs, symbolNamesLength, symbols);
+        if(allSymbols[i]->isInDynSymtab()) {
+            createElfSymbol(allSymbols[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
+            dynsymVector.push_back(allSymbols[i]);
+        }
     }
 
     //reconstruct .symtab section
@@ -1167,10 +1208,17 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     char *verneedSecData, *verdefSecData;
     unsigned verneedSecSize = 0, verdefSecSize = 0, dynsecSize = 0;
                
-    createSymbolVersions(symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
+    createSymbolVersions(obj, symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
     Region *sec;
     if(obj->findRegion(sec, ".dynstr"))
         olddynStrData = (char *)sec->getPtrToRawData();
+
+    // build new .hash section
+    Elf64_Word *hashsecData;
+    unsigned hashsecSize = 0;
+    createHashSection(hashsecData, hashsecSize, dynsymVector);
+    if(hashsecSize)
+        obj->addRegion(0, hashsecData, hashsecSize*sizeof(Elf64_Word), ".hash", Region::RT_HASH, true);
 
     Elf64_Dyn *dynsecData;
     if(obj->findRegion(sec, ".dynamic"))
@@ -1236,6 +1284,9 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
             rels[j].r_offset = relocation_table[i].rel_addr();
             if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
                 rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    relocation_table[i].name().c_str());
             }
             j++;
         } else {
@@ -1243,6 +1294,9 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
             relas[k].r_addend = relocation_table[i].addend();
             if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
                 relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    relocation_table[i].name().c_str());
             }
             k++;
         }
@@ -1261,6 +1315,9 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #elif defined(arch_power)
                 rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    newRels[i].name().c_str());
             }
             j++;
         } else {
@@ -1276,6 +1333,9 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #elif defined(arch_power)
                 relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
+            } else {
+                fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    newRels[i].name().c_str());
             }
             k++;
         }
@@ -1317,7 +1377,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
     }
 }
 #if !defined(os_solaris)
-void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
+void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
 
     //Add all names to the new .dynstr section
     map<string, unsigned>::iterator iter = versionNames.begin();
@@ -1343,11 +1403,17 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
     verneednum = 0;
     std::vector<std::string>::iterator dit;
     for(dit = unversionedNeededEntries.begin(); dit != unversionedNeededEntries.end(); dit++) {
-        versionNames[*dit] = dynSymbolNamesLength;
-        dynStrs.push_back(*dit);
-        dynSymbolNamesLength+= (*dit).size()+1;
-        if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), *dit) == DT_NEEDEDEntries.end())
-            DT_NEEDEDEntries.push_back(*dit);
+        // account for any substitutions due to rewriting a shared lib
+        std::string name = obj->getDynLibSubstitution(*dit);
+        // no need for self-references
+        if (!(obj->name() == name)) {
+            //printf("adding unversioned entry: %s [%s]\n", name.c_str(), obj->name().c_str());
+            versionNames[name] = dynSymbolNamesLength;
+            dynStrs.push_back(name);
+            dynSymbolNamesLength+= (name).size()+1;
+            if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), name) == DT_NEEDEDEntries.end())
+                DT_NEEDEDEntries.push_back(name);
+        }
     }
     for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
        Elf64_Verneed *verneed = (Elf64_Verneed *)(void*)(verneedSecData+curpos);
@@ -1368,7 +1434,7 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
            Elf64_Vernaux *vernaux = (Elf64_Vernaux *)(void*)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf64_Vernaux));
             vernaux->vna_hash = elfHash(iter->first.c_str());
-            vernaux->vna_flags = 1;
+            vernaux->vna_flags = 0;
             vernaux->vna_other = iter->second;
             vernaux->vna_name = versionNames[iter->first];
             if(i == verneed->vn_cnt-1)
@@ -1387,10 +1453,11 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
 
     verdefSecData = (char *)malloc(verdefSecSize);
     curpos = 0;
+    verdefnum = 0;
     for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++){
        Elf64_Verdef *verdef = (Elf64_Verdef *)(void*)(verdefSecData+curpos);
         verdef->vd_version = 1;
-        verdef->vd_flags = 1;
+        verdef->vd_flags = 0;
         verdef->vd_ndx = iter->second;
         verdef->vd_cnt = verdauxEntries[iter->second].size();
         verdef->vd_hash = elfHash(iter->first.c_str());
@@ -1398,6 +1465,7 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
         verdef->vd_next = sizeof(Elf64_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf64_Verdaux);
         if(curpos + verdef->vd_next == verdefSecSize)
             verdef->vd_next = 0;
+        verdefnum++;
         for(unsigned i = 0; i< verdauxEntries[iter->second].size(); i++){
            Elf64_Verdaux *verdaux = (Elf64_Verdaux *)(void*)(verdefSecData + curpos + verdef->vd_aux + i*sizeof(Elf64_Verdaux));
             verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
@@ -1405,11 +1473,35 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
                 verdaux->vda_next = 0;
             else
                 verdaux->vda_next = sizeof(Elf64_Verdaux);
-            i++;
         }
         curpos += verdef->vd_next;
     }
     return;
+}
+
+void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
+{
+    vector<Symbol *>::iterator iter;
+    dyn_hash_map<unsigned, unsigned> lastHash; // bucket number to symbol index
+    unsigned nbuckets = (unsigned)dynSymbols.size()*2/3;
+    unsigned nchains = (unsigned)dynSymbols.size();
+    hashsecSize = 2 + nbuckets + nchains;
+    hashsecData = (Elf64_Word *)malloc(hashsecSize*sizeof(Elf64_Word));
+    hashsecData[0] = (Elf64_Word)nbuckets;
+    hashsecData[1] = (Elf64_Word)nchains;
+    unsigned i=0, key;
+    for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
+        key = elfHash((*iter)->getName().c_str()) % nbuckets;
+        if (lastHash.find(key) != lastHash.end()) {
+            hashsecData[2+nbuckets+lastHash[key]] = i;
+        }
+        else {
+            hashsecData[2+key] = i;
+        }
+        lastHash[key] = i;
+        hashsecData[2+nbuckets+i] = STN_UNDEF;
+        i++;
+    }
 }
 
 void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs) {

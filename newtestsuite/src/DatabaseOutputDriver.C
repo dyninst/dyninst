@@ -1,3 +1,4 @@
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -6,7 +7,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#ifdef os_windows_test
+#ifdef os_windows
 #define MAX_USER_NAME	256
 #include <windows.h>
 #else
@@ -19,7 +20,10 @@
 #include "DatabaseOutputDriver.h"
 
 extern "C" {
-TestOutputDriver *outputDriver_factory(void * data) { return new DatabaseOutputDriver(data); }
+	TestOutputDriver *outputDriver_factory(void * data) 
+	{ 
+		return new DatabaseOutputDriver(data); 
+	}
 }
 
 DatabaseOutputDriver::DatabaseOutputDriver(void * data)
@@ -44,9 +48,7 @@ DatabaseOutputDriver::~DatabaseOutputDriver() {
 
 void
 DatabaseOutputDriver::startNewTest(std::map<std::string,
-				   std::string> &attrs,
-				   TestInfo *,
-				   RunGroup *)
+				            std::string> &attrs, TestInfo *test, RunGroup *group)
 {
   // This needs to set up a log file to store output from all streams
   if (attributes != NULL) {
@@ -103,7 +105,7 @@ void DatabaseOutputDriver::vlog(TestOutputStream stream, const char *fmt,
   FILE *dbout = NULL;
 
   if (dblogFilename.empty()) {
-#if defined(os_windows_test)
+#if defined(os_windows)
      char *tfile = _tempnam(".", "dts");
      if (tfile) {
         dbout = fopen(tfile, "w+b");
@@ -201,7 +203,7 @@ void DatabaseOutputDriver::finalizeOutput() {
 		
 		std::string userName;
 
-#ifdef os_windows_test
+#ifdef os_windows
 		char * szUserName = new char[MAX_USER_NAME + 1];
 		LPDWORD lpnSize = (LPDWORD)malloc(sizeof(DWORD));
 		*lpnSize = MAX_USER_NAME + 1;

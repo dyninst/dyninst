@@ -13,44 +13,108 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   RunGroup *rg;
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_g++_32_low", STOPPED, CREATE, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_g++_32_high", STOPPED, CREATE, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_g++_32_max", STOPPED, CREATE, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_xlC_32_none", STOPPED, CREATE, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_xlC_32_low", STOPPED, CREATE, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_xlC_32_high", STOPPED, CREATE, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_xlC_32_max", STOPPED, CREATE, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_2", "test5_2", "test5_2.so", "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test5_3", "test5_3", "test5_3.so", "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_4", "test5_4", "test5_4.so", "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_5", "test5_5", "test5_5.so", "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_7", "test5_7", "test5_7.so", "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_8", "test5_8", "test5_8.so", "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test5_9", "test5_9", "test5_9.so", "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -71,26 +135,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -111,26 +183,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_1.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_1", "test_mem_1", "test_mem_1.so", "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -151,26 +231,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -191,26 +279,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_2, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -231,26 +327,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -271,26 +375,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_3, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -311,26 +423,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -351,26 +471,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_4, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -391,26 +519,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -431,26 +567,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_5, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -471,26 +615,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -511,26 +663,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_6, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -551,26 +711,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -591,26 +759,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_7, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -631,26 +807,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -671,26 +855,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_8, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -711,26 +903,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -751,26 +951,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_1.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_1", "test_thread_1", "test_thread_1.so", "{test: test_thread_1, mutator: test_thread_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_1, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -791,26 +999,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -831,26 +1047,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_2.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_2", "test_thread_2", "test_thread_2.so", "{test: test_thread_2, mutator: test_thread_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_2, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -871,26 +1095,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -911,26 +1143,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_3.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_3", "test_thread_3", "test_thread_3.so", "{test: test_thread_3, mutator: test_thread_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_3, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -951,26 +1191,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -991,26 +1239,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_5.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_5", "test_thread_5", "test_thread_5.so", "{test: test_thread_5, mutator: test_thread_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_thread_5, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -1051,46 +1307,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_none", SELFSTART, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_low", SELFSTART, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_high", SELFSTART, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlc_32_max", SELFSTART, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -1131,46 +1403,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_none", SELFSTART, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_low", SELFSTART, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_high", SELFSTART, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_6.mutatee_solo_xlC_32_max", SELFSTART, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_6", "test_thread_6", "test_thread_6.so", "{test: test_thread_6, mutator: test_thread_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_6, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -1201,46 +1489,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_none", SELFSTART, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_low", SELFSTART, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_high", SELFSTART, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlc_32_max", SELFSTART, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -1271,46 +1575,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_none", SELFSTART, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_low", SELFSTART, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_high", SELFSTART, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_7.mutatee_solo_xlC_32_max", SELFSTART, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_7", "test_thread_7", "test_thread_7.so", "{test: test_thread_7, mutator: test_thread_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_7, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -1351,46 +1671,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_none", SELFSTART, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_low", SELFSTART, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_high", SELFSTART, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlc_32_max", SELFSTART, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -1431,46 +1767,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_none", SELFSTART, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_low", SELFSTART, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_high", SELFSTART, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_thread_8.mutatee_solo_xlC_32_max", SELFSTART, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_thread_8", "test_thread_8", "test_thread_8.so", "{test: test_thread_8, mutator: test_thread_8, grouped: false, start_state: selfstart, abi: 32, mutatee: test_thread_8, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("", SELFSTART, CREATE, true, "dyninst", "", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_1", "test2_1", "test2_1.so", "{test: test2_1, mutator: test2_1, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
@@ -1526,7 +1878,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -1569,7 +1920,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
@@ -1612,7 +1962,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
@@ -1655,7 +2004,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
@@ -1698,7 +2046,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
@@ -1741,7 +2088,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
@@ -1784,7 +2130,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
@@ -1827,7 +2172,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
@@ -1835,6 +2179,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_none", STOPPED, CREATE, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
@@ -1870,7 +2215,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
@@ -1878,6 +2222,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
@@ -1913,7 +2259,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
@@ -1921,6 +2266,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_low", STOPPED, CREATE, false, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
@@ -1956,7 +2303,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
@@ -1964,6 +2310,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, false, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
@@ -1999,7 +2347,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
@@ -2007,6 +2354,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_high", STOPPED, CREATE, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
@@ -2042,7 +2391,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
@@ -2050,6 +2398,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
@@ -2085,7 +2435,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
@@ -2093,6 +2442,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_max", STOPPED, CREATE, false, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
@@ -2128,7 +2479,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
@@ -2136,6 +2486,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, false, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
@@ -2171,7 +2523,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
@@ -2179,6 +2530,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -2214,7 +2566,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -2257,7 +2608,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
@@ -2300,7 +2650,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
@@ -2343,7 +2692,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
@@ -2386,7 +2734,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
@@ -2429,7 +2776,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
@@ -2472,7 +2818,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
@@ -2515,7 +2860,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
@@ -2523,6 +2867,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_none", STOPPED, CREATE, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
@@ -2558,7 +2903,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
@@ -2566,6 +2910,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
@@ -2601,7 +2947,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
@@ -2609,6 +2954,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_low", STOPPED, CREATE, false, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
@@ -2644,7 +2991,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
@@ -2652,6 +2998,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, false, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
@@ -2687,7 +3035,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
@@ -2695,6 +3042,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_high", STOPPED, CREATE, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
@@ -2730,7 +3079,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
@@ -2738,6 +3086,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
@@ -2773,7 +3123,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
@@ -2781,6 +3130,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_max", STOPPED, CREATE, false, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
@@ -2816,7 +3167,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
@@ -2824,6 +3174,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, false, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
@@ -2859,7 +3211,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_7", "test1_7", "test1_7.so", "{test: test1_7, mutator: test1_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_8", "test1_8", "test1_8.so", "{test: test1_8, mutator: test1_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_9", "test1_9", "test1_9.so", "{test: test1_9, mutator: test1_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
-  rg->tests.push_back(new TestInfo(test_count++, "test2_10", "test2_10", "test2_10.so", "{test: test2_10, mutator: test2_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_11", "test2_11", "test2_11.so", "{test: test2_11, mutator: test2_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_12", "test2_12", "test2_12.so", "{test: test2_12, mutator: test2_12, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
@@ -2867,102 +3218,135 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_none", STOPPED, CREATE, false, "symtab", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_low", STOPPED, CREATE, false, "symtab", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_high", STOPPED, CREATE, false, "symtab", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_max", STOPPED, CREATE, false, "symtab", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlc_32_none", STOPPED, CREATE, false, "symtab", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlc_32_low", STOPPED, CREATE, false, "symtab", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlc_32_high", STOPPED, CREATE, false, "symtab", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlc_32_max", STOPPED, CREATE, false, "symtab", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "symtab", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_low", STOPPED, CREATE, false, "symtab", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_high", STOPPED, CREATE, false, "symtab", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_max", STOPPED, CREATE, false, "symtab", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlC_32_none", STOPPED, CREATE, false, "symtab", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlC_32_low", STOPPED, CREATE, false, "symtab", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlC_32_high", STOPPED, CREATE, false, "symtab", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_xlC_32_max", STOPPED, CREATE, false, "symtab", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -3003,46 +3387,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -3083,46 +3483,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_12.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_12", "test1_12", "test1_12.so", "{test: test1_12, mutator: test1_12, grouped: false, start_state: stopped, abi: 32, mutatee: test1_12, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -3163,46 +3579,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -3243,46 +3675,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_14.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -3323,46 +3771,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -3403,46 +3867,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_15.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_15", "test1_15", "test1_15.so", "{test: test1_15, mutator: test1_15, grouped: false, start_state: stopped, abi: 32, mutatee: test1_15, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -3483,46 +3963,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -3563,46 +4059,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_19.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_19", "test1_19", "test1_19.so", "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_gcc_32_none", STOPPED, CREATE, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -3643,46 +4155,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_none", STOPPED, CREATE, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_low", STOPPED, CREATE, false, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, false, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_high", STOPPED, CREATE, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_max", STOPPED, CREATE, false, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, false, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -3723,46 +4251,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_none", STOPPED, CREATE, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_low", STOPPED, CREATE, false, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, false, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_high", STOPPED, CREATE, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_max", STOPPED, CREATE, false, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_29.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, false, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_29", "test1_29", "test1_29.so", "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_40.mutatee_solo_gcc_32_none", STOPPED, CREATE, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_40", "test1_40", "test1_40.so", "{test: test1_40, mutator: test1_40, grouped: false, start_state: stopped, abi: 32, mutatee: test1_40, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -3863,26 +4407,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -3903,26 +4455,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test1_41.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_41", "test1_41", "test1_41.so", "{test: test1_41, mutator: test1_41, grouped: false, start_state: selfstart, abi: 32, mutatee: test1_41, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -3963,46 +4523,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4043,46 +4619,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_6.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_6", "test2_6", "test2_6.so", "{test: test2_6, mutator: test2_6, grouped: false, start_state: stopped, abi: 32, mutatee: test2_6, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4123,46 +4715,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4203,46 +4811,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_8.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_8", "test2_8", "test2_8.so", "{test: test2_8, mutator: test2_8, grouped: false, start_state: stopped, abi: 32, mutatee: test2_8, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4283,46 +4907,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_none", STOPPED, USEATTACH, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_low", STOPPED, USEATTACH, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_high", STOPPED, USEATTACH, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlc_32_max", STOPPED, USEATTACH, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4363,46 +5003,62 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_none", STOPPED, USEATTACH, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_low", STOPPED, USEATTACH, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_high", STOPPED, USEATTACH, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test2_14.mutatee_solo_xlC_32_max", STOPPED, USEATTACH, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_14", "test2_14", "test2_14.so", "{test: test2_14, mutator: test2_14, grouped: false, start_state: stopped, abi: 32, mutatee: test2_14, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4423,26 +5079,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4463,26 +5127,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_1.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_1", "test3_1", "test3_1.so", "{test: test3_1, mutator: test3_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_1, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4503,26 +5175,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4543,26 +5223,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_2.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_2", "test3_2", "test3_2.so", "{test: test3_2, mutator: test3_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_2, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4583,26 +5271,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4623,26 +5319,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_3.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_3", "test3_3", "test3_3.so", "{test: test3_3, mutator: test3_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_3, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4663,26 +5367,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4703,26 +5415,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_4.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_4", "test3_4", "test3_4.so", "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4743,26 +5463,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4783,26 +5511,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_5.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_5", "test3_5", "test3_5.so", "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4823,26 +5559,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4863,26 +5607,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_6.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_6", "test3_6", "test3_6.so", "{test: test3_6, mutator: test3_6, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_6, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4903,26 +5655,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4943,26 +5703,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test3_7.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test3_7", "test3_7", "test3_7.so", "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4983,26 +5751,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5023,26 +5799,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_1.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_1", "test4_1", "test4_1.so", "{test: test4_1, mutator: test4_1, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_1, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5063,26 +5847,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5103,26 +5895,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_2.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_2", "test4_2", "test4_2.so", "{test: test4_2, mutator: test4_2, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_2, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5143,26 +5943,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5183,26 +5991,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_3.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_3", "test4_3", "test4_3.so", "{test: test4_3, mutator: test4_3, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_3, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_gcc_32_none", SELFSTART, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5223,26 +6039,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlc_32_none", SELFSTART, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlc_32_low", SELFSTART, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlc_32_high", SELFSTART, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlc_32_max", SELFSTART, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_g++_32_none", SELFSTART, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5263,26 +6087,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlC_32_none", SELFSTART, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlC_32_low", SELFSTART, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlC_32_high", SELFSTART, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test4_4.mutatee_solo_xlC_32_max", SELFSTART, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test4_4", "test4_4", "test4_4.so", "{test: test4_4, mutator: test4_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test4_4, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5303,26 +6135,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5343,26 +6183,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_5.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_5", "test_fork_5", "test_fork_5.so", "{test: test_fork_5, mutator: test_fork_5, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_5, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5383,26 +6231,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5423,26 +6279,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_6.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_6", "test_fork_6", "test_fork_6.so", "{test: test_fork_6, mutator: test_fork_6, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_6, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5463,26 +6327,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5503,26 +6375,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_7.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_7", "test_fork_7", "test_fork_7.so", "{test: test_fork_7, mutator: test_fork_7, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_7, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5543,26 +6423,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5583,26 +6471,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_8.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_8", "test_fork_8", "test_fork_8.so", "{test: test_fork_8, mutator: test_fork_8, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_8, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5623,26 +6519,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5663,26 +6567,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_9.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_9", "test_fork_9", "test_fork_9.so", "{test: test_fork_9, mutator: test_fork_9, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_9, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5703,26 +6615,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5743,26 +6663,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_10.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_10", "test_fork_10", "test_fork_10.so", "{test: test_fork_10, mutator: test_fork_10, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_10, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5783,26 +6711,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5823,26 +6759,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_11.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_11", "test_fork_11", "test_fork_11.so", "{test: test_fork_11, mutator: test_fork_11, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_11, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5863,26 +6807,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5903,26 +6855,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_12.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_12", "test_fork_12", "test_fork_12.so", "{test: test_fork_12, mutator: test_fork_12, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_12, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5943,26 +6903,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5983,26 +6951,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_fork_13.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_fork_13", "test_fork_13", "test_fork_13.so", "{test: test_fork_13, mutator: test_fork_13, grouped: false, start_state: stopped, abi: 32, mutatee: test_fork_13, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -6023,26 +6999,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -6063,26 +7047,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_1.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_1", "test_stack_1", "test_stack_1.so", "{test: test_stack_1, mutator: test_stack_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_1, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -6103,26 +7095,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -6143,26 +7143,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_2.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_2", "test_stack_2", "test_stack_2.so", "{test: test_stack_2, mutator: test_stack_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_2, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -6183,26 +7191,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -6223,26 +7239,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_stack_3.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_stack_3", "test_stack_3", "test_stack_3.so", "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -6263,26 +7287,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -6303,26 +7335,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_1.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_1", "test_callback_1", "test_callback_1.so", "{test: test_callback_1, mutator: test_callback_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_1, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -6343,26 +7383,34 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlc_32_none", STOPPED, CREATE, true, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlc_32_low", STOPPED, CREATE, true, "dyninst", "xlc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlc_32_high", STOPPED, CREATE, true, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlc_32_max", STOPPED, CREATE, true, "dyninst", "xlc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -6383,24 +7431,32 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlC_32_none", STOPPED, CREATE, true, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlC_32_low", STOPPED, CREATE, true, "dyninst", "xlC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlC_32_high", STOPPED, CREATE, true, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_callback_2.mutatee_solo_xlC_32_max", STOPPED, CREATE, true, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_callback_2", "test_callback_2", "test_callback_2.so", "{test: test_callback_2, mutator: test_callback_2, grouped: false, start_state: stopped, abi: 32, mutatee: test_callback_2, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+#endif // defined(XLC)
 }

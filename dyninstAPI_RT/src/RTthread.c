@@ -190,8 +190,8 @@ static unsigned threadCreate(dyntid_t tid)
       rt_newthr_cb(index);
    }
 
-   //Only async for now.  We should parameterize this function to also have a
-   // sync option.
+   /*Only async for now.  We should parameterize this function to also have a*/
+   /* sync option.*/
    asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
                         sizeof(BPatch_newThreadEventRecord));
    rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
@@ -207,9 +207,9 @@ void DYNINSTthreadDestroy()
 {
    dyntid_t tid = dyn_pthread_self();
    int index = DYNINSTthreadIndex();
-   //   int pid = dyn_pid_self();
+   /*   int pid = dyn_pid_self();*/
    int err;
-   //   BPatch_deleteThreadEventRecord rec;
+   /*   BPatch_deleteThreadEventRecord rec;*/
 
   rtdebug_printf("%s[%d]: DESTROY freeing index for thread %lu, index = %d\n", 
                  __FILE__, __LINE__, tid, index);
@@ -239,8 +239,8 @@ void DYNINSTthreadDestroy()
 volatile int DYNINST_dummy_create_var;
 void DYNINST_dummy_create()
 {
-   //   fprintf(stderr, "[%s:%u] - In DYNINST_dummy_create\n", __FILE__, __LINE__);
-   //DYNINST_dummy_create_var++;
+   /*   fprintf(stderr, "[%s:%u] - In DYNINST_dummy_create\n", __FILE__, __LINE__);*/
+   /*DYNINST_dummy_create_var++;*/
 }
 
 /**

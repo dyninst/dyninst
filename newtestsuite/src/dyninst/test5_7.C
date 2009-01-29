@@ -60,7 +60,7 @@ class test5_7_Mutator : public DyninstMutator {
 public:
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test5_7_factory() {
+extern "C" DLLEXPORT TestMutator *test5_7_factory() {
   return new test5_7_Mutator();
 }
 
@@ -69,8 +69,6 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_7_factory() {
 //
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_7_Mutator::executeTest() {
-#if defined(os_solaris_test) || defined(os_windows_test) || defined(os_linux_test)
-
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "template_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
@@ -170,8 +168,4 @@ test_results_t test5_7_Mutator::executeTest() {
    checkCost(call7Expr);
    appThread->insertSnippet(call7Expr, *point7_4);
    return PASSED;
-#else
-   // Test skipped on unsupported platforms
-   return SKIPPED;
-#endif
 }

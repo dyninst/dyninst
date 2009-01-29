@@ -60,7 +60,7 @@ class test5_3_Mutator : public DyninstMutator {
 public:
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test5_3_factory() {
+extern "C" DLLEXPORT TestMutator *test5_3_factory() {
   return new test5_3_Mutator();
 }
 
@@ -123,10 +123,10 @@ test_results_t test5_3_Mutator::executeTest() {
   }
   BPatch_function *call3_1 = bpfv[0];  
   
-  BPatch_variableExpr *this2 = appImage->findVariable("test3");
+  BPatch_variableExpr *this2 = appImage->findVariable("test5_3_test3");
   if (this2 == NULL) {
     logerror( "**Failed** test #3 (overloaded operation)\n");
-    logerror( "Unable to find variable \"test3\"\n");
+    logerror( "Unable to find variable \"test5_3_test3\"\n");
     return FAILED;
   }
 

@@ -69,7 +69,7 @@ public:
   virtual test_results_t executeTest();
   virtual test_results_t mutatorTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test4_4_factory() {
+extern "C" DLLEXPORT  TestMutator *test4_4_factory() {
   return new test4_4_Mutator();
 }
 
@@ -289,7 +289,7 @@ test_results_t test4_4_Mutator::executeTest() {
   return rv;
 }
 
-// extern "C" TEST_DLL_EXPORT int test4_4_mutatorMAIN(ParameterDict &param)
+// extern "C" DLLEXPORT TEST_DLL_EXPORT int test4_4_mutatorMAIN(ParameterDict &param)
 test_results_t test4_4_Mutator::setup(ParameterDict &param) {
     pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

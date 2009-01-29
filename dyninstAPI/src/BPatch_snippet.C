@@ -173,7 +173,7 @@ float BPatch_snippet::getCostAtPointInt(BPatch_point *pt)
                            + getInsnCost(trampTrailer);
 
     timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
-    float frequency = getPointFrequency(pt->point);
+    float frequency = 1.0f;
     timeLength value = unitCost * frequency;
 
   float retCost = static_cast<float>(value.getD(timeUnit::sec()));
@@ -248,18 +248,19 @@ AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand,
       
     }
     else if (strcmp(indexType->getName(), "int")
-        && strcmp(indexType->getName(), "short")
-        && strcmp(indexType->getName(), "long")
-        && strcmp(indexType->getName(), "unsigned int")
-        && strcmp(indexType->getName(), "unsigned short")
-        && strcmp(indexType->getName(), "unsigned long")
-        && strcmp(indexType->getName(), "unsigned")) {
+             && strcmp(indexType->getName(), "short")
+             && strcmp(indexType->getName(), "long")
+             && strcmp(indexType->getName(), "signed")
+             && strcmp(indexType->getName(), "unsigned int")
+             && strcmp(indexType->getName(), "unsigned short")
+             && strcmp(indexType->getName(), "unsigned long")
+             && strcmp(indexType->getName(), "unsigned")) {
         char err_buf[256];
         sprintf(err_buf, "%s[%d]: non-integer array index type %s\n",
                 __FILE__, __LINE__,  indexType->getName());
         fprintf(stderr, "%s\n", err_buf);
 	BPatch_reportError(BPatchSerious, 109, err_buf);
-        return new AstNodePtr();
+        return NULL;
     }
     //fprintf(stderr, "%s[%d]:  indexing with type %s\n", __FILE__, __LINE__, 
     //        indexType->getName());
@@ -431,8 +432,8 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
     };
 
     ast_wrapper = new AstNodePtr(AstNode::operatorNode(astOp,
-                                                              *(lOperand.ast_wrapper),
-                                                              *(rOperand.ast_wrapper)));
+                                                       *(lOperand.ast_wrapper),
+                                                       *(rOperand.ast_wrapper)));
 
     (*ast_wrapper)->setType((*(lOperand.ast_wrapper))->getType());
     (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());

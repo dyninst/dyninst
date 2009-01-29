@@ -236,6 +236,9 @@ BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegionsInt(bool incUninst
  */
 BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 {
+   if (!addSpace)
+      return NULL;
+
    BPatch_Vector<BPatch_variableExpr *> *varlist = new BPatch_Vector<BPatch_variableExpr *>;
    if (!varlist) return NULL;
 
@@ -250,6 +253,9 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 bool BPatch_image::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
    bool some_succeeded = false;
+
+   if (!addSpace)
+      return false;
 
    BPatch_Vector<BPatch_module *> mods;
    getModules(mods);
@@ -779,6 +785,10 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name,
     std::vector<AddressSpace *> as;
     int_variable *var = NULL;
     AddressSpace *var_as = NULL;
+    
+    if (!addSpace)
+       return NULL;
+    
     addSpace->getAS(as);
 
     for (unsigned i=0; i<as.size(); i++) {

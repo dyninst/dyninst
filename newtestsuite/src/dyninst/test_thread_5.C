@@ -76,7 +76,7 @@ public:
   virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test_thread_5_factory() {
+extern "C" DLLEXPORT TestMutator *test_thread_5_factory() {
   return new test_thread_5_Mutator();
 }
 

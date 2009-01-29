@@ -228,7 +228,7 @@ extern unsigned int bcExp[];
 void init_test_data();
 #endif /* defined(alpha_dec_osf4_0_test) */
 
-#if defined(arch_power) && defined(os_linux_test)
+#if defined(arch_power_test) && defined(os_linux_test)
 #define loadExp 0
 #define storeExp 0
 #define prefeExp 0

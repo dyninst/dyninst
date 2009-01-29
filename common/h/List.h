@@ -1,12 +1,25 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
+ * Copyright (c) 1996 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
- * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * described as Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
  * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
@@ -14,19 +27,16 @@
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 // $Id: List.h,v
@@ -35,12 +45,8 @@
 #define LIST_H
 
 #include "common/h/language.h"
-#include "common/h/std_namesp.h"
-#include <cstring>
-
-#if defined(__XLC__) || defined(__xlC__)
-#pragma implementation ("../src/List.C")
-#endif
+#include <string.h>
+#include <ostream>
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -147,6 +153,8 @@ template <class DataType, class KeyType> class ListBase {
    ~ListBase() {
       clear();
    }
+   friend std::ostream &operator<<(std::ostream &os, 
+			      const ListBase<DataType, KeyType> &data);
 
    // returns the first element
    DataType &front() { return *(begin()); }  
@@ -224,13 +232,13 @@ template <class DataType, class KeyType> class ListBase {
 };
 
 template <class DataType, class KeyType>
-ostream &operator<<(ostream &os, 
+inline std::ostream &operator<<(std::ostream &os, 
 			   const ListBase<DataType, KeyType> &data) {
    TYPENAME ListBase<DataType, KeyType>::iterator curr = data.begin();
    TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
    
    for(; curr != endMarker; ++curr) {
-      os << *curr << endl;
+      os << *curr << std::endl;
    }
    return os;
 }
@@ -241,6 +249,10 @@ template <class DataType> class List : public ListBase<DataType, void*> {
    List() : ListBase<DataType, KeyType>() { };
    List(const List &fromList) : ListBase<DataType, KeyType>(fromList) { }
    ~List() { }  // ~ListBase will be called
+   friend std::ostream &operator<<(std::ostream &os, 
+			      const List<DataType> &data) {
+      return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
+   }
 
    void push_front(DataType &data) {
       __push_front(data, static_cast<KeyType>(NULL));
@@ -260,13 +272,6 @@ template <class DataType> class List : public ListBase<DataType, void*> {
 };
 
 
-template <class DataType, class KeyType>
-ostream& operator<<(ostream& os, const List<DataType>& data) 
-{
-    return data.operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
-}
-
-
 template <class DataType, class KeyType> class ListWithKey : 
 public ListBase<DataType, KeyType> {
  public:
@@ -274,6 +279,11 @@ public ListBase<DataType, KeyType> {
    ListWithKey(const ListWithKey &fromList) : 
       ListBase<DataType, KeyType>(fromList) {}
    ~ListWithKey() { }  // ~ListBase will be called
+   friend std::ostream &operator<<(std::ostream &os,
+			      const ListWithKey<DataType, KeyType> &data)
+   {
+      return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
+   }
 
    void push_front(DataType &data, KeyType &key) {
       __push_front(data, key);
@@ -299,18 +309,25 @@ public ListBase<DataType, KeyType> {
 };
 
 
-template <class DataType, class KeyType>
-ostream& operator<<(ostream& os, const ListWithKey<DataType, KeyType>& data)
-{
-    return operator<<(os, static_cast<ListBase<DataType, KeyType> >(data));
-}
-
-
-template <class Type> ostream &operator<<(ostream &os, 
+template <class Type> std::ostream &operator<<(std::ostream &os, 
                                           HTable<Type> &data);
 
 template <class Type> class HTable {
     public:
+	// placing function def here makes gcc happy 
+  // VG(06/15/02): that nonstandard hack doesn't work with gcc 3.1...
+  // let's do this properly:
+  // (1) the function needs to be already declared (above)
+  // (2) add <> after name here, so only that instantiation is friended
+  // (3) the function is defined after this class
+  // Of course, old broken compilers don't like the standard, so we just
+  // write something that compiles (as was the case before).
+  // BTW, is this operator used anywhere?
+#if (defined(i386_unknown_nt4_0) && _MSC_VER < 1300) || defined(mips_sgi_irix6_4)
+  friend std::ostream& operator<< (std::ostream &os, HTable<Type> &data);
+#else
+  friend std::ostream& operator<< <> (std::ostream &os, HTable<Type> &data);
+#endif
 
 	HTable(Type data) { (void) HTable(); add(data, (void *) data); }
 	DO_INLINE_F void add(Type data, void *key);
@@ -384,7 +401,7 @@ template <class Type> class HTable {
 };
 
 
-template <class Type> ostream &operator<<(ostream &os,
+template <class Type> std::ostream &operator<<(std::ostream &os,
                                           HTable<Type> &data) {
   int i, total;
   
@@ -460,29 +477,20 @@ template <class Type> DO_INLINE_F  bool HTable<Type>::remove(void *key)
 
 template <class Type> class StringList: public List<Type> {
     public:
-	DO_INLINE_F Type find(void *key);
+	DO_INLINE_F Type find(void *key)
+	{
+	  // This didn't use to have StringList<Type>::, but it barfs without it, 
+	  //so... - TLM (2002/08/06)
+	  typename StringList<Type>::node *it;
+	  
+	  for (it=this->head; it; it=it->next) {
+	    if (!strcmp((char *) it->key, (char *) key)) {
+	      return(it->data);
+	    }
+	  }
+	  return((Type) 0);
+	}
 };
 
-template <class Type> DO_INLINE_F Type StringList<Type>::find(void *data) 
-{
-    // This didn't use to have StringList<Type>::, but it barfs without it, so... - TLM (2002/08/06)
-#if defined(__XLC__) || defined(__xlC__)
-    node *curr;
-#else
-    TYPENAME StringList<Type>::node *curr;
-#endif
-
-    for (curr=ListBase<Type,void*>::head; curr; curr=curr->next) {
-	if (!strcmp((char *) curr->key, (char *) data)) {
-	    return(curr->data);
-	}
-    }
-    return((Type) 0);
-}
-
-#if defined (__XLC__) || defined(__xlC__)
-#define LIST_C_IS_HEADER
-#include "../src/List.C"
-#endif
 
 #endif /* LIST_H */

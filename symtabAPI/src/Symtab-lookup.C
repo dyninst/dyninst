@@ -140,9 +140,16 @@ bool Symtab::findSymbolByType(std::vector<Symbol *> &ret, const std::string name
     }
 }
 
-bool Symtab::findAllSymbols(std::vector<Symbol *> &ret)
+bool Symtab::getAllSymbols(std::vector<Symbol *> &ret)
 {
     ret = everyDefinedSymbol;
+
+    // add undefined symbols
+    std::vector<Symbol *> temp;
+    std::vector<Symbol *>::iterator it;
+    getAllUndefinedSymbols(temp);
+    for (it = temp.begin(); it != temp.end(); it++)
+        ret.push_back(*it);
 
     if(ret.size() > 0)
         return true;
@@ -153,7 +160,7 @@ bool Symtab::findAllSymbols(std::vector<Symbol *> &ret)
 bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType sType)
 {
     if (sType == Symbol::ST_UNKNOWN)
-        return findAllSymbols(ret);
+        return getAllSymbols(ret);
 
     unsigned old_size = ret.size();
     // Filter by the given type
@@ -161,6 +168,14 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
         if (everyDefinedSymbol[i]->getType() == sType)
             ret.push_back(everyDefinedSymbol[i]);
     }
+    // add undefined symbols
+    std::vector<Symbol *> temp;
+    getAllUndefinedSymbols(temp);
+    for (unsigned i = 0; i < temp.size(); i++) {
+        if (temp[i]->getType() == sType)
+            ret.push_back(temp[i]);
+    }
+
     if (ret.size() > old_size) {
         return true;
     }
@@ -170,12 +185,23 @@ bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType 
     }
 }
 
+bool Symtab::getAllDefinedSymbols(std::vector<Symbol *> &ret)
+{
+    ret = everyDefinedSymbol;
+
+    if(ret.size() > 0)
+        return true;
+    serr = No_Such_Symbol;
+    return false;
+}
  
 bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
     unsigned size = ret.size();
-    map<string, Symbol *>::iterator it = undefDynSyms.begin();
-    for(;it!=undefDynSyms.end();it++)
-        ret.push_back(it->second);
+    map<string, std::vector<Symbol *> >::iterator it;
+    std::vector<Symbol *>::iterator it2;
+    for (it = undefDynSyms.begin(); it != undefDynSyms.end(); it++)
+        for (it2 = it->second.begin(); it2 != it->second.end(); it2++)
+            ret.push_back(*it2);
     if(ret.size()>size)
         return true;
     serr = No_Such_Symbol;
@@ -259,18 +285,20 @@ bool Symtab::findVariablesByName(std::vector<Variable *> &ret, const std::string
     return true;
 }
 
-bool Symtab::getAllVariables(std::vector<Variable *> &ret) {
+bool Symtab::getAllVariables(std::vector<Variable *> &ret) 
+{
     ret = everyVariable;
     return (ret.size() > 0);
 }
 
 bool Symtab::getAllModules(std::vector<Module *> &ret)
 {
-    if(_mods.size()>0)
+    if (_mods.size() >0 )
     {
         ret = _mods;
         return true;
     }	
+
     serr = No_Such_Module;
     return false;
 }
@@ -278,9 +306,12 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
 bool Symtab::findModuleByOffset(Module *&ret, Offset off)
 {   
    //  this should be a hash, really
-   for (unsigned int i = 0; i < _mods.size(); ++i) {
+   for (unsigned int i = 0; i < _mods.size(); ++i) 
+   {
       Module *mod = _mods[i];
-      if (off == mod->addr()) {
+
+      if (off == mod->addr()) 
+      {
           ret = mod;
           return true;
       }
@@ -292,48 +323,56 @@ bool Symtab::findModuleByName(Module *&ret, const std::string name)
 {
    dyn_hash_map<std::string, Module *>::iterator loc;
    loc = modsByFileName.find(name);
-   if (loc != modsByFileName.end()) {
+
+   if (loc != modsByFileName.end()) 
+   {
       ret = loc->second;
       return true;
    }
+
    loc = modsByFullName.find(name);
-   if (loc != modsByFullName.end()) {
+
+   if (loc != modsByFullName.end()) 
+   {
       ret = loc->second;
       return true;
    }
-    serr = No_Such_Module;
-    ret = NULL;
-    return false;
+
+   serr = No_Such_Module;
+   ret = NULL;
+   return false;
 }
 
 bool Symtab::getAllRegions(std::vector<Region *>&ret)
 {
-    if(regions_.size() > 0)
-    {
-        ret = regions_;
-        return true;
-    }
-    return false;
+   if (regions_.size() > 0)
+   {
+      ret = regions_;
+      return true;
+   }
+
+   return false;
 }
 
 bool Symtab::getCodeRegions(std::vector<Region *>&ret)
 {
-    if (codeRegions_.size() > 0)
-    {
-        ret = codeRegions_;
-        return true;
-    }
-    return false;
+   if (codeRegions_.size() > 0)
+   {
+      ret = codeRegions_;
+      return true;
+   }
+
+   return false;
 }
 
 bool Symtab::getDataRegions(std::vector<Region *>&ret)
 {
-    if (dataRegions_.size() > 0)
-    {
-        ret = dataRegions_;
-        return true;
-    }
-    return false;
+   if (dataRegions_.size() > 0)
+   {
+      ret = dataRegions_;
+      return true;
+   }
+   return false;
 }
 
 extern AnnotationClass<std::vector<Region *> > UserRegionsAnno;
@@ -361,26 +400,28 @@ bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 
 bool Symtab::getAllExceptions(std::vector<ExceptionBlock *> &exceptions)
 {
-    if (excpBlocks.size()>0)
-    {
-        exceptions = excpBlocks;
-        return true;
-    }	
-    return false;
+   if (excpBlocks.size()>0)
+   {
+      exceptions = excpBlocks;
+      return true;
+   }	
+
+   return false;
 }
 
 
 bool Symtab::findException(ExceptionBlock &excp, Offset addr)
 {
-    for(unsigned i=0; i<excpBlocks.size(); i++)
-    {
-        if(excpBlocks[i]->contains(addr))
-        {
-            excp = *(excpBlocks[i]);
-            return true;
-        }	
-    }
-    return false;
+   for (unsigned i=0; i<excpBlocks.size(); i++)
+   {
+      if (excpBlocks[i]->contains(addr))
+      {
+         excp = *(excpBlocks[i]);
+         return true;
+      }	
+   }
+
+   return false;
 }
 
 /**

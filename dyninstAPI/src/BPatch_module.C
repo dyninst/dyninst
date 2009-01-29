@@ -618,19 +618,7 @@ bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements
    // Iterate over each address range in the line information
    LineInformation *li = mod->getLineInformation();
    if (!li) {
-      string str = mod->fileName();
-      fprintf(stderr, "%s[%d]:  getStatements() failing for module %s\n", FILE__, __LINE__,str.c_str()); 
-      fprintf(stderr, " \tfailed to get lineInformation\n" );
-
-      //  Here we have a conundrum...  we used to return a ptr to an empty
-      //  LineInformation object -- now we do not keep that object around unless
-      //  there's something in it.
-      //
-      //  This case would lead to a true return value for an empty set of statements.
-      //  This is probably not correct, but I'm setting it regardless.
-
-      //return false;
-      return true;
+      return false;
    }
 
    for (LineInformation::const_iterator i = li->begin();

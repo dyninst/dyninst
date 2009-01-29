@@ -61,6 +61,10 @@ class BPatch_basicBlockLoop;
 class BPatch_process;
 class BPatch_frame;
 class BPatch_edge;
+#if defined(cap_instruction_api)
+#include "instructionAPI/h/Instruction.h"
+#endif
+
 
 /*
  * Used to specify whether a snippet is to be called before the instructions
@@ -253,6 +257,12 @@ public:
     API_EXPORT(Int, (),
 
     const BPatch_memoryAccess *,getMemoryAccess,());
+
+#if defined(cap_instruction_api)
+    API_EXPORT(Int, (),
+	       InstructionAPI::Instruction, getInsnAtPoint, ());
+#endif
+
 
     //  BPatch_point::getCurrentSnippets
     //  

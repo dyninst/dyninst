@@ -297,6 +297,15 @@ char *setLibPath()
    char *l_tmp = strdup(tmp.str().c_str());
    putenv(l_tmp);
 
+   // And add LIBPATH for AIX if necessary
+   stringstream AIXtmp;
+   AIXtmp << "LIBPATH=.:";
+   if ( getenv("LIBPATH") ) {
+       AIXtmp << getenv("LIBPATH");
+   }
+   char *a_tmp = strdup(AIXtmp.str().c_str());
+   putenv(a_tmp);
+
    return l_tmp;
 }
 

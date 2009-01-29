@@ -76,7 +76,7 @@ void initializeThreadMap() {
     // Initialization
     threadmap_t *t = new threadmap_t;
     t->active = true;
-    t->name = strdup("UI");
+    t->name = P_strdup("UI");
 #if defined(os_windows)
     (*threadmap)[_threadid] = t;
 #else
@@ -195,7 +195,7 @@ InternalThread::InternalThread(const char *id) :
   tid ((unsigned long ) -1),
   init_ok(true)
 {
-  idstr = strdup(id);
+  idstr = P_strdup(id);
 }
 
 InternalThread::~InternalThread() 
@@ -445,7 +445,7 @@ void EventHandler<T>::addToThreadMap()
     }
 
     threadmap_t *t = new threadmap_t;
-    t->name = strdup(idstr);
+    t->name = P_strdup(idstr);
     t->active = true;
     (*threadmap)[tid] = t;
     
@@ -479,12 +479,12 @@ template <class T>
 void EventHandler<T>::setName(char *newIdStr) 
 {
     free(idstr);
-    idstr = strdup(newIdStr);
+    idstr = P_strdup(newIdStr);
 
     // Update the thread map
     if (threadmap->defines(getExecThreadID())) {
         free((*threadmap)[getExecThreadID()]->name);
-        (*threadmap)[getExecThreadID()]->name = strdup(idstr);
+        (*threadmap)[getExecThreadID()]->name = P_strdup(idstr);
     }
     else {
         fprintf(stderr, "ERROR: threadMap does not contain name for thread %lu (%s)\n",
