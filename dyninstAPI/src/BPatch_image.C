@@ -324,24 +324,29 @@ bool BPatch_image::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
     /* One test called this after the process exited, resulting in a crash. Determine if 
        we have objects to look through before operating...
     */
-    if (addSpace == NULL) {
-        return NULL;
+
+    if (addSpace == NULL) 
+    {
+        return false;
     }
+
     AddressSpace *as = addSpace->getAS();
 
-    if ((as == NULL) ||
-        (as->mappedObjects().size() == 0) ||
-        (as->getAOut() == NULL)) return NULL;
+    if (   (as == NULL) 
+        || (as->mappedObjects().size() == 0) 
+        || (as->getAOut() == NULL)) 
+       return false;
 
    BPatch_Vector<BPatch_variableExpr *> *temp = BPatch_image::getGlobalVariables();
 
-   if (temp) {
+   if (temp) 
+   {
       vars = *temp;
       return true;
-   } else {
-      vars = BPatch_Vector<BPatch_variableExpr *>();
-      return false;
-   }
+   } 
+
+   vars = BPatch_Vector<BPatch_variableExpr *>();
+   return false;
 }
 
 bool BPatch_image::setFuncModulesCallback(BPatch_function *bpf, void *data)
@@ -1035,32 +1040,58 @@ bool BPatch_image::getSourceLinesInt(unsigned long addr,
 
    /* Iteratate over the modules, looking for addr in each. */
 
-   for (unsigned int i = 0; i < modules->size(); i++ ) {
+   for (unsigned int i = 0; i < modules->size(); i++ ) 
+   {
       BPatch_module *m = (*modules)[i];
       //  address-to-offset conversion done in module routine 
       m->getSourceLinesInt(addr,lines);
    }
 
-   if ( lines.size() != originalSize ) { return true; }	
+   if ( lines.size() != originalSize ) 
+   {
+      return true; 
+   }	
+
+   //fprintf(stderr, "%s[%d]:  fail to getSourceLines for addr %lu\n", FILE__, __LINE__, addr);
 
    return false;
-} /* eng getSourceLines() */
+} /* end getSourceLines() */
 
 bool BPatch_image::getAddressRangesInt( const char * lineSource, 
       unsigned int lineNo, 
       std::vector< LineInformation::AddressRange > & ranges ) 
 {
    unsigned int originalSize = ranges.size();
+
+   //  First check to see if we can find the named module
+   //  If so, use it for the lookup
+
+   BPatch_module *target_mod = findModuleInt(lineSource, false);
+
+   if (target_mod)
+   {
+      target_mod->getAddressRanges(lineSource, lineNo, ranges);
+      if ( ranges.size() != originalSize ) 
+      {
+         return true; 
+      }
+   }
+
+   //  If we cannot find the given module, try (perhaps against all hope)
+   //  looking in all the modules sequentially
+
    BPatch_Vector< BPatch_module * > * modules = getModules();
 
    // Iteratate over the modules, looking for ranges in each. 
 
-   for ( unsigned int i = 0; i < modules->size(); i++ ) {
+   for ( unsigned int i = 0; i < modules->size(); i++ ) 
+   {
       BPatch_module *m = (*modules)[i];
       m->getAddressRanges(lineSource, lineNo, ranges);
    }
 
-   if ( ranges.size() != originalSize ) { 
+   if ( ranges.size() != originalSize ) 
+   {
       return true; 
    }
 

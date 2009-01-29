@@ -39,6 +39,8 @@
 
 #include "emitElf.h"
 #include "Module.h"
+#include "Aggregate.h"
+#include "Function.h"
 
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
 #include "emitElf-64.h"
@@ -1830,321 +1832,459 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
-void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, dyn_hash_map< string, std::vector< Symbol *> > & symbols, dyn_hash_map< Offset, string > & symbolNamesByAddr ) {
-	start: Dwarf_Half dieTag;
-	int status = dwarf_tag( dieEntry, & dieTag, NULL );
-	assert( status == DW_DLV_OK );
 
-	string useModuleName = moduleName;
+void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, 
+      dyn_hash_map< string, std::vector< Symbol *> > & symbols, 
+      dyn_hash_map< Offset, string > & symbolNamesByAddr ) 
+{
+start: 
 
-	/* For debugging. */
-	Dwarf_Off dieOffset;
-	status = dwarf_die_CU_offset( dieEntry, & dieOffset, NULL );
-	assert( status == DW_DLV_OK );
+   Dwarf_Half dieTag;
+   int status = dwarf_tag( dieEntry, & dieTag, NULL );
 
-	switch( dieTag ) {
-		case DW_TAG_subprogram: 
-		case DW_TAG_entry_point: {
-			/* Let's try ignoring artificial entries, hmm-kay? */
-			Dwarf_Bool isArtificial;
-			status = dwarf_hasattr( dieEntry, DW_AT_artificial, & isArtificial, NULL );
-			assert( status == DW_DLV_OK );
+   assert( status == DW_DLV_OK );
 
-			if( isArtificial ) { break; }
+   string useModuleName = moduleName;
 
-			/* Only entries with a PC must be defining declarations.  However,
-			   to avoid trying to decide in which module a DW_TAG_inlined_subroutine's
-			   DW_AT_abstract_origin belongs, we just insert the abstract origin itself. */
-			Dwarf_Bool hasLowPC;
-			status = dwarf_hasattr( dieEntry, DW_AT_low_pc, & hasLowPC, NULL );
-			assert( status == DW_DLV_OK );
+   /* For debugging. */
+   Dwarf_Off dieOffset;
+   status = dwarf_die_CU_offset( dieEntry, & dieOffset, NULL );
+   assert( status == DW_DLV_OK );
 
-			Dwarf_Bool isAbstractOrigin;
-			status = dwarf_hasattr( dieEntry, DW_AT_inline, & isAbstractOrigin, NULL );
-			assert( status == DW_DLV_OK );
+   switch( dieTag ) {
+      case DW_TAG_subprogram: 
+      case DW_TAG_entry_point: 
+         {
+            /* Let's try ignoring artificial entries, hmm-kay? */
 
-			if( ! hasLowPC && ! isAbstractOrigin ) { break; }
+            Dwarf_Bool isArtificial;
+            status = dwarf_hasattr( dieEntry, DW_AT_artificial, & isArtificial, NULL );
+            assert( status == DW_DLV_OK );
 
-			bool isDeclaredNotInlined = false;
-			/* Inline functions are "uninstrumentable", so leave them off the where axis. */
-			if( isAbstractOrigin ) {
-				Dwarf_Attribute inlineAttribute;
-				status = dwarf_attr( dieEntry, DW_AT_inline, & inlineAttribute, NULL );
-				assert( status == DW_DLV_OK );
+            if ( isArtificial ) 
+            {
+               break; 
+            }
 
-				Dwarf_Unsigned inlineTag;
-				status = dwarf_formudata( inlineAttribute, & inlineTag, NULL );
-				assert( status == DW_DLV_OK );
+            /* Only entries with a PC must be defining declarations.  However,
+               to avoid trying to decide in which module a DW_TAG_inlined_subroutine's
+               DW_AT_abstract_origin belongs, we just insert the abstract origin itself. */
 
-				if( inlineTag == DW_INL_inlined || inlineTag == DW_INL_declared_inlined ) { break; }
-				if( inlineTag == DW_INL_declared_not_inlined ) { isDeclaredNotInlined = true; }
-				
-				dwarf_dealloc( dbg, inlineAttribute, DW_DLA_ATTR );
-				}
+            Dwarf_Bool hasLowPC;
+            status = dwarf_hasattr( dieEntry, DW_AT_low_pc, & hasLowPC, NULL );
+            assert( status == DW_DLV_OK );
 
-			/* If a DIE has a specification, the specification has its name
-			   and (optional) linkage name.  */
-			Dwarf_Attribute specificationAttribute;
-			status = dwarf_attr( dieEntry, DW_AT_specification, & specificationAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+            Dwarf_Bool isAbstractOrigin;
+            status = dwarf_hasattr( dieEntry, DW_AT_inline, & isAbstractOrigin, NULL );
+            assert( status == DW_DLV_OK );
 
-			Dwarf_Die nameEntry = dieEntry;
-			if( status == DW_DLV_OK ) {
-				Dwarf_Off specificationOffset;
-				status = dwarf_global_formref( specificationAttribute, & specificationOffset, NULL );
-				assert( status == DW_DLV_OK );
+            if ( ! hasLowPC && ! isAbstractOrigin ) 
+            {
+               break; 
+            }
 
-				status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
-				assert( status == DW_DLV_OK );
-				
-				dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
-				} /* end if the DIE has a specification. */
+            bool isDeclaredNotInlined = false;
 
-			/* Ignore artificial entries. */
-			status = dwarf_hasattr( nameEntry, DW_AT_artificial, & isArtificial, NULL );
-			assert( status == DW_DLV_OK );
-			if( isArtificial ) { break; }
+            /* Inline functions are "uninstrumentable", so leave them off the where axis. */
 
-			/* What's its name? */
-			char * dieName = NULL;
-			status = dwarf_diename( nameEntry, & dieName, NULL );
-			assert( status != DW_DLV_ERROR );
+            if ( isAbstractOrigin ) 
+            {
+               Dwarf_Attribute inlineAttribute;
+               status = dwarf_attr( dieEntry, DW_AT_inline, & inlineAttribute, NULL );
+               assert( status == DW_DLV_OK );
 
-			/* Prefer the linkage (symbol table) name. */
-			Dwarf_Attribute linkageNameAttribute;
-			status = dwarf_attr( nameEntry, DW_AT_MIPS_linkage_name, & linkageNameAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+               Dwarf_Unsigned inlineTag;
+               status = dwarf_formudata( inlineAttribute, & inlineTag, NULL );
+               assert( status == DW_DLV_OK );
 
-			bool hasLinkageName = false;
-			if( status == DW_DLV_OK ) {
-				dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-				status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
-				assert( status == DW_DLV_OK );
-				hasLinkageName = true;
-				}
+               if ( inlineTag == DW_INL_inlined || inlineTag == DW_INL_declared_inlined ) 
+               {
+                  break; 
+               }
 
-			/* Anonymous functions are useless to us. */
-			if( dieName == NULL ) { break; }
+               if ( inlineTag == DW_INL_declared_not_inlined ) 
+               {
+                  isDeclaredNotInlined = true; 
+               }
 
-			/* Try to find the corresponding global symbol name. */
-			Dwarf_Die declEntry = nameEntry;
-			string globalSymbol = find_symbol( dieName, symbols );
-			if( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) {
-				/* Then scan forward for its concrete instance. */
-				bool first = true;
-				Dwarf_Die siblingDie = dieEntry;
-				while( true ) {
-					Dwarf_Die priorSibling = siblingDie;
-					status = dwarf_siblingof( dbg, siblingDie, & siblingDie, NULL );
-					assert( status != DW_DLV_ERROR );
-					
-					if( ! first ) { dwarf_dealloc( dbg, priorSibling, DW_DLA_DIE ); }
-					if( status == DW_DLV_NO_ENTRY ) { break; }
+               dwarf_dealloc( dbg, inlineAttribute, DW_DLA_ATTR );
+            }
 
-					Dwarf_Attribute abstractOriginAttr;
-					status = dwarf_attr( siblingDie, DW_AT_abstract_origin, & abstractOriginAttr, NULL );
-					assert( status != DW_DLV_ERROR );
+            /* If a DIE has a specification, the specification has its name
+               and (optional) linkage name.  */
 
-					/* Is its abstract origin the current dieEntry? */
-					if( status == DW_DLV_OK ) {
-						Dwarf_Off abstractOriginOffset;
-						status = dwarf_formref( abstractOriginAttr, & abstractOriginOffset, NULL );
-						assert( status == DW_DLV_OK );
-						
-						dwarf_dealloc( dbg, abstractOriginAttr, DW_DLA_ATTR );
+            Dwarf_Attribute specificationAttribute;
+            status = dwarf_attr(dieEntry, DW_AT_specification, &specificationAttribute, NULL);
 
-						if( abstractOriginOffset == dieOffset ) {
-							Dwarf_Addr lowPC;
-							status = dwarf_lowpc( siblingDie, & lowPC, NULL );
-							assert( status == DW_DLV_OK );
+            assert( status != DW_DLV_ERROR );
 
-							// bperr( "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
-							if( symbolNamesByAddr.find((Address)lowPC)!=symbolNamesByAddr.end()) {
-								string symName = symbolNamesByAddr[(Address)lowPC];
-								if( symbols.find(symName) != symbols.end() ) {
-									globalSymbol = symName;
-									}
-								}
-								
-							dwarf_dealloc( dbg, siblingDie, DW_DLA_DIE );
-							break;
-							} /* end if we've found _the_ concrete instance */
-						} /* end if we've found a concrete instance */
-					first = false;
-					} /* end iteration. */
-				} /* end if we're trying to do a by-address look up. */
+            Dwarf_Die nameEntry = dieEntry;
 
-			/* Update the module information. */
-			if( globalSymbol != "" ) {
-				assert( symbols.find(globalSymbol)!=symbols.end());
+            if ( status == DW_DLV_OK ) 
+            {
+               Dwarf_Off specificationOffset;
+               status = dwarf_global_formref(specificationAttribute, &specificationOffset, NULL);
+               assert( status == DW_DLV_OK );
 
-				/* If it's not specified, is an inlined function in the same
-				   CU/namespace as its use. */
-				if( isDeclaredNotInlined && nameEntry != dieEntry ) {
-					/* Then the function's definition is where it was
-					   declared, not wherever it happens to be referenced.
+               status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+               assert( status == DW_DLV_OK );
 
-					   Use the decl_file as the useModuleName, if available. */
-					Dwarf_Attribute fileNoAttribute;
-					status = dwarf_attr( declEntry, DW_AT_decl_file, & fileNoAttribute, NULL );
-					assert( status != DW_DLV_ERROR );
+               dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
+            } /* end if the DIE has a specification. */
 
-					if( status == DW_DLV_OK ) {
-						Dwarf_Unsigned fileNo;
-						status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
-						assert( status == DW_DLV_OK );
-						
-						dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
+            /* Ignore artificial entries. */
 
-						useModuleName = declFileNoToName[ fileNo - 1 ];
-						// bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
-						} /* end if we have declaration file listed */
-					else {
-						/* This should never happen, but there's not much
-						   we can do if it does. */
-						}
-					} /* end if isDeclaredNotInlined */
+            status = dwarf_hasattr( nameEntry, DW_AT_artificial, & isArtificial, NULL );
+            assert( status == DW_DLV_OK );
 
-				unsigned int count = 0;
-				std::vector< Symbol *> & syms = symbols[ globalSymbol ];
-				
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: symbol '%s' is in module '%s'.\n", __FILE__, __LINE__, globalSymbol.c_str(), useModuleName.c_str() );
-				/* If there's only one of symbol of that name, set it regardless. */
-				if( syms.size() == 1 ) { syms[0]->setModuleName( useModuleName ); }
-				else {
-					for( unsigned int i = 0; i < syms.size(); i++ ) {
-						if( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
-							symbols[ globalSymbol ][i]->setModuleName( useModuleName );
-							count++;
-							}
-						}
-					if( count < syms.size() ) {
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, globalSymbol.c_str() );
-						}
-					}
-				} /* end if we found the name in the global symbols */
-			else if( ! isAbstractOrigin && (symbols.find(dieName)!=symbols.end())) {
-				unsigned int count = 0;
-				std::vector< Symbol *> & syms = symbols[ dieName ];
+            if ( isArtificial ) 
+            {
+               break; 
+            }
 
-				/* If there's only one, apply regardless. */
-				if( syms.size() == 1 ) { symbols[ globalSymbol ][0]->setModuleName( useModuleName ); }
-				else { 
-					for( unsigned int i = 0; i < syms.size(); i++ ) {
-						if( syms[ i ]->getLinkage() == Symbol::SL_LOCAL ) {
-							symbols[ globalSymbol ][i]->setModuleName( useModuleName );
-							count++;
-							}
-						}
-					if( count < syms.size() ) {
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, dieName );
-						}
-					}
-				} /* end if we think it's a local symbol */
+            /* What's its name? */
+            char * dieName = NULL;
+            status = dwarf_diename( nameEntry, & dieName, NULL );
 
-			dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-			} break;
+            assert( status != DW_DLV_ERROR );
 
-		case DW_TAG_variable:
-		case DW_TAG_constant: {
-			/* Is this a declaration? */
-			Dwarf_Attribute declAttr;
-			status = dwarf_attr( dieEntry, DW_AT_declaration, & declAttr, NULL );
-			assert( status != DW_DLV_ERROR );
+            /* Prefer the linkage (symbol table) name. */
+            Dwarf_Attribute linkageNameAttribute;
+            status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
 
-			if( status != DW_DLV_OK ) { break; }
-			dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
+            assert( status != DW_DLV_ERROR );
 
-			/* If a DIE has a specification, the specification has its name
-			   and (optional) linkage name.  */
-			Dwarf_Attribute specificationAttribute;
-			status = dwarf_attr( dieEntry, DW_AT_specification, & specificationAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+            bool hasLinkageName = false;
 
-			Dwarf_Die nameEntry = dieEntry;
-			if( status == DW_DLV_OK ) {
-				Dwarf_Off specificationOffset;
-				status = dwarf_global_formref( specificationAttribute, & specificationOffset, NULL );
-				assert( status == DW_DLV_OK );
-				
-				dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
+            if ( status == DW_DLV_OK ) 
+            {
+               dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+               status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
+               assert( status == DW_DLV_OK );
+               hasLinkageName = true;
+            }
 
-				status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
-				assert( status == DW_DLV_OK );
-				} /* end if the DIE has a specification. */
+            /* Anonymous functions are useless to us. */
 
-			/* What's its name? */
-			char * dieName = NULL;
-			status = dwarf_diename( nameEntry, & dieName, NULL );
-			assert( status != DW_DLV_ERROR );
+            if ( dieName == NULL ) 
+            {
+               break;
+            }
 
-			/* Prefer the linkage (symbol table) name. */
-			Dwarf_Attribute linkageNameAttribute;
-			status = dwarf_attr( nameEntry, DW_AT_MIPS_linkage_name, & linkageNameAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+            /* Try to find the corresponding global symbol name. */
 
-			if( status == DW_DLV_OK ) {
-				dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-				status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
-				assert( status == DW_DLV_OK );
-				}
+            Dwarf_Die declEntry = nameEntry;
+            string globalSymbol = find_symbol( dieName, symbols );
 
-			/* Anonymous variables are useless to us. */
-			if( dieName == NULL ) { break; }
-			
-			/* Update the module information. */
-			string symName = find_symbol( dieName, symbols );
-			if( symName != "" ) {
-				assert(symbols.find(symName)!=symbols.end());
+            if ( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) 
+            {
+               /* Then scan forward for its concrete instance. */
 
-				/* We're assuming global variables. */
-				unsigned int count = 0;
-				std::vector< Symbol *> & syms = symbols[ symName ];
+               bool first = true;
+               Dwarf_Die siblingDie = dieEntry;
 
-				/* If there's only one of symbol of that name, set it regardless. */
-				if( syms.size() == 1 ) { symbols[ symName ][0]->setModuleName( useModuleName ); }
-				else {
-					for( unsigned int i = 0; i < syms.size(); i++ ) {
-						if( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
-							symbols[ symName ][i]->setModuleName( useModuleName );
-							count++;
-							}
-						}
-					if( count < syms.size() ) {
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, symName.c_str() );
-						}									
-					}
-				}
-         // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
-				
-			dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-			} break;
+               while ( true ) 
+               {
+                  Dwarf_Die priorSibling = siblingDie;
+                  status = dwarf_siblingof( dbg, siblingDie, & siblingDie, NULL );
+                  assert( status != DW_DLV_ERROR );
 
-		default:
-			/* If it's not a function or a variable, ignore it. */
-			break;
-		} /* end tag switch */
+                  if ( ! first ) 
+                  {
+                     dwarf_dealloc( dbg, priorSibling, DW_DLA_DIE ); 
+                  }
+                  if ( status == DW_DLV_NO_ENTRY ) 
+                  {
+                     break; 
+                  }
 
-	/* Recurse to its child, if any. */
-	Dwarf_Die childDwarf;
-	status = dwarf_child( dieEntry, & childDwarf, NULL );
-	assert( status != DW_DLV_ERROR );
-	if( status == DW_DLV_OK ) {
-		fixSymbolsInModule( dbg, moduleName, childDwarf, symbols, symbolNamesByAddr );
-		}
+                  Dwarf_Attribute abstractOriginAttr;
+                  status = dwarf_attr(siblingDie, DW_AT_abstract_origin, &abstractOriginAttr, NULL);
 
-	/* Recurse to its sibling, if any. */
-	Dwarf_Die siblingDwarf;
-	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
-	assert( status != DW_DLV_ERROR );
-	if( status == DW_DLV_OK ) {
-		dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
-	
-		/* Force tail-recursion to avoid stack overflows. */
-		dieEntry = siblingDwarf;
-		goto start;
-		}
-	} /* end fixSymbolsInModule */
+                  assert( status != DW_DLV_ERROR );
+
+                  /* Is its abstract origin the current dieEntry? */
+
+                  if ( status == DW_DLV_OK ) 
+                  {
+                     Dwarf_Off abstractOriginOffset;
+                     status = dwarf_formref( abstractOriginAttr, & abstractOriginOffset, NULL );
+                     assert( status == DW_DLV_OK );
+
+                     dwarf_dealloc( dbg, abstractOriginAttr, DW_DLA_ATTR );
+
+                     if ( abstractOriginOffset == dieOffset ) 
+                     {
+                        Dwarf_Addr lowPC;
+                        status = dwarf_lowpc( siblingDie, & lowPC, NULL );
+                        assert( status == DW_DLV_OK );
+
+                        // bperr( "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
+
+                        if ( symbolNamesByAddr.find((Address)lowPC)!=symbolNamesByAddr.end()) 
+                        {
+                           string symName = symbolNamesByAddr[(Address)lowPC];
+                           if ( symbols.find(symName) != symbols.end() ) 
+                           {
+                              globalSymbol = symName;
+                           }
+                        }
+
+                        dwarf_dealloc( dbg, siblingDie, DW_DLA_DIE );
+                        break;
+
+                     } /* end if we've found _the_ concrete instance */
+                  } /* end if we've found a concrete instance */
+
+                  first = false;
+
+               } /* end iteration. */
+            } /* end if we're trying to do a by-address look up. */
+
+            /* Update the module information. */
+
+            if ( globalSymbol != "" ) 
+            {
+               assert( symbols.find(globalSymbol)!=symbols.end());
+
+               /* If it's not specified, is an inlined function in the same
+                  CU/namespace as its use. */
+
+               if ( isDeclaredNotInlined && nameEntry != dieEntry ) 
+               {
+                  /* Then the function's definition is where it was
+                     declared, not wherever it happens to be referenced.
+
+                     Use the decl_file as the useModuleName, if available. */
+
+                  Dwarf_Attribute fileNoAttribute;
+                  status = dwarf_attr( declEntry, DW_AT_decl_file, & fileNoAttribute, NULL );
+                  assert( status != DW_DLV_ERROR );
+
+                  if ( status == DW_DLV_OK ) 
+                  {
+                     Dwarf_Unsigned fileNo;
+                     status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
+                     assert( status == DW_DLV_OK );
+
+                     dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
+
+                     useModuleName = declFileNoToName[ fileNo - 1 ];
+
+                     // bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
+
+                  } /* end if we have declaration file listed */
+                  else 
+                  {
+                     /* This should never happen, but there's not much
+                        we can do if it does. */
+                  }
+               } /* end if isDeclaredNotInlined */
+
+               unsigned int count = 0;
+
+               std::vector< Symbol *> & syms = symbols[ globalSymbol ];
+
+               // /* DEBUG */ fprintf( stderr, "%s[%d]: symbol '%s' is in module '%s'.\n", __FILE__, __LINE__, globalSymbol.c_str(), useModuleName.c_str() );
+
+               /* If there's only one of symbol of that name, set it regardless. */
+
+               if ( syms.size() == 1 ) 
+               { 
+                  syms[0]->setModuleName( useModuleName ); 
+               }
+               else 
+               {
+                  for ( unsigned int i = 0; i < syms.size(); i++ ) 
+                  {
+                     if ( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) 
+                     {
+                        symbols[ globalSymbol ][i]->setModuleName( useModuleName );
+                        count++;
+                     }
+                  }
+
+                  //if ( count < syms.size() ) 
+                  //{
+                     // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, globalSymbol.c_str() );
+                  //}
+
+               }
+            } /* end if we found the name in the global symbols */
+            else if ( ! isAbstractOrigin && (symbols.find(dieName)!=symbols.end())) 
+            {
+               unsigned int count = 0;
+               std::vector< Symbol *> & syms = symbols[ dieName ];
+
+               /* If there's only one, apply regardless. */
+
+               if ( syms.size() == 1 ) 
+               {
+                  symbols[ globalSymbol ][0]->setModuleName( useModuleName ); 
+               }
+               else 
+               { 
+                  for ( unsigned int i = 0; i < syms.size(); i++ ) 
+                  {
+                     if ( syms[ i ]->getLinkage() == Symbol::SL_LOCAL ) 
+                     {
+                        symbols[ globalSymbol ][i]->setModuleName( useModuleName );
+                        count++;
+                     }
+                  }
+
+                  //if ( count < syms.size() ) 
+                  //{
+                     // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, dieName );
+                  //}
+
+               }
+            } /* end if we think it's a local symbol */
+
+            dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+
+         } 
+
+         break;
+
+      case DW_TAG_variable:
+      case DW_TAG_constant: 
+         {
+            /* Is this a declaration? */
+
+            Dwarf_Attribute declAttr;
+            status = dwarf_attr( dieEntry, DW_AT_declaration, & declAttr, NULL );
+            assert( status != DW_DLV_ERROR );
+
+            if ( status != DW_DLV_OK ) 
+            { 
+               break; 
+            }
+
+            dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
+
+            /* If a DIE has a specification, the specification has its name
+               and (optional) linkage name.  */
+
+            Dwarf_Attribute specificationAttribute;
+            status = dwarf_attr(dieEntry, DW_AT_specification, &specificationAttribute, NULL);
+            assert( status != DW_DLV_ERROR );
+
+            Dwarf_Die nameEntry = dieEntry;
+
+            if ( status == DW_DLV_OK ) 
+            {
+               Dwarf_Off specificationOffset;
+               status = dwarf_global_formref(specificationAttribute, &specificationOffset, NULL);
+               assert( status == DW_DLV_OK );
+
+               dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
+
+               status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+               assert( status == DW_DLV_OK );
+
+            } /* end if the DIE has a specification. */
+
+            /* What's its name? */
+
+            char * dieName = NULL;
+            status = dwarf_diename( nameEntry, & dieName, NULL );
+            assert( status != DW_DLV_ERROR );
+
+            /* Prefer the linkage (symbol table) name. */
+
+            Dwarf_Attribute linkageNameAttribute;
+            status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            assert( status != DW_DLV_ERROR );
+
+            if ( status == DW_DLV_OK ) 
+            {
+               dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+               status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
+               assert( status == DW_DLV_OK );
+            }
+
+            /* Anonymous variables are useless to us. */
+            if ( dieName == NULL ) 
+            {
+               break; 
+            }
+
+            /* Update the module information. */
+
+            string symName = find_symbol( dieName, symbols );
+
+            if ( symName != "" ) 
+            {
+               assert(symbols.find(symName)!=symbols.end());
+
+               /* We're assuming global variables. */
+               unsigned int count = 0;
+               std::vector< Symbol *> & syms = symbols[ symName ];
+
+               /* If there's only one of symbol of that name, set it regardless. */
+               if ( syms.size() == 1 ) 
+               {
+                  symbols[ symName ][0]->setModuleName( useModuleName ); 
+               }
+               else 
+               {
+                  for ( unsigned int i = 0; i < syms.size(); i++ ) 
+                  {
+                     if ( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) 
+                     {
+                        symbols[ symName ][i]->setModuleName( useModuleName );
+                        count++;
+                     }
+                  }
+
+                  //if ( count < syms.size() ) 
+                  //{
+                     // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, symName.c_str() );
+                  //}									
+
+               }
+            }
+
+            // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
+
+            dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+
+         } 
+
+         break;
+
+      default:
+         /* If it's not a function or a variable, ignore it. */
+         break;
+   } /* end tag switch */
+
+   /* Recurse to its child, if any. */
+
+   Dwarf_Die childDwarf;
+   status = dwarf_child( dieEntry, & childDwarf, NULL );
+   assert( status != DW_DLV_ERROR );
+
+   if ( status == DW_DLV_OK ) 
+   {
+      fixSymbolsInModule( dbg, moduleName, childDwarf, symbols, symbolNamesByAddr );
+   }
+
+   /* Recurse to its sibling, if any. */
+
+   Dwarf_Die siblingDwarf;
+   status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+   assert( status != DW_DLV_ERROR );
+
+   if ( status == DW_DLV_OK ) 
+   {
+      dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+
+      /* Force tail-recursion to avoid stack overflows. */
+      dieEntry = siblingDwarf;
+      goto start;
+   }
+} /* end fixSymbolsInModule */
 
 unsigned fixSymbolsInModuleByRange(string &moduleName,
       Dwarf_Addr modLowPC, Dwarf_Addr modHighPC,
@@ -2548,7 +2688,26 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                      symbols_[symName][0]->setModuleName(module);
                   }
 
-                  /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique id %s in module.\n", __FILE__, __LINE__, symName.c_str() ); }
+                  else 
+                  { 
+                     
+#if !defined (os_solaris)
+                     //  This is definitely triggered on mutatees compiled with
+                     //  the solaris compilers -- the fix seems tricky and
+                     //  possibly not worth the time and energy to restructure
+                     //  and/or add sufficient further nuance to go back to the
+                     //  symbol table to infer which nearly identical symbol belongs
+                     //  to which modules
+                     fprintf( stderr, "%s[%d]: Nonunique id %s in module:\n", 
+                           FILE__, __LINE__, symName.c_str() ); 
+
+                     //for (unsigned int i = 0; i < syms.size(); ++i) {
+                      //  fprintf(stderr, "\t");
+                      //  cerr << *(syms[i]) << endl;
+                     //}
+#endif
+
+                  }
                   /* Otherwise, don't assign a module if we don't know
                      to which symbol this refers. */
                }
@@ -3953,6 +4112,251 @@ const char *Object::interpreter_name() const
 
 /* Parse everything in the file on disk, and cache that we've done so,
    because our modules may not bear any relation to the name source files. */
+void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInformation> &li) 
+{
+   static dyn_hash_map< string, bool > haveParsedFileMap;
+
+   /* We haven't parsed this file already, so iterate over its stab entries. */
+
+   stab_entry * stabEntry = get_stab_info();
+   assert( stabEntry != NULL );
+   const char * nextStabString = stabEntry->getStringBase();
+
+   const char * currentSourceFile = NULL;
+   Function *currentFunction = NULL;
+   Offset currentAddress = 0;
+   unsigned currentLineBase = 0;
+   unsigned functionLineToPossiblyAdd = 0;
+   unsigned last_fun = 0;
+
+   //Offset baseAddress = getBaseAddress();
+
+   for ( unsigned int i = 0; i < stabEntry->count(); i++ ) 
+   {
+      switch (stabEntry->type( i )) 
+      {
+         case N_UNDF: /* start of an object file */ 
+            {
+               stabEntry->setStringBase( nextStabString );
+               nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
+
+               currentSourceFile = NULL;
+            }
+            break;
+
+         case N_SO: /* compilation source or file name */
+            {
+               const char * sourceFile = stabEntry->name( i );
+               currentSourceFile = strrchr( sourceFile, '/' );
+
+               if ( currentSourceFile == NULL ) 
+               {
+                  currentSourceFile = sourceFile; 
+               }
+               else 
+               { 
+                  ++currentSourceFile; 
+               }
+
+               // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+            }
+            break;
+
+         case N_SOL: /* file name (possibly an include file) */ 
+            {
+               const char * sourceFile = stabEntry->name( i );
+               currentSourceFile = strrchr( sourceFile, '/' );
+               if ( currentSourceFile == NULL ) 
+               {
+                  currentSourceFile = sourceFile; 
+               }
+               else 
+               {
+                  ++currentSourceFile; 
+               }
+
+               // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+            }
+            break;
+
+         case N_FUN: /* a function */ 
+            {
+               last_fun = i;
+               //fprintf(stderr, "%s[%d]:  N_FUN [%s, %lu, %lu, %lu, %lu]\n", 
+               //      FILE__, __LINE__, stabEntry->name(i) ? stabEntry->name(i) : "no_name",
+               //      stabEntry->nameIdx(i), stabEntry->other(i), 
+               //      stabEntry->desc(i), stabEntry->val(i));
+
+               if ( *stabEntry->name( i ) == 0 ) 
+               {
+                  currentFunction = NULL;
+                  currentLineBase = 0;
+                  //fprintf(stderr, "%s[%d]:  GOT EOF marker\n", FILE__, __LINE__);
+                  break;
+               } /* end if the N_FUN is an end-of-function-marker. */
+
+               std::vector<Function *> funcs;
+               char stringbuf[2048];
+               const char *stabstr = stabEntry->name(i);
+               unsigned iter = 0;
+
+               while (iter < 2048)
+               {
+                  char c = stabstr[iter];
+
+                  if ( (c == ':')  || (c == '\0'))
+                  {
+                     //stabstrs use ':' as delimiter
+                     stringbuf[iter] = '\0';
+                     break;
+                  }
+
+                  stringbuf[iter] = c;
+
+                  iter++;
+               }
+
+               if (iter >= 2047) 
+               {
+                  fprintf(stderr, "%s[%d]:  something went horribly awry\n", FILE__, __LINE__);
+                  continue;
+               }
+               else 
+               {
+                  switch (stabstr[iter+1])
+                  {
+                     case 'F':
+                     case 'f':
+                        //  A "good" function
+                        break;
+                     case 'P':
+                     case 'p':
+                        //  A prototype function? need to discard
+                        //fprintf(stderr, "%s[%d]:  discarding prototype %s\n", FILE__, __LINE__, stabstr);
+                        continue;
+                        break;
+                     default:
+                        fprintf(stderr, "%s[%d]:  discarding unknown %s, key = %c\n", 
+                              FILE__, __LINE__, stabstr, stabstr[iter +1]);
+                        continue;
+                        break;
+                  };
+               }
+
+               if (! st->findFunctionsByName(funcs, std::string(stringbuf))
+                     || !funcs.size())
+               {
+                  fprintf(stderr, "%s[%d]:  failed to find function with name %s\n", 
+                        FILE__, __LINE__, stabEntry->name(i));
+                  continue;
+               }
+
+               if (funcs.size() > 1) 
+               {
+                  fprintf(stderr, "%s[%d]:  WARN:  found %d functions with name %s\n", 
+                        FILE__, __LINE__, funcs.size(), stabEntry->name(i));
+               }
+
+               currentFunction = funcs[0];
+               currentLineBase = stabEntry->desc(i);
+               functionLineToPossiblyAdd = currentLineBase;
+
+               assert(currentFunction);
+               currentAddress = currentFunction->getAddress();
+
+            }
+            break;
+
+         case N_SLINE: 
+            {
+               unsigned current_col = 0;
+
+               //fprintf(stderr, "%s[%d]:  N_SLINE [%s, %lu, %lu, %lu, %lu]\n", 
+               // FILE__, __LINE__, stabEntry->name(i) ? stabEntry->name(i) : "no_name",
+               // stabEntry->nameIdx(i), stabEntry->other(i), stabEntry->desc(i), 
+               // stabEntry->val(i));
+
+               if (!currentLineBase)
+               {
+                  //fprintf(stderr, "%s[%d]:  skipping SLINE b/c no earlier line base\n", 
+                   //     FILE__, __LINE__);
+                  //fprintf(stderr, "%s[%d]:  N_FUN [%s, %lu, %lu, %lu, %lu]\n", 
+                  //      FILE__, __LINE__, stabEntry->name(last_fun) ? stabEntry->name(last_fun) : "no_name",
+                  //      stabEntry->nameIdx(last_fun), stabEntry->other(last_fun), 
+                  //      stabEntry->desc(last_fun), stabEntry->val(last_fun));
+                  //fprintf(stderr, "%s[%d]:  N_SLINE [%s, %lu, %lu, %lu, %lu]\n", 
+                  //      FILE__, __LINE__, stabEntry->name(i) ? stabEntry->name(i) : "no_name",
+                  //      stabEntry->nameIdx(i), stabEntry->other(i), stabEntry->desc(i), 
+                  //      stabEntry->val(i));
+                  continue;
+               }
+
+               unsigned newLineSpec = stabEntry->desc(i);
+
+               //if (newLineSpec > (currentLineBase + 100)) 
+               //{
+                  //fprintf(stderr, "%s[%d]:  FIXME???? newLineSpec = %d, currentLineBase = %d\n", FILE__, __LINE__, newLineSpec, currentLineBase);
+               //}
+
+               //  Addresses specified in SLINEs are relative to the beginning of the fn
+               Offset newLineAddress = stabEntry->val(i) + currentFunction->getAddress();
+
+               if (newLineAddress <= currentAddress)
+               {
+                  //fprintf(stderr, "%s[%d]:  skipping addLine for bad address %lu <= %lu\n", 
+                   //     FILE__, __LINE__, newLineAddress, currentAddress);
+                  continue;
+               }
+
+               //  If we just got our first N_SLINE after a function definition
+               //  its possible that the line number specified in the function 
+               //  definition was less than the line number that we are currently on
+               //  If so, add an additional line number entry that encompasses
+               //  the line number of the original function definition in addition
+               //  to this SLINE ( use the same address range)
+
+               if (functionLineToPossiblyAdd)
+               {
+                  if (functionLineToPossiblyAdd < newLineSpec)
+                  {
+                     if (!li[currentSourceFile].addLine(currentSourceFile, functionLineToPossiblyAdd, 
+                              current_col, currentAddress, newLineAddress ))
+                     {
+                        fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                              FILE__, __LINE__, currentSourceFile, functionLineToPossiblyAdd, 
+                              currentAddress, newLineAddress);
+                     }
+                  }
+
+                  functionLineToPossiblyAdd = 0;
+               }
+
+               //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", 
+               //      FILE__, __LINE__, currentSourceFile, newLineSpec, 
+               //      currentAddress, newLineAddress);
+
+               if (!li[currentSourceFile].addLine(currentSourceFile, newLineSpec, 
+                        current_col, currentAddress, newLineAddress ))
+               {
+                  fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                        FILE__, __LINE__, currentSourceFile, newLineSpec, 
+                        currentAddress, newLineAddress);
+               }
+
+               currentAddress = newLineAddress;
+               currentLineBase = newLineSpec + 1;
+
+            }
+            break;
+
+      } /* end switch on the ith stab entry's type */
+
+   } /* end iteration over stab entries. */
+
+   //  haveParsedFileMap[ key ] = true;
+} /* end parseStabFileLineInfo() */
+
+#if 0
 void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
    static dyn_hash_map< string, bool > haveParsedFileMap;
@@ -4000,10 +4404,15 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
                   //if(previousLineNo == 597 || previousLineNo == 596)
                   ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
-                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
+                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
 
-                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                        current_col, previousLineAddress, currentLineAddress );
+                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                           current_col, previousLineAddress, currentLineAddress )) 
+                  {
+                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
+                           previousLineAddress, currentLineAddress);
+                  }
 
                   //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
                }
@@ -4029,12 +4438,17 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
 
                   unsigned current_col = 0;
                   //if (previousLineNo == 597 || previousLineNo == 596)
-                   //  /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+                  //  /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
-                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
+                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
 
-                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                        current_col, previousLineAddress, currentLineAddress );
+                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                           current_col, previousLineAddress, currentLineAddress ))
+                  {
+                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
+                           previousLineAddress, currentLineAddress);
+                  }
 
                   //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
                   //     current_col, previousLineAddress, currentLineAddress  );
@@ -4052,21 +4466,30 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
 
          case N_FUN: /* a function */ 
             {
-               if ( *stabEntry->name( i ) == 0 ) {
+               if ( *stabEntry->name( i ) == 0 ) 
+               {
                   /* An end-of-function marker.  The value is the size of the function. */
-                  if ( isPreviousValid ) {
+                  if ( isPreviousValid ) 
+                  {
                      /* Add the previous N_SLINE. */
                      Offset currentLineAddress = currentFunctionBase + stabEntry->val( i );
 
                      // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
 
                      unsigned current_col = 0;
+
                      //if(previousLineNo == 597 || previousLineNo == 596)
                      //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
-                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-                     li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                           current_col, previousLineAddress, currentLineAddress );
+                     fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
+
+                     if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                              current_col, previousLineAddress, currentLineAddress ))
+                     {
+                        fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                              FILE__, __LINE__, currentSourceFile, previousLineNo, 
+                              previousLineAddress, currentLineAddress);
+                     }
 
                      //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
                      //    	                              current_col, previousLineAddress, currentLineAddress  );
@@ -4077,7 +4500,8 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
                   break;
                } /* end if the N_FUN is an end-of-function-marker. */
 
-               if (isPreviousValid) {
+               if (isPreviousValid) 
+               {
                   Offset currentLineAddress = stabEntry->val( i );
 
                   // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
@@ -4086,9 +4510,15 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
                   //if(previousLineNo == 597 || previousLineNo == 596)
                   //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
-                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                        current_col, previousLineAddress, currentLineAddress );
+                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
+
+                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                           current_col, previousLineAddress, currentLineAddress ))
+                  {
+                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
+                           previousLineAddress, currentLineAddress);
+                  }
 
                   //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
                }
@@ -4125,9 +4555,14 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
                   //	 if(previousLineNo == 597 || previousLineNo == 596)
                   //	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
-                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                        current_col, previousLineAddress, currentLineAddress );
+                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
+                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                           current_col, previousLineAddress, currentLineAddress ))
+                  {
+                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
+                           previousLineAddress, currentLineAddress);
+                  }
 
                   //currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
                }
@@ -4145,6 +4580,7 @@ void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &l
 
    //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
+#endif
 
 // Dwarf Debug Format parsing
 void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
@@ -4170,17 +4606,17 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
       char * cuName, *moduleName;
       status = dwarf_diename( cuDIE, &cuName, NULL );
       if ( status == DW_DLV_NO_ENTRY ) {
-	cuName = NULL;
-	moduleName = "DEFAULT_MODULE";
+         cuName = NULL;
+         moduleName = "DEFAULT_MODULE";
       }
       else {
-	moduleName = strrchr(cuName, '/');
-	if (!moduleName)
-	  moduleName = strrchr(cuName, '\\');
-	if (moduleName)
-	  moduleName++;
-	else
-	  moduleName = cuName;
+         moduleName = strrchr(cuName, '/');
+         if (!moduleName)
+            moduleName = strrchr(cuName, '\\');
+         if (moduleName)
+            moduleName++;
+         else
+            moduleName = cuName;
       }
       //fprintf(stderr, "[%s:%u] - llparsing for module %s\n", __FILE__, __LINE__, moduleName);
 
@@ -4257,19 +4693,26 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
                canonicalLineSource = previousLineSource;
             }
 
-	    //fprintf(stderr, "[%s:%u]:  addLine(%s:%u [%lx-%lx]\n", FILE__, __LINE__, canonicalLineSource, (unsigned) previousLineNo, (unsigned long) previousLineAddr, (unsigned long) lineAddr);
-            li[std::string(moduleName)].addLine(canonicalLineSource, 
+            //fprintf(stderr, "[%s:%u]:  addLine(%s:%u [%lx-%lx]\n", FILE__, __LINE__, canonicalLineSource, (unsigned) previousLineNo, (unsigned long) previousLineAddr, (unsigned long) lineAddr);
+            if (!li[std::string(moduleName)].addLine(canonicalLineSource, 
 						(unsigned int) previousLineNo, 
 						(unsigned int) previousLineColumn, 
 						(Dyninst::Offset) previousLineAddr, 
-						(Dyninst::Offset) lineAddr );
+						(Dyninst::Offset) lineAddr ))
+            {
+               fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
+                     FILE__, __LINE__, canonicalLineSource, previousLineNo, 
+                     previousLineAddr, lineAddr);
+            }
+
             /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
             ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
             //} /* end if we found the function by its address */
          } /* end if the previous* variables are valid */
 
          /* If the current line ends the sequence, invalidate previous; otherwise, update. */
-         if ( isEndOfSequence ) {
+         if ( isEndOfSequence ) 
+         {
             dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
             isPreviousValid = false;
          }
@@ -4306,9 +4749,9 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
    /* Note that we've parsed this file. */
 } /* end parseDwarfFileLineInfo() */
 
-void Object::parseFileLineInfo(dyn_hash_map<string, LineInformation> &li)
+void Object::parseFileLineInfo(Symtab *st, dyn_hash_map<string, LineInformation> &li)
 {
-   parseStabFileLineInfo(li);
+   parseStabFileLineInfo(st, li);
    parseDwarfFileLineInfo(li);
 }
 

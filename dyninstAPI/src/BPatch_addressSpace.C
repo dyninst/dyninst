@@ -669,17 +669,16 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPoints(
 #include "registerSpace.h"
 
 std::vector<BPatch_register> BPatch_addressSpace::getRegistersInt() {
-#if defined(arch_power) || defined(arch_x86_64)
+#if defined(cap_registers)
     if (registers_.size()) {
         return registers_;
     }
 
     registerSpace *rs = registerSpace::getRegisterSpace(getAS());
-    std::vector<std::string> regNames;
-    rs->getAllRegisterNames(regNames);
-    for (unsigned i = 0; i < rs->GPRs().size(); i++) {
+
+    for (unsigned i = 0; i < rs->realRegs().size(); i++) {
         // Let's do just GPRs for now
-        registerSlot *regslot = rs->GPRs()[i];
+        registerSlot *regslot = rs->realRegs()[i];
         registers_.push_back(BPatch_register(regslot->name, regslot->number));
     }
     return registers_;
@@ -692,6 +691,7 @@ std::vector<BPatch_register> BPatch_addressSpace::getRegistersInt() {
 
 bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
                                                BPatch_register &reg) {
+#if defined(cap_registers)
     // Build the register list.
     getRegisters();
 
@@ -701,6 +701,7 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
             return true;
         }
     }
+#endif
     return false;
 }
 

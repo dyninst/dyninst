@@ -215,7 +215,7 @@ bool write_xml_elem(void *writer, const char *tag, const char *fmt, ...)
 }
 #else
 
-int start_xml_elem(void * /*writer*/, const char * /*xmlChar*/)
+bool start_xml_elem(void * /*writer*/, const char * /*xmlChar*/)
 {
    fprintf(stderr, "%s[%d]:  xml output is disabled\n", FILE__, __LINE__);
    return false;

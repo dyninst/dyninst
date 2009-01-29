@@ -2418,3 +2418,8 @@ bool process::setBeingDebuggedFlag(bool debuggerPresent)
     }
     return true;
 }
+
+bool process::startDebugger()
+{
+   return false;
+}
