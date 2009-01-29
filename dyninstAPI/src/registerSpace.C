@@ -311,7 +311,11 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
         case registerSlot::SPR:
             rs->SPRs_.push_back(registers[i]);
             break;
+        case registerSlot::realReg:
+            rs->realRegisters_.push_back(registers[i]);
+            break;
         default:
+            fprintf(stderr, "Error: no match for %d\n", registers[i]->type);
             assert(0);
             break;
         }
@@ -350,9 +354,6 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
 }
 
 Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost) {
-#if 0
-    unsigned scratchIndex = 0;
-#endif
     pdvector<registerSlot *> couldBeStolen;
     pdvector<registerSlot *> couldBeSpilled;
 
@@ -363,7 +364,6 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
     for (unsigned i = 0; i < GPRs_.size(); i++) {
         registerSlot *reg = GPRs_[i];
 
-#if 0        
         regalloc_printf("%s[%d]: getting scratch register, examining %d of %d: reg %d, offLimits %d, refCount %d, liveState %s, keptValue %d\n",
                         FILE__, __LINE__, i, GPRs_.size(),
                         reg->number,
@@ -371,16 +371,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
                         reg->refCount,
                         (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::dead) ? "dead" : "spilled"),
                         reg->keptValue);
-#endif                 
 
-#if 0
-#if defined (cap_use_pdvector)
-        if (find(excluded, reg->number, scratchIndex)) continue;
-#else
-        if (excluded.end() != std::find(excluded.begin(), excluded.end(), reg->number)) 
-           continue;
-#endif
-#endif
         bool found = false;
         for (unsigned int i = 0; i < excluded.size(); ++i) {
            Register &ex_reg = excluded[i];
@@ -1105,5 +1096,14 @@ Register registerSpace::getRegByName(const std::string name) {
 
 std::string registerSpace::getRegByNumber(Register reg) {
     return registers_[reg]->name;
+}
+
+// If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64) 
+// return that. Otherwise return GPRs. 
+pdvector<registerSlot *> &registerSpace::realRegs() {
+    if (realRegisters_.size())
+        return realRegisters_;
+    else
+        return GPRs();
 }
 

@@ -70,11 +70,14 @@ class AnnotationClassBase
 {
    private:
       static std::vector<AnnotationClassBase *> *annotation_types;
+      static dyn_hash_map<std::string, AnnotationClassID> *annotation_ids_by_name;
       anno_cmp_func_t cmp_func;
       AnnotationClassID id;
+      std::string name;
 
    protected:
-      COMMON_TEMPLATE_EXPORT AnnotationClassBase(anno_cmp_func_t cmp_func_ = NULL);
+      COMMON_TEMPLATE_EXPORT AnnotationClassBase(std::string n, 
+            anno_cmp_func_t cmp_func_ = NULL);
 
    public:
 
@@ -86,6 +89,7 @@ class AnnotationClassBase
       }
 
       AnnotationClassID getID() { return id; }
+      std::string &getName() {return name;}
 };
 
 template <class T> 
@@ -97,12 +101,10 @@ class AnnotationClass : public AnnotationClassBase {
       COMMON_TEMPLATE_EXPORT AnnotationClass(std::string n, 
             anno_cmp_func_t cmp_func_ = NULL, 
             bool (*serializer)(SerializerBase &, T&) = NULL) :
-         AnnotationClassBase(cmp_func_),
-         name(n),
+         AnnotationClassBase(n, cmp_func_),
          serialize_func(serializer)
       {}
 
-      std::string &getName() {return name;}
 
       ser_func_t getSerializeFunc()
       {
@@ -111,7 +113,6 @@ class AnnotationClass : public AnnotationClassBase {
 
 
    private:
-      std::string name;
       ser_func_t serialize_func;
 };
 
@@ -142,7 +143,7 @@ class AnnotatableDense
       }
 
       template<class T> 
-      bool addAnnotation(T *a, AnnotationClass<T> &a_id) 
+      bool addAnnotation(const T *a, AnnotationClass<T> &a_id) 
       {
          int size;
          int id = a_id.getID();
@@ -372,7 +373,7 @@ class AnnotatableSparse
       }
 
       template<class T>
-      bool addAnnotation(T *a, AnnotationClass<T> &a_id)
+      bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
          {
             void *obj = this;
             annos_by_type_t *abt = getAnnosOfType(a_id, true /*do create if needed*/);
@@ -381,7 +382,7 @@ class AnnotatableSparse
             annos_by_type_t::iterator iter = abt->find(obj);
             if (iter == abt->end())
             {
-               (*abt)[obj] = (void *)a;
+               (*abt)[obj] = (void *) const_cast<T *>(a);
             }
             else
             {

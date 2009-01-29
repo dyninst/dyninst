@@ -1577,3 +1577,23 @@ bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) {
     continueHint = false;
     return true;
 }
+
+
+bool process::startDebugger()
+{
+   if (strstr(dyn_debug_crash_debugger, "gdb")) {
+      char pid_buffer[32];
+      snprintf(pid_buffer, 32, "--pid=%d", getPid());
+      char *const argv[3] = { dyn_debug_crash_debugger, pid_buffer, NULL };
+      execv(dyn_debug_crash_debugger, argv);
+      perror("Error starting gdb");
+      return false;
+   }
+   if (strcmp(dyn_debug_crash_debugger, "core") == 0) {
+      exit(0);
+   }
+
+   fprintf(stderr, "Don't know how to start debugger %s\n", 
+           dyn_debug_crash_debugger);
+   return false;
+}
