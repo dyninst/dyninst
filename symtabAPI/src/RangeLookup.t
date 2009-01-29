@@ -114,7 +114,12 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
                                                 Offset highExclusiveAddr) 
 {
   /* Verify the input. */
-  if ( lowInclusiveAddr >= highExclusiveAddr ) { return false; }
+  if ( lowInclusiveAddr >= highExclusiveAddr ) 
+  { 
+     fprintf(stderr, "%s[%d]:  failing to add value here!! %lu < %lu\n", FILE__, __LINE__,
+           lowInclusiveAddr, highExclusiveAddr);
+     return false; 
+  }
 
   /* If we've already got this range, it's safe to insert it. */
   typedef typename ValueByAddressRange::iterator RangeIterator;
@@ -122,7 +127,8 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
   rangeOfRanges = valuesByAddressRangeMap.equal_range(AddressRange(lowInclusiveAddr, 
                                                                    highExclusiveAddr));
   if (   (rangeOfRanges.first != rangeOfRanges.second) 
-      || (valuesByAddressRangeMap.size() == 0) ) {
+      || (valuesByAddressRangeMap.size() == 0) ) 
+  {
     /* insert() is amortized constant time if the new value is inserted immediately before the hint. */
     valuesByAddressRangeMap.insert( rangeOfRanges.second, 
                                     std::make_pair(AddressRange(lowInclusiveAddr, 
@@ -137,18 +143,21 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
   typedef std::list< Range > RangeList;
   RangeIterator downIterator = rangeOfRanges.second;
 
-  if (rangeOfRanges.second != valuesByAddressRangeMap.begin()) { 
+  if (rangeOfRanges.second != valuesByAddressRangeMap.begin()) 
+  {
       --downIterator; 
   }
 
   RangeList containingRangeList;
   for (; ( (downIterator->first.first <= lowInclusiveAddr)
            && (highExclusiveAddr < downIterator->first.second) )
-       ; --downIterator ) {
+       ; --downIterator ) 
+  {
 
     // /* DEBUG */ fprintf( stderr, "%s[%d]: found containing range [0x%lx, 0x%lx) while inserting [0x%lx, 0x%lx) (%s, %d)\n", __FILE__, __LINE__, downIterator->first.first, downIterator->first.second, lowInclusiveAddr, highExclusiveAddr, lineSourceInternal, lineNo );
 
     containingRangeList.push_back( * downIterator );
+
     if ( downIterator == valuesByAddressRangeMap.begin() ) 
         break; 
   }
@@ -156,17 +165,20 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
   /* We also need to look for contained ranges. */	
   RangeIterator upIterator = rangeOfRanges.second;	
   RangeList containedRangeList;
+
   for (; (upIterator != valuesByAddressRangeMap.end()) 
          && ((lowInclusiveAddr <= upIterator->first.first)
               && (upIterator->first.second < highExclusiveAddr) )
-       ; ++upIterator ) {
+       ; ++upIterator ) 
+  {
 
     // /* DEBUG */ fprintf( stderr, "%s[%d]: found contained range [0x%lx, 0x%lx) while inserting [0x%lx, 0x%lx) (%s, %d)\n", __FILE__, __LINE__, upIterator->first.first, upIterator->first.second, lowInclusiveAddr, highExclusiveAddr, lineSourceInternal, lineNo );
 
     containedRangeList.push_back( * upIterator );
   } /* end iteration looking for contained ranges */
 	
-  if (containingRangeList.size() == 0 && containedRangeList.size() == 0 ) {
+  if (containingRangeList.size() == 0 && containedRangeList.size() == 0 ) 
+  {
     /* insert() is amortized constant time if the new value is inserted immediately before the hint. */
     valuesByAddressRangeMap.insert(rangeOfRanges.second, 
                                    std::make_pair(AddressRange(lowInclusiveAddr, 
@@ -178,12 +190,15 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
 	
   /* TODO: combine lists; if wasContaining, splitaddrlist is just highExclusiveAddr */
 	
-  if (containingRangeList.size() != 0) {
+  if (containingRangeList.size() != 0) 
+  {
     Offset splitAddress = highExclusiveAddr;
 		
     /* Remove the old (containing) ranges, split them, insert the new ones. */
     typename RangeList::const_iterator containingIterator = containingRangeList.begin();
-    for ( ; containingIterator != containingRangeList.end(); ++containingIterator ) {
+
+    for ( ; containingIterator != containingRangeList.end(); ++containingIterator ) 
+    {
       AddressRange ar = containingIterator->first;
       Value lnt = containingIterator->second;
 		
@@ -218,7 +233,8 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
     return true;
   } /* end if the range to be inserted is contained by other ranges. */
 	
-  if (containedRangeList.size() != 0 ) {
+  if (containedRangeList.size() != 0 ) 
+  {
     /* We'll split the ranges at these points. */
     typedef std::list< Offset > AddressList;
     AddressList splitAddressList;
@@ -229,57 +245,63 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
     Offset splitAddress = containedIterator->first.second;
     ++containedIterator;
 				
-    for ( ; containedIterator != containedRangeList.end(); ++containedIterator ) {
+    for ( ; containedIterator != containedRangeList.end(); ++containedIterator ) 
+    {
       /* Is there a discontinuity? */
-      if (containedIterator->first.first >= splitAddress) {
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: will split at 0x%lx\n", __FILE__, __LINE__, splitAddress );
-				
-	/* If there is, our current splitAddress should be a split, */
-	splitAddressList.push_back( splitAddress );				
-				
-	/* and the high end of the next contained range will be our next split point. */
-	splitAddress = containedIterator->first.second;				
-      }
-      else { 
-        splitAddress = containedIterator->first.second; 
-      }
+       if (containedIterator->first.first >= splitAddress) 
+       {
+          // /* DEBUG */ fprintf( stderr, "%s[%d]: will split at 0x%lx\n", __FILE__, __LINE__, splitAddress );
+
+          /* If there is, our current splitAddress should be a split, */
+          splitAddressList.push_back( splitAddress );				
+
+          /* and the high end of the next contained range will be our next split point. */
+          splitAddress = containedIterator->first.second;				
+       }
+       else 
+       {
+          splitAddress = containedIterator->first.second; 
+       }
     } /* end split point determination iteration */
 
     // /* DEBUG */ fprintf( stderr, "%s[%d]: will split at 0x%lx\n", __FILE__, __LINE__, splitAddress );
 
     splitAddressList.push_back( splitAddress );
-		
+
     /* Split the range to be inserted. */
     Offset lowAddress = lowInclusiveAddr;
     AddressList::const_iterator splitAddressIterator = splitAddressList.begin();
     Offset highAddress = 0;
-    for ( ; splitAddressIterator != splitAddressList.end(); ++ splitAddressIterator ) {
-      highAddress = * splitAddressIterator;
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx) (%s, %u)\n", __FILE__, __LINE__, lowAddress, highAddress, lnt.first, lnt.second );
 
-      valuesByAddressRangeMap.insert(std::make_pair(AddressRange(lowAddress, highAddress ), v ) );
-      addressRangesByValueMap.insert(std::make_pair(v, AddressRange(lowAddress, highAddress ) ) );
-			
-      lowAddress = highAddress;
+    for ( ; splitAddressIterator != splitAddressList.end(); ++ splitAddressIterator ) 
+    {
+       highAddress = * splitAddressIterator;
+
+       // /* DEBUG */ fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx) (%s, %u)\n", __FILE__, __LINE__, lowAddress, highAddress, lnt.first, lnt.second );
+
+       valuesByAddressRangeMap.insert(std::make_pair(AddressRange(lowAddress, highAddress ), v ) );
+       addressRangesByValueMap.insert(std::make_pair(v, AddressRange(lowAddress, highAddress ) ) );
+
+       lowAddress = highAddress;
     } /* end iteration to split range to be inserted. */
 
     // /* DEBUG */ fprintf( stderr, "%s[%d]: inserting range [0x%lx, 0x%lx) (%s, %u)\n", __FILE__, __LINE__, highAddress, highExclusiveAddr, lnt.first, lnt.second );
 
     valuesByAddressRangeMap.insert(std::make_pair(AddressRange( highAddress, highExclusiveAddr ), v ) );
     addressRangesByValueMap.insert(std::make_pair(v, AddressRange( highAddress, highExclusiveAddr ) ) );	
-		
+
     /* We done did it. */
     return true;
   } /* end if the range to be inserted contains other ranges. */
-		
+
   /* Something Terrible happened. */
   return false;
 } /* end addValue() */
 
 template< class Value, class ValueRange > 
 bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addAddressRange( Offset lowInclusiveAddr, 
-                                                        Offset highExclusiveAddr, 
-                                                        Value v ) 
+      Offset highExclusiveAddr, 
+      Value v ) 
 {
   return addValue( v, lowInclusiveAddr, highExclusiveAddr );
 } /* end addAddressRange() */
@@ -313,16 +335,21 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::getValues( Offset add
   RangeIterator hHighEnd = --(lowRange.second);
 
   /* Some implementations get stuck on valuesByAddressRangeMap.begin(), apparently. */
-  for ( ; hHighEnd->first.second > addressInRange && hHighEnd != valuesByAddressRangeMap.end(); --hHighEnd ) {
-    if ( hHighEnd->first.first <= addressInRange && addressInRange < hHighEnd->first.second ) {
-      values.push_back( hHighEnd->second );
-    }
-    if (hHighEnd == valuesByAddressRangeMap.begin() ) 
-       break; 
+  for ( ; hHighEnd->first.second > addressInRange && hHighEnd != valuesByAddressRangeMap.end(); --hHighEnd ) 
+  {
+     if (   (hHighEnd->first.first <= addressInRange)
+           && (addressInRange < hHighEnd->first.second) ) 
+     {
+        values.push_back( hHighEnd->second );
+     }
+
+     if (hHighEnd == valuesByAddressRangeMap.begin() ) 
+        break; 
   } /* end iteration over possible range matches. */
+
   if ( values.size() == 0 ) 
      return false; 
-	
+
   return true;
 } /* end getLinesFromAddress() */
 
@@ -335,11 +362,16 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::getAddressRanges(Valu
    std::pair< IteratorType, IteratorType > range = addressRangesByValueMap.equal_range( v );
 
    /* If equal_range() doesn't find anything, range.first and range.second will be equal. */
+
    if ( range.first == range.second ) 
+   {
+      fprintf(stderr, "%s[%d]:   failing to getAddressRanges here, nelem = %lu\n", FILE__, __LINE__, addressRangesByValueMap.size());
       return false;
+   }
 
    /* Otherwise, copy out the found ranges. */
-   for ( IteratorType i = range.first; i != range.second; ++i ) {
+   for ( IteratorType i = range.first; i != range.second; ++i ) 
+   {
       //    ranges.push_back( AddressRange(i->second));
       ranges.push_back(i->second);
    } /* end iteration over located address ranges. */
@@ -359,7 +391,7 @@ typename Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::const_iterator Dy
    return valuesByAddressRangeMap.end();
 } /* end begin() */
 
-   template< class Value, class ValueRange > 
+template< class Value, class ValueRange > 
 Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::~RangeLookup() 
 {
 } /* end RangeLookup destructor */
@@ -367,11 +399,22 @@ Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::~RangeLookup()
 bool Dyninst::SymtabAPI::RangeLookupImpl::AddressRangeLess::operator()(const AddressRange &lhs,
       const AddressRange &rhs) const 
 {
-   if( lhs.first < rhs.first ) { return true; }
-   else if( lhs.first == rhs.first ) {
-      if( lhs.second < rhs.second ) { return true; }
-      else{ return false; }
+   if ( lhs.first < rhs.first ) 
+   { 
+      return true; 
    }
-   else{ return false; }
+   else if ( lhs.first == rhs.first ) 
+   {
+      if ( lhs.second < rhs.second ) 
+      {
+         return true;
+      }
+      else
+      {
+         return false; 
+      }
+   }
+
+   return false; 
 } /* end AddressRangeLess() */
 

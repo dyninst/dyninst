@@ -68,6 +68,7 @@
 #include "symtabAPI/h/LineInformation.h"
 #include "BPatch_function.h"
 #include "callbacks.h"
+#include "BPatch_module.h"
 
 #include "BPatch_private.h"
 
@@ -1875,11 +1876,7 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * libname	The name of the library to load.
  */
-#if defined(cap_save_the_world)
-bool BPatch_process::loadLibraryInt(const char *libname, bool reload)
-#else
 bool BPatch_process::loadLibraryInt(const char *libname, bool)
-#endif
 {
    stopExecutionInt();
    if (!statusIsStopped()) {
@@ -1897,7 +1894,14 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
     * Find the DYNINSTloadLibrary function
     **/
    BPatch_Vector<BPatch_function *> bpfv;
-   image->findFunction("DYNINSTloadLibrary", bpfv);
+   BPatch_module* dyn_rt_lib = image->findModule("dyninstAPI_RT", true);
+   if(dyn_rt_lib == NULL)
+   {
+      cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find module for "
+           << "DyninstAPI Runtime Library" << endl;
+      return false;
+   }
+   dyn_rt_lib->findFunction("DYNINSTloadLibrary", bpfv);
    if (!bpfv.size()) {
       cerr << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal"
            << "Function DYNINSTloadLibrary" << endl;
@@ -1921,7 +1925,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
     
    if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
       BPatch_variableExpr *dlerror_str_var = 
-         image->findVariable("gLoadLibraryErrorString");
+         dyn_rt_lib->findVariable("gLoadLibraryErrorString");
       assert(NULL != dlerror_str_var);      
       char dlerror_str[256];
       dlerror_str_var->readValue((void *)dlerror_str, 256);
@@ -1929,16 +1933,10 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       return false;
    }
    BPatch_variableExpr *brk_ptr_var = 
-      image->findVariable("gBRKptr");
+      dyn_rt_lib->findVariable("gBRKptr");
    assert(NULL != brk_ptr_var);
    void *brk_ptr;
    brk_ptr_var->readValue(&brk_ptr, sizeof(void *));
-
-#if defined(cap_save_the_world) 
-	if(llproc->collectSaveWorldData && reload){
-		llproc->saveWorldloadLibrary(libname, brk_ptr);	
-	}
-#endif
    return true;
 }
 

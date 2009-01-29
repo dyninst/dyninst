@@ -56,7 +56,10 @@ bool void_ptr_cmp_func(void *v1, void *v2)
 };
 
 std::vector<AnnotationClassBase *> *AnnotationClassBase::annotation_types;
-AnnotationClassBase::AnnotationClassBase(anno_cmp_func_t cmp_func_)
+dyn_hash_map<std::string, AnnotationClassID> *AnnotationClassBase::annotation_ids_by_name;
+
+AnnotationClassBase::AnnotationClassBase(std::string n, anno_cmp_func_t cmp_func_) :
+   name(n)
 {
     // Using a static vector led to the following pattern on AIX:
     //   dyninstAPI static initialization
@@ -66,14 +69,26 @@ AnnotationClassBase::AnnotationClassBase(anno_cmp_func_t cmp_func_)
 
     if (annotation_types == NULL)
         annotation_types = new std::vector<AnnotationClassBase *>;
+    if (annotation_ids_by_name == NULL)
+        annotation_ids_by_name = new dyn_hash_map<std::string, AnnotationClassID>;
 
    if (NULL == cmp_func_)
       cmp_func = void_ptr_cmp_func;
    else
       cmp_func = cmp_func_;
 
-   annotation_types->push_back(this);
-   id = (AnnotationClassID) annotation_types->size();
+   dyn_hash_map<std::string, AnnotationClassID>::iterator iter;
+   iter = annotation_ids_by_name->find(n);
+   if (iter == annotation_ids_by_name->end()) 
+   {
+      annotation_types->push_back(this);
+      id = (AnnotationClassID) annotation_types->size();
+      (*annotation_ids_by_name)[name] = id;
+   }
+   else
+   {
+      id = iter->second;
+   }
 }
 
 #if 0

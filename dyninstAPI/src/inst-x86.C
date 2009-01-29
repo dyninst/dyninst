@@ -123,40 +123,47 @@ void registerSpace::initialize32() {
     
     pdvector<registerSlot *> registers;
 
-#if 0
     // When we use 
-    registerSlot eax = registerSlot(REGNUM_EAX,
-                                    true, // Off-limits due to our "stack slot" register mechanism
-                                    false, // Dead at function call?
-                                    registerSlot::GPR);
-    registerSlot ecx = registerSlot(REGNUM_ECX,
-                                    true,
-                                    false,                                    
-                                    registerSlot::GPR);
-    registerSlot edx = registerSlot(REGNUM_EDX,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
-    registerSlot ebx = registerSlot(REGNUM_EBX,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
-    registerSlot esp = registerSlot(REGNUM_ESP,
-                                    true, // Off-limits...
-                                    true,
-                                    registerSlot::SPR); // I'd argue the SP is a special-purpose reg
-    registerSlot ebp = registerSlot(REGNUM_EBP,
-                                    true,
-                                    true,
-                                    registerSlot::SPR);
-    registerSlot esi = registerSlot(REGNUM_ESI,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
-    registerSlot edi = registerSlot(REGNUM_EDI,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
+    registerSlot *eax = new registerSlot(REGNUM_EAX,
+                                        "eax",
+                                        true, // Off-limits due to our "stack slot" register mechanism
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *ecx = new registerSlot(REGNUM_ECX,
+                                        "ecx",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *edx = new registerSlot(REGNUM_EDX,
+                                        "edx",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *ebx = new registerSlot(REGNUM_EBX,
+                                        "ebx",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *esp = new registerSlot(REGNUM_ESP,
+                                        "esp",
+                                        true, // Off-limits...
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg); // I'd argue the SP is a special-purpose reg
+    registerSlot *ebp = new registerSlot(REGNUM_EBP,
+                                        "ebp",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *esi = new registerSlot(REGNUM_ESI,
+                                        "esi",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *edi = new registerSlot(REGNUM_EDI,
+                                        "edi",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
     
     registers.push_back(eax);
     registers.push_back(ecx);
@@ -166,14 +173,14 @@ void registerSpace::initialize32() {
     registers.push_back(ebp);
     registers.push_back(esi);
     registers.push_back(edi);
-#endif
+
     // FPRs...
 
     // SPRs...
     
     // "Virtual" registers
     for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
-        char buf[128];
+		char buf[128];
         sprintf(buf, "virtGPR%d", i);
 
         registerSlot *virt = new registerSlot(i,
@@ -183,7 +190,6 @@ void registerSpace::initialize32() {
                                               registerSlot::GPR);
         registers.push_back(virt);
     }
-
     // Create a single FPR representation to represent
     // whether any FPR is live
     registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
@@ -1269,6 +1275,7 @@ Register EmitterIA32::emitCall(opCode op,
    emitCallCleanup(gen, callee, param_size, saves);
 
    // allocate a (virtual) register to store the return value
+   // Virtual register
    Register ret = gen.rs()->allocateRegister(gen, noCost);
    emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
 
@@ -1280,11 +1287,12 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee)
     // make the call
     // we are using an indirect call here because we don't know the
     // address of this instruction, so we can't use a relative call.
-    // TODO: change this to use a direct call
-    Register ptr = gen.rs()->allocateRegister(gen, false);
-    emitMovImmToReg(ptr, callee->getAddress(), gen);  // mov e_x, addr
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, ptr, gen);   // call *(e_x)
-    gen.rs()->freeRegister(ptr);
+	// The only direct, absolute calls available on x86 are far calls,
+	// which require the callee to be aware that they're being far-called.
+	// So we grit our teeth and deal with the indirect call.
+	// Physical register
+    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);  // mov eax, addr
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
     return true;
 }
 
@@ -1301,6 +1309,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
+	// Physical register
     Register ptr = gen.rs()->allocateRegister(gen, false);
 
     // find int_function reference in address space

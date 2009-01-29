@@ -3612,7 +3612,11 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
                   }
                 }
 	}
-	else fprintf(stderr,  "%s[%d]: appThread->getSourceLines returned false!\n", __FILE__, __LINE__);
+	else 
+   {
+      fprintf(stderr,  "%s[%d]: appThread->getSourceLines(%lu) returned false!\n", 
+            __FILE__, __LINE__, lastAddr -1);
+   }
 #endif
 }
 

@@ -1188,8 +1188,15 @@ bool image_func::buildCFG(
                 // NOTE we don't do anything with these?
                 img()->addJumpTarget( target );
 
-                if(archIsATailCall( ah, allInstructions ))
+                if(archIsATailCall( ah, allInstructions ) ||
+                   (*pltFuncs).defines(target))
                 {
+                    // XXX this output is for testing only; remove
+                    if((*pltFuncs).defines(target)) {
+                      parsing_printf("[%s:%u] tail call into plt %lx -> %lx\n",
+                            FILE__,__LINE__,*ah,target);
+                    }
+
                     // Only on x86 & sparc currently
                     currBlk->isExitBlock_ = true;
                     parsing_printf("... making new exit point at 0x%lx\n", 
@@ -1396,10 +1403,11 @@ bool image_func::buildCFG(
 				   targetFunc->symTabName().c_str(),
 				   target, currAddr);
 		  }
-                else if((*pltFuncs)[target] == "exit" || 
+                else if((*pltFuncs).defines(target) &&
+                        ((*pltFuncs)[target] == "exit" || 
                         (*pltFuncs)[target] == "abort" ||
                         (*pltFuncs)[target] == "__f90_stop" ||
-                        (*pltFuncs)[target] == "fancy_abort")
+                        (*pltFuncs)[target] == "fancy_abort"))
 		  {
                       parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
                           (*pltFuncs)[target].c_str(),

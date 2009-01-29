@@ -88,6 +88,9 @@ extern int dyn_debug_infmalloc;
 extern int dyn_stats_instru;
 extern int dyn_stats_ptrace;
 extern int dyn_stats_parse;
+extern int dyn_debug_crash;
+
+extern char *dyn_debug_crash_debugger;
 
 #include "common/h/stats.h"
 
@@ -133,6 +136,7 @@ extern StatContainer stats_codegen;
 #define thread_cerr       if (dyn_debug_thread) cerr
 #define liveness_cerr     if (dyn_debug_liveness) cerr
 #define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
+#define crash_cerr        if (dyn_debug_crash) cerr
 
 // C prototypes
 extern int signal_printf(const char *format, ...);
@@ -157,6 +161,7 @@ extern int ast_printf(const char *format, ...);
 extern int write_printf(const char *format, ...);
 extern int liveness_printf(const char *format, ...);
 extern int infmalloc_printf(const char *forma, ...);
+extern int crash_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();

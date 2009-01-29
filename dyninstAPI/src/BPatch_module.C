@@ -2177,6 +2177,22 @@ void BPatch_module::parseTypes()
 #endif
 }
 
+BPatch_variableExpr* BPatch_module::findVariableInt(const char* name)
+{
+   parseTypesIfNecessary();
+
+   pdvector<std::string> keys = moduleTypes->globalVarsByName.keys();
+   for(pdvector<std::string>::iterator found = keys.begin();
+	   found != keys.end();
+	   found++)
+   {
+	   if(strcmp(found->c_str(), name) == 0)
+	   {
+		   return img->createVarExprByName(this, name);
+	   }
+   }
+}
+
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
    if (!isValid()) return false;
@@ -2195,7 +2211,6 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 
    if (limit) 
       return true;
-
    // We may not have top-level (debugging derived) variable info.
    // If not, go into the low-level code.
    const pdvector<int_variable *> &allVars = mod->getAllVariables();
@@ -2242,22 +2257,29 @@ bool BPatch_module::getLineToAddrInt( unsigned int lineNo,
 bool BPatch_module::getSourceLinesInt(unsigned long addr, 
       BPatch_Vector< BPatch_statement> &lines) 
 {
-   if (!isValid()) return false;
-
-   unsigned int originalSize = lines.size();
-   LineInformation *li = mod->getLineInformation();
-   std::vector<LineInformationImpl::LineNoTuple> lines_ll;
-   if (li) {
-      li->getSourceLines( addr - mod->obj()->codeBase(), lines_ll );
-   }
-   else {
+   if (!isValid()) 
+   {
+      fprintf(stderr, "%s[%d]:  failed to getSourceLines: invalid\n", FILE__, __LINE__);
       return false;
    }
 
-   for (unsigned int j = 0; j < lines_ll.size(); ++j) {
-      LineInformationImpl::LineNoTuple &t = lines_ll[j];
-      lines.push_back(BPatch_statement(this, t.first, 
-               t.second, t.column));
+   unsigned int originalSize = lines.size();
+   LineInformation *li = mod->getLineInformation();
+   std::vector<LineNoTuple> lines_ll;
+
+   if (li) 
+   {
+      li->getSourceLines( addr - mod->obj()->codeBase(), lines_ll );
+   }
+   else 
+   {
+      return false;
+   }
+
+   for (unsigned int j = 0; j < lines_ll.size(); ++j) 
+   {
+      LineNoTuple &t = lines_ll[j];
+      lines.push_back(BPatch_statement(this, t.first, t.second, t.column));
    }
 
    return (lines.size() != originalSize);
@@ -2295,32 +2317,41 @@ bool BPatch_module::getAddressRangesInt( const char * fileName,
 {
    unsigned int starting_size = ranges.size();
 
-   if (!isValid()) {
+   if (!isValid()) 
+   {
       fprintf(stderr, "%s[%d]:  module is not valid\n", FILE__, __LINE__);
       return false;
    }
 
    LineInformation *li = mod->getLineInformation();
-   if ( fileName == NULL ) {
+
+   if ( fileName == NULL ) 
+   {
       fileName = mod->fileName().c_str(); 
    }
-   if (li) {
+
+   if (li) 
+   {
       bool ok = li->getAddressRanges( fileName, lineNo, ranges );
-      if (ok) {
+
+      if (ok) 
+      {
          //  Iterate over the returned offset ranges to turn them into addresses
-         for (unsigned int i = starting_size; i < ranges.size(); ++i) {
+         for (unsigned int i = starting_size; i < ranges.size(); ++i) 
+         {
             ranges[i].first += mod->obj()->codeBase();
             ranges[i].second += mod->obj()->codeBase();
          }
       }
-      else {
-         //fprintf(stderr, "%s[%d]:  failed to get address ranges for %s:%d, lineInfo %p, lowlevel module = %p\n", FILE__, __LINE__, fileName, lineNo, li, mod->pmod());
+      else 
+      {
+         fprintf(stderr, "%s[%d]:  failed to get address ranges for %s:%d, lineInfo %p, lowlevel module = %p:%s\n", FILE__, __LINE__, fileName, lineNo, li, mod->pmod(), mod->pmod()->fileName().c_str());
       }
+
       return ok;
    }
-   else {
-      return false;
-   }
+
+   return false;
 } /* end getAddressRanges() */
 
 bool BPatch_module::isSharedLibInt() 
