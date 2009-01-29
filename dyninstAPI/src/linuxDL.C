@@ -832,8 +832,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
       
       Address sp = regs.gprs.PTRACE_REG_SP;
       
-      Address ret_addr;
-      if(!proc->readDataSpace((caddr_t)sp, sizeof(Address),
+      Address ret_addr = 0;
+      if(!proc->readDataSpace((caddr_t)sp, proc->getAddressWidth(),
 			      (caddr_t)&ret_addr, true)) {
 	// bperr("read failed sp = 0x%x\n", sp);
 	fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
