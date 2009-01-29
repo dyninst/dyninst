@@ -311,11 +311,9 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
         case registerSlot::SPR:
             rs->SPRs_.push_back(registers[i]);
             break;
-#if defined(cap_virtual_registers)
         case registerSlot::realReg:
             rs->realRegisters_.push_back(registers[i]);
             break;
-#endif
         default:
             fprintf(stderr, "Error: no match for %d\n", registers[i]->type);
             assert(0);
@@ -1102,7 +1100,7 @@ std::string registerSpace::getRegByNumber(Register reg) {
 
 // If we have defined realRegisters_ (IA-32 and 32-bit mode AMD-64) 
 // return that. Otherwise return GPRs. 
-pdvector<registerSlot *> &realRegs() {
+pdvector<registerSlot *> &registerSpace::realRegs() {
     if (realRegisters_.size())
         return realRegisters_;
     else
