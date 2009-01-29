@@ -123,40 +123,47 @@ void registerSpace::initialize32() {
     
     pdvector<registerSlot *> registers;
 
-#if 0
     // When we use 
-    registerSlot eax = registerSlot(REGNUM_EAX,
-                                    true, // Off-limits due to our "stack slot" register mechanism
-                                    false, // Dead at function call?
-                                    registerSlot::GPR);
-    registerSlot ecx = registerSlot(REGNUM_ECX,
-                                    true,
-                                    false,                                    
-                                    registerSlot::GPR);
-    registerSlot edx = registerSlot(REGNUM_EDX,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
-    registerSlot ebx = registerSlot(REGNUM_EBX,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
-    registerSlot esp = registerSlot(REGNUM_ESP,
-                                    true, // Off-limits...
-                                    true,
-                                    registerSlot::SPR); // I'd argue the SP is a special-purpose reg
-    registerSlot ebp = registerSlot(REGNUM_EBP,
-                                    true,
-                                    true,
-                                    registerSlot::SPR);
-    registerSlot esi = registerSlot(REGNUM_ESI,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
-    registerSlot edi = registerSlot(REGNUM_EDI,
-                                    true,
-                                    false,
-                                    registerSlot::GPR);
+    registerSlot *eax = new registerSlot(REGNUM_EAX,
+                                        "eax",
+                                        true, // Off-limits due to our "stack slot" register mechanism
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *ecx = new registerSlot(REGNUM_ECX,
+                                        "ecx",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *edx = new registerSlot(REGNUM_EDX,
+                                        "edx",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *ebx = new registerSlot(REGNUM_EBX,
+                                        "ebx",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *esp = new registerSlot(REGNUM_ESP,
+                                        "esp",
+                                        true, // Off-limits...
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg); // I'd argue the SP is a special-purpose reg
+    registerSlot *ebp = new registerSlot(REGNUM_EBP,
+                                        "ebp",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *esi = new registerSlot(REGNUM_ESI,
+                                        "esi",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
+    registerSlot *edi = new registerSlot(REGNUM_EDI,
+                                        "edi",
+                                        true,
+                                        registerSlot::liveAlways,
+                                        registerSlot::realReg);
     
     registers.push_back(eax);
     registers.push_back(ecx);
@@ -166,7 +173,7 @@ void registerSpace::initialize32() {
     registers.push_back(ebp);
     registers.push_back(esi);
     registers.push_back(edi);
-#endif
+
     // FPRs...
 
     // SPRs...
