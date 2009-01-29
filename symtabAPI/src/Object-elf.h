@@ -290,7 +290,7 @@ class Object : public AObject {
   stab_entry * get_stab_info() const;
   const char * getFileName() const { return mf->filename().c_str(); }
   void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
-  void parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
+  void parseFileLineInfo(Symtab *obj, dyn_hash_map<std::string, LineInformation> &li);
   void parseTypeInfo(Symtab *obj);
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
@@ -448,7 +448,7 @@ class Object : public AObject {
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
   
-  void parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
+  void parseStabFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
   void parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
 
   void parseDwarfTypes(Symtab *obj);

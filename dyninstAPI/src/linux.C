@@ -2553,3 +2553,17 @@ bool process::readAuxvInfo()
    
    
 }
+
+bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
+   long ret;
+   int ptrace_errno;
+   if (strcmp(dyn_debug_crash_debugger, "core") == 0)
+      return true;
+   kill(getPid(), SIGSTOP);
+   ret = DBI_ptrace(PTRACE_DETACH, getPid(), 0x0, 0x0, &ptrace_errno,
+                    getAddressWidth(), __FILE__, __LINE__);
+   if (ret == -1) {
+      fprintf(stderr, "PTrace detach failed: %s\n", strerror(ptrace_errno));
+   }
+   return (ret != -1);
+}

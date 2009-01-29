@@ -62,11 +62,8 @@
 
 using namespace std;
 using namespace boost::assign;
+using namespace Dyninst::InstructionAPI;
 
-namespace Dyninst
-{
-  namespace InstructionAPI
-  {
     
 
 // groups
@@ -3951,7 +3948,4 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 unsigned char illegalRep[2] = {0x0f, 0x0b};
 unsigned char trapRep[1] = {0xCC};
  
-};
-
-};
 

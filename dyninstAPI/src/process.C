@@ -5766,3 +5766,10 @@ bool process::mappedObjIsDeleted(mapped_object *mobj) {
          return true;
    return false;
 }
+
+#if !defined(os_linux)
+bool process::detachForDebugger(const EventRecord &)
+{
+   return false;
+}
+#endif

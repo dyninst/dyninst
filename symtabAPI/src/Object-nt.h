@@ -205,7 +205,7 @@ class Object : public AObject
 
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
-    SYMTAB_EXPORT void    parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &);
+    SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
     SYMTAB_EXPORT void    FindInterestingSections( bool );
     Region *          findEnclosingRegion(const Offset where);
 

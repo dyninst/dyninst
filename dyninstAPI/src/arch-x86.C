@@ -70,6 +70,7 @@ using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
 
 
+
 // groups
 enum {
   Grp1a=0, Grp1b, Grp1c, Grp1d, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,
@@ -103,7 +104,7 @@ enum {
   G14SSE010B, G14SSE011B, G14SSE110B, G14SSE111B,
 };
 
-
+  
 #define Zz   { 0, 0 }
 #define Ap   { am_A, op_p }
 #define Cd   { am_C, op_d }
@@ -219,7 +220,6 @@ enum {
 #define EDI { am_reg, r_EDI }
 #define ECXEBX { am_reg, r_ECXEBX }
 #define EDXEAX { am_reg, r_EDXEAX }
-
 
 #define FPOS 16
 
@@ -655,11 +655,13 @@ const map<entryID, flagInfo>& ia32_instruction::getFlagTable()
   return flagTable;
 }
 
-const vector<IA32Regs> standardFlags = list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF);
+const vector<Dyninst::InstructionAPI::IA32Regs> standardFlags = list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF);
 
   
 void ia32_instruction::initFlagTable(map<entryID, flagInfo>& flagTable)
 {
+  using namespace Dyninst::InstructionAPI;
+  
   flagTable[e_aaa] = flagInfo(list_of(r_AF), standardFlags);
   flagTable[e_aad] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_aam] = flagInfo(vector<IA32Regs>(), standardFlags);
@@ -5204,6 +5206,7 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
          regs.push_back(regused);
       }
       else if (op.admet == am_reg) {
+	using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
             case r_AH:   

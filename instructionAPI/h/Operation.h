@@ -55,6 +55,8 @@
 // Use cases:
 // OpCode + raw instruction -> Operation + ExpressionPtrs
 // Operation + ExpressionPtrs -> Instruction + Operands
+struct ia32_entry;
+class ia32_prefixes;
 
 namespace Dyninst
 {
@@ -84,8 +86,6 @@ namespace Dyninst
     ///
     /// %Operations are constructed by the %InstructionDecoder as part of the process
     /// of constructing an %Instruction.
-    struct ia32_entry;
-    class ia32_prefixes;
     
     class Operation
     {
@@ -95,7 +95,7 @@ namespace Dyninst
       typedef std::set<Expression::Ptr> VCSet;
   
     public:
-      INSTRUCTION_EXPORT Operation(Dyninst::InstructionAPI::ia32_entry* e, Dyninst::InstructionAPI::ia32_prefixes* p = NULL);
+      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL);
       INSTRUCTION_EXPORT Operation(const Operation& o);
       INSTRUCTION_EXPORT Operation();
       

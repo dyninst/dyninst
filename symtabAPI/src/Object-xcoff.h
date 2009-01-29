@@ -243,7 +243,7 @@ private:
     void load_object(bool alloc_syms);
     void load_archive(bool is_aout, bool alloc_syms);
     void parse_aout(int offset, bool is_aout, bool alloc_syms);
-    void parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li);
+    void parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
     void parseLineInformation(dyn_hash_map<std::string, LineInformation> &li, std::string * currentSourceFile,
                                 	char * symbolName,
                                 	SYMENT * sym,
