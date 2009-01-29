@@ -2177,6 +2177,22 @@ void BPatch_module::parseTypes()
 #endif
 }
 
+BPatch_variableExpr* BPatch_module::findVariableInt(const char* name)
+{
+   parseTypesIfNecessary();
+
+   pdvector<std::string> keys = moduleTypes->globalVarsByName.keys();
+   for(pdvector<std::string>::iterator found = keys.begin();
+	   found != keys.end();
+	   found++)
+   {
+	   if(strcmp(found->c_str(), name) == 0)
+	   {
+		   return img->createVarExprByName(this, name);
+	   }
+   }
+}
+
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
    if (!isValid()) return false;
@@ -2195,7 +2211,6 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 
    if (limit) 
       return true;
-
    // We may not have top-level (debugging derived) variable info.
    // If not, go into the low-level code.
    const pdvector<int_variable *> &allVars = mod->getAllVariables();
