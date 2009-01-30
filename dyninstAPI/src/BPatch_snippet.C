@@ -1168,7 +1168,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
     vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
     vector<Dyninst::SymtabAPI::loc_t *> *locs = lv->getSymtabVar()->getLocationLists();
-    vector<Dyninst::SymtabAPI::loc_t *>* newlocs= new vector<loc_t *>;
+    vector<Dyninst::SymtabAPI::loc_t *> *newlocs= new vector<Dyninst::SymtabAPI::loc_t *>;
 	
 #if  defined(arch_x86_64) 
 
@@ -1204,7 +1204,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 		   
 		   */
    	
-   		loc_t *newloc = (loc_t *)malloc(sizeof(loc_t));
+   		Dyninst::SymtabAPI::loc_t *newloc = (Dyninst::SymtabAPI::loc_t *)malloc(sizeof(Dyninst::SymtabAPI::loc_t));
    		newloc->stClass = (*locs)[i]->stClass ;
    	        newloc->refClass = (*locs)[i]->refClass;
    	        newloc->reg = (*locs)[i]->reg;
@@ -1232,7 +1232,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
            } // fploc iteration
        } else { // if not storageFrameOffset 
 
-	   loc_t *newloc = (loc_t *)malloc(sizeof(loc_t));
+    	   Dyninst::SymtabAPI::loc_t *newloc = (Dyninst::SymtabAPI::loc_t *)malloc(sizeof(Dyninst::SymtabAPI::loc_t));
 	   newloc->stClass = (*locs)[i]->stClass ;
 	   newloc->refClass = (*locs)[i]->refClass;
 	   newloc->reg = (*locs)[i]->reg;
@@ -1252,7 +1252,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
         varlowPC = ((*locs)[i]->lowPC) + baseAddr;
         varhiPC = ((*locs)[i]->hiPC) + baseAddr;
 
-	loc_t *newloc = (loc_t *)malloc(sizeof(loc_t));
+   	Dyninst::SymtabAPI::loc_t *newloc = (Dyninst::SymtabAPI::loc_t *)malloc(sizeof(Dyninst::SymtabAPI::loc_t));
 	newloc->stClass = (*locs)[i]->stClass ;
 	newloc->refClass = (*locs)[i]->refClass;
 	newloc->reg = (*locs)[i]->reg;
