@@ -565,10 +565,10 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile), locations[i].lr_number );
             loc->stClass = storageRegOffset;
             loc->refClass = storageNoRef;
-            loc->frameOffset = 0;
+            loc->frameOffset = locations[i].lr_number ;
             loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
             opStack.push(static_cast<long int>(locations[i].lr_number)); 
-	    //break;
+	    break;
          }
 
          switch( locations[i].lr_atom ) {
@@ -867,7 +867,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 
             default:
                dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
-               //return false;
+               return false;
                break;
          } /* end operand switch */
       } /* end iteration over Dwarf_Loc entries. */
@@ -876,7 +876,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
          /* The top of the stack is the computed location. */
          if ( opStack.empty() ) {
             dwarf_printf( "ignoring malformed location list (stack empty at end of list).\n" );
-            //return false;
+            return false;
          }
          else {
             dwarf_printf( "setting offset to %d\n", opStack.top() );
@@ -1117,8 +1117,11 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	       dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
                vector<loc_t *>* locs = new vector<loc_t *>;
                bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
-               if ( ! decodedAddressOrOffset ) { break; }
-               newFunction->setFramePtr(locs);
+	       DWARF_FALSE_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
+
+               status = newFunction->setFramePtr(locs);
+	       DWARF_FALSE_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
+	       
 #endif
 
                deallocateLocationList( dbg, locationList, listLength );

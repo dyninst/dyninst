@@ -1175,7 +1175,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     // Get the frame pointer location list for the local variable's function
     vector<Dyninst::SymtabAPI::loc_t *> *fplocs = 
        				scp->getFunction()->lowlevel_func()->ifunc()->getSymtabFunction()->getFramePtr();
-   
+ 
     for(unsigned i=0; i<locs->size(); i++) {
 
         Address varlowPC, varhiPC;
@@ -1267,7 +1267,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 #endif
 
     if (newlocs->size() < locs->size()) {
-    	fprintf(stderr, "%s[%d]: Number of entries in newlocs [%d] must be >= Number of entries in locs [%d]\n",
+    	fprintf(stderr, "%s[%d]: Number of entries in newlocs [%ld] must be >= Number of entries in locs [%ld]\n",
     							FILE__, __LINE__, newlocs->size(), locs->size() );
     }
 

@@ -58,7 +58,7 @@ Function *Function::createFunction(Symbol *sym) {
 }
 
 Function::Function()
-    : retType_(NULL), framePtrRegNum_(-1) {}
+    : retType_(NULL), framePtrRegNum_(-1), locs_(NULL) {}
 
 Type * Function::getReturnType() const
 {
@@ -89,8 +89,9 @@ std::vector<Dyninst::SymtabAPI::loc_t *> *Function::getFramePtr() const
 
 bool Function::setFramePtr(vector<loc_t *> *locs) 
 {
-    if(locs_)
+    if(locs_) 
         return false;
+    
     locs_ = locs;
     return true;
 }
