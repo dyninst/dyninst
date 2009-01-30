@@ -1266,8 +1266,11 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     }
 #endif
 
-    fprintf(stderr, "%s[%d]: Number of entries in newlocs [%d] must be >= Number of entries in locs [%d]\n",
+    if (newlocs->size() < locs->size()) {
+    	fprintf(stderr, "%s[%d]: Number of entries in newlocs [%d] must be >= Number of entries in locs [%d]\n",
     							FILE__, __LINE__, newlocs->size(), locs->size() );
+    }
+
     lv->getSymtabVar()->setLocation(newlocs);
     for(unsigned i=0; i<newlocs->size(); i++){
         AstNodePtr *variableAst;
