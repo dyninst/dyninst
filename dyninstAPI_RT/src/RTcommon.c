@@ -60,7 +60,6 @@ unsigned int DYNINSThasInitialized = 0;
 unsigned DYNINST_max_num_threads;
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
-void *gBRKptr;
 int DYNINSTdebugRTlib;
 
 dyninst_thread_t *DYNINST_thread_structs;

@@ -20,36 +20,44 @@ struct struct26_2 {
     struct struct26_1 field4;
 };
 
-typedef struct {
+struct test1_27_type1_t {
     /* void *field27_11; */
     int field27_11;
     float field27_12;
-} test1_27_type1;
+} ;
 
-typedef struct {
+typedef struct test1_27_type1_t test1_27_type1;
+
+struct test1_27_type2_t {
     /* void *field27_21; */
     int field27_21;
     float field27_22;
-} test1_27_type2;
+} ;
+typedef struct test1_27_type2_t test1_27_type2;
 
-typedef struct {
+struct test1_27_type3_t {
     int field3[10];
     struct struct26_2 field4;
-} test1_27_type3;
+};
 
-typedef struct {
+typedef struct test1_27_type3_t test1_27_type3;
+
+struct test1_27_type4_t {
     int field3[10];
     struct struct26_2 field4;
-} test1_27_type4;
+} ;
+
+typedef test1_24_type4_t test1_27_type4;
 
 /* need this variables or some compilers (AIX xlc) will removed unused
    typedefs - jkh 10/13/99 */
-test1_27_type1 dummy1;
-test1_27_type2 dummy2;
-test1_27_type3 dummy3;
-test1_27_type4 dummy4;
+test1_27_type1 test1_27_dummy1;
+test1_27_type2 test1_27_dummy2;
+test1_27_type3 test1_27_dummy3;
+test1_27_type4 test1_27_dummy4;
 
 int test1_27_globalVariable1 = 0;
+
 /* Note for future reference: -Wl,-bgcbypass:3 is NECESSARY for
    compilation (gcc) on AIX. Damn efficient linkers. */
 int test1_27_globalVariable5[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -90,7 +98,7 @@ int test1_27_mutatee() {
     retval = 0; /* Test "passed" */
 #else
     passed = (test1_27_globalVariable1 == 1);
-
+   
     if (passed) {
       logerror("Passed test #27 (type compatibility)\n");
       test_passes(testname);

@@ -650,6 +650,13 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
             newPhdr->p_memsz = dynSegSize;
             newPhdr->p_filesz = newPhdr->p_memsz;
         }
+        else if(tmp->p_type == PT_PHDR){
+            newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
+            newPhdr->p_paddr = newPhdr->p_vaddr;
+            newPhdr->p_filesz = sizeof(Elf32_Phdr) * newEhdr->e_phnum;
+            newPhdr->p_memsz = newPhdr->p_filesz;
+        }
+
     	if(BSSExpandFlag) {
     	    if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7))
     	    {
@@ -668,10 +675,6 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
                     newPhdr->p_memsz = newPhdr->p_filesz;
                 }
 	        }
-            if(tmp->p_type == PT_PHDR){
-    	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
-        		newPhdr->p_paddr = newPhdr->p_vaddr;
-            }
             // update first segment header with the page size offset
 	        if ((tmp->p_type == PT_LOAD && tmp->p_flags == 5 && tmp->p_vaddr == 0) ||
                 (tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
