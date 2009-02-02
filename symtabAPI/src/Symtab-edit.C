@@ -218,9 +218,6 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
         newSym->setVersions(*newSymVers);
     }
 
-    //Check again. Is this an ok thing to do??
-    undefDynSyms[newSym->getPrettyName()].push_back(newSym);
-
     return addSymbol(newSym, true);
 }
 
