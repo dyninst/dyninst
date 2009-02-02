@@ -1,0 +1,10 @@
+/RTshared-unix.c/1.1/Tue May 11 19:02:28 2004//
+/RTshared-win.c/1.2/Fri Apr 14 02:08:09 2006//
+/shmMgr.C/1.1/Wed Nov 22 21:44:59 2006//
+/shmMgr.h/1.1/Wed Nov 22 21:45:00 2006//
+/shmSegment-nt.C/1.1/Wed Nov 22 21:45:01 2006//
+/shmSegment-unix.C/1.1/Wed Nov 22 21:45:02 2006//
+/shmSegment-win.C/1.1/Wed Nov 22 21:45:03 2006//
+/shmSegment.C/1.1/Wed Nov 22 21:45:04 2006//
+/shmSegment.h/1.1/Wed Nov 22 21:45:05 2006//
+D
