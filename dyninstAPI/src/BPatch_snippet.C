@@ -1175,7 +1175,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     // Get the frame pointer location list for the local variable's function
     vector<Dyninst::SymtabAPI::loc_t *> *fplocs = 
        				scp->getFunction()->lowlevel_func()->ifunc()->getSymtabFunction()->getFramePtr();
- 
+
     for(unsigned i=0; i<locs->size(); i++) {
 
         Address varlowPC, varhiPC;
@@ -1184,7 +1184,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
     	BPatch_storageClass in_storage = lv->convertToBPatchStorage((*locs)[i]);
 
-    	if (in_storage == BPatch_storageFrameOffset ) { 
+    	if (in_storage == BPatch_storageFrameOffset && fplocs != NULL) { 
        // Merge varaible and frame pointer's location list
 
            for(unsigned j=0; j<fplocs->size(); j++) {
