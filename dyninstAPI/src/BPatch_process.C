@@ -1932,11 +1932,6 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       BPatch_reportError(BPatchSerious, 124, dlerror_str);
       return false;
    }
-   BPatch_variableExpr *brk_ptr_var = 
-      dyn_rt_lib->findVariable("gBRKptr");
-   assert(NULL != brk_ptr_var);
-   void *brk_ptr;
-   brk_ptr_var->readValue(&brk_ptr, sizeof(void *));
    return true;
 }
 
