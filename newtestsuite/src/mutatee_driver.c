@@ -282,14 +282,6 @@ int main(int iargc, char *argv[])
       }
    }
 
-   if (has_pidfile)
-   {
-#if !defined(os_windows_test)
-      fprintf(stderr, "Registering pid %d\n", getpid());
-      registerPID(getpid());
-#endif
-   }
-
    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
       /* Set up the log file */
       redirectStream(LOGINFO, logfilename);
