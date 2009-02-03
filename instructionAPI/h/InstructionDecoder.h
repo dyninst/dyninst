@@ -65,14 +65,31 @@ namespace Dyninst
     class InstructionDecoder
     {
     public:
-      INSTRUCTION_EXPORT InstructionDecoder() : decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
-      bufferBegin(NULL), bufferSize(0), rawInstruction(NULL), cond(NULL), locs(NULL), mac(NULL)
+      INSTRUCTION_EXPORT InstructionDecoder() : 
+         locs(NULL),
+         cond(NULL),
+         mac(NULL),
+         decodedInstruction(NULL), 
+         m_Operation(NULL),
+         is32BitMode(true),
+         sizePrefixPresent(false),
+         bufferBegin(NULL),
+         bufferSize(0),
+         rawInstruction(NULL)
       {
       }
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
       INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size) : 
-      decodedInstruction(NULL), m_Operation(NULL), is32BitMode(true), sizePrefixPresent(false),
-      bufferBegin(buffer), bufferSize(size), rawInstruction(bufferBegin), cond(NULL), locs(NULL), mac(NULL)
+         locs(NULL),
+         cond(NULL),
+         mac(NULL),
+         decodedInstruction(NULL), 
+         m_Operation(NULL),
+         is32BitMode(true),
+         sizePrefixPresent(false),
+         bufferBegin(buffer),
+         bufferSize(size),
+         rawInstruction(bufferBegin)
       {
       }
       
