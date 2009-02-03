@@ -113,7 +113,6 @@
      & test1_6_globalVariable4a .eq. (67 / 3) .and.
      & test1_6_globalVariable5a .eq. (6 * 5) .and.
      & test1_6_globalVariable6a .eq. 3) then
-		print *, 'Passed test #6 (arithmetic operators)'
 		passedTest = 1
 	else
 		print *, '**Failed** test #6 (arithmetic operators)'

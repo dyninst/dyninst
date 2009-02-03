@@ -131,7 +131,6 @@
 	if (globalVariable11_2 .ne. 0 .and. globalVariable11_3 .ne. 0
      & .and. globalVariable11_4 .ne. 0 .and. globalVariable11_5
      & .ne. 0) then
-		print *, 'Passed test #11 (snippets at entry, exit, call)'
 		passedTest = 1
 	else
 		print *, '**Failed test #11 (snippets at entry,exit,call)'

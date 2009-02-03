@@ -140,7 +140,6 @@
      & (globalVariable20_2, temp1) .eq. 1 .and. int_val .eq.
      & 7 * 41 .and. eq_doubles (double_val, temp2) .eq. 1
      & .and. ret .eq. 1088896211) then
-		print *, 'Passed test #20 (instrument arbitrary points)'
 		passedTest = 1
 	else
 		print *, '**Failed test #20 (instrument arbitrary points)'

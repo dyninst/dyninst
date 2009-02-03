@@ -183,7 +183,6 @@
      & test1_7_globalVariable14a .eq. 73 .and.
      & test1_7_globalVariable15a .eq. 74 .and.
      & test1_7_globalVariable16a .eq. 73) then
-		print *, 'Passed test #7 (relational operators)'
 		passedTest = 1
 	else
 		print *, '**Failed** test #7 (relational operators)'

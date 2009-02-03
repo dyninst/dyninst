@@ -85,7 +85,6 @@
 	CALL stop_process_
 
 	if (globalVariable19_2 .eq. 1900200) then
-		print *, 'Passed test #19 (oneTimeCode)'
 		passedTest = 1
 	else
 		print *, '**Failed test #19 (oneTimeCode)'

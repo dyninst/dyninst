@@ -153,7 +153,6 @@
      & 101, 'after third call to instrumented function', failed)
 
 	if (failed .eqv. .false.) then
-		print *, 'Passed test #15 (setMutationsActive)'
 		passedTest = 1
 	endif
 	END

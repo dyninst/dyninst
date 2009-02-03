@@ -81,7 +81,6 @@
 			print *, '    first item was the last (or only) one to execute'
 		else
 			if (test1_4_globalVariable4_1 .eq. 43) then
-				print *, 'Passed test #4 (sequence)'
 				passedTest = 1
 			endif
 		endif

@@ -65,7 +65,6 @@
 #include "test1_33F_common.h"
 
 	passedTest = 1
-	print *, 'Passed test #33 (control flow graphs)'
 	END
 
 !------------------------------------------------------------------------------

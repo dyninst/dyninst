@@ -118,7 +118,6 @@
 	endif
 
 	passedTest = 1
-	print *, 'Passed test #31 (non-recursive base tramp guard)'
 
 	test1_31_func1 = 1
 	RETURN

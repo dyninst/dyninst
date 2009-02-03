@@ -133,7 +133,6 @@
      & test1_26_globalVariable13, 26002014, 26, "field operators")
 
 	if (passedTest .eq. 1) then
-		print *, 'Passed test #26 (field operators)'
 	endif
 #else
 #endif

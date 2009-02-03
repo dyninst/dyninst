@@ -82,7 +82,6 @@
 
 	if (arg1 .eq. 1 .and. arg2 .eq. 2 .and. arg3 .eq.
      & "testString2_1") then
-		print *, 'Passed test #2 (four paramater function)'
 		passedTest = 1
 	else
 		print *, '**Failed** test #2 (four parameter function)'

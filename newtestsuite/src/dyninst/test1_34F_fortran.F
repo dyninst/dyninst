@@ -65,7 +65,6 @@
 #include "test1_34F_common.h"
 
 	passedTest = 1
-	print *, 'Passed test #34 (loop information)'
 	END
 
 !------------------------------------------------------------------------------

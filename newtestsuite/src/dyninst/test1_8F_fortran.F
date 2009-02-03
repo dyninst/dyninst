@@ -76,7 +76,6 @@
 	if (p1 .eq. 1 .and. p2 .eq. 2 .and. p3 .eq. 3 .and. p4 .eq. 4
      & .and. p5 .eq. 5 .and. p6 .eq. 6 .and. p7 .eq. 7 .and. p8 .eq. 8
      & .and. p9 .eq. 9 .and. p10 .eq. 10) then
-		print *, 'Passed test #8 (preserve registers - expr)'
 		passedTest = 1
 	else
 		print *, '**Failed** test #8 (preserve registers - expr)'

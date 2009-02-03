@@ -93,7 +93,6 @@
 			print *, '  function test1_17_call2 was not inserted'
 		endif
 	else
-		print *, 'Passed test #17 (return values from func calls)'
 		passedTest = 1
 	endif
 	END

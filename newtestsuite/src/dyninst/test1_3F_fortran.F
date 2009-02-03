@@ -79,7 +79,6 @@
 #include "test1_3F_common.h"
 	INTEGER arg1, arg2
 	if (arg1 .eq. 31 .and. arg2 .eq. 32) then
-		print *, 'Passed test #3 (passing Variables to functions)'
 		passedTest = 1
 	else
 		print *, '**Failed** test #3 (passing Variables to functions)'

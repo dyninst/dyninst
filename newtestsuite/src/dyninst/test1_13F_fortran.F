@@ -82,7 +82,6 @@
 
 	if (p1 .eq. 131 .and. p2 .eq. 132 .and. p3 .eq. 133 .and. p4 .eq.
      & 134 .and. p5 .eq. 135 .and. globalVariable13_1 .eq. 63) then
-		print *, 'Passed test #13 (paramExpr,retExpr,nullExpr)'
 		passedTest = 1
 	else
 		print *, '**Failed test#13 (paramExpr,retExpr,nullExpr)'

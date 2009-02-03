@@ -73,7 +73,6 @@
 #include "test1_18F_common.h"
 
 	if (test1_18_globalVariable1 .eq. 17) then
-		print *, 'Passed test #18 (read/write a value in the mutatee)'
 		passedTest = 1
 	else
 		print *, '**Failed test #18 (read/write a value in the mutatee)'

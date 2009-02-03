@@ -75,7 +75,6 @@
 	CALL func1_2
 
 	if (test1_1F_global1 .eq. 11) then
-		print *, 'F90: Passed test #1 (zero arg function call)'
 		passedTest = 1
 	else
 		print *, '**Failed** test #1 (zero arg function call)'

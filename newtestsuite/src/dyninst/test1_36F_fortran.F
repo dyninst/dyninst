@@ -212,7 +212,6 @@
 
 	if (failure .eq. 0) then
 		passedTest = 1
-		print *, 'Passed test #36 (callsite parameter referencing)'
 	else
 		passedTest = 0
 		print *, '**Failed** test #36 (callsite parameter referencing)'

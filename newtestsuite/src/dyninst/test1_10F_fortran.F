@@ -78,7 +78,6 @@
 	if (globalVariable10_1 .eq. 1 .and. globalVariable10_2 .eq. 1
      & .and. globalVariable10_3 .eq. 1 .and. globalVariable10_4 .eq.
      & 3) then
-		print *, 'Passed test #10 (insert snippet order)'
 		passedTest = 1
 	else
 		print *, '**Failed test #10 (insert snippet order)'

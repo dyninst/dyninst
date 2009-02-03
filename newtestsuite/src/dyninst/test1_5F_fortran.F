@@ -77,7 +77,6 @@
 
 	if (test1_5_globalVariable5_1 .eq. 51 .and. test1_5_globalVariable5_2 .eq. 53)
      & then
-			print *, 'Passed test #5 (if w.o. else)'
 			passedTest = 1
 		else
 			print *, '**Failed** test #5 (if w.o. else)'

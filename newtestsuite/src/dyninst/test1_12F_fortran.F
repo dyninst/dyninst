@@ -77,7 +77,6 @@
 	CALL test1_12_func2
 
 	if (globalVariable12_1 .eq. 1) then
-		print *, 'Passed test #12 (insert/remove and malloc/free)'
 		passedTest = 1
 	else
 		print *, '**Failed test #12 (insert/remove and malloc/free)'

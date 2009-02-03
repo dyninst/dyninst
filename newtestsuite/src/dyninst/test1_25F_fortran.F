@@ -111,7 +111,6 @@
 	endif
 
 	if (passed .eqv. .true.) then
-		print *, 'Passed test #25 (unary operators)'
 		passedTest = 1
 	endif
 	END

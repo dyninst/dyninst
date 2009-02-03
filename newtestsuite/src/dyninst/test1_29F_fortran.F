@@ -73,7 +73,6 @@
 
 	if (test1_29_globalVariable1 .eq. 1) then
 		passedTest = 1
-		print *, 'Passed test #29 (BPatch_srcObj class)'
 	endif
 	END
 

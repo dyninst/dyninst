@@ -124,7 +124,6 @@
 	endif
 
 	if (failed .eqv. .false.) then
-		print *, 'Passed test #16 (if-else)'
 		passedTest = 1
 	endif
 	END

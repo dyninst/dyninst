@@ -80,7 +80,6 @@
 
 	if (globalVariable14_1 .eq. 1 .and. globalVariable14_2
      & .eq. 0) then
-		print *, 'Passed test #14 (replace/remove function call)'
 		passedTest = 1
 	else
 		print *, '**Failed test #14 (replace/remove function call)'
