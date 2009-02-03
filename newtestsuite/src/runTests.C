@@ -27,7 +27,7 @@
 #define MAX_ITER 1000
 
 // Default name for the resume log file
-#define DEFAULT_RESUMELOG "bresumelog"
+#define DEFAULT_RESUMELOG "resumelog"
 // Default name for the crash log file
 #define DEFAULT_CRASHLOG "crashlog"
 
@@ -221,15 +221,9 @@ int main(int argc, char *argv[])
 	   if(unlink(getenv("RESUMELOG")) == -1) {
 		   fprintf(stderr, "Couldn't delete resume log: %s\n", getenv("RESUMELOG"));
 	   }
-	   else {
-		   fprintf(stderr, "Cleaned up resume log OK: %s\n", getenv("RESUMELOG"));
-	   }
    } else if (isRegFile(string(DEFAULT_RESUMELOG))) {
 	   if(unlink(DEFAULT_RESUMELOG) == -1) {
 		   fprintf(stderr, "Couldn't delete resume log: %s\n", DEFAULT_RESUMELOG);
-	   }
-	   else {
-		   fprintf(stderr, "Cleaned up resume log OK: %s\n", DEFAULT_RESUMELOG);
 	   }
    }
 

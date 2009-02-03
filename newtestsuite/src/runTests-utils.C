@@ -29,7 +29,6 @@ void cleanupMutatees(char *pidFilename) {
       count = fscanf(pidFile, "%d\n", &pid);
       if (count != 1) 
          break;
-      fprintf(stderr, "[%s:%u] - pidfile: %d\n", __FILE__, __LINE__, pid);
       
       if (pid < 1) {
          fprintf(stderr, "[%s:%u] - Read a negative PID (%d).  Something's weird.\n", __FILE__, __LINE__);
