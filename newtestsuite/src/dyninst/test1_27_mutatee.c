@@ -47,7 +47,7 @@ struct test1_27_type4_t {
     struct struct26_2 field4;
 } ;
 
-typedef test1_24_type4_t test1_27_type4;
+typedef struct test1_27_type4_t test1_27_type4;
 
 /* need this variables or some compilers (AIX xlc) will removed unused
    typedefs - jkh 10/13/99 */
