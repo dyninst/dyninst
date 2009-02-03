@@ -265,8 +265,8 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    assert(proc);
 
-   signal_printf("Caught critical %d for lwp %d\n", ev.what, ev.lwp->get_lwp_id());
-   if (dyn_debug_signal) {
+   if (dyn_debug_signal || dyn_debug_crash) {
+       fprintf(stderr, "Caught critical %d for lwp %d\n", ev.what, ev.lwp->get_lwp_id());
        pdvector<pdvector<Frame> > stackWalks;
        proc->walkStacks(stackWalks);
        for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
@@ -275,11 +275,7 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
                    stackWalks[walk_iter][0].getLWP()->get_lwp_id());
            for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
                {
-                   //int_function* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
-                   //const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
-                   //fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
                    cerr << stackWalks[walk_iter][i] << endl;
-                   //int_function *f = stackWalks[walk_iter][i].getFunc();
                }
        }
        int sleep_counter = SLEEP_ON_MUTATEE_CRASH;
@@ -295,6 +291,12 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
          sleep_counter = (int) l;
        }
 #endif
+       if (dyn_debug_crash_debugger) {
+          bool result = ev.proc->detachForDebugger(ev);
+          if (result) {
+             ev.proc->startDebugger();
+          }
+       }
        while (dyn_debug_signal && (sleep_counter > 0)) {
            signal_printf("Critical signal received, spinning to allow debugger to attach\n");
            sleep(10);

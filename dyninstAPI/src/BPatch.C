@@ -1787,30 +1787,30 @@ BPatch_type * BPatch::createStructInt( const char * name,
 				       BPatch_Vector<char *> &fieldNames,
 				       BPatch_Vector<BPatch_type *> &fieldTypes)
 {
-    unsigned int i;
-    
-    if (fieldNames.size() != fieldTypes.size()) {
+   unsigned int i;
+   
+   if (fieldNames.size() != fieldTypes.size()) {
       return NULL;
-    }
-
-    string typeName = name;
-    vector<pair<string, Type *> *> fields;
-    for(i=0; i<fieldNames.size(); i++)
-    {
-        if(!fieldTypes[i])
-	    return NULL;
-        fields.push_back(new pair<string, Type *> (fieldNames[i], fieldTypes[i]->getSymtabType()));
-    }	
-    
-    Type *typ = typeStruct::create(typeName, fields);
-    if (!typ) return NULL;
-    
-    BPatch_type *newType = new BPatch_type(typ);
-    if (!newType) return NULL;
-
-    APITypes->addType(newType);
-
-    return(newType);
+   }
+   
+   string typeName = name;
+   vector<pair<string, Type *> *> fields;
+   for(i=0; i<fieldNames.size(); i++)
+   {
+      if(!fieldTypes[i])
+         return NULL;
+      fields.push_back(new pair<string, Type *> (fieldNames[i], fieldTypes[i]->getSymtabType()));
+   }	
+   
+   Type *typ = typeStruct::create(typeName, fields);
+   if (!typ) return NULL;
+   
+   BPatch_type *newType = new BPatch_type(typ);
+   if (!newType) return NULL;
+   
+   APITypes->addType(newType);
+   
+   return(newType);
 }
 
 /*

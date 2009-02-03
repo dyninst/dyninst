@@ -1884,7 +1884,7 @@ void Symtab::parseLineInformation()
    dyn_hash_map<std::string, LineInformation> *lineInfo = new dyn_hash_map <std::string, LineInformation>;
 
    Object *linkedFile = getObject();
-   linkedFile->parseFileLineInfo(*lineInfo);
+   linkedFile->parseFileLineInfo(this, *lineInfo);
 
    isLineInfoValid_ = true;	
    dyn_hash_map <std::string, LineInformation>::iterator iter;
@@ -1909,9 +1909,10 @@ void Symtab::parseLineInformation()
             mod->setLineInfo(lineInformation);
          }
       }
-      else {
-	object_printf("[%s:%u] - Couldn't find module %s to go with line info\n",
-		     __FILE__, __LINE__, iter->first.c_str()); 
+      else 
+      {
+         object_printf("[%s:%u] - Couldn't find module %s to go with line info\n",
+               __FILE__, __LINE__, iter->first.c_str()); 
       }
    }
 }
@@ -1935,6 +1936,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&r
    if ( ranges.size() != originalSize )
       return true;
 
+   fprintf(stderr, "%s[%d]:  failing to getAdressRanges for %s[%d]\n", FILE__, __LINE__, lineSource.c_str(), lineNo);
    return false;
 }
 

@@ -99,12 +99,13 @@ BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
 }
 
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
-   ID(_ID), type_(_type), refCount(1)
+   ID(_ID), type_(_type), typ(NULL), refCount(1)
 {
   if (_name != NULL)
      typ = new Type(_name, ID, convertToSymtabType(_type));
   else
      typ = new Type("", ID, convertToSymtabType(_type));
+
   typ->setUpPtr(this);
   type_map[typ] = this;
 }
@@ -171,33 +172,33 @@ BPatch_type *BPatch_type::getConstituentType() const {
 }
 
 BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
-    fieldListInterface *fieldlisttype = dynamic_cast<fieldListInterface *>(typ);
-    typeEnum *enumtype = dynamic_cast<typeEnum *>(typ);
-    typeTypedef *typedeftype = dynamic_cast<typeTypedef *>(typ);
-    if(!fieldlisttype && !enumtype && !typedeftype)
-        return NULL;	
-    BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>();
-    if(fieldlisttype) {
-        vector<Field *> *comps = fieldlisttype->getComponents();
+   fieldListInterface *fieldlisttype = dynamic_cast<fieldListInterface *>(typ);
+   typeEnum *enumtype = dynamic_cast<typeEnum *>(typ);
+   typeTypedef *typedeftype = dynamic_cast<typeTypedef *>(typ);
+   if(!fieldlisttype && !enumtype && !typedeftype)
+      return NULL;	
+   BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>();
+   if(fieldlisttype) {
+      vector<Field *> *comps = fieldlisttype->getComponents();
     	if(!comps){
-	        free(components);
-	        return NULL;
+         free(components);
+         return NULL;
     	}    
-	    for(unsigned i = 0 ; i< comps->size(); i++)
-	        components->push_back(new BPatch_field((*comps)[i]));
+      for(unsigned i = 0 ; i< comps->size(); i++)
+         components->push_back(new BPatch_field((*comps)[i]));
     	return components;    
-    }
-    if(enumtype) {
-        vector<pair<string, int> *> constants = enumtype->getConstants();
-	    for(unsigned i = 0; i < constants.size(); i++){
-	        Field *fld = new Field(constants[i]->first.c_str(), NULL);
-	        components->push_back(new BPatch_field(fld, BPatch_dataScalar, constants[i]->second, 0));
-	    }
-	    return components;    
-    }
-    if(typedeftype)
-        return getConstituentType()->getComponents();
-    return NULL;
+   }
+   if(enumtype) {
+      vector<pair<string, int> *> constants = enumtype->getConstants();
+      for(unsigned i = 0; i < constants.size(); i++){
+         Field *fld = new Field(constants[i]->first.c_str(), NULL);
+         components->push_back(new BPatch_field(fld, BPatch_dataScalar, constants[i]->second, 0));
+      }
+      return components;    
+   }
+   if(typedeftype)
+      return getConstituentType()->getComponents();
+   return NULL;
 }
 
 BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const {

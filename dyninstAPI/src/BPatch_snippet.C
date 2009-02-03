@@ -980,7 +980,8 @@ BPatch_variableExpr::BPatch_variableExpr(const char *in_name,
 
     (*ast_wrapper)->setType(type);
 
-    size = type->getSize();
+    if (type)
+       size = type->getSize();
 }
 
 /*
@@ -998,14 +999,15 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          BPatch_addressSpace *in_addSpace,
                                          AddressSpace *in_lladdSpace,
                                          AstNodePtr *ast_wrapper_,
-                                         BPatch_type *type,
+                                         BPatch_type *typ,
                                          void* in_address) :
   name(in_name), 
   appAddSpace(in_addSpace), 
   lladdrSpace(in_lladdSpace),
   address(in_address), 
   scope(NULL), 
-  isLocal(false)
+  isLocal(false),
+  type(typ)  
 {
     ast_wrapper = ast_wrapper_;
     assert(ast_wrapper);
@@ -1022,13 +1024,14 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          BPatch_addressSpace *in_addSpace,
                                          AddressSpace *in_lladdSpace,
                                          AstNodePtr *ast_wrapper_,
-                                         BPatch_type *type) :
+                                         BPatch_type *typ) :
    name(in_name),
    appAddSpace(in_addSpace),
    lladdrSpace(in_lladdSpace),
    address(NULL), 
    scope(NULL), 
-   isLocal(false)
+   isLocal(false),
+   type(typ)
 {
     
     ast_wrapper = ast_wrapper_;
@@ -1055,8 +1058,7 @@ unsigned int BPatch_variableExpr::getSizeInt() CONST_EXPORT
 */
 const BPatch_type *BPatch_variableExpr::getTypeInt()
 {
-    //return (const_cast<BPatch_type *>((*ast_wrapper)->getType()));
-    return (*ast_wrapper)->getType();
+   return type;
 }
 #ifdef NOTDEF
 const BPatch_type *BPatch_variableExpr::getTypeConst() CONST_EXPORT
@@ -1074,6 +1076,7 @@ const BPatch_type *BPatch_variableExpr::getTypeConst() CONST_EXPORT
 bool BPatch_variableExpr::setTypeInt(BPatch_type *newType)
 {
     size = newType->getSize();
+    type = newType;
     (*ast_wrapper)->setType(newType);
     return true;
 }
@@ -1106,12 +1109,13 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                                          AddressSpace *in_lladdrSpace,
                                          void *in_address,
                                          int in_register,
-                                         BPatch_type *type,
+                                         BPatch_type *typ,
                                          BPatch_storageClass in_storage,
                                          BPatch_point *scp) :
    appAddSpace(in_addSpace), 
    lladdrSpace(in_lladdrSpace),
-   address(in_address)
+   address(in_address),
+   type(typ)
 {
    vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
    AstNodePtr *variableAst;
@@ -1174,10 +1178,11 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
  */
 BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
                                          AddressSpace *in_lladdSpace,
-                                         BPatch_localVar *lv, BPatch_type *type, 
+                                         BPatch_localVar *lv, BPatch_type *typ, 
                                          BPatch_point *scp):
    appAddSpace(in_addSpace),
-   lladdrSpace(in_lladdSpace)
+   lladdrSpace(in_lladdSpace),
+   type(typ)
 {
     //Create Ast's for all members in the location list.
     //This will likely be done only for local variables within a function
@@ -1252,7 +1257,8 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     lladdrSpace(in_lladdrSpace),
     address(in_address),
     scope(NULL),
-    isLocal(false)
+    isLocal(false),
+    type(NULL)
 {
 
     vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;

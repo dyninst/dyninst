@@ -149,12 +149,14 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
    
    if (!type) {
       SymtabAPI::Type *stype = v->ivar()->svar()->getType();
-      type = BPatch_type::findOrCreateType(stype);
+      if (stype)
+         type = BPatch_type::findOrCreateType(stype);
    }
    
    BPatch_variableExpr *var;
    var = new BPatch_variableExpr(v->symTabName().c_str(), this, as,
                                  (void *) v->getAddress(), type);
+   mod->var_map[v] = var;
    return var;
 }
                                                                

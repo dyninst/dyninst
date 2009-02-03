@@ -40,6 +40,8 @@
  */
 
 #include <iostream>
+#include <typeinfo>
+#include <stdexcept>
 #include "symtab_comp.h"
 #include "test_lib.h"
 
@@ -49,9 +51,40 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-class test_anno_basic_types_Mutator : public SymtabMutator {
-public:
-   test_anno_basic_types_Mutator() { };
+#define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
+#define REPORT_EFAIL catch(const LocErr &err) { \
+   err.print(stderr); \
+   return FAILED; }
+
+class LocErr : public std::runtime_error {
+   std::string file__;
+   int line__;
+
+   public:
+   LocErr(const std::string &__file__,
+         const int &__line__,
+         const std::string &msg) :
+      runtime_error(msg),
+      file__(__file__),
+      line__(__line__)
+   {}
+
+   virtual ~LocErr() throw() {}
+
+   std::string file() const {return file__;}
+   int line() const {return line__;}
+
+   void print(FILE * stream)  const
+   {
+      fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n", 
+            file__.c_str(), line__, what());
+   }
+};
+
+class test_anno_basic_types_Mutator : public SymtabMutator 
+{
+   public:
+      test_anno_basic_types_Mutator() { };
    virtual test_results_t executeTest();
 };
 
@@ -60,45 +93,163 @@ extern "C" DLLEXPORT TestMutator* test_anno_basic_types_factory()
    return new test_anno_basic_types_Mutator();
 }
 
-class TestClassSparse : public AnnotatableSparse
+class TestClass
 {
    public:
-   TestClassSparse() {}
-   ~TestClassSparse() {}
+      TestClass() {}
+      
+      int somestuff1;
+      long somestuff2;
+      float somestuff3;
+      char *somestuff4;
 };
 
-AnnotationClass<int> SingleIntAnno("SingleIntAnno");
+class TestClassSparse : public TestClass, public AnnotatableSparse
+{
+   public:
+      TestClassSparse() {}
+      ~TestClassSparse() {}
+};
+
+class TestClassDense : public TestClass, public AnnotatableDense
+{
+   public:
+   TestClassDense() {}
+   ~TestClassDense() {}
+};
+
+template <class TC, class T>
+void verify_anno(TC &tcs, const T &test_val, const char *anno_name_to_use)
+{
+   AnnotationClass<T> my_ac(anno_name_to_use ? anno_name_to_use : typeid(T).name());
+
+   T *out = NULL;
+
+   if (!tcs.getAnnotation(out, my_ac))
+      EFAIL("failed to get annotation here");
+
+   if (!out)
+      EFAIL("failed to get annotation here");
+
+   if ((*out) != test_val)
+      EFAIL("failed to get annotation here");
+}
+
+template <class TC, class T>
+void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_name_to_use)
+{
+
+   //  A very simple function that adds an annotation of type T to the given class
+   //  then just verifies that it can retrieve the annotation and then checks that
+   //  the value of the annotation is the same as was provided.
+   const char *an = anno_name_to_use ? anno_name_to_use : typeid(T).name();
+
+   AnnotationClass<T> my_ac(an);
+
+   if (!tcs.addAnnotation(&test_val, my_ac))
+      EFAIL("failed to add annotation here");
+
+   T *out = NULL;
+
+   if (!tcs.getAnnotation(out, my_ac))
+      EFAIL("failed to get annotation here");
+
+   if (!out)
+      EFAIL("failed to get annotation here");
+
+   if ((*out) != test_val)
+      EFAIL("failed to get annotation here");
+
+   //else 
+   //{
+   //   cerr <<  an << ":" << (*out) << " == " << test_val << endl;
+   //}
+
+}
+
+template <class TC, class T>
+void add_verify_dispatch(TC &tcs, const T &test_val, bool do_add, 
+      const char *anno_name_to_use = NULL)
+{
+   if (do_add)
+   {
+      add_get_and_verify_anno(tcs, test_val, anno_name_to_use);
+   }
+   else
+   {
+      verify_anno(tcs, test_val, anno_name_to_use);
+   }
+}
+
+template <class T>
+void test_for_annotatable()
+{
+   T tc;
+   bool do_add = false;
+
+   do {
+      //  First pass (do_add = true) adds and verifies annotation
+      //  Second pass (do_add = false) just verifies existing annotation
+      //  ...  ie, makes sure nothing got unexpectedly clobbered
+
+      do_add = !do_add;
+
+      add_verify_dispatch<T, int>(tc, -5000, do_add);
+      add_verify_dispatch<T, unsigned int>(tc, 5001, do_add);
+      add_verify_dispatch<T, char>(tc, -1*'c', do_add);
+      add_verify_dispatch<T, unsigned char>(tc, 'd', do_add);
+      add_verify_dispatch<T, short>(tc, -24, do_add);
+      add_verify_dispatch<T, unsigned short>(tc, 50, do_add);
+      add_verify_dispatch<T, long>(tc, -500000, do_add);
+      add_verify_dispatch<T, unsigned long>(tc, 500001, do_add);
+      add_verify_dispatch<T, float>(tc, -5e5, do_add);
+      add_verify_dispatch<T, double>(tc, -5e50, do_add);
+
+      //  Add more annotations of the same set of types, but under 
+      //  different annotation names -- unspecified annotation names
+      //  are later derived from the typename for this test
+
+      add_verify_dispatch<T, int>(tc, -6000, do_add, "auxname1");
+      add_verify_dispatch<T, unsigned int>(tc, 6001, do_add,"auxname2");
+      add_verify_dispatch<T, char>(tc, -1*'e', do_add,"auxname3");
+      add_verify_dispatch<T, unsigned char>(tc, 'f', do_add,"auxname4");
+      add_verify_dispatch<T, short>(tc, -34, do_add,"auxname5");
+      add_verify_dispatch<T, unsigned short>(tc, 60, do_add,"auxname6");
+      add_verify_dispatch<T, long>(tc, -600000, do_add,"auxname7");
+      add_verify_dispatch<T, unsigned long>(tc, 600001, do_add,"auxname8");
+      add_verify_dispatch<T, float>(tc, -6e5, do_add,"auxname9");
+      add_verify_dispatch<T, double>(tc, -6e50, do_add,"auxname10");
+
+   } while (do_add);
+}
 
 test_results_t test_anno_basic_types_Mutator::executeTest()
 {
-   TestClassSparse tcs;
-   int five = 5;
-
-   if (!tcs.addAnnotation(&five, SingleIntAnno))
+   //  Sparse annotation class should not add any size to child classes
+   if (sizeof(TestClass) != sizeof(TestClassSparse))
    {
-      logerror("%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  ERROR, size creep in sparse annotation class\n", 
+            FILE__, __LINE__);
+      fprintf(stderr, "sizeof(TestClass) = %d, sizeof(TestClassSparse) = %d\n", 
+            sizeof(TestClass), sizeof(TestClassSparse));
       return FAILED;
    }
 
-   int *out = NULL;
-
-   if (!tcs.getAnnotation(out, SingleIntAnno))
+   //  Dense annotation class should add size of one pointer
+   if ((sizeof(TestClass) + sizeof(void *)) != sizeof(TestClassDense))
    {
-      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  ERROR, size creep in dense annotation class\n", 
+            FILE__, __LINE__);
+      fprintf(stderr, "sizeof(TestClass) + sizeof(void *)= %d, sizeof(TestClassSparse) = %d\n", 
+            sizeof(TestClass) + sizeof(void *), sizeof(TestClassSparse));
       return FAILED;
    }
 
-   if (!out)
+   try 
    {
-      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
-      return FAILED;
-   }
-
-   if ((*out) != five)
-   {
-      logerror("%s[%d]:  failed to get annotation here\n", FILE__, __LINE__);
-      return FAILED;
-   }
+     test_for_annotatable<TestClassSparse>();
+     test_for_annotatable<TestClassDense>();
+   } REPORT_EFAIL;
 
    return PASSED;
 

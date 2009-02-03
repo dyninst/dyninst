@@ -875,7 +875,7 @@ BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
   return TRUE;
 }
 
-void Object::parseFileLineInfo(dyn_hash_map<std::string, LineInformation> &li)
+void Object::parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li)
 {   
   int result;
   static Offset last_file = 0x0;

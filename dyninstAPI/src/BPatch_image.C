@@ -942,32 +942,58 @@ bool BPatch_image::getSourceLinesInt(unsigned long addr,
 
    /* Iteratate over the modules, looking for addr in each. */
 
-   for (unsigned int i = 0; i < modules->size(); i++ ) {
+   for (unsigned int i = 0; i < modules->size(); i++ ) 
+   {
       BPatch_module *m = (*modules)[i];
       //  address-to-offset conversion done in module routine 
       m->getSourceLinesInt(addr,lines);
    }
 
-   if ( lines.size() != originalSize ) { return true; }	
+   if ( lines.size() != originalSize ) 
+   {
+      return true; 
+   }	
+
+   //fprintf(stderr, "%s[%d]:  fail to getSourceLines for addr %lu\n", FILE__, __LINE__, addr);
 
    return false;
-} /* eng getSourceLines() */
+} /* end getSourceLines() */
 
 bool BPatch_image::getAddressRangesInt( const char * lineSource, 
       unsigned int lineNo, 
       std::vector< LineInformation::AddressRange > & ranges ) 
 {
    unsigned int originalSize = ranges.size();
+
+   //  First check to see if we can find the named module
+   //  If so, use it for the lookup
+
+   BPatch_module *target_mod = findModuleInt(lineSource, false);
+
+   if (target_mod)
+   {
+      target_mod->getAddressRanges(lineSource, lineNo, ranges);
+      if ( ranges.size() != originalSize ) 
+      {
+         return true; 
+      }
+   }
+
+   //  If we cannot find the given module, try (perhaps against all hope)
+   //  looking in all the modules sequentially
+
    BPatch_Vector< BPatch_module * > * modules = getModules();
 
    // Iteratate over the modules, looking for ranges in each. 
 
-   for ( unsigned int i = 0; i < modules->size(); i++ ) {
+   for ( unsigned int i = 0; i < modules->size(); i++ ) 
+   {
       BPatch_module *m = (*modules)[i];
       m->getAddressRanges(lineSource, lineNo, ranges);
    }
 
-   if ( ranges.size() != originalSize ) { 
+   if ( ranges.size() != originalSize ) 
+   {
       return true; 
    }
 
