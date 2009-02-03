@@ -755,7 +755,7 @@ void image_func::parseOMPFunc(bool hasLoop)
    }
 }
 
-
-
-
-
+bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
+{
+  return false;
+}

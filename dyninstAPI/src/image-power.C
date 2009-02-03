@@ -642,3 +642,8 @@ void image_func::calcUsedRegs()
    }
    return;
 }
+
+bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
+{
+  return false;
+}

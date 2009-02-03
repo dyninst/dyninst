@@ -149,3 +149,7 @@ void image_func::archInstructionProc(InstrucIter &/*ah*/)
 }
     
 
+bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
+{
+  return false;
+}
