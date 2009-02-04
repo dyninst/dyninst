@@ -20,7 +20,7 @@ ValueAdded = valueAdded/sharedMem
 
 testsuites = dyninstAPI/tests testsuite 
 
-allSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite valueAdded/sharedMem
+allSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite valueAdded/sharedMem DDG
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet
