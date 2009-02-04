@@ -468,9 +468,9 @@ class image_func : public codeRange {
 		image_basicBlock* currBlk,
 		Address& funcBegin,
 		Address& funcEnd,
-		std::vector<instruction>& allInstructions,
+		pdvector<instruction>& allInstructions,
 		BPatch_Set<Address>& leaders,
-		std::vector<Address>& worklist,
+		pdvector<Address>& worklist,
 		BPatch_Set<image_basicBlock*>& visited,
 		dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
 		dictionary_hash<Address, std::string> *pltFuncs);
