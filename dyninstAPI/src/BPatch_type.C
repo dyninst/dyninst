@@ -93,6 +93,19 @@ BPatch_type *BPatch_type::createFake(const char *_name) {
 BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
     refCount(1)
 {
+  // if a derived type, make sure the upPtr is set for the base type.
+  // if it is not set, create a new BPatch_type for the upPtr
+  derivedType* derived = dynamic_cast<derivedType*>(typ_);
+  if (derived) {
+    Type* base = derived->getConstituentType();
+    if (!base->getUpPtr()) {
+      BPatch_type* dyninstType = new BPatch_type(base);
+      // We might consider registering this new type in BPatch.
+      // For now, just silence the warning:
+      (void) dyninstType;
+    }
+  }
+
     typ_->setUpPtr(this);
     type_ = convertToBPatchdataClass(typ_->getDataClass());
 }
@@ -159,8 +172,8 @@ BPatch_type *BPatch_type::getConstituentType() const {
 BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
     fieldListInterface *fieldlisttype = dynamic_cast<fieldListInterface *>(typ);
     typeEnum *enumtype = dynamic_cast<typeEnum *>(typ);
-    typeTypedef *typedeftype = dynamic_cast<typeTypedef *>(typ);
-    if(!fieldlisttype && !enumtype && !typedeftype)
+    derivedType *derivedtype = dynamic_cast<derivedType *>(typ);
+    if(!fieldlisttype && !enumtype && !derivedtype)
         return NULL;	
     BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>();
     if(fieldlisttype) {
@@ -181,7 +194,7 @@ BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
 	    }
 	    return components;    
     }
-    if(typedeftype)
+    if(derivedtype)
         return getConstituentType()->getComponents();
     return NULL;
 }
