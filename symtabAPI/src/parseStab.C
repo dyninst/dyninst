@@ -40,6 +40,7 @@
 #include "Symtab.h" // For looking up compiler type
 #include "Symbol.h" 
 #include "Function.h"
+#include "Variable.h"
 #include "Module.h" 
 #include "Collections.h"
 #include "common/h/headers.h"
@@ -239,8 +240,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
       /* instance of a predefined type */
 
       ID = parseSymDesc(stabstr, cnt);
-
-      ////bperr("Variable: %s  Type ID: %d, file ID %d \n",name, ID, file_ID);
 
       if (stabstr[cnt] == '=') 
       {
@@ -472,31 +471,23 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
             /* Get variable type number */
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
-
-            //if (stabstr[cnt]) 
-            //{
-               //bperr( "\tMore to parse - global var %s\n", &stabstr[cnt]);
-               //bperr( "\tFull String: %s\n", stabstr);
-            //}
-            // lookup symbol and set type
-
             Type *BPtype;
 
             BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
-
             if (BPtype) 
             {
-               /** XXXX - should add local too here **/
-               //fprintf(stderr, "%s[%d]:  found global variable: %s\n", FILE__, __LINE__, 
-               //                         name.c_str());
-
+               std::vector<Symbol *> ret;
+	       bool result = mod->findSymbolByType(ret, name, Symbol::ST_OBJECT);
+	       if (result && ret.size()) {
+		 for (unsigned i=0; i<ret.size(); i++) {
+		   Variable *var = ret[i]->getVariable();
+		   if (!var)
+		     continue;
+		   var->setType(BPtype);
+		 }
+	       }
                mod->getModuleTypes()->addGlobalVariable(name, BPtype);
             }
-            //else
-            //{
-               //bperr("ERROR: unable to find type #%d for variable %s\n", 
-               //symdescID, name.c_str());
-            //} 
             else 
             break;
 
@@ -544,12 +535,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   }
                } 
 
-               // else 
-               // {
-                  //showInfoCallback(string("parameter without local function ") 
-                  //	 + string(stabstr) + "\n");
-               //}
-
                break;
             }
 
@@ -558,10 +543,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                cnt++; /*move past the 'c' */
 
                ptrType = parseConstantUse(mod, stabstr, cnt);
-
-               //if (stabstr[cnt])
-                  //bperr("Parsing Error More constant info to Parse!!: %s\n",
-                  //    &(stabstr[cnt]));
 
                if (!ptrType) ptrType = mod->exec()->type_Untyped;
 
@@ -578,7 +559,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                {
                   std::vector<Function *>fpv;
                   if (!mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
-                  //if (!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true))
                   {
                      //showInfoCallback(string("missing local function ") + 
                      //		            symt_current_func_name + "\n");
@@ -595,11 +575,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   }
                   fpv.clear();
                } 
-              // else 
-               //{
-                  //showInfoCallback(std::string("parameter without local function ") 
-                  //+ std::string(stabstr));
-               //}
             }
             break;
 
@@ -608,13 +583,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             /* get type reference */
 
             symdescID = parseSymDesc(stabstr, cnt);
-
-#ifdef notdef
-            /* often have rNN=*yy - what is this ? jkh 11/30/00 */
-            //if (stabstr[cnt])
-            //bperr("Parsing Error More register info to Parse!!: %s\n",
-            //	    &(stabstr[cnt]));
-#endif
             break;
 
          case 'S':/* Global Static Variable */ 
@@ -646,10 +614,10 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                {
                   Symtab *img = mod->exec();
                   std::vector<Symbol *>syms;
-                  if (img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) 
-                        || img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) 
+                  if (img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) ||
+		      img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) 
                   {
-                     syms.clear();	
+		     
                      mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);
                   }
                }
@@ -762,12 +730,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             /* Get variable type number */
 
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
-
-            //if (stabstr[cnt]) 
-            //{
-               //bperr( "\tMore to parse local static %s\n", &stabstr[cnt]);
-               //bperr( "\tFull String: %s\n", stabstr);
-            //}
 
             // lookup symbol and set type
             BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);

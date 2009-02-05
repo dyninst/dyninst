@@ -2020,15 +2020,14 @@ void Symtab::parseTypes()
 
 bool Symtab::addType(Type *type)
 {
-   if (!addUserType(type))
-   {
-      fprintf(stderr, "%s[%d]:  failed to addUserType\n", FILE__, __LINE__);
-   }
+  bool result = addUserType(type);
+  if (!result)
+    return false;
 
-   typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
-   globaltypes->addType(type);
+  typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
+  globaltypes->addType(type);
 
-   return true;
+  return true;
 }
 
 SYMTAB_EXPORT vector<Type *> *Symtab::getAllstdTypes()

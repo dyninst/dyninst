@@ -4694,20 +4694,13 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
             }
 
             //fprintf(stderr, "[%s:%u]:  addLine(%s:%u [%lx-%lx]\n", FILE__, __LINE__, canonicalLineSource, (unsigned) previousLineNo, (unsigned long) previousLineAddr, (unsigned long) lineAddr);
-            if (!li[std::string(moduleName)].addLine(canonicalLineSource, 
-						(unsigned int) previousLineNo, 
-						(unsigned int) previousLineColumn, 
-						(Dyninst::Offset) previousLineAddr, 
-						(Dyninst::Offset) lineAddr ))
-            {
-               fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                     FILE__, __LINE__, canonicalLineSource, previousLineNo, 
-                     previousLineAddr, lineAddr);
-            }
-
+            li[std::string(moduleName)].addLine(canonicalLineSource, 
+                                                (unsigned int) previousLineNo, 
+                                                (unsigned int) previousLineColumn, 
+                                                (Dyninst::Offset) previousLineAddr, 
+                                                (Dyninst::Offset) lineAddr );
             /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
             ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
-            //} /* end if we found the function by its address */
          } /* end if the previous* variables are valid */
 
          /* If the current line ends the sequence, invalidate previous; otherwise, update. */

@@ -2555,6 +2555,7 @@ bool process::readAuxvInfo()
    
 }
 
+#if defined(cap_binary_rewriter)
 std::string BinaryEdit::resolveLibraryName(std::string filename)
 {
    char *libPathStr, *libPath;
@@ -2622,6 +2623,7 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
    }
    return std::string("");
 }
+#endif
 
 bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
    long ret;

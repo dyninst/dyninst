@@ -50,20 +50,37 @@ void dedemangle( char * demangled, char * result )
       We cut off everything after the first l-paren, so we don't
       need to worry about the space after the parameters but
       before the 'const'. */
-   const char * resultBegins = NULL;
+   char * resultBegins = NULL;
    char * resultEnds = NULL;
-
+   
    if (	demangled[0] == '(' &&
-         strstr( demangled, "::" ) != NULL) 
+	strstr( demangled, "::" ) != NULL) 
    {
-      /* Local variable.  Strip off the opening ( :: ). */
-      resultBegins = strrchr( demangled, ')' ) + 3;
-
-      /* End it at the right-most space, if any. */
-      resultEnds = const_cast<char *>(strrchr( resultBegins, ' ' ));
-      if ( resultEnds != NULL ) { * resultEnds = '\0'; }
+     int depth = 0, i = 0;
+     for (;;)
+     { 
+       if (demangled[i] == '\0')
+	 break;
+       if (demangled[i] == '(')
+	 depth++;
+       if (demangled[i] == ')') {
+	 depth--;
+	 if (!depth)
+	   break;
+       }
+       i++;
+     }
+     if (demangled[i] != '\0') {
+       resultBegins = demangled+i+1;
+       if (resultBegins[0] == ':' && resultBegins[1] == ':')
+	 resultBegins += 2;
+       resultEnds = const_cast<char *>(strrchr(resultBegins, ' '));
+       if (resultEnds)
+	 resultEnds = '\0';
+     }
+     demangled = resultBegins;
    }
-   else if ( strrchr( demangled, '(' ) != NULL ) 
+   if ( strrchr( demangled, '(' ) != NULL ) 
    {
       /* Strip off return types, if any.  Be careful not to
          pull off [template?/]class/namespace information.
@@ -73,12 +90,12 @@ void dedemangle( char * demangled, char * result )
          first space.  We can ignore 'operator[<[<]|>[>]]' because
          we'll stop before we reach it.
 
-Caveat: conversion operators (e.g., "operator bool") have
-spaces in the function name.  Right now we deal with this
-specifically (is the function "operator *"?).  Could be
-altered to after the last template but before the last
-left parenthesis.  (Instead of next, for "operator ()".)
-       */
+         Caveat: conversion operators (e.g., "operator bool") have
+         spaces in the function name.  Right now we deal with this
+         specifically (is the function "operator *"?).  Could be
+         altered to after the last template but before the last
+         left parenthesis.  (Instead of next, for "operator ()".)
+      */
 
       resultBegins = demangled;
       int stack = 0; bool inTemplate = false;
@@ -112,7 +129,7 @@ left parenthesis.  (Instead of next, for "operator ()".)
 
                need to find last asterick before '(' and see if it's within
                a template area. if not, then set resultBegins to next offset.
-             */
+            */
             char *prefix = (char*)malloc(strlen(demangled));
             if (prefix != NULL) 
             {
@@ -125,7 +142,7 @@ left parenthesis.  (Instead of next, for "operator ()".)
                   if ( stop_template_offset ) 
                   {
                      if ( last_ast_off > start_template_offset &&
-                           last_ast_off < stop_template_offset ) 
+                          last_ast_off < stop_template_offset ) 
                      {
                         // last '*' is in template, no return type
                         offset = 0;

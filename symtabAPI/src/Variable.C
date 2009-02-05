@@ -50,7 +50,10 @@ using namespace Dyninst::SymtabAPI;
 
 
 
-Variable::Variable() {}
+Variable::Variable() :
+   type(NULL)
+{
+}
 
 Variable *Variable::createVariable(Symbol *sym) {
     Variable *var = new Variable();

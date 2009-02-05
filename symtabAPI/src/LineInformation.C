@@ -151,12 +151,6 @@ bool LineInformation::addLine( const char * lineSource,
    bool ret = addValue( LineNoTuple(lineSourceInternal, lineNo, lineOffset), 
          lowInclusiveAddr, highExclusiveAddr );
 
-   if (!ret)
-   {
-      fprintf(stderr, "%s[%d]:  failed to addVaue %s[%d]: [%lu, %lu] here\n", 
-            FILE__, __LINE__, lineSourceInternal, lineNo, lowInclusiveAddr, highExclusiveAddr);
-   }
-
    return ret;
 } /* end setLineToAddressRangeMapping() */
 

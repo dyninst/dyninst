@@ -14,6 +14,7 @@ MUTATEE_LIBS = -ldl -lrt
 
 DEBUG_FLAG = -g
 NATIVE_DEBUG_FLAG = -g -xs
+CC = gcc
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

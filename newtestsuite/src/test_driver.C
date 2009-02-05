@@ -600,6 +600,13 @@ void setIndexes(std::vector<RunGroup *> groups)
    }
 }   
 
+volatile int dont_optimize = 0;
+void tests_breakpoint()
+{
+  dont_optimize++;
+  //Breakpoint here to get a binary with test libraries loaded.
+}
+
 void executeGroup(ComponentTester *tester, RunGroup *group, 
                   ParameterDict param)
 {
@@ -610,6 +617,7 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    int tests_found = setupMutatorsForRunGroup(group);
    if (tests_found <= 0)
       return;
+   tests_breakpoint();
 
    int groupnum = group->index;
 

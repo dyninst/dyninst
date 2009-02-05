@@ -82,12 +82,12 @@ bool Function::setFramePtrRegnum(int regnum)
     return true;
 }
 
-std::vector<Dyninst::SymtabAPI::loc_t *> *Function::getFramePtr() const 
+std::vector<Dyninst::SymtabAPI::loc_t> *Function::getFramePtr() const 
 {
     return locs_;
 }
 
-bool Function::setFramePtr(vector<loc_t *> *locs) 
+bool Function::setFramePtr(vector<loc_t> *locs) 
 {
     if(locs_) 
         return false;
@@ -215,4 +215,8 @@ bool Function::addParam(localVar *param)
    ps->addLocalVar(param);
 
    return true;
+}
+
+Function::~Function()
+{
 }

@@ -31,19 +31,9 @@ template <class T> T sample_template <T>::content()
    return (ret);
 }
 
-// Why do we have this section?  We don't run this test on AIX...
-#ifdef os_aix_test && 0
-/* xlC's static libC has strangely undefined symbols, so just fake them ... */
-// BUG(?) I don't know if these will work when declared as static.  Need to
-// test
-static int SOMClassClassData;
-static int SOMObjectClassData;
-#else
-/* xlC also doesn't like these, so just skip them ... */
 template class sample_template <int>;
 template class sample_template <char>;
 template class sample_template <double>;
-#endif
 
 void template_test::func_cpp()
 {

@@ -150,17 +150,22 @@ class AnnotatableDense
 
          if (!annotations) 
          {
-            size = id;
+	    size = id+1;
             annotations = (aInfo *) malloc(sizeof(aInfo));
 
-            annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), size);
+            annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), (size));
             annotations->max = size;
+	    for (unsigned i=0; i<size; i++)
+	      annotations->data[i] = NULL;
          } 
-         else if (id > annotations->max) 
+         else if (id >= annotations->max) 
          {
+            int old_max = annotations->max;
             size = annotations->max * 2;
             annotations->max = size;
             annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t *) * size);
+	    for (unsigned i=old_max; i<size; i++)
+	      annotations->data[i] = NULL;
          }
 
          annotations->data[id] = (void *) a;

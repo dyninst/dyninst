@@ -141,7 +141,7 @@ dyninst_MUTATOR_LIB = $(LIBDYNINSTCOMP)
 #######################################################
 SRCS_SYMTABCOMP_LIB = symtab/symtab_comp.C
 OBJS_SYMTABCOMP_LIB = $(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.o))
-symtab_MUTATOR_FLAGS = -L. -ltestsymtab -lsymtabAPI
+symtab_MUTATOR_FLAGS = -L. -ltestsymtab -lsymtabAPI -lcommon
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBSYMTABCOMP = libtestsymtab.a

@@ -70,7 +70,6 @@ class Aggregate : public AnnotatableSparse
       SYMTAB_EXPORT virtual bool addMangledName(string name, bool isPrimary);
       SYMTAB_EXPORT virtual bool addPrettyName(string name, bool isPrimary);
       SYMTAB_EXPORT virtual bool addTypedName(string name, bool isPrimary);
-
    protected:
 
       bool addMangledNameInt(string name, bool isPrimary);

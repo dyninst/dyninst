@@ -851,7 +851,7 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
 {
    // Get the function to search for it's local variables.
    // XXX - should really use more detailed scoping info here - jkh 6/30/99
-   BPatch_function *func = const_cast<BPatch_function *> (scp.getFunction());
+  BPatch_function *func = const_cast<BPatch_function *> (scp.getFunction());
    if (!func) {
       std::string msg = std::string("point passed to findVariable lacks a function\n address point type passed?");
       showErrorCallback(100, msg);
@@ -860,12 +860,10 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
    AddressSpace *as = func->lladdSpace;
 
    BPatch_localVar *lv = func->findLocalVar(name);
-
    if (!lv) {
       // look for it in the parameter scope now
       lv = func->findLocalParam(name);
    }
-
    if (lv) {
       return new BPatch_variableExpr(addSpace, as, lv, lv->getType(), &scp); 
    }
@@ -880,7 +878,6 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
    char * lastScoping = NULL;      
    if ( strrchr( mangledName, ':' ) != NULL ) { reportErrors = false; }
    BPatch_variableExpr * gsVar = findVariable( name, reportErrors );
-
    if ( gsVar == NULL ) {
       /* Try finding it with the function's scope prefixed. */
 
@@ -892,6 +889,8 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
             scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
             bperr( "Searching for scoped name '%s'\n", scopedName );
             gsVar = findVariable( scopedName ); 
+	    fprintf(stderr, "[%s:%u] - Found %p with name %s", __FILE__, __LINE__,
+		    gsVar, name);
         }
     }
     return gsVar;

@@ -116,8 +116,6 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addValue(Value v,
   /* Verify the input. */
   if ( lowInclusiveAddr >= highExclusiveAddr ) 
   { 
-     fprintf(stderr, "%s[%d]:  failing to add value here!! %lu < %lu\n", FILE__, __LINE__,
-           lowInclusiveAddr, highExclusiveAddr);
      return false; 
   }
 

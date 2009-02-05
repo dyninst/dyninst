@@ -151,6 +151,8 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
       SymtabAPI::Type *stype = v->ivar()->svar()->getType();
       if (stype)
          type = BPatch_type::findOrCreateType(stype);
+      else
+         type = BPatch::bpatch->type_Untyped;
    }
    
    BPatch_variableExpr *var;

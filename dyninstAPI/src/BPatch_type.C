@@ -105,12 +105,12 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
      typ = new Type(_name, ID, convertToSymtabType(_type));
   else
      typ = new Type("", ID, convertToSymtabType(_type));
-
+  assert(typ);
   typ->setUpPtr(this);
   type_map[typ] = this;
 }
 
-BPatch_type *BPatch_type::findOrCreateType(Dyninst::SymtabAPI::Type *type)
+BPatch_type *BPatch_type::findOrCreateType(Dyninst::SymtabAPI::Type *type)  
 {
    std::map<Dyninst::SymtabAPI::Type*, BPatch_type *>::iterator elem = type_map.find(type);
    if (elem != type_map.end()) {
@@ -321,156 +321,6 @@ char *BPatch_type::getName(char *buffer, int max) const
 }
 #endif
 
-#if 0
-//
-// Define the type compatability among the intrensic types of the various
-//     languages.  For example int in c is compatiable to integer*4 in Fortran.
-//     Each equivelence class is given a unique number.
-//
-struct intrensicTypes_ {
-    const char *name;
-    int tid;
-};
-
-struct intrensicTypes_ intrensicTypes[] = {
-    { "int",		1 },
-    { "integer*4", 	1 },
-    { "INTEGER*4", 	1 },
-    { NULL,		0 },
-};
-
-static int findIntrensicType(const char *name)
-{
-    struct intrensicTypes_ *curr;
-
-    for (curr = intrensicTypes; curr->name; curr++) {
-	if (name && curr->name && !strcmp(name, curr->name)) {
-	    return curr->tid;
-	}
-    }
-
-    return 0;
-}
-#endif
-
-#if 0
-/*
- * void BPatch_type::addField
- * Creates field object and adds it to the list of fields for this
- * BPatch_type object.
- *     ENUMS
- */
-void BPatch_fieldListType::addField(const char * _fieldname, int value)
-{
-  BPatch_field * newField;
-  newField = new BPatch_field(_fieldname, BPatch_dataScalar, value);
-  // Add field to list of enum fields
-  assert(newField);
-  fieldList.push_back(newField);
-}
-
-/*
- * void BPatch_type::addField
- * Creates field object and adds it to the list of fields for this
- * BPatch_type object.
- *     ENUMS C++ - have visibility
- */
-void BPatch_fieldListType::addField(const char * _fieldname, BPatch_dataClass _typeDes,
-			   int value, BPatch_visibility _vis)
-{
-  BPatch_field * newField;
-
-  newField = new BPatch_field(_fieldname, _typeDes, value, _vis);
- 
-  // Add field to list of enum fields
-  fieldList.push_back(newField);
-}
-
-/*
- * void BPatch_type::addField
- * Creates field object and adds it to the list of fields for this
- * BPatch_type object.
- *     STRUCTS OR UNIONS
- */
-void BPatch_fieldListType::addField(const char * _fieldname, BPatch_dataClass _typeDes,
-			   BPatch_type *_type, int _offset, int _nsize)
-{
-  BPatch_field * newField;
-  
-  /*
-  if (!( this->size > 0 || ( (_typeDes == BPatch_dataMethod || _typeDes == BPatch_dataUnknownType ) && this->size >= 0) ) ) {
-  	bperr( "Invalid size: this->size = %d, _nsize = %d", this->size, _nsize );
-  	if( _typeDes == BPatch_dataMethod ) { bperr( " ... the field is a data method" ); }
-  	if( _typeDes == BPatch_dataUnknownType ) { bperr( " ... the field is an unknown type" ); }
-  	}
-  */
-
-  // Create Field for struct or union
-  newField = new BPatch_field(_fieldname, _typeDes, _type, _offset, _nsize);
-
-  // Add field to list of struct/union fields
-  fieldList.push_back(newField);
-
-  // API defined structs/union's size are defined on the fly.
-  postFieldInsert(_offset, _nsize);
-}
-
-
-void BPatch_fieldListType::addField(BPatch_type *_type)
-{
-  BPatch_field * newField;
-
-  // Create Field for parameter
-  newField = new BPatch_field("param", BPatch_dataUnknownType, _type, 0, 0);
-  // Add field to list of struct/union fields
-  fieldList.push_back(newField);
-}
-
-/*
- * void BPatch_type::addField
- * Creates field object and adds it to the list of fields for this
- * BPatch_type object.
- *     STRUCTS OR UNIONS C++ have visibility
- */
-void BPatch_fieldListType::addField(const char * _fieldname, BPatch_dataClass _typeDes,
-			   BPatch_type *_type, int _offset, int _size,
-			   BPatch_visibility _vis)
-{
-  BPatch_field * newField;
-
-  // Create Field for struct or union
-  newField = new BPatch_field(_fieldname, _typeDes, _type, _offset, _size,
-			      _vis);
-
-  // Add field to list of struct/union fields
-  fieldList.push_back(newField);
-
-  // API defined structs/union's size are defined on the fly.
-  postFieldInsert(_offset, _size);
-}
-
-/*
- * BPatch_field::BPatch_field
- *
- * Constructor for BPatch_field.  Creates a field object for 
- * an enumerated type.
- * type = offset = size = 0;
- */
-void BPatch_field::BPatch_fieldEnum(const char * fName, BPatch_dataClass _typeDes,
-			       int evalue)
-{
-  typeDes = _typeDes;
-  value = evalue;
-  fieldname = strdup(fName);
-
-  _type = NULL;
-  offset = size = 0;
-  vis = BPatch_visUnknown;
-  // bperr("adding field %s\n", fName);
-
-}
-#endif
-
 BPatch_field::BPatch_field(Dyninst::SymtabAPI::Field *fld_, BPatch_dataClass typeDescriptor, int value_, int size_) :
     typeDes(typeDescriptor), value(value_), size(size_), fld(fld_)
 {
@@ -542,30 +392,6 @@ int BPatch_field::getOffsetInt()
 void BPatch_field::fixupUnknown(BPatch_module *module) {
    fld->fixupUnknown(module->lowlevel_mod()->pmod()->mod());
 }
-
-/**************************************************************************
- * BPatch_localVar
- *************************************************************************/
-/*
- * BPatch_localVar Constructor
- *
- */
-
-#if 0
-BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
-				 int _lineNum, long _frameOffset, int _reg,
-				 BPatch_storageClass _storageClass)
-{
-    name = ( _name ? strdup(_name) : NULL );
-    type = _type;
-    lineNum = _lineNum;
-    frameOffset = _frameOffset;
-    reg = _reg;
-    storageClass = _storageClass;
-
-    type->incrRefCount();
-}
-#endif
 
 BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 {

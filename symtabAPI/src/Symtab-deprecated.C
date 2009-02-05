@@ -48,6 +48,7 @@
 #include "Symtab.h"
 #include "Module.h"
 #include "Collections.h"
+#include "Aggregate.h"
 #include "Function.h"
 #include "Variable.h"
 

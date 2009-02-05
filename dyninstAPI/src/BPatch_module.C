@@ -550,24 +550,12 @@ void BPatch_module::parseTypes()
 BPatch_variableExpr* BPatch_module::findVariableInt(const char* name)
 {
    parseTypesIfNecessary();
-
-   pdvector<std::string> keys = moduleTypes->globalVarsByName.keys();
-   for(pdvector<std::string>::iterator found = keys.begin();
-	   found != keys.end();
-	   found++)
-   {
-     if(strcmp(found->c_str(), name) == 0)
-     {
-       return img->createVarExprByName(this, name);
-     }
-   }
    const pdvector<int_variable *> &allVars = mod->getAllVariables();
 
    for (unsigned i = 0; i < allVars.size(); i++) {
      if(strcmp(allVars[i]->symTabName().c_str(), name) == 0)
      {
-       return img->createVarExprByName(this, name);
-       
+        return addSpace->findOrCreateVariable(allVars[i]);
      }
    }
 

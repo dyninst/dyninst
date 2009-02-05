@@ -50,7 +50,7 @@ class Function : public Aggregate
 {
    public:
       SYMTAB_EXPORT Function();
-
+      SYMTAB_EXPORT ~Function();
       SYMTAB_EXPORT static Function *createFunction(Symbol *sym);
 
 	  SYMTAB_EXPORT int getSize() const { return getFirstSymbol()->getSize(); };
@@ -65,8 +65,8 @@ class Function : public Aggregate
       SYMTAB_EXPORT int   getFramePtrRegnum() const;
 
       /***** x84_64-Specific Frame Pointer Information *****/
-      SYMTAB_EXPORT bool  setFramePtr(vector<loc_t *> *locs);
-      SYMTAB_EXPORT std::vector<loc_t  *>  *getFramePtr() const;
+      SYMTAB_EXPORT bool  setFramePtr(vector<loc_t> *locs);
+      SYMTAB_EXPORT std::vector<loc_t>  *getFramePtr() const;
 
       /***** Local Variable Information *****/
       SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
@@ -79,7 +79,7 @@ class Function : public Aggregate
    private:
       Type          *retType_;
       int           framePtrRegNum_;
-      std::vector<loc_t *> *locs_;
+      std::vector<loc_t> *locs_;
 };
 
 

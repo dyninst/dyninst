@@ -198,92 +198,92 @@ extern void dedemangle( char * demangled, char * dedemangled );
 #define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
 
 char *P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) {
- /* If the symbol isn't from the native compiler, or the native demangler
-    isn't available, use the built-in. */
- bool nativeDemanglerAvailable = P_native_demangle != NULL &&
-         P_text != NULL &&
-         P_varName != NULL &&
-         P_functionName != NULL;
- if( !nativeCompiler || ! nativeDemanglerAvailable ) {
-  char * demangled = cplus_demangle( const_cast<char *>(symbol),
-     includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
-  if( demangled == NULL ) { return NULL; }
+   /* If the symbol isn't from the native compiler, or the native demangler
+      isn't available, use the built-in. */
+   bool nativeDemanglerAvailable = P_native_demangle != NULL &&
+      P_text != NULL &&
+      P_varName != NULL &&
+      P_functionName != NULL;
+   if( !nativeCompiler || ! nativeDemanglerAvailable ) {
+      char * demangled = cplus_demangle( const_cast<char *>(symbol),
+                                         includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
+      if( demangled == NULL ) { return NULL; }
 
-  if( ! includeTypes ) {
-   /* De-demangling never makes a string longer. */
-   char * dedemangled = strdup( demangled );
-   assert( dedemangled != NULL );
+      if( ! includeTypes ) {
+         /* De-demangling never makes a string longer. */
+         char * dedemangled = strdup( demangled );
+         assert( dedemangled != NULL );
 
-   dedemangle( demangled, dedemangled );
-   assert( dedemangled != NULL );
+         dedemangle( demangled, dedemangled );
+         assert( dedemangled != NULL );
 
-   free( demangled );
-   return dedemangled;
-   }
+         free( demangled );
+         return dedemangled;
+      }
 
-  return demangled;
+      return demangled;
    } /* end if not using native demangler. */
    else if( nativeDemanglerAvailable ) {
-  /* Use the native demangler, which apparently behaves funny. */
-  Name * name;
-  char * rest;
+      /* Use the native demangler, which apparently behaves funny. */
+      Name * name;
+      char * rest;
   
-  /* P_native_demangle() won't actually demangled 'symbol'.
-     Find out what P_kind() of symbol it is and demangle from there. */
-  name = (P_native_demangle)( const_cast<char*>(symbol), (char **) & rest,
-   RegularNames | ClassNames | SpecialNames | ParameterText | QualifierText );
-  if( name == NULL ) { return NULL; }
+      /* P_native_demangle() won't actually demangled 'symbol'.
+         Find out what P_kind() of symbol it is and demangle from there. */
+      name = (P_native_demangle)( const_cast<char*>(symbol), (char **) & rest,
+                                  RegularNames | ClassNames | SpecialNames | ParameterText | QualifierText );
+      if( name == NULL ) { return NULL; }
 
-  char * demangled = NULL;
-  switch( P_kind( name ) ) {
-   case Function_:
-                           if (includeTypes)
-                                demangled = (P_text)( name );
-                           else
-    demangled = (P_functionName)( name );   
-    break;
+      char * demangled = NULL;
+      switch( P_kind( name ) ) {
+         case Function_:
+            if (includeTypes)
+               demangled = (P_text)( name );
+            else
+               demangled = (P_functionName)( name );   
+            break;
    
-   case MemberFunction:
-    /* Doing it this way preserves the leading classnames. */
-    demangled = (P_text)( name );
-    break;
+         case MemberFunction:
+            /* Doing it this way preserves the leading classnames. */
+            demangled = (P_text)( name );
+            break;
 
-   case MemberVar:
-    demangled = (P_varName)( name );
-    break;
+         case MemberVar:
+            demangled = (P_varName)( name );
+            break;
 
-   case VirtualName:
-   case Class:
-   case Special:
-   case Long:
-    demangled = (P_text)( name );
-    break;
-   default: assert( 0 );
-   } /* end P_kind() switch */
+         case VirtualName:
+         case Class:
+         case Special:
+         case Long:
+            demangled = (P_text)( name );
+            break;
+         default: assert( 0 );
+      } /* end P_kind() switch */
 
-  /* Potential memory leak: no P_erase( name ) call.  Also, the
-     char *'s returned from a particular Name will be freed
-     when that name is erase()d or destroyed, so strdup if we're
-     fond of them. */
+      /* Potential memory leak: no P_erase( name ) call.  Also, the
+         char *'s returned from a particular Name will be freed
+         when that name is erase()d or destroyed, so strdup if we're
+         fond of them. */
    
-  if( ! includeTypes ) {
-   /* De-demangling never makes a string longer. */
-   char * dedemangled = strdup( demangled );
-   assert( dedemangled != NULL );
+      if( ! includeTypes ) {
+         /* De-demangling never makes a string longer. */
+         char * dedemangled = strdup( demangled );
+         assert( dedemangled != NULL );
 
-   dedemangle( demangled, dedemangled );
-   assert( dedemangled != NULL );
+         dedemangle( demangled, dedemangled );
+         assert( dedemangled != NULL );
 
-   return dedemangled;
+         return dedemangled;
+      }
+
+      return demangled;
+   } /* end if using native demangler. */
+   else {
+      /* We're trying to demangle a native binary but the native demangler isn't available.  Punt. */ 
+      return NULL;
    }
-
-  return demangled;
-  } /* end if using native demangler. */
- else {
-  /* We're trying to demangle a native binary but the native demangler isn't available.  Punt. */ 
-  return NULL;
-  }
- } /* end P_cplus_demangle() */
+} /* end P_cplus_demangle() */
 
 
 // Methods to read file and ar header for both small (32-bit) and
@@ -2041,9 +2041,9 @@ void Object::parseTypeInfo(Symtab *obj)
          currentSourceFile = std::string(moduleName);
          if(!obj->findModuleByName(mod, currentSourceFile))
          {
-            if(!obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile)))
+	   if(!obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile))) {
                parseActive = false;
-            else{
+	   }else{
                parseActive = true;
                // Clear out old types
                mod->getModuleTypes()->clearNumberedTypes();

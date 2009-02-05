@@ -441,7 +441,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     AddressSpace *getAS();
  private:
     BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
-                        AddressSpace *in_addSpace,
+                        AddressSpace *in_lladdSpace,
                         void *in_address,
                         int in_size);
     BPatch_variableExpr(char *in_name, 

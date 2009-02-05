@@ -45,10 +45,12 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/Annotatable.h"
 
-COMMON_EXPORT int AnnotationClass_nextId;
 COMMON_EXPORT AnnotatableSparse::annos_t AnnotatableSparse::annos;
 
 namespace Dyninst {
+
+COMMON_EXPORT int AnnotationClass_nextId;
+
 bool void_ptr_cmp_func(void *v1, void *v2)
 {
    return v1 == v2;
