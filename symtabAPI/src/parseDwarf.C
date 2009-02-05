@@ -531,7 +531,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
       loc.hiPC = (Offset)location->ld_hipc;
 
       // if range of the variable is the entire address space, do not add lowpc
-      if (loc.lowPC != 0 && loc.hiPC != -1) {
+      if (loc.lowPC != (unsigned long) 0 && loc.hiPC != (unsigned long) ~0) {
       	loc.lowPC = (Offset)location->ld_lopc + lowpc;
       	loc.hiPC = (Offset)location->ld_hipc + lowpc;
       }
@@ -1003,6 +1003,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       case DW_TAG_subprogram:
       case DW_TAG_entry_point:
          {
+	    dwarf_printf(" DW_TAG_subprogram or DW_TAG_entry_point \n");
             /* Is this entry specified elsewhere?  We may need to look there for its name. */
             Dwarf_Bool hasSpecification;
             status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
@@ -1097,7 +1098,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
             if ( status == DW_DLV_OK ) {
-               Dwarf_Locdesc ** locationList;
+
+	           Dwarf_Locdesc ** locationList;
                Dwarf_Signed listLength;
                status = dwarf_loclist_n( frameBaseAttribute, & locationList, & listLength, NULL );
                if ( status != DW_DLV_OK ) {
@@ -1132,7 +1134,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
             DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            Type * returnType = NULL;
+	        Type * returnType = NULL;
             if ( status == DW_DLV_NO_ENTRY ) { 
                returnType = module->getModuleTypes()->findType("void");
                newFunction->setReturnType( returnType );

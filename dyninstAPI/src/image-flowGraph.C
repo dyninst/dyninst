@@ -1063,20 +1063,16 @@ bool image_func::buildCFG(
                     pdmod()->addUnresolvedControlFlow(p); 
                     break;
                 }
-
-#if 0
-                // Whether or not we are able to determine the targets
-                // of this indirect branch instruction, it is not safe
-                // to relocate this function.
-                
-                // We're now relocating by redirecting targets. We now only
-                // label unrelocateable if the jump table can't be parsed.
-
-                canBeRelocated_ = false;
-#endif
-
                 BPatch_Set< Address > targets;
                 BPatch_Set< Address >::iterator iter;
+				if( archIsIPRelativeBranch(ah))
+				{
+					processJump(ah, currBlk, 
+						funcBegin, funcEnd, allInstructions, leaders, worklist,
+						visited, leadersToBlock, pltFuncs);
+					break;
+				}
+
                
                 // get the list of targets
                 if(!archGetMultipleJumpTargets(targets,currBlk,ah,
@@ -1134,104 +1130,10 @@ bool image_func::buildCFG(
             }
             else if( ah.isAJumpInstruction() )
             {
-                // delay slots?
-                currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
-
-                if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
-
-                Address target = ah.getBranchTargetAddress();
-
-                parsing_printf("... 0x%lx is a jump to 0x%lx\n",
-                               currAddr, target);
-
-#if 0
-                // Removed; causes problems with relocation
-
-                /* Special case handling for jmp +0 and jcc +0 */
-                if(target == ah.peekNext()) {
-                    parsing_printf("[%s:%u] eliding jcc +0 edge at 0x%lx\n",
-                        FILE__, __LINE__,currAddr);
-
-                    ah++;
-                    continue;
-                }
-#endif
-
-                Address catchStart;
-
-                // Only used on x86
-                if(archProcExceptionBlock(catchStart,ah.peekNext()))
-                {
-                    addBasicBlock(catchStart,
-                                  currBlk,
-                                  leaders,
-                                  leadersToBlock,
-                                  ET_CATCH,
-                                  worklist,
-                                  visited);
-                }
-
-                if( !img()->isValidAddress( target ) ) {
-                    p = new image_instPoint(currAddr,
-                                            ah.getInstruction(),
-                                            this,
-                                            target,
-                                            false,
-                                            false,
-                                            otherPoint); 
-                    pdmod()->addUnresolvedControlFlow(p);
-                    break;
-                }
-
-                // NOTE we don't do anything with these?
-                img()->addJumpTarget( target );
-
-                if(archIsATailCall( ah, allInstructions ) ||
-                   (*pltFuncs).defines(target))
-                {
-                    // XXX this output is for testing only; remove
-                    if((*pltFuncs).defines(target)) {
-                      parsing_printf("[%s:%u] tail call into plt %lx -> %lx\n",
-                            FILE__,__LINE__,*ah,target);
-                    }
-
-                    // Only on x86 & sparc currently
-                    currBlk->isExitBlock_ = true;
-                    parsing_printf("... making new exit point at 0x%lx\n", 
-                                   currAddr);                
-
-                    p = new image_instPoint(currAddr,
-                                            ah.getInstruction(),
-                                            this,
-                                            target,
-                                            false,
-                                            false,
-                                            functionExit);
-                    funcReturns.push_back( p );
-                    currBlk->containsRet_ = true;
-                    //retStatus_ = RS_RETURN;
-                }
-                else 
-                {
-                  if( target < funcBegin ) {
-                    parsing_printf("Parse of mod:func[%s:%s] Tying up jump target "
-                                   "to address above the funcEntry[0x%lx]: "
-                                   "jump[0x%lx]=>[0x%lx]\n", img()->name().c_str(),
-                                   prettyName().c_str(),funcBegin, currAddr, target);
-                  } else {
-                    parsing_printf("... tying up unconditional branch target\n");
-                  }
-                  addBasicBlock(target,
-                                currBlk,
-                                leaders,
-                                leadersToBlock,
-                                ET_DIRECT,
-                                worklist,
-                                visited);
-                }
-                break;
+	      processJump(ah, currBlk, 
+			  funcBegin, funcEnd, allInstructions, leaders, worklist,
+			  visited, leadersToBlock, pltFuncs);
+	      break;
             }
             else if( ah.isAReturnInstruction() )
             {
@@ -1786,4 +1688,104 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
                       leadersToBlock,   /* unused */
                       pv,               /* unused */
                       endOffset_);
+}
+
+void image_func::processJump(InstrucIter& ah, 
+			     image_basicBlock* currBlk,
+			     Address& funcBegin,
+			     Address& funcEnd,
+			     pdvector<instruction>& allInstructions,
+			     BPatch_Set<Address>& leaders,
+			     pdvector<Address>& worklist,
+			     BPatch_Set<image_basicBlock*>& visited,
+			     dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
+			     dictionary_hash<Address, std::string> *pltFuncs
+			     )
+{
+  Address currAddr = *ah;
+  image_instPoint* p;
+  // delay slots?
+  currBlk->lastInsnOffset_ = currAddr;
+  currBlk->blockEndOffset_ = ah.peekNext();
+  
+  if( currAddr >= funcEnd )
+    funcEnd = ah.peekNext();
+  
+  Address target = ah.getBranchTargetAddress();
+  
+  parsing_printf("... 0x%lx is a jump to 0x%lx\n",
+		 currAddr, target);
+  
+  Address catchStart;
+  
+  // Only used on x86
+  if(archProcExceptionBlock(catchStart,ah.peekNext()))
+  {
+    addBasicBlock(catchStart,
+		  currBlk,
+		  leaders,
+		  leadersToBlock,
+		  ET_CATCH,
+		  worklist,
+		  visited);
+  }
+  
+  if( !img()->isValidAddress( target ) ) {
+    p = new image_instPoint(currAddr,
+			    ah.getInstruction(),
+			    this,
+			    target,
+			    false,
+			    false,
+			    otherPoint); 
+    pdmod()->addUnresolvedControlFlow(p);
+    return;
+  }
+
+  // NOTE we don't do anything with these?
+  img()->addJumpTarget( target );
+
+  if(archIsATailCall( ah, allInstructions ) ||
+     (*pltFuncs).defines(target))
+  {
+    // XXX this output is for testing only; remove
+    if((*pltFuncs).defines(target)) {
+      parsing_printf("[%s:%u] tail call into plt %lx -> %lx\n",
+		     FILE__,__LINE__,*ah,target);
+    }
+	  
+    // Only on x86 & sparc currently
+    currBlk->isExitBlock_ = true;
+    parsing_printf("... making new exit point at 0x%lx\n", 
+		   currAddr);                
+
+    p = new image_instPoint(currAddr,
+			    ah.getInstruction(),
+			    this,
+			    target,
+			    false,
+			    false,
+			    functionExit);
+    funcReturns.push_back( p );
+    currBlk->containsRet_ = true;
+    //retStatus_ = RS_RETURN;
+  }
+  else 
+  {
+    if( target < funcBegin ) {
+      parsing_printf("Parse of mod:func[%s:%s] Tying up jump target "
+		     "to address above the funcEntry[0x%lx]: "
+		     "jump[0x%lx]=>[0x%lx]\n", img()->name().c_str(),
+		     prettyName().c_str(),funcBegin, currAddr, target);
+    } else {
+      parsing_printf("... tying up unconditional branch target\n");
+    }
+    addBasicBlock(target,
+		  currBlk,
+		  leaders,
+		  leadersToBlock,
+		  ET_DIRECT,
+		  worklist,
+		  visited);
+  }
 }

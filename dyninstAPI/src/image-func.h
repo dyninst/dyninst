@@ -463,7 +463,18 @@ class image_func : public codeRange {
     bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool &simulateJump);
     bool archCheckEntry(InstrucIter &ah, image_func *func );
     void archInstructionProc(InstrucIter &ah);
-    
+	bool archIsIPRelativeBranch(InstrucIter& ah);
+	void processJump(InstrucIter& ah, 
+		image_basicBlock* currBlk,
+		Address& funcBegin,
+		Address& funcEnd,
+		pdvector<instruction>& allInstructions,
+		BPatch_Set<Address>& leaders,
+		pdvector<Address>& worklist,
+		BPatch_Set<image_basicBlock*>& visited,
+		dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
+		dictionary_hash<Address, std::string> *pltFuncs);
+
    
    ////////////////////////////////////////////////
    // Instpoints!

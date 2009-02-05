@@ -90,6 +90,33 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   }
 }
 
+bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
+{
+	// These don't exist on IA32...
+#if !defined(arch_x86_64)
+  return false;
+#endif
+  instruction branchCandidate = ah.getInstruction();
+  // Branch candidate should have jump opcode, mod r/m, displacement...
+  if(branchCandidate.isJumpIndir())
+  {
+    ia32_locations locs;
+    ia32_memacc mac[3];
+    ia32_condition c;
+    ia32_instruction ll_insn(mac, &c, &locs);
+    ia32_decode(IA32_FULL_DECODER,
+		static_cast<const unsigned char*>(img()->getPtrToInstruction(*ah)),
+		ll_insn);
+    if(locs.modrm_mod == 0x0 && locs.modrm_rm == 0x05)
+    {
+      parsing_printf("%s[%d]: Found RIP-offset indirect branch at 0x%lx\n", FILE__,
+		     __LINE__, *ah);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
                                 bool & /* simulateJump */)
 {
