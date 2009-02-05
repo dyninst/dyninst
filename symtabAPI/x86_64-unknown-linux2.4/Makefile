@@ -68,6 +68,7 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
+LIBS    += -liberty
 
 AS		= /usr/bin/as
 

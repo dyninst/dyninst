@@ -1,0 +1,37 @@
+# This Makefile is set up for the following:
+# Source directory: $(CORE)/valueAdded/<Name>
+# Both mutatee-side and mutator-side libraries
+
+# General Dyninst definition
+NO_IMPLICIT_TEMPLATES = true
+
+# Relative path to the top of the src directory
+TO_CORE = ../../..
+
+# DO NOT CHANGE THIS
+include $(TO_CORE)/make.config 
+
+# Now make any necessary architecture specific changes to variables:
+LD		= $(GXX)
+LDFLAGS         += -shared
+
+# Flags needed for linking the mutator library
+LDFLAGS_MUTATOR =  -L$(DEST) -ldyninstAPI
+
+# if we want to produce a shared object...
+CFLAGS		+= -fPIC
+CFLAGS          += -I. -I../..
+
+VPATH        = ../src
+#:../../dyninstAPI_RT/src
+
+# Include the module-specific Makefile, which defines everything about
+# the module that is common across architectures.
+
+include ../make.module.tmpl
+
+# Include the "standard program template".  This defines all the
+# common targets like "clean", "install", etc.
+
+include $(TO_CORE)/make.library.tmpl
+

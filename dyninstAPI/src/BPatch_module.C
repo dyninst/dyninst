@@ -544,12 +544,40 @@ void BPatch_module::parseTypes()
 {
    mod->pmod()->mod()->exec()->parseTypesNow();
 }
+// This is done by analogy with BPatch_module::getVariables,
+// not BPatch_image::findVariable.  This should result in consistent
+// behavior at the module level.
+BPatch_variableExpr* BPatch_module::findVariableInt(const char* name)
+{
+   parseTypesIfNecessary();
+
+   pdvector<std::string> keys = moduleTypes->globalVarsByName.keys();
+   for(pdvector<std::string>::iterator found = keys.begin();
+	   found != keys.end();
+	   found++)
+   {
+     if(strcmp(found->c_str(), name) == 0)
+     {
+       return img->createVarExprByName(this, name);
+     }
+   }
+   const pdvector<int_variable *> &allVars = mod->getAllVariables();
+
+   for (unsigned i = 0; i < allVars.size(); i++) {
+     if(strcmp(allVars[i]->symTabName().c_str(), name) == 0)
+     {
+       return img->createVarExprByName(this, name);
+       
+     }
+   }
+
+   return NULL;
+}
 
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
    if (!isValid())
       return false;
-
    if (!full_var_parse) {
       const pdvector<int_variable*> &vars = mod->getAllVariables();
       for (unsigned i=0; i<vars.size(); i++) {

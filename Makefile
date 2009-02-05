@@ -16,10 +16,11 @@ SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dynutil instructionAPI
 InstructionAPI	= ready common instructionAPI dynutil
+ValueAdded = valueAdded/sharedMem
 
 testsuites = dyninstAPI/tests testsuite 
 
-allSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite
+allSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite valueAdded/sharedMem
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet
@@ -134,7 +135,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date

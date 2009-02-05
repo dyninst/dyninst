@@ -526,8 +526,17 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 
       /* There is only one location. */
       Dwarf_Locdesc *location = locationList[locIndex];
-      loc.lowPC = (Offset)location->ld_lopc + lowpc;
-      loc.hiPC = (Offset)location->ld_hipc + lowpc;
+      
+      loc.lowPC = (Offset)location->ld_lopc;
+      loc.hiPC = (Offset)location->ld_hipc;
+
+      // if range of the variable is the entire address space, do not add lowpc
+      if (loc.lowPC != 0 && loc.hiPC != -1) {
+      	loc.lowPC = (Offset)location->ld_lopc + lowpc;
+      	loc.hiPC = (Offset)location->ld_hipc + lowpc;
+      }
+      dwarf_printf( "CU lowpc %lx setting lowPC %lx hiPC %lx \n", lowpc, loc.lowPC, loc.hiPC );
+
       Dwarf_Loc * locations = location->ld_s;
       for( unsigned int i = 0; i < location->ld_cents; i++ ) {
          /* Handle the literals w/o 32 case statements. */
@@ -541,11 +550,12 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
          if ( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
             /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
             dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile) );
-            //loc.stClass = storageRegOffset;
+            //loc->stClass = storageRegOffset;
             loc.stClass = storageReg;
             loc.refClass = storageNoRef;
+            loc.frameOffset = 0;
             loc.reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
-            //loc.frameOffset = 0;
+            //loc->frameOffset = 0;
             isLocSet = true;
             break;
          }	
@@ -555,8 +565,10 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile), locations[i].lr_number );
             loc.stClass = storageRegOffset;
             loc.refClass = storageNoRef;
+            loc.frameOffset = locations[i].lr_number ;
             loc.reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
             opStack.push(static_cast<long int>(locations[i].lr_number)); 
+            break;
          }
 
          switch( locations[i].lr_atom ) {
@@ -582,11 +594,11 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
             case DW_OP_regx:
                /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
                dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile) );
-               //loc.stClass = storageRegOffset;
+               //loc->stClass = storageRegOffset;
                loc.stClass = storageReg;
                loc.refClass = storageNoRef;
                loc.reg = (int) DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
-               //loc.frameOffset = 0;
+               loc.frameOffset = 0;
                isLocSet = true;
                break;
 
@@ -595,6 +607,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                //if ( storageClass != NULL ) { * storageClass = storageFrameOffset; }
                loc.stClass = storageRegOffset;
                loc.refClass = storageNoRef;
+               loc.frameOffset = 0;
                opStack.push(static_cast<long int>(locations[i].lr_number));
                break;
 
@@ -854,7 +867,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 
             default:
                dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
-               //return false;
+               return false;
                break;
          } /* end operand switch */
       } /* end iteration over Dwarf_Loc entries. */
@@ -863,7 +876,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
          /* The top of the stack is the computed location. */
          if ( opStack.empty() ) {
             dwarf_printf( "ignoring malformed location list (stack empty at end of list).\n" );
-            //return false;
+            return false;
          }
          else {
             dwarf_printf( "setting offset to %d\n", opStack.top() );
@@ -1099,6 +1112,16 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                /* Convert location list to an AST for later code generation. */
                newFunction->setFramePtrRegnum(convertFrameBaseToAST( locationList[0], listLength, objFile ));
                //				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength, proc );
+#endif
+#if defined(arch_x86_64)
+	       dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
+          vector<loc_t> *locs = new vector<loc_t>();
+          bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
+	       DWARF_FALSE_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
+
+          status = newFunction->setFramePtr(locs);
+	       DWARF_FALSE_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
+	       
 #endif
 
                deallocateLocationList( dbg, locationList, listLength );
@@ -1901,6 +1924,7 @@ gracefully, that is, without an error. :)
             dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
             vector<loc_t> locs;
+            dwarf_printf(" Tag member decodeLocationListForStaticOffsetOrAddress \n");
             long int baseAddress = 0;
             bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, & baseAddress );
             deallocateLocationList( dbg, locationList, listLength );

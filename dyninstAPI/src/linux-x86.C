@@ -176,6 +176,15 @@ void dyn_lwp::dumpRegisters()
    fprintf(stderr, "ebx:   %lx\n", regs.gprs.ebx);
    fprintf(stderr, "ecx:   %lx\n", regs.gprs.ecx);
    fprintf(stderr, "esp:   %lx\n", regs.gprs.esp);
+   fprintf(stderr, "xcs:   %lx\n", regs.gprs.xcs);
+#endif
+#if defined(arch_x86_64)
+   fprintf(stderr, "eip:   %lx\n", regs.gprs.rip);
+   fprintf(stderr, "eax:   %lx\n", regs.gprs.rax);
+   fprintf(stderr, "ebx:   %lx\n", regs.gprs.rbx);
+   fprintf(stderr, "ecx:   %lx\n", regs.gprs.rcx);
+   fprintf(stderr, "esp:   %lx\n", regs.gprs.rsp);
+   fprintf(stderr, "xcs:   %lx\n", regs.gprs.cs);
 #endif
    //  plenty more register if we want to print em....
 }
@@ -186,6 +195,14 @@ bool dyn_lwp::changePC(Address loc,
    Address regaddr = P_offsetof(struct user_regs_struct, PTRACE_REG_IP);
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
+
+   // Check to see if the incoming address is valid...
+   #if defined(arch_x86_64)
+   if ((proc_->getAddressWidth() == 4) &&
+       (sizeof(Address) == 8)) {
+     assert(!(loc & 0xffffffff00000000));
+   }
+   #endif
    if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, 
             &ptrace_errno, proc_->getAddressWidth(),  
             __FILE__, __LINE__ )) {
@@ -193,7 +210,7 @@ bool dyn_lwp::changePC(Address loc,
             get_lwp_id());
       return false;
    }
-
+   
    return true;
 }
 

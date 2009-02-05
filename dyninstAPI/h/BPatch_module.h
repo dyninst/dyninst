@@ -145,7 +145,13 @@ public:
 
     bool,getVariables,(BPatch_Vector<BPatch_variableExpr *> &vars));
 
-    // BPatch_module::getProcedures
+    // BPatch_module::findVariable
+    // Find and return a global variable (NULL if not found)
+    API_EXPORT(Int, (name),
+
+    BPatch_variableExpr*,findVariable,(const char* name));
+
+	// BPatch_module::getProcedures
     // Returns a vector of all functions in this module
     API_EXPORT(Int, (incUninstrumentable),
     BPatch_Vector<BPatch_function *> *,getProcedures,(bool incUninstrumentable = false));

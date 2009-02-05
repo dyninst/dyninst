@@ -453,8 +453,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                 referring = dependentRelocations[i]->getReferring();
                 newSymbol = new Symbol(
                         referring->getName(), "DEFAULT_MODULE",
-                        Symbol::ST_FUNCTION, Symbol::SL_LOCAL,
-                        Symbol::SV_DEFAULT, to, newSec, 8, true, false);
+                        Symbol::ST_FUNCTION, Symbol::SL_GLOBAL,
+                        Symbol::SV_DEFAULT, (Address)0, NULL, 8, true, false);
                 symObj->addSymbol(newSymbol, referring);
                 if (!symObj->hasRel() && !symObj->hasRela()) {
                     // TODO: probably should add new relocation section and
@@ -462,17 +462,17 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                     fprintf(stderr, "ERROR:  binary has no pre-existing relocation sections!\n");
                     return false;
                 } else if (!symObj->hasRel() && symObj->hasRela()) {
-                    newSymbol->getSec()->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
+                    newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
                 } else {
                     if (obj->isSharedLib()) {
                         //inst_printf("  ::: shared lib jump slot - 0x%lx [base=0x%lx]\n", 
                                 //to - obj->imageOffset(), obj->imageOffset());
-                        newSymbol->getSec()->addRelocationEntry(
+                        newSec->addRelocationEntry(
                                 to - obj->imageOffset(), newSymbol, relocationEntry::dynrel);
                     }
                     else {
                         //inst_printf("  ::: regular jump slot - 0x%lx\n", to);
-                        newSymbol->getSec()->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
+                        newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
                     }
                 }
             }
