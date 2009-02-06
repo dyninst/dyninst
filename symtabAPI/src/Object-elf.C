@@ -296,18 +296,16 @@ set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
 bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
-      Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
-      Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
-      Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
-      Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-      Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
-      Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, Elf_X_Shdr*& eh_frame, 
-      Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp, bool
-#if defined(os_irix)
-      a_out  // variable not used on other platforms
-#endif
-      )
+                        Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
+                        Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
+                        Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
+                        Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
+                        Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
+                        Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, 
+                        Elf_X_Shdr*& eh_frame, Elf_X_Shdr*& gcc_except, 
+                        Elf_X_Shdr *& interp_scnp, bool)
 {
+   std::map<std::string, int> secnNameMap;
    dwarf_err_func  = err_func_;
    entryAddress_ = elfHdr.e_entry();
 
@@ -407,6 +405,14 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
          } 
          name = &shnames[scnp->sh_name()];
          sectionsInOriginalBinary.insert(string(name));
+         
+         if(scnp->sh_flags() & SHF_ALLOC) {
+            DbgAddrConversion_t orig;
+            orig.name = std::string(name);
+            orig.orig_offset = scnp->sh_addr();
+            secnNameMap[orig.name] = DebugSectionMap.size();
+            DebugSectionMap.push_back(orig);
+         }
       }
       else {
          if(!debugInfoValid || mfForDebugInfo == mf || hasDwarfInfo())
@@ -417,29 +423,46 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
          }
          name = &shnamesForDebugInfo[scnp->sh_name()];
 
-         if(debugInfoSections.count(name) == 0)
+         std::string sname(name);
+         std::map<std::string, int>::iterator s = secnNameMap.find(sname);
+         if (s != secnNameMap.end()) {
+            int i = (*s).second;
+            DebugSectionMap[i].dbg_offset = scnp->sh_addr();
+            DebugSectionMap[i].dbg_size = scnp->sh_size();
+         }
+         scnp->setDebugFile(true);
+
+         if (scnp->sh_type() == SHT_NOBITS) {
+            delete scnp;
             continue;
-         // if(sectionsInOriginalBinary.count(name) > 0)
-         //    continue;
+         }
       }
 
-      allRegionHdrs.push_back( scnp );
 
-      // resolve section name
+      //If the section appears in the memory image of a process address is given by 
+      // sh_addr()
+      //otherwise this is zero and sh_offset() gives the offset to the first byte 
+      // in section.
+      if (!scnp->isFromDebugFile()) {
+         allRegionHdrs.push_back( scnp );
+         if(scnp->sh_flags() & SHF_ALLOC) {
+            Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 
+                                     scnp->sh_addr(), scnp->sh_size(), 
+                                     (mem_image()+scnp->sh_offset()), 
+                                     getRegionPerms(scnp->sh_flags()), 
+                                     getRegionType(scnp->sh_type(), scnp->sh_flags()));
+            
+            regions_.push_back(reg);
+         }
+         else {
+            Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, 
+                                     (mem_image()+scnp->sh_offset()), 
+                                     getRegionPerms(scnp->sh_flags()), 
+                                     getRegionType(scnp->sh_type(), scnp->sh_flags()));
+            regions_.push_back(reg);
+         }
+      }
 
-      //If the section appears in the memory image of a process address is given by sh_addr()
-      //otherwise this is zero and sh_offset() gives the offset to the first byte in section.
-      if(scnp->sh_flags() & SHF_ALLOC)
-          regions_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size(), scnp->sh_addr(), scnp->sh_size(), (mem_image()+scnp->sh_offset()), getRegionPerms(scnp->sh_flags()), getRegionType(scnp->sh_type(), scnp->sh_flags())));
-      else
-          regions_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, (mem_image()+scnp->sh_offset()), getRegionPerms(scnp->sh_flags()), getRegionType(scnp->sh_type(), scnp->sh_flags())));
-//      sections_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size(),(void *)(mem_image()+scnp->sh_offset()), scnp->sh_flags(), scnp->sh_flags() & SHF_EXECINSTR));
-      /*
-         if(scnp->sh_addr() != 0)
-         sections_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size()));
-         else	
-         sections_.push_back(new Region(i, name, scnp->sh_offset(), scnp->sh_size()));
-       */
       // section-specific processing
       if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
          // EEL rewritten executable
@@ -499,7 +522,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
          stabstrscnp = scnp;
          stabstr_off_ = scnp->sh_offset();
       } else if ((strcmp(name, REL_PLT_NAME) == 0) || 
-            (strcmp(name, REL_PLT_NAME2) == 0)) {
+                 (strcmp(name, REL_PLT_NAME2) == 0)) {
          rel_plt_scnp = scnp;
          rel_plt_addr_ = scnp->sh_addr();
          rel_plt_size_ = scnp->sh_size();
@@ -537,124 +560,123 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
          //
          // Another potential headache in the future is if we support
          // some other x86 platform that has both the GNU linker and
-	    // some other linker.  (Does BSD fall into this category?)
-	    // If the two linkers set the entry size differently, we may
-	    // need to re-evaluate this code.
-	    //
-		//plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
-        plt_entry_size_ = 16;
-	    assert( plt_entry_size_ == 16 );
+         // some other linker.  (Does BSD fall into this category?)
+         // If the two linkers set the entry size differently, we may
+         // need to re-evaluate this code.
+         //
+         //plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
+         plt_entry_size_ = 16;
+         assert( plt_entry_size_ == 16 );
 #else
 
-	    plt_entry_size_ = scnp->sh_entsize();
+         plt_entry_size_ = scnp->sh_entsize();
 #if defined (ppc32_linux)
-       if (!plt_entry_size_)
-          plt_entry_size_ = 8;
-       else {
-          if (plt_entry_size_ != 8) 
-             fprintf(stderr, "%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
-                   FILE__, __LINE__, plt_entry_size_);
-       }
+         if (!plt_entry_size_)
+            plt_entry_size_ = 8;
+         else {
+            if (plt_entry_size_ != 8) 
+               fprintf(stderr, "%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
+                       FILE__, __LINE__, plt_entry_size_);
+         }
 #endif
 #endif
-	}
-	else if (strcmp(name, DYNSYM_NAME) == 0) {
-        is_dynamic_ = true;
-	    dynsym_scnp = scnp;
-	    dynsym_addr_ = scnp->sh_addr();
-	}
-	else if (strcmp(name, DYNSTR_NAME) == 0) {
-	    dynstr_scnp = scnp;
-	    dynstr_addr_ = scnp->sh_addr();
-	}
-	else if (strcmp(name, ".debug_info") == 0) {
-	    dwarvenDebugInfo = true;
-	}
-	else if (strcmp(name, EH_FRAME_NAME) == 0) {
-	    eh_frame = scnp;
-	}
-	else if ((strcmp(name, EXCEPT_NAME) == 0) || 
-            (strcmp(name, EXCEPT_NAME_ALT) == 0)) {
-	    gcc_except = scnp;
-	}
-   else if (strcmp(name, INTERP_NAME) == 0) {
-      interp_scnp = scnp;
-   }
-//TODO clean up this. it is ugly
+      }
+      else if (strcmp(name, DYNSYM_NAME) == 0) {
+         is_dynamic_ = true;
+         dynsym_scnp = scnp;
+         dynsym_addr_ = scnp->sh_addr();
+      }
+      else if (strcmp(name, DYNSTR_NAME) == 0) {
+         dynstr_scnp = scnp;
+         dynstr_addr_ = scnp->sh_addr();
+      }
+      else if (strcmp(name, ".debug_info") == 0) {
+         dwarvenDebugInfo = true;
+      }
+      else if (strcmp(name, EH_FRAME_NAME) == 0) {
+         eh_frame = scnp;
+      }
+      else if ((strcmp(name, EXCEPT_NAME) == 0) || 
+               (strcmp(name, EXCEPT_NAME_ALT) == 0)) {
+         gcc_except = scnp;
+      }
+      else if (strcmp(name, INTERP_NAME) == 0) {
+         interp_scnp = scnp;
+      }
+      //TODO clean up this. it is ugly
 #if defined(arch_ia64)
-	else if (strcmp(name, DYNAMIC_NAME) == 0) {
-        dynamic_scnp = scnp;
-        dynamic_addr_ = scnp->sh_addr();
-	    Elf_X_Data data = scnp->get_data();
-	    Elf_X_Dyn dyns = data.get_dyn();
-	    for (unsigned i = 0; i < dyns.count(); ++i) {
-	    	switch(dyns.d_tag(i)) {
-    	    	case DT_PLTGOT:
-	    	        this->gp = dyns.d_ptr(i);
-		             ///* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
-        		    break;
+      else if (strcmp(name, DYNAMIC_NAME) == 0) {
+         dynamic_scnp = scnp;
+         dynamic_addr_ = scnp->sh_addr();
+         Elf_X_Data data = scnp->get_data();
+         Elf_X_Dyn dyns = data.get_dyn();
+         for (unsigned i = 0; i < dyns.count(); ++i) {
+            switch(dyns.d_tag(i)) {
+               case DT_PLTGOT:
+                  this->gp = dyns.d_ptr(i);
+                  ///* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
+                  break;
     
-	        	default:
+               default:
 		            break;
-        	} // switch
-        } // for
-	}
+            } // switch
+         } // for
+      }
 #else
-	else if (strcmp(name, DYNAMIC_NAME) == 0) {
-        dynamic_scnp = scnp;
-	    dynamic_addr_ = scnp->sh_addr();
-	}
+      else if (strcmp(name, DYNAMIC_NAME) == 0) {
+         dynamic_scnp = scnp;
+         dynamic_addr_ = scnp->sh_addr();
+      }
 #endif /* ia64_unknown_linux2_4 */
-    }
+   }
 
-    if(!symscnp || !strscnp) {
+   if(!symscnp || !strscnp) {
     	isStripped = true;
-	    if(dynsym_scnp && dynstr_scnp){
-	        symscnp = dynsym_scnp;
-	        strscnp = dynstr_scnp;
-	    }
-    }
+      if(dynsym_scnp && dynstr_scnp){
+         symscnp = dynsym_scnp;
+         strscnp = dynstr_scnp;
+      }
+   }
 
-    loadAddress_ = 0x0;
+   loadAddress_ = 0x0;
 #if defined(os_linux)
-    /**
-     * If the virtual address of the first PT_LOAD element in the
-     * program table is 0, Linux loads the shared object into any
-     * free spot into the address space.  If the virtual address is
-     * non-zero, it gets loaded only at that address.
-     **/
-    for (unsigned i = 0; i < elfHdr.e_phnum() && !loadAddress_; ++i) {
-	Elf_X_Phdr phdr = elfHdr.get_phdr(i);
+   /**
+    * If the virtual address of the first PT_LOAD element in the
+    * program table is 0, Linux loads the shared object into any
+    * free spot into the address space.  If the virtual address is
+    * non-zero, it gets loaded only at that address.
+    **/
+   for (unsigned i = 0; i < elfHdr.e_phnum() && !loadAddress_; ++i) {
+      Elf_X_Phdr phdr = elfHdr.get_phdr(i);
 
-	if (phdr.p_type() == PT_LOAD) {
-	    loadAddress_ = phdr.p_vaddr();
-	    break;
-	}
-    }
+      if (phdr.p_type() == PT_LOAD) {
+         loadAddress_ = phdr.p_vaddr();
+         break;
+      }
+   }
 #endif  
   
 
-  // sort the section headers by base address
-  //allRegionHdrs.sort( SectionHeaderSortFunction );
-  sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
+   // sort the section headers by base address
+   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
 #endif
 
-  if (!dataddr || !symscnp || !strscnp) {
-//    fprintf(stderr, "[%s][%d]WARNING: One or more of text/bss/symbol/string sections not found in ELF binary\n",__FILE__,__LINE__);
-    log_elferror(err_func_, "no text/bss/symbol/string section");
-    //return false;
-  }
+   if (!dataddr || !symscnp || !strscnp) {
+      //    fprintf(stderr, "[%s][%d]WARNING: One or more of text/bss/symbol/string sections not found in ELF binary\n",__FILE__,__LINE__);
+      log_elferror(err_func_, "no text/bss/symbol/string section");
+      //return false;
+   }
 
-  //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
-  return true;
+   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
+   return true;
 }
 
 bool Object::is_offset_in_plt(Offset offset) const
@@ -2860,7 +2882,8 @@ stab_entry *Object::get_stab_info() const
 Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
       bool alloc_syms) :
    AObject(mf_, mfd, err_func), 
-   EEL(false)
+   EEL(false),
+   DbgSectionMapSorted(false)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -2914,184 +2937,189 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
 
 //Object constructor for archive members
 Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset,	
-      void (*err_func)(const char *), void *base, bool alloc_syms) :
+               void (*err_func)(const char *), void *base, bool alloc_syms) :
    AObject(mf_, mfd, err_func), 
-   EEL(false) {
+   EEL(false),
+   DbgSectionMapSorted(false)
+{
 #if defined(TIMED_PARSE)
-      struct timeval starttime;
-      gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 #if defined(os_solaris)
-      loadNativeDemangler();
+   loadNativeDemangler();
 #endif    
-      is_aout_ = false;
-      did_open = false;
-      interpreter_name_ = NULL;
-      isStripped = false;
+   is_aout_ = false;
+   did_open = false;
+   interpreter_name_ = NULL;
+   isStripped = false;
 
-         elfHdr = *(((Elf_X *)base)->e_rand(offset));
-         Elf_Arhdr *archdr = elf_getarhdr(elfHdr.e_elfp());
-         assert(member_name == string(archdr->ar_name));
+   elfHdr = *(((Elf_X *)base)->e_rand(offset));
+   Elf_Arhdr *archdr = elf_getarhdr(elfHdr.e_elfp());
+   assert(member_name == string(archdr->ar_name));
 
-         // ELF header: sanity check
-         //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
-         if (!elfHdr.isValid())  {
-            log_elferror(err_func_, "ELF header");
-            return;
-         }
-         assert(elfHdr.e_type() == ET_REL);
+   // ELF header: sanity check
+   //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
+   if (!elfHdr.isValid())  {
+      log_elferror(err_func_, "ELF header");
+      return;
+   }
+   assert(elfHdr.e_type() == ET_REL);
 
-         if( elfHdr.e_type() == 3 )
-            load_shared_object(alloc_syms);
-         else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
-            is_aout_ = true;
-            load_object(alloc_syms);
-         }    
-         else {
-            log_perror(err_func_,"Invalid filetype in Elf header");
-            return;
-         }
+   if( elfHdr.e_type() == 3 )
+      load_shared_object(alloc_syms);
+   else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
+      is_aout_ = true;
+      load_object(alloc_syms);
+   }    
+   else {
+      log_perror(err_func_,"Invalid filetype in Elf header");
+      return;
+   }
 #ifdef BINEDIT_DEBUG
-         print_symbol_map(&symbols_);
+   print_symbol_map(&symbols_);
 #endif
 #if defined(TIMED_PARSE)
-         struct timeval endtime;
-         gettimeofday(&endtime, NULL);
-         unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-         unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-         unsigned long difftime = lendtime - lstarttime;
-         double dursecs = difftime/(1000 );
-         cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
 #endif
-      }
+}
 
-   Object::Object(const Object& obj)
-      : AObject(obj), EEL(false)
-      {
+Object::Object(const Object& obj)
+   : AObject(obj), EEL(false)
+{
 #if defined(os_solaris)
-         loadNativeDemangler();
+   loadNativeDemangler();
 #endif    
-         interpreter_name_ = obj.interpreter_name_;
-         isStripped = obj.isStripped;
-         loadAddress_ = obj.loadAddress_;
-         entryAddress_ = obj.entryAddress_;
-         relocation_table_ = obj.relocation_table_;
-         fbt_ = obj.fbt_;
-         elfHdr = obj.elfHdr;
-         deps_ = obj.deps_;
-      }
+   interpreter_name_ = obj.interpreter_name_;
+   isStripped = obj.isStripped;
+   loadAddress_ = obj.loadAddress_;
+   entryAddress_ = obj.entryAddress_;
+   relocation_table_ = obj.relocation_table_;
+   fbt_ = obj.fbt_;
+   elfHdr = obj.elfHdr;
+   deps_ = obj.deps_;
+   DbgSectionMapSorted = obj.DbgSectionMapSorted;
+}
 
-   const Object& Object::operator=(const Object& obj) 
-   {
-      (void) AObject::operator=(obj);
+const Object& Object::operator=(const Object& obj) 
+{
+   (void) AObject::operator=(obj);
 
-      dynsym_addr_ = obj.dynsym_addr_;
-      dynstr_addr_ = obj.dynstr_addr_;
-      got_addr_ = obj.got_addr_;
-      plt_addr_ = obj.plt_addr_;
-      plt_size_ = obj.plt_size_;
-      plt_entry_size_ = obj.plt_entry_size_;
-      rel_plt_addr_ = obj.rel_plt_addr_;
-      rel_plt_size_ = obj.rel_plt_size_;
-      rel_plt_entry_size_ = obj.rel_plt_entry_size_;
-      rel_size_ = obj.rel_size_;
-      rel_entry_size_ = obj.rel_entry_size_;
-      stab_off_ = obj.stab_off_;
-      stab_size_ = obj.stab_size_;
-      stabstr_off_ = obj.stabstr_off_;
-      relocation_table_  = obj.relocation_table_;
-      fbt_  = obj.fbt_;
-      dwarvenDebugInfo = obj.dwarvenDebugInfo;
-      symbolNamesByAddr = obj.symbolNamesByAddr;
-      versionMapping = obj.versionMapping;
-      versionFileNameMapping = obj.versionFileNameMapping;
-      deps_ = obj.deps_;
-      elfHdr = obj.elfHdr; 
-      return *this;
-   }
+   dynsym_addr_ = obj.dynsym_addr_;
+   dynstr_addr_ = obj.dynstr_addr_;
+   got_addr_ = obj.got_addr_;
+   plt_addr_ = obj.plt_addr_;
+   plt_size_ = obj.plt_size_;
+   plt_entry_size_ = obj.plt_entry_size_;
+   rel_plt_addr_ = obj.rel_plt_addr_;
+   rel_plt_size_ = obj.rel_plt_size_;
+   rel_plt_entry_size_ = obj.rel_plt_entry_size_;
+   rel_size_ = obj.rel_size_;
+   rel_entry_size_ = obj.rel_entry_size_;
+   stab_off_ = obj.stab_off_;
+   stab_size_ = obj.stab_size_;
+   stabstr_off_ = obj.stabstr_off_;
+   relocation_table_  = obj.relocation_table_;
+   fbt_  = obj.fbt_;
+   dwarvenDebugInfo = obj.dwarvenDebugInfo;
+   symbolNamesByAddr = obj.symbolNamesByAddr;
+   versionMapping = obj.versionMapping;
+   versionFileNameMapping = obj.versionFileNameMapping;
+   deps_ = obj.deps_;
+   elfHdr = obj.elfHdr; 
+   DbgSectionMapSorted = obj.DbgSectionMapSorted;
 
-   Object::~Object()
-   {
-      //   if (fileName) free((void *)fileName);
-      unsigned i;
-      relocation_table_.clear();
-      fbt_.clear();
-      for(i=0; i<allRegionHdrs.size();i++)
-         delete allRegionHdrs[i];
-      allRegionHdrs.clear();
-      symbolNamesByAddr.clear();
-      versionMapping.clear();
-      versionFileNameMapping.clear();
-      deps_.clear();
-   }
+   return *this;
+}
 
-   void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
-   {
-      const char* err = elf_errmsg(elf_errno());
-      err = err ? err: "(bad elf error)";
-      string str = string(err)+string(msg);
-      err_func(str.c_str());
-   }
+Object::~Object()
+{
+   //   if (fileName) free((void *)fileName);
+   unsigned i;
+   relocation_table_.clear();
+   fbt_.clear();
+   for(i=0; i<allRegionHdrs.size();i++)
+      delete allRegionHdrs[i];
+   allRegionHdrs.clear();
+   symbolNamesByAddr.clear();
+   versionMapping.clear();
+   versionFileNameMapping.clear();
+   deps_.clear();
+}
 
-   bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const 
-   {
-      if(!plt_addr_ || (!fbt_.size())) return false;
-      fbt = fbt_;
-      return true;
-   }
+void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
+{
+   const char* err = elf_errmsg(elf_errno());
+   err = err ? err: "(bad elf error)";
+   string str = string(err)+string(msg);
+   err_func(str.c_str());
+}
 
-   bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const 
-   {
-      if(!plt_addr_ || (!fbt_.size())) return false;
-      fbt = &fbt_;
-      return true;
-   }
+bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const 
+{
+   if(!plt_addr_ || (!fbt_.size())) return false;
+   fbt = fbt_;
+   return true;
+}
 
-   void Object::getDependencies(std::vector<std::string> &deps){
-      deps = deps_;
-   }
+bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const 
+{
+   if(!plt_addr_ || (!fbt_.size())) return false;
+   fbt = &fbt_;
+   return true;
+}
 
-   bool Object::addRelocationEntry(relocationEntry &re)
-   {
-      relocation_table_.push_back(re);
-      return true;
-   }
+void Object::getDependencies(std::vector<std::string> &deps){
+   deps = deps_;
+}
+
+bool Object::addRelocationEntry(relocationEntry &re)
+{
+   relocation_table_.push_back(re);
+   return true;
+}
 
 #ifdef DEBUG
 
-   // stream-based debug output
-   const ostream &Object::dump_state_info(ostream &s) 
-   {
-      s << "Debugging Information for Object (address) : " << this << endl;
+// stream-based debug output
+const ostream &Object::dump_state_info(ostream &s) 
+{
+   s << "Debugging Information for Object (address) : " << this << endl;
 
-      s << " <<begin debugging info for base object>>" << endl;
-      AObject::dump_state_info(s);
-      s << " <<end debuggingo info for base object>>" << endl;
+   s << " <<begin debugging info for base object>>" << endl;
+   AObject::dump_state_info(s);
+   s << " <<end debuggingo info for base object>>" << endl;
 
-      s << " dynsym_addr_ = " << dynsym_addr_ << endl;
-  s << " dynstr_addr_ = " << dynstr_addr_ << endl;
-  s << " got_addr_ = " << got_addr_ << endl;
-  s << " plt_addr_ = " << plt_addr_ << endl;
-  s << " plt_size_ = " << plt_size_ << endl;
-  s << " plt_entry_size_ = " << plt_entry_size_ << endl;
-  s << " rel_plt_addr_ = " << rel_plt_addr_ << endl; 
-  s << " rel_plt_size_ = " << rel_plt_size_ << endl;
-  s << " rel_plt_entry_size_ = " << rel_plt_entry_size_ << endl;
-  s << " rel_size_ = " << rel_size_ << endl;
-  s << " rel_entry_size_ = " << rel_entry_size_ << endl;
-  s << " stab_off_ = " << stab_off_ << endl;
-  s << " stab_size_ = " << stab_size_ << endl;
-  s << " stabstr_off_ = " << stabstr_off_ << endl;
-  s << " dwarvenDebugInfo = " << dwarvenDebugInfo << endl;
+   s << " dynsym_addr_ = " << dynsym_addr_ << endl;
+   s << " dynstr_addr_ = " << dynstr_addr_ << endl;
+   s << " got_addr_ = " << got_addr_ << endl;
+   s << " plt_addr_ = " << plt_addr_ << endl;
+   s << " plt_size_ = " << plt_size_ << endl;
+   s << " plt_entry_size_ = " << plt_entry_size_ << endl;
+   s << " rel_plt_addr_ = " << rel_plt_addr_ << endl; 
+   s << " rel_plt_size_ = " << rel_plt_size_ << endl;
+   s << " rel_plt_entry_size_ = " << rel_plt_entry_size_ << endl;
+   s << " rel_size_ = " << rel_size_ << endl;
+   s << " rel_entry_size_ = " << rel_entry_size_ << endl;
+   s << " stab_off_ = " << stab_off_ << endl;
+   s << " stab_size_ = " << stab_size_ << endl;
+   s << " stabstr_off_ = " << stabstr_off_ << endl;
+   s << " dwarvenDebugInfo = " << dwarvenDebugInfo << endl;
 
-  // and dump the relocation table....
-  s << " fbt_ = (field seperator :: )" << endl;   
-  for (unsigned i=0; i < fbt_.size(); i++) {
-    s << fbt_[i] << " :: "; 
-  }
-  s << endl;
+   // and dump the relocation table....
+   s << " fbt_ = (field seperator :: )" << endl;   
+   for (unsigned i=0; i < fbt_.size(); i++) {
+      s << fbt_[i] << " :: "; 
+   }
+   s << endl;
 
-  return s;
+   return s;
 } 
 
 #endif
@@ -4319,13 +4347,10 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
                {
                   if (functionLineToPossiblyAdd < newLineSpec)
                   {
-                     if (!li[currentSourceFile].addLine(currentSourceFile, functionLineToPossiblyAdd, 
-                              current_col, currentAddress, newLineAddress ))
-                     {
-                        fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                              FILE__, __LINE__, currentSourceFile, functionLineToPossiblyAdd, 
-                              currentAddress, newLineAddress);
-                     }
+                     li[currentSourceFile].addLine(currentSourceFile, 
+                                                   functionLineToPossiblyAdd, 
+                                                   current_col, currentAddress, 
+                                                   newLineAddress );
                   }
 
                   functionLineToPossiblyAdd = 0;
@@ -4335,13 +4360,9 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
                //      FILE__, __LINE__, currentSourceFile, newLineSpec, 
                //      currentAddress, newLineAddress);
 
-               if (!li[currentSourceFile].addLine(currentSourceFile, newLineSpec, 
-                        current_col, currentAddress, newLineAddress ))
-               {
-                  fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                        FILE__, __LINE__, currentSourceFile, newLineSpec, 
-                        currentAddress, newLineAddress);
-               }
+               li[currentSourceFile].addLine(currentSourceFile, newLineSpec, 
+                                             current_col, currentAddress, 
+                                             newLineAddress );
 
                currentAddress = newLineAddress;
                currentLineBase = newLineSpec + 1;
@@ -5172,4 +5193,9 @@ MappedFile *Object::findMappedFileForDebugInfo() {
    }
 
    return mf;
+}
+
+bool Object::convertDebugOffset(Offset /*off*/, Offset &/*new_off*/)
+{
+   return false;
 }

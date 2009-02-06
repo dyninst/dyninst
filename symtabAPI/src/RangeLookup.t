@@ -363,7 +363,6 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::getAddressRanges(Valu
 
    if ( range.first == range.second ) 
    {
-      fprintf(stderr, "%s[%d]:   failing to getAddressRanges here, nelem = %lu\n", FILE__, __LINE__, addressRangesByValueMap.size());
       return false;
    }
 

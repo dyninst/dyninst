@@ -51,7 +51,7 @@ using namespace Dyninst::SymtabAPI;
 
 
 Variable::Variable() :
-   type(NULL)
+   type_(NULL)
 {
 }
 

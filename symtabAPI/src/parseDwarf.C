@@ -1374,10 +1374,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             Dyninst::Offset addr = 0;
             if (locs.size() && locs[0].stClass == storageAddr)
                addr = locs[0].frameOffset;
-            assert(addr);
             Variable *var;
             bool result = module->exec()->findVariableByOffset(var, addr);
-            assert(var);
             if (result) {
                var->setType(variableType);
             }

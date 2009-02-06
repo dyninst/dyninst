@@ -1760,6 +1760,7 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
    Symtab *obj;
    Type *type;
    char *name;
+   Address addr;
 
    if (!isGlobalSymbol(pSymInfo)) {
        //We do local symbols elsewhere
@@ -1771,6 +1772,8 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
    obj_base = pair->base_addr;
    obj = pair->obj;
    name = pSymInfo->Name;
+   addr = (Address) pSymInfo->Address - obj_base;
+
    std::vector<Module *> mods;
    Module *mod;
    //TODO?? change later
@@ -1799,15 +1802,21 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
 
    type = getType(p, obj_base, pSymInfo->TypeIndex, mod);
 
-   /*
-   fprintf(stderr, "[%s:%u] - Variable %s had type %s\n", __FILE__, __LINE__,
-       name, type ? type->getName() : "{NO TYPE}");
-       */
-
-   if (type && name)
+   
+//   fprintf(stderr, "[%s:%u] - Variable %s had type %s\n", __FILE__, __LINE__,
+//       name, type ? type->getName().c_str() : "{NO TYPE}");
+   
+   if (type)
    {
-	   std::string vName = name;
-	   mod->getModuleTypes()->addGlobalVariable(vName, type);
+      Variable *var = NULL;
+      bool result = obj->findVariableByOffset(var, addr);
+      if (result) {
+         var->setType(type);
+      }
+      if (name) {
+         std::string vName = name;
+         mod->getModuleTypes()->addGlobalVariable(vName, type);
+      }
    }
    return TRUE;
 }

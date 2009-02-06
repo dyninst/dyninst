@@ -45,6 +45,8 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/Annotatable.h"
 
+using namespace Dyninst;
+
 COMMON_EXPORT AnnotatableSparse::annos_t AnnotatableSparse::annos;
 
 namespace Dyninst {

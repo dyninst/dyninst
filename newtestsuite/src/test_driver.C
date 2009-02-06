@@ -1061,13 +1061,6 @@ int main(int argc, char *argv[]) {
    if (result)
       exit(result);
 
-   if (test_list.empty()) {
-      getOutput()->log(LOGINFO, "WARNING: No tests specified\n");
-   }
-   if (mutatee_list.empty()) {
-      getOutput()->log(LOGINFO, "WARNING: No mutatees specified\n");
-   }
-
    setupProcessGroup();
 
    // Set the resume log name

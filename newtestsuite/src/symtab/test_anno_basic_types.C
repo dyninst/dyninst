@@ -45,11 +45,13 @@
 #include "symtab_comp.h"
 #include "test_lib.h"
 
-#include "Symtab.h"
-#include "Symbol.h"
+//#include "Symtab.h"
+//#include "Symbol.h"
+
+#include "Annotatable.h"
 
 using namespace Dyninst;
-using namespace SymtabAPI;
+//using namespace SymtabAPI;
 
 #define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
 #define REPORT_EFAIL catch(const LocErr &err) { \

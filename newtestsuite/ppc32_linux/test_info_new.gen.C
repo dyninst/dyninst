@@ -5,12 +5,13 @@
 #include "test_info_new.h"
 
 
+
 // Now we insert the test lists into the run groups
 void initialize_mutatees(std::vector<RunGroup *> &tests) {
-  unsigned int group_count = 0;
-  // Keep track of which element each test is, for later use with the resumelog
-  unsigned int test_count;
-  RunGroup *rg;
+	unsigned int group_count = 0;
+	// Keep track of which element each test is, for later use with the resumelog
+	unsigned int test_count;
+	RunGroup *rg;
   test_count = 0;
   rg = new RunGroup("dyninst_cxx_group_test.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test5_1", "test5_1", "test5_1.so", "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));

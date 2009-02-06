@@ -184,10 +184,6 @@ bool LineInformation::getAddressRanges( const char * lineSource,
       unsigned int lineNo, vector< AddressRange > & ranges ) 
 {
    bool ret = Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
-   if (!ret)
-   {
-      fprintf(stderr, "%s[%d]:  failed to getAddressRanges for %s[%d]\n", FILE__, __LINE__, lineSource, lineNo);
-   }
 
    return ret;
 } /* end getAddressRangesFromLine() */

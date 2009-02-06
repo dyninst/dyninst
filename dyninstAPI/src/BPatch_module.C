@@ -684,22 +684,17 @@ bool BPatch_module::getAddressRangesInt( const char * fileName,
    if (li) 
    {
       bool ok = li->getAddressRanges( fileName, lineNo, ranges );
+      if (!ok)
+         return false;
 
-      if (ok) 
+      //  Iterate over the returned offset ranges to turn them into addresses
+      for (unsigned int i = starting_size; i < ranges.size(); ++i) 
       {
-         //  Iterate over the returned offset ranges to turn them into addresses
-         for (unsigned int i = starting_size; i < ranges.size(); ++i) 
-         {
-            ranges[i].first += mod->obj()->codeBase();
-            ranges[i].second += mod->obj()->codeBase();
-         }
+         ranges[i].first += mod->obj()->codeBase();
+         ranges[i].second += mod->obj()->codeBase();
       }
-      else 
-      {
-         fprintf(stderr, "%s[%d]:  failed to get address ranges for %s:%d, lineInfo %p, lowlevel module = %p:%s\n", FILE__, __LINE__, fileName, lineNo, li, mod->pmod(), mod->pmod()->fileName().c_str());
-      }
-
-      return ok;
+      
+      return true;
    }
 
    return false;

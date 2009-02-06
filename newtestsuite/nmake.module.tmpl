@@ -7,18 +7,20 @@
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 4.2
-#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+RELEASE_NUM	= 6.0
 
 DEST		= $(TO_CORE)\$(PROGRAM_DEST)\newtestsuite
 
+CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_test -Dcap_dynamic_heap_test \
+	-Dcap_stripped_binaries_test -Dcap_async_events_test -Dcap_threads_test -Di386_unknown_nt4_0_test \
+	-Di386-unknown-nt4.0_test
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src \
 	/D_DEBUG /Zi
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/newtestsuite/src
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
-LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
+LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib
 
 SYSLIBS		= 
 
@@ -26,7 +28,7 @@ LIBTESTSUITE = libtestSuite.dll
 LIBDYNINSTCOMP = libtestdyninst.dll
 LIBSYMTABCOMP = libtestsymtab.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
@@ -162,4 +164,6 @@ DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
 # Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
 	$(LINK) $(LDFLAGS) -DLL -out:$@ $(TESTDRIVER_LIBS) Advapi32.lib Ws2_32.lib $**
 
+foo:
+	@echo $(CXXFLAGS_NORM)
 

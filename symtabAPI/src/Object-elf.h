@@ -367,6 +367,7 @@ class Object : public AObject {
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
     bool isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned newPerms);
 
+    bool convertDebugOffset(Offset off, Offset &new_off);
  private:
   static void log_elferror (void (*)(const char *), const char *);
     
@@ -491,32 +492,16 @@ class Object : public AObject {
   void get_valid_memory_areas(Elf_X &elf);
 
   MappedFile *findMappedFileForDebugInfo();
-
-#if 0 
-#if defined(os_irix)
-
- public:
-  Offset     get_gp_value()  const { return gp_value; }
-  Offset     get_rbrk_addr() const { return rbrk_addr; }
-  Offset     get_base_addr() const { return base_addr; }
-  const char *got_entry_name(Offset entry_off) const;
-  int         got_gp_disp(const char *entry_name) const;
-  bool       
-
-  Offset     MIPS_stubs_addr_;   // .MIPS.stubs section
-  Offset     MIPS_stubs_off_;    // .MIPS.stubs section
-  unsigned    MIPS_stubs_size_;   // .MIPS.stubs section
   
- private:
-  Offset     gp_value;
-  Offset     rbrk_addr;
-  Offset     base_addr;
-  
-  int         got_zero_index_;
-  int         dynsym_zero_index_;
-
-#endif /* mips_sgi_irix6_4 */
-#endif
+  struct DbgAddrConversion_t {
+     DbgAddrConversion_t() : dbg_offset(0x0), dbg_size(0x0), orig_offset(0x0) {}
+     std::string name;
+     Offset dbg_offset;
+     unsigned dbg_size;
+     Offset orig_offset;
+  };
+  bool DbgSectionMapSorted;
+  std::vector<DbgAddrConversion_t> DebugSectionMap;
 };
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);

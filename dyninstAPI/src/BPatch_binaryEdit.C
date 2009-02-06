@@ -327,8 +327,34 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
     return true;
 }
 
-bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool)
+bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
-   return false;//TODO
+   std::queue<std::string> libs;
+   libs.push(libname);
+   std::map<string, BinaryEdit*> newlibs;
+   while (libs.size()) {
+      string s = libs.front(); 
+      libs.pop();
+      
+      if (llBinEdits.count(s) || newlibs.count(s))
+         continue;
+      BinaryEdit *file = BinaryEdit::openFile(s);
+      if (!file) {
+         std::map<string, BinaryEdit*>::iterator i;
+         for (i = newlibs.begin(); i != newlibs.end(); i++)
+            delete (*i).second;
+         return false;
+      }
+      newlibs[s] = file;
+
+      if (deps)
+         file->getAllDependencies(libs);
+   }
+   
+   std::map<string, BinaryEdit*>::iterator i;
+   for (i = newlibs.begin(); i != newlibs.end(); i++)
+      llBinEdits[(*i).first] = (*i).second;
+
+   return true;
 }
 

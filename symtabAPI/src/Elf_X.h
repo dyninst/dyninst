@@ -716,10 +716,10 @@ class Elf_X_Data {
 class Elf_X_Shdr {
   public:
     Elf_X_Shdr()
-	: scn(NULL), shdr32(NULL), shdr64(NULL), is64(false) { }
+       : scn(NULL), shdr32(NULL), shdr64(NULL), is64(false), fromDebugFile(false) { }
 
     Elf_X_Shdr(bool is64_, Elf_Scn *input)
-	: scn(input), shdr32(NULL), shdr64(NULL), is64(is64_) {
+       : scn(input), shdr32(NULL), shdr64(NULL), is64(is64_), fromDebugFile(false) {
 
 	if (input) {
 	    first_data();
@@ -801,6 +801,8 @@ class Elf_X_Shdr {
 					     else       shdr64->sh_addralign = input; }
     void sh_entsize(unsigned long input) { if (!is64) shdr32->sh_entsize = input;
 					   else       shdr64->sh_entsize = input; }
+    void setDebugFile(bool b) { fromDebugFile = b; }
+    bool isFromDebugFile() { return fromDebugFile; }
 
     // Section Data Interface
     Elf_X_Data get_data() const { return Elf_X_Data(is64, data); }
@@ -821,6 +823,7 @@ class Elf_X_Shdr {
     Elf32_Shdr *shdr32;
     Elf64_Shdr *shdr64;
     bool is64;
+    bool fromDebugFile;
 };
 
 // ------------------------------------------------------------------------

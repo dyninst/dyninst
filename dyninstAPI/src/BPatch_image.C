@@ -889,8 +889,6 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
             scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
             bperr( "Searching for scoped name '%s'\n", scopedName );
             gsVar = findVariable( scopedName ); 
-	    fprintf(stderr, "[%s:%u] - Found %p with name %s", __FILE__, __LINE__,
-		    gsVar, name);
         }
     }
     return gsVar;

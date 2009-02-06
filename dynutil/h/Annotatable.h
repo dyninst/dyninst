@@ -76,7 +76,7 @@ class AnnotationClassBase
       std::string name;
 
    protected:
-      COMMON_TEMPLATE_EXPORT AnnotationClassBase(std::string n, 
+      COMMON_EXPORT AnnotationClassBase(std::string n, 
             anno_cmp_func_t cmp_func_ = NULL);
 
    public:
@@ -98,7 +98,7 @@ class AnnotationClass : public AnnotationClassBase {
       typedef bool (*ser_func_t) (SerializerBase &, T &);
       // typedef T annotation_realtype;
 
-      COMMON_TEMPLATE_EXPORT AnnotationClass(std::string n, 
+      AnnotationClass(std::string n, 
             anno_cmp_func_t cmp_func_ = NULL, 
             bool (*serializer)(SerializerBase &, T&) = NULL) :
          AnnotationClassBase(n, cmp_func_),
@@ -145,7 +145,7 @@ class AnnotatableDense
       template<class T> 
       bool addAnnotation(const T *a, AnnotationClass<T> &a_id) 
       {
-         int size;
+         unsigned size;
          int id = a_id.getID();
 
          if (!annotations) 

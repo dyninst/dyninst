@@ -600,10 +600,6 @@ bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int 
       dynthread_t tid, unsigned long stack_addr, unsigned long start_pc)
 {
    bool thread_exists = (p->getThread(tid) != NULL);
-   if (thread_exists) {
-      //  used to do nothing here, now try a warning at least.
-      fprintf(stderr, "%s[%d]:  WARNING:  got a creation event for an already-existing thread\n", FILE__, __LINE__);
-   }
 
    //Create the new BPatch_thread object
    async_printf("%s[%d]:  before createOrUpdateBPThread: pid = %d, " \
