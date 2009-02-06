@@ -212,8 +212,6 @@ bool image_func::archCheckEntry( InstrucIter &ah, image_func *func )
   // check if the entry point contains another point
   if (insn.isJumpDir()) 
     {
-      Address target = insn.getTarget(offset);
-      func->img()->addJumpTarget(target);
       
       return false;
     } 

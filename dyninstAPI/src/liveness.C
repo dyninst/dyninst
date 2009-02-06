@@ -442,8 +442,9 @@ void image_func::calcBlockLevelLiveness() {
     blocks();
 
     // Step 1: gather the block summaries
-    for (unsigned i = 0; i < blockList.size(); i++) {
-        blockList[i]->summarizeBlockLivenessInfo();
+    set<image_basicBlock*,image_basicBlock::compare>::iterator sit;
+    for(sit = blockList.begin(); sit != blockList.end(); sit++) {
+        (*sit)->summarizeBlockLivenessInfo();
     }
     
     // We now have block-level summaries of gen/kill info
@@ -452,8 +453,8 @@ void image_func::calcBlockLevelLiveness() {
     bool changed = true;
     while (changed) {
         changed = false;
-        for (unsigned i = 0; i < blockList.size(); i++) {
-            if (blockList[i]->updateBlockLivenessInfo()) {
+        for(sit = blockList.begin(); sit != blockList.end(); sit++) {
+            if ((*sit)->updateBlockLivenessInfo()) {
                 changed = true;
             }
         }

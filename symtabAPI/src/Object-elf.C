@@ -1325,6 +1325,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 
    Elf_X_Sym syms = symdata.get_sym();
    const char *strs = strdata.get_string();
+  if(syms.isValid()){
    for (unsigned i = 0; i < syms.count(); i++) {
       //If it is not a dynamic executable then we need undefined symbols
       //in symtab section so that we can resolve symbol references. So 
@@ -1368,7 +1369,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          allsymbols.push_back(newsym); // normal case
       }
    }
-
+  } // syms.isValid()
 #if defined(TIMED_PARSE)
    struct timeval endtime;
    gettimeofday(&endtime, NULL);
@@ -1467,7 +1468,8 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
    }
    
 #endif
-  
+ 
+  if(syms.isValid()) { 
    for (unsigned i = 0; i < syms.count(); i++) {
       int etype = syms.ST_TYPE(i);
       int ebinding = syms.ST_BIND(i);
@@ -1534,6 +1536,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       // register symbol in dictionary
       symbols_[sname].push_back( newsym );
    }
+  }
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;

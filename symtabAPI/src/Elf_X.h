@@ -405,7 +405,7 @@ class Elf_X_Sym {
     // Meta-Info Interface
     unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Sym)
 								: sizeof(Elf64_Sym))); }
-    bool isValid() const { return data; }
+    bool isValid() const { return sym32 || sym64; }
 
   protected:
     Elf_Data *data;

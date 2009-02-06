@@ -95,6 +95,14 @@ AnnotationClassBase::AnnotationClassBase(std::string n, anno_cmp_func_t cmp_func
    }
 }
 
+Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned int id)
+{
+	if(id > annotation_types->size())
+	{
+		return NULL;
+	}
+	return (*annotation_types)[id];
+}
 #if 0
 int Dyninst::AnnotationClass_nextId;
 int newAnnotationClass(void *ptr)

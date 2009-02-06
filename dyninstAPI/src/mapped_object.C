@@ -385,38 +385,29 @@ bool mapped_object::analyzeNewFunctions(vector<image_func *> *funcs)
     if (!funcs || !funcs->size()) {
         return false;
     }
-    pdvector< Address > callTargets;
-    dictionary_hash< Address, image_func * > preParseStubs( addrHash );
+
     vector<image_func *>::iterator curfunc = funcs->begin();
     while (curfunc != funcs->end()) {
         if (everyUniqueFunction.defines(*curfunc)) {
             curfunc = funcs->erase(curfunc);
         } else {
-            callTargets.push_back((*curfunc)->getOffset());
-            preParseStubs[callTargets.back()] = *curfunc;
+            // do control-flow traversal parsing starting from this function
+            if((*curfunc)->parse()) {
+                parse_img()->recordFunction(*curfunc);
+            } // FIXME else?
+
             curfunc++;
         }
     }
     if (! funcs->size()) {
         return true;
     }
-    // do control-flow traversal parsing starting from this function
-    pdvector< Address > newTargets;
-    // parse any new discovered functions
-    while(callTargets.size() > 0) {
-        parse_img()->parseStaticCallTargets
-            ( callTargets, newTargets, preParseStubs );
-        callTargets.clear();
-        VECTOR_APPEND( callTargets, newTargets ); 
-        newTargets.clear();
-    }
+
     // add the functions we created to our datastructures
     pdvector<image_func *> newFuncs = parse_img()->getCreatedFunctions();
     for (unsigned i=0; i < newFuncs.size(); i++) {
         image_func *curFunc = newFuncs[i];
         if ( ! everyUniqueFunction.defines(curFunc) ) { 
-            if(!curFunc->isBLSorted())
-                curFunc->sortBlocklist();
             curFunc->checkCallPoints();
             // add function to datastructures
             findFunction(curFunc);

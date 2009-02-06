@@ -125,9 +125,8 @@ image_func::image_func(const std::string &symbol,
 		       Address offset, 
 		       const unsigned symTabSize,
 		       pdmodule *m,
-		       image *i) :
-//  startOffset_(offset),
-//  symTabSize_(symTabSize),
+		       image *i,
+               FuncSource src) :
 #if defined(arch_ia64)
   usedFPregs(NULL),
 #endif
@@ -143,7 +142,6 @@ image_func::image_func(const std::string &symbol,
   noStackFrame(false),
   makesNoCalls_(false),
   savesFP_(false),
-  call_points_have_been_checked(false),
   containsSharedBlocks_(false),
   retStatus_(RS_UNSET),
   isTrap(false),
@@ -151,11 +149,11 @@ image_func::image_func(const std::string &symbol,
   canBeRelocated_(true),
   needsRelocation_(false),
   originalCode(NULL),
-  o7_live(false),
-  bl_is_sorted(false)
+  o7_live(false)
 #if defined(cap_liveness)
   , livenessCalculated_(false)
 #endif
+  , howDiscovered_(src)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_func_count++;
@@ -193,7 +191,7 @@ image_func::image_func(const std::string &symbol,
 
 }
 
-image_func::image_func(Function *func, pdmodule *m, image *i):
+image_func::image_func(Function *func, pdmodule *m, image *i, FuncSource src):
 #if defined(arch_ia64)
   usedFPregs(NULL),
 #endif
@@ -208,7 +206,6 @@ image_func::image_func(Function *func, pdmodule *m, image *i):
   noStackFrame(false),
   makesNoCalls_(false),
   savesFP_(false),
-  call_points_have_been_checked(false),
   containsSharedBlocks_(false),
   retStatus_(RS_UNSET),
   isTrap(false),
@@ -216,11 +213,11 @@ image_func::image_func(Function *func, pdmodule *m, image *i):
   canBeRelocated_(true),
   needsRelocation_(false),
   originalCode(NULL),
-  o7_live(false),
-  bl_is_sorted(false)
+  o7_live(false)
 #if defined(cap_liveness)
   , livenessCalculated_(false)
 #endif
+ , howDiscovered_(src)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_func_count++;
@@ -245,37 +242,30 @@ int image_func::getFramePointerCalculator()
 }
 #endif
 
-// Two-copy version... can't really do better.
 bool image_func::addSymTabName(std::string name, bool isPrimary) 
 {
     if(func_->addMangledName(name.c_str(), isPrimary)){
 	return true;
     }
 
-    // Bool: true if the name is new; AKA !found
     return false;
 }
 
-// Two-copy version... can't really do better.
 bool image_func::addPrettyName(std::string name, bool isPrimary) {
    if (func_->addPrettyName(name.c_str(), isPrimary)) {
       return true;
    }
    
-   // Bool: true if the name is new; AKA !found
    return false;
 }
 
-// Two-copy version... can't really do better.
 bool image_func::addTypedName(std::string name, bool isPrimary) {
     // Count this as a pretty name in function lookup...
     if (func_->addTypedName(name.c_str(), isPrimary)) {
 	return true;
     }
 
-    // Bool: true if the name is new; AKA !found
     return false;
-
 }
 
 void image_func::changeModule(pdmodule *mod) {
@@ -326,7 +316,8 @@ const pdvector<image_instPoint*> &image_func::funcCalls() {
   return calls;
 }
 
-const pdvector<image_basicBlock *> &image_func::blocks() {
+const set<image_basicBlock*, image_basicBlock::compare> & image_func::blocks()
+{
   if (!parsed_) image_->analyzeIfNeeded();
   return blockList;
 }
@@ -370,8 +361,6 @@ image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
     isStub_(false),
     containsRet_(false),
     containsCall_(false),
-    callIsOpaque_(false),
-    isSpeculative_(false),
     canBeRelocated_(true)
 { 
     funcs_.push_back(func);
@@ -602,12 +591,10 @@ bool image_func::addBasicBlock(Address newAddr,
                    BPatch_Set<Address> &leaders,
                    dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
                    EdgeTypeEnum edgeType,
-                   pdvector<Address> &worklist,
-                   BPatch_Set< image_basicBlock * > &parserVisited)
+                   pdvector<Address> &worklist)
 {
     image_basicBlock *newBlk;
     codeRange *tmpRange;
-    bool speculative = false;
 
     // Doublecheck 
     if (!image_->isCode(newAddr))
@@ -671,8 +658,7 @@ bool image_func::addBasicBlock(Address newAddr,
                 // parsed, and so must be added to the blocklist here.
                 parsing_printf("[%s:%u] adding block %d (0x%lx) to blocklist\n",
                     FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
-                blockList.push_back(newBlk);
-                parserVisited.insert(newBlk);
+                addToBlocklist(newBlk);
             }
             else
                 assert(0);  //FIXME debug--remove
@@ -691,59 +677,6 @@ bool image_func::addBasicBlock(Address newAddr,
         worklist.push_back(newAddr);
     }
 
-    // Determine whether we are confident about this new block. A
-    // call-following basic block should be marked speculative under
-    // the following conditions:
-    //
-    // A) It is not reachable by any other non-spec control flow AND
-    // ( The preceeding block's call target has not been parsed OR
-    //   The preceeding block's call target has unknown return status )
-    //
-    // B) A non-call-following block is speculative if all of its
-    //    predecessors (including oldBlock) are speculative
-    if(edgeType == ET_FUNLINK)
-    {
-        // oldBlock may have zero or one targets, depending on whether
-        // the callTarget was indirect or direct.
-        if(oldBlock->targets_.size() > 0)
-        {
-            image_func *callTarget = 
-                            oldBlock->targets_[0]->getTarget()->funcs_[0];
-
-            if(callTarget->returnStatus() == RS_UNSET ||
-            callTarget->returnStatus() == RS_UNKNOWN)
-            {
-                speculative = true;
-            }
-        }
-        else
-        {
-            speculative = true;
-        }
-    }
-    else
-    {
-        speculative = oldBlock->isSpeculative_;
-    }
-    
-    // (What the above boils down to is that if this is a new block
-    //  without existing incomming edges, we want to base our speculative
-    //  decision on oldBlock, and otherwise we want it based on the
-    //  existing status of the block.)    
-    if(newBlk->sources_.size() == 0)
-        newBlk->isSpeculative_ = speculative;
-    else
-    {
-        if(newBlk->isSpeculative_ && !speculative)
-        {
-            // TODO initiate despeculation for this block
-            newBlk->isSpeculative_ = false;
-            //ConfirmBlocks(newBlk);
-        }
-        else
-            newBlk->isSpeculative_ = newBlk->isSpeculative_ && speculative;
-    }
-
     // special case: a conditional branch in block A splits A
     if(splitBlk == oldBlock)
         addEdge(newBlk,newBlk,edgeType);
@@ -760,31 +693,20 @@ bool image_func::addBasicBlock(Address newAddr,
 
 void image_func::addToBlocklist(image_basicBlock * newBlk)
 {
-    blockList.push_back(newBlk);
-    bl_is_sorted = false;
+    pair< set<image_basicBlock *, image_basicBlock::compare>::iterator,
+          bool > res;
+
+    res = blockList.insert( newBlk );
+    if(!res.second) {
+        parsing_printf("[%s:%u] failed to insert block at 0x%lx into func\n",
+            FILE__,__LINE__,newBlk->firstInsnOffset());
+    }
 }
 
-#if 0 // TODO
-/* This method follows the speculative control flow path from a basic 
- * block and marks all reachable blocks as non-speculatively-parsed. 
- * This update pass will not cross boundaries presented by opaque
- * call sites.
- */
-void ConfirmBlocks(image_basicBlock *b)
+bool image_func::containsBlock(image_basicBlock *b)
 {
-    parsing_printf("Confirming blocks reachable from %d (0x%lx)\n",
-                   b->getBlockID(), b->getFirstInsnOffset());
-
-    // for all blocks reachable from this that are speculative:
-        // push on workset
-    
-    // while workset not empty
-        // pop block from workset
-        // mark not speculative
-        // for each reachable block not across an opaque call:
-            // push on workset
+    return blockList.find(b) != blockList.end();
 }
-#endif
 
 void image_basicBlock::debugPrint() {
     // no looping if we're not printing anything
@@ -812,9 +734,6 @@ void image_basicBlock::debugPrint() {
 
     parsing_printf("  Flags: entry %d, exit %d\n",
                    isEntryBlock_, isExitBlock_);
-    if (isEntryBlock_ && sources_.size()) {
-        fprintf(stderr, "========== multiple entry block!\n");
-    }
     
     parsing_printf("  Sources:\n");
     for (unsigned s = 0; s < sources_.size(); s++) {
@@ -830,208 +749,24 @@ void image_basicBlock::debugPrint() {
     }
 }
 
-// Make sure no blocks overlap, sort stuff by address... you know,
-// basic stuff.
-bool compare_image_basicBlock(image_basicBlock *b1,
-      image_basicBlock *b2) {
-   if (b1->firstInsnOffset() < b2->firstInsnOffset())
-      return true;
-   if (b2->firstInsnOffset() < b1->firstInsnOffset())
-      return false;
-
-   if(b1 != b2)
-      fprintf(stderr,"oh gnoes, blocks shouldn't match: 0x%p 0x%p are at 0x%lx \n",b1,b2,b1->firstInsnOffset());
-   assert(b1 == b2);
-   return false;
-}
-
-
-bool image_func::cleanBlockList() 
+/* Sorts the basic block list and instrumentation point lists by address,
+ * prints debug information, and includes sanity checks against overlapping
+ * basic blocks when applicable (by platform).
+ */
+bool image_func::finalize()
 {
-   //unsigned i;
-#if 0
-   // For all entry, exit, call points...
-   //points_[u].point->checkInstructions();
-   // Should also make multipoint decisions
+    parsing_printf("[%s:%u] entering finalize for %p\n",
+        FILE__,__LINE__,this);
 
-#if !defined(arch_x86) && !defined(arch_power) && !defined(arch_x86_64)
-    // We need to make sure all the blocks are inside the function
-    pdvector<image_basicBlock *>cleanedList;
-    for (unsigned foo = 0; foo < blockList.size(); foo++) {
-        if ((blockList[foo]->firstInsnOffset() < getOffset()) ||
-            (blockList[foo]->firstInsnOffset() >= getEndOffset())) {
-            inst_printf("Block %d at 0x%lx is outside of function (0x%lx to 0x%lx)\n",
-                        foo,
-                        blockList[foo]->firstInsnOffset(),
-                        getOffset(),
-                        getEndOffset());
-                        
-            delete blockList[foo];
-        }
-        else
-            cleanedList.push_back(blockList[foo]);
-    }
-    blockList.clear();
-    for (unsigned bar = 0; bar < cleanedList.size(); bar++)
-        blockList.push_back(cleanedList[bar]);
+    parsing_printf("BASIC BLOCK LIST [%s]\n",symTabName().c_str());
 
-
-#endif
-
-   //sorted_ips_vector expects funcReturns and calls to be sorted
-
-    //check if basic blocks need to be split   
-    VECTOR_SORT( blockList, image_basicBlock::compare );
-    //parsing_printf("INITIAL BLOCK LIST\n");
-    //maybe image_flowGraph.C would be a better home for this bit of code?
-    for( unsigned int iii = 0; iii < blockList.size(); iii++ )
-    {
-        blockList[iii]->blockNumber_ = iii;
-        blockList[iii]->debugPrint();        
-    }
-  
-    for( unsigned int r = 0; r + 1 < blockList.size(); r++ )
-    {
-        image_basicBlock* b1 = blockList[ r ];
-        image_basicBlock* b2 = blockList[ r + 1 ];
-        
-        if( b2->firstInsnOffset() < b1->endOffset() )
-        {
-            //parsing_printf("Blocks %d and %d overlap...\n",
-            //b1->blockNumber_,
-            //b2->blockNumber_);
-            pdvector< image_basicBlock* > out;
-            b1->getTargets( out );
-            
-            for( unsigned j = 0; j < out.size(); j++ )
-            {
-                out[j]->removeSource( b1 );
-                out[j]->addSource( b2 );
-            }        
-          
-            //set end address of higher block
-            b2->lastInsnOffset_ =  b1->lastInsnOffset();
-            b2->blockEndOffset_ =  b1->endOffset();
-            b2->targets_ = b1->targets_;	    
-            b2->addSource( b1 );
-            
-            b1->targets_.clear();
-            b1->targets_.push_back(b2);
-            
-#if defined(cap_instruction_api)   
-	    using namespace Dyninst::InstructionAPI;
-	    const unsigned char* buffer = 
-	    reinterpret_cast<const unsigned char*>(getPtrToInstruction(b1->firstInsnOffset()));
-	    
-	    InstructionDecoder decoder(buffer, b2->firstInsnOffset() -
-				       b1->firstInsnOffset());
-	    b1->lastInsnOffset_ = b1->firstInsnOffset_;
-	    Instruction tmp = decoder.decode();
-	    while(b1->lastInsnOffset_ + tmp.size() < b2->firstInsnOffset())
-	    {
-	      b1->lastInsnOffset_ += tmp.size();
-	      tmp = decoder.decode();
-	    }
-	    b1->blockEndOffset_ = b1->lastInsnOffset_ + tmp.size();
-#else
-            InstrucIter ah( b1 );
-            while( *ah + ah.getInstruction().size() < b2->firstInsnOffset() )
-                ah++;
-            
-            b1->lastInsnOffset_ = *ah;
-            b1->blockEndOffset_ = *ah + ah.getInstruction().size();
-
-#endif // defined(cap_instruction_api)
-            //find the end of the split block	       
-            if( b1->isExitBlock_ )
-            {
-                b1->isExitBlock_ = false;
-                b2->isExitBlock_ = true;
-            }
-        }
-    }
-    for( unsigned q = 0; q + 1 < blockList.size(); q++ )
-    {
-        image_basicBlock* b1 = blockList[ q ];
-        image_basicBlock* b2 = blockList[ q + 1 ];
-        
-        if( b1->endOffset() == 0 )
-        {
-            ///parsing_printf("Block %d has zero size; expanding to block %d\n",
-            //b1->blockNumber_,
-            //b2->blockNumber_);
-
-            //find the end of this block.
-
-            // Make the iterator happy; we can set the end offset to
-            // the start of b2. It will be that or smaller.
-            b1->blockEndOffset_ = b2->firstInsnOffset();
-
-#if defined(cap_instruction_api)
-	    using namespace Dyninst::InstructionAPI;
-	    InstructionDecoder decoder(getPtrToInstruction(b1->firstInsnOffset()), b2->firstInsnOffset() -
-				       b1->firstInsnOffset());
-	    Address current = b1->firstInsnOffset();
-	    Instruction tmp = decoder.decode();
-	    while(current + tmp.size() < b2->firstInsnOffset())
-	    {
-	      current += tmp.size();
-	      tmp = decoder.decode();
-	    }
-	    b1->lastInsnOffset_ = current;
-	    b1->blockEndOffset_ = current + tmp.size();
-#else
-            InstrucIter ah( b1 );
-            while( *ah + ah.getInstruction().size() < b2->firstInsnOffset() )
-                ah++;
-            
-            b1->lastInsnOffset_ = *ah;
-            b1->blockEndOffset_ = *ah + ah.getInstruction().size();
-#endif //defined(cap_instruction_api)
-            b1->addTarget( b2 );	  
-            b2->addSource( b1 );	            
-        }        
-    }    
-    for (i = 0; i < blockList.size(); i++) {
-        // Check sources and targets for legality
-        image_basicBlock *b1 = blockList[i];
-        for (unsigned s = 0; s < b1->sources_.size(); s++) {
-            if (((unsigned)b1->sources_[s]->id() >= blockList.size()) ||
-                (b1->sources_[s]->id() < 0)) {
-                fprintf(stderr, "WARNING: block %d in function %s has illegal source block %d\n",
-                        b1->id(), symTabName().c_str(), b1->sources_[s]->id());
-                b1->removeSource(b1->sources_[s]);
-            }
-        }
-#if defined(cap_relocation)
-        // Don't do multiple-exit-edge blocks; 1 or 2 is cool, > is bad
-        if (b1->targets_.size() > 2) {
-            // Disabled as a test... bernat, 18MAY06
-            //canBeRelocated_ = false;
-        }
-#endif
-        for (unsigned t = 0; t < b1->targets_.size(); t++) {
-            if (((unsigned)b1->targets_[t]->id() >= blockList.size()) ||
-                (b1->targets_[t]->id() < 0)) {
-                fprintf(stderr, "WARNING: block %d in function %s has illegal target block %d\n",
-                        b1->id(), symTabName().c_str(), b1->targets_[t]->id());
-                b1->removeTarget(b1->targets_[t]);
-            }
-        }
-
-    }
-#endif
-   
-    // Safety checks assume the block list is sorted 
-    sortBlocklist();
-
-    parsing_printf("CLEANED BLOCK LIST\n");
-    for (unsigned foo = 0; foo < blockList.size(); foo++) {
-        // Safety check; we need the blocks to be sorted by addr
-        blockList[foo]->debugPrint();
+    set<image_basicBlock*,image_basicBlock::compare>::iterator bit =
+        blockList.begin();
+    for( ; bit != blockList.end(); bit++) {
+        image_basicBlock *cur = *bit;
+        cur->debugPrint(); 
 
         // Safety checks.
-
         // I've disabled this one but left it in so that we don't add
         // it in the future.. Since we're doing offsets, zero is
         // _fine_.
@@ -1040,22 +775,10 @@ bool image_func::cleanBlockList()
         // transfer instruction, lastInsnOffset can be zero too.
         // -nater 1/20/06
         //assert(blockList[foo]->lastInsnOffset() != 0);
-        assert(blockList[foo]->endOffset() != 0);
+        assert(cur->endOffset() != 0);
 
-        /* Serious safety checks. These can tag things that are
-           legal. Enable if you're trying to track down a parsing
-           problem. */
-
-        // x86 instruction prefixes necessitate "overlapping" blocks.
-        // Annoying but true.
-#if !defined(arch_x86) && !defined(arch_x86_64)
-        if (foo > 0) {
-            assert(blockList[foo]->firstInsnOffset() >= blockList[foo-1]->endOffset());
-        }
-#endif
-
-        assert(blockList[foo]->endOffset() >= blockList[foo]->firstInsnOffset());
-        blockList[foo]->finalize();
+        assert(cur->endOffset() >= cur->firstInsnOffset());
+        cur->finalize();
     }
 
     VECTOR_SORT( funcEntries_, image_instPoint::compare);
@@ -1066,7 +789,6 @@ bool image_func::cleanBlockList()
     funcEntries_.reserve_exact(funcEntries_.size());
     funcReturns.reserve_exact(funcReturns.size());
     calls.reserve_exact(calls.size());
-    blockList.reserve_exact(blockList.size());
 #endif
     return true;
 }
@@ -1106,126 +828,6 @@ void image_func::checkCallPoints() {
     }
 }
 
-void image_func::sortBlocklist()
-{
-    VECTOR_SORT( blockList, image_basicBlock::compare );
-    bl_is_sorted = true;
-}
-
-// No longer needed but kept around for reference
-#if 0
-
-//correct parsing errors that overestimate the function's size by
-// 1. updating all the vectors of instPoints
-// 2. updating the vector of basicBlocks
-// 3. updating the function size
-// 4. update the address of the last basic block if necessary
-void image_func::updateFunctionEnd(Address newEnd)
-{
-
-    //update the size
-    endOffset_ = newEnd;
-    //remove out of bounds call Points
-    //assumes that calls was sorted by address in findInstPoints
-    for( int i = (int)calls.size() - 1; i >= 0; i-- )
-        {
-            if( calls[ i ]->offset() >= newEnd )
-                {
-                    delete calls[ i ];
-                    calls.pop_back();
-                }
-            else 
-                break;
-        }
-    //remove out of bounds return points
-    //assumes that funcReturns was sorted by address in findInstPoints
-    for( int j = (int)funcReturns.size() - 1; j >= 0; j-- )
-        {
-            if( funcReturns[ j ]->offset() >= newEnd )
-                {
-                    delete funcReturns[ j ];
-                    funcReturns.pop_back();
-                }
-            else
-                break;
-        }
-
-    //remove out of bounds basicBlocks
-    //assumes blockList was sorted by start address in findInstPoints
-    for( int k = (int) blockList.size() - 1; k >= 0; k-- )
-        {
-            image_basicBlock* curr = blockList[ k ];
-            if( curr->firstInsnOffset() >= newEnd )
-                {
-                    //remove all references to this block from the flowgraph
-                    //my source blocks should no longer have me as a target
-                    pdvector< image_basicBlock* > ins;
-                    curr->getSources( ins );
-                    for( unsigned o = 0; o < ins.size(); o++ )
-                        {
-                            ins[ o ]->removeTarget(curr);
-                            ins[ o ]->isExitBlock_ = true;
-                        } 
-                    
-                    //my target blocks should no longer have me as a source 
-                    pdvector< image_basicBlock* > outs;
-                    curr->getTargets( outs );
-                    for( unsigned p = 0; p < outs.size(); p++ )
-                        {
-                            outs[ p ]->removeSource(curr);
-                        }                     
-                    delete curr;
-                    blockList.pop_back();          
-                }
-            else
-                break;
-        } 
-    
-    //we might need to correct the end address of the last basic block
-    int n = blockList.size() - 1;
-    if( n >= 0 && blockList[n]->endOffset() >= newEnd )
-        {
-            parsing_printf("Updating block end: new end of function 0x%lx\n",
-                           newEnd);
-            blockList[n]->debugPrint();
-            
-            // TODO: Ask Laune; this doesn't look like it's doing what we want.
-            image_basicBlock* blk = blockList[n];
-            
-            InstrucIter ah(blk);	
-            while( ah.peekNext() < newEnd )
-                ah++;
-            
-            blk->lastInsnOffset_ = *ah ;
-            blk->blockEndOffset_ = ah.peekNext();
-            
-            if (!blk->isExitBlock_) {
-                blk->isExitBlock_ = true;
-                // Make a new exit point
-                image_instPoint *p = new image_instPoint(*ah,
-                                                         ah.getInstruction(),
-                                                         this,
-                                                         functionExit);
-                funcReturns.push_back(p);
-            }
-            
-            parsing_printf("After fixup:\n");
-            blk->debugPrint();
-        }
-
-#if defined (cap_use_pdvector)
-    funcReturns.reserve_exact(funcReturns.size());
-    calls.reserve_exact(calls.size());
-#endif
-    
-    // And rerun memory trimming
-    for (unsigned foo = 0; foo < blockList.size(); foo++)
-        blockList[foo]->finalize();
-    
-}    
-
-#endif
-
 void image_basicBlock::addFunc(image_func * func)
 {
     /* enforced elsewhere; uncomment to debug
@@ -1261,12 +863,15 @@ void *image_basicBlock::getPtrToInstruction(Address addr) const {
     return getFirstFunc()->img()->getPtrToInstruction(addr);
 }
 
+/* XXX This would be much faster if we could make stabbing queries
+   instead of iterating the list */
 void *image_func::getPtrToInstruction(Address addr) const {
     if (addr < getOffset()) return NULL;
     if (!parsed_) image_->analyzeIfNeeded();
     if (addr >= endOffset_) return NULL;
-    for (unsigned i = 0; i < blockList.size(); i++) {
-        void *ptr = blockList[i]->getPtrToInstruction(addr);
+    set<image_basicBlock*, image_basicBlock::compare>::iterator sit;
+    for(sit = blockList.begin(); sit != blockList.end(); sit++) {
+        void *ptr = (*sit)->getPtrToInstruction(addr);
         if (ptr) return ptr;
     }
     return NULL;

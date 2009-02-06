@@ -70,9 +70,8 @@ class InstrucIter;
 class image_basicBlock;
 class image_instPoint;
 
-// Added support for typed edges 12.Oct.2005 -- nate
+// CFG edges are typed
 class image_edge;
-
    
 enum EdgeTypeEnum {
    ET_CALL,
@@ -87,13 +86,25 @@ enum EdgeTypeEnum {
    ET_NOEDGE
 };
 
-// Function return status. Initially UNSET; after parsing
-// all functions will be RETURN, NORETURN, or UNKNOWN.
+// Function return status. We initially assume that all functions
+// do not return. Unresolvable control flow edges change the status
+// to UNKNOWN, and return instructions (or the equivalent) change
+// status to RETURN
 enum FuncReturnStatus {
-    RS_UNSET,
+    RS_UNSET,       // convenience for parsing
+    RS_NORETURN,
     RS_UNKNOWN,
-    RS_RETURN,
-    RS_NORETURN
+    RS_RETURN
+};
+
+// Indicates the source of this function, e.g. whether
+// it was listed in a symbol table, discovered with
+// recursive traversal, speculatively found in gap parsing, etc
+enum FuncSource {
+    FS_SYMTAB,
+    FS_RT,
+    FS_GAP,
+    FS_ONDEMAND
 };
 
 // There are three levels of function-level "instrumentability":
@@ -151,46 +162,23 @@ class image_basicBlock : public codeRange {
 
     bool isShared() const { return isShared_; }
 
-#if defined (cap_use_pdvector)
-    static int compare(image_basicBlock *&b1,
-                       image_basicBlock *&b2) {
-        if (b1->firstInsnOffset() < b2->firstInsnOffset())
-            return -1;
-        if (b2->firstInsnOffset() < b1->firstInsnOffset())
-            return 1;
+    struct compare {
+        bool operator()(image_basicBlock * const &b1,
+                        image_basicBlock * const &b2) {
+            if(b1->firstInsnOffset() < b2->firstInsnOffset())
+                return true;
+            if(b2->firstInsnOffset() < b1->firstInsnOffset())
+                return false;
 
-        if(b1 != b2)
-            fprintf(stderr,"oh gnoes, blocks shouldn't match: 0x%p 0x%p are at 0x%lx \n",b1,b2,b1->firstInsnOffset());
+            // XXX the remainder is debugging, and should be removed
+            if(b1 != b2)
+                fprintf(stderr,"error: two blocks (%p,%p) at 0x%lx\n",
+                    b1,b2,b1->firstInsnOffset());
 
-        assert(b1 == b2);
-        return 0;
-    }
-#else
-    static bool compare(image_basicBlock *b1,
-          image_basicBlock *b2) {
-       if (!b1) {
-          fprintf(stderr, "%s[%d]:  compare func called with NULL param\n", FILE__, __LINE__);
-          return false;
-       }
-       if (!b2) {
-          fprintf(stderr, "%s[%d]:  compare func called with NULL param\n", FILE__, __LINE__);
-          return false;
-       }
-       if (b1->firstInsnOffset() < b2->firstInsnOffset())
-          return true;
-       return false;
-#if 0
-       if (b2->firstInsnOffset() < b1->firstInsnOffset())
-          return false;
-
-       if(b1 != b2)
-          fprintf(stderr,"oh gnoes, blocks shouldn't match: 0x%p 0x%p are at 0x%lx \n",b1,b2,b1->firstInsnOffset());
-       assert(b1 == b2);
-       return 0;
-#endif
-    }
-
-#endif
+            assert(b1 == b2);
+            return false;
+        }
+    };
 
     void debugPrint();
 
@@ -213,8 +201,7 @@ class image_basicBlock : public codeRange {
 
     int id() const { return blockNumber_; }
 
-   // blocks may belong to more than one function
-   // image_func *func() const { return func_; }
+    // all functions containing this basic block
     void getFuncs(pdvector<image_func *> &funcs) const;
 
     // convenience method: sometimes any function will do
@@ -234,7 +221,6 @@ class image_basicBlock : public codeRange {
     bool containsRet() { return containsRet_; }
 
     bool containsCall() { return containsCall_; }
-    bool callIsOpaque() { return callIsOpaque_; }
 
     image_instPoint * getCallInstPoint();
     image_instPoint * getRetInstPoint();
@@ -267,12 +253,6 @@ class image_basicBlock : public codeRange {
 
     bool containsRet_; // both of these are tantamount to saying "ends with X"
     bool containsCall_;
-
-    bool callIsOpaque_; // The call site that ends this block is "opaque" with
-                        // respect to its return-status (i.e., whether the
-                        // the target function returns or not is unknown)
-
-    bool isSpeculative_;    // validity uncertain
 
     bool canBeRelocated_; // some blocks contain uninstrumentable constructs
 
@@ -312,14 +292,12 @@ bool isRealCall(instruction insn,
 
 #include "ast.h"
 
-
 class image_func_registers {
  public:
   std::set<Register> generalPurposeRegisters;
   std::set<Register> floatingPointRegisters;
   std::set<Register> specialPurposeRegisters;
 };
-
 
 // Parse-level function object. Knows about offsets, names, and suchlike; 
 // does _not_ do function relocation.
@@ -332,9 +310,10 @@ class image_func : public codeRange {
 	      Address offset, 
 	      const unsigned symTabSize, 
 	      pdmodule *m,
-	      image *i);
+	      image *i,
+          FuncSource src);
   
-   image_func(Function *func, pdmodule *m, image *i);
+   image_func(Function *func, pdmodule *m, image *i, FuncSource src);
 
    ~image_func();
 
@@ -395,7 +374,7 @@ class image_func : public codeRange {
    // CFG and other function body methods
    ////////////////////////////////////////////////
 
-   const pdvector< image_basicBlock* > &blocks();
+   const set<image_basicBlock*, image_basicBlock::compare> &blocks();
 
    bool hasNoStackFrame();
    bool makesNoCalls();
@@ -409,7 +388,6 @@ class image_func : public codeRange {
    void parseSharedBlocks(image_basicBlock * firstBlock,
                 BPatch_Set< Address > &leaders,
                 dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
-                BPatch_Set< image_basicBlock* > &parserVisited,
                 Address & funcEnd);
    void parseSharedBlocks(image_basicBlock * firstBlock);
 
@@ -420,8 +398,7 @@ class image_func : public codeRange {
                       BPatch_Set<Address> &leaders,
                       dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
                       EdgeTypeEnum edgeType,
-                      pdvector<Address> &worklist,
-                      BPatch_Set<image_basicBlock *> &parserVisited); 
+                      pdvector<Address> &worklist);
 
    // Add a basic block to the blocklist when this is not the function
    // being parsed. Helps maintain consistency across basic block split
@@ -431,14 +408,14 @@ class image_func : public codeRange {
    // Can we determine whether this function returns?
    FuncReturnStatus returnStatus() { return retStatus_; }
 
-   // Platform-independent sorting/cleaning/fixing of instPoints and
-   // basic blocks.
-   bool cleanBlockList();
+   // Sort basic block list, instrumentation points, and finalize vector
+   // data structures to reduce memory
+   bool finalize();
+
+   // Check the targets of _call_ instrumentation points and link up
+   // dangling targets, if possible
    void checkCallPoints();
     
-   void sortBlocklist();
-   bool isBLSorted() { return bl_is_sorted; }
-
    Address newCallPoint(Address adr, const instruction code, bool &err);
 
    ////////////////////////////////////////////////
@@ -471,7 +448,6 @@ class image_func : public codeRange {
 		pdvector<instruction>& allInstructions,
 		BPatch_Set<Address>& leaders,
 		pdvector<Address>& worklist,
-		BPatch_Set<image_basicBlock*>& visited,
 		dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
 		dictionary_hash<Address, std::string> *pltFuncs);
 
@@ -483,17 +459,13 @@ class image_func : public codeRange {
    const pdvector<image_instPoint*> &funcEntries();
    const pdvector<image_instPoint*> &funcExits();
    const pdvector<image_instPoint*> &funcCalls();
-   
-   // Defined in inst-flowGraph.C
-   // The address vector is "possible call targets you might be interested in".
-   bool parse( pdvector<Address >&,
-                      dictionary_hash< Address, image_func *>& preParseStubs );
+  
+   // Initiate parsing on this function
+   bool parse();
+ 
    // Do most of the parsing work. Calls architecture-dependent routines
    // defined in image-<arch>.C
-   bool buildCFG(pdvector<image_basicBlock *> &funcEntry,
-                      Address funcBegin,
-                      pdvector< Address >& callTargets,
-                      dictionary_hash< Address, image_func *>& preParseStubs);
+   bool buildCFG(pdvector<image_basicBlock *> &funcEntry, Address funcBegin);
 
    bool isTrapFunc() const {return isTrap;}
 
@@ -502,14 +474,8 @@ class image_func : public codeRange {
    bool isInstrumentable() const { return instLevel_ != UNINSTRUMENTABLE; }
    InstrumentableLevel instLevel() const { return instLevel_; }
 
-
    void addCallInstPoint(image_instPoint *p);
    void addExitInstPoint(image_instPoint *p);
-
-#if 0
-   // Update if symtab is incorrect
-   void updateFunctionEnd( Address addr);  
-#endif
 
    // ----------------------------------------------------------------------
 
@@ -581,6 +547,8 @@ class image_func : public codeRange {
 #if defined(cap_liveness)
    void calcBlockLevelLiveness();
 #endif
+
+   FuncSource howDiscovered() const { return howDiscovered_; }
    
    const Function *func() const { return func_; }
 
@@ -591,15 +559,6 @@ class image_func : public codeRange {
 
    ///////////////////// Basic func info
    Function *func_;			/* pointer to the underlying symtab Function */
-
-#if 0
-//   Now a part of Symbol. Moved to Symbol.h - giri
-   pdvector<std::string> symTabNames_;	/* name as it appears in the symbol table */
-   pdvector<std::string> prettyNames_;	/* user's view of name (i.e. de-mangled) */
-   pdvector<std::string> typedNames_;      /* de-mangled with types */
-   Address startOffset_;		/* address of the start of the func */
-   unsigned symTabSize_;        /* What we get from the symbol table (if any) */
-#endif
 
    Address endOffset_;          /* Address of the (next instruction after) the end of the func */
    pdmodule *mod_;		/* pointer to file that defines func. */
@@ -618,33 +577,24 @@ class image_func : public codeRange {
 
 
    ///////////////////// CFG and function body
-   pdvector< image_basicBlock* > blockList;
+   set<image_basicBlock*, image_basicBlock::compare> blockList;
+   bool containsBlock(image_basicBlock *);
 
    bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
    bool makesNoCalls_;
    bool savesFP_;
-   bool call_points_have_been_checked; 
-        // true if checkCallPoints has been called.
 
    bool containsSharedBlocks_;  // True if one or more blocks in this
                                 // function are shared with another function.
 
    FuncReturnStatus retStatus_; // Does this function return or not?
 
-    // Bind a call target to the current basic block
-   image_func* bindCallTarget(Address target,
-        image_basicBlock * currBlk,
-        pdvector< Address >& callTargets,
-        dictionary_hash< Address, image_func * >& preParseStubs);
+   // Bind a call target to the current basic block
+   // May initiate recursive parsing of the target function
+   image_func* bindCallTarget(Address target, image_basicBlock * curBlk);
 
     // Find an existing image_func object or create a new one
-    // (inserting it into preParseStubs and pushing it onto 
-    // callTargets if it is created)
-   image_func * FindOrCreateFunc(Address target,
-        pdvector< Address >& callTargets,
-        dictionary_hash< Address, image_func * >& preParseStubs);
-
-
+   image_func* FindOrCreateFunc(Address target, FuncSource src, bool & created);
 
    
    ///////////////////// Instpoints 
@@ -682,13 +632,12 @@ class image_func : public codeRange {
    // Functions only have one entry basic block
    image_basicBlock *entryBlock_;
 
-   // Block list must be sorted
-   bool bl_is_sorted;
-
 #if defined(cap_liveness)
    bool livenessCalculated_;
 #endif
 
+   // How we discovered this function (e.g., from symbol, RT, etc)
+   FuncSource howDiscovered_;
 };
 
 typedef image_func *ifuncPtr;

@@ -31,6 +31,7 @@ template <class T> T sample_template <T>::content()
    return (ret);
 }
 
+/* xlC also doesn't like these, so just skip them ... */
 template class sample_template <int>;
 template class sample_template <char>;
 template class sample_template <double>;

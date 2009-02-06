@@ -456,20 +456,23 @@ int_basicBlock *int_function::findBlockByAddr(Address addr) {
 
 const std::vector<int_basicBlock *> &int_function::blocks() 
 {
-    parsing_printf("blocks() for %s, pointer %p\n", symTabName().c_str(), ifunc_);
+    int i = 0;
+
     if (blockList.size() == 0) {
         Address base = getAddress() - ifunc_->getOffset();
-        // TODO: create flowgraph pointer...
-        const pdvector<image_basicBlock *> &img_blocks = ifunc_->blocks();
-        
-        for (unsigned i = 0; i < img_blocks.size(); i++) {
-            blockList.push_back(new int_basicBlock(img_blocks[i],
+
+        const set<image_basicBlock *, image_basicBlock::compare> & img_blocks =
+            ifunc_->blocks();
+        set<image_basicBlock *, image_basicBlock::compare>::const_iterator sit;
+
+        for(sit = img_blocks.begin(); sit != img_blocks.end(); sit++) {
+            blockList.push_back(new int_basicBlock(*sit,
                                                    base,
                                                    this,i));
-            blockIDmap[img_blocks[i]->id()] = i;
+            blockIDmap[(*sit)->id()] = i;
+            ++i;
         }
     }
-    // And a quick consistency check...
 #if defined (cap_use_pdvector)
     //blockList.reserve_exact(blockList.size());
 #endif

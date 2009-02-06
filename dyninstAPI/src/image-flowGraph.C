@@ -110,15 +110,10 @@ bool image::analyzeImage()
 
   stats_parse.startTimer(PARSE_ANALYZE_TIMER);
 
-    // TODO: remove arch_x86 from here - it's just for testing
-#if defined(arch_x86_64) || defined(arch_x86)
+#if defined(arch_x86_64)
     ia32_set_mode_64(getObject()->getAddressWidth() == 8);
 #endif
   
- // Hold unseen call targets
-  pdvector< Address > callTargets;
- // Hold function stubs created during parsing
-  dictionary_hash< Address, image_func * > preParseStubs( addrHash );
   image_func *pdf;
   pdmodule *mod = NULL;
 
@@ -132,20 +127,38 @@ bool image::analyzeImage()
     return true;
   }
   
-  //pdvector<image_func *> new_functions;  
-    pdvector<Address> new_targets;      // call targets detected in
-                                        // parseStaticCallTargets
+    // Parse the functions reported in the symbol table
+    for(unsigned i=0; i<symtabCandidateFuncs.size(); ++i) {
+        pdf = symtabCandidateFuncs[i];
+        mod = pdf->pdmod();
 
-  // Parse the functions reported in the symbol table
-  for (unsigned i = 0; i < everyUniqueFunction.size(); i++) {
-    pdf = everyUniqueFunction[i];
-    mod = pdf->pdmod();
-    assert(pdf); assert(mod);
-    parseFunction( pdf, callTargets, preParseStubs);
-        
-    // these functions have not been added to the code range tree
-    funcsByRange.insert(pdf);
-  }      
+        assert(pdf); assert(mod);
+
+        // Check whether recursive traversal has dealt with a function
+        // before proceeding to parse it
+        if(!pdf->parsed()) {
+            parsing_printf("[%s:%u] calling parse() at 0x%lx (ptr %p)\n",
+                FILE__,__LINE__,pdf->getOffset(),pdf);
+    
+            if(pdf->parse()) {
+                enterFunctionInTables(pdf);
+            } else {
+                parsing_printf("[%s:%u] symtab-defined function %s at 0x%lx "
+                               "failed to parse\n",FILE__,__LINE__,
+                    pdf->symTabName().c_str(),pdf->getOffset());
+
+                /** FIXME removing symtab-defined functions is currently unsafe,
+                    as there is no mechanism to remove the symbols (and thus
+                    their up-pointers) through the SymtabAPI. See bug 906.
+                    For the time being, leaving these crufty functions around.
+                **/
+                // symtab functions need to be removed from the list
+                // of known functions by address
+                //funcsByEntryAddr.undef(pdf->getOffset());
+                //delete pdf;
+            }
+        }
+    }
 
 
   /* 
@@ -199,18 +212,7 @@ bool image::analyzeImage()
   
 #endif 
 
-  // callTargets now holds a big list of target addresses; some are already
-  // in functions that we know about, some point to new functions. 
-  while(callTargets.size() > 0)
-    {
-      // parse any new functions entered at addresses in callTargets
-      parseStaticCallTargets( callTargets, new_targets, preParseStubs );
-      callTargets.clear();
-      
-      VECTOR_APPEND(callTargets,new_targets); 
-      new_targets.clear();
-    }
-
+#if 0 // stripped binary parsing in its current form is dangerous
 #if defined(cap_stripped_binaries)
   if (parseGaps_) {
      mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
@@ -277,16 +279,20 @@ bool image::analyzeImage()
                       snprintf( name, 32, "gap_%lx", pos );
                       pdf = new image_func( name, pos, UINT_MAX, mod, this);
                       
-                      if(parseFunction( pdf, callTargets, preParseStubs)) {
+                      if(pdf->parse()) {
                          pdf->addSymTabName(name); // newly added
                          pdf->addPrettyName( name );
-                         
-                         enterFunctionInTables(pdf, false);
                          
                          // Update size
                          // TODO FIXME: should update _all_ symbol sizes....
                          pdf->getSymtabFunction()->getFirstSymbol()->setSize(pdf->get_size());
-                         
+
+                         enterFunctionInTables(pdf, false);
+                        
+                        // FIXME this code has not been updated to the reality
+                        // of RT parsing at this point, and will not work
+                        // or even compile  
+
                          // If any calls were discovered, adjust our
                          // position in the function vector accordingly
                          if(callTargets.size() > 0) {            
@@ -324,11 +330,10 @@ bool image::analyzeImage()
     } while (funcIdx < (int)everyUniqueFunction.size());
   } // end gap parsing
 #endif
-    // Sort block list and bind all intra-module call points
+#endif // if 0
+
+    // Bind all intra-module call points
     for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
-       image_func *f = everyUniqueFunction[b_iter];
-       if(!f->isBLSorted())
-          f->sortBlocklist();
        everyUniqueFunction[b_iter]->checkCallPoints();
     }
     
@@ -348,173 +353,32 @@ bool image::analyzeImage()
   return true;
 }
 
-
-void image::DumpAllStats()
+void image::recordFunction(image_func *f)
 {
-    image_func *f;
-    //image_basicBlock *b;
-    char buf[1024];
-    char buf2[1024];
-    
-    buf[0] = 0;
-    buf2[0] = 0;
+    // update symtab's notion of "size"
+    // TODO FIXME: should update _all_ symbol sizes....
+    f->getSymtabFunction()->getFirstSymbol()->setSize(f->get_size());
 
-    //fprintf(stdout,"Module: %s\n",name_.c_str());
-    
-//    fprintf(stdout,"Func Name:Block Number:Block Start:Block End:Shared:Source Blocks:Target Blocks\n");
+    enterFunctionInTables(f);
 
-    fprintf(stdout,"Module:Func:Contains Shared Blocks\n");
-
-    for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
-
-        f = everyUniqueFunction[b_iter];
-        // pass over all the blocks
-
-        fprintf(stdout,"%s,%s:%d\n",name_.c_str(),f->prettyName().c_str(),f->containsSharedBlocks());
-
-/*
-        for(unsigned i=0;i<f->blocks().size();i++)
-        {
-            // create source and target strings
-            pdvector< image_edge * > src;
-            pdvector< image_edge * > trg;
-
-            b = f->blocks()[i];
-
-            b->getSources(src);
-            b->getTargets(trg);
-    
-            int total = 0;
-            for(unsigned j=0;j<src.size();j++)
-            {
-                total += snprintf(buf,1024-total,"%d ",
-                                    src[j]->getSource()->id()); 
-            }
-
-            total = 0;
-            for(unsigned j=0;j<trg.size();j++)
-            {
-                total += snprintf(buf2,1024-total,"%d ",
-                                    trg[j]->getTarget()->id()); 
-            }
-
-            fprintf(stdout,"%s:%d:0x%x:0x%x:%d:%s:%s\n",
-                    f->prettyName().c_str(),
-                    b->id(),
-                    b->firstInsnOffset(),
-                    b->endOffset(),
-                    b->isShared(),
-                    buf,
-                    buf2);
-        }
-*/
-    }
-
-
+    // update names
+    // XXX this first call to addSymTabName certainly looks redundant...
+    f->addSymTabName(f->symTabName().c_str());
+    f->addPrettyName(f->symTabName().c_str() );
 }
-
-
-//parseStaticCallTargets() iterates its input list of call targets,
-//creating new image_function objects for addresses that have not
-//previously been visited and parsing each of these new functions.
-//It populates newTargets with any call targets detected in the
-//parsing of these functions.
-void image::parseStaticCallTargets( pdvector< Address >& callTargets,
-                     pdvector< Address >& newTargets,
-                     dictionary_hash< Address, image_func * > &preParseStubs)
-{
-    image_func* pdf;
-    for( unsigned j = 0; j < callTargets.size(); j++ )
-    {
-        // Call targets have already had image_function objects
-        // created for them AND have an entry basic block connected
-        // by a call edge to the calling block (which is how we
-        // found the call target).
-        //
-        // These stub functions, however, cannot be added to
-        // the standard lists before parsing, however, because
-        // they may not successfully parse (eg contain only a
-        // jump instruction). They are stored temporarily in
-        // preParseStubs and are only added to the tables if
-        // parsing is successful.
-
-        if( !isCode( callTargets[ j ] ) ) {
-            continue;
-        }
-
-        if( funcsByEntryAddr.defines( callTargets[ j ] ) )
-            continue;
-
-        if( preParseStubs.defines( callTargets[ j ] ) )
-        {
-            pdf = preParseStubs[callTargets[j]];
-            
-            if(parseFunction(pdf,newTargets,preParseStubs))
-            {
-
-                parsing_printf(" ***** Adding %s (0x%lx) to tables\n",
-                               pdf->symTabName().c_str(),pdf->getOffset());
-                
-                enterFunctionInTables(pdf,false);
-                
-                // Update the Symbol's impression of size
-                // TODO FIXME: should update _all_ symbol sizes....
-                pdf->getSymtabFunction()->getFirstSymbol()->setSize(pdf->get_size());
-                
-                // mangled name
-                pdf->addSymTabName(pdf->symTabName().c_str());
-                //addFunctionName(pdf, pdf->symTabName().c_str(), true);
-                // Auto-adds to our list
-                pdf->addPrettyName( pdf->symTabName().c_str() );
-            }
-        }
-        else
-        {
-            parsing_printf("Call target 0x%lx does not have associated func\n",
-                            callTargets[j]);
-        } 
-    }
-}
-
-//parseFunction() iterates over the instructions of a function, following
-//non-call control transfers and constructing a CFG for the function. It
-//adds all call targets detected during this process to the callTargets
-//parameter. It /also/ creates all the instrumentation points within
-//the function, since this is a good time to do that.
-//
-//parseFunction() doesn't actually do any of this; the architecture-
-//dependant methods do the actual work.
-bool image::parseFunction(image_func* pdf, pdvector< Address >& callTargets,
-                    dictionary_hash< Address, image_func * >& preParseStubs)
-{
-    // callTargets: targets of this function (to help identify new functions
-    // May be returned unmodified
-
-    bool ret;
-    ret = pdf->parse( callTargets, preParseStubs );
-    return ret;
-}
-
-
 
 /* parse is responsible for initiating parsing of a function. instPoints
  * and image_basicBlocks are created at this level.
  *
  * Returns: success or failure
- *
- * Side effects:
- *  - callTargets may be appended to
- *  - preParseStubs may be modified
  */
-bool image_func::parse(
-        pdvector< Address >& callTargets,
-        dictionary_hash< Address, image_func *>& preParseStubs)
+bool image_func::parse()
 {
     pdvector< image_basicBlock * > entryBlocks_;
 
     if(parsed_)
     {
-        fprintf(stderr, "Error: multiple call of parse() for %s\n",
+        parsing_printf("[%s:%u] multiple call of parse() for %s\n",
                 symTabName().c_str());
         return false;
     }
@@ -523,10 +387,17 @@ bool image_func::parse(
     parsing_printf("[%s:%u] parsing %s at 0x%lx\n", FILE__,__LINE__,
                 symTabName().c_str(), getOffset());
 
+    if(!img()->isValidAddress(getOffset())) {
+        parsing_printf("[%s:%u] refusing to parse from invalid address 0x%lx\n",
+            FILE__,__LINE__,getOffset());
+        return false;
+    }
+
     // Some architectures have certain functions or classes of functions
     // that should appear to be parsed without actually being parsed.
     if(archAvoidParsing())
     {
+        retStatus_ = RS_UNKNOWN;
         return true;
     }
 
@@ -534,6 +405,9 @@ bool image_func::parse(
     // from the start.
     if(archIsUnparseable())
     {
+        retStatus_ = RS_UNKNOWN;
+        parsing_printf("[%s:%u] archIsUnparseable denied parse at 0x%lx\n",
+            FILE__,__LINE__,getOffset());
         return false;
     }
 
@@ -553,32 +427,37 @@ bool image_func::parse(
     if( !archCheckEntry( ah, this ) )
     {
         // Check for redirection to another function as first insn.
-        if( ah.isAJumpInstruction() || ah.isACallInstruction() )
+        // XXX This is a heuristic that we should revisit; is it really
+        //     a common idiom for redirection to another function? Why
+        //     do we need to treat it that way? -- nate & kevin
+        if( ah.isAJumpInstruction() )
         {
             Address target = ah.getBranchTargetAddress();
 
-            if(!image_->funcsByEntryAddr.defines(target) &&
-               !preParseStubs.defines(target))
-            {
-                // makes sure a function exists at the point for later parsing
-                image_func *targFunc = 
-                    FindOrCreateFunc(target,callTargets,preParseStubs);
-                if (targFunc == NULL) {
-                    if (ah.isAJumpInstruction()) {
-                        p = new image_instPoint(funcEntryAddr, ah.getInstruction(), 
-                                                this, target, false, false, otherPoint);
-                    } else {
-                        p = new image_instPoint(funcEntryAddr, ah.getInstruction(), 
-                                                this, target, false, false, callSite);
-                    }
-                    pdmod()->addUnresolvedControlFlow(p);
-                }
-            }
-            parsing_printf("Jump or call at entry of function\n");
-        }
+            parsing_printf("[%s:%u] direct jump to 0x%lx at entry point\n",
+                FILE__,__LINE__,target);
 
+            if(img()->isCode(target)) {
+                // Recursively parse this function
+                bindCallTarget(target,NULL);
+            } else {
+                // Create instrumentation point for on-demand parsing
+                p = new image_instPoint(*ah,
+                                        ah.getInstruction(),
+                                        this,
+                                        target,
+                                        false,
+                                        false,
+                                        otherPoint); 
+                pdmod()->addUnresolvedControlFlow(p);
+            }
+        }
         endOffset_ = ah.peekNext();
         instLevel_ = UNINSTRUMENTABLE; 
+
+        retStatus_ = RS_UNKNOWN;
+        parsing_printf("[%s:%u] archCheckEntry denied parse at 0x%lx\n",
+            FILE__,__LINE__,getOffset());
         return false;
     }
 
@@ -678,25 +557,30 @@ bool image_func::parse(
             image_->basicBlocksByRange.insert(tmpBlock);
             tmpBlock->isEntryBlock_ = true;
         }
-
         entryBlocks_.push_back(tmpBlock);
 
-	// special alpha-case "multiple" entry (really multiple lookup)
-	image_->funcsByEntryAddr[funcEntryAddr] = this;
+	    // special alpha-case "multiple" entry (really multiple lookup)
+	    image_->funcsByEntryAddr[funcEntryAddr] = this;
     } 
     // End alpha-specific weirdness
 
+    // Note that the current function is in-progess to avoid
+    // spurious duplication for loops in the call graph
+    img()->activelyParsing[getOffset()] = this;
+
     if(preParsed)
     {
-
         parseSharedBlocks(ph_entryBlock);
     }
     else
     {
-        buildCFG(entryBlocks_, funcBegin, callTargets, preParseStubs);
+        buildCFG(entryBlocks_, funcBegin);
     }
 
-    cleanBlockList(); // FIXME rename--this sorts and does output right now 
+    finalize();
+
+    // done parsing
+    img()->activelyParsing.undef(getOffset());
 
     return true;
 }
@@ -711,26 +595,19 @@ bool image_func::parse(
  *  - shared blocks (between other functions)
  *  - previously parsed blocks
  *
- * Side effects:
- *  - Appends discovered call targets to the callTargets parameter
- *  - Appends newly created functions (at call targets) to preParseStubs 
- *
  * Architecture Independance:
  *  All architecture-specific code is abstracted away in the image-arch
  *  modules.
  */
 bool image_func::buildCFG(
         pdvector<image_basicBlock *>& funcEntries,
-        Address funcBegin,
-        pdvector< Address >& callTargets,
-        dictionary_hash< Address, image_func * >& preParseStubs)
+        Address funcBegin)
 {
     // Parsing worklist
     pdvector< Address > worklist;
 
     // Basic block lookup
     BPatch_Set< Address > leaders;
-    BPatch_Set< image_basicBlock* > visited;
     BPatch_Set< Address > allInstAddrs;
     dictionary_hash< Address, image_basicBlock* > leadersToBlock( addrHash );
 
@@ -782,14 +659,13 @@ bool image_func::buildCFG(
         assert(currBlk->firstInsnOffset() == worklist[i]);
 
         // If this function has already parsed the block, skip
-        if(visited.contains(currBlk))
+        if(containsBlock(currBlk))
             continue;
 
         if(currBlk->isStub_)
         {
             currBlk->isStub_ = false;
-            blockList.push_back(currBlk);
-            visited.insert(currBlk);
+            addToBlocklist(currBlk);
 
             parsing_printf("- adding block %d (0x%lx) to blocklist\n",
                            currBlk->id(), currBlk->firstInsnOffset());
@@ -797,8 +673,7 @@ bool image_func::buildCFG(
         else
         {
             // non-stub block must have previously been parsed
-            parseSharedBlocks(currBlk, leaders, leadersToBlock, 
-                              visited, funcEnd);
+            parseSharedBlocks(currBlk, leaders, leadersToBlock, funcEnd);
             continue;
         }
 
@@ -836,7 +711,7 @@ bool image_func::buildCFG(
 
                 addEdge(currBlk,nextExistingBlock,ET_FALLTHROUGH);
 
-                if(!visited.contains(nextExistingBlock))
+                if(!containsBlock(nextExistingBlock))
                 {
                     leaders += currAddr;
                     leadersToBlock[currAddr] = nextExistingBlock;
@@ -893,8 +768,7 @@ bool image_func::buildCFG(
                                   leaders,
                                   leadersToBlock,
                                   ET_FALLTHROUGH,
-                                  worklist,
-                                  visited);
+                                  worklist);
                 } else {
                     parsing_printf(" ... uninstrumentable due to instruction stream overlap\n");
                     currBlk->lastInsnOffset_ = currAddr;
@@ -945,20 +819,6 @@ bool image_func::buildCFG(
                     //funcEnd = currAddr + insnSize;
 
                 Address target = ah.getBranchTargetAddress();
-                 
-#if 0
-                // Removed due to instrumentation/relocation problems
-                 /* Special case handling for jmp +0 and jcc +0 */
-                if(target == ah.peekNext()) {
-                     parsing_printf("[%s:%u] eliding jcc +0 edge at 0x%lx\n",
-                         FILE__, __LINE__,currAddr);
- 
-                     ah++;
-                     continue;
-                 }
-#endif           
-
-                img()->addJumpTarget( target );
 
                 if( !img()->isValidAddress( target ) ) {
                     p = new image_instPoint(currAddr,
@@ -969,6 +829,8 @@ bool image_func::buildCFG(
                                             false,
                                             otherPoint);
                     pdmod()->addUnresolvedControlFlow(p);
+
+                    retStatus_ = RS_UNKNOWN;
                 }
 
                 if(ah.isDelaySlot())
@@ -993,12 +855,10 @@ bool image_func::buildCFG(
                                   leaders,
                                   leadersToBlock,
                                   ET_COND_TAKEN,
-                                  worklist,
-                                  visited);
+                                  worklist);
                 }
 
                 Address t2 = ah.peekNext(); 
-                //Address t2 = currAddr + insnSize;
                
                 // If this branch instruction split the current block,
                 // the fallthrough should be added to the newly created
@@ -1016,8 +876,7 @@ bool image_func::buildCFG(
                               leaders,
                               leadersToBlock,
                               ET_COND_NOT_TAKEN,
-                              worklist,
-                              visited);
+                              worklist);
 
                 break;                              
             }
@@ -1046,6 +905,9 @@ bool image_func::buildCFG(
                                             true,
                                             functionExit); 
                     pdmod()->addUnresolvedControlFlow(p);
+
+                    // can't properly determine return status
+                    retStatus_ = RS_UNKNOWN;
                     return false; 
                 }                 
 
@@ -1061,15 +923,19 @@ bool image_func::buildCFG(
                                             true,
                                             functionExit);
                     pdmod()->addUnresolvedControlFlow(p); 
+
+                    // can't properly determine return status
+                    retStatus_ = RS_UNKNOWN;
                     break;
                 }
+
                 BPatch_Set< Address > targets;
                 BPatch_Set< Address >::iterator iter;
 				if( archIsIPRelativeBranch(ah))
 				{
 					processJump(ah, currBlk, 
 						funcBegin, funcEnd, allInstructions, leaders, worklist,
-						visited, leadersToBlock, pltFuncs);
+						leadersToBlock, pltFuncs);
 					break;
 				}
 
@@ -1088,6 +954,8 @@ bool image_func::buildCFG(
                                            true,
                                            otherPoint);
                    pdmod()->addUnresolvedControlFlow(p);
+
+                   retStatus_ = RS_UNKNOWN;
                 }
                 
                 iter = targets.begin();
@@ -1106,6 +974,8 @@ bool image_func::buildCFG(
                             pdmod()->addUnresolvedControlFlow(p);
                             foundBadTarget = true;
                         }
+
+                        retStatus_ = RS_UNKNOWN;
                         continue;
                     }
 
@@ -1121,8 +991,7 @@ bool image_func::buildCFG(
                                       leaders,
                                       leadersToBlock,
                                       ET_INDIR,
-                                      worklist,
-                                      visited);
+                                      worklist);
                     }
                 }
 
@@ -1132,7 +1001,7 @@ bool image_func::buildCFG(
             {
 	      processJump(ah, currBlk, 
 			  funcBegin, funcEnd, allInstructions, leaders, worklist,
-			  visited, leadersToBlock, pltFuncs);
+			  leadersToBlock, pltFuncs);
 	      break;
             }
             else if( ah.isAReturnInstruction() )
@@ -1189,8 +1058,7 @@ bool image_func::buildCFG(
                               leaders,
                               leadersToBlock,
                               ET_FALLTHROUGH,
-                              worklist,
-                              visited);
+                              worklist);
                 break;
             }
             else if( ah.isACallInstruction() ||
@@ -1202,9 +1070,6 @@ bool image_func::buildCFG(
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
 
-               
-		
-
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
                 bool validTarget = true;
@@ -1215,14 +1080,12 @@ bool image_func::buildCFG(
 
                 image_func *targetFunc = NULL;
                 
-                // XXX move this out of archIsRealCall protection... safe?
                 bool isAbsolute = false;
                 Address target = ah.getBranchTargetAddress(&isAbsolute);
 
-
-		if ( archIsRealCall(ah, validTarget, simulateJump) )
-		  {
-                    if (ah.isADynamicCallInstruction()) {
+                if(archIsRealCall(ah, validTarget, simulateJump))
+		        {
+                    if(ah.isADynamicCallInstruction()) {
                         p = new image_instPoint( currAddr,
                                                  ah.getInstruction(),
                                                  this,
@@ -1246,19 +1109,19 @@ bool image_func::buildCFG(
                         parsing_printf("[%s:%u] binding call 0x%lx -> 0x%lx\n",
                             FILE__,__LINE__,currAddr,target);
 
-		                targetFunc = bindCallTarget(target,currBlk,callTargets,
-						  preParseStubs);
+                        // bindCallTarget will look up the target function;
+                        // if it does not exist, parsing will be initiated
+                        targetFunc = bindCallTarget(target,currBlk);
                     }
                     calls.push_back( p );
                     currBlk->containsCall_ = true;
-		    
-                    } // real call
-                else
-                  {
-                    parsing_printf(" ! call at 0x%lx rejected by isRealCall()\n",
-                                   currAddr);
-                    if( validTarget == false )
-                      {
+                } // real call
+                else {
+                    if(validTarget == false) {
+                      parsing_printf("[%s:%u] call at 0x%lx targets invalid "
+                                     "address 0x%lx\n",
+                            FILE__,__LINE__,currAddr,target);
+
                          if (!img()->isCode(target)) {
                              p = new image_instPoint(currAddr,
                                                      ah.getInstruction(),
@@ -1269,69 +1132,79 @@ bool image_func::buildCFG(
                              pdmod()->addUnresolvedControlFlow(p);
                          }
 
-                        parsing_printf("... invalid call target\n");
                         currBlk->canBeRelocated_ = false;
                         canBeRelocated_ = false;
-		      }
-                    else if( simulateJump )
-                      {
+                    }
+                    else if(simulateJump)
+                    {
+                        parsing_printf("[%s:%u] call at 0x%lx simulated as "
+                                       "jump to 0x%lx\n",
+                            FILE__,__LINE__,currAddr,target);
+
                           addBasicBlock(target,
                                         currBlk,
                                         leaders,
                                         leadersToBlock,
                                         ET_DIRECT,
-                                        worklist,
-                                        visited);
-                      }
-		  }
+                                        worklist);
+                    }
+                }
 		
-		if (ah.isDelaySlot()) {
+		        if (ah.isDelaySlot()) {
                     // Delay slots get skipped; effectively pinned to 
                     // the prev. insn.
                     ah++;
-		}
-		
-		//printf("Call to %s (%x) detected at 0x%x\n",
-		//     targetFunc->symTabName().c_str(),
-		//     target, currAddr);
+		        }
 		
 		
-		if(targetFunc && (targetFunc->symTabName() == "exit" ||
+                if(targetFunc && (targetFunc->symTabName() == "exit" ||
                                   targetFunc->symTabName() == "abort" ||
                                   targetFunc->symTabName() == "__f90_stop" ||
                                   targetFunc->symTabName() == "fancy_abort"))
-		  { 
+                { 
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-				   targetFunc->symTabName().c_str(),
-				   target, currAddr);
-		  }
-                else if((*pltFuncs).defines(target) &&
+                        targetFunc->symTabName().c_str(),
+                        target, currAddr);
+                }
+                else if((*pltFuncs).defines(target) && 
                         ((*pltFuncs)[target] == "exit" || 
                         (*pltFuncs)[target] == "abort" ||
                         (*pltFuncs)[target] == "__f90_stop" ||
                         (*pltFuncs)[target] == "fancy_abort"))
-		  {
+                {
                       parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
                           (*pltFuncs)[target].c_str(),
                           target, currAddr);
-		  }
+                }
                 else if(!simulateJump)
-		  {
+                {
                     // we don't wire up a fallthrough edge if we're treating
                     // the call insruction as an unconditional branch
-                    Address next = ah.peekNext();
-                    addBasicBlock(next,
-				  currBlk,
-				  leaders,
-				  leadersToBlock,
-				  ET_FUNLINK,
-				  worklist,
-				  visited);
-		  }
+                    
+                    // link up the fallthrough edge unless we know for
+                    // certain that the target function does not return
+                    if(targetFunc && targetFunc->returnStatus() == RS_NORETURN)
+                    {
+                        parsing_printf("[%s:%u] not parsing past non-returning "
+                                       "call at 0x%lx (to %s)\n",
+                            FILE__,__LINE__,*ah,
+                            targetFunc->symTabName().c_str());
+                    }
+                    else
+                    {
+                        Address next = ah.peekNext();
+                        addBasicBlock(next,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  ET_FUNLINK,
+                                  worklist);
+                    }
+                }
                 break;
             }
             else if( ah.isALeaveInstruction() )
-	      {
+            {
                 noStackFrame = false;
             }
             else if( archIsAbortOrInvalid(ah) )
@@ -1341,19 +1214,10 @@ bool image_func::buildCFG(
 
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
-                //currBlk->blockEndOffset_ = currAddr + insnSize;
 
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
-                /*
-                parsing_printf("... making new exit point at 0x%lx\n", currAddr);
-                p = new image_instPoint( currAddr,
-                                         ah.getInstruction(),
-                                         this,
-                                         functionExit);
-                funcReturns.push_back( p );
-                */
-                retStatus_ = RS_NORETURN;
+
                 break;
             }
 #if defined(arch_ia64)
@@ -1378,8 +1242,7 @@ bool image_func::buildCFG(
                                     leaders,
                                     leadersToBlock,
                                     ET_FALLTHROUGH,
-                                    worklist,
-                                    visited);
+                                    worklist);
                     break;
                 }
             }
@@ -1401,7 +1264,6 @@ bool image_func::buildCFG(
                                          this,
                                          functionExit);
                 funcReturns.push_back( p );
-                retStatus_ = RS_NORETURN;
                 break;
             }
             ah++;
@@ -1410,63 +1272,97 @@ bool image_func::buildCFG(
 
     endOffset_ = funcEnd;
 
+    // If the status hasn't been updated to UNKNOWN or RETURN by now,
+    // set it to RS_NORETURN
+    if(retStatus_ == RS_UNSET)
+        retStatus_ = RS_NORETURN;
+
     return true;
 }
 
 /* bindCallTarget links the target address of a call to the function
  * and entry block to which it refers. If such a function/block pair
  * does not exist (or if the target is the middle of another function),
- * a new function will be created.
+ * a new function will be created and parsed.
  *
- * Returns: pointer to function object that is target of call
+ * Returns: pointer to the [parsed] function object that is target of call
  *
  * Side effects:
- *  - May append to callTargets
- *  - May add entry to preParseStubs
  *  - May split existing blocks
  *  - May mark existing blocks as shared
+ *  - May recursively parse one or more functions
+ *
+ * This function can be called with NULL currBlk as a shorthand for
+ * finding or recursively parsing the target
  */
 image_func * image_func::bindCallTarget(
         Address target,
-        image_basicBlock* currBlk,
-        pdvector< Address >& callTargets,
-        dictionary_hash< Address, image_func *>& preParseStubs)
+        image_basicBlock* currBlk)
     {
     codeRange *tmpRange;
     image_basicBlock *ph_callTarget = NULL;
     image_basicBlock *newBlk;
     image_func *targetFunc;
+    bool created = false;
 
-    targetFunc = FindOrCreateFunc(target,callTargets,preParseStubs);
+    // targetfunc may be parsed or unparsed, and it may not yet have
+    // an entry basic block associated with it. `created' indicates
+    // whether a new image_func was created
+    targetFunc = FindOrCreateFunc(target,FS_RT,created);
 
     if(image_->basicBlocksByRange.find(target,tmpRange))
     {
         ph_callTarget =       
             dynamic_cast<image_basicBlock*>(tmpRange);
+    }
         
-        if(ph_callTarget->firstInsnOffset_ == target )
-        {   
+    if(ph_callTarget && ph_callTarget->firstInsnOffset_ == target )
+    {   
+        if(currBlk)
             addEdge(currBlk,ph_callTarget,ET_CALL);
-            return targetFunc;
-        }   
     }           
-                
-    // going to need a new basic block
-    newBlk = new image_basicBlock(targetFunc,target);
-                
-    if(ph_callTarget)
-    {                                    
-        // the target lies within an existing block, which
-        // must therefore be split.      
-        ph_callTarget->split(newBlk);
-    }           
-    else
-        newBlk->isStub_ = true;
-            
-    image_->basicBlocksByRange.insert(newBlk);
-            
-    addEdge(currBlk,newBlk,ET_CALL);
+    else {
+        // going to need a new basic block
+        newBlk = new image_basicBlock(targetFunc,target);
+
+        if(ph_callTarget) {
+            // The target lies within an existing block, which
+            // must therefore be split
+            ph_callTarget->split(newBlk);
+        }
+        else
+            newBlk->isStub_ = true;
     
+        image_->basicBlocksByRange.insert(newBlk);
+
+        if(currBlk)
+            addEdge(currBlk,newBlk,ET_CALL);
+    }
+
+    // Now parse the function, if necessary                
+    if(!targetFunc->parsed()) {
+        assert( targetFunc->img()->isCode(targetFunc->getOffset()) );
+
+        parsing_printf("[%s:%u] recursive parsing of call target at 0x%lx\n",
+                FILE__,__LINE__,targetFunc->getOffset());
+
+        if(targetFunc->parse()) {
+            targetFunc->img()->recordFunction(targetFunc);
+
+            parsing_printf("[%s:%u] recursive parsing of 0x%lx complete\n",
+                FILE__,__LINE__,targetFunc->getOffset());
+        } else {
+            parsing_printf("[%s:%u] recursive parsing of 0x%lx failed\n",
+                FILE__,__LINE__,targetFunc->getOffset());
+
+            // only want to delete this function if FindOrCreateFunc
+            // actually created one
+            if(created) 
+                delete targetFunc;
+            targetFunc = NULL;
+        }
+    }
+                
     return targetFunc;
 }
 
@@ -1476,15 +1372,11 @@ image_func * image_func::bindCallTarget(
  * depending on whether one exists in the symbol table (or was previously
  * discovered).
  *
- * Returns: pointer to new function
- *
- * Side effects: 
- *  - May update preParseStubs
- *  - May update callTargets
+ * Returns: pointer to an existing or new function
  */
-image_func * image_func::FindOrCreateFunc(Address target,
-        pdvector< Address >& callTargets,
-        dictionary_hash< Address, image_func *>& preParseStubs)
+image_func * image_func::FindOrCreateFunc(Address target, 
+                                          FuncSource src,
+                                          bool & created)
 {
     image_func *targetFunc;
 
@@ -1492,23 +1384,20 @@ image_func * image_func::FindOrCreateFunc(Address target,
     {   
         targetFunc = image_->funcsByEntryAddr[target];
     }
-    else if(preParseStubs.defines(target))
-    {   
-        targetFunc = preParseStubs[target];
-    }
     else
     {   
-        char name[32];
+        if(img()->activelyParsing.defines(target))
+            targetFunc = img()->activelyParsing[target];
+        else {
+            char name[32];
 #if defined (os_windows)
-        _snprintf(name,32,"targ%lx",target);
+            _snprintf(name,32,"targ%lx",target);
 #else
-        snprintf(name,32,"targ%lx",target);
+            snprintf(name,32,"targ%lx",target);
 #endif
-
-        targetFunc = new image_func(name,target,UINT_MAX,mod_,image_);
-
-        preParseStubs[target] = targetFunc;
-        callTargets.push_back(target);
+            targetFunc = new image_func(name,target,UINT_MAX,mod_,image_,src);
+            created = true;
+        }
     }
     
     return targetFunc;
@@ -1524,14 +1413,12 @@ image_func * image_func::FindOrCreateFunc(Address target,
  * Side effects: (many)
  *  - Adds to leaders
  *  - Adds to leadersToBlock
- *  - Adds to parserVisited
  *  - May update other functions' "shared" status
  *
  */
 void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
                 BPatch_Set< Address > &leaders,
                 dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
-                BPatch_Set< image_basicBlock* > &parserVisited,
                 Address & funcEnd)
 {
     pdvector< image_basicBlock * > WL;
@@ -1548,10 +1435,18 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     WL.push_back(firstBlock);
     visited.insert(firstBlock);
 
-    parsing_printf("Parsing shared code at 0x%lx, blockList size: %ld startoffset: 0x%lx endoffset: 0x%lx\n",firstBlock->firstInsnOffset_, blockList.size(), getOffset(), endOffset_);
+    parsing_printf("[%s:%u] Parsing shared code at 0x%lx, startoffset: "
+                   "0x%lx endoffset: 0x%lx\n",
+        FILE__,__LINE__,firstBlock->firstInsnOffset_, getOffset(), endOffset_);
 
     // remember that we have shared blocks
     containsSharedBlocks_ = true;
+
+    // assume that return status is UNKNOWN because we do not do a detailed
+    // parse of the code. This assumption leads to the greatest code 
+    // coverage
+    if(retStatus_ == RS_UNSET)
+        retStatus_ = RS_UNKNOWN;
 
     // There are several cases that can lead to a pre-parsed block
     // having the current function (this) on its funcs_ list:
@@ -1576,7 +1471,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         curBlk = WL.back();
         WL.pop_back(); 
   
-        if(parserVisited.contains(curBlk))
+        if(containsBlock(curBlk))
             continue;
 
         // If the current block's list of owning functions only
@@ -1626,6 +1521,8 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
                                     this,
                                     tmpInstPt->getPointType());
             funcReturns.push_back(cpyInstPt);
+
+            retStatus_ = RS_RETURN;
         }
 
         // As described in the comment above, the
@@ -1636,13 +1533,12 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         }
 
         // update block
-        blockList.push_back(curBlk);
+        addToBlocklist(curBlk);
         parsing_printf("XXXX adding pre-parsed block %d (0x%lx) to blocklist\n",
                 curBlk->id(),curBlk->firstInsnOffset_);
         // update "function end"
         if(funcEnd < curBlk->blockEndOffset_)
             funcEnd = curBlk->blockEndOffset_;
-        parserVisited.insert(curBlk);
 
         targets.clear();
         curBlk->getTargets(targets);
@@ -1677,16 +1573,13 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
 void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
 {
     BPatch_Set< Address > leaders;
-    BPatch_Set< image_basicBlock* > pv;
     dictionary_hash< Address, image_basicBlock * > leadersToBlock( addrHash );
 
-    //endOffset_ = startOffset_;
     endOffset_ = getOffset();
     
     parseSharedBlocks(firstBlock,
                       leaders,          /* unused */
                       leadersToBlock,   /* unused */
-                      pv,               /* unused */
                       endOffset_);
 }
 
@@ -1697,7 +1590,6 @@ void image_func::processJump(InstrucIter& ah,
 			     pdvector<instruction>& allInstructions,
 			     BPatch_Set<Address>& leaders,
 			     pdvector<Address>& worklist,
-			     BPatch_Set<image_basicBlock*>& visited,
 			     dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
 			     dictionary_hash<Address, std::string> *pltFuncs
 			     )
@@ -1726,8 +1618,7 @@ void image_func::processJump(InstrucIter& ah,
 		  leaders,
 		  leadersToBlock,
 		  ET_CATCH,
-		  worklist,
-		  visited);
+		  worklist);
   }
   
   if( !img()->isValidAddress( target ) ) {
@@ -1739,11 +1630,10 @@ void image_func::processJump(InstrucIter& ah,
 			    false,
 			    otherPoint); 
     pdmod()->addUnresolvedControlFlow(p);
+
+    retStatus_ = RS_UNKNOWN;
     return;
   }
-
-  // NOTE we don't do anything with these?
-  img()->addJumpTarget( target );
 
   if(archIsATailCall( ah, allInstructions ) ||
      (*pltFuncs).defines(target))
@@ -1756,8 +1646,6 @@ void image_func::processJump(InstrucIter& ah,
 	  
     // Only on x86 & sparc currently
     currBlk->isExitBlock_ = true;
-    parsing_printf("... making new exit point at 0x%lx\n", 
-		   currAddr);                
 
     p = new image_instPoint(currAddr,
 			    ah.getInstruction(),
@@ -1768,7 +1656,23 @@ void image_func::processJump(InstrucIter& ah,
 			    functionExit);
     funcReturns.push_back( p );
     currBlk->containsRet_ = true;
-    //retStatus_ = RS_RETURN;
+
+    parsing_printf("[%s:%u] tail call 0x%lx -> 0x%lx\n",
+        FILE__,__LINE__,*ah,target);
+    image_func *targetFunc = bindCallTarget(target,currBlk);
+    if(targetFunc) {
+        // Functions that make tail calls inherit the return
+        // status of their call targets
+        if(retStatus_ == RS_UNSET &&
+            targetFunc->returnStatus() != RS_NORETURN)
+        {
+            retStatus_ = targetFunc->returnStatus();
+        }
+    } else {
+        parsing_printf("[%s:%u] unparseable tail call at 0x%lx",
+            FILE__,__LINE__,*ah);
+        retStatus_ = RS_UNKNOWN;
+    }
   }
   else 
   {
@@ -1785,7 +1689,6 @@ void image_func::processJump(InstrucIter& ah,
 		  leaders,
 		  leadersToBlock,
 		  ET_DIRECT,
-		  worklist,
-		  visited);
+		  worklist);
   }
 }

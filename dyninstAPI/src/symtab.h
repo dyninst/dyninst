@@ -259,7 +259,6 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 // includedFunctions
 // excludedFunctions
 // funcsByAddr
-// funcsByPretty
 // file_
 // name_
 // imageOffset_
@@ -270,7 +269,6 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 // iSymsMap
 // allImages
 // varsByPretty
-// knownJumpTargets
 // COMMENTS????
 //  Image class contains information about statically and dynamically linked code 
 //  belonging to a process....
@@ -283,9 +281,6 @@ class image : public codeRange, public InstructionSource {
    // ****  PUBLIC MEMBER FUNCTIONS  ****
    //
  public:
-    // remove after testing
-   void DumpAllStats();
-
    static image *parseImage(const std::string file);
    static image *parseImage(fileDescriptor &desc, bool parseGaps=false); 
 
@@ -298,14 +293,6 @@ class image : public codeRange, public InstructionSource {
    // And alternates
    static void removeImage(const string file);
    static void removeImage(fileDescriptor &desc);
-
-   // Fills  in raw_funcs with targets in callTargets
-   void parseStaticCallTargets( pdvector< Address >& callTargets,
-                pdvector< Address > &newTargets,
-                dictionary_hash< Address, image_func * > &preParseStubs);
-
-   bool parseFunction( image_func* pdf, pdvector< Address >& callTargets,
-                dictionary_hash< Address, image_func * >& preParseStubs); 
 
    image(fileDescriptor &desc, bool &err, bool parseGaps=false); 
 
@@ -324,13 +311,8 @@ class image : public codeRange, public InstructionSource {
    // Check the list of symbols returned by the parser, return
    // name/addr pair
 
-   //Address findInternalAddress (const std::string &name, const bool warn, bool &err);
    // find the named module  
    pdmodule *findModule(const string &name, bool wildcard = false);
-
-   // Note to self later: find is a const operation, [] isn't, for
-   // dictionary access. If we need to make the findFuncBy* methods
-   // consts, we can move from [] to find()
 
    // Find the vector of functions associated with a (demangled) name
    // Returns internal pointer, so label as const
@@ -350,36 +332,24 @@ class image : public codeRange, public InstructionSource {
                                                      void *user_data, 
                                                      pdvector<image_func *> *found);
 
-   //image_func *findOnlyOneFunction(const std::string &name);
-
-   // Given an address (offset into the image), find the function that occupies
-   // that address
-   //image_func *findFuncByOffset(const Address &offset);
-   // (Possibly) faster version checking only entry address
+   // Find a function that begins at a particular address
    image_func *findFuncByEntry(const Address &entry);
 
-   // And raw version
+   // FIXME This function is poorly named: it searches for a *function*
+   //       that overlaps the given offset. Also, it fails to account
+   //       for functions overlapping a particular range due to code
+   //       sharing, so is broken by design.
    codeRange *findCodeRangeByOffset(const Address &offset);
 
-   // Blocks by address
+   // Find the basic block that overlaps the given address
    image_basicBlock *findBlockByAddr(const Address &addr);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
    void addTypedPrettyName(image_func *func, const char *typedName);
 	
-   bool symbolExists(const std::string &); /* Does the symbol exist in the image? */
+   bool symbolExists(const std::string &); /* Check symbol existence */
    void postProcess(const std::string);          /* Load .pif file */
-
-   // The following two functions & the knownJumpTargets
-   // dictionary_hash are unused as of 4/4/2008 -- scrap them?
-   void addJumpTarget(Address addr) {
-      if (!knownJumpTargets.defines(addr)) knownJumpTargets[addr] = addr; 
-   }
-
-   bool isJumpTarget(Address addr) { 
-      return knownJumpTargets.defines(addr); 
-   }
 
    // data member access
 
@@ -393,7 +363,7 @@ class image : public codeRange, public InstructionSource {
    Address imageLength() const { return imageLen_;} 
 
 
-   // codeRange versions
+   // codeRange interface implementation
    Address get_address() const { return imageOffset(); }
    unsigned get_size() const { return imageLength(); }
    virtual void *getPtrToInstruction(Address offset) const;
@@ -407,15 +377,10 @@ class image : public codeRange, public InstructionSource {
    // Figure out the address width in the image. Any ideas?
    virtual unsigned getAddressWidth() const { return linkedFile->getAddressWidth(); };
 
-   //Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
-
    bool isDyninstRTLib() const { return is_libdyninstRT; }
 
    bool isAOut() const { return is_a_out; }
  
-#if defined( arch_x86 )
-   bool isText(const Address& where ) const;
-#endif
    bool isCode(const Address &where) const;
    bool isData(const Address &where) const;
    virtual bool isValidAddress(const Address &where) const;
@@ -457,6 +422,10 @@ class image : public codeRange, public InstructionSource {
 
    dictionary_hash<Address, std::string> *getPltFuncs();
 
+   // This method is invoked after parsing a function to record it in tables
+   // and to update other symtab-level data structures, like mangled names
+   void recordFunction(image_func *);
+
  private:
 
    void findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
@@ -475,17 +444,10 @@ class image : public codeRange, public InstructionSource {
    //  ****  PRIVATE MEMBERS FUNCTIONS  ****
    //
 
-   // private methods for findind an excluded function by name or
-   //  address....
-   //bool find_excluded_function(const std::string &name,
-   //    pdvector<image_func*> &retList);
-   //image_func *find_excluded_function(const Address &addr);
-
+   // Platform-specific discovery of the "main" function
+   // FIXME There is a minor but fundamental design flaw that
+   //       needs to be resolved wrt findMain returning void.
    void findMain();
-
-   // A helper routine for removeInstrumentableFunc -- removes function from specified hash
-   void removeFuncFromNameHash(image_func *func, std::string &fname,
-                               dictionary_hash<std::string, pdvector<image_func *> > *func_hash);
 
 #ifdef CHECK_ALL_CALL_POINTS
    void checkAllCallPoints();
@@ -505,16 +467,13 @@ class image : public codeRange, public InstructionSource {
    void getModuleLanguageInfo(dictionary_hash<std::string, supportedLanguages> *mod_langs);
    void setModuleLanguages(dictionary_hash<std::string, supportedLanguages> *mod_langs);
 
-
    // We have a _lot_ of lookup types; this handles proper entry
-   // wasSymtab: name was found in symbol table. False if invented name
-   void enterFunctionInTables(image_func *func, bool wasSymtab);
-   //void addFunctionName(image_func *func, const std::string newName, bool isMangled = false);
-   //void addVariableName(image_variable *var, const std::string newName, bool isMangled = false);
+   void enterFunctionInTables(image_func *func);
 
    bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
    bool analyzeImage();
    bool parseGaps() { return parseGaps_; }
+
    //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
@@ -527,6 +486,8 @@ class image : public codeRange, public InstructionSource {
    unsigned imageLen_;
    Address dataOffset_;
    unsigned dataLen_;
+
+   dictionary_hash<Address, image_func *> activelyParsing;
 
    //Address codeValidStart_;
    //Address codeValidEnd_;
@@ -545,40 +506,24 @@ class image : public codeRange, public InstructionSource {
    Archive *archive;
 #endif
 
-
-   // A vector of all images. Used to avoid duplicating
-   // an "image" that already exists.
-#if 0
-   static pdvector<image*> allImages;
-#endif
-
-   // knownJumpTargets: the addresses in this image that are known to 
-   // be targets of jumps. It is used to check points with multiple 
-   // instructions.
-   // This is a subset of the addresses that are actually targets of jumps.
-   dictionary_hash<Address, Address> knownJumpTargets;
-
    pdvector<pdmodule *> _mods;
 
    //
    // Hash Tables of Functions....
    //
 
-   // functions by address for all modules.  Only contains instrumentable
-   //  funtions.
+   // functions by address for all modules.  Only instrumentable functions
    codeRangeTree funcsByRange;
    // Keep this one as well for O(1) entry lookups
    dictionary_hash <Address, image_func *> funcsByEntryAddr;
-   // note, a prettyName is not unique, it may map to a function appearing
-   // in several modules.  Also only contains instrumentable functions....
-/*
-   dictionary_hash <std::string, pdvector<image_func*>*> funcsByPretty;
-   // Hash table holding functions by mangled name.
-   // Should contain same functions as funcsByPretty....
-   dictionary_hash <std::string, pdvector<image_func*>*> funcsByMangled;
+
+   // Populated during symbol table parsing; these are the functions
+   // that are stored in "exportedFunctions" after a successful parse
+   pdvector<image_func *> symtabCandidateFuncs;
+
    // A way to iterate over all the functions efficiently
-*/   
    pdvector<image_func *> everyUniqueFunction;
+
    // We make an initial list of functions based off the symbol table,
    // and may create more when we actually analyze. Keep track of
    // those created ones so we can distinguish them if necessary
@@ -593,13 +538,11 @@ class image : public codeRange, public InstructionSource {
    // These line up with the code generated to support OpenMP, UPC, Titanium, ...
    pdvector<image_parRegion *> parallelRegions;
 
-   // The following were added to support parsing
-   // (nater) 13.Oct.05
-   // basic blocks by address.
+   // Basic blocks by spanned address range
    codeRangeTree basicBlocksByRange;
-   // Quick lookups
-   //dictionary_hash<Address, image_basicBlock *> basicBlocksByAddr;
-    int nextBlockID_;
+
+   // unique (by image) numbering of basic blocks
+   int nextBlockID_;
 
    // TODO -- get rid of one of these
    // Note : as of 971001 (mcheyney), these hash tables only 
@@ -610,13 +553,9 @@ class image : public codeRange, public InstructionSource {
    dyn_hash_map <string, pdmodule *> modsByFileName;
    dyn_hash_map <string, pdmodule*> modsByFullName;
 
+   // "Function" symbol names that are PLT entries or the equivalent
    dictionary_hash<Address, std::string> *pltFuncs;
 
-/* 
-   // Variables indexed by pretty (non-mangled) name
-   dictionary_hash <std::string, pdvector <image_variable *> *> varsByPretty;
-   dictionary_hash <std::string, pdvector <image_variable *> *> varsByMangled;
-*/   
    dictionary_hash <Address, image_variable *> varsByAddr;
 
    vector<pair<string, Address> > codeHeaps_;

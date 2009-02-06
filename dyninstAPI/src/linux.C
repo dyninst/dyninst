@@ -1731,7 +1731,7 @@ const char DYNINST_LOAD_HIJACK_FUNCTIONS[][20] = {
  **/
 Address findFunctionToHijack(process *p) 
 {
-   Address codeBase;
+   Address codeBase = 0;
    unsigned i;
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
