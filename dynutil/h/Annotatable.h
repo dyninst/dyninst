@@ -76,7 +76,7 @@ class AnnotationClassBase
       std::string name;
 
    protected:
-      COMMON_TEMPLATE_EXPORT AnnotationClassBase(std::string n, 
+      COMMON_EXPORT AnnotationClassBase(std::string n, 
             anno_cmp_func_t cmp_func_ = NULL);
 
    public:
@@ -98,7 +98,7 @@ class AnnotationClass : public AnnotationClassBase {
       typedef bool (*ser_func_t) (SerializerBase &, T &);
       // typedef T annotation_realtype;
 
-      COMMON_TEMPLATE_EXPORT AnnotationClass(std::string n, 
+      AnnotationClass(std::string n, 
             anno_cmp_func_t cmp_func_ = NULL, 
             bool (*serializer)(SerializerBase &, T&) = NULL) :
          AnnotationClassBase(n, cmp_func_),
@@ -145,22 +145,27 @@ class AnnotatableDense
       template<class T> 
       bool addAnnotation(const T *a, AnnotationClass<T> &a_id) 
       {
-         int size;
+         unsigned size;
          int id = a_id.getID();
 
          if (!annotations) 
          {
-            size = id;
+	    size = id+1;
             annotations = (aInfo *) malloc(sizeof(aInfo));
 
-            annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), size);
+            annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), (size));
             annotations->max = size;
+	    for (unsigned i=0; i<size; i++)
+	      annotations->data[i] = NULL;
          } 
-         else if (id > annotations->max) 
+         else if (id >= annotations->max) 
          {
+            int old_max = annotations->max;
             size = annotations->max * 2;
             annotations->max = size;
             annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t *) * size);
+	    for (unsigned i=old_max; i<size; i++)
+	      annotations->data[i] = NULL;
          }
 
          annotations->data[id] = (void *) a;

@@ -1969,7 +1969,6 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     callType call_conven = target->getCallingConvention();
     int estimatedFrameSize = 0;
     pdvector <Register> srcs;
-    bool result;
     Register ecx_target = REG_NULL, edx_target = REG_NULL;
     Address unused = ADDR_NULL;
     const int num_operands = operands.size();

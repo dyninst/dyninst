@@ -19,13 +19,13 @@ dyninst_cxx_group_test_mutatee_solo_VC++_32_max.exe: dyninst_cxx_group_test_grou
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 dyninst_cxx_group_test_mutatee_solo_VC++_32_none.exe: dyninst_cxx_group_test_group_VC++_32_none.obj test5_1_mutatee_solo_VC++_32_none.obj test5_2_mutatee_solo_VC++_32_none.obj test5_3_mutatee_solo_VC++_32_none.obj test5_4_mutatee_solo_VC++_32_none.obj test5_5_mutatee_solo_VC++_32_none.obj test5_6_mutatee_solo_VC++_32_none.obj test5_7_mutatee_solo_VC++_32_none.obj test5_8_mutatee_solo_VC++_32_none.obj test5_9_mutatee_solo_VC++_32_none.obj cpp_test_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test_mutatee_solo_VC++_32_high.exe: dyninst_group_test_group_VC++_32_high.obj test1_1_mutatee_solo_VC++_32_high.obj test1_2_mutatee_solo_VC++_32_high.obj test1_3_mutatee_solo_VC++_32_high.obj test1_4_mutatee_solo_VC++_32_high.obj test1_5_mutatee_solo_VC++_32_high.obj test1_6_mutatee_solo_VC++_32_high.obj test1_7_mutatee_solo_VC++_32_high.obj test1_8_mutatee_solo_VC++_32_high.obj test1_9_mutatee_solo_VC++_32_high.obj test1_10_mutatee_solo_VC++_32_high.obj test1_11_mutatee_solo_VC++_32_high.obj test1_13_mutatee_solo_VC++_32_high.obj test1_16_mutatee_solo_VC++_32_high.obj test1_17_mutatee_solo_VC++_32_high.obj test1_18_mutatee_solo_VC++_32_high.obj test1_20_mutatee_solo_VC++_32_high.obj test1_21_mutatee_solo_VC++_32_high.obj test1_22_mutatee_solo_VC++_32_high.obj test1_23_mutatee_solo_VC++_32_high.obj test1_24_mutatee_solo_VC++_32_high.obj test1_25_mutatee_solo_VC++_32_high.obj test1_26_mutatee_solo_VC++_32_high.obj test1_27_mutatee_solo_VC++_32_high.obj test1_28_mutatee_solo_VC++_32_high.obj test1_30_mutatee_solo_VC++_32_high.obj test1_31_mutatee_solo_VC++_32_high.obj test1_32_mutatee_solo_VC++_32_high.obj test1_33_mutatee_solo_VC++_32_high.obj test1_34_mutatee_solo_VC++_32_high.obj test1_36_mutatee_solo_VC++_32_high.obj test1_37_mutatee_solo_VC++_32_high.obj test1_38_mutatee_solo_VC++_32_high.obj test1_39_mutatee_solo_VC++_32_high.obj test2_5_mutatee_solo_VC++_32_high.obj test2_7_mutatee_solo_VC++_32_high.obj test2_9_mutatee_solo_VC++_32_high.obj test2_10_mutatee_solo_VC++_32_high.obj test2_11_mutatee_solo_VC++_32_high.obj test2_12_mutatee_solo_VC++_32_high.obj test2_13_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+dyninst_group_test_mutatee_solo_VC++_32_high.exe: dyninst_group_test_group_VC++_32_high.obj test1_1_mutatee_solo_VC++_32_high.obj test1_2_mutatee_solo_VC++_32_high.obj test1_3_mutatee_solo_VC++_32_high.obj test1_4_mutatee_solo_VC++_32_high.obj test1_5_mutatee_solo_VC++_32_high.obj test1_6_mutatee_solo_VC++_32_high.obj test1_7_mutatee_solo_VC++_32_high.obj test1_8_mutatee_solo_VC++_32_high.obj test1_9_mutatee_solo_VC++_32_high.obj test1_10_mutatee_solo_VC++_32_high.obj test1_11_mutatee_solo_VC++_32_high.obj test1_13_mutatee_solo_VC++_32_high.obj test1_16_mutatee_solo_VC++_32_high.obj test1_17_mutatee_solo_VC++_32_high.obj test1_18_mutatee_solo_VC++_32_high.obj test1_20_mutatee_solo_VC++_32_high.obj test1_21_mutatee_solo_VC++_32_high.obj test1_22_mutatee_solo_VC++_32_high.obj test1_23_mutatee_solo_VC++_32_high.obj test1_24_mutatee_solo_VC++_32_high.obj test1_25_mutatee_solo_VC++_32_high.obj test1_26_mutatee_solo_VC++_32_high.obj test1_27_mutatee_solo_VC++_32_high.obj test1_28_mutatee_solo_VC++_32_high.obj test1_30_mutatee_solo_VC++_32_high.obj test1_31_mutatee_solo_VC++_32_high.obj test1_32_mutatee_solo_VC++_32_high.obj test1_33_mutatee_solo_VC++_32_high.obj test1_34_mutatee_solo_VC++_32_high.obj test1_36_mutatee_solo_VC++_32_high.obj test1_37_mutatee_solo_VC++_32_high.obj test1_38_mutatee_solo_VC++_32_high.obj test1_39_mutatee_solo_VC++_32_high.obj test2_5_mutatee_solo_VC++_32_high.obj test2_7_mutatee_solo_VC++_32_high.obj test2_9_mutatee_solo_VC++_32_high.obj test2_11_mutatee_solo_VC++_32_high.obj test2_12_mutatee_solo_VC++_32_high.obj test2_13_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test_mutatee_solo_VC++_32_low.exe: dyninst_group_test_group_VC++_32_low.obj test1_1_mutatee_solo_VC++_32_low.obj test1_2_mutatee_solo_VC++_32_low.obj test1_3_mutatee_solo_VC++_32_low.obj test1_4_mutatee_solo_VC++_32_low.obj test1_5_mutatee_solo_VC++_32_low.obj test1_6_mutatee_solo_VC++_32_low.obj test1_7_mutatee_solo_VC++_32_low.obj test1_8_mutatee_solo_VC++_32_low.obj test1_9_mutatee_solo_VC++_32_low.obj test1_10_mutatee_solo_VC++_32_low.obj test1_11_mutatee_solo_VC++_32_low.obj test1_13_mutatee_solo_VC++_32_low.obj test1_16_mutatee_solo_VC++_32_low.obj test1_17_mutatee_solo_VC++_32_low.obj test1_18_mutatee_solo_VC++_32_low.obj test1_20_mutatee_solo_VC++_32_low.obj test1_21_mutatee_solo_VC++_32_low.obj test1_22_mutatee_solo_VC++_32_low.obj test1_23_mutatee_solo_VC++_32_low.obj test1_24_mutatee_solo_VC++_32_low.obj test1_25_mutatee_solo_VC++_32_low.obj test1_26_mutatee_solo_VC++_32_low.obj test1_27_mutatee_solo_VC++_32_low.obj test1_28_mutatee_solo_VC++_32_low.obj test1_30_mutatee_solo_VC++_32_low.obj test1_31_mutatee_solo_VC++_32_low.obj test1_32_mutatee_solo_VC++_32_low.obj test1_33_mutatee_solo_VC++_32_low.obj test1_34_mutatee_solo_VC++_32_low.obj test1_36_mutatee_solo_VC++_32_low.obj test1_37_mutatee_solo_VC++_32_low.obj test1_38_mutatee_solo_VC++_32_low.obj test1_39_mutatee_solo_VC++_32_low.obj test2_5_mutatee_solo_VC++_32_low.obj test2_7_mutatee_solo_VC++_32_low.obj test2_9_mutatee_solo_VC++_32_low.obj test2_10_mutatee_solo_VC++_32_low.obj test2_11_mutatee_solo_VC++_32_low.obj test2_12_mutatee_solo_VC++_32_low.obj test2_13_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+dyninst_group_test_mutatee_solo_VC++_32_low.exe: dyninst_group_test_group_VC++_32_low.obj test1_1_mutatee_solo_VC++_32_low.obj test1_2_mutatee_solo_VC++_32_low.obj test1_3_mutatee_solo_VC++_32_low.obj test1_4_mutatee_solo_VC++_32_low.obj test1_5_mutatee_solo_VC++_32_low.obj test1_6_mutatee_solo_VC++_32_low.obj test1_7_mutatee_solo_VC++_32_low.obj test1_8_mutatee_solo_VC++_32_low.obj test1_9_mutatee_solo_VC++_32_low.obj test1_10_mutatee_solo_VC++_32_low.obj test1_11_mutatee_solo_VC++_32_low.obj test1_13_mutatee_solo_VC++_32_low.obj test1_16_mutatee_solo_VC++_32_low.obj test1_17_mutatee_solo_VC++_32_low.obj test1_18_mutatee_solo_VC++_32_low.obj test1_20_mutatee_solo_VC++_32_low.obj test1_21_mutatee_solo_VC++_32_low.obj test1_22_mutatee_solo_VC++_32_low.obj test1_23_mutatee_solo_VC++_32_low.obj test1_24_mutatee_solo_VC++_32_low.obj test1_25_mutatee_solo_VC++_32_low.obj test1_26_mutatee_solo_VC++_32_low.obj test1_27_mutatee_solo_VC++_32_low.obj test1_28_mutatee_solo_VC++_32_low.obj test1_30_mutatee_solo_VC++_32_low.obj test1_31_mutatee_solo_VC++_32_low.obj test1_32_mutatee_solo_VC++_32_low.obj test1_33_mutatee_solo_VC++_32_low.obj test1_34_mutatee_solo_VC++_32_low.obj test1_36_mutatee_solo_VC++_32_low.obj test1_37_mutatee_solo_VC++_32_low.obj test1_38_mutatee_solo_VC++_32_low.obj test1_39_mutatee_solo_VC++_32_low.obj test2_5_mutatee_solo_VC++_32_low.obj test2_7_mutatee_solo_VC++_32_low.obj test2_9_mutatee_solo_VC++_32_low.obj test2_11_mutatee_solo_VC++_32_low.obj test2_12_mutatee_solo_VC++_32_low.obj test2_13_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test_mutatee_solo_VC++_32_max.exe: dyninst_group_test_group_VC++_32_max.obj test1_1_mutatee_solo_VC++_32_max.obj test1_2_mutatee_solo_VC++_32_max.obj test1_3_mutatee_solo_VC++_32_max.obj test1_4_mutatee_solo_VC++_32_max.obj test1_5_mutatee_solo_VC++_32_max.obj test1_6_mutatee_solo_VC++_32_max.obj test1_7_mutatee_solo_VC++_32_max.obj test1_8_mutatee_solo_VC++_32_max.obj test1_9_mutatee_solo_VC++_32_max.obj test1_10_mutatee_solo_VC++_32_max.obj test1_11_mutatee_solo_VC++_32_max.obj test1_13_mutatee_solo_VC++_32_max.obj test1_16_mutatee_solo_VC++_32_max.obj test1_17_mutatee_solo_VC++_32_max.obj test1_18_mutatee_solo_VC++_32_max.obj test1_20_mutatee_solo_VC++_32_max.obj test1_21_mutatee_solo_VC++_32_max.obj test1_22_mutatee_solo_VC++_32_max.obj test1_23_mutatee_solo_VC++_32_max.obj test1_24_mutatee_solo_VC++_32_max.obj test1_25_mutatee_solo_VC++_32_max.obj test1_26_mutatee_solo_VC++_32_max.obj test1_27_mutatee_solo_VC++_32_max.obj test1_28_mutatee_solo_VC++_32_max.obj test1_30_mutatee_solo_VC++_32_max.obj test1_31_mutatee_solo_VC++_32_max.obj test1_32_mutatee_solo_VC++_32_max.obj test1_33_mutatee_solo_VC++_32_max.obj test1_34_mutatee_solo_VC++_32_max.obj test1_36_mutatee_solo_VC++_32_max.obj test1_37_mutatee_solo_VC++_32_max.obj test1_38_mutatee_solo_VC++_32_max.obj test1_39_mutatee_solo_VC++_32_max.obj test2_5_mutatee_solo_VC++_32_max.obj test2_7_mutatee_solo_VC++_32_max.obj test2_9_mutatee_solo_VC++_32_max.obj test2_10_mutatee_solo_VC++_32_max.obj test2_11_mutatee_solo_VC++_32_max.obj test2_12_mutatee_solo_VC++_32_max.obj test2_13_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+dyninst_group_test_mutatee_solo_VC++_32_max.exe: dyninst_group_test_group_VC++_32_max.obj test1_1_mutatee_solo_VC++_32_max.obj test1_2_mutatee_solo_VC++_32_max.obj test1_3_mutatee_solo_VC++_32_max.obj test1_4_mutatee_solo_VC++_32_max.obj test1_5_mutatee_solo_VC++_32_max.obj test1_6_mutatee_solo_VC++_32_max.obj test1_7_mutatee_solo_VC++_32_max.obj test1_8_mutatee_solo_VC++_32_max.obj test1_9_mutatee_solo_VC++_32_max.obj test1_10_mutatee_solo_VC++_32_max.obj test1_11_mutatee_solo_VC++_32_max.obj test1_13_mutatee_solo_VC++_32_max.obj test1_16_mutatee_solo_VC++_32_max.obj test1_17_mutatee_solo_VC++_32_max.obj test1_18_mutatee_solo_VC++_32_max.obj test1_20_mutatee_solo_VC++_32_max.obj test1_21_mutatee_solo_VC++_32_max.obj test1_22_mutatee_solo_VC++_32_max.obj test1_23_mutatee_solo_VC++_32_max.obj test1_24_mutatee_solo_VC++_32_max.obj test1_25_mutatee_solo_VC++_32_max.obj test1_26_mutatee_solo_VC++_32_max.obj test1_27_mutatee_solo_VC++_32_max.obj test1_28_mutatee_solo_VC++_32_max.obj test1_30_mutatee_solo_VC++_32_max.obj test1_31_mutatee_solo_VC++_32_max.obj test1_32_mutatee_solo_VC++_32_max.obj test1_33_mutatee_solo_VC++_32_max.obj test1_34_mutatee_solo_VC++_32_max.obj test1_36_mutatee_solo_VC++_32_max.obj test1_37_mutatee_solo_VC++_32_max.obj test1_38_mutatee_solo_VC++_32_max.obj test1_39_mutatee_solo_VC++_32_max.obj test2_5_mutatee_solo_VC++_32_max.obj test2_7_mutatee_solo_VC++_32_max.obj test2_9_mutatee_solo_VC++_32_max.obj test2_11_mutatee_solo_VC++_32_max.obj test2_12_mutatee_solo_VC++_32_max.obj test2_13_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test_mutatee_solo_VC++_32_none.exe: dyninst_group_test_group_VC++_32_none.obj test1_1_mutatee_solo_VC++_32_none.obj test1_2_mutatee_solo_VC++_32_none.obj test1_3_mutatee_solo_VC++_32_none.obj test1_4_mutatee_solo_VC++_32_none.obj test1_5_mutatee_solo_VC++_32_none.obj test1_6_mutatee_solo_VC++_32_none.obj test1_7_mutatee_solo_VC++_32_none.obj test1_8_mutatee_solo_VC++_32_none.obj test1_9_mutatee_solo_VC++_32_none.obj test1_10_mutatee_solo_VC++_32_none.obj test1_11_mutatee_solo_VC++_32_none.obj test1_13_mutatee_solo_VC++_32_none.obj test1_16_mutatee_solo_VC++_32_none.obj test1_17_mutatee_solo_VC++_32_none.obj test1_18_mutatee_solo_VC++_32_none.obj test1_20_mutatee_solo_VC++_32_none.obj test1_21_mutatee_solo_VC++_32_none.obj test1_22_mutatee_solo_VC++_32_none.obj test1_23_mutatee_solo_VC++_32_none.obj test1_24_mutatee_solo_VC++_32_none.obj test1_25_mutatee_solo_VC++_32_none.obj test1_26_mutatee_solo_VC++_32_none.obj test1_27_mutatee_solo_VC++_32_none.obj test1_28_mutatee_solo_VC++_32_none.obj test1_30_mutatee_solo_VC++_32_none.obj test1_31_mutatee_solo_VC++_32_none.obj test1_32_mutatee_solo_VC++_32_none.obj test1_33_mutatee_solo_VC++_32_none.obj test1_34_mutatee_solo_VC++_32_none.obj test1_36_mutatee_solo_VC++_32_none.obj test1_37_mutatee_solo_VC++_32_none.obj test1_38_mutatee_solo_VC++_32_none.obj test1_39_mutatee_solo_VC++_32_none.obj test2_5_mutatee_solo_VC++_32_none.obj test2_7_mutatee_solo_VC++_32_none.obj test2_9_mutatee_solo_VC++_32_none.obj test2_10_mutatee_solo_VC++_32_none.obj test2_11_mutatee_solo_VC++_32_none.obj test2_12_mutatee_solo_VC++_32_none.obj test2_13_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+dyninst_group_test_mutatee_solo_VC++_32_none.exe: dyninst_group_test_group_VC++_32_none.obj test1_1_mutatee_solo_VC++_32_none.obj test1_2_mutatee_solo_VC++_32_none.obj test1_3_mutatee_solo_VC++_32_none.obj test1_4_mutatee_solo_VC++_32_none.obj test1_5_mutatee_solo_VC++_32_none.obj test1_6_mutatee_solo_VC++_32_none.obj test1_7_mutatee_solo_VC++_32_none.obj test1_8_mutatee_solo_VC++_32_none.obj test1_9_mutatee_solo_VC++_32_none.obj test1_10_mutatee_solo_VC++_32_none.obj test1_11_mutatee_solo_VC++_32_none.obj test1_13_mutatee_solo_VC++_32_none.obj test1_16_mutatee_solo_VC++_32_none.obj test1_17_mutatee_solo_VC++_32_none.obj test1_18_mutatee_solo_VC++_32_none.obj test1_20_mutatee_solo_VC++_32_none.obj test1_21_mutatee_solo_VC++_32_none.obj test1_22_mutatee_solo_VC++_32_none.obj test1_23_mutatee_solo_VC++_32_none.obj test1_24_mutatee_solo_VC++_32_none.obj test1_25_mutatee_solo_VC++_32_none.obj test1_26_mutatee_solo_VC++_32_none.obj test1_27_mutatee_solo_VC++_32_none.obj test1_28_mutatee_solo_VC++_32_none.obj test1_30_mutatee_solo_VC++_32_none.obj test1_31_mutatee_solo_VC++_32_none.obj test1_32_mutatee_solo_VC++_32_none.obj test1_33_mutatee_solo_VC++_32_none.obj test1_34_mutatee_solo_VC++_32_none.obj test1_36_mutatee_solo_VC++_32_none.obj test1_37_mutatee_solo_VC++_32_none.obj test1_38_mutatee_solo_VC++_32_none.obj test1_39_mutatee_solo_VC++_32_none.obj test2_5_mutatee_solo_VC++_32_none.obj test2_7_mutatee_solo_VC++_32_none.obj test2_9_mutatee_solo_VC++_32_none.obj test2_11_mutatee_solo_VC++_32_none.obj test2_12_mutatee_solo_VC++_32_none.obj test2_13_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 test1_12_mutatee_solo_VC++_32_high.exe: test1_12_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
@@ -285,13 +285,13 @@ symtab_SOLO_MUTATEES_native_cxx = symtab_group_test_mutatee_solo_VC++_32_high.ex
 
 # Now a list of rules for compiling the mutatees with VC++
 
-symtab_group_test_mutatee_solo_VC++_32_high.exe: symtab_group_test_group_VC++_32_high.obj test_lookup_func_mutatee_solo_VC++_32_high.obj test_lookup_var_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+symtab_group_test_mutatee_solo_VC++_32_high.exe: symtab_group_test_group_VC++_32_high.obj test_lookup_func_mutatee_solo_VC++_32_high.obj test_lookup_var_mutatee_solo_VC++_32_high.obj test_anno_basic_types_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC++_32_low.exe: symtab_group_test_group_VC++_32_low.obj test_lookup_func_mutatee_solo_VC++_32_low.obj test_lookup_var_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+symtab_group_test_mutatee_solo_VC++_32_low.exe: symtab_group_test_group_VC++_32_low.obj test_lookup_func_mutatee_solo_VC++_32_low.obj test_lookup_var_mutatee_solo_VC++_32_low.obj test_anno_basic_types_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC++_32_max.exe: symtab_group_test_group_VC++_32_max.obj test_lookup_func_mutatee_solo_VC++_32_max.obj test_lookup_var_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+symtab_group_test_mutatee_solo_VC++_32_max.exe: symtab_group_test_group_VC++_32_max.obj test_lookup_func_mutatee_solo_VC++_32_max.obj test_lookup_var_mutatee_solo_VC++_32_max.obj test_anno_basic_types_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC++_32_none.exe: symtab_group_test_group_VC++_32_none.obj test_lookup_func_mutatee_solo_VC++_32_none.obj test_lookup_var_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+symtab_group_test_mutatee_solo_VC++_32_none.exe: symtab_group_test_group_VC++_32_none.obj test_lookup_func_mutatee_solo_VC++_32_none.obj test_lookup_var_mutatee_solo_VC++_32_none.obj test_anno_basic_types_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 
 # Generic rules for VC++'s mutatees and varying optimization levels
@@ -383,8 +383,8 @@ test2_13_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -409,8 +409,6 @@ test1_3_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -425,8 +423,8 @@ test1_21_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.C
@@ -543,8 +541,8 @@ test2_13_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -569,8 +567,6 @@ test1_3_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -585,8 +581,8 @@ test1_21_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.C
@@ -703,8 +699,8 @@ test2_13_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -729,8 +725,6 @@ test1_3_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -745,8 +739,8 @@ test1_21_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.C
@@ -863,8 +857,8 @@ test2_13_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -889,8 +883,6 @@ test1_3_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -905,8 +897,8 @@ test1_21_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.C
@@ -940,6 +932,8 @@ dyninst_group_test_group_VC++_32_low.obj: ../i386-unknown-nt4.0/dyninst_group_te
 # Generic rules for VC++'s mutatees and varying optimization levels
 test_lookup_var_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC++_32_high.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
@@ -950,6 +944,8 @@ symtab_group_test_group_VC++_32_high.obj: ../i386-unknown-nt4.0/symtab_group_tes
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -Fo$@ $**
 test_lookup_var_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC++_32_max.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
@@ -960,6 +956,8 @@ symtab_group_test_group_VC++_32_max.obj: ../i386-unknown-nt4.0/symtab_group_test
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -Fo$@ $**
 test_lookup_var_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC++_32_none.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
@@ -970,6 +968,8 @@ symtab_group_test_group_VC++_32_none.obj: ../i386-unknown-nt4.0/symtab_group_tes
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -Fo$@ $**
 test_lookup_var_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC++_32_low.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
@@ -996,13 +996,13 @@ dyninst_SOLO_MUTATEES_native_cc = dyninst_group_test_mutatee_solo_VC_32_high.exe
 
 # Now a list of rules for compiling the mutatees with VC
 
-dyninst_group_test_mutatee_solo_VC_32_high.exe: dyninst_group_test_group_VC_32_high.obj test1_1_mutatee_solo_VC_32_high.obj test1_2_mutatee_solo_VC_32_high.obj test1_3_mutatee_solo_VC_32_high.obj test1_4_mutatee_solo_VC_32_high.obj test1_5_mutatee_solo_VC_32_high.obj test1_6_mutatee_solo_VC_32_high.obj test1_7_mutatee_solo_VC_32_high.obj test1_8_mutatee_solo_VC_32_high.obj test1_9_mutatee_solo_VC_32_high.obj test1_10_mutatee_solo_VC_32_high.obj test1_11_mutatee_solo_VC_32_high.obj test1_13_mutatee_solo_VC_32_high.obj test1_16_mutatee_solo_VC_32_high.obj test1_17_mutatee_solo_VC_32_high.obj test1_18_mutatee_solo_VC_32_high.obj test1_20_mutatee_solo_VC_32_high.obj test1_21_mutatee_solo_VC_32_high.obj test1_22_mutatee_solo_VC_32_high.obj test1_23_mutatee_solo_VC_32_high.obj test1_24_mutatee_solo_VC_32_high.obj test1_25_mutatee_solo_VC_32_high.obj test1_26_mutatee_solo_VC_32_high.obj test1_27_mutatee_solo_VC_32_high.obj test1_28_mutatee_solo_VC_32_high.obj test1_30_mutatee_solo_VC_32_high.obj test1_31_mutatee_solo_VC_32_high.obj test1_32_mutatee_solo_VC_32_high.obj test1_33_mutatee_solo_VC_32_high.obj test1_34_mutatee_solo_VC_32_high.obj test1_36_mutatee_solo_VC_32_high.obj test1_37_mutatee_solo_VC_32_high.obj test1_38_mutatee_solo_VC_32_high.obj test1_39_mutatee_solo_VC_32_high.obj test2_5_mutatee_solo_VC_32_high.obj test2_7_mutatee_solo_VC_32_high.obj test2_9_mutatee_solo_VC_32_high.obj test2_10_mutatee_solo_VC_32_high.obj test2_11_mutatee_solo_VC_32_high.obj test2_12_mutatee_solo_VC_32_high.obj test2_13_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+dyninst_group_test_mutatee_solo_VC_32_high.exe: dyninst_group_test_group_VC_32_high.obj test1_1_mutatee_solo_VC_32_high.obj test1_2_mutatee_solo_VC_32_high.obj test1_3_mutatee_solo_VC_32_high.obj test1_4_mutatee_solo_VC_32_high.obj test1_5_mutatee_solo_VC_32_high.obj test1_6_mutatee_solo_VC_32_high.obj test1_7_mutatee_solo_VC_32_high.obj test1_8_mutatee_solo_VC_32_high.obj test1_9_mutatee_solo_VC_32_high.obj test1_10_mutatee_solo_VC_32_high.obj test1_11_mutatee_solo_VC_32_high.obj test1_13_mutatee_solo_VC_32_high.obj test1_16_mutatee_solo_VC_32_high.obj test1_17_mutatee_solo_VC_32_high.obj test1_18_mutatee_solo_VC_32_high.obj test1_20_mutatee_solo_VC_32_high.obj test1_21_mutatee_solo_VC_32_high.obj test1_22_mutatee_solo_VC_32_high.obj test1_23_mutatee_solo_VC_32_high.obj test1_24_mutatee_solo_VC_32_high.obj test1_25_mutatee_solo_VC_32_high.obj test1_26_mutatee_solo_VC_32_high.obj test1_27_mutatee_solo_VC_32_high.obj test1_28_mutatee_solo_VC_32_high.obj test1_30_mutatee_solo_VC_32_high.obj test1_31_mutatee_solo_VC_32_high.obj test1_32_mutatee_solo_VC_32_high.obj test1_33_mutatee_solo_VC_32_high.obj test1_34_mutatee_solo_VC_32_high.obj test1_36_mutatee_solo_VC_32_high.obj test1_37_mutatee_solo_VC_32_high.obj test1_38_mutatee_solo_VC_32_high.obj test1_39_mutatee_solo_VC_32_high.obj test2_5_mutatee_solo_VC_32_high.obj test2_7_mutatee_solo_VC_32_high.obj test2_9_mutatee_solo_VC_32_high.obj test2_11_mutatee_solo_VC_32_high.obj test2_12_mutatee_solo_VC_32_high.obj test2_13_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test_mutatee_solo_VC_32_low.exe: dyninst_group_test_group_VC_32_low.obj test1_1_mutatee_solo_VC_32_low.obj test1_2_mutatee_solo_VC_32_low.obj test1_3_mutatee_solo_VC_32_low.obj test1_4_mutatee_solo_VC_32_low.obj test1_5_mutatee_solo_VC_32_low.obj test1_6_mutatee_solo_VC_32_low.obj test1_7_mutatee_solo_VC_32_low.obj test1_8_mutatee_solo_VC_32_low.obj test1_9_mutatee_solo_VC_32_low.obj test1_10_mutatee_solo_VC_32_low.obj test1_11_mutatee_solo_VC_32_low.obj test1_13_mutatee_solo_VC_32_low.obj test1_16_mutatee_solo_VC_32_low.obj test1_17_mutatee_solo_VC_32_low.obj test1_18_mutatee_solo_VC_32_low.obj test1_20_mutatee_solo_VC_32_low.obj test1_21_mutatee_solo_VC_32_low.obj test1_22_mutatee_solo_VC_32_low.obj test1_23_mutatee_solo_VC_32_low.obj test1_24_mutatee_solo_VC_32_low.obj test1_25_mutatee_solo_VC_32_low.obj test1_26_mutatee_solo_VC_32_low.obj test1_27_mutatee_solo_VC_32_low.obj test1_28_mutatee_solo_VC_32_low.obj test1_30_mutatee_solo_VC_32_low.obj test1_31_mutatee_solo_VC_32_low.obj test1_32_mutatee_solo_VC_32_low.obj test1_33_mutatee_solo_VC_32_low.obj test1_34_mutatee_solo_VC_32_low.obj test1_36_mutatee_solo_VC_32_low.obj test1_37_mutatee_solo_VC_32_low.obj test1_38_mutatee_solo_VC_32_low.obj test1_39_mutatee_solo_VC_32_low.obj test2_5_mutatee_solo_VC_32_low.obj test2_7_mutatee_solo_VC_32_low.obj test2_9_mutatee_solo_VC_32_low.obj test2_10_mutatee_solo_VC_32_low.obj test2_11_mutatee_solo_VC_32_low.obj test2_12_mutatee_solo_VC_32_low.obj test2_13_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+dyninst_group_test_mutatee_solo_VC_32_low.exe: dyninst_group_test_group_VC_32_low.obj test1_1_mutatee_solo_VC_32_low.obj test1_2_mutatee_solo_VC_32_low.obj test1_3_mutatee_solo_VC_32_low.obj test1_4_mutatee_solo_VC_32_low.obj test1_5_mutatee_solo_VC_32_low.obj test1_6_mutatee_solo_VC_32_low.obj test1_7_mutatee_solo_VC_32_low.obj test1_8_mutatee_solo_VC_32_low.obj test1_9_mutatee_solo_VC_32_low.obj test1_10_mutatee_solo_VC_32_low.obj test1_11_mutatee_solo_VC_32_low.obj test1_13_mutatee_solo_VC_32_low.obj test1_16_mutatee_solo_VC_32_low.obj test1_17_mutatee_solo_VC_32_low.obj test1_18_mutatee_solo_VC_32_low.obj test1_20_mutatee_solo_VC_32_low.obj test1_21_mutatee_solo_VC_32_low.obj test1_22_mutatee_solo_VC_32_low.obj test1_23_mutatee_solo_VC_32_low.obj test1_24_mutatee_solo_VC_32_low.obj test1_25_mutatee_solo_VC_32_low.obj test1_26_mutatee_solo_VC_32_low.obj test1_27_mutatee_solo_VC_32_low.obj test1_28_mutatee_solo_VC_32_low.obj test1_30_mutatee_solo_VC_32_low.obj test1_31_mutatee_solo_VC_32_low.obj test1_32_mutatee_solo_VC_32_low.obj test1_33_mutatee_solo_VC_32_low.obj test1_34_mutatee_solo_VC_32_low.obj test1_36_mutatee_solo_VC_32_low.obj test1_37_mutatee_solo_VC_32_low.obj test1_38_mutatee_solo_VC_32_low.obj test1_39_mutatee_solo_VC_32_low.obj test2_5_mutatee_solo_VC_32_low.obj test2_7_mutatee_solo_VC_32_low.obj test2_9_mutatee_solo_VC_32_low.obj test2_11_mutatee_solo_VC_32_low.obj test2_12_mutatee_solo_VC_32_low.obj test2_13_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test_mutatee_solo_VC_32_max.exe: dyninst_group_test_group_VC_32_max.obj test1_1_mutatee_solo_VC_32_max.obj test1_2_mutatee_solo_VC_32_max.obj test1_3_mutatee_solo_VC_32_max.obj test1_4_mutatee_solo_VC_32_max.obj test1_5_mutatee_solo_VC_32_max.obj test1_6_mutatee_solo_VC_32_max.obj test1_7_mutatee_solo_VC_32_max.obj test1_8_mutatee_solo_VC_32_max.obj test1_9_mutatee_solo_VC_32_max.obj test1_10_mutatee_solo_VC_32_max.obj test1_11_mutatee_solo_VC_32_max.obj test1_13_mutatee_solo_VC_32_max.obj test1_16_mutatee_solo_VC_32_max.obj test1_17_mutatee_solo_VC_32_max.obj test1_18_mutatee_solo_VC_32_max.obj test1_20_mutatee_solo_VC_32_max.obj test1_21_mutatee_solo_VC_32_max.obj test1_22_mutatee_solo_VC_32_max.obj test1_23_mutatee_solo_VC_32_max.obj test1_24_mutatee_solo_VC_32_max.obj test1_25_mutatee_solo_VC_32_max.obj test1_26_mutatee_solo_VC_32_max.obj test1_27_mutatee_solo_VC_32_max.obj test1_28_mutatee_solo_VC_32_max.obj test1_30_mutatee_solo_VC_32_max.obj test1_31_mutatee_solo_VC_32_max.obj test1_32_mutatee_solo_VC_32_max.obj test1_33_mutatee_solo_VC_32_max.obj test1_34_mutatee_solo_VC_32_max.obj test1_36_mutatee_solo_VC_32_max.obj test1_37_mutatee_solo_VC_32_max.obj test1_38_mutatee_solo_VC_32_max.obj test1_39_mutatee_solo_VC_32_max.obj test2_5_mutatee_solo_VC_32_max.obj test2_7_mutatee_solo_VC_32_max.obj test2_9_mutatee_solo_VC_32_max.obj test2_10_mutatee_solo_VC_32_max.obj test2_11_mutatee_solo_VC_32_max.obj test2_12_mutatee_solo_VC_32_max.obj test2_13_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+dyninst_group_test_mutatee_solo_VC_32_max.exe: dyninst_group_test_group_VC_32_max.obj test1_1_mutatee_solo_VC_32_max.obj test1_2_mutatee_solo_VC_32_max.obj test1_3_mutatee_solo_VC_32_max.obj test1_4_mutatee_solo_VC_32_max.obj test1_5_mutatee_solo_VC_32_max.obj test1_6_mutatee_solo_VC_32_max.obj test1_7_mutatee_solo_VC_32_max.obj test1_8_mutatee_solo_VC_32_max.obj test1_9_mutatee_solo_VC_32_max.obj test1_10_mutatee_solo_VC_32_max.obj test1_11_mutatee_solo_VC_32_max.obj test1_13_mutatee_solo_VC_32_max.obj test1_16_mutatee_solo_VC_32_max.obj test1_17_mutatee_solo_VC_32_max.obj test1_18_mutatee_solo_VC_32_max.obj test1_20_mutatee_solo_VC_32_max.obj test1_21_mutatee_solo_VC_32_max.obj test1_22_mutatee_solo_VC_32_max.obj test1_23_mutatee_solo_VC_32_max.obj test1_24_mutatee_solo_VC_32_max.obj test1_25_mutatee_solo_VC_32_max.obj test1_26_mutatee_solo_VC_32_max.obj test1_27_mutatee_solo_VC_32_max.obj test1_28_mutatee_solo_VC_32_max.obj test1_30_mutatee_solo_VC_32_max.obj test1_31_mutatee_solo_VC_32_max.obj test1_32_mutatee_solo_VC_32_max.obj test1_33_mutatee_solo_VC_32_max.obj test1_34_mutatee_solo_VC_32_max.obj test1_36_mutatee_solo_VC_32_max.obj test1_37_mutatee_solo_VC_32_max.obj test1_38_mutatee_solo_VC_32_max.obj test1_39_mutatee_solo_VC_32_max.obj test2_5_mutatee_solo_VC_32_max.obj test2_7_mutatee_solo_VC_32_max.obj test2_9_mutatee_solo_VC_32_max.obj test2_11_mutatee_solo_VC_32_max.obj test2_12_mutatee_solo_VC_32_max.obj test2_13_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-dyninst_group_test_mutatee_solo_VC_32_none.exe: dyninst_group_test_group_VC_32_none.obj test1_1_mutatee_solo_VC_32_none.obj test1_2_mutatee_solo_VC_32_none.obj test1_3_mutatee_solo_VC_32_none.obj test1_4_mutatee_solo_VC_32_none.obj test1_5_mutatee_solo_VC_32_none.obj test1_6_mutatee_solo_VC_32_none.obj test1_7_mutatee_solo_VC_32_none.obj test1_8_mutatee_solo_VC_32_none.obj test1_9_mutatee_solo_VC_32_none.obj test1_10_mutatee_solo_VC_32_none.obj test1_11_mutatee_solo_VC_32_none.obj test1_13_mutatee_solo_VC_32_none.obj test1_16_mutatee_solo_VC_32_none.obj test1_17_mutatee_solo_VC_32_none.obj test1_18_mutatee_solo_VC_32_none.obj test1_20_mutatee_solo_VC_32_none.obj test1_21_mutatee_solo_VC_32_none.obj test1_22_mutatee_solo_VC_32_none.obj test1_23_mutatee_solo_VC_32_none.obj test1_24_mutatee_solo_VC_32_none.obj test1_25_mutatee_solo_VC_32_none.obj test1_26_mutatee_solo_VC_32_none.obj test1_27_mutatee_solo_VC_32_none.obj test1_28_mutatee_solo_VC_32_none.obj test1_30_mutatee_solo_VC_32_none.obj test1_31_mutatee_solo_VC_32_none.obj test1_32_mutatee_solo_VC_32_none.obj test1_33_mutatee_solo_VC_32_none.obj test1_34_mutatee_solo_VC_32_none.obj test1_36_mutatee_solo_VC_32_none.obj test1_37_mutatee_solo_VC_32_none.obj test1_38_mutatee_solo_VC_32_none.obj test1_39_mutatee_solo_VC_32_none.obj test2_5_mutatee_solo_VC_32_none.obj test2_7_mutatee_solo_VC_32_none.obj test2_9_mutatee_solo_VC_32_none.obj test2_10_mutatee_solo_VC_32_none.obj test2_11_mutatee_solo_VC_32_none.obj test2_12_mutatee_solo_VC_32_none.obj test2_13_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+dyninst_group_test_mutatee_solo_VC_32_none.exe: dyninst_group_test_group_VC_32_none.obj test1_1_mutatee_solo_VC_32_none.obj test1_2_mutatee_solo_VC_32_none.obj test1_3_mutatee_solo_VC_32_none.obj test1_4_mutatee_solo_VC_32_none.obj test1_5_mutatee_solo_VC_32_none.obj test1_6_mutatee_solo_VC_32_none.obj test1_7_mutatee_solo_VC_32_none.obj test1_8_mutatee_solo_VC_32_none.obj test1_9_mutatee_solo_VC_32_none.obj test1_10_mutatee_solo_VC_32_none.obj test1_11_mutatee_solo_VC_32_none.obj test1_13_mutatee_solo_VC_32_none.obj test1_16_mutatee_solo_VC_32_none.obj test1_17_mutatee_solo_VC_32_none.obj test1_18_mutatee_solo_VC_32_none.obj test1_20_mutatee_solo_VC_32_none.obj test1_21_mutatee_solo_VC_32_none.obj test1_22_mutatee_solo_VC_32_none.obj test1_23_mutatee_solo_VC_32_none.obj test1_24_mutatee_solo_VC_32_none.obj test1_25_mutatee_solo_VC_32_none.obj test1_26_mutatee_solo_VC_32_none.obj test1_27_mutatee_solo_VC_32_none.obj test1_28_mutatee_solo_VC_32_none.obj test1_30_mutatee_solo_VC_32_none.obj test1_31_mutatee_solo_VC_32_none.obj test1_32_mutatee_solo_VC_32_none.obj test1_33_mutatee_solo_VC_32_none.obj test1_34_mutatee_solo_VC_32_none.obj test1_36_mutatee_solo_VC_32_none.obj test1_37_mutatee_solo_VC_32_none.obj test1_38_mutatee_solo_VC_32_none.obj test1_39_mutatee_solo_VC_32_none.obj test2_5_mutatee_solo_VC_32_none.obj test2_7_mutatee_solo_VC_32_none.obj test2_9_mutatee_solo_VC_32_none.obj test2_11_mutatee_solo_VC_32_none.obj test2_12_mutatee_solo_VC_32_none.obj test2_13_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 test1_12_mutatee_solo_VC_32_high.exe: test1_12_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
@@ -1252,13 +1252,13 @@ symtab_SOLO_MUTATEES_native_cc = symtab_group_test_mutatee_solo_VC_32_high.exe s
 
 # Now a list of rules for compiling the mutatees with VC
 
-symtab_group_test_mutatee_solo_VC_32_high.exe: symtab_group_test_group_VC_32_high.obj test_lookup_func_mutatee_solo_VC_32_high.obj test_lookup_var_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+symtab_group_test_mutatee_solo_VC_32_high.exe: symtab_group_test_group_VC_32_high.obj test_lookup_func_mutatee_solo_VC_32_high.obj test_lookup_var_mutatee_solo_VC_32_high.obj test_anno_basic_types_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC_32_low.exe: symtab_group_test_group_VC_32_low.obj test_lookup_func_mutatee_solo_VC_32_low.obj test_lookup_var_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+symtab_group_test_mutatee_solo_VC_32_low.exe: symtab_group_test_group_VC_32_low.obj test_lookup_func_mutatee_solo_VC_32_low.obj test_lookup_var_mutatee_solo_VC_32_low.obj test_anno_basic_types_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC_32_max.exe: symtab_group_test_group_VC_32_max.obj test_lookup_func_mutatee_solo_VC_32_max.obj test_lookup_var_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+symtab_group_test_mutatee_solo_VC_32_max.exe: symtab_group_test_group_VC_32_max.obj test_lookup_func_mutatee_solo_VC_32_max.obj test_lookup_var_mutatee_solo_VC_32_max.obj test_anno_basic_types_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC_32_none.exe: symtab_group_test_group_VC_32_none.obj test_lookup_func_mutatee_solo_VC_32_none.obj test_lookup_var_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+symtab_group_test_mutatee_solo_VC_32_none.exe: symtab_group_test_group_VC_32_none.obj test_lookup_func_mutatee_solo_VC_32_none.obj test_lookup_var_mutatee_solo_VC_32_none.obj test_anno_basic_types_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 
 # Generic rules for VC's mutatees and varying optimization levels
@@ -1350,8 +1350,8 @@ test2_13_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -1376,8 +1376,6 @@ test1_3_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -1392,8 +1390,8 @@ test1_21_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.C
@@ -1508,8 +1506,8 @@ test2_13_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -1534,8 +1532,6 @@ test1_3_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -1550,8 +1546,8 @@ test1_21_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.C
@@ -1666,8 +1662,8 @@ test2_13_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -1692,8 +1688,6 @@ test1_3_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -1708,8 +1702,8 @@ test1_21_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.C
@@ -1824,8 +1818,8 @@ test2_13_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test2_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_13_mutatee.c -Fo$@ $**
 test1_4_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_4 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_4_mutatee.c -Fo$@ $**
-test2_11_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
+test1_10_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test1_28_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_28 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_28_mutatee.c -Fo$@ $**
 test1_7_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -1850,8 +1844,6 @@ test1_3_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_3 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_3_mutatee.c -Fo$@ $**
 test1_9_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_9 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_9_mutatee.c -Fo$@ $**
-test1_10_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_10_mutatee.c -Fo$@ $**
 test5_6_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.C
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test5_6 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test5_6_mutatee.C -Fo$@ $**
 test1_17_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -1866,8 +1858,8 @@ test1_21_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_21 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_21_mutatee.c -Fo$@ $**
 test1_31_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_31 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_31_mutatee.c -Fo$@ $**
-test2_10_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
-	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test2_10 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_10_mutatee.c -Fo$@ $**
+test2_11_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test2_11 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test2_11_mutatee.c -Fo$@ $**
 test1_13_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test1_13 -DGROUPABLE=1 -DMUTATEE_SRC=../src/dyninst/test1_13_mutatee.c -Fo$@ $**
 test5_5_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.C
@@ -1899,6 +1891,8 @@ dyninst_group_test_group_VC_32_low.obj: ../i386-unknown-nt4.0/dyninst_group_test
 # Generic rules for VC's mutatees and varying optimization levels
 test_lookup_var_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC_32_high.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
@@ -1907,6 +1901,8 @@ symtab_group_test_group_VC_32_high.obj: ../i386-unknown-nt4.0/symtab_group_test_
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -Fo$@ $**
 test_lookup_var_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC_32_max.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
@@ -1915,6 +1911,8 @@ symtab_group_test_group_VC_32_max.obj: ../i386-unknown-nt4.0/symtab_group_test_g
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -Fo$@ $**
 test_lookup_var_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c   -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC_32_none.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
@@ -1923,6 +1921,8 @@ symtab_group_test_group_VC_32_none.obj: ../i386-unknown-nt4.0/symtab_group_test_
 	$(M_native_cc) -TC $(CFLAGS) -c   -Fo$@ $**
 test_lookup_var_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -Fo$@ $**
+test_anno_basic_types_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
 test_lookup_func_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 symtab_group_test_group_VC_32_low.obj: ../i386-unknown-nt4.0/symtab_group_test_group.c
