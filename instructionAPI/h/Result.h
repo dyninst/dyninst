@@ -34,7 +34,7 @@
 
 #include <sstream>
 #include <string.h> // memcmp
-#include "common/h/Types.h"
+#include <boost/cstdint.hpp>
 
 namespace Dyninst
 {
@@ -45,16 +45,16 @@ namespace Dyninst
       unsigned char bitval : 1;
       unsigned char u8val;
       char s8val;
-      uint16_t u16val;
-      int16_t s16val;
-      uint32_t u32val;
-      int32_t s32val;
-      uint64_t u64val;
-      int64_t s64val;
+	  boost::uint16_t u16val;
+      boost::int16_t s16val;
+      boost::uint32_t u32val;
+      boost::int32_t s32val;
+      boost::uint64_t u64val;
+      boost::int64_t s64val;
       float floatval;
       double dblval;
-      uint64_t u48val : 48;
-      int64_t s48val : 48;
+      boost::uint64_t u48val : 48;
+      boost::int64_t s48val : 48;
       void * m512val;
     };
     enum Result_Type
@@ -110,7 +110,7 @@ namespace Dyninst
     // machine states.  From this, you may construct abstractions to represent the set of possible results.
     // Alternately, you may use instrumentation to determine the exact machine state at the time an
     // instruction executes, which will allow you to evaluate the %Result of an %Expression in its actual context.
-    class Result
+    class INSTRUCTION_EXPORT Result
     {
     public:
       Result_Value val;
@@ -146,22 +146,22 @@ namespace Dyninst
 	  val.s8val = (char)(v);
 	  break;
 	case u16:
-	  val.u16val = (uint16_t)(v);
+	  val.u16val = (boost::uint16_t)(v);
 	  break;
 	case s16:
-	  val.s16val = (int16_t)(v);
+	  val.s16val = (boost::int16_t)(v);
 	  break;
 	case u32:
-	  val.u32val = (uint32_t)(v);
+	  val.u32val = (boost::uint32_t)(v);
 	  break;
 	case s32:
-	  val.s32val = (int32_t)(v);
+	  val.s32val = (boost::int32_t)(v);
 	  break;
 	case u64:
-	  val.u64val = (uint64_t)(v);
+	  val.u64val = (boost::uint64_t)(v);
 	  break;
 	case s64:
-	  val.s64val = (int64_t)(v);
+	  val.s64val = (boost::int64_t)(v);
 	  break;
 	case sp_float:
 	  val.floatval = (float)(v);

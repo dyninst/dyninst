@@ -32,6 +32,7 @@
 #if !defined(INSTRUCTIONAST_H)
 #define INSTRUCTIONAST_H
 
+#include "util.h"
 #include <vector>
 #include <set>
 #include <boost/shared_ptr.hpp>
@@ -59,7 +60,7 @@ namespace Dyninst
     /// - They are of the same type
     /// - If leaf nodes, they represent the same immediate value or the same register
     /// - If non-leaf nodes, they represent the same operation and their corresponding children are equal
-    class InstructionAST
+    class INSTRUCTION_EXPORT InstructionAST
     {
     public:
       typedef boost::shared_ptr<InstructionAST> Ptr;

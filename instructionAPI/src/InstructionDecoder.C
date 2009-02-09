@@ -513,7 +513,7 @@ namespace Dyninst
 	// handled elsewhere
 	break;
       case am_allgprs:
-	assert(!"Not implemented, pseudo-operand for all GPRs");
+		  outputOperands.push_back(Expression::Ptr(new RegisterAST(r_ALLGPRS)));
 	break;
       default:
 	printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);

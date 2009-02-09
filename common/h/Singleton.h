@@ -29,57 +29,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "../h/Expression.h"
+#if !defined(SINGLETON_H)
+#define SINGLETON_H
 
-namespace Dyninst
+#if !defined(__cplusplus)
+#error "Singleton class is C++-only"
+#endif //!defined(__cplusplus)
+
+template < class T >
+class Singleton
 {
-  namespace InstructionAPI
-  {
-    Expression::Expression(Result_Type t) :
-      userSetValue(t)
-    {
-    } 
-    Expression::~Expression() 
-    {
-    }
-    Result Expression::eval() const
-    {
-      return userSetValue;
-    }
-    void Expression::setValue(Result knownValue) 
-    {
-      userSetValue = knownValue;
-    }
-    void Expression::clearValue()
-    {
-      userSetValue.defined = false;
-    }
-    int Expression::size() const
-    {
-      return userSetValue.size();
-    }
-	bool Expression::bind(Expression* expr, Result value)
+public:
+	static T& getInstance()
 	{
-		bool retVal = false;
-		if(*expr == *this)
-		{
-			setValue(value);
-			return true;
-		}
-		std::vector<InstructionAST::Ptr> children;
-		getChildren(children);
-		for(std::vector<InstructionAST::Ptr>::iterator curChild = children.begin();
-			curChild != children.end();
-			++curChild)
-		{
-			Expression::Ptr curChild_asExpr = 
-				boost::dynamic_pointer_cast<Expression>(*curChild);
-			if(curChild_asExpr)
-			{
-				retVal = retVal || curChild_asExpr->bind(expr, value);
-			}
-		}
-		return retVal;
+		static T theInstance;
+		return theInstance;
 	}
-  };
 };
+
+#endif //!defined(SINGLETON_H)

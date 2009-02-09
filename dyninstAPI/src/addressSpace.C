@@ -1111,15 +1111,21 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     InstructionDecoder decoder;
     // FIXME: compute real size
     size_t maxSize = 10;
-    Instruction curInsn = decoder.decode((const unsigned char*)(addr), maxSize);
+    Instruction curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr), 
+		maxSize);
     Expression::Ptr target = curInsn.getControlFlowTarget();
-    Result cft = target->eval();
+	RegisterAST thePC = RegisterAST::makePC();
+	target->bind(&thePC, Result(u32, addr + curInsn.size()));
+	Result cft = target->eval();
     if(cft.defined)
     {
       switch(cft.type)
       {
       case u32:
 	addr2 = cft.val.u32val;
+	break;
+      case s32:
+	addr2 = cft.val.s32val;
 	break;
       default:
 	assert(!"Not implemented for non-32 bit CFTs yet!");

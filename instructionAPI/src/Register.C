@@ -29,7 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "../h/Register.h"
+#include "Register.h"
+#include "../../common/h/Singleton.h"
 #include <vector>
 #include <set>
 #include <sstream>
@@ -42,7 +43,8 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    RegisterAST::RegisterAST(int id) : Expression(IA32_register_names[IA32Regs(id)].regSize), registerID(id) 
+	RegisterAST::RegisterAST(int id) : 
+		Expression(Singleton<IA32RegTable>::getInstance().IA32_register_names[IA32Regs(id)].regSize), registerID(id) 
     {
     }
     RegisterAST::~RegisterAST()
@@ -52,14 +54,54 @@ namespace Dyninst
     {
       return;
     }
-    void RegisterAST::getUses(set<InstructionAST::Ptr>& /*uses*/) const
+    void RegisterAST::getUses(set<InstructionAST::Ptr>& uses) const
     {
-      //uses.insert(InstructionAST::Ptr(const_cast<RegisterAST*>(this)));
+		if(registerID == r_ALLGPRS)
+		{
+			for(std::set<InstructionAST::Ptr>::iterator cur = uses.begin();
+				cur != uses.end();
+				++cur)
+			{
+				if(**cur == *this)
+				{
+					uses.erase(cur);
+					break;
+				}
+			}
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EAX)));
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_ECX)));
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EDX)));
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EBX)));
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_ESP)));
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EBP)));
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_ESI)));
+			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EDI)));
+		}
       return;
     }
     bool RegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
-      return (*findMe == *this);
+      if(*findMe == *this)
+	  {
+		  return true;
+	  }
+	  if(registerID == r_ALLGPRS)
+	  {
+		  RegisterAST::Ptr asReg = boost::dynamic_pointer_cast<RegisterAST>(findMe);
+		  if(!asReg) return false;
+		  if(asReg->registerID == r_EAX ||
+			asReg->registerID == r_EDX ||
+			asReg->registerID == r_ECX ||
+			asReg->registerID == r_EBX ||
+			asReg->registerID == r_ESP ||
+			asReg->registerID == r_EBP ||
+			asReg->registerID == r_ESI ||
+			asReg->registerID == r_EDI)
+		  {
+			  return true;
+		  }
+	  }
+	  return false;
     }
     unsigned int RegisterAST::getID() const
     {
@@ -69,14 +111,14 @@ namespace Dyninst
     std::string RegisterAST::format() const
     {
       std::stringstream retVal;
-      RegTable::iterator foundName = IA32_register_names.find(IA32Regs(registerID));
-      if(foundName != IA32_register_names.end())
+	  RegTable::iterator foundName = Singleton<IA32RegTable>::getInstance().IA32_register_names.find(IA32Regs(registerID));
+      if(foundName != Singleton<IA32RegTable>::getInstance().IA32_register_names.end())
       {
-	retVal << (*foundName).second.regName;
+		retVal << (*foundName).second.regName;
       }
       else
       {
-	retVal << "R" << registerID;
+		retVal << "R" << registerID;
       }
       return retVal.str();
     }

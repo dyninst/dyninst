@@ -86,7 +86,7 @@ namespace Dyninst
     /// on the %Dereference returns a %Result with an undefined value.
     /// \dotfile deref-eval.dot "Applying \c eval to a Dereference tree with the state of the registers known and the state of memory unknown"
     ///
-    class Expression : public InstructionAST
+    class INSTRUCTION_EXPORT Expression : public InstructionAST
     {
     public:
       /// \brief A type definition for a reference counted pointer to a %Expression.
@@ -111,6 +111,11 @@ namespace Dyninst
 
       /// \c size returns the size of this %Expression's %Result, in bytes.
       int size() const;
+	  
+	  /// \c bind searches for any instance of the %Expression expr within
+	  /// this %Expression, and sets the result of \c eval for those subexpressions
+	  /// to \c value.
+	  bool bind(Expression* expr, Result value);
   
     private:
       Result userSetValue;

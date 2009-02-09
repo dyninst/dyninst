@@ -122,9 +122,9 @@ namespace Dyninst
       INSTRUCTION_EXPORT size_t numOperands() const;
       /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
       /// to assembly mnemonics.
-      entryID getID() const
+      INSTRUCTION_EXPORT entryID getID() const
       {
-	return operationID;
+		return operationID;
       }
       
 
@@ -140,11 +140,6 @@ namespace Dyninst
       VCSet otherEffAddrsRead;
       VCSet otherEffAddrsWritten;
       entryID operationID;
-      static map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
-      static map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
-      static map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
-      static map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
-      
     };
   };
 };

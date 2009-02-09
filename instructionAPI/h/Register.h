@@ -49,7 +49,7 @@ namespace Dyninst
     /// As a %RegisterAST is a %Expression, it may contain the physical register's contents if
     /// they are known.
     ///
-    class RegisterAST : public Expression
+    class INSTRUCTION_EXPORT RegisterAST : public Expression
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %RegisterAST.

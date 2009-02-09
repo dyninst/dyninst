@@ -30,6 +30,7 @@
  */
 
 #include "../h/BinaryFunction.h"
+#include "Result.h"
 
 namespace Dyninst
 {
@@ -47,6 +48,47 @@ namespace Dyninst
       {
 	retVal.defined = true;
       }
+	  switch(resultT)
+	  {
+	  case u8:
+		  retVal.val.u8val = arg1.val.u8val + arg2.val.u8val;
+		  break;
+	  case s8:
+		  retVal.val.s8val = arg1.val.s8val + arg2.val.s8val;
+		  break;
+	  case u16:
+		  retVal.val.u16val = arg1.val.u16val + arg2.val.u16val;
+		  break;
+	  case s16:
+		  retVal.val.s16val = arg1.val.s16val + arg2.val.s16val;
+		  break;
+	  case u32:
+		  retVal.val.u32val = arg1.val.u32val + arg2.val.u32val;
+		  break;
+	  case s32:
+		  retVal.val.s32val = arg1.val.s32val + arg2.val.s32val;
+		  break;
+	  case u64:
+		  retVal.val.u64val = arg1.val.u64val + arg2.val.u64val;
+		  break;
+	  case s64:
+		  retVal.val.s64val = arg1.val.s64val + arg2.val.s64val;
+		  break;
+	  case bit_flag:
+		  retVal.val.bitval = arg1.val.bitval + arg2.val.bitval;
+		  break;
+	  case sp_float:
+	  case dp_float:
+	  case s48:
+	  case u48:
+	  case m512:
+	  case dbl128:
+		  assert("Addition not implemented for floats or non-basic types!");
+		  retVal.defined = false;
+		  break;
+
+
+	  }
       return retVal;
     }    
 
