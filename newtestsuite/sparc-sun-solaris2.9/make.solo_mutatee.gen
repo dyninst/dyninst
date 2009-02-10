@@ -3299,6 +3299,14 @@ symtab_group_test.mutatee_solo_gcc_32_none: symtab_group_test_group_gcc_32_none.
 
 # Exceptional rules for mutatees compiled with gcc
 
+test6LS-sparc_gcc_32_none.o: ../src/dyninst/test6LS-sparc.S 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -P -Wa,-xarch=v8plus -o $@ -c ../src/dyninst/test6LS-sparc.S 
+test6LS-sparc_gcc_32_low.o: ../src/dyninst/test6LS-sparc.S 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -P -Wa,-xarch=v8plus -o $@ -c ../src/dyninst/test6LS-sparc.S 
+test6LS-sparc_gcc_32_high.o: ../src/dyninst/test6LS-sparc.S 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -P -Wa,-xarch=v8plus -o $@ -c ../src/dyninst/test6LS-sparc.S 
+test6LS-sparc_gcc_32_max.o: ../src/dyninst/test6LS-sparc.S 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -P -Wa,-xarch=v8plus -o $@ -c ../src/dyninst/test6LS-sparc.S 
 test1_1F_mutatee_solo_gcc_none.o: test1_1F_solo_me.c 
 	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_1F_solo_me.c 
 test1_2F_mutatee_solo_gcc_none.o: test1_2F_solo_me.c 

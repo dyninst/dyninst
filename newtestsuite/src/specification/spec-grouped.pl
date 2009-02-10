@@ -962,6 +962,12 @@ spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
     member(OFile, ['test6LS-sparc_gcc_32_none', 'test6LS-sparc_gcc_32_low',
                    'test6LS-sparc_gcc_32_high', 'test6LS-sparc_gcc_32_max']).
 
+spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
+                 ['-P -Wa,-xarch=v8plus']) :-
+    current_platform('sparc-sun-solaris2.9'),
+    member(OFile, ['test6LS-sparc_gcc_32_none', 'test6LS-sparc_gcc_32_low',
+                   'test6LS-sparc_gcc_32_high', 'test6LS-sparc_gcc_32_max']).
+
 spec_object_file(OFile, 'ibm_as', ['dyninst/test6LS-power.s'], [], [], []) :-
         current_platform(P),
         platform('power', 'aix', _, P),
