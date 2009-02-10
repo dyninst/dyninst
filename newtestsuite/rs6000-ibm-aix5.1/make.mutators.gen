@@ -843,5 +843,10 @@ endif
 
 
 # Create shared library names from the mutator test names
+dyninst_MUTATORS_SO += $(addsuffix .so,$(dyninst_MUTATORS))
+
+
+
+# Create shared library names from the mutator test names
 symtab_MUTATORS_SO += $(addsuffix .so,$(symtab_MUTATORS))
 

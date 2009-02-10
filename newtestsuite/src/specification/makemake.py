@@ -216,7 +216,6 @@ def print_mutators_list(out, mutator_dict, test_dict):
 		out.write("endif\n")
 		out.write("endif\n\n")
 
-
 	for m in module_set:
 		rest = """
 
@@ -224,7 +223,7 @@ def print_mutators_list(out, mutator_dict, test_dict):
 %s_MUTATORS_SO += $(addsuffix %s,$(%s_MUTATORS))
 
 """ % (m, LibSuffix, m)
-	out.write(rest)
+		out.write(rest)
 
        
 
