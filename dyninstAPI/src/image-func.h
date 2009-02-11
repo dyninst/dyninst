@@ -164,7 +164,7 @@ class image_basicBlock : public codeRange {
 
     struct compare {
         bool operator()(image_basicBlock * const &b1,
-                        image_basicBlock * const &b2) {
+                        image_basicBlock * const &b2) const {
             if(b1->firstInsnOffset() < b2->firstInsnOffset())
                 return true;
             if(b2->firstInsnOffset() < b1->firstInsnOffset())

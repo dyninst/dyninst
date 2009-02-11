@@ -869,7 +869,7 @@ void *image_func::getPtrToInstruction(Address addr) const {
     if (addr < getOffset()) return NULL;
     if (!parsed_) image_->analyzeIfNeeded();
     if (addr >= endOffset_) return NULL;
-    set<image_basicBlock*, image_basicBlock::compare>::iterator sit;
+    set<image_basicBlock*, image_basicBlock::compare>::const_iterator sit;
     for(sit = blockList.begin(); sit != blockList.end(); sit++) {
         void *ptr = (*sit)->getPtrToInstruction(addr);
         if (ptr) return ptr;

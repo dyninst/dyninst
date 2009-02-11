@@ -1355,10 +1355,15 @@ image_func * image_func::bindCallTarget(
             parsing_printf("[%s:%u] recursive parsing of 0x%lx failed\n",
                 FILE__,__LINE__,targetFunc->getOffset());
 
+            /* XXX Because of the enormous amount of references to functions
+                   created during parsing, it is not currently safe to
+                   delete image_func objects once they have been partially
+                   parsed. This needs a design-level fix.
             // only want to delete this function if FindOrCreateFunc
             // actually created one
             if(created) 
                 delete targetFunc;
+            */
             targetFunc = NULL;
         }
     }
