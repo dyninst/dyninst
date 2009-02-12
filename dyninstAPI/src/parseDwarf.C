@@ -2183,9 +2183,8 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
        if ((low >= 0xffffe000 && low < 0xfffff000) && 
 	       (eh_frame->page_start < 0xffff0000))
        {
-	     pc -= eh_frame->page_start;
 	     pc += 0xffffe000;
-	   }
+       }
 	 
      }
    }
