@@ -2157,6 +2157,13 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
    Dwarf_Half registr;
    dwarfEHFrame_t *eh_frame = (dwarfEHFrame_t *) ehf;	  
 
+   
+   Dwarf_Unsigned func_length, fde_byte_length;
+   Dwarf_Ptr fde_bytes;
+   Dwarf_Off cie_offset, fde_offset;
+   Dwarf_Signed cie_index;
+
+
    *error = false;
    registr = (Dwarf_Half) reg;
 
@@ -2165,6 +2172,23 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 	  pc -= eh_frame->page_start;
    }
 
+
+   result = dwarf_get_fde_n(eh_frame->fde_data, 0, &fde, &err);
+   if (result == DW_DLV_OK) {
+
+     result = dwarf_get_fde_range(fde, &low, &func_length, &fde_bytes, 
+                                  &fde_byte_length, &cie_offset, &cie_index, 
+				  &fde_offset, &err);
+     if (result == DW_DLV_OK) {
+       if ((low >= 0xffffe000 && low < 0xfffff000) && 
+	       (eh_frame->page_start < 0xffff0000))
+       {
+	     pc -= eh_frame->page_start;
+	     pc += 0xffffe000;
+	   }
+	 
+     }
+   }
    /**
     * Get the stack unwinding information by first reading the 
     * fde at the appropriate PC, then getting the specific 
