@@ -1,0 +1,131 @@
+dnl Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT(configure.in)
+
+AC_PROG_CXX(g++)
+AC_LANG(C++)
+
+
+dnl === CONFIGURE OPTIONS
+
+AC_ARG_WITH(package-base,
+	   [AS_HELP_STRING([--with-package-base],[Base directory to look for packages])],
+	   [PACKAGE_BASE="${withval}";],
+	   [PACKAGE_BASE="";])
+
+AC_ARG_WITH(tcl83,
+            [AS_HELP_STRING([--with-tcl83],[Use Tcl/Tk 8.3])],
+            [TCL_VERSION="tcl8.3"; USE_TCL83="${withval}";],
+            [TCL_VERSION="tcl8.4"; USE_TCL83="false";])
+AC_ARG_WITH(tcltk-incdir,
+            [AS_HELP_STRING([--with-tcltk-incdir],[TCL/TK include directory])],
+            [TCLTK_INC_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[TCLTK_INC_DIR="${PACKAGE_BASE}/tcl8.4.5/include"], [TCLTK_INC_DIR=""])])
+AC_ARG_WITH(tcltk-libdir,
+            [AS_HELP_STRING([--with-tcltk-libdir],[TCL/TK library directory])],
+            [TCLTK_LIB_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[TCLTK_LIB_DIR="${PACKAGE_BASE}/tcl8.4.5/lib"], [TCLTK_LIB_DIR=""])])
+
+PD_SOFT_CHECK_INC_DIR($TCLTK_INC_DIR, [tcl.h])
+PD_SOFT_CHECK_LIB_DIR($TCLTK_LIB_DIR,$TCL_VERSION,[Tcl_Eval])
+
+AC_SUBST(USE_TCL83)
+AC_SUBST(TCLTK_INC_DIR)
+AC_SUBST(TCLTK_LIB_DIR)
+
+AC_ARG_WITH(libelf-incdir,
+            [AS_HELP_STRING([--with-libelf-incdir],[LIBELF include directory])],
+            [LIBELF_INC_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBELF_INC_DIR="${PACKAGE_BASE}/libelf/include"], [LIBELF_INC_DIR=""])])
+AC_ARG_WITH(libelf-libdir,
+            [AS_HELP_STRING([--with-libelf-libdir],[LIBELF library directory])],
+            [LIBELF_LIB_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib"], [LIBELF_LIB_DIR=""])])
+
+PD_CHECK_INC_DIR($LIBELF_INC_DIR, [libelf.h])
+PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
+
+AC_SUBST(LIBELF_INC_DIR)
+AC_SUBST(LIBELF_LIB_DIR)
+
+AC_ARG_WITH(libdwarf-incdir,
+            [AS_HELP_STRING([--with-libdwarf-incdir],[LIBDWARF include directory])],
+            [LIBDWARF_INC_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBDWARF_INC_DIR="${PACKAGE_BASE}/libdwarf/include"], [LIBDWARF_INC_DIR=""])])
+
+AC_ARG_WITH(libdwarf-libdir,
+            [AS_HELP_STRING([--with-libdwarf-libdir],[LIBDWARF library directory])],
+            [LIBDWARF_LIB_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBDWARF_LIB_DIR="${PACKAGE_BASE}/libdwarf/lib"], [LIBDWARF_LIB_DIR=""])])
+
+PD_CHECK_INC_DIR($LIBDWARF_INC_DIR,[libdwarf.h])
+PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
+
+AC_SUBST(LIBDWARF_INC_DIR)
+AC_SUBST(LIBDWARF_LIB_DIR)
+
+AC_ARG_WITH(libxml2-incdir,
+            [AS_HELP_STRING([--with-libxml2-incdir],[LIBXML2 include directory])],
+            [LIBXML2_INC_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"], [LIBXML2_INC_DIR=""])])
+
+AC_ARG_WITH(libxml2-libdir,
+            [AS_HELP_STRING([--with-libxml2-libdir],[LIBXML2 library directory])],
+            [LIBXML2_LIB_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib"], [LIBXML2_LIB_DIR=""])])
+
+PD_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h])
+PD_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
+
+AC_SUBST(LIBXML2_INC_DIR)
+AC_SUBST(LIBXML2_LIB_DIR)
+
+AC_ARG_WITH(libunwind-incdir,
+            [AS_HELP_STRING([--with-libunwind-incdir],[LIBUNWIND include directory])],
+            [LIBUNWIND_INC_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBUNWIND_INC_DIR="${PACKAGE_BASE}/libunwind/include"], [LIBUNWIND_INC_DIR=""])])
+
+AC_ARG_WITH(libunwind-libdir,
+            [AS_HELP_STRING([--with-libunwind-libdir],[LIBUNWIND library directory])],
+            [LIBUNWIND_LIB_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBUNWIND_LIB_DIR="${PACKAGE_BASE}/libunwind/lib"], [LIBUNWIND_LIB_DIR=""])])
+
+AC_CANONICAL_HOST
+case $host in
+#     ia64-*-*-*) PD_CHECK_LIB_DIR(${LIBUNWIND_LIB_DIR}, [unwind], [ia64_read_only_reg]) ;;
+     ia64-*-*-*) PD_CHECK_INC_DIR(${LIBUNWIND_INC_DIR}, [libunwind.h]) ;;
+#     ia64-*-*-*) AC_CHECK_TYPE([unw_dyn_region_info_t], [], [AC_MSG_ERROR([cannot find unw_dyn_region_info_t in libunwind.h])], [${LIBUNWIND_INC_DIR}/libunwind.h]) ;;
+     *) ;;
+esac
+
+AC_SUBST(LIBUNWIND_INC_DIR)
+AC_SUBST(LIBUNWIND_LIB_DIR)
+
+AC_ARG_WITH(libflex-libdir,
+            [AS_HELP_STRING([--with-libflex-libdir],[Absolute path to flex library])],
+            [LIBFLEX_LIB_DIR="${withval}";],
+	   [AC_ARG_WITH(package-base,[],[LIBFLEX_LIB_DIR="${PACKAGE_BASE}/libflex/lib"],[LIBFLEX_LIB_DIR=""])])
+
+PD_CHECK_LIB_DIR(${LIBFLEX_LIB_DIR}, [fl], [yywrap])
+AC_SUBST(LIBFLEX_LIB_DIR)
+
+AC_PATH_PROG(NASM, nasm, "", "${PACKAGE_BASE}/nasm/bin:$PATH")
+AC_SUBST(NASM)
+
+
+AC_MSG_CHECKING([whether to use MM timer])
+case $host in
+     ia64-*-*-*) MMTIMER=true ;;
+     *)	   MMTIMER=false ;;
+esac
+AC_MSG_RESULT(${MMTIMER})
+AC_SUBST([MMTIMER])
+
+AC_CHECK_FILE("${PACKAGE_BASE}/papi-3.0.0-test/papi.c",
+	[PAPI_ROOT="${PACKAGE_BASE}/papi-3.0.0-test/"],
+	[PAPI_ROOT=""])
+
+AC_SUBST([PAPI_ROOT])
+AC_CONFIG_FILES([make.config.local:make.config.local.in ])
+AC_OUTPUT
