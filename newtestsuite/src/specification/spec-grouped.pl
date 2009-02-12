@@ -1352,11 +1352,6 @@ test_runmode('test_thread_3', 'createProcess').
 test_start_state('test_thread_3', 'stopped').
 tests_module('test_thread_3', 'dyninst').
 
-% test_thread_4 (formerly test12_5)
-% This test is disabled for all platforms via an #ifdef..
-test_description('test_thread_4', 'thread exit callback').
-tests_module('test_thread_4', 'dyninst').
-
 % test_thread_5 (formerly test12_8)
 mutator('test_thread_5', ['test_thread_5.C']).
 mutatee('test_thread_5', ['test_thread_5_mutatee.c'], ['test_thread.c']).
