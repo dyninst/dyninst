@@ -204,10 +204,9 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
 /* Architecture dependent parsing support methods       */
 /********************************************************/
 
-bool image_func::archCheckEntry( InstrucIter &ah, image_func *func )
+bool image_func::archCheckEntry( InstrucIter &ah, image_func * /*func*/ )
 {
     instruction insn = ah.getInstruction();
-    Address offset = *ah;
 
   // check if the entry point contains another point
   if (insn.isJumpDir()) 
