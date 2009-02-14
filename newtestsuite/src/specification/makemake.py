@@ -342,8 +342,10 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('SELFSTART, ')
 		if group['run_mode'] == 'createProcess':
 			out.write('CREATE, ')
-		else: # Assuming 'useAttach'
+		elif group['run_mode'] == 'useAttach':
 			out.write('USEATTACH, ')
+		else:
+			out.write('DISK, ')
 		if group['groupable'] == 'true':
 			out.write('false') # !groupable
 		else:

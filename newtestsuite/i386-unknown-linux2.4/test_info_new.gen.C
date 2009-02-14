@@ -3274,6 +3274,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_none", STOPPED, DISK, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_low", STOPPED, CREATE, false, "dyninst", "gcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
@@ -3355,6 +3360,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_low", STOPPED, DISK, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -3442,6 +3452,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_high", STOPPED, DISK, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_max", STOPPED, CREATE, false, "dyninst", "gcc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
@@ -3523,6 +3538,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_max", STOPPED, DISK, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #ifdef PGI
@@ -3610,6 +3630,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_pgcc_32_none", STOPPED, DISK, false, "dyninst", "pgcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -3703,6 +3730,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_pgcc_32_low", STOPPED, DISK, false, "dyninst", "pgcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: pgcc, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_pgcc_32_high", STOPPED, CREATE, false, "dyninst", "pgcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
@@ -3786,6 +3820,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_pgcc_32_high", STOPPED, DISK, false, "dyninst", "pgcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -3879,6 +3920,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icc_32_none", STOPPED, DISK, false, "dyninst", "icc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: icc, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_icc_32_low", STOPPED, CREATE, false, "dyninst", "icc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
@@ -3962,6 +4010,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: icc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: icc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: icc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icc_32_low", STOPPED, DISK, false, "dyninst", "icc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: icc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -4055,6 +4110,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icc_32_high", STOPPED, DISK, false, "dyninst", "icc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: icc, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_icc_32_max", STOPPED, CREATE, false, "dyninst", "icc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
@@ -4138,6 +4200,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: icc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: icc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: icc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icc_32_max", STOPPED, DISK, false, "dyninst", "icc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: icc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -4226,6 +4295,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_none", STOPPED, DISK, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_low", STOPPED, CREATE, false, "dyninst", "g++", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
@@ -4307,6 +4381,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_low", STOPPED, DISK, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -4394,6 +4473,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_high", STOPPED, DISK, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_max", STOPPED, CREATE, false, "dyninst", "g++", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
@@ -4475,6 +4559,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_max", STOPPED, DISK, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #ifdef PGI
@@ -4562,6 +4651,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgCC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_pgCC_32_none", STOPPED, DISK, false, "dyninst", "pgCC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: pgCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -4655,6 +4751,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_pgCC_32_low", STOPPED, DISK, false, "dyninst", "pgCC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: pgCC, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_pgCC_32_high", STOPPED, CREATE, false, "dyninst", "pgCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
@@ -4738,6 +4841,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgCC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_pgCC_32_high", STOPPED, DISK, false, "dyninst", "pgCC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: pgCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -4831,6 +4941,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icpc_32_none", STOPPED, DISK, false, "dyninst", "iCC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: iCC, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_icpc_32_low", STOPPED, CREATE, false, "dyninst", "iCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
@@ -4914,6 +5031,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: iCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: iCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: iCC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icpc_32_low", STOPPED, DISK, false, "dyninst", "iCC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: iCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5007,6 +5131,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icpc_32_high", STOPPED, DISK, false, "dyninst", "iCC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: iCC, run_mode: binary}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_icpc_32_max", STOPPED, CREATE, false, "dyninst", "iCC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
@@ -5090,6 +5221,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: iCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: iCC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: iCC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("dyninst_group_test.mutatee_solo_icpc_32_max", STOPPED, DISK, false, "dyninst", "iCC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: iCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)

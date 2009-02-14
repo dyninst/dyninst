@@ -103,7 +103,7 @@ TESTLIB_DLL_EXPORT void cleanPIDFile();
 
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);
-TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[], FILE *outlog, FILE *errlog);
+TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[], FILE *outlog, FILE *errlog, bool attach);
 TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
 TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len, int psize);
 TESTLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);

@@ -53,6 +53,9 @@
 class COMPLIB_DLL_EXPORT DyninstMutator : public TestMutator {
 public:
   BPatch_thread *appThread;
+  BPatch_addressSpace *appAddrSpace;
+  BPatch_binaryEdit *appBinEdit;
+  BPatch_process *appProc;
   // FIXME This field (appImage) probably isn't necessary.  It looks looks like
   // appImage is easily derivable from appThread.
   BPatch_image *appImage;
@@ -220,6 +223,15 @@ COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, const char *m
 COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
 
 COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
+
+COMPLIB_DLL_EXPORT BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group);
+
+COMPLIB_DLL_EXPORT bool runBinaryTest(BPatch *bpatch, RunGroup *group,
+                                      BPatch_binaryEdit *binEdit,
+                                      char *logfilename, char *humanlogname,
+                                      bool verboseFormat, bool printLabels,
+                                      int debugPrint, char *pidfilename,
+                                      test_results_t &test_result);
 
 // COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTestSet(BPatch *bpatch, char *pathname, 
 // 				   test_data_t tests[],

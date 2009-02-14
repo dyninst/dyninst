@@ -122,6 +122,7 @@ bool runAllCompilers = false;
 bool runDefaultStarts = true;
 bool runCreate = true;
 bool runAttach = false;
+bool runRewriter = false;
 bool useHumanLog = true;
 bool enableLogging = true;
 bool printLabels = false;
@@ -467,10 +468,11 @@ void executeTest(ComponentTester *tester,
 
 void disableUnwantedTests(std::vector<RunGroup *> groups)
 {
-   if (!runCreate || !runAttach) {
+   if (!runCreate || !runAttach || !runRewriter) {
       for (unsigned  i = 0; i < groups.size(); i++) {
-         if (((groups[i]->useAttach == CREATE) && runAttach) ||
-             ((groups[i]->useAttach == USEATTACH) && runCreate))
+         if (((groups[i]->useAttach == CREATE) && !runCreate) ||
+             ((groups[i]->useAttach == USEATTACH) && !runAttach) ||
+             ((groups[i]->useAttach == DISK) && !runRewriter))
          {
             for (unsigned j=0; j<groups[i]->tests.size(); j++)
                groups[i]->tests[j]->disabled = true;
@@ -1246,6 +1248,7 @@ int parseArgs(int argc, char *argv[])
          if (runDefaultStarts)
          {
             runCreate = false;
+            runRewriter = false;
          }
          runAttach = true;
          runDefaultStarts = false;
@@ -1255,8 +1258,19 @@ int parseArgs(int argc, char *argv[])
          if (runDefaultStarts)
          {
             runAttach = false;
+            runRewriter = false;
          }
          runCreate = true;
+         runDefaultStarts = false;
+      }
+      else if ( strcmp(argv[i], "-rewriter") == 0 )
+      {
+         if (runDefaultStarts)
+         {
+            runCreate = false;
+            runAttach = false;
+         }
+         runRewriter = true;
          runDefaultStarts = false;
       }
       else if (strcmp(argv[i], "-allmode") == 0)

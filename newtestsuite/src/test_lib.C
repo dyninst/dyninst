@@ -335,7 +335,7 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 // fails, this function returns -1.
 //
 int startNewProcessForAttach(const char *pathname, const char *argv[],
-                             FILE *outlog, FILE *errlog) {
+                             FILE *outlog, FILE *errlog, bool attach) {
 #if defined(os_windows_test)
    // TODO Fix Windows code to work with log file
 	LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
@@ -359,7 +359,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       for (int i = 1; argv[i] != NULL; i++) {
          strcat(child_args, " ");
          strcat(child_args, argv[i]);
-      }	    
+      }
       strcat(child_args, " -attach");
    }
 
@@ -430,9 +430,11 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 #else
    /* Make a pipe that we will use to signal that the mutatee has started. */
    int fds[2];
-   if (pipe(fds) != 0) {
-      fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
-      return -1;
+   if (attach) {
+      if (pipe(fds) != 0) {
+         fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+         return -1;
+      }
    }
 
    /* Create the argv string for the child process. */
@@ -447,14 +449,22 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 
    for (i = 0; argv[i] != NULL; i++)
       attach_argv[i] = argv[i];
-   attach_argv[i++] = const_cast<char*>("-attach");
-   attach_argv[i++] = fdstr;
+   if (attach)
+   {
+      attach_argv[i++] = const_cast<char*>("-attach");
+      attach_argv[i++] = fdstr;
+   }
    attach_argv[i++] = NULL;
-
-   int pid = fork_mutatee();
+   
+   int pid;
+   if (attach)
+      pid = fork_mutatee();
+   else 
+      pid = fork();
    if (pid == 0) {
       // child
-      close(fds[0]); // We don't need the read side
+      if (attach) 
+         close(fds[0]); // We don't need the read side
       if (outlog != NULL) {
          int outlog_fd = fileno(outlog);
          if (dup2(outlog_fd, 1) == -1) {
@@ -480,38 +490,39 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
    registerPID(pid);
 
    // parent
-   close(fds[1]);  // We don't need the write side
+   if (attach) {
+      close(fds[1]);  // We don't need the write side
+      
+      // Wait for the child to write to the pipe
+      char ch;
+      if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
+         perror("read");
+         fprintf(stderr, "*ERROR*: Error reading from pipe\n");
+         return -1;
+      }
 
-   // Wait for the child to write to the pipe
-   char ch;
-   if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
-      perror("read");
-      fprintf(stderr, "*ERROR*: Error reading from pipe\n");
-      return -1;
-   }
-
-   if (ch != 'T') {
-      fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
-      return -1;
-   }
+      if (ch != 'T') {
+         fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
+         return -1;
+      }
        
 #if defined( os_linux_test )
-   /* Random Linux-ism: it's possible to close the pipe before the 
-      mutatee returns from the write() system call matching the above
-      read().  In this case, rather than ignore the close() because the
-      write() is on its way out the kernel, Linux sends a SIGPIPE
-      to the mutatee, which causes us no end of trouble.  read()ing
-      an EOF from the pipe seems to alleviate this problem, and seems
-      more reliable than a sleep(1).  The condition test if we somehow
-      got any /extra/ bytes on the pipe. */
-   if( read( fds[0], & ch, sizeof( char ) ) != 0 ) {
-      fprintf(stderr, "*ERROR*: Shouldn't have read anything here.\n");
-      return -1;
-   }
+      /* Random Linux-ism: it's possible to close the pipe before the 
+         mutatee returns from the write() system call matching the above
+         read().  In this case, rather than ignore the close() because the
+         write() is on its way out the kernel, Linux sends a SIGPIPE
+         to the mutatee, which causes us no end of trouble.  read()ing
+         an EOF from the pipe seems to alleviate this problem, and seems
+         more reliable than a sleep(1).  The condition test if we somehow
+         got any /extra/ bytes on the pipe. */
+      if( read( fds[0], & ch, sizeof( char ) ) != 0 ) {
+         fprintf(stderr, "*ERROR*: Shouldn't have read anything here.\n");
+         return -1;
+      }
 #endif /* defined( os_linux_test ) */
-
-   close( fds[0] ); // We're done with the pipe
-
+      
+      close( fds[0] ); // We're done with the pipe
+   }
    return pid;
 #endif
 }
