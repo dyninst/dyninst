@@ -214,10 +214,14 @@ void BinaryEdit::deleteGeneratedCode(generatedCodeObject *del) {
     delete del;
 }
 
-BinaryEdit::BinaryEdit() : highWaterMark_(0) {
+BinaryEdit::BinaryEdit() : 
+   highWaterMark_(0),
+   memoryTracker_(NULL) 
+{
 }
 
-BinaryEdit::~BinaryEdit() {
+BinaryEdit::~BinaryEdit() 
+{
 }
 
 void BinaryEdit::deleteBinaryEdit() {
@@ -772,11 +776,13 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
 
     memoryTracker *newTracker = new memoryTracker(highWaterMark_, size);
     newTracker->alloced = true;
-    memoryTracker_ = new codeRangeTree();
+    if (!memoryTracker_)
+       memoryTracker_ = new codeRangeTree();
     memoryTracker_->insert(newTracker);
 
-    //inst_printf("  => New memory tracker at 0x%lx:  load=0x%lx  size=%d\n",
-            //newTracker->get_local_ptr(), highWaterMark_, size);
+    //printf("[%s:%u] - New memory tracker for %p at 0x%lx:  load=0x%lx  size=%d\n",
+    //__FILE__, __LINE__, this, 
+    //newTracker->get_local_ptr(), highWaterMark_, size);
 
     highWaterMark_ += size;
 
@@ -809,8 +815,9 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
            memoryTracker_ = new codeRangeTree();
         memoryTracker_->insert(newTracker);
 
-           //inst_printf("  => New memory tracker at 0x%lx:  load=0x%lx  size=%d  [%s]\n",
-                    //newTracker->get_local_ptr(), segs[i].loadaddr, segs[i].size, segs[i].name.c_str());
+        //printf("[%s:%u] - New memory tracker for %p at 0x%lx:  load=0x%lx  size=%d  [%s]\n",
+        //__FILE__, __LINE__, this,
+        //newTracker->get_local_ptr(), segs[i].loadaddr, segs[i].size, segs[i].name.c_str());
     }
 
     
