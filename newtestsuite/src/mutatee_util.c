@@ -334,6 +334,7 @@ void initDatabaseOutputDriver() {
       output->setTestName = dbSetTestName;
    } else {
       fprintf(stderr, "[%s:%u] - Out of memory allocating output object\n", __FILE__, __LINE__);
+      fprintf(stderr, "[%s:%u] - Exit here\n");
       exit(-1); /* This is very bad */
    }
 }
@@ -682,6 +683,7 @@ void log_testrun(char *testname)
    FILE *f = fopen(resumelog_name, "a");
    if (!f) {
       output->log(STDERR, "Could not write to resume log\n");
+      fprintf(stderr, "[%s:%u] - Exit here\n");
       exit(0);
    }
    
@@ -694,6 +696,7 @@ void log_testresult(int passed)
    FILE *f = fopen(resumelog_name, "a");
    if (!f) {
       output->log(STDERR, "Could not write to resume log\n");
+      fprintf(stderr, "[%s:%u] - Exit here\n");
       exit(0);
    }
    fprintf(f, "%d\n", passed ? 1 : 0);

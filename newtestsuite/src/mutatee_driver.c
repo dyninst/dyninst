@@ -209,6 +209,7 @@ int main(int iargc, char *argv[])
          /* Read the log file name so we can set it up later */
          if ((i + 1) >= argc) {
             output->log(STDERR, "Missing log file name\n");
+            fprintf(stderr, "[%s:%u] - Exit here\n");
             exit(-1);
          }
          i += 1;
@@ -219,6 +220,7 @@ int main(int iargc, char *argv[])
          if (++i >= argc) {
             output->log(STDERR, "attach usage\n");
             output->log(STDERR, "%s\n", USAGE);
+            fprintf(stderr, "[%s:%u] - Exit here\n");
             exit(-1);
          }
          pfd = atoi(argv[i]);
@@ -229,6 +231,7 @@ int main(int iargc, char *argv[])
 
          if (i + 1 >= argc) {
             output->log(STDERR, "-run must be followed by a test name\n");
+            fprintf(stderr, "[%s:%u] - Exit here\n");
             exit(-1);
          }
          i += 1;
@@ -246,6 +249,7 @@ int main(int iargc, char *argv[])
       } else if (!strcmp(argv[i], "-label")) {
          if (i + 1 >= argc) {
             output->log(STDERR, "-label must be followed by a label string\n");
+            fprintf(stderr, "[%s:%u] - Exit here\n");
             exit(-1);
          }
          i += 1;
@@ -256,6 +260,7 @@ int main(int iargc, char *argv[])
       } else if (!strcmp(argv[i], "-humanlog")) {
          if (i + 1 >= argc) {
             output->log(STDERR, "-humanlog must be followed by a file name or '-'\n");
+            fprintf(stderr, "[%s:%u] - Exit here\n");
             exit(-1);
          }
          i += 1;
@@ -263,6 +268,7 @@ int main(int iargc, char *argv[])
       } else if (strcmp(argv[i], "-pidfile") == 0) {
          if (i + 1 >= argc) {
             output->log(STDERR, "-pidfile must be followed by a file name\n");
+            fprintf(stderr, "[%s:%u] - Exit here\n");
             exit(-1);
          }
          has_pidfile = 1;
@@ -289,6 +295,7 @@ int main(int iargc, char *argv[])
       outlog = fopen(logfilename, "a");
       if (NULL == outlog) {
          output->log(STDERR, "Error opening log file %s\n", logfilename);
+         fprintf(stderr, "[%s:%u] - Exit here\n");
          exit(-1);
       }
       errlog = outlog;
@@ -308,6 +315,7 @@ int main(int iargc, char *argv[])
       char ch = 'T';
       if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
          output->log(STDERR, "*ERROR*: Writing to pipe\n");
+         fprintf(stderr, "[%s:%u] - Exit here\n");
          exit(-1);
       }
       close(pfd);
@@ -328,11 +336,13 @@ int main(int iargc, char *argv[])
 		   if(GetLastError() != ERROR_PIPE_BUSY)
 		   {
 			   output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+            fprintf(stderr, "[%s:%u] - Exit here\n");
 			   exit(-1);
 		   }
 		   if(!WaitNamedPipe(pipeName, 2000))
 		   {
 			   output->log(STDERR, "*ERROR*: Couldn't open pipe\n");
+            fprintf(stderr, "[%s:%u] - Exit here\n");
 			   exit(-1);
 		   }
 	   }
@@ -344,6 +354,7 @@ int main(int iargc, char *argv[])
 	   if(!wrote_ok ||(bytes_written != 1))
 	   {
 		   output->log(STDERR, "*ERROR*: Couldn't write to pipe\n");
+         fprintf(stderr, "[%s:%u] - Exit here\n");
 		   exit(-1);
 	   }
 	   CloseHandle(signalPipe);
