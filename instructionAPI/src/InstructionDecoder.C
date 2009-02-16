@@ -54,7 +54,7 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
     {
-      if(rawInstruction < bufferBegin || rawInstruction > bufferBegin + bufferSize) return Instruction();
+      if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction();
       vector<Expression::Ptr> operands;
       unsigned int decodedSize = decodeOpcode();
       decodeOperands(operands);

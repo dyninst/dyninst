@@ -161,7 +161,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return false;
+      return m_InsnOp.isRead(candidate);
     }
 
     INSTRUCTION_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
@@ -175,7 +175,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return false;
+      return m_InsnOp.isWritten(candidate);
     }
     
     INSTRUCTION_EXPORT bool Instruction::readsMemory() const

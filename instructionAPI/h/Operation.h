@@ -126,6 +126,8 @@ namespace Dyninst
       {
 		return operationID;
       }
+      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
       
 
     private:
