@@ -255,8 +255,10 @@ ifneq ($(wildcard ../src/instruction), )
 mutatees: $(instruction_SOLO_MUTATEES)
 mutatees_minimum: $(filter-out $(MINIMUM_BUILD_FILTER), $(instruction_SOLO_MUTATEES))
 mutators: $(instruction_MUTATORS_SO)
+ifneq ($(instruction_MUTATORS_SO), )
 components: $(LIBINSTRUCTIONCOMP)
 testlibs:
+endif
 endif
 
 install: all
