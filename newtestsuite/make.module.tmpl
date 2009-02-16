@@ -15,10 +15,12 @@ VPATH 	= ../src $(DEPENDDIR)
 DYNINST_INCDIR = -I../../dyninstAPI/h
 SYMTAB_INCDIR = -I../../symtabAPI/h
 DYNUTIL_INCDIR = -I../../dynutil/h
+INSTRUCTION_INCDIR = -I../../instructionAPI/h
 
 IFLAGS += $(DYNINST_INCDIR)
 IFLAGS += $(DYNUTIL_INCDIR)
 IFLAGS += $(SYMTAB_INCDIR)
+IFLAGS += $(INSTRUCTION_INCDIR)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
@@ -153,6 +155,23 @@ endif
 symtab_MUTATOR_LIB = $(LIBSYMTABCOMP)
 symtab_COMPONENT_LIB = $(LIBSYMTABCOMP)
 
+#######################################################
+# Instruction infrastructure components
+#######################################################
+SRCS_INSTRUCTIONCOMP_LIB = instruction/instruction_comp.C
+OBJS_INSTRUCTIONCOMP_LIB = $(notdir $(SRCS_INSTRUCTIONCOMP_LIB:%.C=%.o))
+instruction_MUTATOR_FLAGS = -L. -ltestinstruction -linstructionAPI -lcommon
+
+ifdef USE_LIBTESTSUITE_EXT_A
+LIBINSTRUCTIONCOMP = libtestinstruction.a
+else
+LIBINSTRUCTIONCOMP = libtestinstruction.so
+endif
+
+instruction_MUTATOR_LIB = $(LIBINSTRUCTIONCOMP)
+instruction_COMPONENT_LIB = $(LIBINSTRUCTIONCOMP)
+
+
 ######################################################################
 ### Main target
 ######################################################################
@@ -232,6 +251,14 @@ components: $(LIBSYMTABCOMP)
 testlibs:
 endif
 
+ifneq ($(wildcard ../src/instruction), )
+mutatees: $(instruction_SOLO_MUTATEES)
+mutatees_minimum: $(filter-out $(MINIMUM_BUILD_FILTER), $(instruction_SOLO_MUTATEES))
+mutators: $(instruction_MUTATORS_SO)
+components: $(LIBINSTRUCTIONCOMP)
+testlibs:
+endif
+
 install: all
 
 symlink: all
@@ -247,6 +274,8 @@ clean: clean_solo_mutatees
 	@$(RM) $(dyninst_SOLO_MUTATEES_native_cc)
 	@$(RM) $(symtab_MUTATORS_SO)
 	@$(RM) $(symtab_SOLO_MUTATEES)
+	@$(RM) $(instruction_MUTATORS_SO)
+	@$(RM) $(instruction_SOLO_MUTATEES)
 	@$(RM) $(OUTPUT_DRIVERS)
 	@$(RM) $(LIBDYNINSTCOMP)
 	@$(RM) $(LIBSYMTABCOMP)
@@ -287,6 +316,8 @@ $(dyninst_OBJS_ALL_MUTATORS): %.o : dyninst/%.C $(DEPENDDIR)/%.dep
 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/dyninst ../src/dyninst/$*.C
 $(symtab_OBJS_ALL_MUTATORS): %.o : symtab/%.C $(DEPENDDIR)/%.dep
 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/symtab ../src/symtab/$*.C
+$(instruction_OBJS_ALL_MUTATORS): %.o : instruction/%.C $(DEPENDDIR)/%.dep
+	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/instruction ../src/instruction/$*.C
 
 $(DYNINST_TESTLIBS): %.so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
@@ -318,6 +349,9 @@ $(OBJS_DYNINSTCOMP_LIB): %.o : ../src/dyninst/%.C $(DEPENDDIR)/%.dep
 $(OBJS_SYMTABCOMP_LIB): %.o : ../src/symtab/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
 
+$(OBJS_INSTRUCTIONCOMP_LIB): %.o : ../src/instruction/%.C $(DEPENDDIR)/%.dep
+	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
+
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
@@ -326,6 +360,9 @@ $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon
+
+$(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
+	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
@@ -448,6 +485,7 @@ DEPS_MUTATORS           += $(DEPENDDIR)/test_driver.dep
 DEPS_MUTATORS           += $(DEPENDDIR)/runTests.dep $(DEPENDDIR)/runTests-utils.dep
 DEPS_SYMTAB_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(symtab_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_DYNINST_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(dyninst_OBJS_ALL_MUTATORS:%.o=%.dep))
+DEPS_INSTRUCTION_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(instruction_OBJS_ALL_MUTATORS:%.o=%.dep))
 
 DEPS_MUTATEES_GCC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _gcc.dep, $(MUTATEES_C)))
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX)))
@@ -456,6 +494,7 @@ DEPS_DYNINST_TESTLIBS	= $(addprefix $(DEPENDDIR)/,$(DYNINST_TESTLIBS:%.so=%.dep)
 DEPS_LIBTESTSUITE        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTSUITE:%.C=%.dep))
 DEPS_DYNINSTCOMP       =  $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.dep)))
 DEPS_SYMTABCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.dep)))
+DEPS_INSTRUCTIONCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_INSTRUCTIONCOMP_LIB:%.C=%.dep)))
 
 ifdef M_G77
 DEPS_MUTATEES_G77	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g77.dep, $(MUTATEES_FORTRAN)))
@@ -498,6 +537,10 @@ $(DEPS_MUTATORS): $(DEPENDDIR)/%.dep : %.C
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 $(DEPS_SYMTAB_MUTATORS): $(DEPENDDIR)/%.dep : symtab/%.C
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+
+$(DEPS_INSTRUCTION_MUTATORS): $(DEPENDDIR)/%.dep : instruction/%.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
@@ -560,6 +603,10 @@ $(DEPS_DYNINSTCOMP): $(DEPENDDIR)/%.dep : dyninst/%.C
 $(DEPS_SYMTABCOMP): $(DEPENDDIR)/%.dep : symtab/%.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I../src -I../src/symtab $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+
+$(DEPS_INSTRUCTIONCOMP): $(DEPENDDIR)/%.dep : instruction/%.C
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) -I../src -I../src/instruction $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 # do not include dep files for "clean" targets
 ifneq ($(MAKECMDGOALS),clean)

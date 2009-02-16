@@ -3170,6 +3170,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.so", "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("", SELFSTART, CREATE, true, "dyninst", "", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_1", "test2_1", "test2_1.so", "{test: test2_1, mutator: test2_1, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;

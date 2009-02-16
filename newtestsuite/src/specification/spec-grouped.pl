@@ -58,7 +58,7 @@
 module('dyninst').
 module('symtab').
 module('stackwalker').
-module('instructionapi').
+module('instruction').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -2086,6 +2086,18 @@ test_runmode('test_anno_basic_types', 'createProcess').
 test_start_state('test_anno_basic_types', 'stopped').
 tests_module('test_anno_basic_types', 'symtab').
 
+% instructionAPI tests
+test('test_instruction_read_write', 'test_instruction_read_write', none).
+test_description('test_instruction_read_write', 'Tests the read & write sets of instructions.').
+test_platform('test_instruction_read_write', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('test_instruction_read_write', ['test_instruction_read_write.C']).
+test_runmode('test_instruction_read_write', 'createProcess').
+test_start_state('test_instruction_read_write', 'stopped').
+tests_module('test_instruction_read_write', 'instruction').
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}
@@ -2614,7 +2626,7 @@ all_mutators_require_libs(['iberty', 'testSuite']).
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
-module_required_libs('instructionapi', ['instructionAPI']).
+module_required_libs('instruction', ['instructionAPI']).
 
 module_requires_libs_internal([], Output, Output).
 module_requires_libs_internal([Module | Tail], Acc, Output) :-

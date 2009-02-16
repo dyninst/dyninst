@@ -75,6 +75,7 @@ DOCDIR	= ../doc
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
+	cp $(TO_INC)/*.h $(TO_CORE)/../include
 
 
 docs:

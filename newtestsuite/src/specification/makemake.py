@@ -974,7 +974,7 @@ def write_test_info_new_gen_nt(filename, tuplefile):
 	out.write(header)
 	modules = uniq(map(lambda t: t['module'], info['tests']))
 	for m in modules:
-		out.write("void initialize_mutatees_%s(std::vector<RunGroup *> &tests);" % m)
+		out.write("void initialize_mutatees_%s(std::vector<RunGroup *> &tests);\n" % m)
 	out.write("void initialize_mutatees(std::vector<RunGroup *> &tests) {")
 	for m in modules:
 		out.write("  initialize_mutatees_%s(tests);" % m)
@@ -982,6 +982,12 @@ def write_test_info_new_gen_nt(filename, tuplefile):
 	for m in modules:
 		print_initialize_mutatees_nt(out, filter(lambda g: group_ok_for_module(g, m) == 'true', rungroups), compilers, m)
 	out.close()
+
+def test_ok_for_module(test, module):
+	tests = info['tests']
+	if(len(filter (lambda t: t['name'] == test and t['module'] == module, tests)) > 0):
+		return 'true'
+	return 'false'
 
 def print_initialize_mutatees_nt(out, rungroups, compilers, module):
 # in visual studio 2003, exceeding 1920 'exception states' causes the compiler to crash.
@@ -1001,6 +1007,7 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 
 	rungroup_params = []
 	test_params = []
+	tests = info['tests']
 	# TODO Change these to get the string conversions from a tuple output
 	for group in rungroups:
 		compiler = info['compilers'][group['compiler']]
@@ -1023,11 +1030,12 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			ex = 'false'
 		else:
 			ex = 'true'
-		rungroup_params.append({'presencevar': presencevar, 'mutatee_name': mutatee_name, 'state_init': state_init, 
-			'attach_init': attach_init, 'ex': ex, 'compiler': group['compiler'], 'optimization': group['optimization'],
-			'abi': group['abi']})
 
+		group_empty = 'true'
 		for test in group['tests']:
+			if(test_ok_for_module(test, module) == 'false'):
+				continue
+			group_empty = 'false'
 			# Set the tuple string for this test
 			# (<test>, <mutatee compiler>, <mutatee optimization>, <create mode>)
 			# I need to get the mutator that this test maps to..
@@ -1035,6 +1043,10 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			ts = build_label(test, mutator, group)
 			test_params.append({'test': test, 'mutator': mutator, 'LibSuffix': LibSuffix, 'ts': ts, 'endrungroup': 'false'})
 		test_params[-1]['endrungroup'] = 'true'
+		if(group_empty == 'false'):
+			rungroup_params.append({'presencevar': presencevar, 'mutatee_name': mutatee_name, 'state_init': state_init, 
+				'attach_init': attach_init, 'ex': ex, 'compiler': group['compiler'], 'optimization': group['optimization'],
+				'abi': group['abi']})
 
 	body = """struct {
 
