@@ -308,11 +308,13 @@ void clearBinEditFiles()
 static bool cdBinDir()
 {
    assert(0); //IMPLEMENT ME
+   return false;
 }
 
 static bool cdBack()
 {
    assert(0); //IMPLEMENT ME
+   return false;
 }
 
 static void killWaywardChild(int)
@@ -323,6 +325,7 @@ static void killWaywardChild(int)
 static bool waitForCompletion(int, bool &, int &)
 {
    assert(0); //IMPLEMENT ME
+   return false;
 }
 #endif
 
