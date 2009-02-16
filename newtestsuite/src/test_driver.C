@@ -131,6 +131,7 @@ bool called_from_runTests = false;
 bool quietFormat = false;
 bool runDyninst = false;
 bool runSymtab = false;
+bool runInstruction = false;
 bool runAllComps = true;
 bool printMutateeLogHeader = false;
 bool measureMEMCPU = false;
@@ -506,7 +507,8 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
       for (unsigned  i = 0; i < groups.size(); i++) {
          if (!groups[i]->mod || 
              (!runDyninst && groups[i]->mod->name == std::string("dyninst")) ||
-             (!runSymtab && groups[i]->mod->name == std::string("symtab")))
+             (!runSymtab && groups[i]->mod->name == std::string("symtab")) ||
+	     (!runInstruction && groups[i]->mod->name == std::string("instruction")))
          {
             groups[i]->disabled = true;
          }
@@ -1305,10 +1307,16 @@ int parseArgs(int argc, char *argv[])
          runSymtab = true;
          runAllComps = false;
       }
+      else if (strcmp(argv[i], "-instruction") == 0)
+      {
+	runInstruction = true;
+	runAllComps = false;
+      }
       else if (strcmp(argv[i], "-allcomp") == 0)
       {
          runSymtab = true;
          runDyninst = true;
+	 runInstruction = true;
          runAllComps = true;
       }
       else if (strcmp(argv[i], "-max") == 0)

@@ -293,6 +293,14 @@ symtab_group_test_mutatee_solo_VC++_32_max.exe: symtab_group_test_group_VC++_32_
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 symtab_group_test_mutatee_solo_VC++_32_none.exe: symtab_group_test_group_VC++_32_none.obj test_lookup_func_mutatee_solo_VC++_32_none.obj test_lookup_var_mutatee_solo_VC++_32_none.obj test_anno_basic_types_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+######################################################################
+# Mutatees compiled with VC++ for instruction
+######################################################################
+
+instruction_SOLO_MUTATEES_native_cxx = 
+
+# Now a list of rules for compiling the mutatees with VC++
+
 
 # Generic rules for VC++'s mutatees and varying optimization levels
 test_thread_6_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -979,6 +987,25 @@ symtab_group_test_group_VC++_32_low.obj: ../i386-unknown-nt4.0/symtab_group_test
 %_VC++_32_low.obj: {../src/symtab/}%.C
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -Fo$@ $**
 
+
+# Generic rules for VC++'s mutatees and varying optimization levels
+%_VC++_32_high.obj: {../src/instruction/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -Fo$@ $**
+%_VC++_32_high.obj: {../src/instruction/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2 -Fo$@ $**
+%_VC++_32_max.obj: {../src/instruction/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -Fo$@ $**
+%_VC++_32_max.obj: {../src/instruction/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox -Fo$@ $**
+%_VC++_32_none.obj: {../src/instruction/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -Fo$@ $**
+%_VC++_32_none.obj: {../src/instruction/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c   -Fo$@ $**
+%_VC++_32_low.obj: {../src/instruction/}%.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -Fo$@ $**
+%_VC++_32_low.obj: {../src/instruction/}%.C
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1 -Fo$@ $**
+
 # Rules for building the driver and utility objects
 mutatee_driver_solo_VC++_32_high.obj: ../src/mutatee_driver.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) /O2  -Dsnprintf=_snprintf -Fo$@ -c $**
@@ -1260,6 +1287,14 @@ symtab_group_test_mutatee_solo_VC_32_max.exe: symtab_group_test_group_VC_32_max.
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 symtab_group_test_mutatee_solo_VC_32_none.exe: symtab_group_test_group_VC_32_none.obj test_lookup_func_mutatee_solo_VC_32_none.obj test_lookup_var_mutatee_solo_VC_32_none.obj test_anno_basic_types_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
+######################################################################
+# Mutatees compiled with VC for instruction
+######################################################################
+
+instruction_SOLO_MUTATEES_native_cc = 
+
+# Now a list of rules for compiling the mutatees with VC
+
 
 # Generic rules for VC's mutatees and varying optimization levels
 test_thread_6_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -1930,6 +1965,17 @@ symtab_group_test_group_VC_32_low.obj: ../i386-unknown-nt4.0/symtab_group_test_g
 %_VC_32_low.obj: {../src/symtab/}%.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -Fo$@ $**
 
+
+# Generic rules for VC's mutatees and varying optimization levels
+%_VC_32_high.obj: {../src/instruction/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2 -Fo$@ $**
+%_VC_32_max.obj: {../src/instruction/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox -Fo$@ $**
+%_VC_32_none.obj: {../src/instruction/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c   -Fo$@ $**
+%_VC_32_low.obj: {../src/instruction/}%.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1 -Fo$@ $**
+
 # Rules for building the driver and utility objects
 mutatee_driver_solo_VC_32_high.obj: ../src/mutatee_driver.c
 	$(M_native_cc) -TC $(CFLAGS) /O2  -Dsnprintf=_snprintf -Fo$@ -c $**
@@ -1979,4 +2025,24 @@ symtab_SOLO_MUTATEES = $(symtab_SOLO_MUTATEES_native_cxx) $(symtab_SOLO_MUTATEES
 ### when compiling the list of mutatees to test against
 COMPILER_CONTROL_DEFS =
 
-mutatees: $(dyninst_SOLO_MUTATEES) $(symtab_SOLO_MUTATEES) 
+# And a rule to build all of the mutatees
+.PHONY: instruction_solo_mutatees
+instruction_solo_mutatees: $(instructionSOLO_MUTATEES_native_cxx) $(instructionSOLO_MUTATEES_native_cc) 
+
+.PHONY: clean_solo_mutatees
+instruction_clean_solo_mutatees:
+	-$(RM) $(instruction_SOLO_MUTATEES_native_cxx)
+	-$(RM) $(instruction_SOLO_MUTATEES_native_cc)
+	-$(RM) *_none.obj
+	-$(RM) *_low.obj
+	-$(RM) *_high.obj
+	-$(RM) *_max.obj
+
+
+instruction_SOLO_MUTATEES = $(instruction_SOLO_MUTATEES_native_cxx) $(instruction_SOLO_MUTATEES_native_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+mutatees: $(dyninst_SOLO_MUTATEES) $(symtab_SOLO_MUTATEES) $(instruction_SOLO_MUTATEES) 
