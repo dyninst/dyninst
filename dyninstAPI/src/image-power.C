@@ -58,12 +58,18 @@
 #include "debug.h"
 #include "arch.h"
 
-// Not used on power
-bool image_func::archIsRealCall(InstrucIter & /* ah */,
-                bool &/*validTarget*/,
+bool image_func::archIsRealCall(InstrucIter &ah,
+                bool &validTarget,
                 bool & /*simulateJump*/)
 {   
-    return true;
+    Address callTarget;
+
+    if(ah.isADynamicCallInstruction())
+        return true;
+
+    callTarget = ah.getBranchTargetAddress();
+    validTarget = img()->isValidAddress( callTarget );
+    return validTarget;
 }
 
 bool image_func::archCheckEntry(InstrucIter &ah, image_func * /* func */)
@@ -643,7 +649,7 @@ void image_func::calcUsedRegs()
    return;
 }
 
-bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
+bool image_func::archIsIPRelativeBranch(InstrucIter& /* ah */)
 {
   return false;
 }

@@ -744,7 +744,10 @@ bool InstrucIter::isAReturnInstruction()
 #if defined(os_linux)   // not sure if this is safe on AIX, yet
      // Bernat, 9JUL07. A linking branch-to-link-register is
      // unlikely to be a return instruction.
-     && !((*i).xlform.lk)
+     //
+     // nater 16FEB09 unless the instruction hint indicates subroutine return
+     //               (BH is low 2 bits of BB in XL-FORM)
+     && (!((*i).xlform.lk) || !((*i).xlform.bb & 3))
 #endif
      )
     return true;
