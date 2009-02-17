@@ -118,6 +118,11 @@ namespace Dyninst
         }
         return m_Operands[index];
      }
+
+    INSTRUCTION_EXPORT unsigned char Instruction::rawByte(unsigned int index) const
+    {
+      return m_RawInsn[index];
+    }
     
     INSTRUCTION_EXPORT size_t Instruction::size() const
     {

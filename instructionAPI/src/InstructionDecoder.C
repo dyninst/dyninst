@@ -114,7 +114,6 @@ namespace Dyninst
 	break;
       case op_d:
 	return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
-      case op_si:
       case op_w:
 	return Expression::Ptr(new Immediate(Result(s16, *(const word_t*)(rawInstruction + position))));
 	break;
@@ -135,8 +134,33 @@ namespace Dyninst
 	}
 	
 	break;
+      case op_p:
+	// 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
+	// 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
+	if(is32BitMode ^ sizePrefixPresent)
+	{
+	  return Expression::Ptr(new Immediate(Result(s48, *(const int64_t*)(rawInstruction + position))));
+	}
+	else
+	{
+	  return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
+	}
+	
+	break;
+      case op_a:
+      case op_dq:
+      case op_pd:
+      case op_ps:
+      case op_s:
+      case op_si:
+      case op_lea:
+      case op_allgprs:
+      case op_512:
+      case op_c:
+	assert(!"Can't happen: opType unexpected for valid ways to decode an immediate");
+	return Expression::Ptr();
       default:
-	assert(!"FIXME: Unimplemented opType");
+	assert(!"Can't happen: opType out of range");
 	return Expression::Ptr();
       }
     }
@@ -288,7 +312,8 @@ namespace Dyninst
 	return;
       case am_A:
 	{
-	  Expression::Ptr addr(decodeImmediate(operand.optype, locs->disp_position));
+	  // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
+	  Expression::Ptr addr(decodeImmediate(operand.optype, 1));
 	  Expression::Ptr op(new Dereference(addr, makeSizeType(operand.optype)));
 	  outputOperands.push_back(op);
 	}

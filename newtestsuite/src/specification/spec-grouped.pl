@@ -2098,6 +2098,17 @@ test_runmode('test_instruction_read_write', 'createProcess').
 test_start_state('test_instruction_read_write', 'stopped').
 tests_module('test_instruction_read_write', 'instruction').
 
+test('test_instruction_farcall', 'test_instruction_farcall', none).
+test_description('test_instruction_farcall', 'Tests decoding of far call instructions.').
+test_platform('test_instruction_farcall', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('test_instruction_farcall', ['test_instruction_farcall.C']).
+test_runmode('test_instruction_farcall', 'createProcess').
+test_start_state('test_instruction_farcall', 'stopped').
+tests_module('test_instruction_farcall', 'instruction').
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}
