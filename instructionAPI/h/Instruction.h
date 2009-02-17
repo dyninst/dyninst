@@ -115,7 +115,7 @@ namespace Dyninst
   
       /// Returns a pointer to the buffer from which this instruction
       /// was decoded.
-      INSTRUCTION_EXPORT const unsigned char* rawInsn() const;
+      INSTRUCTION_EXPORT unsigned char rawByte(unsigned int index) const;
 
       /// Returns the size of the corresponding machine instruction, in bytes.
       INSTRUCTION_EXPORT size_t size() const;

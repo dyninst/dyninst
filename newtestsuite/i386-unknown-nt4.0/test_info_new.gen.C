@@ -1384,7 +1384,8 @@ struct {
     char* compiler;
     char* optimization;
     char* abi;
-  } rungroup_params[] = { {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"} };
+  } rungroup_params[] = { {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"},
+ {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"} };
 
   struct {
     bool endrungroup;
@@ -1392,10 +1393,11 @@ struct {
     const char * mrname;
     const char * isoname;
     const char * ilabel;
-  } test_params[] = { {true, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.dll", "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
+  } test_params[] = { {true, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.dll", "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
+ {true, "test_instruction_farcall", "test_instruction_farcall", "test_instruction_farcall.dll", "{test: test_instruction_farcall, mutator: test_instruction_farcall, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 1; i++) {
+  for (int i = 0; i < 2; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
@@ -1404,7 +1406,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].ilabel));
-    } while (tp_index < 1 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 2 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

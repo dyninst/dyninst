@@ -173,10 +173,10 @@ namespace Dyninst
 	  val.bitval = (v != 0) ? 1 : 0;
 	  break;
 	case u48:
-	  val.u48val = (uint64_t)(v);
+	  val.u48val = (uint64_t)(v & 0x0000FFFFFFFFFFFFLL);
 	  break;
 	case s48:
-	  val.s48val = (int64_t)(v);
+	  val.s48val = (int64_t)(v & 0x0000FFFFFFFFFFFFLL);
 	  break;
 	case m512:
           val.m512val = (void *) v;
