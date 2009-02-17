@@ -125,8 +125,8 @@ bool miniTramp::uninstrument() {
     // is made... which should only happen when the memory is freed.
     // Place it on the list to be deleted.
     topDownDelete_ = true;
-    for (unsigned i = 0; i < instances.size(); i++)
-        instances[i]->removeCode(NULL);
+    for (int i = instances.size() ; i > 0 ; i--)
+        instances[i-1]->removeCode(NULL);
     // When all instances are successfully deleted, the miniTramp
     // will be deleted as well.
     
