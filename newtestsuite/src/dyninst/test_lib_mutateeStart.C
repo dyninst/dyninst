@@ -122,9 +122,8 @@ static const char** parseArgs(RunGroup *group,
                               int debugPrint, char *pidfilename)
 {
    std::vector<std::string> mutateeArgs;
-   getOutput()->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
+   getOutput()->getMutateeArgs(mutateeArgs); // mutateeArgs is an output parameter
    const char **child_argv = new const char *[12 + (4 * group->tests.size()) +
-
                                               mutateeArgs.size()];
    assert(child_argv);
    int n = 0;
@@ -163,7 +162,7 @@ static const char** parseArgs(RunGroup *group,
       child_argv[n++] = const_cast<char *>("-print-labels");
    }
    for (int i = 0; i < mutateeArgs.size(); i++) {
-      child_argv[n++] = mutateeArgs[i].c_str();
+      child_argv[n++] = strdup(mutateeArgs[i].c_str());
    }
    child_argv[n] = NULL;   
 
