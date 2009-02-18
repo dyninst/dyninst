@@ -19,12 +19,12 @@ struct struct26_2 {
     int field3[10];
     struct struct26_1 field4;
 };
-
+#if !defined(os_windows_test) // make GCC emit type information correctly
 struct test1_27_type1_t {
     /* void *field27_11; */
     int field27_11;
     float field27_12;
-} ;
+};
 
 typedef struct test1_27_type1_t test1_27_type1;
 
@@ -48,7 +48,29 @@ struct test1_27_type4_t {
 } ;
 
 typedef struct test1_27_type4_t test1_27_type4;
+#else // Make VC2003 emit type information correctly
+typedef struct {
+    /* void *field27_11; */
+    int field27_11;
+    float field27_12;
+} test1_27_type1;
 
+typedef struct {
+    /* void *field27_21; */
+    int field27_21;
+    float field27_22;
+} test1_27_type2;
+
+typedef struct {
+    int field3[10];
+    struct struct26_2 field4;
+} test1_27_type3;
+
+typedef struct {
+    int field3[10];
+    struct struct26_2 field4;
+} test1_27_type4;
+#endif
 /* need this variables or some compilers (AIX xlc) will removed unused
    typedefs - jkh 10/13/99 */
 test1_27_type1 test1_27_dummy1;

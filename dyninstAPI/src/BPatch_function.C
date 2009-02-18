@@ -633,7 +633,7 @@ bool BPatch_function::findVariableInt(const char *name,
    if (!var) return false;
    
    vars.push_back(var);
-   return ret;   
+   return true;   
 }
 
 

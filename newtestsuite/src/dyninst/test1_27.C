@@ -97,7 +97,7 @@ test_results_t test1_27_Mutator::executeTest() {
       return FAILED;
    }
 
-   if (!type27_3->isCompatible(type27_3)) {
+   if (!type27_3->isCompatible(type27_4)) {
       logerror("**Failed** test #27 (type compatibility)\n");
       logerror("    test1_27_type3 reported as incompatible with test1_27_type4\n");
       return FAILED;

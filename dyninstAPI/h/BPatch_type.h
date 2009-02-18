@@ -343,8 +343,8 @@ public:
   const char *getLow() const;
   const char *getHigh() const;
   BPatch_Vector<BPatch_field *> * getComponents() const;
-  bool isCompatible(BPatch_type * /* otype */);
-  bool isCompatibleInt(BPatch_type * /* otype */);
+  API_EXPORT(Int, (otype),
+	bool, isCompatible, (BPatch_type * otype));
   BPatch_type *getConstituentType() const;
   BPatch_Vector<BPatch_cblock *> *getCblocks() const;
 
