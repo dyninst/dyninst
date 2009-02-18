@@ -19,7 +19,8 @@ struct struct26_2 {
     int field3[10];
     struct struct26_1 field4;
 };
-#if !defined(os_windows_test) // make GCC emit type information correctly
+#if !defined(os_windows_test) 
+/* make GCC emit type information correctly */
 struct test1_27_type1_t {
     /* void *field27_11; */
     int field27_11;
@@ -48,7 +49,8 @@ struct test1_27_type4_t {
 } ;
 
 typedef struct test1_27_type4_t test1_27_type4;
-#else // Make VC2003 emit type information correctly
+#else 
+/* Make VC2003 emit type information correctly */
 typedef struct {
     /* void *field27_11; */
     int field27_11;
