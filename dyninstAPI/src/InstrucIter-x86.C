@@ -528,6 +528,17 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   }
   jumpTable += tableOffsetFromThunk;
   parsing_printf("\tjumpTable revised to 0x%lx\n",jumpTable);
+	// On Windows, all of our other addresses have had the base address
+  // of their module subtracted off before we ever use them.  We need to fix this up
+  // to conform to that standard so that Symtab actually believes that there's code
+  // at the table's destination.
+#if defined(os_windows)
+  image* img = dynamic_cast<image*>(instructions_);
+  if(img)
+  {
+	  jumpTable -= img->getObject()->getLoadOffset();
+  }
+#endif
   if( !instructions_->isValidAddress(jumpTable) )
   {
     // If the "jump table" has a start address that is outside
@@ -541,8 +552,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   for(unsigned int i=0;i<maxSwitch;i++)
   {
     Address tableEntry = jumpTable + (i * addrWidth);
-    int jumpAddress = 0;
-  
+    Address jumpAddress = 0;
     
     if(instructions_->isValidAddress(tableEntry))
     {
@@ -555,6 +565,13 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
             jumpAddress = *(const int *)instructions_->getPtrToInstruction(tableEntry);
         }
     }
+#if defined(os_windows)
+  image* img = dynamic_cast<image*>(instructions_);
+  if(img)
+  {
+	  jumpAddress -= img->getObject()->getLoadOffset();
+  }
+#endif
     if (!instructions_->isExecutableAddress(jumpAddress)) {
         parsing_printf("\tentry %d [0x%lx] -> 0x%x, invalid, skipping\n",
                        i, tableEntry, jumpAddress);
@@ -563,14 +580,11 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 
     parsing_printf("\tentry %d [0x%lx] -> 0x%x\n",i,tableEntry,jumpAddress);
 
-    if (instructions_->isExecutableAddress(jumpAddress))
+    if(tableOffsetFromThunk)
     {
-      if(tableOffsetFromThunk)
-      {
-	jumpAddress += tableOffsetFromThunk;
-      }
-      result += jumpAddress;
+		jumpAddress += tableOffsetFromThunk;
     }
+    result += jumpAddress;
     
   }
   return true;
