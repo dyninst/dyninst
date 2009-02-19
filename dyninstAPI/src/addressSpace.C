@@ -1519,11 +1519,11 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
    {
       //Get the multiple functions from the image block, convert to
       // int_functions and return them.
-      pdvector<image_func *> img_funcs;
-      img_block->getFuncs(img_funcs);
+      const set<image_func *> & img_funcs = img_block->getFuncs();
       assert(img_funcs.size());
-      for (unsigned i=0; i<img_funcs.size(); i++) {
-         int_func = findFuncByInternalFunc(img_funcs[i]);
+      set<image_func *>::const_iterator fit = img_funcs.begin();
+      for( ; fit != img_funcs.end(); ++fit) {
+         int_func = findFuncByInternalFunc(*fit);
          funcs.push_back(int_func);
       }
       return true;

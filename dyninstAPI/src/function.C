@@ -658,13 +658,13 @@ void int_function::getStaticCallers(pdvector< int_function * > &callers)
     for (unsigned i = 0; i < ib_ins.size(); i++) {
         if(ib_ins[i]->getType() == ET_CALL)
         {   
-            pdvector< image_func * > ifuncs;
-            ib_ins[i]->getSource()->getFuncs(ifuncs);
-            
-            for(unsigned k=0;k<ifuncs.size();k++)
+            const set<image_func *> & ifuncs = 
+                ib_ins[i]->getSource()->getFuncs();
+            set<image_func *>::const_iterator ifit = ifuncs.begin();
+            for( ; ifit != ifuncs.end(); ++ifit)
             {   
                 int_function * f;
-                f = obj()->findFunction(ifuncs[k]);
+                f = obj()->findFunction(*ifit);
                 
                 callers.push_back(f);
             }
@@ -1179,11 +1179,10 @@ bool int_function::getSharingFuncs(int_basicBlock *b,
     if(!b->hasSharedBase())
         return ret;
 
-    pdvector<image_func *> lfuncs;
-
-    b->llb()->getFuncs(lfuncs);
-    for(unsigned i=0;i<lfuncs.size();i++) {
-        image_func *ll_func = lfuncs[i];
+    const set<image_func *> & lfuncs = b->llb()->getFuncs();
+    set<image_func *>::const_iterator fit = lfuncs.begin();
+    for( ; fit != lfuncs.end(); ++fit) {
+        image_func *ll_func = *fit;
         int_function *hl_func = obj()->findFunction(ll_func);
         assert(hl_func);
 

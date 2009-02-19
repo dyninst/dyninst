@@ -363,7 +363,7 @@ image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
     containsCall_(false),
     canBeRelocated_(true)
 { 
-    funcs_.push_back(func);
+    funcs_.insert(func);
     // basic block IDs are unique within images.
     blockNumber_ = func->img()->getNextBlockID();
 #if defined(ROUGH_MEMORY_PROFILE)
@@ -441,9 +441,6 @@ image_basicBlock * image_basicBlock::split(Address loc, image_func *succ_func)
 }
 
 // Split this basic block at the start address of newBlk.
-// This method must never be called with a basic block
-// argument which contains more than one function object
-// in its funcs_ vector.
 void image_basicBlock::split(image_basicBlock * &newBlk)
 {
     Address loc;
@@ -472,17 +469,18 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     existing = newBlk->getFirstFunc();
     parsing_printf("... newBlk->getFirstFunc() location: 0x%lx\n",
         (existing ? existing->getOffset() : 0));
-    for(unsigned int i=0;i<funcs_.size();i++)
+    set<image_func *>::iterator fit = funcs_.begin();
+    for( ; fit != funcs_.end(); ++fit)
     {
-        if(funcs_[i] != existing && funcs_[i]->parsed())
+        if(*fit != existing && (*fit)->parsed())
         {
             parsing_printf("... adding func at 0x%lx to newBlk\n",
-                funcs_[i]->getOffset());
+                (*fit)->getOffset());
 
             // tell the functions they own newBlk
-            funcs_[i]->addToBlocklist(newBlk);
+            (*fit)->addToBlocklist(newBlk);
             // tell newBlk it's owned by the functions
-            newBlk->addFunc(funcs_[i]);
+            newBlk->addFunc(*fit);
         }
     }
 
@@ -683,6 +681,22 @@ bool image_func::addBasicBlock(Address newAddr,
     else
         addEdge(oldBlock,newBlk,edgeType);
 
+    // All co-owners of oldBlock will need to continue
+    // shared-code parsing from newBlk on
+    if(newBlk->isStub_ && oldBlock->isShared_) {
+        set<image_func *>::iterator fit = oldBlock->funcs_.begin();
+        for( ; fit != oldBlock->funcs_.end(); ++fit) {
+            if(*fit != this) {
+                img()->reparse_shared.push_back(
+                    pair<image_basicBlock *, image_func *>(newBlk,*fit));
+                parsing_printf("[%s:%u] queueing shared-code cont. of %s "
+                               "at 0x%lx\n",FILE__,__LINE__,
+                               (*fit)->symTabName().c_str(),
+                               newBlk->firstInsnOffset_);
+            }
+        }
+    }
+
     leadersToBlock[newAddr] = newBlk;
     leaders += newAddr;
 
@@ -830,30 +844,16 @@ void image_func::checkCallPoints() {
 
 void image_basicBlock::addFunc(image_func * func)
 {
-    /* enforced elsewhere; uncomment to debug
-    for(unsigned i=0;i<funcs_.size(); ++i) {
-        //assert(funcs_[i] != func);
-        if(funcs_[i] == func) {
-            fprintf(stderr,"duplicate function in addFunc\n");
-            assert(0);
-        }
-    }
-    */
-
-    funcs_.push_back(func);
-
-    if(funcs_.size() > 0)
+    // This should be faster than checking funcs_.size(), which is O(N)
+    if(!isShared_ && !funcs_.empty() && *funcs_.begin() != func)
         isShared_ = true;
+        
+    funcs_.insert(func);
 }
 
 bool image_basicBlock::containedIn(image_func * f)
 {
-    for(unsigned i=0;i<funcs_.size();i++)
-    {
-        if(funcs_[i] == f)
-            return true;
-    }
-    return false;
+    return funcs_.find(f) != funcs_.end();
 }
 
 void *image_basicBlock::getPtrToInstruction(Address addr) const {
@@ -879,45 +879,35 @@ void *image_func::getPtrToInstruction(Address addr) const {
 
 image_instPoint * image_basicBlock::getCallInstPoint()
 {
-    pdvector< image_instPoint * > calls;
-
-    if(!containsCall_ || funcs_.size() == 0)
+    if(!containsCall_ || funcs_.empty())
         return NULL;
 
-    // every function that this block belongs to should have exactly
-    // one call instPoint within this block's range. Select an arbitrary
+    // every function that this block belongs to should have one or
+    // zero call instPoints within this block's range. Select an arbitrary
     // function.
 
-    for(unsigned int j=0;j<funcs_.size();j++)
-    {
-        calls = funcs_[j]->funcCalls();
-        for(unsigned int i=0;i<calls.size();i++)
-        {
-            if(calls[i]->offset_ >= firstInsnOffset_ &&
-               calls[i]->offset_ <= lastInsnOffset_)
-                return calls[i]; 
-        } 
+    image_func * f = *funcs_.begin();
+    const pdvector<image_instPoint *> & calls = f->funcCalls();
+    for(unsigned i=0;i<calls.size();++i) {
+        if(calls[i]->offset_ >= firstInsnOffset_ &&
+           calls[i]->offset_ <= lastInsnOffset_)
+            return calls[i]; 
     }
-       
+
     return NULL;
 }
 
 image_instPoint * image_basicBlock::getRetInstPoint()
 {
-    pdvector< image_instPoint * > rets;
-
-    if(!containsRet_ || funcs_.size() == 0)
+    if(!containsRet_ || funcs_.empty())
         return NULL;
 
-    for(unsigned int j=0;j<funcs_.size();j++)
-    {
-        rets = funcs_[j]->funcExits();
-        for(unsigned int i=0;i<rets.size();i++)
-        {
-            if(rets[i]->offset_ >= firstInsnOffset_ &&
-               rets[i]->offset_ <= lastInsnOffset_)
-                return rets[i];
-        } 
+    image_func * f = *funcs_.begin();
+    const pdvector<image_instPoint *> & rets = f->funcExits();
+    for(unsigned i=0;i<rets.size();++i) {
+        if(rets[i]->offset_ >= firstInsnOffset_ &&
+           rets[i]->offset_ <= lastInsnOffset_)
+            return rets[i]; 
     }
 
     return NULL;
@@ -937,29 +927,23 @@ bool image_basicBlock::isEntryBlock(image_func * f) const
     if(!isEntryBlock_)
         return false;
 
-    for(unsigned i=0;i<funcs_.size();i++)
-    {
-        if(funcs_[i] == f && f->entryBlock() == this)
-            return true;
-    }
-
-    return false;
+    return f->entryBlock() == this;
 } 
 
 image_func *image_basicBlock::getEntryFunc() const {
-  for (unsigned i = 0; i < funcs_.size(); i++) {
-    if (funcs_[i]->entryBlock() == this)
-      return funcs_[i];
-  }
-  return NULL;
+    set<image_func*>::iterator fit = funcs_.begin();
+    for( ; fit != funcs_.end(); ++fit) {
+        if((*fit)->entryBlock() == this)
+            return *fit;
+    }
+
+    return NULL;
 }
 
-void image_basicBlock::getFuncs(pdvector<image_func *> &funcs) const
+const set<image_func *> &
+image_basicBlock::getFuncs(void) const
 {
-    for(unsigned i=0; i < funcs_.size(); i++)
-    {
-        funcs.push_back(funcs_[i]);
-    }
+    return funcs_;
 }
 
 image_basicBlock * image_func::entryBlock() { 
