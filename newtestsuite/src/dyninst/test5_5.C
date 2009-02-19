@@ -139,9 +139,28 @@ test_results_t test5_5_Mutator::executeTest() {
       return FAILED;
    }
    
+   /*
+   
+   logerror (" fields.size () is %d \n", fields->size());
+
+   for(unsigned j = 0; j < fields->size() ; j++) {
+      logerror (" field %d name %s \n", j, (*fields)[j]->getName());
+   }
+
+   */
+
    unsigned int index = 0;
    while ( index < fields->size() ) {
       if (!strcmp("class_variable", (*fields)[index]->getName()) ) {
+
+ 	BPatch_Vector<BPatch_function *> bpfv4;
+	char *fn4 = "namespace_test::namespace_test";
+	if (NULL == appImage->findFunction(fn4, bpfv4) || !bpfv4.size()
+	    || NULL == bpfv4[0]){
+	  logerror("**Failed** test #5 (namespace)\n");
+	  logerror("    Unable to find constructor %s\n", fn4);
+	  return FAILED;
+	}
 
 	BPatch_Vector<BPatch_function *> bpfv2;
 	char *fn3 = "namespace_test::pass";
