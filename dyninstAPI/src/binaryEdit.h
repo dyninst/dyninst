@@ -151,10 +151,15 @@ class BinaryEdit : public AddressSpace {
 
    bool getAllDependencies(std::queue<std::string> &deps);
 
+   void markDirty();
+   bool isDirty();
+
+   mapped_object *getMappedObject();
  private:
 
     Address highWaterMark_;
     Address lowWaterMark_;
+    bool isDirty_;
 
     static bool getStatFileDescriptor(const std::string &file,
                                       fileDescriptor &desc);
