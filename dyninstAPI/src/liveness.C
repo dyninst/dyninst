@@ -288,7 +288,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
 
     #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
-    
+    Address current = firstInsnOffset();
     InstructionDecoder decoder(reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())), 
 			       getSize());
     Instruction curInsn = decoder.decode();
@@ -297,13 +297,20 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       std::set<RegisterAST::Ptr> cur_read, cur_written;
       curInsn.getReadSet(cur_read);
       curInsn.getWriteSet(cur_written);
+      liveness_printf("Read registers: ");
+      
       for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); i != cur_read.end(); i++) {
-	  read[convertRegID(IA32Regs((*i)->getID()))] = true;
+	liveness_printf("%s ", (*i)->format().c_str());
+	read[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
+      liveness_printf("\nWritten registers: ");
+      
       for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
 	   i != cur_written.end(); i++) {
+	liveness_printf("%s ", (*i)->format().c_str());
 	written[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
+      liveness_printf("\n");
       entryID cur_op = curInsn.getOperation().getID();
       if(cur_op == e_call)
       {
@@ -332,11 +339,13 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       // And if written, then was defined
       def |= written;
       
-      //liveness_printf("%s[%d] After instruction at address 0x%lx:\n", FILE__, __LINE__, );
+      liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n", FILE__, __LINE__, curInsn.format().c_str(), current);
+      
       liveness_cerr << read << endl << written << endl << use << endl << def << endl;
       
       read.reset();
       written.reset();
+      current += curInsn.size();
       curInsn = decoder.decode();
     }
 #else    

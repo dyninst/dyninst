@@ -531,7 +531,77 @@ namespace Dyninst
 	}
 	break;
       case am_reg:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(operand.optype)));
+	{
+	  int registerID = operand.optype;
+	  
+#if defined(arch_x86_64)
+	if(locs->rex_b)
+	{
+	  // We need to flip this guy...
+	  switch(registerID)
+	  {
+	  case r_AL:
+	  case r_rAX:
+	  case r_eAX:
+	  case r_EAX:
+	  case r_AX:
+	    registerID = r_R8;
+	    break;
+	  case r_CL:
+	  case r_rCX:
+	  case r_eCX:
+	  case r_ECX:
+	    registerID = r_R9;
+	    break;
+	  case r_DL:
+	  case r_rDX:
+	  case r_eDX:
+	  case r_EDX:
+	  case r_DX:
+	    registerID = r_R10;
+	    break;
+	  case r_BL:
+	  case r_rBX:
+	  case r_eBX:
+	  case r_EBX:
+	    registerID = r_R11;	    
+	    break;
+	  case r_AH:
+	  case r_rSP:
+	  case r_eSP:
+	  case r_ESP:
+	    registerID = r_R12;
+	    break;
+	  case r_CH:
+	  case r_rBP:
+	  case r_eBP:
+	  case r_EBP:
+	    registerID = r_R13;	  
+	    break;
+	  case r_DH:
+	  case r_rSI:
+	  case r_eSI:
+	  case r_ESI:
+	  case r_SI:
+	    registerID = r_R14;
+	    break;
+	  case r_BH:
+	  case r_rDI:
+	  case r_eDI:
+	  case r_EDI:
+	  case r_DI:
+	    registerID = r_R15;
+	    break;
+	  default:
+	    break;
+	  };
+	  
+	}
+	
+#endif
+	outputOperands.push_back(Expression::Ptr(new RegisterAST(registerID)));
+	}
+	
 	break;
       case am_stackH:
       case am_stackP:
