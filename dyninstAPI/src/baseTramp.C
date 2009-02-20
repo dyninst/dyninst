@@ -873,6 +873,10 @@ void baseTramp::deleteIfEmpty() {
 
     instP_ = NULL;
 
+    for (unsigned i = 0; i < instances.size(); i++) {
+      instances[i]->baseT = NULL;
+    }
+
     instances.clear();
     delete this;
 }

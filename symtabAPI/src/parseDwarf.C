@@ -28,7 +28,9 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-			     
+
+#include <map>
+
 #include "elf.h"
 #include "libelf.h"
 #include "dwarf.h"
@@ -45,6 +47,9 @@
 #include "Variable.h"
 #include "Type-mem.h"
 #include <stdarg.h>
+
+std::map<Dwarf_Off, fieldListType*> enclosureMap;
+
 int dwarf_printf(const char *format, ...);
 
 using namespace Dyninst;
@@ -946,219 +951,282 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg )
    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dumping attribute list.\n", __FILE__, __LINE__ );
 
    //bperr ( "DIE %s has attributes:", entryName );
-   for( int i = 0; i < attributeCount; i++ ) {
-      Dwarf_Half whatAttr = 0;
-      status = dwarf_whatattr( attributeList[i], & whatAttr, NULL );
-      DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dumping attribute list.\n", __FILE__, __LINE__ );
-      fprintf( stderr, " 0x%x", whatAttr );
+for( int i = 0; i < attributeCount; i++ ) {
+Dwarf_Half whatAttr = 0;
+status = dwarf_whatattr( attributeList[i], & whatAttr, NULL );
+DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dumping attribute list.\n", __FILE__, __LINE__ );
+fprintf( stderr, " 0x%x", whatAttr );
 
-      dwarf_dealloc( dbg, attributeList[i], DW_DLA_ATTR );
-   } /* end iteration over attributes */
-   fprintf( stderr, "\n" );
+dwarf_dealloc( dbg, attributeList[i], DW_DLA_ATTR );
+} /* end iteration over attributes */
+fprintf( stderr, "\n" );
 
-   dwarf_dealloc( dbg, attributeList, DW_DLA_LIST );
-   dwarf_dealloc( dbg, entryName, DW_DLA_STRING );
+dwarf_dealloc( dbg, attributeList, DW_DLA_LIST );
+dwarf_dealloc( dbg, entryName, DW_DLA_STRING );
 } /* end dumpAttributeList() */
 
 
 bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
-      Module * module,
-      Symtab * objFile,
-      Dwarf_Off cuOffset,
-      char **srcFiles,
-      Address lowpc,
-      Function * currentFunction = NULL,
-      typeCommon * currentCommonBlock = NULL,
-      typeEnum *currentEnum = NULL,
-      fieldListType * currentEnclosure = NULL )
+Module * module,
+Symtab * objFile,
+Dwarf_Off cuOffset,
+char **srcFiles,
+Address lowpc,
+Function * currentFunction = NULL,
+typeCommon * currentCommonBlock = NULL,
+typeEnum *currentEnum = NULL,
+fieldListType * currentEnclosure = NULL,
+bool parseSibling = true
+)
 {
 
+
 /* optimization */ tail_recursion:
-   Dwarf_Half dieTag;
-   int status = dwarf_tag( dieEntry, & dieTag, NULL );
-   DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+Dwarf_Half dieTag;
+int status = dwarf_tag( dieEntry, & dieTag, NULL );
+DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-   Dwarf_Off dieOffset;
-   status = dwarf_dieoffset( dieEntry, & dieOffset, NULL );
-   DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+Dwarf_Off dieOffset;
+status = dwarf_dieoffset( dieEntry, & dieOffset, NULL );
+DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-   Dwarf_Off dieCUOffset;
-   status = dwarf_die_CU_offset( dieEntry, & dieCUOffset, NULL );
-   DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+Dwarf_Off dieCUOffset;
+status = dwarf_die_CU_offset( dieEntry, & dieCUOffset, NULL );
+DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-   dwarf_printf( "Considering DIE at %lu (%lu CU-relative) with tag 0x%x\n", (unsigned long)dieOffset, (unsigned long)dieCUOffset, dieTag );
+dwarf_printf( "Considering DIE at %lu (%lu CU-relative) with tag 0x%x\n", (unsigned long)dieOffset, (unsigned long)dieCUOffset, dieTag );
 
-   /* If this entry is a function, common block, or structure (class),
-      its children will be in its scope, rather than its
-      enclosing scope. */
-   Function * newFunction = currentFunction;
-   typeCommon * newCommonBlock = currentCommonBlock;
-   typeEnum *newEnum = currentEnum;
-   fieldListType * newEnclosure = currentEnclosure;
+// Map Insert is successful only the first time a dieEntry is encountered.
+enclosureMap.insert(pair <Dwarf_Off, fieldListType*> (dieOffset, currentEnclosure)); 
 
-   bool parsedChild = false;
-   /* Is this is an entry we're interested in? */
-   switch( dieTag ) {
-      /* case DW_TAG_inline_subroutine: we don't care about these */
-      case DW_TAG_subprogram:
-      case DW_TAG_entry_point:
-         {
-	    dwarf_printf(" DW_TAG_subprogram or DW_TAG_entry_point \n");
-            /* Is this entry specified elsewhere?  We may need to look there for its name. */
-            Dwarf_Bool hasSpecification;
-            status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
-            DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+/* If this entry is a function, common block, or structure (class),
+its children will be in its scope, rather than its
+enclosing scope. */
+Function * newFunction = currentFunction;
 
-            /* Our goal is three-fold: First, we want to set the return type
-               of the function.  Second, we want to set the newFunction variable
-               so subsequent entries are handled correctly.  Third, we want to
-               record (the location of, or how to calculate) the frame base of 
-               this function for use by our instrumentation code later. */
+typeCommon * newCommonBlock = currentCommonBlock;
+typeEnum *newEnum = currentEnum;
+fieldListType * newEnclosure = currentEnclosure;
 
-            char * functionName = NULL;
-            Dwarf_Die specEntry = dieEntry;
+bool parsedChild = false;
 
-            /* In order to do this, we need to find the function's (mangled) name.
-               If a function has a specification, its specification will have its
-               name. */
-            if ( hasSpecification ) {
-               Dwarf_Attribute specAttribute;
-               status = dwarf_attr( dieEntry, DW_AT_specification, & specAttribute, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+/* Is this is an entry we're interested in? */
+switch( dieTag ) {
+/* case DW_TAG_inline_subroutine: we don't care about these */
+case DW_TAG_subprogram:
+case DW_TAG_entry_point:
+ {
+    dwarf_printf(" DW_TAG_subprogram or DW_TAG_entry_point \n");
+    /* Our goal is three-fold: First, we want to set the return type
+       of the function.  Second, we want to set the newFunction variable
+       so subsequent entries are handled correctly.  Third, we want to
+       record (the location of, or how to calculate) the frame base of 
+       this function for use by our instrumentation code later. */
 
-               Dwarf_Off specOffset;
-               status = dwarf_global_formref( specAttribute, & specOffset, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    /* If we are revisiting this dieEntry by parsing Parent of specification entry or
+       abstract origin entry, get the original enclosure saved in the map to identify 
+       member functions correctly */
 
-               status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    fieldListType * dieEnclosure = enclosureMap.find(dieOffset)->second;
 
-               dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
-            } /* end if the function has a specification */
+    char * functionName = NULL;
 
-            /* Prefer linkage names. */
-            Dwarf_Attribute linkageNameAttr;
-            status = dwarf_attr( specEntry, DW_AT_MIPS_linkage_name, & linkageNameAttr, NULL );
-            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    Dwarf_Die abstractEntry = dieEntry;
 
-            bool hasLinkageName;
-            if ( status == DW_DLV_OK ) {
-               hasLinkageName = true;
-               status = dwarf_formstring( linkageNameAttr, & functionName, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    Dwarf_Bool isAbstractOrigin;
+    status = dwarf_hasattr( dieEntry, DW_AT_abstract_origin, & isAbstractOrigin, NULL );
+    DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-               dwarf_dealloc( dbg, linkageNameAttr, DW_DLA_ATTR );
-            } /* end if there's a linkage name. */
-            else {
-               hasLinkageName = false;
+    if ( isAbstractOrigin ) {
+       dwarf_printf(" has DW_TAG_abstract_origin \n");
+       Dwarf_Attribute abstractAttribute;
+       status = dwarf_attr( dieEntry, DW_AT_abstract_origin, & abstractAttribute, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+       Dwarf_Off abstractOffset;
+       status = dwarf_global_formref( abstractAttribute, & abstractOffset, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-               status = dwarf_diename( specEntry, & functionName, NULL );
-               DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-            } /* end if there isn't a linkage name. */
+       status = dwarf_offdie( dbg, abstractOffset, & abstractEntry, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            if ( functionName == NULL ) {
-               /* I'm not even sure what an anonymous function _means_,
-                  but we sure can't do anything with it. */
-               dwarf_printf( "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
+       dwarf_dealloc( dbg, abstractAttribute, DW_DLA_ATTR );
+    } /* end if the function has a specification */
 
-               /* Don't parse the children, since we can't add them. */
-               parsedChild = true;
+    /* Is this entry specified elsewhere?  We may need to look there for its name. */
+    Dwarf_Die specEntry = isAbstractOrigin? abstractEntry: dieEntry;
+    Dwarf_Bool hasSpecification;
+    status = dwarf_hasattr( specEntry, DW_AT_specification, & hasSpecification, NULL );
+    DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-               if ( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
-               dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
-               break;
-            } /* end if there's no name at all. */
+    /* In order to do this, we need to find the function's (mangled) name.
+       If a function has a specification, its specification will have its
+       name. */
+    if ( hasSpecification ) {
+       dwarf_printf(" has DW_TAG_specification \n");
+       Dwarf_Attribute specAttribute;
+       status = dwarf_attr( specEntry, DW_AT_specification, & specAttribute, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            vector<Function *> ret_funcs;
-            // newFunction is scoped at the function level...
+       Dwarf_Off specOffset;
+       status = dwarf_global_formref( specAttribute, & specOffset, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            if (objFile->findFunctionsByName(ret_funcs, functionName)) {
-                // Assert a single one?
-                newFunction = ret_funcs[0];
-            }
-            else {
-                // Didn't find by name (???), try to look up by address...
-                Dwarf_Addr baseAddr = 0;
-                status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
-                
-                if (status != DW_DLV_OK) break;
+       status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-                Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
-                if (!objFile->findFuncByEntryOffset(newFunction, absAddr)) {
-                    dwarf_printf( "Failed to find function '%s'\n", functionName );
-                    break;
-                }
-            }
+       dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
+    } /* end if the function has a specification */
 
-            /* Once we've found the Symbol pointer corresponding to this
-               DIE, record its frame base.  A declaration entry may not have a 
-               frame base, and some functions do not have frames. */
-            Dwarf_Attribute frameBaseAttribute;
-            status = dwarf_attr( dieEntry, DW_AT_frame_base, & frameBaseAttribute, NULL );
-            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    /* Prefer linkage names. */
+    Dwarf_Attribute linkageNameAttr;
+    status = dwarf_attr( specEntry, DW_AT_MIPS_linkage_name, & linkageNameAttr, NULL );
+    DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            if ( status == DW_DLV_OK ) {
+    bool hasLinkageName;
+    if ( status == DW_DLV_OK ) {
+       hasLinkageName = true;
+       status = dwarf_formstring( linkageNameAttr, & functionName, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-	           Dwarf_Locdesc ** locationList;
-               Dwarf_Signed listLength;
-               status = dwarf_loclist_n( frameBaseAttribute, & locationList, & listLength, NULL );
-               if ( status != DW_DLV_OK ) {
-                  /* I think DWARF 3 generically allows this abomination of empty loclists. */
-                  break;
-               }
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+       dwarf_dealloc( dbg, linkageNameAttr, DW_DLA_ATTR );
+    } /* end if there's a linkage name. */
+    else {
+       hasLinkageName = false;
 
-               dwarf_dealloc( dbg, frameBaseAttribute, DW_DLA_ATTR );
+       status = dwarf_diename( specEntry, & functionName, NULL );
+       DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    } /* end if there isn't a linkage name. */
+
+    if ( functionName == NULL ) {
+       /* I'm not even sure what an anonymous function _means_,
+	  but we sure can't do anything with it. */
+       dwarf_printf( "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
+
+       /* Don't parse the children, since we can't add them. */
+       parsedChild = true;
+
+       dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
+       break;
+    } /* end if there's no name at all. */
+
+    dwarf_printf(" Function name %s \n", functionName);
+
+    Function * thisFunction = NULL;
+    vector<Function *> ret_funcs;
+    // newFunction is scoped at the function level...
+
+
+    if (objFile->findFunctionsByName(ret_funcs, functionName)) {
+	// Assert a single one?
+	thisFunction = ret_funcs[0];
+	dwarf_printf(" findFunction by name \n");
+
+    }
+    else {
+	// Didn't find by name (???), try to look up by address...
+	Dwarf_Addr baseAddr = 0;
+	status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
+	
+	if (status == DW_DLV_OK) {
+	
+		Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
+		if (!objFile->findFuncByEntryOffset(thisFunction, absAddr)) {
+    //        		dwarf_printf( "Failed to find function '%s'\n", functionName );
+    //        		break;
+		}
+	}
+    }
+	
+    if(thisFunction == NULL && parseSibling== true) {
+		dwarf_printf( "Failed to find function '%s'\n", functionName );
+		break;
+    } else if(thisFunction != NULL && parseSibling == true) {
+		newFunction = thisFunction;
+    } else if(thisFunction != NULL && parseSibling == false ) {
+		// Parsing parents of specEntry or abstractOriginEntry - but the parent aleady has Function associated with it
+		// Do not redundantly parse. break
+		break;
+    }
+
+
+    /* Once we've found the Symbol pointer corresponding to this
+       DIE, record its frame base.  A declaration entry may not have a 
+       frame base, and some functions do not have frames. */
+    Dwarf_Attribute frameBaseAttribute;
+    status = dwarf_attr( dieEntry, DW_AT_frame_base, & frameBaseAttribute, NULL );
+    DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+
+    if ( status == DW_DLV_OK ) {
+
+       dwarf_printf(" Frame Pointer available \n");
+       Dwarf_Locdesc ** locationList;
+       Dwarf_Signed listLength;
+       status = dwarf_loclist_n( frameBaseAttribute, & locationList, & listLength, NULL );
+       if ( status != DW_DLV_OK ) {
+	  /* I think DWARF 3 generically allows this abomination of empty loclists. */
+	  break;
+       }
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+
+       dwarf_dealloc( dbg, frameBaseAttribute, DW_DLA_ATTR );
 
 #if defined(ia64_unknown_linux2_4)
-               /* Convert location list to an AST for later code generation. */
-               newFunction->setFramePtrRegnum(convertFrameBaseToAST( locationList[0], listLength, objFile ));
-               //				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength, proc );
+       /* Convert location list to an AST for later code generation. */
+       newFunction->setFramePtrRegnum(convertFrameBaseToAST( locationList[0], listLength, objFile ));
+       //				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength, proc );
 #endif
 #if defined(arch_x86_64)
-	       dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
-          vector<loc_t> *locs = new vector<loc_t>();
-          bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
-	       DWARF_FALSE_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
+  dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
+  vector<loc_t> *locs = new vector<loc_t>();
+  bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
+       DWARF_FALSE_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
 
-          status = newFunction->setFramePtr(locs);
-	       DWARF_FALSE_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
-	       
+  status = newFunction->setFramePtr(locs);
+       DWARF_FALSE_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
+       
 #endif
 
-               deallocateLocationList( dbg, locationList, listLength );
-            } /* end if this DIE has a frame base attribute */
+       deallocateLocationList( dbg, locationList, listLength );
+    } /* end if this DIE has a frame base attribute */
 
-            /* Find its return type. */
-            Dwarf_Attribute typeAttribute;
-            status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
-            DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    /* Find its return type. */
+    Dwarf_Attribute typeAttribute;
+    status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+    DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-	        Type * returnType = NULL;
-            if ( status == DW_DLV_NO_ENTRY ) { 
-               returnType = module->getModuleTypes()->findType("void");
-               newFunction->setReturnType( returnType );
-            } /* end if the return type is void */
-            else {
-               /* There's a return type attribute. */
-               Dwarf_Off typeOffset;
-               status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-               DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+    Type * returnType = NULL;
+    Type *voidType = module->getModuleTypes()->findType("void");
 
-               //parsing_printf("%s/%d: ret type %d\n",
-               //			   __FILE__, __LINE__, typeOffset);
-               returnType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
-               newFunction->setReturnType( returnType );
 
-               dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-            } /* end if not a void return type */
+    if ( status == DW_DLV_NO_ENTRY ) { 
+       if (parseSibling == true) {
+	// If return type is void, specEntry or abstractOriginEntry would have set it
+	dwarf_printf(" Return type void \n");
+	newFunction->setReturnType( voidType );
+       }
+    } /* end if the return type is void */
+    else {
+       /* There's a return type attribute. */
+       dwarf_printf(" Return type is not void \n");
+       Dwarf_Off typeOffset;
+       status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+       DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-            /* If this is a member function, add it as a field, for backward compatibility */
-            if ( currentEnclosure != NULL ) {
-               /* Using the mangled name allows us to distinguish between overridden
-                  functions, but confuses the tests.  Since Type uses vectors
-                  to hold field names, however, duplicate -- demangled names -- are OK. */
-               char * demangledName = P_cplus_demangle( functionName, objFile->isNativeCompiler() );
+       //parsing_printf("%s/%d: ret type %d\n",
+       //			   __FILE__, __LINE__, typeOffset);
+       returnType = module->getModuleTypes()->findOrCreateType( (int) typeOffset );
+       newFunction->setReturnType( returnType );
+
+       dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+    } /* end if not a void return type */
+
+
+    /* If this is a member function, add it as a field, for backward compatibility */
+    if ( dieEnclosure != NULL ) {
+       /* Using the mangled name allows us to distinguish between overridden
+	  functions, but confuses the tests.  Since Type uses vectors
+	  to hold field names, however, duplicate -- demangled names -- are OK. */
+       char * demangledName = P_cplus_demangle( functionName, objFile->isNativeCompiler() );
 
                char * leftMost = NULL;
                if ( demangledName == NULL ) {
@@ -1176,11 +1244,22 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                std::string fName = convertCharToString(leftMost);
                typeFunction *funcType = new typeFunction( (typeId_t) dieOffset, returnType, fName);
 
-               currentEnclosure->addField( fName, funcType);
+               dieEnclosure->addField( fName, funcType);
+	       dwarf_printf(" Adding function %s to class \n", leftMost);
                free( demangledName );
             }
 
-            if ( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
+	    // Parse parent nodes and their children but not their sibling
+            if ( isAbstractOrigin ) { 
+	    	dwarf_printf( "parseParent : abstract entry  %lu with tag 0x%x \n", (unsigned long)dieOffset, dieTag );
+	    	walkDwarvenTree( dbg, abstractEntry, module, objFile, cuOffset, srcFiles, lowpc, newFunction, newCommonBlock, newEnum, newEnclosure, false );
+	    } else if ( hasSpecification ) { 
+	    	dwarf_printf( "parseParent : spec entry  %lu with tag 0x%x \n",  (unsigned long)dieOffset, dieTag);
+	    	walkDwarvenTree( dbg, specEntry, module, objFile, cuOffset, srcFiles, lowpc, newFunction, newCommonBlock, newEnum, newEnclosure, false );
+	    }
+
+            if ( isAbstractOrigin ) dwarf_dealloc( dbg, abstractEntry, DW_DLA_DIE ); 
+	    if ( hasSpecification ) dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); 
             dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
          } break;
 
@@ -1924,7 +2003,7 @@ gracefully, that is, without an error. :)
             dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
             vector<loc_t> locs;
-            dwarf_printf(" Tag member decodeLocationListForStaticOffsetOrAddress \n");
+            dwarf_printf(" Tag member %s decodeLocationListForStaticOffsetOrAddress \n", memberName);
             long int baseAddress = 0;
             bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, & baseAddress );
             deallocateLocationList( dbg, locationList, listLength );
@@ -2095,6 +2174,8 @@ gracefully, that is, without an error. :)
 		default:
 			/* Nothing of interest. */
 			// //bperr ( "Entry %lu with tag 0x%x ignored.\n", (unsigned long)dieOffset, dieTag );
+			dwarf_printf( "Entry %lu with tag 0x%x ignored.\n", (unsigned long)dieOffset, dieTag );
+
 			break;
 		} /* end dieTag switch */
 
@@ -2104,22 +2185,26 @@ gracefully, that is, without an error. :)
 	DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 	
 	if( status == DW_DLV_OK && parsedChild == false ) {		
+	        dwarf_printf( "Start walkDwarvenTree to child of  %lu with tag 0x%x \n", (unsigned long)dieOffset, dieTag );
 		walkDwarvenTree( dbg, childDwarf, module, objFile, cuOffset, srcFiles, lowpc, newFunction, newCommonBlock, newEnum, newEnclosure );
-		}
+	}
 
-	/* Recurse to its first sibling, if any. */
-	Dwarf_Die siblingDwarf;
-	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
-	DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+	if (parseSibling == true) {
+		/* Recurse to its first sibling, if any. */
+		Dwarf_Die siblingDwarf;
+		status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+		DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-	/* Deallocate the entry we just parsed. */
-	dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+		/* Deallocate the entry we just parsed. */
+		dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
 
-    if( status == DW_DLV_OK ) {
-        /* Do the tail-call optimization by hand. */
-        dieEntry = siblingDwarf;
-        goto tail_recursion;
-    }
+        	if( status == DW_DLV_OK ) {
+            		/* Do the tail-call optimization by hand. */
+            		dieEntry = siblingDwarf;
+	    		dwarf_printf( "Start walkDwarvenTree to sibling of  %lu with tag 0x%x  - tail recursion \n",  (unsigned long)dieOffset, dieTag);
+            		goto tail_recursion;
+        	}
+	}
 
     /* When would we return false? :) */
     return true;
@@ -2221,10 +2306,15 @@ void Object::parseDwarfTypes( Symtab *objFile)
       status = dwarf_srcfiles(moduleDIE, &srcfiles,&cnt, NULL);
       DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring source file names.\n", __FILE__, __LINE__ );
 
+      dwarf_printf( "%s[%d]: Start walkDwarvenTree for module '%s' \n", __FILE__, __LINE__, moduleName );
       if ( !walkDwarvenTree( dbg, moduleDIE, mod, objFile, cuOffset, srcfiles, lowpc ) ) {
+         enclosureMap.clear();
          //bpwarn ( "Error while parsing DWARF info for module '%s'.\n", moduleName );
+         dwarf_printf( "%s[%d]: Error while parsing DWARF info for module '%s' \n", __FILE__, __LINE__, moduleName );
          return;
       }
+      enclosureMap.clear();
+      dwarf_printf( "%s[%d]: Done walkDwarvenTree for module '%s' \n", __FILE__, __LINE__, moduleName );
       if (status == DW_DLV_OK){
          for (unsigned i = 0; i < cnt; ++i) {
             /* use srcfiles[i] */

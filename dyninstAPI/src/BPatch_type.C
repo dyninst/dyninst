@@ -167,11 +167,6 @@ const char *BPatch_type::getLow() const {
     return (const char *)(long)rangetype->getLow(); 
 }
 
-bool BPatch_type::isCompatible(BPatch_type *otype) 
-{
-    return typ->isCompatible(otype->typ);
-}
-
 bool BPatch_type::isCompatibleInt(BPatch_type *otype) 
 {
     return typ->isCompatible(otype->typ);
