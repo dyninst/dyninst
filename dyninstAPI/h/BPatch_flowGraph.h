@@ -43,6 +43,7 @@
 #define _BPatch_flowGraph_h_
 
 #include <string>
+#include <set>
 #include "Annotatable.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
@@ -104,6 +105,9 @@ public:
   /** returns the set of all basic blocks in the CFG */
   API_EXPORT(Int, (blocks),
   bool,getAllBasicBlocks,(BPatch_Set<BPatch_basicBlock*> &blocks)); 
+
+  API_EXPORT(STL, (blocks),
+  bool, getAllBasicBlocks,(std::set<BPatch_basicBlock *> &blocks));
   
   /** returns the vector of entry basic blocks to CFG */
   API_EXPORT(Int, (blocks),
