@@ -93,13 +93,13 @@ void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
             continue;
         }
         
-        std::vector<std::pair<Address,Instruction> > insns;
+        std::vector<std::pair<Instruction,Address> > insns;
         curBlock->getInstructions(insns);
         
         for (unsigned i = 0; i < insns.size(); i++) {
             fprintf(stderr, "Instruction %d\n", i+1);
             std::set<RegisterAST::Ptr> cur_written;
-            insns[i].second.getWriteSet(cur_written);
+            insns[i].first.getWriteSet(cur_written);
             
             for (std::set<RegisterAST::Ptr>::const_iterator w = cur_written.begin();
                  w != cur_written.end();
@@ -241,13 +241,13 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
          b_iter != allBlocks.end();
          b_iter++) {
         Block *B = *b_iter;
-        std::vector<std::pair<Address, Instruction> > insns;
+        std::vector<std::pair<Instruction, Address> > insns;
         B->getInstructions(insns);
         NodeDefMap localReachingDefs;
         
         for (unsigned i = 0; i < insns.size(); i++) {
-            Address addr = insns[i].first;
-            Instruction I = insns[i].second;
+            Instruction I = insns[i].first;
+            Address addr = insns[i].second;
 
             std::set<RegisterAST::Ptr> def;
             I.getWriteSet(def);

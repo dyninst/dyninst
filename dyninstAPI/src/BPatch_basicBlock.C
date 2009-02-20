@@ -435,7 +435,7 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   InstructionDecoder d(ptr, size());
   Instruction curInsn = d.decode();
   while(curInsn.isValid()) {
-      insnInstances.push_back(std::make_pair(curInsn, addr));
+      insnInstances.push_back(std::make_pair(curInsn,addr));
       addr += curInsn.size();
       curInsn = d.decode();
   }

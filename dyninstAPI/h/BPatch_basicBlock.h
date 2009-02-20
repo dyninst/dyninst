@@ -265,7 +265,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    API_EXPORT(Int, (insns),
 	      bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction>& insns));
    API_EXPORT(Addrs, (insnInstances),
-	      bool, getInstructions, (std::vector<std::pair<Address, InstructionAPI::Instruction> >& insnInstances));
+	      bool, getInstructions, (std::vector<std::pair<Dyninst::InstructionAPI::Instruction, Dyninst::Address> >& insnInstances));
 #endif   
 
 	/** BPatch_basicBlock::getIncomingEdges   */

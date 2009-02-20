@@ -81,9 +81,9 @@ class intraFunctionDDGCreator {
     // This is sufficient information to uniquely identify an instruction:
     // its address (guaranteed unique by model) and instruction information.
     struct InsnInstance {
-        InsnInstance(std::pair<Address, Instruction> p) : 
-            addr(p.first),
-            insn(p.second) {}
+        InsnInstance(std::pair<Instruction,Address> p) : 
+            addr(p.second),
+            insn(p.first) {}
         InsnInstance() : addr(0), insn() {}
         Address addr;
         Instruction insn;
