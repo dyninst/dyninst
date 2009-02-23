@@ -344,6 +344,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('CREATE, ')
 		elif group['run_mode'] == 'useAttach':
 			out.write('USEATTACH, ')
+		elif group['run_mode'] == 'deserialize':
+			out.write('DESERIALIZE, ')
 		else:
 			out.write('DISK, ')
 		if group['groupable'] == 'true':
@@ -368,7 +370,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			# I need to get the mutator that this test maps to..
 			mutator = test_mutator(test)
 			ts = build_label(test, mutator, group)
-			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s%s", "%s"));\n' % (test, mutator, mutator, LibSuffix, ts))
+			if test in ['test_serializable']:
+				serialize_enable = 'true'
+			else:
+				serialize_enable = 'false'
+			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s%s", %s, "%s"));\n' % (test, mutator, mutator, LibSuffix, serialize_enable, ts))
 		out.write('  rg->index = group_count++;\n')
 		out.write('  tests.push_back(rg);\n')
 		# Close compiler presence #ifdef

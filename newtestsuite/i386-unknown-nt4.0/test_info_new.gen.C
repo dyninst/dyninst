@@ -1311,13 +1311,21 @@ struct {
     char* optimization;
     char* abi;
   } rungroup_params[] = { {"symtab_group_test_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, false, true, "symtab", "VC", "none", "32"},
+ {"symtab_group_test_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, false, true, "symtab", "VC", "none", "32"},
  {"symtab_group_test_mutatee_solo_VC_32_low.exe", STOPPED, CREATE, false, true, "symtab", "VC", "low", "32"},
+ {"symtab_group_test_mutatee_solo_VC_32_low.exe", STOPPED, USEATTACH, false, true, "symtab", "VC", "low", "32"},
  {"symtab_group_test_mutatee_solo_VC_32_high.exe", STOPPED, CREATE, false, true, "symtab", "VC", "high", "32"},
+ {"symtab_group_test_mutatee_solo_VC_32_high.exe", STOPPED, USEATTACH, false, true, "symtab", "VC", "high", "32"},
  {"symtab_group_test_mutatee_solo_VC_32_max.exe", STOPPED, CREATE, false, true, "symtab", "VC", "max", "32"},
+ {"symtab_group_test_mutatee_solo_VC_32_max.exe", STOPPED, USEATTACH, false, true, "symtab", "VC", "max", "32"},
  {"symtab_group_test_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "none", "32"},
+ {"symtab_group_test_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, false, true, "symtab", "VC++", "none", "32"},
  {"symtab_group_test_mutatee_solo_VC++_32_low.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "low", "32"},
+ {"symtab_group_test_mutatee_solo_VC++_32_low.exe", STOPPED, USEATTACH, false, true, "symtab", "VC++", "low", "32"},
  {"symtab_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "high", "32"},
- {"symtab_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "max", "32"} };
+ {"symtab_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, USEATTACH, false, true, "symtab", "VC++", "high", "32"},
+ {"symtab_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "max", "32"},
+ {"symtab_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, false, true, "symtab", "VC++", "max", "32"} };
 
   struct {
     bool endrungroup;
@@ -1328,30 +1336,38 @@ struct {
   } test_params[] = { {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
  {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC, run_mode: deserialize}"},
  {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
  {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC, run_mode: deserialize}"},
  {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
  {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC, run_mode: deserialize}"},
  {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
  {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC, run_mode: deserialize}"},
  {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
  {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: VC++, run_mode: deserialize}"},
  {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
  {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: VC++, run_mode: deserialize}"},
  {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
  {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: VC++, run_mode: deserialize}"},
  {false, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.dll", "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {false, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
- {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"} };
+ {true, "test_lookup_var", "test_lookup_var", "test_lookup_var.dll", "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: deserialize}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 16; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
@@ -1360,7 +1376,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].ilabel));
-    } while (tp_index < 24 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 32 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

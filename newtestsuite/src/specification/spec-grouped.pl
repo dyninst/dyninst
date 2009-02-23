@@ -16,7 +16,8 @@
                   mutatee/3, mutatee_requires_libs/2, mutatee_comp/1, lang/1,
                   comp_lang/2, platform/4, compiler_opt_trans/3,
                   comp_mut/2, compiler_platform/2,
-                  mcomp_plat/2, test_runmode/2, comp_std_flags_str/2,
+                  mcomp_plat/2, test_runmode/2, 
+		  test_serializable/1, comp_std_flags_str/2,
                   comp_mutatee_flags_str/2, test_runs_everywhere/1,
                   mutatee_special_make_str/2, mutatee_special_requires/2,
                   groupable_test/1, test_platform/2,
@@ -2066,6 +2067,7 @@ mutator('test_lookup_func', ['test_lookup_func.C']).
 test_runmode('test_lookup_func', 'createProcess').
 test_start_state('test_lookup_func', 'stopped').
 tests_module('test_lookup_func', 'symtab').
+test_serializable('test_lookup_func').
 
 test('test_lookup_var', 'test_lookup_var', 'symtab_group_test').
 test_description('test_lookup_var', 'Lookup a single function with SymtabAPI').
@@ -2719,6 +2721,7 @@ mutatee_requires_libs(Mutatee, []) :-
 runmode('createProcess').
 runmode('useAttach').
 runmode('binary').
+runmode('deserialize').
 
 % test_runmode/2
 % test_runmode(?Test, ?Runmode)
@@ -2729,6 +2732,7 @@ test_runmode(Test, 'createProcess') :- test_runmode(Test, 'dynamic').
 test_runmode(Test, 'useAttach') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'createProcess') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'binary') :- test_runmode(Test, 'staticdynamic').
+test_runmode(Test, 'deserialize') :- test_serializable(Test).
 
 % runmode_platform/2
 % runmode_platform(?Platform, ?Runmode)
@@ -2738,6 +2742,7 @@ runmode_platform(P, 'createProcess') :- platform(_, _, _, P).
 runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
+runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
 
 % mutatee_peers/2
 mutatee_peers(M, P) :-
