@@ -87,11 +87,11 @@ namespace Dyninst
     }    
     INSTRUCTION_EXPORT bool Operand::readsMemory() const
     {
-      return (boost::dynamic_pointer_cast<Dereference::Ptr>(op_value) && m_isRead);
+      return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isRead);
     }
     INSTRUCTION_EXPORT bool Operand::writesMemory() const
     {
-      return (boost::dynamic_pointer_cast<Dereference::Ptr>(op_value) && m_isWritten);
+      return (boost::dynamic_pointer_cast<Dereference>(op_value) && m_isWritten);
     }
     INSTRUCTION_EXPORT void Operand::addEffectiveReadAddresses(std::set<Expression::Ptr>& memAccessors) const
     {
