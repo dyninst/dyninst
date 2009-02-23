@@ -201,14 +201,13 @@ class image_basicBlock : public codeRange {
 
     int id() const { return blockNumber_; }
 
-    // all functions containing this basic block
-    void getFuncs(pdvector<image_func *> &funcs) const;
+    const set<image_func *> & getFuncs() const;
 
     // convenience method: sometimes any function will do
     image_func * getFirstFunc() const
     {
         if(funcs_.size() > 0)
-            return funcs_[0];
+            return *funcs_.begin();
         else
             return NULL;
     }
@@ -259,7 +258,7 @@ class image_basicBlock : public codeRange {
     pdvector<image_edge *> targets_;
     pdvector<image_edge *> sources_;
 
-    pdvector<image_func *> funcs_;
+    set<image_func *> funcs_;
 
 #if defined(cap_liveness)
     /* Liveness analysis variables */

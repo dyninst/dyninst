@@ -564,6 +564,8 @@ class image : public codeRange, public InstructionSource {
    int refCount;
    imageParseState_t parseState_;
    bool parseGaps_;
+
+   vector< pair<image_basicBlock *, image_func *> > reparse_shared;
 };
 
 

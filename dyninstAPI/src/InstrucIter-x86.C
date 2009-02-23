@@ -907,15 +907,84 @@ void parseRegisters(std::set<IA32Regs>& readArray, std::set<IA32Regs>& writeArra
       readArray.insert(r_EDI);
       break;
     case am_reg:
+      {
+	int registerID = operand.optype;
+#if defined(arch_x86_64)
+	if(locs.rex_b)
+	{
+	  // We need to flip this guy...
+	  switch(registerID)
+	  {
+	  case r_AL:
+	  case r_rAX:
+	  case r_eAX:
+	  case r_EAX:
+	  case r_AX:
+	    registerID = r_R8;
+	    break;
+	  case r_CL:
+	  case r_rCX:
+	  case r_eCX:
+	  case r_ECX:
+	    registerID = r_R9;
+	    break;
+	  case r_DL:
+	  case r_rDX:
+	  case r_eDX:
+	  case r_EDX:
+	  case r_DX:
+	    registerID = r_R10;
+	    break;
+	  case r_BL:
+	  case r_rBX:
+	  case r_eBX:
+	  case r_EBX:
+	    registerID = r_R11;	    
+	    break;
+	  case r_AH:
+	  case r_rSP:
+	  case r_eSP:
+	  case r_ESP:
+	    registerID = r_R12;
+	    break;
+	  case r_CH:
+	  case r_rBP:
+	  case r_eBP:
+	  case r_EBP:
+	    registerID = r_R13;	  
+	    break;
+	  case r_DH:
+	  case r_rSI:
+	  case r_eSI:
+	  case r_ESI:
+	  case r_SI:
+	    registerID = r_R14;
+	    break;
+	  case r_BH:
+	  case r_rDI:
+	  case r_eDI:
+	  case r_EDI:
+	  case r_DI:
+	    registerID = r_R15;
+	    break;
+	  default:
+	    break;
+	  };
+	  
+	}
+	
+#endif	
       if(isRead) 
       {
-	readArray.insert(IA32Regs(operand.optype));
+	readArray.insert(IA32Regs(registerID));
       }
       if(isWritten)
       {
-	writeArray.insert(IA32Regs(operand.optype));
+	writeArray.insert(IA32Regs(registerID));
       }
       break;
+      }
+      
     default:
       // do nothing
       break;
@@ -1025,7 +1094,22 @@ map<IA32Regs, Register> reverseRegisterLookup = map_list_of
     (r_FS, REGNUM_IGNORED)
     (r_GS, REGNUM_IGNORED)
     (r_SS, REGNUM_IGNORED)
-;
+    (r_RAX, REGNUM_RAX)
+    (r_RBX, REGNUM_RBX)
+    (r_RCX, REGNUM_RCX)
+    (r_RDX, REGNUM_RDX)
+    (r_RSP, REGNUM_RSP)
+    (r_RBP, REGNUM_RBP)
+    (r_RSI, REGNUM_RSI)
+    (r_RDI, REGNUM_RDI)
+    (r_rAX, REGNUM_RAX)
+    (r_rBX, REGNUM_RBX)
+    (r_rCX, REGNUM_RCX)
+    (r_rDX, REGNUM_RDX)
+    (r_rSP, REGNUM_RSP)
+    (r_rBP, REGNUM_RBP)
+    (r_rSI, REGNUM_RSI)
+    (r_rDI, REGNUM_RDI);
 
 Register dummyConverter(IA32Regs toBeConverted)
 {
