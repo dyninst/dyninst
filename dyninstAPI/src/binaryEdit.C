@@ -544,20 +544,26 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
     // binary so that we can store updates.
 
     Symtab *symObj = obj->parse_img()->getObject();
-    
+    /*
     vector<Segment> segs;
-    symObj->getSegments(segs);
+    symObj->getSegments(segs);*/
+	vector<Region*> regs;
+	symObj->getAllRegions(regs);
 
-    for (unsigned i = 0; i < segs.size(); i++) {
+    for (unsigned i = 0; i < regs.size(); i++) {
         memoryTracker *newTracker = NULL;
-        if (segs[i].name == ".bss") {
+        if (regs[i]->getRegionName() == ".bss") {
             continue;
         }
         else {
+			/*
             newTracker = new memoryTracker(segs[i].loadaddr,
                                            segs[i].size,
-                                           segs[i].data);
-        }
+                                           segs[i].data);*/
+			newTracker = new memoryTracker(regs[i]->getRegionAddr(),
+										   regs[i]->getDiskSize(),
+										   regs[i]->getPtrToRawData());
+		}
         newTracker->alloced = false;
         if (!memoryTracker_)
            memoryTracker_ = new codeRangeTree();
