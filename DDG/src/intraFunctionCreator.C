@@ -147,6 +147,9 @@ void intraFunctionDDGCreator::buildDDG() {
     // KILL(i,a) = IF a \in defs(i) then (DEFS(a) - {i}) ELSE {}
     // ... where DEFS(a) are the set of currently reaching definitions to a.
 
+    // Create us a DDG
+    DDG = Graph::createGraph();
+
     // For complexity and efficiency, we perform the initial analysis on
     // basic blocks and then do intra-block analysis to build the insn-level
     // DDG. 
@@ -405,3 +408,15 @@ void intraFunctionDDGCreator::debugDefMap(const DefMap &d,
     }
 }
 
+Node::Ptr intraFunctionDDGCreator::makeNodeFromCandidate(cNode cnode) {
+    // We have our internal information about a graph node;
+    // now make a real node from it. 
+
+    // First, peel apart the cNode
+    AbslocPtr absloc = cnode.first;
+    InsnInstance insnI = cnode.second;
+    Address addr = insnI.addr;
+    Instruction insn = insnI.insn;
+
+    return DDG->makeNode(insn, addr, absloc);
+}

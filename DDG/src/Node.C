@@ -51,24 +51,23 @@
 
 using namespace Dyninst::DDG;
 
-Node::Ptr Node::createNode(const Address addr, const InsnPtr insn, const AbslocPtr absloc) {
+Node::Ptr Node::createNode(Address addr, InsnPtr insn, AbslocPtr absloc) {
     return Node::Ptr(new Node(addr, insn, absloc)); 
 }
 
-Node::Node(const Address addr, const InsnPtr insn, const AbslocPtr absloc) :
+Node::Node(Address addr, InsnPtr insn, AbslocPtr absloc) :
     addr_(addr), insn_(insn), absloc_(absloc) {}
 
 Node::Node() {
     assert(0);
 }
 
-bool Node::returnEdges(const EdgeSet &source,
-                       EdgeSet &target) const {
-    // Return the union of our in edges with whatever
-    // was provided to us. 
-    if (source.size() == 0) return false;
+bool Node::returnEdges(const EdgeSet &local,
+                       EdgeSet &ret) const {
+    // Insert all edges in the "local" set into the
+    // "ret" set.
+    if (local.size() == 0) return false;
 
-    target.insert(source.begin(), source.end());
+    ret.insert(local.begin(), local.end());
     return true;
 }
-
