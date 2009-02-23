@@ -296,6 +296,7 @@ set<string> debugInfoSections = list_of(string(SYMTAB_NAME))
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
 bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
+			Elf_X_Shdr* &bssscnp,
                         Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
                         Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
                         Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
@@ -496,6 +497,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
          if (!dataddr) dataddr = scnp->sh_addr();
       }
       else if (strcmp(name, BSS_NAME) == 0) {
+	 bssscnp = scnp;
          if (!dataddr) dataddr = scnp->sh_addr();
       }
       /* End data region search */
@@ -890,6 +892,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
 void Object::load_object(bool alloc_syms)
 {
+   Elf_X_Shdr *bssscnp = 0;
    Elf_X_Shdr *symscnp = 0;
    Elf_X_Shdr *strscnp = 0;
    Elf_X_Shdr *stabscnp = 0;
@@ -927,7 +930,7 @@ void Object::load_object(bool alloc_syms)
       // And attempt to parse the ELF data structures in the file....
       // EEL, added one more parameter
 
-      if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
+      if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
                dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) 
@@ -994,7 +997,7 @@ void Object::load_object(bool alloc_syms)
          {
             symdata = symscnp->get_data();
             strdata = strscnp->get_data();
-            parse_symbols(allsymbols, symdata, strdata, false, module);
+            parse_symbols(allsymbols, symdata, strdata, bssscnp, false, module);
          }   
 
          // don't reorder symbols anymore
@@ -1088,6 +1091,7 @@ cleanup:
 
 void Object::load_shared_object(bool alloc_syms) 
 {
+   Elf_X_Shdr *bssscnp = 0;
    Elf_X_Shdr *symscnp = 0;
    Elf_X_Shdr *strscnp = 0;
    Elf_X_Shdr *stabscnp = 0;
@@ -1114,7 +1118,7 @@ void Object::load_shared_object(bool alloc_syms)
       data_vldS_ = (Offset) -1;
       data_vldE_ = 0;
 
-      if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
+      if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
                rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
                dynstr_scnp, dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
@@ -1155,7 +1159,7 @@ void Object::load_shared_object(bool alloc_syms)
                log_elferror(err_func_, "locating symbol/string data");
                goto cleanup2;
             }
-            parse_symbols(allsymbols, symdata, strdata, false, module);
+            parse_symbols(allsymbols, symdata, strdata, bssscnp, false, module);
          } 
 
          // don't reorder symbols anymore
@@ -1316,6 +1320,7 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 // parse_symbols(): populate "allsymbols"
 void Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
       Elf_X_Data &symdata, Elf_X_Data &strdata,
+      Elf_X_Shdr* &bssscnp,
       bool shared, string smodule)
 {
 #if defined(TIMED_PARSE)
@@ -1347,6 +1352,22 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       Offset saddr = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
 
+      /* icc BUG: Variables in BSS are categorized as ST_NOTYPE instead of ST_OBJECT
+	 To fix this, we check if the symbol is in BSS and has size > 0. If so, we can
+	 almost always say it is a variable and hence, change the type from ST_NOTYPE to
+	 ST_OBJECT.
+      */
+
+
+      if (bssscnp) {
+      	Offset bssStart = Offset(bssscnp->sh_addr());
+      	Offset bssEnd = Offset (bssStart + bssscnp->sh_size()) ;
+
+      	if(( bssStart <= saddr) && ( saddr < bssEnd ) && (ssize > 0) && (stype == Symbol::ST_NOTYPE)) {
+		stype = Symbol::ST_OBJECT;
+      	}
+      }
+
       // discard "dummy" symbol at beginning of file
       if (i==0 && sname == "" && saddr == (Offset)0)
           continue;
@@ -1358,6 +1379,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          sec = NULL;
       
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, saddr, sec, ssize);
+	 
       if (secNumber == SHN_ABS)
           newsym->setIsAbsolute();
       // register symbol in dictionary
