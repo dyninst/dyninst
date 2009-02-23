@@ -38,6 +38,8 @@
 using namespace std;
 using namespace boost;
 
+extern bool ia32_is_mode_64();
+
 
 namespace Dyninst
 {
@@ -140,6 +142,47 @@ namespace Dyninst
     {
       const RegisterAST& otherRegisterAST(dynamic_cast<const RegisterAST&>(rhs));
       return otherRegisterAST.registerID == registerID;
+    }
+    RegisterAST::Ptr RegisterAST::getContainingReg() {
+        // We want to upconvert the register ID to the maximal containing
+        // register for the platform - either EAX or RAX as appropriate.
+
+        unsigned int convertedID = 0;
+        if (/*(registerID >= r_AH) && */(registerID <= r_DH)) {
+            convertedID = registerID + (r_EAX-r_AH);
+        }
+        else if ((registerID >= r_AL) && (registerID <= r_DL)) {
+            convertedID = registerID + (r_EAX-r_AL);
+        }
+        else if ((registerID >= r_AX) && (registerID <= r_DI)) {
+            convertedID = registerID + (r_EAX - r_AX);
+        }
+        else if ((registerID >= r_eAX) && (registerID <= r_eDI)) {
+            convertedID = registerID + (r_EAX - r_eAX);
+        }
+        else if ((registerID >= r_eSP) && (registerID <= r_eBP)) {
+            convertedID = registerID + (r_ESP - r_eSP);
+        }
+        else if ((registerID >= r_rAX) && (registerID <= r_rDI)) {
+            convertedID = registerID + (r_RAX - r_rAX);
+        }
+        else if ((registerID >= r_rSP) && (registerID <= r_rBP)) {
+            convertedID = registerID + (r_RSP - r_rSP);
+        }
+        else {
+            convertedID = registerID;
+        }
+
+        if (ia32_is_mode_64()) {
+            if ((convertedID >= r_EAX) && (convertedID <= r_EDI)) {
+                convertedID = convertedID + (r_RAX - r_EAX);
+            }
+            else if ((convertedID >= r_ESP) && (convertedID <= r_EBP)) {
+                convertedID = convertedID + (r_RSP - r_ESP);
+            }
+        }
+   
+        return Ptr(new RegisterAST(convertedID));
     }
   };
 };
