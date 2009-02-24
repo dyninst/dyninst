@@ -162,8 +162,9 @@ image_func::image_func(const std::string &symbol,
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
     endOffset_ = offset + symTabSize;
-    Region * sec = NULL;
     Symtab * st = i->getObject();
+#if 0
+    Region * sec = NULL;
     if (st)
        st->findRegion(sec, ".text");
 
@@ -174,15 +175,26 @@ image_func::image_func(const std::string &symbol,
     st->getAllModules(mods);
     if (mods.size())
         sym_->setModule(mods[0]);
+#endif
 
+	//  createFunction both creates the func and adds it to all relevant indices
+
+    func_ = Function::createFunction(st, symbol, m->fileName(), offset, symTabSize);
+    assert(func_);
+
+#if 0
     i->getObject()->addSymbol(sym_);
+
     func_ = sym_->getFunction();
     assert(func_);
 
     //i->getObject()->addSymbol(sym_);								
     //sym_->setUpPtr(this);
     //symTabNames_.push_back(symbol);
+#endif
+
     image_func *th = this;
+
     extern AnnotationClass<image_func> ImageFuncUpPtrAnno;
     if (!func_->addAnnotation(th, ImageFuncUpPtrAnno))
     {
@@ -930,8 +942,9 @@ bool image_basicBlock::isEntryBlock(image_func * f) const
     return f->entryBlock() == this;
 } 
 
+
 image_func *image_basicBlock::getEntryFunc() const {
-    set<image_func*>::iterator fit = funcs_.begin();
+    set<image_func*>::const_iterator fit = funcs_.begin();
     for( ; fit != funcs_.end(); ++fit) {
         if((*fit)->entryBlock() == this)
             return *fit;

@@ -64,10 +64,13 @@ class Symtab : public LookupInterface,
 
    friend class Archive;
    friend class Symbol;
+   friend class Function;
+   friend class Variable;
    friend class Module;
    friend class Region;
    friend class emitElf;
    friend class emitElf64;
+   friend class emitWin;
 
  public:
    typedef enum {
@@ -326,9 +329,6 @@ class Symtab : public LookupInterface,
 
    bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
-
-
-
 
 
    /***** Private Data Members *****/

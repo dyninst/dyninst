@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#if 0
 #include <string>
 #include <stdio.h>
 #include <filehdr.h>
@@ -1492,3 +1493,4 @@ int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st)
     else
        return (func_pdr->frameoffset - 48 + symbol.sym->value);
 }
+#endif

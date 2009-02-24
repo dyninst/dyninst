@@ -51,10 +51,69 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 
-Function *Function::createFunction(Symbol *sym) {
+Function *Function::createFunction(Symbol *sym) 
+{
     Function *func = new Function();
     func->addSymbol(sym);
     return func;
+}
+
+Function *Function::createFunction(Symtab *st, std::string fname, 
+		std::string modname,Offset offset, size_t sz)
+{
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  FIXME:  createFunction called w/out symtab\n", FILE__, __LINE__);
+		return NULL;
+	}
+	
+	Region *reg = NULL;
+
+	if (!st->findRegion(reg, ".text"))
+	{
+		fprintf(stderr, "%s[%d]:  could not find text region\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	if (!reg)
+	{
+		fprintf(stderr, "%s[%d]:  could not find text region\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	Symbol *sym = new Symbol(fname, modname, Symbol::ST_FUNCTION, Symbol::SL_GLOBAL,
+			Symbol::SV_DEFAULT, offset, reg, sz);
+
+	assert(sym);
+
+	//  Not sure if this is really correct -- just adding this function to module[0]
+	//  shouldn't we specify DEFAULT_MODULE or something?  -- copied from other code
+
+	std::vector<Module *> mods;
+	st->getAllModules(mods);
+	if (mods.size())
+	{
+		sym->setModule(mods[0]);
+	}
+	else
+	{
+		fprintf(stderr, "%s[%d]:  WARN:  no module for created func\n", FILE__, __LINE__);
+	}
+
+	if (!st->addSymbol(sym))
+	{
+		fprintf(stderr, "%s[%d]:  symtab failed to addSymbol\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	Function *func = sym->getFunction();
+	if (!func)
+	{
+		fprintf(stderr, "%s[%d]:  symtab failed to create function\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	return func;
 }
 
 Function::Function()

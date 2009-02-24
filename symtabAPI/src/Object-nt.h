@@ -202,6 +202,12 @@ class Object : public AObject
     SYMTAB_EXPORT void getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
     SYMTAB_EXPORT bool emitDriver(Symtab *obj, std::string fName, 
 		std::vector<Symbol *>&allSymbols, unsigned flag);
+	SYMTAB_EXPORT unsigned int getSecAlign() const {return SecAlignment;}
+	 virtual char *mem_image() const 
+  {
+     assert(mf);
+     return (char *)mf->base_addr();
+  }
 
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
@@ -215,6 +221,7 @@ private:
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
     PIMAGE_OPTIONAL_HEADER optHdr;
+	unsigned int SecAlignment; //Section Alignment
 
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)

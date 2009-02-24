@@ -53,6 +53,7 @@
 #include "Module.h"
 #include "Function.h"
 #include "Variable.h"
+#include "emitWin.h"
 
 #include "common/h/headers.h"
 
@@ -699,6 +700,7 @@ void Object::FindInterestingSections(bool alloc_syms)
    else
       is_aout_ = true;
 
+   SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
    no_of_sections_ = nSections;
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
@@ -1856,10 +1858,21 @@ void Object::parseTypeInfo(Symtab *obj) {
 
 bool AObject::getSegments(vector<Segment> &segs) const
 {
+	for(unsigned int i=0; i<regions_.size(); i++){
+		Segment seg;
+		seg.data = regions_[i]->getPtrToRawData();
+		//seg.loadaddr = regions_[i] -> getDiskOffset();
+		seg.loadaddr = regions_[i] -> getRegionAddr();
+		seg.size = regions_[i] -> getDiskSize();
+		seg.name = regions_[i] -> getRegionName();
+		//seg.segFlags = 
+		segs.push_back(seg);
+	}
     return true;
 }
 
 bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, 
 						unsigned flag) {
-	return true;
+	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);
+	return em -> driver(obj, fName);
 }

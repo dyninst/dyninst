@@ -81,7 +81,7 @@ namespace DDG {
         bool allNodes(NodeSet &nodes) const;
 
         // We create an empty graph and then add nodes and edges.
-        Ptr createGraph();
+        static Ptr createGraph();
 
         // We effectively build the graph by specifying all edges,
         // since it is meaningless to have a disconnected node. 

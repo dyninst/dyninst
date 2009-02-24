@@ -52,6 +52,7 @@ class Function : public Aggregate
       SYMTAB_EXPORT Function();
       SYMTAB_EXPORT ~Function();
       SYMTAB_EXPORT static Function *createFunction(Symbol *sym);
+      SYMTAB_EXPORT static Function *createFunction(Symtab *st, std::string fname, std::string modname,Offset offset, size_t sz);
 
 	  SYMTAB_EXPORT int getSize() const { return getFirstSymbol()->getSize(); };
 

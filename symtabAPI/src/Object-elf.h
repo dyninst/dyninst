@@ -440,6 +440,7 @@ class Object : public AObject {
   std::vector<std::string> deps_;
 
   bool loaded_elf( Offset &, Offset &,
+  		    Elf_X_Shdr* &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
@@ -472,6 +473,7 @@ class Object : public AObject {
   
   void parse_symbols(std::vector<Symbol *> &allsymbols, 
 		     Elf_X_Data &symdata, Elf_X_Data &strdata,
+  		    Elf_X_Shdr* &,
 		     bool shared_library,
 		     std::string module);
   
