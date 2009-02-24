@@ -990,7 +990,7 @@ bool registerSpace::anyLiveGPRsAtEntry() const {
 
 bool registerSpace::anyLiveFPRsAtEntry() const {
     for (unsigned i = 0; i < FPRs_.size(); i++) {
-        if (FPRs_[i]->liveState == registerSlot::dead)
+        if (FPRs_[i]->liveState != registerSlot::dead)
             return true;
     }
     return false;
@@ -998,7 +998,7 @@ bool registerSpace::anyLiveFPRsAtEntry() const {
 
 bool registerSpace::anyLiveSPRsAtEntry() const {
     for (unsigned i = 0; i < SPRs_.size(); i++) {
-        if (SPRs_[i]->liveState == registerSlot::dead)
+        if (SPRs_[i]->liveState != registerSlot::dead)
             return true;
     }
     return false;
