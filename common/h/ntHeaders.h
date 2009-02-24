@@ -147,7 +147,15 @@ inline char * P_strcat (char *TO, const char *FROM) {
 
 inline const char * P_strchr (const char *STRING, int C) {return (strchr(STRING, C));}
 inline char * P_strchr (char *STRING, int C) {return (strchr(STRING, C));}
-inline int P_getpagesize() { assert(0); return 0; }
+inline int P_getpagesize() { 
+	SYSTEM_INFO info;
+    static int page_size = 0;
+    if (page_size)
+        return page_size;
+    GetSystemInfo(&info);
+    page_size = info.dwPageSize;
+    return page_size;
+}
 
 inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}

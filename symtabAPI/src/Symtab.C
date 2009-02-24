@@ -2219,8 +2219,8 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
-      Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
-
+      //Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
+	  Offset end = regions_[i]->getRegionAddr() + regions_[i]->getRegionSize();
       if (regions_[i]->getRegionAddr() == 0) 
          continue;
 
@@ -2231,12 +2231,14 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
       if (region_offset < (unsigned)prevSecoffset)
       {
-         secoffset += regions_[i]->getDiskSize();
+         //secoffset += regions_[i]->getDiskSize();
+		 secoffset += regions_[i]->getRegionSize();
       }
       else 
       {
          secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
-         secoffset += regions_[i]->getDiskSize();
+         //secoffset += regions_[i]->getDiskSize();
+		 secoffset += regions_[i]->getRegionSize();
       }
 
       /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
@@ -2266,13 +2268,22 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
    //   return highWaterMark;
 
-   unsigned pgSize = P_getpagesize();
-   Offset newaddr = highWaterMark - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
+   #if defined (os_windows)
+	unsigned pgSize = getObject()-> getSecAlign();
+	//printf("pgSize:0x%x\n", pgSize);
+	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
+	while(newaddr < highWaterMark)
+        newaddr += pgSize;
+	//printf("getfreeoffset:%lu\n", newaddr);
+	return newaddr;
 
-   if (newaddr < highWaterMark)
-      newaddr += pgSize;
-
-   return newaddr;
+#else
+	unsigned pgSize = P_getpagesize();
+	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
+	if(newaddr < highWaterMark)
+		newaddr += pgSize;
+	 return newaddr;
+#endif	
 }
 
 SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 

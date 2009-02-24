@@ -85,8 +85,9 @@ void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
         
         // First, check to see if we've already traversed this block. That would
         // be... bad.
-        
-        cerr << "Block " << *iter << endl;
+
+        fprintf(stderr, "Analyzing block at 0x%lx\n",
+                curBlock->getStartAddress());
 
         if (allGens.find(curBlock) != allGens.end()) {
             fprintf(stderr, "BITCH MOAN WHINE!!!!!\n"); 
@@ -100,6 +101,9 @@ void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
             fprintf(stderr, "Instruction %d\n", i+1);
             std::set<RegisterAST::Ptr> cur_written;
             insns[i].first.getWriteSet(cur_written);
+
+            // Initialize the entry with an empty map.
+            allGens[curBlock] = DefMap();
             
             for (std::set<RegisterAST::Ptr>::const_iterator w = cur_written.begin();
                  w != cur_written.end();
@@ -116,7 +120,8 @@ void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
     }
 
     cerr << allGens.size() << " gen sets created" << endl;
-    
+    cerr << allBlocks.size() << " blocks to process" << endl;
+
     assert(allGens.size() == allBlocks.size());
 }
 
@@ -146,6 +151,9 @@ void intraFunctionDDGCreator::buildDDG() {
     // GEN(i,a) = IF a \in defs(i) then {i} ELSE {}
     // KILL(i,a) = IF a \in defs(i) then (DEFS(a) - {i}) ELSE {}
     // ... where DEFS(a) are the set of currently reaching definitions to a.
+
+    // Create us a DDG
+    DDG = Graph::createGraph();
 
     // For complexity and efficiency, we perform the initial analysis on
     // basic blocks and then do intra-block analysis to build the insn-level
@@ -373,7 +381,7 @@ void intraFunctionDDGCreator::debugLocalSet(const ReachingDefsLocal &s,
             Block *block = (*iter2).first;
             Address addr = (*iter2).second.second.addr;
             AbslocPtr absloc = (*iter2).second.first;
-            fprintf(stderr, "%s\t Block: %ld, insn addr 0x%lx, Absloc %s\n", 
+            fprintf(stderr, "%s\t Block: %lx, insn addr 0x%lx, Absloc %s\n", 
                     str, 
                     block->getStartAddress(),
                     addr,
@@ -405,3 +413,15 @@ void intraFunctionDDGCreator::debugDefMap(const DefMap &d,
     }
 }
 
+Node::Ptr intraFunctionDDGCreator::makeNodeFromCandidate(cNode cnode) {
+    // We have our internal information about a graph node;
+    // now make a real node from it. 
+
+    // First, peel apart the cNode
+    AbslocPtr absloc = cnode.first;
+    InsnInstance insnI = cnode.second;
+    Address addr = insnI.addr;
+    Instruction insn = insnI.insn;
+
+    return DDG->makeNode(insn, addr, absloc);
+}

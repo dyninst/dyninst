@@ -51,4 +51,27 @@ using namespace Dyninst::DDG;
 
 Graph::Graph() {};
 
+void Graph::insertPair(Node::Ptr source, Node::Ptr target) {};
+
+Node::Ptr Graph::makeNode(Dyninst::InstructionAPI::Instruction &insn,
+                          Address addr,
+                          AbslocPtr absloc) {
+    // First check to see if we already have this one
+    if (allNodes_.find(addr) != allNodes_.end()) { 
+        return allNodes_[addr];
+    }
+
+    // Otherwise create a new Node and insert it into the
+    // map. 
+
+    Node::Ptr newNode = Node::createNode(addr, insn, absloc);
+    allNodes_[addr] = newNode;
+
+    return newNode;
+}
+
+Graph::Ptr Graph::createGraph() {
+    return Graph::Ptr(new Graph());
+}
+
 

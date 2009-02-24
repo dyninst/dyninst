@@ -930,8 +930,9 @@ bool image_basicBlock::isEntryBlock(image_func * f) const
     return f->entryBlock() == this;
 } 
 
+
 image_func *image_basicBlock::getEntryFunc() const {
-    set<image_func*>::iterator fit = funcs_.begin();
+    set<image_func*>::const_iterator fit = funcs_.begin();
     for( ; fit != funcs_.end(); ++fit) {
         if((*fit)->entryBlock() == this)
             return *fit;

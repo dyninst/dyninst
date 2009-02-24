@@ -68,6 +68,7 @@ class Symtab : public LookupInterface,
    friend class Region;
    friend class emitElf;
    friend class emitElf64;
+   friend class emitWin;
 
  public:
    typedef enum {

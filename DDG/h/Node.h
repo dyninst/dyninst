@@ -68,12 +68,14 @@ namespace DDG {
         
     public:
         typedef boost::shared_ptr<Node> Ptr;
-        typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
+        //typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
+
+        typedef InstructionAPI::Instruction InsnPtr; 
         typedef boost::shared_ptr<Edge> EdgePtr;
         typedef boost::shared_ptr<Absloc> AbslocPtr;
         typedef std::set<EdgePtr> EdgeSet;
 
-        Ptr createNode(const Address addr, const InsnPtr insn, const AbslocPtr absloc);
+        static Ptr createNode(Address addr, InsnPtr insn, AbslocPtr absloc);
 
         bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
         bool outs(EdgeSet &edges) const { return returnEdges(outs_, edges); }
@@ -84,10 +86,10 @@ namespace DDG {
 
         // We may use "virtual" nodes to represent initial definitions. These
         // have no associated instruction, which we represent as a NULL insn().
-        bool isVirtual() const { return insn(); }
+        //bool isVirtual() const { return insn(); }
 
     private:
-        Node(const Address addr, const InsnPtr insn, const AbslocPtr absloc);
+        Node(Address addr, InsnPtr insn, AbslocPtr absloc);
         Node();
 
         // Instructions don't include their address, so we include this for
@@ -105,8 +107,8 @@ namespace DDG {
         EdgeSet outs_;
 
         // Do the work of ins() and outs() above
-        bool returnEdges(const EdgeSet &source,
-                         EdgeSet &target) const;
+        bool returnEdges(const EdgeSet &local,
+                         EdgeSet &ret) const;
 
         // For Creator-class methods to use: add a new edge to 
         // a node.
