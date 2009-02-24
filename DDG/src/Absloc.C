@@ -78,11 +78,15 @@ Absloc::Absloc() {
 }
 
 Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::RegisterAST::Ptr reg) {
-    // Look up by name and return
-    if (allAbslocs_.find(reg->format()) == allAbslocs_.end()) {
-        fprintf(stderr, "... didn't find register %s in Abslocs, creating...\n", reg->format().c_str());
-        allAbslocs_[reg->format()] = createAbsloc(reg->format());
+    // Upconvert the register to its canonical container
+    InstructionAPI::RegisterAST::Ptr container = reg->getContainingReg();
+
+    // Look up by name and return    
+    if (allAbslocs_.find(container->format()) == allAbslocs_.end()) {
+        fprintf(stderr, "... didn't find register %s/%d in Abslocs, creating...\n", container->format().c_str(),
+                container->getID());
+        allAbslocs_[container->format()] = createAbsloc(container->format());
     }
 
-    return allAbslocs_[reg->format()];
+    return allAbslocs_[container->format()];
 }
