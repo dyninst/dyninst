@@ -85,6 +85,14 @@ struct shared_ptr_lt
 
 typedef std::set<RegisterAST::Ptr, shared_ptr_lt<RegisterAST::Ptr> > registerSet;
 
+test_results_t failure_accumulator(test_results_t lhs, test_results_t rhs)
+{
+  if(lhs == FAILED || rhs == FAILED)
+  {
+    return FAILED;
+  }
+  return PASSED;
+}
 
 test_results_t verify_read_write_sets(const Instruction& i, const registerSet& expectedRead,
 				      const registerSet& expectedWritten)
@@ -144,16 +152,15 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 {
   const unsigned char buffer[] = 
   {
-    0x40, // INC eAX
+    0x05, 0xef, 0xbe, 0xad, 0xde, // INC eAX
     0x50, // PUSH rAX
     0x74, 0x10, // JZ +0x10(8)
     0xE8, 0x20, 0x00, 0x00, 0x00, // CALL +0x10(32)
     0xF8, // CLC
     0x04, 0x30 // ADD AL, 0x30(8)
   };
-  unsigned int size = 12;
+  unsigned int size = 16;
   unsigned int expectedInsns = 7;
-  
   InstructionDecoder d(buffer, size);
   std::vector<Instruction> decodedInsns;
   Instruction i;
@@ -186,11 +193,14 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr overflow(new RegisterAST(r_OF));
   RegisterAST::Ptr parity(new RegisterAST(r_PF));
   RegisterAST::Ptr sign(new RegisterAST(r_SF));
+  RegisterAST::Ptr carry(new RegisterAST(r_CF));
   registerSet expectedRead, expectedWritten;
   expectedRead.insert(expectedRead.begin(), eax);
-  expectedWritten = list_of(eax)(adjust)(zero)(overflow)(parity)(sign);
+  expectedWritten = list_of(eax)(adjust)(zero)(overflow)(parity)(sign)(carry);
   
+  test_results_t retVal = PASSED;
   
-  return verify_read_write_sets(decodedInsns[0], expectedRead, expectedWritten);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[0], expectedRead, expectedWritten));
+  return retVal;
 }
 
