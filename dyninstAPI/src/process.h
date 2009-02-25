@@ -561,7 +561,7 @@ class process : public AddressSpace {
   bool loadDYNINSTlib();
 #if defined(os_linux)
   // If dlopen is present, use it. Otherwise, call a libc-internal function
-  bool loadDYNINSTlib_exported();
+  bool loadDYNINSTlib_exported(const char *dlopen_name = NULL);
   bool loadDYNINSTlib_hidden();
 
   // Unprotect stack if necessary for runtime library loading

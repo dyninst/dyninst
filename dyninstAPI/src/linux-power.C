@@ -847,7 +847,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)
 
 
 
-bool process::loadDYNINSTlib_exported()
+bool process::loadDYNINSTlib_exported(const char *)
 {
     // This functions was implemented by mixing parts of
     // process::loadDYNINSTlib() in aix.C and
