@@ -1175,17 +1175,14 @@ case DW_TAG_entry_point:
        newFunction->setFramePtrRegnum(convertFrameBaseToAST( locationList[0], listLength, objFile ));
        //				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength, proc );
 #endif
-#if defined(arch_x86_64)
-  dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
-  vector<loc_t> *locs = new vector<loc_t>();
-  bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
+       dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
+       vector<loc_t> *locs = new vector<loc_t>();
+       bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
        DWARF_FALSE_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
 
-  status = newFunction->setFramePtr(locs);
+       status = newFunction->setFramePtr(locs);
        DWARF_FALSE_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
        
-#endif
-
        deallocateLocationList( dbg, locationList, listLength );
     } /* end if this DIE has a frame base attribute */
 
