@@ -405,6 +405,8 @@ class int_function : public patchTarget {
    int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offset + getAddress()); }
    bblInstance *findBlockInstanceByAddr(Address addr);
 
+   Offset addrToOffset(const Address addr) const;
+
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
    bool makesNoCalls() const {return ifunc_->makesNoCalls();}

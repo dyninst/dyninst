@@ -958,3 +958,20 @@ bool image_func::isLeafFunc() {
 
     return calls.size() > 0;
 }
+
+
+#if defined(cap_instruction_api) 
+void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction, Offset> >&instances) {
+    using namespace InstructionAPI;
+    Offset off = firstInsnOffset();
+    const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
+    if (ptr == NULL) return;
+    InstructionDecoder d(ptr, getSize());
+    Instruction curInsn = d.decode();
+    while(curInsn.isValid()) {
+        instances.push_back(std::make_pair(curInsn,off));
+        off += curInsn.size();
+        curInsn = d.decode();
+    }
+}
+#endif

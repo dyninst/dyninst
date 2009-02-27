@@ -1553,3 +1553,7 @@ void int_function::linkInstrumentation(pdvector<instPoint *> &input,
     }
 }
 
+
+Offset int_function::addrToOffset(const Address addr) const { 
+    return addr - getAddress() + ifunc_->getOffset(); 
+}
