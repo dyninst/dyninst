@@ -41,7 +41,7 @@
 
 #include <map>
 #include <algorithm>
-#include <list>
+#include <queue>
 #include "Absloc.h"
 #include "intraFunctionCreator.h"
 
@@ -186,13 +186,13 @@ void intraFunctionDDGCreator::generateInterBlockReachingDefs(Flowgraph *CFG) {
     CFG->getEntryBasicBlock(entryBlocks);
     BPatch_basicBlock *entryBlock = entryBlocks[0];
 
-    std::list<BPatch_basicBlock *> worklist;
+    std::queue<BPatch_basicBlock *> worklist;
 
-    worklist.push_back(entryBlock);
+    worklist.push(entryBlock);
 
     while (!worklist.empty()) {
         Block *working = worklist.front();
-        worklist.pop_front();
+        worklist.pop();
 
         // Calculate the new in set 
 
@@ -218,7 +218,7 @@ void intraFunctionDDGCreator::generateInterBlockReachingDefs(Flowgraph *CFG) {
             std::vector<Block *> successors;
             getSuccessors(working, successors);
             for (unsigned i = 0; i < successors.size(); i++) {
-                worklist.push_back(successors[i]);
+                worklist.push(successors[i]);
             }
         }
     }    
