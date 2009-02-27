@@ -601,6 +601,13 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
             newPhdr->p_memsz = dynSegSize;
             newPhdr->p_filesz = newPhdr->p_memsz;
         }
+        else if(tmp->p_type == PT_PHDR){
+            newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
+            newPhdr->p_paddr = newPhdr->p_vaddr;
+            newPhdr->p_filesz = sizeof(Elf64_Phdr) * newEhdr->e_phnum;
+            newPhdr->p_memsz = newPhdr->p_filesz;
+        }
+
     	if(BSSExpandFlag) {
     	    if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7))
     	    {
@@ -612,17 +619,19 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	    if(addNewSegmentFlag) {
 	        if(tmp->p_type == PT_LOAD && tmp->p_flags == 5)
             {
-    	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
-        		newPhdr->p_paddr = newPhdr->p_vaddr;
-        		newPhdr->p_filesz += pgSize;
-        		newPhdr->p_memsz = newPhdr->p_filesz;
+                if (tmp->p_vaddr > pgSize) {
+                    newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
+                    newPhdr->p_paddr = newPhdr->p_vaddr;
+                    newPhdr->p_filesz += pgSize;
+                    newPhdr->p_memsz = newPhdr->p_filesz;
+                }
 	        }
-            if(tmp->p_type == PT_PHDR){
-    	        newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
-        		newPhdr->p_paddr = newPhdr->p_vaddr;
-            }
-            if ((tmp->p_type == PT_LOAD && tmp->p_flags == 6) || tmp->p_type == PT_NOTE || tmp->p_type == PT_INTERP)
-	            newPhdr->p_offset += pgSize;
+            // update first segment header with the page size offset
+	        if ((tmp->p_type == PT_LOAD && tmp->p_flags == 5 && tmp->p_vaddr == 0) ||
+                (tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
+                tmp->p_type == PT_NOTE || 
+                tmp->p_type == PT_INTERP)
+				newPhdr->p_offset += pgSize;
     	} 
 #ifdef BINEDIT_DEBUG
     	fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
@@ -1484,14 +1493,23 @@ void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSiz
     vector<Symbol *>::iterator iter;
     dyn_hash_map<unsigned, unsigned> lastHash; // bucket number to symbol index
     unsigned nbuckets = (unsigned)dynSymbols.size()*2/3;
+    if (nbuckets % 2 == 0)
+        nbuckets--;
+    if (nbuckets < 1)
+        nbuckets = 1;
     unsigned nchains = (unsigned)dynSymbols.size();
     hashsecSize = 2 + nbuckets + nchains;
     hashsecData = (Elf64_Word *)malloc(hashsecSize*sizeof(Elf64_Word));
+    unsigned i=0, key;
+    for (i=0; i<hashsecSize; i++) {
+        hashsecData[i] = STN_UNDEF;
+    }
     hashsecData[0] = (Elf64_Word)nbuckets;
     hashsecData[1] = (Elf64_Word)nchains;
-    unsigned i=0, key;
+    i = 0;
     for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
         key = elfHash((*iter)->getName().c_str()) % nbuckets;
+        //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
         if (lastHash.find(key) != lastHash.end()) {
             hashsecData[2+nbuckets+lastHash[key]] = i;
         }
