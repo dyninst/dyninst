@@ -2333,15 +2333,26 @@ start:
    }
 } /* end fixSymbolsInModule */
 
-unsigned fixSymbolsInModuleByRange(string &moduleName,
-      Dwarf_Addr modLowPC, Dwarf_Addr modHighPC,
-      dyn_hash_map<string, std::vector< Symbol *> > *symbols_)
+typedef struct {
+   Address low;
+   Address high;
+   std::string module_name;
+} module_range_t;
+
+struct SortModules
+{
+   bool operator()(const module_range_t &a, const module_range_t &b) {
+      return a.low < b.low;
+   }
+};
+
+unsigned fixSymbolsInModuleByRange(std::vector<module_range_t> &modules,
+                          dyn_hash_map<string, std::vector<Symbol*> > &symbols)
 {
    unsigned nsyms_altered = 0;
 
-   dyn_hash_map< string, std::vector< Symbol *> >::iterator iter = symbols_->begin();
-
-   for (;iter!=symbols_->end();iter++)
+   dyn_hash_map< string, std::vector< Symbol *> >::iterator iter = symbols.begin();
+   for (;iter!=symbols.end();iter++)
    {
       std::string symName = iter->first;
       std::vector<Symbol *> & syms = iter->second;
@@ -2350,18 +2361,28 @@ unsigned fixSymbolsInModuleByRange(string &moduleName,
       {
          Symbol *sym = syms[i];
 
-         if (sym->getAddr() >= modLowPC && sym->getAddr() < modHighPC) 
-         {
-            (*symbols_)[symName][i]->setModuleName(moduleName);
+         unsigned high = modules.size(); 
+         unsigned low = 0;
+         unsigned mid;
+         unsigned last = high+1;
+         for (;;) {
+            Address sym_addr = sym->getAddr();
+            mid = (high + low) / 2;
+            if (mid == last) {
+               break;
+            }
+            last = mid;
+            if (sym_addr >= modules[mid].low && sym_addr < modules[mid].high) {
+               sym->setModuleName(modules[mid].module_name);
             nsyms_altered++;
-            //fprintf(stderr, "%s[%d]:  %s:%p in range [%p, %p) for module %s\n", 
-            //      FILE__, __LINE__, sym->getName().c_str(), sym->getAddr(), 
-            //      modLowPC, modHighPC, moduleName.c_str());
+               break;
+            }
+            else if (sym_addr < modules[mid].low) {
+               high = mid;
+            }
+            else if (sym_addr > modules[mid].high) {
+               low = mid;
          }
-         else
-         {
-            //fprintf(stderr, "%s[%d]:  %s:%p not in range [%p, %p) for module %s\n", 
-            //      FILE__, __LINE__, sym->getName().c_str(), sym->getAddr(), (void *)modLowPC, (void *)modHighPC, moduleName.c_str());
          }
       }
    }
@@ -2371,13 +2392,15 @@ unsigned fixSymbolsInModuleByRange(string &moduleName,
 
 bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
 {
-   /* Initialize libdwarf. */
    Dwarf_Debug dbg;
    Dwarf_Unsigned hdr;
    Dwarf_Error err;
 
-   int status = dwarf_elf_init( elf.e_elfp(), DW_DLC_READ, 
-         & pd_dwarf_handler, getErrFunc(), & dbg, &err);
+   std::vector<module_range_t> module_ranges;
+
+   int status = dwarf_elf_init(elf.e_elfp(), DW_DLC_READ, 
+                               &pd_dwarf_handler, getErrFunc(), 
+                               &dbg, &err);
 
    if ( status != DW_DLV_OK ) 
    {
@@ -2386,7 +2409,6 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
    }
 
    /* Iterate over the CU headers. */
-
    while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
    {
 
@@ -2437,19 +2459,16 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
 
          if (modHighPC == 0) 
          {
-            fprintf(stderr, "%s[%d]:  WARNING:  hijacking zero modHighPC\n", FILE__, __LINE__);
             modHighPC = (Dwarf_Addr)(-1);
          }
 
          // Set module names for all symbols that belong to the range
-         //int nsyms_altered  =
 
-         fixSymbolsInModuleByRange(moduleName, modLowPC, modHighPC,
-               &symbols_);
-
-         //fprintf(stderr, "%s[%d]:  fixSymbolsInModuleByRange(%s,%p, %p), match %d syms\n",
-         //      FILE__, __LINE__, moduleName.c_str(), (void *) modLowPC, (void *) modHighPC, 
-         //      nsyms_altered);
+         module_range_t mod;
+         mod.low = modLowPC;
+         mod.high = modHighPC;
+         mod.module_name = moduleName;
+         module_ranges.push_back(mod);
       }
       else 
       {
@@ -2476,16 +2495,14 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
             dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
 
          } /* end if the srcfile information was available */
-
-         //else 
-         //{
-            //bperr( "Unable to determine modules (%s): no code range or source file information available.\n", moduleName.c_str() );
-         //} /* end if no source file information available */
-
       } /* end if code range information unavailable */
 
    } /* end scan over CU headers. */
 
+   if (module_ranges.size()) {
+      std::sort(module_ranges.begin(), module_ranges.end(), SortModules());
+      fixSymbolsInModuleByRange(module_ranges, symbols_);
+   }
    /* Clean up. */
 
    status = dwarf_finish( dbg, NULL );  
