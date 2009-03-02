@@ -1,0 +1,2 @@
+# Classes to reorder
+CLASSLIST = Instruction, Operation, Operand, InstructionDecoder, InstructionAST, Expression, Result, RegisterAST, Immediate, BinaryFunction, Dereference, RegInfo, IA32RegTable

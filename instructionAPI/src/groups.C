@@ -32,7 +32,7 @@
 // groups.C: Doxygen file to collect group definitions and documentation, and ensure that they are found in the correct order.
 
 /*! 
- * \defgroup moduleAbstractionIntro 
+ * \defgroup moduleAbstractionIntro REMOVE
  * The Instruction API contains three major components: the top-level instruction representation,
  * the abstract syntax trees representing the operands of an instruction, and the decoder that creates
  * the entire representation.  We will present an overview of the features and uses of each of these three components,
