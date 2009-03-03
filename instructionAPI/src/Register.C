@@ -143,7 +143,14 @@ namespace Dyninst
       const RegisterAST& otherRegisterAST(dynamic_cast<const RegisterAST&>(rhs));
       return otherRegisterAST.registerID == registerID;
     }
-    RegisterAST::Ptr RegisterAST::getContainingReg() {
+
+    InstructionAST::Ptr RegisterAST::promote(InstructionAST::Ptr regPtr) {
+        // If this isn't a register, return NULL
+        RegisterAST::Ptr reg = dynamic_pointer_cast<RegisterAST>(regPtr);
+        if (!reg) return InstructionAST::Ptr();
+
+        unsigned registerID = reg->getID();
+
         // We want to upconvert the register ID to the maximal containing
         // register for the platform - either EAX or RAX as appropriate.
 
