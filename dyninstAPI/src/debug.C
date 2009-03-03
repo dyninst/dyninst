@@ -361,7 +361,7 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI inferior malloc debugging\n");
     dyn_debug_infmalloc = 1;
   }
-  if (p=getenv("DYNINST_DEBUG_CRASH")) {
+  if ((p=getenv("DYNINST_DEBUG_CRASH"))) {
      fprintf(stderr, "Enable DyninstAPI crash debugging\n");
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
