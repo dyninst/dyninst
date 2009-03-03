@@ -423,6 +423,89 @@ void registerSpace::initialize64() {
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM0,
+					 "MM0/ST(0)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM1,
+					 "MM1/ST(1)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM2,
+					 "MM2/ST(2)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM3,
+					 "MM3/ST(3)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM4,
+					 "MM4/ST(4)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM5,
+					 "MM5/ST(5)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM6,
+					 "MM6/ST(6)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM7,
+					 "MM7/ST(7)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM0,
+					 "XMM0",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM1,
+					 "XMM1)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM2,
+					 "XMM2",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM3,
+					 "XMM3",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM4,
+					 "XMM4",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM5,
+					 "XMM5",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM6,
+					 "XMM6",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM7,
+					 "XMM7",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+
+
+
 
     // For registers that we really just don't care about.
     registers.push_back(new registerSlot(REGNUM_IGNORED,

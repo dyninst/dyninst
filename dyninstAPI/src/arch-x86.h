@@ -591,12 +591,13 @@ struct ia32_operand {  // operand as given in Intel book tables
   unsigned int optype; // operand type;
 };
 
-
 // An instruction table entry
 struct ia32_entry {
-  const char* name();
+  const char* name(ia32_locations* locs = NULL);
+  entryID getID(ia32_locations* locs = NULL) const;
   // returns true if any flags are read/written, false otherwise
-  bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten);
+  bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten,
+		 ia32_locations* locs = NULL);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
   unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
