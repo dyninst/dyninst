@@ -35,7 +35,9 @@ int main(int argc, const char** argv)
   appImage->findFunction(argv[2], 
 			 function);
 
-  intraFunctionDDGCreator::createGraph(function[0]);
+  Dyninst::DDG::Graph::Ptr g = intraFunctionDDGCreator::createGraph(function[0]);
+  g->printDOT();
+  
 
   return EXIT_SUCCESS;
 }

@@ -99,22 +99,20 @@ void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
         
         for (unsigned i = 0; i < insns.size(); i++) {
             fprintf(stderr, "Instruction %d\n", i+1);
-            std::set<RegisterAST::Ptr> cur_written;
-            insns[i].first.getWriteSet(cur_written);
-
             // Initialize the entry with an empty map.
             allGens[curBlock] = DefMap();
-            
-            for (std::set<RegisterAST::Ptr>::const_iterator w = cur_written.begin();
-                 w != cur_written.end();
-                 w++) {
-                // We have 'defined' this Absloc
-                AbslocPtr aP = Absloc::getAbsloc(*w);
+
+            AbslocSet writtenAbslocs;
+            Absloc::getDefinedAbslocs(insns[i].first, func, insns[i].second, writtenAbslocs);
+
+            for (AbslocSet::iterator iter = writtenAbslocs.begin();
+                 iter != writtenAbslocs.end();
+                 iter++) {                
                 // So record that this instance (insns[i]) defined this
                 // absloc...
                 // Note that this overrides any previous insn, as the last
                 // definition wins for our purposes.
-                (allGens[curBlock])[aP] = std::make_pair(aP,InsnInstance(insns[i]));
+                (allGens[curBlock])[*iter] = std::make_pair(*iter,InsnInstance(insns[i]));
             }
         }
     }
@@ -243,8 +241,10 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
     //           else let RDS = inSets[B][U]
     //             For each pair (B', S) in RDS:
     //               Insert(S,T)
-    //       localReachingDefs[D] = T
-    
+    //     For each absloc D in def:
+    //       localReachingDefs[D] = NODE(I,D)
+    // See comment below for why we do this in two iterations.
+
     for (BlockSet::iterator b_iter = allBlocks.begin();
          b_iter != allBlocks.end();
          b_iter++) {
@@ -257,20 +257,26 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
             Instruction I = insns[i].first;
             Address addr = insns[i].second;
 
-            std::set<RegisterAST::Ptr> def;
-            I.getWriteSet(def);
-            
-            for (std::set<RegisterAST::Ptr>::const_iterator d_iter = def.begin();
-                 d_iter != def.end(); d_iter++) {
-                AbslocPtr D = Absloc::getAbsloc(*d_iter);
-                NodePtr T = DDG->makeNode(I, addr, D);
-                std::set<RegisterAST::Ptr> used;
-                //I.getUsedSet(*d_iter, used);
-                I.getReadSet(used);
+            fprintf(stderr, "Instruction at 0x%lx\n", addr);
 
-                for (std::set<RegisterAST::Ptr>::const_iterator u_iter = used.begin();
+            AbslocSet used;
+            Absloc::getUsedAbslocs(I, func, addr, used);
+            AbslocSet def;
+            Absloc::getDefinedAbslocs(I, func, addr, def);
+
+            for (AbslocSet::const_iterator d_iter = def.begin();
+                 d_iter != def.end(); d_iter++) {
+                AbslocPtr D = *d_iter;
+                NodePtr T = DDG->makeNode(I, addr, D);
+
+                // Get the set of abslocs we have to care about here..
+
+                // TODO: used_to_define...
+                // And move the getUsedAbslocs to here...
+                
+                for (AbslocSet::const_iterator u_iter = used.begin();
                      u_iter != used.end(); u_iter++) {
-                    Absloc::Ptr U = Absloc::getAbsloc(*u_iter);
+                    Absloc::Ptr U = *u_iter;
                     
                     if (localReachingDefs.find(U) != localReachingDefs.end()) {
                         NodePtr S = localReachingDefs[U];
@@ -279,16 +285,53 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
                     }
                     else { 
                         ReachingDefSet RDS = inSets[B][U];
-                        for (ReachingDefSet::iterator r_iter = RDS.begin();
-                             r_iter != RDS.end(); r_iter++) {
-                            ReachingDefEntry entry = *r_iter;
-                            NodePtr S = makeNodeFromCandidate(entry.second);
+                        if (RDS.empty()) {
+                            // An empty reachingDefSet means that we're an
+                            // using an undefined value; assume that
+                            // our caller set it.
+                            NodePtr S = DDG->makeParamNode(U);
                             DDG->insertPair(S,T);
+                        }
+                        else {
+                            for (ReachingDefSet::iterator r_iter = RDS.begin();
+                                 r_iter != RDS.end(); r_iter++) {
+                                ReachingDefEntry entry = *r_iter;
+                                NodePtr S = makeNodeFromCandidate(entry.second);
+                                DDG->insertPair(S,T);
+                            }
                         }
                     }
                 } // For U in used
-                localReachingDefs[D] = T;
             } // For D in def
+            // We now update localReachingDefs. If we do it in the previous
+            // loop we can get errors. Consider this example:
+            // 
+            // i1 defines r1, r2, r3
+            // i2 uses r1 and defines r1, r2
+            // 
+            // When at i1 localReachingDefs contains (r1, i1), (r2, i1), (r3, i1)
+            // 
+            // We then consider i2.
+            // Def set: (r1, r2)
+            // Use set: (r1)
+            //
+            // Let D = r1
+            //   Let U = r1
+            //     Insert edge ((i1, r1), (i2, r1))
+            //   Update localReachingDefs (r1, i2), (r2, i1), (r3, i1)
+            // Let D = r2
+            //   Let U = r1
+            //     Insert edge ((i2, r1), (i2, r2))
+            //
+            // See the problem? Because we update localReachingDefs before we're done
+            // with the instruction we can imply an incorrect ordering of assignments
+            // within the instruction. Instead we update localReachingDefs afterwards.
+            for (AbslocSet::const_iterator d_iter = def.begin();
+                 d_iter != def.end(); d_iter++) {
+                AbslocPtr D = *d_iter;
+                NodePtr T = DDG->makeNode(I, addr, D);
+                localReachingDefs[D] = T;
+            }
         } // For I in insn
     } // For B in block
 }

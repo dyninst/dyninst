@@ -50,6 +50,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <set>
+#include <string>
 #include "Annotatable.h"
 #include "Instruction.h"
 
@@ -59,8 +60,8 @@ namespace DDG {
     class Dyninst::InstructionAPI::Instruction;
     class Edge;
     class Graph;
-    class Absloc;
 
+    class Absloc;
     class Node : public AnnotatableSparse {
         friend class Edge;
         friend class Graph;
@@ -76,6 +77,7 @@ namespace DDG {
         typedef std::set<EdgePtr> EdgeSet;
 
         static Ptr createNode(Address addr, InsnPtr insn, AbslocPtr absloc);
+        static Ptr createNode(AbslocPtr absloc);
 
         bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
         bool outs(EdgeSet &edges) const { return returnEdges(outs_, edges); }
@@ -87,6 +89,8 @@ namespace DDG {
         // We may use "virtual" nodes to represent initial definitions. These
         // have no associated instruction, which we represent as a NULL insn().
         //bool isVirtual() const { return insn(); }
+
+        std::string name() const;
 
     private:
         Node(Address addr, InsnPtr insn, AbslocPtr absloc);

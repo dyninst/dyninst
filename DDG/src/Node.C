@@ -47,12 +47,19 @@
 #include "Node.h"
 #include <assert.h>
 
+#include "boost/lexical_cast.hpp"
+
 // Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
 
 using namespace Dyninst::DDG;
 
 Node::Ptr Node::createNode(Address addr, InsnPtr insn, AbslocPtr absloc) {
     return Node::Ptr(new Node(addr, insn, absloc)); 
+}
+
+Node::Ptr Node::createNode(AbslocPtr absloc) {
+    InsnPtr i;
+    return Node::Ptr(new Node((Address) -1, i, absloc)); 
 }
 
 Node::Node(Address addr, InsnPtr insn, AbslocPtr absloc) :
@@ -70,4 +77,17 @@ bool Node::returnEdges(const EdgeSet &local,
 
     ret.insert(local.begin(), local.end());
     return true;
+}
+
+std::string Node::name() const {
+    char buf[256];
+    if (addr() != (Address) -1) {
+        sprintf(buf,"N_0x%lx_%s_",
+                addr(), absloc()->name().c_str());
+    }
+    else {
+        sprintf(buf, "N_INITIAL_%s_",
+                absloc()->name().c_str());
+    }
+    return std::string(buf);
 }
