@@ -109,7 +109,7 @@ namespace DDG {
         // definition that isn't explicit in the code but must exist.
         NodePtr makeParamNode(Absloc::Ptr a);
 
-        void printDOT();
+        bool printDOT(const std::string fileName);
 
         const NodeSet &entryNodes();
         

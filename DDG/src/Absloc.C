@@ -65,7 +65,7 @@ using namespace Dyninst::InstructionAPI;
 void Absloc::getAbslocs(AbslocSet &locs) {
     RegisterLoc::getRegisterLocs(locs);
     StackLoc::getStackLocs(locs);
-    HeapLoc::getHeapLocs(locs);
+    //HeapLoc::getHeapLocs(locs);
     MemLoc::getMemLocs(locs);
 }
 
@@ -111,13 +111,13 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
     if (regUses.empty()) {
         // Case 1: Immediate only.
         Result res = exp->eval();
-        Address addr;
-        if (res.defined && Absloc::convertResultToAddr(res, addr)) {
-            return MemLoc::getMemLoc(addr);
+        Address memAddr;
+        if (res.defined && Absloc::convertResultToAddr(res, memAddr)) {
+            return MemLoc::getMemLoc(memAddr);
         }
         else {
             // Oops...
-            return MemLoc::getMemLoc();
+            return MemLoc::getBottomLoc(addr);
         }
     }
     else {
@@ -147,15 +147,15 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
                 return StackLoc::getStackLoc(slot);
             }
             else {
-                return StackLoc::getStackLoc();
+                return StackLoc::getBottomLoc(addr);
             }
         }
         else {
-            return MemLoc::getMemLoc();
+            return MemLoc::getBottomLoc(addr);
         }
     }    
     assert(0);
-    return MemLoc::getMemLoc();
+    return MemLoc::getBottomLoc(addr);
 }
 
 // Things are a lot easier if we know it's a register...
@@ -179,7 +179,6 @@ void Absloc::getUsedAbslocs(const InstructionAPI::Instruction insn,
         // We have 'used' this Absloc
         Absloc::Ptr aP = Absloc::getAbsloc(*r);        
         uses.insert(Absloc::getAbsloc(*r));
-        fprintf(stderr,"\t (u)(reg) %s\n", (*r)->format().c_str());
     }
 
     // Also handle memory writes
@@ -189,7 +188,6 @@ void Absloc::getUsedAbslocs(const InstructionAPI::Instruction insn,
         for (std::set<Expression::Ptr>::const_iterator r = memReads.begin();
              r != memReads.end();
              r++) {
-            fprintf(stderr, "\t (u)(exp) %s\n", (*r)->format().c_str());
             uses.insert(Absloc::getAbsloc(*r, func, addr));
         }
     }
@@ -211,7 +209,6 @@ void Absloc::getDefinedAbslocs(const InstructionAPI::Instruction insn,
         // We have 'defined' this Absloc
         Absloc::Ptr aP = Absloc::getAbsloc(*w);
         defs.insert(Absloc::getAbsloc(*w));
-        fprintf(stderr,"\t (d)(reg) %s\n", (*w)->format().c_str());
     }
 
     // Also handle memory writes
@@ -222,7 +219,6 @@ void Absloc::getDefinedAbslocs(const InstructionAPI::Instruction insn,
              w != memWrites.end();
              w++) {
             defs.insert(Absloc::getAbsloc(*w, func, addr));
-            fprintf(stderr,"\t (d)(exp) %s\n", (*w)->format().c_str());
         }
     }
 }
@@ -359,8 +355,6 @@ void Absloc::bindFP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Ad
 }
 
 void Absloc::bindSP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Address addr) {
-    fprintf(stderr, "\t Binding stack pointer value at 0x%lx\n", addr);
-
     assert(isStackPointer(reg, func, addr));
 
     StackAnalysis sA(func->lowlevel_func()->ifunc());
@@ -370,10 +364,7 @@ void Absloc::bindSP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Ad
 
     Offset off = func->lowlevel_func()->addrToOffset(addr);
 
-    fprintf(stderr, "\t\tAddr is 0x%lx, offset 0x%lx\n", addr, off);
-
     if (!hT->find(off, height)) {
-        fprintf(stderr, "\t\t analysis failed, ret...\n");
         return;
     }
 
@@ -381,7 +372,6 @@ void Absloc::bindSP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Ad
     assert(!height.isTop());
 
     if (height.isBottom()) {
-        fprintf(stderr, "\t\t analysis ret bottom, ret...\n");
         return;
     }
 
@@ -390,12 +380,10 @@ void Absloc::bindSP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Ad
     if (container->getID() == InstructionAPI::r_EBP) {
         InstructionAPI::Result res(InstructionAPI::s32, height.height());
         container->setValue(res);
-        fprintf(stderr, "\t\t Bound to %ld\n", height.height());
     }
     else {
         InstructionAPI::Result res(InstructionAPI::s64, height.height());
         container->setValue(res);
-        fprintf(stderr, "\t\t Bound to %ld\n", height.height());
     }
     return;
 }
@@ -418,9 +406,6 @@ Absloc::Ptr RegisterLoc::getRegLoc(const InstructionAPI::RegisterAST::Ptr reg) {
 
     // Look up by name and return    
     if (allRegLocs_.find(*container) == allRegLocs_.end()) {
-        fprintf(stderr, "... didn't find register %s/%d in Abslocs, creating...\n", container->format().c_str(),
-                container->getID());
-
         RegisterLoc::Ptr rP = RegisterLoc::Ptr(new RegisterLoc(container));
 
         allRegLocs_[*container] = rP;
@@ -431,11 +416,14 @@ Absloc::Ptr RegisterLoc::getRegLoc(const InstructionAPI::RegisterAST::Ptr reg) {
 
 const int StackLoc::STACK_GLOBAL = MININT;
 
-StackLoc::StackMap StackLoc::allStackLocs_;
+StackLoc::StackMap StackLoc::stackLocs_;
+std::map<Address,StackLoc::Ptr> StackLoc::bottomLocs_;
 
 std::string StackLoc::name() const {
     if (slot_ == STACK_GLOBAL) {
-        return "STACK_Unknown";
+        char buf[256];
+        sprintf(buf, "STACK_U_0x%lx", id_);
+        return std::string(buf);
     }
     else {
         char buf[256];
@@ -445,61 +433,68 @@ std::string StackLoc::name() const {
 }
 
 void StackLoc::getStackLocs(AbslocSet &locs) {
-    for (StackMap::iterator iter = allStackLocs_.begin();
-         iter != allStackLocs_.end(); iter++) {
+    getDefinedLocs(locs);
+    getBottomLocs(locs);
+}
+
+void StackLoc::getDefinedLocs(AbslocSet &locs) {
+    for (StackMap::iterator iter = stackLocs_.begin();
+         iter != stackLocs_.end(); iter++) {
         locs.insert((*iter).second);
     }
 }
 
+void StackLoc::getBottomLocs(AbslocSet &locs) {
+    for (std::map<Address, StackLoc::Ptr>::iterator iter = bottomLocs_.begin();
+         iter != bottomLocs_.end(); iter++) {
+        locs.insert((*iter).second);
+    }
+}
+
+
+
 Absloc::Ptr StackLoc::getStackLoc(int slot) {
     // Look up by name and return    
-    if (allStackLocs_.find(slot) == allStackLocs_.end()) {
-        fprintf(stderr, "... didn't find stack slot %d in Abslocs, creating...\n", slot);
-        
+    if (stackLocs_.find(slot) == stackLocs_.end()) {
         StackLoc::Ptr sP = StackLoc::Ptr(new StackLoc(slot));
         
-        allStackLocs_[slot] = sP;
+        stackLocs_[slot] = sP;
     }
     
-    return allStackLocs_[slot];
+    return stackLocs_[slot];
 }
 
-Absloc::Ptr StackLoc::getStackLoc() {
+Absloc::Ptr StackLoc::getBottomLoc(Address addr) {
     // Look up by name and return    
-    if (allStackLocs_.find(STACK_GLOBAL) == allStackLocs_.end()) {
-        fprintf(stderr, "... didn't find stack slot <UNKNOWN> in Abslocs, creating...\n");
-        
+    if (bottomLocs_.find(addr) == bottomLocs_.end()) {
         StackLoc::Ptr sP = StackLoc::Ptr(new StackLoc());
-        
-        allStackLocs_[STACK_GLOBAL] = sP;
+        sP->id_ = addr;
+
+        bottomLocs_[addr] = sP;
     }
     
-    return allStackLocs_[STACK_GLOBAL];
+    return bottomLocs_[addr];
 }
 
-StackLoc::AbslocSet StackLoc::getAliasedAbslocs() {
+StackLoc::AbslocSet StackLoc::getAliases() {
     AbslocSet ret;
+
     // If we're a specific stack slot, return the generic
-    // stack slot (if it exists)
+    // stack slot(s)
     if (slot_ != STACK_GLOBAL) {
-        ret.insert(getStackLoc());
+        getBottomLocs(ret);
     } 
     else {
-        // What if we're the generic stack slot? Should we include
-        // specific stack slots? 
-        for (StackMap::iterator i = allStackLocs_.begin(); i != allStackLocs_.end(); i++) {
-            if ((*i).first != STACK_GLOBAL) {
-                ret.insert((*i).second);
-            }
-        }
+        getDefinedLocs(ret);
     }
 
-    // Global memory reference is included...
-    ret.insert(MemLoc::getMemLoc());
+    // Global memory references might touch the stack...
+    MemLoc::getBottomLocs(ret);
 
     return ret;
 }
 
+#if 0
 Absloc::Ptr HeapLoc::heapLoc_;
 
 void HeapLoc::getHeapLocs(AbslocSet &locs) {
@@ -514,15 +509,17 @@ Absloc::Ptr HeapLoc::getHeapLoc() {
     return heapLoc_;
 }
 
-HeapLoc::AbslocSet HeapLoc::getAliasedAbslocs() {
+HeapLoc::AbslocSet HeapLoc::getAliases() {
     AbslocSet ret;
     // Global memory reference is included...
     ret.insert(MemLoc::getMemLoc());
     return ret;
 }
+#endif
 
 const Address MemLoc::MEM_GLOBAL = (Address) -1;
-MemLoc::MemMap MemLoc::allMemLocs_;
+MemLoc::MemMap MemLoc::memLocs_;
+MemLoc::MemMap MemLoc::bottomLocs_;
 
 std::string MemLoc::name() const { 
     if (addr_ == MEM_GLOBAL) {
@@ -536,42 +533,56 @@ std::string MemLoc::name() const {
 }
 
 void MemLoc::getMemLocs(AbslocSet &locs) {
-    for (MemMap::iterator iter = allMemLocs_.begin();
-         iter != allMemLocs_.end(); iter++) {
+    getDefinedLocs(locs);
+    getBottomLocs(locs);
+}
+
+void MemLoc::getDefinedLocs(AbslocSet &locs) {
+    for (MemMap::iterator iter = memLocs_.begin();
+         iter != memLocs_.end(); iter++) {
+        locs.insert((*iter).second);
+    }
+}
+
+void MemLoc::getBottomLocs(AbslocSet &locs) {
+    for (MemMap::iterator iter = bottomLocs_.begin();
+         iter != bottomLocs_.end(); iter++) {
         locs.insert((*iter).second);
     }
 }
 
 Absloc::Ptr MemLoc::getMemLoc(Address addr) {
     // Look up by name and return    
-    if (allMemLocs_.find(addr) == allMemLocs_.end()) {
-        fprintf(stderr, "... didn't find memory addr 0x%lx in Abslocs, creating...\n", addr);
-        
+    if (memLocs_.find(addr) == memLocs_.end()) {
         MemLoc::Ptr mP = MemLoc::Ptr(new MemLoc(addr));
         
-        allMemLocs_[addr] = mP;
+        memLocs_[addr] = mP;
     }
     
-    return allMemLocs_[addr];
+    return memLocs_[addr];
 }
 
-Absloc::Ptr MemLoc::getMemLoc() {
+Absloc::Ptr MemLoc::getBottomLoc(Address addr) {
     // Look up by name and return    
-    if (allMemLocs_.find(MEM_GLOBAL) == allMemLocs_.end()) {
-        fprintf(stderr, "... didn't find memory addr <UNKNOWN> in Abslocs, creating...\n");
-        
+    if (bottomLocs_.find(addr) == bottomLocs_.end()) {
         MemLoc::Ptr mP = MemLoc::Ptr(new MemLoc());
-        
-        allMemLocs_[MEM_GLOBAL] = mP;
+        mP->id_ = addr;
+
+        bottomLocs_[addr] = mP;
     }
-    
-    return allMemLocs_[MEM_GLOBAL];
+
+    return bottomLocs_[addr];
 }
 
-MemLoc::AbslocSet MemLoc::getAliasedAbslocs() {
+MemLoc::AbslocSet MemLoc::getAliases() {
     AbslocSet ret;
     if (addr_ != MEM_GLOBAL) {
-        ret.insert(getMemLoc());
+        getBottomLocs(ret);
+    }
+    else {
+        // ???
+        getDefinedLocs(ret);
+        // Include stack slots?
     }
 
     return ret;

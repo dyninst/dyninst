@@ -111,7 +111,7 @@ class Absloc : public AnnotatableSparse {
     // Get the set of Abslocs that may "contain" the current one; that is,
     // may be included in a use or definition. For example, the "Stack"
     // absloc contains any specific stack slot.
-    virtual AbslocSet getAliasedAbslocs() = 0;
+    virtual AbslocSet getAliases() = 0;
  protected:
 
     static bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
@@ -143,7 +143,7 @@ class RegisterLoc : public Absloc {
     static Absloc::Ptr getRegLoc(const InstructionAPI::RegisterAST::Ptr reg);
 
     // We have precise information about all registers.
-    virtual AbslocSet getAliasedAbslocs() { return AbslocSet(); }
+    virtual AbslocSet getAliases() { return AbslocSet(); }
 
  private:
     RegisterLoc(const InstructionAPI::RegisterAST::Ptr reg) : reg_(reg) {};
@@ -163,23 +163,32 @@ class StackLoc : public Absloc {
     typedef boost::shared_ptr<StackLoc> Ptr;
     virtual ~StackLoc() {};
     virtual std::string name() const;
+
     static void getStackLocs(AbslocSet &locs);
+    static void getDefinedLocs(AbslocSet &locs);
+    static void getBottomLocs(AbslocSet &locs);
 
     static Absloc::Ptr getStackLoc(int slot);
-    static Absloc::Ptr getStackLoc();
+    static Absloc::Ptr getBottomLoc(Address addr);
 
-    virtual AbslocSet getAliasedAbslocs();
+    virtual AbslocSet getAliases();
 
     static const int STACK_GLOBAL;
  private:
-    StackLoc(const int stackOffset) : slot_(stackOffset) {};
-    StackLoc() : slot_(STACK_GLOBAL) {};
+    StackLoc(const int stackOffset) : slot_(stackOffset), id_(0) {};
+    StackLoc() : slot_(STACK_GLOBAL), id_(0) {};
 
     const int slot_;
 
-    static StackMap allStackLocs_;
+    // If we're a "bottom" location, we need some unique ID. Use
+    // the address of the instruction as that ID.
+    Address id_;
+
+    static StackMap stackLocs_;
+    static std::map<Address, StackLoc::Ptr> bottomLocs_;
 };
 
+#if 0
 class HeapLoc : public Absloc {
     friend class Graph;
     friend class Node;
@@ -191,15 +200,16 @@ class HeapLoc : public Absloc {
     virtual std::string name() const { return "HEAP"; }
     static void getHeapLocs(AbslocSet &locs);
 
-    static Absloc::Ptr getHeapLoc();
+    static Absloc::Ptr getHeapLoc(Address addr);
 
-    virtual AbslocSet getAliasedAbslocs();
+    virtual AbslocSet getAliases();
 
  private:
     HeapLoc() {};
     
     static Absloc::Ptr heapLoc_;
 };
+#endif
 
 class MemLoc : public Absloc {
     friend class Graph;
@@ -209,28 +219,35 @@ class MemLoc : public Absloc {
  public:
     typedef boost::shared_ptr<MemLoc> Ptr;
     typedef std::map<Address, MemLoc::Ptr> MemMap;
+    typedef std::set<MemLoc::Ptr> MemSet;
 
     virtual ~MemLoc() {};
     virtual std::string name() const;
     static void getMemLocs(AbslocSet &locs);
+    static void getDefinedLocs(AbslocSet &locs);
+    static void getBottomLocs(AbslocSet &locs);
 
     // A specific word in memory
     static Absloc::Ptr getMemLoc(Address addr);
     // "Anywhere in memory"
-    static Absloc::Ptr getMemLoc();
+    // The parameter here indicates a unique definition
+    // so we can distinguish them.
+    static Absloc::Ptr getBottomLoc(Address addr);
 
     static const Address MEM_GLOBAL;
 
-    virtual AbslocSet getAliasedAbslocs();
+    virtual AbslocSet getAliases();
 
  private:
 
-    MemLoc(Address addr) : addr_(addr) {};
-    MemLoc() : addr_(MEM_GLOBAL) {};
+    MemLoc(Address addr) : addr_(addr), id_(0) {};
+    MemLoc() : addr_(MEM_GLOBAL), id_(0) {};
 
     Address addr_;
+    Address id_;
 
-    static MemMap allMemLocs_; 
+    static MemMap memLocs_; 
+    static MemMap bottomLocs_;
 };
 
 };

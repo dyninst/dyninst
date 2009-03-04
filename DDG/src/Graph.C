@@ -76,7 +76,6 @@ Node::Ptr Graph::makeNode(Dyninst::InstructionAPI::Instruction &insn,
 }
 
 Graph::NodePtr Graph::makeParamNode(Absloc::Ptr a) {
-    fprintf(stderr, "Creating initial definition node for %s\n", a->name().c_str());
     
     // Create a known "initial" node and insert it into the
     // entryNodes_ structure.
@@ -95,10 +94,6 @@ Graph::Ptr Graph::createGraph() {
 }
 
 void Graph::insertPair(NodePtr source, NodePtr target) {
-    fprintf(stderr, "Inserting <%s, %s>\n",
-            source->name().c_str(), 
-            target->name().c_str());
-
     // This asserts that we don't try to insert an unknown
     // node.
     assert(allNodes_[source->addr()].find(source->absloc()) 
@@ -135,8 +130,13 @@ const Graph::NodeSet &Graph::entryNodes() {
     return entryNodes_;
 }
 
-void Graph::printDOT() {
-    fprintf(stderr, "digraph G {\n");
+bool Graph::printDOT(const std::string fileName) {
+    FILE *file = fopen(fileName.c_str(), "w");
+    if (file == NULL) {
+        return false;
+    }
+
+    fprintf(file, "digraph G {\n");
 
     NodeSet visited;
     std::queue<Node::Ptr> worklist;
@@ -151,17 +151,25 @@ void Graph::printDOT() {
     while (!worklist.empty()) {
         Node::Ptr source = worklist.front();
         worklist.pop();
-        visited.insert(source);
+        
+        // We may have already treated this node...
+        if (visited.find(source) != visited.end()) {
+            continue;
+        }
 
+        visited.insert(source);
+        fprintf(file, "\t // %s\n", source->name().c_str());
         Node::EdgeSet outs; source->outs(outs);
         for (Node::EdgeSet::iterator e = outs.begin(); e != outs.end(); e++) {
             Node::Ptr target = (*e)->target();
-            fprintf(stderr, "\t %s -> %s;\n", source->name().c_str(), target->name().c_str());
-            if (visited.find(target) == visited.end()) {
+            fprintf(file, "\t %s -> %s;\n", source->name().c_str(), target->name().c_str());
+            if (visited.find(target) != visited.end()) {
                 worklist.push(target);
             }
         }
     }
-    fprintf(stderr, "}\n\n\n");
+    fprintf(file, "}\n\n\n");
+    fclose(file);
+    return true;
 }
 

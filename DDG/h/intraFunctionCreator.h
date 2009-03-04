@@ -103,6 +103,8 @@ class intraFunctionDDGCreator {
 
     // Temporary use: a data type for summarizing the definitions of Abslocs
     // from a particular block.
+    // We use a map of cNodes to handle aliasing issues; see block comment
+    // in intraFunctionCreator.C
     typedef std::map<AbslocPtr, cNode> DefMap;
     // And if we have real Nodes, we use a similar definition
     typedef std::map<AbslocPtr, NodePtr> NodeDefMap;
@@ -139,7 +141,7 @@ class intraFunctionDDGCreator {
     void initializeGenSets(std::set<Block *> &allBlocks);
 
     void merge(ReachingDefsLocal &target,
-               const ReachingDefsLocal &source);
+               ReachingDefsLocal &source);
 
     void calcNewOut(ReachingDefsLocal &out,
                     Block *current,

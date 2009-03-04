@@ -71,71 +71,77 @@ using namespace Dyninst::DDG;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
 
-void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
-    assert(allGens.empty());
+// Let me take an aside to discuss aliases and the issues they raise.
+// An alias pair are two abstract locations that can actually "refer" to
+// the same concrete location. We see this when memory is used, primarily
+// due to incomplete information. Consider the following example:
+// 
+// S1 is an abstract location that refers to stack slot 1.
+// S* is an abstract location that refers to an unknown slot on the stack
+// S* aliases S1 since it _could_ refer to S1. However, it does not
+// necessarily refer to S1. 
+//
+// When we build the DDG we need to include edges from all aliases of
+// a given used absloc. However, this will _excessively_ overapproximate
+// the DDG. Consider the following:
+// B = <i1, i2, i3>
+// i1 defines S*
+// i2 defines S1
+// i3 uses S1
+// i4 uses S2
+//
+// Consider i3. It uses S1, and therefore has a dependence on i2. However,
+// there is no dependence on i1. Conversely, i4 _does_ have a dependence on
+// i1. 
+// 
+// The second example is more complex. 
+//
+// B1 = (i1), B2 = (j1), B3 = (k1)
+// i1 defines S*
+// j1 defines S1
+// k1 uses S1
+// 
+// Note that k1 here has a dependence on both i1 and j1.
+//
+// So our alias handling needs to deal with this. 
+//
+//
+// What if we track aliases as we are doing the initial intra-block
+// analysis? 
+// 
+// At that point we have a map from Abslocs to the set of nodes
+// that define that Absloc. 
+// A known stack location (ksLoc):
+//      defines ksLoc
+//      kills any other definition to ksLoc
+// An unknown stack location (usLoc):
+//      defines usLoc...
+//      Does not kill any other definition to usLoc...
+//      APPENDS to the definitions of all ksLocs.
+//
+// I believe this should work. We're really expanding the set of
+// people that define an absloc, but it's a temporary data structure.
+// We also need to know all abslocs ahead of time, but that can
+// be done with a single pass over all instructions to determine
+// their defined abslocs.
+//
+// Problem is, that extra pass adds a lot of complexity. Which
+// isn't strictly necessary, I don't think. 
+//
+// Instead, I propose a solution that operates at the *merge*
+// phase. We only care if there is a "generic" definition that
+// reaches a use point (by definition), and any such definition
+// must pass through a merge operation for us to care. 
+// 
+// Thus we augment merge as follows:
+// merge(of an absloc S1)
+//   set current, set newInfo
+//     IF newInfo contains S1
+//       current += newInfo[S1]
+//     ELSE 
+//       For each S in genericStackSlots 
+//         current += newInfo[S]
 
-    cerr << "Initializing gen sets..." << endl;
-    
-    for (std::set<Block *>::iterator iter = allBlocks.begin();
-         iter != allBlocks.end(); 
-         iter++) {
-        Block *curBlock = *iter;
-        // GEN: all abstract locations defined in this block
-        // KILL: implicit; we kill all other such locations.
-        
-        // First, check to see if we've already traversed this block. That would
-        // be... bad.
-
-        fprintf(stderr, "Analyzing block at 0x%lx\n",
-                curBlock->getStartAddress());
-
-        if (allGens.find(curBlock) != allGens.end()) {
-            fprintf(stderr, "BITCH MOAN WHINE!!!!!\n"); 
-            continue;
-        }
-        
-        std::vector<std::pair<Instruction,Address> > insns;
-        curBlock->getInstructions(insns);
-        
-        for (unsigned i = 0; i < insns.size(); i++) {
-            fprintf(stderr, "Instruction %d\n", i+1);
-            // Initialize the entry with an empty map.
-            allGens[curBlock] = DefMap();
-
-            AbslocSet writtenAbslocs;
-            Absloc::getDefinedAbslocs(insns[i].first, func, insns[i].second, writtenAbslocs);
-
-            for (AbslocSet::iterator iter = writtenAbslocs.begin();
-                 iter != writtenAbslocs.end();
-                 iter++) {                
-                // So record that this instance (insns[i]) defined this
-                // absloc...
-                // Note that this overrides any previous insn, as the last
-                // definition wins for our purposes.
-                (allGens[curBlock])[*iter] = std::make_pair(*iter,InsnInstance(insns[i]));
-            }
-        }
-    }
-
-    cerr << allGens.size() << " gen sets created" << endl;
-    cerr << allBlocks.size() << " blocks to process" << endl;
-
-    assert(allGens.size() == allBlocks.size());
-}
-
-void intraFunctionDDGCreator::merge(ReachingDefsLocal &target,
-                                    const ReachingDefsLocal &source) {
-    // For each absloc A in Source
-    //   target[A] = target[A] U source[A]
-    for (ReachingDefsLocal::const_iterator iter = source.begin();
-         iter != source.end();
-         iter++) {
-        AbslocPtr A = (*iter).first;
-        
-        target[A].insert((*iter).second.begin(),
-                         (*iter).second.end());
-    }
-}
 
 void intraFunctionDDGCreator::buildDDG() {
     
@@ -163,6 +169,7 @@ void intraFunctionDDGCreator::buildDDG() {
     std::set<Block *> allBlocks;
     CFG->getAllBasicBlocks(allBlocks);
 
+    // Create the GEN (generated) set for each basic block. 
     initializeGenSets(allBlocks);
 
     // We now have GEN for each block. Propagate reaching
@@ -178,6 +185,77 @@ void intraFunctionDDGCreator::buildDDG() {
     // We want to build the subnode-level graph.
     generateIntraBlockReachingDefs(allBlocks);
 }
+
+
+void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
+    assert(allGens.empty());
+
+    for (std::set<Block *>::iterator iter = allBlocks.begin();
+         iter != allBlocks.end(); 
+         iter++) {
+        Block *curBlock = *iter;
+        // GEN: all abstract locations defined in this block
+        // KILL: implicit; we kill all other such locations.
+        
+        // First, check to see if we've already traversed this block. That would
+        // be... bad.
+
+        if (allGens.find(curBlock) != allGens.end()) {
+            assert(0);
+        }
+        
+        std::vector<std::pair<Instruction,Address> > insns;
+        curBlock->getInstructions(insns);
+        
+        for (unsigned i = 0; i < insns.size(); i++) {
+            AbslocSet writtenAbslocs;
+            Absloc::getDefinedAbslocs(insns[i].first, func, insns[i].second, writtenAbslocs);
+
+            for (AbslocSet::iterator iter = writtenAbslocs.begin();
+                 iter != writtenAbslocs.end();
+                 iter++) {                
+                // So record that this instance (insns[i]) defined this
+                // absloc...
+                // Note that this overrides any previous insn, as the last
+                // definition wins for our purposes.
+                (allGens[curBlock])[*iter] = std::make_pair(*iter,InsnInstance(insns[i]));
+            }
+        }
+    }
+
+    cerr << allGens.size() << " gen sets created" << endl;
+    cerr << allBlocks.size() << " blocks to process" << endl;
+
+    assert(allGens.size() == allBlocks.size());
+}
+
+void intraFunctionDDGCreator::merge(ReachingDefsLocal &target,
+                                    ReachingDefsLocal &source) {
+    // For each absloc A in target
+    //   If source[A] exists
+    //     target[A] = target[A] U source[A]
+    //   Else for each B in A.aliases
+    //     target[A] = target[A] U source[B] 
+
+    for (ReachingDefsLocal::iterator iter = target.begin(); 
+         iter != target.end();
+         iter++) {
+        AbslocPtr A = (*iter).first;
+        if (source.find(A) != source.end()) {
+            target[A].insert(source[A].begin(), source[A].end());
+        }
+        else {
+            // See if we have an aliasing set for A...
+            AbslocSet aliases = A->getAliases();
+            for (AbslocSet::iterator a_iter = aliases.begin(); 
+                 a_iter != aliases.end(); a_iter++) {
+                target[A].insert(source[*a_iter].begin(), 
+                                 source[*a_iter].end());
+            }
+        }
+    }
+}
+
 
 void intraFunctionDDGCreator::generateInterBlockReachingDefs(Flowgraph *CFG) {
     std::vector<BPatch_basicBlock *> entryBlocks;
@@ -208,10 +286,8 @@ void intraFunctionDDGCreator::generateInterBlockReachingDefs(Flowgraph *CFG) {
         // OUT(i,a) = GEN(i,a) U (IN(i,a) - KILL(i,a))
         ReachingDefsLocal newOut;
         calcNewOut(newOut, working, allGens[working], newIn);
-        fprintf(stderr, "\t old out size: %d; new out size: %d\n", outSets[working].size(), newOut.size());
+
         if (newOut != outSets[working]) {
-            fprintf(stderr, "\t Sets not equal, adding successors to block list\n");
-            debugLocalSet(newOut, "\t");
             outSets[working] = newOut;
             std::vector<Block *> successors;
             getSuccessors(working, successors);
@@ -233,14 +309,16 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
     //     Let def = i.defines();
     //     For each absloc D in def:
     //       Let T = NODE(I,D)
-    //       Let used = abslocs I uses to define A.
+    //       Let used = abslocs I uses to define D.
     //       For each absloc U in used:
-    //         If localReachingDefs[U] is not NULL
-    //           then node S = localReachingDefs[U]
-    //             Insert(S,T)
-    //           else let RDS = inSets[B][U]
-    //             For each pair (B', S) in RDS:
+    //         Let Aliases = aliases to U.
+    //         For each absloc A in Aliases
+    //           If localReachingDefs[A] is defined
+    //             then node S = localReachingDefs[A]
     //               Insert(S,T)
+    //             else let RDS = inSets[B][A]
+    //               For each pair (B', S) in RDS:
+    //                 Insert(S,T)
     //     For each absloc D in def:
     //       localReachingDefs[D] = NODE(I,D)
     // See comment below for why we do this in two iterations.
@@ -256,8 +334,6 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
         for (unsigned i = 0; i < insns.size(); i++) {
             Instruction I = insns[i].first;
             Address addr = insns[i].second;
-
-            fprintf(stderr, "Instruction at 0x%lx\n", addr);
 
             AbslocSet used;
             Absloc::getUsedAbslocs(I, func, addr, used);
@@ -277,7 +353,7 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
                 for (AbslocSet::const_iterator u_iter = used.begin();
                      u_iter != used.end(); u_iter++) {
                     Absloc::Ptr U = *u_iter;
-                    
+
                     if (localReachingDefs.find(U) != localReachingDefs.end()) {
                         NodePtr S = localReachingDefs[U];
                         // By definition we know S is in nodes
@@ -376,11 +452,9 @@ void intraFunctionDDGCreator::calcNewOut(ReachingDefsLocal &out,
             ReachingDefSet dummy;
             dummy.insert(entry);
             out[A] = dummy;
-            fprintf(stderr, "\t\tAbsloc %s redefined at current block\n", A->name().c_str());
         }
         else {
             // Not generated locally, so pass through.
-            fprintf(stderr, "\t\tAbsloc %s not defined, passing through\n", A->name().c_str());
             out[A] = in[A];
         }
     }
