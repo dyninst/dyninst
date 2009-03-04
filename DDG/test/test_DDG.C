@@ -36,7 +36,9 @@ int main(int argc, const char** argv)
 			 function);
 
   Dyninst::DDG::Graph::Ptr g = intraFunctionDDGCreator::createGraph(function[0]);
-  g->printDOT();
+  std::string str(argv[2]);
+  str += ".dot";
+  g->printDOT(str);
   
 
   return EXIT_SUCCESS;
