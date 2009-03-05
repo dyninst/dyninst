@@ -103,8 +103,11 @@ bool StackAnalysis::analyze()
     func->addAnnotation(heightIntervals_, StackHeightAnno);
     func->addAnnotation(presenceIntervals_, StackPresenceAnno);
 
-    //debugStackHeights();
-    //debugStackPresences();
+    if (dyn_debug_stackanalysis) {
+        debugStackHeights();
+        debugStackPresences();
+    }
+
     stanalysis_printf("Finished stack analysis for function %s\n",
                       func->symTabName().c_str());
 
@@ -448,6 +451,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
                break;
            }
            stanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", height.getString().c_str());
+           return;
        }
    }
        height = StackHeight(StackHeight::bottom);
