@@ -108,6 +108,11 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
     std::set<InstructionAST::Ptr> regUses;
     exp->getUses(regUses);
 
+    // If exp is a register (that is, the original operand was *reg) then 
+    // its use set will currently _not_ include itself. So add it.
+    if (boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(exp))
+        regUses.insert(exp);
+
     if (regUses.empty()) {
         // Case 1: Immediate only.
         Result res = exp->eval();
