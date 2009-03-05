@@ -43,16 +43,23 @@ namespace Dyninst
       return RegisterAST::Ptr(new RegisterAST(regID));
     }
 
-    Operation::Operation(ia32_entry* e, ia32_prefixes* p)
+    Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l)
     {
-      if(!e || !e->name())
+      if(!e)
       {
 	mnemonic = "[INVALID]";
 	operationID = e_No_Entry;
 	return;
       }
-      mnemonic = e->name();
-      operationID = e->id;
+      if(e->name(l))
+      {
+	mnemonic = e->name(l);
+      }
+      operationID = e->getID(l);
+      if(mnemonic.empty())
+      {
+	mnemonic = "[UNKNOWN]";
+      }
       switch(e->opsema & 0xff)
       {
       case s1R2R:   // reads two operands, e.g. cmp
@@ -157,7 +164,7 @@ namespace Dyninst
       }
       SetUpNonOperandData();
       std::set<IA32Regs> flagsRead, flagsWritten;
-      e->flagsUsed(flagsRead, flagsWritten);
+      e->flagsUsed(flagsRead, flagsWritten, l);
       if(p && p->getCount())
       {
 	for(unsigned i = 0; i < p->getCount(); i++)
@@ -286,11 +293,25 @@ namespace Dyninst
 	thePC = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
 	pcAndSP = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())))
 	(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	stackPointer = list_of(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	framePointer = list_of(RegisterAST::Ptr(new RegisterAST(r_eBP)));
+	spAndBP = list_of(RegisterAST::Ptr(new RegisterAST(r_eSP)))(RegisterAST::Ptr(new RegisterAST(r_eBP)));
+	
+	nonOperandRegisterReads = 
+	map_list_of
+	(e_call, thePC)
+	(e_ret_near, stackPointer)
+	(e_ret_far, stackPointer)
+	(e_leave, framePointer)
+	(e_enter, spAndBP);
+	
 	nonOperandRegisterWrites = 
 	map_list_of
 	(e_call, pcAndSP)
 	(e_ret_near, pcAndSP)
 	(e_ret_far, pcAndSP)
+	(e_leave, spAndBP)
+	(e_enter, spAndBP)
 	(e_jb, thePC)
 	(e_jb_jnaej_j, thePC)
 	(e_jbe, thePC)
@@ -314,6 +335,9 @@ namespace Dyninst
       }
       std::set<RegisterAST::Ptr> thePC;
       std::set<RegisterAST::Ptr> pcAndSP;
+      std::set<RegisterAST::Ptr> stackPointer;
+      std::set<RegisterAST::Ptr> framePointer;
+      std::set<RegisterAST::Ptr> spAndBP;
       map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
       map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
 

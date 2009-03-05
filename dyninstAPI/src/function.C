@@ -76,6 +76,7 @@ int_function::int_function(image_func *f,
     mod_(mod),
     blockIDmap(intHash),
     instPsByAddr_(addrHash4),
+    isBeingInstrumented_(false),
 #if defined(cap_relocation)
     generatedVersion_(0),
     installedVersion_(0),
@@ -128,6 +129,7 @@ int_function::int_function(const int_function *parFunc,
     mod_(childMod),
     blockIDmap(intHash),
     instPsByAddr_(addrHash4),
+    isBeingInstrumented_(parFunc->isBeingInstrumented_),
 #if defined(cap_relocation)
     generatedVersion_(parFunc->generatedVersion_),
     installedVersion_(parFunc->installedVersion_),
@@ -1365,6 +1367,9 @@ bool int_function::performInstrumentation(bool stopOnFailure,
     // something interesting going on; that is, that have instrumentation
     // added since the last time something came up. 
 
+  if (isBeingInstrumented_) return false;
+  isBeingInstrumented_ = true;
+
     pdvector<instPoint *> newInstrumentation;
     pdvector<instPoint *> anyInstrumentation;
 
@@ -1379,7 +1384,10 @@ bool int_function::performInstrumentation(bool stopOnFailure,
     // Step 1: Generate all new instrumentation
     generateInstrumentation(newInstrumentation, failedInstPoints, relocationRequired); 
     
-    if (failedInstPoints.size() && stopOnFailure) return false;
+    if (failedInstPoints.size() && stopOnFailure) {
+      isBeingInstrumented_ = false;
+      return false;
+    }
 
 #if defined(cap_relocation)
     // Step 2: is relocation necessary?
@@ -1431,6 +1439,14 @@ bool int_function::performInstrumentation(bool stopOnFailure,
         //assert(relocationRequired == false);
 
         newInstrumentation = anyInstrumentation;
+
+	// If there are any other functions that we need to relocate
+	// due to this relocation, handle it now. We don't care if they
+	// fail to install instrumentation though.
+	std::vector<instPoint *> dontcare;
+	for (unsigned i = 0; i < need_reloc.size(); i++) {
+	  need_reloc[i]->performInstrumentation(false, dontcare);
+	}
     }
 #endif
 
@@ -1447,6 +1463,7 @@ bool int_function::performInstrumentation(bool stopOnFailure,
         obj()->setDirty();
     }
 
+    isBeingInstrumented_ = false;
     return (failedInstPoints.size() == 0);
 }
 
@@ -1553,3 +1570,7 @@ void int_function::linkInstrumentation(pdvector<instPoint *> &input,
     }
 }
 
+
+Offset int_function::addrToOffset(const Address addr) const { 
+    return addr - getAddress() + ifunc_->getOffset(); 
+}

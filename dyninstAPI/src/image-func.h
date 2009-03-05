@@ -146,6 +146,7 @@ class image_edge {
 class image_basicBlock : public codeRange {
     friend class image_func;
  public:
+
     image_basicBlock(image_func *func, Address firstOffset);
 
     Address firstInsnOffset() const { return firstInsnOffset_; }
@@ -179,6 +180,8 @@ class image_basicBlock : public codeRange {
             return false;
         }
     };
+
+    typedef std::set<image_basicBlock *, image_basicBlock::compare> blockSet;
 
     void debugPrint();
 
@@ -230,6 +233,10 @@ class image_basicBlock : public codeRange {
     const bitArray &getLivenessIn();
     // This is copied from the union of all successor blocks
     const bitArray getLivenessOut() const;
+#endif
+
+#if defined(cap_instruction_api)
+    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction, Offset> > &instances);
 #endif
 
    private:
@@ -300,7 +307,9 @@ class image_func_registers {
 
 // Parse-level function object. Knows about offsets, names, and suchlike; 
 // does _not_ do function relocation.
-class image_func : public codeRange {
+class image_func : public codeRange,
+                   public AnnotatableSparse
+{
  public:
    static std::string emptyString;
 

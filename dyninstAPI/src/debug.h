@@ -90,6 +90,8 @@ extern int dyn_stats_ptrace;
 extern int dyn_stats_parse;
 extern int dyn_debug_crash;
 
+extern int dyn_debug_stackanalysis;
+
 extern char *dyn_debug_crash_debugger;
 
 #include "common/h/stats.h"
@@ -162,6 +164,7 @@ extern int write_printf(const char *format, ...);
 extern int liveness_printf(const char *format, ...);
 extern int infmalloc_printf(const char *forma, ...);
 extern int crash_printf(const char *format, ...);
+extern int stanalysis_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();

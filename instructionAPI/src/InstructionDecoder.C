@@ -94,6 +94,14 @@ namespace Dyninst
      
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
+      if(ia32_is_mode_64())
+      {
+	if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
+	{
+	  return Expression::Ptr(new RegisterAST(r_RIP));
+	}
+      }
+      
       // This handles the rm and reg fields; the mod field affects how this expression is wrapped
       if(locs->modrm_rm != modrm_use_sib || locs->modrm_mod == 0x03)
       {
@@ -630,7 +638,7 @@ namespace Dyninst
       decodedInstruction = new ia32_instruction(mac, cond, locs);
       ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, 
 					   rawInstruction, *decodedInstruction);
-      m_Operation = Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix());
+      m_Operation = Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix(), locs);
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();
     }

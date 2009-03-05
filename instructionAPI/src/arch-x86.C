@@ -57,9 +57,9 @@
 #include <string>
 #include "common/h/Types.h"
 #include "arch-x86.h"
-#include "../h/RegisterIDs-x86.h"
+#include "RegisterIDs-x86.h"
 #include <iostream>
-
+#include "Register.h"
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -637,16 +637,6 @@ map<entryID, string> entryNames_IAPI = map_list_of
 ;
 
 
-const char* ia32_entry::name()
-{
-  map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
-  if(found != entryNames_IAPI.end())
-  {
-    return found->second.c_str();
-  }
-  return NULL;
-}
-
 const map<entryID, flagInfo>& ia32_instruction::getFlagTable()
 {
   static map<entryID, flagInfo> flagTable;
@@ -793,9 +783,9 @@ void ia32_instruction::initFlagTable(map<entryID, flagInfo>& flagTable)
   flagTable[e_scasw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
 }
 
-bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten)
+bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten, ia32_locations* locs)
 {
-  map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(id);
+  map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(getID(locs));
   if(found == ia32_instruction::getFlagTable().end())
   {
     return false;
@@ -834,7 +824,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_or,   t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { e_push, t_done, 0, false, { CS, eSP, Zz }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { CS, eSP, Zz }, 0, s1R2RW },
   { e_No_Entry,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
   { e_adc,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
@@ -927,8 +917,8 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW },
   { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW },
   /* 60 */
-  { e_pusha_d, t_done, 0, false, { STHa, GPRS, eSP }, 0, s1W2R3RW },
-  { e_popa_d,  t_done, 0, false, { GPRS, STPa, eSP }, 0, s1W2R3RW },
+  { e_pusha_d, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW },
+  { e_popa_d,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW },
   { e_bound,    t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R },
   { e_arpl,     t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
@@ -1746,7 +1736,7 @@ static ia32_entry sseMap[][4] = {
     { e_movups, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
     { e_movss,  t_done, 0, true, { Wss, Vss, Zz }, 0, s1W2R },
     { e_movupd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
-    { e_movsd,  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R }, // FIXME: bug in book?????
+    { e_movsd,  t_done, 0, true, { Wsd, Vsd, Zz }, 0, s1W2R }, // Book is wrong, this is a W/V
   },
   { /* SSE12 */
     { e_movlps_movhlps, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op
@@ -2707,7 +2697,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         instruct.mac[1].sizehack = shREPNECMPS;
         break;
       default:
-        fprintf(stderr, "IA32 DECODER: unexpected repnz prefix ignored...\n");
+	  break;
       }
       break;
     case PREFIX_REP:
@@ -3303,8 +3293,8 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
   case op_512:
     return 512;
   default:
-    assert(!"No such type");
-    return -1;
+    RegisterAST reg(optype);
+    return reg.eval().size();
   }
 }
 
@@ -3424,32 +3414,37 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
           mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr);
         break;
       case am_stackH: /* stack push */
-        if(mac) {
-          // assuming 32-bit (64-bit for AMD64) stack segment
-	  // AMD64: push defaults to 64-bit operand size
-	  if (mode_64 && operSzAttr == 2)
-	      operSzAttr = 4;
-          mac[i].set(mESP, -2 * operSzAttr, addrSzAttr);
-          mac[i].size = type2size(op.optype, operSzAttr);
-        }
-        break;
       case am_stackP: /* stack pop */
-        if(mac) {
-          // assuming 32-bit (64-bit for AMD64) stack segment
-	  // AMD64: pop defaults to 64-bit operand size
-	  if (mode_64 && operSzAttr == 2)
-	      operSzAttr = 4;
-          mac[i].set(mESP, 0, addrSzAttr);
-          mac[i].size = type2size(op.optype, operSzAttr);
-        }
+	assert(0 && "Wrong table!");
         break;
       default:
-        assert(0);
+        assert(0 && "Bad addressing mode!");
       }
     }
     else
       break;
   }
+  if((gotit.id == e_push) && mac)
+  {
+    // assuming 32-bit (64-bit for AMD64) stack segment
+    // AMD64: push defaults to 64-bit operand size
+    if (mode_64 && operSzAttr == 2)
+      operSzAttr = 4;
+    mac[1].set(mESP, -2 * operSzAttr, addrSzAttr);
+    mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+    mac[1].write = true;
+  }
+  if((gotit.id == e_pop) && mac)
+  {
+    // assuming 32-bit (64-bit for AMD64) stack segment
+    // AMD64: pop defaults to 64-bit operand size
+    if (mode_64 && operSzAttr == 2)
+      operSzAttr = 4;
+    mac[1].set(mESP, 0, addrSzAttr);
+    mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+    mac[1].read = true;
+  }
+  
   instruct.size += nib;
   return nib;
 }
@@ -3951,3 +3946,49 @@ unsigned char illegalRep[2] = {0x0f, 0x0b};
 unsigned char trapRep[1] = {0xCC};
  
 
+const char* ia32_entry::name(ia32_locations* loc)
+{
+  map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
+  if(found != entryNames_IAPI.end())
+  {
+    return found->second.c_str();
+  }
+  if(loc)
+  {
+    if(otable == t_grp && (tabidx == Grp2 || tabidx == Grp11))
+    {
+      int reg = loc->modrm_reg;
+      found = entryNames_IAPI.find(groupMap[tabidx][reg].id);
+      if(found != entryNames_IAPI.end())
+      {
+	return found->second.c_str();
+      }
+    }
+  }
+  return NULL;
+}
+
+entryID ia32_entry::getID(ia32_locations* l) const
+{
+  if((id != e_No_Entry) || (tabidx == t_done) || (l == NULL))
+  {
+    return id;
+  }
+  int reg = l->modrm_reg;
+  switch(otable)
+  {
+  case t_grp:
+    switch(tabidx)
+    {
+    case Grp2:
+    case Grp11:
+      return groupMap[tabidx][reg].id;
+      break;
+    default:
+      break;
+    }
+  default:
+    break;
+  }
+  return id;
+}

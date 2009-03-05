@@ -51,8 +51,12 @@
 
 #include <boost/shared_ptr.hpp>
 #include <set>
+#include <list>
+#include <queue>
 #include "Annotatable.h"
 #include "Instruction.h"
+#include "Node.h"
+#include "Absloc.h"
 
 namespace Dyninst {
 namespace DDG {
@@ -73,9 +77,16 @@ namespace DDG {
         typedef boost::shared_ptr<Graph> Ptr;
         typedef boost::shared_ptr<Node> NodePtr;
         typedef std::set<NodePtr> NodeSet;
-        typedef std::map<Address, NodePtr> NodeMap;
+
         typedef boost::shared_ptr<Absloc> AbslocPtr;
         typedef std::set<AbslocPtr> AbslocSet;
+
+        typedef std::map<AbslocPtr, NodePtr> AbslocMap;
+        typedef std::map<Address, AbslocMap> NodeMap;
+
+        typedef std::map<AbslocPtr, NodePtr> InitialMap;
+
+    public:
 
         bool initialNodes(NodeSet &nodes) const;
         bool allNodes(NodeSet &nodes) const;
@@ -87,12 +98,6 @@ namespace DDG {
         // since it is meaningless to have a disconnected node. 
         void insertPair(NodePtr source, NodePtr target);
 
-        // A unique "NULL" node that serves as an initial definition
-        // of all nodes. If we see this coming in a call to insertPair
-        // it a) must be the source and b) the target is added to the
-        // set of entryNodes.
-        NodePtr nullNode();
-
         // Make a node in this graph. If the node already exists we return
         // it; otherwise we create a new Node and add it to allNodes_ (NOT
         // entryNodes_; that is populated by calls to insertPair above).
@@ -100,17 +105,29 @@ namespace DDG {
                          Address addr,
                          AbslocPtr absloc);
 
+        // Make a node that represents a parameter; that is, an initial 
+        // definition that isn't explicit in the code but must exist.
+        NodePtr makeParamNode(Absloc::Ptr a);
+
+        bool printDOT(const std::string fileName);
+
+        const NodeSet &entryNodes();
+        
     private:
+        static const Address INITIAL_ADDR;
+
         // Create graph, add nodes.
         Graph();
-
-        // The set of "entry" nodes; that is, nodes with no in-edges.
-        NodeMap entryNodes_; 
 
         // We also need to point to all Nodes to keep them alive; we can't 
         // pervasively use shared_ptr within the graph because we're likely
         // to have cycles.
         NodeMap allNodes_;
+
+        // Elements of the allNodes_ map that have no in-edges.
+        NodeSet entryNodes_;
+
+        bool entryNodesUpdated_;
     };
 };
 }
