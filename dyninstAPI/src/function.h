@@ -608,11 +608,14 @@ class int_function : public patchTarget {
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
 
+   bool isBeingInstrumented_;
+
 #if defined(cap_relocation)
    // Status tracking variables
    int generatedVersion_;
    int installedVersion_;
    int linkedVersion_;
+
 
    // We want to keep around expansions for instrumentation
    pdvector<funcMod *> enlargeMods_;
