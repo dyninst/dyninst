@@ -77,9 +77,10 @@ using namespace std;
 // due to incomplete information. Consider the following example:
 // 
 // S1 is an abstract location that refers to stack slot 1.
-// S* is an abstract location that refers to an unknown slot on the stack
+// S* is an abstract location that refers to an unknown slot on the stack.
 // S* aliases S1 since it _could_ refer to S1. However, it does not
-// necessarily refer to S1. 
+// necessarily refer to S1. Similarly, S1 aliases S; if an instruction is
+// reading from an unknown location on the stack it may read from S1.
 //
 // When we build the DDG we need to include edges from all aliases of
 // a given used absloc. However, this will _excessively_ overapproximate
@@ -105,56 +106,44 @@ using namespace std;
 //
 // So our alias handling needs to deal with this. 
 //
+// We do so by extending the classic definition of GEN and KILL.
 //
-// What if we track aliases as we are doing the initial intra-block
-// analysis? 
+// Recall that dataflow analysis can be put into the following
+// framework:
+// OUT(i_j) = GEN(i_j) U (IN(i_j) - KILL(i_j))
 // 
-// At that point we have a map from Abslocs to the set of nodes
-// that define that Absloc. 
-// A known stack location (ksLoc):
-//      defines ksLoc
-//      kills any other definition to ksLoc
-// An unknown stack location (usLoc):
-//      defines usLoc...
-//      Does not kill any other definition to usLoc...
-//      APPENDS to the definitions of all ksLocs.
-//
-// I believe this should work. We're really expanding the set of
-// people that define an absloc, but it's a temporary data structure.
-// We also need to know all abslocs ahead of time, but that can
-// be done with a single pass over all instructions to determine
-// their defined abslocs.
-//
-// Problem is, that extra pass adds a lot of complexity. Which
-// isn't strictly necessary, I don't think. 
-//
-// Instead, I propose a solution that operates at the *merge*
-// phase. We only care if there is a "generic" definition that
-// reaches a use point (by definition), and any such definition
-// must pass through a merge operation for us to care. 
+// where the solution to the analysis is the set of OUT(i_j) that 
+// satisfies the equations given.
 // 
-// Thus we augment merge as follows:
-// merge(of an absloc S1)
-//   set current, set newInfo
-//     IF newInfo contains S1
-//       current += newInfo[S1]
-//     ELSE 
-//       For each S in genericStackSlots 
-//         current += newInfo[S]
-
+// Classically, we define GEN and KILL as follows:
+// GEN(i_j) = {i_j} if i_j defines S_k
+// KILL(i_j) = {i_j}^c if i_j defines S_k (where {x}^c is the complement set of {x})
+//
+// These are the GEN and KILL sets of S_k. We now expand that definition. Let
+// GEN : Absloc -> {Insn} and Kill : Absloc -> {Insn} be maps where the considered
+// absloc must be explicit (as opposed to implicit, above). We define these as follows:
+// GEN(i,X) = 
+//  if X = S_i : S_i = {i}, S = {i}
+//  if X = X   : S = {i}, S_1 = {i}, ..., S_n = {i}
+// KILL(i,X) = 
+//  if X = S_i : {i}^c
+//  if X = S   : 0
+//
+// The final piece of this is an optimization for a "forward" definition. 
+// A definition of S at i_n is a "forward definition" of S_i if there is no
+// prior definition of S_i. This matters to us because we create abstract locations
+// lazily, and thus we won't _have_ an absloc for S_i...
+// However, consider the following. Let i_n be a forward definition to S_i. Then
+// IN(i_n, S_i) = OUT(i_{n-1}, S_i) = GEN(i_{n-1},S_i) U (IN(i_{n-2},S_i) - KILL(i_{n-1},S_i))
+//     Since i_n is a forward definition, then all GEN sets must have come from a 
+//     definition of S (and therefore GEN(i_j,S_i) = GEN(i_j,S)) and all KILL sets 
+//     must have come from a kill of S (and are thus empty). Thus, by induction,
+//     IN(i_n, S_i) = IN(i_n, S). 
 
 void intraFunctionDDGCreator::buildDDG() {
     
     // We build the DDG from reaching definitions performed for
     // all points (instructions) and program variables. 
-    // 
-    // Reminder of reaching definitions:
-    // Forward flow dataflow analysis
-    // IN(i,a) = U (j \in pred) OUT(j,a)
-    // OUT(i,a) = GEN(i,a) U (IN(i,a) - KILL(i,a))
-    // GEN(i,a) = IF a \in defs(i) then {i} ELSE {}
-    // KILL(i,a) = IF a \in defs(i) then (DEFS(a) - {i}) ELSE {}
-    // ... where DEFS(a) are the set of currently reaching definitions to a.
 
     // Create us a DDG
     DDG = Graph::createGraph();
@@ -170,7 +159,7 @@ void intraFunctionDDGCreator::buildDDG() {
     CFG->getAllBasicBlocks(allBlocks);
 
     // Create the GEN (generated) set for each basic block. 
-    initializeGenSets(allBlocks);
+    initializeGenKillSets(allBlocks);
 
     // We now have GEN for each block. Propagate reaching
     // definitions.
@@ -186,24 +175,22 @@ void intraFunctionDDGCreator::buildDDG() {
     generateIntraBlockReachingDefs(allBlocks);
 }
 
+// Copied from above
+// GEN(i,X) = 
+//  if X = S_i : S_i = {i}, S = {i}
+//  if X = X   : S = {i}, S_1 = {i}, ..., S_n = {i}
+// KILL(i,X) = 
+//  if X = S_i : S_i = {i}^c, S = 0
+//  if X = S   : 0
 
-void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
+void intraFunctionDDGCreator::initializeGenKillSets(std::set<Block *> &allBlocks) {
     assert(allGens.empty());
 
     for (std::set<Block *>::iterator iter = allBlocks.begin();
          iter != allBlocks.end(); 
          iter++) {
         Block *curBlock = *iter;
-        // GEN: all abstract locations defined in this block
-        // KILL: implicit; we kill all other such locations.
-        
-        // First, check to see if we've already traversed this block. That would
-        // be... bad.
 
-        if (allGens.find(curBlock) != allGens.end()) {
-            assert(0);
-        }
-        
         std::vector<std::pair<Instruction,Address> > insns;
         curBlock->getInstructions(insns);
         
@@ -214,28 +201,48 @@ void intraFunctionDDGCreator::initializeGenSets(std::set<Block *> &allBlocks) {
             for (AbslocSet::iterator iter = writtenAbslocs.begin();
                  iter != writtenAbslocs.end();
                  iter++) {                
-                // So record that this instance (insns[i]) defined this
-                // absloc...
-                // Note that this overrides any previous insn, as the last
-                // definition wins for our purposes.
-                (allGens[curBlock])[*iter] = std::make_pair(*iter,InsnInstance(insns[i]));
+                // We have two cases: if the absloc is precise or an alias (S_i vs S above)
+                Absloc::Ptr A = *iter;
+                cNode cnode = std::make_pair(A, InsnInstance(insns[i]));
+
+                AbslocSet aliases = A->getAliases();
+
+                if (A->isPrecise()) {
+                    // S_i case...
+                    // OUT = GEN U (IN - KILL)
+                    // OUT[S_i] = {i} (as KILL = ALL)
+                    allGens[curBlock][A].clear(); // apply KILL
+                    allGens[curBlock][A].insert(cnode);
+
+                    // We also record that this block kills this absLoc.
+                    // It doesn't matter which instruction does it, since
+                    // that will be summarized in the gen information.
+                    allKills[curBlock][A] = true;
+                }
+                for (AbslocSet::iterator al = aliases.begin();
+                     al != aliases.end(); al++) {
+                    // This handles both the S case if we have a precise
+                    // absloc, as well as S_1, ..., S_n if we have an imprecise
+                    // absloc. 
+                    allGens[curBlock][*al].insert(cnode);
+                }
             }
         }
     }
-
-    cerr << allGens.size() << " gen sets created" << endl;
-    cerr << allBlocks.size() << " blocks to process" << endl;
-
-    assert(allGens.size() == allBlocks.size());
 }
 
 void intraFunctionDDGCreator::merge(ReachingDefsLocal &target,
                                     ReachingDefsLocal &source) {
+    // See optimization note at the top of the file. 
+    //
     // For each absloc A in target
-    //   If source[A] exists
+    //   If source.defines[A]
     //     target[A] = target[A] U source[A]
-    //   Else for each B in A.aliases
-    //     target[A] = target[A] U source[B] 
+    //   Else
+    //       (note: we have a forward definition at this point)
+    //     Let aliases = a.Aliases
+    //     For each a' in aliases
+    //       target[A] = target[A] U source[a']
 
     for (ReachingDefsLocal::iterator iter = target.begin(); 
          iter != target.end();
@@ -285,7 +292,10 @@ void intraFunctionDDGCreator::generateInterBlockReachingDefs(Flowgraph *CFG) {
         
         // OUT(i,a) = GEN(i,a) U (IN(i,a) - KILL(i,a))
         ReachingDefsLocal newOut;
-        calcNewOut(newOut, working, allGens[working], newIn);
+        calcNewOut(newOut, working, 
+                   allGens[working], 
+                   allKills[working],
+                   newIn);
 
         if (newOut != outSets[working]) {
             outSets[working] = newOut;
@@ -416,6 +426,7 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
 void intraFunctionDDGCreator::calcNewOut(ReachingDefsLocal &out,
                                          Block *current,
                                          DefMap &gens,
+                                         KillMap &kills,
                                          ReachingDefsLocal &in) {
     // OUT = GEN U (IN - KILL)
 
@@ -445,20 +456,32 @@ void intraFunctionDDGCreator::calcNewOut(ReachingDefsLocal &out,
          iter != definedAbslocs.end();
          iter++) {
         Absloc::Ptr A = *iter;
-        if (gens.find(A) != gens.end()) {
-            // Generated locally, so KILL the 
-            // set from in and use GEN
-            ReachingDefEntry entry = std::make_pair<Block *, cNode>(current, gens[A]);
-            ReachingDefSet dummy;
-            dummy.insert(entry);
-            out[A] = dummy;
+
+        // If we kill this AbslocPtr within this block, then
+        // take the entry from the GEN set only.
+        if (kills.find(A) != kills.end()) {
+            genSetToReachingDefs(current, gens[A], out[A]);
         }
         else {
-            // Not generated locally, so pass through.
-            out[A] = in[A];
+            // We don't explicitly kill this, so take the union
+            // of local generation with the INs. 
+            genSetToReachingDefs(current, gens[A], out[A]);
+            out[A].insert(in[A].begin(), in[A].end());
         }
     }
 }
+
+void intraFunctionDDGCreator::genSetToReachingDefs(Block *current,
+                                                   const cNodeSet &gens,
+                                                   ReachingDefSet &defs) {
+    // This is strictly an impedance matching function.
+    for (cNodeSet::const_iterator iter = gens.begin(); 
+         iter != gens.end();
+         iter++) {
+        defs.insert(std::make_pair<Block *, cNode>(current, *iter));
+    }
+}
+
 
 void intraFunctionDDGCreator::getPredecessors(BPatch_basicBlock *block,
                                               std::vector<BPatch_basicBlock *> &preds) {
@@ -520,13 +543,21 @@ void intraFunctionDDGCreator::debugAbslocSet(const AbslocSet &a,
 void intraFunctionDDGCreator::debugDefMap(const DefMap &d,
                                           char *str) {
     fprintf(stderr, "%s Abslocs:\n", str);
-    for (DefMap::const_iterator iter = d.begin();
-         iter != d.end();
-         iter++) {
-        fprintf(stderr, "%s\t %s: 0x%lx\n", 
+    for (DefMap::const_iterator i = d.begin();
+         i != d.end();
+         i++) {
+        fprintf(stderr, "%s\t%s\n", 
                 str, 
-                (*iter).first->name().c_str(), 
-                (*iter).second.second.addr);
+                (*i).first->name().c_str());
+        for (cNodeSet::const_iterator j = (*i).second.begin();
+             j != (*i).second.end(); j++) {
+            const cNode &c = (*j);
+            fprintf(stderr, "%s\t\t%s, 0x%lx, %s\n",
+                    str,
+                    c.first->name().c_str(),
+                    c.second.addr,
+                    c.second.insn.format().c_str());
+        }
     }
 }
 
