@@ -55,6 +55,21 @@
 #if defined(arch_x86_64)
 #include "dyninstAPI/src/emit-x86.h"
 #endif
+#ifndef CASE_RETURN_STR
+#define CASE_RETURN_STR(x) case x: return #x
+#endif
+const char *irpcState2Str(irpcState_t s)
+{
+	switch (s) {
+		CASE_RETURN_STR(irpcNotValid);
+		CASE_RETURN_STR(irpcNotRunning);
+		CASE_RETURN_STR(irpcRunning);
+		CASE_RETURN_STR(irpcWaitingForSignal);
+		CASE_RETURN_STR(irpcNotReadyForIRPC);
+	};
+	return "bad_rpc_state";
+}
+
 
 rpcMgr::rpcMgr(process *proc) :
     processingProcessRPC(false),

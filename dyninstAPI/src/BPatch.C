@@ -811,6 +811,9 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     if (!getAsync()->mutateeDetach(child)) {
         bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
     }
+   // if (!getAsync()->detachFromProcess(child)) {
+    //    bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
+    //}
     if (!getAsync()->connectToProcess(child)) {
         bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
@@ -913,13 +916,20 @@ void BPatch::registerExecExit(process *proc)
    //   process->deleteBPThread(process->threads[i]);
 
 #if defined(cap_async_events)
+   //  I think in the case of exec that we do not need to re-initiate a async connection
+   //  to the process that exec'd 
+#if 1 
    if (!getAsync()->connectToProcess(process)) {
       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
    } 
    else
       asyncActive = true;
 #endif
-   if (!process->updateThreadInfo()) return;
+#endif
+   if (!process->updateThreadInfo()) {
+	   fprintf(stderr, "%s[%d]:  failed to updateThreadInfo after exec\n", FILE__, __LINE__);
+	   return;
+   }
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);

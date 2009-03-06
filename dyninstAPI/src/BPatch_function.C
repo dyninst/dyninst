@@ -596,23 +596,32 @@ BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt()
 bool BPatch_function::findVariableInt(const char *name, 
                                       BPatch_Vector<BPatch_variableExpr *> &vars) 
 {
-   if (!mod->isValid()) return false;
+   if (!mod->isValid()) 
+	   return false;
+
    constructVarsAndParams();
-   BPatch_Vector<BPatch_variableExpr *> *ret;
+
    BPatch_localVar *lv = findLocalVar(name);
-   if (!lv) {
+
+   if (!lv) 
+   {
       // look for it in the parameter scope now
       lv = findLocalParam(name);
    }
-   if (lv) {
+
+   if (lv) 
+   {
       // create a local expr with the correct frame offset or absolute
       //   address if that is what is needed
       std::map<BPatch_localVar *, BPatch_variableExpr*>::iterator i;
       i = local_vars.find(lv);
-      if (i != local_vars.end()) {
+
+      if (i != local_vars.end()) 
+	  {
          vars.push_back((*i).second);
          return true;
       }
+
       BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
       assert(points->size() == 1);
       BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();

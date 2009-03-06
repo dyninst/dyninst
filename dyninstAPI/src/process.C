@@ -4293,7 +4293,7 @@ bool process::handleStopThread(EventRecord &ev)
         }
         if (vars.size() != 1) {
             fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                    FILE__, __LINE__, vars.size(), arg_str.c_str());
+                    FILE__, __LINE__, (int)vars.size(), arg_str.c_str());
             return false;
         }
         sh->sync_event_arg2_addr = vars[0]->getAddress();
@@ -4309,7 +4309,7 @@ bool process::handleStopThread(EventRecord &ev)
         }
         if (vars.size() != 1) {
             fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                    FILE__, __LINE__, vars.size(), arg_str.c_str());
+                    FILE__, __LINE__, (int)vars.size(), arg_str.c_str());
             return false;
         }
         sh->sync_event_arg3_addr = vars[0]->getAddress();
@@ -5230,8 +5230,10 @@ bool process::recognize_threads(process *parent)
   }
 
   // Is there someone out there already?
-  if (getRpcMgr()->existsActiveIRPC()) {
-      fprintf(stderr, "Odd case: active iRPC detected before multithread recognition!\n");
+  if (getRpcMgr()->existsActiveIRPC()) 
+  {
+      fprintf(stderr, "%s[%d]: Odd case: active iRPC  before MT recognition!\n", 
+			  FILE__, __LINE__);
   }
 
   //If !parent, then we're not a forked process and we can just assign the threads to

@@ -136,7 +136,7 @@ int eventLock::_Lock(const char *__file__, unsigned int __line__)
 #endif
 
     if (lock_depth) {
-      if ((owner_id != getExecThreadID()) && (owner_id != (unsigned long) -1UL)) {
+      if ((owner_id != getExecThreadID()) && (owner_id != (unsigned long) -1 *1L)) {
         fprintf(stderr, "%s[%d]:  FATAL MUTEX ERROR, lock obtained by 2 threads,\n",
                 FILE__, __LINE__); 
         const char *old_owner_name = getThreadStr(owner_id);
@@ -204,7 +204,7 @@ int eventLock::_Unlock(const char *__file__, unsigned int __line__)
   lock_stack_elem el = lock_stack[lock_stack.size() -1];
   lock_stack.pop_back();
   if (!lock_depth)
-    owner_id = (unsigned long) -1UL;
+    owner_id = (unsigned long) -1 * 1L;
 
   mutex_printf("%s[%d]:  unlock issued from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);
 

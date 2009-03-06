@@ -80,6 +80,7 @@ typedef struct {
 typedef struct {
   BPatch_process *process;
   int fd;
+  PDSOCKET sock;
 } process_record;
 
 const char *asyncEventType2Str(BPatch_asyncEventType evtype); 
@@ -111,6 +112,7 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     pdvector<EventRecord> event_queue;
     bool initialize();  //  want to catch init errors, so we do most init here
     virtual ~BPatch_asyncEventHandler();
+	PDSOCKET setup_socket(int mutatee_pid, std::string &sock_fname);
 
     //  BPatch_asyncEventHandler::shutDown()
     //  Sets a flag that the async thread will check during its next iteration.
@@ -159,14 +161,17 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
                                                BPatch_asyncEventType t,
                                                BPatch_function *f);
 
+#if 0
     //  These vars are only modified as part of init (before/while threads are
     //  created) so we do not need to worry about locking them:
     PDSOCKET sock;
+#endif
     bool shutDownFlag;
 
 #if defined (os_windows)
     unsigned int listen_port;
 #endif
+	int control_pipe_read, control_pipe_write;
 
     //  The rest:  Data in this class that is not exclusively set during init
     //   will have to be locked.  
