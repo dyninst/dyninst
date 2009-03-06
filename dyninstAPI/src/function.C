@@ -1443,7 +1443,7 @@ bool int_function::performInstrumentation(bool stopOnFailure,
 	// If there are any other functions that we need to relocate
 	// due to this relocation, handle it now. We don't care if they
 	// fail to install instrumentation though.
-	std::vector<instPoint *> dontcare;
+	pdvector<instPoint *> dontcare;
 	for (unsigned i = 0; i < need_reloc.size(); i++) {
 	  need_reloc[i]->performInstrumentation(false, dontcare);
 	}

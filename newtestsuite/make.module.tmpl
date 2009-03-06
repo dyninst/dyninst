@@ -31,8 +31,8 @@ CFLAGS = $(UNIFIED_DEF:%=%_test) -I../../../include -I../src -g
 CXXFLAGS = $(CFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
 CXXFLAGS_NATIVE = $(CXXFLAGS)
-MUTATEE_CFLAGS_NATIVE = $(CFLAGS)
-MUTATEE_CXXFLAGS_NATIVE = $(CXXFLAGS)
+MUTATEE_CFLAGS_NATIVE ?= $(CFLAGS)
+MUTATEE_CXXFLAGS_NATIVE ?= $(CXXFLAGS)
 
 #######################################################################
 ###  Generate compiler id strings
