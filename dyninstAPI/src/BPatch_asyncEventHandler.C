@@ -1110,8 +1110,6 @@ void threadExitWrapper(BPatch_process *p, BPatch_thread *t,
 bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int lwpid, 
       dynthread_t tid, unsigned long stack_addr, unsigned long start_pc)
 {
-   //bool thread_exists = (p->getThread(tid) != NULL);
-
    //Create the new BPatch_thread object
    async_printf("%s[%d]:  before createOrUpdateBPThread: pid = %d, " \
          "start_pc = %p, addr = %p, tid = %lu, index = %d, " \
@@ -1400,6 +1398,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          return false;
 
       case evtThreadCreate:
+#if 0
          {
             //  Read details of new thread from fd 
             async_printf("%s[%d]: reading event from fd %d\n",
@@ -1438,7 +1437,63 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             ev.proc->sh->signalEvent(evtThreadCreate);
             async_printf("%s[%d]: done signalling event, returning %d\n", FILE__, __LINE__, ret);
             return ret;
+#endif
+      {
+         //  Read details of new thread from fd 
+         async_printf("%s[%d]: reading event from fd %d\n",
+                      FILE__, __LINE__, ev.fd);
+         
+         int lock_depth = eventlock->depth();
+         for (int i = 0; i < lock_depth; i++) {
+            eventlock->_Unlock(FILE__, __LINE__);
          }
+         
+         
+         unsigned long start_pc = (unsigned long) -1;
+         unsigned long stack_addr = (unsigned long) -1;
+         unsigned index = (unsigned) -1;
+         int lwpid = -1;
+         dynthread_t tid;
+
+         if (!readNewThreadEventInfo(ev.fd, start_pc, stack_addr, index, lwpid, tid, appProc->getAddressWidth()) ) {
+            fprintf(stderr, "%s[%d]:  failed to read thread event call record\n",
+                    FILE__, __LINE__);
+            return false;
+         }
+         
+         for (int i = 0; i < lock_depth; i++) {
+            eventlock->_Lock(FILE__, __LINE__);
+         }
+
+#if defined(os_linux) && (defined(arch_x86_64) || defined(arch_x86))
+         unsigned maps_size;
+         map_entries* entries = getLinuxMaps(appProc->llproc->getPid(), maps_size);
+         if (entries) {
+            bool found = false;
+            for (unsigned i=0; i<maps_size; i++) {
+               if (stack_addr >= entries[i].start && stack_addr < entries[i].end)
+               {
+                  stack_addr = entries[i].end;
+                  found = true;
+                  break;
+               }
+            }
+            if (!found)
+               stack_addr = 0x0;
+            free(entries);
+         }
+         else {
+            stack_addr = 0x0;
+         }
+#endif
+         
+         bool ret = handleThreadCreate(appProc, ev, index, lwpid, tid, stack_addr, start_pc);
+         
+         async_printf("%s[%d]: signalling event...\n", FILE__, __LINE__);
+         ev.proc->sh->signalEvent(evtThreadCreate);
+         async_printf("%s[%d]: done signalling event, returning %d\n", FILE__, __LINE__, ret);
+         return ret;
+      }
       case evtThreadExit: 
          {
             BPatch_deleteThreadEventRecord rec;

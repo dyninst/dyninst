@@ -75,14 +75,12 @@ namespace DDG {
             Summary
         } type_t;
 
-
-
     public:
         typedef boost::shared_ptr<Edge> Ptr;
         typedef boost::shared_ptr<Node> NodeSharedPtr;
         typedef boost::weak_ptr<Node> NodePtr;
         
-        Ptr createEdge(const NodeSharedPtr source, const NodeSharedPtr target, const type_t type = Unknown);
+        static Ptr createEdge(const NodeSharedPtr source, const NodeSharedPtr target, const type_t type = Unknown);
 
         NodeSharedPtr source() const { return source_.lock(); }
         NodeSharedPtr target() const { return target_.lock(); }

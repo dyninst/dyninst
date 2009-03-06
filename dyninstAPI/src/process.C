@@ -4488,6 +4488,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                     req->miniTramps.push_back(minis[i]);
                 }
             }
+	    minis.clear();
         } // matchingFuncs        
         
     } // requests

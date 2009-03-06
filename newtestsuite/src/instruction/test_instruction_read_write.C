@@ -85,6 +85,14 @@ struct shared_ptr_lt
 
 typedef std::set<RegisterAST::Ptr, shared_ptr_lt<RegisterAST::Ptr> > registerSet;
 
+test_results_t failure_accumulator(test_results_t lhs, test_results_t rhs)
+{
+  if(lhs == FAILED || rhs == FAILED)
+  {
+    return FAILED;
+  }
+  return PASSED;
+}
 
 test_results_t verify_read_write_sets(const Instruction& i, const registerSet& expectedRead,
 				      const registerSet& expectedWritten)
@@ -104,13 +112,33 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
 	     i.format().c_str(), expectedRead.size(), expectedWritten.size(), actualRead.size(), actualWritten.size());
     return FAILED;
   }
+  registerSet::const_iterator safety;
+  for(safety = expectedRead.begin();
+      safety != expectedRead.end();
+      ++safety)
+  {
+    if(!(*safety))
+    {
+      logerror("ERROR: null shared pointer in expectedRead for instruction %s\n", i.format().c_str());
+      return FAILED;
+    }
+    
+  }
+  for(safety = actualRead.begin();
+      safety != actualRead.end();
+      ++safety)
+  {
+    if(!(*safety))
+    {
+      logerror("ERROR: null shared pointer in actualRead for instruction %s\n", i.format().c_str());
+      return FAILED;
+    }
+    
+  }
   
   if(equal(make_indirect_iterator(actualRead.begin()), 
 	   make_indirect_iterator(actualRead.end()), 
-	   make_indirect_iterator(expectedRead.begin())) && 
-     equal(make_indirect_iterator(actualWritten.begin()), 
-	   make_indirect_iterator(actualWritten.end()), 
-	   make_indirect_iterator(expectedWritten.begin())))
+	   make_indirect_iterator(expectedRead.begin())))
   {
     for(registerSet::const_iterator it = expectedRead.begin();
 	it != expectedRead.end();
@@ -122,6 +150,39 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
 	return FAILED;
       }
     }
+  }
+  else
+  {
+    logerror("Read set for instruction %s not as expected\n", i.format().c_str());
+    return FAILED;
+  }
+  
+  for(safety = expectedWritten.begin();
+      safety != expectedWritten.end();
+      ++safety)
+  {
+    if(!(*safety))
+    {
+      logerror("ERROR: null shared pointer in expectedWritten for instruction %s\n", i.format().c_str());
+      return FAILED;
+    }
+    
+  }
+  for(safety = actualWritten.begin();
+      safety != actualWritten.end();
+      ++safety)
+  {
+    if(!(*safety))
+    {
+      logerror("ERROR: null shared pointer in actualWritten for instruction %s\n", i.format().c_str());
+      return FAILED;
+    }
+    
+  }
+  if(equal(make_indirect_iterator(actualWritten.begin()), 
+	   make_indirect_iterator(actualWritten.end()), 
+	   make_indirect_iterator(expectedWritten.begin())))
+  {
     for(registerSet::const_iterator it = expectedWritten.begin();
 	it != expectedWritten.end();
 	++it)
@@ -132,11 +193,13 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
 	return FAILED;
       }
     }
-    
-    return PASSED;
   }
-  logerror("Read/write sets for instruction %s not as expected\n", i.format().c_str());
-  return FAILED;
+  else
+  {
+    logerror("Write set for instruction %s not as expected\n", i.format().c_str());
+    return FAILED;
+  }
+  return PASSED;
 }
 
 
@@ -144,16 +207,16 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 {
   const unsigned char buffer[] = 
   {
-    0x40, // INC eAX
+    0x05, 0xef, 0xbe, 0xad, 0xde, // INC eAX
     0x50, // PUSH rAX
     0x74, 0x10, // JZ +0x10(8)
-    0xE8, 0x20, 0x00, 0x00, 0x00, // CALL +0x10(32)
+    0xE8, 0x20, 0x00, 0x00, 0x00, // CALL +0x20(32)
     0xF8, // CLC
-    0x04, 0x30 // ADD AL, 0x30(8)
+    0x04, 0x30, // ADD AL, 0x30(8)
+    0xc7, 0x45, 0xfc, 0x01, 0x00, 0x00, 0x00 // MOVL 0x01, -0x4(EBP)
   };
-  unsigned int size = 12;
-  unsigned int expectedInsns = 7;
-  
+  unsigned int size = 23;
+  unsigned int expectedInsns = 8;
   InstructionDecoder d(buffer, size);
   std::vector<Instruction> decodedInsns;
   Instruction i;
@@ -186,11 +249,56 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr overflow(new RegisterAST(r_OF));
   RegisterAST::Ptr parity(new RegisterAST(r_PF));
   RegisterAST::Ptr sign(new RegisterAST(r_SF));
+  RegisterAST::Ptr carry(new RegisterAST(r_CF));
   registerSet expectedRead, expectedWritten;
   expectedRead.insert(expectedRead.begin(), eax);
-  expectedWritten = list_of(eax)(adjust)(zero)(overflow)(parity)(sign);
+  expectedWritten = list_of(eax)(adjust)(zero)(overflow)(parity)(sign)(carry);
   
+  test_results_t retVal = PASSED;
   
-  return verify_read_write_sets(decodedInsns[0], expectedRead, expectedWritten);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[0], expectedRead, expectedWritten));
+
+  RegisterAST::Ptr rax(new RegisterAST(r_rAX));
+  RegisterAST::Ptr esp(new RegisterAST(r_eSP));
+  expectedRead.clear();
+  expectedWritten.clear();
+  expectedRead = list_of(esp)(rax);
+  expectedWritten = list_of(esp);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[1], expectedRead, expectedWritten));
+
+  expectedRead.clear();
+  expectedWritten.clear();
+  RegisterAST::Ptr ip(new RegisterAST(r_EIP));
+  // Jccs are all documented as "may read zero, sign, carry, parity, overflow", so a JZ comes back as reading all
+  // of these flags
+  expectedRead = list_of(zero)(sign)(carry)(parity)(overflow)(ip);
+  expectedWritten = list_of(ip);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[2], expectedRead, expectedWritten));
+  
+  expectedRead.clear();
+  expectedWritten.clear();
+  expectedRead = list_of(ip);
+  expectedWritten = list_of(esp)(ip);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[3], expectedRead, expectedWritten));
+
+  expectedRead.clear();
+  expectedWritten.clear();
+  expectedWritten = list_of(carry);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[4], expectedRead, expectedWritten));
+
+  expectedRead.clear();
+  expectedWritten.clear();
+  RegisterAST::Ptr al(new RegisterAST(r_AL));
+  expectedRead = list_of(al);
+  expectedWritten = list_of(al)(zero)(carry)(sign)(overflow)(parity)(adjust);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[5], expectedRead, expectedWritten));
+
+  RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
+  expectedRead.clear();
+  expectedWritten.clear();
+  expectedRead = list_of(ebp);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[6], expectedRead, expectedWritten));
+  
+  return retVal;
 }
 

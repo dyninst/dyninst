@@ -49,29 +49,127 @@
 
 using namespace Dyninst::DDG;
 
-Graph::Graph() {};
+const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
 
-void Graph::insertPair(Node::Ptr source, Node::Ptr target) {};
+Graph::Graph() : entryNodesUpdated_(true) {};
 
 Node::Ptr Graph::makeNode(Dyninst::InstructionAPI::Instruction &insn,
                           Address addr,
                           AbslocPtr absloc) {
     // First check to see if we already have this one
-    if (allNodes_.find(addr) != allNodes_.end()) { 
-        return allNodes_[addr];
+    if (allNodes_[addr].find(absloc) != allNodes_[addr].end()) { 
+        return allNodes_[addr][absloc];
     }
 
     // Otherwise create a new Node and insert it into the
     // map. 
 
     Node::Ptr newNode = Node::createNode(addr, insn, absloc);
-    allNodes_[addr] = newNode;
+    
+    // Update allNodes_ so that we only create a particular node once.
+    allNodes_[addr][absloc] = newNode;
+    
+    // We created a node, so our list of entry nodes is _not_ up to date.
+    entryNodesUpdated_ = false;
 
     return newNode;
 }
+
+Graph::NodePtr Graph::makeParamNode(Absloc::Ptr a) {
+    
+    // Create a known "initial" node and insert it into the
+    // entryNodes_ structure.
+    if (allNodes_[INITIAL_ADDR].find(a) == allNodes_[INITIAL_ADDR].end()) {
+        NodePtr n = Node::createNode(a);
+        allNodes_[INITIAL_ADDR][a] = n;
+        return n;
+    }
+
+    return allNodes_[INITIAL_ADDR][a];
+}
+   
 
 Graph::Ptr Graph::createGraph() {
     return Graph::Ptr(new Graph());
 }
 
+void Graph::insertPair(NodePtr source, NodePtr target) {
+    // This asserts that we don't try to insert an unknown
+    // node.
+    assert(allNodes_[source->addr()].find(source->absloc()) 
+           != allNodes_[source->addr()].end());
+
+    allNodes_[target->addr()][target->absloc()] = target;
+
+    Edge::Ptr e = Edge::createEdge(source, target);
+
+    // Since we changed the graph we may have invalidated the list of
+    // entry nodes.
+    entryNodesUpdated_ = false;
+
+    source->addOutEdge(e);
+    target->addInEdge(e);
+}
+
+const Graph::NodeSet &Graph::entryNodes() {
+    // If the list of entry nodes is up to date, return it.
+    if (entryNodesUpdated_) return entryNodes_;
+
+    // Otherwise look at all nodes and find those with no in-edges.
+    // Those become our entry nodes.
+    // Assertion: there are no true cycles in the DDG as there _must_
+    // exist an initial definition.
+    entryNodes_.clear();
+
+    for (NodeMap::iterator i = allNodes_.begin(); i != allNodes_.end(); i++) {
+        for (AbslocMap::iterator j = (*i).second.begin(); j != (*i).second.end(); j++) {
+            entryNodes_.insert((*j).second);
+        }
+    }
+    entryNodesUpdated_ = true;
+    return entryNodes_;
+}
+
+bool Graph::printDOT(const std::string fileName) {
+    FILE *file = fopen(fileName.c_str(), "w");
+    if (file == NULL) {
+        return false;
+    }
+
+    fprintf(file, "digraph G {\n");
+
+    NodeSet visited;
+    std::queue<Node::Ptr> worklist;
+
+    const NodeSet &entries = entryNodes();
+
+    // Initialize visitor worklist
+    for (NodeSet::const_iterator i = entries.begin(); i != entries.end(); i++) {
+        worklist.push(*i);
+    }
+
+    while (!worklist.empty()) {
+        Node::Ptr source = worklist.front();
+        worklist.pop();
+        
+        // We may have already treated this node...
+        if (visited.find(source) != visited.end()) {
+            continue;
+        }
+
+        visited.insert(source);
+        fprintf(file, "\t // %s\n", source->name().c_str());
+        Node::EdgeSet outs; source->outs(outs);
+        for (Node::EdgeSet::iterator e = outs.begin(); e != outs.end(); e++) {
+            Node::Ptr target = (*e)->target();
+            fprintf(file, "\t %s -> %s;\n", source->name().c_str(), target->name().c_str());
+            if (visited.find(target) != visited.end()) {
+                worklist.push(target);
+            }
+        }
+    }
+    fprintf(file, "}\n\n\n");
+    fclose(file);
+    return true;
+}
 

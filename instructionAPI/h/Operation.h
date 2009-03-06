@@ -57,6 +57,7 @@
 // Operation + ExpressionPtrs -> Instruction + Operands
 struct ia32_entry;
 class ia32_prefixes;
+struct ia32_locations;
 
 namespace Dyninst
 {
@@ -95,7 +96,7 @@ namespace Dyninst
       typedef std::set<Expression::Ptr> VCSet;
   
     public:
-      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL);
+      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL, ia32_locations* l = NULL);
       INSTRUCTION_EXPORT Operation(const Operation& o);
       INSTRUCTION_EXPORT Operation();
       

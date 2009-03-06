@@ -357,6 +357,7 @@ class InstrucIter {
   /* x86 Only */
   void readWriteRegisters(int * readRegs, int * writeRegs);
   bool isFPWrite();
+  bool isFPRead();
   void getAllRegistersUsedAndDefined(std::set<Register>& used, std::set<Register> &defined);
   /* END x86 Only */
 

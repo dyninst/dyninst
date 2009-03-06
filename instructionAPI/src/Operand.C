@@ -46,7 +46,7 @@ namespace Dyninst
     INSTRUCTION_EXPORT void Operand::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {
       RegisterAST::Ptr op_as_reg = boost::dynamic_pointer_cast<RegisterAST>(op_value);
-      if(m_isRead && (op_as_reg == NULL))
+      if(op_as_reg == NULL)
       {
 	std::set<InstructionAST::Ptr> useSet;
 	op_value->getUses(useSet);

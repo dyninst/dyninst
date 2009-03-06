@@ -621,7 +621,7 @@ bool image_func::buildCFG(
 
     // Prevent overrunning an existing basic block in linear scan
     Address nextExistingBlockAddr;
-    image_basicBlock *nextExistingBlock;
+    image_basicBlock *nextExistingBlock = NULL;
 
     // Instructions and InstPoints
     pdvector< instruction > allInstructions;
