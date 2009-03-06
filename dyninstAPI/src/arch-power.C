@@ -75,7 +75,7 @@ void instruction::generateBranch(codeGen &gen, long disp, bool link)
     if (ABS(disp) > MAX_BRANCH) {
 	// Too far to branch, and no proc to register trap.
 	fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-		ABS(disp), MAX_BRANCH);
+           ABS(disp), (unsigned long) MAX_BRANCH);
 	bperr( "Error: attempted a branch of 0x%lx\n", disp);
 	logLine("a branch too far\n");
 	showErrorCallback(52, "Internal error: branch too far");
@@ -164,8 +164,6 @@ void instruction::generateLongBranch(codeGen &gen,
     // is free.
     
     // Let's see if we can grab a free GPregister...
-    assert(gen.func());
-    
     instPoint *point = gen.point();
     if (!point) {
         return generateBranchViaTrap(gen, from, to, isCall);
@@ -283,7 +281,7 @@ void instruction::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
     } else {
         // Too far to branch and no proc to register trap.
         fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-                ABS(disp), MAX_BRANCH);
+                ABS(disp), (unsigned long) MAX_BRANCH);
         bperr( "Error: attempted a branch of 0x%lx\n", disp);
         logLine("a branch too far\n");
         showErrorCallback(52, "Internal error: branch too far");
