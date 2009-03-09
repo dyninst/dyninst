@@ -134,6 +134,7 @@ void StackAnalysis::summarizeBlockDeltas() {
 
     for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
         Block *block = *iter;
+        stanalysis_printf("\t Block starting at 0x%lx\n", block->firstInsnOffset());
 
         StackHeight heightChange(0);
         StackPresence stackPresence;
@@ -162,12 +163,14 @@ void StackAnalysis::calculateInterBlockDepth() {
 
     std::queue<Block *> worklist;
 
-    worklist.push(*(blocks.begin()));
+    worklist.push(func->entryBlock());
 
     //BlockHeight_t blockHeights; // This by default initializes all entries to "bottom". 
 
     while (!worklist.empty()) {
         Block *block = worklist.front();
+        stanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->firstInsnOffset());
+
         worklist.pop();
 
         // Step 1: calculate the meet over the heights of all incoming
@@ -238,6 +241,8 @@ void StackAnalysis::createIntervals() {
 
     for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
         Block *block = *iter;
+
+        stanalysis_printf("\t Interval creation: visiting block at 0x%lx\n", block->firstInsnOffset());
         
         curLB = block->firstInsnOffset();
         curUB = 0;
@@ -280,6 +285,10 @@ void StackAnalysis::createIntervals() {
         if (curLB != block->endOffset()) {
             // Cap off the extent for the current block
             curUB = block->endOffset();
+            if (curHeight != outBlockHeights[block]) {
+                fprintf(stderr, "ERROR: inconsistency in stack analysis, %s != %s\n",
+                        curHeight.getString().c_str(), outBlockHeights[block].getString().c_str());
+            }
             assert(curHeight == outBlockHeights[block]);
             heightIntervals_->insert(curLB, curUB, curHeight);
         }
