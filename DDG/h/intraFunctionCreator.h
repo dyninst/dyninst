@@ -133,13 +133,13 @@ class intraFunctionDDGCreator {
     typedef std::map<Block *, ReachingDefsLocal> ReachingDefsGlobal;
 
  public:
-    static Graph::Ptr createGraph(Function *func);
-
+    static intraFunctionDDGCreator create(Function *func);
+    Graph::Ptr getDDG();
 
  private:
     intraFunctionDDGCreator(Function *f) : func(f) {};
 
-    void buildDDG();
+    void analyze();
 
     void generateInterBlockReachingDefs(Flowgraph *CFG);
 

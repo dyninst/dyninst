@@ -67,6 +67,7 @@ void Absloc::getAbslocs(AbslocSet &locs) {
     StackLoc::getStackLocs(locs);
     //HeapLoc::getHeapLocs(locs);
     MemLoc::getMemLocs(locs);
+    ImmLoc::getImmLocs(locs);
 }
 
 Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
@@ -556,4 +557,18 @@ MemLoc::AbslocSet MemLoc::getAliases() const {
     }
 
     return ret;
+}
+
+ImmLoc::Ptr ImmLoc::immLoc_; 
+
+std::string ImmLoc::name() const { 
+    return "Immediate";
+}
+
+Absloc::Ptr ImmLoc::getImmLoc() {
+    if (immLoc_) return immLoc_;
+
+    immLoc_ = boost::shared_ptr<ImmLoc>(new ImmLoc());
+
+    return immLoc_;
 }

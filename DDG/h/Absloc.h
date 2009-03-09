@@ -242,6 +242,36 @@ class MemLoc : public Absloc {
     static MemMap memLocs_; 
 };
 
+// We now have a virtual absloc for "uses" of immediates. We really
+// want every node in the graph to be reachable from a small set
+// of well-known nodes (e.g., "parameter" nodes). However, an instruction
+// such as "EAX = 5" doesn't use anything and thus isn't reachable from
+// a parameter node. We handle this by creating an "Immediate" absloc
+// and an "Immediate" node. 
+
+class ImmLoc : public Absloc { 
+    friend class Graph;
+    friend class Node;
+    friend class Edge;
+
+ public:
+    typedef boost::shared_ptr<ImmLoc> Ptr;
+    
+    virtual ~ImmLoc() {};
+    virtual std::string name() const;
+    static void getImmLocs(AbslocSet &) {};
+
+    static Absloc::Ptr getImmLoc();
+
+    virtual AbslocSet getAliases() const { return AbslocSet(); }
+    virtual bool isPrecise() const { return true; }
+
+ private:
+    ImmLoc() {};
+
+    static ImmLoc::Ptr immLoc_;
+};    
+
 };
 }
 
