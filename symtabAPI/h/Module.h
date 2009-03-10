@@ -39,9 +39,6 @@
 #include "Serialization.h"
 #include "LineInformation.h"
 
-typedef struct {} module_line_info_a;
-typedef struct {} module_type_info_a;
-
 namespace Dyninst{
 namespace SymtabAPI{
 

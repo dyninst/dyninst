@@ -124,10 +124,6 @@ bool Module::hasLineInformation()
    }
 
    return false;
-#if 0
-   Annotatable<LineInformation *, module_line_info_a,  true> &liA = *this;
-   return ( 0 != liA.size());
-#endif
 }
 
 LineInformation *Module::getLineInformation()

@@ -2944,12 +2944,14 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
   return instruct;
 }
 #endif //!defined(cap_instruction_api)
+
 #define MODRM_MOD(x) ((x) >> 6)
 #define MODRM_RM(x) ((x) & 7)
 #define MODRM_REG(x) (((x) & (7 << 3)) >> 3)
 #define MODRM_SET_MOD(x, y) (x) = static_cast<unsigned char>((x) | ((y) << 6))
 #define MODRM_SET_RM(x, y) (x) = static_cast<unsigned char>((x) | (y))
 #define MODRM_SET_REG(x, y) (x) = static_cast<unsigned char>((x) | ((y) << 3))
+
 #if !defined(cap_instruction_api)
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,

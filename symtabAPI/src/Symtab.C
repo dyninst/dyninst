@@ -2610,20 +2610,6 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
          return false;
       }
 #if 0
-      bool r = false;
-      const char *sbb = "no_name_dummy";
-      r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_parameters_a >(sbb);
-      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for symbol_params\n", FILE__, __LINE__);}
-      r = false;
-      r = init_anno_serialization<Dyninst::SymtabAPI::localVarCollection, symbol_variables_a>(sbb);
-      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for symbol_vars\n", FILE__, __LINE__);}
-      r = false;
-      r = init_anno_serialization<Dyninst::SymtabAPI::LineInformation *, module_line_info_a>(sbb);
-      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_line_info\n", FILE__, __LINE__);}
-      r = false;
-      r = init_anno_serialization<Dyninst::SymtabAPI::typeCollection *, module_type_info_a>(sbb);
-      if (!r) {fprintf(stderr, "%s[%d]:  failed to init anno serialize for module_type_info\n", FILE__, __LINE__);}
-      r = false;
 #else
       fprintf(stderr, "%s[%d]:  WARN:  disabled serializer init here\n", FILE__, __LINE__);
 #endif
