@@ -49,24 +49,25 @@
 
 #include "boost/lexical_cast.hpp"
 
+
+
 // Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
 
+using namespace Dyninst;
 using namespace Dyninst::DDG;
 
-Node::Ptr Node::createNode(Address addr, InsnPtr insn, AbslocPtr absloc) {
-    return Node::Ptr(new Node(addr, insn, absloc)); 
+const Address Node::VIRTUAL_ADDR = (Address) -1;
+
+Node::Ptr InsnNode::createNode(Address addr, InsnPtr insn, AbslocPtr absloc) {
+    return Node::Ptr(new InsnNode(addr, insn, absloc)); 
 }
 
-Node::Ptr Node::createNode(AbslocPtr absloc) {
-    InsnPtr i;
-    return Node::Ptr(new Node((Address) -1, i, absloc)); 
+Node::Ptr ParameterNode::createNode(AbslocPtr absloc) {
+    return Node::Ptr(new ParameterNode(absloc)); 
 }
 
-Node::Node(Address addr, InsnPtr insn, AbslocPtr absloc) :
-    addr_(addr), insn_(insn), absloc_(absloc) {}
-
-Node::Node() {
-    assert(0);
+Node::Ptr VirtualNode::createNode() {
+    return Node::Ptr(new VirtualNode());
 }
 
 bool Node::returnEdges(const EdgeSet &local,
@@ -79,15 +80,20 @@ bool Node::returnEdges(const EdgeSet &local,
     return true;
 }
 
-std::string Node::name() const {
+std::string InsnNode::name() const {
     char buf[256];
-    if (addr() != (Address) -1) {
-        sprintf(buf,"N_0x%lx_%s_",
-                addr(), absloc()->name().c_str());
-    }
-    else {
-        sprintf(buf, "N_INITIAL_%s_",
-                absloc()->name().c_str());
-    }
+    sprintf(buf,"N_0x%lx_%s_",
+            addr(), absloc()->name().c_str());
     return std::string(buf);
+}
+
+std::string ParameterNode::name() const {
+    char buf[256];
+    sprintf(buf, "N_PARAM_%s_",
+            absloc()->name().c_str());
+    return std::string(buf);
+}
+
+std::string VirtualNode::name() const {
+    return std::string("N_VIRTUAL");
 }

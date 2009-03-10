@@ -75,7 +75,7 @@ namespace DDG {
 
     public:
         typedef boost::shared_ptr<Graph> Ptr;
-        typedef boost::shared_ptr<Node> NodePtr;
+        typedef Node::Ptr NodePtr;
         typedef std::set<NodePtr> NodeSet;
 
         typedef boost::shared_ptr<Absloc> AbslocPtr;
@@ -89,7 +89,7 @@ namespace DDG {
     public:
 
         bool initialNodes(NodeSet &nodes) const;
-        bool allNodes(NodeSet &nodes) const;
+         bool allNodes(NodeSet &nodes) const;
 
         // We create an empty graph and then add nodes and edges.
         static Ptr createGraph();
@@ -109,9 +109,14 @@ namespace DDG {
         // definition that isn't explicit in the code but must exist.
         NodePtr makeParamNode(Absloc::Ptr a);
 
+        // Make a node that represents a phantom "definition" to an
+        // immediate value. We do this so that all nodes are reachable
+        // from either a parameter node or this "immediate" node.
+        NodePtr makeVirtualNode();
+
         bool printDOT(const std::string fileName);
 
-        const NodeSet &entryNodes();
+        const NodeSet entryNodes() const;
         
     private:
         static const Address INITIAL_ADDR;
@@ -122,12 +127,13 @@ namespace DDG {
         // We also need to point to all Nodes to keep them alive; we can't 
         // pervasively use shared_ptr within the graph because we're likely
         // to have cycles.
-        NodeMap allNodes_;
+        NodeMap insnNodes_;
 
-        // Elements of the allNodes_ map that have no in-edges.
-        NodeSet entryNodes_;
+        // Assertion: only parameter nodes will have no in-edges,
+        // by definition.
+        AbslocMap parameterNodes_;
 
-        bool entryNodesUpdated_;
+        NodePtr virtualNode_;
     };
 };
 }

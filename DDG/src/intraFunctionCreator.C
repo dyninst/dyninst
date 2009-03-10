@@ -54,6 +54,9 @@
 // InstructionAPI
 #include "Instruction.h"
 
+// Annotation interface
+#include "Annotatable.h"
+
 // Example intra-function DDG creator
 // Heavily borrows from the Dyninst internal liveness.C file
 // Performed over BPatch objects (for now) but designed
@@ -140,7 +143,7 @@ using namespace std;
 //     must have come from a kill of S (and are thus empty). Thus, by induction,
 //     IN(i_n, S_i) = IN(i_n, S). 
 
-void intraFunctionDDGCreator::buildDDG() {
+void intraFunctionDDGCreator::analyze() {
     
     // We build the DDG from reaching definitions performed for
     // all points (instructions) and program variables. 
@@ -185,11 +188,13 @@ void intraFunctionDDGCreator::buildDDG() {
 
 void intraFunctionDDGCreator::initializeGenKillSets(std::set<Block *> &allBlocks) {
     assert(allGens.empty());
+    //fprintf(stderr, "initializeGenKillSets:\n");
 
     for (std::set<Block *>::iterator iter = allBlocks.begin();
          iter != allBlocks.end(); 
          iter++) {
         Block *curBlock = *iter;
+        //fprintf(stderr, "\t Block 0x%lx\n", curBlock->getStartAddress());
 
         std::vector<std::pair<Instruction,Address> > insns;
         curBlock->getInstructions(insns);
@@ -197,12 +202,14 @@ void intraFunctionDDGCreator::initializeGenKillSets(std::set<Block *> &allBlocks
         for (unsigned i = 0; i < insns.size(); i++) {
             AbslocSet writtenAbslocs;
             Absloc::getDefinedAbslocs(insns[i].first, func, insns[i].second, writtenAbslocs);
+            //fprintf(stderr, "\t\t Insn 0x%lx/%s\n", insns[i].second, insns[i].first.format().c_str());
 
             for (AbslocSet::iterator iter = writtenAbslocs.begin();
                  iter != writtenAbslocs.end();
                  iter++) {                
                 // We have two cases: if the absloc is precise or an alias (S_i vs S above)
                 Absloc::Ptr A = *iter;
+                //fprintf(stderr, "\t\t\t Absloc %s\n", A->name().c_str());
                 cNode cnode = std::make_pair(A, InsnInstance(insns[i]));
 
                 AbslocSet aliases = A->getAliases();
@@ -359,35 +366,43 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
 
                 // TODO: used_to_define...
                 // And move the getUsedAbslocs to here...
-                
-                for (AbslocSet::const_iterator u_iter = used.begin();
-                     u_iter != used.end(); u_iter++) {
-                    Absloc::Ptr U = *u_iter;
 
-                    if (localReachingDefs.find(U) != localReachingDefs.end()) {
-                        NodePtr S = localReachingDefs[U];
-                        // By definition we know S is in nodes
-                        DDG->insertPair(S,T);
-                    }
-                    else { 
-                        ReachingDefSet RDS = inSets[B][U];
-                        if (RDS.empty()) {
-                            // An empty reachingDefSet means that we're an
-                            // using an undefined value; assume that
-                            // our caller set it.
-                            NodePtr S = DDG->makeParamNode(U);
+                if (used.empty()) {
+                    // We didn't use anyone to define this value;
+                    // add an edge from the distinguished virtual
+                    // node.
+                    DDG->insertPair(DDG->makeVirtualNode(), T);
+                }
+                else { 
+                    for (AbslocSet::const_iterator u_iter = used.begin();
+                         u_iter != used.end(); u_iter++) {
+                        Absloc::Ptr U = *u_iter;
+                        
+                        if (localReachingDefs.find(U) != localReachingDefs.end()) {
+                            NodePtr S = localReachingDefs[U];
+                            // By definition we know S is in nodes
                             DDG->insertPair(S,T);
                         }
-                        else {
-                            for (ReachingDefSet::iterator r_iter = RDS.begin();
-                                 r_iter != RDS.end(); r_iter++) {
-                                ReachingDefEntry entry = *r_iter;
-                                NodePtr S = makeNodeFromCandidate(entry.second);
+                        else { 
+                            ReachingDefSet RDS = inSets[B][U];
+                            if (RDS.empty()) {
+                                // An empty reachingDefSet means that we're an
+                                // using an undefined value; assume that
+                                // our caller set it.
+                                NodePtr S = DDG->makeParamNode(U);
                                 DDG->insertPair(S,T);
                             }
+                            else {
+                                for (ReachingDefSet::iterator r_iter = RDS.begin();
+                                     r_iter != RDS.end(); r_iter++) {
+                                    ReachingDefEntry entry = *r_iter;
+                                    NodePtr S = makeNodeFromCandidate(entry.second);
+                                    DDG->insertPair(S,T);
+                                }
+                            }
                         }
-                    }
-                } // For U in used
+                    } // For U in used
+                } // else (used not empty)
             } // For D in def
             // We now update localReachingDefs. If we do it in the previous
             // loop we can get errors. Consider this example:
@@ -501,12 +516,10 @@ void intraFunctionDDGCreator::getSuccessors(BPatch_basicBlock *block,
     }
 }
 
-Graph::Ptr intraFunctionDDGCreator::createGraph(Function *func) {
+intraFunctionDDGCreator intraFunctionDDGCreator::create(Function *func) {
     intraFunctionDDGCreator creator(func);
 
-    creator.buildDDG();
-
-    return creator.DDG;
+    return creator;
 }
 
 void intraFunctionDDGCreator::debugLocalSet(const ReachingDefsLocal &s,
@@ -573,3 +586,28 @@ Node::Ptr intraFunctionDDGCreator::makeNodeFromCandidate(cNode cnode) {
 
     return DDG->makeNode(insn, addr, absloc);
 }
+
+// Handle the annotation interface
+AnnotationClass <Graph::Ptr> DDGAnno(std::string("DDGAnno"));
+
+Graph::Ptr intraFunctionDDGCreator::getDDG() {
+    if (func == NULL) return Graph::Ptr();
+
+    // Check to see if we've already analyzed this graph
+    // and if so return the annotated version.
+    Graph::Ptr *ret;
+    func->getAnnotation(ret, DDGAnno);
+    if (ret) return *ret;
+    
+    // Perform analysis
+    analyze();
+    // Store the annotation
+
+    // The annotation interface takes raw pointers. Give it a
+    // smart pointer pointer.
+    Graph::Ptr *ptr = new Graph::Ptr(DDG);
+    func->addAnnotation(ptr, DDGAnno);
+
+    return DDG;
+}
+    

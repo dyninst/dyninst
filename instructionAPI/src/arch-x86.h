@@ -332,7 +332,7 @@ enum {
 
 
 void ia32_set_mode_64(bool mode);
-bool ia32_is_mode_64();
+INSTRUCTION_EXPORT bool ia32_is_mode_64();
 
 // addressing methods (see appendix A-2)
 // I've added am_reg (for registers implicitely encoded in instruciton), 
@@ -605,7 +605,7 @@ struct ia32_entry {
   const char* name(ia32_locations* locs = NULL);
   entryID getID(ia32_locations* locs = NULL) const;
   // returns true if any flags are read/written, false otherwise
-  bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten,
+  INSTRUCTION_EXPORT bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten,
 		 ia32_locations* locs = NULL);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
@@ -639,7 +639,7 @@ class ia32_instruction
                                             const ia32_entry& gotit, 
                                             const char* addr, 
                                             ia32_instruction& instruct);
-  friend ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
+  friend INSTRUCTION_EXPORT ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
 		  		       ia32_instruction& instruct);
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                             const unsigned char* addr, ia32_instruction& instruct,
@@ -701,7 +701,7 @@ class ia32_instruction
 #define IA32_FULL_DECODER (IA32_DECODE_PREFIXES | IA32_DECODE_MNEMONICS | IA32_DECODE_OPERANDS | IA32_DECODE_JMPS | IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION)
 #define IA32_SIZE_DECODER 0
 
-ia32_instruction& ia32_decode(unsigned int capabilities, const unsigned char* addr, ia32_instruction&);
+INSTRUCTION_EXPORT ia32_instruction& ia32_decode(unsigned int capabilities, const unsigned char* addr, ia32_instruction&);
 
 
 enum dynamic_call_address_mode {
@@ -713,11 +713,11 @@ enum dynamic_call_address_mode {
    get_instruction: get the instruction that starts at instr.
    return the size of the instruction and set instType to a type descriptor
 */
-unsigned get_instruction(const unsigned char *instr, unsigned &instType,
+INSTRUCTION_EXPORT unsigned get_instruction(const unsigned char *instr, unsigned &instType,
 			 const unsigned char** op_ptr = NULL);
 
 /* get the target of a jump or call */
-Address get_target(const unsigned char *instr, unsigned type, unsigned size,
+INSTRUCTION_EXPORT Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr);
 
 // Size of a jump rel32 instruction
@@ -752,7 +752,7 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 #define EXTENDED_0x81_XOR 6
 #define EXTENDED_0x81_CMP 7
 
-int displacement(const unsigned char *instr, unsigned type);
+INSTRUCTION_EXPORT int displacement(const unsigned char *instr, unsigned type);
 
 inline bool is_disp8(long disp) {
    return (disp >= -128 && disp < 127);
@@ -763,11 +763,11 @@ inline bool is_disp16(long disp) {
 }
 
 
-int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
+INSTRUCTION_EXPORT int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
 			    unsigned& scale, unsigned &mod);
-void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
-const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
+INSTRUCTION_EXPORT void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
+INSTRUCTION_EXPORT const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
 
 /* addresses on x86 don't have to be aligned */
 /* Address bounds of new dynamic heap segments.  On x86 we don't try
@@ -784,8 +784,8 @@ inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
 
 #endif
 
-bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
-bool insn_hasDisp8(unsigned ModRM);
- bool insn_hasDisp32(unsigned ModRM);
+INSTRUCTION_EXPORT bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
+INSTRUCTION_EXPORT bool insn_hasDisp8(unsigned ModRM);
+INSTRUCTION_EXPORT bool insn_hasDisp32(unsigned ModRM);
 
 #endif
