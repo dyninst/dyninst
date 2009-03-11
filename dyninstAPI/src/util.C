@@ -101,7 +101,7 @@ bool waitForFileToExist(char *fname, int timeout_seconds)
    int err = 0;
   while (0 != (err = stat(fname, &statbuf))) {
     if (err != ENOENT) {
-      fprintf(stderr, "%s[%d]:  stat failed with %s\n", FILE__, __LINE__, strerror(errno));
+      //fprintf(stderr, "%s[%d]:  stat failed with %s\n", FILE__, __LINE__, strerror(errno));
       return false;
     }
 

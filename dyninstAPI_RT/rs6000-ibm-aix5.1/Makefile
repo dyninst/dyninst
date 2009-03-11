@@ -29,6 +29,7 @@ SRCS  += ../src/RTposix.c \
 	../src/RTheap.c \
 	../src/RTheap-aix.c \
 	../src/RTthread-power-asm.s \
+	../src/RTthread-power.c\
 	../src/RTthread-index.c \
 	../src/RTthread.c
 #	../src/RTmutatedBinary.c \

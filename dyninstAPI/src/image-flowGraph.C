@@ -1190,8 +1190,11 @@ bool image_func::buildCFG(
                     // the call insruction as an unconditional branch
                     
                     // link up the fallthrough edge unless we know for
-                    // certain that the target function does not return
-                    if(targetFunc && targetFunc->returnStatus() == RS_NORETURN)
+                    // certain that the target function does not return,
+                    // or if the target is an entry in the PLT (and not
+                    // one of the special-case non-returning entries above)
+                    if(targetFunc && targetFunc->returnStatus() == RS_NORETURN
+                       && !(*pltFuncs).defines(target))
                     {
                         parsing_printf("[%s:%u] not parsing past non-returning "
                                        "call at 0x%lx (to %s)\n",
