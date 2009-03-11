@@ -883,7 +883,7 @@ bool dyn_lwp::representativeLWP_attach_()
    sprintf(temp, "/proc/%d/ctl", getPid());
 
    if (!waitForFileToExist(temp, 10 /*seconds */)) {
-      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+      //fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
       return false;
    }
    //ctl_fd_ = openFileWhenNotBusy(temp, O_WRONLY | O_EXCL, 0, 5/*seconds*/);
