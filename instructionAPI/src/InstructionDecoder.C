@@ -85,9 +85,9 @@ namespace Dyninst
       }
       else
       {
-	Expression* scaleAST(new Immediate(Result(s32, dword_t(scale))));
-	Expression* indexAST(new RegisterAST(makeRegisterID(index, opType)));
-	Expression* baseAST(new RegisterAST(makeRegisterID(base, opType)));
+	Expression::Ptr scaleAST(new Immediate(Result(s32, dword_t(scale))));
+	Expression::Ptr indexAST(new RegisterAST(makeRegisterID(index, opType)));
+	Expression::Ptr baseAST(new RegisterAST(makeRegisterID(base, opType)));
 	return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, u32), baseAST, u32);
       }
     }
@@ -227,6 +227,9 @@ namespace Dyninst
       },      
       {
 	r_DR0, r_DR1, r_DR2, r_DR3, r_DR4, r_DR5, r_DR6, r_DR7
+      },      
+      {
+	r_TR0, r_TR1, r_TR2, r_TR3, r_TR4, r_TR5, r_TR6, r_TR7
       }      
     };
       
@@ -303,8 +306,7 @@ namespace Dyninst
       case op_pd:
 	return dbl128;
       case op_s:
-	assert(!"Not implemented!");
-	return u8;
+	return u48;
       default:
 	assert(!"Can't happen!");
 	return u8;
@@ -388,20 +390,26 @@ namespace Dyninst
 	
 	break;
       case am_F:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(r_EFLAGS)));
+	{
+	  Expression::Ptr op(new RegisterAST(r_EFLAGS));
+	  outputOperands.push_back(op);
+	}
 	break;
       case am_G:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(makeRegisterID
-								 (locs->modrm_reg, operand.optype))));
+	{
+	  Expression::Ptr op(new RegisterAST(makeRegisterID(locs->modrm_reg, operand.optype)));
+	  outputOperands.push_back(op);
+	}
 	break;
       case am_I:
-	outputOperands.push_back(Expression::Ptr(decodeImmediate(operand.optype, locs->imm_position)));
+	outputOperands.push_back(decodeImmediate(operand.optype, locs->imm_position));
 	break;
       case am_J:
 	{
 	  Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position));
 	  Expression::Ptr EIP(new RegisterAST(r_EIP));
-	  outputOperands.push_back(Expression::Ptr(makeAddExpression(Offset, EIP, u32)));
+	  Expression::Ptr op(makeAddExpression(Offset, EIP, u32));
+	  outputOperands.push_back(op);
 	}
 	break;
       case am_O:
@@ -487,7 +495,9 @@ namespace Dyninst
 	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[3][locs->modrm_reg])));
 	break;
       case am_T:
-	assert(!"Not implemented, mod r/m reg = test");
+	// test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
+	// NOTE: this only appears in deprecated opcodes
+	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[9][locs->modrm_reg])));
 	break;
       case am_V:
 	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[5][locs->modrm_reg])));
@@ -615,7 +625,8 @@ namespace Dyninst
 	}
 	
 #endif
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(registerID)));
+	Expression::Ptr op(new RegisterAST(registerID));
+	outputOperands.push_back(op);
 	}
 	
 	break;
@@ -624,7 +635,10 @@ namespace Dyninst
 	// handled elsewhere
 	break;
       case am_allgprs:
-		  outputOperands.push_back(Expression::Ptr(new RegisterAST(r_ALLGPRS)));
+	{
+	  Expression::Ptr op(new RegisterAST(r_ALLGPRS));
+	  outputOperands.push_back(op);
+	}
 	break;
       default:
 	printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);

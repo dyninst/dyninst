@@ -34,6 +34,7 @@
 #include "entryIDs-IA32.h"
 #include "../../common/h/Singleton.h"
 
+
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -290,12 +291,14 @@ namespace Dyninst
     public:
       OperationMaps()
       {
-	thePC = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
-	pcAndSP = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())))
-	(RegisterAST::Ptr(new RegisterAST(r_eSP)));
-	stackPointer = list_of(RegisterAST::Ptr(new RegisterAST(r_eSP)));
-	framePointer = list_of(RegisterAST::Ptr(new RegisterAST(r_eBP)));
-	spAndBP = list_of(RegisterAST::Ptr(new RegisterAST(r_eSP)))(RegisterAST::Ptr(new RegisterAST(r_eBP)));
+	thePC.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
+	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
+	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	
+	stackPointer.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	framePointer.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
+	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
 	
 	nonOperandRegisterReads = 
 	map_list_of

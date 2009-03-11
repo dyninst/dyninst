@@ -412,7 +412,7 @@ miniTramp::miniTramp(callWhen when_,
     prev(NULL), next(NULL),
     callback(NULL), callbackData(NULL),
     deleteInProgress(false) {
-    ast_ = boost::dynamic_pointer_cast<AstMiniTrampNode>(AstNode::miniTrampNode(ast));
+    ast_ = dyn_detail::boost::dynamic_pointer_cast<AstMiniTrampNode>(AstNode::miniTrampNode(ast));
 
     assert(baseT);
     proc_ = baseT->proc();

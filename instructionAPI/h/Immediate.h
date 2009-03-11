@@ -63,7 +63,7 @@ namespace Dyninst
 	return;
       }
       /// By definition, an %Immediate uses no registers.
-      virtual void getUses(set<InstructionAST::Ptr>& /*uses*/) const
+      virtual void getUses(set<InstructionAST::Ptr>& /*uses*/)
       {
 	return;
       }

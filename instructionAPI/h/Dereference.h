@@ -84,17 +84,9 @@ namespace Dyninst
       }
       /// The use set of a %Dereference is the same as the use set of its children.
       /// \paramp uses The use set of this %Dereference is inserted into \c uses.
-      virtual void getUses(set<InstructionAST::Ptr>& uses) const
+      virtual void getUses(set<InstructionAST::Ptr>& uses)
       {
-	if(boost::dynamic_pointer_cast<RegisterAST>(addressToDereference))
-	{
-	  uses.insert(addressToDereference);
-	}
-	else
-	{
-	  addressToDereference->getUses(uses);
-	}
-	
+	addressToDereference->getUses(uses);
 	return;
       }
       /// An %InstructionAST is used by a %Dereference if it is equivalent to the 
@@ -122,7 +114,7 @@ namespace Dyninst
   
   
     private:
-      Expression::Ptr addressToDereference;
+      InstructionAST::Ptr addressToDereference;
   
     };
   };

@@ -635,16 +635,6 @@ map<entryID, string> entryNames = map_list_of
 ;
 
 
-const char* ia32_entry::name()
-{
-  map<entryID, string>::const_iterator found = entryNames.find(id);
-  if(found != entryNames.end())
-  {
-    return found->second.c_str();
-  }
-  return NULL;
-}
-
 const map<entryID, flagInfo>& ia32_instruction::getFlagTable()
 {
   static map<entryID, flagInfo> flagTable;
@@ -791,9 +781,10 @@ void ia32_instruction::initFlagTable(map<entryID, flagInfo>& flagTable)
   flagTable[e_xor] = flagInfo(vector<IA32Regs>(), standardFlags);
 }
 
-bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten)
+bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten,
+			   ia32_locations* locs)
 {
-  map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(id);
+  map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(getID(locs));
   if(found == ia32_instruction::getFlagTable().end())
   {
     return false;
@@ -5504,3 +5495,52 @@ int instruction::getStackDelta()
    
    return 0;
 }
+
+#if !defined(cap_instruction_api)
+entryID ia32_entry::getID(ia32_locations* l) const
+{
+  if((id != e_No_Entry) || (tabidx == t_done) || (l == NULL))
+  {
+    return id;
+  }
+  int reg = l->modrm_reg;
+  switch(otable)
+  {
+  case t_grp:
+    switch(tabidx)
+    {
+    case Grp2:
+    case Grp11:
+      return groupMap[tabidx][reg].id;
+      break;
+    default:
+      break;
+    }
+  default:
+    break;
+  }
+  return id;
+}
+const char* ia32_entry::name(ia32_locations* loc)
+{
+  map<entryID, string>::const_iterator found = entryNames.find(id);
+  if(found != entryNames.end())
+  {
+    return found->second.c_str();
+  }
+  if(loc)
+  {
+    if(otable == t_grp && (tabidx == Grp2 || tabidx == Grp11))
+    {
+      int reg = loc->modrm_reg;
+      found = entryNames.find(groupMap[tabidx][reg].id);
+      if(found != entryNames.end())
+      {
+	return found->second.c_str();
+      }
+    }
+  }
+  return NULL;
+}
+
+#endif

@@ -199,6 +199,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
     logerror("Write set for instruction %s not as expected\n", i.format().c_str());
     return FAILED;
   }
+  logerror("PASSED: Instruction %s had read, write sets as expected\n", i.format().c_str());
   return PASSED;
 }
 
@@ -207,7 +208,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 {
   const unsigned char buffer[] = 
   {
-    0x05, 0xef, 0xbe, 0xad, 0xde, // INC eAX
+    0x05, 0xef, 0xbe, 0xad, 0xde, // ADD eAX, 0xDEADBEEF
     0x50, // PUSH rAX
     0x74, 0x10, // JZ +0x10(8)
     0xE8, 0x20, 0x00, 0x00, 0x00, // CALL +0x20(32)

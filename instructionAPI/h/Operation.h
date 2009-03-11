@@ -36,7 +36,6 @@
 #include "Expression.h"
 #include "entryIDs-IA32.h"
 #include <set>
-#include <boost/dynamic_bitset.hpp>
 
 #include "util.h"
 
@@ -91,7 +90,7 @@ namespace Dyninst
     class Operation
     {
     public:
-      typedef boost::dynamic_bitset<> bitSet;
+      typedef std::vector<unsigned char> bitSet;
       typedef std::set<RegisterAST::Ptr> registerSet;
       typedef std::set<Expression::Ptr> VCSet;
   

@@ -31,7 +31,7 @@
 
 #include "../h/InstructionDecoder.h"
 #include <iostream>
-#include <boost/assign.hpp>
+#include <dyn_detail/boost/assign.hpp>
 #include "../h/Register.h"
 
 using namespace Dyninst::InstructionAPI;
