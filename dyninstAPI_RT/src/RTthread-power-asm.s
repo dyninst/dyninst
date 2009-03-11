@@ -35,14 +35,23 @@ DYNINSTthreadSelf:
 DYNINSTthreadSelf_NOT_SPR:
    l        3,200(3)
    br
-   .globl tc_lock_lock
-   .globl .tc_lock_lock
-tc_lock_lock:
-.tc_lock_lock:
+   .globl compare_and_swap2
+   .globl .compare_and_swap2
+compare_and_swap2:
+.compare_and_swap2:
+   lwarx    5,0,3
+   stwcx.   4,0,3
+   bne-     compare_and_swap2
+   mr       3,5
+   blr
+   .globl tc_lock_lock2
+   .globl .tc_lock_lock2
+tc_lock_lock2:
+.tc_lock_lock2:
    mflr     0
    stw      0,8(1)
    mr       10,3      # &t in R10
-   bl       .DYNINSTthreadSelf
+   bl       .dyn_pthread_self
    cror     31,31,31
    lil      6,1       # r6 == 1
 tc_lock_lock_loop:
