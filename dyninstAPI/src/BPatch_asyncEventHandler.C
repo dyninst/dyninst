@@ -328,6 +328,9 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
       }
    } 
 
+   process_record newp;
+
+#if !defined (os_windows)
    std::string sock_fname;
 
    PDSOCKET newsock =  setup_socket(p->getPid(), sock_fname);
@@ -338,15 +341,13 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 	   return false;
    }
 
-#if !defined (os_windows)
   async_printf("%s[%d]:  new socket %s\n", FILE__, __LINE__, sock_fname.c_str());
-#endif
 
+   newp.sock = newsock;
+#endif
    //  add process to list
-   process_record newp;
    newp.process = p;
    newp.fd = -1;
-   newp.sock = newsock;
 
    process_fds.push_back(newp);
 
@@ -379,6 +380,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
    }
 #endif
 
+#if !defined (os_windows)
    //  tell async handler to expect a new connection:
    int buf = p->getPid();
 
@@ -500,6 +502,8 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
    }
 
    async_printf("%s[%d]:  got new connection\n", FILE__, __LINE__);
+#endif
+
 
    return true;
 }
@@ -549,12 +553,14 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 	//  wake up async handler to adjust set of wait fds:
 	int buf = -1;
 
+#if !defined(os_windows)
 	async_printf("%s[%d]:  detachFromProcess: signalling async thread\n", FILE__, __LINE__);
 
 	if (sizeof(int) != write(control_pipe_write, & buf, sizeof(int)))
 	{
 		fprintf(stderr, "%s[%d]:  failed to signal async thread\n", FILE__, __LINE__);
 	}
+#endif
 
 	if (!mutateeDetach(p)) 
 	{
@@ -611,7 +617,11 @@ char *generate_socket_name(char *buf, int mutator_pid, int mutatee_pid)
 }
 #endif
 
+#if defined (os_windows)
+PDSOCKET BPatch_asyncEventHandler::setup_socket(int , std::string &)
+#else
 PDSOCKET BPatch_asyncEventHandler::setup_socket(int mutatee_pid, std::string &sock_fname)
+#endif
 {
 	PDSOCKET sock = INVALID_PDSOCKET;
 
@@ -720,20 +730,31 @@ PDSOCKET BPatch_asyncEventHandler::setup_socket(int mutatee_pid, std::string &so
 
 bool BPatch_asyncEventHandler::initialize()
 {
+  //  Finally, create the event handling thread
+#if defined (os_windows)
+   std::string sock_fname;
+
+   PDSOCKET newsock =  setup_socket(0, sock_fname);
+
+   if (INVALID_PDSOCKET == newsock)
+   {
+	   fprintf(stderr, "%s[%d]:  failed to setup socket for new proc\n", FILE__, __LINE__);
+	   return false;
+   }
+   windows_sock = newsock;
+   //
+//	int res = _pipe(pipe_desc, 128, O_TEXT);
+#else
+	int pipe_desc[2];
 	control_pipe_read = -1;
 	control_pipe_write = -1;
-  //  Finally, create the event handling thread
-	int pipe_desc[2];
-#if defined (os_windows)
-	int res = _pipe(pipe_desc, 128, O_BINARY);
-#else
+
 	int res = pipe(pipe_desc);
 	if (-1 == res)
 	{
 		fprintf(stderr, "%s[%d]:  failed to setup control pipe\n", FILE__, __LINE__);
 		return false;
 	}
-#endif
 	
 	control_pipe_read = pipe_desc[0];
 	control_pipe_write = pipe_desc[1];
@@ -743,6 +764,7 @@ bool BPatch_asyncEventHandler::initialize()
 		fprintf(stderr, "%s[%d]:  failed to setup control pipe\n", FILE__, __LINE__);
 		return false;
 	}
+#endif
 
   if (!createThread()) 
   {
@@ -854,11 +876,18 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
   cleanUpTerminatedProcs();
 
+#if defined (os_windows)
+  FD_SET(windows_sock, &readSet);
+  FD_SET(windows_sock, &errSet);
+  if (windows_sock > width)
+      width = windows_sock;
+#else
   //  build the set of fds we want to wait on, one fd per process
   FD_SET(control_pipe_read, &readSet);
   FD_SET(control_pipe_read, &errSet);
   if (control_pipe_read > width)
       width = control_pipe_read;
+#endif
 
   for (unsigned int i = 0; i < process_fds.size(); ++i) 
   {
@@ -918,12 +947,47 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
         return true;  
       }
     }
-    bperr("%s[%d]:  select returned -1\n", FILE__, __LINE__);
+    async_printf("%s[%d]:  select returned -1: %s\n", FILE__, __LINE__, strerror(errno));
     __UNLOCK;
+#if defined (os_windows)
+	return true;
+#else
+    bperr("%s[%d]:  select returned -1\n", FILE__, __LINE__);
     return false;
+#endif
   }
 
 
+#if defined(os_windows)
+  if (FD_ISSET(windows_sock, &readSet)) 
+  {
+	  struct sockaddr cli_addr;
+	  SOCKLEN_T clilen = sizeof(cli_addr);
+
+	  int new_fd = P_accept(windows_sock, (struct sockaddr *) &cli_addr, &clilen);
+	  if (-1 == new_fd) {
+		  bperr("%s[%d]:  accept failed\n", FILE__, __LINE__);
+		  return false;
+	  }
+
+	  async_printf("%s[%d]:  about to read new connection\n", FILE__, __LINE__);
+
+	  //  do a (blocking) read so that we can get the pid associated with
+	  //  this connection.
+	  EventRecord pid_ev;
+	  readReturnValue_t result = readEvent(new_fd, pid_ev);
+	  if (result != RRVsuccess) {
+		  async_printf("%s[%d]:  READ ERROR\n", FILE__, __LINE__);
+		  return false;
+	  }
+	  assert(pid_ev.type == evtNewConnection);
+	  ev = pid_ev;
+	  async_printf("%s[%d]:  new connection to %d\n",  FILE__, __LINE__,
+			  ev.proc->getPid());
+	  ev.what = new_fd;
+
+  }
+#else
   if (FD_ISSET(control_pipe_read, &readSet)) 
   {
 	  //  must have a new process to pay attention to
@@ -955,6 +1019,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 	  if (ev.proc == NULL)
 		  fprintf(stderr, "%s[%d]:  could not find process %d\n", FILE__, __LINE__, newpid);
   }
+#endif
 
   for (unsigned int i = 0; i < process_fds.size(); ++i)
   {
@@ -983,6 +1048,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 		  {
 			  bperr("%s[%d]:  accept failed\n", FILE__, __LINE__);
 			  __UNLOCK;
+			  abort();
 			  return false;
 		  }
 
@@ -1372,7 +1438,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          return true;
       case evtNewConnection: 
          {
-#if 0
+#if defined (os_windows)
             //  add this fd to the pair.
             //  this fd will then be watched by select for new events.
 

@@ -39,12 +39,6 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 
-
-typedef struct {} user_funcs_a;
-typedef struct {} user_regions_a;
-typedef struct {} user_types_a;
-typedef struct {} user_symbols_a;
-
 class MappedFile;
 
 namespace Dyninst{

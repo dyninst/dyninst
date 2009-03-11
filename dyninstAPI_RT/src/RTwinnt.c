@@ -146,11 +146,11 @@ int DYNINSTasyncConnect(int mutatorpid)
   
   WORD wsversion = MAKEWORD(2,0);
   WSADATA wsadata;
-  /*rtBPatch_asyncEventRecord ev;*/
+  rtBPatch_asyncEventRecord ev;
 
   if (async_socket != -1) 
   {
-	  fprintf(stderr, "%s[%d]:  already connected\n", __FILE__, __LINE__);
+	  /*fprintf(stderr, "%s[%d]:  already connected\n", __FILE__, __LINE__);*/
       return 0;
   }
 
@@ -196,7 +196,6 @@ int DYNINSTasyncConnect(int mutatorpid)
 
   async_socket = sock_fd;
 
-#if 0
   RTprintf("%s[%d]:   DYNINSTasyncConnect before write\n", __FILE__, __LINE__);
 
   /* after connecting, we need to send along our pid */
@@ -212,7 +211,6 @@ int DYNINSTasyncConnect(int mutatorpid)
 
   //InitializeCriticalSection(&comms_mutex);
   //fprintf(stderr, "%s[%d]: DYNINSTasyncConnect appears to have succeeded\n", __FILE__, __LINE__);
-#endif
 
   RTprintf("%s[%d]:  leaving DYNINSTasyncConnect\n", __FILE__, __LINE__);
 
@@ -237,7 +235,7 @@ void printSysError(unsigned errNo) {
 
 int DYNINSTwriteEvent(void *ev, size_t sz)
 {
-  /*DYNINSTasyncConnect(DYNINST_mutatorPid);*/
+  DYNINSTasyncConnect(DYNINST_mutatorPid);
 
   if (send((SOCKET)async_socket, ev, sz, 0) != sz) 
   {

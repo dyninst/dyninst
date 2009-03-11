@@ -161,17 +161,15 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
                                                BPatch_asyncEventType t,
                                                BPatch_function *f);
 
-#if 0
+#if defined (os_windows)
     //  These vars are only modified as part of init (before/while threads are
     //  created) so we do not need to worry about locking them:
-    PDSOCKET sock;
+    PDSOCKET windows_sock;
+    unsigned int listen_port;
+#else
+	int control_pipe_read, control_pipe_write;
 #endif
     bool shutDownFlag;
-
-#if defined (os_windows)
-    unsigned int listen_port;
-#endif
-	int control_pipe_read, control_pipe_write;
 
     //  The rest:  Data in this class that is not exclusively set during init
     //   will have to be locked.  
