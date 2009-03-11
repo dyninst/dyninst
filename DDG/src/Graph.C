@@ -113,6 +113,11 @@ const Graph::NodeSet Graph::entryNodes() const {
     return ret;
 }
 
+void Graph::recordCall(Address callAddr,
+                       const CNodeRec &callInfo) {
+    callRecords_[callAddr] = callInfo;
+}
+
 bool Graph::printDOT(const std::string fileName) {
     FILE *file = fopen(fileName.c_str(), "w");
     if (file == NULL) {
@@ -166,3 +171,24 @@ bool Graph::printDOT(const std::string fileName) {
     return true;
 }
 
+void Graph::debugCallInfo() {
+    for (CNodeMap::const_iterator c_iter = callRecords_.begin();
+         c_iter != callRecords_.end();
+         c_iter++) {
+        fprintf(stderr, "Call at 0x%lx has the following reaching defs:\n",
+                c_iter->first);
+        for (CNodeRec::const_iterator a_iter = c_iter->second.begin();
+             a_iter != c_iter->second.end();
+             a_iter++) {
+            fprintf(stderr, "\t Absloc %s:\n",
+                    a_iter->first->name().c_str());
+            for (CNodeSet::const_iterator s_iter = a_iter->second.begin();
+                 s_iter != a_iter->second.end(); 
+                 s_iter++) {
+                fprintf(stderr, "\t\t 0x%lx / %s\n",
+                        s_iter->second,
+                        s_iter->first->name().c_str());
+            }
+        }
+    }
+}
