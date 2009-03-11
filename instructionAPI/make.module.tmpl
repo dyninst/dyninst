@@ -92,6 +92,7 @@ PUBLIC_H =      BinaryFunction.h \
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
 	cp $(TO_INC)/*.h $(TO_CORE)/../include
+	cp -r ../../external/dyn_detail/* $(TO_CORE)/../include/dyn_detail
 
 
 docs:

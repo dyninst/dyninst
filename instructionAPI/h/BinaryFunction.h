@@ -66,6 +66,7 @@ namespace Dyninst
 	{
 	  return m_name;
 	}
+	typedef dyn_detail::boost::shared_ptr<funcT> Ptr;
 	
       private:
 	std::string m_name;
@@ -120,7 +121,7 @@ namespace Dyninst
       /// provided with the %Instruction API are named "+" and "*", respectively.
       template <typename T1, typename T2>
       BinaryFunction(T1 arg1, T2 arg2, Result_Type result_type,
-		     boost::shared_ptr<funcT> func) : 
+		     funcT::Ptr func) : 
       Expression(result_type), m_arg1(arg1), m_arg2(arg2), m_funcPtr(func)
       {
       }
@@ -141,13 +142,18 @@ namespace Dyninst
       /// are not evaluable.
       virtual Result eval() const
       {
-	Result x = m_arg1->eval();
-	Result y = m_arg2->eval();
-	Result oracularResult = Expression::eval();
-	if(x.defined && y.defined && !oracularResult.defined)
+	Expression::Ptr arg1 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg1);
+	Expression::Ptr arg2 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg2);
+	if(arg1 && arg2)
 	{
-	  Result result = (*m_funcPtr)(x, y);
-	  const_cast<BinaryFunction*>(this)->setValue(result);
+	  Result x = arg1->eval();
+	  Result y = arg2->eval();
+	  Result oracularResult = Expression::eval();
+	  if(x.defined && y.defined && !oracularResult.defined)
+	  {
+	    Result result = (*m_funcPtr)(x, y);
+	    const_cast<BinaryFunction*>(this)->setValue(result);
+	  }
 	}
 	return Expression::eval();
       }
@@ -162,24 +168,10 @@ namespace Dyninst
       }
       /// The use set of a %BinaryFunction is the union of the use sets of its children.
       /// \param uses Appends the use set of this %BinaryFunction to \c uses.
-      virtual void getUses(set<InstructionAST::Ptr>& uses) const
+      virtual void getUses(set<InstructionAST::Ptr>& uses)
       {
-	if(boost::dynamic_pointer_cast<RegisterAST>(m_arg1))
-	{
-	  uses.insert(m_arg1);
-	}
-	else
-	{
-	  m_arg1->getUses(uses);
-	}
-	if(boost::dynamic_pointer_cast<RegisterAST>(m_arg2))
-	{
-	  uses.insert(m_arg2);
-	}
-	else
-	{
-	  m_arg2->getUses(uses);
-	}
+	m_arg1->getUses(uses);
+	m_arg2->getUses(uses);
 	return;
       }
       /// \c isUsed returns true if \c findMe is an argument of this %BinaryFunction,
@@ -209,9 +201,9 @@ namespace Dyninst
       }
   
     private:
-      Expression::Ptr m_arg1;
-      Expression::Ptr m_arg2;
-      boost::shared_ptr<funcT> m_funcPtr;
+      InstructionAST::Ptr m_arg1;
+      InstructionAST::Ptr m_arg2;
+      funcT::Ptr m_funcPtr;
       
     };
   };

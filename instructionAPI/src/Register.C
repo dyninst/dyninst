@@ -36,7 +36,7 @@
 #include <sstream>
 
 using namespace std;
-using namespace boost;
+using namespace dyn_detail::boost;
 
 extern bool ia32_is_mode_64();
 
@@ -45,8 +45,8 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-	RegisterAST::RegisterAST(int id) : 
-		Expression(Singleton<IA32RegTable>::getInstance().IA32_register_names[IA32Regs(id)].regSize), registerID(id) 
+    RegisterAST::RegisterAST(int id) : 
+      Expression(Singleton<IA32RegTable>::getInstance().IA32_register_names[IA32Regs(id)].regSize), registerID(id) 
     {
     }
     RegisterAST::~RegisterAST()
@@ -56,29 +56,23 @@ namespace Dyninst
     {
       return;
     }
-    void RegisterAST::getUses(set<InstructionAST::Ptr>& uses) const
+    void RegisterAST::getUses(set<InstructionAST::Ptr>& uses)
     {
-		if(registerID == r_ALLGPRS)
-		{
-			for(std::set<InstructionAST::Ptr>::iterator cur = uses.begin();
-				cur != uses.end();
-				++cur)
-			{
-				if(**cur == *this)
-				{
-					uses.erase(cur);
-					break;
-				}
-			}
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EAX)));
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_ECX)));
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EDX)));
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EBX)));
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_ESP)));
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EBP)));
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_ESI)));
-			uses.insert(InstructionAST::Ptr(new RegisterAST(r_EDI)));
-		}
+      if(registerID == r_ALLGPRS)
+      {
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_EAX)));
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_ECX)));
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_EDX)));
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_EBX)));
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_ESP)));
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_EBP)));
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_ESI)));
+	uses.insert(InstructionAST::Ptr(new RegisterAST(r_EDI)));
+      }
+      else
+      {
+	uses.insert(shared_from_this());
+      }
       return;
     }
     bool RegisterAST::isUsed(InstructionAST::Ptr findMe) const
@@ -89,7 +83,7 @@ namespace Dyninst
 	  }
 	  if(registerID == r_ALLGPRS)
 	  {
-		  RegisterAST::Ptr asReg = boost::dynamic_pointer_cast<RegisterAST>(findMe);
+		  RegisterAST::Ptr asReg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(findMe);
 		  if(!asReg) return false;
 		  if(asReg->registerID == r_EAX ||
 			asReg->registerID == r_EDX ||
@@ -146,7 +140,7 @@ namespace Dyninst
 
     InstructionAST::Ptr RegisterAST::promote(InstructionAST::Ptr regPtr) {
         // If this isn't a register, return NULL
-        RegisterAST::Ptr reg = dynamic_pointer_cast<RegisterAST>(regPtr);
+        RegisterAST::Ptr reg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
         if (!reg) return InstructionAST::Ptr();
 
         unsigned registerID = reg->getID();

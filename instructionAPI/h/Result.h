@@ -34,7 +34,8 @@
 
 #include <sstream>
 #include <string.h> // memcmp
-#include <boost/cstdint.hpp>
+#include <inttypes.h>
+
 
 namespace Dyninst
 {
@@ -45,17 +46,19 @@ namespace Dyninst
       unsigned char bitval : 1;
       unsigned char u8val;
       char s8val;
-	  boost::uint16_t u16val;
-      boost::int16_t s16val;
-      boost::uint32_t u32val;
-      boost::int32_t s32val;
-      boost::uint64_t u64val;
-      boost::int64_t s64val;
+      uint16_t u16val;
+      int16_t s16val;
+      uint32_t u32val;
+      int32_t s32val;
+      uint64_t u64val;
+      int64_t s64val;
       float floatval;
       double dblval;
-      boost::uint64_t u48val : 48;
-      boost::int64_t s48val : 48;
+      uint64_t u48val : 48;
+      int64_t s48val : 48;
       void * m512val;
+      void* dbl128val;
+      
     };
     enum Result_Type
     {
@@ -146,22 +149,22 @@ namespace Dyninst
 	  val.s8val = (char)(v);
 	  break;
 	case u16:
-	  val.u16val = (boost::uint16_t)(v);
+	  val.u16val = (uint16_t)(v);
 	  break;
 	case s16:
-	  val.s16val = (boost::int16_t)(v);
+	  val.s16val = (int16_t)(v);
 	  break;
 	case u32:
-	  val.u32val = (boost::uint32_t)(v);
+	  val.u32val = (uint32_t)(v);
 	  break;
 	case s32:
-	  val.s32val = (boost::int32_t)(v);
+	  val.s32val = (int32_t)(v);
 	  break;
 	case u64:
-	  val.u64val = (boost::uint64_t)(v);
+	  val.u64val = (uint64_t)(v);
 	  break;
 	case s64:
-	  val.s64val = (boost::int64_t)(v);
+	  val.s64val = (int64_t)(v);
 	  break;
 	case sp_float:
 	  val.floatval = (float)(v);
@@ -182,7 +185,7 @@ namespace Dyninst
           val.m512val = (void *) v;
 	  break;
         case dbl128:
-	  assert(!"Not implemented yet");
+	  val.dbl128val = (void*) v;
 	  break;
 	default:
 	  assert(!"Invalid type!");
@@ -249,7 +252,7 @@ namespace Dyninst
 	  return memcmp(val.m512val, o.val.m512val, 512) == 0;
 	  break;
 	case dbl128:
-	  assert(!"Not implemented yet");
+	  return memcmp(val.dbl128val, o.val.dbl128val, 128) == 0;
 	  break;
 	default:
 	  assert(!"Invalid type!");
@@ -315,8 +318,8 @@ namespace Dyninst
         ret << val.m512val;
         break;
      case dbl128:
-        assert(!"Not implemented yet");
-        break;
+       ret << val.dbl128val;
+         break;
 	  default:
 	    ret << "[ERROR: invalid type value!]";
 	    break;
@@ -353,7 +356,7 @@ namespace Dyninst
    case m512:
       return 512;
    case dbl128:
-      return 8;
+      return 16;
 	default:
 	  assert(!"Unknown type in Result");
 	  return 0;

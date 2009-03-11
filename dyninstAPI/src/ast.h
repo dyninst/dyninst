@@ -55,7 +55,7 @@
 #include "common/h/Types.h"
 
 // The great experiment: boost shared_ptr libraries
-#include "boost/shared_ptr.hpp"
+#include <dyn_detail/boost/shared_ptr.hpp>
 #include "BPatch_type.h"
 
 class process;
@@ -96,9 +96,9 @@ class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
 // with the lowest usage count.
 
 class AstNode;
-typedef boost::shared_ptr<AstNode> AstNodePtr;
+typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 class AstMiniTrampNode;
-typedef boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
+typedef dyn_detail::boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
 class registerSpace;
 

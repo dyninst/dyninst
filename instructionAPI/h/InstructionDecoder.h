@@ -115,12 +115,12 @@ namespace Dyninst
       template< typename T1, typename T2 >
       Expression::Ptr makeAddExpression(T1 lhs, T2 rhs, Result_Type resultType)
       {
-	return Expression::Ptr(new BinaryFunction(lhs, rhs, resultType, boost::shared_ptr<BinaryFunction::funcT>(new BinaryFunction::addResult())));
+	return Expression::Ptr(new BinaryFunction(lhs, rhs, resultType, BinaryFunction::funcT::Ptr(new BinaryFunction::addResult())));
       }
       template< typename T1, typename T2 >
       Expression::Ptr makeMultiplyExpression(T1 lhs, T2 rhs, Result_Type resultType)
       {
-	return Expression::Ptr(new BinaryFunction(lhs, rhs, resultType, boost::shared_ptr<BinaryFunction::funcT>(new BinaryFunction::multResult())));
+	return Expression::Ptr(new BinaryFunction(lhs, rhs, resultType, BinaryFunction::funcT::Ptr(new BinaryFunction::multResult())));
       } 
       Expression::Ptr getModRMDisplacement();
       int makeRegisterID(unsigned int intelReg, unsigned int opType);
