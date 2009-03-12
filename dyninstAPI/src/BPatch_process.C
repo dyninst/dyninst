@@ -2073,10 +2073,17 @@ bool BPatch_process::updateThreadInfo()
    if (!llproc->recognize_threads(NULL))
        return false;
    
+   async_printf("%s[%d]:  about to startup async thread\n", FILE__, __LINE__);
+
    //We want to startup the event handler thread even if there's
    // no registered handlers so we can start getting MT events.
    if (!getAsync()->startupThread())
+   {
+	   async_printf("%s[%d]:  startup async thread failed\n", FILE__, __LINE__);
        return false;
+   }
+
+   async_printf("%s[%d]:  startup async thread: ok\n", FILE__, __LINE__);
    return true;
 }
 

@@ -1863,24 +1863,33 @@ bool process::prepareExec(fileDescriptor &desc)
     return true;
 }
 
-bool process::finishExec() {
+bool process::finishExec() 
+{
     startup_printf("%s[%d]:  about to load DyninstLib\n", FILE__, __LINE__);
+    forkexec_printf("%s[%d]:  about to load DyninstLib\n", FILE__, __LINE__);
+    async_printf("%s[%d]:  about to load DyninstLib\n", FILE__, __LINE__);
     bool res = loadDyninstLib();
     if (!res)
+	{
+		fprintf(stderr, "%s[%d]:  FAILED to loadDyninstLib in exec process\n", FILE__, __LINE__);
         return false;
+	}
     
     getMailbox()->executeCallbacks(FILE__, __LINE__);
-    while(!reachedBootstrapState(bootstrapped_bs)) {
+    while (!reachedBootstrapState(bootstrapped_bs)) 
+	{
         // We're waiting for something... so wait
         // true: block until a signal is received (efficiency)
-        if(hasExited()) {
+        if (hasExited()) 
+		{
             return false;
         }
+
         sh->waitForEvent(evtProcessInitDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     
-    if(process::IndependentLwpControl())
+    if (process::IndependentLwpControl())
         independentLwpControlInit();
     
     set_status(stopped); // was 'exited'

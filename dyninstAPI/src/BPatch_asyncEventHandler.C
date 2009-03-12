@@ -59,6 +59,7 @@
 #include <sys/types.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#define ASYNC_SOCKET_PATH_LEN 128
 #endif
 
 #include "BPatch_eventLock.h"
@@ -92,210 +93,6 @@ inline THREAD_RETURN  asyncHandlerWrapper(void *h)
   ((BPatch_asyncEventHandler * )h)->main();
   DO_THREAD_RETURN;
 }
-
-#if 0
-bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
-{
-   async_printf("%s[%d][%s]:  enter ConnectToProcess %d\n", 
-         FILE__, __LINE__,getThreadStr(getExecThreadID()), p->getPid());
-
-   //  All we do here is add the process to the list of connected processes
-   //  with a fd equal to -1, indicating the not-yet-connected state.
-   //
-   //  Then remotely execute code in the mutatee to initiate the connection.
-
-   //  make sure that this process is not already known
-
-   for (int i = (int) process_fds.size() -1 ; i >= 0; i--) 
-   {
-      if ((p == process_fds[i].process) || 
-            (p->getPid() == process_fds[i].process->getPid()))
-      {
-         //  If it is, delete the old record to prepare for the new one.
-         //  This case can be encountered in the case of multiple process management
-         //  when processes are created and terminated rapidly.
-
-		  //  Do we need to close/disconnect socket here??
-
-         fprintf(stderr,"%s[%d]:  duplicate request to connect to process %d\n",
-               FILE__, __LINE__, p->getPid());
-
-         VECTOR_ERASE(process_fds,i,i);
-         //return false;
-      }
-   } 
-
-   std::string sock_fname;
-
-   PDSOCKET newsock =  setup_socket(p->getPid(), sock_fname);
-
-   if (INVALID_PDSOCKET == newsock)
-   {
-	   fprintf(stderr, "%s[%d]:  failed to setup socket for new proc\n", FILE__, __LINE__);
-	   return false;
-   }
-
-   //  add process to list
-   process_record newp;
-   newp.process = p;
-   newp.fd = -1;
-   newp.sock = newsock;
-
-   process *llproc = p->lowlevel_process();
-   assert(llproc->runtime_lib);
-
-#if defined (os_windows)
-   //  find the variable to set with the port number to connect to
-   pdvector<int_variable *> res;
-
-   p->llproc->findVarsByAll("connect_port", res, llproc->runtime_lib->fullName().c_str());
-
-   if (!res.size()) 
-   {
-      fprintf(stderr, "%s[%d]:  cannot find var connect_port in rt lib\n",
-            FILE__, __LINE__);
-      return false;
-   }
-
-   int_variable *portVar = res[0];
-
-   bool result = llproc->writeDataSpace((void *) portVar->getAddress(), 
-         sizeof(listen_port), &listen_port);
-
-   if (!result) 
-   {
-      fprintf(stderr, "%s[%d]:  cannot write var connect_port in rt lib\n",
-            FILE__, __LINE__);
-      return false;
-   }
-#endif
-
-   //  get mutatee to initiate connection
-   int mutator_pid = getpid();
-   pdvector<AstNodePtr> the_args;
-   the_args.push_back(AstNode::operandNode(AstNode::Constant, (void*)(int)mutator_pid));
-   AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTasyncConnect", the_args);
-   unsigned rpc_id = llproc->getRpcMgr()->postRPCtoDo(dynInit,
-		   true, // Don't update cost
-		   NULL /*no callback*/,
-		   NULL, // No user data
-		   false, // Don't run when done
-		   true, // Use reserved memory
-		   NULL, NULL);// No particular thread or LWP
-
-
-   async_printf("%s[%d]:  about to launch RPC for connect\n", FILE__, __LINE__);
-
-   bool rpcNeedsContinue = false;
-   //bool rpcNeedsContinue = true;
-   llproc->getRpcMgr()->launchRPCs(rpcNeedsContinue,
-		   false); // false: not running
-   assert(rpcNeedsContinue);
-
-
-   if (!llproc->continueProc())
-   {
-	   fprintf(stderr, "%s[%d]:  failed to continueProc\n", FILE__, __LINE__);
-   }
-
-   async_printf("%s[%d]:  continued proc to run RPC\n", FILE__, __LINE__);
-
-   //  now wait for mutatee connection
-
-   int width = 0;
-   fd_set readSet;
-   fd_set errSet;
-
-   FD_ZERO(&readSet);
-   FD_ZERO(&errSet);
-
-   //  Add the (listening) socket to set(s)
-   FD_SET(newsock, &readSet);
-   if ((int) newsock > width)
-	   width = newsock;
-
-
-   unsigned time_iter = 0;
-   unsigned TIMEOUT =  1000;
-   int selres = -1;
-
-   do 
-   {
-	   selres = -1;
-	   struct timeval timeout; 
-	   timeout.tv_sec = 0;
-	   timeout.tv_usec = 10 /*ms*/ * 1000;
-	   selres = P_select(width+1, &readSet, NULL, &errSet, &timeout);
-	   time_iter++;
-
-	   if (FD_ISSET(newsock, &readSet)) 
-		   break;
-   } while ((time_iter < TIMEOUT) || ((selres == -1) && (errno == EINTR)));
-
-
-   if ((time_iter >= TIMEOUT)  && !FD_ISSET(newsock, &readSet))
-   {
-	   fprintf(stderr, "%s[%d]:  async connect timed out\n", FILE__, __LINE__);
-	   irpcState_t rpc_state = llproc->getRpcMgr()->getRPCState(rpc_id);
-	   fprintf(stderr, "%s[%d]:  rpc state: %s\n", FILE__, __LINE__, irpcState2Str(rpc_state));
-	   return false;
-   }
-
-   //  See if we have any new connections (accept):
-   if (!FD_ISSET(newsock, &readSet)) 
-   {
-	   fprintf(stderr, "%s[%d]:  async connect failed: %d -- %s\n", FILE__, __LINE__, selres, strerror(errno));
-	   return false;
-   }
-
-   struct sockaddr cli_addr;
-   SOCKLEN_T clilen = sizeof(cli_addr);
-
-   int new_fd = P_accept(newsock, (struct sockaddr *) &cli_addr, &clilen);
-
-   if (-1 == new_fd) 
-   {
-	   bperr("%s[%d]:  accept failed\n", FILE__, __LINE__);
-	   return false;
-   }
-
-
-   fprintf(stderr, "%s[%d]:  before waitForEvent(evtRPCSignal\n", FILE__, __LINE__);
-   llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
-   fprintf(stderr, "%s[%d]:  after waitForEvent(evtRPCSignal\n", FILE__, __LINE__);
-   getMailbox()->executeCallbacks(FILE__, __LINE__);
-
-   if (llproc->hasExited()) 
-   {
-	   fprintf(stderr, "%s[%d]:  unexpected process exit!\n", FILE__, __LINE__);
-	   return false;
-   }
-
-
-   newp.fd = new_fd;
-   process_fds.push_back(newp);
-
-   async_printf("%s[%d]:  got new fd %d\n", FILE__, __LINE__, newp.fd);
-
-   if (sock_fname.length())
-   {
-	   unlink (sock_fname.c_str());
-   }
-
-
-
-   async_printf("%s[%d]:  accepted new connection\n", FILE__, __LINE__);
-
-   int buf = p->getPid();
-
-   if (sizeof(int) != write(control_pipe_write, & buf, sizeof(int)))
-   {
-	   fprintf(stderr, "%s[%d]:  failed to signal async thread\n", FILE__, __LINE__);
-   }
-
-   return true;
-}
-#endif
 
 bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 {
@@ -331,6 +128,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
    process_record newp;
 
 #if !defined (os_windows)
+
    std::string sock_fname;
 
    PDSOCKET newsock =  setup_socket(p->getPid(), sock_fname);
@@ -344,6 +142,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   async_printf("%s[%d]:  new socket %s\n", FILE__, __LINE__, sock_fname.c_str());
 
    newp.sock = newsock;
+
 #endif
    //  add process to list
    newp.process = p;
@@ -520,6 +319,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 #if ! defined( cap_async_events )
 	return true;
 #endif
+
    async_printf("%s[%d]:  welcome to detachFromProcess\n", FILE__, __LINE__);
 
 	int targetfd = -2;
@@ -589,20 +389,7 @@ cleanupSockets( void )
 {
    WSACleanup();
 }
-#else
 
-#define ASYNC_SOCKET_PATH_LEN 128
-char path_to_unlink[ASYNC_SOCKET_PATH_LEN];
-pid_t mutator_pid;
-void unlink_async_socket()
-{
-   // work around grandchild forking mechanism used by the testsuite for 
-   // attach. without this check, the async socket will be deleted when the 
-   // child exits immediately after forking the mutatee (grandchild)
-   pid_t curr_pid = getpid();
-   if(curr_pid == mutator_pid)
-      unlink(path_to_unlink);
-}
 #endif
 
 #if !defined (os_windows)
@@ -675,12 +462,8 @@ PDSOCKET BPatch_asyncEventHandler::setup_socket(int mutatee_pid, std::string &so
   }
 
   char path[ASYNC_SOCKET_PATH_LEN];
-
   generate_socket_name(path, getpid(), mutatee_pid);
-  strcpy(path_to_unlink, path);
   sock_fname = std::string(path);
-  mutator_pid = getpid();
-  atexit(unlink_async_socket);
 
   struct sockaddr_un saddr;
   saddr.sun_family = AF_UNIX;
@@ -741,15 +524,16 @@ bool BPatch_asyncEventHandler::initialize()
 	   fprintf(stderr, "%s[%d]:  failed to setup socket for new proc\n", FILE__, __LINE__);
 	   return false;
    }
+
    windows_sock = newsock;
-   //
-//	int res = _pipe(pipe_desc, 128, O_TEXT);
+
 #else
 	int pipe_desc[2];
 	control_pipe_read = -1;
 	control_pipe_write = -1;
 
 	int res = pipe(pipe_desc);
+
 	if (-1 == res)
 	{
 		fprintf(stderr, "%s[%d]:  failed to setup control pipe\n", FILE__, __LINE__);
@@ -781,35 +565,37 @@ bool BPatch_asyncEventHandler::initialize()
 BPatch_asyncEventHandler::~BPatch_asyncEventHandler()
 {
   if (isRunning()) 
-    if (!shutDown()) {
+    if (!shutDown()) 
+	{
       bperr("%s[%d]:  shut down async event handler failed\n", FILE__, __LINE__);
     }
 
 #if defined (os_windows)
   WSACleanup();
-#else
-  unlink_async_socket();
 #endif
 }
 
 bool BPatch_asyncEventHandler::shutDown()
 {
-  if (!isRunning()) goto close_comms;
+  if (!isRunning()) return true;
 
 #if defined(os_windows)
   shutDownFlag = true;
 #else
   int killres;
+
   killres = pthread_kill(handler_thread, 9);
-  if (killres) {
+
+  if (killres) 
+  {
      fprintf(stderr, "%s[%d]:  pthread_kill: %s[%d]\n", FILE__, __LINE__,
              strerror(killres), killres);
      return false;
   }
-  fprintf(stderr, "%s[%d]:  \t\t..... killed.\n", FILE__, __LINE__);
-#endif
 
-  close_comms:
+  fprintf(stderr, "%s[%d]:  \t\t..... killed.\n", FILE__, __LINE__);
+
+#endif
 
   return true;
 }
@@ -838,7 +624,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
   //  keep a static list of events in case we get several simultaneous
   //  events from select()...  just in case.
 
-  if (event_queue.size()) {
+  if (event_queue.size()) 
+  {
     // we already have one (from last call of this func)
     //
     //  this might result in an event reordering, not sure if important
@@ -848,7 +635,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     ev = event_queue[0];
     VECTOR_ERASE(event_queue,0,0);
     bool found = false;
-    for (unsigned i=0; i<process_fds.size(); i++) {
+    for (unsigned i=0; i<process_fds.size(); i++) 
+	{
        if (process_fds[i].process &&
            process_fds[i].process->getPid() == ev.proc->getPid()) 
        {
@@ -857,7 +645,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
        }
        
     }
-    if (found) {
+    if (found) 
+	{
        __UNLOCK;
        return true;
     }
@@ -936,24 +725,32 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
   if (-1 == result) {
     if (errno == EBADF) {
-      if (!cleanUpTerminatedProcs()) {
+      if (!cleanUpTerminatedProcs()) 
+	  {
         //fprintf(stderr, "%s[%d]:  FIXME:  select got EBADF, but no procs "
         // "terminated\n", FILE__, __LINE__);
         __UNLOCK;
         return false;
       }
-      else {
+      else 
+	  {
         __UNLOCK;
         return true;  
       }
     }
+
     async_printf("%s[%d]:  select returned -1: %s\n", FILE__, __LINE__, strerror(errno));
+    bperr("%s[%d]:  select returned -1\n", FILE__, __LINE__);
     __UNLOCK;
+	return false;
+
+#if 0
 #if defined (os_windows)
 	return true;
 #else
     bperr("%s[%d]:  select returned -1\n", FILE__, __LINE__);
     return false;
+#endif
 #endif
   }
 
@@ -965,7 +762,9 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 	  SOCKLEN_T clilen = sizeof(cli_addr);
 
 	  int new_fd = P_accept(windows_sock, (struct sockaddr *) &cli_addr, &clilen);
-	  if (-1 == new_fd) {
+
+	  if (-1 == new_fd) 
+	  {
 		  bperr("%s[%d]:  accept failed\n", FILE__, __LINE__);
 		  return false;
 	  }
@@ -976,10 +775,13 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 	  //  this connection.
 	  EventRecord pid_ev;
 	  readReturnValue_t result = readEvent(new_fd, pid_ev);
-	  if (result != RRVsuccess) {
+
+	  if (result != RRVsuccess) 
+	  {
 		  async_printf("%s[%d]:  READ ERROR\n", FILE__, __LINE__);
 		  return false;
 	  }
+
 	  assert(pid_ev.type == evtNewConnection);
 	  ev = pid_ev;
 	  async_printf("%s[%d]:  new connection to %d\n",  FILE__, __LINE__,
@@ -987,13 +789,16 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 	  ev.what = new_fd;
 
   }
+
 #else
+
   if (FD_ISSET(control_pipe_read, &readSet)) 
   {
 	  //  must have a new process to pay attention to
 	  int newpid = 0;
 	  readReturnValue_t retval = P_socketRead<int>(control_pipe_read, newpid);
-	  if (retval != RRVsuccess) {
+	  if (retval != RRVsuccess) 
+	  {
 		  async_printf("%s[%d]:  read failed\n", FILE__, __LINE__);
 		  __UNLOCK;
 	  }
@@ -1011,11 +816,13 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 	  async_printf("%s[%d]:  new connection to %d\n",  FILE__, __LINE__, newpid);
 	  ev.type = evtNewConnection;
 	  ev.proc = NULL;
+
 	  for (unsigned int i = 0; i < process_fds.size(); ++i) 
 	  {
 		  if (process_fds[i].process->getPid() == newpid)
 			  ev.proc = process_fds[i].process->lowlevel_process();
 	  }
+
 	  if (ev.proc == NULL)
 		  fprintf(stderr, "%s[%d]:  could not find process %d\n", FILE__, __LINE__, newpid);
   }
@@ -1087,13 +894,17 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     if (!FD_ISSET(process_fds[j].fd, &readSet)) 
        continue;
 
+    async_printf("%s[%d]:  select got event on fd %d, process = %d\n",  FILE__, __LINE__, 
+			process_fds[j].fd, process_fds[j].process->getPid());
+
     // Read event
     EventRecord new_ev;
     
     readReturnValue_t result = readEvent(process_fds[j].fd, new_ev);
     if (result != RRVsuccess) 
 	{
-        switch (result) {
+        switch (result) 
+		{
         //case RRVillegalProcess:
         case RRVinsufficientData:
         case RRVreadError:
@@ -1699,6 +1510,72 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
          (p->llproc->status() == detached))
       return true;
 
+#if 1
+
+   while (p->llproc->sh->isActivelyProcessing()) 
+   {
+	   async_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__,
+			   __LINE__, p->llproc->getPid());
+	   p->llproc->sh->waitForEvent(evtAnyEvent);
+   }
+
+   if (p->statusIsTerminated()) 
+   {
+	   return true;
+   }
+
+
+   pdvector<AstNodePtr> the_args;
+   AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTasyncDisconnect", the_args);
+   unsigned rpc_id = p->llproc->getRpcMgr()->postRPCtoDo(dynInit,
+		   true, // Don't update cost
+		   NULL /*no callback*/,
+		   NULL, // No user data
+		   false, // Don't run when done
+		   true, // Use reserved memory
+		   NULL, NULL);// No particular thread or LWP
+
+
+   p->llproc->sh->overrideSyncContinueState(ignoreRequest);
+
+   async_printf("%s[%d]:  about to launch RPC for disconnect\n", FILE__, __LINE__);
+
+   bool rpcNeedsContinue = false;
+   //bool rpcNeedsContinue = true;
+   p->llproc->getRpcMgr()->launchRPCs(rpcNeedsContinue,
+		   false); // false: not running
+   assert(rpcNeedsContinue);
+
+
+   if (!p->llproc->continueProc())
+   {
+	   fprintf(stderr, "%s[%d]:  failed to continueProc\n", FILE__, __LINE__);
+   }
+
+   async_printf("%s[%d]:  continued proc to run RPC -- wait for RPCSignal\n", FILE__, __LINE__);
+
+   if (p->statusIsTerminated()) 
+   {
+	   return true;
+   }
+
+   eventType evt = p->llproc->sh->waitForEvent(evtRPCSignal, p->llproc, NULL /*lwp*/, statusRPCDone);
+
+   if (p->statusIsTerminated()) 
+   {
+	   return true;
+   }
+
+   if (evt == evtProcessExit)
+   {
+	   return true;
+   }
+
+   async_printf("%s[%d]:  after waitForEvent(evtRPCSignal\n", FILE__, __LINE__);
+
+   //  is this needed?
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
+#else
    //  find the function that will initiate the disconnection
    BPatch_Vector<BPatch_function *> funcs;
 
@@ -1730,6 +1607,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
             FILE__, __LINE__);
       return false;
    }
+#endif
 
    return true;
 }

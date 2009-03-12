@@ -191,7 +191,11 @@ int DYNINSTasyncConnect(int pid)
 
   /* maybe need to do fcntl to set nonblocking writes on this fd */
 
-  assert(async_socket == -1);
+  if (async_socket == -1)
+  {
+	  rtdebug_printf("%s[%d]:  WARN:  async socket has not been reset!!\n", __FILE__, __LINE__);
+  }
+
   async_socket = sock_fd;
 
 #if 0
@@ -217,6 +221,7 @@ int DYNINSTasyncConnect(int pid)
   needToDisconnect = 1;
 
  /* atexit(exit_func); */
+  rtdebug_printf("%s[%d]:  leaving DYNINSTasyncConnect\n", __FILE__, __LINE__);
   return 1; 
 #else
   fprintf(stderr, "%s[%d]:  called DYNINSTasyncConect when async_events disabled\n",

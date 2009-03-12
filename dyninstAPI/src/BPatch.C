@@ -919,14 +919,27 @@ void BPatch::registerExecExit(process *proc)
    //  I think in the case of exec that we do not need to re-initiate a async connection
    //  to the process that exec'd 
 #if 1 
+   // if (!getAsync()->mutateeDetach(process)) {
+   //     bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
+   // }
+   async_printf("%s[%d]:  about to connect to exec process\n", FILE__, __LINE__);
    if (!getAsync()->connectToProcess(process)) {
       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+	  async_printf("%s[%d]:  connect to exec process failed\n", FILE__, __LINE__);
    } 
    else
+   {
       asyncActive = true;
+	  async_printf("%s[%d]:  connect to exec process success\n", FILE__, __LINE__);
+   }
+#else
+      asyncActive = true;
+	  async_printf("%s[%d]:  connect to exec process skipped\n", FILE__, __LINE__);
 #endif
 #endif
-   if (!process->updateThreadInfo()) {
+
+   if (!process->updateThreadInfo()) 
+   {
 	   fprintf(stderr, "%s[%d]:  failed to updateThreadInfo after exec\n", FILE__, __LINE__);
 	   return;
    }
