@@ -54,6 +54,9 @@
 // InstructionAPI
 #include "Instruction.h"
 
+// Annotation interface
+#include "Annotatable.h"
+
 // Example intra-function DDG creator
 // Heavily borrows from the Dyninst internal liveness.C file
 // Performed over BPatch objects (for now) but designed
@@ -140,7 +143,7 @@ using namespace std;
 //     must have come from a kill of S (and are thus empty). Thus, by induction,
 //     IN(i_n, S_i) = IN(i_n, S). 
 
-void intraFunctionDDGCreator::buildDDG() {
+void intraFunctionDDGCreator::analyze() {
     
     // We build the DDG from reaching definitions performed for
     // all points (instructions) and program variables. 
@@ -185,11 +188,13 @@ void intraFunctionDDGCreator::buildDDG() {
 
 void intraFunctionDDGCreator::initializeGenKillSets(std::set<Block *> &allBlocks) {
     assert(allGens.empty());
+    fprintf(stderr, "initializeGenKillSets:\n");
 
     for (std::set<Block *>::iterator iter = allBlocks.begin();
          iter != allBlocks.end(); 
          iter++) {
         Block *curBlock = *iter;
+        fprintf(stderr, "\t Block 0x%lx\n", curBlock->getStartAddress());
 
         std::vector<std::pair<Instruction,Address> > insns;
         curBlock->getInstructions(insns);
@@ -197,35 +202,18 @@ void intraFunctionDDGCreator::initializeGenKillSets(std::set<Block *> &allBlocks
         for (unsigned i = 0; i < insns.size(); i++) {
             AbslocSet writtenAbslocs;
             Absloc::getDefinedAbslocs(insns[i].first, func, insns[i].second, writtenAbslocs);
+            fprintf(stderr, "\t\t Insn 0x%lx/%s\n", insns[i].second, insns[i].first.format().c_str());
 
             for (AbslocSet::iterator iter = writtenAbslocs.begin();
                  iter != writtenAbslocs.end();
                  iter++) {                
                 // We have two cases: if the absloc is precise or an alias (S_i vs S above)
                 Absloc::Ptr A = *iter;
+                fprintf(stderr, "\t\t\t Absloc %s\n", A->name().c_str());
                 cNode cnode = std::make_pair(A, InsnInstance(insns[i]));
-
-                AbslocSet aliases = A->getAliases();
-
-                if (A->isPrecise()) {
-                    // S_i case...
-                    // OUT = GEN U (IN - KILL)
-                    // OUT[S_i] = {i} (as KILL = ALL)
-                    allGens[curBlock][A].clear(); // apply KILL
-                    allGens[curBlock][A].insert(cnode);
-
-                    // We also record that this block kills this absLoc.
-                    // It doesn't matter which instruction does it, since
-                    // that will be summarized in the gen information.
-                    allKills[curBlock][A] = true;
-                }
-                for (AbslocSet::iterator al = aliases.begin();
-                     al != aliases.end(); al++) {
-                    // This handles both the S case if we have a precise
-                    // absloc, as well as S_1, ..., S_n if we have an imprecise
-                    // absloc. 
-                    allGens[curBlock][*al].insert(cnode);
-                }
+                
+                updateDefSet(A, allGens[curBlock], cnode);
+                updateKillSet(A, allKills[curBlock]);
             }
         }
     }
@@ -333,61 +321,100 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
     //       localReachingDefs[D] = NODE(I,D)
     // See comment below for why we do this in two iterations.
 
+    fprintf(stderr, "generateIntraBlockReachingDefs...\n");
+
     for (BlockSet::iterator b_iter = allBlocks.begin();
          b_iter != allBlocks.end();
          b_iter++) {
         Block *B = *b_iter;
         std::vector<std::pair<Instruction, Address> > insns;
         B->getInstructions(insns);
-        NodeDefMap localReachingDefs;
+        DefMap localReachingDefs;
+        fprintf(stderr, "\tBlock 0x%lx\n", B->getStartAddress());
+        
         
         for (unsigned i = 0; i < insns.size(); i++) {
             Instruction I = insns[i].first;
             Address addr = insns[i].second;
+            fprintf(stderr, "\t\t Insn at 0x%lx\n", addr); 
 
             AbslocSet used;
             Absloc::getUsedAbslocs(I, func, addr, used);
             AbslocSet def;
             Absloc::getDefinedAbslocs(I, func, addr, def);
 
+            // Side-step: if we encounter a call instruction
+            // take a snapshot of the current reaching defs
+            // summary so that we can fix it up later based
+            // on either the ABI or actual analysis results
+            // of the callee.
+            if (isCall(I)) {
+                fprintf(stderr, "\t\t\t ... is call, recording call state\n");
+                recordCallState(I, addr, 
+                                localReachingDefs,
+                                inSets[B]);
+            }
+
             for (AbslocSet::const_iterator d_iter = def.begin();
                  d_iter != def.end(); d_iter++) {
                 AbslocPtr D = *d_iter;
                 NodePtr T = DDG->makeNode(I, addr, D);
 
+                fprintf(stderr, "\t\t\t Defines %s\n", D->name().c_str());
+
                 // Get the set of abslocs we have to care about here..
 
                 // TODO: used_to_define...
                 // And move the getUsedAbslocs to here...
-                
-                for (AbslocSet::const_iterator u_iter = used.begin();
-                     u_iter != used.end(); u_iter++) {
-                    Absloc::Ptr U = *u_iter;
 
-                    if (localReachingDefs.find(U) != localReachingDefs.end()) {
-                        NodePtr S = localReachingDefs[U];
-                        // By definition we know S is in nodes
-                        DDG->insertPair(S,T);
-                    }
-                    else { 
-                        ReachingDefSet RDS = inSets[B][U];
-                        if (RDS.empty()) {
-                            // An empty reachingDefSet means that we're an
-                            // using an undefined value; assume that
-                            // our caller set it.
-                            NodePtr S = DDG->makeParamNode(U);
-                            DDG->insertPair(S,T);
-                        }
-                        else {
-                            for (ReachingDefSet::iterator r_iter = RDS.begin();
-                                 r_iter != RDS.end(); r_iter++) {
-                                ReachingDefEntry entry = *r_iter;
-                                NodePtr S = makeNodeFromCandidate(entry.second);
+                if (used.empty()) {
+                    // We didn't use anyone to define this value;
+                    // add an edge from the distinguished virtual
+                    // node.
+                    fprintf(stderr, "\t\t\t\t ... from virtual node\n");
+                    DDG->insertPair(DDG->makeVirtualNode(), T);
+                }
+                else { 
+                    for (AbslocSet::const_iterator u_iter = used.begin();
+                         u_iter != used.end(); u_iter++) {
+                        Absloc::Ptr U = *u_iter;
+                        fprintf(stderr, "\t\t\t\t Uses %s...\n", U->name().c_str());
+                        
+                        if (localReachingDefs.find(U) != localReachingDefs.end()) {
+                            for (cNodeSet::iterator c_iter = localReachingDefs[U].begin();
+                                 c_iter != localReachingDefs[U].end(); c_iter++) {
+                                NodePtr S = makeNodeFromCandidate(*c_iter);
+                                // By definition we know S is in nodes
                                 DDG->insertPair(S,T);
+                                fprintf(stderr, "\t\t\t\t ... from local definition %s/0x%lx\n",
+                                        c_iter->first->name().c_str(),
+                                        c_iter->second.addr);
                             }
                         }
-                    }
-                } // For U in used
+                        else { 
+                            ReachingDefSet RDS = inSets[B][U];
+                            if (RDS.empty()) {
+                                // An empty reachingDefSet means that we're an
+                                // using an undefined value; assume that
+                                // our caller set it.
+                                fprintf(stderr, "\t\t\t\t ... from parameter\n"); 
+                                NodePtr S = DDG->makeParamNode(U);
+                                DDG->insertPair(S,T);
+                            }
+                            else {
+                                for (ReachingDefSet::iterator r_iter = RDS.begin();
+                                     r_iter != RDS.end(); r_iter++) {
+                                    ReachingDefEntry entry = *r_iter;
+                                    fprintf(stderr, "\t\t\t\t ... from prior block definition %s/0x%lx\n",
+                                            r_iter->second.first->name().c_str(),
+                                            r_iter->second.second.addr);
+                                    NodePtr S = makeNodeFromCandidate(entry.second);
+                                    DDG->insertPair(S,T);
+                                }
+                            }
+                        }
+                    } // For U in used
+                } // else (used not empty)
             } // For D in def
             // We now update localReachingDefs. If we do it in the previous
             // loop we can get errors. Consider this example:
@@ -412,11 +439,16 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
             // See the problem? Because we update localReachingDefs before we're done
             // with the instruction we can imply an incorrect ordering of assignments
             // within the instruction. Instead we update localReachingDefs afterwards.
+
+            // Also, we have to be aware of aliasing issues within the block. 
+
             for (AbslocSet::const_iterator d_iter = def.begin();
                  d_iter != def.end(); d_iter++) {
                 AbslocPtr D = *d_iter;
-                NodePtr T = DDG->makeNode(I, addr, D);
-                localReachingDefs[D] = T;
+                
+                cNode cnode = std::make_pair(D, InsnInstance(insns[i]));
+
+                updateDefSet(D, localReachingDefs, cnode);
             }
         } // For I in insn
     } // For B in block
@@ -501,12 +533,10 @@ void intraFunctionDDGCreator::getSuccessors(BPatch_basicBlock *block,
     }
 }
 
-Graph::Ptr intraFunctionDDGCreator::createGraph(Function *func) {
+intraFunctionDDGCreator intraFunctionDDGCreator::create(Function *func) {
     intraFunctionDDGCreator creator(func);
 
-    creator.buildDDG();
-
-    return creator.DDG;
+    return creator;
 }
 
 void intraFunctionDDGCreator::debugLocalSet(const ReachingDefsLocal &s,
@@ -573,3 +603,131 @@ Node::Ptr intraFunctionDDGCreator::makeNodeFromCandidate(cNode cnode) {
 
     return DDG->makeNode(insn, addr, absloc);
 }
+
+// Handle the annotation interface
+AnnotationClass <Graph::Ptr> DDGAnno(std::string("DDGAnno"));
+
+Graph::Ptr intraFunctionDDGCreator::getDDG() {
+    if (func == NULL) return Graph::Ptr();
+
+    // Check to see if we've already analyzed this graph
+    // and if so return the annotated version.
+    Graph::Ptr *ret;
+    func->getAnnotation(ret, DDGAnno);
+    if (ret) return *ret;
+    
+    // Perform analysis
+    analyze();
+    // Store the annotation
+
+    // The annotation interface takes raw pointers. Give it a
+    // smart pointer pointer.
+    Graph::Ptr *ptr = new Graph::Ptr(DDG);
+    func->addAnnotation(ptr, DDGAnno);
+
+    return DDG;
+}
+    
+bool intraFunctionDDGCreator::isCall(Instruction i) const {
+    entryID what = i.getOperation().getID();
+    return (what == e_call);
+}
+
+void intraFunctionDDGCreator::recordCallState(const Instruction &,
+                                              const Address &a,
+                                              const DefMap &localDefs,
+                                              const ReachingDefsLocal &reachingDefs) {
+    // We need to summarize all reaching definitions 
+    // so that we can create formal nodes in the graph.
+    
+    // This function does the conversion between our
+    // information (including the candidate nodes in 
+    // reachingDefs) and what the Graph stores.
+    
+    Graph::CNodeRec callInfo;
+
+    // Do the same thing as in generateIntraBlockReachingDefs...
+
+    // OPTIMIZE THIS. We're wasting work with anything that's been overridden
+    // by a local (intra-block) definition. The problem is, we don't know 
+    // a priori what the call will use, so we store _everything_ here. 
+    // The alternative (and probably smarter alternative) is to analyze the
+    // call, determine its parameter set, and store only the reaching defs
+    // to those parameters. This will work as a prototype.
+
+    for (ReachingDefsLocal::const_iterator i = reachingDefs.begin();
+         i != reachingDefs.end(); i++) {
+        AbslocPtr use = i->first;
+        for (ReachingDefSet::const_iterator j = i->second.begin();
+             j != i->second.end(); j++) {
+            const cNode &cnode = j->second;
+            const AbslocPtr &def = cnode.first;
+            const Address &defAddr = cnode.second.addr;
+            
+            Graph::CNode gNode = std::make_pair<AbslocPtr, Address>(def, defAddr);
+            callInfo[use].insert(gNode);
+        }
+    }
+
+    for (DefMap::const_iterator i = localDefs.begin();
+         i != localDefs.end(); i++) {
+        AbslocPtr use = i->first;
+        callInfo[use].clear();
+        for (cNodeSet::const_iterator j = i->second.begin();
+             j != i->second.end(); j++) {
+            const cNode &cnode = *j;
+            const AbslocPtr &def = cnode.first;
+            const Address &defAddr = cnode.second.addr;
+
+            Graph::CNode gNode = std::make_pair(def, defAddr);
+            callInfo[use].insert(gNode);
+        }
+    }
+    DDG->recordCall(a, callInfo);
+}
+ 
+// This function does the work of handling aliases...                    
+
+void intraFunctionDDGCreator::updateDefSet(const Absloc::Ptr D,
+                                           DefMap &defMap,
+                                           cNode &cnode) {
+    AbslocSet aliases = D->getAliases();
+    
+    if (D->isPrecise()) {
+        // S_i case...
+        // OUT = GEN U (IN - KILL)
+        // OUT[S_i] = {i} (as KILL = ALL)
+        defMap[D].clear(); // apply KILL
+        defMap[D].insert(cnode);
+    }
+    else {
+        // S case...
+        // OUT = GEN U (IN - KILL)
+        // OUT[S] = GEN U IN (as KILL = 0)
+        defMap[D].insert(cnode);
+    }
+
+    for (AbslocSet::iterator al = aliases.begin();
+         al != aliases.end(); al++) {
+        // This handles both the S case if we have a precise
+        // absloc, as well as S_1, ..., S_n if we have an imprecise
+        // absloc. 
+        defMap[*al].insert(cnode);
+    }
+}
+
+
+// This function does the work of handling aliases...                    
+
+void intraFunctionDDGCreator::updateKillSet(const Absloc::Ptr D,
+                                            KillMap &kills) {
+    AbslocSet aliases = D->getAliases();
+    
+    if (D->isPrecise()) {
+        // We also record that this block kills this absLoc.
+        // It doesn't matter which instruction does it, since
+        // that will be summarized in the gen information.
+        kills[D] = true;
+    }
+}
+                                           

@@ -3334,8 +3334,6 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_A: /* address = segment + offset (word or dword or qword) */
         nib += wordSzB * addrSzAttr;
 	nib += dwordSzB;
-        if(mac)
-          fprintf(stderr, "x86: segment selector ignored [am_A].\n");
 	break;
       case am_O: /* operand offset */
         nib += wordSzB * addrSzAttr;

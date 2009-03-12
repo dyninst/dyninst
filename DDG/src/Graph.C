@@ -51,83 +51,71 @@ using namespace Dyninst::DDG;
 
 const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
 
-Graph::Graph() : entryNodesUpdated_(true) {};
+Graph::Graph() {};
 
-Node::Ptr Graph::makeNode(Dyninst::InstructionAPI::Instruction &insn,
-                          Address addr,
-                          AbslocPtr absloc) {
+Graph::NodePtr Graph::makeNode(Dyninst::InstructionAPI::Instruction &insn,
+                               Address addr,
+                               AbslocPtr absloc) {
     // First check to see if we already have this one
-    if (allNodes_[addr].find(absloc) != allNodes_[addr].end()) { 
-        return allNodes_[addr][absloc];
+    if (insnNodes_[addr].find(absloc) != insnNodes_[addr].end()) { 
+        return insnNodes_[addr][absloc];
     }
 
     // Otherwise create a new Node and insert it into the
     // map. 
 
-    Node::Ptr newNode = Node::createNode(addr, insn, absloc);
+    Node::Ptr newNode = InsnNode::createNode(addr, insn, absloc);
     
-    // Update allNodes_ so that we only create a particular node once.
-    allNodes_[addr][absloc] = newNode;
-    
-    // We created a node, so our list of entry nodes is _not_ up to date.
-    entryNodesUpdated_ = false;
+    // Update insnNodes_ so that we only create a particular node once.
+    insnNodes_[addr][absloc] = newNode;
 
     return newNode;
 }
 
 Graph::NodePtr Graph::makeParamNode(Absloc::Ptr a) {
-    
-    // Create a known "initial" node and insert it into the
-    // entryNodes_ structure.
-    if (allNodes_[INITIAL_ADDR].find(a) == allNodes_[INITIAL_ADDR].end()) {
-        NodePtr n = Node::createNode(a);
-        allNodes_[INITIAL_ADDR][a] = n;
+    if (parameterNodes_.find(a) == parameterNodes_.end()) {
+        NodePtr n = ParameterNode::createNode(a);
+        parameterNodes_[a] = n;
         return n;
     }
-
-    return allNodes_[INITIAL_ADDR][a];
+    return parameterNodes_[a];
 }
-   
+
+Graph::NodePtr Graph::makeVirtualNode() {
+    if (virtualNode_) return virtualNode_;
+    virtualNode_ = VirtualNode::createNode(); 
+    return virtualNode_;
+}
 
 Graph::Ptr Graph::createGraph() {
     return Graph::Ptr(new Graph());
 }
 
 void Graph::insertPair(NodePtr source, NodePtr target) {
-    // This asserts that we don't try to insert an unknown
-    // node.
-    assert(allNodes_[source->addr()].find(source->absloc()) 
-           != allNodes_[source->addr()].end());
-
-    allNodes_[target->addr()][target->absloc()] = target;
+    // TODO handle parameter edge types.
 
     Edge::Ptr e = Edge::createEdge(source, target);
-
-    // Since we changed the graph we may have invalidated the list of
-    // entry nodes.
-    entryNodesUpdated_ = false;
 
     source->addOutEdge(e);
     target->addInEdge(e);
 }
 
-const Graph::NodeSet &Graph::entryNodes() {
-    // If the list of entry nodes is up to date, return it.
-    if (entryNodesUpdated_) return entryNodes_;
-
-    // Otherwise look at all nodes and find those with no in-edges.
-    // Those become our entry nodes.
-    // Assertion: there are no true cycles in the DDG as there _must_
-    // exist an initial definition.
-    entryNodes_.clear();
-
-    for (NodeMap::iterator i = allNodes_.begin(); i != allNodes_.end(); i++) {
-        for (AbslocMap::iterator j = (*i).second.begin(); j != (*i).second.end(); j++) {
-            entryNodes_.insert((*j).second);
-        }
+const Graph::NodeSet Graph::entryNodes() const {
+    NodeSet ret;
+    
+    for (AbslocMap::const_iterator iter = parameterNodes_.begin();
+         iter != parameterNodes_.end(); iter++) {
+        ret.insert(iter->second);
     }
-    entryNodesUpdated_ = true;
-    return entryNodes_;
+    if (virtualNode_) {
+        ret.insert(virtualNode_);
+    }
+    return ret;
+}
+
+void Graph::recordCall(Address callAddr,
+                       const CNodeRec &callInfo) {
+    callRecords_[callAddr] = callInfo;
 }
 
 bool Graph::printDOT(const std::string fileName) {
@@ -151,25 +139,56 @@ bool Graph::printDOT(const std::string fileName) {
     while (!worklist.empty()) {
         Node::Ptr source = worklist.front();
         worklist.pop();
+
+        //fprintf(stderr, "Considering node %s\n", source->name().c_str());
         
         // We may have already treated this node...
         if (visited.find(source) != visited.end()) {
+            //fprintf(stderr, "\t skipping previously visited node\n");
             continue;
         }
-
+        //fprintf(stderr, "\t inserting %s into visited set, %d elements pre-insert\n", source->name().c_str(), visited.size());
         visited.insert(source);
         fprintf(file, "\t // %s\n", source->name().c_str());
         Node::EdgeSet outs; source->outs(outs);
+        //fprintf(stderr, "\t with %d out-edges\n", outs.size());
         for (Node::EdgeSet::iterator e = outs.begin(); e != outs.end(); e++) {
             Node::Ptr target = (*e)->target();
             fprintf(file, "\t %s -> %s;\n", source->name().c_str(), target->name().c_str());
-            if (visited.find(target) != visited.end()) {
+            if (visited.find(target) == visited.end()) {
+                //fprintf(stderr, "\t\t adding child %s\n", target->name().c_str());
                 worklist.push(target);
+            }
+            else {
+                //fprintf(stderr, "\t\t skipping previously visited child %s\n", 
+                //target->name().c_str());
             }
         }
     }
     fprintf(file, "}\n\n\n");
     fclose(file);
+
     return true;
 }
 
+void Graph::debugCallInfo() {
+    for (CNodeMap::const_iterator c_iter = callRecords_.begin();
+         c_iter != callRecords_.end();
+         c_iter++) {
+        fprintf(stderr, "Call at 0x%lx has the following reaching defs:\n",
+                c_iter->first);
+        for (CNodeRec::const_iterator a_iter = c_iter->second.begin();
+             a_iter != c_iter->second.end();
+             a_iter++) {
+            fprintf(stderr, "\t Absloc %s:\n",
+                    a_iter->first->name().c_str());
+            for (CNodeSet::const_iterator s_iter = a_iter->second.begin();
+                 s_iter != a_iter->second.end(); 
+                 s_iter++) {
+                fprintf(stderr, "\t\t 0x%lx / %s\n",
+                        s_iter->second,
+                        s_iter->first->name().c_str());
+            }
+        }
+    }
+}

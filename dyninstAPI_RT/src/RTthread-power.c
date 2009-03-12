@@ -39,61 +39,30 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// Node class implementation
+#include "dyninstAPI_RT/src/RTthread.h"
 
-#include "Graph.h"
-#include "Absloc.h"
-#include "Edge.h"
-#include "Node.h"
-#include <assert.h>
+extern int compare_and_swap2(tc_lock_t *, int, int);
 
-#include "boost/lexical_cast.hpp"
+/**
+ * compare_and_swap2 will do the following atomically:
+ *    if (*val == 0) {
+ *       *val = 1;
+ *       return 1;
+ *    }
+ *    return 0;
+ *
+ **/
 
-
-
-// Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
-
-using namespace Dyninst;
-using namespace Dyninst::DDG;
-
-const Address Node::VIRTUAL_ADDR = (Address) -1;
-
-Node::Ptr InsnNode::createNode(Address addr, InsnPtr insn, AbslocPtr absloc) {
-    return Node::Ptr(new InsnNode(addr, insn, absloc)); 
-}
-
-Node::Ptr ParameterNode::createNode(AbslocPtr absloc) {
-    return Node::Ptr(new ParameterNode(absloc)); 
-}
-
-Node::Ptr VirtualNode::createNode() {
-    return Node::Ptr(new VirtualNode());
-}
-
-bool Node::returnEdges(const EdgeSet &local,
-                       EdgeSet &ret) const {
-    // Insert all edges in the "local" set into the
-    // "ret" set.
-    if (local.size() == 0) return false;
-
-    ret.insert(local.begin(), local.end());
-    return true;
-}
-
-std::string InsnNode::name() const {
-    char buf[256];
-    sprintf(buf,"N_0x%lx_%s_",
-            addr(), absloc()->name().c_str());
-    return std::string(buf);
-}
-
-std::string ParameterNode::name() const {
-    char buf[256];
-    sprintf(buf, "N_PARAM_%s_",
-            absloc()->name().c_str());
-    return std::string(buf);
-}
-
-std::string VirtualNode::name() const {
-    return std::string("N_VIRTUAL");
+int tc_lock_lock(tc_lock_t *t) {
+  dyntid_t me = dyn_pthread_self();
+  int ret = 1;
+  while (ret == 1) {
+    /* Try to acquire the lock */
+    ret = compare_and_swap2(&(t->mutex), 1, 0);
+    if (ret == 1) {
+      if (t->tid == me) return DYNINST_DEAD_LOCK;
+    }
+  }
+  t->tid = me;
+  return 0;
 }

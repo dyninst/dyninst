@@ -107,8 +107,7 @@ class intraFunctionDDGCreator {
     // We use a map of cNodes to handle aliasing issues; see block comment
     // in intraFunctionCreator.C
     typedef std::map<AbslocPtr, cNodeSet> DefMap;
-    // And if we have real Nodes, we use a similar definition
-    typedef std::map<AbslocPtr, NodePtr> NodeDefMap;
+
     // DefMaps for each Block. This is a global type.
     typedef std::map<Block *, DefMap> GenSet;
 
@@ -133,19 +132,26 @@ class intraFunctionDDGCreator {
     typedef std::map<Block *, ReachingDefsLocal> ReachingDefsGlobal;
 
  public:
-    static Graph::Ptr createGraph(Function *func);
-
+    static intraFunctionDDGCreator create(Function *func);
+    Graph::Ptr getDDG();
 
  private:
     intraFunctionDDGCreator(Function *f) : func(f) {};
 
-    void buildDDG();
+    void analyze();
 
     void generateInterBlockReachingDefs(Flowgraph *CFG);
 
     void generateIntraBlockReachingDefs(std::set<Block *> &allBlocks);
 
     void initializeGenKillSets(std::set<Block *> &allBlocks);
+
+    void updateDefSet(const Absloc::Ptr D,
+                      DefMap &defMap,
+                      cNode &cnode);
+
+    void updateKillSet(const Absloc::Ptr D,
+                       KillMap &kills);
 
     void merge(ReachingDefsLocal &target,
                ReachingDefsLocal &source);
@@ -160,6 +166,11 @@ class intraFunctionDDGCreator {
                               const cNodeSet &gens,
                               ReachingDefSet &defs);
 
+    void recordCallState(const Instruction &insn,
+                         const Address &a,
+                         const DefMap &localDefs,
+                         const ReachingDefsLocal &reachingDefs);
+    
     void getPredecessors(Block *block,
                          std::vector<Block *> &preds);
 
@@ -171,6 +182,8 @@ class intraFunctionDDGCreator {
     void debugDefMap(const DefMap &d, char *str);
 
     NodePtr makeNodeFromCandidate(cNode cnode);
+
+    bool isCall(Instruction i) const;
 
     GenSet allGens;
     KillSet allKills;
