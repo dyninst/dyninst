@@ -870,7 +870,7 @@ int_function *AddressSpace::findOnlyOneFunction(const string &name,
 
     if (allFuncs.size() > 1) 
     {
-        cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
+        //cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
     }
 
     return allFuncs[0];

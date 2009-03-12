@@ -380,7 +380,7 @@ test_results_t test1_33_Mutator::executeTest() {
     cfg3->getExitBasicBlock(exit3);
     if (exit3.size() != 1) {
        logerror("**Failed** test #33 (control flow graphs)\n");
-       logerror("  Detected %d exit basic blocks in , should have been one.\n", exit3.size(), fn2);
+       logerror("  Detected %d exit basic blocks in  %s, should have been one.\n", exit3.size(), fn2);
        return FAILED;
     }
 

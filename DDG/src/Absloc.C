@@ -158,7 +158,6 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
             }
         }
         else {
-            fprintf(stderr, "(2)\n");
             return MemLoc::getMemLoc();
         }
     }    

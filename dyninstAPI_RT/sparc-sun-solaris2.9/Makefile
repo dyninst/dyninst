@@ -68,5 +68,4 @@ include ../../make.library.tmpl
 #	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
 
 RTthread-sparc-asm.o: ../src/RTthread-sparc-asm.S
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
-#	$(CC) -fpic -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
+	$(CC) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
