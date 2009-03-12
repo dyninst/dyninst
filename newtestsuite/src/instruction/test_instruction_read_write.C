@@ -303,7 +303,12 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   RegisterAST::Ptr dl(new RegisterAST(r_DL));
   expectedRead.clear();
   expectedWritten.clear();
+#if defined(arch_x86_64_test)
+  RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
+  expectedRead = list_of(rbp)(dl);
+#else
   expectedRead = list_of(ebp)(dl);
+#endif
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[7], expectedRead, expectedWritten));
   return retVal;
 }
