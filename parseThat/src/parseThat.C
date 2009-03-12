@@ -383,6 +383,9 @@ void parseArgs(int argc, char **argv)
 		} else if (strcmp(ptr, "-summary") == 0) {
 		    config.summary = true;
 
+		} else if (strcmp(ptr, "-suppress-ipc") == 0) {
+            config.printipc = false;
+
 		} else if (strcmp(ptr, "-save-world") == 0) {
 		  // SPECIAL CASE.  User *MUST* use '--save-world=<filename>' form.
 		  // '--save-world <filename>' is ambiguous and cannot be parsed
@@ -679,6 +682,9 @@ void usage(const char *progname)
     fprintf(stderr, "  -v [int]\n");
     fprintf(stderr, "    Increase verbose level.  Each -v encountered will increment level.\n");
     fprintf(stderr, "    You may also provide a parameter from 0 to %d.  DEFAULT = %d\n", VERBOSE_MAX - 1, (int)INFO);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  --suppress-ipc\n");
+    fprintf(stderr, "    Disable IPC messages.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -q\n");
     fprintf(stderr, "    Decrement verbose level.\n");
