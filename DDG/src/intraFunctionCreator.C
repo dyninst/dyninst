@@ -200,8 +200,7 @@ void intraFunctionDDGCreator::initializeGenKillSets(std::set<Block *> &allBlocks
         curBlock->getInstructions(insns);
         
         for (unsigned i = 0; i < insns.size(); i++) {
-            AbslocSet writtenAbslocs;
-            Absloc::getDefinedAbslocs(insns[i].first, func, insns[i].second, writtenAbslocs);
+            AbslocSet writtenAbslocs = getDefinedAbslocs(insns[i].first, insns[i].second);
             fprintf(stderr, "\t\t Insn 0x%lx/%s\n", insns[i].second, insns[i].first.format().c_str());
 
             for (AbslocSet::iterator iter = writtenAbslocs.begin();
@@ -335,21 +334,16 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
             Address addr = insns[i].second;
             fprintf(stderr, "\t\t Insn at 0x%lx\n", addr); 
 
-            AbslocSet used;
-            Absloc::getUsedAbslocs(I, func, addr, used);
-            AbslocSet def;
-            Absloc::getDefinedAbslocs(I, func, addr, def);
+            AbslocSet used = getUsedAbslocs(I, addr);
+            AbslocSet def = getDefinedAbslocs(I, addr);
 
             // Side-step: if we encounter a call instruction
-            // take a snapshot of the current reaching defs
-            // summary so that we can fix it up later based
-            // on either the ABI or actual analysis results
-            // of the callee.
+            // handle it specially. The call itself will use
+            // and defined Abslocs, but we need to also determine
+            // the effects of the callee function.
             if (isCall(I)) {
                 fprintf(stderr, "\t\t\t ... is call, recording call state\n");
-                recordCallState(I, addr, 
-                                localReachingDefs,
-                                inSets[B]);
+                //handleCall(addr, used, def);
             }
 
             for (AbslocSet::const_iterator d_iter = def.begin();
@@ -695,4 +689,30 @@ void intraFunctionDDGCreator::updateKillSet(const Absloc::Ptr D,
         kills[D] = true;
     }
 }
-                                           
+
+const intraFunctionDDGCreator::AbslocSet &
+intraFunctionDDGCreator::getDefinedAbslocs(const Instruction &insn,
+                                                      const Address &a) {
+    if (globalDef.find(a) == globalDef.end()) {
+        if (isCall(insn)) {
+            // Handle call used/defined specially
+        }
+
+        Absloc::getDefinedAbslocs(insn, func, a, globalDef[a]);
+    }
+    return globalDef[a];
+}
+
+const intraFunctionDDGCreator::AbslocSet &
+intraFunctionDDGCreator::getUsedAbslocs(const Instruction &insn,
+                                                   const Address &a) {
+    if (globalUsed.find(a) == globalUsed.end()) {
+        if (isCall(insn)) {
+            // Handle call used/defined specially
+        }
+
+        Absloc::getUsedAbslocs(insn, func, a, globalUsed[a]);
+    }
+    return globalUsed[a];
+}
+

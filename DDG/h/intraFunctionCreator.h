@@ -118,6 +118,7 @@ class intraFunctionDDGCreator {
     // A map from each Block to its DefMap data structure.    
     typedef std::map<Block *, DefMap> ReachingDefsGlobal;
 
+    typedef std::map<Address, AbslocSet> AbslocMap;
  public:
     static intraFunctionDDGCreator create(Function *func);
     Graph::Ptr getDDG();
@@ -156,6 +157,10 @@ class intraFunctionDDGCreator {
                          const Address &a,
                          const DefMap &localDefs,
                          const DefMap &reachingDefs);
+
+    void handleCall(const Address &a,
+                    AbslocSet &used,
+                    AbslocSet &def);
     
     void getPredecessors(Block *block,
                          std::vector<Block *> &preds);
@@ -171,10 +176,17 @@ class intraFunctionDDGCreator {
 
     bool isCall(Instruction i) const;
 
+    const AbslocSet &getDefinedAbslocs(const Instruction &insn, const Address &a);
+    const AbslocSet &getUsedAbslocs(const Instruction &insn, const Address &a);
+
     ReachingDefsGlobal allGens;
     KillSet allKills;
     ReachingDefsGlobal inSets;
     ReachingDefsGlobal outSets;
     Graph::Ptr DDG;
     Function *func;
+
+    AbslocMap globalUsed;
+    AbslocMap globalDef;
+
 };
