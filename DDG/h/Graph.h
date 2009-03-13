@@ -51,8 +51,12 @@
 
 #include <boost/shared_ptr.hpp>
 #include <set>
+#include <list>
+#include <queue>
 #include "Annotatable.h"
 #include "Instruction.h"
+#include "Node.h"
+#include "Absloc.h"
 
 namespace Dyninst {
 namespace DDG {
@@ -63,55 +67,96 @@ namespace DDG {
     class Absloc;
     class Node;
     
-    class Graph : public AnnotatableSparse {
-        friend class Edge;
-        friend class Node;
-        friend class Creator;
-        friend class Iterator;
+class Graph : public AnnotatableSparse {
+    friend class Edge;
+    friend class Node;
+    friend class Creator;
+    friend class Iterator;
+    
+ public:
+    typedef boost::shared_ptr<Graph> Ptr;
+    typedef Node::Ptr NodePtr;
+    typedef std::set<NodePtr> NodeSet;
+    
+    typedef boost::shared_ptr<Absloc> AbslocPtr;
+    typedef std::set<AbslocPtr> AbslocSet;
+    
+    typedef std::map<AbslocPtr, NodePtr> AbslocMap;
+    typedef std::map<Address, AbslocMap> NodeMap;
+    
+    typedef std::map<AbslocPtr, NodePtr> InitialMap;
+    
+    // Store sufficient information to identify a
+    // node (later) - used to record pre-call info.
+    typedef std::pair<AbslocPtr, Address> CNode;
+    typedef std::set<CNode> CNodeSet;
+    typedef std::map<AbslocPtr, CNodeSet> CNodeRec;
+    typedef std::map<Address, CNodeRec> CNodeMap;
+    
+ public:
+    
+    bool initialNodes(NodeSet &nodes) const;
+    bool allNodes(NodeSet &nodes) const;
+    
+    // We create an empty graph and then add nodes and edges.
+    static Ptr createGraph();
+    
+    // We effectively build the graph by specifying all edges,
+    // since it is meaningless to have a disconnected node. 
+    void insertPair(NodePtr source, NodePtr target);
+    
+    // Make a node in this graph. If the node already exists we return
+    // it; otherwise we create a new Node and add it to allNodes_ (NOT
+    // entryNodes_; that is populated by calls to insertPair above).
+    NodePtr makeNode(Dyninst::InstructionAPI::Instruction &instruction,
+                     Address addr,
+                     AbslocPtr absloc);
+    
+    // Make a node that represents a parameter; that is, an initial 
+    // definition that isn't explicit in the code but must exist.
+    NodePtr makeParamNode(Absloc::Ptr a);
+    
+    // Make a node that represents a phantom "definition" to an
+    // immediate value. We do this so that all nodes are reachable
+    // from either a parameter node or this "immediate" node.
+    NodePtr makeVirtualNode();
+    
+    bool printDOT(const std::string fileName);
+    
+    void debugCallInfo();
 
-    public:
-        typedef boost::shared_ptr<Graph> Ptr;
-        typedef boost::shared_ptr<Node> NodePtr;
-        typedef std::set<NodePtr> NodeSet;
-        typedef std::map<Address, NodePtr> NodeMap;
-        typedef boost::shared_ptr<Absloc> AbslocPtr;
-        typedef std::set<AbslocPtr> AbslocSet;
+    const NodeSet entryNodes() const;
+    
+    // We record a "snapshot" of liveness at each call site; this
+    // is used by the interprocedural iterator to hook together
+    // the caller and callee. It is trivial to identify the parameters
+    // in the callee, but we need to also identify the reaching def
+    // sources (definitions) of those parameters.
+    void recordCall(Address callAddr,
+                    const CNodeRec &callInfo);
+    
+ private:
+    static const Address INITIAL_ADDR;
+    
+    // Create graph, add nodes.
+    Graph();
+    
+    // We also need to point to all Nodes to keep them alive; we can't 
+    // pervasively use shared_ptr within the graph because we're likely
+    // to have cycles.
+    NodeMap insnNodes_;
+    
+    // Assertion: only parameter nodes will have no in-edges,
+    // by definition.
+    AbslocMap parameterNodes_;
+    
+    NodePtr virtualNode_;
+    
+    // Keep a snapshot of liveness information at each call
+    // site so that we can determine formals later.
+    CNodeMap callRecords_;
 
-        bool initialNodes(NodeSet &nodes) const;
-        bool allNodes(NodeSet &nodes) const;
-
-        // We create an empty graph and then add nodes and edges.
-        static Ptr createGraph();
-
-        // We effectively build the graph by specifying all edges,
-        // since it is meaningless to have a disconnected node. 
-        void insertPair(NodePtr source, NodePtr target);
-
-        // A unique "NULL" node that serves as an initial definition
-        // of all nodes. If we see this coming in a call to insertPair
-        // it a) must be the source and b) the target is added to the
-        // set of entryNodes.
-        NodePtr nullNode();
-
-        // Make a node in this graph. If the node already exists we return
-        // it; otherwise we create a new Node and add it to allNodes_ (NOT
-        // entryNodes_; that is populated by calls to insertPair above).
-        NodePtr makeNode(Dyninst::InstructionAPI::Instruction &instruction,
-                         Address addr,
-                         AbslocPtr absloc);
-
-    private:
-        // Create graph, add nodes.
-        Graph();
-
-        // The set of "entry" nodes; that is, nodes with no in-edges.
-        NodeMap entryNodes_; 
-
-        // We also need to point to all Nodes to keep them alive; we can't 
-        // pervasively use shared_ptr within the graph because we're likely
-        // to have cycles.
-        NodeMap allNodes_;
-    };
+};
 };
 }
 #endif

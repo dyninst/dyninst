@@ -33,20 +33,17 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB) -R$(LIBDWARF_LIB):$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
+ifndef LIBDWARFSTATIC
+LIBS += -ldwarf
 endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
+ifndef LIBELFSTATIC
+LIBS += -lelf
 endif
-LIBS    += -lgcc
-
+ifndef LIBIBERTYSTATIC
 LIBS	+= -liberty
+endif
+
+LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
 
 AS		= /usr/bin/as
 

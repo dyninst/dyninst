@@ -47,9 +47,9 @@ static double globalVariable20_2 = 0.0;
 
 int test1_20_mutatee() {
   int retval;
-  int ret;
-  int int_val;
-  double double_val;
+  int ret = 0;
+  int int_val = 0;
+  double double_val = 0.0;
   ret = test1_20_func2(&int_val, &double_val);
   if (globalVariable20_1 == (TEST20_A * TEST20_TIMES) &&
       eq_doubles(globalVariable20_2, (TEST20_B * (double)TEST20_TIMES)) &&

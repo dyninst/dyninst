@@ -2701,15 +2701,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 
                   if (symbols_.find(nameFromStab)!=symbols_.end()) 
                   {
-                     std::vector< Symbol* > & syms = symbols_[nameFromStab];
-                     if ( syms.size() == 1 ) 
-                     {
-                        symbols_[nameFromStab][0]->setModuleName(module);
-                     }
-
-                     /* DEBUG */ else { fprintf( stderr, "%s[%d]: Nonunique STABS name '%s' in module.\n", __FILE__, __LINE__, nameFromStab.c_str() ); }
-                     /* Otherwise, don't assign a module if we don't know
-                        to which symbol this refers. */
+                      symbols_[nameFromStab][0]->setModuleName(module);
                   }
                }
                else 

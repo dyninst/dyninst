@@ -70,7 +70,7 @@ using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
 
 
-
+#if !defined(cap_instruction_api)
 // groups
 enum {
   Grp1a=0, Grp1b, Grp1c, Grp1d, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,
@@ -2943,13 +2943,14 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
   
   return instruct;
 }
-
+#endif //!defined(cap_instruction_api)
 #define MODRM_MOD(x) ((x) >> 6)
 #define MODRM_RM(x) ((x) & 7)
 #define MODRM_REG(x) (((x) & (7 << 3)) >> 3)
 #define MODRM_SET_MOD(x, y) (x) = static_cast<unsigned char>((x) | ((y) << 6))
 #define MODRM_SET_RM(x, y) (x) = static_cast<unsigned char>((x) | (y))
 #define MODRM_SET_REG(x, y) (x) = static_cast<unsigned char>((x) | ((y) << 3))
+#if !defined(cap_instruction_api)
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
@@ -3532,6 +3533,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
 
   return result;
 }
+#endif // !defined(cap_instruction_api)
 
 #define REX_ISREX(x) (((x) >> 4) == 4)
 #define REX_W(x) ((x) & 0x8)
@@ -3544,6 +3546,8 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
 #define REX_SET_R(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x4 : 0)))
 #define REX_SET_X(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x2 : 0)))
 #define REX_SET_B(x, v) ((x) = static_cast<unsigned char>((x) | ((v) ? 0x1 : 0)))
+
+#if !defined(cap_instruction_api)
 
 bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
                      ia32_locations *loc)
@@ -3639,6 +3643,8 @@ int sizeOfMachineInsn(instruction *insn) {
   return insn->size();
 }
 
+#endif // !defined(cap_instruction_api)
+
 Address get_immediate_operand(instruction *instr)
 {
     ia32_memacc mac[3];
@@ -3673,7 +3679,7 @@ Address get_immediate_operand(instruction *instr)
     return immediate;
 }
 
-
+#if !defined(cap_instruction_api)
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr) {
@@ -3726,6 +3732,7 @@ int displacement(const unsigned char *instr, unsigned type) {
   return disp;
 }
 
+#endif // !defined(cap_instruction_api)
 
 // get the displacement of a relative jump or call
 
@@ -3832,6 +3839,7 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
 }
   
 
+#if !defined(cap_instruction_api)
 
 //Determine appropriate scale, index, and base given SIB byte.
 void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg){
@@ -3921,7 +3929,7 @@ bool isAlternativePreamble( instruction & insn1 )
     //</centre>
     return false;
 }
-
+#endif // !defined(cap_instruction_api)
 bool isStackFramePreamble( instruction& insn1 )
 {       
     instruction insn2, insn3;
@@ -3961,6 +3969,7 @@ bool isStackFramePreamble( instruction& insn1 )
     return false;
 }
 
+#if !defined(cap_instruction_api)
 // haven't made this ready for 64-bit yet - gq
 bool isFunctionPrologue( instruction& insn1 )
 {
@@ -4192,7 +4201,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
  
    return -1;
 }
-
+#endif // !defined(cap_instruction_api)
 // We keep an array-let that represents various fixed
 // insns
 unsigned char illegalRep[2] = {0x0f, 0x0b};

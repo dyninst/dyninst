@@ -40,7 +40,14 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-LDFLAGS += -R$(LIBDWARF_LIB):$(LIBELF_LIB) -L$(LIBELF_LIB) -lelf -L$(LIBDWARF_LIB) -ldwarf
+LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+ifndef LIBDWARFSTATIC
+LIBS += -ldwarf
+endif
+ifndef LIBELFSTATIC
+LIBS += -lelf
+endif
+
 SYSLIBS = -lsocket -lnsl -ldl -lrt
 
 # Add preprocessor and special link information for G++

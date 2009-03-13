@@ -868,12 +868,6 @@ bool instPoint::instrSideEffect(Frame &frame)
 {
     bool modified = false;
     
-    assert(instances.size());
-    // We explicitly do not update instances here; we're
-    // between installing and linking, so don't change the 
-    // instInstance list.
-    //updateInstances();
-    
     for (unsigned i = 0; i < instances.size(); i++) {
         instPointInstance *target = instances[i];
 

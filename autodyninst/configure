@@ -272,7 +272,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="configure.in"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR LIBELF_INC_DIR LIBELF_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBXML2_INC_DIR LIBXML2_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM MMTIMER PAPI_ROOT LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR LIBELF_INC_DIR LIBELF_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARFSTATIC LIBELFSTATIC LIBIBERTYSTATIC LIBXML2_INC_DIR LIBXML2_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM MMTIMER PAPI_ROOT LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -812,6 +812,7 @@ Optional Packages:
   --with-libelf-libdir    LIBELF library directory
   --with-libdwarf-incdir  LIBDWARF include directory
   --with-libdwarf-libdir  LIBDWARF library directory
+  --with-libdwarf-static  Link against static libdwarf
   --with-libxml2-incdir   LIBXML2 include directory
   --with-libxml2-libdir   LIBXML2 library directory
   --with-libunwind-incdir LIBUNWIND include directory
@@ -1830,7 +1831,6 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
 
-
 # Check whether --with-package-base or --without-package-base was given.
 if test "${with_package_base+set}" = set; then
   withval="$with_package_base"
@@ -2203,7 +2203,7 @@ if test "${with_package_base+set}" = set; then
   withval="$with_package_base"
   LIBELF_INC_DIR="${PACKAGE_BASE}/libelf/include"
 else
-  LIBELF_INC_DIR=""
+  LIBELF_INC_DIR="/usr/include"
 fi;
 fi;
 
@@ -2218,7 +2218,7 @@ if test "${with_package_base+set}" = set; then
   withval="$with_package_base"
   LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib"
 else
-  LIBELF_LIB_DIR=""
+  LIBELF_LIB_DIR="/usr/lib"
 fi;
 fi;
 
@@ -2566,7 +2566,6 @@ else
 fi;
 fi;
 
-
   CXXFLAGS_HOLD=$CXXFLAGS
 
   if test "$LIBDWARF_INC_DIR" != "" ; then
@@ -2876,6 +2875,18 @@ fi
 
 
 
+# Check whether --with-libdwarf-static or --without-libdwarf-static was given.
+if test "${with_libdwarf_static+set}" = set; then
+  withval="$with_libdwarf_static"
+  LIBDWARFSTATIC="LIBDWARFSTATIC=true";
+fi;
+
+
+
+
+
+
+
 
 
 
@@ -2890,7 +2901,7 @@ if test "${with_package_base+set}" = set; then
   withval="$with_package_base"
   LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"
 else
-  LIBXML2_INC_DIR=""
+  LIBXML2_INC_DIR="/usr/include/libxml2"
 fi;
 fi;
 
@@ -2906,7 +2917,7 @@ if test "${with_package_base+set}" = set; then
   withval="$with_package_base"
   LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib"
 else
-  LIBXML2_LIB_DIR=""
+  LIBXML2_LIB_DIR="/usr/lib"
 fi;
 fi;
 
@@ -4398,6 +4409,9 @@ s,@LIBELF_INC_DIR@,$LIBELF_INC_DIR,;t t
 s,@LIBELF_LIB_DIR@,$LIBELF_LIB_DIR,;t t
 s,@LIBDWARF_INC_DIR@,$LIBDWARF_INC_DIR,;t t
 s,@LIBDWARF_LIB_DIR@,$LIBDWARF_LIB_DIR,;t t
+s,@LIBDWARFSTATIC@,$LIBDWARFSTATIC,;t t
+s,@LIBELFSTATIC@,$LIBELFSTATIC,;t t
+s,@LIBIBERTYSTATIC@,$LIBIBERTYSTATIC,;t t
 s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
 s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
 s,@build@,$build,;t t

@@ -6,7 +6,6 @@ AC_INIT(configure.in)
 AC_PROG_CXX(g++)
 AC_LANG(C++)
 
-
 dnl === CONFIGURE OPTIONS
 
 AC_ARG_WITH(package-base,
@@ -37,11 +36,14 @@ AC_SUBST(TCLTK_LIB_DIR)
 AC_ARG_WITH(libelf-incdir,
             [AS_HELP_STRING([--with-libelf-incdir],[LIBELF include directory])],
             [LIBELF_INC_DIR="${withval}";],
-	   [AC_ARG_WITH(package-base,[],[LIBELF_INC_DIR="${PACKAGE_BASE}/libelf/include"], [LIBELF_INC_DIR=""])])
+	   [AC_ARG_WITH(package-base,[],[LIBELF_INC_DIR="${PACKAGE_BASE}/libelf/include"], [LIBELF_INC_DIR="/usr/include"])])
 AC_ARG_WITH(libelf-libdir,
             [AS_HELP_STRING([--with-libelf-libdir],[LIBELF library directory])],
             [LIBELF_LIB_DIR="${withval}";],
-	   [AC_ARG_WITH(package-base,[],[LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib"], [LIBELF_LIB_DIR=""])])
+	   [AC_ARG_WITH(package-base,[],[LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib"], [LIBELF_LIB_DIR="/usr/lib"])])
+AC_ARG_WITH(libelf-static,
+            [AS_HELP_STRING([--with-libelf-static],[Link against static libelf])],
+            [LIBELFSTATIC="LIBELFSTATIC=true";])
 
 PD_CHECK_INC_DIR($LIBELF_INC_DIR, [libelf.h])
 PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
@@ -58,22 +60,34 @@ AC_ARG_WITH(libdwarf-libdir,
             [AS_HELP_STRING([--with-libdwarf-libdir],[LIBDWARF library directory])],
             [LIBDWARF_LIB_DIR="${withval}";],
 	   [AC_ARG_WITH(package-base,[],[LIBDWARF_LIB_DIR="${PACKAGE_BASE}/libdwarf/lib"], [LIBDWARF_LIB_DIR=""])])
-
 PD_CHECK_INC_DIR($LIBDWARF_INC_DIR,[libdwarf.h])
 PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
+
+AC_ARG_WITH(libdwarf-static,
+            [AS_HELP_STRING([--with-libdwarf-static],[Link against static libdwarf])],
+            [LIBDWARFSTATIC="LIBDWARFSTATIC=true";])
+
+AC_ARG_WITH(libiberty-static,
+            [AS_HELP_STRING([--with-libiberty-static],[Link against static libiberty])],
+            [LIBDWARFSTATIC="LIBIBERTYSTATIC=true";])
+
 
 AC_SUBST(LIBDWARF_INC_DIR)
 AC_SUBST(LIBDWARF_LIB_DIR)
 
+AC_SUBST(LIBDWARFSTATIC)
+AC_SUBST(LIBELFSTATIC)
+AC_SUBST(LIBIBERTYSTATIC)
+
 AC_ARG_WITH(libxml2-incdir,
             [AS_HELP_STRING([--with-libxml2-incdir],[LIBXML2 include directory])],
             [LIBXML2_INC_DIR="${withval}";],
-	   [AC_ARG_WITH(package-base,[],[LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"], [LIBXML2_INC_DIR=""])])
+	   [AC_ARG_WITH(package-base,[],[LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"], [LIBXML2_INC_DIR="/usr/include/libxml2"])])
 
 AC_ARG_WITH(libxml2-libdir,
             [AS_HELP_STRING([--with-libxml2-libdir],[LIBXML2 library directory])],
             [LIBXML2_LIB_DIR="${withval}";],
-	   [AC_ARG_WITH(package-base,[],[LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib"], [LIBXML2_LIB_DIR=""])])
+	   [AC_ARG_WITH(package-base,[],[LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib"], [LIBXML2_LIB_DIR="/usr/lib"])])
 
 PD_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h])
 PD_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])

@@ -405,6 +405,8 @@ class int_function : public patchTarget {
    int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offset + getAddress()); }
    bblInstance *findBlockInstanceByAddr(Address addr);
 
+   Offset addrToOffset(const Address addr) const;
+
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
    bool makesNoCalls() const {return ifunc_->makesNoCalls();}
@@ -606,11 +608,14 @@ class int_function : public patchTarget {
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
 
 
+   bool isBeingInstrumented_;
+
 #if defined(cap_relocation)
    // Status tracking variables
    int generatedVersion_;
    int installedVersion_;
    int linkedVersion_;
+
 
    // We want to keep around expansions for instrumentation
    pdvector<funcMod *> enlargeMods_;

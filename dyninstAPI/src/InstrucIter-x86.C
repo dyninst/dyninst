@@ -998,11 +998,13 @@ Address InstrucIter::getCallTarget()
   return getInstruction().getTarget(current);
 }
 
+#define FPOS 16
 
-bool InstrucIter::isFPWrite()
+bool InstrucIter::isFPRead()
 {
   instruction i = getInstruction();
-  ia32_instruction ii;
+  ia32_locations locs;
+  ia32_instruction ii(NULL, NULL, &locs);
   
   const unsigned char * addr = i.ptr();
        
@@ -1014,6 +1016,7 @@ bool InstrucIter::isFPWrite()
   /* X87 Floating Point Operations ... we don't care about the specifics */
   if (entry->otable == t_coprocEsc)
     return true;
+  unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
 
   for ( int a = 0; a <  3; a++)
   {
@@ -1022,13 +1025,62 @@ bool InstrucIter::isFPWrite()
 	entry->operands[a].admet == am_V || /*128-bit XMM selected by ModRM reg field*/
 	entry->operands[a].admet == am_W )  /*128-bit XMM selected by ModRM byte */
     {
-      return true;
+      if(operandIsRead(opsema, a))
+      {
+	if(entry->operands[a].admet == am_W || entry->operands[a].admet == am_Q)
+	{
+	  if(locs.modrm_mod == 0x03) // 
+	  {
+	    return true;
+	  }
+	}
+      }
     }
   }
   return false;
 }
 
-#define FPOS 16
+
+bool InstrucIter::isFPWrite()
+{
+  instruction i = getInstruction();
+  ia32_locations locs;
+  ia32_instruction ii(NULL, NULL, &locs);
+  
+  const unsigned char * addr = i.ptr();
+       
+  ia32_decode(0, addr,ii);    
+  ia32_entry * entry = ii.getEntry();
+
+  assert(entry != NULL);
+  
+  /* X87 Floating Point Operations ... we don't care about the specifics */
+  if (entry->otable == t_coprocEsc)
+    return true;
+  unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
+
+  for ( int a = 0; a <  3; a++)
+  {
+    if (entry->operands[a].admet == am_P || /*64-bit MMX selected by ModRM reg field */
+	entry->operands[a].admet == am_Q || /*64-bit MMX selected by ModRM byte */
+	entry->operands[a].admet == am_V || /*128-bit XMM selected by ModRM reg field*/
+	entry->operands[a].admet == am_W )  /*128-bit XMM selected by ModRM byte */
+    {
+      if(operandIsWritten(opsema, a))
+      {
+	if(entry->operands[a].admet == am_W || entry->operands[a].admet == am_Q)
+	{
+	  if(locs.modrm_mod == 0x03) // 
+	  {
+	    return true;
+	  }
+	}
+      }
+    }
+  }
+  return false;
+}
+
 void InstrucIter::readWriteRegisters(int* /*readRegs*/, int* /*writeRegs*/)
 {
   // deprecating this; use getAllRegistersUsedAndDefined instead
@@ -1143,8 +1195,14 @@ void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used,
     unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
     parseRegisters(localUsed, localDefined, detailedInsn, opsema);
   }
+  if(isFPRead())
+  {
+    liveness_printf("Instruction at 0x%x reads FPRs\n", current);
+    localUsed.insert(r_DummyFPR);
+  }
   if(isFPWrite())
   {
+    liveness_printf("Instruction at 0x%x writes FPRs\n", current);
       localDefined.insert(r_DummyFPR);
   }
   if(detailedInsn.getPrefixCount())

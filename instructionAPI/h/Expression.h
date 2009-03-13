@@ -71,6 +71,10 @@ namespace Dyninst
     /// It may additionally be used to change the value of an %Immediate or to specify the result of a %BinaryFunction.
     /// This mechanism may be used to support other advanced analyses.
     ///
+    /// In addition to specifying the result of evaluating a given %Expression as a whole, it is possible to create a subexpression
+    /// and \c %bind the result of evaluating that subexpression to a known value within a given expression.  For example, a user
+    /// may \c %bind a register to its value throughout a given %Expression.
+    ///
     /// The evaluation mechanism, as mentioned above, will evaluate as many sub-expressions of an expression as possible.
     /// Any operand that is more complicated than a single immediate value, however, will depend on register or memory
     /// values.
@@ -112,10 +116,11 @@ namespace Dyninst
       /// \c size returns the size of this %Expression's %Result, in bytes.
       int size() const;
 	  
-	  /// \c bind searches for any instance of the %Expression expr within
-	  /// this %Expression, and sets the result of \c eval for those subexpressions
-	  /// to \c value.
-	  bool bind(Expression* expr, Result value);
+      /// \c bind searches for any instance of the %Expression \c expr within
+      /// this %Expression, and sets the result of \c eval for those subexpressions
+      /// to \c value.  \c bind returns true if at least one instance of \c expr
+      /// was found in this %Expression.
+      bool bind(Expression* expr, Result value);
   
     private:
       Result userSetValue;

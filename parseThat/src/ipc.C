@@ -157,8 +157,10 @@ void sendMsg(FILE *outfd, messageID msgID, logLevel priority, statusID statID, c
     case ID_FAIL: msgstr = "Error encountered."; break;
     case ID_PASS: msgstr = "Success."; break;
     }
-    fprintf(outfd, "%05x %s %s\n", encoded_id, encoded_str, msgstr);
-    fflush(outfd);
+    if (config.printipc) {
+        fprintf(outfd, "%05x %s %s\n", encoded_id, encoded_str, msgstr);
+        fflush(outfd);
+    }
 }
 
 void sendMsg(FILE *outfd, messageID msgID, logLevel priority, statusID statID, int int_data)

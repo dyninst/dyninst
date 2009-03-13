@@ -100,15 +100,23 @@ class intraFunctionDDGCreator {
     // to be a) unique and b) findable. Finally, we create a tuple that represents
     // a candidate Node in our analysis data structures. 
     typedef std::pair<AbslocPtr, InsnInstance> cNode;
+    typedef std::set<cNode> cNodeSet;
 
     // Temporary use: a data type for summarizing the definitions of Abslocs
     // from a particular block.
-    typedef std::map<AbslocPtr, cNode> DefMap;
-    // And if we have real Nodes, we use a similar definition
-    typedef std::map<AbslocPtr, NodePtr> NodeDefMap;
+    // We use a map of cNodes to handle aliasing issues; see block comment
+    // in intraFunctionCreator.C
+    typedef std::map<AbslocPtr, cNodeSet> DefMap;
 
     // DefMaps for each Block. This is a global type.
     typedef std::map<Block *, DefMap> GenSet;
+
+    // We also want to keep around kill information so we can efficiently
+    // do the interprocedural analysis. This turns into a boolean, as we
+    // don't really care _who_ kills (that's summarized in the gen set)
+    // so long as _someone_ did.
+    typedef std::map<AbslocPtr, bool> KillMap;
+    typedef std::map<Block *, KillMap> KillSet;
 
     // A reaching definition is a Node that defines the (Insn,Absloc) pair currently
     // considered. We also tag it with the Block that contains the Node. 
@@ -124,28 +132,45 @@ class intraFunctionDDGCreator {
     typedef std::map<Block *, ReachingDefsLocal> ReachingDefsGlobal;
 
  public:
-    static Graph::Ptr createGraph(Function *func);
-
+    static intraFunctionDDGCreator create(Function *func);
+    Graph::Ptr getDDG();
 
  private:
     intraFunctionDDGCreator(Function *f) : func(f) {};
 
-    void buildDDG();
+    void analyze();
 
     void generateInterBlockReachingDefs(Flowgraph *CFG);
 
     void generateIntraBlockReachingDefs(std::set<Block *> &allBlocks);
 
-    void initializeGenSets(std::set<Block *> &allBlocks);
+    void initializeGenKillSets(std::set<Block *> &allBlocks);
+
+    void updateDefSet(const Absloc::Ptr D,
+                      DefMap &defMap,
+                      cNode &cnode);
+
+    void updateKillSet(const Absloc::Ptr D,
+                       KillMap &kills);
 
     void merge(ReachingDefsLocal &target,
-               const ReachingDefsLocal &source);
+               ReachingDefsLocal &source);
 
     void calcNewOut(ReachingDefsLocal &out,
                     Block *current,
                     DefMap &gens,
+                    KillMap &kills,
                     ReachingDefsLocal &in);
+    
+    void genSetToReachingDefs(Block *current,
+                              const cNodeSet &gens,
+                              ReachingDefSet &defs);
 
+    void recordCallState(const Instruction &insn,
+                         const Address &a,
+                         const DefMap &localDefs,
+                         const ReachingDefsLocal &reachingDefs);
+    
     void getPredecessors(Block *block,
                          std::vector<Block *> &preds);
 
@@ -158,7 +183,10 @@ class intraFunctionDDGCreator {
 
     NodePtr makeNodeFromCandidate(cNode cnode);
 
+    bool isCall(Instruction i) const;
+
     GenSet allGens;
+    KillSet allKills;
     ReachingDefsGlobal inSets;
     ReachingDefsGlobal outSets;
     Graph::Ptr DDG;
