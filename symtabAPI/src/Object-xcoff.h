@@ -45,6 +45,7 @@
 #include "common/h/headers.h"
 //#include <common/h/Line.h>
 #include "symtabAPI/h/Symbol.h"
+#include "symtabAPI/h/Symtab.h"
 #include "common/h/Types.h"
 
 #include <string>
@@ -237,6 +238,12 @@ class Object : public AObject {
 
     void parseTypeInfo(Symtab *obj);
     bool emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, unsigned flag);
+
+    bool getRegValueAtFrame(Address pc, 
+                            Dyninst::MachRegister reg, 
+                            Dyninst::MachRegisterVal &reg_result,
+                            MemRegReader *reader);
+    bool hasFrameDebugInfo();
 
 private:
 

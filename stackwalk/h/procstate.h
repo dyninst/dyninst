@@ -29,6 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+//TODO: isRunning(), isStopped()...
+//TODO: Bug if trying to stop an already stopped process
+
 #ifndef PROCSTATE_H_
 #define PROCSTATE_H_
 
@@ -41,10 +44,25 @@
 namespace Dyninst {
 namespace Stackwalker {
 
+class LibraryState;
+class ThreadState;
+
 class ProcessState {
+protected:
+   Dyninst::PID pid;
+   LibraryState *library_tracker;
+   
+   static std::map<Dyninst::PID, ProcessState *> proc_map;
+
+   ProcessState(Dyninst::PID pid_ = 0);
+   void setPid(Dyninst::PID pid_);
 public:
+
+  //look-up Process-State by pid
+  static ProcessState* getProcessStateByPid(Dyninst::PID pid);
+
   //Read register in thread
-  virtual bool getRegValue(reg_t reg, Dyninst::THR_ID thread, regval_t &val) = 0;
+  virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val) = 0;
   
   //Read memory in process
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size) = 0;
@@ -56,29 +74,30 @@ public:
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0;
 
   //Return PID
-  virtual Dyninst::PID getProcessId() = 0;
+  virtual Dyninst::PID getProcessId();
 
   //Return the size of an address in process in bytes
   virtual unsigned getAddressWidth() = 0;
 
-  //Allow initialization/uninitialization
-  virtual void preStackwalk();
-  virtual void postStackwalk();
-  
   virtual ~ProcessState();
+
+  void setLibraryTracker(LibraryState *);
+  LibraryState *getLibraryTracker();
+
+  //Allow initialization/uninitialization
+  virtual void preStackwalk(Dyninst::THR_ID tid);
+  virtual void postStackwalk(Dyninst::THR_ID tid);
 };
 
 class ProcSelf : public ProcessState {
- protected:
-  Dyninst::PID mypid;
  public:
   ProcSelf();
+  void initialize();
 
-  virtual bool getRegValue(reg_t reg, Dyninst::THR_ID thread, regval_t &val);
+  virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
-  virtual Dyninst::PID getProcessId();
   virtual unsigned getAddressWidth();
   virtual ~ProcSelf();
 };
@@ -92,8 +111,6 @@ typedef enum {
   ps_errorstate,
 } proc_state;
 
-class ProcDebug;
-
 typedef enum {
    dbg_err,
    dbg_exited,
@@ -101,6 +118,7 @@ typedef enum {
    dbg_stopped,
    dbg_other,
    dbg_noevent,
+   dbg_libraryload,
    //BGL
    dbg_continued,
    dbg_mem_ack,
@@ -108,6 +126,8 @@ typedef enum {
    dbg_allregs_ack,
    dbg_attached,
 } dbg_t;
+
+class ProcDebug;
 
 struct DebugEvent {
    dbg_t dbg;
@@ -117,8 +137,9 @@ struct DebugEvent {
    } data;
    unsigned size;
    ProcDebug *proc;
+   ThreadState *thr;
 
-   DebugEvent() : dbg(dbg_noevent), size(0), proc(NULL) {}
+   DebugEvent() : dbg(dbg_noevent), size(0), proc(NULL), thr(NULL) {}
 };
 
 struct procdebug_ltint
@@ -127,6 +148,8 @@ struct procdebug_ltint
 };
 
 class ProcDebug : public ProcessState {
+  friend class Walker;
+  friend class ThreadState;
  protected:
   ProcDebug(Dyninst::PID pid);
   ProcDebug(const std::string &executable, 
@@ -140,12 +163,10 @@ class ProcDebug : public ProcessState {
   static bool multi_attach(std::vector<ProcDebug *> &pids);
 
 
-  virtual bool debug_attach() = 0;
-  virtual bool debug_waitfor_attach();
-
-  virtual bool debug_use_intermediate_attach();
-  virtual bool debug_intermediate_attach();
-  virtual bool debug_waitfor_intermediate_attach();
+  virtual bool debug_attach(ThreadState *ts) = 0;
+  virtual bool debug_waitfor_attach(ThreadState *ts);
+  virtual bool debug_post_attach(ThreadState *ts);
+  virtual bool debug_post_create();
 
   virtual bool create(const std::string &executable, 
                       const std::vector<std::string> &argv);
@@ -157,18 +178,23 @@ class ProcDebug : public ProcessState {
    * pause() is the top-level command (under the public section), and is 
    * implemented by debug_pause() and debug_waitfor_pause()
    **/
-  virtual bool debug_pause() = 0;
-  virtual bool debug_waitfor_pause();
+  virtual bool pause_thread(ThreadState *thr);
+  virtual bool debug_pause(ThreadState *thr) = 0;
+  virtual bool debug_waitfor_pause(ThreadState *thr);
 
-  virtual bool debug_continue() = 0;
-  virtual bool debug_continue_with(long sig) = 0;
-  virtual bool debug_waitfor_continue();
+  virtual bool resume_thread(ThreadState *thr);
+  virtual bool debug_continue(ThreadState *thr) = 0;
+  virtual bool debug_continue_with(ThreadState *thr, long sig) = 0;
+  virtual bool debug_waitfor_continue(ThreadState *thr);
 
   virtual bool debug_handle_signal(DebugEvent *ev) = 0;
   virtual bool debug_handle_event(DebugEvent ev) = 0;
 
   static DebugEvent debug_get_event(bool block);
   static bool debug_wait_and_handle(bool block, bool &handled);
+
+  proc_state state();
+  void setState(proc_state p);
  public:
   
   static ProcDebug *newProcDebug(Dyninst::PID pid);
@@ -178,33 +204,77 @@ class ProcDebug : public ProcessState {
                                  const std::vector<std::string> &argv);
   virtual ~ProcDebug();
 
-  virtual bool getRegValue(reg_t reg, Dyninst::THR_ID thread, regval_t &val) = 0;
+  virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val) = 0;
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size) = 0;
-  virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads) = 0;
+  virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &thrds) = 0;
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0;
   virtual unsigned getAddressWidth() = 0;
 
-  virtual Dyninst::PID getProcessId();
-  virtual void preStackwalk();
-  virtual void postStackwalk();
+  virtual void preStackwalk(Dyninst::THR_ID tid);
+  virtual void postStackwalk(Dyninst::THR_ID tid);
 
   
-  virtual bool pause();
-  virtual bool resume();
+  virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID);
+  virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID);
   virtual bool isTerminated();
 
   static int getNotificationFD();
   static bool handleDebugEvent(bool block = false);
  protected:
-  proc_state state;
-  bool isRunning;
-  bool user_isRunning;
-  bool should_resume;
-  Dyninst::PID pid;
-  static std::map<Dyninst::PID, ProcDebug *, procdebug_ltint> proc_map;
+  ThreadState *initial_thread;
+  ThreadState *active_thread;
+  typedef std::map<Dyninst::THR_ID, ThreadState*> thread_map_t;
+  thread_map_t threads;
  public:
   static int pipe_in;
   static int pipe_out;
+};
+
+//LibAddrPair.first = path to library, LibAddrPair.second = load address
+typedef std::pair<std::string, Address> LibAddrPair;
+typedef enum { library_load, library_unload} lib_change_t;
+class LibraryState {
+ protected:
+   ProcessState *procstate;
+ public:
+   LibraryState(ProcessState *parent);
+   virtual bool getLibraryAtAddr(Address addr, LibAddrPair &lib) = 0;
+   virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0;
+   virtual void notifyOfUpdate() = 0;
+   virtual Address getLibTrapAddress() = 0;
+   virtual ~LibraryState();
+};
+
+class ThreadState {
+ public:
+   static ThreadState* createThreadState(ProcDebug *parent, 
+                                         Dyninst::THR_ID id = NULL_THR_ID,
+                                         bool alrady_attached = false);
+   virtual ~ThreadState();
+
+   bool isStopped();
+   void setStopped(bool s);
+   
+   bool userIsStopped();
+   void setUserStopped(bool u);
+
+   bool shouldResume();
+   void setShouldResume(bool r);
+
+   Dyninst::THR_ID getTid();
+
+   proc_state state();
+   void setState(proc_state s);
+   
+   ProcDebug *proc();
+ protected:
+   ThreadState(ProcDebug *p, Dyninst::THR_ID id);
+   bool is_stopped;
+   bool user_stopped;
+   bool should_resume;
+   Dyninst::THR_ID tid;
+   proc_state thr_state;
+   ProcDebug *parent;
 };
 
 }

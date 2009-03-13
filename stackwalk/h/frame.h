@@ -33,6 +33,7 @@
 #define FRAME_H_
 
 #include "basetypes.h"
+#include "Annotatable.h"
 #include <string>
 
 namespace Dyninst {
@@ -41,12 +42,12 @@ namespace Stackwalker {
 class Walker;
 class FrameStepper;
 
-class Frame {
+class Frame : public AnnotatableDense {
   friend class Walker;
 protected:
-  regval_t ra;
-  regval_t fp;
-  regval_t sp;
+  Dyninst::MachRegisterVal ra;
+  Dyninst::MachRegisterVal fp;
+  Dyninst::MachRegisterVal sp;
 	
   location_t ra_loc;
   location_t fp_loc;
@@ -71,15 +72,15 @@ protected:
   
  public:
   Frame(Walker *walker);
-  static Frame *newFrame(regval_t ra, regval_t sp, regval_t fp, Walker *walker);
+  static Frame *newFrame(Dyninst::MachRegisterVal ra, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker);
   
-  regval_t getRA() const;
-  regval_t getSP() const;
-  regval_t getFP() const;
+  Dyninst::MachRegisterVal getRA() const;
+  Dyninst::MachRegisterVal getSP() const;
+  Dyninst::MachRegisterVal getFP() const;
   
-  void setRA(regval_t);
-  void setSP(regval_t);
-  void setFP(regval_t);
+  void setRA(Dyninst::MachRegisterVal);
+  void setSP(Dyninst::MachRegisterVal);
+  void setFP(Dyninst::MachRegisterVal);
   
   location_t getRALocation() const;
   location_t getSPLocation() const;
@@ -91,6 +92,7 @@ protected:
   
   bool getName(std::string &str);
   bool getObject(void* &obj);
+  bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab);
   
   bool isBottomFrame() const;
   bool isFrameComplete() const;

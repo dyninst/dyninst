@@ -34,8 +34,16 @@ CFLAGS += -D_LARGEFILE64_SOURCE=1 -D__USE_FILE_OFFSET64=1
 CXXFLAGS += -D_LARGEFILE64_SOURCE=1 -D__USE_FILE_OFFSET64=1
 endif
 
+ifndef STATIC_COMPS
+MYFLAGS += -fPIC
+endif
+
 ifndef TARGET
+ifndef STATIC_COMPS
 TARGET		= libsymtabAPI.so
+else
+TARGET      = libsymtabAPI.a
+endif
 endif
 
 LDFLAGS += -lpthread
@@ -44,14 +52,14 @@ LDFLAGS     += $(LIBDIR) -lcommon -ldl
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CFLAGS		+= 
+CXXFLAGS	+= $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
 endif #sparc
 endif #USES_NATIVE
-TFLAGS		+= -fPIC
+TFLAGS		+= 
 
 VPATH	     += ../../symtabAPI/h
 

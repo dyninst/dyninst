@@ -219,3 +219,8 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
    }
    return at;
 }
+
+Address AddressTranslate::getLibraryTrapAddrSysV()
+{
+   return 0x0;
+}

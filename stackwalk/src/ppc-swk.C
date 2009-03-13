@@ -35,43 +35,48 @@
 #include "stackwalk/h/basetypes.h"
 #include "stackwalk/h/frame.h"
 
+#include "stackwalk/src/sw.h"
+
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-bool ProcSelf::getRegValue(reg_t reg, THR_ID, regval_t &val)
+bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
-  register regval_t **sp;
-  regval_t *fp_ra;
+  register Dyninst::MachRegisterVal **sp;
+  Dyninst::MachRegisterVal *fp_ra;
 
   __asm__("or %0, %%r1, %%r1\n"
 	  : "=r"(sp));
 
-  if (reg == REG_SP) {
-     val = (regval_t) sp;
+  if (reg == Dyninst::MachRegStackBase) {
+     val = (Dyninst::MachRegisterVal) sp;
   }
 
   fp_ra = *sp;
-  if (reg == REG_FP) 
+  if (reg == Dyninst::MachRegFrameBase) 
   {
      val = fp_ra[0];
   }
 
-  if (reg == REG_PC) 
+  if (reg == Dyninst::MachRegPC) 
   {
      val = fp_ra[1];
   }
 
-  sw_printf("[%s:%u] - Returning value %x for reg %u\n", 
+  sw_printf("[%s:%u] - Returning value %lx for reg %u\n", 
             __FILE__, __LINE__, val, reg);
   return true;
 }
 
-FrameFuncStepper::FrameFuncStepper(Walker *w) :
-  FrameStepper(w)
+FrameFuncStepperImpl::FrameFuncStepperImpl(Walker *w, FrameStepper *parent_,
+                                           FrameFuncHelper *) :
+   FrameStepper(w),
+   parent(parent_),
+   helper(NULL)
 {
 }
 
-gcframe_ret_t FrameFuncStepper::getCallerFrame(const Frame &in, Frame &out)
+gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
   Address in_fp, out_sp;
   bool result;
@@ -92,7 +97,7 @@ gcframe_ret_t FrameFuncStepper::getCallerFrame(const Frame &in, Frame &out)
   result = getProcessState()->readMem(&ra_fp_pair, in_fp, 
                                       sizeof(ra_fp_pair));
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %x\n", __FILE__, __LINE__, in_fp);
+    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, in_fp);
     return gcf_error;
   }
   out.setFP(ra_fp_pair.out_fp);
@@ -100,7 +105,7 @@ gcframe_ret_t FrameFuncStepper::getCallerFrame(const Frame &in, Frame &out)
   result = getProcessState()->readMem(&ra_fp_pair, ra_fp_pair.out_fp, 
                                       sizeof(ra_fp_pair));
   if (!result) {
-    sw_printf("[%s:%u] - Couldn't read from %x\n", __FILE__, __LINE__,
+    sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__,
 	      ra_fp_pair.out_fp);
     return gcf_error;
   }
@@ -115,7 +120,95 @@ gcframe_ret_t FrameFuncStepper::getCallerFrame(const Frame &in, Frame &out)
   return gcf_success;
 }
  
-unsigned FrameFuncStepper::getPriority()
+unsigned FrameFuncStepperImpl::getPriority() const
 {
   return 0x11000;
 }
+
+FrameFuncStepperImpl::~FrameFuncStepperImpl()
+{
+}
+
+UninitFrameStepper::UninitFrameStepper(Walker *w, FrameFuncHelper *) :
+   FrameStepper(w)
+{
+   impl = NULL;
+}
+
+gcframe_ret_t UninitFrameStepper::getCallerFrame(const Frame &, Frame &)
+{
+   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+   return gcf_error;
+}
+
+unsigned UninitFrameStepper::getPriority() const
+{
+   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+   return 0;
+}
+
+void UninitFrameStepper::registerStepperGroup(StepperGroup *)
+{
+   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+}
+
+UninitFrameStepper::~UninitFrameStepper()
+{
+   impl = NULL;
+}
+
+StepperWanderer::StepperWanderer(Walker *, WandererHelper *, FrameFuncHelper *) :
+   FrameStepper(NULL)
+{
+   sw_printf("[%s:%u] - Error,  Wanderer used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+}
+
+gcframe_ret_t StepperWanderer::getCallerFrame(const Frame &, Frame &)
+{
+   sw_printf("[%s:%u] - Error,  Wanderer used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+}
+
+unsigned StepperWanderer::getPriority() const
+{
+   sw_printf("[%s:%u] - Error,  Wanderer used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+}
+
+StepperWanderer::~StepperWanderer()
+{
+}
+
+WandererHelper::WandererHelper(ProcessState *proc_) :
+   proc(proc_)
+{
+}
+
+bool WandererHelper::isPrevInstrACall(Address, Address&)
+{
+   sw_printf("[%s:%u] - Unimplemented on this platform!\n");
+   assert(0);
+   return false;
+}
+
+bool WandererHelper::isPCInFunc(Address, Address)
+{
+   sw_printf("[%s:%u] - Unimplemented on this platform!\n");
+   assert(0);
+   return false;
+}
+
+WandererHelper::~WandererHelper()
+{
+}
+

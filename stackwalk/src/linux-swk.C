@@ -32,14 +32,17 @@
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/walker.h"
+#include "stackwalk/h/steppergroup.h"
 
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/symtab-swk.h"
 
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
 
 #include <string>
+#include <sstream>
 
 #include <string.h>
 #include <sys/syscall.h>
@@ -47,91 +50,50 @@
 #include <errno.h>
 #include <assert.h>
 #include <signal.h>
-#include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-SymbolLookup *Walker::createDefaultSymLookup(const std::string &exec)
-{
-   SymbolLookup *new_lookup = new SwkDynSymtab(this, exec);
-   return new_lookup;
-}
-
-bool SymbolLookup::lookupLibrary(Address addr, Address &load_addr,
-                                 std::string &out_library)
-{
-  PID pid = getProcessState()->getProcessId();
-  unsigned maps_size;
-  bool result;
-
-  map_entries *maps = getLinuxMaps((int) pid, maps_size);
-  if (!maps) {
-    sw_printf("[%s:%u] - Unable to look up maps entries for pid %d\n",
-	       __FILE__, __LINE__, pid);
-    setLastError(err_procread, "Unable to read /proc/PID/maps for a process");
-    result = false;
-    goto done;
-  }
-
-  unsigned i;
-  signed j;
-  for (i=0; i<maps_size; i++) {
-    if (addr >= maps[i].start && addr < maps[i].end) {
-      out_library = maps[i].path;
-      load_addr = maps[i].start;
-      result = true;
-      sw_printf("[%s:%u] - Found library %s for addr %x\n",
-		 __FILE__, __LINE__, maps[i].path, addr);
-      goto done;
-    }
-  }
-
-  for (j = i-1; j >= 0; j--)
-  {
-    if (maps[i].inode == maps[j].inode)
-      load_addr = maps[j].start;
-  }
-  sw_printf("[%s:%u] - Unable find maps entries for pid %d\n", 
-	     __FILE__, __LINE__, pid);
-  setLastError(err_nosymbol, "Unable to find containing library for at address\n");
-  result = false;
-
- done:
-  if (maps)
-    free(maps);
-  maps = NULL;
-  return result;
-}
-
 #ifndef SYS_tkill
 #define SYS_tkill 238
 #endif
 
+//These should be defined on all modern linux's, turn these off
+// if porting to some linux-like platform that doesn't support 
+// them.
+#include <sys/ptrace.h>
+#include <linux/ptrace.h>
+typedef enum __ptrace_request pt_req;
+#define cap_ptrace_traceclone
+#define cap_ptrace_setoptions
+
+ProcDebug::thread_map_t ProcDebugLinux::all_threads;
+
 static int P_gettid()
 {
   static int gettid_not_valid = 0;
-  int result;
+  long int result;
 
   if (gettid_not_valid)
     return getpid();
 
-  result = syscall((long int) SYS_gettid);
+  result = syscall(SYS_gettid);
   if (result == -1 && errno == ENOSYS)
   {
     gettid_not_valid = 1;
     return getpid();
   }
-  return result;  
+  return (int) result;
 }
 
 static bool t_kill(int pid, int sig)
 {
   static bool has_tkill = true;
-  int result = 0;
+  long int result = 0;
   sw_printf("[%s:%u] - Sending %d to %d\n", __FILE__, __LINE__, sig, pid);
   if (has_tkill) {
      result = syscall(SYS_tkill, pid, sig);
@@ -149,9 +111,21 @@ static bool t_kill(int pid, int sig)
   return (result == 0);
 }
 
-ProcSelf::ProcSelf()
+static void registerLibSpotterSelf(ProcSelf *pself);
+ProcSelf::ProcSelf() :
+   ProcessState(getpid())
 {
-  mypid = getpid();
+}
+
+void ProcSelf::initialize()
+{
+#if defined(cap_stackwalker_use_symtab)
+   library_tracker = new SymtabLibState(this);
+#else
+   library_tracker = new DefaultLibState(this);
+#endif
+   assert(library_tracker);
+   registerLibSpotterSelf(this);
 }
 
 #if defined(cap_sw_catchfaults)
@@ -218,6 +192,28 @@ bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
   return true;
 }
 
+bool ProcDebugLinux::isLibraryTrap(Dyninst::THR_ID thrd)
+{
+   LibraryState *ls = getLibraryTracker();
+   if (!ls)
+      return false;
+   Address lib_trap_addr = ls->getLibTrapAddress();
+   if (!lib_trap_addr)
+      return false;
+
+   Dyninst::MachRegisterVal cur_pc;
+   bool result = getRegValue(Dyninst::MachRegPC, thrd, cur_pc);
+   if (!result) {
+      sw_printf("[%s:%u] - Error getting PC value for thrd %d\n",
+                __FILE__, __LINE__, (int) thrd);
+      return false;
+   }
+   if (cur_pc == lib_trap_addr || cur_pc-1 == lib_trap_addr)
+      return true;
+   return false;
+}
+
+
 bool ProcSelf::getDefaultThread(THR_ID &default_tid)
 {
   THR_ID tid = P_gettid();
@@ -241,11 +237,14 @@ DebugEvent ProcDebug::debug_get_event(bool block)
    DebugEvent ev;
    pid_t p;
 
-   sw_printf("[%s:%u] - Calling waitpid\n",__FILE__, __LINE__);
    int flags = __WALL;
    if (!block)
      flags |= WNOHANG;
+   sw_printf("[%s:%u] - Calling waitpid(-1, %p, %d)\n",
+             __FILE__, __LINE__, &status, flags);
    p = waitpid(-1, &status, flags);
+   sw_printf("[%s:%u] - waitpid returned status = 0x%x, p = %d\n",
+             __FILE__, __LINE__, status, p);
    if (p == -1) {
       int errnum = errno;
       sw_printf("[%s:%u] - Unable to wait for debug event: %s\n",
@@ -266,7 +265,7 @@ DebugEvent ProcDebug::debug_get_event(bool block)
 
    if (pipe_out != -1)
    {
-      /*      struct pollfd[1];
+      /*struct pollfd[1];
       pollfd[0].fd = pipe_out;
       pollfd[0].events = POLLIN;
       pollfd[0].revents = 0;
@@ -274,9 +273,9 @@ DebugEvent ProcDebug::debug_get_event(bool block)
       char c;
       read(pipe_out, &c, 1);
    }
-   
-   std::map<PID, ProcDebug *, procdebug_ltint>::iterator i = proc_map.find(p);
-   if (i == proc_map.end())
+
+   thread_map_t::iterator i = ProcDebugLinux::all_threads.find(p);
+   if (i == ProcDebugLinux::all_threads.end())
    {
       sw_printf("[%s:%u] - Error, recieved unknown pid %d from waitpid",
                 __FILE__, __LINE__, p);
@@ -284,7 +283,9 @@ DebugEvent ProcDebug::debug_get_event(bool block)
       ev.dbg = dbg_err;
       return ev;
    }
-   ev.proc = i->second;
+   
+   ev.thr = i->second;
+   ev.proc = ev.thr->proc();
 
    if (WIFEXITED(status)) 
    {
@@ -304,6 +305,23 @@ DebugEvent ProcDebug::debug_get_event(bool block)
    {
       ev.dbg = dbg_stopped;
       ev.data.idata = WSTOPSIG(status);
+      
+      ProcDebugLinux *linux_proc = dynamic_cast<ProcDebugLinux*>(ev.proc);
+      assert(linux_proc);
+      if (ev.data.idata == SIGTRAP) {
+         if (linux_proc->state() == ps_running && 
+             linux_proc->isLibraryTrap((Dyninst::THR_ID) p)) 
+         {
+            sw_printf("[%s:%u] - Decoded library load event\n",
+                      __FILE__, __LINE__);
+            ev.dbg = dbg_libraryload;
+         }
+         else {
+            int extended_data = status >> 16;
+            if (extended_data)
+               ev.data.idata = (extended_data << 8) | SIGTRAP;
+         }
+      }
       sw_printf("[%s:%u] - Process %d stopped with %d\n",
                 __FILE__, __LINE__, p, ev.data);
    }
@@ -320,47 +338,91 @@ DebugEvent ProcDebug::debug_get_event(bool block)
 bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
 {
   bool result;
+  ThreadState *thr = ev.thr;
 
   switch (ev.dbg)
   {
      case dbg_stopped:
-        isRunning = false;
-        
-        if (state == ps_neonatal && ev.data.idata == SIGSTOP) {
-           sw_printf("[%s:%u] - Moving %d to state running\n", 
-                     __FILE__, __LINE__, pid);
-           state = ps_running;
+        thr->setStopped(true);
+        if (thr->state() == ps_attached_intermediate && 
+            (ev.data.idata == SIGSTOP || ev.data.idata == SIGTRAP)) {
+           sw_printf("[%s:%u] - Moving %d/%d to state running\n", 
+                     __FILE__, __LINE__, pid, thr->getTid());
+           thr->setState(ps_running);
            return true;
         }
-        if (state == ps_neonatal && ev.data.idata == SIGTRAP) {
-           sw_printf("[%s:%u] - Moving %d to state running\n", 
+
+#if defined(cap_ptrace_traceclone)
+        if (ev.data.idata == (SIGTRAP | (PTRACE_EVENT_CLONE << 8))) {
+           sw_printf("[%s:%u] - Discovered new thread in proc %d\n", 
                      __FILE__, __LINE__, pid);
-           state = ps_running;
+           pid_t newtid;
+           ThreadState *new_thread = NULL;
+           long iresult = ptrace((pt_req) PTRACE_GETEVENTMSG, thr->getTid(), 
+                                 NULL, &newtid);
+           if (iresult == -1) {
+              sw_printf("[%s:%u] - Unexpected error getting new tid on %d\n"
+                     __FILE__, __LINE__, pid);
+           }
+           else 
+           {
+              sw_printf("[%s:%u] - New thread %ld in proc %d\n",
+                        __FILE__, __LINE__, newtid, pid);
+              new_thread = ThreadState::createThreadState(this, (THR_ID) newtid, true);
+           }
+           if (!new_thread) {
+              sw_printf("[%s:%u] - Error creating thread %d in proc %d\n",
+                        __FILE__, __LINE__, newtid, pid);
+           }
+           result = debug_continue(thr);
+           if (!result) {
+              sw_printf("[%s:%u] - Debug continue failed on %d/%d\n",
+                        __FILE__, __LINE__, pid, thr->getTid());
+              return false;
+           }
            return true;
         }
+#endif
         
         if (ev.data.idata != SIGSTOP) {
-           result = debug_continue_with(ev.data.idata);
+           result = debug_continue_with(thr, ev.data.idata);
            if (!result) {
-              sw_printf("[%s:%u] - Debug continue failed on %d with %d\n", 
-                        __FILE__, __LINE__, pid, ev.data.idata);
+              sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
+                        __FILE__, __LINE__, pid, thr->getTid(), ev.data.idata);
               return false;
            }
         }
         return true;
+    case dbg_libraryload: 
+    {
+       sw_printf("[%s:%u] - Handling library load event on %d/%d\n",
+                 __FILE__, __LINE__, pid, thr->getTid());
+       thr->setStopped(true);
+       LibraryState *ls = getLibraryTracker();
+       assert(ls);
+       ls->notifyOfUpdate();
+       
+       result = debug_continue_with(thr, 0);
+       if (!result) {
+          sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
+                    __FILE__, __LINE__, pid, thr->getTid(), ev.data.idata);
+          return false;
+       }
+       return true;
+    }
     case dbg_crashed:
-      sw_printf("[%s:%u] - Handling process crash on %d\n",
-                __FILE__, __LINE__, pid);
+      sw_printf("[%s:%u] - Handling process crash on %d/%d\n",
+                __FILE__, __LINE__, pid, thr->getTid());
     case dbg_exited:
-      sw_printf("[%s:%u] - Handling process death on %d\n",
-                __FILE__, __LINE__, pid);
-      state = ps_exited;
+      sw_printf("[%s:%u] - Handling process death on %d/%d\n",
+                __FILE__, __LINE__, pid, thr->getTid());
+      thr->setState(ps_exited);
       return true;
     case dbg_err:
     case dbg_noevent:
     default:
-      sw_printf("[%s:%u] - Unexpectedly handling an error event %d on %d\n", 
-                __FILE__, __LINE__, ev.dbg, pid);
+      sw_printf("[%s:%u] - Unexpectedly handling an error event %d on %d/%d\n", 
+                __FILE__, __LINE__, ev.dbg, pid, thr->getTid());
       setLastError(err_internal, "Told to handle an unexpected event.");
       return false;
   }
@@ -369,19 +431,44 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
 bool ProcDebugLinux::debug_handle_signal(DebugEvent *ev)
 {
    assert(ev->dbg == dbg_stopped);
-   return debug_continue_with(ev->data.idata);
+   return debug_continue_with(ev->thr, ev->data.idata);
 }
 
-bool ProcDebugLinux::debug_attach()
+#if defined(cap_ptrace_setoptions)   
+void ProcDebugLinux::setOptions(Dyninst::THR_ID tid)
+{
+
+   long options = 0;
+#if defined(cap_ptrace_traceclone)
+   options |= PTRACE_O_TRACECLONE;
+#endif
+
+   if (options) {
+      int result = ptrace((pt_req) PTRACE_SETOPTIONS, tid, NULL, 
+                          (void *) options);
+      if (result == -1) {
+         sw_printf("[%s:%u] - Failed to set options for %d: %s\n", 
+                   __FILE__, __LINE__, tid, strerror(errno));
+      }
+   }   
+}
+#else
+void ProcDebugLinux::setOptions(Dyninst::THR_ID)
+{
+}
+#endif
+
+bool ProcDebugLinux::debug_attach(ThreadState *ts)
 {
    long result;
+   pid_t tid = (pid_t) ts->getTid();
    
-   sw_printf("[%s:%u] - Attaching to pid\n", __FILE__, __LINE__, pid);
-   result = ptrace(PTRACE_ATTACH, pid, NULL, NULL);
+   sw_printf("[%s:%u] - Attaching to pid %d\n", __FILE__, __LINE__, tid);
+   result = ptrace((pt_req) PTRACE_ATTACH, tid, NULL, NULL);
    if (result != 0) {
       int errnum = errno;
       sw_printf("[%s:%u] - Unable to attach to process %d: %s\n",
-                __FILE__, __LINE__, pid, strerror(errnum));
+                __FILE__, __LINE__, tid, strerror(errnum));
       if (errnum == EPERM)
          setLastError(err_prem, "Do not have correct premissions to attach " \
                       "to pid");
@@ -393,17 +480,61 @@ bool ProcDebugLinux::debug_attach()
       }
       return false;
    }
+   ts->setState(ps_attached_intermediate);   
+
    return true;
 }
 
-bool ProcDebugLinux::debug_pause() 
+bool ProcDebugLinux::debug_post_create()
+{
+   sw_printf("[%s:%u] - Post create on %d\n", __FILE__, __LINE__, pid);
+   setOptions(pid);
+
+#if defined(cap_stackwalker_use_symtab)
+   library_tracker = new SymtabLibState(this);
+#else
+   library_tracker = new DefaultLibState(this);
+#endif
+   assert(library_tracker);
+   registerLibSpotter();
+   return true;
+}
+
+bool ProcDebugLinux::debug_post_attach(ThreadState *thr)
+{
+   sw_printf("[%s:%u] - Post attach on %d\n", __FILE__, __LINE__, thr->getTid());
+   THR_ID tid = thr->getTid();
+   setOptions(tid);
+
+#if defined(cap_stackwalker_use_symtab)
+   library_tracker = new SymtabLibState(this);
+#else
+   library_tracker = new DefaultLibState(this);
+#endif   
+   assert(library_tracker);
+   registerLibSpotter();
+
+   if (tid == pid) {
+      //We're attach to the initial process, also attach to all threads
+      pollForNewThreads();
+   }
+   return true;
+}
+
+bool ProcDebugLinux::debug_pause(ThreadState *thr)
 {
    bool result;
 
-   result = t_kill(pid, SIGSTOP);
-   if (result != 0) {
+   result = t_kill(thr->getTid(), SIGSTOP);
+   if (!result) {
+      if (errno == ESRCH) {
+         sw_printf("[%s:%u] - t_kill failed on %d, thread doesn't exist\n",
+                   __FILE__, __LINE__, thr->getTid());
+         setLastError(err_noproc, "Thread no longer exists");
+         return false;
+      }
       sw_printf("[%s:%u] - t_kill failed on %d: %s\n", __FILE__, __LINE__,
-                pid, strerror(errno));
+                thr->getTid(), strerror(errno));
       setLastError(err_internal, "Could not send signal to process while " \
                    "stopping");
       return false;
@@ -412,43 +543,64 @@ bool ProcDebugLinux::debug_pause()
    return true;
 }
 
-bool ProcDebugLinux::debug_continue()
+bool ProcDebugLinux::debug_continue(ThreadState *thr)
 {
-   return debug_continue_with(0);
+   return debug_continue_with(thr, 0);
 }
 
-bool ProcDebugLinux::debug_continue_with(long sig)
+bool ProcDebugLinux::debug_continue_with(ThreadState *thr, long sig)
 {
    long result;
-   assert(!isRunning);
-
-   result = ptrace(PTRACE_CONT, pid, NULL, (void *) sig);
+   assert(thr->isStopped());
+   Dyninst::THR_ID tid = thr->getTid();
+   sw_printf("[%s:%u] - Calling PTRACE_CONT with signal %d on %d\n",
+             __FILE__, __LINE__, sig, tid);
+   result = ptrace((pt_req) PTRACE_CONT, tid, NULL, (void *) sig);
    if (result != 0)
    {
      int errnum = errno;
       sw_printf("[%s:%u] - Error continuing %d with %d: %s\n",
-                __FILE__, __LINE__, pid, sig, strerror(errnum));
+                __FILE__, __LINE__, tid, sig, strerror(errnum));
       setLastError(err_internal, "Could not continue process");
       return false;
    }
 
-   isRunning = true;
+   thr->setStopped(false);
    return true;
 }
 
 bool ProcDebugLinux::readMem(void *dest, Address source, size_t size)
 {
-   unsigned int nbytes = size;
+   unsigned long nbytes = size;
    const unsigned char *ap = (const unsigned char*) source;
    unsigned char *dp = (unsigned char*) dest;
    Address w = 0x0;               /* ptrace I/O buffer */
    int len = sizeof(long);
-   unsigned cnt;
+   unsigned long cnt;
    
    if (!nbytes) {
       return true;
    }
    
+   ThreadState *thr = active_thread;
+   if (!thr) {
+      //Likely doing this read in response to some event, perhaps
+      // without an active thread.  The event should have stopped something,
+      // so find a stopped thread.
+      thread_map_t::iterator i;
+      for (i = threads.begin(); i != threads.end(); i++) {
+         ThreadState *t = (*i).second;
+         if (t->state() == ps_exited)
+            continue;
+         if (t->isStopped()) {
+            thr = t;
+            break;
+         }
+      }
+   }
+   assert(thr); //Something should be stopped if we're here.
+   pid_t tid = (pid_t) thr->getTid();
+
    if ((cnt = ((Address)ap) % len)) {
       /* Start of request is not aligned. */
       unsigned char *p = (unsigned char*) &w;
@@ -456,7 +608,7 @@ bool ProcDebugLinux::readMem(void *dest, Address source, size_t size)
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
-      w = ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w);
+      w = ptrace((pt_req) PTRACE_PEEKTEXT, tid, (Address) (ap-cnt), w);
       if (errno) {
          int errnum = errno;
          sw_printf("[%s:%u] - PTRACE_PEEKTEXT returned error on %d: %s\n",
@@ -479,7 +631,7 @@ bool ProcDebugLinux::readMem(void *dest, Address source, size_t size)
    /* Copy aligned portion */
    while (nbytes >= (u_int)len) {
       errno = 0;
-      w = ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+      w = ptrace((pt_req) PTRACE_PEEKTEXT, tid, (Address) ap, 0);
       if (errno) {
          int errnum = errno;
          sw_printf("[%s:%u] - PTRACE_PEEKTEXT returned error on %d: %s\n",
@@ -500,7 +652,7 @@ bool ProcDebugLinux::readMem(void *dest, Address source, size_t size)
       /* Read the segment containing the unaligned portion, and
          copy what was requested to DP. */
       errno = 0;
-      w = ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+      w = ptrace((pt_req) PTRACE_PEEKTEXT, tid, (Address) ap, 0);
       if (errno) {
          int errnum = errno;
          sw_printf("[%s:%u] - PTRACE_PEEKTEXT returned error on %d: %s\n",
@@ -515,11 +667,56 @@ bool ProcDebugLinux::readMem(void *dest, Address source, size_t size)
    return true;
 }   
 
-bool ProcDebugLinux::getThreadIds(std::vector<THR_ID> &threads)
+bool ProcDebugLinux::getThreadIds(std::vector<THR_ID> &thrds)
 {
-   threads.clear();
-   threads.push_back((THR_ID) pid);
+#if !defined(cap_ptrace_traceclone)
+   pollForNewThreads();
+#endif
+   thread_map_t::iterator i;
+   for (i = threads.begin(); i != threads.end(); i++) {
+      ThreadState *ts = (*i).second;
+      if (ts->state() != ps_running)
+         continue;
+      thrds.push_back(ts->getTid());
+   }
    return true;
+}
+
+bool ProcDebugLinux::pollForNewThreads()
+{
+   std::vector<THR_ID> thrds;
+   bool result = findProcLWPs(pid, thrds);
+   if (!result) {
+      sw_printf("[%s:%u] - getThreadIds failed in libcommon's findProcLWPs "
+                "for %d", __FILE__, __LINE__, pid);                
+      return false;
+   }
+   
+   bool had_error = false;
+   std::vector<THR_ID>::iterator i;
+   for (i=thrds.begin(); i != thrds.end(); i++) {
+      if (threads.count(*i)) {
+         continue;
+      }
+      sw_printf("[%s:%u] - Discovered unknown thread %d, in proc %d\n",
+                __FILE__, __LINE__, *i, pid);
+      ThreadState *new_thread = ThreadState::createThreadState(this, *i);
+      if (!new_thread && getLastError() == err_noproc) {
+         //Race condition, get thread ID or running thread, which then 
+         // exits.  Should be rare...
+         sw_printf("[%s:%u] - Error creating thread %d, does not exist\n",
+                   __FILE__, __LINE__, *i);
+         clearLastError();
+         continue;
+      }
+      else if (!new_thread) {
+         sw_printf("[%s:%u] - Unexpected error creating thread %d\n",
+                   __FILE__, __LINE__, *i);
+         had_error = true;
+         continue;
+      }
+   }
+   return had_error;
 }
 
 bool ProcDebugLinux::getDefaultThread(THR_ID &default_tid)
@@ -556,8 +753,8 @@ ProcDebug *ProcDebug::newProcDebug(PID pid)
    }
 
    bool result = pd->attach();
-   if (!result || pd->state != ps_running) {
-     pd->state = ps_errorstate;
+   if (!result || pd->state() != ps_running) {
+     pd->setState(ps_errorstate);
      proc_map.erase(pid);
      sw_printf("[%s:%u] - Error attaching to process %d\n",
                __FILE__, __LINE__, pid);
@@ -580,9 +777,9 @@ ProcDebug *ProcDebug::newProcDebug(const std::string &executable,
    }
 
    bool result = pd->create(executable, argv);
-   if (!result || pd->state != ps_running)
+   if (!result || pd->state() != ps_running)
    {
-     pd->state = ps_errorstate;
+     pd->setState(ps_errorstate);
      proc_map.erase(pd->pid);
      sw_printf("[%s:%u] - Error attaching to process %d\n",
                __FILE__, __LINE__, pd->pid);
@@ -651,12 +848,11 @@ bool ProcDebugLinux::debug_create(const std::string &executable,
 
    if (pid)
    {
-      //Parent
    }
    else
    {
       //Child
-      int result = ptrace(PTRACE_TRACEME, 0, 0, 0);
+      long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
       unsigned i;
       if (result == -1)
       {
@@ -667,7 +863,8 @@ bool ProcDebugLinux::debug_create(const std::string &executable,
       }
 
       typedef const char * const_str;
-      const_str *new_argv = (const_str *) malloc((argv.size()+2) * sizeof(char *));
+      
+      const_str *new_argv = (const_str *) calloc(argv.size()+3, sizeof(char *));
       new_argv[0] = executable.c_str();
       for (i=1; i<argv.size()+1; i++) {
          new_argv[i] = argv[i-1].c_str();
@@ -687,4 +884,445 @@ bool ProcDebugLinux::debug_create(const std::string &executable,
       exit(-1);
    }
    return true;
+}
+
+SigHandlerStepperImpl::SigHandlerStepperImpl(Walker *w, DebugStepper *parent) :
+   FrameStepper(w),
+   parent_stepper(parent)
+{
+}
+
+unsigned SigHandlerStepperImpl::getPriority() const
+{
+   return 0x10005;
+}
+
+void SigHandlerStepperImpl::registerStepperGroupNoSymtab(StepperGroup *group)
+{
+   /**
+    * We don't have symtabAPI loaded, and we want to figure out where 
+    * the SigHandler trampolines are.  If we're a first-party stackwalker
+    * we can just use the entire vsyscall page.  
+    *
+    * We're not in danger of confusing the location with a regular system call,
+    * as we're not running in a system call right now.  I can't
+    * make that guarentee for a third-party stackwalker.  
+    **/   
+   ProcessState *ps = getProcessState();
+   assert(ps);
+
+   if (!dynamic_cast<ProcSelf *>(ps)) {
+      //Not a first-party stackwalker
+      return;
+   }
+      
+   AuxvParser *parser = AuxvParser::createAuxvParser(ps->getProcessId(),
+                                                     ps->getAddressWidth());
+   if (!parser) {
+      sw_printf("[%s:%u] - Unable to parse auxv for %d\n", __FILE__, __LINE__,
+                ps->getProcessId());
+      return;
+   }
+
+   Address start = parser->getVsyscallBase();
+   Address end = parser->getVsyscallEnd();
+   sw_printf("[%s:%u] - Registering signal handler stepper over range %lx to %lx\n",
+             __FILE__, __LINE__, start, end);
+   
+   parser->deleteAuxvParser();
+   
+   if (!start || !end)
+   {
+      sw_printf("[%s:%u] - Error collecting vsyscall base and end\n",
+                __FILE__, __LINE__);
+      return;
+   }
+
+   group->addStepper(parent_stepper, start, end);
+}
+
+SigHandlerStepperImpl::~SigHandlerStepperImpl()
+{
+}
+
+#define MAX_TRAP_LEN 8
+void ProcDebugLinux::registerLibSpotter()
+{
+   if (lib_load_trap)
+      return;
+
+   LibraryState *libs = getLibraryTracker();
+   if (!libs) {
+      sw_printf("[%s:%u] - Not using lib tracker, don't know how "
+                "to get library load address\n", __FILE__, __LINE__);
+      return;
+   }
+   
+   lib_load_trap = libs->getLibTrapAddress();
+   if (!lib_load_trap) {
+      sw_printf("[%s:%u] - Couldn't get trap addr, couldn't set up "
+                "library loading notification.\n", __FILE__, __LINE__);
+      return;
+   }
+
+   char trap_buffer[MAX_TRAP_LEN];
+   unsigned actual_len;
+   getTrapInstruction(trap_buffer, MAX_TRAP_LEN, actual_len, true);
+
+   bool result = PtraceBulkWrite(lib_load_trap, actual_len, trap_buffer, pid);
+   if (!result) {
+      sw_printf("[%s:%u] - Error writing trap to %lx, couldn't set up library "
+                "load address\n", __FILE__, __LINE__, lib_load_trap);
+      return;
+   }
+   sw_printf("[%s:%u] - Successfully installed library trap at %lx\n",
+             __FILE__, __LINE__, lib_load_trap);
+}
+
+static LibraryState *local_lib_state = NULL;
+extern "C" {
+   static void lib_trap_handler(int sig);
+}
+static void lib_trap_handler(int /*sig*/)
+{
+   local_lib_state->notifyOfUpdate();
+}
+
+static Address lib_trap_addr_self = 0x0;
+static bool lib_trap_addr_self_err = false;
+static void registerLibSpotterSelf(ProcSelf *pself)
+{
+   if (lib_trap_addr_self)
+      return;
+   if (lib_trap_addr_self_err)
+      return;
+
+   //Get the address to install a trap to
+   LibraryState *libs = pself->getLibraryTracker();
+   if (!libs) {
+      sw_printf("[%s:%u] - Not using lib tracker, don't know how "
+                "to get library load address\n", __FILE__, __LINE__);
+      lib_trap_addr_self_err = true;
+      return;
+   }   
+   lib_trap_addr_self = libs->getLibTrapAddress();
+   if (!lib_trap_addr_self) {
+      sw_printf("[%s:%u] - Error getting trap address, can't install lib tracker",
+                __FILE__, __LINE__);
+      lib_trap_addr_self_err = true;
+      return;
+   }
+
+   //Use /proc/PID/maps to make sure that this address is valid and writable
+   unsigned maps_size;
+   map_entries *maps = getLinuxMaps(getpid(), maps_size);
+   if (!maps) {
+      sw_printf("[%s:%u] - Error reading proc/%d/maps.  Can't install lib tracker",
+                __FILE__, __LINE__, getpid());
+      lib_trap_addr_self_err = true;
+      return;
+   }
+
+   bool found = false;
+   for (unsigned i=0; i<maps_size; i++) {
+      if (maps[i].start <= lib_trap_addr_self && 
+          maps[i].end > lib_trap_addr_self)
+      {
+         found = true;
+         if (maps[i].prems & PREMS_WRITE) {
+            break;
+         }
+         int pgsize = getpagesize();
+         Address first_page = (lib_trap_addr_self / pgsize) * pgsize;
+         unsigned size = pgsize;
+         if (first_page + size < lib_trap_addr_self+MAX_TRAP_LEN)
+            size += pgsize;
+         int result = mprotect((void*) first_page,
+                               size, 
+                               PROT_READ|PROT_WRITE|PROT_EXEC);
+         if (result == -1) {
+            int errnum = errno;
+            sw_printf("[%s:%u] - Error setting premissions for page containing %lx. "
+                      "Can't install lib tracker: %s\n", __FILE__, __LINE__, 
+                      lib_trap_addr_self, strerror(errnum));
+            free(maps);
+            lib_trap_addr_self_err = true;
+            return;
+         }
+      }
+   }
+   free(maps);
+   if (!found) {
+      sw_printf("[%s:%u] - Couldn't find page containing %lx.  Can't install lib "
+                "tracker.", __FILE__, __LINE__, lib_trap_addr_self);
+      lib_trap_addr_self_err = true;
+      return;
+   }
+
+   char trap_buffer[MAX_TRAP_LEN];
+   unsigned actual_len;
+   getTrapInstruction(trap_buffer, MAX_TRAP_LEN, actual_len, true);
+
+   local_lib_state = libs;
+   signal(SIGTRAP, lib_trap_handler);
+
+   memcpy((void*) lib_trap_addr_self, trap_buffer, actual_len);   
+   sw_printf("[%s:%u] - Successfully install lib tracker at 0x%lx\n",
+            __FILE__, __LINE__, lib_trap_addr_self);
+}
+
+#if defined(cap_stackwalker_use_symtab)
+
+#include "common/h/parseauxv.h"
+#include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/Symbol.h"
+
+using namespace Dyninst::SymtabAPI;
+
+bool SymtabLibState::updateLibsArch()
+{
+   if (vsyscall_page_set == vsys_set)
+   {
+      return true;
+   }
+   else if (vsyscall_page_set == vsys_error)
+   {
+      return false;
+   }
+   else if (vsyscall_page_set == vsys_none)
+   {
+      return true;
+   }
+   assert(vsyscall_page_set == vsys_unset);
+
+#if !defined(arch_x86)
+   vsyscall_page_set = vsys_none;
+   return true;
+#endif
+      
+   AuxvParser *parser = AuxvParser::createAuxvParser(procstate->getProcessId(), 
+                                                     procstate->getAddressWidth());
+   if (!parser) {
+      sw_printf("[%s:%u] - Unable to parse auxv", __FILE__, __LINE__);
+      vsyscall_page_set = vsys_error;
+      return false;
+   }
+
+   Address start = parser->getVsyscallBase();
+   Address end = parser->getVsyscallEnd();
+
+   vsyscall_mem = malloc(end - start);
+   bool result = procstate->readMem(vsyscall_mem, start, end - start);
+   if (!result) {
+      sw_printf("[%s:%u] - Error reading from vsyscall page\n");
+      vsyscall_page_set = vsys_error;
+      return false;
+   }
+
+   std::stringstream ss;
+   ss << "[vsyscall-" << procstate->getProcessId() << "]";
+   LibAddrPair vsyscall_page;
+   vsyscall_page.first = ss.str();
+   vsyscall_page.second = start;
+   
+   result = Symtab::openFile(vsyscall_symtab, (char *) vsyscall_mem, end - start);
+   if (!result || !vsyscall_symtab) {
+      //TODO
+      vsyscall_page_set = vsys_error;
+      return false;
+   }
+
+   SymtabWrapper::notifyOfSymtab(vsyscall_symtab, vsyscall_page.first);
+   parser->deleteAuxvParser();
+
+   std::pair<LibAddrPair, unsigned int> vsyscall_lib_pair;
+   vsyscall_lib_pair.first = vsyscall_page;
+   vsyscall_lib_pair.second = static_cast<unsigned int>(end - start);
+
+   arch_libs.push_back(vsyscall_lib_pair);
+   vsyscall_page_set = vsys_set;
+
+   return true;
+}
+
+Symtab *SymtabLibState::getVsyscallSymtab()
+{
+   refresh();
+   if (vsyscall_page_set == vsys_set)
+      return vsyscall_symtab;
+   return NULL;
+}
+
+#define NUM_VSYS_SIGRETURNS 3
+static const char* vsys_sigreturns[] = {
+   "_sigreturn",
+   "__kernel_sigreturn",
+   "__kernel_rt_sigreturn"
+};
+
+void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
+{
+   LibraryState *libs = getProcessState()->getLibraryTracker();
+   SymtabLibState *symtab_libs = dynamic_cast<SymtabLibState *>(libs);
+   bool result;
+   if (!symtab_libs) {
+      sw_printf("[%s:%u] - Custom library tracker.  Don't know how to"
+                " to get vsyscall page\n", __FILE__, __LINE__);
+      registerStepperGroupNoSymtab(group);
+      return;
+   }
+   Symtab *vsyscall = symtab_libs->getVsyscallSymtab();
+   if (!vsyscall)
+   {
+      sw_printf("[%s:%u] - Odd.  Couldn't find vsyscall page. Signal handler"
+                " stepping may not work\n", __FILE__, __LINE__);
+      registerStepperGroupNoSymtab(group);
+      return;
+   }
+
+   for (unsigned i=0; i<NUM_VSYS_SIGRETURNS; i++)
+   {
+      std::vector<SymtabAPI::Symbol *> syms;
+      result = vsyscall->findSymbolByType(syms, vsys_sigreturns[i], 
+                                          SymtabAPI::Symbol::ST_FUNCTION);
+      if (!result || !syms.size()) {
+         continue;
+      }
+      Address addr = syms[0]->getAddr();
+      unsigned long size = syms[0]->getSize();
+      sw_printf("[%s:%u] - Registering signal handler stepper %s to run between"
+                " %lx and %lx\n", __FILE__, __LINE__, vsys_sigreturns[i], 
+                addr, addr+size);
+      if (!size)
+         size = getProcessState()->getAddressWidth();
+      group->addStepper(parent_stepper, addr, addr + size);
+   }
+}
+
+#else
+void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
+{
+   registerStepperGroupNoSymtab(group);
+}
+#endif
+
+ThreadState* ThreadState::createThreadState(ProcDebug *parent,
+                                            Dyninst::THR_ID id,
+                                            bool already_attached)
+{
+   assert(parent);
+   Dyninst::THR_ID tid = id;
+   if (id == NULL_THR_ID) {
+      tid = (Dyninst::THR_ID) parent->getProcessId();
+   }
+   else {
+      tid = id;
+   }
+   
+   ThreadState *newts = new ThreadState(parent, tid);
+   sw_printf("[%s:%u] - Creating new ThreadState %p for %d/%d\n",
+             __FILE__, __LINE__, newts, parent->getProcessId(), tid);
+   if (!newts || newts->state() == ps_errorstate) {
+      sw_printf("[%s:%u] - Error creating new thread\n",
+                __FILE__, __LINE__);
+      return NULL;
+   }
+   if (already_attached) {
+      newts->setState(ps_attached_intermediate);
+   }
+
+   ProcDebug::thread_map_t::iterator i = ProcDebugLinux::all_threads.find(tid);
+   assert(i == ProcDebugLinux::all_threads.end() || 
+          (*i).second->state() == ps_exited);
+   ProcDebugLinux::all_threads[tid] = newts;
+   parent->threads[tid] = newts;
+
+   if (id == NULL_THR_ID) {
+      //Done with work for initial thread
+      return newts;
+   }
+
+   bool result;
+
+   if (newts->state() == ps_neonatal) {
+      result = parent->debug_attach(newts);
+      if (!result && getLastError() == err_procexit) {
+         sw_printf("[%s:%u] - Thread %d exited before attach\n", 
+                   __FILE__, __LINE__, tid);
+         newts->setState(ps_exited);
+         return NULL;
+      }
+      else if (!result) {
+         sw_printf("[%s:%u] - Unknown error attaching to thread %d\n",
+                   __FILE__, __LINE__, tid);
+         newts->setState(ps_errorstate);
+         return NULL;
+      }
+   }
+   result = parent->debug_waitfor_attach(newts);
+   if (!result) {
+      sw_printf("[%s:%u] - Error waiting for attach on %d\n", 
+                __FILE__, __LINE__, tid);
+      return NULL;
+   }
+
+   result = parent->debug_post_attach(newts);
+   if (!result) {
+      sw_printf("[%s:%u] - Error in post attach on %d\n",
+                __FILE__, __LINE__, tid);
+      return NULL;
+   }
+
+   result = parent->resume_thread(newts);
+   if (!result) {
+      sw_printf("[%s:%u] - Error resuming thread %d\n",
+                __FILE__, __LINE__, tid);
+   }
+   
+   return newts;
+}
+
+SigHandlerStepper::SigHandlerStepper(Walker *w) :
+   FrameStepper(w)
+{
+   impl = new SigHandlerStepperImpl(w, (DebugStepper *) this);
+}
+
+gcframe_ret_t SigHandlerStepper::getCallerFrame(const Frame &in, Frame &out)
+{
+   if (impl)
+      return impl->getCallerFrame(in, out);
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
+             __FILE__, __LINE__);
+   setLastError(err_unsupported, "Signal handling walking not supported on this platform");
+   return gcf_error;
+}
+
+unsigned SigHandlerStepper::getPriority() const
+{
+   if (impl)
+      return impl->getPriority();
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
+             __FILE__, __LINE__);
+   setLastError(err_unsupported, "Signal handling walking not supported on this platform");
+   return 0;
+}
+
+void SigHandlerStepper::registerStepperGroup(StepperGroup *group)
+{
+   if (impl) {
+      impl->registerStepperGroup(group);
+      return;
+   }
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported "
+             "platform\n",  __FILE__, __LINE__);
+   setLastError(err_unsupported, "Signal handling walking not supported on" 
+                " this platform");
+}
+
+SigHandlerStepper::~SigHandlerStepper()
+{
+   if (impl)
+      delete impl;
+   impl = NULL;
 }

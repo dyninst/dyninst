@@ -44,15 +44,18 @@ class ProcDebug;
 class SymbolLookup;
 class Frame;
 class FrameStepper;
+class StepperGroup;
 
 class Walker {
  private:
    //Object creation functions
-   Walker(ProcessState *proc, 
+   Walker(ProcessState *p,
+          StepperGroup *grp,
           SymbolLookup *sym, 
           bool default_steppers,
           const std::string &exec_name);
    SymbolLookup *createDefaultSymLookup(const std::string &exec_name);
+   StepperGroup *createDefaultStepperGroup();
    static ProcessState *createDefaultProcess();
    static ProcessState *createDefaultProcess(Dyninst::PID pid);
    static bool createDefaultProcess(const std::vector<Dyninst::PID> &pids,
@@ -65,8 +68,8 @@ class Walker {
    Dyninst::THR_ID getActualThread(Dyninst::THR_ID tid, 
                                 bool &error);
 
-   void callPreStackwalk();
-   void callPostStackwalk();
+   void callPreStackwalk(THR_ID tid = NULL_THR_ID);
+   void callPostStackwalk(THR_ID tid = NULL_THR_ID);
  public:
    //Create an object that operates on the current process
    static Walker *newWalker();
@@ -87,6 +90,7 @@ class Walker {
 
    //Create an object with custom backend classes
    static Walker *newWalker(ProcessState *proc, 
+                            StepperGroup *grp = NULL,
                             SymbolLookup *lookup = NULL,
                             bool default_steppers = true);
 
@@ -115,15 +119,19 @@ class Walker {
    //Return the symbolLookup object
    SymbolLookup *getSymbolLookup() const;
 
+   //Return stepper group
+   StepperGroup *getStepperGroup() const;
+   
    //Add frame steppers to the group
    bool addStepper(FrameStepper *stepper);
+
 
    virtual ~Walker();
  private:
    ProcessState *proc;
    SymbolLookup *lookup;
    bool creation_error;
-   std::list<FrameStepper *> steppers;
+   StepperGroup *group;
    unsigned call_count;
 };
 

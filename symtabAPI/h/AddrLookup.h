@@ -46,6 +46,7 @@ class ProcessReader {
    PID pid;
 
    ProcessReader(PID pid_);
+   ProcessReader();
 
    virtual bool start() = 0;
    virtual bool readAddressSpace(Address inTraced, unsigned amount, 
@@ -88,6 +89,9 @@ class AddressLookup : public AnnotatableSparse
    SYMTAB_EXPORT bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
 
    SYMTAB_EXPORT bool refresh();
+
+   SYMTAB_EXPORT Address getLibraryTrapAddrSysV();
+
    
    SYMTAB_EXPORT virtual ~AddressLookup();
 };

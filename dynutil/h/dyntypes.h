@@ -92,8 +92,20 @@ namespace Dyninst
    typedef unsigned long Address;   
    typedef unsigned long Offset;
 
+   typedef signed int MachRegister;
+   const signed int MachRegInvalid = -1;
+   const signed int MachRegReturn = -2;    //Virtual register on some systems
+   const signed int MachRegFrameBase = -3; //Virtual register on some systems
+   const signed int MachRegPC = -4;
+   const signed int MachRegStackBase = -5; //Virtual register on some systems
+   const signed int ESP = 4;
+   const signed int EBP = 5;
+   const signed int RBP = 6;
+   const signed int RSP = 7;
+   typedef unsigned long MachRegisterVal;
+   
 #if defined(_MSC_VER)
-   typedef HANDLE PID;
+   typedef int PID;
    typedef HANDLE LWP;
    typedef HANDLE THR_ID;
 
@@ -110,6 +122,8 @@ namespace Dyninst
 #define NULL_LWP     -1
 #define NULL_THR_ID     -1
 #endif
+
+   int ThrIDToTid(Dyninst::THR_ID id);
 }
 
 #endif

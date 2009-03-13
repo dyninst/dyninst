@@ -26,9 +26,9 @@ SRCS =		../src/Object-elf.C \
 		../src/addrtranslate-sysv.C \
 		../src/addrtranslate-solaris.C
 
-CFLAGS		+= -DNO_MDL_PRINT -I/usr/local/stow/bind-8.2.2.p5/include/
+CFLAGS		+= -DNO_MDL_PRINT -I/usr/local/stow/bind-8.2.2.p5/include/ $(MYFLAGS)
 #CFLAGS		+= -DNO_MDL_PRINT -O0 -I/usr/local/stow/bind-8.2.2.p5/include/ 
-CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_ELF32_ONLY  -DUSES_DWARF_DEBUG -I/usr/local/stow/bind-8.2.2.p5/include/ -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
+CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_ELF32_ONLY  -DUSES_DWARF_DEBUG -I/usr/local/stow/bind-8.2.2.p5/include/ -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) $(MYFLAGS)
 #CXXFLAGS	+= -DNO_MDL_PRINT -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 TFLAGS		+= -DUSES_ELF32_ONLY 
 

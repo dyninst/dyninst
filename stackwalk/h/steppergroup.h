@@ -33,6 +33,8 @@
 #define STEPPERGROUP_H_
 
 #include "basetypes.h"
+#include "procstate.h"
+#include <set>
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -42,32 +44,35 @@ class Walker;
 
 class StepperGroup {
 protected:
-   Walker *walker
+   Walker *walker;
+   std::set<FrameStepper *> steppers;
 public:
-   virtual StepperGroup(Walker *new_walker);
+   StepperGroup(Walker *new_walker);
+   virtual ~StepperGroup();
    
-   virtual bool addStepper(FrameStepper *stepper) = 0;
+   virtual bool addStepper(FrameStepper *stepper, Address start, Address end) = 0;
    virtual bool findStepperForAddr(Dyninst::Address addr, 
                                    FrameStepper* &out, 
                                    const FrameStepper *last_tried = NULL) = 0;
-   
    virtual Walker *getWalker() const;
-}
+   virtual void registerStepper(FrameStepper *stepper);
+   virtual void newLibraryNotification(LibAddrPair *libaddr, lib_change_t change);
+};
 
-struct AddrRangeStepperPair;
+class AddrRangeGroupImpl;
 
 class AddrRangeGroup : public StepperGroup {
  protected:
-  std::vector<AddrRangeStepperPair *> steppers_list;
-
+   AddrRangeGroupImpl *impl;
  public:
   AddrRangeGroup(Walker *new_walker);
   
-  bool addStepper(FrameStepper *stepper);
-  bool findStepperForAddr(Dyninst::Address addr, 
+  virtual bool addStepper(FrameStepper *stepper, Address start, Address end);
+  virtual bool findStepperForAddr(Dyninst::Address addr, 
                           FrameStepper* &out, 
                           const FrameStepper *last_tried = NULL);
-}
+  virtual ~AddrRangeGroup();
+};
 
 }
 }

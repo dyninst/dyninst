@@ -33,7 +33,9 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/swk_errors.h"
+#include "stackwalk/h/steppergroup.h"
 
+#include "stackwalk/src/sw.h"
 #include <assert.h>
 
 using namespace Dyninst;
@@ -64,6 +66,66 @@ ProcessState *FrameStepper::getProcessState()
   return getWalker()->getProcessState();
 }
 
-FrameFuncStepper::~FrameFuncStepper()
+void FrameStepper::newLibraryNotification(LibAddrPair *, lib_change_t)
 {
 }
+
+void FrameStepper::registerStepperGroup(StepperGroup *group)
+{
+   unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
+   if (addr_width == 4)
+      group->addStepper(this, 0, 0xffffffff);
+#if defined(arch_64bit)
+   else if (addr_width == 8)
+      group->addStepper(this, 0, 0xffffffffffffffff);
+#endif
+   else
+      assert(0 && "Unknown architecture word size");
+}
+
+FrameFuncStepper::FrameFuncStepper(Walker *w, FrameFuncHelper *helper) :
+   FrameStepper(w)
+{
+   impl = new FrameFuncStepperImpl(w, this, helper);
+}
+
+FrameFuncStepper::~FrameFuncStepper()
+{
+   if (impl)
+      delete impl;
+}
+
+gcframe_ret_t FrameFuncStepper::getCallerFrame(const Frame &in, Frame &out)
+{
+   if (impl)
+      return impl->getCallerFrame(in, out);
+   sw_printf("[%s:%u] - Platform does not have basic stepper\n", 
+             __FILE__, __LINE__);
+   setLastError(err_unsupported, "Function frames not supported on this platform.");
+   return gcf_error;
+}
+
+unsigned FrameFuncStepper::getPriority() const
+{
+   if (impl)
+      return impl->getPriority();
+   sw_printf("[%s:%u] - Platform does not have basic stepper\n", 
+             __FILE__, __LINE__);
+   setLastError(err_unsupported, "Function frames not supported on this platform.");
+   return 0;
+}
+
+void FrameFuncStepper::registerStepperGroup(StepperGroup *group)
+{
+   FrameStepper::registerStepperGroup(group);
+}
+
+FrameFuncHelper::FrameFuncHelper(ProcessState *proc_) :
+   proc(proc_)
+{
+}
+
+FrameFuncHelper::~FrameFuncHelper()
+{
+}
+

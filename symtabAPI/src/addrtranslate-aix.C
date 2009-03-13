@@ -466,5 +466,10 @@ void LoadedLibAIX::getOutputs(string &filename, Address &code, Address &data)
    data = data_load_addr;
 }
 
+Address AddressTranslate::getLibraryTrapAddrSysV()
+{
+   return 0x0;
+}
+
 }
 }

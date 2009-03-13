@@ -1507,15 +1507,11 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 #else
     if (obj->hasRel()) {
         obj->addRegion(0, rels, j*sizeof(Elf32_Rel), ".rel.dyn", Region::RT_REL, true);
-#if !defined(os_solaris)
         updateDynamic(DT_RELSZ, j*sizeof(Elf32_Rel));
-#endif
     }
     if (obj->hasRela()) {
         obj->addRegion(0, relas, k*sizeof(Elf32_Rela), ".rela.dyn", Region::RT_RELA, true);
-#if !defined(os_solaris)
         updateDynamic(DT_RELASZ, k*sizeof(Elf32_Rela));
-#endif
     }
 #endif
 

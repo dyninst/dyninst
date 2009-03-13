@@ -28,7 +28,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
 #include <map>
 
 #include "elf.h"
@@ -54,6 +53,8 @@ int dwarf_printf(const char *format, ...);
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
+
+void setSymtabError(SymtabError new_err);
 
 extern AnnotationClass<localVarCollection> FunctionLocalVariablesAnno;
 extern AnnotationClass<localVarCollection> FunctionParametersAnno;
@@ -2228,19 +2229,20 @@ void Object::parseDwarfTypes( Symtab *objFile)
    dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile );
 
    /* Start the dwarven debugging. */
-   Dwarf_Debug dbg;
    Module *mod = NULL, *fixUnknownMod = NULL;
 
-   int status = dwarf_elf_init( elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
-   DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error initializing libdwarf.\n", __FILE__, __LINE__ );
+   Dwarf_Debug *dbg_ptr = dwarf.dbg();
+   DWARF_RETURN_IF( !dbg_ptr, "%s[%d]: error initializing libdwarf.\n", 
+                    __FILE__, __LINE__ );
+   Dwarf_Debug &dbg = *dbg_ptr;
 
-   /* Iterate over the compilation-unit headers. */
+   /* ptr over the compilation-unit headers. */
    Dwarf_Unsigned hdr;
 
    while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
       /* Obtain the module DIE. */
       Dwarf_Die moduleDIE;
-      status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL );
+      int status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL );
       DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error finding next CU header.\n", __FILE__, __LINE__ );
 
       /* Make sure we've got the right one. */
@@ -2299,7 +2301,6 @@ void Object::parseDwarfTypes( Symtab *objFile)
 
       Dwarf_Signed cnt;
       char **srcfiles;
-      int status;
       status = dwarf_srcfiles(moduleDIE, &srcfiles,&cnt, NULL);
       DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring source file names.\n", __FILE__, __LINE__ );
 
@@ -2320,7 +2321,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
          dwarf_dealloc(dbg, srcfiles, DW_DLA_LIST);
       }
 
-      dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
+      dwarf_dealloc(dbg, moduleName, DW_DLA_STRING );
    } /* end iteration over compilation-unit headers. */
 
    if (!fixUnknownMod)
@@ -2345,28 +2346,6 @@ void Object::parseDwarfTypes( Symtab *objFile)
    } /* end iteration over variables. */
 
 
-   // Do Not clean up Elf. We need the Elf pointer when we are writing back to a file again
-   // writeBackSymbols will not work - giri(7/26/2007)
-
-#if 0
-   /* Clean up. */
-   Elf * dwarfElf;
-   status = dwarf_get_elf( dbg, & dwarfElf, NULL );
-   DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error during libdwarf cleanup.\n", __FILE__, __LINE__ );
-#endif	
-
-   status = dwarf_finish( dbg, NULL );
-   DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error during libdwarf cleanup.\n", __FILE__, __LINE__ );
-
-   //FIX THIS: Have to be moved, where this is going to be done on a module-by-module basis
-#if 0
-   /* Fix the type references in functions. */
-   std::vector<Symbol *> funcs;
-   getAllSymbolsByType(funcs, Symbol::ST_FUNCTION);
-   for( unsigned int i = 0; i < funcs->size(); i++ ) {
-      funcs[i].fixupUnknown( this );
-   }
-#endif	
    moduleTypes->setDwarfParsed();
 
 } /* end parseDwarfTypes() */
@@ -2401,4 +2380,286 @@ int dwarf_printf(const char *format, ...)
    va_end(va);
 
    return ret;
+}
+
+Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg)
+{
+   return (Dyninst::MachRegister) (reg);
+}
+
+Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg)
+{
+   return (Dwarf_Signed) reg;
+}
+
+bool Object::hasFrameDebugInfo()
+{
+   dwarf.setupFdeData();
+   return (dwarf.fde_data.size() != 0);
+}
+
+bool Object::getRegValueAtFrame(Address pc, 
+                                Dyninst::MachRegister reg, 
+                                Dyninst::MachRegisterVal &reg_result,
+                                MemRegReader *reader)
+{
+   int result;
+   Dwarf_Fde fde;
+   Dwarf_Addr lowpc, hipc;
+   Dwarf_Error err;
+
+   /**
+    * Initialize the FDE and CIE data.  This is only really done once, 
+    * after which setupFdeData will immediately return.
+    **/
+   dwarf.setupFdeData();
+   if (!dwarf.fde_data.size()) {
+      setSymtabError(Bad_Frame_Data);
+      return false;
+   }
+
+
+   /**
+    * Get the FDE at this PC.  The FDE contains the rules for getting
+    * registers at the given PC in this frame.
+    **/
+   bool found = false;
+   unsigned cur_fde;
+   for (cur_fde=0; cur_fde<dwarf.fde_data.size(); cur_fde++)
+   {
+      result = dwarf_get_fde_at_pc(dwarf.fde_data[cur_fde].fde_data, 
+                                   (Dwarf_Addr) pc, &fde, &lowpc, &hipc, &err);
+      if (result == DW_DLV_ERROR)
+      {
+         setSymtabError(Bad_Frame_Data);
+         return false;
+      }
+      else if (result == DW_DLV_OK) {
+         found = true;
+         break;
+      }
+   }
+
+   if (!found)
+   {
+      setSymtabError(No_Frame_Entry);
+      return false;
+   }
+
+   Dwarf_Half dwarf_reg;
+   if (reg == Dyninst::MachRegReturn) {
+      /**
+       * We should be getting the return address for the stack frame.  
+       * This is treated as a virtual register in the
+       * FDE.  We can look up the virtual register in the CIE.
+       **/
+      Dwarf_Cie cie;
+      result = dwarf_get_cie_of_fde(fde, &cie, &err);
+      if (result != DW_DLV_OK) {
+         setSymtabError(Bad_Frame_Data);
+         return false;
+      }
+
+      Dwarf_Unsigned bytes_in_cie;
+      result = dwarf_get_cie_info(cie, &bytes_in_cie, NULL, NULL, NULL, NULL, 
+                                  &dwarf_reg, NULL, NULL, &err);
+      if (result != DW_DLV_OK) {
+         setSymtabError(Bad_Frame_Data);
+         return false;
+      }
+   }
+   else if (reg == Dyninst::MachRegFrameBase) {
+      dwarf_reg = DW_FRAME_CFA_COL3;
+   }
+   else {
+      dwarf_reg = DynToDwarfReg(reg);
+   }
+
+   Dwarf_Small value_type;
+   Dwarf_Signed offset_relevant, register_num, offset_or_block_len;
+   Dwarf_Ptr block_ptr;
+   Dwarf_Addr row_pc;
+
+   /**
+    * Decode the rule that describes how to get dwarf_reg at pc.
+    **/
+   if (dwarf_reg != DW_FRAME_CFA_COL3) {
+      result = dwarf_get_fde_info_for_reg3(fde, dwarf_reg, pc, &value_type, 
+                                           &offset_relevant, &register_num,
+                                           &offset_or_block_len,
+                                           &block_ptr, &row_pc, &err);
+   }
+   else {
+      result = dwarf_get_fde_info_for_cfa_reg3(fde, pc, &value_type, 
+                                               &offset_relevant, &register_num,
+                                               &offset_or_block_len,
+                                               &block_ptr, &row_pc, &err);
+   }
+   if (result == DW_DLV_ERROR) {
+      setSymtabError(Bad_Frame_Data);
+      return false;
+   }
+
+   /**
+    * Interpret the rule and turn it into a real value.
+    **/
+   unsigned word_size = addressWidth_nbytes;
+
+   Dyninst::Address res_addr = 0;
+   Dyninst::MachRegisterVal register_val;
+   
+   if (value_type == DW_EXPR_OFFSET || value_type == DW_EXPR_VAL_OFFSET)
+   {
+      if (register_num == DW_FRAME_CFA_COL3) {
+         bool bresult = getRegValueAtFrame(pc, Dyninst::MachRegFrameBase, 
+                                           register_val, reader);
+         if (!bresult) 
+            return false;
+      }
+      else if (register_num == DW_FRAME_SAME_VAL) {
+         bool bresult = reader->GetReg(reg, register_val);
+         if (!bresult) {
+            setSymtabError(Frame_Read_Error);
+            return false;
+         }
+         reg_result = register_val;
+         return true;
+      }
+      else {
+         Dyninst::MachRegister dyn_registr = DwarfToDynReg(register_num);
+         bool bresult = reader->GetReg(dyn_registr, register_val);
+         if (!bresult) {
+            setSymtabError(Frame_Read_Error);
+            return false;
+         }
+      }
+   }
+
+   if ((value_type == DW_EXPR_VAL_OFFSET) || 
+       (value_type == DW_EXPR_OFFSET && dwarf_reg == DW_FRAME_CFA_COL3)) {
+      assert(offset_relevant);
+      reg_result = (Dyninst::MachRegisterVal) (register_val + offset_or_block_len);
+      return true;
+   }
+   else if (value_type == DW_EXPR_OFFSET && offset_relevant) {
+      res_addr = (Dyninst::Address) (register_val + offset_or_block_len);
+   }
+   else if (value_type == DW_EXPR_OFFSET && !offset_relevant)
+   {
+      reg_result = register_val;
+      return true;
+   } 
+   else if (value_type == DW_EXPR_EXPRESSION || value_type == DW_EXPR_EXPRESSION)
+   {
+      //TODO: Handle expressions
+      return false;
+   }
+   else
+   {
+      setSymtabError(Bad_Frame_Data);
+      return false;
+   }
+   
+   assert(res_addr);
+   bool bresult;
+   if (word_size == 4) {
+      uint32_t i;
+      bresult = reader->ReadMem(res_addr, &i, word_size);
+      reg_result = (Dyninst::MachRegisterVal) i;
+   }
+   else if (word_size == 8) {
+      uint64_t i;
+      bresult = reader->ReadMem(res_addr, &i, word_size);
+      reg_result = (Dyninst::MachRegisterVal) i;
+   }
+   if (!bresult) {
+      setSymtabError(Frame_Read_Error);
+      return false;
+   }
+
+   return true;
+}
+
+DwarfHandle::DwarfHandle(Object *obj_) :
+   fde_dwarf_status(dwarf_status_uninitialized),
+   init_dwarf_status(dwarf_status_uninitialized),
+   obj(obj_)
+{
+   assert(obj);
+}
+
+Dwarf_Debug *DwarfHandle::dbg()
+{
+   int status;
+   if (init_dwarf_status == dwarf_status_ok) {
+      return &dbg_data;
+   }
+
+   if (init_dwarf_status == dwarf_status_error) {
+      return NULL;
+   }
+   
+   status = dwarf_elf_init(obj->elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, 
+                           &pd_dwarf_handler, obj->getErrFunc(), &dbg_data, NULL);
+   if (status != DW_DLV_OK) {
+      init_dwarf_status = dwarf_status_error;
+      return NULL;
+   }
+
+   init_dwarf_status = dwarf_status_ok;
+   return &dbg_data;
+}
+
+void DwarfHandle::setupFdeData()
+{
+   Dwarf_Error err;
+
+   if (fde_dwarf_status == dwarf_status_ok || 
+       fde_dwarf_status == dwarf_status_error)
+      return;
+
+   if (!dbg()) {
+      fde_dwarf_status = dwarf_status_error;
+      return;
+   }
+
+   fde_cie_data fc;
+   int result = dwarf_get_fde_list(dbg_data, 
+                                   &fc.cie_data, &fc.cie_count,
+                                   &fc.fde_data, &fc.fde_count,
+                                   &err);
+   if (result == DW_DLV_OK) {
+      fde_data.push_back(fc);
+   }
+
+   result = dwarf_get_fde_list_eh(dbg_data, 
+                                  &fc.cie_data, &fc.cie_count,
+                                  &fc.fde_data, &fc.fde_count,
+                                  &err);
+   if (result == DW_DLV_OK) {
+      fde_data.push_back(fc);
+   }
+
+   if (!fde_data.size()) {
+      fde_dwarf_status = dwarf_status_error;
+   }
+
+   fde_dwarf_status = dwarf_status_ok;
+}
+
+DwarfHandle::~DwarfHandle()
+{
+   Dwarf_Error err;
+
+   for (unsigned i=0; i<fde_data.size(); i++)
+   {
+      if (fde_dwarf_status == dwarf_status_ok) {
+         dwarf_fde_cie_list_dealloc(dbg_data, 
+                                    fde_data[i].cie_data, fde_data[i].cie_count, 
+                                    fde_data[i].fde_data, fde_data[i].fde_count);
+      }
+   }
+   if (init_dwarf_status == dwarf_status_ok) {
+      dwarf_finish(dbg_data, &err);
+   }
 }

@@ -92,7 +92,7 @@ class Symbol : public Serializable,
       ST_FUNCTION,
       ST_OBJECT,
       ST_MODULE,
-	  ST_SECTION,
+      ST_SECTION,
       ST_NOTYPE
    };
 
@@ -210,6 +210,7 @@ class Symbol : public Serializable,
    Offset        addr_;
    Region*      sec_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
+   void *upPtr_;
    bool          isInDynsymtab_;
    bool          isInSymtab_;
    bool          isAbsolute_;
@@ -246,15 +247,6 @@ Symbol::Symbol(unsigned)
    //vars_(NULL), params_(NULL) 
 {
 }
-#if 0
-   inline
-Symbol::Symbol(unsigned)
-   : //name_("*bad-symbol*"), module_("*bad-module*"),
-   module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), upPtr_(NULL),
-   isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
-   vars_(NULL), params_(NULL) {
-   }
-#endif
 
 inline
 bool
@@ -267,9 +259,7 @@ Symbol::operator==(const Symbol& s) const
          && (addr_    == s.addr_)
          && (sec_     == s.sec_)
          && (size_    == s.size_)
-#if 0
          && (upPtr_    == s.upPtr_)
-#endif
          && (isInDynsymtab_ == s.isInDynsymtab_)
          && (isInSymtab_ == s.isInSymtab_)
          && (isAbsolute_ == s.isAbsolute_)
