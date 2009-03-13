@@ -167,10 +167,9 @@ float BPatch_snippet::getCostAtPointInt(BPatch_point *pt)
     if (!pt) return 0.0;
     if (!pt->point) return 0.0;
 
-    int unitCostInCycles = (*ast_wrapper)->maxCost()
-                           + pt->point->getPointCost() 
-                           + getInsnCost(trampPreamble) 
-                           + getInsnCost(trampTrailer);
+    int unitCostInCycles = (*ast_wrapper)->maxCost() +
+        pt->point->getPointCost() +
+        getInsnCost(trampPreamble);
 
     timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
     float frequency = 1.0f;

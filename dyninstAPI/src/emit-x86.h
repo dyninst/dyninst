@@ -118,10 +118,6 @@ public:
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
-    bool emitBTMTCode(baseTramp* bt, codeGen &gen);
-    bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex);
-    bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
-    bool emitBTCostCode(baseTramp* bt, codeGen& gen, unsigned& costValue);
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
 				  Register dest, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
@@ -224,10 +220,6 @@ public:
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
-    bool emitBTMTCode(baseTramp* bt, codeGen &gen);
-    bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpOffset);
-    bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
-    bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     /* The DWARF register numbering does not correspond to the architecture's
