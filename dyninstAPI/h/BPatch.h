@@ -121,10 +121,6 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
        deems it necessary.  Defaults to true */
     bool        autoRelocation_NP;
 
-    /* If true, base tramps and mini tramps are merged 
-       Defaults to false */
-    bool        trampMergeOn;
-
     /* If true, we save FPRs in situations we normally would 
        Defaults to true */
     bool saveFloatingPointsOn;
