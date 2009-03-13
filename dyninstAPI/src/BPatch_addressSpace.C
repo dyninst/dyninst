@@ -755,7 +755,7 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
     getRegisters(dontcare);
 
     for (unsigned i = 0; i < registers_.size(); i++) {
-        if (registers_[i].getName() == regName) {
+        if (registers_[i].name() == regName) {
             reg = registers_[i];
             return true;
         }
