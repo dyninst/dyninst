@@ -219,8 +219,8 @@ void intraFunctionDDGCreator::initializeGenKillSets(std::set<Block *> &allBlocks
     }
 }
 
-void intraFunctionDDGCreator::merge(ReachingDefsLocal &target,
-                                    ReachingDefsLocal &source) {
+void intraFunctionDDGCreator::merge(DefMap &target,
+                                    DefMap &source) {
     // See optimization note at the top of the file. 
     //
     // For each absloc A in target
@@ -232,7 +232,7 @@ void intraFunctionDDGCreator::merge(ReachingDefsLocal &target,
     //     For each a' in aliases
     //       target[A] = target[A] U source[a']
 
-    for (ReachingDefsLocal::iterator iter = target.begin(); 
+    for (DefMap::iterator iter = target.begin(); 
          iter != target.end();
          iter++) {
         AbslocPtr A = (*iter).first;
@@ -272,15 +272,15 @@ void intraFunctionDDGCreator::generateInterBlockReachingDefs(Flowgraph *CFG) {
         
         // NEW_IN = U (j \in pred) OUT(j,a)
         
-        ReachingDefsLocal newIn;
+        DefMap newIn;
         for (unsigned i = 0; i < preds.size(); i++) {
             merge(newIn, outSets[preds[i]]);
         }
         // Now: newIn = U (j \in pred) OUT(j)
         
         // OUT(i,a) = GEN(i,a) U (IN(i,a) - KILL(i,a))
-        ReachingDefsLocal newOut;
-        calcNewOut(newOut, working, 
+        DefMap newOut;
+        calcNewOut(newOut,
                    allGens[working], 
                    allKills[working],
                    newIn);
@@ -302,7 +302,7 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
     
     // Algorithmically:
     // For each block B:
-    //   Let localReachingDefs : Absloc -> Node be an empty map
+    //   Let localReachingDefs : Absloc -> Node = ins[B]
     //   For each instruction instance i in B:
     //     Let def = i.defines();
     //     For each absloc D in def:
@@ -311,14 +311,12 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
     //       For each absloc U in used:
     //         Let Aliases = aliases to U.
     //         For each absloc A in Aliases
-    //           If localReachingDefs[A] is defined
-    //             then node S = localReachingDefs[A]
-    //               Insert(S,T)
-    //             else let RDS = inSets[B][A]
-    //               For each pair (B', S) in RDS:
-    //                 Insert(S,T)
+    //           If localReachingDefs[A] neq NULL
+    //             then foreach S in localReachingDefs[A]
+    //               insert(S,T)
+    //           else insert(parameterNode, T)
     //     For each absloc D in def:
-    //       localReachingDefs[D] = NODE(I,D)
+    //       localReachingDefs[D] = GEN(i) U (localReachingDefs[D] - KILL(i))
     // See comment below for why we do this in two iterations.
 
     fprintf(stderr, "generateIntraBlockReachingDefs...\n");
@@ -329,9 +327,8 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
         Block *B = *b_iter;
         std::vector<std::pair<Instruction, Address> > insns;
         B->getInstructions(insns);
-        DefMap localReachingDefs;
+        DefMap &localReachingDefs = inSets[B];
         fprintf(stderr, "\tBlock 0x%lx\n", B->getStartAddress());
-        
         
         for (unsigned i = 0; i < insns.size(); i++) {
             Instruction I = insns[i].first;
@@ -392,26 +389,9 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
                             }
                         }
                         else { 
-                            ReachingDefSet RDS = inSets[B][U];
-                            if (RDS.empty()) {
-                                // An empty reachingDefSet means that we're an
-                                // using an undefined value; assume that
-                                // our caller set it.
-                                fprintf(stderr, "\t\t\t\t ... from parameter\n"); 
-                                NodePtr S = DDG->makeParamNode(U);
-                                DDG->insertPair(S,T);
-                            }
-                            else {
-                                for (ReachingDefSet::iterator r_iter = RDS.begin();
-                                     r_iter != RDS.end(); r_iter++) {
-                                    ReachingDefEntry entry = *r_iter;
-                                    fprintf(stderr, "\t\t\t\t ... from prior block definition %s/0x%lx\n",
-                                            r_iter->second.first->name().c_str(),
-                                            r_iter->second.second.addr);
-                                    NodePtr S = makeNodeFromCandidate(entry.second);
-                                    DDG->insertPair(S,T);
-                                }
-                            }
+                            fprintf(stderr, "\t\t\t\t ... from parameter\n"); 
+                            NodePtr S = DDG->makeParamNode(U);
+                            DDG->insertPair(S,T);
                         }
                     } // For U in used
                 } // else (used not empty)
@@ -455,11 +435,10 @@ void intraFunctionDDGCreator::generateIntraBlockReachingDefs(BlockSet &allBlocks
 }
 
 
-void intraFunctionDDGCreator::calcNewOut(ReachingDefsLocal &out,
-                                         Block *current,
+void intraFunctionDDGCreator::calcNewOut(DefMap &out,
                                          DefMap &gens,
                                          KillMap &kills,
-                                         ReachingDefsLocal &in) {
+                                         DefMap &in) {
     // OUT = GEN U (IN - KILL)
 
     // We get KILL implicitly from GEN. In effect:
@@ -477,7 +456,7 @@ void intraFunctionDDGCreator::calcNewOut(ReachingDefsLocal &out,
         definedAbslocs.insert((*iter).first);
     }            
 
-    for (ReachingDefsLocal::const_iterator iter = in.begin(); 
+    for (DefMap::const_iterator iter = in.begin(); 
          iter != in.end();
          iter++) {
         definedAbslocs.insert((*iter).first);
@@ -492,28 +471,16 @@ void intraFunctionDDGCreator::calcNewOut(ReachingDefsLocal &out,
         // If we kill this AbslocPtr within this block, then
         // take the entry from the GEN set only.
         if (kills.find(A) != kills.end()) {
-            genSetToReachingDefs(current, gens[A], out[A]);
+            out[A] = gens[A];
         }
         else {
             // We don't explicitly kill this, so take the union
             // of local generation with the INs. 
-            genSetToReachingDefs(current, gens[A], out[A]);
+            out[A] = gens[A];
             out[A].insert(in[A].begin(), in[A].end());
         }
     }
 }
-
-void intraFunctionDDGCreator::genSetToReachingDefs(Block *current,
-                                                   const cNodeSet &gens,
-                                                   ReachingDefSet &defs) {
-    // This is strictly an impedance matching function.
-    for (cNodeSet::const_iterator iter = gens.begin(); 
-         iter != gens.end();
-         iter++) {
-        defs.insert(std::make_pair<Block *, cNode>(current, *iter));
-    }
-}
-
 
 void intraFunctionDDGCreator::getPredecessors(BPatch_basicBlock *block,
                                               std::vector<BPatch_basicBlock *> &preds) {
@@ -539,21 +506,19 @@ intraFunctionDDGCreator intraFunctionDDGCreator::create(Function *func) {
     return creator;
 }
 
-void intraFunctionDDGCreator::debugLocalSet(const ReachingDefsLocal &s,
+void intraFunctionDDGCreator::debugLocalSet(const DefMap &s,
                                             char *str) {
-    for (ReachingDefsLocal::const_iterator iter = s.begin();
+    for (DefMap::const_iterator iter = s.begin();
          iter != s.end(); 
          iter++) {
         fprintf(stderr, "%s Absloc: %s\n", str, (*iter).first->name().c_str());
-        for (ReachingDefSet::const_iterator iter2 = (*iter).second.begin();
+        for (cNodeSet::const_iterator iter2 = (*iter).second.begin();
              iter2 != (*iter).second.end();
              iter2++) {
-            Block *block = (*iter2).first;
-            Address addr = (*iter2).second.second.addr;
-            AbslocPtr absloc = (*iter2).second.first;
-            fprintf(stderr, "%s\t Block: %lx, insn addr 0x%lx, Absloc %s\n", 
+            Address addr = (*iter2).second.addr;
+            AbslocPtr absloc = (*iter2).first;
+            fprintf(stderr, "%s\t insn addr 0x%lx, Absloc %s\n", 
                     str, 
-                    block->getStartAddress(),
                     addr,
                     absloc->name().c_str());
         }
@@ -636,7 +601,7 @@ bool intraFunctionDDGCreator::isCall(Instruction i) const {
 void intraFunctionDDGCreator::recordCallState(const Instruction &,
                                               const Address &a,
                                               const DefMap &localDefs,
-                                              const ReachingDefsLocal &reachingDefs) {
+                                              const DefMap &reachingDefs) {
     // We need to summarize all reaching definitions 
     // so that we can create formal nodes in the graph.
     
@@ -655,12 +620,12 @@ void intraFunctionDDGCreator::recordCallState(const Instruction &,
     // call, determine its parameter set, and store only the reaching defs
     // to those parameters. This will work as a prototype.
 
-    for (ReachingDefsLocal::const_iterator i = reachingDefs.begin();
+    for (DefMap::const_iterator i = reachingDefs.begin();
          i != reachingDefs.end(); i++) {
         AbslocPtr use = i->first;
-        for (ReachingDefSet::const_iterator j = i->second.begin();
+        for (cNodeSet::const_iterator j = i->second.begin();
              j != i->second.end(); j++) {
-            const cNode &cnode = j->second;
+            const cNode &cnode = (*j);
             const AbslocPtr &def = cnode.first;
             const Address &defAddr = cnode.second.addr;
             
