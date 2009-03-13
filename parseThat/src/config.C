@@ -44,6 +44,7 @@ void configInit()
     config.grandchildren = set< int >();
 
     config.verbose = INFO;
+    config.printipc = true;
 
     config.parse_level = PARSE_MODULE;
     config.inst_level = INST_NONE;
