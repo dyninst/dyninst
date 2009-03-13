@@ -6,7 +6,6 @@ AC_INIT(configure.in)
 AC_PROG_CXX(g++)
 AC_LANG(C++)
 
-
 dnl === CONFIGURE OPTIONS
 
 AC_ARG_WITH(package-base,
@@ -29,6 +28,8 @@ AC_ARG_WITH(tcltk-libdir,
 
 PD_SOFT_CHECK_INC_DIR($TCLTK_INC_DIR, [tcl.h])
 PD_SOFT_CHECK_LIB_DIR($TCLTK_LIB_DIR,$TCL_VERSION,[Tcl_Eval])
+LIBTCLTKSTATIC=`${PWD}/autodyninst/check_lib_type.py tcl ${TCLTK_LIB_DIR}`
+AC_SUBST(LIBTCLTKSTATIC)
 
 AC_SUBST(USE_TCL83)
 AC_SUBST(TCLTK_INC_DIR)
@@ -45,6 +46,8 @@ AC_ARG_WITH(libelf-libdir,
 
 PD_CHECK_INC_DIR($LIBELF_INC_DIR, [libelf.h])
 PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
+LIBELFSTATIC=`${PWD}/autodyninst/check_lib_type.py elf ${LIBELF_LIB_DIR}`
+AC_SUBST(LIBELFSTATIC)
 
 AC_SUBST(LIBELF_INC_DIR)
 AC_SUBST(LIBELF_LIB_DIR)
@@ -60,7 +63,9 @@ AC_ARG_WITH(libdwarf-libdir,
 	   [AC_ARG_WITH(package-base,[],[LIBDWARF_LIB_DIR="${PACKAGE_BASE}/libdwarf/lib"], [LIBDWARF_LIB_DIR=""])])
 
 PD_CHECK_INC_DIR($LIBDWARF_INC_DIR,[libdwarf.h])
-PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBELF_LIB_DIR,[-lelf])
+PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBDWARF_LIB_DIR,[-lelf])
+LIBDWARFSTATIC=`${PWD}/autodyninst/check_lib_type.py dwarf ${LIBDWARF_LIB_DIR}`
+AC_SUBST(LIBDWARFSTATIC)
 
 AC_SUBST(LIBDWARF_INC_DIR)
 AC_SUBST(LIBDWARF_LIB_DIR)

@@ -26,10 +26,9 @@ LIBUNWIND_INC = @LIBUNWIND_INC_DIR@
 #Build Paradyn using Tcl/Tk 8.3
 USE_TCL83 = @USE_TCL83@
 
-#Uncomment these lines to force the use static libraries
-#LIBELFSTATIC   = true
-#LIBDWARFSTATIC = true
-#LIBTCLTKSTATIC = true
+LIBELFSTATIC   = @LIBELFSTATIC@
+LIBDWARFSTATIC = @LIBDWARFSTATIC@
+LIBTCLTKSTATIC = @LIBTCLTKSTATIC@
 
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@
