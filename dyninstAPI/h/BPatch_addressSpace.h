@@ -317,8 +317,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (ptr),
     bool,free,(BPatch_variableExpr &ptr));
 
-    API_EXPORT(Int, (),
-               std::vector<BPatch_register>, getRegisters, ());
+    API_EXPORT(Int, (regs),
+               bool, getRegisters, (std::vector<BPatch_register> &regs));
 
     API_EXPORT(Int, (regName, reg),
     bool, createRegister_NP, (std::string regName, BPatch_register &reg)); 

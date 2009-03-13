@@ -164,7 +164,7 @@ class BPATCH_DLL_EXPORT BPatch_register : public BPatch_eventLock {
     friend class BPatch_point;
 
  public:
-    API_EXPORT(Int, (), std::string, getName, ());
+    API_EXPORT(Int, (), std::string, name, ());
 
  private:
     BPatch_register(std::string n,
