@@ -166,8 +166,7 @@ bool miniTramp::generateMT(registerSpace *rs)
 
     /* VG(11/06/01): Added location, needed by effective address AST node */
     returnOffset = ast_->generateTramp(miniTrampCode_, 
-                                       cost, false,
-                                       BPatch::bpatch->isMergeTramp());
+                                       cost, false);
 
     size_ = miniTrampCode_.used();
     miniTrampCode_.finalize();
@@ -212,31 +211,14 @@ miniTrampInstance::~miniTrampInstance() {
     AddressSpace *this_proc = proc();
 
     mini->deleteMTI(this);
-    if (!BPatch::bpatch->isMergeTramp()) {
-        this_proc->removeOrigRange(this);
-        this_proc->inferiorFree(trampBase);
-    }
 }
 
 
 unsigned miniTrampInstance::maxSizeRequired() {
-    if (BPatch::bpatch->isMergeTramp()) {
-		// Estimate...
-		// Test1 has this enormous miniTramp that basically
-		// screws it up for everyone else :)
-		return mini->ast_->getTreeSize()*512;
-    }
-    else {
-        if (mini->baseT->firstMini == mini) {
-            //inst_printf("Size request for first mini\n");
-            return instruction::maxJumpSize(proc()->getAddressWidth());
-        }
-        else
-            return 0;
-    }
-
-    assert(0 && "Unreachable!");
-    return 0;
+    // Estimate...
+    // Test1 has this enormous miniTramp that basically
+    // screws it up for everyone else :)
+    return mini->ast_->getTreeSize()*512;
 }
 
 
@@ -271,33 +253,9 @@ bool miniTrampInstance::generateCode(codeGen &gen,
 
     unsigned addr_width = proc()->getAddressWidth();
       
-    if (!BPatch::bpatch->isMergeTramp()) {
-        // Out of line code generation
-        // Are we first?
-        if (mini->baseT->firstMini == mini) {
-           if (!generated_) { 
-              mini->baseT->instSize = instruction::maxJumpSize(addr_width);
-              gen.fill(mini->baseT->instSize, codeGen::cgNOP);
-           }
-           else {
-              gen.moveIndex(instruction::maxJumpSize(addr_width));
-           }
-#if defined( cap_unwind )
-            /* maxJumpSize() returns bytes */
-#if defined( arch_ia64 )
-            (*unwindInformation)->insn_count += (instruction::maxJumpSize(addr_width) / 16) * 3;
-#else
-#error How do I know how many instructions are in the jump region?
-#endif /* defined( arch_ia64 ) */
-#endif /* defined( cap_unwind ) */       
-        }
-    }
-    else {
-        // Copy code into the buffer
-        gen.copy(mini->miniTrampCode_);
-        // TODO unwind information
-
-    }
+    // Copy code into the buffer
+    gen.copy(mini->miniTrampCode_);
+    // TODO unwind information
     
     generated_ = true;
     hasChanged_ = false;
@@ -306,144 +264,6 @@ bool miniTrampInstance::generateCode(codeGen &gen,
 }
 
 bool miniTrampInstance::installCode() {
-    if (BPatch::bpatch->isMergeTramp()) {
-        installed_ = true;
-        return true;
-    }
-
-    // Write, I say _write_ into the addr space
-    if (installed_) {
-        assert(trampBase);
-        return true;
-    }
-    
-    // See if there's anyone nearby.
-    Address nearAddr = 0;
-
-    miniTramp *nearby = (mini->next);
-    if (nearby) {
-        miniTrampInstance *nearMTI = nearby->getMTInstanceByBTI(baseTI);
-        assert(nearMTI);
-        nearAddr = nearMTI->trampBase;
-    }
-    if (!nearAddr) {
-        // Either no next, or hasn't been allocated... try again with prev
-        nearby = mini->prev;
-        if (nearby) {
-            miniTrampInstance *nearMTI = nearby->getMTInstanceByBTI(baseTI);
-            assert(nearMTI);
-            nearAddr = nearMTI->trampBase;
-        }
-    }
-    // NearAddr might be 0 if there's nobody nearby or if the neighbor hasn't been
-    // allocated yet.
-
-#if defined(arch_alpha)
-    // Short branch range...
-    if (!nearAddr)
-        nearAddr = baseTI->trampPreAddr();
-#endif
-
-
-    inferiorHeapType htype;
-#if defined(os_aix)
-    // We use the data heap on AIX because it is unlimited, unlike
-    // the textHeap. The text heap is allocated from spare parts of 
-    // pages, and as such can run out. Since minitramps can be arbitrarily
-    // far from the base tramp (link register branching), but only a 
-    // single jump from each other, we cluster them in the dataHeap.
-    htype = dataHeap;
-#else
-    htype = anyHeap;
-#endif
-    
-    if ((nearAddr < 0x20000000)  && (nearAddr > 0x0)) {
-        htype = anyHeap;
-        nearAddr = 0x10000000;
-    }
-    else {
-
-#if defined(os_aix)
-        if (mini->instP()->func()->prettyName() == "__fork") {
-            nearAddr = 0;
-            htype = dataHeap;
-        }
-#endif
-
-    }
-
-    trampBase = mini->proc()->inferiorMalloc(mini->size_, htype, nearAddr);
-
-    if (!proc()->writeTextSpace((void *)trampBase,
-                                mini->miniTrampCode_.used(),
-                                (void *)mini->miniTrampCode_.start_ptr())) {
-      trampBase = 0;
-      return false;
-    }
-
-#if defined( cap_unwind )
-	/* TODO: Minitramps don't change the unwind state of the program (except
-	   via calls), so they all ALIAS to the corresponding jump in the
-	   base tramp.  We could notionally cache the regions, but since
-	   we have to change the unw_dyn_info_t anyway, this is just simpler. */
-	
-	unw_dyn_info_t * miniTrampDynamicInfo = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
-	assert( miniTrampDynamicInfo != NULL );
-
-    miniTrampDynamicInfo->start_ip = trampBase;
-    miniTrampDynamicInfo->end_ip = trampBase + mini->miniTrampCode_.used();
-    miniTrampDynamicInfo->gp = mini->proc()->proc()->getTOCoffsetInfo( baseTI->multiT->instAddr()  );
-    miniTrampDynamicInfo->format = UNW_INFO_FORMAT_DYNAMIC;
-
-    miniTrampDynamicInfo->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation: mini tramp";
-	
-	miniTrampDynamicInfo->next = NULL;
-	miniTrampDynamicInfo->prev = NULL;
-	
-	unw_dyn_region_info_t * aliasRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( aliasRegion != NULL );
-
-	aliasRegion->insn_count = 0;
-	aliasRegion->op_count = 2;
-	
-	Address jumpToMiniTrampAddress = baseTI->trampAddr_ + baseTI->baseT->instStartOffset;
-	dyn_unw_printf( "%s[%d]: ALIASING minitramp (0x%lx - 0x%lx) to 0x%lx\n", __FILE__, __LINE__, miniTrampDynamicInfo->start_ip, miniTrampDynamicInfo->end_ip, jumpToMiniTrampAddress );
-	_U_dyn_op_alias( & aliasRegion->op[0], _U_QP_TRUE, -1, jumpToMiniTrampAddress );
-	_U_dyn_op_stop( & aliasRegion->op[1] );
-	
-	unw_dyn_region_info_t * trampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
-	assert( trampRegion != NULL );
-	
-	// mini->miniTrampCode_.used() returns bytes.
-#if defined( arch_ia64 )
-	trampRegion->insn_count = (mini->miniTrampCode_.used() / 16) * 3;
-#else
-#error How do I know how many instructions are in the jump region?
-#endif /* defined( arch_ia64 ) */
-	trampRegion->op_count = 1;
-
-	aliasRegion->next = trampRegion;
-	trampRegion->next = NULL;
-	
-	_U_dyn_op_stop( & trampRegion->op[0] );
-
-    miniTrampDynamicInfo->u.pi.regions = aliasRegion;
-    bool status = mini->proc()->proc()->insertAndRegisterDynamicUnwindInformation( miniTrampDynamicInfo );
-	if( ! status ) { 
-	  trampBase = 0;
-	  
-	  return false; 
-	}
-
-	free( trampRegion );
-    free( aliasRegion );
-    free( miniTrampDynamicInfo );
-	
-#endif
-
-    // TODO in-line
-    proc()->addOrigRange(this);
-    
     installed_ = true;
     return true;
 }
@@ -462,7 +282,6 @@ bool miniTrampInstance::safeToFree(codeRange *range) {
 }
 
 void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
-    bool merged = BPatch::bpatch->isMergeTramp();
 
     baseTrampInstance *delBTI = dynamic_cast<baseTrampInstance *>(subObject);
 
@@ -481,10 +300,7 @@ void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
             if(prevI != NULL)
                 prevI->linkCode();
         }
-        if (!merged) 
-            proc()->deleteGeneratedCode(this);
-        else
-            delete this;
+        delete this;
 
     }
     else {
@@ -493,10 +309,7 @@ void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
         // a different instance. If so, we're cool. If not, clean 
         // up and go away.
         if (delBTI == baseTI) {
-            if (!merged) 
-                proc()->deleteGeneratedCode(this);
-            else
-                delete this;
+            delete this;
         }
     }
 }
@@ -517,54 +330,6 @@ AddressSpace *miniTrampInstance::proc() const {
 }
 
 bool miniTrampInstance::linkCode() {
-    if (BPatch::bpatch->isMergeTramp()) {
-        linked_ = true;
-        return true;
-    }
-
-    assert(baseTI);
-    assert(baseTI->trampPreAddr());
-
-    if (mini->next) {
-        assert(baseTI);
-        miniTrampInstance *nextI = mini->next->getMTInstanceByBTI(baseTI);
-        assert(nextI);
-
-        // if 'this' or 'next' has a zero trampBase, it's in the process of 
-        // being deleted and we don't need to do the link
-        if((trampBase != 0) && (nextI->trampBase != 0)) {
-
-            inst_printf("Writing branch from 0x%x (0x%x,0x%x) to 0x%x, miniT -> miniT\n",
-                        trampBase + mini->returnOffset,
-                        trampBase,
-                        mini->returnOffset,
-                        nextI->trampBase);
-
-            generateAndWriteBranch(mini->proc(), 
-                                   trampBase + mini->returnOffset,
-                                   nextI->trampBase,
-                                   instruction::maxJumpSize(proc()->getAddressWidth()));
-        }
-    }
-    else {
-        // Last one; go to the base tramp
-
-        // if 'this' has a zero trampBase, it's in the process of being deleted
-        // and we don't need to do the link
-        if(trampBase != 0) {
-           inst_printf("Writing branch from 0x%x to 0x%x, miniT (%p) -> baseT (%p)\n",
-                       trampBase + mini->returnOffset,
-                       baseTI->miniTrampReturnAddr(),
-                       this,
-                       baseTI);
-
-           generateAndWriteBranch(mini->proc(),
-                                  (trampBase + mini->returnOffset),
-                                  baseTI->miniTrampReturnAddr(),
-                                  instruction::maxJumpSize(proc()->getAddressWidth()));
-        }
-    }
-
     linked_ = true;
     return true;
 }
@@ -593,31 +358,18 @@ generatedCodeObject *miniTrampInstance::replaceCode(generatedCodeObject *newPare
 
     baseTI->deleteMTI(this);
 
-    if (!BPatch::bpatch->isMergeTramp()) {
-        // We out-of-line, and so this just shifts allegiance.        
+    if (!generated_) {
         baseTI = newBTI;
-        
-        // Not linked yet...
-        linked_ = false;
         return this;
     }
-    else {
-        if (!generated_) {
-            baseTI = newBTI;
-            return this;
-        }
-        // We replace ourselves...
-        miniTrampInstance *newMTI = new miniTrampInstance(this, newBTI);
-        assert(newMTI);
-        return dynamic_cast<generatedCodeObject *>(newMTI);
-    }
+    // We replace ourselves...
+    miniTrampInstance *newMTI = new miniTrampInstance(this, newBTI);
+    assert(newMTI);
+    return dynamic_cast<generatedCodeObject *>(newMTI);
 }
 
 bool miniTrampInstance::hasChanged() {
-    if (BPatch::bpatch->isMergeTramp()) 
-        return hasChanged_;
-    else
-        return false;
+    return hasChanged_;
 }
  
 unsigned miniTrampInstance::get_size() const { 

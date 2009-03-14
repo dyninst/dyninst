@@ -417,14 +417,9 @@ AstNode::~AstNode() {
 
 Address AstMiniTrampNode::generateTramp(codeGen &gen,
                                         int &trampCost, 
-                                        bool noCost,
-                                        bool merged) {
-    static AstNodePtr trailer;
+                                        bool noCost) {
     static AstNodePtr costAst;
     static AstNodePtr preamble;
-
-    if (trailer == AstNodePtr())
-        trailer = AstNode::operatorNode(trampTrailer);
 
     if (costAst == AstNodePtr())
         costAst = AstNode::operandNode(AstNode::Constant, (void *)0);
@@ -439,7 +434,7 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
     // will have their costs added to the observed cost global variable
     // only if they are indeed called.  The code to do this in the minitramp
     // right after the body of the if.
-    trampCost = preamble->maxCost() + minCost() + trailer->maxCost();
+    trampCost = preamble->maxCost() + minCost();
 
     costAst->setOValue((void *) (long) trampCost);
     
@@ -457,17 +452,7 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
         fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp body\n", __FILE__, __LINE__);
     }
 
-    Register tmp = REG_NULL;
-    Address trampJumpOffset = 0;
-    if (!merged) {
-        if (!trailer->generateCode(gen, noCost, trampJumpOffset, tmp)) {
-            fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp trailer\n", __FILE__, __LINE__);
-        }
-        gen.rs()->freeRegister(tmp);
-    }
-
-    
-    return trampJumpOffset;
+    return 0;
 }
 
 // This name is a bit of a misnomer. It's not the strict use count; it's the
@@ -1171,17 +1156,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         retReg = REG_NULL;
         break;
     }
-    case trampTrailer: {
-        // This ast cannot be shared because it doesn't return a register
-        codeBufIndex_t ret_index = emitA(op, 0, 0, 0, gen, noCost);
-
-        // Convert to a bytecount
-        // From 0: assume we're starting at the beginning of the code generator. Not a tremendous
-        // assumption but valid in all cases.
-        retAddr = gen.getDisplacement(0, ret_index);
-        retReg = REG_NULL;
-        break;
-    }
     case trampPreamble: {
         // This ast cannot be shared because it doesn't return a register
 #if defined(i386_unknown_solaris2_5) \
@@ -1765,7 +1739,6 @@ std::string getOpString(opCode op)
 	case whileOp: return("while") ;
 	case doOp: return("while") ;
 	case trampPreamble: return("preTramp");
-	case trampTrailer: return("goto");
 	case branchOp: return("goto");
 	case noOp: return("nop");
 	case andOp: return("and");
@@ -1822,8 +1795,6 @@ int AstOperatorNode::costHelper(enum CostStyleType costStyle) const {
         if (loperand) total += loperand->costHelper(costStyle);
         if (roperand) total += roperand->costHelper(costStyle);
         total += getInsnCost(op);
-    } else if (op == trampTrailer) {
-        total = getInsnCost(op);
     } else if (op == trampPreamble) {
         total = getInsnCost(op);
     } else {
