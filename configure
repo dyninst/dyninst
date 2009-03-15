@@ -271,8 +271,8 @@ PACKAGE_VERSION=
 PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
-ac_unique_file="configure.in"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR LIBELF_INC_DIR LIBELF_LIB_DIR LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBXML2_INC_DIR LIBXML2_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM MMTIMER PAPI_ROOT LIBOBJS LTLIBOBJS'
+ac_unique_file="./autodyninst/configure.in"
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_INC_DIR LIBIBERTY_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM MMTIMER PAPI_ROOT LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -806,7 +806,6 @@ Optional Packages:
   --with-package-base     Base directory to look for packages
   --with-tcl83            Use Tcl/Tk 8.3
   --with-tcltk-incdir     TCL/TK include directory
-
   --with-tcltk-libdir     TCL/TK library directory
   --with-libelf-incdir    LIBELF include directory
   --with-libelf-libdir    LIBELF library directory
@@ -814,6 +813,8 @@ Optional Packages:
   --with-libdwarf-libdir  LIBDWARF library directory
   --with-libxml2-incdir   LIBXML2 include directory
   --with-libxml2-libdir   LIBXML2 library directory
+  --with-libiberty-incdir LIBIBERTY include directory
+  --with-libiberty-libdir LIBIBERTY library directory
   --with-libunwind-incdir LIBUNWIND include directory
   --with-libunwind-libdir LIBUNWIND library directory
   --with-libflex-libdir   Absolute path to flex library
@@ -1264,6 +1265,30 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+ac_aux_dir=
+for ac_dir in ./autodyninst $srcdir/./autodyninst; do
+  if test -f $ac_dir/install-sh; then
+    ac_aux_dir=$ac_dir
+    ac_install_sh="$ac_aux_dir/install-sh -c"
+    break
+  elif test -f $ac_dir/install.sh; then
+    ac_aux_dir=$ac_dir
+    ac_install_sh="$ac_aux_dir/install.sh -c"
+    break
+  elif test -f $ac_dir/shtool; then
+    ac_aux_dir=$ac_dir
+    ac_install_sh="$ac_aux_dir/shtool install -c"
+    break
+  fi
+done
+if test -z "$ac_aux_dir"; then
+  { { echo "$as_me:$LINENO: error: cannot find install-sh or install.sh in ./autodyninst $srcdir/./autodyninst" >&5
+echo "$as_me: error: cannot find install-sh or install.sh in ./autodyninst $srcdir/./autodyninst" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+ac_config_guess="$SHELL $ac_aux_dir/config.guess"
+ac_config_sub="$SHELL $ac_aux_dir/config.sub"
+ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
 
 ac_ext=cc
 ac_cpp='$CXXCPP $CPPFLAGS'
@@ -1831,13 +1856,46 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
 
+PACKAGE_BASE=""
+
 # Check whether --with-package-base or --without-package-base was given.
 if test "${with_package_base+set}" = set; then
   withval="$with_package_base"
   PACKAGE_BASE="${withval}";
+            TCLTK_INC_DIR="${PACKAGE_BASE}/tcl8.4.5/include";
+            TCLTK_LIB_DIR="${PACKAGE_BASE}/tcl8.4.5/lib";
+            LIBELF_INC_DIR="${PACKAGE_BASE}/libelf/include";
+            LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib";
+            LIBDWARF_INC_DIR="${PACKAGE_BASE}/libdwarf/include";
+            LIBDWARF_LIB_DIR="${PACKAGE_BASE}/libdwarf/lib";
+            LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"
+            LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib";
+            LIBUNWIND_INC_DIR="${PACKAGE_BASE}/libunwind/include";
+            LIBUNWIND_LIB_DIR="${PACKAGE_BASE}/libunwind/lib";
+            LIBFLEX_LIB_DIR="${PACKAGE_BASE}/libflex/lib";
+
 else
-  PACKAGE_BASE="";
+
+            # We fall back on these defaults if both --with-package-base and
+            # specific --with-<package> arguments are not provided.
+            TCLTK_INC_DIR="/usr/include";
+            TCLTK_LIB_DIR="/usr/lib";
+            LIBELF_INC_DIR="/usr/include";
+            LIBELF_LIB_DIR="/usr/lib";
+            LIBDWARF_INC_DIR="/usr/include";
+            LIBDWARF_LIB_DIR="/usr/lib";
+            LIBXML2_INC_DIR="/usr/include/libxml2"
+            LIBXML2_LIB_DIR="/usr/lib";
+            LIBUNWIND_INC_DIR="/usr/include";
+            LIBUNWIND_LIB_DIR="/usr/lib";
+            LIBFLEX_LIB_DIR="/usr/lib";
+
 fi;
+# 3/15/09: We don't include libiberty in the cs.wisc.edu package-base.
+#          Why?  Putting these here for now...
+LIBIBERTY_INC_DIR="/usr/include";
+LIBIBERTY_LIB_DIR="/usr/lib";
+
 
 
 # Check whether --with-tcl83 or --without-tcl83 was given.
@@ -1852,36 +1910,16 @@ fi;
 if test "${with_tcltk_incdir+set}" = set; then
   withval="$with_tcltk_incdir"
   TCLTK_INC_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  TCLTK_INC_DIR="${PACKAGE_BASE}/tcl8.4.5/include"
-else
-  TCLTK_INC_DIR=""
-fi;
 fi;
 
 # Check whether --with-tcltk-libdir or --without-tcltk-libdir was given.
 if test "${with_tcltk_libdir+set}" = set; then
   withval="$with_tcltk_libdir"
   TCLTK_LIB_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  TCLTK_LIB_DIR="${PACKAGE_BASE}/tcl8.4.5/lib"
-else
-  TCLTK_LIB_DIR=""
 fi;
-fi;
-
 
 
   CXXFLAGS_HOLD=$CXXFLAGS
-
   if test "$TCLTK_INC_DIR" != "" ; then
     echo "$as_me:$LINENO: checking for tcl.h in $TCLTK_INC_DIR" >&5
 echo $ECHO_N "checking for tcl.h in $TCLTK_INC_DIR... $ECHO_C" >&6
@@ -1890,7 +1928,6 @@ echo $ECHO_N "checking for tcl.h in $TCLTK_INC_DIR... $ECHO_C" >&6
     echo "$as_me:$LINENO: checking for tcl.h" >&5
 echo $ECHO_N "checking for tcl.h... $ECHO_C" >&6
   fi
-
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -2196,35 +2233,15 @@ fi
 if test "${with_libelf_incdir+set}" = set; then
   withval="$with_libelf_incdir"
   LIBELF_INC_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBELF_INC_DIR="${PACKAGE_BASE}/libelf/include"
-else
-  LIBELF_INC_DIR=""
-fi;
 fi;
 
 # Check whether --with-libelf-libdir or --without-libelf-libdir was given.
 if test "${with_libelf_libdir+set}" = set; then
   withval="$with_libelf_libdir"
   LIBELF_LIB_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib"
-else
-  LIBELF_LIB_DIR=""
 fi;
-fi;
-
 
   CXXFLAGS_HOLD=$CXXFLAGS
-
   if test "$LIBELF_INC_DIR" != "" ; then
     echo "$as_me:$LINENO: checking for libelf.h in $LIBELF_INC_DIR" >&5
 echo $ECHO_N "checking for libelf.h in $LIBELF_INC_DIR... $ECHO_C" >&6
@@ -2233,7 +2250,6 @@ echo $ECHO_N "checking for libelf.h in $LIBELF_INC_DIR... $ECHO_C" >&6
     echo "$as_me:$LINENO: checking for libelf.h" >&5
 echo $ECHO_N "checking for libelf.h... $ECHO_C" >&6
   fi
-
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -2531,6 +2547,14 @@ fi
   fi
 
 
+  LIB_TYPE_DYNAMIC=`ls -H -1 $LIBELF_LIB_DIR | grep elf | grep '.so' | wc | awk '{if($'2' > 0){print "true"} else {print "false"}}'`
+  LIB_TYPE_STATIC=`ls -H -1 $LIBELF_LIB_DIR | grep elf | grep '.a' | wc | awk '{if($'2' > 0){print "true"} else {print "false"}}'`
+
+LIBELF_STATIC="$LIB_TYPE_STATIC"
+LIBELF_DYNAMIC="$LIB_TYPE_DYNAMIC"
+
+
+
 
 
 
@@ -2539,36 +2563,15 @@ fi
 if test "${with_libdwarf_incdir+set}" = set; then
   withval="$with_libdwarf_incdir"
   LIBDWARF_INC_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBDWARF_INC_DIR="${PACKAGE_BASE}/libdwarf/include"
-else
-  LIBDWARF_INC_DIR=""
 fi;
-fi;
-
 
 # Check whether --with-libdwarf-libdir or --without-libdwarf-libdir was given.
 if test "${with_libdwarf_libdir+set}" = set; then
   withval="$with_libdwarf_libdir"
   LIBDWARF_LIB_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBDWARF_LIB_DIR="${PACKAGE_BASE}/libdwarf/lib"
-else
-  LIBDWARF_LIB_DIR=""
 fi;
-fi;
-
 
   CXXFLAGS_HOLD=$CXXFLAGS
-
   if test "$LIBDWARF_INC_DIR" != "" ; then
     echo "$as_me:$LINENO: checking for libdwarf.h in $LIBDWARF_INC_DIR" >&5
 echo $ECHO_N "checking for libdwarf.h in $LIBDWARF_INC_DIR... $ECHO_C" >&6
@@ -2577,7 +2580,6 @@ echo $ECHO_N "checking for libdwarf.h in $LIBDWARF_INC_DIR... $ECHO_C" >&6
     echo "$as_me:$LINENO: checking for libdwarf.h" >&5
 echo $ECHO_N "checking for libdwarf.h... $ECHO_C" >&6
   fi
-
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -2710,8 +2712,8 @@ fi
 
   else
     LIBS_HOLD=$LIBS
-    if test "$LIBELF_LIB_DIR" != "" ; then
-      LIBS="-L$LIBDWARF_LIB_DIR -L$LIBELF_LIB_DIR"
+    if test "$LIBDWARF_LIB_DIR" != "" ; then
+      LIBS="-L$LIBDWARF_LIB_DIR -L$LIBDWARF_LIB_DIR"
 
 echo "$as_me:$LINENO: checking for dwarf_add_arange in -ldwarf" >&5
 echo $ECHO_N "checking for dwarf_add_arange in -ldwarf... $ECHO_C" >&6
@@ -2875,6 +2877,14 @@ fi
   fi
 
 
+  LIB_TYPE_DYNAMIC=`ls -H -1 $LIBDWARF_LIB_DIR | grep dwarf | grep '.so' | wc | awk '{if($'2' > 0){print "true"} else {print "false"}}'`
+  LIB_TYPE_STATIC=`ls -H -1 $LIBDWARF_LIB_DIR | grep dwarf | grep '.a' | wc | awk '{if($'2' > 0){print "true"} else {print "false"}}'`
+
+LIBDWARF_STATIC="$LIB_TYPE_STATIC"
+LIBDWARF_DYNAMIC="$LIB_TYPE_DYNAMIC"
+
+
+
 
 
 
@@ -2883,36 +2893,15 @@ fi
 if test "${with_libxml2_incdir+set}" = set; then
   withval="$with_libxml2_incdir"
   LIBXML2_INC_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"
-else
-  LIBXML2_INC_DIR=""
 fi;
-fi;
-
 
 # Check whether --with-libxml2-libdir or --without-libxml2-libdir was given.
 if test "${with_libxml2_libdir+set}" = set; then
   withval="$with_libxml2_libdir"
   LIBXML2_LIB_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib"
-else
-  LIBXML2_LIB_DIR=""
 fi;
-fi;
-
 
   CXXFLAGS_HOLD=$CXXFLAGS
-
   if test "$LIBXML2_INC_DIR" != "" ; then
     echo "$as_me:$LINENO: checking for libxml/xmlschemas.h in $LIBXML2_INC_DIR" >&5
 echo $ECHO_N "checking for libxml/xmlschemas.h in $LIBXML2_INC_DIR... $ECHO_C" >&6
@@ -2921,7 +2910,6 @@ echo $ECHO_N "checking for libxml/xmlschemas.h in $LIBXML2_INC_DIR... $ECHO_C" >
     echo "$as_me:$LINENO: checking for libxml/xmlschemas.h" >&5
 echo $ECHO_N "checking for libxml/xmlschemas.h... $ECHO_C" >&6
   fi
-
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -3223,62 +3211,335 @@ fi
 
 
 
+# Check whether --with-libiberty-incdir or --without-libiberty-incdir was given.
+if test "${with_libiberty_incdir+set}" = set; then
+  withval="$with_libiberty_incdir"
+  LIBIBERTY_INC_DIR="${withval}";
+fi;
+
+# Check whether --with-libxml2-libdir or --without-libxml2-libdir was given.
+if test "${with_libxml2_libdir+set}" = set; then
+  withval="$with_libxml2_libdir"
+  LIBIBERTY_LIB_DIR="${withval}";
+fi;
+
+  CXXFLAGS_HOLD=$CXXFLAGS
+  if test "$LIBIBERTY_INC_DIR" != "" ; then
+    echo "$as_me:$LINENO: checking for libiberty.h in $LIBIBERTY_INC_DIR" >&5
+echo $ECHO_N "checking for libiberty.h in $LIBIBERTY_INC_DIR... $ECHO_C" >&6
+    CXXFLAGS="$CXXFLAGS -I$LIBIBERTY_INC_DIR"
+  else
+    echo "$as_me:$LINENO: checking for libiberty.h" >&5
+echo $ECHO_N "checking for libiberty.h... $ECHO_C" >&6
+  fi
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include "libiberty.h"
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+echo "$as_me:$LINENO: result: libiberty.h not found in $LIBIBERTY_INC_DIR" >&5
+echo "${ECHO_T}libiberty.h not found in $LIBIBERTY_INC_DIR" >&6
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+  CXXFLAGS=$CXXFLAGS_HOLD
+
+
+  if test "$LIBIBERTY_LIB_DIR" = "" ; then
+
+echo "$as_me:$LINENO: checking for cplus_demangle in -liberty" >&5
+echo $ECHO_N "checking for cplus_demangle in -liberty... $ECHO_C" >&6
+if test "${ac_cv_lib_iberty_cplus_demangle+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-liberty  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char cplus_demangle ();
+int
+main ()
+{
+cplus_demangle ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_iberty_cplus_demangle=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_iberty_cplus_demangle=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_iberty_cplus_demangle" >&5
+echo "${ECHO_T}$ac_cv_lib_iberty_cplus_demangle" >&6
+if test $ac_cv_lib_iberty_cplus_demangle = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBIBERTY 1
+_ACEOF
+
+  LIBS="-liberty $LIBS"
+
+else
+  echo "$as_me:$LINENO: result: Can't find libiberty." >&5
+echo "${ECHO_T}Can't find libiberty." >&6
+fi
+
+  else
+    LIBS_HOLD=$LIBS
+    if test "" != "" ; then
+      LIBS="-L$LIBIBERTY_LIB_DIR -L"
+
+echo "$as_me:$LINENO: checking for cplus_demangle in -liberty" >&5
+echo $ECHO_N "checking for cplus_demangle in -liberty... $ECHO_C" >&6
+if test "${ac_cv_lib_iberty_cplus_demangle+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-liberty  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char cplus_demangle ();
+int
+main ()
+{
+cplus_demangle ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_iberty_cplus_demangle=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_iberty_cplus_demangle=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_iberty_cplus_demangle" >&5
+echo "${ECHO_T}$ac_cv_lib_iberty_cplus_demangle" >&6
+if test $ac_cv_lib_iberty_cplus_demangle = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBIBERTY 1
+_ACEOF
+
+  LIBS="-liberty $LIBS"
+
+else
+  echo "$as_me:$LINENO: result: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&5
+echo "${ECHO_T}Can't find libiberty in $LIBIBERTY_LIB_DIR" >&6
+fi
+
+    else
+      LIBS="-L$LIBIBERTY_LIB_DIR"
+
+echo "$as_me:$LINENO: checking for cplus_demangle in -liberty" >&5
+echo $ECHO_N "checking for cplus_demangle in -liberty... $ECHO_C" >&6
+if test "${ac_cv_lib_iberty_cplus_demangle+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-liberty  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char cplus_demangle ();
+int
+main ()
+{
+cplus_demangle ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_iberty_cplus_demangle=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_iberty_cplus_demangle=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_iberty_cplus_demangle" >&5
+echo "${ECHO_T}$ac_cv_lib_iberty_cplus_demangle" >&6
+if test $ac_cv_lib_iberty_cplus_demangle = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBIBERTY 1
+_ACEOF
+
+  LIBS="-liberty $LIBS"
+
+else
+  echo "$as_me:$LINENO: result: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&5
+echo "${ECHO_T}Can't find libiberty in $LIBIBERTY_LIB_DIR" >&6
+fi
+
+    fi
+    LIBS=$LIBS_HOLD
+  fi
+
+
+
+
+
+
 # Check whether --with-libunwind-incdir or --without-libunwind-incdir was given.
 if test "${with_libunwind_incdir+set}" = set; then
   withval="$with_libunwind_incdir"
   LIBUNWIND_INC_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBUNWIND_INC_DIR="${PACKAGE_BASE}/libunwind/include"
-else
-  LIBUNWIND_INC_DIR=""
 fi;
-fi;
-
 
 # Check whether --with-libunwind-libdir or --without-libunwind-libdir was given.
 if test "${with_libunwind_libdir+set}" = set; then
   withval="$with_libunwind_libdir"
   LIBUNWIND_LIB_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBUNWIND_LIB_DIR="${PACKAGE_BASE}/libunwind/lib"
-else
-  LIBUNWIND_LIB_DIR=""
 fi;
-fi;
-
-ac_aux_dir=
-for ac_dir in $srcdir $srcdir/.. $srcdir/../..; do
-  if test -f $ac_dir/install-sh; then
-    ac_aux_dir=$ac_dir
-    ac_install_sh="$ac_aux_dir/install-sh -c"
-    break
-  elif test -f $ac_dir/install.sh; then
-    ac_aux_dir=$ac_dir
-    ac_install_sh="$ac_aux_dir/install.sh -c"
-    break
-  elif test -f $ac_dir/shtool; then
-    ac_aux_dir=$ac_dir
-    ac_install_sh="$ac_aux_dir/shtool install -c"
-    break
-  fi
-done
-if test -z "$ac_aux_dir"; then
-  { { echo "$as_me:$LINENO: error: cannot find install-sh or install.sh in $srcdir $srcdir/.. $srcdir/../.." >&5
-echo "$as_me: error: cannot find install-sh or install.sh in $srcdir $srcdir/.. $srcdir/../.." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-ac_config_guess="$SHELL $ac_aux_dir/config.guess"
-ac_config_sub="$SHELL $ac_aux_dir/config.sub"
-ac_configure="$SHELL $ac_aux_dir/configure" # This should be Cygnus configure.
-
 # Make sure we can run config.sub.
 $ac_config_sub sun4 >/dev/null 2>&1 ||
   { { echo "$as_me:$LINENO: error: cannot run $ac_config_sub" >&5
@@ -3334,10 +3595,8 @@ host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 
 
 case $host in
-#     ia64-*-*-*) PD_CHECK_LIB_DIR(${LIBUNWIND_LIB_DIR}, [unwind], [ia64_read_only_reg]) ;;
      ia64-*-*-*)
   CXXFLAGS_HOLD=$CXXFLAGS
-
   if test "${LIBUNWIND_INC_DIR}" != "" ; then
     echo "$as_me:$LINENO: checking for libunwind.h in ${LIBUNWIND_INC_DIR}" >&5
 echo $ECHO_N "checking for libunwind.h in ${LIBUNWIND_INC_DIR}... $ECHO_C" >&6
@@ -3346,7 +3605,6 @@ echo $ECHO_N "checking for libunwind.h in ${LIBUNWIND_INC_DIR}... $ECHO_C" >&6
     echo "$as_me:$LINENO: checking for libunwind.h" >&5
 echo $ECHO_N "checking for libunwind.h... $ECHO_C" >&6
   fi
-
   cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -3397,9 +3655,292 @@ fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
   CXXFLAGS=$CXXFLAGS_HOLD
  ;;
-#     ia64-*-*-*) AC_CHECK_TYPE([unw_dyn_region_info_t], [], [AC_MSG_ERROR([cannot find unw_dyn_region_info_t in libunwind.h])], [${LIBUNWIND_INC_DIR}/libunwind.h]) ;;
      *) ;;
 esac
+
+  CXXFLAGS_HOLD=$CXXFLAGS
+  if test "$LIBUNWIND_INC_DIR" != "" ; then
+    echo "$as_me:$LINENO: checking for unwind.h in $LIBUNWIND_INC_DIR" >&5
+echo $ECHO_N "checking for unwind.h in $LIBUNWIND_INC_DIR... $ECHO_C" >&6
+    CXXFLAGS="$CXXFLAGS -I$LIBUNWIND_INC_DIR"
+  else
+    echo "$as_me:$LINENO: checking for unwind.h" >&5
+echo $ECHO_N "checking for unwind.h... $ECHO_C" >&6
+  fi
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include "unwind.h"
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+echo "$as_me:$LINENO: result: unwind.h not found in $LIBUNWIND_INC_DIR" >&5
+echo "${ECHO_T}unwind.h not found in $LIBUNWIND_INC_DIR" >&6
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+  CXXFLAGS=$CXXFLAGS_HOLD
+
+
+  if test "$LIBUNWIND_LIB_DIR" = "" ; then
+
+echo "$as_me:$LINENO: checking for main in -lunwind" >&5
+echo $ECHO_N "checking for main in -lunwind... $ECHO_C" >&6
+if test "${ac_cv_lib_unwind_main+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lunwind  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+main ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_unwind_main=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_unwind_main=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_unwind_main" >&5
+echo "${ECHO_T}$ac_cv_lib_unwind_main" >&6
+if test $ac_cv_lib_unwind_main = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUNWIND 1
+_ACEOF
+
+  LIBS="-lunwind $LIBS"
+
+else
+  echo "$as_me:$LINENO: result: Can't find libunwind." >&5
+echo "${ECHO_T}Can't find libunwind." >&6
+fi
+
+  else
+    LIBS_HOLD=$LIBS
+    if test "" != "" ; then
+      LIBS="-L$LIBUNWIND_LIB_DIR -L"
+
+echo "$as_me:$LINENO: checking for main in -lunwind" >&5
+echo $ECHO_N "checking for main in -lunwind... $ECHO_C" >&6
+if test "${ac_cv_lib_unwind_main+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lunwind  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+main ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_unwind_main=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_unwind_main=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_unwind_main" >&5
+echo "${ECHO_T}$ac_cv_lib_unwind_main" >&6
+if test $ac_cv_lib_unwind_main = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUNWIND 1
+_ACEOF
+
+  LIBS="-lunwind $LIBS"
+
+else
+  echo "$as_me:$LINENO: result: Can't find libunwind in $LIBUNWIND_LIB_DIR" >&5
+echo "${ECHO_T}Can't find libunwind in $LIBUNWIND_LIB_DIR" >&6
+fi
+
+    else
+      LIBS="-L$LIBUNWIND_LIB_DIR"
+
+echo "$as_me:$LINENO: checking for main in -lunwind" >&5
+echo $ECHO_N "checking for main in -lunwind... $ECHO_C" >&6
+if test "${ac_cv_lib_unwind_main+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lunwind  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+
+int
+main ()
+{
+main ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_unwind_main=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_unwind_main=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_unwind_main" >&5
+echo "${ECHO_T}$ac_cv_lib_unwind_main" >&6
+if test $ac_cv_lib_unwind_main = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBUNWIND 1
+_ACEOF
+
+  LIBS="-lunwind $LIBS"
+
+else
+  echo "$as_me:$LINENO: result: Can't find libunwind in $LIBUNWIND_LIB_DIR" >&5
+echo "${ECHO_T}Can't find libunwind in $LIBUNWIND_LIB_DIR" >&6
+fi
+
+    fi
+    LIBS=$LIBS_HOLD
+  fi
+
 
 
 
@@ -3409,17 +3950,9 @@ esac
 if test "${with_libflex_libdir+set}" = set; then
   withval="$with_libflex_libdir"
   LIBFLEX_LIB_DIR="${withval}";
-else
-
-# Check whether --with-package-base or --without-package-base was given.
-if test "${with_package_base+set}" = set; then
-  withval="$with_package_base"
-  LIBFLEX_LIB_DIR="${PACKAGE_BASE}/libflex/lib"
-else
-  LIBFLEX_LIB_DIR=""
 fi;
-fi;
-
+# 3/15/09: We are not checking for libflex sources and they are not in cs.wisc.edu package-base.
+#          What's the story here?  Not needed?
 
   if test "${LIBFLEX_LIB_DIR}" = "" ; then
 
@@ -3667,7 +4200,6 @@ fi
   fi
 
 
-
 # Extract the first word of "nasm", so it can be a program name with args.
 set dummy nasm; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -3722,6 +4254,7 @@ echo "$as_me:$LINENO: result: ${MMTIMER}" >&5
 echo "${ECHO_T}${MMTIMER}" >&6
 
 
+
 as_ac_File=`echo "ac_cv_file_"${PACKAGE_BASE}/papi-3.0.0-test/papi.c"" | $as_tr_sh`
 echo "$as_me:$LINENO: checking for \"${PACKAGE_BASE}/papi-3.0.0-test/papi.c\"" >&5
 echo $ECHO_N "checking for \"${PACKAGE_BASE}/papi-3.0.0-test/papi.c\"... $ECHO_C" >&6
@@ -3748,7 +4281,8 @@ fi
 
 
 
-          ac_config_files="$ac_config_files make.config.local:make.config.local.in"
+
+          ac_config_files="$ac_config_files make.config.local:./autodyninst/make.config.local.in"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -4300,7 +4834,7 @@ for ac_config_target in $ac_config_targets
 do
   case "$ac_config_target" in
   # Handling of arguments.
-  "make.config.local" ) CONFIG_FILES="$CONFIG_FILES make.config.local:make.config.local.in" ;;
+  "make.config.local" ) CONFIG_FILES="$CONFIG_FILES make.config.local:./autodyninst/make.config.local.in" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;
@@ -4396,10 +4930,16 @@ s,@TCLTK_INC_DIR@,$TCLTK_INC_DIR,;t t
 s,@TCLTK_LIB_DIR@,$TCLTK_LIB_DIR,;t t
 s,@LIBELF_INC_DIR@,$LIBELF_INC_DIR,;t t
 s,@LIBELF_LIB_DIR@,$LIBELF_LIB_DIR,;t t
+s,@LIBELF_STATIC@,$LIBELF_STATIC,;t t
+s,@LIBELF_DYNAMIC@,$LIBELF_DYNAMIC,;t t
 s,@LIBDWARF_INC_DIR@,$LIBDWARF_INC_DIR,;t t
 s,@LIBDWARF_LIB_DIR@,$LIBDWARF_LIB_DIR,;t t
+s,@LIBDWARF_STATIC@,$LIBDWARF_STATIC,;t t
+s,@LIBDWARF_DYNAMIC@,$LIBDWARF_DYNAMIC,;t t
 s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
 s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
+s,@LIBIBERTY_INC_DIR@,$LIBIBERTY_INC_DIR,;t t
+s,@LIBIBERTY_LIB_DIR@,$LIBIBERTY_LIB_DIR,;t t
 s,@build@,$build,;t t
 s,@build_cpu@,$build_cpu,;t t
 s,@build_vendor@,$build_vendor,;t t

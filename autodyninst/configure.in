@@ -2,7 +2,8 @@ dnl Process this file with autoconf to produce a configure script.
 
 
 AC_PREREQ(2.59)
-AC_INIT(configure.in)
+AC_INIT(./autodyninst/configure.in)
+AC_CONFIG_AUX_DIR(./autodyninst)
 AC_PROG_CXX(g++)
 AC_LANG(C++)
 
@@ -164,5 +165,5 @@ AC_CHECK_FILE("${PACKAGE_BASE}/papi-3.0.0-test/papi.c",
 AC_SUBST([PAPI_ROOT])
 
 
-AC_CONFIG_FILES([make.config.local:make.config.local.in])
+AC_CONFIG_FILES([make.config.local:./autodyninst/make.config.local.in])
 AC_OUTPUT
