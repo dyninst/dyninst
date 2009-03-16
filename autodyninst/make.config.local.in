@@ -1,17 +1,22 @@
-# local definitions
+# === local definitions ===
 
 BUILD_MARK=
 BUILD_NUM=-576
+
+#Are any alternatives to g++ available?
+_ICC_ = @_ICC_@
+_PGCC_ = @_PGCC_@
+_CC_ = @_CC_@
 
 #TCL/TK is required for all Paradyn builds, but not DyninstAPI
 TCLTK_LIB_DIR = @TCLTK_LIB_DIR@
 TCLTK_INC_DIR = @TCLTK_INC_DIR@
 
-#Libelf is required by Linux/x86 and Linux/ia64
+#libelf is required by Linux/x86 and Linux/ia64
 LIBELF_LIB = @LIBELF_LIB_DIR@
 LIBELF_INC = @LIBELF_INC_DIR@
 
-#Libdwarf is required by Linux/x86 and Linux/ia64
+#libdwarf is required by Linux/x86 and Linux/ia64
 LIBDWARF_LIB = @LIBDWARF_LIB_DIR@
 LIBDWARF_INC = @LIBDWARF_INC_DIR@
 
@@ -23,24 +28,29 @@ LIBXML2_INC	= @LIBXML2_INC_DIR@
 LIBUNWIND_LIB = @LIBUNWIND_LIB_DIR@
 LIBUNWIND_INC = @LIBUNWIND_INC_DIR@
 
-#Build Paradyn using Tcl/Tk 8.3
+#build Paradyn using Tcl/Tk 8.3
 USE_TCL83 = @USE_TCL83@
 
-@LIBELFSTATIC@
-@LIBDWARFSTATIC@
-@LIBIBERTYSTATIC@
+#nice to have: where is libiberty?
+LIBIBERTY_LIB = @LIBIBERTY_LIB_DIR@
+LIBIBERTY_INC = @LIBIBERTY_INC_DIR@
+
+#For some libraries, we check if we have .a's and/or .so's to link against.
+LIBELF_STATIC = @LIBELF_STATIC@
+LIBELF_DYNAMIC = @LIBELF_DYNAMIC@
+LIBDWARF_STATIC = @LIBDWARF_STATIC@
+LIBDWARF_DYNAMIC = @LIBDWARF_DYNAMIC@
 
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@
 
-# Set to the directory containing libflex.a.  Needed to build MRNet and Paradyn.
+#Set to the directory containing libflex.a.  Needed to build MRNet and Paradyn.
 FLEX_DIR = @LIBFLEX_LIB_DIR@
 
-# If we're running on an IA-64 SMP, use the hardware wall clock.
+#If we're running on an IA-64 SMP, use the hardware wall clock.
 #HOSTNAME = $(shell hostname)
 #ifeq ($(HOSTNAME),juniper)
 USES_MMTIMER = @MMTIMER@
 #endif
 
 PAPI_ROOT       = @PAPI_ROOT@
-#/p/paradyn/packages/papi-3.0.0-test
