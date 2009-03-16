@@ -113,6 +113,7 @@ int setupMutatorsForRunGroup(RunGroup *group)
 
     void *handle = openSO(soname);
     if (!handle) {
+       getOutput()->log(STDERR, "Couldn't open %s\n", soname);
        return -1;
     }
 
