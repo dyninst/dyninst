@@ -1,7 +1,12 @@
-# local definitions
+# === local definitions ===
 
 BUILD_MARK=
 BUILD_NUM=-576
+
+#Are any alternatives to g++ available?
+_ICC_ = @_ICC_@
+_PGCC_ = @_PGCC_@
+_CC_ = @_CC_@
 
 #TCL/TK is required for all Paradyn builds, but not DyninstAPI
 TCLTK_LIB_DIR = @TCLTK_LIB_DIR@

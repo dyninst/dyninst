@@ -1,14 +1,22 @@
-dnl Process this file with autoconf to produce a configure script.
+dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.59)
 AC_INIT(./autodyninst/configure.in)
 AC_CONFIG_AUX_DIR(./autodyninst)
+
+
 AC_PROG_CXX(g++)
+AC_PATH_PROG(_ICC_, icc, false)
+AC_SUBST(_ICC_)
+AC_PATH_PROGS(_PGCC_, pgcc pgCC, false)
+AC_SUBST(_PGCC_)
+AC_PATH_PROGS(_CC_, cc CC, false)
+AC_SUBST(_CC_)
 AC_LANG(C++)
 
 
-dnl === CONFIGURE OPTIONS
+dnl === configure options ==
 
 
 PACKAGE_BASE=""
