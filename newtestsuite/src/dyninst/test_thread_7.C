@@ -131,7 +131,7 @@ BPatch_process *test_thread_7_Mutator::getProcess() {
    {
       dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
       int pid = startNewProcessForAttach(filename, (const char **) args,
-					 getOutputLog(), getErrorLog());
+                                         getOutputLog(), getErrorLog(), true);
       if (pid < 0) {
 	 int errnum = errno;
 	 errno = 0;

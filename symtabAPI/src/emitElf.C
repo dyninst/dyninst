@@ -1507,15 +1507,11 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 #else
     if (obj->hasRel()) {
         obj->addRegion(0, rels, j*sizeof(Elf32_Rel), ".rel.dyn", Region::RT_REL, true);
-#if !defined(os_solaris)
         updateDynamic(DT_RELSZ, j*sizeof(Elf32_Rel));
-#endif
     }
     if (obj->hasRela()) {
         obj->addRegion(0, relas, k*sizeof(Elf32_Rela), ".rela.dyn", Region::RT_RELA, true);
-#if !defined(os_solaris)
         updateDynamic(DT_RELASZ, k*sizeof(Elf32_Rela));
-#endif
     }
 #endif
 
@@ -1668,9 +1664,13 @@ void emitElf::createHashSection(Elf32_Word *&hashsecData, unsigned &hashsecSize,
     unsigned nchains = (unsigned)dynSymbols.size();
     hashsecSize = 2 + nbuckets + nchains;
     hashsecData = (Elf32_Word *)malloc(hashsecSize*sizeof(Elf32_Word));
+    unsigned i=0, key;
+    for (i=0; i<hashsecSize; i++) {
+        hashsecData[i] = STN_UNDEF;
+    }
     hashsecData[0] = (Elf32_Word)nbuckets;
     hashsecData[1] = (Elf32_Word)nchains;
-    unsigned i=0, key;
+    i = 0;
     for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
         key = elfHash((*iter)->getName().c_str()) % nbuckets;
         //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);

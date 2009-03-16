@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <regex.h>
+#include <stdlib.h>
 #include <sys/types.h>
 
 using namespace std;

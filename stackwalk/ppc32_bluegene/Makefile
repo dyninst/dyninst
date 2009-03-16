@@ -17,14 +17,15 @@ include ../../make.config
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS = 	../src/bluegene-swk.C \
-			../src/x86-swk.C \
+			../src/ppc-swk.C \
 			../src/symtab-swk.C
 
 
-STATIC_LIBRARY = true
+STATIC_COMPS = true
 
 LIBS	+=
-CFLAGS  += -m32
+CFLAGS  += -m32 $(MYFLAGS)
+CXXFLAGS += -m32 $(MYFLAGS)
 AS		= as
 
 # Include the module-specific Makefile, which defines everything about

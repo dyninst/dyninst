@@ -112,10 +112,6 @@ class EmitterPOWER : public Emitter {
     virtual void emitRestoreFlagsFromStackSlot(codeGen &) { assert(0); }
     virtual bool emitBTSaves(baseTramp*, codeGen &) { assert(0); return true;}
     virtual bool emitBTRestores(baseTramp*, codeGen &) { assert(0); return true; }
-    virtual bool emitBTMTCode(baseTramp*, codeGen &) { assert(0);  return true;}
-    virtual bool emitBTGuardPreCode(baseTramp*, codeGen &, codeBufIndex_t&) { assert(0); return true; }
-    virtual bool emitBTGuardPostCode(baseTramp*, codeGen &, codeBufIndex_t&) { assert(0); return true; }
-    virtual bool emitBTCostCode(baseTramp*, codeGen &, unsigned&) { assert(0); return true;}
     virtual void emitStoreImm(Address, int, codeGen &, bool) { assert(0); }
     virtual void emitAddSignedImm(Address, int, codeGen &, bool) { assert(0); }
     virtual int Register_DWARFtoMachineEnc(int) { assert(0); return 0;}

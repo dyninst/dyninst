@@ -58,7 +58,7 @@
 module('dyninst').
 module('symtab').
 module('stackwalker').
-module('instructionapi').
+module('instruction').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -149,7 +149,7 @@ test_description('test1_1', 'instrument with zero-arg function call').
 test_runs_everywhere('test1_1').
 groupable_test('test1_1').
 mutator('test1_1', ['test1_1.C']).
-test_runmode('test1_1', 'both').
+test_runmode('test1_1', 'staticdynamic').
 test_start_state('test1_1', 'stopped').
 tests_module('test1_1', 'dyninst').
 
@@ -161,7 +161,7 @@ mutator('test1_2', ['test1_2.C']).
 mutatee('test1_2', ['test1_2_mutatee.c']).
 compiler_for_mutatee('test1_2', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_2', 'both').
+test_runmode('test1_2', 'dynamic').
 test_start_state('test1_2', 'stopped').
 tests_module('test1_2', 'dyninst').
 
@@ -170,7 +170,7 @@ test_description('test1_3', 'passing variables to a function').
 test_runs_everywhere('test1_3').
 groupable_test('test1_3').
 mutator('test1_3', ['test1_3.C']).
-test_runmode('test1_3', 'both').
+test_runmode('test1_3', 'dynamic').
 test_start_state('test1_3', 'stopped').
 tests_module('test1_3', 'dyninst').
 
@@ -179,7 +179,7 @@ test_description('test1_4', 'instrument with a sequence').
 test_runs_everywhere('test1_4').
 groupable_test('test1_4').
 mutator('test1_4', ['test1_4.C']).
-test_runmode('test1_4', 'both').
+test_runmode('test1_4', 'dynamic').
 test_start_state('test1_4', 'stopped').
 tests_module('test1_4', 'dyninst').
 
@@ -188,7 +188,7 @@ test_description('test1_5', 'instrument with if clause (no else)').
 test_runs_everywhere('test1_5').
 groupable_test('test1_5').
 mutator('test1_5', ['test1_5.C']).
-test_runmode('test1_5', 'both').
+test_runmode('test1_5', 'dynamic').
 test_start_state('test1_5', 'stopped').
 tests_module('test1_5', 'dyninst').
 
@@ -197,7 +197,7 @@ test_description('test1_6', 'arithmetic operators').
 test_runs_everywhere('test1_6').
 groupable_test('test1_6').
 mutator('test1_6', ['test1_6.C']).
-test_runmode('test1_6', 'both').
+test_runmode('test1_6', 'dynamic').
 test_start_state('test1_6', 'stopped').
 tests_module('test1_6', 'dyninst').
 
@@ -206,7 +206,7 @@ test_description('test1_7', 'relational operators').
 test_runs_everywhere('test1_7').
 groupable_test('test1_7').
 mutator('test1_7', ['test1_7.C']).
-test_runmode('test1_7', 'both').
+test_runmode('test1_7', 'dynamic').
 test_start_state('test1_7', 'stopped').
 tests_module('test1_7', 'dyninst').
 
@@ -215,7 +215,7 @@ test_description('test1_8', 'verify that registers are preserved across inserted
 test_runs_everywhere('test1_8').
 groupable_test('test1_8').
 mutator('test1_8', ['test1_8.C']).
-test_runmode('test1_8', 'both').
+test_runmode('test1_8', 'dynamic').
 test_start_state('test1_8', 'stopped').
 tests_module('test1_8', 'dyninst').
 
@@ -224,7 +224,7 @@ test_description('test1_9', 'verify that registers are preserved across inserted
 test_runs_everywhere('test1_9').
 groupable_test('test1_9').
 mutator('test1_9', ['test1_9.C']).
-test_runmode('test1_9', 'both').
+test_runmode('test1_9', 'dynamic').
 test_start_state('test1_9', 'stopped').
 tests_module('test1_9', 'dyninst').
 
@@ -233,7 +233,7 @@ test_description('test1_10', 'inserted snippet order').
 test_runs_everywhere('test1_10').
 groupable_test('test1_10').
 mutator('test1_10', ['test1_10.C']).
-test_runmode('test1_10', 'both').
+test_runmode('test1_10', 'dynamic').
 test_start_state('test1_10', 'stopped').
 tests_module('test1_10', 'dyninst').
 
@@ -242,7 +242,7 @@ test_description('test1_11', 'insert snippets at entry, exit, and call points').
 test_runs_everywhere('test1_11').
 groupable_test('test1_11').
 mutator('test1_11', ['test1_11.C']).
-test_runmode('test1_11', 'both').
+test_runmode('test1_11', 'dynamic').
 test_start_state('test1_11', 'stopped').
 tests_module('test1_11', 'dyninst').
 
@@ -253,7 +253,7 @@ mutator('test1_12', ['test1_12.C']).
 mutatee('test1_12', ['test1_12_mutatee.c']).
 compiler_for_mutatee('test1_12', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_12', 'both').
+test_runmode('test1_12', 'dynamic').
 test_start_state('test1_12', 'stopped').
 tests_module('test1_12', 'dyninst').
 
@@ -262,7 +262,7 @@ test_description('test1_13', 'paramExpr,retExpr,nullExpr').
 test_runs_everywhere('test1_13').
 groupable_test('test1_13').
 mutator('test1_13', ['test1_13.C']).
-test_runmode('test1_13', 'both').
+test_runmode('test1_13', 'dynamic').
 test_start_state('test1_13', 'stopped').
 tests_module('test1_13', 'dyninst').
 
@@ -274,7 +274,7 @@ mutatee('test1_14', ['test1_14_mutatee.c']).
 % test1_14s mutatee can be compiled with any C or Fortran compiler
 compiler_for_mutatee('test1_14', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_14', 'both').
+test_runmode('test1_14', 'dynamic').
 test_start_state('test1_14', 'stopped').
 tests_module('test1_14', 'dyninst').
 
@@ -285,7 +285,7 @@ mutator('test1_15', ['test1_15.C']).
 mutatee('test1_15', ['test1_15_mutatee.c']).
 compiler_for_mutatee('test1_15', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_15', 'both').
+test_runmode('test1_15', 'dynamic').
 test_start_state('test1_15', 'stopped').
 tests_module('test1_15', 'dyninst').
 
@@ -294,7 +294,7 @@ test_description('test1_16', 'If else').
 test_runs_everywhere('test1_16').
 groupable_test('test1_16').
 mutator('test1_16', ['test1_16.C']).
-test_runmode('test1_16', 'both').
+test_runmode('test1_16', 'dynamic').
 test_start_state('test1_16', 'stopped').
 tests_module('test1_16', 'dyninst').
 
@@ -303,7 +303,7 @@ test_description('test1_17', 'Verifies that instrumentation inserted at exit poi
 test_runs_everywhere('test1_17').
 groupable_test('test1_17').
 mutator('test1_17', ['test1_17.C']).
-test_runmode('test1_17', 'both').
+test_runmode('test1_17', 'dynamic').
 test_start_state('test1_17', 'stopped').
 tests_module('test1_17', 'dyninst').
 
@@ -312,7 +312,7 @@ test_description('test1_18', 'Read/Write a variable in the mutatee').
 test_runs_everywhere('test1_18').
 groupable_test('test1_18').
 mutator('test1_18', ['test1_18.C']).
-test_runmode('test1_18', 'both').
+test_runmode('test1_18', 'dynamic').
 test_start_state('test1_18', 'stopped').
 tests_module('test1_18', 'dyninst').
 
@@ -323,7 +323,7 @@ mutator('test1_19', ['test1_19.C']).
 mutatee('test1_19', ['test1_19_mutatee.c']).
 compiler_for_mutatee('test1_19', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_19', 'both').
+test_runmode('test1_19', 'dynamic').
 test_start_state('test1_19', 'stopped').
 tests_module('test1_19', 'dyninst').
 
@@ -332,7 +332,7 @@ test_description('test1_20', 'Instrumentation at arbitrary points').
 test_runs_everywhere('test1_20').
 groupable_test('test1_20').
 mutator('test1_20', ['test1_20.C']).
-test_runmode('test1_20', 'both').
+test_runmode('test1_20', 'dynamic').
 test_start_state('test1_20', 'stopped').
 tests_module('test1_20', 'dyninst').
 
@@ -341,7 +341,7 @@ test_description('test1_21', 'findFunction in module').
 test_runs_everywhere('test1_21').
 groupable_test('test1_21').
 mutator('test1_21', ['test1_21.C']).
-test_runmode('test1_21', 'both').
+test_runmode('test1_21', 'dynamic').
 test_start_state('test1_21', 'stopped').
 tests_module('test1_21', 'dyninst').
 
@@ -351,7 +351,7 @@ test_runs_everywhere('test1_22').
 groupable_test('test1_22').
 mutator('test1_22', ['test1_22.C']).
 mutatee_requires_libs('dyninst_group_test', ['dl']).
-test_runmode('test1_22', 'both').
+test_runmode('test1_22', 'dynamic').
 test_start_state('test1_22', 'stopped').
 tests_module('test1_22', 'dyninst').
 
@@ -360,7 +360,7 @@ test_description('test1_23', 'Local Variables').
 test_runs_everywhere('test1_23').
 groupable_test('test1_23').
 mutator('test1_23', ['test1_23.C']).
-test_runmode('test1_23', 'both').
+test_runmode('test1_23', 'dynamic').
 test_start_state('test1_23', 'stopped').
 tests_module('test1_23', 'dyninst').
 
@@ -369,7 +369,7 @@ test_description('test1_24', 'Array Variables').
 test_runs_everywhere('test1_24').
 groupable_test('test1_24').
 mutator('test1_24', ['test1_24.C']).
-test_runmode('test1_24', 'both').
+test_runmode('test1_24', 'dynamic').
 test_start_state('test1_24', 'stopped').
 tests_module('test1_24', 'dyninst').
 
@@ -378,7 +378,7 @@ test_description('test1_25', 'Unary Operators').
 test_runs_everywhere('test1_25').
 groupable_test('test1_25').
 mutator('test1_25', ['test1_25.C']).
-test_runmode('test1_25', 'both').
+test_runmode('test1_25', 'dynamic').
 test_start_state('test1_25', 'stopped').
 tests_module('test1_25', 'dyninst').
 
@@ -387,7 +387,7 @@ test_description('test1_26', 'Struct Elements').
 test_runs_everywhere('test1_26').
 groupable_test('test1_26').
 mutator('test1_26', ['test1_26.C']).
-test_runmode('test1_26', 'both').
+test_runmode('test1_26', 'dynamic').
 test_start_state('test1_26', 'stopped').
 tests_module('test1_26', 'dyninst').
 
@@ -396,7 +396,7 @@ test_description('test1_27', 'Type compatibility').
 test_runs_everywhere('test1_27').
 groupable_test('test1_27').
 mutator('test1_27', ['test1_27.C']).
-test_runmode('test1_27', 'both').
+test_runmode('test1_27', 'dynamic').
 test_start_state('test1_27', 'stopped').
 tests_module('test1_27', 'dyninst').
 
@@ -405,7 +405,7 @@ test_description('test1_28', 'User Defined Fields').
 test_runs_everywhere('test1_28').
 groupable_test('test1_28').
 mutator('test1_28', ['test1_28.C']).
-test_runmode('test1_28', 'both').
+test_runmode('test1_28', 'dynamic').
 test_start_state('test1_28', 'stopped').
 tests_module('test1_28', 'dyninst').
 
@@ -418,7 +418,7 @@ mutatee('test1_29', ['test1_29_mutatee.c']).
 % test1_29s mutatee can be compiled with any C compiler or Fortran compiler
 compiler_for_mutatee('test1_29', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_29', 'both').
+test_runmode('test1_29', 'dynamic').
 test_start_state('test1_29', 'stopped').
 tests_module('test1_29', 'dyninst').
 
@@ -427,7 +427,7 @@ test_description('test1_30', 'Line Information').
 test_runs_everywhere('test1_30').
 groupable_test('test1_30').
 mutator('test1_30', ['test1_30.C']).
-test_runmode('test1_30', 'both').
+test_runmode('test1_30', 'dynamic').
 test_start_state('test1_30', 'stopped').
 tests_module('test1_30', 'dyninst').
 
@@ -436,7 +436,7 @@ test_description('test1_31', 'Non-Recursive Base Tramp').
 test_runs_everywhere('test1_31').
 groupable_test('test1_31').
 mutator('test1_31', ['test1_31.C']).
-test_runmode('test1_31', 'both').
+test_runmode('test1_31', 'dynamic').
 test_start_state('test1_31', 'stopped').
 tests_module('test1_31', 'dyninst').
 
@@ -445,7 +445,7 @@ test_description('test1_32', 'Recursive Base Tramp').
 test_runs_everywhere('test1_32').
 groupable_test('test1_32').
 mutator('test1_32', ['test1_32.C']).
-test_runmode('test1_32', 'both').
+test_runmode('test1_32', 'dynamic').
 test_start_state('test1_32', 'stopped').
 tests_module('test1_32', 'dyninst').
 
@@ -454,7 +454,7 @@ test_description('test1_33', 'Control Flow Graphs').
 test_runs_everywhere('test1_33').
 groupable_test('test1_33').
 mutator('test1_33', ['test1_33.C']).
-test_runmode('test1_33', 'both').
+test_runmode('test1_33', 'dynamic').
 test_start_state('test1_33', 'stopped').
 tests_module('test1_33', 'dyninst').
 
@@ -463,7 +463,7 @@ test_description('test1_34', 'Loop Information').
 test_runs_everywhere('test1_34').
 groupable_test('test1_34').
 mutator('test1_34', ['test1_34.C']).
-test_runmode('test1_34', 'both').
+test_runmode('test1_34', 'dynamic').
 test_start_state('test1_34', 'stopped').
 tests_module('test1_34', 'dyninst').
 
@@ -501,7 +501,7 @@ spec_object_file(OFile, 'gcc',
 % test1_35s mutatee can be compiled with any C compiler
 compiler_for_mutatee('test1_35', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_35', 'both').
+test_runmode('test1_35', 'dynamic').
 test_start_state('test1_35', 'stopped').
 restricted_amd64_abi('test1_35').
 tests_module('test1_35', 'dyninst').
@@ -511,7 +511,7 @@ test_description('test1_36', 'Callsite Parameter Referencing').
 test_runs_everywhere('test1_36').
 groupable_test('test1_36').
 mutator('test1_36', ['test1_36.C']).
-test_runmode('test1_36', 'both').
+test_runmode('test1_36', 'dynamic').
 test_start_state('test1_36', 'stopped').
 tests_module('test1_36', 'dyninst').
 
@@ -520,7 +520,7 @@ test_description('test1_37', 'Instrument Loops').
 test_runs_everywhere('test1_37').
 groupable_test('test1_37').
 mutator('test1_37', ['test1_37.C']).
-test_runmode('test1_37', 'both').
+test_runmode('test1_37', 'dynamic').
 test_start_state('test1_37', 'stopped').
 tests_module('test1_37', 'dyninst').
 
@@ -530,7 +530,7 @@ test_description('test1_38', 'CFG Loop Callee Tree').
 test_runs_everywhere('test1_38').
 groupable_test('test1_38').
 mutator('test1_38', ['test1_38.C']).
-test_runmode('test1_38', 'both').
+test_runmode('test1_38', 'dynamic').
 test_start_state('test1_38', 'stopped').
 tests_module('test1_38', 'dyninst').
 
@@ -542,7 +542,7 @@ test_platform('test1_39', Platform) :-
     OS \= 'windows'.
 groupable_test('test1_39').
 mutator('test1_39', ['test1_39.C']).
-test_runmode('test1_39', 'both').
+test_runmode('test1_39', 'dynamic').
 test_start_state('test1_39', 'stopped').
 tests_module('test1_39', 'dyninst').
 
@@ -560,7 +560,7 @@ mutatee('test1_40', ['test1_40_mutatee.c']).
 compiler_for_mutatee('test1_40', Compiler) :-
     comp_lang(Compiler, 'c'),
     \+ member(Compiler, ['xlc', 'xlC']).
-test_runmode('test1_40', 'both').
+test_runmode('test1_40', 'dynamic').
 test_start_state('test1_40', 'stopped').
 tests_module('test1_40', 'dyninst').
 
@@ -619,7 +619,7 @@ test_description('test2_5', 'Look up nonexistent function').
 test_runs_everywhere('test2_5').
 groupable_test('test2_5').
 mutator('test2_5', ['test2_5.C']).
-test_runmode('test2_5', 'both').
+test_runmode('test2_5', 'dynamic').
 test_start_state('test2_5', 'stopped').
 tests_module('test2_5', 'dyninst').
 
@@ -634,7 +634,7 @@ mutatee('test2_6', ['test2_6_mutatee.c']).
 compiler_for_mutatee('test2_6', Compiler) :-
     comp_lang(Compiler, 'c').
 mutatee_requires_libs('test2_6', ['dl']).
-test_runmode('test2_6', 'both').
+test_runmode('test2_6', 'dynamic').
 test_start_state('test2_6', 'stopped').
 tests_module('test2_6', 'dyninst').
 
@@ -645,7 +645,7 @@ test_platform('test2_7', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['solaris', 'linux', 'aix', 'windows']).
 mutator('test2_7', ['test2_7.C']).
-test_runmode('test2_7', 'both').
+test_runmode('test2_7', 'dynamic').
 test_start_state('test2_7', 'stopped').
 groupable_test('test2_7').
 tests_module('test2_7', 'dyninst').
@@ -656,7 +656,7 @@ mutator('test2_8', ['test2_8.C']).
 mutatee('test2_8', ['test2_8_mutatee.c']).
 compiler_for_mutatee('test2_8', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test2_8', 'both').
+test_runmode('test2_8', 'dynamic').
 test_start_state('test2_8', 'stopped').
 tests_module('test2_8', 'dyninst').
 
@@ -665,7 +665,7 @@ test('test2_9', 'test2_9', 'dyninst_group_test').
 test_platform('test2_9', Platform) :-
     platform('sparc', 'solaris', _, Platform).
 mutator('test2_9', ['test2_9.C']).
-test_runmode('test2_9', 'both'). % Is this correct?
+test_runmode('test2_9', 'dynamic'). % Is this correct?
 test_start_state('test2_9', 'stopped').
 groupable_test('test2_9').
 tests_module('test2_9', 'dyninst').
@@ -673,7 +673,7 @@ tests_module('test2_9', 'dyninst').
 test('test2_11', 'test2_11', 'dyninst_group_test').
 test_runs_everywhere('test2_11').
 mutator('test2_11', ['test2_11.C']).
-test_runmode('test2_11', 'both').
+test_runmode('test2_11', 'dynamic').
 test_start_state('test2_11', 'stopped').
 groupable_test('test2_11').
 tests_module('test2_11', 'dyninst').
@@ -681,7 +681,7 @@ tests_module('test2_11', 'dyninst').
 test('test2_12', 'test2_12', 'dyninst_group_test').
 test_runs_everywhere('test2_12').
 mutator('test2_12', ['test2_12.C']).
-test_runmode('test2_12', 'both').
+test_runmode('test2_12', 'dynamic').
 test_start_state('test2_12', 'stopped').
 groupable_test('test2_12').
 tests_module('test2_12', 'dyninst').
@@ -691,7 +691,7 @@ test('test2_13', 'test2_13', 'dyninst_group_test').
 % dont need to bother checking for it
 test_runs_everywhere('test2_13').
 mutator('test2_13', ['test2_13.C']).
-test_runmode('test2_13', 'both').
+test_runmode('test2_13', 'dynamic').
 test_start_state('test2_13', 'stopped').
 groupable_test('test2_13').
 tests_module('test2_13', 'dyninst').
@@ -701,7 +701,7 @@ test_runs_everywhere('test2_14').
 mutator('test2_14', ['test2_14.C']).
 mutatee('test2_14', ['test2_14_mutatee.c']).
 compiler_for_mutatee('test2_14', Compiler) :- comp_lang(Compiler, 'c').
-test_runmode('test2_14', 'both').
+test_runmode('test2_14', 'dynamic').
 test_start_state('test2_14', 'stopped').
 tests_module('test2_14', 'dyninst').
 
@@ -959,6 +959,12 @@ test_mem_platform(Platform) :-
 spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
                  ['-P -Wa,-xarch=v8plus']) :-
     current_platform('sparc-sun-solaris2.8'),
+    member(OFile, ['test6LS-sparc_gcc_32_none', 'test6LS-sparc_gcc_32_low',
+                   'test6LS-sparc_gcc_32_high', 'test6LS-sparc_gcc_32_max']).
+
+spec_object_file(OFile, 'gcc', ['dyninst/test6LS-sparc.S'], [], [],
+                 ['-P -Wa,-xarch=v8plus']) :-
+    current_platform('sparc-sun-solaris2.9'),
     member(OFile, ['test6LS-sparc_gcc_32_none', 'test6LS-sparc_gcc_32_low',
                    'test6LS-sparc_gcc_32_high', 'test6LS-sparc_gcc_32_max']).
 
@@ -1346,11 +1352,6 @@ test_runmode('test_thread_3', 'createProcess').
 test_start_state('test_thread_3', 'stopped').
 tests_module('test_thread_3', 'dyninst').
 
-% test_thread_4 (formerly test12_5)
-% This test is disabled for all platforms via an #ifdef..
-test_description('test_thread_4', 'thread exit callback').
-tests_module('test_thread_4', 'dyninst').
-
 % test_thread_5 (formerly test12_8)
 mutator('test_thread_5', ['test_thread_5.C']).
 mutatee('test_thread_5', ['test_thread_5_mutatee.c'], ['test_thread.c']).
@@ -1390,7 +1391,7 @@ mutatee_requires_libs('test_thread_6', Libs) :-
 test('test_thread_6', 'test_thread_6', 'test_thread_6').
 test_description('test_thread_6', 'thread create and destroy callbacks?').
 test_runs_everywhere('test_thread_6').
-test_runmode('test_thread_6', 'both').
+test_runmode('test_thread_6', 'dynamic').
 test_start_state('test_thread_6', 'selfstart').
 tests_module('test_thread_6', 'dyninst').
 
@@ -1420,7 +1421,7 @@ mutatee_requires_libs('test_thread_7', Libs) :-
 test('test_thread_7', 'test_thread_7', 'test_thread_7').
 test_description('test_thread_7', 'multithreaded tramp guards').
 test_runs_everywhere('test_thread_7').
-test_runmode('test_thread_7', 'both').
+test_runmode('test_thread_7', 'dynamic').
 test_start_state('test_thread_7', 'selfstart').
 tests_module('test_thread_7', 'dyninst').
 
@@ -1442,7 +1443,7 @@ mutatee_requires_libs('test_thread_8', Libs) :-
 test('test_thread_8', 'test_thread_8', 'test_thread_8').
 test_description('test_thread_8', 'thread-specific one time codes').
 test_runs_everywhere('test_thread_8').
-test_runmode('test_thread_8', 'both').
+test_runmode('test_thread_8', 'dynamic').
 test_start_state('test_thread_8', 'selfstart').
 tests_module('test_thread_8', 'dyninst').
 
@@ -1476,7 +1477,7 @@ fortran_c_component('test1_1F').
 test('test1_1F', 'test1_1', 'test1_1F').
 test_description('test1_1F', 'instrument with zero-arg function call (Fortran)').
 test_runs_everywhere('test1_1F').
-test_runmode('test1_1F', 'both').
+test_runmode('test1_1F', 'dynamic').
 test_start_state('test1_1F', 'stopped').
 groupable_test('test1_1F').
 tests_module('test1_1F', 'dyninst').
@@ -1497,7 +1498,7 @@ fortran_c_component('test1_2F').
 test('test1_2F', 'test1_2', 'test1_2F').
 test_description('test1_2F', 'instrument with four-arg function call (Fortran)').
 test_runs_everywhere('test1_2F').
-test_runmode('test1_2F', 'both').
+test_runmode('test1_2F', 'dynamic').
 test_start_state('test1_2F', 'stopped').
 groupable_test('test1_2F').
 tests_module('test1_2F', 'dyninst').
@@ -1518,7 +1519,7 @@ fortran_c_component('test1_3F').
 test('test1_3F', 'test1_3', 'test1_3F').
 test_description('test1_3F', 'passing variables to a function (Fortran)').
 test_runs_everywhere('test1_3F').
-test_runmode('test1_3F', 'both').
+test_runmode('test1_3F', 'dynamic').
 test_start_state('test1_3F', 'stopped').
 groupable_test('test1_3F').
 tests_module('test1_3F', 'dyninst').
@@ -1539,7 +1540,7 @@ fortran_c_component('test1_4F').
 test('test1_4F', 'test1_4', 'test1_4F').
 test_description('test1_4F', 'instrument with a sequence (Fortran)').
 test_runs_everywhere('test1_4F').
-test_runmode('test1_4F', 'both').
+test_runmode('test1_4F', 'dynamic').
 test_start_state('test1_4F', 'stopped').
 groupable_test('test1_4F').
 tests_module('test1_4F', 'dyninst').
@@ -1560,7 +1561,7 @@ fortran_c_component('test1_5F').
 test('test1_5F', 'test1_5', 'test1_5F').
 test_description('test1_5F', 'instrument with if clause (no else) (Fortran)').
 test_runs_everywhere('test1_5F').
-test_runmode('test1_5F', 'both').
+test_runmode('test1_5F', 'dynamic').
 test_start_state('test1_5F', 'stopped').
 groupable_test('test1_5F').
 tests_module('test1_5F', 'dyninst').
@@ -1581,7 +1582,7 @@ fortran_c_component('test1_6F').
 test('test1_6F', 'test1_6', 'test1_6F').
 test_description('test1_6F', 'arithmetic operators (Fortran)').
 test_runs_everywhere('test1_6F').
-test_runmode('test1_6F', 'both').
+test_runmode('test1_6F', 'dynamic').
 test_start_state('test1_6F', 'stopped').
 groupable_test('test1_6F').
 tests_module('test1_6F', 'dyninst').
@@ -1602,7 +1603,7 @@ fortran_c_component('test1_7F').
 test('test1_7F', 'test1_7', 'test1_7F').
 test_description('test1_7F', 'relational operators (Fortran)').
 test_runs_everywhere('test1_7F').
-test_runmode('test1_7F', 'both').
+test_runmode('test1_7F', 'dynamic').
 test_start_state('test1_7F', 'stopped').
 groupable_test('test1_7F').
 tests_module('test1_7F', 'dyninst').
@@ -1623,7 +1624,7 @@ fortran_c_component('test1_8F').
 test('test1_8F', 'test1_8', 'test1_8F').
 test_description('test1_8F', 'verify that registers are preserved across inserted expression (Fortran)').
 test_runs_everywhere('test1_8F').
-test_runmode('test1_8F', 'both').
+test_runmode('test1_8F', 'dynamic').
 test_start_state('test1_8F', 'stopped').
 groupable_test('test1_8F').
 tests_module('test1_8F', 'dyninst').
@@ -1644,7 +1645,7 @@ fortran_c_component('test1_9F').
 test('test1_9F', 'test1_9', 'test1_9F').
 test_description('test1_9F', 'verify that registers are preserved across inserted function call (Fortran)').
 test_runs_everywhere('test1_9F').
-test_runmode('test1_9F', 'both').
+test_runmode('test1_9F', 'dynamic').
 test_start_state('test1_9F', 'stopped').
 groupable_test('test1_9F').
 tests_module('test1_9F', 'dyninst').
@@ -1665,7 +1666,7 @@ fortran_c_component('test1_10F').
 test('test1_10F', 'test1_10', 'test1_10F').
 test_description('test1_10F', 'inserted snippet order (Fortran)').
 test_runs_everywhere('test1_10F').
-test_runmode('test1_10F', 'both').
+test_runmode('test1_10F', 'dynamic').
 test_start_state('test1_10F', 'stopped').
 groupable_test('test1_10F').
 tests_module('test1_10F', 'dyninst').
@@ -1686,7 +1687,7 @@ fortran_c_component('test1_11F').
 test('test1_11F', 'test1_11', 'test1_11F').
 test_description('test1_11F', 'insert snippets at entry, exit, and call points (Fortran)').
 test_runs_everywhere('test1_11F').
-test_runmode('test1_11F', 'both').
+test_runmode('test1_11F', 'dynamic').
 test_start_state('test1_11F', 'stopped').
 groupable_test('test1_11F').
 tests_module('test1_11F', 'dyninst').
@@ -1707,7 +1708,7 @@ fortran_c_component('test1_12F').
 test('test1_12F', 'test1_12', 'test1_12F').
 test_description('test1_12F', 'insert/remove and malloc/free (Fortran)').
 test_runs_everywhere('test1_12F').
-test_runmode('test1_12F', 'both').
+test_runmode('test1_12F', 'dynamic').
 test_start_state('test1_12F', 'stopped').
 tests_module('test1_12F', 'dyninst').
 
@@ -1727,7 +1728,7 @@ fortran_c_component('test1_13F').
 test('test1_13F', 'test1_13', 'test1_13F').
 test_description('test1_13F', 'paramExpr,retExpr,nullExpr (Fortran)').
 test_runs_everywhere('test1_13F').
-test_runmode('test1_13F', 'both').
+test_runmode('test1_13F', 'dynamic').
 test_start_state('test1_13F', 'stopped').
 groupable_test('test1_13F').
 tests_module('test1_13F', 'dyninst').
@@ -1748,7 +1749,7 @@ fortran_c_component('test1_14F').
 test('test1_14F', 'test1_14', 'test1_14F').
 test_description('test1_14F', 'Replace/Remove Function Call (Fortran)').
 test_runs_everywhere('test1_14F').
-test_runmode('test1_14F', 'both').
+test_runmode('test1_14F', 'dynamic').
 test_start_state('test1_14F', 'stopped').
 groupable_test('test1_14F').
 tests_module('test1_14F', 'dyninst').
@@ -1769,7 +1770,7 @@ fortran_c_component('test1_15F').
 test('test1_15F', 'test1_15', 'test1_15F').
 test_description('test1_15F', 'setMutationsActive (Fortran)').
 test_runs_everywhere('test1_15F').
-test_runmode('test1_15F', 'both').
+test_runmode('test1_15F', 'dynamic').
 test_start_state('test1_15F', 'stopped').
 tests_module('test1_15F', 'dyninst').
 
@@ -1789,7 +1790,7 @@ fortran_c_component('test1_16F').
 test('test1_16F', 'test1_16', 'test1_16F').
 test_description('test1_16F', 'If else (Fortran)').
 test_runs_everywhere('test1_16F').
-test_runmode('test1_16F', 'both').
+test_runmode('test1_16F', 'dynamic').
 test_start_state('test1_16F', 'stopped').
 groupable_test('test1_16F').
 tests_module('test1_16F', 'dyninst').
@@ -1810,7 +1811,7 @@ fortran_c_component('test1_17F').
 test('test1_17F', 'test1_17', 'test1_17F').
 test_description('test1_17F', 'Verifies that instrumentation inserted at exit point doesn\'t clobber return value (Fortran)').
 test_runs_everywhere('test1_17F').
-test_runmode('test1_17F', 'both').
+test_runmode('test1_17F', 'dynamic').
 test_start_state('test1_17F', 'stopped').
 groupable_test('test1_17F').
 tests_module('test1_17F', 'dyninst').
@@ -1831,7 +1832,7 @@ fortran_c_component('test1_18F').
 test('test1_18F', 'test1_18', 'test1_18F').
 test_description('test1_18F', 'Read/Write a variable in the mutatee (Fortran)').
 test_runs_everywhere('test1_18F').
-test_runmode('test1_18F', 'both').
+test_runmode('test1_18F', 'dynamic').
 test_start_state('test1_18F', 'stopped').
 groupable_test('test1_18F').
 tests_module('test1_18F', 'dyninst').
@@ -1852,7 +1853,7 @@ fortran_c_component('test1_19F').
 test('test1_19F', 'test1_19', 'test1_19F').
 test_description('test1_19F', 'oneTimeCode (Fortran)').
 test_runs_everywhere('test1_19F').
-test_runmode('test1_19F', 'both').
+test_runmode('test1_19F', 'dynamic').
 test_start_state('test1_19F', 'stopped').
 tests_module('test1_19F', 'dyninst').
 
@@ -1872,7 +1873,7 @@ fortran_c_component('test1_20F').
 test('test1_20F', 'test1_20', 'test1_20F').
 test_description('test1_20F', 'Instrumentation at arbitrary points (Fortran)').
 test_runs_everywhere('test1_20F').
-test_runmode('test1_20F', 'both').
+test_runmode('test1_20F', 'dynamic').
 test_start_state('test1_20F', 'stopped').
 groupable_test('test1_20F').
 tests_module('test1_20F', 'dyninst').
@@ -1893,7 +1894,7 @@ fortran_c_component('test1_25F').
 test('test1_25F', 'test1_25', 'test1_25F').
 test_description('test1_25F', 'Unary Operators (Fortran)').
 test_runs_everywhere('test1_25F').
-test_runmode('test1_25F', 'both').
+test_runmode('test1_25F', 'dynamic').
 test_start_state('test1_25F', 'stopped').
 groupable_test('test1_25F').
 tests_module('test1_25F', 'dyninst').
@@ -1914,7 +1915,7 @@ fortran_c_component('test1_29F').
 test('test1_29F', 'test1_29', 'test1_29F').
 test_description('test1_29F', 'BPatch_srcObj class (Fortran)').
 test_runs_everywhere('test1_29F').
-test_runmode('test1_29F', 'both').
+test_runmode('test1_29F', 'dynamic').
 test_start_state('test1_29F', 'stopped').
 groupable_test('test1_29F').
 tests_module('test1_29F', 'dyninst').
@@ -1935,7 +1936,7 @@ fortran_c_component('test1_31F').
 test('test1_31F', 'test1_31', 'test1_31F').
 test_description('test1_31F', 'Non-Recursive Base Tramp (Fortran)').
 test_runs_everywhere('test1_31F').
-test_runmode('test1_31F', 'both').
+test_runmode('test1_31F', 'dynamic').
 test_start_state('test1_31F', 'stopped').
 groupable_test('test1_31F').
 tests_module('test1_31F', 'dyninst').
@@ -1956,7 +1957,7 @@ fortran_c_component('test1_32F').
 test('test1_32F', 'test1_32', 'test1_32F').
 test_description('test1_32F', 'Recursive Base Tramp (Fortran)').
 test_runs_everywhere('test1_32F').
-test_runmode('test1_32F', 'both').
+test_runmode('test1_32F', 'dynamic').
 test_start_state('test1_32F', 'stopped').
 groupable_test('test1_32F').
 tests_module('test1_32F', 'dyninst').
@@ -1977,7 +1978,7 @@ fortran_c_component('test1_34F').
 test('test1_34F', 'test1_34', 'test1_34F').
 test_description('test1_34F', 'Loop Information (Fortran)').
 test_runs_everywhere('test1_34F').
-test_runmode('test1_34F', 'both').
+test_runmode('test1_34F', 'dynamic').
 test_start_state('test1_34F', 'stopped').
 groupable_test('test1_34F').
 tests_module('test1_34F', 'dyninst').
@@ -1998,7 +1999,7 @@ fortran_c_component('test1_36F').
 test('test1_36F', 'test1_36', 'test1_36F').
 test_description('test1_36F', 'Callsite Parameter Referencing (Fortran)').
 test_runs_everywhere('test1_36F').
-test_runmode('test1_36F', 'both').
+test_runmode('test1_36F', 'dynamic').
 test_start_state('test1_36F', 'stopped').
 groupable_test('test1_36F').
 tests_module('test1_36F', 'dyninst').
@@ -2011,7 +2012,7 @@ compiler_for_mutatee('test_sparc_1', 'gcc').
 optimization_for_mutatee('test_sparc_1', 'gcc', 'none').
 test_platform('test_sparc_1', Platform) :-
         platform('sparc', _, _, Platform).
-test_runmode('test_sparc_1', 'both').
+test_runmode('test_sparc_1', 'dynamic').
 test_start_state('test_sparc_1', 'stopped').
 groupable_test('test_sparc_1').
 tests_module('test_sparc_1', 'dyninst').
@@ -2024,7 +2025,7 @@ compiler_for_mutatee('test_sparc_2', 'gcc').
 optimization_for_mutatee('test_sparc_2', 'gcc', 'none').
 test_platform('test_sparc_2', Platform) :-
         platform('sparc', _, _, Platform).
-test_runmode('test_sparc_2', 'both').
+test_runmode('test_sparc_2', 'dynamic').
 test_start_state('test_sparc_2', 'stopped').
 groupable_test('test_sparc_2').
 tests_module('test_sparc_2', 'dyninst').
@@ -2037,7 +2038,7 @@ compiler_for_mutatee('test_sparc_3', 'gcc').
 optimization_for_mutatee('test_sparc_3', 'gcc', 'none').
 test_platform('test_sparc_3', Platform) :-
         platform('sparc', _, _, Platform).
-test_runmode('test_sparc_3', 'both').
+test_runmode('test_sparc_3', 'dynamic').
 test_start_state('test_sparc_3', 'stopped').
 groupable_test('test_sparc_3').
 tests_module('test_sparc_3', 'dyninst').
@@ -2050,7 +2051,7 @@ compiler_for_mutatee('test_sparc_4', 'gcc').
 optimization_for_mutatee('test_sparc_4', 'gcc', 'none').
 test_platform('test_sparc_4', Platform) :-
         platform('sparc', _, _, Platform).
-test_runmode('test_sparc_4', 'both').
+test_runmode('test_sparc_4', 'dynamic').
 test_start_state('test_sparc_4', 'stopped').
 groupable_test('test_sparc_4').
 tests_module('test_sparc_4', 'dyninst').
@@ -2084,6 +2085,29 @@ mutator('test_anno_basic_types', ['test_anno_basic_types.C']).
 test_runmode('test_anno_basic_types', 'createProcess').
 test_start_state('test_anno_basic_types', 'stopped').
 tests_module('test_anno_basic_types', 'symtab').
+
+% instructionAPI tests
+test('test_instruction_read_write', 'test_instruction_read_write', none).
+test_description('test_instruction_read_write', 'Tests the read & write sets of instructions.').
+test_platform('test_instruction_read_write', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('test_instruction_read_write', ['test_instruction_read_write.C']).
+test_runmode('test_instruction_read_write', 'createProcess').
+test_start_state('test_instruction_read_write', 'stopped').
+tests_module('test_instruction_read_write', 'instruction').
+
+test('test_instruction_farcall', 'test_instruction_farcall', none).
+test_description('test_instruction_farcall', 'Tests decoding of far call instructions.').
+test_platform('test_instruction_farcall', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('test_instruction_farcall', ['test_instruction_farcall.C']).
+test_runmode('test_instruction_farcall', 'createProcess').
+test_start_state('test_instruction_farcall', 'stopped').
+tests_module('test_instruction_farcall', 'instruction').
 
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
@@ -2613,7 +2637,7 @@ all_mutators_require_libs(['iberty', 'testSuite']).
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
-module_required_libs('instructionapi', ['instructionAPI']).
+module_required_libs('instruction', ['instructionAPI']).
 
 module_requires_libs_internal([], Output, Output).
 module_requires_libs_internal([Module | Tail], Acc, Output) :-
@@ -2694,13 +2718,26 @@ mutatee_requires_libs(Mutatee, []) :-
 % Specifies the valid values for a test's run mode
 runmode('createProcess').
 runmode('useAttach').
+runmode('binary').
 
 % test_runmode/2
 % test_runmode(?Test, ?Runmode)
-% The atom 'both' as Runmode means the test can be run in either useAttach
+% The atom 'dynamic' as Runmode means the test can be run in either useAttach
 % or createProcess mode.
-test_runmode(Test, 'useAttach') :- test_runmode(Test, 'both').
-test_runmode(Test, 'createProcess') :- test_runmode(Test, 'both').
+test_runmode(Test, 'useAttach') :- test_runmode(Test, 'dynamic').
+test_runmode(Test, 'createProcess') :- test_runmode(Test, 'dynamic').
+test_runmode(Test, 'useAttach') :- test_runmode(Test, 'staticdynamic').
+test_runmode(Test, 'createProcess') :- test_runmode(Test, 'staticdynamic').
+test_runmode(Test, 'binary') :- test_runmode(Test, 'staticdynamic').
+
+% runmode_platform/2
+% runmode_platform(?Platform, ?Runmode)
+% This specifies what platforms support which runmodes, essentially
+% specify binary rewriter support for Dyninst
+runmode_platform(P, 'createProcess') :- platform(_, _, _, P).
+runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
+runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
+runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
 
 % mutatee_peers/2
 mutatee_peers(M, P) :-

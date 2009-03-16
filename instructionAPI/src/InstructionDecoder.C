@@ -54,7 +54,7 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
     {
-      if(rawInstruction < bufferBegin || rawInstruction > bufferBegin + bufferSize) return Instruction();
+      if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction();
       vector<Expression::Ptr> operands;
       unsigned int decodedSize = decodeOpcode();
       decodeOperands(operands);
@@ -94,14 +94,23 @@ namespace Dyninst
      
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
+	if(ia32_is_mode_64())
+    {
+		if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
+		{
+			return Expression::Ptr(new RegisterAST(r_RIP));
+		}
+	}
+
+      
       // This handles the rm and reg fields; the mod field affects how this expression is wrapped
       if(locs->modrm_rm != modrm_use_sib || locs->modrm_mod == 0x03)
       {
-	return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType)));
+		return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType)));
       }
       else
       {
-	return makeSIBExpression(opType);
+		return makeSIBExpression(opType);
       }      
     }
 
@@ -114,7 +123,6 @@ namespace Dyninst
 	break;
       case op_d:
 	return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
-      case op_si:
       case op_w:
 	return Expression::Ptr(new Immediate(Result(s16, *(const word_t*)(rawInstruction + position))));
 	break;
@@ -135,8 +143,33 @@ namespace Dyninst
 	}
 	
 	break;
+      case op_p:
+	// 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
+	// 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
+	if(is32BitMode ^ sizePrefixPresent)
+	{
+	  return Expression::Ptr(new Immediate(Result(s48, *(const int64_t*)(rawInstruction + position))));
+	}
+	else
+	{
+	  return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
+	}
+	
+	break;
+      case op_a:
+      case op_dq:
+      case op_pd:
+      case op_ps:
+      case op_s:
+      case op_si:
+      case op_lea:
+      case op_allgprs:
+      case op_512:
+      case op_c:
+	assert(!"Can't happen: opType unexpected for valid ways to decode an immediate");
+	return Expression::Ptr();
       default:
-	assert(!"FIXME: Unimplemented opType");
+	assert(!"Can't happen: opType out of range");
 	return Expression::Ptr();
       }
     }
@@ -209,7 +242,9 @@ namespace Dyninst
       {
       case op_b:
 	return IntelRegTable[0][intelReg];
-      case op_d:
+	  case op_q:
+	return IntelRegTable[4][intelReg];
+	  case op_d:
       case op_si:
       case op_w:
       default:
@@ -280,6 +315,11 @@ namespace Dyninst
     void InstructionDecoder::decodeOneOperand(const ia32_operand& operand,
 					      std::vector<Expression::Ptr>& outputOperands)
     {
+		unsigned int regType = op_d;
+		if(ia32_is_mode_64())
+		{
+			regType = op_q;
+		}
       switch(operand.admet)
       {
       case 0:
@@ -288,7 +328,8 @@ namespace Dyninst
 	return;
       case am_A:
 	{
-	  Expression::Ptr addr(decodeImmediate(operand.optype, locs->disp_position));
+	  // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
+	  Expression::Ptr addr(decodeImmediate(operand.optype, 1));
 	  Expression::Ptr op(new Dereference(addr, makeSizeType(operand.optype)));
 	  outputOperands.push_back(op);
 	}
@@ -317,7 +358,7 @@ namespace Dyninst
 	case 0x00:
 	  assert(operand.admet != am_R);
 	  {
-	    Expression::Ptr op(new Dereference(makeModRMExpression(operand.optype), makeSizeType(operand.optype)));
+	    Expression::Ptr op(new Dereference(makeModRMExpression(regType), makeSizeType(operand.optype)));
 	    outputOperands.push_back(op);
 	  }
 	  break;
@@ -326,9 +367,9 @@ namespace Dyninst
 	case 0x02:
 	  assert(operand.admet != am_R);
 	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(operand.optype), 
+	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
-								 makeSizeType(operand.optype)));
+								 makeSizeType(regType)));
 	    Expression::Ptr op(new Dereference(RMPlusDisplacement, makeSizeType(operand.optype)));
 	    outputOperands.push_back(op);
 	    break;
@@ -414,7 +455,7 @@ namespace Dyninst
 	  // direct dereference
 	case 0x00:
 	  {
-	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(operand.optype), 
+	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(regType), 
 								     makeSizeType(operand.optype)))); 
 	  }
 	  break;
@@ -422,9 +463,9 @@ namespace Dyninst
 	case 0x01:
 	case 0x02:
 	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(operand.optype), 
+	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
-								 makeSizeType(operand.optype)));
+								 makeSizeType(regType)));
 	    outputOperands.push_back(Expression::Ptr(new Dereference(RMPlusDisplacement, 
 								     makeSizeType(operand.optype))));
 	    break;
@@ -457,7 +498,7 @@ namespace Dyninst
 	  // direct dereference
 	case 0x00:
 	  {
-	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(operand.optype), 
+	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(regType), 
 								     makeSizeType(operand.optype)))); 
 	  }
 	  break;
@@ -465,9 +506,9 @@ namespace Dyninst
 	case 0x01:
 	case 0x02:
 	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(operand.optype), 
+	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
-								 makeSizeType(operand.optype)));
+								 makeSizeType(regType)));
 	    outputOperands.push_back(Expression::Ptr(new Dereference(RMPlusDisplacement, 
 								     makeSizeType(operand.optype))));
 	    break;
@@ -506,14 +547,84 @@ namespace Dyninst
 	}
 	break;
       case am_reg:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(operand.optype)));
+	{
+	  int registerID = operand.optype;
+	  
+#if defined(arch_x86_64)
+	if(locs->rex_b)
+	{
+	  // We need to flip this guy...
+	  switch(registerID)
+	  {
+	  case r_AL:
+	  case r_rAX:
+	  case r_eAX:
+	  case r_EAX:
+	  case r_AX:
+	    registerID = r_R8;
+	    break;
+	  case r_CL:
+	  case r_rCX:
+	  case r_eCX:
+	  case r_ECX:
+	    registerID = r_R9;
+	    break;
+	  case r_DL:
+	  case r_rDX:
+	  case r_eDX:
+	  case r_EDX:
+	  case r_DX:
+	    registerID = r_R10;
+	    break;
+	  case r_BL:
+	  case r_rBX:
+	  case r_eBX:
+	  case r_EBX:
+	    registerID = r_R11;	    
+	    break;
+	  case r_AH:
+	  case r_rSP:
+	  case r_eSP:
+	  case r_ESP:
+	    registerID = r_R12;
+	    break;
+	  case r_CH:
+	  case r_rBP:
+	  case r_eBP:
+	  case r_EBP:
+	    registerID = r_R13;	  
+	    break;
+	  case r_DH:
+	  case r_rSI:
+	  case r_eSI:
+	  case r_ESI:
+	  case r_SI:
+	    registerID = r_R14;
+	    break;
+	  case r_BH:
+	  case r_rDI:
+	  case r_eDI:
+	  case r_EDI:
+	  case r_DI:
+	    registerID = r_R15;
+	    break;
+	  default:
+	    break;
+	  };
+	  
+	}
+	
+#endif
+	outputOperands.push_back(Expression::Ptr(new RegisterAST(registerID)));
+	}
+	
 	break;
       case am_stackH:
       case am_stackP:
 	// handled elsewhere
 	break;
       case am_allgprs:
-	assert(!"Not implemented, pseudo-operand for all GPRs");
+		  outputOperands.push_back(Expression::Ptr(new RegisterAST(r_ALLGPRS)));
 	break;
       default:
 	printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
@@ -535,7 +646,7 @@ namespace Dyninst
       decodedInstruction = new ia32_instruction(mac, cond, locs);
       ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, 
 					   rawInstruction, *decodedInstruction);
-      m_Operation = Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix());
+      m_Operation = Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix(), locs);
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();
     }

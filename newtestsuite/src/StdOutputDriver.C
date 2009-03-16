@@ -71,6 +71,8 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       run_mode_str = "create";
    else if (strcmp(orig_run_mode_str, "useAttach") == 0)
       run_mode_str = "attach";
+   else if (strcmp(orig_run_mode_str, "binary") == 0)
+      run_mode_str = "rewriter";
    else
       run_mode_str = orig_run_mode_str;
    assert(last_test && last_group);

@@ -880,7 +880,8 @@ bool PtraceCallback::execute_real()
          return false;
          break;
       default:
-         perror("ptrace error");
+          proccontrol_printf("%s[%d]: ptrace(%d, %d, 0x%lx, 0x%lx %d) ret %s\n",
+                             req_, pid_, addr_, data_, word_len_, strerror(ptrace_errno));
          return false;
          break;
    }

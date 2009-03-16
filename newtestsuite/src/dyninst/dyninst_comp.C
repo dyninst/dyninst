@@ -68,8 +68,15 @@ private:
 
    ParamPtr bpatch_ptr;
    ParamPtr bp_appThread;
+   ParamPtr bp_appAddrSpace;
+   ParamPtr bp_appProc;
+   ParamPtr bp_appBinEdit;
+
    ParamInt is_xlc;
    BPatch_thread *appThread;
+   BPatch_addressSpace *appAddrSpace;
+   BPatch_process *appProc;
+   BPatch_binaryEdit *appBinEdit;
 
 public:
    DyninstComponent();
@@ -159,6 +166,9 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 
    params["useAttach"]->setInt(group->useAttach);
    appThread = NULL;
+   appProc = NULL;
+   appAddrSpace = NULL;
+   appBinEdit = NULL;
    clear_mutateelog();
 
    /*   if (group->customExecution)
@@ -166,33 +176,64 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
       return PASSED;
       }*/
 
-   char *logfilename = params["logfilename"]->getString();
-   bool verboseFormat = (bool) params["verbose"]->getInt();
-   bool humanlog = (bool) params["usehumanlog"]->getInt();
-   bool printLabels = (bool) params["printlabels"]->getInt();
-   bool debugPrint = (bool) params["debugPrint"]->getInt();
-   char *humanlogname = params["humanlogname"]->getString();
-   
    if (group->mutatee && group->state != SELFSTART)
    {
       // If test requires mutatee, start it up for the test
       // The mutatee doesn't need to print a test label for complex tests
-      appThread = startMutateeTest(bpatch, group, logfilename,
-                                   (humanlog) ? humanlogname : NULL,
-                                   verboseFormat, printLabels, debugPrint,
-                                   getPIDFilename());
-      if (!appThread) {
-         err_msg = std::string("Unable to run test program: ") + 
-            std::string(group->mutatee) + std::string("\n");
-         return SKIPPED;
+      if (group->useAttach != DISK)
+      {
+         //Create or attach
+         char *logfilename = params["logfilename"]->getString();
+         bool verboseFormat = (bool) params["verbose"]->getInt();
+         bool humanlog = (bool) params["usehumanlog"]->getInt();
+         bool printLabels = (bool) params["printlabels"]->getInt();
+         bool debugPrint = (bool) params["debugPrint"]->getInt();
+         char *humanlogname = params["humanlogname"]->getString();
+         
+         appThread = startMutateeTest(bpatch, group, logfilename,
+                                      (humanlog) ? humanlogname : NULL,
+                                      verboseFormat, printLabels, debugPrint,
+                                      getPIDFilename());
+         if (!appThread) {
+            getOutput()->log(STDERR, "Skipping test because startup failed\n");
+            err_msg = std::string("Unable to run test program: ") + 
+               std::string(group->mutatee) + std::string("\n");
+            return SKIPPED;
+         }
+         appProc = appThread->getProcess();
+         appAddrSpace = (BPatch_addressSpace *) appProc;
+         appBinEdit = NULL;
+         
+         if (group->state == RUNNING)
+         {
+            appProc->continueExecution();
+         }
+      }
+      else
+      {
+         //Binary rewriter
+         appBinEdit  = startBinaryTest(bpatch, group);
+         if (!appBinEdit) {
+            getOutput()->log(STDERR, "Skipping test because startup failed\n");
+            return SKIPPED;
+         }
+
+         appThread = NULL;
+         appProc = NULL;
+         appAddrSpace = (BPatch_addressSpace*) appBinEdit;         
       }
 
-      if (group->state == RUNNING)
-      {
-         appThread->continueExecution();
-      }
       bp_appThread.setPtr(appThread);
       params["appThread"] = &bp_appThread;
+      
+      bp_appAddrSpace.setPtr(appAddrSpace);
+      params["appAddrSpace"] = &bp_appAddrSpace;
+      
+      bp_appProc.setPtr(appProc);
+      params["appProcess"] = &bp_appProc;
+      
+      bp_appBinEdit.setPtr(appBinEdit);
+      params["appBinaryEdit"] = &bp_appBinEdit;
    }
 
    is_xlc.setInt((int) isMutateeXLC(group->mutatee));
@@ -214,6 +255,23 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       {
          someTestPassed = true;
       }
+   }
+
+   if (group->useAttach == DISK) {
+      if (!someTestPassed)
+         return UNKNOWN;
+      char *logfilename = params["logfilename"]->getString();
+      bool verboseFormat = (bool) params["verbose"]->getInt();
+      bool humanlog = (bool) params["usehumanlog"]->getInt();
+      bool printLabels = (bool) params["printlabels"]->getInt();
+      bool debugPrint = (bool) params["debugPrint"]->getInt();
+      char *humanlogname = params["humanlogname"]->getString();
+      
+      test_results_t test_result;
+      runBinaryTest(bpatch, group, appBinEdit,
+                    logfilename, humanlogname, verboseFormat, printLabels,
+                    debugPrint, getPIDFilename(), test_result);
+      return test_result;
    }
 
    if (!someTestPassed && appThread != NULL)
@@ -330,16 +388,19 @@ DyninstMutator::~DyninstMutator() {
 // stage.  Most just do some lookup in the mutatee and then optionally insert
 // instrumentation and let the mutatee do its thing.
 test_results_t DyninstMutator::setup(ParameterDict &param) {
-  bool useAttach = param["useAttach"]->getInt();
+  bool useAttach = param["useAttach"]->getInt() == USEATTACH;
   if(param["appThread"] == NULL)
   {
 	  logerror("No app thread found.  Check test groups.\n");
 	  return FAILED;
   }
   appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+  appProc = (BPatch_process *)(param["appProcess"]->getPtr());
+  appBinEdit = (BPatch_binaryEdit *)(param["appBinaryEdit"]->getPtr());
+  appAddrSpace = (BPatch_addressSpace *)(param["appAddrSpace"]->getPtr());
 
   // Read the program's image and get an associated image object
-  appImage = appThread->getImage();
+  appImage = appAddrSpace->getImage();
   if ( useAttach ) {
 	  if ( ! signalAttached(appThread, appImage) ) {
 		  return FAILED;
@@ -484,77 +545,79 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
                          const char *replacement, int testNo, 
                          const char *testName, int callsExpected = -1)
 {
-    int numReplaced = 0;
+   int numReplaced = 0;
 
-    BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(inFunction, found_funcs)) || !found_funcs.size()) {
+   BPatch_Vector<BPatch_function *> found_funcs;
+   if ((NULL == appImage->findFunction(inFunction, found_funcs)) || 
+       !found_funcs.size()) 
+   {
       logerror("**Failed** test #%d (%s)\n", testNo, testName);
       logerror("    Unable to find function %s\n",
-	      inFunction);
+               inFunction);
       return -1;
-    }
+   }
 
-    if (1 < found_funcs.size()) {
+   if (1 < found_funcs.size()) {
       logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), inFunction);
-    }
+               __FILE__, __LINE__, found_funcs.size(), inFunction);
+   }
 
-    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
+   BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
 
-    if (!points || (!points->size() )) {
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    %s[%d]: Unable to find point in %s - subroutine calls: pts = %p\n",
-		__FILE__, __LINE__, inFunction,points);
-        return -1;
-    }
+   if (!points || (!points->size() )) {
+      logerror("**Failed** test #%d (%s)\n", testNo, testName);
+      logerror("    %s[%d]: Unable to find point in %s - subroutine calls: pts = %p\n",
+               __FILE__, __LINE__, inFunction,points);
+      return -1;
+   }
 
-    BPatch_function *call_replacement = NULL;
-    if (replacement != NULL) {
+   BPatch_function *call_replacement = NULL;
+   if (replacement != NULL) {
       
       BPatch_Vector<BPatch_function *> bpfv;
       if (NULL == appImage->findFunction(replacement, bpfv) || !bpfv.size()
-	  || NULL == bpfv[0]){
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    Unable to find function %s\n", replacement);
-        return -1;
+          || NULL == bpfv[0]){
+         logerror("**Failed** test #%d (%s)\n", testNo, testName);
+         logerror("    Unable to find function %s\n", replacement);
+         return -1;
       }
       call_replacement = bpfv[0];
-    }
+   }
 
-    for (unsigned int n = 0; n < points->size(); n++) {
-	BPatch_function *func;
+   for (unsigned int n = 0; n < points->size(); n++) {
+      BPatch_function *func;
 
-	if ((func = (*points)[n]->getCalledFunction()) == NULL) continue;
+      if ((func = (*points)[n]->getCalledFunction()) == NULL) continue;
 
-	char fn[256];
-	if (func->getName(fn, 256) == NULL) {
-	    logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	    logerror("    Can't get name of called function in %s\n",
-		    inFunction);
-            return -1;
-	}
-	if (functionNameMatch(fn, callTo) == 0) {
-	    if (replacement == NULL)
-		appThread->removeFunctionCall(*((*points)[n]));
-	    else {
-                assert(call_replacement);
-		appThread->replaceFunctionCall(*((*points)[n]),
-					       *call_replacement);
-            }
-	    numReplaced++;
-	}
-    }
+      char fn[256];
+      if (func->getName(fn, 256) == NULL) {
+         logerror("**Failed** test #%d (%s)\n", testNo, testName);
+         logerror("    Can't get name of called function in %s\n",
+                  inFunction);
+         return -1;
+      }
+      if (functionNameMatch(fn, callTo) == 0) {
+         if (replacement == NULL)
+            appThread->removeFunctionCall(*((*points)[n]));
+         else {
+            assert(call_replacement);
+            appThread->replaceFunctionCall(*((*points)[n]),
+                                           *call_replacement);
+         }
+         numReplaced++;
+      }
+   }
 
-    if (callsExpected > 0 && callsExpected != numReplaced) {
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    Expected to find %d %s to %s in %s, found %d\n",
-		callsExpected, callsExpected == 1 ? "call" : "calls",
-		callTo, inFunction, numReplaced);
-        return -1;
-    }
+   if (callsExpected > 0 && callsExpected != numReplaced) {
+      logerror("**Failed** test #%d (%s)\n", testNo, testName);
+      logerror("    Expected to find %d %s to %s in %s, found %d\n",
+               callsExpected, callsExpected == 1 ? "call" : "calls",
+               callTo, inFunction, numReplaced);
+      return -1;
+   }
 
 
-    return numReplaced;
+   return numReplaced;
 }
 
 //

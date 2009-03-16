@@ -35,6 +35,8 @@
 #include <elf.h>
 
 #include <vector>
+#include <sys/types.h>
+#include <dirent.h>
 
 typedef int (*intKludge)();
 
@@ -262,6 +264,97 @@ bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid
 
 }
 
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned nbytes, 
+                     const void *inSelf, int pid)
+{
+   unsigned char *ap = (unsigned char*) inTraced;
+   const unsigned char *dp = (const unsigned char*) inSelf;
+   Address w = 0x0;               /* ptrace I/O buffer */
+   int len = sizeof(Address); /* address alignment of ptrace I/O requests */
+   unsigned cnt;
+   
+   if (0 == nbytes) {
+      return true;
+   }
+   
+   if ((cnt = ((Address)ap) % len)) {
+      /* Start of request is not aligned. */
+      unsigned char *p = (unsigned char*) &w;
+      
+      /* Read the segment containing the unaligned portion, edit
+         in the data from DP, and write the segment back. */
+      errno = 0;
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
+
+      if (errno) {
+         fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", 
+                 __FILE__, __LINE__, pid);
+         return false;
+      }
+
+      for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
+         p[cnt+i] = dp[i];
+      
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w)) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+         return false;
+      }
+
+      if (len-cnt >= nbytes) {
+         return true; /* done */
+      }
+
+      dp += len-cnt;
+      ap += len-cnt;
+      nbytes -= len-cnt;
+   }
+   
+   /* Copy aligned portion */
+   while (nbytes >= (u_int)len) {
+      assert(0 == ((Address)ap) % len);
+      memcpy(&w, dp, len);
+      int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
+      if (retval < 0) {
+         fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", 
+                 __FILE__, __LINE__, pid);
+         fprintf(stderr, "%s[%d]:  tried to write %lx in address %p\n", 
+                 __FILE__, __LINE__, w, ap);
+         perror("ptrace");
+         return false;
+      }
+
+      // Check...
+      dp += len;
+      ap += len;
+      nbytes -= len;
+   }
+
+   if (nbytes > 0) {
+      /* Some unaligned data remains */
+      unsigned char *p = (unsigned char *) &w;
+
+      /* Read the segment containing the unaligned portion, edit
+         in the data from DP, and write it back. */
+      errno = 0;
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
+
+      if (errno) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+         return false;
+      }
+
+
+      for (unsigned i = 0; i < nbytes; i++)
+         p[i] = dp[i];
+
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w)) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+         return false;
+      }
+   }
+   return true;
+}
+
 // These constants are not defined in all versions of elf.h
 #ifndef AT_BASE
 #define AT_BASE 7
@@ -318,10 +411,12 @@ bool AuxvParser::readAuxvInfo()
    * so we have to resort to more "extreme" measures.
    **/
   buffer64 = (uint64_t *) readAuxvFromProc();
-  if (!buffer64) 
+  if (!buffer64) {
      buffer64 = (uint64_t *) readAuxvFromStack();
-  if (!buffer64)
+  }
+  if (!buffer64) {
      return false;
+  }
   buffer32 = (uint32_t *) buffer64;
   do {
      /**Fill in the auxv_entry structure.  We may have to do different
@@ -356,6 +451,12 @@ bool AuxvParser::readAuxvInfo()
      free(buffer64);
   if (!page_size)
      page_size = getpagesize();
+
+#if !defined(arch_x86) && !defined(arch_x86_64)
+  //No vsyscall page needed or present
+  return true;
+#endif
+
   /**
    * Even if we found dso_start in /proc/pid/auxv, the vsyscall 'page'
    * can be larger than a single page.  Thus we look through /proc/pid/maps
@@ -873,3 +974,72 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    return NULL;
 }
 
+bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps)
+{
+   char name[32];
+   struct dirent *direntry;
+
+   /**
+    * Linux 2.6:
+    **/
+   snprintf(name, 32, "/proc/%d/task", pid);
+   DIR *dirhandle = opendir(name);
+   if (dirhandle)
+   {
+      //Only works on Linux 2.6
+      while((direntry = readdir(dirhandle)) != NULL) {
+         unsigned lwp_id = atoi(direntry->d_name);
+         if (lwp_id) 
+            lwps.push_back(lwp_id);
+      }
+      closedir(dirhandle);
+      return true;
+   }
+   /**
+    * Linux 2.4:
+    *
+    * PIDs that are created by pthreads have a '.' prepending their name
+    * in /proc.  We'll check all of those for the ones that have this lwp
+    * as a parent pid.
+    **/
+   dirhandle = opendir("/proc");
+   if (!dirhandle)
+   {
+      //No /proc directory.  I give up.  No threads for you.
+      return false;
+   } 
+   while ((direntry = readdir(dirhandle)) != NULL)
+   {
+      if (direntry->d_name[0] != '.') {
+         //fprintf(stderr, "%s[%d]: Skipping entry %s\n", FILE__, __LINE__, direntry->d_name);
+         continue;
+      }
+      unsigned lwp_id = atoi(direntry->d_name+1);
+      int lwp_ppid;
+      if (!lwp_id) 
+         continue;
+      sprintf(name, "/proc/%d/status", lwp_id);
+      FILE *fd = P_fopen(name, "r");
+      if (!fd) {
+         continue;
+     }
+     char buffer[1024];
+     while (fgets(buffer, 1024, fd)) {
+         if (strncmp(buffer, "Tgid", 4) == 0) {
+             sscanf(buffer, "%*s %d", &lwp_ppid);
+             break;
+         }
+     }
+
+     fclose(fd);
+
+     if (lwp_ppid != pid) {
+         continue;
+     }
+     lwps.push_back(lwp_id);
+  }
+  closedir(dirhandle);
+  lwps.push_back(pid);
+  
+  return true;
+}

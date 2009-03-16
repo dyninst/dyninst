@@ -1,2 +1,8 @@
 make.config.local
 nmake.config.local
+DEPENDS
+*.o
+*.so
+*.so.1
+*.a
+V_*

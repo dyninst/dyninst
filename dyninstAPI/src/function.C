@@ -76,6 +76,7 @@ int_function::int_function(image_func *f,
     mod_(mod),
     blockIDmap(intHash),
     instPsByAddr_(addrHash4),
+    isBeingInstrumented_(false),
 #if defined(cap_relocation)
     generatedVersion_(0),
     installedVersion_(0),
@@ -128,6 +129,7 @@ int_function::int_function(const int_function *parFunc,
     mod_(childMod),
     blockIDmap(intHash),
     instPsByAddr_(addrHash4),
+    isBeingInstrumented_(parFunc->isBeingInstrumented_),
 #if defined(cap_relocation)
     generatedVersion_(parFunc->generatedVersion_),
     installedVersion_(parFunc->installedVersion_),
@@ -658,13 +660,13 @@ void int_function::getStaticCallers(pdvector< int_function * > &callers)
     for (unsigned i = 0; i < ib_ins.size(); i++) {
         if(ib_ins[i]->getType() == ET_CALL)
         {   
-            pdvector< image_func * > ifuncs;
-            ib_ins[i]->getSource()->getFuncs(ifuncs);
-            
-            for(unsigned k=0;k<ifuncs.size();k++)
+            const set<image_func *> & ifuncs = 
+                ib_ins[i]->getSource()->getFuncs();
+            set<image_func *>::const_iterator ifit = ifuncs.begin();
+            for( ; ifit != ifuncs.end(); ++ifit)
             {   
                 int_function * f;
-                f = obj()->findFunction(ifuncs[k]);
+                f = obj()->findFunction(*ifit);
                 
                 callers.push_back(f);
             }
@@ -1179,11 +1181,10 @@ bool int_function::getSharingFuncs(int_basicBlock *b,
     if(!b->hasSharedBase())
         return ret;
 
-    pdvector<image_func *> lfuncs;
-
-    b->llb()->getFuncs(lfuncs);
-    for(unsigned i=0;i<lfuncs.size();i++) {
-        image_func *ll_func = lfuncs[i];
+    const set<image_func *> & lfuncs = b->llb()->getFuncs();
+    set<image_func *>::const_iterator fit = lfuncs.begin();
+    for( ; fit != lfuncs.end(); ++fit) {
+        image_func *ll_func = *fit;
         int_function *hl_func = obj()->findFunction(ll_func);
         assert(hl_func);
 
@@ -1366,6 +1367,9 @@ bool int_function::performInstrumentation(bool stopOnFailure,
     // something interesting going on; that is, that have instrumentation
     // added since the last time something came up. 
 
+  if (isBeingInstrumented_) return false;
+  isBeingInstrumented_ = true;
+
     pdvector<instPoint *> newInstrumentation;
     pdvector<instPoint *> anyInstrumentation;
 
@@ -1380,7 +1384,10 @@ bool int_function::performInstrumentation(bool stopOnFailure,
     // Step 1: Generate all new instrumentation
     generateInstrumentation(newInstrumentation, failedInstPoints, relocationRequired); 
     
-    if (failedInstPoints.size() && stopOnFailure) return false;
+    if (failedInstPoints.size() && stopOnFailure) {
+      isBeingInstrumented_ = false;
+      return false;
+    }
 
 #if defined(cap_relocation)
     // Step 2: is relocation necessary?
@@ -1432,6 +1439,14 @@ bool int_function::performInstrumentation(bool stopOnFailure,
         //assert(relocationRequired == false);
 
         newInstrumentation = anyInstrumentation;
+
+	// If there are any other functions that we need to relocate
+	// due to this relocation, handle it now. We don't care if they
+	// fail to install instrumentation though.
+	pdvector<instPoint *> dontcare;
+	for (unsigned i = 0; i < need_reloc.size(); i++) {
+	  need_reloc[i]->performInstrumentation(false, dontcare);
+	}
     }
 #endif
 
@@ -1448,6 +1463,7 @@ bool int_function::performInstrumentation(bool stopOnFailure,
         obj()->setDirty();
     }
 
+    isBeingInstrumented_ = false;
     return (failedInstPoints.size() == 0);
 }
 
@@ -1554,3 +1570,7 @@ void int_function::linkInstrumentation(pdvector<instPoint *> &input,
     }
 }
 
+
+Offset int_function::addrToOffset(const Address addr) const { 
+    return addr - getAddress() + ifunc_->getOffset(); 
+}

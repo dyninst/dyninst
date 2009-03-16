@@ -69,7 +69,6 @@ typedef enum {
 	       doOp,     // Zhichen
 	       callOp,
 	       trampPreamble,
-	       trampTrailer,
 	       noOp,
 	       orOp,
 	       andOp,
@@ -88,6 +87,7 @@ typedef enum {
 	       funcJumpOp,        // Jump to function without linkage
 	       branchOp,
                ifMCOp,
+               breakOp,
 	       undefOp
 } opCode;
 

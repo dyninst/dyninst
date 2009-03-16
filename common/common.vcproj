@@ -462,6 +462,9 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\sha1.h">
 			</File>
 			<File
+				RelativePath=".\h\Singleton.h">
+			</File>
+			<File
 				RelativePath=".\h\stats.h">
 			</File>
 			<File

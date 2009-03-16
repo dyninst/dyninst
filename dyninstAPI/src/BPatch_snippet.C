@@ -167,10 +167,9 @@ float BPatch_snippet::getCostAtPointInt(BPatch_point *pt)
     if (!pt) return 0.0;
     if (!pt->point) return 0.0;
 
-    int unitCostInCycles = (*ast_wrapper)->maxCost()
-                           + pt->point->getPointCost() 
-                           + getInsnCost(trampPreamble) 
-                           + getInsnCost(trampTrailer);
+    int unitCostInCycles = (*ast_wrapper)->maxCost() +
+        pt->point->getPointCost() +
+        getInsnCost(trampPreamble);
 
     timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
     float frequency = 1.0f;
@@ -1198,7 +1197,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     vector<Dyninst::SymtabAPI::loc_t> *locs = lv->getSymtabVar()->getLocationLists();
     vector<Dyninst::SymtabAPI::loc_t> newlocs;
 	
-#if  defined(arch_x86_64) 
 
     // Get the frame pointer location list for the local variable's function
     vector<Dyninst::SymtabAPI::loc_t> *fplocs = 
@@ -1258,9 +1256,9 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                    newlocs.push_back(newloc);
                 }
            } // fploc iteration
-       } else { // if not storageFrameOffset 
+       } else { // if not storageFrameOffset or fplocs == NULL
 
-    	   Dyninst::SymtabAPI::loc_t newloc;
+    	 Dyninst::SymtabAPI::loc_t newloc;
          newloc.stClass = (*locs)[i].stClass ;
          newloc.refClass = (*locs)[i].refClass;
          newloc.reg = (*locs)[i].reg;
@@ -1274,27 +1272,6 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
        }
     } // loc iteration
 
-#else 
-    for(unsigned i=0; i<locs->size(); i++){
-       Address varlowPC, varhiPC;
-       varlowPC = ((*locs)[i].lowPC) + baseAddr;
-       varhiPC = ((*locs)[i].hiPC) + baseAddr;
-       
-       Dyninst::SymtabAPI::loc_t newloc;
-       newloc.stClass = (*locs)[i].stClass ;
-       newloc.refClass = (*locs)[i].refClass;
-       newloc.reg = (*locs)[i].reg;
-       newloc.frameOffset =(*locs)[i].frameOffset;
-       
-       newloc.lowPC = varlowPC;
-       newloc.hiPC = varhiPC;
-       
-       newlocs.push_back(newloc);
-       
-    }
-#endif
-
-    //lv->getSymtabVar()->setLocation(newlocs);
     for(unsigned i=0; i<newlocs.size(); i++){
         AstNodePtr *variableAst;
         BPatch_storageClass in_storage = lv->convertToBPatchStorage(& newlocs[i]);

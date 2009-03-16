@@ -389,9 +389,6 @@ int getInsnCost(opCode op)
         return(1+2+1+3);
     } else if (op ==  trampPreamble) {
         return(0);
-    } else if (op ==  trampTrailer) {
-        // retl
-        return(2);
     } else if (op == noOp) {
         // noop
         return(1);
@@ -635,37 +632,6 @@ unsigned relocatedInstruction::maxSizeRequired() {
 /****************************************************************************/
 /****************************************************************************/
 
-// Get the appropriate thread index
-
-bool baseTramp::generateMTCode(codeGen &gen,
-                               registerSpace *) {
-    AstNodePtr threadPOS;
-    pdvector<AstNodePtr > dummy;
-    Register src = Null_Register;
-    
-    dyn_thread *thr = gen.thread();
-    if (!threaded()) {
-    /* Get the hashed value of the thread */
-        emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
-    }
-    else if (thr) {
-        // Override 'normal' index value...
-        emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
-    }    
-    else {
-        threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
-        if (!threadPOS->generateCode(gen,
-                                     false, // noCost 
-                                     src)) return false;
-        if ((src) != REG_MT_POS) {
-            // This is always going to happen... we reserve REG_MT_POS, so the
-            // code generator will never use it as a destination
-            emitV(orOp, src, 0, REG_MT_POS, gen, false);
-        }
-    }
-
-    return true;
-}
 
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
@@ -750,136 +716,6 @@ bool baseTramp::generateRestores(codeGen &gen,
     instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
 
     return true;
-}
-
-// guardJumpOffset is the offset from the start of the gen
-// (as given to us) where the actual skip jump goes; it's overwritten
-// later when we know how big the miniTramps are.
-bool baseTramp::generateGuardPreCode(codeGen &gen,
-                                     codeBufIndex_t &guardJumpIndex,
-                                     registerSpace *) {
-    assert(guarded());
-    // The jump gets filled in later; allocate space for it now
-    // and stick where it is in guardJumpOffset
-    Address guard_flag_address = proc()->trampGuardBase();
-    if (!guard_flag_address) {
-        guardJumpIndex = 0;
-        return false;
-    }
-
-    // Set the high bits in L0
-    instruction::generateSetHi(gen, guard_flag_address, REG_L(0));
-    if (threaded()) {
-        int shift_val;
-        isPowerOf2(sizeof(unsigned), shift_val);
-        // multiply index*sizeof(unsigned)
-        instruction::generateLShift(gen, REG_MT_POS, (Register)shift_val, 
-                                    REG_L(3));
-        // And add into L0
-        instruction::generateSimple(gen, ADDop3, REG_L(3), REG_L(0), REG_L(0));
-    }
-    // Put a 0 in L1
-    instruction::generateSimple(gen, ADDop3, REG_G(0), REG_G(0), REG_L(1));
-    // Load, including low bits
-    instruction::generateLoad(gen, REG_L(0), LOW10(guard_flag_address), REG_L(2));
-
-    // Zero out the tramp guard. Why isn't this post-jump?
-    instruction::generateStore(gen, REG_L(1), REG_L(0), LOW10(guard_flag_address));
-
-    // Compare?
-    instruction::generateSimple(gen, SUBop3cc, REG_L(2), REG_G(0), REG_G(0));
-    // And branch
-    guardJumpIndex = gen.getIndex();
-    instruction::generateCondBranch(gen, 0, BEcond, false);
-    // Delay slots suck...
-    instruction::generateNOOP(gen);
-    return true;
-
-}
-  
-
-bool baseTramp::generateGuardPostCode(codeGen &gen,
-                                      codeBufIndex_t &post,
-                                      registerSpace *) {
-    assert(guarded());
-
-    Address guard_flag_address = proc()->trampGuardBase();
-    if (!guard_flag_address) {
-        return false;
-    }
-
-    // Set the high bits in L0
-    instruction::generateSetHi(gen, guard_flag_address, REG_L(0));
-    if (threaded()) {
-        int shift_val;
-        isPowerOf2(sizeof(unsigned), shift_val);
-        // multiply index*sizeof(unsigned)
-        instruction::generateLShift(gen, REG_MT_POS, (Register)shift_val, 
-                                    REG_L(3));
-        // And add into L0
-        instruction::generateSimple(gen, ADDop3, REG_L(3), REG_L(0), REG_L(0));
-    }
-    // Put a 1 in L1
-    instruction::generateImm(gen, ADDop3, REG_G(0), 1, REG_L(1));
-    // And store
-    instruction::generateStore(gen, REG_L(1), REG_L(0), LOW10(guard_flag_address));
-
-    post = gen.getIndex();
-    return true;
-}
-
-bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
-                                            int disp) {
-    assert(disp > 0);
-
-    instruction::generateCondBranch(gen, disp, BEcond, false);
-    // Don't have to write; this is still in generation.
-
-    return true;
-}
-
-// Previously emitVupdate
-bool baseTramp::generateCostCode(codeGen &gen, unsigned &costUpdateOffset,
-                                 registerSpace *) {
-    // Load; modify; store.
-    Address costAddr = proc()->getObservedCostAddr();
-    if (!costAddr) return false;
-
-    instruction::generateSetHi(gen, costAddr, REG_L(0));
-    instruction::generateLoad(gen, REG_L(0), LOW10(costAddr), REG_L(1));
-
-    costUpdateOffset = gen.used();
-    // Need to leave three (3) slots -- possibly an immediate load,
-    // possibly a hi/low/add combo
-    instruction::generateNOOP(gen);
-    instruction::generateNOOP(gen);
-    instruction::generateNOOP(gen);
-    // And store
-    instruction::generateStore(gen, REG_L(1), REG_L(0), LOW10(costAddr));
-    return true;
-}
-
-// Update with the appropriate value & write
-void baseTrampInstance::updateTrampCost(unsigned cost) {
-    if (baseT->costSize == 0) return;
-
-    codeGen gen(3*instruction::size());
-
-    if (cost <= MAX_IMM13) {
-        instruction::generateImm(gen, ADDop3, REG_L(1), cost, REG_L(1));
-        instruction::generateNOOP(gen);
-        instruction::generateNOOP(gen);
-    }
-    else {
-        instruction::generateSetHi(gen, cost, REG_L(2));
-        instruction::generateImm(gen, ORop3, REG_L(2), LOW10(cost), REG_L(2));
-        instruction::generateSimple(gen, ADDop3, REG_L(1), REG_L(2), REG_L(1));
-    }
-
-    Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
-    proc()->writeDataSpace((void *)trampCostAddr,
-                           gen.used(),
-                           gen.start_ptr());
 }
 
 /****************************************************************************/
@@ -1113,13 +949,6 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     case trampPreamble: {
         return(0);      // let's hope this is expected!
         }
-    case trampTrailer: 
-	 // generate the template for a jump -- actual jump is generated
-	 // elsewhere
-        retval = gen.getIndex();
-        gen.fill(instruction::maxJumpSize(gen.addrSpace()->getAddressWidth()), codeGen::cgNOP);
-        instruction::generateIllegal(gen);
-        break;
     default:
         abort();        // unexpected op for this emit!
     }
@@ -1545,7 +1374,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
     
     assert ((op!=branchOp) && (op!=ifOp) && 
-            (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
+            (op!=trampPreamble));         // !emitA
     assert ((op!=getRetValOp) && (op!=getSysRetValOp) &&
             (op!=getParamOp) && (op!=getSysParamOp));           // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload

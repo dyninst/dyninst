@@ -146,6 +146,7 @@ class image_edge {
 class image_basicBlock : public codeRange {
     friend class image_func;
  public:
+
     image_basicBlock(image_func *func, Address firstOffset);
 
     Address firstInsnOffset() const { return firstInsnOffset_; }
@@ -164,7 +165,7 @@ class image_basicBlock : public codeRange {
 
     struct compare {
         bool operator()(image_basicBlock * const &b1,
-                        image_basicBlock * const &b2) {
+                        image_basicBlock * const &b2) const {
             if(b1->firstInsnOffset() < b2->firstInsnOffset())
                 return true;
             if(b2->firstInsnOffset() < b1->firstInsnOffset())
@@ -179,6 +180,8 @@ class image_basicBlock : public codeRange {
             return false;
         }
     };
+
+    typedef std::set<image_basicBlock *, image_basicBlock::compare> blockSet;
 
     void debugPrint();
 
@@ -201,14 +204,13 @@ class image_basicBlock : public codeRange {
 
     int id() const { return blockNumber_; }
 
-    // all functions containing this basic block
-    void getFuncs(pdvector<image_func *> &funcs) const;
+    const set<image_func *> & getFuncs() const;
 
     // convenience method: sometimes any function will do
     image_func * getFirstFunc() const
     {
         if(funcs_.size() > 0)
-            return funcs_[0];
+            return *funcs_.begin();
         else
             return NULL;
     }
@@ -231,6 +233,10 @@ class image_basicBlock : public codeRange {
     const bitArray &getLivenessIn();
     // This is copied from the union of all successor blocks
     const bitArray getLivenessOut() const;
+#endif
+
+#if defined(cap_instruction_api)
+    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction, Offset> > &instances);
 #endif
 
    private:
@@ -259,7 +265,7 @@ class image_basicBlock : public codeRange {
     pdvector<image_edge *> targets_;
     pdvector<image_edge *> sources_;
 
-    pdvector<image_func *> funcs_;
+    set<image_func *> funcs_;
 
 #if defined(cap_liveness)
     /* Liveness analysis variables */
@@ -301,7 +307,9 @@ class image_func_registers {
 
 // Parse-level function object. Knows about offsets, names, and suchlike; 
 // does _not_ do function relocation.
-class image_func : public codeRange {
+class image_func : public codeRange,
+                   public AnnotatableSparse
+{
  public:
    static std::string emptyString;
 

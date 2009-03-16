@@ -883,12 +883,14 @@ bool dyn_lwp::representativeLWP_attach_()
    sprintf(temp, "/proc/%d/ctl", getPid());
 
    if (!waitForFileToExist(temp, 10 /*seconds */)) {
-      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+      //fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
       return false;
    }
    //ctl_fd_ = openFileWhenNotBusy(temp, O_WRONLY | O_EXCL, 0, 5/*seconds*/);
    ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);    
-   if (ctl_fd_ < 0) fprintf(stderr, "%s[%d]: Opening (LWP) ctl: %s", FILE__, __LINE__, strerror(errno));
+   if (ctl_fd_ < 0) {
+   //	fprintf(stderr, "%s[%d]: Opening (LWP) ctl: %s", FILE__, __LINE__, strerror(errno));
+   }
 
    sprintf(temp, "/proc/%d/status", getPid());
    if (!waitForFileToExist(temp, 5 /*seconds */)) {
@@ -897,7 +899,9 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //status_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    status_fd_ = P_open(temp, O_RDONLY, 0);    
-   if (status_fd_ < 0) fprintf(stderr, "%s[%d]: Opening (LWP) status: %s", FILE__, __LINE__, strerror(errno));
+   if (status_fd_ < 0) {
+   	//fprintf(stderr, "%s[%d]: Opening (LWP) status: %s", FILE__, __LINE__, strerror(errno));
+   } 
 
    as_fd_ = INVALID_HANDLE_VALUE;
    sprintf(temp, "/proc/%d/as", getPid());
@@ -907,7 +911,9 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //as_fd_ = openFileWhenNotBusy(temp, O_RDWR, 0, 5/*seconds*/);
    as_fd_ = P_open(temp, O_RDWR, 0);
-   if (as_fd_ < 0) fprintf(stderr, "%s[%d]: Opening as fd: %s", FILE__, __LINE__, strerror(errno));
+   if (as_fd_ < 0) {
+   	//fprintf(stderr, "%s[%d]: Opening as fd: %s", FILE__, __LINE__, strerror(errno));
+   }
 
 #if !defined(os_aix)
    sprintf(temp, "/proc/%d/auxv", getPid());
@@ -917,7 +923,9 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //auxv_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    auxv_fd_ = P_open(temp, O_RDONLY, 0);
-   if (auxv_fd_ < 0) fprintf(stderr, "%s[%d]: Opening auxv fd: %s", FILE__, __LINE__, strerror(errno));
+   if (auxv_fd_ < 0) {
+   //	fprintf(stderr, "%s[%d]: Opening auxv fd: %s", FILE__, __LINE__, strerror(errno));
+   }
 #else
    // AIX doesn't have the auxv file
    auxv_fd_ = INVALID_HANDLE_VALUE;
@@ -925,22 +933,25 @@ bool dyn_lwp::representativeLWP_attach_()
 
    sprintf(temp, "/proc/%d/map", getPid());
    if (!waitForFileToExist(temp, 5 /*seconds */)) {
-      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+      //fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
       return false;
    }
    //map_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    map_fd_ = P_open(temp, O_RDONLY, 0);
-   if (map_fd_ < 0) fprintf(stderr, "%s[%d]:  map_fd: %s\n", FILE__, __LINE__, strerror(errno));
+   if (map_fd_ < 0) {
+   	//fprintf(stderr, "%s[%d]:  map_fd: %s\n", FILE__, __LINE__, strerror(errno));
+  }
 
    sprintf(temp, "/proc/%d/psinfo", getPid());
    if (!waitForFileToExist(temp, 5 /*seconds */)) {
-      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+      //fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
       return false;
    }
    //ps_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    ps_fd_ = P_open(temp, O_RDONLY, 0);
-   if (ps_fd_ < 0) fprintf(stderr, "%s[%d]: Opening ps fd: %s", FILE__, __LINE__, strerror(errno));
-
+   if (ps_fd_ < 0) {
+   	//fprintf(stderr, "%s[%d]: Opening ps fd: %s", FILE__, __LINE__, strerror(errno));
+   }
    is_attached_ = true;
 
    if (isRunning()) {
@@ -1023,14 +1034,14 @@ bool process::setProcessFlags()
 
    dyn_lwp *replwp = getRepresentativeLWP();
    if (write(replwp->ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
-      perror("installProcessFlags: PRUNSET");
+//      perror("installProcessFlags: PRUNSET");
       return false;
    }
    command[0] = PCSET;
    command[1] = PR_BPTADJ | PR_MSACCT | PR_FORK;
 
    if (write(replwp->ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
-      perror("installProcessFlags: PCSET");
+//      perror("installProcessFlags: PCSET");
       return false;
    }
 
@@ -1370,9 +1381,11 @@ bool process::get_status(pstatus_t *status) const
    int readfd = getRepresentativeLWP()->status_fd();
    size_t sz_read = pread(readfd, (void *)status, sizeof(pstatus_t), 0);
    if (sz_read != sizeof(pstatus_t)) {
+/*
       fprintf(stderr, "[%s][%d]: process::get_status: %s\n", FILE__, __LINE__, strerror(errno));
       fprintf(stderr, "[%s][%d]: pread returned %d instead of %d, fd = %d\n", FILE__, __LINE__, sz_read, sizeof(pstatus_t), readfd);
       perror("pread");
+*/      
       return false;
    }
 

@@ -105,6 +105,7 @@ struct Config {
 
     // Debug print level.
     int verbose;
+    bool printipc;
 
     // Dyninst test level.
     ParseLevel parse_level;

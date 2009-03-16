@@ -3,7 +3,10 @@
  */
 
 #include "test_info_new.h"
-void initialize_mutatees_dyninst(std::vector<RunGroup *> &tests);void initialize_mutatees_symtab(std::vector<RunGroup *> &tests);void initialize_mutatees(std::vector<RunGroup *> &tests) {  initialize_mutatees_dyninst(tests);  initialize_mutatees_symtab(tests);}
+void initialize_mutatees_dyninst(std::vector<RunGroup *> &tests);
+void initialize_mutatees_symtab(std::vector<RunGroup *> &tests);
+void initialize_mutatees_instruction(std::vector<RunGroup *> &tests);
+void initialize_mutatees(std::vector<RunGroup *> &tests) {  initialize_mutatees_dyninst(tests);  initialize_mutatees_symtab(tests);  initialize_mutatees_instruction(tests);}
 // Now we insert the test lists into the run groups
 void initialize_mutatees_dyninst(std::vector<RunGroup *> &tests) {
 	unsigned int group_count = 0;
@@ -1358,6 +1361,52 @@ struct {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].ilabel));
     } while (tp_index < 24 && test_params[tp_index].endrungroup == false);
+
+    rg->index = group_count++;
+    tests.push_back(rg);
+  }
+}
+
+// Now we insert the test lists into the run groups
+void initialize_mutatees_instruction(std::vector<RunGroup *> &tests) {
+	unsigned int group_count = 0;
+	// Keep track of which element each test is, for later use with the resumelog
+	unsigned int test_count;
+	RunGroup *rg;
+struct {
+
+    char * mutatee_name;
+    start_state_t state_init;
+    create_mode_t attach_init;
+    bool ex;
+    bool presencevar;
+    char* module;
+    char* compiler;
+    char* optimization;
+    char* abi;
+  } rungroup_params[] = { {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"},
+ {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"} };
+
+  struct {
+    bool endrungroup;
+    const char * iname;
+    const char * mrname;
+    const char * isoname;
+    const char * ilabel;
+  } test_params[] = { {true, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.dll", "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
+ {true, "test_instruction_farcall", "test_instruction_farcall", "test_instruction_farcall.dll", "{test: test_instruction_farcall, mutator: test_instruction_farcall, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
+
+  int tp_index = -1;
+  for (int i = 0; i < 2; i++) {
+    test_count = 0;
+    rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
+			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
+			rungroup_params[i].optimization, rungroup_params[i].abi);
+    
+    do {
+      tp_index++;
+      rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].ilabel));
+    } while (tp_index < 2 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

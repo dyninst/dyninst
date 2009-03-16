@@ -528,6 +528,17 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   }
   jumpTable += tableOffsetFromThunk;
   parsing_printf("\tjumpTable revised to 0x%lx\n",jumpTable);
+	// On Windows, all of our other addresses have had the base address
+  // of their module subtracted off before we ever use them.  We need to fix this up
+  // to conform to that standard so that Symtab actually believes that there's code
+  // at the table's destination.
+#if defined(os_windows)
+  image* img = dynamic_cast<image*>(instructions_);
+  if(img)
+  {
+	  jumpTable -= img->getObject()->getLoadOffset();
+  }
+#endif
   if( !instructions_->isValidAddress(jumpTable) )
   {
     // If the "jump table" has a start address that is outside
@@ -541,8 +552,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   for(unsigned int i=0;i<maxSwitch;i++)
   {
     Address tableEntry = jumpTable + (i * addrWidth);
-    int jumpAddress = 0;
-  
+    Address jumpAddress = 0;
     
     if(instructions_->isValidAddress(tableEntry))
     {
@@ -555,6 +565,13 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
             jumpAddress = *(const int *)instructions_->getPtrToInstruction(tableEntry);
         }
     }
+#if defined(os_windows)
+  image* img = dynamic_cast<image*>(instructions_);
+  if(img)
+  {
+	  jumpAddress -= img->getObject()->getLoadOffset();
+  }
+#endif
     if (!instructions_->isExecutableAddress(jumpAddress)) {
         parsing_printf("\tentry %d [0x%lx] -> 0x%x, invalid, skipping\n",
                        i, tableEntry, jumpAddress);
@@ -563,14 +580,11 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 
     parsing_printf("\tentry %d [0x%lx] -> 0x%x\n",i,tableEntry,jumpAddress);
 
-    if (instructions_->isExecutableAddress(jumpAddress))
+    if(tableOffsetFromThunk)
     {
-      if(tableOffsetFromThunk)
-      {
-	jumpAddress += tableOffsetFromThunk;
-      }
-      result += jumpAddress;
+		jumpAddress += tableOffsetFromThunk;
     }
+    result += jumpAddress;
     
   }
   return true;
@@ -893,15 +907,84 @@ void parseRegisters(std::set<IA32Regs>& readArray, std::set<IA32Regs>& writeArra
       readArray.insert(r_EDI);
       break;
     case am_reg:
+      {
+	int registerID = operand.optype;
+#if defined(arch_x86_64)
+	if(locs.rex_b)
+	{
+	  // We need to flip this guy...
+	  switch(registerID)
+	  {
+	  case r_AL:
+	  case r_rAX:
+	  case r_eAX:
+	  case r_EAX:
+	  case r_AX:
+	    registerID = r_R8;
+	    break;
+	  case r_CL:
+	  case r_rCX:
+	  case r_eCX:
+	  case r_ECX:
+	    registerID = r_R9;
+	    break;
+	  case r_DL:
+	  case r_rDX:
+	  case r_eDX:
+	  case r_EDX:
+	  case r_DX:
+	    registerID = r_R10;
+	    break;
+	  case r_BL:
+	  case r_rBX:
+	  case r_eBX:
+	  case r_EBX:
+	    registerID = r_R11;	    
+	    break;
+	  case r_AH:
+	  case r_rSP:
+	  case r_eSP:
+	  case r_ESP:
+	    registerID = r_R12;
+	    break;
+	  case r_CH:
+	  case r_rBP:
+	  case r_eBP:
+	  case r_EBP:
+	    registerID = r_R13;	  
+	    break;
+	  case r_DH:
+	  case r_rSI:
+	  case r_eSI:
+	  case r_ESI:
+	  case r_SI:
+	    registerID = r_R14;
+	    break;
+	  case r_BH:
+	  case r_rDI:
+	  case r_eDI:
+	  case r_EDI:
+	  case r_DI:
+	    registerID = r_R15;
+	    break;
+	  default:
+	    break;
+	  };
+	  
+	}
+	
+#endif	
       if(isRead) 
       {
-	readArray.insert(IA32Regs(operand.optype));
+	readArray.insert(IA32Regs(registerID));
       }
       if(isWritten)
       {
-	writeArray.insert(IA32Regs(operand.optype));
+	writeArray.insert(IA32Regs(registerID));
       }
       break;
+      }
+      
     default:
       // do nothing
       break;
@@ -915,11 +998,13 @@ Address InstrucIter::getCallTarget()
   return getInstruction().getTarget(current);
 }
 
+#define FPOS 16
 
-bool InstrucIter::isFPWrite()
+bool InstrucIter::isFPRead()
 {
   instruction i = getInstruction();
-  ia32_instruction ii;
+  ia32_locations locs;
+  ia32_instruction ii(NULL, NULL, &locs);
   
   const unsigned char * addr = i.ptr();
        
@@ -931,6 +1016,7 @@ bool InstrucIter::isFPWrite()
   /* X87 Floating Point Operations ... we don't care about the specifics */
   if (entry->otable == t_coprocEsc)
     return true;
+  unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
 
   for ( int a = 0; a <  3; a++)
   {
@@ -939,13 +1025,62 @@ bool InstrucIter::isFPWrite()
 	entry->operands[a].admet == am_V || /*128-bit XMM selected by ModRM reg field*/
 	entry->operands[a].admet == am_W )  /*128-bit XMM selected by ModRM byte */
     {
-      return true;
+      if(operandIsRead(opsema, a))
+      {
+	if(entry->operands[a].admet == am_W || entry->operands[a].admet == am_Q)
+	{
+	  if(locs.modrm_mod == 0x03) // 
+	  {
+	    return true;
+	  }
+	}
+      }
     }
   }
   return false;
 }
 
-#define FPOS 16
+
+bool InstrucIter::isFPWrite()
+{
+  instruction i = getInstruction();
+  ia32_locations locs;
+  ia32_instruction ii(NULL, NULL, &locs);
+  
+  const unsigned char * addr = i.ptr();
+       
+  ia32_decode(0, addr,ii);    
+  ia32_entry * entry = ii.getEntry();
+
+  assert(entry != NULL);
+  
+  /* X87 Floating Point Operations ... we don't care about the specifics */
+  if (entry->otable == t_coprocEsc)
+    return true;
+  unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
+
+  for ( int a = 0; a <  3; a++)
+  {
+    if (entry->operands[a].admet == am_P || /*64-bit MMX selected by ModRM reg field */
+	entry->operands[a].admet == am_Q || /*64-bit MMX selected by ModRM byte */
+	entry->operands[a].admet == am_V || /*128-bit XMM selected by ModRM reg field*/
+	entry->operands[a].admet == am_W )  /*128-bit XMM selected by ModRM byte */
+    {
+      if(operandIsWritten(opsema, a))
+      {
+	if(entry->operands[a].admet == am_W || entry->operands[a].admet == am_Q)
+	{
+	  if(locs.modrm_mod == 0x03) // 
+	  {
+	    return true;
+	  }
+	}
+      }
+    }
+  }
+  return false;
+}
+
 void InstrucIter::readWriteRegisters(int* /*readRegs*/, int* /*writeRegs*/)
 {
   // deprecating this; use getAllRegistersUsedAndDefined instead
@@ -1011,7 +1146,22 @@ map<IA32Regs, Register> reverseRegisterLookup = map_list_of
     (r_FS, REGNUM_IGNORED)
     (r_GS, REGNUM_IGNORED)
     (r_SS, REGNUM_IGNORED)
-;
+    (r_RAX, REGNUM_RAX)
+    (r_RBX, REGNUM_RBX)
+    (r_RCX, REGNUM_RCX)
+    (r_RDX, REGNUM_RDX)
+    (r_RSP, REGNUM_RSP)
+    (r_RBP, REGNUM_RBP)
+    (r_RSI, REGNUM_RSI)
+    (r_RDI, REGNUM_RDI)
+    (r_rAX, REGNUM_RAX)
+    (r_rBX, REGNUM_RBX)
+    (r_rCX, REGNUM_RCX)
+    (r_rDX, REGNUM_RDX)
+    (r_rSP, REGNUM_RSP)
+    (r_rBP, REGNUM_RBP)
+    (r_rSI, REGNUM_RSI)
+    (r_rDI, REGNUM_RDI);
 
 Register dummyConverter(IA32Regs toBeConverted)
 {
@@ -1045,8 +1195,14 @@ void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used,
     unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
     parseRegisters(localUsed, localDefined, detailedInsn, opsema);
   }
+  if(isFPRead())
+  {
+    liveness_printf("Instruction at 0x%x reads FPRs\n", current);
+    localUsed.insert(r_DummyFPR);
+  }
   if(isFPWrite())
   {
+    liveness_printf("Instruction at 0x%x writes FPRs\n", current);
       localDefined.insert(r_DummyFPR);
   }
   if(detailedInsn.getPrefixCount())

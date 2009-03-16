@@ -35,58 +35,105 @@
 #include <assert.h>
 #include <string>
 #include <vector>
+#if defined(cap_stackwalker_use_symtab)
+#include "stackwalk/src/symtab-swk.h"
+#endif
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 using namespace std;
 
-void ProcessState::preStackwalk()
+class DefaultLibState : public LibraryState
+{
+public:
+   DefaultLibState(ProcessState *parent) : 
+      LibraryState(parent) 
+   {
+   }
+
+   virtual bool getLibraryAtAddr(Address, LibAddrPair &) {
+      return false;
+   }
+
+   virtual bool getLibraries(std::vector<LibAddrPair> &) {
+      return false;
+   }
+
+   virtual void notifyOfUpdate() {
+   }
+
+   virtual Address getLibTrapAddress() {
+      return 0x0;
+   }
+
+   ~DefaultLibState() { 
+   }
+};
+
+std::map<Dyninst::PID, ProcessState *> ProcessState::proc_map;
+
+ProcessState::ProcessState(Dyninst::PID pid_)
+{
+   std::map<PID, ProcessState *>::iterator i = proc_map.find(pid_);
+   if (i != proc_map.end())
+   {
+      sw_printf("[%s:%u] - Already attached to debuggee %d\n",
+                __FILE__, __LINE__, pid_);
+      setLastError(err_badparam, "Attach requested to already " \
+                   "attached process");
+      return;
+   }
+   if (pid_) {
+      setPid(pid_);
+   }
+}
+
+void ProcessState::setPid(Dyninst::PID pid_)
+{
+   pid = pid_;
+   if (pid) {
+      proc_map[pid] = this;
+   }
+}
+
+Dyninst::PID ProcessState::getProcessId() 
+{
+   return pid;
+}
+
+void ProcessState::preStackwalk(Dyninst::THR_ID)
 {
 }
 
-void ProcessState::postStackwalk()
+void ProcessState::postStackwalk(Dyninst::THR_ID)
 {
 }
 
 ProcessState::~ProcessState()
 {
+   if (library_tracker)
+      delete library_tracker;
+   if (pid)
+      proc_map.erase(pid);
 }
 
-bool procdebug_ltint::operator()(int a, int b) const
-{
-   return a < b;
-}
-
-std::map<PID, ProcDebug *, procdebug_ltint> ProcDebug::proc_map;
 int ProcDebug::pipe_in = -1;
 int ProcDebug::pipe_out = -1;
 
 ProcDebug::ProcDebug(PID p) : 
-  state(ps_neonatal),
-  isRunning(false),
-  user_isRunning(false),
-  should_resume(false),
-  pid(p)
+  ProcessState(p),
+  initial_thread(NULL),
+  active_thread(NULL)
 {
-   std::map<PID, ProcDebug *, procdebug_ltint>::iterator i = proc_map.find(p);
-   if (i != proc_map.end())
-   {
-      sw_printf("[%s:%u] - Already attached to debuggee %d\n",
-                __FILE__, __LINE__, pid);
-      setLastError(err_badparam, "Attach requested to already " \
-                   "attached to process");
-      return;
-   }
-   
-   proc_map[pid] = this;
+   initial_thread = ThreadState::createThreadState(this);
+   threads[initial_thread->getTid()] = initial_thread;   
 }
 
 ProcDebug::ProcDebug(const std::string & /*executable*/, 
                      const std::vector<std::string> & /*argv*/) : 
-  state(ps_neonatal),
-  isRunning(false),
-  user_isRunning(false),
-  should_resume(false)
+   ProcessState(0),
+   initial_thread(NULL),
+   active_thread(NULL)
 {
 }
 
@@ -100,33 +147,36 @@ bool ProcDebug::create(const string &executable,
     return false;
   }
 
-  proc_map[pid] = this;
+  setPid(pid);
+  initial_thread = ThreadState::createThreadState(this, NULL_THR_ID, true);
+#if defined(cap_stackwalker_use_symtab)
+  library_tracker = new SymtabLibState(this);
+#else
+  library_tracker = new DefaultLibState(this);
+#endif
+  threads[initial_thread->getTid()] = initial_thread;   
 
   sw_printf("[%s:%u] - Created debugged %s on pid %d\n",
             __FILE__, __LINE__, executable.c_str(), pid);
   result = debug_waitfor_create();
-  if (state == ps_exited) {
+  if (state() == ps_exited) {
      sw_printf("[%s:%u] - Process %s exited during create\n", 
                __FILE__, __LINE__, executable.c_str());
     return false; 
   }
   if (!result) {
-    sw_printf("[%s:%u] - Error during process create for %s\n",
+    sw_printf("[%s:%u] - Error during process create for %d\n",
 	      __FILE__, __LINE__, pid);
     return false;
   }
-  assert(state == ps_running);
-  
-  /*
-  if (!isRunning) {
-    result = resume();
+  result = debug_post_create();
     if (!result) {
-      sw_printf("[%s:%u] - Could not continue process %d after create\n",
+    sw_printf("[%s:%u] - Error during post create for %d\n",
                 __FILE__, __LINE__, pid);
       return false;
     }
-  }
-  */
+     
+  assert(state() == ps_running);
   
   return true;
 }
@@ -137,17 +187,17 @@ bool ProcDebug::debug_waitfor_create()
     bool handled, result;
     
     result = debug_wait_and_handle(true, handled);
-    if (!result || state == ps_errorstate) {
+    if (!result || state() == ps_errorstate) {
       sw_printf("[%s:%u] - Error.  Process %d errored during create\n",
                 __FILE__, __LINE__, pid);
       return false;
     }
-    if (state == ps_exited) {
+    if (state() == ps_exited) {
       sw_printf("[%s:%u] - Error.  Process %d exited during create\n",
                 __FILE__, __LINE__, pid);
       return false;
     }
-    if (state == ps_running) {
+    if (state() == ps_running) {
       sw_printf("[%s:%u] - Successfully completed create on %d\n",
                 __FILE__, __LINE__, pid);
       return true;
@@ -168,7 +218,7 @@ bool ProcDebug::multi_attach(vector<ProcDebug *> &pids)
         continue; \
       if (!cond) \
         continue; \
-      result = pd->func(); \
+      result = pd->func(pd->initial_thread); \
       if (!result) { \
          sw_printf("[%s:%u] - Could not %s to %d", __FILE__, __LINE__, err_msg, pd->pid); \
          delete pd; \
@@ -181,28 +231,37 @@ bool ProcDebug::multi_attach(vector<ProcDebug *> &pids)
 
    for_each_procdebug(debug_waitfor_attach, true, "wait for attach");
 
-   for_each_procdebug(debug_continue, (pd->state != ps_running), "send continue");
+   for_each_procdebug(debug_post_attach, true, "post attach");
+
+   for_each_procdebug(debug_continue, (pd->state() != ps_running), "send continue");
 
    return had_error;
 }
 
 bool ProcDebug::attach()
 {
-  bool result = debug_attach();
+  bool result = debug_attach(initial_thread);
   if (!result) {
     sw_printf("[%s:%u] - Could not attach to debuggee, %d\n",
 	      __FILE__, __LINE__, pid);
     return false;
   }
 
-  result = debug_waitfor_attach();
+  result = debug_waitfor_attach(initial_thread);
   if (!result) {
      sw_printf("[%s:%u] - Error waiting for attach\n", __FILE__, __LINE__);
      goto error;
   }
 
-  if (state != ps_running) {
-     result = debug_continue();
+  result = debug_post_attach(initial_thread);
+  if (!result) {
+     sw_printf("[%s:%u] - Error on post attach for %d\n",
+               __FILE__, __LINE__, pid);
+     goto error;
+  }
+
+  if (state() != ps_running) {
+     result = debug_continue(initial_thread);
      if (!result) {
         sw_printf("[%s:%u] - Could not continue debuggee %d after attach\n",
                   __FILE__, __LINE__, pid);
@@ -210,11 +269,10 @@ bool ProcDebug::attach()
      }
   }
 
-  assert(state == ps_running);
   return true;
 
  error:
-  if (state == ps_exited) {
+  if (state() == ps_exited) {
     setLastError(err_procexit, "Process exited unexpectedly during attach");
   }
   sw_printf("[%s:%u] - Error during process attach for %d\n",
@@ -223,42 +281,111 @@ bool ProcDebug::attach()
 }
 
 
-bool ProcDebug::debug_waitfor_attach()
+bool ProcDebug::debug_waitfor_attach(ThreadState *ts)
 {
+  Dyninst::THR_ID tid = ts->getTid();
   for (;;) {
     bool handled, result;
 
-    if (state == ps_exited) {
-      sw_printf("[%s:%u] - Error.  Process %d exited during attach\n",
-                __FILE__, __LINE__, pid);
+    if (ts->state() == ps_exited) {
+      sw_printf("[%s:%u] - Error.  Thread %d/%d exited during attach\n",
+                __FILE__, __LINE__, pid, tid);
       return false;
     }
-    if (state == ps_attached || state == ps_running)  {
-      sw_printf("[%s:%u] - Successfully completed attach on %d\n",
-                __FILE__, __LINE__, pid);
+    if (ts->state() == ps_attached || ts->state() == ps_running)  {
+      sw_printf("[%s:%u] - Successfully completed attach on %d/%d\n",
+                __FILE__, __LINE__, pid, tid);
       return true;
     }
     
     result = debug_wait_and_handle(true, handled);
-    if (!result || state == ps_errorstate) {
-      sw_printf("[%s:%u] - Error.  Process %d errored during attach\n",
-                __FILE__, __LINE__, pid);
+    if (!result || ts->state() == ps_errorstate) {
+      sw_printf("[%s:%u] - Error.  Thread %d/%d errored during attach\n",
+                __FILE__, __LINE__, pid, tid);
       return false;
     }
   }
 }
 
-bool ProcDebug::resume()
+bool ProcDebug::debug_post_attach(ThreadState *)
 {
-   bool result = debug_continue();
+   return true;
+}
+
+bool ProcDebug::debug_post_create()
+{
+   return true;
+}
+
+bool ProcDebug::resume(Dyninst::THR_ID tid)
+{
+   sw_printf("[%s:%u] - User is continuing process %d, thread %d\n",
+             __FILE__, __LINE__, pid, tid);
+   
+   ThreadState *thr = NULL;
+   if (tid != NULL_THR_ID) {
+      //Handle the case where we're being asked to continue one thread.
+      thread_map_t::iterator i = threads.find(tid);
+      if (i == threads.end()) {
+         sw_printf("[%s:%u] - Thread %d in process %d was not valid\n",
+                   __FILE__, __LINE__, tid, pid);
+         setLastError(err_badparam, "No such thread");
+         return false;
+      }
+      thr = (*i).second;
+      assert(thr);
+      if (thr->state() == ps_exited) {
+         sw_printf("[%s:%u] - Attempt to resume thread %d in proc %d that "
+                   "already exited\n", __FILE__, __LINE__, tid, pid);
+         setLastError(err_badparam, "Thread already exited");
+         return false;
+      }
+      bool result = resume_thread(thr);
+      if (result) {
+         thr->setUserStopped(false);
+      }
+   }
+   
+   //Handle the case where we're continuing all threads
+   thread_map_t::iterator i;
+   bool had_error = false;
+   for (i= threads.begin(); i != threads.end(); i++) {
+      thr = (*i).second;
+      assert(thr);
+      if (thr->state() == ps_exited) {
+         sw_printf("[%s:%u] - thread %d on process %d already exited\n",
+                __FILE__, __LINE__, tid, pid);
+         continue;
+      }
+      sw_printf("[%s:%u] - Continuing thread %d on process %d\n",
+                __FILE__, __LINE__, tid, pid);
+      bool result = resume_thread(thr);
    if (!result) {
-      sw_printf("[%s:%u] - Could not resume debugee %d\n",
-                __FILE__, __LINE__, pid);
+         sw_printf("[%s:%u] - Error resumeing thread %d on process %d\n",
+                __FILE__, __LINE__, tid, pid);
+         had_error = true;
+      }
+      else {
+         thr->setUserStopped(false);
+      }
+   }
+   return !had_error;
+}
+
+bool ProcDebug::resume_thread(ThreadState *thr)
+{
+   Dyninst::THR_ID tid = thr->getTid();
+   sw_printf("[%s:%u] - Top level resume for %d/%d\n",
+             __FILE__, __LINE__, pid, tid);
+   bool result = debug_continue(thr);
+   if (!result) {
+      sw_printf("[%s:%u] - Could not resume debugee %d, thread %d\n",
+                __FILE__, __LINE__, pid, tid);
       return false;
    }
 
-   result = debug_waitfor_continue();
-   if (state == ps_exited) {
+   result = debug_waitfor_continue(thr);
+   if (state() == ps_exited) {
       setLastError(err_procexit, "Process exited unexpectedly during continue");
       return false; 
    }
@@ -268,79 +395,137 @@ bool ProcDebug::resume()
       return false;
    }
    
-   user_isRunning = true;
-
-   assert(isRunning);
    return true;
 }
 
-bool ProcDebug::debug_waitfor_continue()
+bool ProcDebug::debug_waitfor_continue(ThreadState *thr)
 {
-  while (!isRunning) {
+  sw_printf("[%s:%u] - At debug_waitfor_continue, isStopped = %d\n",
+            __FILE__, __LINE__, (int) thr->isStopped());
+  while (thr->isStopped()) {
     bool handled, result;
     
     result = debug_wait_and_handle(true, handled);
-    if (!result || state == ps_errorstate) {
-      sw_printf("[%s:%u] - Error.  Process %d errored during attach\n",
+    if (!result || state() == ps_errorstate) {
+      sw_printf("[%s:%u] - Error.  Process %d errored during continue\n",
                 __FILE__, __LINE__, pid);
       return false;
     }
-    if (state == ps_exited) {
-      sw_printf("[%s:%u] - Error.  Process %d exited during attach\n",
+    if (state() == ps_exited || thr->state() == ps_exited) {
+      sw_printf("[%s:%u] - Error.  Process %d exited during continue\n",
                 __FILE__, __LINE__, pid);
       return false;
     }
   }
-  sw_printf("[%s:%u] - Successfully continued %d\n",
-            __FILE__, __LINE__, pid);
+  sw_printf("[%s:%u] - Successfully continued %d/%d\n",
+            __FILE__, __LINE__, pid, thr->getTid());
   return true;
 }
 
-bool ProcDebug::pause()
+bool ProcDebug::pause(Dyninst::THR_ID tid)
 {
-  bool result = debug_pause();
+   sw_printf("[%s:%u] - User is stopping process %d, thread %d\n",
+             __FILE__, __LINE__, pid, tid);
+   
+   ThreadState *thr = NULL;
+   if (tid != NULL_THR_ID) {
+      //Handle the case where we're being asked to stop one thread.
+      thread_map_t::iterator i = threads.find(tid);
+      if (i == threads.end()) {
+         sw_printf("[%s:%u] - Thread %d in process %d was not valid\n",
+                   __FILE__, __LINE__, tid, pid);
+         setLastError(err_badparam, "No such thread");
+         return false;
+      }
+      thr = (*i).second;
+      assert(thr);
+      if (thr->state() == ps_exited) {
+         sw_printf("[%s:%u] - Attempt to resume thread %d in proc %d that "
+                   "already exited\n", __FILE__, __LINE__, tid, pid);
+         setLastError(err_procexit, "Thread already exited");
+         return false;
+      }
+      bool result = pause_thread(thr);
+      if (result) {
+         thr->setUserStopped(true);         
+      }
+      return result;
+   }
+   
+   //Handle the case where we're stopping all threads
+   thread_map_t::iterator i;
+   bool had_error = false;
+   for (i = threads.begin(); i != threads.end(); i++) {
+      thr = (*i).second;
+      assert(thr);
+      if (thr->state() == ps_exited) {
+         sw_printf("[%s:%u] - thread %d on process %d already exited\n",
+                __FILE__, __LINE__, tid, pid);
+         continue;
+      }
+      sw_printf("[%s:%u] - Pausing thread %d on process %d\n",
+                __FILE__, __LINE__, tid, pid);
+      bool result = pause_thread(thr);
   if (!result) {
-    sw_printf("[%s:%u] - Could not pause debuggee %d\n",
-	      __FILE__, __LINE__, pid);
+         sw_printf("[%s:%u] - Error pausing thread %d on process %d\n",
+                __FILE__, __LINE__, tid, pid);
+         had_error = true;
+      }
+      else {
+         thr->setUserStopped(true);         
+      }
+   }
+   return !had_error;   
+}
+
+bool ProcDebug::pause_thread(ThreadState *thr)
+{
+   Dyninst::THR_ID tid = thr->getTid();
+   sw_printf("[%s:%u] - Top level thread pause for %d/%d\n",
+             __FILE__, __LINE__, pid, tid);
+   bool result = debug_pause(thr);
+   if (!result) {
+      sw_printf("[%s:%u] - Could not pause debuggee %d, thr %d\n",
+                __FILE__, __LINE__, pid, tid);
     return false;
   }
   
-  result = debug_waitfor_pause();
-  if (state == ps_exited) {
+   result = debug_waitfor_pause(thr);
+   if (thr->state() == ps_exited) {
     setLastError(err_procexit, "Process exited unexpectedly during pause");
     return false; 
   }
   if (!result) {
-    sw_printf("[%s:%u] - Error during process pause for %d\n",
-	      __FILE__, __LINE__, pid);
+      sw_printf("[%s:%u] - Error during process pause for %d, thr %d\n",
+                __FILE__, __LINE__, pid, tid);
     return false;
   }
 
-  user_isRunning = false;
-
-  assert(!isRunning);
+   assert(thr->isStopped());
   return true;
 }
 
-bool ProcDebug::debug_waitfor_pause()
+bool ProcDebug::debug_waitfor_pause(ThreadState *thr)
 {
-  sw_printf("[%s:%u] - Waiting for %d to stop\n", __FILE__, __LINE__, pid);
-  while (isRunning) {
+   Dyninst::THR_ID tid = thr->getTid();
+   sw_printf("[%s:%u] - Waiting for %d, %d to stop\n", __FILE__, __LINE__, pid, tid);
+   while (!thr->isStopped()) {
     bool handled, result;
     
     result = debug_wait_and_handle(true, handled);
-    if (!result || state == ps_errorstate) {
-      sw_printf("[%s:%u] - Error.  Process %d errored during pause\n",
-		__FILE__, __LINE__, pid);
+      if (!result || thr->state() == ps_errorstate) {
+         sw_printf("[%s:%u] - Error.  Process %d, %d errored during pause\n",
+                   __FILE__, __LINE__, pid, tid);
       return false;
     }
-    if (state == ps_exited) {
-      sw_printf("[%s:%u] - Error.  Process %d exited during pause\n",
-		__FILE__, __LINE__, pid);
+      if (thr->state() == ps_exited) {
+         sw_printf("[%s:%u] - Error.  Process %d, %d exited during pause\n",
+                   __FILE__, __LINE__, pid, tid);
       return false;
     }
   }
-  sw_printf("[%s:%u] - Successfully stopped %d\n", __FILE__, __LINE__, pid);
+   sw_printf("[%s:%u] - Successfully stopped %d, %d\n", 
+             __FILE__, __LINE__, pid, tid);
   return true;
 }
 
@@ -390,11 +575,6 @@ unsigned ProcSelf::getAddressWidth()
    return sizeof(void *);
 }
 
-PID ProcSelf::getProcessId()
-{
-  return mypid;
-}
-
 ProcSelf::~ProcSelf()
 {
 }
@@ -414,29 +594,154 @@ bool ProcDebug::handleDebugEvent(bool block)
   return true;
 }
 
-PID ProcDebug::getProcessId()
+void ProcDebug::preStackwalk(Dyninst::THR_ID tid)
 {
-   return pid;
-}
+   if (tid == NULL_THR_ID)
+      tid = initial_thread->getTid();
 
-void ProcDebug::preStackwalk()
-{
-   if (isRunning) {
-      should_resume = true;
-      pause();
+   thread_map_t::iterator i = threads.find(tid);
+   if (i == threads.end())
+      return;
+   
+   active_thread = (*i).second;
+   if (!active_thread->userIsStopped()) {
+      active_thread->setShouldResume(true);
    }
+   if (!active_thread->isStopped())
+      pause_thread(active_thread);
 }
 
-void ProcDebug::postStackwalk()
+void ProcDebug::postStackwalk(Dyninst::THR_ID tid)
 {
-   if (should_resume) {
-      resume();
-      should_resume = false;
+   if (tid == NULL_THR_ID)
+      tid = initial_thread->getTid();
+
+   thread_map_t::iterator i = threads.find(tid);
+   if (i == threads.end())
+      return;
+   
+   assert(active_thread == (*i).second);
+   if (active_thread->shouldResume()) {
+      resume_thread(active_thread);
+      active_thread->setShouldResume(false);      
    }
 }
 
 bool ProcDebug::isTerminated()
 {
-  return (state == ps_exited || state == ps_errorstate);
+   return (state() == ps_exited || state() == ps_errorstate);
 }
 
+LibraryState::LibraryState(ProcessState *parent) :
+   procstate(parent)
+{
+}
+
+LibraryState::~LibraryState()
+{
+}
+
+#if !defined(os_bluegene)
+bool ProcDebug::newProcDebugSet(const vector<Dyninst::PID> &pids,
+                                vector<ProcDebug *> &out_set)
+{
+   vector<Dyninst::PID>::const_iterator i;
+   for (i=pids.begin(); i!=pids.end(); i++)
+   {
+      Dyninst::PID pid = *i;
+      ProcDebug *new_pd = ProcDebug::newProcDebug(pid);
+      if (!new_pd) {
+         fprintf(stderr, "[%s:%u] - Unable to allocate new ProcDebugBG\n",
+                 __FILE__, __LINE__);
+         return false;
+   }
+      out_set.push_back(new_pd);
+   }
+   return true;
+}
+#endif
+
+LibraryState *ProcessState::getLibraryTracker()
+{
+   return library_tracker;
+}
+
+proc_state ProcDebug::state()
+{
+   assert(initial_thread);
+   return initial_thread->state();
+}
+
+void ProcDebug::setState(proc_state p)
+{
+   assert(initial_thread);
+   sw_printf("[%s:%u] - Setting initial thread for %d to %d\n",
+             __FILE__, __LINE__, pid, p);
+   initial_thread->setState(p);
+}
+
+ThreadState::ThreadState(ProcDebug *p, Dyninst::THR_ID id) :
+   is_stopped(true),
+   user_stopped(true),
+   should_resume(false),
+   tid(id),
+   thr_state(ps_neonatal),
+   parent(p)
+{
+}
+
+bool ThreadState::isStopped()
+{
+   return is_stopped;
+}
+
+void ThreadState::setStopped(bool s)
+{
+   is_stopped = s;
+}
+
+bool ThreadState::userIsStopped()
+{
+   return user_stopped;
+}
+
+void ThreadState::setUserStopped(bool u)
+{
+   user_stopped = u;
+}
+
+bool ThreadState::shouldResume()
+{
+   return should_resume;
+}
+
+void ThreadState::setShouldResume(bool r)
+{
+   should_resume = r;
+}
+
+Dyninst::THR_ID ThreadState::getTid()
+{
+   return tid;
+}
+
+proc_state ThreadState::state()
+{
+   return thr_state;
+}
+
+void ThreadState::setState(proc_state s)
+{
+   sw_printf("[%s:%u] - Setting thread %d to state %d\n",
+             __FILE__, __LINE__, tid, s);
+   thr_state = s;
+}
+
+ProcDebug* ThreadState::proc() 
+{
+   return parent;
+}
+
+ThreadState::~ThreadState()
+{
+}

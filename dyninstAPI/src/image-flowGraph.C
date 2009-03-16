@@ -160,6 +160,14 @@ bool image::analyzeImage()
         }
     }
 
+    /* Some functions that built their block lists through the
+       `shared code' mechanism may be incomplete. Finish them. */
+    parsing_printf("[%s:%u] Completing `shared code' parsing: %u entries\n",
+        FILE__,__LINE__,reparse_shared.size());
+    for(unsigned i=0;i<reparse_shared.size();++i) {
+        pair<image_basicBlock *,image_func*> & p = reparse_shared[i];
+        (p.second)->parseSharedBlocks(p.first);
+    }
 
   /* 
      OPENMP PARSING CODE
@@ -613,7 +621,7 @@ bool image_func::buildCFG(
 
     // Prevent overrunning an existing basic block in linear scan
     Address nextExistingBlockAddr;
-    image_basicBlock *nextExistingBlock;
+    image_basicBlock *nextExistingBlock = NULL;
 
     // Instructions and InstPoints
     pdvector< instruction > allInstructions;
@@ -1182,8 +1190,11 @@ bool image_func::buildCFG(
                     // the call insruction as an unconditional branch
                     
                     // link up the fallthrough edge unless we know for
-                    // certain that the target function does not return
-                    if(targetFunc && targetFunc->returnStatus() == RS_NORETURN)
+                    // certain that the target function does not return,
+                    // or if the target is an entry in the PLT (and not
+                    // one of the special-case non-returning entries above)
+                    if(targetFunc && targetFunc->returnStatus() == RS_NORETURN
+                       && !(*pltFuncs).defines(target))
                     {
                         parsing_printf("[%s:%u] not parsing past non-returning "
                                        "call at 0x%lx (to %s)\n",
@@ -1355,10 +1366,15 @@ image_func * image_func::bindCallTarget(
             parsing_printf("[%s:%u] recursive parsing of 0x%lx failed\n",
                 FILE__,__LINE__,targetFunc->getOffset());
 
+            /* XXX Because of the enormous amount of references to functions
+                   created during parsing, it is not currently safe to
+                   delete image_func objects once they have been partially
+                   parsed. This needs a design-level fix.
             // only want to delete this function if FindOrCreateFunc
             // actually created one
             if(created) 
                 delete targetFunc;
+            */
             targetFunc = NULL;
         }
     }
@@ -1474,13 +1490,22 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         if(containsBlock(curBlk))
             continue;
 
-        // If the current block's list of owning functions only
-        // contains one, that poor naive soul probably doesn't know it
-        // contains any shared blocks. We should let it know.
-        if(curBlk->funcs_.size() == 1)
+        // If the block isn't shared, it only has one function that doesn't
+        // yet know that it contains shared code.
+        if(!curBlk->isShared_)
         {
-            curBlk->funcs_[0]->containsSharedBlocks_ = true;
-            curBlk->funcs_[0]->needsRelocation_ = true;
+            image_func * first = *curBlk->funcs_.begin();
+            first->containsSharedBlocks_ = true;
+            first->needsRelocation_ = true;
+        }
+
+        // If this block is a stub, we'll revisit it when parsing is done
+        if(curBlk->isStub_) {
+            img()->reparse_shared.push_back(
+                pair<image_basicBlock *, image_func *>(curBlk,this));
+            parsing_printf("XXXX posponing stub block %d (0x%lx) for later\n",
+                curBlk->id(),curBlk->firstInsnOffset_);
+            continue;
         }
 
         /* Copy instrumentation points (if any) to this function that
@@ -1528,7 +1553,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         // As described in the comment above, the
         // only cases in which 'this' could be on the block's funcs_ list
         // are when it is the first entry. 
-        if(curBlk->funcs_[0] != this) {
+        if(*curBlk->funcs_.begin() != this) {
         curBlk->addFunc(this);
         }
 

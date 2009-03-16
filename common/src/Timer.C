@@ -236,8 +236,8 @@ timer::get_current(double& u, double& s, double& w) {
         abort();
     }
     if (gettimeofday(&tv, 0) == -1) {
-      P_perror("gettimeofday");
-      P_abort();
+      perror("gettimeofday");
+      abort();
     }
 
     timer t;

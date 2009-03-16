@@ -57,6 +57,7 @@
 // Operation + ExpressionPtrs -> Instruction + Operands
 struct ia32_entry;
 class ia32_prefixes;
+struct ia32_locations;
 
 namespace Dyninst
 {
@@ -95,7 +96,7 @@ namespace Dyninst
       typedef std::set<Expression::Ptr> VCSet;
   
     public:
-      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL);
+      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL, ia32_locations* l = NULL);
       INSTRUCTION_EXPORT Operation(const Operation& o);
       INSTRUCTION_EXPORT Operation();
       
@@ -122,10 +123,12 @@ namespace Dyninst
       INSTRUCTION_EXPORT size_t numOperands() const;
       /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
       /// to assembly mnemonics.
-      entryID getID() const
+      INSTRUCTION_EXPORT entryID getID() const
       {
-	return operationID;
+		return operationID;
       }
+      INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
+      INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
       
 
     private:
@@ -140,11 +143,6 @@ namespace Dyninst
       VCSet otherEffAddrsRead;
       VCSet otherEffAddrsWritten;
       entryID operationID;
-      static map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
-      static map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
-      static map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
-      static map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
-      
     };
   };
 };

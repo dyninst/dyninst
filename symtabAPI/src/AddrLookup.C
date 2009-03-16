@@ -59,11 +59,13 @@ AddressLookup *AddressLookup::createAddressLookup(PID pid, ProcessReader *reader
 AddressLookup *AddressLookup::createAddressLookup(ProcessReader *reader)
 {
    AddressTranslate *trans = AddressTranslate::createAddressTranslator(reader);
-   if (!trans)
+   if (!trans) {
       return NULL;
+   }
    AddressLookup *ar = new AddressLookup(trans);
-   if (!ar)
+   if (!ar) {
       return NULL;
+   }
    return ar;
 }
 
@@ -245,6 +247,11 @@ bool AddressLookup::getLoadAddresses(std::vector<LoadedLibrary> &name_addrs)
    }
 
    return true;
+}
+
+Address AddressLookup::getLibraryTrapAddrSysV()
+{
+   return translator->getLibraryTrapAddrSysV();
 }
 
 AddressLookup::AddressLookup(AddressTranslate *at) :

@@ -2580,7 +2580,7 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
    //libPaths.push_back(std::string(getenv("PWD")));
    for (unsigned int i = 0; i < libPaths.size(); i++) {
       std::string str = libPaths[i] + "/" + filename;
-      if (stat(str.c_str(), &dummy)) {
+      if (stat(str.c_str(), &dummy) == 0) {
          return str;
       }
    }

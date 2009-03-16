@@ -49,7 +49,7 @@ namespace Dyninst
     /// As a %RegisterAST is a %Expression, it may contain the physical register's contents if
     /// they are known.
     ///
-    class RegisterAST : public Expression
+    class INSTRUCTION_EXPORT RegisterAST : public Expression
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %RegisterAST.
@@ -60,7 +60,6 @@ namespace Dyninst
   
       virtual ~RegisterAST();
       
-
       /// By definition, a %RegisterAST object has no children.
       /// \param children Since a %RegisterAST has no children, the \c children parameter is unchanged by this method.
       virtual void getChildren(vector<InstructionAST::Ptr>& children) const;
@@ -88,6 +87,11 @@ namespace Dyninst
       /// The \c getID function returns the ID number of a register.
       unsigned int getID() const;
       
+
+      /// Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
+      /// or all of a register
+      /// Note: not const because it may return *this...
+      static InstructionAST::Ptr promote(InstructionAST::Ptr reg);
 
     protected:
       virtual bool isSameType(const InstructionAST& rhs) const;

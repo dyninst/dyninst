@@ -16,7 +16,7 @@ CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_te
 	-Di386-unknown-nt4.0_test
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src \
-	/D_DEBUG /Zi
+	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/newtestsuite/src
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
@@ -27,8 +27,9 @@ SYSLIBS		=
 LIBTESTSUITE = libtestSuite.dll
 LIBDYNINSTCOMP = libtestdyninst.dll
 LIBSYMTABCOMP = libtestsymtab.dll
+LIBINSTRUCTIONCOMP = libtestinstruction.dll
 
-MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib
+MUTATOR_LIBS = libtestdyninst.lib libtestSuite.lib libdyninstAPI.lib libtestsymtab.lib libsymtabAPI.lib libcommon.lib libtestinstruction.lib libinstructionAPI.lib
 
 SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/test_lib_dllExecution.C \
@@ -79,9 +80,14 @@ SRCS_TEMPLATES = ../src/test_driver_templates.C
 OBJS_TEMPLATES = $(SRCS_TEMPLATES:.C=.obj)
 OBJS_TEMPLATES = $(OBJS_TEMPLATES:../src/=)
 
-TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib
+SRCS_INSTRUCTIONCOMP = ../src/instruction/instruction_comp.C
 
-all: $(LIBTESTSUITE) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
+OBJS_INSTRUCTIONCOMP = $(SRCS_INSTRUCTIONCOMP:.C=.obj)
+OBJS_INSTRUCTIONCOMP = $(OBJS_INSTRUCTIONCOMP:../src/instruction/=)
+
+TESTDRIVER_LIBS = libdyninstAPI.lib libtestSuite.lib libtestdyninst.lib libtestsymtab.lib libtestinstruction.lib
+
+all: $(LIBTESTSUITE) $(LIBDYNINSTCOMP) $(LIBSYMTABCOMP) $(LIBINSTRUCTIONCOMP) test_driver.exe runTests.exe mutators mutatees DatabaseOutputDriver.dll libtestA.dll libtestB.dll
 
 
 UNCOMMON_INSTALL=true
@@ -98,9 +104,12 @@ clean:
 	$(RM) $(dyninst_SOLO_MUTATEES)
 	$(RM) $(symtab_MUTATORS_SO)
 	$(RM) $(symtab_SOLO_MUTATEES)
+	$(RM) $(instruction_MUTATORS_SO)
+	$(RM) $(instruction_SOLO_MUTATEES)
 	$(RM) $(OUTPUT_DRIVERS)
 	$(RM) $(LIBDYNINSTCOMP)
 	$(RM) $(LIBSYMTABCOMP)
+	$(RM) $(LIBINSTRUCTIONCOMP)
 	$(RM) test11.exe
 
 # Old Install commands if we actually want to install
@@ -119,6 +128,9 @@ $(LIBDYNINSTCOMP): $(OBJS_DYNINSTCOMP) ../src/test_lib.h
 $(LIBSYMTABCOMP): $(OBJS_SYMTABCOMP) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_SYMTABCOMP) $(LIBS) libtestSuite.lib
 
+$(LIBINSTRUCTIONCOMP): $(OBJS_INSTRUCTIONCOMP) ../src/test_lib.h
+	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_INSTRUCTIONCOMP) $(LIBS) libtestSuite.lib
+
 $(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
 	$(CXX) $(CXXFLAGS_NORM) -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
@@ -126,6 +138,9 @@ $(OBJS_DYNINSTCOMP): $(SRCS_DYNINSTCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 $(OBJS_SYMTABCOMP): $(SRCS_SYMTABCOMP)
+	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
+
+$(OBJS_INSTRUCTIONCOMP): $(SRCS_INSTRUCTIONCOMP)
 	$(CXX) $(CXXFLAGS_NORM) -DCOMPLIB_DLL_BUILD -DTESTLIB_DLL_BUILD -Dnative_cc=VC.exe -Dnative_cxx=_VC++.exe -I../src/ -c $**
 
 $(DYNINST_TESTLIBS_OBJS) : $(SRCS_DYNINSTTESTLIB)
@@ -163,7 +178,3 @@ DatabaseOutputDriver.obj: ../src/DatabaseOutputDriver.C
 DatabaseOutputDriver.dll: DatabaseOutputDriver.obj
 # Advapi32.lib needed for GetUserName, Ws2_32.lib required for gethostname
 	$(LINK) $(LDFLAGS) -DLL -out:$@ $(TESTDRIVER_LIBS) Advapi32.lib Ws2_32.lib $**
-
-foo:
-	@echo $(CXXFLAGS_NORM)
-

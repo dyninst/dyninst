@@ -282,20 +282,27 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 
     pendingInsertions->clear();
 
+    origBinEdit->writeFile(outFile);
+
     std::map<std::string, BinaryEdit *>::iterator i;
-    for (i = llBinEdits.begin(); i != llBinEdits.end(); i++)
-       (*i).second->writeFile(outFile);
+    for (i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
+       BinaryEdit *bin = (*i).second;
+       if (bin == origBinEdit)
+          continue;
+       if (!bin->isDirty())
+          continue;
+       
+       std::string newname = bin->getMappedObject()->fileName();
+       bin->writeFile(newname);
+    }
 
     return ret;
 }
-
-
 
 bool BPatch_binaryEdit::getType()
 {
   return STATIC_EDITOR;
 }
-
 
 void BPatch_binaryEdit::getAS(std::vector<AddressSpace *> &as)
 {

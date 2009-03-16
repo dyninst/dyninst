@@ -52,6 +52,11 @@ echo copy $(TargetDir)libinstructionAPI.dll $(TargetDir)..\..\..\i386-unknown-nt
 copy $(TargetDir)libinstructionAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo mkdir $(TargetDir)..\..\..\include
+mkdir $(TargetDir)..\..\..\include
+echo copy $(InputDir)h\*.h $(TargetDir)..\..\..\include
+copy $(InputDir)h\*.h $(TargetDir)..\..\..\include
+
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"/>

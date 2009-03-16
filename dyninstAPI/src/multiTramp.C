@@ -1575,7 +1575,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
         if (bti)
             fprintf(stderr, "Base tramp instance from 0x%lx to 0x%lx\n",
                     bti->trampPreAddr(),
-                    bti->trampPostAddr() + bti->baseT->postSize);
+                    bti->trampPostAddr() + bti->restoreEndOffset);
         if (end) {
             fprintf(stderr, "Tramp end from 0x%lx to 0x%lx\n",
                     end->addrInMutatee_,
@@ -1605,7 +1605,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
         if (bti)
             fprintf(stderr, "<DELETED> Base tramp instance from 0x%lx to 0x%lx\n",
                     bti->trampPreAddr(),
-                    bti->trampPostAddr() + bti->baseT->postSize);
+                    bti->trampPostAddr() + bti->restoreEndOffset);
         if (end) {
             fprintf(stderr, "<DELETED> Tramp end from 0x%lx to 0x%lx\n",
                     end->addrInMutatee_,
@@ -2479,7 +2479,7 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
         // Argh....
         // If we're in pre-insn, then return false. Post-insn, return true
         assert(pc >= newBTI->trampPreAddr());
-        if (pc < (newBTI->trampPreAddr() + newBTI->baseT->preSize))
+        if (pc < (newBTI->trampPreAddr() + newBTI->saveEndOffset))
             return false;
         if (pc >= newBTI->trampPostAddr())
             return true;

@@ -36,7 +36,7 @@
 
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/src/bluegene-swk.h"
-
+#include "stackwalk/src/symtab-swk.h"
 #include "common/h/linuxKludges.h"
 
 #include <string>
@@ -54,20 +54,6 @@ using namespace Dyninst::Stackwalker;
 using namespace DebuggerInterface;
 using namespace std;
 
-SymbolLookup *Walker::createDefaultSymLookup(const std::string &exec_name)
-{
-   SymbolLookup *new_lookup = new SwkDynSymtab(this, exec_name);
-   return new_lookup;
-}
-
-bool SymbolLookup::lookupLibrary(Address, Address &load_addr,
-                                 std::string &out_library)
-{
-   load_addr = 0;
-   out_library = executable_path;
-   return true;
-}
-
 bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
 {
   bool result;
@@ -84,9 +70,13 @@ bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
   return true;
 }
 
-ProcSelf::ProcSelf()
+ProcSelf::ProcSelf() :
+   ProcessState(getpid())
 {
-  mypid = getpid();
+}
+
+void ProcSelf::initialize()
+{
 }
 
 bool ProcSelf::getDefaultThread(THR_ID &default_tid)
@@ -141,7 +131,7 @@ DebugEvent ProcDebug::debug_get_event(bool block)
    pid = msg.header.nodeNumber;   
    sw_printf("[%s:%u] - Recieved debug event %d on %d\n", __FILE__, __LINE__,
 	     msg.header.messageType, pid);
-   std::map<PID, ProcDebug *, procdebug_ltint>::iterator i = proc_map.find(pid);
+   std::map<PID, ProcessState *>::iterator i = proc_map.find(pid);
    if (i == proc_map.end())
    {
       sw_printf("[%s:%u] - Error, recieved unknown pid %d\n",
@@ -150,14 +140,14 @@ DebugEvent ProcDebug::debug_get_event(bool block)
       ev.dbg = dbg_err;
       return ev;
    }
-   ev.proc = i->second;
-   ProcDebugBG *procbg = dynamic_cast<ProcDebugBG *>(ev.proc);
+   ProcDebugBG *procbg = dynamic_cast<ProcDebugBG *>(i->second);
    assert(procbg);
+   ev.proc = procbg;
 
    switch (msg.header.messageType)
    {
       case PROGRAM_EXITED:
-         ev.proc->isRunning = false;
+         ev.proc->initial_thread->setStopped(true);
          
          if (msg.dataArea.PROGRAM_EXITED.type == 0) {
             ev.dbg = dbg_exited;
@@ -179,7 +169,7 @@ DebugEvent ProcDebug::debug_get_event(bool block)
       case SIGNAL_ENCOUNTERED:
          sw_printf("[%s:%u] - Process %d stopped with %d\n",
                    __FILE__, __LINE__, pid, msg.dataArea.SIGNAL_ENCOUNTERED.signal);
-         ev.proc->isRunning = false;
+         ev.proc->initial_thread->setStopped(true);
          
          ev.dbg = dbg_stopped;
          sig_encountered = msg.dataArea.SIGNAL_ENCOUNTERED.signal;
@@ -221,8 +211,8 @@ DebugEvent ProcDebug::debug_get_event(bool block)
       case SINGLE_STEP_ACK:
          sw_printf("[%s:%u] - Process %d recieved SINGLE_STEP\n",
                    __FILE__, __LINE__, pid, ev.data);
-         assert(ev.proc->isRunning);
-         ev.proc->isRunning = false;
+         assert(!ev.proc->initial_thread->isStopped());
+         ev.proc->initial_thread->setStopped(true);
          
          ev.dbg = dbg_stopped;
          ev.data.idata = 0;
@@ -243,23 +233,26 @@ bool ProcDebugBG::debug_handle_event(DebugEvent ev)
   switch (ev.dbg)
   {
      case dbg_stopped:
-        isRunning = false;
+        initial_thread->setStopped(true);        
         
-        if (state == ps_attached_intermediate) {
+        if (state() == ps_attached_intermediate) {
            sw_printf("[%s:%u] - Moving %d to state running\n", 
                      __FILE__, __LINE__, pid);
-           state = ps_attached;
+           setState(ps_attached);
            return true;
         }
         
         if (ev.data.idata == SINGLE_STEP_SIG) {
-           if (user_isRunning) {
+           if (!initial_thread->userIsStopped()) {
+              sw_printf("[%s:%u] - handling dbg_stopped SINGLE_STEP on %d\n",
+                        __FILE__, __LINE__, pid);
               ev.data.idata = 0;
               result = debug_handle_signal(&ev);
            }
         }
-
-        if (ev.data.idata != SIGSTOP) {
+        else if (ev.data.idata != SIGSTOP) {
+           sw_printf("[%s:%u] - handling dbg_stopped SINGLE_STEP on %d\n",
+                     __FILE__,__LINE__, pid);
            result = debug_handle_signal(&ev);
            if (!result) {
               sw_printf("[%s:%u] - Debug continue failed on %d with %d\n", 
@@ -274,19 +267,19 @@ bool ProcDebugBG::debug_handle_event(DebugEvent ev)
     case dbg_exited:
       sw_printf("[%s:%u] - Handling process death on %d\n",
                 __FILE__, __LINE__, pid);
-      state = ps_exited;
+      setState(ps_exited);
       return true;
     case dbg_continued:
        sw_printf("[%s:%u] - Process %d continued\n", __FILE__, __LINE__, pid);
        clear_cache();
-       assert(!isRunning);
-       isRunning = true;
+       assert(initial_thread->isStopped());
+       initial_thread->setStopped(false);
        break;
     case dbg_attached:
        sw_printf("[%s:%u] - Process %d attached\n", __FILE__, __LINE__, pid);
-       assert(state == ps_neonatal);
-       state = ps_attached_intermediate;
-       debug_pause(); //TODO or not TODO?
+       assert(state() == ps_neonatal);
+       setState(ps_attached_intermediate);
+       debug_pause(NULL); //TODO or not TODO?
        break;
     case dbg_mem_ack:
        sw_printf("[%s:%u] - Process %d returned a memory chunck of size %u", 
@@ -320,7 +313,7 @@ bool ProcDebugBG::debug_create(const std::string &,
   return false;
 }
 
-bool ProcDebugBG::debug_attach()
+bool ProcDebugBG::debug_attach(ThreadState *)
 {
    BGL_Debugger_Msg msg(ATTACH, pid, 0, 0, 0);
    msg.header.dataLength = sizeof(msg.dataArea.ATTACH);
@@ -335,7 +328,7 @@ bool ProcDebugBG::debug_attach()
    return true;
 }
 
-bool ProcDebugBG::debug_pause() 
+bool ProcDebugBG::debug_pause(ThreadState *)
 {
    BGL_Debugger_Msg msg(KILL, pid, 0, 0, 0);
    msg.dataArea.KILL.signal = SIGSTOP;
@@ -352,14 +345,14 @@ bool ProcDebugBG::debug_pause()
    return true;
 }
 
-bool ProcDebugBG::debug_continue()
+bool ProcDebugBG::debug_continue(ThreadState *)
 {
-   return debug_continue_with(0);
+   return debug_continue_with(NULL, 0);
 }
 
-bool ProcDebugBG::debug_continue_with(long sig)
+bool ProcDebugBG::debug_continue_with(ThreadState *, long sig)
 {
-   assert(!isRunning);
+   assert(initial_thread->isStopped());
    BGL_Debugger_Msg msg(CONTINUE, pid, 0, 0, 0);
    msg.dataArea.CONTINUE.signal = sig;
    msg.header.dataLength = sizeof(msg.dataArea.CONTINUE);
@@ -380,7 +373,7 @@ bool ProcDebugBG::debug_handle_signal(DebugEvent *ev)
    assert(ev->dbg == dbg_stopped);
    sw_printf("[%s:%u] - Handling signal for pid %d\n", 
 	     __FILE__, __LINE__, pid);
-   return debug_continue_with(ev->data.idata);
+   return debug_continue_with(NULL, ev->data.idata);
 }
 
 #if !defined(BGL_READCACHE_SIZE)
@@ -524,7 +517,7 @@ unsigned ProcDebugBG::getAddressWidth()
    return sizeof(long);
 }
 
-bool ProcDebugBG::getRegValue(reg_t reg, Dyninst::THR_ID, regval_t &val)
+bool ProcDebugBG::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID, Dyninst::MachRegisterVal &val)
 {
 
    if (!gprs_set)
@@ -555,13 +548,13 @@ bool ProcDebugBG::getRegValue(reg_t reg, Dyninst::THR_ID, regval_t &val)
    
    switch(reg)
    {
-      case REG_SP:
+      case Dyninst::MachRegStackBase:
          val = 0x0;
 	 break;
-      case REG_FP:
+      case Dyninst::MachRegFrameBase:
          val = gprs.gpr[BGL_GPR1];
 	 break;
-      case REG_PC:
+      case Dyninst::MachRegPC:
          val = gprs.iar;
 	 break;
       default:
@@ -608,8 +601,8 @@ ProcDebug *ProcDebug::newProcDebug(PID pid)
    }
 
    bool result = pd->attach();
-   if (!result || pd->state != ps_running) {
-     pd->state = ps_errorstate;
+   if (!result || pd->state() != ps_running && pd->state() != ps_attached) {
+     pd->setState(ps_errorstate);
      proc_map.erase(pid);
      sw_printf("[%s:%u] - Error attaching to process %d\n",
                __FILE__, __LINE__, pid);
@@ -714,3 +707,113 @@ void ProcDebugBG::clear_cache()
   mem_data_size = 0x0;
 }
 
+bool ProcDebugBG::debug_waitfor_version_msg()
+{
+   sw_printf("[%s:%u] - At debug_waitfor_Version_msg, isStopped = %d\n",
+             __FILE__, __LINE__, initial_thread->isStopped());
+   bool handled, result;
+   
+   result = debug_wait_and_handle(true, handled);
+   if (!result || state() == ps_errorstate) {
+      sw_printf("[%s:%u] - Error,  Process %d errored during version_msg\n",
+                __FILE__, __LINE__, pid);
+      return false;
+   }
+   if (state() == ps_exited) {
+      sw_printf("[%s:%u] - Error.  Process %d exited during version_msg\n",
+                __FILE__, __LINE__, pid);
+      return false;
+   }
+   sw_printf("[%s:%u] - Successfully version_msg %d\n",
+             __FILE__, __LINE__, pid);
+   return true;      
+}
+
+bool ProcDebugBG::debug_version_msg()
+{
+  BGL_Debugger_Msg msg(VERSION_MSG, pid, 0, 0, 0);
+  msg.header.dataLength = sizeof(msg.dataArea.VERSION_MSG);
+
+  sw_printf("[%s:%u] - Sending VERSION_MSG to pid %d\n", __FILE__, __LINE__, pid);
+  bool result = BGL_Debugger_Msg::writeOnFd(BGL_DEBUGGER_WRITE_PIPE, msg);
+
+  if (!result) {
+     sw_printf("[%s:%u] - Unable to send VERSION_MSG to process %d\n",
+               __FILE__, __LINE__, pid);
+     return false;
+  }
+  return true;
+}
+
+bool ProcDebugBG::version_msg()
+{
+   bool result = debug_version_msg();
+   if (!result) {
+      sw_printf("[%s:%u] - Could not version msg debugee %d\n",
+                __FILE__, __LINE__, pid);
+      return false;
+   }
+   
+   result = debug_waitfor_version_msg();
+   if (state() == ps_exited) {
+      setLastError(err_procexit, "Process exited unexpectedly during version_msg");
+      return false;
+   }
+   if (!result) {
+      sw_printf("[%s:%u] - Error during process version_msg for %d\n",
+                __FILE__, __LINE__, pid);
+      return false;
+   }   
+   return true;
+}
+
+ThreadState* ThreadState::createThreadState(ProcDebug *parent,
+                                            Dyninst::THR_ID,
+                                            bool)
+{
+   ThreadState *ts = new ThreadState(parent, 0);
+   return ts;
+}
+
+bool SymtabLibState::updateLibsArch()
+{
+   return true;
+}
+
+SigHandlerStepper::SigHandlerStepper(Walker *w) :
+   FrameStepper(w)
+{
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+}
+
+gcframe_ret_t SigHandlerStepper::getCallerFrame(const Frame &, Frame &)
+{
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+   return gcf_error;
+}
+
+unsigned SigHandlerStepper::getPriority() const
+{
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
+             __FILE__, __LINE__);
+   assert(0);
+   return 0;
+}
+
+void SigHandlerStepper::registerStepperGroup(StepperGroup *)
+{
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported "
+             "platform\n",  __FILE__, __LINE__);
+   assert(0);
+}
+
+SigHandlerStepper::~SigHandlerStepper()
+{
+   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported "
+             "platform\n",  __FILE__, __LINE__);
+   assert(0);
+}

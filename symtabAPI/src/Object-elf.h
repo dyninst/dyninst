@@ -38,9 +38,15 @@
 #if !defined(_Object_elf_h_)
 #define _Object_elf_h_
 
+#if defined(USES_DWARF_DEBUG)
+#include "dwarf.h"
+#include "libdwarf.h"
+#endif
+
 
 #include "common/h/MappedFile.h"
 #include "symtabAPI/h/Symbol.h"
+#include "symtabAPI/h/Symtab.h"
 #include "common/h/headers.h"
 #include "common/h/Types.h"
 #include <elf.h>
@@ -55,6 +61,7 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -270,10 +277,43 @@ class pdElfShdr;
 
 class Symtab;
 class Region;
+class Object;
+
+typedef struct {
+  Dwarf_Fde *fde_data;
+  Dwarf_Signed fde_count;
+  Dwarf_Cie *cie_data;
+  Dwarf_Signed cie_count;   
+} fde_cie_data;
+
+class DwarfHandle {
+   friend class Object;
+ private:
+   typedef enum {
+      dwarf_status_uninitialized,
+      dwarf_status_error,
+      dwarf_status_ok
+   } dwarf_status_t;
+   dwarf_status_t fde_dwarf_status;
+   dwarf_status_t init_dwarf_status;
+
+   std::vector<fde_cie_data> fde_data;
+   Dwarf_Debug dbg_data;
+   Object *obj;
+
+ public:
+  DwarfHandle(Object *obj_);
+  ~DwarfHandle();
+
+
+  Dwarf_Debug *dbg();
+  void setupFdeData();
+};
 
 class Object : public AObject {
+  friend class DwarfHandle;   
  public:
-  Object(){}
+  Object() : dwarf(this) {}
   Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
   Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
   Object(MappedFile *, MappedFile *, std::string &member_name, Offset offset,	
@@ -367,6 +407,12 @@ class Object : public AObject {
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
     bool isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned newPerms);
 
+    bool getRegValueAtFrame(Address pc, 
+                            Dyninst::MachRegister reg, 
+                            Dyninst::MachRegisterVal &reg_result,
+                            MemRegReader *reader);
+    bool hasFrameDebugInfo();
+
     bool convertDebugOffset(Offset off, Offset &new_off);
  private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -409,6 +455,8 @@ class Object : public AObject {
   bool  isStripped;
   bool usesDebugFile;
 
+  DwarfHandle dwarf;
+
 #if defined(arch_ia64)
   Offset   gp;			 // The gp for this object.
 #endif
@@ -441,6 +489,7 @@ class Object : public AObject {
   std::vector<std::string> deps_;
 
   bool loaded_elf( Offset &, Offset &,
+  		    Elf_X_Shdr* &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
@@ -472,9 +521,10 @@ class Object : public AObject {
                     Elf_X_Shdr *&dynstr_scnp);
   
   bool parse_symbols(std::vector<Symbol *> &allsymbols, 
-		     Elf_X_Shdr* symscnp, Elf_X_Shdr* strscnp,
-		     bool shared_library,
-		     std::string module);
+                     Elf_X_Data &symdata, Elf_X_Data &strdata,
+                     Elf_X_Shdr* &,
+                     bool shared_library,
+                     std::string module);
   
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
              Elf_X_Data &strdata, bool shared_library,
@@ -488,13 +538,14 @@ class Object : public AObject {
   void insert_symbols_static(std::vector<Symbol *> &allsymbols);
   bool fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp,
 					     Elf_X_Shdr *stabstrscnp);
-  bool fix_global_symbol_modules_static_dwarf(Elf_X &elf);
+  bool fix_global_symbol_modules_static_dwarf();
 
   void get_valid_memory_areas(Elf_X &elf);
 
   MappedFile *findMappedFileForDebugInfo();
-
-
+  bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
+                         Address textaddr, Address dataaddr,
+                         std::vector<ExceptionBlock> &catch_addrs);
  public:
   struct DbgAddrConversion_t {
      DbgAddrConversion_t() : dbg_offset(0x0), dbg_size(0x0), orig_offset(0x0) {}
@@ -507,6 +558,7 @@ class Object : public AObject {
   bool DbgSectionMapSorted;
   std::vector<DbgAddrConversion_t> DebugSectionMap;
 };
+
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);
 

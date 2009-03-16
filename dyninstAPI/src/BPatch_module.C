@@ -203,19 +203,33 @@ BPatch_module::~BPatch_module()
       BPatch_typeCollection::freeTypeCollection(moduleTypes);
    }
 
+   // XXX The odd while-loop structures allow the
+   //     destructors for map objects to remove themselves
+   //     from the maps; otherwise the iterators will
+   //     become invalidated
+
    BPatch_funcMap::iterator fi = func_map.begin();
-   for (; fi != func_map.end(); fi++) {
-      delete (*fi).second;
+   BPatch_funcMap::iterator tmp_f;
+   while(fi != func_map.end()) {
+      tmp_f = fi;
+      ++fi;
+      delete (*tmp_f).second;
    }
 
    BPatch_instpMap::iterator ii = instp_map.begin();
-   for (; ii != instp_map.end(); ii++) {
-      delete (*ii).second;
+   BPatch_instpMap::iterator tmp_i;
+   while(ii != instp_map.end()) {
+      tmp_i = ii;
+      ++ii; 
+      delete (*tmp_i).second;
    }
 
    BPatch_varMap::iterator vi = var_map.begin();
-   for (; vi != var_map.end(); vi++) {
-      delete (*vi).second;
+   BPatch_varMap::iterator tmp_v;
+   while(vi != var_map.end()) {
+      tmp_v = vi;
+      ++vi;
+      delete (*tmp_v).second;
    }
 
    func_map.clear();

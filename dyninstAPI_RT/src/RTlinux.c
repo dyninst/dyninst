@@ -127,7 +127,7 @@ void DYNINSTlinuxBreakPoint()
 void DYNINSTsafeBreakPoint()
 {
     DYNINST_break_point_event = 2; /* Not the same as above */
-    while (DYNINST_break_point_event)
+    //    while (DYNINST_break_point_event)
         kill(dyn_lwp_self(), SIGSTOP);
 }
 
@@ -347,109 +347,100 @@ typedef struct pthread_offset_t
    unsigned stck_start_pos;
 } pthread_offset_t;
 
-#if defined(arch_x86)
+#if defined(arch_x86_64) && defined(MUTATEE_32)
+//x86_64 32 bit mode
 #define POS_ENTRIES 4
 static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
                                                    { 72, 76, 516, 84 },
-                                                   { 72, 76, 532, 96 },
-                                                   { 72, 476, 516, 80 } };
-#else
+                                                   { 72, 476, 516, 80 },
+                                                   { 72, 76, 532, 96} }; 
+
+#elif defined(arch_x86_64) || defined(arch_ia64)
 //x86_64 and ia64 share structrues
-#define POS_ENTRIES 3
+#define POS_ENTRIES 4
 static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 },
                                                    { 144, 148, 1000, 160 },
-                                                   { 144, 148, 1000, 688 } };
+                                                   { 144, 148, 1000, 688 },
+                                                   { 144, 148, 1024, 192 } };
 
-#if defined(MUTATEE_32)
-/* ccw 28 apr 2006: the offsets for 32 bit mutatees on amd64*/
-#define POS_ENTRIES32 3
-static pthread_offset_t positions32[POS_ENTRIES32] = { { 72, 476, 516, 576 },
-                                                   	{ 72, 76, 516, 84 },
-							{ 72, 476, 516, 80 }}; 
-#endif
+#elif defined(arch_x86)
+//x86 32
+#define POS_ENTRIES 4
+static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
+                                                   { 72, 76, 516, 84 },
+                                                   { 72, 76, 532, 592 },
+                                                   { 72, 476, 516, 80 } };
+#elif defined(arch_power)
+//Power
+#define POS_ENTRIES 2
+static pthread_offset_t positions[POS_ENTRIES] = { { 72, 76, 508, 576 },
+                                                   { 144, 148, 992, 1072 } };
+#else
+#error Need to define thread structures here
 #endif
 
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 {
-  static int err_printed = 0;
-  int i;
-  char *buffer;
+   static int err_printed = 0;
+   int i;
+   char *buffer;
 
-  ev->stack_addr = 0x0;
-  ev->start_pc = 0x0;
-  buffer = (char *) ev->tid;
+   ev->stack_addr = 0x0;
+   ev->start_pc = 0x0;
+   buffer = (char *) ev->tid;
 
-#if !defined(MUTATEE_32)  
-  for (i = 0; i < POS_ENTRIES; i++)
-  {
-     pid_t pid = READ_FROM_BUF(positions[i].pid_pos, pid_t);
-     int lwp = READ_FROM_BUF(positions[i].lwp_pos, int);
+   for (i = 0; i < POS_ENTRIES; i++)
+   {
+      pid_t pid = READ_FROM_BUF(positions[i].pid_pos, pid_t);
+      int lwp = READ_FROM_BUF(positions[i].lwp_pos, int);
 
-     if( pid != ev->ppid || lwp != ev->lwp ) {
-        // /* DEBUG */ fprintf( stderr, "%s[%d]: pid %d != ev->ppid %d or lwp %d != ev->lwp %d\n", __FILE__, __LINE__, pid, ev->ppid, lwp, ev->lwp );
-        continue;
-        }
+      if( pid != ev->ppid || lwp != ev->lwp ) {
+         continue;
+      }
 
-        void * stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
-        void * start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
-
-        // Sanity checking. There are multiple different places that we have
-        // found the stack address for a given pair of pid/lwpid locations,
-        // so we need to do the best job we can of verifying that we've
-        // identified the real stack. 
-        //
-        // Currently we just check for known incorrect values. We should
-        // generalize this to check for whether the address is in a valid
-        // memory region, but it is not clear whether that information is
-        // available at this point.
-        //
-        
-        if(stack_addr == (void*)0 || stack_addr == (void*)0xffffffec) {
-            continue;
-        }
-
-        ev->stack_addr = stack_addr;
-        ev->start_pc = start_pc;
-
-           /* DEBUG */ /* fprintf( stderr, "%s[%d]: pid_pos %d, lwp_pos %d " 
-                                       "stck_start_pos: %d start_func_pos %d\n",
-            __FILE__, __LINE__, 
-            positions[i].pid_pos, 
-            positions[i].lwp_pos,
-            positions[i].stck_start_pos,
-            positions[i].start_func_pos); */
-
-         // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
-     return 1;
-  }
-
-#else  /* the offsets for 32 bit mutatees on amd64*/
-    for (i = 0; i < POS_ENTRIES32; i++)
-  {
-     pid_t pid = READ_FROM_BUF(positions32[i].pid_pos, pid_t);
-     int lwp = READ_FROM_BUF(positions32[i].lwp_pos, int);
-     /*unsigned int start_pc =  (unsigned) READ_FROM_BUF(positions32[i].start_func_pos, void*);*/
-     if( pid != ev->ppid || lwp != ev->lwp){
-        // /* DEBUG */ fprintf( stderr, "%s[%d]: pid %d != ev->ppid %d or lwp %d != ev->lwp %d\n", __FILE__, __LINE__, pid, ev->ppid, lwp, ev->lwp );
-        continue;
-        }
-     ev->stack_addr = READ_FROM_BUF(positions32[i].stck_start_pos, void *);
-     ev->start_pc = READ_FROM_BUF(positions32[i].start_func_pos, void *);
-     // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
-     return 1;
-  }
+      void *stack_addr;
+#if defined(arch_x86_64) && defined(MUTATEE_32)
+      asm("movl %%esp,%0" : "=r" (stack_addr));
+#elif defined(arch_x86_64)
+      asm("mov %%rsp,%0" : "=r" (stack_addr));
+#elif defined(arch_x86)
+      asm("movl %%esp,%0" : "=r" (stack_addr));
+#else
+      stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
 #endif
-  if (!err_printed)
-  {
-    //If you get this error, then Dyninst is having trouble figuring out
-    //how to read the information from the positions structure above.
-    //It needs a new entry filled in.  Running the commented out program
-    //at the end of this file can help you collect the necessary data.
-    RTprintf( "[%s:%d] Unable to parse the pthread_t structure for this version of libpthread.  Making a best guess effort.\n",  __FILE__, __LINE__ );
-    err_printed = 1;
-  }
+      void *start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
+
+      // Sanity checking. There are multiple different places that we have
+      // found the stack address for a given pair of pid/lwpid locations,
+      // so we need to do the best job we can of verifying that we've
+      // identified the real stack. 
+      //
+      // Currently we just check for known incorrect values. We should
+      // generalize this to check for whether the address is in a valid
+      // memory region, but it is not clear whether that information is
+      // available at this point.
+      //        
+      if(stack_addr == (void*)0 || stack_addr == (void*)0xffffffec) {
+         continue;
+      }
+
+      ev->stack_addr = stack_addr;
+      ev->start_pc = start_pc;
+
+      return 1;
+   }
+
+   if (!err_printed)
+   {
+      //If you get this error, then Dyninst is having trouble figuring out
+      //how to read the information from the positions structure above.
+      //It needs a new entry filled in.  Running the commented out program
+      //at the end of this file can help you collect the necessary data.
+      RTprintf( "[%s:%d] Unable to parse the pthread_t structure for this version of libpthread.  Making a best guess effort.\n",  __FILE__, __LINE__ );
+      err_printed = 1;
+   }
    
-  return 1;
+   return 1;
 }
 
 #if defined(cap_mutatee_traps)

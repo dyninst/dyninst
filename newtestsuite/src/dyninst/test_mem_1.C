@@ -476,7 +476,10 @@ test_results_t test_mem_1_Mutator::executeTest() {
   dumpvect(res1, "Loads");
 
   if((*res1).size() != nloads)
-    failtest(testnum, testdesc, "Number of loads seems wrong in function \"loadsnstores.\"\n");
+  {
+    logerror("%s[%d]:  FAILURE: expected %d loads, got %d\n", __FILE__, __LINE__, nloads, (*res1).size());
+     failtest(testnum, testdesc, "Number of loads seems wrong in function \"loadsnstores.\"\n");   
+  }
 
   if(!validate(res1, loadList, "load"))
     failtest(testnum, testdesc, "Load sequence failed validation.\n");

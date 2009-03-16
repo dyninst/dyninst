@@ -295,8 +295,8 @@ BPatch_process *test_thread_6_Mutator::getProcess()
       args[n] = NULL;
       // FIXME figure out what to put for outlog & errlog..
       int pid = startNewProcessForAttach(filename, (const char **) args,
-					 getOutputLog(),
-					 getErrorLog());
+                                         getOutputLog(),
+                                         getErrorLog(), true);
       if (pid < 0) {
 	logerror("%s couldn't be started\n", filename);
          fprintf(stderr, "%s ", filename);

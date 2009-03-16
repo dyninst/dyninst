@@ -72,15 +72,33 @@ IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symta
 
 DOCDIR	= ../doc
 
+TO_INC = ../h
+PUBLIC_H =      BinaryFunction.h \
+                Dereference.h \
+                entryIDs-IA32.h \
+                Expression.h \
+                Immediate.h \
+                InstructionAST.h \
+                InstructionDecoder.h \
+                Instruction.h \
+                Operand.h \
+                Operation.h \
+                Register.h \
+                RegisterIDs-x86.h \
+                Result.h 
+
+
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
+	cp $(TO_INC)/*.h $(TO_CORE)/../include
 
 
 docs:
 	cd ..; doxygen instructionAPI.conf
-	cd $(DOCDIR)/latex; manual-preproc.pl *.tex; $(MAKE) clean
+	cd $(DOCDIR)/latex; ./manual-preproc.pl *.tex; $(MAKE) clean
 	$(MAKE) -C $(DOCDIR)/latex
+	cp $(DOCDIR)/latex/refman.pdf ../instructionProgGuide.07.pdf
 
 
 

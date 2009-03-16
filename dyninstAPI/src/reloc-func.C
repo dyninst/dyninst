@@ -112,14 +112,14 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     {
         // if the function has previously been relocated (any stage,
         // not just installed and linked), skip.
-        if(needReloc[i]->generatedVersion_ > 0)
-        {
-            reloc_printf("Skipping dependant relocation of %s: function already relocated\n",
-                         needReloc[i]->prettyName().c_str());
-            needReloc[i] = needReloc.back();
-            needReloc.pop_back();
-            i--; // reprocess  
-        }
+      if(needReloc[i]->linkedVersion_ > 0) {
+	reloc_printf("Skipping dependant relocation of %s: function already relocated\n",
+		     needReloc[i]->prettyName().c_str());
+	needReloc[i] = needReloc.back();
+	needReloc.pop_back();
+	i--; // reprocess  
+      }
+#if 0
         else
         {
             reloc_printf("Forcing dependant relocation of %p\n",
@@ -129,6 +129,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
                                                      0,needReloc))
                 ret = false;
         }
+#endif
     }
 
     reloc_printf("%s[%d]: RELOCATION GENERATE FOR %s, returning %s, %d in needReloc\n",
@@ -414,37 +415,6 @@ bool int_function::relocationInstall() {
 
     installedVersion_ = generatedVersion_;
     version_ = installedVersion_;
-
-    // Fix up all of our instPoints....
-    // This will cause multiTramps, etc. to be built in the new
-    // version of the function.  
-
-#if 0
-    // Shouldn't need this, since we manually update later on.
-
-    reloc_printf("RELOCATION INSTALL, updating instances...\n");
-
-    for (i = 0; i < entryPoints_.size(); i++)
-        entryPoints_[i]->updateInstancesBatch();
-    for (i = 0; i < exitPoints_.size(); i++)
-        exitPoints_[i]->updateInstancesBatch();
-    for (i = 0; i < callPoints_.size(); i++)
-        callPoints_[i]->updateInstancesBatch();
-    for (i = 0; i < arbitraryPoints_.size(); i++)
-        arbitraryPoints_[i]->updateInstancesBatch();
-
-    for (i = 0; i < entryPoints_.size(); i++)
-        entryPoints_[i]->updateInstancesFinalize();
-    for (i = 0; i < exitPoints_.size(); i++)
-        exitPoints_[i]->updateInstancesFinalize();
-    for (i = 0; i < callPoints_.size(); i++)
-        callPoints_[i]->updateInstancesFinalize();
-    for (i = 0; i < arbitraryPoints_.size(); i++)
-        arbitraryPoints_[i]->updateInstancesFinalize();
-
-    reloc_printf("%s[%d]: RELOCATION INSTALL FOR %s, returning %s\n",
-                 FILE__, __LINE__, prettyName().c_str(), success ? "true" : "false");
-#endif
 
     return success;
 }

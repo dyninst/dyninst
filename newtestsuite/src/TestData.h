@@ -15,8 +15,8 @@ enum start_state_t {
 
 enum create_mode_t {
    CREATE = 0,
-   USEATTACH = 1,
-   BOTH,
+   USEATTACH,
+   DISK
 };
 
 enum cleanup_mode_t {

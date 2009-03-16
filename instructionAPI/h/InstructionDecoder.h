@@ -44,7 +44,7 @@
 struct ia32_locations;
 struct ia32_condition;
 struct ia32_operand;
-struct ia32_instruction;
+class ia32_instruction;
 struct ia32_memacc;
     
 namespace Dyninst

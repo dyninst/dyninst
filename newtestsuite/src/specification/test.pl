@@ -244,6 +244,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
          compiler_opt_trans(Compiler, Optimization, _))
     ),
     platform_abi(Platform, ABI),
+    runmode_platform(Platform, RunMode),
     % Enumerate / verify values for run-time options
         runmode(RunMode),
     member(StartState, ['stopped', 'running', 'selfstart']),

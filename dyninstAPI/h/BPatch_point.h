@@ -260,7 +260,7 @@ public:
 
 #if defined(cap_instruction_api)
     API_EXPORT(Int, (),
-	       InstructionAPI::Instruction, getInsnAtPoint, ());
+	       Dyninst::InstructionAPI::Instruction, getInsnAtPoint, ());
 #endif
 
 

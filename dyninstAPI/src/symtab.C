@@ -1067,13 +1067,13 @@ void image::analyzeIfNeeded() {
 
 image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    desc_(desc),
+   activelyParsing(addrHash4),
    is_libdyninstRT(false),
    is_a_out(false),
    main_call_addr_(0),
    nativeCompiler(false),    
    _mods(0),
    funcsByEntryAddr(addrHash4),
-   activelyParsing(addrHash4),
    nextBlockID_(0),
    pltFuncs(NULL),
    varsByAddr(addrHash4),

@@ -423,6 +423,89 @@ void registerSpace::initialize64() {
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM0,
+					 "MM0/ST(0)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM1,
+					 "MM1/ST(1)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM2,
+					 "MM2/ST(2)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM3,
+					 "MM3/ST(3)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM4,
+					 "MM4/ST(4)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM5,
+					 "MM5/ST(5)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM6,
+					 "MM6/ST(6)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_MM7,
+					 "MM7/ST(7)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM0,
+					 "XMM0",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM1,
+					 "XMM1)",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM2,
+					 "XMM2",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM3,
+					 "XMM3",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM4,
+					 "XMM4",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM5,
+					 "XMM5",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM6,
+					 "XMM6",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+    registers.push_back(new registerSlot(REGNUM_XMM7,
+					 "XMM7",
+					 true,
+					 registerSlot::liveAlways,
+					 registerSlot::FPR));
+
+
+
 
     // For registers that we really just don't care about.
     registers.push_back(new registerSlot(REGNUM_IGNORED,
@@ -534,91 +617,6 @@ bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
 bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
 
     return gen.codeEmitter()->emitBTRestores(this, gen);
-}
-
-bool baseTramp::generateMTCode(codeGen &gen, registerSpace*) {
-    return gen.codeEmitter()->emitBTMTCode(this, gen);
-}
-
-bool baseTramp::generateGuardPreCode(codeGen &gen,
-                                     codeBufIndex_t &guardJumpOffset,
-				     registerSpace*) {
-
-    return gen.codeEmitter()->emitBTGuardPreCode(this, gen, guardJumpOffset);
-}
-
-bool baseTramp::generateGuardPostCode(codeGen &gen,
-				      codeBufIndex_t &guardTargetIndex,
-				      registerSpace *) {
-
-    return gen.codeEmitter()->emitBTGuardPostCode(this, gen, guardTargetIndex);
-}
-
-bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
-                                            int disp) {
-
-    // This would be a bad thing...
-    assert(disp > 0);
-    // Assumes that preCode is generated
-    // and we're now finalizing the jump to go
-    // past whatever miniTramps may have been.
-    
-    // x86: we use the smallest jump we can and
-    // noop the rest.
-    
-    // Note: must be a conditional jump
-    
-    // Gen is at the branch point
-    
-    unsigned start = gen.used();
-    int jumpSize = 0;
-
-    emitJcc(0x04, disp-2, gen, false);
-
-    jumpSize = gen.used() - start;
-
-    gen.fill(baseT->guardBranchSize - jumpSize,
-             codeGen::cgNOP);
-        
-    return true;
-}
-       
-
-bool baseTramp::generateCostCode(codeGen &gen, unsigned &costUpdateOffset,
-                                 registerSpace *) {
-    Address costAddr = proc()->getObservedCostAddr();
-    if (!costAddr) return false;
-
-    return gen.codeEmitter()->emitBTCostCode(this, gen, costUpdateOffset);
-}
-
-// And update the same in an atomic action
-void baseTrampInstance::updateTrampCost(unsigned cost) {
-    if (!baseT->costSize) return;
-
-    assert(baseT->costSize);
-
-    Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
-
-    codeGen gen(baseT->costSize);
-
-    Address costAddr = proc()->getObservedCostAddr();
-
-    if (proc()->getAddressWidth() == 4) {
-       emitAddMemImm32(costAddr, cost, gen);    
-    }
-    else {
-       emitMovImmToReg64(REGNUM_RAX, costAddr, true, gen);
-       emitOpRMImm(0x81, 0, REGNUM_RAX, 0, cost, gen);
-    }
-
-    // We can assert this here as we regenerate the entire
-    // cost section
-    assert(gen.used() == baseT->costSize);
-    
-    proc()->writeDataSpace((void *)trampCostAddr,
-                           gen.used(),
-                           (void *)gen.start_ptr());
 }
 
 /****************************************************************************/
@@ -1404,15 +1402,6 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	 retval = gen.getIndex();
 	 break;
      }
-     case trampTrailer: {
-         // generate the template for a jump -- actual jump is generated
-         // elsewhere
-         retval = gen.getIndex();
-         gen.fill(instruction::maxJumpSize(gen.addrSpace()->getAddressWidth()),
-                  codeGen::cgNOP);
-         instruction::generateIllegal(gen);
-         break;
-     }
      case trampPreamble: {
 	 break;
      }
@@ -1756,7 +1745,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     //        src2, dest);
     
     assert ((op!=branchOp) && (op!=ifOp) &&
-            (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
+            (op!=trampPreamble));         // !emitA
     assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
@@ -1938,8 +1927,6 @@ int getInsnCost(opCode op)
       return(3);
    } else if (op ==  trampPreamble) {
       return(0);
-   } else if (op ==  trampTrailer) {
-      return(1);
    } else if (op == noOp) {
       return(1);
    } else if (op == getRetValOp) {
@@ -1974,6 +1961,7 @@ int getInsnCost(opCode op)
            break;
       }
    }
+   return 0;
 }
 
 

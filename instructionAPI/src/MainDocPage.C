@@ -39,7 +39,7 @@ namespace Dyninst
      * When analyzing and modifying binary code, it is necessary to translate
      * between raw binary instructions and an abstract form that describes the semantics
      * of the instructions.
-     * As a part of the Dyninst project, we have developed the
+     * As a part of the %Dyninst project, we have developed the
      * %Instruction API, an API and library for decoding and representing
      * machine instructions in a platform-independent manner. The
      * %Instruction API includes methods for decoding machine language,

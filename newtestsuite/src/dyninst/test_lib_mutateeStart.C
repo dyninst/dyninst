@@ -56,7 +56,7 @@ BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, con
       // I should be able to remove the outlog and errlog parameters from
       // startNewProcessForAttach without harming anything.
       int pid = startNewProcessForAttach(pathname, child_argv,
-                                         NULL, NULL);
+                                         NULL, NULL, true);
       if (pid < 0) {
          fprintf(stderr, "*ERROR*: unable to start tests due to error creating mutatee process\n");
          return NULL;
@@ -116,26 +116,18 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char 
    return retval;
 }
 
-BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
-                                char *logfilename, char *humanlogname,
-                                bool verboseFormat, bool printLabels,
-                                int debugPrint, char *pidfilename)
+static const char** parseArgs(RunGroup *group,
+                              char *logfilename, char *humanlogname,
+                              bool verboseFormat, bool printLabels,
+                              int debugPrint, char *pidfilename)
 {
    std::vector<std::string> mutateeArgs;
-   getOutput()->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
-   BPatch_thread *appThread;
-   const char **child_argv = new const char *[12 + (4 * group->tests.size())
-                                              + mutateeArgs.size()];
-   if (NULL == child_argv) {
-      return NULL;
-   }
-
-   // Start the mutatee
-   dprintf("Starting \"%s\"\n", group->mutatee);
-
+   getOutput()->getMutateeArgs(mutateeArgs); // mutateeArgs is an output parameter
+   const char **child_argv = new const char *[12 + (4 * group->tests.size()) +
+                                              mutateeArgs.size()];
+   assert(child_argv);
    int n = 0;
    child_argv[n++] = group->mutatee;
-   //child_argv[n++] = const_cast<char*>("-verbose");
    if (logfilename != NULL) {
       child_argv[n++] = const_cast<char *>("-log");
       child_argv[n++] = logfilename;
@@ -170,13 +162,246 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
       child_argv[n++] = const_cast<char *>("-print-labels");
    }
    for (int i = 0; i < mutateeArgs.size(); i++) {
-      child_argv[n++] = mutateeArgs[i].c_str();
+      child_argv[n++] = strdup(mutateeArgs[i].c_str());
    }
-   child_argv[n] = NULL;
+   child_argv[n] = NULL;   
+
+   return child_argv;
+}
+
+BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
+                                char *logfilename, char *humanlogname,
+                                bool verboseFormat, bool printLabels,
+                                int debugPrint, char *pidfilename)
+{
+   const char **child_argv = parseArgs(group, logfilename, humanlogname,
+                                       verboseFormat, printLabels, 
+                                       debugPrint, pidfilename);
    
+   // Start the mutatee
+   dprintf("Starting \"%s\"\n", group->mutatee);
    BPatch_thread *retval = startMutateeTestGeneric(bpatch, group->mutatee,
                                                    child_argv,
                                                    group->useAttach);
    delete [] child_argv;
    return retval;
+}
+
+BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
+{
+   BPatch_binaryEdit *binEdit = bpatch->openBinary(group->mutatee, true);
+   return binEdit;
+}
+
+#define BINEDIT_DIR "./binaries"
+
+#if defined(os_linux_test)
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+
+static void clearBinEditFiles()
+{
+   struct dirent **files;
+   int result = scandir(BINEDIT_DIR, &files, NULL, NULL);
+   if (result == -1) {
+      return;
+   }
+
+   int num_files = result;
+   for (unsigned i=0; i<num_files; i++) {
+      if ((strcmp(files[i]->d_name, ".") == 0) || 
+          (strcmp(files[i]->d_name, "..") == 0)) 
+      {
+         free(files[i]);
+         continue;
+      }
+      std::string full_file = std::string(BINEDIT_DIR) + std::string("/") +
+         std::string(files[i]->d_name);
+      unlink(full_file.c_str());
+      free(files[i]);
+   }
+   free(files);
+}
+
+static bool cdBinDir()
+{
+   int result = chdir(BINEDIT_DIR);
+   if (result != -1) {
+      return true;
+   }
+
+   result = mkdir(BINEDIT_DIR, 0700);
+   if (result == -1) {
+      perror("Could not mkdir " BINEDIT_DIR);
+      return false;
+   }
+   result = chdir(BINEDIT_DIR);
+   if (result == -1) {
+      perror("Could not chdir " BINEDIT_DIR);
+      return false;
+   }
+   return true;
+}
+
+static bool cdBack()
+{
+   int result = chdir("..");
+   if (result == -1) {
+      perror("Could not chdir ..");
+      return false;
+   }
+   return true;
+}
+
+static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
+{
+   int result, status;
+   int options = __WALL;
+   do {
+      result = waitpid(pid, &status, options);
+   } while (result == -1 && errno == EINTR);
+
+   if (result == -1) {
+      perror("Could not collect child result");
+      return false;
+   }
+
+   assert(!WIFSTOPPED(status));
+
+   if (WIFSIGNALED(status)) {
+      app_crash = true;
+      app_return = WTERMSIG(status);
+   }
+   else if (WIFEXITED(status)) {
+      app_crash = false;
+      app_return = WEXITSTATUS(status);
+   }
+   else {
+      assert(0);
+   }
+
+   return true;
+}
+
+static void killWaywardChild(int pid)
+{
+   int result = kill(pid, SIGKILL);
+   if (result == -1) {
+      return;
+   }
+
+   bool dont_care1;
+   int dont_care2;
+   waitForCompletion(pid, dont_care1, dont_care2);
+}
+#else
+void clearBinEditFiles()
+{
+   assert(0); //IMPLEMENT ME
+}
+
+static bool cdBinDir()
+{
+   assert(0); //IMPLEMENT ME
+   return false;
+}
+
+static bool cdBack()
+{
+   assert(0); //IMPLEMENT ME
+   return false;
+}
+
+static void killWaywardChild(int)
+{
+   assert(0); //IMPLEMENT ME
+}
+
+static bool waitForCompletion(int, bool &, int &)
+{
+   assert(0); //IMPLEMENT ME
+   return false;
+}
+#endif
+
+bool runBinaryTest(BPatch *bpatch, RunGroup *group,
+                   BPatch_binaryEdit *binEdit,
+                   char *logfilename, char *humanlogname,
+                   bool verboseFormat, bool printLabels,
+                   int debugPrint, char *pidfilename,
+                   test_results_t &test_result)
+{
+   bool cd_done = false;
+   bool file_written = false;
+   bool file_running = false;
+   bool error = true;
+   bool result;
+   int app_return;
+   bool app_crash;
+   const char **child_argv = NULL;
+   int pid;
+   std::string outfile;
+
+   test_result = UNKNOWN;
+
+   clearBinEditFiles();
+
+   result = cdBinDir();
+   if (!result) {
+      goto done;
+   }
+   cd_done = true;
+   
+   outfile = std::string("rewritten_") + std::string(group->mutatee);
+   result = binEdit->writeFile(outfile.c_str());
+   if (!result) {
+      goto done;
+   }
+   file_written = true;
+
+   child_argv = parseArgs(group, logfilename, humanlogname,
+                          verboseFormat, printLabels, 
+                          debugPrint, pidfilename);
+   
+   pid = startNewProcessForAttach(outfile.c_str(), child_argv,
+                                  NULL, NULL, false);
+   if (pid == -1) {
+      goto done;
+   }
+   file_running = false;
+
+   result = waitForCompletion(pid, app_crash, app_return);
+   if (!result)
+      goto done;
+   file_running = false;
+
+   if (app_crash) {
+      test_result = CRASHED;
+   }
+   else if (app_return != 0) {
+      test_result = FAILED;
+   }
+   else {
+      test_result = PASSED;
+   }
+   
+   error = false;
+ done:
+
+   if (error)
+      test_result = FAILED;
+   if (cd_done)
+      cdBack();
+   if (file_written)
+      clearBinEditFiles();
+   if (file_running)
+      killWaywardChild(pid);
+   if (child_argv)
+      delete [] child_argv;
+      
+   return !error;  
 }

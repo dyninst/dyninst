@@ -50,12 +50,16 @@ namespace Dyninst
       std::vector<Expression::Ptr>::const_iterator curVC;
       
       for(i = 0, curVC = operandSource.begin();
-	  curVC != operandSource.end() && i < what.read().size() && i < what.written().size();
+	  (curVC != operandSource.end()) && (i < what.read().size()) && (i < what.written().size());
 	  ++curVC, ++i)
       {
 	Operand tmp(*curVC, what.read()[i], what.written()[i]);
 	m_Operands.push_back(tmp);
       }
+      assert(curVC == operandSource.end());
+      assert(i == what.read().size());
+      assert(i == what.written().size());
+      
       if(raw)
       {
       	for(unsigned int i = 0; i < size; i++)
@@ -118,6 +122,11 @@ namespace Dyninst
         }
         return m_Operands[index];
      }
+
+    INSTRUCTION_EXPORT unsigned char Instruction::rawByte(unsigned int index) const
+    {
+      return m_RawInsn[index];
+    }
     
     INSTRUCTION_EXPORT size_t Instruction::size() const
     {
@@ -161,7 +170,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return false;
+      return m_InsnOp.isRead(candidate);
     }
 
     INSTRUCTION_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
@@ -175,7 +184,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return false;
+      return m_InsnOp.isWritten(candidate);
     }
     
     INSTRUCTION_EXPORT bool Instruction::readsMemory() const

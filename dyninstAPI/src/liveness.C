@@ -146,22 +146,22 @@ map<IA32Regs, Register> reverseRegisterMap = map_list_of
   (r_RDI, REGNUM_RDI)
   (r_SI, REGNUM_RSI)
   (r_DI, REGNUM_RDI)
-  (r_XMM0, REGNUM_IGNORED)
-  (r_XMM1, REGNUM_IGNORED)
-  (r_XMM2, REGNUM_IGNORED)
-  (r_XMM3, REGNUM_IGNORED)
-  (r_XMM4, REGNUM_IGNORED)
-  (r_XMM5, REGNUM_IGNORED)
-  (r_XMM6, REGNUM_IGNORED)
-  (r_XMM7, REGNUM_IGNORED)
-  (r_MM0, REGNUM_IGNORED)
-  (r_MM1, REGNUM_IGNORED)
-  (r_MM2, REGNUM_IGNORED)
-  (r_MM3, REGNUM_IGNORED)
-  (r_MM4, REGNUM_IGNORED)
-  (r_MM5, REGNUM_IGNORED)
-  (r_MM6, REGNUM_IGNORED)
-  (r_MM7, REGNUM_IGNORED)
+  (r_XMM0, REGNUM_XMM0)
+  (r_XMM1, REGNUM_XMM1)
+  (r_XMM2, REGNUM_XMM2)
+  (r_XMM3, REGNUM_XMM3)
+  (r_XMM4, REGNUM_XMM4)
+  (r_XMM5, REGNUM_XMM5)
+  (r_XMM6, REGNUM_XMM6)
+  (r_XMM7, REGNUM_XMM7)
+  (r_MM0, REGNUM_MM0)
+  (r_MM1, REGNUM_MM1)
+  (r_MM2, REGNUM_MM2)
+  (r_MM3, REGNUM_MM3)
+  (r_MM4, REGNUM_MM4)
+  (r_MM5, REGNUM_MM5)
+  (r_MM6, REGNUM_MM6)
+  (r_MM7, REGNUM_MM7)
   (r_CR0, REGNUM_IGNORED)
   (r_CR1, REGNUM_IGNORED)
   (r_CR2, REGNUM_IGNORED)
@@ -288,7 +288,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
 
     #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
-    
+    Address current = firstInsnOffset();
     InstructionDecoder decoder(reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())), 
 			       getSize());
     Instruction curInsn = decoder.decode();
@@ -297,13 +297,20 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       std::set<RegisterAST::Ptr> cur_read, cur_written;
       curInsn.getReadSet(cur_read);
       curInsn.getWriteSet(cur_written);
+      liveness_printf("Read registers: ");
+      
       for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); i != cur_read.end(); i++) {
-	  read[convertRegID(IA32Regs((*i)->getID()))] = true;
+	liveness_printf("%s ", (*i)->format().c_str());
+	read[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
+      liveness_printf("\nWritten registers: ");
+      
       for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
 	   i != cur_written.end(); i++) {
+	liveness_printf("%s ", (*i)->format().c_str());
 	written[convertRegID(IA32Regs((*i)->getID()))] = true;
       }
+      liveness_printf("\n");
       entryID cur_op = curInsn.getOperation().getID();
       if(cur_op == e_call)
       {
@@ -332,11 +339,18 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       // And if written, then was defined
       def |= written;
       
-      //liveness_printf("%s[%d] After instruction at address 0x%lx:\n", FILE__, __LINE__, );
-      liveness_cerr << read << endl << written << endl << use << endl << def << endl;
+      liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n", FILE__, __LINE__, curInsn.format().c_str(), current);
+        liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+        liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+        liveness_cerr << "Read    " << read << endl;
+        liveness_cerr << "Written " << written << endl;
+        liveness_cerr << "Used    " << use << endl;
+        liveness_cerr << "Defined " << def << endl;
+
       
       read.reset();
       written.reset();
+      current += curInsn.size();
       curInsn = decoder.decode();
     }
 #else    
@@ -754,15 +768,15 @@ bitArray instPoint::liveRegisters(callWhen when) {
     ret &= (~written);
     ret |= read;
 
-    if (debug) {
-        fprintf(stderr, "Liveness out for instruction at 0x%lx\n",
+    //if (debug) {
+        liveness_printf("Liveness out for instruction at 0x%lx\n",
                 addr());
-        cerr << "        " << "?RNDITCPAZSOF11111100DSBSBDCA" << endl;
-        cerr << "        " << "?FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-        cerr << "Read    " << read << endl;
-        cerr << "Written " << written << endl;
-        cerr << "Live    " << ret << endl;
-    }
+        liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+        liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+        liveness_cerr << "Read    " << read << endl;
+        liveness_cerr << "Written " << written << endl;
+        liveness_cerr << "Live    " << ret << endl;
+	//}
 
     return ret;
 }

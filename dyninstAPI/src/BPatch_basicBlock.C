@@ -426,6 +426,21 @@ bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instructi
   return !insns.empty();
   
 }
+
+bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction, Address> >& insnInstances) {
+  using namespace InstructionAPI;
+  Address addr = getStartAddress();
+  const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
+  if (ptr == NULL) return false;
+  InstructionDecoder d(ptr, size());
+  Instruction curInsn = d.decode();
+  while(curInsn.isValid()) {
+      insnInstances.push_back(std::make_pair(curInsn,addr));
+      addr += curInsn.size();
+      curInsn = d.decode();
+  }
+  return !insnInstances.empty();  
+}
 #endif // defined(cap_instruction_api)
 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 

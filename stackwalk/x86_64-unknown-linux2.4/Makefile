@@ -10,21 +10,18 @@ NO_IMPLICIT_TEMPLATES = true
 # in the paradyn tree.
 
 include ../../make.config 
-TARGET = libstackwalk.so
 
-# Now make any necessary architecture specific changes to variables:
+TARGET = libstackwalk.so
 
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS = 	../src/linux-swk.C \
 	../src/linux-x86-swk.C \
 	../src/x86-swk.C \
-	../src/symtab-swk.C
+	../src/symtab-swk.C \
+	../src/dbginfo-stepper.C \
+	../src/x86-wanderer.C
 
-LIBS	+= 
-CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults
-CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults
-AS		= as
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -35,3 +32,10 @@ include ../make.module.tmpl
 # common targets like "clean", "install", etc.
 
 include ../../make.library.tmpl
+
+# Now make any necessary architecture specific changes to variables:
+
+LIBS	+= 
+CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
+CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
+AS		= as

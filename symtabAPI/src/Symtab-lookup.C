@@ -616,3 +616,58 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
 
 
 
+struct SymbolCompareByAddr
+{
+   bool operator()(Function *a, Function *b)
+   {
+      return (a->getAddress() < b->getAddress());
+   }
+};
+
+bool Symtab::getNearestFunction(Offset offset, Function* &func)
+{
+   if (!isCode(offset)) {
+      return false;
+   }
+   if (everyFunction.size() && !sorted_everyFunction)
+   {
+      std::sort(everyFunction.begin(), everyFunction.end(),
+                SymbolCompareByAddr());
+      sorted_everyFunction = true;
+   }
+   
+   unsigned low = 0;
+   unsigned high = everyFunction.size();
+   unsigned last_mid = high+1;
+   unsigned mid;
+   for (;;)
+   {
+      mid = (low + high) / 2;
+      if (last_mid == mid)
+         break;
+      last_mid = mid;
+      Offset cur = everyFunction[mid]->getAddress();
+      if (cur > offset) {
+         high = mid;
+         continue;
+      }
+      if (cur < offset) {
+         low = mid;
+         continue;
+      }
+      if (cur == offset) {
+         func = everyFunction[mid];
+         return true;
+      }
+   }
+
+   if ((everyFunction[low]->getAddress() <= offset) &&
+       ((low+1 == everyFunction.size()) || 
+        (everyFunction[low+1]->getAddress() > offset)))
+   {
+         func = everyFunction[low];
+         return true;
+   }
+   return false;
+}
+ 

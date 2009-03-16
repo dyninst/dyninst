@@ -22,7 +22,8 @@ SRCS = 	../src/linux-swk.C \
 	../src/symtab-swk.C
 
 LIBS	+=
-CFLAGS  += -m32
+CFLAGS  += -m32 $(MYFLAGS)
+CXXFLAGS  += -m32 $(MYFLAGS)
 AS		= as
 
 # Include the module-specific Makefile, which defines everything about

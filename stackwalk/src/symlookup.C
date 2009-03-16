@@ -33,6 +33,7 @@
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/walker.h"
 #include <assert.h>
+
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -60,3 +61,31 @@ ProcessState *SymbolLookup::getProcessState()
 {
   return walker->getProcessState();
 }
+
+#if defined(cap_stackwalker_use_symtab)
+SymbolLookup *Walker::createDefaultSymLookup(const std::string &exec_name)
+{
+  return new SwkSymtab(this, exec_name);
+}
+#else
+SymbolLookup *Walker::createDefaultSymLookup(const std::string &)
+{
+  return NULL;
+}
+
+SwkSymtab::SwkSymtab(Walker *w, const std::string &s) :
+   SymbolLookup(w, s)
+{
+   assert(0);
+}
+
+bool SwkSymtab::lookupAtAddr(Dyninst::Address,
+                             std::string &,
+                             void* &)
+{
+   assert(0);
+   return false;
+}
+
+#endif
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
+ * Copyright (c) 1996-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -33,16 +33,22 @@
 #define FRAMESTEPPER_H_
 
 #include "basetypes.h"
+#include "procstate.h"
 #include <vector>
 
 namespace Dyninst {
+
+namespace SymtabAPI {
+   class Symtab;
+}
+
 namespace Stackwalker {
 
 class Walker;
 class Frame;
 class ProcessState;
+class StepperGroup;
 
-//Walk through a single stack frame
 typedef enum { gcf_success, gcf_stackbottom, gcf_not_me, gcf_error } gcframe_ret_t;
 
 class FrameStepper {
@@ -52,20 +58,110 @@ public:
   FrameStepper(Walker *w);
   
   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out) = 0;
-  virtual unsigned getPriority() = 0;  
+  virtual unsigned getPriority() const = 0;  
 
   virtual ProcessState *getProcessState();
   virtual Walker *getWalker();
   
+  virtual void newLibraryNotification(LibAddrPair *libaddr, 
+                                      lib_change_t change);
+  virtual void registerStepperGroup(StepperGroup *group);
+  
   virtual ~FrameStepper();
 };
 
+class FrameFuncHelper
+{
+ protected:
+   ProcessState *proc;
+ public:
+   typedef enum {
+      unknown_t=0,
+      no_frame,
+      standard_frame,
+      savefp_only_frame,
+   } frame_type;
+   typedef enum {
+      unknown_s=0,
+      unset_frame,
+      halfset_frame,
+      set_frame
+   } frame_state;
+   typedef std::pair<frame_type, frame_state> alloc_frame_t;
+   FrameFuncHelper(ProcessState *proc_);
+   virtual alloc_frame_t allocatesFrame(Address addr) = 0;
+   virtual ~FrameFuncHelper();
+};
+
+class FrameFuncStepperImpl;
 class FrameFuncStepper : public FrameStepper {
+private:
+   FrameFuncStepperImpl *impl;
 public:
-  FrameFuncStepper(Walker *w);
+  FrameFuncStepper(Walker *w, FrameFuncHelper *helper = NULL);
   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-  virtual unsigned getPriority();
+  virtual unsigned getPriority() const;
   virtual ~FrameFuncStepper();
+  virtual void registerStepperGroup(StepperGroup *group);
+};
+
+class DebugStepperImpl;
+class DebugStepper : public FrameStepper {
+private:
+   DebugStepperImpl *impl;
+public:
+  DebugStepper(Walker *w);
+  virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+  virtual unsigned getPriority() const;
+  virtual void registerStepperGroup(StepperGroup *group);
+  virtual ~DebugStepper();  
+};
+
+class WandererHelper
+{
+ private:
+   ProcessState *proc;
+ public:
+   WandererHelper(ProcessState *proc_);
+   virtual bool isPrevInstrACall(Address addr, Address &target);
+   virtual bool isPCInFunc(Address func_entry, Address pc);
+   virtual ~WandererHelper();
+};
+
+class StepperWandererImpl;
+class StepperWanderer : public FrameStepper {
+ private:
+   StepperWandererImpl *impl;
+ public:
+   StepperWanderer(Walker *w, WandererHelper *whelper = NULL, 
+                   FrameFuncHelper *fhelper = NULL);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual ~StepperWanderer();
+};
+
+class SigHandlerStepperImpl;
+class SigHandlerStepper : public FrameStepper {
+ private:
+   SigHandlerStepperImpl *impl;
+ public:
+   SigHandlerStepper(Walker *w);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~SigHandlerStepper();  
+};
+
+class UninitFrameStepperImpl;
+class UninitFrameStepper : public FrameStepper {
+ private:
+   UninitFrameStepperImpl *impl;
+ public:
+   UninitFrameStepper(Walker *w, FrameFuncHelper *f = NULL);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual unsigned getPriority() const;
+   virtual ~UninitFrameStepper();
 };
 
 }

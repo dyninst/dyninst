@@ -112,10 +112,6 @@ class Emitter {
     virtual void emitRestoreFlagsFromStackSlot(codeGen &gen) = 0;
     virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
     virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
-    virtual bool emitBTMTCode(baseTramp* bt, codeGen &gen) = 0;
-    virtual bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex) = 0;
-    virtual bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex) = 0;
-    virtual bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue) = 0;
     virtual void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual bool emitPush(codeGen &, Register) = 0;
