@@ -996,7 +996,7 @@ void Object::load_object(bool alloc_syms)
          {
             symdata = symscnp->get_data();
             strdata = strscnp->get_data();
-            parse_symbols(allsymbols, symdata, strdata, bssscnp, false, module);
+            parse_symbols(allsymbols, symdata, strdata, bssscnp, symscnp, false, module);
          }   
 
          // don't reorder symbols anymore
@@ -1148,14 +1148,20 @@ void Object::load_shared_object(bool alloc_syms)
          string module = mf->pathname();
          string name   = "DEFAULT_NAME";
 
+         Elf_X_Data symdata, strdata;
          if (symscnp && strscnp)
          {
-            bool result = parse_symbols(allsymbols, symscnp, strscnp, false, module);
+            symdata = symscnp->get_data();
+            strdata = strscnp->get_data();
+            if (!symdata.isValid() || !strdata.isValid()) {
+               log_elferror(err_func_, "locating symbol/string data");
+               goto cleanup2;
+            }
+            bool result = parse_symbols(allsymbols, symdata, strdata, bssscnp, symscnp, false, module);
             if (!result) {
                log_elferror(err_func_, "locating symbol/string data");
                goto cleanup2;
             }
-            parse_symbols(allsymbols, symdata, strdata, bssscnp, false, module);
          } 
 
          // don't reorder symbols anymore
@@ -1306,16 +1312,14 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 // parse_symbols(): populate "allsymbols"
 bool Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
       Elf_X_Data &symdata, Elf_X_Data &strdata,
-      Elf_X_Shdr* &bssscnp,
+      Elf_X_Shdr* bssscnp,
+      Elf_X_Shdr* symscnp,
       bool shared, string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
 #endif
-
-   Elf_X_Data symdata = symscnp->get_data();
-   Elf_X_Data strdata = strscnp->get_data();
 
    if (!symdata.isValid() || !strdata.isValid()) {
       return false;
@@ -1370,32 +1374,36 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
             Offset bssStart = Offset(bssscnp->sh_addr());
             Offset bssEnd = Offset (bssStart + bssscnp->sh_size()) ;
             
-            if(( bssStart <= saddr) && ( saddr < bssEnd ) && (ssize > 0) && (stype == Symbol::ST_NOTYPE)) {
+            if(( bssStart <= saddr) && ( saddr < bssEnd ) && (ssize > 0) && 
+               (stype == Symbol::ST_NOTYPE)) 
+            {
                stype = Symbol::ST_OBJECT;
             }
          }
 
-      // discard "dummy" symbol at beginning of file
-      if (i==0 && sname == "" && saddr == (Offset)0)
-          continue;
+         // discard "dummy" symbol at beginning of file
+         if (i==0 && sname == "" && saddr == (Offset)0)
+            continue;
 
-      Region *sec;
-      if(secNumber >= 1 && secNumber <= regions_.size())
-         sec = regions_[secNumber];
-      else
-         sec = NULL;
-      
-      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, saddr, sec, ssize);
+         Region *sec;
+         if(secNumber >= 1 && secNumber <= regions_.size())
+            sec = regions_[secNumber];
+         else
+            sec = NULL;
+         
+         Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, 
+                                     saddr, sec, ssize);
 	 
-      if (secNumber == SHN_ABS)
-          newsym->setIsAbsolute();
-      // register symbol in dictionary
-      if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-            (shared) && (sname == extract_pathname_tail(smodule))) {
-         // symbols_[sname] = newsym; // special case
-         symbols_[sname].push_back( newsym );
-      } else {
-         allsymbols.push_back(newsym); // normal case
+         if (secNumber == SHN_ABS)
+            newsym->setIsAbsolute();
+         // register symbol in dictionary
+         if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
+             (shared) && (sname == extract_pathname_tail(smodule))) {
+            // symbols_[sname] = newsym; // special case
+            symbols_[sname].push_back( newsym );
+         } else {
+            allsymbols.push_back(newsym); // normal case
+         }
       }
    } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -1413,14 +1421,14 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 // parse_symbols(): populate "allsymbols"
 // Lazy parsing of dynamic symbol  & string tables
 // Parsing the dynamic symbols lazily would certainly not increase the overhead of the entire parse
-   void Object::parse_dynamicSymbols (Elf_X_Shdr *&
+void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #if !defined(os_solaris)
-         dyn_scnp
+                                   dyn_scnp
 #endif 
-         , Elf_X_Data &symdata, 
-         Elf_X_Data &strdata,
-         bool /*shared*/, 
-         string smodule)
+                                   , Elf_X_Data &symdata, 
+                                   Elf_X_Data &strdata,
+                                   bool /*shared*/, 
+                                   string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;

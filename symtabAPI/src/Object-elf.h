@@ -522,7 +522,8 @@ class Object : public AObject {
   
   bool parse_symbols(std::vector<Symbol *> &allsymbols, 
                      Elf_X_Data &symdata, Elf_X_Data &strdata,
-                     Elf_X_Shdr* &,
+                     Elf_X_Shdr* bssscnp,
+                     Elf_X_Shdr* symscnp,
                      bool shared_library,
                      std::string module);
   
