@@ -367,8 +367,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
    if(mfForDebugInfo->getFD() != -1)
       elfHdrForDebugInfo = Elf_X(mfForDebugInfo->getFD(), ELF_C_READ);
-   else
+   else 
       elfHdrForDebugInfo = Elf_X((char *)mfForDebugInfo->base_addr(), mfForDebugInfo->size());
+   usesDebugFile = (mfForDebugInfo != mf);
+
    if(!elfHdrForDebugInfo.isValid()) {
       log_elferror(err_func_, "Elf header");
       fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
@@ -415,7 +417,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
          }
       }
       else {
-         if(!debugInfoValid || mfForDebugInfo == mf || hasDwarfInfo())
+         if(mfForDebugInfo == mf)
             break;
          scnp = new Elf_X_Shdr(elfHdrForDebugInfo.get_shdr(i - elfHdr.e_shnum()));
          if(! scnp->isValid()) {
@@ -990,11 +992,8 @@ void Object::load_object(bool alloc_syms)
          string name   = "DEFAULT_NAME";
          Elf_X_Data symdata, strdata;
 
-         if (symscnp && strscnp)
-         {
-            symdata = symscnp->get_data();
-            strdata = strscnp->get_data();
-            parse_symbols(allsymbols, symdata, strdata, false, module);
+         if (symscnp && strscnp) {
+            parse_symbols(allsymbols, symscnp, strscnp, false, module);
          }   
 
          // don't reorder symbols anymore
@@ -1145,17 +1144,13 @@ void Object::load_shared_object(bool alloc_syms)
          string module = mf->pathname();
          string name   = "DEFAULT_NAME";
 
-         // find symbol and string data
-         Elf_X_Data symdata, strdata;
          if (symscnp && strscnp)
          {
-            symdata = symscnp->get_data();
-            strdata = strscnp->get_data();
-            if (!symdata.isValid() || !strdata.isValid()) {
+            bool result = parse_symbols(allsymbols, symscnp, strscnp, false, module);
+            if (!result) {
                log_elferror(err_func_, "locating symbol/string data");
                goto cleanup2;
             }
-            parse_symbols(allsymbols, symdata, strdata, false, module);
          } 
 
          // don't reorder symbols anymore
@@ -1179,6 +1174,7 @@ void Object::load_shared_object(bool alloc_syms)
          //	// DWARF format (.debug_info section)
          //fix_global_symbol_modules_static_dwarf(elfHdr);
 
+         Elf_X_Data symdata, strdata;
          if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
          {
             symdata = dynsym_scnp->get_data();
@@ -1314,62 +1310,83 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 
 
 // parse_symbols(): populate "allsymbols"
-void Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
-      Elf_X_Data &symdata, Elf_X_Data &strdata,
-      bool shared, string smodule)
+bool Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
+                           Elf_X_Shdr* symscnp, Elf_X_Shdr* strscnp,
+                           bool shared, string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
 #endif
 
+   Elf_X_Data symdata = symscnp->get_data();
+   Elf_X_Data strdata = strscnp->get_data();
+
+   if (!symdata.isValid() || !strdata.isValid()) {
+      return false;
+   }
+
    Elf_X_Sym syms = symdata.get_sym();
    const char *strs = strdata.get_string();
-  if(syms.isValid()){
-   for (unsigned i = 0; i < syms.count(); i++) {
-      //If it is not a dynamic executable then we need undefined symbols
-      //in symtab section so that we can resolve symbol references. So 
-      //we parse & store undefined symbols only if there is no dynamic
-      //symbol table
-      //1/09: not so anymore--we want to preserve all symbols,
-      //regardless of file type
+   if(syms.isValid()){
+      for (unsigned i = 0; i < syms.count(); i++) {
+         //If it is not a dynamic executable then we need undefined symbols
+         //in symtab section so that we can resolve symbol references. So 
+         //we parse & store undefined symbols only if there is no dynamic
+         //symbol table
+         //1/09: not so anymore--we want to preserve all symbols,
+         //regardless of file type
       
-      int etype = syms.ST_TYPE(i);
-      int ebinding = syms.ST_BIND(i);
-      int evisibility = syms.ST_VISIBILITY(i);
+         int etype = syms.ST_TYPE(i);
+         int ebinding = syms.ST_BIND(i);
+         int evisibility = syms.ST_VISIBILITY(i);
 
-      // resolve symbol elements
-      string sname = &strs[ syms.st_name(i) ];
-      Symbol::SymbolType stype = pdelf_type(etype);
-      Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
-      Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
-      unsigned ssize = syms.st_size(i);
-      Offset saddr = syms.st_value(i);
-      unsigned secNumber = syms.st_shndx(i);
+         // resolve symbol elements
+         string sname = &strs[ syms.st_name(i) ];
+         Symbol::SymbolType stype = pdelf_type(etype);
+         Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+         Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
+         unsigned ssize = syms.st_size(i);
+         unsigned secNumber = syms.st_shndx(i);
 
-      // discard "dummy" symbol at beginning of file
-      if (i==0 && sname == "" && saddr == (Offset)0)
-          continue;
+         Offset saddr;
+         if (symscnp->isFromDebugFile()) {
+            Offset saddr_dbg = syms.st_value(i);
+            if (saddr_dbg) {
+               bool result = convertDebugOffset(saddr_dbg, saddr);
+               if (!result) {
+                  //Symbol does not match any section, can't convert
+                  continue;
+               }
+            }
+         }
+         else {
+            saddr = syms.st_value(i);
+         }
 
-      Region *sec;
-      if(secNumber >= 1 && secNumber <= regions_.size())
-         sec = regions_[secNumber];
-      else
-         sec = NULL;
+         // discard "dummy" symbol at beginning of file
+         if (i==0 && sname == "" && saddr == (Offset)0)
+            continue;
+
+         Region *sec;
+         if(secNumber >= 1 && secNumber <= regions_.size())
+            sec = regions_[secNumber];
+         else
+            sec = NULL;
       
-      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, saddr, sec, ssize);
-      if (secNumber == SHN_ABS)
-          newsym->setIsAbsolute();
-      // register symbol in dictionary
-      if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-            (shared) && (sname == extract_pathname_tail(smodule))) {
-         // symbols_[sname] = newsym; // special case
-         symbols_[sname].push_back( newsym );
-      } else {
-         allsymbols.push_back(newsym); // normal case
+         Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, saddr, sec, ssize);
+         if (secNumber == SHN_ABS)
+            newsym->setIsAbsolute();
+         // register symbol in dictionary
+         if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
+             (shared) && (sname == extract_pathname_tail(smodule))) {
+            // symbols_[sname] = newsym; // special case
+            symbols_[sname].push_back( newsym );
+         } else {
+            allsymbols.push_back(newsym); // normal case
+         }
       }
-   }
-  } // syms.isValid()
+   } // syms.isValid()
 #if defined(TIMED_PARSE)
    struct timeval endtime;
    gettimeofday(&endtime, NULL);
@@ -1379,7 +1396,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
    double dursecs = difftime/(1000 * 1000);
    cout << "parsing elf took "<<dursecs <<" secs" << endl;
 #endif
-   //if (addressWidth_nbytes == 8) fprintf(stderr, ">>> 64-bit parse_symbols() successful\n");
+   return true;
 }
 
 // parse_symbols(): populate "allsymbols"
@@ -1547,7 +1564,6 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
     double dursecs = difftime/(1000 * 1000);
     cout << "parsing elf took "<<dursecs <<" secs" << endl;
 #endif
-    //if (addressWidth_nbytes == 8) fprintf(stderr, ">>> 64-bit parse_symbols() successful\n");
 }
 
 /********************************************************
@@ -4284,7 +4300,7 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 
                if (funcs.size() > 1) 
                {
-                  fprintf(stderr, "%s[%d]:  WARN:  found %d functions with name %s\n", 
+                  fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s\n", 
                         FILE__, __LINE__, funcs.size(), stabEntry->name(i));
                }
 
@@ -4380,232 +4396,6 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
    //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
-#if 0
-void Object::parseStabFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
-{
-   static dyn_hash_map< string, bool > haveParsedFileMap;
-
-   /* We haven't parsed this file already, so iterate over its stab entries. */
-
-   stab_entry * stabEntry = get_stab_info();
-   assert( stabEntry != NULL );
-   const char * nextStabString = stabEntry->getStringBase();
-
-   const char * currentSourceFile = NULL;
-   Offset currentFunctionBase = 0;
-   unsigned int previousLineNo = 0;
-   Offset previousLineAddress = 0;
-   bool isPreviousValid = false;
-
-   Offset baseAddress = getBaseAddress();
-
-   for ( unsigned int i = 0; i < stabEntry->count(); i++ ) {
-      switch (stabEntry->type( i )) {
-
-         case N_UNDF: /* start of an object file */ 
-            {
-               if ( isPreviousValid )
-                  /* DEBUG */ fprintf( stderr, "%s[%d]: unterminated N_SLINE at start of object file.  Line number information will be lost.\n", __FILE__, __LINE__ );
-
-               stabEntry->setStringBase( nextStabString );
-               nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
-
-               currentSourceFile = NULL;
-               isPreviousValid = false;
-            }
-            break;
-
-         case N_SO: /* compilation source or file name */
-            {
-               if ( isPreviousValid ) {
-                  /* Add the previous N_SLINE. */
-                  Offset currentLineAddress = stabEntry->val( i );
-
-                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-
-                  unsigned current_col = 0; // stabs does not support column information
-
-                  //if(previousLineNo == 597 || previousLineNo == 596)
-                  ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-
-                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-
-                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                           current_col, previousLineAddress, currentLineAddress )) 
-                  {
-                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
-                           previousLineAddress, currentLineAddress);
-                  }
-
-                  //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
-               }
-
-               const char * sourceFile = stabEntry->name( i );
-               currentSourceFile = strrchr( sourceFile, '/' );
-               if ( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
-               else { ++currentSourceFile; }
-
-               // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
-
-               isPreviousValid = false;
-            }
-            break;
-
-         case N_SOL: /* file name (possibly an include file) */ 
-            {
-               if (isPreviousValid) {
-                  /* Add the previous N_SLINE. */
-                  Offset currentLineAddress = stabEntry->val( i );
-
-                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-
-                  unsigned current_col = 0;
-                  //if (previousLineNo == 597 || previousLineNo == 596)
-                  //  /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-
-                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-
-                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                           current_col, previousLineAddress, currentLineAddress ))
-                  {
-                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
-                           previousLineAddress, currentLineAddress);
-                  }
-
-                  //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
-                  //     current_col, previousLineAddress, currentLineAddress  );
-               }
-               const char * sourceFile = stabEntry->name( i );
-               currentSourceFile = strrchr( sourceFile, '/' );
-               if ( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
-               else { ++currentSourceFile; }
-
-               // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
-
-               isPreviousValid = false;
-            }
-            break;
-
-         case N_FUN: /* a function */ 
-            {
-               if ( *stabEntry->name( i ) == 0 ) 
-               {
-                  /* An end-of-function marker.  The value is the size of the function. */
-                  if ( isPreviousValid ) 
-                  {
-                     /* Add the previous N_SLINE. */
-                     Offset currentLineAddress = currentFunctionBase + stabEntry->val( i );
-
-                     // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-
-                     unsigned current_col = 0;
-
-                     //if(previousLineNo == 597 || previousLineNo == 596)
-                     //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-
-                     fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-
-                     if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                              current_col, previousLineAddress, currentLineAddress ))
-                     {
-                        fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                              FILE__, __LINE__, currentSourceFile, previousLineNo, 
-                              previousLineAddress, currentLineAddress);
-                     }
-
-                     //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
-                     //    	                              current_col, previousLineAddress, currentLineAddress  );
-                  }
-
-                  /* We've added the previous N_SLINE and don't currently have a module. */
-                  isPreviousValid = false;
-                  break;
-               } /* end if the N_FUN is an end-of-function-marker. */
-
-               if (isPreviousValid) 
-               {
-                  Offset currentLineAddress = stabEntry->val( i );
-
-                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-
-                  unsigned current_col = 0;
-                  //if(previousLineNo == 597 || previousLineNo == 596)
-                  //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-
-                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-
-                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                           current_col, previousLineAddress, currentLineAddress ))
-                  {
-                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
-                           previousLineAddress, currentLineAddress);
-                  }
-
-                  //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
-               }
-
-               currentFunctionBase = stabEntry->val( i );
-               currentFunctionBase += baseAddress;
-
-               //giri: int_function * currentFunction = obj()->findFuncByAddr( currentFunctionBase );
-               //if( currentFunction == NULL ) {
-               // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, currentFunctionBase );
-               //currentModule = NULL;
-               //}
-               //else {
-               //currentModule = currentFunction->mod();
-               //assert( currentModule != NULL );
-               //}
-
-               isPreviousValid = false;
-            }
-            break;
-
-         case N_SLINE: 
-            {
-               //if( currentModule ) {
-               Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
-               unsigned int currentLineNo = stabEntry->desc( i );
-
-               if (isPreviousValid) 
-               {
-                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-
-                  unsigned current_col = 0;
-
-                  //	 if(previousLineNo == 597 || previousLineNo == 596)
-                  //	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-
-                  fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
-                  if (!li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                           current_col, previousLineAddress, currentLineAddress ))
-                  {
-                     fprintf(stderr, "%s[%d]:  failed to addLine(%s:%d [%p-%p]\n", 
-                           FILE__, __LINE__, currentSourceFile, previousLineNo, 
-                           previousLineAddress, currentLineAddress);
-                  }
-
-                  //currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
-               }
-
-               previousLineAddress = currentLineAddress;
-               previousLineNo = currentLineNo;
-               isPreviousValid = true;
-               //} /* end if we've a module to which to add line information */
-            }
-            break;
-
-      } /* end switch on the ith stab entry's type */
-
-   } /* end iteration over stab entries. */
-
-   //  haveParsedFileMap[ key ] = true;
-} /* end parseStabFileLineInfo() */
-#endif
-
 // Dwarf Debug Format parsing
 void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
@@ -4627,7 +4417,8 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
          break;
       }
 
-      char * cuName, *moduleName;
+      char * cuName;
+      const char *moduleName;
       status = dwarf_diename( cuDIE, &cuName, NULL );
       if ( status == DW_DLV_NO_ENTRY ) {
          cuName = NULL;
@@ -4689,6 +4480,13 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
          if ( status != DW_DLV_OK ) { continue; }
          lineAddr += baseAddr;
 
+         if (usesDebugFile) {
+            Offset new_lineAddr;
+            bool result = convertDebugOffset(lineAddr, new_lineAddr);
+            if (result)
+               lineAddr = new_lineAddr;
+         }
+
          char * lineSource;
          status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
          if ( status != DW_DLV_OK ) { continue; }
@@ -4717,14 +4515,12 @@ void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &
                canonicalLineSource = previousLineSource;
             }
 
-            //fprintf(stderr, "[%s:%u]:  addLine(%s:%u [%lx-%lx]\n", FILE__, __LINE__, canonicalLineSource, (unsigned) previousLineNo, (unsigned long) previousLineAddr, (unsigned long) lineAddr);
             li[std::string(moduleName)].addLine(canonicalLineSource, 
                                                 (unsigned int) previousLineNo, 
                                                 (unsigned int) previousLineColumn, 
                                                 (Dyninst::Offset) previousLineAddr, 
                                                 (Dyninst::Offset) lineAddr );
             /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
-            ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
          } /* end if the previous* variables are valid */
 
          /* If the current line ends the sequence, invalidate previous; otherwise, update. */
@@ -5198,7 +4994,43 @@ MappedFile *Object::findMappedFileForDebugInfo() {
    return mf;
 }
 
-bool Object::convertDebugOffset(Offset /*off*/, Offset &/*new_off*/)
+bool sort_dbg_map(const Object::DbgAddrConversion_t &a, 
+                  const Object::DbgAddrConversion_t &b)
 {
-   return false;
+   return (a.dbg_offset < b.dbg_offset);
+}
+
+bool Object::convertDebugOffset(Offset off, Offset &new_off)
+{
+   if (!DbgSectionMapSorted) {
+      std::sort(DebugSectionMap.begin(), DebugSectionMap.end(), sort_dbg_map);
+      DbgSectionMapSorted = true;
+   }
+
+   int hi = DebugSectionMap.size();
+   int low = 0;
+   int cur = -1;
+
+   for (;;) {
+      int last_cur = cur;
+      cur = (low + hi) / 2;
+      if (cur == last_cur)
+         return false;
+      
+      const DbgAddrConversion_t &cur_d = DebugSectionMap[cur];
+      
+      if (off >= cur_d.dbg_offset && off < cur_d.dbg_offset+cur_d.dbg_size) {
+         new_off = off - cur_d.dbg_offset + cur_d.orig_offset;
+         return true;
+      }
+      else if (off > cur_d.dbg_offset)
+      {
+         low = cur;
+      }
+      else if (off < cur_d.dbg_offset)
+      {
+         hi = cur;
+      }
+   }
+
 }

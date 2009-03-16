@@ -996,6 +996,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
    typeEnum *newEnum = currentEnum;
    fieldListType * newEnclosure = currentEnclosure;
 
+   Object *elfobj = objFile->getObject();
+
    bool parsedChild = false;
    /* Is this is an entry we're interested in? */
    switch( dieTag ) {
@@ -1083,9 +1085,10 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                 
                 if (status != DW_DLV_OK) break;
 
-                Offset absAddr = (Offset) (objFile->getBaseOffset() + baseAddr);
-                if (!objFile->findFuncByEntryOffset(newFunction, absAddr)) {
-                    dwarf_printf( "Failed to find function '%s'\n", functionName );
+                Offset fixedBaseAddr;
+                bool result = elfobj->convertDebugOffset(baseAddr, fixedBaseAddr);
+                if (!result || !objFile->findFuncByEntryOffset(newFunction, fixedBaseAddr)) {
+                   dwarf_printf( "Failed to find function at %lx -> %lx\n", baseAddr, fixedBaseAddr);
                     break;
                 }
             }
@@ -1278,6 +1281,23 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
          bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
          deallocateLocationList( dbg, locationList, listLength );            
          if ( ! decodedAddressOrOffset ) { break; }
+
+         for (unsigned i=0; i<locs.size(); i++) {
+            if (locs[i].stClass != storageAddr) 
+               continue;
+            if (locs[i].lowPC) {
+               Offset newlowpc = locs[i].lowPC;
+               bool result = elfobj->convertDebugOffset(locs[i].lowPC, newlowpc);
+               if (result)
+                  locs[i].lowPC = newlowpc;
+            }
+            if (locs[i].hiPC) {
+               Offset newhipc = locs[i].hiPC;
+               bool result = elfobj->convertDebugOffset(locs[i].hiPC, newhipc);
+               if (result)
+                  locs[i].hiPC = newhipc;
+            }
+         }
          
          /* If this DIE has a _specification, use that for the rest of our inquiries. */
          Dwarf_Die specEntry = dieEntry;

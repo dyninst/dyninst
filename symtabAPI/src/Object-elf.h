@@ -407,6 +407,7 @@ class Object : public AObject {
   Offset entryAddress_;
   char *interpreter_name_;
   bool  isStripped;
+  bool usesDebugFile;
 
 #if defined(arch_ia64)
   Offset   gp;			 // The gp for this object.
@@ -470,8 +471,8 @@ class Object : public AObject {
   void parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp, 
                     Elf_X_Shdr *&dynstr_scnp);
   
-  void parse_symbols(std::vector<Symbol *> &allsymbols, 
-		     Elf_X_Data &symdata, Elf_X_Data &strdata,
+  bool parse_symbols(std::vector<Symbol *> &allsymbols, 
+		     Elf_X_Shdr* symscnp, Elf_X_Shdr* strscnp,
 		     bool shared_library,
 		     std::string module);
   
@@ -492,7 +493,9 @@ class Object : public AObject {
   void get_valid_memory_areas(Elf_X &elf);
 
   MappedFile *findMappedFileForDebugInfo();
-  
+
+
+ public:
   struct DbgAddrConversion_t {
      DbgAddrConversion_t() : dbg_offset(0x0), dbg_size(0x0), orig_offset(0x0) {}
      std::string name;
@@ -500,6 +503,7 @@ class Object : public AObject {
      unsigned dbg_size;
      Offset orig_offset;
   };
+ private:
   bool DbgSectionMapSorted;
   std::vector<DbgAddrConversion_t> DebugSectionMap;
 };

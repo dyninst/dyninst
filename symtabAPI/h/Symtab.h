@@ -472,7 +472,9 @@ class Symtab : public LookupInterface,
    bool hasRela_;
 
    //Don't use obj_private, use getObject() instead.
+ public:
    Object *getObject();
+ private:
    Object *obj_private;
 
    // dynamic library name substitutions
