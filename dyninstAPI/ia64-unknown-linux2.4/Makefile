@@ -33,7 +33,6 @@ SRCS =	../src/linux.C \
 		../src/image-ia64.C \
 		../src/unix.C \
 		../src/InstrucIter-ia64.C \
-		../src/parseDwarf.C \
 		../src/ia64-template.s \
 		../src/syscall-linux.C
 #		../src/addLibraryLinux.C \

@@ -204,12 +204,6 @@ miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti,
 }
 
 miniTrampInstance::~miniTrampInstance() {
-    //deleteMTI frees the pointer used by proc(), so get everything in
-    // the proper order
-
-    // Cache a copy
-    AddressSpace *this_proc = proc();
-
     mini->deleteMTI(this);
 }
 

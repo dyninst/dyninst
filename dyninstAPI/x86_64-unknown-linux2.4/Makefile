@@ -35,7 +35,6 @@ SRCS =          ../src/linux.C \
                 ../src/unix.C \
 		../src/InstrucIter-x86.C \
       ../src/stackwalk-x86.C \
-		../src/parseDwarf.C \
 		../src/image-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C

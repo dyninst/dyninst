@@ -116,11 +116,6 @@ static const timeLength MaxDeletingTime(2, timeUnit::sec());
 unsigned activeProcesses; // number of active processes
 pdvector<process*> processVec;
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-extern void cleanupVsysinfo(void *ehd);
-#endif
-
 pdvector<instMapping*> initialRequests;
 
 void printLoadDyninstLibraryError() {
@@ -1548,7 +1543,7 @@ void process::deleteProcess()
   vsyscall_start_ = 0;
   vsyscall_end_ = 0;
   vsyscall_text_ = 0;
-  vsyscall_data_ = 0;
+  vsyscall_obj = NULL;
 #endif
 
   set_status(deleted);
@@ -1608,12 +1603,6 @@ process::~process()
         sh->stop_request = true;
         sh->proc = NULL;
     }
-
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-    cleanupVsysinfo(getVsyscallData());
-#endif
-
 }
 
 // Default process class constructor. This handles both create,
@@ -1676,8 +1665,8 @@ process::process(SignalGenerator *sh_) :
     , vsyscall_start_(0)
     , vsyscall_end_(0)
     , vsyscall_text_(0)
-    , vsyscall_data_(NULL)
     , auxv_parser(NULL)
+    , vsyscall_obj(NULL)
 #endif
 {
     // Let's try to profile memory usage
@@ -2164,8 +2153,8 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_start_(parentProc->vsyscall_start_)
     , vsyscall_end_(parentProc->vsyscall_end_)
     , vsyscall_text_(parentProc->vsyscall_text_)
-    , vsyscall_data_(parentProc->vsyscall_data_)
     , auxv_parser(NULL)
+    , vsyscall_obj(parentProc->vsyscall_obj)
 #endif
 {
 }

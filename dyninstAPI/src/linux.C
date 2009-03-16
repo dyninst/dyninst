@@ -2638,3 +2638,4 @@ bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
    }
    return (ret != -1);
 }
+
