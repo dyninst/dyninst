@@ -49,6 +49,7 @@
 
 #include "boost/lexical_cast.hpp"
 
+#include "BPatch_function.h"
 
 
 // Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
@@ -68,6 +69,10 @@ Node::Ptr ParameterNode::createNode(AbslocPtr absloc) {
 
 Node::Ptr VirtualNode::createNode() {
     return Node::Ptr(new VirtualNode());
+}
+
+Node::Ptr CallNode::createNode(Function *func) {
+    return Node::Ptr(new CallNode(func));
 }
 
 bool Node::returnEdges(const EdgeSet &local,
@@ -96,4 +101,10 @@ std::string ParameterNode::name() const {
 
 std::string VirtualNode::name() const {
     return std::string("N_VIRTUAL");
+}
+
+std::string CallNode::name() const {
+    char buf[512];
+    func_->getName(buf, 512);
+    return std::string(buf);
 }

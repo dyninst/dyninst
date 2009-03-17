@@ -127,7 +127,7 @@ void DYNINSTlinuxBreakPoint()
 void DYNINSTsafeBreakPoint()
 {
     DYNINST_break_point_event = 2; /* Not the same as above */
-    while (DYNINST_break_point_event)
+    //    while (DYNINST_break_point_event)
         kill(dyn_lwp_self(), SIGSTOP);
 }
 

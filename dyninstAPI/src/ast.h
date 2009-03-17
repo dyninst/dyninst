@@ -640,7 +640,7 @@ class AstMiniTrampNode : public AstNode {
 
     Address generateTramp(codeGen &gen, 
                           int &trampCost, 
-                          bool noCost, bool merged);
+                          bool noCost);
             
     virtual ~AstMiniTrampNode() {}    
 

@@ -110,13 +110,40 @@ WindowsNT    nonexistant
 #  endif
 
 #elif defined(os_linux)
+#if !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS
+#endif
+#if !defined(__STDC_LIMIT_MACROS)
+#define __STDC_LIMIT_MACROS
+#endif
 #include <stdint.h>
 #if defined(arch_x86_64) || defined(arch_ia64) || defined(arch_64bit)
 #define TYPE64BIT
 #endif
-
-#elif defined(os_bluegene)
+#if defined(os_cnl) && defined(arch_x86_64)
+//These aren't defined in Cray's stdint.h
+#if !defined(INT64_C)
+#define INT64_C(c) ((long) (c))
+#endif
+#if !defined(UINT64_C)
+#define UINT64_C(c) ((unsigned long) (c))
+#endif
+#if !defined(INT64_MAX)
+#define INT64_MAX 0xfffffffffffffff
+#endif
+#endif
+typedef long double double128_t;
+#elif defined(os_bluegene) || defined (os_bgcompute)
 #include <stdint.h>
+#if !defined(INT64_C)
+#define INT64_C(c) ((signed long long) (c))
+#endif
+#if !defined(UINT64_C)
+#define UINT64_C(c) ((unsigned long long) (c))
+#endif
+#if !defined(INT64_MAX)
+#define INT64_MAX 0xfffffffffffffffll
+#endif
 
 #elif defined(os_irix)
 #define TYPE64BIT
@@ -139,6 +166,9 @@ WindowsNT    nonexistant
 				   /* nt ----------------------------- */
 #define I64_C(x)  (x##i64)
 #define UI64_C(x) (x##ui64)
+#elif defined(os_bluegene) || defined(os_bgcompute)
+#define I64_C(x) (x##ll)
+#define U64_C(x) (x##ull)
 #else                               /* linux, solaris, irix, aix4.3 --- */
 #define I64_C(x)  INT64_C(x)
 #define UI64_C(x) UINT64_C(x)

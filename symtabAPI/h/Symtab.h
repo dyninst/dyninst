@@ -51,6 +51,13 @@ class ExceptionBlock;
 class Object;
 class relocationEntry;
 
+class MemRegReader {
+ public:
+   virtual bool ReadMem(Address addr, void *buffer, unsigned size) = 0;
+   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) = 0;
+   virtual ~MemRegReader();
+};
+
 class Symtab : public LookupInterface,
                public Serializable,
                public AnnotatableSparse
@@ -91,7 +98,11 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool exportXML(std::string filename);
    SYMTAB_EXPORT bool exportBin(std::string filename);
    static Symtab *importBin(std::string filename);
-
+   SYMTAB_EXPORT bool getRegValueAtFrame(Address pc, 
+                                     Dyninst::MachRegister reg, 
+                                     Dyninst::MachRegisterVal &reg_result,
+                                     MemRegReader *reader);
+   SYMTAB_EXPORT bool hasStackwalkDebugInfo();
 
    /**************************************
     *** LOOKUP FUNCTIONS *****************
@@ -124,6 +135,7 @@ class Symtab : public LookupInterface,
                                       bool isRegex = false,
                                       bool checkCase = true);
    SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
+   SYMTAB_EXPORT bool getNearestFunction(Offset offset, Function* &func);
 
    // Variable
    SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
@@ -320,10 +332,8 @@ class Symtab : public LookupInterface,
    void parseTypes();
    bool setDefaultNamespacePrefix(std::string &str);
 
-
    bool addUserRegion(Region *newreg);
    bool addUserType(Type *newtypeg);
-
 
    /***** Private Data Members *****/
    private:
@@ -396,6 +406,7 @@ class Symtab : public LookupInterface,
    dyn_hash_map <std::string, std::vector<Symbol *> > symsByTypedName;
 
    // We also need per-Aggregate indices
+   bool sorted_everyFunction;
    std::vector<Function *> everyFunction;
    // Since Functions are unique by address we require this structure to
    // efficiently track them.
@@ -466,7 +477,9 @@ class Symtab : public LookupInterface,
    bool hasRela_;
 
    //Don't use obj_private, use getObject() instead.
+ public:
    Object *getObject();
+ private:
    Object *obj_private;
 
    // dynamic library name substitutions

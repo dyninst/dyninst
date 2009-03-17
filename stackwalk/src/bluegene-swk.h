@@ -43,19 +43,22 @@ class ProcDebugBG : public ProcDebug {
  protected:
   virtual bool debug_create(const std::string &, 
 			    const std::vector<std::string> &);
-  virtual bool debug_attach();
-  virtual bool debug_pause();
-  virtual bool debug_continue();
-  virtual bool debug_continue_with(long sig);
+  virtual bool debug_attach(ThreadState *);
+  virtual bool debug_pause(ThreadState *);
+  virtual bool debug_continue(ThreadState *);
+  virtual bool debug_continue_with(ThreadState *, long sig);
+  virtual bool debug_version_msg();
   virtual bool debug_handle_signal(DebugEvent *ev);
 
   virtual bool debug_handle_event(DebugEvent ev);
+  virtual bool version_msg();
+  virtual bool debug_waitfor_version_msg();
 
  public:
   ProcDebugBG(Dyninst::PID pid);
   virtual ~ProcDebugBG();
 
-  virtual bool getRegValue(reg_t reg, Dyninst::THR_ID thread, regval_t &val);
+  virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);

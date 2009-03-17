@@ -35,14 +35,18 @@
 #include "stackwalk/h/procstate.h"
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/framestepper.h"
-
+#include "stackwalk/h/steppergroup.h"
+#include "stackwalk/src/sw.h"
 #include <assert.h>
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 using namespace std;
 
-Walker::Walker(ProcessState *p, SymbolLookup *sym, bool default_steppers,
+Walker::Walker(ProcessState *p, 
+               StepperGroup *grp,
+               SymbolLookup *sym, 
+               bool default_steppers,
 	       const std::string &exec_name) :
    proc(NULL), 
    lookup(NULL),
@@ -56,7 +60,7 @@ Walker::Walker(ProcessState *p, SymbolLookup *sym, bool default_steppers,
    
    sw_printf("[%s:%u] - Creating new Walker with proc=%p, sym=%p, step = %d\n",
              __FILE__, __LINE__, proc, sym, (int) default_steppers);
-   
+   group = grp ? grp : createDefaultStepperGroup();
    if (default_steppers) {
       result = createDefaultSteppers();
       if (!result) {
@@ -77,7 +81,7 @@ Walker::Walker(ProcessState *p, SymbolLookup *sym, bool default_steppers,
 Walker* Walker::newWalker() 
 {
   sw_printf("[%s:%u] - Creating new stackwalker on current process\n",
-	    __FILE__, __LINE__);
+            __FILE__, __LINE__);
    
   ProcessState *newproc = createDefaultProcess();
   if (!newproc) {
@@ -86,7 +90,7 @@ Walker* Walker::newWalker()
     return NULL;
   }
   
-  Walker *newwalker = new Walker(newproc, NULL, true, "");
+  Walker *newwalker = new Walker(newproc, NULL, NULL, true, "");
   if (!newwalker || newwalker->creation_error) {
     sw_printf("[%s:%u] - Error creating new Walker object %p\n",
 	      __FILE__, __LINE__, newwalker);
@@ -112,7 +116,7 @@ Walker *Walker::newWalker(Dyninst::PID pid,
     return NULL;
   }
 
-  Walker *newwalker = new Walker(newproc, NULL, true, executable);
+  Walker *newwalker = new Walker(newproc, NULL, NULL, true, executable);
   if (!newwalker || newwalker->creation_error) {
     sw_printf("[%s:%u] - Error creating new Walker object %p\n",
 	      __FILE__, __LINE__, newwalker);
@@ -138,7 +142,7 @@ Walker *Walker::newWalker(const std::string &exec_name,
       return NULL;
    }
 
-   Walker *newwalker = new Walker(newproc, NULL, true, exec_name);
+   Walker *newwalker = new Walker(newproc, NULL, NULL, true, exec_name);
    if (!newwalker || newwalker->creation_error) {
       sw_printf("[%s:%u] - Error creating new Walker object %p\n",
                 __FILE__, __LINE__, newwalker);
@@ -152,6 +156,7 @@ Walker *Walker::newWalker(const std::string &exec_name,
 }
 
 Walker *Walker::newWalker(ProcessState *proc, 
+                          StepperGroup *grp,
                           SymbolLookup *lookup,
                           bool default_steppers)
 {
@@ -165,7 +170,7 @@ Walker *Walker::newWalker(ProcessState *proc,
    sw_printf("[%s:%u] - Creating custom Walker with proc = %p" \
              "lookup = %p\n", __FILE__, __LINE__, proc, lookup);
   
-   Walker *newwalker = new Walker(proc, lookup, default_steppers, "");
+   Walker *newwalker = new Walker(proc, grp, lookup, default_steppers, "");
    if (!newwalker || newwalker->creation_error) {
       sw_printf("[%s:%u] - Error creating new Walker object %p\n",
                 __FILE__, __LINE__, newwalker);
@@ -214,7 +219,7 @@ bool Walker::newWalker(const std::vector<Dyninst::PID> &pids,
         continue;
      }
 
-     Walker *newwalker = new Walker((ProcessState *) pd, NULL, true, executable);
+     Walker *newwalker = new Walker((ProcessState *) pd, NULL, NULL, true, executable);
      if (!newwalker || newwalker->creation_error) {
         sw_printf("[%s:%u] - Error creating new Walker object %p\n",
                   __FILE__, __LINE__, newwalker);
@@ -271,10 +276,10 @@ Walker::~Walker() {
       goto done_gifi; \
     } \
   } \
-  regval_t pc, sp, fp; \
-  result = proc->getRegValue(REG_PC, thread, pc); \
-  result = !result || proc->getRegValue(REG_SP, thread, sp); \
-  result = !result || proc->getRegValue(REG_FP, thread, fp); \
+  Dyninst::MachRegisterVal pc, sp, fp; \
+  result = proc->getRegValue(Dyninst::MachRegPC, thread, pc); \
+  result = !result || proc->getRegValue(Dyninst::MachRegStackBase, thread, sp); \
+  result = !result || proc->getRegValue(Dyninst::MachRegFrameBase, thread, fp); \
   if (!result) { \
     sw_printf("Failed to get registers from process\n"); \
     result = false; \
@@ -291,7 +296,16 @@ bool Walker::walkStack(std::vector<Frame> &stackwalk, THR_ID thread)
    bool result;
    Frame initialFrame(this);
 
-   callPreStackwalk();
+   if (thread == NULL_THR_ID) {
+      result = proc->getDefaultThread(thread);
+      if (!result) {
+         sw_printf("[%s:%u] - Couldn't get initial thread on %d\n",
+                   __FILE__, __LINE__, proc->getProcessId());
+         return false;
+      }
+   }
+
+   callPreStackwalk(thread);
 
    sw_printf("[%s:%u] - Starting stackwalk on thread %d\n",
              __FILE__, __LINE__, (int) thread);
@@ -311,7 +325,7 @@ bool Walker::walkStack(std::vector<Frame> &stackwalk, THR_ID thread)
    }
 
  done:
-   callPostStackwalk();
+   callPostStackwalk(thread);
    return result;
 }
 
@@ -360,50 +374,59 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
    bool result;
    Frame last_frame = in;
 
-   sw_printf("[%s:%u] - Attempting to walk through frame with RA 0x%x\n",
+   sw_printf("[%s:%u] - Attempting to walk through frame with RA 0x%lx\n",
 	     __FILE__, __LINE__, last_frame.getRA());
 
    callPreStackwalk();
    
-   std::list<FrameStepper *>::iterator i;
-   for (i = steppers.begin(); i != steppers.end(); i++)
+   if (!group) {
+      setLastError(err_nogroup, "Attempt to walk a stack without a StepperGroup");
+      return false;
+   }
+
+   FrameStepper *last_stepper = NULL;
+   for (;;)
    {
+     FrameStepper *cur_stepper = NULL;
+     bool res = group->findStepperForAddr(last_frame.getRA(), cur_stepper,
+                                          last_stepper);
+     if (!res) {
+        sw_printf("[%s:%u] - Unable to find a framestepper for %lx\n",
+                  __FILE__, __LINE__, last_frame.getRA());
+        result = false;
+        goto done;
+     }
      sw_printf("[%s:%u] - Attempting to use stepper %p\n", 
-               __FILE__, __LINE__, (*i));
-     gcf_result = (*i)->getCallerFrame(in, out);
+               __FILE__, __LINE__, cur_stepper);
+     gcf_result = cur_stepper->getCallerFrame(in, out);
      if (gcf_result == gcf_success) {
-       sw_printf("[%s:%u] - Success using stepper %p on 0x%x\n", 
-		 __FILE__, __LINE__, (*i), in.getRA());
-       sw_printf("[%s:%u] - Returning frame with RA %x, SP %x, FP %x\n",
+       sw_printf("[%s:%u] - Success using stepper %p on 0x%lx\n", 
+                 __FILE__, __LINE__, cur_stepper, in.getRA());
+       sw_printf("[%s:%u] - Returning frame with RA %lx, SP %lx, FP %lx\n",
 		 __FILE__, __LINE__, out.getRA(), out.getSP(), out.getFP());
        result = true;
        goto done;
      }
      else if (gcf_result == gcf_not_me) {
-       sw_printf("[%s:%u] - Stepper %p declined address 0x%x\n", 
-		 __FILE__, __LINE__, (*i), in.getRA());
+       last_stepper = cur_stepper;
+       sw_printf("[%s:%u] - Stepper %p declined address 0x%lx\n", 
+                 __FILE__, __LINE__, cur_stepper, in.getRA());
        continue; 
      }
      else if (gcf_result == gcf_stackbottom) {
-       sw_printf("[%s:%u] - Stepper %p bottomed out on 0x%x\n", 
-		 __FILE__, __LINE__, (*i), in.getRA());
+        sw_printf("[%s:%u] - Stepper %p bottomed out on 0x%lx\n", 
+                  __FILE__, __LINE__, cur_stepper, in.getRA());
        setLastError(err_stackbottom, "walkSingleFrame reached bottom of stack");
        result = false;
        goto done;
      }
      else if (gcf_result == gcf_error) {
-       sw_printf("[%s:%u] - A stepper reported error %d on frame at %x\n", 
-		 __FILE__, __LINE__, getLastError(), in.getRA());
-       callPostStackwalk();
+        sw_printf("[%s:%u] - A stepper reported error %d on frame at %lx\n", 
+                  __FILE__, __LINE__, cur_stepper, in.getRA());
        result = false;
        goto done;
      }
    }
-   sw_printf("[%s:%u] - Unable to find a stepper to use for address %x\n", 
-             __FILE__, __LINE__, in.getRA());
-   setLastError(err_nostepper, "No frame stepper could walk through a " \
-                "PC value");
-   result = false;
 
  done:
    callPostStackwalk();
@@ -412,13 +435,13 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
 
 bool Walker::getInitialFrame(Frame &frame, THR_ID thread) {
    bool result;
-   callPreStackwalk();
+   callPreStackwalk(thread);
    getInitialFrameImpl(frame, thread);
    if (!result) {
       sw_printf("[%s:%u] - getInitialFrameImpl failed\n",
                 __FILE__, __LINE__, (int) thread);
    }
-   callPostStackwalk();
+   callPostStackwalk(thread);
    return result;
 }
 
@@ -452,6 +475,7 @@ SymbolLookup *Walker::getSymbolLookup() const {
 ProcessState *Walker::createDefaultProcess()
 {
    ProcSelf *pself = new ProcSelf();
+   pself->initialize();
    return pself;
 }
 
@@ -476,30 +500,38 @@ ProcessState *Walker::createDefaultProcess(const std::string &exec_name,
 
 bool Walker::addStepper(FrameStepper *s)
 {
-   std::list<FrameStepper *>::iterator i;
-   i = steppers.begin(); 
-   for (; i != steppers.end() && (*i)->getPriority() < s->getPriority();  i++) ;
-   steppers.insert(i, s);
+   assert(group);
+   sw_printf("[%s:%u] - Registering stepper %p with group %p\n",
+             __FILE__, __LINE__, s, group);
+   group->registerStepper(s);
    return true;
 }
 
-void Walker::callPreStackwalk()
+void Walker::callPreStackwalk(Dyninst::THR_ID tid)
 {
    call_count++;
-
    if (call_count != 1)
       return;
    
-   getProcessState()->preStackwalk();
+   getProcessState()->preStackwalk(tid);
 }
 
-void Walker::callPostStackwalk()
+void Walker::callPostStackwalk(Dyninst::THR_ID tid)
 {
    call_count--;
 
    if (call_count != 0)
       return;
 
-   getProcessState()->postStackwalk();
+   getProcessState()->postStackwalk(tid);
+}
 
+StepperGroup *Walker::createDefaultStepperGroup()
+{
+   return new AddrRangeGroup(this);
+}
+
+StepperGroup *Walker::getStepperGroup() const
+{
+   return group;
 }

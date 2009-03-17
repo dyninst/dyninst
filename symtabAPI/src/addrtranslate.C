@@ -49,6 +49,8 @@ bool AddressTranslate::getLibAtAddress(Address addr, LoadedLib* &lib)
       if (!l)
          continue;
       vector<pair<Address, unsigned long> > *addresses = l->getMappedRegions();
+      if (!addresses)
+         continue;
       for (unsigned j = 0; j<addresses->size(); j++) {
          if (addr >= (*addresses)[j].first && 
              addr < (*addresses)[j].first + (*addresses)[j].second)
@@ -159,3 +161,11 @@ void LoadedLib::getOutputs(string &filename, Address &code, Address &data)
    code = load_addr;
    data = 0;
 }
+
+#if !defined(os_linux) && !defined(os_solaris)
+//This definition is for all the non-System V systems
+Address AddressTranslate::getLibraryTrapAddrSysV()
+{
+   return 0x0;
+}
+#endif

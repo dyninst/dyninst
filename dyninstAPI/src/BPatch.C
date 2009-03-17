@@ -95,7 +95,6 @@ BPatch::BPatch()
     trampRecursiveOn(false),
     forceRelocation_NP(false),
     autoRelocation_NP(true),
-    trampMergeOn(true),
     saveFloatingPointsOn(true),
     livenessAnalysisOn_(true),
     livenessAnalysisDepth_(3),
@@ -289,12 +288,12 @@ void BPatch::setDelayedParsingInt(bool x)
 }
 bool BPatch::isMergeTrampInt()
 {
-  return trampMergeOn;
+  return true;
 }
-void BPatch::setMergeTrampInt(bool x)
+void BPatch::setMergeTrampInt(bool)
 {
-    trampMergeOn = x; 
 }
+
 bool BPatch::isSaveFPROnInt()
 {
   return saveFloatingPointsOn;

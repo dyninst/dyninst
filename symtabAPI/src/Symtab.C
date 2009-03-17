@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
+ * Copyright (c) 1996-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -86,36 +86,41 @@ SymtabError Symtab::getLastSymtabError()
     return serr;
 }
 
+void setSymtabError(SymtabError new_err)
+{
+   serr = new_err;
+}
+
 std::string Symtab::printError(SymtabError serr)
 {
     switch (serr)
     {
-        case Obj_Parsing:
-            return "Failed to parse the Object"+errMsg;
-        case Syms_To_Functions:
-            return "Failed to convert Symbols to Functions";
-        case No_Such_Function:
-            return "Function does not exist";
-        case No_Such_Variable:
-            return "Variable does not exist";
+       case Obj_Parsing:
+           return "Failed to parse the Object"+errMsg;
+       case Syms_To_Functions:
+           return "Failed to convert Symbols to Functions";
+       case No_Such_Function:
+           return "Function does not exist";
+       case No_Such_Variable:
+           return "Variable does not exist";
        case No_Such_Module:
-            return "Module does not exist";
-        case No_Such_Region:
-            return "Region does not exist";
-        case No_Such_Symbol:
-            return "Symbol does not exist";
-        case Not_A_File:
-            return "Not a File. Call openArchive()";
-        case Not_An_Archive:
-            return "Not an Archive. Call openFile()";
-        case Export_Error:
-            return "Error Constructing XML"+errMsg;
-        case Invalid_Flags:
-            return "Flags passed are invalid.";
-	case No_Error:
-	    return "No previous Error.";
-        default:
-            return "Unknown Error";
+          return "Module does not exist";
+       case No_Such_Region:
+           return "Region does not exist";
+       case No_Such_Symbol:
+           return "Symbol does not exist";
+       case Not_A_File:
+           return "Not a File. Call openArchive()";
+       case Not_An_Archive:
+           return "Not an Archive. Call openFile()";
+       case Export_Error:
+           return "Error Constructing XML"+errMsg;
+       case Invalid_Flags:
+          return "Flags passed are invalid.";
+       case No_Error:
+          return "No previous Error.";
+       default:
+          return "Unknown Error";
     }		
 }
 
@@ -720,6 +725,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym) {
             func = Function::createFunction(sym);
 
             everyFunction.push_back(func);
+            sorted_everyFunction = false;
             funcsByOffset[sym->getAddr()] = func;
         }
         else {
@@ -1031,7 +1037,7 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    defaultNamespacePrefix = "";
 }
 #else
-Symtab::Symtab(std::string, std::string, Offset, bool &, void *base)
+Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
 {
     assert(0);
 }
@@ -1695,6 +1701,39 @@ Symtab *Symtab::importBin(std::string file)
    fprintf(stderr, "%s[%d]:  WARNING:  cannot produce %s, serialization not available\n", FILE__, __LINE__, file.c_str());
    return NULL;
 #endif
+}
+
+
+bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
+{
+   bool err = false;
+#if defined(TIMED_PARSE)
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
+#endif
+   obj = new Symtab(mem_image, size, err);
+
+#if defined(TIMED_PARSE)
+    struct timeval endtime;
+    gettimeofday(&endtime, NULL);
+    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+    unsigned long difftime = lendtime - lstarttime;
+    double dursecs = difftime/(1000 );
+    cout << __FILE__ << ":" << __LINE__ <<": openFile "<< filename<< " took "<<dursecs <<" msecs" << endl;
+#endif
+    if(!err)
+    {
+       allSymtabs.push_back(obj);
+       obj->setupTypes();	
+    }
+    else
+    {
+        delete obj;
+       obj = NULL;
+    }
+    // returns true on success (not an error)
+    return !err;
 }
 
 bool Symtab::openFile(Symtab *&obj, std::string filename)
@@ -2579,6 +2618,18 @@ const char *Symbol::symbolVisibility2Str(SymbolVisibility t)
    return "invalid symbol visibility";
 }
 
+bool Symtab::hasStackwalkDebugInfo()
+{
+   return getObject()->hasFrameDebugInfo();
+}
+
+bool Symtab::getRegValueAtFrame(Address pc, 
+                                Dyninst::MachRegister reg, 
+                                Dyninst::MachRegisterVal &reg_result,
+                                MemRegReader *reader)
+{
+   return getObject()->getRegValueAtFrame(pc, reg, reg_result, reader);
+}
 
 Object *Symtab::getObject()
 {
@@ -2593,6 +2644,10 @@ Object *Symtab::getObject()
    assert(0);
    //obj_private = new Object();
    return obj_private;
+}
+
+MemRegReader::~MemRegReader()
+{
 }
 
 #if defined (cap_serialization)

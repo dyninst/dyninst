@@ -20,7 +20,7 @@ include ../../make.config
 SRCS = 	../src/firstparty.C \
 			../src/ppc-swk.C 
 
-STATIC_LIBRARY = true
+STATIC_COMPS = true
 
 LIBS	+=
 CFLAGS  +=

@@ -157,7 +157,11 @@ class SignalGenerator;
 class BPatch_thread;
 class BPatch_function;
 class BPatch_point;
-
+namespace Dyninst {
+   namespace SymtabAPI {
+      class Symtab;
+   }
+}
 
 typedef void (*continueCallback)(timeStamp timeOfCont);
 
@@ -477,9 +481,9 @@ class process : public AddressSpace {
   void setVsyscallStatus(syscallStatus_t s) { vsys_status_ = s; }
   void setVsyscallRange(Address start, Address end) 
     { vsyscall_start_ = start; vsyscall_end_ = end; }
-  void *getVsyscallData() { return vsyscall_data_; }
-  void setVsyscallData(void *data) { vsyscall_data_ = data; }
   void setVsyscallText(Address addr) { vsyscall_text_ = addr; }
+  Dyninst::SymtabAPI::Symtab *getVsyscallObject() { return vsyscall_obj; }
+  void setVsyscallObject(Dyninst::SymtabAPI::Symtab *vo) { vsyscall_obj = vo; }
   bool readAuxvInfo(); 
 #endif
 
@@ -1065,8 +1069,8 @@ private:
   Address vsyscall_start_;
   Address vsyscall_end_;
   Address vsyscall_text_;
-  void *vsyscall_data_;
   AuxvParser *auxv_parser;
+  Dyninst::SymtabAPI::Symtab *vsyscall_obj;
 #endif
 
   ///////////////////

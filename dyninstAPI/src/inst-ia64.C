@@ -727,10 +727,7 @@ int getInsnCost( opCode op ) {
 	break;
 
   case funcJumpOp:
-	/* Mostly the cost of the trampTrailer. */
 	cost = 6;
-  case trampTrailer:
-	cost += STATE_RESTORE_COST;
 	break;
 
   case ifMCOp:
@@ -2527,10 +2524,9 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	
 	/* We also need to initialize the KTI register. */
 	assert( irpcTramp );
-	if( ! irpcTramp->generateMTCode( gen, gen.rs() ) ) { return false; }
 	
 	return true;
-	} /* end emitInferiorRPCheader() */
+} /* end emitInferiorRPCheader() */
 
 /* From ia64-template.s. */
 extern void (* syscallSuffix)();
@@ -2665,172 +2661,6 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
   return true;
 } /* end emitInferiorRPCtrailer() */
 
-void baseTrampInstance::updateTrampCost( unsigned cost ) {
-  if( baseT->costSize == 0 ) {
-	return;
-  }
-  assert( baseT->costSize != 0 );		
-  assert( baseT->valueRegister != 0 );
-  assert( baseT->addressRegister != 0 );
-    
-  codeGen gen( baseT->costSize );
-	
-  instruction_x setCost = generateLongConstantInRegister( baseT->addressRegister, cost );
-  generateBundleFromLongInstruction( setCost ).generate( gen );
-
-  instruction addInstruction = generateArithmetic( plusOp, baseT->valueRegister, baseT->addressRegister, baseT->valueRegister );
-  IA64_bundle addBundle( MIIstop, addInstruction, NOP_I, NOP_I );
-  addBundle.generate( gen );
-
-  Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
-  proc()->writeDataSpace( (void *) trampCostAddr, gen.used(), (void *) gen.start_ptr() );
-} /* end updateTrampCost() */
-
-#define GUARD_PREDICATE_TRUE	6
-#define GUARD_PREDICATE_FALSE	7
-bool baseTramp::generateGuardPreCode(codeGen &gen,
-									 codeBufIndex_t &guardJumpIndex,
-									 registerSpace *rs) {
-
-  // Assumptions: No need to "allocate" registers from registerSpace.  They are
-  //				scratch registers which just came into existence.
-  //
-  //				The branch in guardOnBundle3 must jump past 3 bundles (Offset +4).
-  //					1 for the miniTramp
-  //					2 for the guardOff bundles
-
-  assert(rs);
-
-  Address trampGuardBase = proc()->trampGuardBase();
-  if (!trampGuardBase) return false;
-
-  int maxRegister = rs->numGPRs();
-  trampGuardFlagAddr = rs->GPRs()[maxRegister - 1]->number;
-  trampGuardFlagValue = rs->GPRs()[maxRegister - 2]->number;
-	
-  IA64_bundle guardOnBundle0( MLXstop,
-							  instruction( NOP_M ),
-							  generateLongConstantInRegister( trampGuardFlagAddr, trampGuardBase ));
-
-  IA64_bundle guardOnBundle05(	MstopMIstop,
-								generateShiftLeftAndAdd( trampGuardFlagAddr, CALCULATE_KTI_REGISTER, 3, trampGuardFlagAddr ),
-								instruction( NOP_M ),
-								instruction( NOP_I ) );
-			
-  IA64_bundle guardOnBundle1( MstopMIstop,
-							  generateRegisterLoad( trampGuardFlagValue, trampGuardFlagAddr, 4 ),
-							  generateComparison( eqOp, GUARD_PREDICATE_TRUE, trampGuardFlagValue, REGISTER_ZERO ),
-							  instruction( NOP_I ));
-
-  IA64_bundle guardOnBundle2( MIIstop,
-							  generateRegisterStore( trampGuardFlagAddr, REGISTER_ZERO, 4, GUARD_PREDICATE_FALSE ),
-							  instruction( NOP_I ),
-							  instruction( NOP_I ));
-
-  /* This displacement is fixed up in finalizeGuardBranch(). */
-  IA64_bundle guardOnBundle3( MLXstop,
-							  instruction( NOP_M ),
-							  generateLongBranchTo( 0 << 4, GUARD_PREDICATE_TRUE ));
-
-  guardOnBundle0.generate(gen);
-  guardOnBundle05.generate(gen);
-  guardOnBundle1.generate(gen);
-  guardOnBundle2.generate(gen);
-  guardJumpIndex = gen.getIndex();
-  guardOnBundle3.generate(gen); 
-
-  return true; 
-}
-
-bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
-									  registerSpace *rs) 
-{
-  Address trampGuardBase = proc()->trampGuardBase();
-  if (!trampGuardBase) return false;
-
-  int maxRegister = rs->numGPRs();
-  Register trampGuardFlagAddr = rs->GPRs()[maxRegister-1]->number;
-  Register trampGuardFlagValue = rs->GPRs()[maxRegister-2]->number;
-
-  IA64_bundle guardOffBundle0( MLXstop,
-							   generateShortConstantInRegister( trampGuardFlagValue, 1 ),
-							   generateLongConstantInRegister( trampGuardFlagAddr, proc()->trampGuardBase() ));
-								 
-  IA64_bundle guardOffBundle05(	MstopMIstop,
-								generateShiftLeftAndAdd( trampGuardFlagAddr, CALCULATE_KTI_REGISTER, 3, trampGuardFlagAddr ),
-								instruction( NOP_M ),
-								instruction( NOP_I ) );
-
-  IA64_bundle guardOffBundle1( MMIstop,
-							   generateRegisterStore( trampGuardFlagAddr, trampGuardFlagValue, 4 ),
-							   instruction( NOP_M ),
-							   instruction( NOP_I ));
-
-  guardOffBundle0.generate(gen);
-  guardOffBundle05.generate(gen);
-  guardOffBundle1.generate(gen);
-  postIndex = gen.getIndex();
-  return true;
-}
-
-bool baseTramp::generateCostCode( codeGen & gen, unsigned & costUpdateOffset, registerSpace * rSpace ) {
-  Address costAddr = proc()->getObservedCostAddr();
-  if( ! costAddr ) {
-	return false;
-  }
-    
-  assert( rSpace != NULL );    
-  addressRegister = rSpace->allocateRegister( gen, false );
-  valueRegister = rSpace->allocateRegister( gen, false );
-    
-    
-  emitVload( loadOp, costAddr, addressRegister, valueRegister, gen, false, rSpace );
-    
-  /* In the general case, we need a bundle to set addressRegister to the cost,
-	 and another to add it to valueRegister. */    
-  costUpdateOffset = gen.used();
-  IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
-  nopBundle.generate( gen );
-  nopBundle.generate( gen );
-    
-  emitVstore( storeOp, valueRegister, addressRegister, costAddr, gen, false, rSpace );
-    
-    
-  rSpace->freeRegister( valueRegister );
-  rSpace->freeRegister( addressRegister );
-    
-  return true;
-} /* end generateCostCode() */
-
-
-bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
-  pdvector< AstNodePtr > dummy;
-
-  dyn_thread *thr = gen.thread();
-  if( !this->threaded() ) {
-	  /* Stick a zero in the Known Thread Index register. */
-	  emitRegisterToRegisterCopy( BP_GR0, CALCULATE_KTI_REGISTER, gen, rs );		
-  }
-  else if( thr ) {
-	  // For some reason we're overriding the normal index calculation
-	  unsigned index = thr->get_index();
-	  IA64_bundle setIndexBundle( MIIstop, generateShortConstantInRegister( CALCULATE_KTI_REGISTER, index ), NOP_I, NOP_I );
-	  setIndexBundle.generate( gen );
-  }
-  else {
-	  AstNodePtr threadPos = AstNode::funcCallNode( "DYNINSTthreadIndex", dummy );
-	  assert( threadPos != NULL );
-	  
-	  Register src = REG_NULL;
-	  if (!threadPos->generateCode(gen, 
-								   false /* no cost */, src )) return false;
-	  
-	  /* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
-	  emitRegisterToRegisterCopy( src, CALCULATE_KTI_REGISTER, gen, rs );
-  }
-  
-  return true;
-} /* end generateMTCode() */
 
 void registerRemoteUnwindInformation( unw_word_t di, unw_word_t udil, pid_t pid ) {
   unw_dyn_info_list_t dummy_dil;
@@ -3200,11 +3030,6 @@ codeBufIndex_t emitA( opCode op, Register src1, Register /*src2*/, Register dest
   codeBufIndex_t retval;
 
   switch( op ) {
-  case trampTrailer: {
-	retval = gen.getIndex();
-	IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
-	break; }
-
   case ifOp: {
 	/* Branch by offset dest if src1 is zero. */
 			
@@ -3433,13 +3258,6 @@ bool AddressSpace::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNod
 unsigned relocatedInstruction::maxSizeRequired() {
 	// This can be pruned to be a better estimate.
 	return 48; // bundles. I think. Might be 3.
-	}
-
-bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
-	/* Displacement is in bytes. */
-	IA64_bundle guardOnBundle3( MLXstop, instruction( NOP_M ), generateLongBranchTo( displacement, GUARD_PREDICATE_TRUE ) );
-	guardOnBundle3.generate( gen );
-	return true;
 	}
 
 bool baseTramp::generateSaves( codeGen & gen, registerSpace * ) {

@@ -32,24 +32,16 @@
 #ifndef BASETYPES_H_
 #define BASETYPES_H_
 
-#include "dynutil/h/dyntypes.h"
+#include "dyntypes.h"
 
 namespace Dyninst {
 namespace Stackwalker {
-
-typedef enum {
-  REG_PC,
-  REG_FP,
-  REG_SP,
-} reg_t;
-
-typedef unsigned long regval_t;
 
 typedef enum { loc_address, loc_register, loc_unknown } storage_t;
 typedef struct {
   union {
     Dyninst::Address addr;
-    reg_t reg;
+    Dyninst::MachRegister reg;
   } val;
   storage_t location;
 } location_t;

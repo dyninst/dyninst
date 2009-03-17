@@ -40,16 +40,16 @@ TFLAGS		+= $(MYFLAGS)
 SYSLIBS		= -ldl
 
 LIBS		= -L$(LIBDWARF_LIB) -L$(LIBELF_LIB) 
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-Bstatic -ldwarf -Wl,-Bdynamic
-else
-LIBS    += -ldwarf
+ifndef LIBDWARFSTATIC
+LIBS += -ldwarf
 endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-Bstatic -lelf -Wl,-Bdynamic
-else
-LIBS    += -lelf
+ifndef LIBELFSTATIC
+LIBS += -lelf
 endif
+ifndef LIBIBERTYSTATIC
+LIBS	+= -liberty
+endif
+
 LIBS    += -L$(LIBUNWIND_LIB) -lunwind-ptrace -lunwind -lunwind-ia64
 
 # Add preprocessor and special link information for G++

@@ -167,8 +167,8 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
      // Argh. We need to check for each call site in each
      // instantiation of the function.
      if (site->match(addr - site->insn().size())) {
-	 *callee = site->findCallee();
-	 return true;
+        *callee = site->findCallee();
+        return true;
      }
    }   
    
@@ -255,6 +255,45 @@ static bool isInEntryExitInstrumentation(Frame f)
    return false;
 }
 
+class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
+{
+ private:
+   process *proc;
+   Frame *orig_frame;
+ public:
+   DyninstMemRegReader(process *p, Frame *f) { 
+      proc = p; 
+      orig_frame = f;
+   }
+   virtual bool ReadMem(Address addr, void *buffer, unsigned size) {
+      return proc->readDataSpace((void *) addr, size, buffer, false);
+   }
+
+   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) {
+      switch (reg) {
+         case MachRegPC:
+         case MachRegReturn:
+            val = orig_frame->getPC();
+            break;
+         case ESP:
+         case RSP:
+         case MachRegStackBase:
+            val = orig_frame->getSP();
+            break;
+         case EBP:
+         case RBP:
+         case MachRegFrameBase:
+            val = orig_frame->getFP();
+            break;
+         default:
+            assert(0);
+      }
+      return true;
+   }
+
+   virtual ~DyninstMemRegReader() {};
+};
+
 extern int tramp_pre_frame_size_32;
 extern int tramp_pre_frame_size_64;
 
@@ -310,70 +349,85 @@ Frame Frame::getCallerFrame()
    if (status == frame_vsyscall)
    {
 #if defined(os_linux)
-      void *vsys_data;
+      Symtab *vsys_obj;
 
-      if ((vsys_data = getProc()->getVsyscallData()) == NULL)
+      if ((vsys_obj = getProc()->getVsyscallObject()) == NULL ||
+          !vsys_obj->hasStackwalkDebugInfo())
       {
         /**
          * No vsyscall stack walking data present (we're probably 
          * on Linux 2.4) we'll go ahead and treat the vsyscall page 
          * as a leaf
          **/
-	stackwalk_printf("%s[%d]: no vsyscall data present, treating as leaf frame\n", FILE__, __LINE__);
-        if (!getProc()->readDataSpace((void *) sp_, addr_size, 
-				      (void *) &addrs.rtn, true)) {
-	  stackwalk_printf("%s[%d]: Failed to access memory at 0x%x, returning null frame \n", FILE__, __LINE__, sp_);
-	  return Frame();
-	}
-	
-        newFP = fp_;
-        newPC = addrs.rtn;
-        newSP = sp_+addr_size;
-        goto done;
+         stackwalk_printf("%s[%d]: no vsyscall data present, treating as leaf frame\n", FILE__, __LINE__);
+         if (!getProc()->readDataSpace((void *) sp_, addr_size, 
+                                       (void *) &addrs.rtn, true)) {
+            stackwalk_printf("%s[%d]: Failed to access memory at 0x%x, returning null frame \n", FILE__, __LINE__, sp_);
+            return Frame();
+         }
+         
+         newFP = fp_;
+         newPC = addrs.rtn;
+         newSP = sp_+addr_size;
+         goto done;
       }
       else
       {
-        /**
-         * We have vsyscall stack walking data, which came from
-         * the .eh_frame section of the vsyscall DSO.  We'll use
-         * getRegValueAtFrame to parse the data and get the correct
-         * values for %esp, %ebp, and %eip
-         **/
-      stackwalk_printf("%s[%d]: vsyscall data is present, analyzing\n", FILE__, __LINE__);
-        Address reg_map[MAX_DW_VALUE+1];
-        bool error;
+         /**
+          * We have vsyscall stack walking data, which came from
+          * the .eh_frame section of the vsyscall DSO.  We'll use
+          * getRegValueAtFrame to parse the data and get the correct
+          * values for %esp, %ebp, and %eip
+          **/
+         Address vsys_base = 0x0;
+         DyninstMemRegReader reader(getProc(), this);
+         stackwalk_printf("%s[%d]: vsyscall data is present, analyzing\n", 
+                          FILE__, __LINE__);
+         bool result;
+         result = vsys_obj->getRegValueAtFrame(pc_, MachRegReturn,
+                                               newPC, &reader);
+         if (!result) {
+            //Linux in inconsistent about whether we should subtract the
+            // vys_start before using.  So we try both, stick with what works
+            vsys_base = getProc()->getVsyscallStart();
+            result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, MachRegReturn,
+                                                  newPC, &reader);
+         }
+         if (!result) {
+            //It gets worse, sometimes the vsyscall data is just plain wrong.
+            //FC-9 randomized the location of the vsyscall page, but didn't update
+            //the debug info.  We'll try the non-updated address.
+            vsys_base = getProc()->getVsyscallStart() - 0xffffe000;
+            result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, MachRegReturn,
+                                                  newPC, &reader);
+         }
+         if (!result) {
+            stackwalk_printf("[%s:%u] - Error getting PC value of vsyscall\n",
+                             __FILE__, __LINE__);
+            return Frame();                             
+         }         
+         Dyninst::MachRegister frame_reg;
+         if (getProc()->getAddressWidth() == 4)
+            frame_reg = EBP;
+         else
+            frame_reg = RBP;
 
-        //Set up the register values array for getRegValueAtFrame
-        memset(reg_map, 0, sizeof(reg_map));
-        reg_map[DW_EBP] = fp_;
-        reg_map[DW_ESP] = sp_;
-        reg_map[DW_PC] = pc_;
-
-        //Calc frame start
-        reg_map[DW_CFA] = getRegValueAtFrame(vsys_data, pc_, DW_CFA, 
-                                             reg_map, getProc(), &error);
-        if (error) {
-	  stackwalk_printf("%s[%d]: Failed to parse vsyscall data (1)\n", FILE__, __LINE__);
-	  return Frame();
-	}
-	
-        //Calc registers values.
-        newPC = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, 
-                                   getProc(), &error);
-        if (error) {
-	  stackwalk_printf("%s[%d]: Failed to parse vsyscall data (2)\n", FILE__, __LINE__);
-	  return Frame();
-	}
-	
-        newFP = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, 
-                                   getProc(), &error);
-        if (error) {
-	  stackwalk_printf("%s[%d]: Failed to parse vsyscall data (3)\n", FILE__, __LINE__);
-	  return Frame();
-	}
-	
-        newSP = reg_map[DW_CFA];	
-        goto done;
+         result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, frame_reg,
+                                               newFP, &reader);
+         if (!result) {
+            stackwalk_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
+                              __FILE__, __LINE__, pc_);
+            return Frame();
+         }
+         
+         result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, MachRegFrameBase,
+                                               newSP, &reader);
+         if (!result) {
+            stackwalk_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
+                      __FILE__, __LINE__, pc_);
+            return Frame();
+         }
+         goto done;
       }
 #endif
    }

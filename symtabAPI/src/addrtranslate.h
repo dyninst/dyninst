@@ -97,6 +97,8 @@ class AddressTranslate {
    bool getLibs(vector<LoadedLib *> &libs_);
    LoadedLib *getLoadedLib(std::string name);
    LoadedLib *getLoadedLib(Symtab *sym);
+
+   Address getLibraryTrapAddrSysV();
 };
 
 }

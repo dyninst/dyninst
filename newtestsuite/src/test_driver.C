@@ -866,6 +866,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
             if (shouldRunTest(groups[i], groups[i]->tests[j]))
             {
                //Just pick a result to set as failed
+               getOutput()->log(STDERR, "Unreported tests found, marking group as failed\n");
                groups[i]->tests[j]->results[group_teardown_rs] = FAILED;
                reportTestResult(groups[i], groups[i]->tests[j]);
             }

@@ -674,7 +674,7 @@ class Elf_X_Data {
     Elf_Type d_type() const { return data->d_type; }
     unsigned int d_version() const { return data->d_version; }
     size_t d_size() const { return data->d_size; }
-    off_t d_off() const { return data->d_off; }
+    off_t d_off() const { return (off_t) data->d_off; }
     size_t d_align() const { return data->d_align; }
     
     // Write Interface
@@ -816,7 +816,7 @@ class Elf_X_Shdr {
     }
 
     bool isValid() const { return (shdr32 || shdr64); }
-
+    unsigned wordSize() { return is64 ? 8 : 4; }
   protected:
     Elf_Scn *scn;
     Elf_Data *data;

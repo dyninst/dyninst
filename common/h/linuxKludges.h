@@ -33,11 +33,17 @@
 #if !defined(_linux_kludges_h)
 #define _linux_kludges_h
 
+#include <vector>
+
 unsigned long long PDYN_div1000(unsigned long long in);
 unsigned long long PDYN_divMillion(unsigned long long in);
 unsigned long long PDYN_mulMillion(unsigned long long in);
 
 bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
+
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
+
+bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 
 #endif
 

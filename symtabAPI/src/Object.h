@@ -185,7 +185,7 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#if defined(os_solaris) || defined(os_linux)
+#if defined(os_solaris) || defined(os_linux) || defined(os_bluegene)
 #include "Object-elf.h"
 #elif defined(os_aix)
 #include "Object-xcoff.h"

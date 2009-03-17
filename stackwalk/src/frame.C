@@ -33,6 +33,9 @@
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/symlookup.h"
+#include "stackwalk/h/procstate.h"
+
+#include "stackwalk/src/symtab-swk.h"
 
 #include <assert.h>
 
@@ -61,7 +64,7 @@ Frame::Frame(Walker *parent_walker) :
   sw_printf("[%s:%u] - Created frame at %p\n", __FILE__, __LINE__, this);
 }
 
-Frame *Frame::newFrame(regval_t pc, regval_t sp, regval_t fp, Walker *walker) {
+Frame *Frame::newFrame(Dyninst::MachRegisterVal pc, Dyninst::MachRegisterVal sp, Dyninst::MachRegisterVal fp, Walker *walker) {
   sw_printf("[%s:%u] - Manually creating frame with %lx, %lx, %lx, %p\n",
 	    __FILE__, __LINE__, pc, sp, fp, walker);
   if (!walker) {
@@ -91,15 +94,15 @@ void Frame::markBottomFrame() {
   bottom_frame = true;
 }
 
-regval_t Frame::getRA() const {
+Dyninst::MachRegisterVal Frame::getRA() const {
   return ra;
 }
 
-regval_t Frame::getSP() const {
+Dyninst::MachRegisterVal Frame::getSP() const {
   return sp;
 }
 
-regval_t Frame::getFP() const {
+Dyninst::MachRegisterVal Frame::getFP() const {
   return fp;
 }
 
@@ -115,21 +118,21 @@ location_t Frame::getFPLocation() const {
   return fp_loc;
 }
 
-void Frame::setRA(regval_t newval) {
-  sw_printf("[%s:%u] - Setting ra of frame %p to %x\n",
+void Frame::setRA(Dyninst::MachRegisterVal newval) {
+  sw_printf("[%s:%u] - Setting ra of frame %p to %lx\n",
 	    __FILE__, __LINE__, this, newval);
   ra = newval;
   frame_complete = true;
 }
 
-void Frame::setFP(regval_t newval) {
-  sw_printf("[%s:%u] - Setting fp of frame %p to %x\n",
+void Frame::setFP(Dyninst::MachRegisterVal newval) {
+  sw_printf("[%s:%u] - Setting fp of frame %p to %lx\n",
 			  __FILE__, __LINE__, this, newval);
   fp = newval;
 }
 
-void Frame::setSP(regval_t newval) {
-  sw_printf("[%s:%u] - Setting sp of frame %p to %x\n",
+void Frame::setSP(Dyninst::MachRegisterVal newval) {
+  sw_printf("[%s:%u] - Setting sp of frame %p to %lx\n",
 	    __FILE__, __LINE__, this, newval);
   sp = newval;
 }
@@ -246,5 +249,34 @@ bool Frame::isFrameComplete() const {
 
 Frame::~Frame() {
   sw_printf("[%s:%u] - Destroying frame %p\n", __FILE__, __LINE__, this);
+}
+
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, 
+                         void* &symtab)
+{
+  LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();
+  if (!libstate) {
+    sw_printf("[%s:%u] - getLibraryAtAddr, had no library tracker\n",
+              __FILE__, __LINE__);
+    setLastError(err_unsupported, "No valid library tracker registered");
+    return false;
+  }
+
+  LibAddrPair la;
+  bool result = libstate->getLibraryAtAddr(getRA(), la);
+  if (!result) {
+    sw_printf("[%s:%u] - getLibraryAtAddr returned false for %x\n",
+              __FILE__, __LINE__, getRA());
+    return false;
+  }
+
+  lib = la.first;
+  offset = getRA() - la.second;
+
+#if defined(cap_stackwalker_use_symtab)
+  symtab = static_cast<void *>(SymtabWrapper::getSymtab(lib));
+#endif
+
+  return true;
 }
 

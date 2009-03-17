@@ -901,7 +901,6 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
 void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
 extern bool isFramePush(instruction &i);
-void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p);
 
 /**
  * Signal handler return points can be found in the vsyscall page.
@@ -944,7 +943,7 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
       shdr = elf32_getshdr(sec);
       if (shdr == NULL) goto err_handler;
       if (!p->getVsyscallText() && (shdr->sh_flags & SHF_EXECINSTR)) {
-	p->setVsyscallText(shdr->sh_addr);
+         p->setVsyscallText(shdr->sh_addr);
       }
       if (shdr->sh_type == SHT_DYNSYM)
       {
@@ -962,8 +961,16 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
                   // of the vsyscall page. Others have these as absolutes.
                   // We hates them, my precioussss....
                   Address signal_addr = syms[i].st_value;
-                  if (signal_addr < p->getVsyscallStart()) {
+                  if (signal_addr < p->getVsyscallEnd() - p->getVsyscallStart()) {
                      p->addSignalHandler(syms[i].st_value + 
+                                         p->getVsyscallStart(), 4);
+                  }
+                  else if (signal_addr < p->getVsyscallStart() ||
+                           signal_addr >= p->getVsyscallEnd()) {
+                     //FC-9 moved the vsyscall page, but didn't update its debug
+                     // info or symbols from some hardcoded values.  Fix up the
+                     // bad signal values.
+                     p->addSignalHandler(syms[i].st_value - 0xffffe000 +
                                          p->getVsyscallStart(), 4);
                   }
                   else 
@@ -1032,7 +1039,6 @@ static bool isVsyscallData(char *buffer, int dso_size) {
 
 void calcVSyscallFrame(process *p)
 {
-  void *result;
   unsigned dso_size;
   char *buffer;
 
@@ -1040,7 +1046,7 @@ void calcVSyscallFrame(process *p)
    * If we've already calculated and cached the DSO information then 
    * just return.
    **/
-  if (p->getVsyscallData())
+  if (p->getVsyscallObject())
      return;
   
 
@@ -1049,7 +1055,6 @@ void calcVSyscallFrame(process *p)
      //  Reading the VSyscall data on ginger seems to trigger a
      //  kernel panic.
      p->setVsyscallRange(0x1000, 0x0);
-     p->setVsyscallData(NULL);
      return;
   }
 
@@ -1059,7 +1064,6 @@ void calcVSyscallFrame(process *p)
   p->readAuxvInfo();
   if (p->getVsyscallStatus() != vsys_found) {
      p->setVsyscallRange(0x0, 0x0);
-     p->setVsyscallData(NULL);
      return;
   }
   
@@ -1079,7 +1083,6 @@ void calcVSyscallFrame(process *p)
         // it's just ptrace that's acting stubborn.
         if (!execVsyscallFetch(p, buffer))
         {
-           p->setVsyscallData(NULL);
            p->setVsyscallStatus(vsys_notfound);
            return;
         }
@@ -1088,14 +1091,15 @@ void calcVSyscallFrame(process *p)
 
   if (!isVsyscallData(buffer, dso_size)) {
      p->setVsyscallRange(0x0, 0x0);
-     p->setVsyscallData(NULL);
      p->setVsyscallStatus(vsys_notfound);
      return;     
   }
   getVSyscallSignalSyms(buffer, dso_size, p);
-  result = parseVsyscallPage(buffer, dso_size, p);
-  p->setVsyscallData(result);
-  
+
+  Symtab *obj;
+  bool result = Symtab::openFile(obj, buffer, dso_size);
+  if (result)
+     p->setVsyscallObject(obj);
   return;
 }
 

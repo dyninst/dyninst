@@ -118,11 +118,6 @@ class baseTrampInstance : public generatedCodeObject {
                       Address baseInMutatee,
                       UNW_INFO_TYPE * * unwindInformation);
 
-    // Get some code out of the way...
-    bool generateCodeOutlined(codeGen &gen,
-                              Address baseInMutatee,
-                              UNW_INFO_TYPE **unwindInformation);
-
     bool generateCodeInlined(codeGen &gen,
                              Address baseInMutatee,
                              UNW_INFO_TYPE **unwindInformation);
@@ -148,10 +143,6 @@ class baseTrampInstance : public generatedCodeObject {
     // Given the current range, can we safely clean up this
     // area?
     bool safeToFree(codeRange *range);
-
-    // Utility function to drop a correct jump
-    // from BT to MT into a buffer
-    void generateBranchToMT(codeGen &gen);
 
     // Update the list of miniTrampInstances
     void updateMTInstances();
@@ -186,66 +177,9 @@ class baseTrampInstance : public generatedCodeObject {
 class baseTramp {
     friend class baseTrampInstance;
  public:
-    unsigned preSize;
-    unsigned postSize;
-
-    unsigned saveStartOffset;
-    unsigned saveEndOffset; // Last save instruction
-
-    unsigned guardLoadOffset;
-    unsigned guardBranchSize;
-
-    unsigned costUpdateOffset;
-    unsigned costSize;
-
-    unsigned instStartOffset;
-    unsigned instSize; // So we can correctly null out the jump if
-    // there are no miniTramps
-
-    // The following are offsets from bti->trampPostAddr
-    unsigned restoreStartOffset;
-    unsigned restoreEndOffset;
-
-    unsigned trampEnd; // First non-BT instruction
-
-    // For internal generation
-    codeBufIndex_t guardBranchIndex;
-    codeBufIndex_t costValueOffset; // If there are multiple insns, this
-                              // does the math
-
-    // Index in bt->postTramp_ codeGen
-    codeBufIndex_t guardTargetIndex;
-
-
-    int cost; // Current cost in cycles;
-    Address costAddr; // For quick updates
-
-    // FIXME
-    int * clobberedGPR;
-    int * clobberedFPR;
-    int totalClobbered;
-
-#if defined(arch_ia64)
-    // TODO: when we start dynamically deciding what regs to
-    // use, stick this on other platforms as well. Oh, and
-    // make sure that AIX isn't declaring a temporary with the
-    // same name...
-    // For flexible generation...
-    Register trampGuardFlagAddr;
-    Register trampGuardFlagValue;
-#endif
-
-#if defined( arch_ia64 )
-    /* For cost updating, since the register space varies
-       from basetramp to basetramp. */
-    Register addressRegister;
-    Register valueRegister;
-#endif
-
 #if defined( cap_unwind )
    unw_dyn_region_info_t * baseTrampRegion;
 #endif
-
     Address origInstAddr(); // For faking an in-function address
 
     // Our instPoint
@@ -258,33 +192,13 @@ class baseTramp {
 
     AddressSpace *proc() const;
 
-    bool generateBT(codeGen &baseGen); // we copy any necessary information out of the "base" codeGen
     void invalidateBT() { valid = false; };
 
-    bool generateSaves(codeGen &gen,
-                       registerSpace *rs = NULL);
-    bool generateRestores(codeGen &gen,
-                          registerSpace *rs = NULL);
-    bool generateMTCode(codeGen &gen,
-                        registerSpace *rs = NULL);
-    // guardJumpOffset: internal variable, distance
-    // from the start of the guard code to where the
-    // jump is. Allows us to overwrite the jump later.
-    bool generateGuardPreCode(codeGen &gen,
-                              codeBufIndex_t &guardJumpIndex,
-                              registerSpace *rs = NULL);
-    bool generateGuardPostCode(codeGen &gen,
-                               codeBufIndex_t &guardTargetIndex,
-                               registerSpace *rs = NULL);
-    // This isn't an index; we're writing straight into memory
-    // when this gets fixed.
-    bool generateCostCode(codeGen &gen,
-                          unsigned &costUpdateOffset,
-                          registerSpace *rs = NULL);
-
     bool doOptimizations();
-
-    bool isMerged;
+    bool generateSaves(codeGen &,
+                       registerSpace *);
+    bool generateRestores(codeGen &,
+                          registerSpace *);
 
     bool isConservative();
     bool isCallsite();
@@ -336,8 +250,6 @@ class baseTramp {
     // split the generated code for a baseT in half as there
     // may be an arbitrary amount of space in between.
 
-    codeGen preTrampCode_;
-    codeGen postTrampCode_;
     bool valid;
     bool optimized_out_guards;
 

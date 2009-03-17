@@ -25,7 +25,6 @@ SRCS =		../src/solaris.C \
 		../src/sol_proc.C \
 		../src/inst-sparc.C \
 		../src/inst-sunos.C \
-		../src/parseDwarf.C \
 		../src/unix.C \
 		../src/InstrucIter-sparc.C \
 		../src/syscall-solproc.C \

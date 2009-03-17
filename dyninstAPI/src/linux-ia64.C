@@ -1149,7 +1149,6 @@ Frame process::preStackWalkInit(Frame startFrame)
         if( ! readAuxvInfo() ) {
             /* We're probably on Linux 2.4; use default values. */
             setVsyscallRange( 0xffffffffffffe000, 0xfffffffffffff000 );
-            setVsyscallData( NULL );
         }
     }
     Address next_pc = startFrame.getPC();

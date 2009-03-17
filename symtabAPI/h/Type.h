@@ -526,7 +526,7 @@ class typeArray : public rangedType {
 };
 
 //location for a variable
-typedef struct{
+typedef struct {
    storageClass stClass;
    storageRefClass refClass;
    int reg;
@@ -534,7 +534,6 @@ typedef struct{
    Address lowPC;
    Address hiPC;
 } loc_t;
-
 
 class SYMTAB_EXPORT localVar
 {

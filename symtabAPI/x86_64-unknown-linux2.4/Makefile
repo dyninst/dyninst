@@ -4,15 +4,9 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-#USES_SHM_SAMPLING = true
-#USES_PAPI = true
-#DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-
-# For debugging.
-NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -57,18 +51,15 @@ TFLAGS          += $(MYFLAGS)
 SYSLIBS		= -ldl 
 
 LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
+ifndef LIBDWARFSTATIC
+LIBS += -ldwarf
 endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
+ifndef LIBELFSTATIC
+LIBS += -lelf
 endif
-LIBS    += -lgcc
-LIBS    += -liberty
+ifndef LIBIBERTYSTATIC
+LIBS	+= -liberty
+endif
 
 AS		= /usr/bin/as
 

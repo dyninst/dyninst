@@ -65,6 +65,8 @@ class Graph;
  
 class Absloc;
 
+typedef BPatch_function Function;
+
 class Node : public AnnotatableSparse {
     friend class Edge;
     friend class Graph;
@@ -202,6 +204,26 @@ class VirtualNode : public Node {
     VirtualNode() {};
 };
 
+class CallNode : public Node {
+    friend class Edge;
+    friend class Graph;
+    friend class Creator;
+
+ public:
+    typedef boost::shared_ptr<VirtualNode> Ptr;
+
+    static Node::Ptr createNode(Function *func);
+    
+    virtual std::string name() const;
+    virtual bool isVirtual() const { return true; }
+    virtual ~CallNode() {};
+    
+ private:
+    CallNode(Function *func) : 
+        func_(func) {};
+
+    Function *func_;
+};
 
 };
 }

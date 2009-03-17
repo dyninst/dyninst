@@ -830,6 +830,7 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
     irpcBuf.fill(proc()->getAddressWidth(), codeGen::cgNOP);
 #endif
 
+
     // Saves registers (first half of the base tramp) and whatever other
     // irpc-specific magic is necessary
     if (!emitInferiorRPCheader(irpcBuf)) {
@@ -957,11 +958,7 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
 bool rpcMgr::emitInferiorRPCheader(codeGen &gen) 
 {
     assert(irpcTramp);
-    irpcTramp->invalidateBT();
-
-    irpcTramp->generateBT(gen);
-
-    gen.copy(irpcTramp->preTrampCode_);
+    irpcTramp->generateSaves(gen, gen.rs());
     return true;
 }
 
@@ -979,7 +976,7 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     assert(irpcTramp);
     //irpcTramp->generateBT(gen);
     // Should already be built by the call to generateBT in emit... header
-    gen.copy(irpcTramp->postTrampCode_);
+    irpcTramp->generateRestores(gen, gen.rs());
 
     breakOffset = gen.used();
     instruction::generateTrap(gen);

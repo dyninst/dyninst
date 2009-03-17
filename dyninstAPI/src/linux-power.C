@@ -115,7 +115,6 @@ void calcVSyscallFrame(process *p)
      //  Reading the VSyscall data on ginger seems to trigger a
      //  kernel panic.
      p->setVsyscallRange(0x1000, 0x0);
-     p->setVsyscallData(NULL);
      return;
   }
 
@@ -125,7 +124,6 @@ void calcVSyscallFrame(process *p)
   p->readAuxvInfo();
   if (p->getVsyscallStatus() != vsys_found) {
      p->setVsyscallRange(0x0, 0x0);
-     p->setVsyscallData(NULL);
      return;
   }
 
@@ -145,7 +143,6 @@ void calcVSyscallFrame(process *p)
         // it's just ptrace that's acting stubborn.
         if (!execVsyscallFetch(p, buffer))
         {
-           p->setVsyscallData(NULL);
            p->setVsyscallStatus(vsys_notfound);
            return;
         }
@@ -154,13 +151,11 @@ void calcVSyscallFrame(process *p)
 
   if (!isVsyscallData(buffer, dso_size)) {
      p->setVsyscallRange(0x0, 0x0);
-     p->setVsyscallData(NULL);
      p->setVsyscallStatus(vsys_notfound);
      return;
   }
   getVSyscallSignalSyms(buffer, dso_size, p);
   result = parseVsyscallPage(buffer, dso_size, p);
-  p->setVsyscallData(result);
 */
   return;
 }

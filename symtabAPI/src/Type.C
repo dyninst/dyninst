@@ -1761,7 +1761,6 @@ bool CBlock::setUpPtr(void *upPtr) {
     upPtr_ = upPtr;
     return true;
 }
-
 Type::Type() {}
 fieldListType::fieldListType() {}
 rangedType::rangedType() {}
@@ -1777,4 +1776,3 @@ typeTypedef::typeTypedef() {}
 typeRef::typeRef() {}
 typeSubrange::typeSubrange() {}
 typeArray::typeArray() {}
-

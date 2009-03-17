@@ -53,6 +53,10 @@ namespace Stackwalker {
   const err_t err_stackbottom    = 0x10010;
   const err_t err_nofile         = 0x10011;
   const err_t err_unsupported    = 0x10012;
+  const err_t err_symtab         = 0x10013;
+  const err_t err_nolibtracker   = 0x10014;
+  const err_t err_nogroup        = 0x10015;
+  const err_t err_nothrd         = 0x10016;
 
   err_t getLastError();
   void clearLastError();
