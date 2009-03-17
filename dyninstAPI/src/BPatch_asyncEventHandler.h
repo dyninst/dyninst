@@ -43,18 +43,7 @@
 #ifndef __BPATCH_ASYNC_EVENT_HANDLER_H__
 #define __BPATCH_ASYNC_EVENT_HANDLER_H__
 
-#if defined (os_osf)
-#include <standards.h>
-#endif
-
 #include <errno.h>
-#if 0
-#include <BPatch_eventLock.h>
-#include <BPatch.h>
-#include <BPatch_image.h>
-#include <BPatch_Vector.h>
-#endif
-
 #include "os.h"
 #include "EventHandler.h"
 #include "process.h"
@@ -63,38 +52,12 @@
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 
-#if 0
-typedef struct {
-    pdvector<BPatch_function *> *mutatee_side_cbs;
-    pdvector<BPatchSnippetHandle *> *handles;
-} thread_event_cb_record;
-#endif
 
 typedef struct {
   process *proc;
   int fd;
   PDSOCKET sock;
 } process_record;
-
-#if 0
-typedef enum {
-	BPatch_nullEvent,
-	BPatch_newConnectionEvent,
-	BPatch_internalShutDownEvent,
-	BPatch_threadCreateEvent,
-	BPatch_threadDestroyEvent,
-	BPatch_dynamicCallEvent,
-	BPatch_userEvent,
-	BPatch_errorEvent,
-	BPatch_dynLibraryEvent,
-	BPatch_preForkEvent,
-	BPatch_postForkEvent,
-	BPatch_execEvent,
-	BPatch_exitEvent,
-	BPatch_signalEvent,
-	BPatch_oneTimeCodeEvent
-} BPatch_asyncEventType;
-#endif
 
 const char *asyncEventType2Str(BPatch_asyncEventType evtype); 
 
@@ -120,6 +83,7 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
 	bool startupThread();
 
     bool registerMonitoredPoint(BPatch_point *);
+
   private: 
     BPatch_asyncEventHandler();
     pdvector<EventRecord> event_queue;
@@ -167,14 +131,6 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     //  remove a particular process without detaching. Used in 
     //  exec.
     bool cleanupProc(process *p);
-
-#if 0
-    //  BPatch_asyncEventHandler::instrumentThreadEvent
-    //  Associates a function in the thread library with a eventType
-    BPatchSnippetHandle *instrumentThreadEvent(BPatch_process *process,
-                                               BPatch_asyncEventType t,
-                                               BPatch_function *f);
-#endif
 
 #if defined (os_windows)
     //  These vars are only modified as part of init (before/while threads are

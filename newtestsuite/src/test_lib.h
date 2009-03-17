@@ -143,22 +143,14 @@ class LocErr : public std::runtime_error {
 	public:
 	TESTLIB_DLL_EXPORT LocErr(const std::string &__file__,
 			const int &__line__,
-			const std::string &msg) :
-		runtime_error(msg),
-		file__(__file__),
-		line__(__line__)
-	{}
+			const std::string &msg); 
 
-	TESTLIB_DLL_EXPORT virtual ~LocErr() throw() {}
+	TESTLIB_DLL_EXPORT virtual ~LocErr() throw(); 
 
-	TESTLIB_DLL_EXPORT std::string file() const {return file__;}
-	TESTLIB_DLL_EXPORT int line() const {return line__;}
+	TESTLIB_DLL_EXPORT std::string file() const;
+	TESTLIB_DLL_EXPORT int line() const;
 
-	TESTLIB_DLL_EXPORT void print(FILE * stream)  const
-	{
-		fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n",
-				file__.c_str(), line__, what());
-	}
+	TESTLIB_DLL_EXPORT void print(FILE * stream)  const;
 };
 
 #endif

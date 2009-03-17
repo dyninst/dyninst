@@ -102,6 +102,35 @@ const char *errlogname = "-";
 
 TestOutputDriver * output = NULL;
 
+LocErr::LocErr(const std::string &__file__,
+		const int &__line__,
+		const std::string &msg) :
+	runtime_error(msg),
+	file__(__file__),
+	line__(__line__)
+{
+}
+
+LocErr::~LocErr() throw()
+{
+}
+		
+std::string LocErr::file() const 
+{
+	return file__;
+}
+
+int LocErr::line() const 
+{
+	return line__;
+}
+
+void LocErr::print(FILE * stream)  const
+{
+	fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n",
+			file__.c_str(), line__, what());
+}
+
 // windows has strange support for sharing variables across
 // a dll and a program, so here is a simple utility function to do that, since
 // FUNCTION definitions are easily shared.
