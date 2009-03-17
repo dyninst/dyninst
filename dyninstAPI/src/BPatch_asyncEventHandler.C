@@ -62,6 +62,7 @@
 #define ASYNC_SOCKET_PATH_LEN 128
 #endif
 
+#include "BPatch.h"
 #include "BPatch_eventLock.h"
 #include "mailbox.h"
 #include "callbacks.h"
@@ -94,7 +95,7 @@ inline THREAD_RETURN  asyncHandlerWrapper(void *h)
   DO_THREAD_RETURN;
 }
 
-bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
+bool BPatch_asyncEventHandler::connectToProcess(process *p)
 {
    async_printf("%s[%d][%s]:  enter ConnectToProcess %d\n", 
          FILE__, __LINE__,getThreadStr(getExecThreadID()), p->getPid());
@@ -108,8 +109,8 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 
    for (int i = (int) process_fds.size() -1 ; i >= 0; i--) 
    {
-      if ((p == process_fds[i].process) || 
-            (p->getPid() == process_fds[i].process->getPid()))
+      if ((p == process_fds[i].proc) || 
+            (p->getPid() == process_fds[i].proc->getPid()))
       {
          //  If it is, delete the old record to prepare for the new one.
          //  This case can be encountered in the case of multiple process management
@@ -145,19 +146,19 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 
 #endif
    //  add process to list
-   newp.process = p;
+   newp.proc = p;
    newp.fd = -1;
 
    process_fds.push_back(newp);
 
-   process *llproc = p->lowlevel_process();
+   process *llproc = p;
    assert(llproc->runtime_lib);
 
 #if defined (os_windows)
    //  find the variable to set with the port number to connect to
    pdvector<int_variable *> res;
 
-   p->llproc->findVarsByAll("connect_port", res, llproc->runtime_lib->fullName().c_str());
+   llproc->findVarsByAll("connect_port", res, llproc->runtime_lib->fullName().c_str());
 
    if (!res.size()) 
    {
@@ -198,7 +199,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 	   llproc->sh->waitForEvent(evtAnyEvent);
    }
 
-   if (p->statusIsTerminated()) 
+   if (p->hasExited()) 
    {
 	   fprintf(stderr, "%s[%d]:  oneTimeCode failing because process is terminated\n", FILE__, __LINE__);
 	   return false;
@@ -236,7 +237,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 
    async_printf("%s[%d]:  continued proc to run RPC -- wait for RPCSignal\n", FILE__, __LINE__);
 
-   if (p->statusIsTerminated()) 
+   if (p->hasExited()) 
    {
 	   fprintf(stderr, "%s[%d]:  oneTimeCode failing because process is terminated\n", FILE__, __LINE__);
 	   return false;
@@ -244,7 +245,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 
    eventType evt = llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
 
-   if (p->statusIsTerminated()) 
+   if (p->hasExited()) 
    {
 	   fprintf(stderr, "%s[%d]:  oneTimeCode failing because process is terminated\n", FILE__, __LINE__);
 	   return false;
@@ -308,7 +309,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 }
 
 
-bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
+bool BPatch_asyncEventHandler::detachFromProcess(process *p)
 {
 	//  find the fd for this process 
 	//  (reformat process vector while we're at it)
@@ -325,7 +326,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 	int targetfd = -2;
 	for (unsigned int i = 0; i < process_fds.size(); ++i) 
 	{
-		if (process_fds[i].process == p) 
+		if (process_fds[i].proc == p) 
 		{
 			//fprintf(stderr, "%s[%d]:  removing process %d\n", FILE__, __LINE__, p->getPid());
 			targetfd  = process_fds[i].fd;
@@ -637,8 +638,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     bool found = false;
     for (unsigned i=0; i<process_fds.size(); i++) 
 	{
-       if (process_fds[i].process &&
-           process_fds[i].process->getPid() == ev.proc->getPid()) 
+       if (process_fds[i].proc &&
+           process_fds[i].proc->getPid() == ev.proc->getPid()) 
        {
           found = true;
           break;
@@ -819,8 +820,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
 	  for (unsigned int i = 0; i < process_fds.size(); ++i) 
 	  {
-		  if (process_fds[i].process->getPid() == newpid)
-			  ev.proc = process_fds[i].process->lowlevel_process();
+		  if (process_fds[i].proc->getPid() == newpid)
+			  ev.proc = process_fds[i].proc;
 	  }
 
 	  if (ev.proc == NULL)
@@ -841,7 +842,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
 #if !defined(os_windows)
 		  char sock_name[256];
-		  generate_socket_name(sock_name, getpid(), process_fds[i].process->getPid());
+		  generate_socket_name(sock_name, getpid(), process_fds[i].proc->getPid());
 #endif
 
 		  struct sockaddr cli_addr;
@@ -873,7 +874,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
 		  ev.what = new_fd;
 		  ev.type = evtNewConnection;
-		  ev.proc = process_fds[i].process->lowlevel_process();
+		  ev.proc = process_fds[i].proc;
 	  }
   }
 
@@ -895,7 +896,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
        continue;
 
     async_printf("%s[%d]:  select got event on fd %d, process = %d\n",  FILE__, __LINE__, 
-			process_fds[j].fd, process_fds[j].process->getPid());
+			process_fds[j].fd, process_fds[j].proc->getPid());
 
     // Read event
     EventRecord new_ev;
@@ -916,7 +917,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
         case RRVnoData:
             //  This read can fail if the mutatee has exited.  Just note that this
             //  fd is no longer valid, and keep quiet.
-            //if (process_fds[j].process->isTerminated()) {
+            //if (process_fds[j].proc->isTerminated()) {
             async_printf("%s[%d]:  READ ERROR read event failed\n", FILE__, __LINE__);
             //  remove this process/fd from our vector
             async_printf("%s[%d]:  readEvent failed due to process termination\n", 
@@ -984,7 +985,7 @@ void threadExitWrapper(BPatch_process *p, BPatch_thread *t,
   threadDeleteWrapper(p,t);
 }
 
-bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int lwpid, 
+bool handleThreadCreate(process *p, EventRecord &ev, unsigned index, int lwpid, 
       dynthread_t tid, unsigned long stack_addr, unsigned long start_pc)
 {
    //Create the new BPatch_thread object
@@ -994,7 +995,16 @@ bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int 
          FILE__, __LINE__, ev.proc->getPid(), (void *) start_pc, 
          (void *) stack_addr, tid, index, lwpid);
 
-   BPatch_thread *thr = p->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
+   int pid = p->getPid();
+
+   BPatch_process *bpprocess = BPatch::bpatch->getProcessByPid(pid);
+   if (!bpprocess)
+   {
+	   fprintf(stderr, "%s[%d]:  ERROR:  cannot find relevant bpatch process\n", FILE__, __LINE__);
+	   return false;
+   }
+
+   BPatch_thread *thr = bpprocess->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
 
    if (!thr) 
    {
@@ -1053,11 +1063,19 @@ bool readDynamicCallInfo (PDSOCKET fd, Address &callsite_addr, Address &func_add
    return true;
 }
 
-bool handleDynamicCall(BPatch_process *appProc, process *llproc,
+bool handleDynamicCall(process *llproc,
       dictionary_hash<Address, BPatch_point *> &monitored_points,
       Address callsite_addr, Address func_addr)
 {
    //  find the point that triggered this event
+   int pid = llproc->getPid();
+
+   BPatch_process *bpprocess = BPatch::bpatch->getProcessByPid(pid);
+   if (!bpprocess)
+   {
+	   fprintf(stderr, "%s[%d]:  ERROR:  cannot find relevant bpatch process\n", FILE__, __LINE__);
+	   return false;
+   }
 
    if (!monitored_points.defines(callsite_addr)) 
    {
@@ -1082,7 +1100,7 @@ bool handleDynamicCall(BPatch_process *appProc, process *llproc,
 
    BPatch_function *bpf = NULL;
 
-   if (NULL == (bpf = appProc->findOrCreateBPFunc(f, NULL))) 
+   if (NULL == (bpf = bpprocess->findOrCreateBPFunc(f, NULL))) 
    {
       fprintf(stderr, "%s[%d]:  failed to find BPatch_function\n",
             FILE__, __LINE__);
@@ -1153,9 +1171,18 @@ bool readNewThreadEventInfo(PDSOCKET fd, unsigned long &start_pc, unsigned long 
    return true;
 }
 
-bool handleThreadExit(BPatch_process *appProc,  unsigned index)
+bool handleThreadExit(process *appProc,  unsigned index)
 {
-   BPatch_thread *appThread = appProc->getThreadByIndex(index);
+   int pid = appProc->getPid();
+
+   BPatch_process *bpprocess = BPatch::bpatch->getProcessByPid(pid);
+   if (!bpprocess)
+   {
+	   fprintf(stderr, "%s[%d]:  ERROR:  cannot find relevant bpatch process\n", FILE__, __LINE__);
+	   return false;
+   }
+
+   BPatch_thread *appThread = bpprocess->getThreadByIndex(index);
 
    if (!appThread) 
    {
@@ -1181,7 +1208,7 @@ bool handleThreadExit(BPatch_process *appProc,  unsigned index)
    InternalThreadExitCallback *cb_ptr = new InternalThreadExitCallback(threadExitWrapper);
    InternalThreadExitCallback &cb = *cb_ptr;
 
-   cb(appProc, appThread, cbs_copy); 
+   cb(bpprocess, appThread, cbs_copy); 
 
    return true;
 }
@@ -1193,24 +1220,24 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             FILE__, __LINE__, eventType2str(ev.type));
 
    int event_fd = -1;
-   BPatch_process *appProc = NULL;
+   process *appProc = NULL;
    unsigned int j;
    //  Go through our process list and find the appropriate record
 
    for (j = 0; j < process_fds.size(); ++j) 
    {
-      if (!process_fds[j].process) 
+      if (!process_fds[j].proc) 
 	  {
          fprintf(stderr, "%s[%d]:  invalid process record!\n", FILE__, __LINE__);
          continue;
       }
 
-      int process_pid = process_fds[j].process->getPid();
+      int process_pid = process_fds[j].proc->getPid();
 
       if (process_pid == ev.proc->getPid()) 
 	  {
          event_fd = process_fds[j].fd;
-         appProc = process_fds[j].process; 
+         appProc = process_fds[j].proc; 
          break;
       }
    }
@@ -1257,7 +1284,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                // Can happen if we're execing...
                fprintf(stderr, "%s[%d]:  WARNING:  event fd for process %d " \
                      "is %d (not -1)\n", FILE__, __LINE__, 
-                     process_fds[j].process->getPid(), event_fd);
+                     process_fds[j].proc->getPid(), event_fd);
             }         
             process_fds[j].fd = ev.what;
 
@@ -1265,7 +1292,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                   FILE__, __LINE__);
             for (unsigned int t = 0; t < process_fds.size(); ++t) {
                async_printf("\tpid = %d, fd = %d\n", 
-                     process_fds[t].process->getPid(), process_fds[t].fd);
+                     process_fds[t].proc->getPid(), process_fds[t].fd);
             }
 #endif
             return true;
@@ -1344,7 +1371,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
 #if defined(os_linux) && (defined(arch_x86_64) || defined(arch_x86))
          unsigned maps_size;
-         map_entries* entries = getLinuxMaps(appProc->llproc->getPid(), maps_size);
+         map_entries* entries = getLinuxMaps(appProc->getPid(), maps_size);
          if (entries) {
             bool found = false;
             for (unsigned i=0; i<maps_size; i++) {
@@ -1436,7 +1463,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                eventlock->_Lock(FILE__, __LINE__);
             }
 
-            if (!handleDynamicCall(appProc, appProc->llproc, monitored_points, 
+            if (!handleDynamicCall(appProc, monitored_points, 
                      callsite_addr, func_addr)) 
 			{
                fprintf(stderr, "%s[%d]:  failed to handleDynamicCall for address %lu\n", 
@@ -1481,9 +1508,18 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 			{
                BPatch::bpatch->signalNotificationFD();
 
+			   int pid = appProc->getPid();
+
+			   BPatch_process *bpprocess = BPatch::bpatch->getProcessByPid(pid);
+			   if (!bpprocess)
+			   {
+				   fprintf(stderr, "%s[%d]:  ERROR:  cannot find relevant bpatch process\n", FILE__, __LINE__);
+				   return false;
+			   }
+
                UserEventCallback *cb = dynamic_cast<UserEventCallback *>(cbs[i]);
                if (cb)
-                  (*cb)(appProc, userbuf, ev.info);
+                  (*cb)(bpprocess, userbuf, ev.info);
             }
 
             delete [] userbuf;
@@ -1500,26 +1536,26 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
    return true;
 }
 
-bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
+bool BPatch_asyncEventHandler::mutateeDetach(process *p)
 {
    // The process may have already exited... in this case, do nothing
    // but return true. 
 
-   if ((p->llproc == NULL) ||
-         (p->llproc->status() == exited) ||
-         (p->llproc->status() == detached))
+   if ((p == NULL) ||
+         (p->status() == exited) ||
+         (p->status() == detached))
       return true;
 
 #if 1
 
-   while (p->llproc->sh->isActivelyProcessing()) 
+   while (p->sh->isActivelyProcessing()) 
    {
 	   async_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__,
-			   __LINE__, p->llproc->getPid());
-	   p->llproc->sh->waitForEvent(evtAnyEvent);
+			   __LINE__, p->getPid());
+	   p->sh->waitForEvent(evtAnyEvent);
    }
 
-   if (p->statusIsTerminated()) 
+   if (p->hasExited()) 
    {
 	   return true;
    }
@@ -1527,7 +1563,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
 
    pdvector<AstNodePtr> the_args;
    AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTasyncDisconnect", the_args);
-   unsigned rpc_id = p->llproc->getRpcMgr()->postRPCtoDo(dynInit,
+   unsigned rpc_id = p->getRpcMgr()->postRPCtoDo(dynInit,
 		   true, // Don't update cost
 		   NULL /*no callback*/,
 		   NULL, // No user data
@@ -1536,32 +1572,32 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
 		   NULL, NULL);// No particular thread or LWP
 
 
-   p->llproc->sh->overrideSyncContinueState(ignoreRequest);
+   p->sh->overrideSyncContinueState(ignoreRequest);
 
    async_printf("%s[%d]:  about to launch RPC for disconnect\n", FILE__, __LINE__);
 
    bool rpcNeedsContinue = false;
    //bool rpcNeedsContinue = true;
-   p->llproc->getRpcMgr()->launchRPCs(rpcNeedsContinue,
+   p->getRpcMgr()->launchRPCs(rpcNeedsContinue,
 		   false); // false: not running
    assert(rpcNeedsContinue);
 
 
-   if (!p->llproc->continueProc())
+   if (!p->continueProc())
    {
 	   fprintf(stderr, "%s[%d]:  failed to continueProc\n", FILE__, __LINE__);
    }
 
    async_printf("%s[%d]:  continued proc to run RPC -- wait for RPCSignal\n", FILE__, __LINE__);
 
-   if (p->statusIsTerminated()) 
+   if (p->hasExited()) 
    {
 	   return true;
    }
 
-   eventType evt = p->llproc->sh->waitForEvent(evtRPCSignal, p->llproc, NULL /*lwp*/, statusRPCDone);
+   eventType evt = p->sh->waitForEvent(evtRPCSignal, p, NULL /*lwp*/, statusRPCDone);
 
-   if (p->statusIsTerminated()) 
+   if (p->hasExited()) 
    {
 	   return true;
    }
@@ -1620,9 +1656,9 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
 
    for (int i = (int) process_fds.size() -1; i >= 0; i--) 
    {
-      if (process_fds[i].process->llproc->status() == exited) 
+      if (process_fds[i].proc->status() == exited) 
 	  {
-         //  fprintf(stderr, "%s[%d]:  Process %d has terminated, cleaning up\n", FILE__, __LINE__, process_fds[i].process->getPid());
+         //  fprintf(stderr, "%s[%d]:  Process %d has terminated, cleaning up\n", FILE__, __LINE__, process_fds[i].proc->getPid());
          VECTOR_ERASE(process_fds,i,i);
          ret = true;
       }
@@ -1630,7 +1666,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
    return ret;
 }
 
-bool BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
+bool BPatch_asyncEventHandler::cleanupProc(process *p)
 {
    bool ret = false;
 
@@ -1638,9 +1674,9 @@ bool BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
 
    for (int i = (int) process_fds.size() -1; i >= 0; i--) 
    {
-      if (process_fds[i].process == p) 
+      if (process_fds[i].proc == p) 
 	  {
-         //fprintf(stderr, "%s[%d]: Cleaning up process %d\n", FILE__, __LINE__, process_fds[i].process->getPid());
+         //fprintf(stderr, "%s[%d]: Cleaning up process %d\n", FILE__, __LINE__, process_fds[i].proc->getPid());
          VECTOR_ERASE(process_fds,i,i);
          ret = true;
       }

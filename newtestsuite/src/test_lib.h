@@ -42,6 +42,9 @@
 #ifndef _test_lib_h_
 #define _test_lib_h_
 
+#include <iostream>
+#include <typeinfo>
+#include <stdexcept>
 #include "ParameterDict.h"
 #include "TestData.h"
 #include "test_info_new.h"
@@ -128,5 +131,34 @@ TESTLIB_DLL_EXPORT void clearDBLog();
 
 TESTLIB_DLL_EXPORT ComponentTester *getComponentTester();
 
+#define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
+#define REPORT_EFAIL catch(const LocErr &err) { \
+	   err.print(stderr); \
+	   return FAILED; }
+
+class LocErr : public std::runtime_error {
+	std::string file__;
+	int line__;
+
+	public:
+	TESTLIB_DLL_EXPORT LocErr(const std::string &__file__,
+			const int &__line__,
+			const std::string &msg) :
+		runtime_error(msg),
+		file__(__file__),
+		line__(__line__)
+	{}
+
+	TESTLIB_DLL_EXPORT virtual ~LocErr() throw() {}
+
+	TESTLIB_DLL_EXPORT std::string file() const {return file__;}
+	TESTLIB_DLL_EXPORT int line() const {return line__;}
+
+	TESTLIB_DLL_EXPORT void print(FILE * stream)  const
+	{
+		fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n",
+				file__.c_str(), line__, what());
+	}
+};
 
 #endif

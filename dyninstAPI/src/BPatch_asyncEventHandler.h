@@ -48,40 +48,53 @@
 #endif
 
 #include <errno.h>
+#if 0
 #include <BPatch_eventLock.h>
 #include <BPatch.h>
-#include <BPatch_process.h>
 #include <BPatch_image.h>
 #include <BPatch_Vector.h>
+#endif
 
 #include "os.h"
 #include "EventHandler.h"
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for BPatch_asyncEventType
-                                           //  and BPatch_asyncEventRecord
+#include "process.h"
+#include <BPatch_process.h> // for BPatch_asyncEventType
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for BPatch_asyncEventRecord
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 
 #if 0
-typedef enum {
-    REsuccess,
-    REnoData,
-    REinsufficientData,
-    REreadError,
-    REillegalProcess,
-    REerror
-} asyncReadReturnValue_t;
-#endif
-
 typedef struct {
     pdvector<BPatch_function *> *mutatee_side_cbs;
     pdvector<BPatchSnippetHandle *> *handles;
 } thread_event_cb_record;
+#endif
 
 typedef struct {
-  BPatch_process *process;
+  process *proc;
   int fd;
   PDSOCKET sock;
 } process_record;
+
+#if 0
+typedef enum {
+	BPatch_nullEvent,
+	BPatch_newConnectionEvent,
+	BPatch_internalShutDownEvent,
+	BPatch_threadCreateEvent,
+	BPatch_threadDestroyEvent,
+	BPatch_dynamicCallEvent,
+	BPatch_userEvent,
+	BPatch_errorEvent,
+	BPatch_dynLibraryEvent,
+	BPatch_preForkEvent,
+	BPatch_postForkEvent,
+	BPatch_execEvent,
+	BPatch_exitEvent,
+	BPatch_signalEvent,
+	BPatch_oneTimeCodeEvent
+} BPatch_asyncEventType;
+#endif
 
 const char *asyncEventType2Str(BPatch_asyncEventType evtype); 
 
@@ -91,20 +104,20 @@ const char *asyncEventType2Str(BPatch_asyncEventType evtype);
 #define DYNINST_CLASS_NAME BPatch_asyncEventHandler
 
 class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
-  friend THREAD_RETURN asyncHandlerWrapper(void *);
-  friend class BPatch;  // only BPatch constructs & does init
-  friend class BPatch_eventMailbox;
-  public:
-    //  BPatch_asyncEventHandler::connectToProcess()
-    //  Tells the async event handler that there is a new process
-    //  to listen for.
-    bool connectToProcess(BPatch_process *p);
+	friend THREAD_RETURN asyncHandlerWrapper(void *);
+	friend class BPatch;  // only BPatch constructs & does init
+	friend class BPatch_eventMailbox;
+	public:
+	//  BPatch_asyncEventHandler::connectToProcess()
+	//  Tells the async event handler that there is a new process
+	//  to listen for.
+	bool connectToProcess(process *p);
 
-    //  BPatch_asyncEventHandler::detachFromProcess()
-    //  stop paying attention to events from specified process
-    bool detachFromProcess(BPatch_process *p);
+	//  BPatch_asyncEventHandler::detachFromProcess()
+	//  stop paying attention to events from specified process
+	bool detachFromProcess(process *p);
 
-    bool startupThread();
+	bool startupThread();
 
     bool registerMonitoredPoint(BPatch_point *);
   private: 
@@ -143,23 +156,25 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     //  use oneTimeCode to call a function in the mutatee to handle
     //  closing of the comms socket.
 
-    bool mutateeDetach(BPatch_process *p);
+    bool mutateeDetach(process *p);
 
     //  BPatch_asyncEventHandler::cleanUpTerminatedProcs()
     //  clean up any references to terminated processes in our lists
     //  (including any user specified callbacks).
     bool cleanUpTerminatedProcs();
 
-    //  BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
+    //  BPatch_asyncEventHandler::cleanupProc(process *p)
     //  remove a particular process without detaching. Used in 
     //  exec.
-    bool cleanupProc(BPatch_process *p);
+    bool cleanupProc(process *p);
 
+#if 0
     //  BPatch_asyncEventHandler::instrumentThreadEvent
     //  Associates a function in the thread library with a eventType
     BPatchSnippetHandle *instrumentThreadEvent(BPatch_process *process,
                                                BPatch_asyncEventType t,
                                                BPatch_function *f);
+#endif
 
 #if defined (os_windows)
     //  These vars are only modified as part of init (before/while threads are

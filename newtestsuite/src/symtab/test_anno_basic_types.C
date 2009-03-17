@@ -39,9 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include <iostream>
-#include <typeinfo>
-#include <stdexcept>
 #include "symtab_comp.h"
 #include "test_lib.h"
 
@@ -53,6 +50,7 @@
 using namespace Dyninst;
 //using namespace SymtabAPI;
 
+#if 0
 #define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
 #define REPORT_EFAIL catch(const LocErr &err) { \
    err.print(stderr); \
@@ -82,6 +80,7 @@ class LocErr : public std::runtime_error {
             file__.c_str(), line__, what());
    }
 };
+#endif
 
 class test_anno_basic_types_Mutator : public SymtabMutator 
 {

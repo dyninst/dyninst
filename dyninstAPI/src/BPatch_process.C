@@ -378,7 +378,8 @@ BPatch_process::BPatch_process(process *nProc)
    BPatch::bpatch->registerProcess(this);
 
    // Create an initial thread
-   for (unsigned i=0; i<llproc->threads.size(); i++) {
+   for (unsigned i=0; i<llproc->threads.size(); i++) 
+   {
       dyn_thread *dynthr = llproc->threads[i];
       BPatch_thread *thrd = new BPatch_thread(this, dynthr);
       threads.push_back(thrd);
@@ -403,7 +404,8 @@ void BPatch_process::BPatch_process_dtor()
 {
     
    if (!detached &&
-       !getAsync()->detachFromProcess(this)) {
+       !getAsync()->detachFromProcess(llproc)) 
+   {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
    }
@@ -418,15 +420,19 @@ void BPatch_process::BPatch_process_dtor()
    
    image = NULL;
 
-   if (pendingInsertions) {
-       for (unsigned f = 0; f < pendingInsertions->size(); f++) {
+   if (pendingInsertions) 
+   {
+       for (unsigned f = 0; f < pendingInsertions->size(); f++) 
+	   {
            delete (*pendingInsertions)[f];
        }
+
        delete pendingInsertions;
        pendingInsertions = NULL;
    }
 
-   if (!llproc) { 
+   if (!llproc) {
+
       return; 
    }
 
@@ -437,10 +443,15 @@ void BPatch_process::BPatch_process_dtor()
     * If we attached to the process, then we detach and leave it be,
     * otherwise we'll terminate it
     **/
-   if (createdViaAttach) {
+
+   if (createdViaAttach) 
+   {
        llproc->detachProcess(true);
-   }else  {
-       if (llproc->isAttached()) {
+   }
+   else  
+   {
+       if (llproc->isAttached()) 
+	   {
            proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
            terminateExecutionInt();
        }
@@ -696,7 +707,7 @@ bool BPatch_process::wasRunningWhenAttachedInt()
 bool BPatch_process::detachInt(bool cont)
 {
    //__UNLOCK;
-   if (!getAsync()->detachFromProcess(this)) {
+   if (!getAsync()->detachFromProcess(llproc)) {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
    }
