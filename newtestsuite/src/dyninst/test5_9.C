@@ -128,6 +128,12 @@ test_results_t test5_9_Mutator::executeTest() {
    if ( !found ) {
      logerror("**Failed** test #9 (derivation)\n");
      logerror("    Can't find inherited class member functions\n");
+     logerror("    Expected call_cpp or cpp_test_util::call_cpp\n");
+     index = 0;
+     while ( index < fields->size() ) {
+       logerror("    Field %d: %s\n", index, (*fields)[index]->getName());
+       ++index;
+     }
      return FAILED;
    }
 
