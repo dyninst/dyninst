@@ -319,3 +319,15 @@ LineInformation *mapped_module::getLineInformation()
 }
 
 
+int_variable* mapped_module::createVariable(std::string name, Address addr, int size)
+{
+  Address base = obj()->dataBase();
+  Offset offset = addr - base;
+  
+  image_variable* img_var = pmod()->createImageVariable(offset, name, size);
+  int_variable* ret = new int_variable(img_var, base, this);
+  obj()->addVariable(ret);
+  return ret;
+}
+
+

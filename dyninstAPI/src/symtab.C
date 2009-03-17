@@ -1836,3 +1836,10 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
       (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name().c_str();
    return pltFuncs;
 }
+
+image_variable* pdmodule::createImageVariable(Offset offset, std::string name, int size)
+{
+  Dyninst::SymtabAPI::Variable *svar = mod()->createVariable(name, offset, size);
+  image_variable* ret = new image_variable(svar, this);
+  return ret;
+}

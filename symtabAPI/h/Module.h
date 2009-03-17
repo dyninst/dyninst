@@ -110,6 +110,8 @@ class Module : public LookupInterface,
    SYMTAB_EXPORT bool hasLineInformation();
    SYMTAB_EXPORT bool setDefaultNamespacePrefix(std::string str);
 
+   SYMTAB_EXPORT Variable *createVariable(std::string name, Offset offset, int size);
+
    private:
 
    std::string fileName_;                   // short file 

@@ -511,3 +511,21 @@ void Module::serialize(SerializerBase *sb, const char *tag)
    //   param.exec_ = parent_symtab;
 }
 
+Variable *Module::createVariable(std::string name, Offset offset, int size) 
+{
+  Symbol* s = new Symbol(name, this, Symbol::ST_OBJECT, Symbol::SL_GLOBAL,
+			 Symbol::SV_DEFAULT, offset, NULL, size, 
+			 false, // is NOT in dynamic symbol table
+			 true, // is also in the static symbol table
+			 false); // not an absolute address
+  exec()->addSymbol(s, false);
+  Symbol* d = new Symbol(name, this, Symbol::ST_OBJECT, Symbol::SL_GLOBAL,
+			 Symbol::SV_DEFAULT, offset, NULL, size, 
+			 true, // dynamic version...
+			 false, // is NOT also in the static symbol table
+			 false); // not an absolute address
+  exec()->addSymbol(d, true);
+  return s->getVariable();
+}
+
+  

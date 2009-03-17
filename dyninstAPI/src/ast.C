@@ -116,6 +116,10 @@ AstNodePtr AstNode::operandNode(operandType ot, AstNodePtr ast) {
     return AstNodePtr(new AstOperandNode(ot, ast));
 }
 
+AstNodePtr AstNode::operandNode(operandType ot, const image_variable* iv) {
+    return AstNodePtr(new AstOperandNode(ot, iv));
+}
+
 AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
     return AstNodePtr(new AstSequenceNode(sequence));
 }
@@ -268,7 +272,9 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
 AstOperandNode::AstOperandNode(operandType ot, void *arg) :
     AstNode(),
     oType(ot),
-    operand_() {
+    oVar(NULL),
+    operand_()
+{
     
     if (ot == ConstantString)
         oValue = (void *)P_strdup((char *)arg);
@@ -281,8 +287,19 @@ AstOperandNode::AstOperandNode(operandType ot, AstNodePtr l) :
     AstNode(),
     oType(ot),
     oValue(NULL),
+    oVar(NULL),
     operand_(l)
 {
+}
+
+AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
+  AstNode(),
+  oType(ot),
+  oValue(NULL),
+  oVar(iv),
+  operand_()
+{
+  assert(oVar);
 }
 
 
@@ -772,6 +789,13 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
       return false;
    }
    Address laddr = (Address) loperand->getOValue();
+   
+   // If lvalue has no address, we're in the image_variable case; don't do optimized yet.
+   if(loperand->getOVar() != NULL || roperand->getOVar() != NULL)
+   {
+     return false;
+   }
+
 
    if (roperand->getoType() == Constant) {
       //Looks like 'global = constant'
@@ -1022,14 +1046,24 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
     }
     case getAddrOp: {
         switch(loperand->getoType()) {
-            case DataAddr:
-            addr = (Address) loperand->getOValue();
-            assert(addr != 0); // check for NULL
+	case DataAddr:
+	  {
+	    
+            addr = reinterpret_cast<Address>(loperand->getOValue());
             if (retReg == REG_NULL) {
                 retReg = allocateAndKeep(gen, noCost);
             }
-            emitVload(loadConstOp, addr, retReg, retReg, gen,
-		      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+	    if(loperand->getOVar())
+	    {
+	      emitVload(loadConstOp, loperand->getOVar(), retReg, retReg, gen, noCost, gen.rs(), size,
+			gen.point(), gen.addrSpace());
+	    }
+	    else
+	    {
+	      emitVload(loadConstOp, addr, retReg, retReg, gen,
+			noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+	    }
+	  }
             break;
         case FrameAddr: {
             // load the address fp + addr into dest
@@ -1092,13 +1126,23 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         src2 = gen.rs()->allocateRegister(gen, noCost);
         switch (loperand->getoType()) {
         case DataAddr:
+	  {
             addr = (Address) loperand->getOValue();
-            assert(addr != 0); // check for NULL
-            emitVstore(storeOp, src1, src2, addr, gen,
-		       noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+	    if(loperand->getOVar() != NULL)
+	    {
+	      emitVstore(storeOp, src1, src2, loperand->getOVar(), gen,
+			 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+	    }
+	    else
+	    {
+	      emitVstore(storeOp, src1, src2, addr, gen,
+			 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+	    }
             // We are not calling generateCode for the left branch,
             // so need to decrement the refcount by hand
             loperand->decUseCount(gen);
+	  }
+	  
             break;
         case FrameAddr:
             addr = (Address) loperand->getOValue();
@@ -1264,9 +1308,10 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    BPatch_type *Type;
    switch (oType) {
    case Constant:
-       emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen,
+     assert(oVar == NULL);
+     emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-       break;
+     break;
    case DataIndir:
       if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
       REGISTER_CHECK(src);
@@ -1287,6 +1332,12 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
        //size, noCost);
        break;
+   case variableAddr:
+     assert(oVar);
+     emitVload(loadConstOp, oVar, retReg, retReg, gen,
+		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+     break;
+     
    case ReturnVal:
        src = emitR(getRetValOp, 0, 0, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
@@ -1309,8 +1360,19 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        break;
    case DataAddr:
-       addr = (Address) oValue;
-       emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
+     {
+       if(oVar != NULL)
+       {
+	 // int variable case
+	 emitVload(loadOp, oVar, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
+       }
+       else
+       {
+	 Address addr = reinterpret_cast<Address>(oValue);
+	 emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
+       }
+     }
+     
        break;
    case FrameAddr:
        addr = (Address) oValue;
@@ -1901,7 +1963,15 @@ void AstNode::print() const {
       } else if (oType == ReturnVal) {
 	fprintf(stderr,"retVal");
       } else if (oType == DataAddr)  {
-	fprintf(stderr," [0x%lx]", (long) oValue);
+	if(!oVar)
+	{
+	  fprintf(stderr," [0x%lx]", (long) oValue);
+	}
+	else
+	{
+	  fprintf(stderr," [%s]", oVar->symTabName().c_str());
+	}
+	
       } else if (oType == FrameAddr)  {
 	fprintf(stderr," [$fp + %d]", (int)(Address) oValue);
       } else if (oType == RegOffset)  {

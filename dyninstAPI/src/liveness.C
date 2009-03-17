@@ -68,6 +68,9 @@
 // Move this to a platform-specific file
 #if defined(cap_instruction_api)
 using namespace Dyninst::InstructionAPI;
+#include <boost/assign/list_of.hpp>
+using namespace boost::assign;
+
 
 map<IA32Regs, Register> reverseRegisterMap = map_list_of
 (r_EAX, REGNUM_RAX)

@@ -71,7 +71,7 @@ class int_variable {
     const vector<string>& prettyNameVector() const;
     const vector<string>& symTabNameVector() const;
     mapped_module *mod() const { return mod_; };
-
+    //AddressSpace *as() const { return mod()->proc(); }
     const image_variable *ivar() const { return ivar_; }
 
     Address addr_;
@@ -163,6 +163,9 @@ class mapped_object : public codeRange {
     mapped_module *findModule(string m_name, bool wildcard = false);
     mapped_module *findModule(pdmodule *mod);
 
+    mapped_module *getDefaultModule();
+
+
     void getInferiorHeaps(vector<pair<string, Address> > &infHeaps);
 
 
@@ -225,6 +228,8 @@ class mapped_object : public codeRange {
 	bool isDirtyCalled() { return dirtyCalled_; }
 #endif
 
+    int_function *findFunction(image_func *img_func);
+    int_variable *findVariable(image_variable *img_var);
 
     //
     //     PRIVATE DATA MEMBERS
@@ -260,8 +265,6 @@ private:
 
     codeRangeTree codeRangesByAddr_;
 
-    int_function *findFunction(image_func *img_func);
-    int_variable *findVariable(image_variable *img_var);
     // And those call...
     void addFunction(int_function *func);
     void addVariable(int_variable *var);

@@ -44,6 +44,7 @@
 #include "binaryEdit.h"
 #include "common/h/headers.h"
 #include "mapped_object.h"
+#include "mapped_module.h"
 #include "multiTramp.h"
 #include "debug.h"
 #include "os.h"
@@ -586,15 +587,15 @@ bool BinaryEdit::initialize() {
     // guard. This is an integer (one per thread, for now - 1) that 
     // begins initialized to 1.
 
-    
-    trampGuardBase_ = inferiorMalloc(sizeof(int));
+    Address base = inferiorMalloc(getAddressWidth());
+    trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", base, getAddressWidth());
     // And initialize
     int trampInit = 1;
     // And make a range for it.
-    writeDataSpace((void *)trampGuardBase_, sizeof(unsigned), &trampInit);
+    writeDataSpace((void *)base, sizeof(unsigned), &trampInit);
 
 
-    inst_printf("Tramp guard created at address 0x%lx\n", trampGuardBase_);
+    inst_printf("Tramp guard created at address 0x%lx\n", base);
 
     return true;
 }

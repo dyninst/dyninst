@@ -491,7 +491,7 @@ bool EmitterIA32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     }
     else if (!bt->threaded()) {
         /* Get the hashed value of the thread */
-        emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
+        emitVload(loadConstOp, (Address)(0), REG_MT_POS, REG_MT_POS, gen, false);
     }
     else if (thr) {
         // Override 'normal' index value...
@@ -518,7 +518,8 @@ bool EmitterIA32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t
 
     // The jump gets filled in later; allocate space for it now
     // and stick where it is in guardJumpOffset
-    Address guard_flag_address = bt->proc()->trampGuardBase();
+    // FIXME: this should handle the cross-address-space case as well
+    Address guard_flag_address = bt->proc()->trampGuardBase()->getAddress();
     if (!guard_flag_address) {
         return false;
     }
@@ -564,7 +565,8 @@ bool EmitterIA32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t
 bool EmitterIA32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex)
 {
     assert(bt->guarded());
-    Address guard_flag_address = bt->proc()->trampGuardBase();
+    // FIXME: needs to handle cross-address-space for rewriter
+    Address guard_flag_address = bt->proc()->trampGuardBase()->getAddress();
     if (!guard_flag_address) {
         return false;
     }

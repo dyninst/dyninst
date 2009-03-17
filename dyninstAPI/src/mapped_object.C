@@ -1117,3 +1117,13 @@ mapped_module *mapped_object::getOrCreateForkedModule(mapped_module *parMod)
    return childModule;
 
 }
+
+mapped_module* mapped_object::getDefaultModule()
+{
+  mapped_module* ret = findModule("DEFAULT_MODULE");
+  if(ret) return ret;
+  
+  assert(!everyModule.empty());
+  return everyModule[0];
+  
+}

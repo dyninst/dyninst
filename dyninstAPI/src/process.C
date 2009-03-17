@@ -1121,17 +1121,20 @@ bool process::initTrampGuard()
     }
     assert(vars.size() == 1);
 
+    Address allocedTrampAddr = 0;
+    
     if (getAddressWidth() == 4) {
 	// Don't write directly into trampGuardBase_ as a buffer,
 	//   in case we're on a big endian architechture.
-	uint32_t value;
-	readDataSpace((void *)vars[0]->getAddress(), 4, &value, true);
-	trampGuardBase_ = value;
+      unsigned int value;
+      readDataSpace((void *)vars[0]->getAddress(), 4, &value, true);
+      allocedTrampAddr = value;
 
     } else if (getAddressWidth() == 8) {
-	readDataSpace((void *)vars[0]->getAddress(), 8, &trampGuardBase_, true);
-
+	readDataSpace((void *)vars[0]->getAddress(), 8, &allocedTrampAddr, true);
+	
     } else assert(0 && "Incompatible mutatee address width");
+    trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", allocedTrampAddr, getAddressWidth());
 
     return true;
 }

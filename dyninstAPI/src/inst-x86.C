@@ -75,7 +75,7 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
 //#include "InstrucIter.h"
-
+#include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 #include <sstream>
@@ -1764,6 +1764,24 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
       emitMovImmToRM(REGNUM_EBP, -1*(dest<<2), (int)imm, gen);
 }
 
+void emitVload(opCode op, const image_variable* src1, Register src2, Register dest, 
+               codeGen &gen, bool /*noCost*/, 
+               registerSpace * /*rs*/, int size,
+               const instPoint * /* location */, AddressSpace * as)
+{
+  mapped_module *mod = as->findModule(src1->pdmod()->fileName());
+  if(mod && (src1->pdmod() == mod->pmod()))
+  {
+    int_variable* tmp = mod->obj()->findVariable((image_variable*)(src1));
+    emitVload(op, tmp->getAddress(), src2, dest, gen, true, NULL, size, NULL, as);
+  }
+  else
+  {
+    assert(!"TODO: implement the static case for variable not in this address space");
+    return;
+  }
+}
+
 
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
                codeGen &gen, bool /*noCost*/, 
@@ -1805,6 +1823,24 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
    } else {
       abort();                // unexpected op for this emit!
    }
+}
+void emitVstore(opCode op, Register src1, Register src2, const image_variable* dest,
+                codeGen &gen, bool /*noCost*/, registerSpace * /*rs*/, 
+                int size,
+                const instPoint * /* location */, AddressSpace * as)
+{
+  mapped_module *mod = as->findModule(dest->pdmod()->fileName());
+  if(mod && (dest->pdmod() == mod->pmod()))
+  {
+    int_variable* tmp = mod->obj()->findVariable((image_variable*)(dest));
+    emitVstore(op, src1, src2, tmp->getAddress(), gen, true, NULL, size, NULL, as);
+  }
+  else
+  {
+    assert(!"emitVSTore TODO: handle the separate address space case");
+    return;
+  }
+  
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,

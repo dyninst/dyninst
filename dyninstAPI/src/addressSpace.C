@@ -66,7 +66,7 @@
 AddressSpace::AddressSpace() :
     trapMapping(this),
     multiTrampsById_(intHash),
-    trampGuardBase_(0),
+    trampGuardBase_(NULL),
     up_ptr_(NULL),
     costAddr_(0)
 {}
@@ -104,6 +104,8 @@ void AddressSpace::copyAddressSpace(process *parent) {
         // This clones funcs, which then clone instPoints, which then 
         // clone baseTramps, which then clones miniTramps.
     }
+    // Clone the tramp guard base
+    trampGuardBase_ = new int_variable(parent->trampGuardBase_, getAOut()->getDefaultModule());
     
 
     /////////////////////////
@@ -199,7 +201,7 @@ void AddressSpace::deleteAddressSpace() {
 
     mapped_objects.clear();
 
-    trampGuardBase_ = 0;
+    trampGuardBase_ = NULL;
 
     // up_ptr_ is untouched
     costAddr_ = 0;
@@ -1145,10 +1147,10 @@ AstNodePtr AddressSpace::trampGuardAST() {
         // Don't have it yet....
         return AstNodePtr();
     }
+
     if (trampGuardAST_) return trampGuardAST_;
 
-    trampGuardAST_ = AstNode::operandNode(AstNode::Constant,
-                                          (void *)trampGuardBase_);
+    trampGuardAST_ = AstNode::operandNode(AstNode::variableAddr, trampGuardBase_->ivar());
     return trampGuardAST_;
 }
 

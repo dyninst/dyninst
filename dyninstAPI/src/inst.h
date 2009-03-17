@@ -65,6 +65,7 @@ class metricFocusNode;
 class codeGen;
 class registerSpace;
 class AddressSpace;
+class image_variable;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn, callUnset } callWhen;
@@ -212,6 +213,18 @@ void     emitVload(opCode op, Address src1, Register src2, Register dst,
 
 // for storeOp (writing to an Address)
 void     emitVstore(opCode op, Register src1, Register src2, Address dst, 
+                    codeGen &gen, bool noCost, 
+                    registerSpace *rs = NULL, int size = 4, 
+                    const instPoint * location = NULL, AddressSpace * proc = NULL);
+
+// for loadOp and loadConstOp (reading from an Address)
+void     emitVload(opCode op, const image_variable* src1, Register src2, Register dst, 
+                   codeGen &gen, bool noCost, 
+                   registerSpace *rs = NULL, int size = 4, 
+                   const instPoint * location = NULL, AddressSpace * proc = NULL);
+
+// for storeOp (writing to an Address)
+void     emitVstore(opCode op, Register src1, Register src2, const image_variable* dst, 
                     codeGen &gen, bool noCost, 
                     registerSpace *rs = NULL, int size = 4, 
                     const instPoint * location = NULL, AddressSpace * proc = NULL);

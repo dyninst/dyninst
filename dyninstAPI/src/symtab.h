@@ -617,6 +617,8 @@ class pdmodule {
    Module *mod();
 
    image *imExec() const { return exec_; }
+   image_variable* createImageVariable(Address offset, std::string name, int size);
+   
  private:
    std::set<image_instPoint*> unresolvedControlFlow;
    Module *mod_;
