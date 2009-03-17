@@ -33,7 +33,11 @@
 #include "arch-x86.h"
 #include "entryIDs-IA32.h"
 #include "../../common/h/Singleton.h"
+#include "Register.h"
+#include <map>
+#include <boost/assign/list_of.hpp>
 
+using namespace boost::assign;
 
 namespace Dyninst
 {
@@ -341,11 +345,11 @@ namespace Dyninst
       std::set<RegisterAST::Ptr> stackPointer;
       std::set<RegisterAST::Ptr> framePointer;
       std::set<RegisterAST::Ptr> spAndBP;
-      map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
-      map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
+      std::map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
+      std::map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
 
-      map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
-      map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
+      std::map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
+      std::map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
     };
     void Operation::SetUpNonOperandData()
     {

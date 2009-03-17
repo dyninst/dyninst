@@ -83,7 +83,7 @@ namespace Dyninst
 	return;
       }
       /// The use set of a %Dereference is the same as the use set of its children.
-      /// \paramp uses The use set of this %Dereference is inserted into \c uses.
+      /// \param uses The use set of this %Dereference is inserted into \c uses.
       virtual void getUses(set<InstructionAST::Ptr>& uses)
       {
 	addressToDereference->getUses(uses);
