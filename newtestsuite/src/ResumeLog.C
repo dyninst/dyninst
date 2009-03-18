@@ -55,6 +55,22 @@ static const char *resumelog_name = "resumelog";
 
 #define RESULT_REPORTED -1
 #define RESUME_POINT -2
+#define RESULT_CRASHED -3
+
+struct resumeLogEntry {
+   resumeLogEntry(int gn, int tn, int rs, int res=0, bool use_res=false) :
+      groupnum(gn),
+      testnum(tn),
+      runstate(rs),
+      result(res),
+      use_result(use_res)
+   {}
+   int groupnum;
+   int testnum;
+   int runstate;
+   int result;
+   bool use_result;
+};
 
 void enableResumeLog()
 {
@@ -69,6 +85,23 @@ bool isLogging()
 void setLoggingFilename(char *f)
 {
    resumelog_name = f;
+}
+
+void rebuild_resumelog(const std::vector<resumeLogEntry> &entries)
+{
+   assert(enableLog);
+
+   FILE *f = fopen(resumelog_name, "a");
+   
+   for (unsigned i=0; i<entries.size(); i++)
+   {
+      fprintf(f, "%d,%d,%d\n", entries[i].groupnum, entries[i].testnum, 
+              entries[i].runstate);
+      if (entries[i].use_result)
+         fprintf(f, "%d\n", entries[i].result);
+   }
+
+   fclose(f);
 }
 
 static void log_line(int groupnum, int testnum, int runstate, bool append)
@@ -109,9 +142,12 @@ void log_testreported(int groupnum, int testnum)
    log_line(groupnum, testnum, RESULT_REPORTED, true);
 }
 
+static std::vector<resumeLogEntry> recreate_entries;
+
 void log_resumepoint(int groupnum, int testnum)
 {
    log_line(groupnum, testnum, RESUME_POINT, false);
+   rebuild_resumelog(recreate_entries);
 }
 
 void log_clear()
@@ -128,6 +164,7 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
    if (!enableLog)
       return;
 
+
    FILE *f = fopen(resumelog_name, "r");
    if (!f) {
       return;
@@ -142,15 +179,16 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
       int res = fscanf(f, "%d,%d,%d\n", &groupnum, &testnum, &runstate_int);
       if (res != 3)
          break;
-
+      
       assert(groupnum >= 0 && groupnum < groups.size());
-	  assert(groups[groupnum]);
-	  logerror("Test number %d, group size %d\n", testnum, groups[groupnum]->tests.size());
+      assert(groups[groupnum]);
+      logerror("Test number %d, group size %d\n", testnum, groups[groupnum]->tests.size());
       assert(testnum >= 0);
-	  assert(testnum < groups[groupnum]->tests.size());
+      assert(testnum < groups[groupnum]->tests.size());
       if (runstate_int == RESULT_REPORTED)
       {
-         groups[groupnum]->tests[testnum]->disabled = true;
+         groups[groupnum]->tests[testnum]->result_reported = true;
+         recreate_entries.push_back(resumeLogEntry(groupnum, testnum, RESULT_REPORTED));
          continue;
       }
       if (runstate_int == RESUME_POINT)
@@ -167,7 +205,7 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
          }
          continue;
       }
-
+      
       assert(runstate_int >= 0 && runstate_int < NUM_RUNSTATES);
       runstate = (test_runstate_t) runstate_int;
 
@@ -202,9 +240,14 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
             }
             break;
       }
+      recreate_entries.push_back(resumeLogEntry(groupnum, testnum, 
+                                                runstate_int, result, true));
+
       if (res != 1)
          break;
    }
+
+   rebuild_resumelog(recreate_entries);
 }
 
 char *mutatee_resumelog_name = "mutatee_resumelog";
