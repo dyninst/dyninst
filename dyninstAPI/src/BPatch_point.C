@@ -347,7 +347,8 @@ bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &liveRegs)
 
     bitArray live = point->liveRegisters(callPreInsn);
     
-    std::vector<BPatch_register> allRegs = addSpace->getRegisters();
+    std::vector<BPatch_register> allRegs;
+    addSpace->getRegisters(allRegs); 
     
     for (unsigned i = 0; i < allRegs.size(); i++) {
         if (live[allRegs[i].number_])

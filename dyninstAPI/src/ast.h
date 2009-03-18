@@ -62,6 +62,8 @@ class process;
 class AddressSpace;
 class instPoint;
 class int_function;
+class int_variable;
+
 class codeGen;
 class codeRange;
 class instruction;
@@ -311,7 +313,18 @@ class AstNode {
 	  return NULL;
 	}
 	
-	
+	virtual void emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
+				       bool noCost, registerSpace* rs, 
+				       int size, const instPoint* point, AddressSpace* as)
+	{
+	  assert(!"Never call this on anything but an operand");
+	}
+	virtual void emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
+				      bool noCost, registerSpace* rs, 
+				      int size, const instPoint* point, AddressSpace* as)
+	{
+	  assert(!"Never call this on anything but an operand");
+	}
 	// only function that's defined in metric.C (only used in metri.C)
 	bool condMatch(AstNode* a,
 		       pdvector<dataReqNode*> &data_tuple1,
@@ -451,13 +464,20 @@ class AstOperandNode : public AstNode {
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
+    virtual void emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
+			   bool noCost, registerSpace* rs, 
+			   int size, const instPoint* point, AddressSpace* as);
+    virtual void emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
+			  bool noCost, registerSpace* rs, 
+			  int size, const instPoint* point, AddressSpace* as);
         
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
                                      Address &retAddr,
                                      Register &retReg);
-
+    int_variable* lookUpVar(AddressSpace* as);
+    
     AstOperandNode() {};
 
     operandType oType;
@@ -656,7 +676,7 @@ class AstMiniTrampNode : public AstNode {
 
     Address generateTramp(codeGen &gen, 
                           int &trampCost, 
-                          bool noCost, bool merged);
+                          bool noCost);
             
     virtual ~AstMiniTrampNode() {}    
 

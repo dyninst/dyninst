@@ -1231,164 +1231,6 @@ bool baseTramp::generateRestores(codeGen &gen,
     return true;
 }
 
-/*
- *            Get the hashed thread ID on the stack and in REG_MT_POS
- *            hashed thread ID * sizeof(int) in REG_GUARD_OFFSET
- *
- * So: call DYNINSTthreadIndex, which returns the INDEX value. This is
- *     done automatically (AST), the rest by hand. Save the INDEX.
- *
- */
- 
-// This is 99% identical with the version for each other platform;
-// the result move is different. 
-
-bool baseTramp::generateMTCode(codeGen &gen,
-                               registerSpace *) {
-
-    AstNodePtr threadPOS;
-    pdvector<AstNodePtr> dummy;
-    Register src = Null_Register;
-    
-    dyn_thread *thr = gen.thread();
-    if (!threaded()) {
-        /* Get the hashed value of the thread */
-        emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
-    }
-    else if (thr) {
-        // Override 'normal' index value...
-        emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
-    }
-    else {
-        threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
-        if (!threadPOS->generateCode(gen,
-                                     false, // noCost 
-                                     src)) return false;
-        if ((src) != REG_MT_POS) {
-            // This is always going to happen... we reserve REG_MT_POS, so the
-            // code generator will never use it as a destination
-            instruction::generateImm(gen, ORILop, src, REG_MT_POS, 0);
-			gen.rs()->freeRegister(src);
-        }
-    }
-
-    return true;
-}
-
-bool baseTramp::generateGuardPreCode(codeGen &gen,
-                                     codeBufIndex_t &guardJumpIndex,
-                                     registerSpace *) {
-    assert(guarded());
-
-    Address trampGuardFlagAddr = proc()->trampGuardBase();
-    if (!trampGuardFlagAddr) {
-        guardJumpIndex = 0;
-        return false;
-    }
-
-    // Load; check; branch; modify; store.
-    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
-              gen, false, gen.rs(), sizeof(unsigned));
-    // MT; if we're MTing we have a base (hence trampGuardBase()) but
-    // need to index it to get our base
-    if (threaded()) {
-        // Build the offset in a spare register
-        emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned),
-                REG_GUARD_OFFSET, gen, false);
-        // And add it back in.
-        emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
-              gen, false);
-    }
-    // We have the abs. addr in REG_GUARD_ADDR. We keep it around,
-    // so load into a different reg.
-    emitV(loadIndirOp, REG_GUARD_ADDR, 0, // Unused -- always 0.
-          REG_GUARD_VALUE, gen, false, gen.rs(), sizeof(unsigned));
-    instruction::generateImm(gen, CMPIop, 0, REG_GUARD_VALUE, 1);
-
-    // Next thing we do is jump; store that in guardJumpOffset
-    guardJumpIndex = gen.getIndex();
-
-    // Drop an illegal in here for now.
-    instruction::generateIllegal(gen);
-    
-    // Back to the base/offset style. 
-    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE,
-              gen, false, gen.rs(), sizeof(unsigned));
-    // And store
-    emitV(storeIndirOp, REG_GUARD_VALUE, 0, REG_GUARD_ADDR, 
-          gen, false, gen.rs(), sizeof(unsigned));
-
-    // And we store the addr so we don't have to recalculate later.
-    instruction::generateImm(gen, STop, REG_GUARD_ADDR, 1, // SP
-                             STK_GUARD); 
-    return true;
-}
-
-bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &index,
-                                      registerSpace *) {
-    assert(guarded());
-
-    Address trampGuardFlagAddr = proc()->trampGuardBase();
-    if (!trampGuardFlagAddr) {
-        return false;
-    }
-
-    // Load addr; modify; store.
-    instruction::generateImm(gen, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
-    
-    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE, 
-              gen, false, gen.rs(), sizeof(unsigned));
-    // And store
-    emitV(storeIndirOp, REG_GUARD_VALUE, 0, REG_GUARD_ADDR, 
-          gen, false, gen.rs(), sizeof(unsigned));
-
-    index = gen.getIndex();
-
-    return true;
-}
-
-bool baseTramp::generateCostCode(codeGen &gen,
-                                 unsigned &costUpdateOffset,
-                                 registerSpace *) {
-    // Load; modify; store.
-    Address costAddr = proc()->getObservedCostAddr();
-    if (!costAddr) return false;
-
-    emitVload(loadConstOp, costAddr, 0, // unused
-              REG_COST_ADDR, gen, false);
-    emitV(loadIndirOp, REG_COST_ADDR, 0, 
-          REG_COST_VALUE, gen, false);
-    // We assume cost will be less than an immediate...
-    // This insn does the math.
-    costUpdateOffset = gen.used();
-    emitImm(plusOp, REG_COST_VALUE, 0, // No cost yet
-            REG_COST_VALUE, gen, false);
-
-    // And store
-    emitV(storeIndirOp, REG_COST_VALUE, 0, REG_COST_ADDR, 
-          gen, false);
-
-    return true;
-}
-
-void baseTrampInstance::updateTrampCost(unsigned cost) {
-    // We only need to overwrite the cost addition
-    // Though we also need to overwrite memory.
-    if (baseT->costSize == 0) return;
-
-    Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
-
-    codeGen gen(instruction::size());
-
-    emitImm(plusOp, REG_COST_VALUE, cost,
-            REG_COST_VALUE, gen, false);
-
-    // And write
-    if (!proc()->writeDataSpace((void *)trampCostAddr,
-                           gen.used(),
-                           gen.start_ptr()))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-}
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
              codeGen &gen, bool noCost, registerSpace * /* rs */)
@@ -1792,13 +1634,6 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
         // nothing to do in this platform
         return(0);              // let's hope this is expected!
     }        
-    case trampTrailer: {
-        retval = gen.getIndex();
-        unsigned addr_width = gen.addrSpace()->getAddressWidth();
-        gen.fill(instruction::maxJumpSize(addr_width), codeGen::cgNOP);
-        instruction::generateIllegal(gen);
-        break;
-      }
     default:
         assert(0);        // unexpected op for this emit!
     }
@@ -2137,7 +1972,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
     assert ((op!=branchOp) && (op!=ifOp) && 
-            (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
+            (op!=trampPreamble));         // !emitA
     assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
@@ -2406,17 +2241,6 @@ int getInsnCost(opCode op)
       // Generate code to update the observed cost.
       // generated code moved to the base trampoline.
       cost += 0;
-      break;
-
-    case trampTrailer:
-      // Should compute the cost to restore registers here.  However, we lack 
-      //   sufficient information to compute this value. We need to be 
-      //   inside the code generator to know this amount.
-      //
-      
-      // branch
-      // nop
-      cost += 2;
       break;
 
     default:

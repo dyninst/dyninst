@@ -32,36 +32,64 @@
 #ifndef BLUEGENE_SWK_H
 #define BLUEGENE_SWK_H
 
+#include "stackwalk/h/framestepper.h"
+
+#include "dyntypes.h"
+#include <set>
+
 namespace Dyninst {
 namespace Stackwalker {
 
 class ProcDebugLinux : public ProcDebug {
  protected:
-  virtual bool debug_attach();
+  virtual bool debug_attach(ThreadState *ts);
+  virtual bool debug_post_attach(ThreadState *ts);
+  virtual bool debug_post_create();
   virtual bool debug_create(const std::string &executable, 
                             const std::vector<std::string> &argv);
-  virtual bool debug_pause();
-  virtual bool debug_continue();
-  virtual bool debug_continue_with(long sig);
+  virtual bool debug_pause(ThreadState *thr);
+  virtual bool debug_continue(ThreadState *thr);
+  virtual bool debug_continue_with(ThreadState *thr, long sig);
   virtual bool debug_handle_signal(DebugEvent *ev);
 
   virtual bool debug_handle_event(DebugEvent ev);
-
+  void setOptions(Dyninst::THR_ID tid);
  public:
   ProcDebugLinux(Dyninst::PID pid);
   ProcDebugLinux(const std::string &executable, 
                  const std::vector<std::string> &argv);
   virtual ~ProcDebugLinux();
 
-  virtual bool getRegValue(reg_t reg, Dyninst::THR_ID thread, regval_t &val);
+  virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
   virtual unsigned getAddressWidth();
 
+  bool pollForNewThreads();
+  bool isLibraryTrap(Dyninst::THR_ID thrd);
+
+  static thread_map_t all_threads;
  protected:
   unsigned cached_addr_width;
+  void registerLibSpotter();
+  Address lib_load_trap;
 };
+
+class SigHandlerStepperImpl : public FrameStepper {
+private:
+   DebugStepper *parent_stepper;
+   void registerStepperGroupNoSymtab(StepperGroup *group);
+public:
+   SigHandlerStepperImpl(Walker *w, DebugStepper *parent);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~SigHandlerStepperImpl();  
+};
+
+
+void getTrapInstruction(char *buffer, unsigned buf_size, unsigned &actual_len, bool include_return);
 
 }
 }

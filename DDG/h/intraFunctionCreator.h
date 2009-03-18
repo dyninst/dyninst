@@ -100,69 +100,93 @@ class intraFunctionDDGCreator {
     // to be a) unique and b) findable. Finally, we create a tuple that represents
     // a candidate Node in our analysis data structures. 
     typedef std::pair<AbslocPtr, InsnInstance> cNode;
+    typedef std::set<cNode> cNodeSet;
 
     // Temporary use: a data type for summarizing the definitions of Abslocs
     // from a particular block.
     // We use a map of cNodes to handle aliasing issues; see block comment
     // in intraFunctionCreator.C
-    typedef std::map<AbslocPtr, cNode> DefMap;
-    // And if we have real Nodes, we use a similar definition
-    typedef std::map<AbslocPtr, NodePtr> NodeDefMap;
+    typedef std::map<AbslocPtr, cNodeSet> DefMap;
 
-    // DefMaps for each Block. This is a global type.
-    typedef std::map<Block *, DefMap> GenSet;
+    // We also want to keep around kill information so we can efficiently
+    // do the interprocedural analysis. This turns into a boolean, as we
+    // don't really care _who_ kills (that's summarized in the gen set)
+    // so long as _someone_ did.
+    typedef std::map<AbslocPtr, bool> KillMap;
+    typedef std::map<Block *, KillMap> KillSet;
 
-    // A reaching definition is a Node that defines the (Insn,Absloc) pair currently
-    // considered. We also tag it with the Block that contains the Node. 
-    typedef std::pair<Block *, cNode> ReachingDefEntry;
-    
-    // We have a collection since there may be multiple reaching definitions. 
-    typedef std::set<ReachingDefEntry> ReachingDefSet;
-    
-    // Given an Absloc, return the ReachingDefSet (reaching defs from predecessor blocks)
-    typedef std::map<AbslocPtr, ReachingDefSet> ReachingDefsLocal;
+    // A map from each Block to its DefMap data structure.    
+    typedef std::map<Block *, DefMap> ReachingDefsGlobal;
 
-    // A map from each Block to its ReachingDefsLocal data structure.    
-    typedef std::map<Block *, ReachingDefsLocal> ReachingDefsGlobal;
-
+    typedef std::map<Address, AbslocSet> AbslocMap;
  public:
-    static Graph::Ptr createGraph(Function *func);
-
+    static intraFunctionDDGCreator create(Function *func);
+    Graph::Ptr getDDG();
 
  private:
     intraFunctionDDGCreator(Function *f) : func(f) {};
 
-    void buildDDG();
+    void analyze();
 
     void generateInterBlockReachingDefs(Flowgraph *CFG);
 
     void generateIntraBlockReachingDefs(std::set<Block *> &allBlocks);
 
-    void initializeGenSets(std::set<Block *> &allBlocks);
+    void initializeGenKillSets(std::set<Block *> &allBlocks);
 
-    void merge(ReachingDefsLocal &target,
-               ReachingDefsLocal &source);
+    void updateDefSet(const Absloc::Ptr D,
+                      DefMap &defMap,
+                      cNode &cnode);
 
-    void calcNewOut(ReachingDefsLocal &out,
-                    Block *current,
+    void updateKillSet(const Absloc::Ptr D,
+                       KillMap &kills);
+
+    void merge(DefMap &target,
+               DefMap &source);
+
+    void calcNewOut(DefMap &out,
                     DefMap &gens,
-                    ReachingDefsLocal &in);
+                    KillMap &kills,
+                    DefMap &in);
+    
+    void genSetToReachingDefs(Block *current,
+                              const cNodeSet &gens,
+                              cNodeSet &defs);
 
+    void recordCallState(const Instruction &insn,
+                         const Address &a,
+                         const DefMap &localDefs,
+                         const DefMap &reachingDefs);
+
+    void handleCall(const Address &a,
+                    AbslocSet &used,
+                    AbslocSet &def);
+    
     void getPredecessors(Block *block,
                          std::vector<Block *> &preds);
 
     void getSuccessors(Block *block,
                        std::vector<Block *> &succs);
 
-    void debugLocalSet(const ReachingDefsLocal &set, char *str);
+    void debugLocalSet(const DefMap &set, char *str);
     void debugAbslocSet(const AbslocSet &a, char *str);
     void debugDefMap(const DefMap &d, char *str);
 
     NodePtr makeNodeFromCandidate(cNode cnode);
 
-    GenSet allGens;
+    bool isCall(Instruction i) const;
+
+    const AbslocSet &getDefinedAbslocs(const Instruction &insn, const Address &a);
+    const AbslocSet &getUsedAbslocs(const Instruction &insn, const Address &a);
+
+    ReachingDefsGlobal allGens;
+    KillSet allKills;
     ReachingDefsGlobal inSets;
     ReachingDefsGlobal outSets;
     Graph::Ptr DDG;
     Function *func;
+
+    AbslocMap globalUsed;
+    AbslocMap globalDef;
+
 };

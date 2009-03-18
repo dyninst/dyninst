@@ -32,6 +32,7 @@
 // pathName.C
 #include "common/h/headers.h"  // P_strrchr()
 #include <ctype.h>
+#include <assert.h>
 #include "common/h/String.h"
 #include "common/h/pathName.h"
 
@@ -44,6 +45,10 @@ pdstring expand_tilde_pathname(const pdstring &dir) {
 }
 
 #else
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include <pwd.h>
 

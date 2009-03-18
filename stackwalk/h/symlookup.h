@@ -52,9 +52,6 @@ class SymbolLookup {
   virtual bool lookupAtAddr(Dyninst::Address addr, 
                             std::string &out_name, 
                             void* &out_value) = 0;
-  virtual bool lookupLibrary(Dyninst::Address addr, 
-                             Dyninst::Address &load_addr,
-                             std::string &out_library);
   
   virtual Walker *getWalker();
   virtual ProcessState *getProcessState();
@@ -62,9 +59,9 @@ class SymbolLookup {
   std::string executable_path;
 };
 
-class SwkDynSymtab : public SymbolLookup {
+class SwkSymtab : public SymbolLookup {
  public:
-    SwkDynSymtab(Walker *w, const std::string &exec_name);
+    SwkSymtab(Walker *w, const std::string &exec_name);
     virtual bool lookupAtAddr(Dyninst::Address addr, 
                               std::string &out_name, 
                               void* &out_value);

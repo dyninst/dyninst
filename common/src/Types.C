@@ -64,3 +64,11 @@ char *Address_str (Address addr)
 }
 
 
+int ThrIDToTid(Dyninst::THR_ID id)
+{
+#if defined(os_windows)
+   return GetThreadId(id);
+#else
+   return (int) id;
+#endif
+}

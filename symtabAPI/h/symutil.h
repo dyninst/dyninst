@@ -67,7 +67,8 @@ typedef enum {
    obj_Executable
 } ObjectType;
 
-typedef enum { Obj_Parsing,
+typedef enum { 
+   Obj_Parsing,
                Syms_To_Functions,
                Build_Function_Lists,
                No_Such_Function,
@@ -80,6 +81,9 @@ typedef enum { Obj_Parsing,
 	       Not_An_Archive,
 	       Export_Error,
 	       Invalid_Flags,
+   Bad_Frame_Data,
+   No_Frame_Entry,
+   Frame_Read_Error,
 	       No_Error
 } SymtabError;
 

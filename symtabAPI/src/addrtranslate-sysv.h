@@ -54,6 +54,7 @@ protected:
    vector<Region *> regions;
    unsigned addr_size;
    Offset r_debug_offset;
+   Offset r_trap_offset;
    Symtab *symtable;
 
    void parsefile();
@@ -66,6 +67,7 @@ public:
    void getRegions(vector<Region *> &regs);
    unsigned getAddrSize();
    Offset get_r_debug();
+   Offset get_r_trap();
    Symtab *getSymtab();
 };
 
@@ -92,6 +94,8 @@ public:
    virtual bool init();
    virtual bool refresh();
 
+   Address getTrapAddr();
+
    LoadedLib *getAOut();
    AddressTranslateSysV(int pid, ProcessReader *reader_);
    AddressTranslateSysV();
@@ -106,6 +110,7 @@ private:
    unsigned current_r_state;
 
    Address r_debug_addr;
+   Address trap_addr;
 
    ProcessReader *createDefaultDebugger(int pid);
 };

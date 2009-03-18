@@ -168,10 +168,9 @@ float BPatch_snippet::getCostAtPointInt(BPatch_point *pt)
     if (!pt) return 0.0;
     if (!pt->point) return 0.0;
 
-    int unitCostInCycles = (*ast_wrapper)->maxCost()
-                           + pt->point->getPointCost() 
-                           + getInsnCost(trampPreamble) 
-                           + getInsnCost(trampTrailer);
+    int unitCostInCycles = (*ast_wrapper)->maxCost() +
+        pt->point->getPointCost() +
+        getInsnCost(trampPreamble);
 
     timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
     float frequency = 1.0f;
@@ -270,10 +269,20 @@ AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand,
     // Convert a[i] into *(&a + (* i sizeof(element)))
     //
 
+    AstNodePtr arrayBase;
+    if((*(lOperand.ast_wrapper))->getoType() == AstNode::variableValue)
+    {
+      arrayBase = AstNode::operandNode(AstNode::variableAddr, (*(lOperand.ast_wrapper))->getOVar());
+    }
+    else
+    {
+      arrayBase = AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper));
+    }
+    
     AstNodePtr ast = AstNode::operandNode(AstNode::DataIndir,
                                AstNode::operatorNode(plusOp,
-                                                     AstNode::operatorNode(getAddrOp,
-                                                                           *(lOperand.ast_wrapper)),
+						     arrayBase,
+
                                                      AstNode::operatorNode(timesOp,
                                                                            AstNode::operandNode(AstNode::Constant,
                                                                                                 (void *)elementSize),

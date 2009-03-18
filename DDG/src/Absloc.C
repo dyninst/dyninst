@@ -67,6 +67,7 @@ void Absloc::getAbslocs(AbslocSet &locs) {
     StackLoc::getStackLocs(locs);
     //HeapLoc::getHeapLocs(locs);
     MemLoc::getMemLocs(locs);
+    ImmLoc::getImmLocs(locs);
 }
 
 Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
@@ -108,6 +109,11 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
     std::set<InstructionAST::Ptr> regUses;
     exp->getUses(regUses);
 
+    // If exp is a register (that is, the original operand was *reg) then 
+    // its use set will currently _not_ include itself. So add it.
+    if (boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(exp))
+        regUses.insert(exp);
+
     if (regUses.empty()) {
         // Case 1: Immediate only.
         Result res = exp->eval();
@@ -117,7 +123,8 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
         }
         else {
             // Oops...
-            return MemLoc::getBottomLoc(addr);
+            fprintf(stderr, "Memory addr failed eval (1) %d, %s, 0x%lx\n", res.defined, exp->format().c_str(), addr);
+            return MemLoc::getMemLoc();
         }
     }
     else {
@@ -147,15 +154,15 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
                 return StackLoc::getStackLoc(slot);
             }
             else {
-                return StackLoc::getBottomLoc(addr);
+                return StackLoc::getStackLoc();
             }
         }
         else {
-            return MemLoc::getBottomLoc(addr);
+            return MemLoc::getMemLoc();
         }
     }    
     assert(0);
-    return MemLoc::getBottomLoc(addr);
+    return MemLoc::getMemLoc();
 }
 
 // Things are a lot easier if we know it's a register...
@@ -417,13 +424,10 @@ Absloc::Ptr RegisterLoc::getRegLoc(const InstructionAPI::RegisterAST::Ptr reg) {
 const int StackLoc::STACK_GLOBAL = MININT;
 
 StackLoc::StackMap StackLoc::stackLocs_;
-std::map<Address,StackLoc::Ptr> StackLoc::bottomLocs_;
 
 std::string StackLoc::name() const {
     if (slot_ == STACK_GLOBAL) {
-        char buf[256];
-        sprintf(buf, "STACK_U_0x%lx", id_);
-        return std::string(buf);
+        return std::string("STACK");
     }
     else {
         char buf[256];
@@ -433,26 +437,11 @@ std::string StackLoc::name() const {
 }
 
 void StackLoc::getStackLocs(AbslocSet &locs) {
-    getDefinedLocs(locs);
-    getBottomLocs(locs);
-}
-
-void StackLoc::getDefinedLocs(AbslocSet &locs) {
     for (StackMap::iterator iter = stackLocs_.begin();
          iter != stackLocs_.end(); iter++) {
         locs.insert((*iter).second);
     }
 }
-
-void StackLoc::getBottomLocs(AbslocSet &locs) {
-    for (std::map<Address, StackLoc::Ptr>::iterator iter = bottomLocs_.begin();
-         iter != bottomLocs_.end(); iter++) {
-        locs.insert((*iter).second);
-    }
-}
-
-
-
 Absloc::Ptr StackLoc::getStackLoc(int slot) {
     // Look up by name and return    
     if (stackLocs_.find(slot) == stackLocs_.end()) {
@@ -464,32 +453,29 @@ Absloc::Ptr StackLoc::getStackLoc(int slot) {
     return stackLocs_[slot];
 }
 
-Absloc::Ptr StackLoc::getBottomLoc(Address addr) {
+Absloc::Ptr StackLoc::getStackLoc() {
     // Look up by name and return    
-    if (bottomLocs_.find(addr) == bottomLocs_.end()) {
-        StackLoc::Ptr sP = StackLoc::Ptr(new StackLoc());
-        sP->id_ = addr;
-
-        bottomLocs_[addr] = sP;
-    }
-    
-    return bottomLocs_[addr];
+    return getStackLoc(STACK_GLOBAL);
 }
 
-StackLoc::AbslocSet StackLoc::getAliases() {
+StackLoc::AbslocSet StackLoc::getAliases() const{
     AbslocSet ret;
 
     // If we're a specific stack slot, return the generic
     // stack slot(s)
-    if (slot_ != STACK_GLOBAL) {
-        getBottomLocs(ret);
+    if (slot_ == STACK_GLOBAL) {
+        for (StackMap::const_iterator iter = stackLocs_.begin();
+             iter != stackLocs_.end(); iter++) {
+            if ((*iter).first != STACK_GLOBAL)
+                ret.insert((*iter).second);
+        }
     } 
     else {
-        getDefinedLocs(ret);
+        ret.insert(getStackLoc());
     }
-
+    
     // Global memory references might touch the stack...
-    MemLoc::getBottomLocs(ret);
+    ret.insert(MemLoc::getMemLoc());
 
     return ret;
 }
@@ -519,7 +505,6 @@ HeapLoc::AbslocSet HeapLoc::getAliases() {
 
 const Address MemLoc::MEM_GLOBAL = (Address) -1;
 MemLoc::MemMap MemLoc::memLocs_;
-MemLoc::MemMap MemLoc::bottomLocs_;
 
 std::string MemLoc::name() const { 
     if (addr_ == MEM_GLOBAL) {
@@ -533,20 +518,8 @@ std::string MemLoc::name() const {
 }
 
 void MemLoc::getMemLocs(AbslocSet &locs) {
-    getDefinedLocs(locs);
-    getBottomLocs(locs);
-}
-
-void MemLoc::getDefinedLocs(AbslocSet &locs) {
     for (MemMap::iterator iter = memLocs_.begin();
          iter != memLocs_.end(); iter++) {
-        locs.insert((*iter).second);
-    }
-}
-
-void MemLoc::getBottomLocs(AbslocSet &locs) {
-    for (MemMap::iterator iter = bottomLocs_.begin();
-         iter != bottomLocs_.end(); iter++) {
         locs.insert((*iter).second);
     }
 }
@@ -562,28 +535,39 @@ Absloc::Ptr MemLoc::getMemLoc(Address addr) {
     return memLocs_[addr];
 }
 
-Absloc::Ptr MemLoc::getBottomLoc(Address addr) {
-    // Look up by name and return    
-    if (bottomLocs_.find(addr) == bottomLocs_.end()) {
-        MemLoc::Ptr mP = MemLoc::Ptr(new MemLoc());
-        mP->id_ = addr;
-
-        bottomLocs_[addr] = mP;
-    }
-
-    return bottomLocs_[addr];
+Absloc::Ptr MemLoc::getMemLoc() {
+    return getMemLoc(MEM_GLOBAL);
 }
 
-MemLoc::AbslocSet MemLoc::getAliases() {
+MemLoc::AbslocSet MemLoc::getAliases() const {
     AbslocSet ret;
     if (addr_ != MEM_GLOBAL) {
-        getBottomLocs(ret);
+        ret.insert(getMemLoc());
     }
     else {
-        // ???
-        getDefinedLocs(ret);
-        // Include stack slots?
+        // All known memory locations
+        for (MemMap::const_iterator iter = memLocs_.begin();
+             iter != memLocs_.end(); iter++) {
+            if ((*iter).first != MEM_GLOBAL)
+                ret.insert((*iter).second);
+        }
+        // All stack locations
+        StackLoc::getStackLocs(ret);
     }
 
     return ret;
+}
+
+ImmLoc::Ptr ImmLoc::immLoc_; 
+
+std::string ImmLoc::name() const { 
+    return "Immediate";
+}
+
+Absloc::Ptr ImmLoc::getImmLoc() {
+    if (immLoc_) return immLoc_;
+
+    immLoc_ = boost::shared_ptr<ImmLoc>(new ImmLoc());
+
+    return immLoc_;
 }

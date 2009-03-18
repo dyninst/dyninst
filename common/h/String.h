@@ -418,8 +418,6 @@ class pdstring {
    }
 };
 
-const pdstring nullString("");
-
 // See Stroustrup, D & E, sec 3.11.4.2:
 class string_counter {
  private:

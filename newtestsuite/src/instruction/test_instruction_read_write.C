@@ -216,10 +216,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     0xE8, 0x20, 0x00, 0x00, 0x00, // CALL +0x20(32)
     0xF8, // CLC
     0x04, 0x30, // ADD AL, 0x30(8)
-    0xc7, 0x45, 0xfc, 0x01, 0x00, 0x00, 0x00 // MOVL 0x01, -0x4(EBP)
+    0xc7, 0x45, 0xfc, 0x01, 0x00, 0x00, 0x00, // MOVL 0x01, -0x4(EBP)
+	0x88, 0x55, 0xcc // MOVB DL, -0x34(EBP)
   };
-  unsigned int size = 23;
-  unsigned int expectedInsns = 8;
+  unsigned int size = 26;
+  unsigned int expectedInsns = 9;
   InstructionDecoder d(buffer, size);
   std::vector<Instruction> decodedInsns;
   Instruction i;
@@ -302,6 +303,16 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   expectedRead = list_of(ebp);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[6], expectedRead, expectedWritten));
   
+  RegisterAST::Ptr dl(new RegisterAST(r_DL));
+  expectedRead.clear();
+  expectedWritten.clear();
+#if defined(arch_x86_64_test)
+  RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
+  expectedRead = list_of(rbp)(dl);
+#else
+  expectedRead = list_of(ebp)(dl);
+#endif
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[7], expectedRead, expectedWritten));
   return retVal;
 }
 

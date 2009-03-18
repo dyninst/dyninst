@@ -80,9 +80,13 @@ bool Walker::createDefaultSteppers()
   return true;
 }
 
-ProcSelf::ProcSelf()
+ProcSelf::ProcSelf() :
+   ProcessState()
 {
-  mypid = 0;
+}
+
+void ProcSelf::initialize()
+{
 }
 
 bool ProcSelf::readMem(void *dest, Address source, size_t size)
@@ -103,11 +107,6 @@ bool ProcSelf::getDefaultThread(THR_ID &default_tid)
   return true;
 }
 
-bool SymbolLookup::lookupLibrary(Address, Address &, std::string &)
-{
-   return false;
-}
-
 DebugEvent ProcDebug::debug_get_event(bool)
 {
    assert(0);
@@ -118,3 +117,10 @@ int ProcDebug::getNotificationFD()
    return -1;
 }
 
+ThreadState* ThreadState::createThreadState(ProcDebug *parent,
+                                            Dyninst::THR_ID,
+                                            bool)
+{
+   ThreadState *ts = new ThreadState(parent, 0);
+   return ts;
+}

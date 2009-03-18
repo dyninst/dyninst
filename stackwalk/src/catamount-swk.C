@@ -46,7 +46,8 @@ SymbolLookup *Walker::createDefaultSymLookup(const std::string &)
 {
    sw_printf("[%s:%u] - Warning, no symbol lookup on this platform\n",
               __FILE__, __LINE__);
-   return NULL;
+   new_lookup = NULL;
+   return new_lookup;
 }
 
 ProcDebug *ProcDebug::newProcDebug(PID)
@@ -80,9 +81,13 @@ bool Walker::createDefaultSteppers()
   return true;
 }
 
-ProcSelf::ProcSelf()
+ProcSelf::ProcSelf() :
+   ProcessState()
 {
-  mypid = 0;
+}
+
+void ProcSelf::initialize()
+{
 }
 
 bool ProcSelf::readMem(void *dest, Address source, size_t size)
@@ -101,11 +106,6 @@ bool ProcSelf::getDefaultThread(THR_ID &default_tid)
 {
   default_tid = 0;
   return true;
-}
-
-bool SymbolLookup::lookupLibrary(Address, Address &, std::string &)
-{
-   return false;
 }
 
 DebugEvent ProcDebug::debug_get_event(bool)

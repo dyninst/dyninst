@@ -1,4 +1,4 @@
-#
+# -*- makefile -*-
 # This file defines the things that should be common to all "libraries"
 # in the paradyn build tree.  It depends on things like SRCS and
 # TARGET being set correctly in the module-specific template and the
@@ -38,6 +38,10 @@ endif
 
 XTARGET= $(basename $(basename $(TARGET)))
 VOUCHER= V_$(XTARGET)
+
+ifdef STATIC_COMPS
+STATIC_LIBRARY = true
+endif
 
 ifndef OVERRIDE_LINK
 ifndef STATIC_LIBRARY

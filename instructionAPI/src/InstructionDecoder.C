@@ -94,22 +94,23 @@ namespace Dyninst
      
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
-      if(ia32_is_mode_64())
-      {
-	if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
-	{
-	  return Expression::Ptr(new RegisterAST(r_RIP));
+	if(ia32_is_mode_64())
+    {
+		if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
+		{
+			return Expression::Ptr(new RegisterAST(r_RIP));
+		}
 	}
-      }
+
       
       // This handles the rm and reg fields; the mod field affects how this expression is wrapped
       if(locs->modrm_rm != modrm_use_sib || locs->modrm_mod == 0x03)
       {
-	return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType)));
+		return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType)));
       }
       else
       {
-	return makeSIBExpression(opType);
+		return makeSIBExpression(opType);
       }      
     }
 
@@ -244,7 +245,9 @@ namespace Dyninst
       {
       case op_b:
 	return IntelRegTable[0][intelReg];
-      case op_d:
+	  case op_q:
+	return IntelRegTable[4][intelReg];
+	  case op_d:
       case op_si:
       case op_w:
       default:
@@ -314,6 +317,11 @@ namespace Dyninst
     void InstructionDecoder::decodeOneOperand(const ia32_operand& operand,
 					      std::vector<Expression::Ptr>& outputOperands)
     {
+		unsigned int regType = op_d;
+		if(ia32_is_mode_64())
+		{
+			regType = op_q;
+		}
       switch(operand.admet)
       {
       case 0:
@@ -352,7 +360,7 @@ namespace Dyninst
 	case 0x00:
 	  assert(operand.admet != am_R);
 	  {
-	    Expression::Ptr op(new Dereference(makeModRMExpression(operand.optype), makeSizeType(operand.optype)));
+	    Expression::Ptr op(new Dereference(makeModRMExpression(regType), makeSizeType(operand.optype)));
 	    outputOperands.push_back(op);
 	  }
 	  break;
@@ -361,9 +369,9 @@ namespace Dyninst
 	case 0x02:
 	  assert(operand.admet != am_R);
 	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(operand.optype), 
+	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
-								 makeSizeType(operand.optype)));
+								 makeSizeType(regType)));
 	    Expression::Ptr op(new Dereference(RMPlusDisplacement, makeSizeType(operand.optype)));
 	    outputOperands.push_back(op);
 	    break;
@@ -455,7 +463,7 @@ namespace Dyninst
 	  // direct dereference
 	case 0x00:
 	  {
-	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(operand.optype), 
+	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(regType), 
 								     makeSizeType(operand.optype)))); 
 	  }
 	  break;
@@ -463,9 +471,9 @@ namespace Dyninst
 	case 0x01:
 	case 0x02:
 	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(operand.optype), 
+	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
-								 makeSizeType(operand.optype)));
+								 makeSizeType(regType)));
 	    outputOperands.push_back(Expression::Ptr(new Dereference(RMPlusDisplacement, 
 								     makeSizeType(operand.optype))));
 	    break;
@@ -500,7 +508,7 @@ namespace Dyninst
 	  // direct dereference
 	case 0x00:
 	  {
-	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(operand.optype), 
+	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(regType), 
 								     makeSizeType(operand.optype)))); 
 	  }
 	  break;
@@ -508,9 +516,9 @@ namespace Dyninst
 	case 0x01:
 	case 0x02:
 	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(operand.optype), 
+	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
-								 makeSizeType(operand.optype)));
+								 makeSizeType(regType)));
 	    outputOperands.push_back(Expression::Ptr(new Dereference(RMPlusDisplacement, 
 								     makeSizeType(operand.optype))));
 	    break;

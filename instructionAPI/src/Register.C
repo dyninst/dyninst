@@ -175,6 +175,7 @@ namespace Dyninst
         }
 
         if (ia32_is_mode_64()) {
+            // Take a 32-bit register and turn it into a 64-bit
             if ((convertedID >= r_EAX) && (convertedID <= r_EDI)) {
                 convertedID = convertedID + (r_RAX - r_EAX);
             }
@@ -182,7 +183,15 @@ namespace Dyninst
                 convertedID = convertedID + (r_RSP - r_ESP);
             }
         }
-   
+        else {
+            // Take 64-bit regs and turn them into 32-bit
+            if ((convertedID >= r_RAX) && (convertedID <= r_RDI)) {
+                convertedID = convertedID - r_RAX + r_EAX;
+            }
+            else if ((convertedID >= r_RSP) && (convertedID <= r_RBP)) {
+                convertedID = convertedID - r_RSP + r_ESP;
+            }
+        }
         return Ptr(new RegisterAST(convertedID));
     }
   };

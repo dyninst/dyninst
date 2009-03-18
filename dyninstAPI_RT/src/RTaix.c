@@ -101,7 +101,7 @@ int DYNINSTloadLibrary(char *libname)
    
    if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
       /* An error has occurred */
-      perror( "DYNINSTloadLibrary -- dlopen" );
+      //perror( "DYNINSTloadLibrary -- dlopen" );
     
       if (NULL != (err_str = dlerror()))
          strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);

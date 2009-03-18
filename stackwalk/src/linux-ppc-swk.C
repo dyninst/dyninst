@@ -32,6 +32,12 @@
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/basetypes.h"
+#include "stackwalk/h/procstate.h"
+#include "stackwalk/h/framestepper.h"
+#include "stackwalk/src/linux-swk.h"
+#include <sys/user.h>
+#include <sys/ptrace.h>
+#include <assert.h>
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -41,13 +47,39 @@ unsigned ProcDebugLinux::getAddressWidth()
    return sizeof(void *);
 }
 
-bool ProcDebugLinux::getRegValue(reg_t reg, THR_ID t, regval_t &val)
-{
-   struct pt_regs gprs;
-   int result;
+#define USER_OFFSET_OF(register) ((signed int) &(((struct user *) NULL)->regs.register))
 
-   result = ptrace(PTRACE_GETREGS, (pid_t) t, NULL, &gprs);
-   if (result != 0)
+bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, 
+                                 Dyninst::THR_ID t, 
+                                 Dyninst::MachRegisterVal &val)
+{
+   int result;
+   signed int offset = -1;
+
+   if (getAddressWidth() == 4)
+   {
+      switch (reg) {
+         case Dyninst::MachRegPC:
+            offset = USER_OFFSET_OF(nip);
+            break;
+         case Dyninst::MachRegStackBase:
+            val = 0x0;
+            return false;
+         case Dyninst::MachRegFrameBase:
+            offset = USER_OFFSET_OF(gpr[1]);
+            break;
+      }
+   }
+   if (offset == -1) {
+         sw_printf("[%s:%u] - Request for unsupported register %d\n",
+                   __FILE__, __LINE__, reg);
+         setLastError(err_badparam, "Unknown register passed in reg field");
+         return false;
+   }
+   
+   errno = 0;
+   result = ptrace(PTRACE_PEEKUSER, (pid_t) t, (void*) offset, NULL);
+   if (errno)
    {
       int errnum = errno;
       sw_printf("[%s:%u] - Could not read gprs in %d: %s\n", 
@@ -55,24 +87,9 @@ bool ProcDebugLinux::getRegValue(reg_t reg, THR_ID t, regval_t &val)
       setLastError(err_procread, "Could not read registers from process");
       return false;
    }
-   
-   switch (reg)
-   {
-      case REG_PC:
-         val = regs.nip;
-         break;
-      case REG_SP:
-         val = 0x0;
-         break;
-      case REG_FP:
-         val = regs.gpr[1];
-         break;
-      default:
-         sw_printf("[%s:%u] - Request for unsupported register %d\n",
-                   __FILE__, __LINE__, reg);
-         setLastError(err_badparam, "Unknown register passed in reg field");
-         return false;
-   }
+
+   val = result;
+
    return true;
 }
 
@@ -91,3 +108,42 @@ bool Walker::createDefaultSteppers()
 
   return true;
 }
+
+namespace Dyninst {
+namespace Stackwalker {
+void getTrapInstruction(char *buffer, unsigned buf_size, 
+                        unsigned &actual_len, bool include_return)
+{
+   assert(buf_size >= 4);
+   buffer[0] = 0x7d;
+   buffer[1] = 0x82;
+   buffer[2] = 0x10;
+   buffer[3] = 0x08;
+   actual_len = 4;
+   if (include_return)
+   {   
+      assert(buf_size >= 8);
+      buffer[4] = 0x4e;
+      buffer[5] = 0x80;
+      buffer[6] = 0x00;
+      buffer[7] = 0x20;
+      actual_len = 8;
+      return;
+   }
+
+   assert(buf_size >= 1);
+   actual_len = 1;
+   return;
+}
+}
+}
+
+gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/, 
+                                                    Frame &/*out*/)
+{
+   /**
+    * TODO: Implement me on non-x86 platforms.
+    **/
+   return gcf_not_me;
+}
+

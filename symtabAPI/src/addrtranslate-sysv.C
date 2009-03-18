@@ -220,9 +220,7 @@ char *link_map_dyn<link_map_X>::l_name()
                              sizeof(char), link_name + i))
     {
        valid = false;
-       link_name[0] = '\0';
-       assert(0);
-       return link_name;
+       return NULL;
     }
     if (link_name[i] == '\0') break;
   }
@@ -275,6 +273,11 @@ static const char *deref_link(const char *path)
 
 ProcessReader::ProcessReader(int pid_) :
    pid(pid_)
+{
+}
+
+ProcessReader::ProcessReader() :
+   pid(0)
 {
 }
 
@@ -386,7 +389,8 @@ AddressTranslateSysV::AddressTranslateSysV() :
    interpreter(NULL),
    previous_r_state(0),
    current_r_state(0),
-   r_debug_addr(0)
+   r_debug_addr(0),
+   trap_addr(0)
 {
 }
 
@@ -399,7 +403,8 @@ AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_) :
    interpreter(NULL),
    previous_r_state(0),
    current_r_state(0),
-   r_debug_addr(0)
+   r_debug_addr(0),
+   trap_addr(0)
 {
    bool result;
    if (!reader) {
@@ -414,12 +419,6 @@ AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_) :
       creation_error = true;
       return;
    }
-
-   result = refresh();
-   if (!result) {
-      creation_error = true;
-      return;
-   }
 }
 
 bool AddressTranslateSysV::setInterpreterBase()
@@ -428,8 +427,9 @@ bool AddressTranslateSysV::setInterpreterBase()
      return true;
 
    AuxvParser *parser = AuxvParser::createAuxvParser(pid, address_size);
-   if (!parser)
+   if (!parser) {
       return false;
+   }
 
    interpreter_base = parser->getInterpreterBase();
    set_interp_base = true;
@@ -443,19 +443,26 @@ bool AddressTranslateSysV::init()
    bool result;
 
    result = setInterpreter();
-   if (!result)
+   if (!result) {
       return false;
-   result = setInterpreterBase();
-   if (!result)
-      return false;
+   }
    result = setAddressSize();
-   if (!result)
+   if (!result) {
       return false;
+   }
+   result = setInterpreterBase();
+   if (!result) {
+      return false;
+   }
 
-   if (interpreter)
+   if (interpreter) {
       r_debug_addr = interpreter->get_r_debug() + interpreter_base;
-   else
+      trap_addr = interpreter->get_r_trap() + interpreter_base;
+   }
+   else {
       r_debug_addr = 0;
+      trap_addr = 0;
+   }
 
    return true;
 }
@@ -591,6 +598,16 @@ Offset FCNode::get_r_debug() {
    return r_debug_offset;
 }
 
+Offset FCNode::get_r_trap() {
+   parsefile();
+
+   return r_trap_offset;
+}
+
+#define NUM_DBG_BREAK_NAMES 3
+const char *dbg_break_names[] = { "_dl_debug_state",
+                                  "r_debug_state",
+                                  "_r_debug_state" };
 void FCNode::parsefile() {
    bool result;
 
@@ -609,14 +626,26 @@ void FCNode::parsefile() {
    addr_size = symtable->getAddressWidth();
    symtable->getMappedRegions(regions);
    r_debug_offset = 0;
+   r_trap_offset = 0;
    parsed_file = true;
 
    vector<Symbol *> syms;
    result = symtable->findSymbolByType(syms, R_DEBUG_NAME, Symbol::ST_OBJECT);
-   if (!result || syms.size() == 0)
-     return;
-   Symbol *rDebugSym = syms[0];   
-   r_debug_offset = rDebugSym->getAddr();
+   if (result && syms.size() != 0) {
+      Symbol *rDebugSym = syms[0];   
+      r_debug_offset = rDebugSym->getAddr();
+   }
+   syms.clear();
+
+   for (unsigned i=0; i<NUM_DBG_BREAK_NAMES; i++) {
+      result = symtable->findSymbolByType(syms, dbg_break_names[i], 
+                                          Symbol::ST_FUNCTION);
+      if (!result || !syms.size())
+         continue;
+      Symbol *rTrapSym = syms[0];
+      r_trap_offset = rTrapSym->getAddr();
+      break;
+   }
 }
 
 FCNode *FileCache::getNode(const string &filename)
@@ -647,3 +676,13 @@ FileCache::FileCache()
 {
 }
 
+Address AddressTranslateSysV::getTrapAddr()
+{
+   return trap_addr;
+}
+
+Address AddressTranslate::getLibraryTrapAddrSysV()
+{
+   AddressTranslateSysV *addr_sysv = dynamic_cast<AddressTranslateSysV *>(this);
+   return addr_sysv->getTrapAddr();
+}

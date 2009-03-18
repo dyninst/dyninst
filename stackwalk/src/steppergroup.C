@@ -29,16 +29,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "steppergroup.h"
-#include "framestepper.h"
-//#include "addrRange.h"
+#include "stackwalk/h/steppergroup.h"
+#include "stackwalk/h/framestepper.h"
+#include "stackwalk/h/swk_errors.h"
+#include "stackwalk/src/sw.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
-
-FrameStepper *StepperWrapper::getStepper() const {
-    return stepper;
-}
+using namespace std;
 
 StepperGroup::StepperGroup(Walker *new_walker) :
     walker(new_walker)
@@ -56,70 +54,192 @@ Walker *StepperGroup::getWalker() const
     return walker;
 }
 
-typedef struct {
-  std::vector< std::pair<Address, Address> > ranges;
-  AddrRangeStepper *stepper;
-} AddrRangeStepperPair;
-
-bool operator<(const std::pair<Address, Address> &a, 
-	       const std::pair<Address, Address> &b)
+void StepperGroup::newLibraryNotification(LibAddrPair *libaddr,
+                                          lib_change_t change)
 {
-  return a.first < a.second;
+   std::set<FrameStepper *>::iterator i = steppers.begin();
+   for (; i != steppers.end(); i++)
+   {
+      (*i)->newLibraryNotification(libaddr, change);
+   }
 }
 
-bool AddrRangeGroup::addStepper(FrameStepper *stepper) 
+void StepperGroup::registerStepper(FrameStepper *stepper)
 {
-    assert(stepper);
-    bool result;
+   steppers.insert(stepper);
+   stepper->registerStepperGroup(this);
+}
 
-    swk_printf("[%s:%u] - Adding stepper %p to group %p\n",
-               __FILE__, __LINE__, stepper, this);
+class Dyninst::Stackwalker::AddrRangeGroupImpl
+{
+public:
+   addrRangeTree<addrRange> range_map;
+};
 
-    AddrRangeStepperPair *new_pair = new AddrRangeStepperPair();
-    assert(new_pair);
 
-    result = stepper->getAddressRanges(new_pair->ranges);
+AddrRangeGroup::AddrRangeGroup(Walker *new_walker) :
+   StepperGroup(new_walker)
+{
+   sw_printf("[%s:%u] - Constructing new AddrRangeGroup at %p\n",
+              __FILE__, __LINE__, this);
+   impl = new AddrRangeGroupImpl();
+}
+
+bool AddrRangeGroup::findStepperForAddr(Address addr, FrameStepper* &out, 
+                                        const FrameStepper *last_tried)
+{
+   addrRange *range;
+   sw_printf("[%s:%u] - AddrRangeGroup trying to find stepper at %lx " 
+             "(last_tried = %p)\n", __FILE__, __LINE__, addr, last_tried);
+
+   bool result = impl->range_map.find(addr, range);
     if (!result) {
-        swk_printf("[%s:%u] - FrameStepper::getAddressRanges returned error\n",
-                   __FILE__, __LINE__);
+      sw_printf("[%s:%u] - Couldn't find a FrameStepper at %lx\n",
+                 __FILE__, __LINE__, addr);
+      setLastError(err_nostepper, "No FrameStepper found at the given address");
         return false;
     }
 
-    std::sort(new_pair->ranges.begin(), new_pair->ranges.end());
+   AddrRangeStepper *stepper_set = dynamic_cast<AddrRangeStepper*>(range);
+   assert(stepper_set);
 
-    swk_printf("[%s:%u] - Stepper %p has %u ranges\n", 
-               __FILE__, __LINE__, stepper, new_pair->ranges.size());
-    for (unsigned i=0; i<new_pair->ranges.size(); i++) {
-        swk_printf("[%s:%u] - Range %d is from 0x%lx to 0x%lx\n", __FILE__, 
-		   __LINE__, i, new_pair->ranges[i].first, 
-		   new_pair->ranges[i].second);
-        if (ranges[i].second < ranges[i].first) {
-            //TODO: Error return
-        }
-
-	/**
-	 * Remove any overlapping ranges.
-	 **/
-	if (i+1 >= new_pair->ranges.size())
-	  //Don't need to test last element
-	  continue;
-	if (ranges[i].second <= ranges[i+1].first) 
-	  //Elements are not overlapping
-	  continue;
-	if (ranges[i].second >= ranges[i+1].second)
-	  //
-
+   if (!last_tried) {
+      assert(stepper_set->steppers.size());
+      StepperSet::iterator iter = stepper_set->steppers.begin();
+      out = *(iter);
+      sw_printf("[%s:%u] - Found FrameStepper %p at address %lx\n",
+                 __FILE__, __LINE__, out, addr);
+      return true;
     }
 
+   FrameStepper *last_tried_nc = const_cast<FrameStepper *>(last_tried);
+   StepperSet::iterator iter = stepper_set->steppers.find(last_tried_nc);
+   if (iter == stepper_set->steppers.end()) {
+      setLastError(err_badparam, "last_tried points to an invalid FrameStepper");
+      return false;
+   }
 
+   iter++;
+   if (iter == stepper_set->steppers.end()) {
+      setLastError(err_nostepper, "No FrameStepper was able to walk through " 
+                   "the given address");
+      return false;
+   }
     
+   out = *iter;
+   sw_printf("[%s:%u] - Found FrameStepper %p at address %lx\n",
+              __FILE__, __LINE__, out, addr);
+   return true;
 }
 
-bool StepperGroup::findStepperForAddr(Address addr, FrameStepper* &out, 
-                                      const FrameStepper *last_tried)
+bool AddrRangeGroup::addStepper(FrameStepper *stepper, Address start, Address end)
 {
+   std::vector<addrRange *> ranges;
+   bool result = impl->range_map.find(start, end, ranges);
 
+   if (!stepper || end <= start)
+   {
+      sw_printf("[%s:%u] - addStepper called with bad params: %p, %lx, %lx\n",
+                __FILE__, __LINE__, stepper, start, end);
+      setLastError(err_badparam, "Invalid parameters");
+      return false;
+   }
+
+   steppers.insert(stepper);
+   sw_printf("[%s:%u] - Adding stepper %p to address ranges %lx -> %lx\n",
+              __FILE__, __LINE__, stepper, start, end);
+   if (!result) {
+      //We don't have anything that overlaps.  Just add the stepper.
+      AddrRangeStepper *new_range = new AddrRangeStepper(start, end);
+      new_range->steppers.insert(stepper);
+      impl->range_map.insert(new_range);
+      return true;
+   }
+   assert(ranges.size());
+
+   Address cur = start;
+   unsigned i = 0;
+   while (cur < end)
+   {
+      if (i >= ranges.size())
+      {
+         //We have an empty space in the address range starting at cur and
+         //ending at end, fill it in with one range that fills the empty 
+         //space and only contains the new stepper
+         AddrRangeStepper *new_range = new AddrRangeStepper(cur, end);
+         new_range->steppers.insert(stepper);
+         impl->range_map.insert(new_range);
+         cur = end;
+         continue;         
+      }
+      if (cur < ranges[i]->get_address()) {
+         //We have an empty space in the address range starting at cur and
+         //ending at ranges[i]->get_address(), fill it in with one range 
+         // that fills the empty space and only contains the new stepper
+         AddrRangeStepper *new_range;
+         new_range = new AddrRangeStepper(cur, ranges[i]->get_address());
+         new_range->steppers.insert(stepper);
+         impl->range_map.insert(new_range);
+         cur = ranges[i]->get_address();
+         continue;
+      }
+      if (cur > ranges[i]->get_address())
+      {
+         //Ranges[i] starts before cur.  We'll shorten ranges[i] to start and
+         // add a new range with the same stepper set as ranges[i] to 
+         // (start, ranges[i]->end].  This should only happen on the first time 
+         // through this loop.
+         assert(i == 0 && cur == start);
+         AddrRangeStepper *old_range = dynamic_cast<AddrRangeStepper*>(ranges[i]);
+         Address old_end = old_range->end;
+         old_range->end = start;
+
+         AddrRangeStepper *new_range = new AddrRangeStepper(start, old_end);
+         new_range->steppers = old_range->steppers;
+         impl->range_map.insert(new_range);
+         
+         //We'll cheat.  We should add the new_range into our ranges
+         // vector and operate on it during the next loop iteration.
+         // However, we're done with ranges[i], so let's just override
+         // it with new_range and not bother incrementing i.
+         ranges[i] = new_range;
+         continue;
+      }
+      assert(cur == ranges[i]->get_address());
+      if (ranges[i]->get_address() + ranges[i]->get_size() < end)
+      {
+         //Ranges[i] is contained within the total range.  No need
+         // to add new things or resize, we'll just add stepper to its set.
+         AddrRangeStepper *ars = dynamic_cast<AddrRangeStepper*>(ranges[i]);
+         ars->steppers.insert(stepper);
+         cur = ranges[i]->get_address() + ranges[i]->get_size();
+         i++;
+         continue;
+      }
+
+      if (ranges[i]->get_address() + ranges[i]->get_size() >= end)
+      {
+         //Ranges[i] overflows past end.  We'll break it into two parts: 
+         // [ranges[i].start, end) and [end, ranges[i].end).  The first range
+         // will get the stepper added to it.  This should only happen on the last case.
+         assert(i == ranges.size() - 1);
+         AddrRangeStepper *old_range = dynamic_cast<AddrRangeStepper*>(ranges[i]);
+         Address old_end = old_range->end;
+         old_range->end = end;
+         
+         AddrRangeStepper *new_range = new AddrRangeStepper(end, old_end);
+         new_range->steppers = old_range->steppers;
+         impl->range_map.insert(new_range);
+
+         old_range->steppers.insert(stepper);
+         cur = end;
+         continue;
+      }
+      assert(0);
+   }
+   return true;
 }
 
-
-
+AddrRangeGroup::~AddrRangeGroup()
+{
+}

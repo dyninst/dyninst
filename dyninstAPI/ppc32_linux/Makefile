@@ -34,7 +34,6 @@ SRCS =          ../src/linux.C \
                 ../src/unix.C \
 		../src/InstrucIter-power.C \
 		../src/image-power.C \
-		../src/parseDwarf.C \
 		../src/syscall-linux.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \

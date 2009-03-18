@@ -38,7 +38,6 @@ SRCS =          ../src/linux.C \
 		../src/stackwalk-x86.C \
 		../src/image-x86.C \
 		../src/syscall-linux.C \
-		../src/parseDwarf.C \
 		../src/frameChecker.C \
 		../src/stackanalysis.C
 #		../src/addLibraryLinux.C \

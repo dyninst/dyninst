@@ -1,4 +1,4 @@
-# 
+# -*- makefile -*-
 # Common makefile template for the dyninstAPI library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
@@ -6,30 +6,50 @@
 # $Id: make.module.tmpl,v 1.1 2008/06/30 19:40:26 legendre Exp $
 #
 
-SUITE_NAME	= DynStackwalker
+SUITE_NAME	= Stackwalker
 RELEASE_NUM	= 1.0
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 
+ifdef STATIC_COMPS
+STATIC_LIBRARY = true
+TARGET = libstackwalk.a
+else
+TARGET = libstackwalk.so
+MYFLAGS += -fPIC
+endif
+
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC
+CFLAGS		+= 
+CXXFLAGS	+= 
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
 endif #sparc
 endif #USES_NATIVE
-TFLAGS		+= -fPIC
+TFLAGS		+=
+
+TO_INC     = ../h
+PUBLIC_H   = basetypes.h \
+             framestepper.h \
+             steppergroup.h \
+             symlookup.h \
+             frame.h \
+             procstate.h \
+             swk_errors.h \
+             walker.h 
 
 SRCS	     +=	../src/frame.C \
 		../src/framestepper.C \
 		../src/swk_errors.C \
       ../src/symlookup.C \
 		../src/walker.C \
-      ../src/procstate.C
+      ../src/procstate.C \
+      ../src/steppergroup.C
+
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h
 

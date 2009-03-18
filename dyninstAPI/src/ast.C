@@ -77,6 +77,7 @@ extern int tramp_pre_frame_size_64;
 #include "emitter.h"
 
 #include "registerSpace.h"
+#include "mapped_module.h"
 
 using namespace Dyninst;
 
@@ -434,14 +435,9 @@ AstNode::~AstNode() {
 
 Address AstMiniTrampNode::generateTramp(codeGen &gen,
                                         int &trampCost, 
-                                        bool noCost,
-                                        bool merged) {
-    static AstNodePtr trailer;
+                                        bool noCost) {
     static AstNodePtr costAst;
     static AstNodePtr preamble;
-
-    if (trailer == AstNodePtr())
-        trailer = AstNode::operatorNode(trampTrailer);
 
     if (costAst == AstNodePtr())
         costAst = AstNode::operandNode(AstNode::Constant, (void *)0);
@@ -456,7 +452,7 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
     // will have their costs added to the observed cost global variable
     // only if they are indeed called.  The code to do this in the minitramp
     // right after the body of the if.
-    trampCost = preamble->maxCost() + minCost() + trailer->maxCost();
+    trampCost = preamble->maxCost() + minCost();
 
     costAst->setOValue((void *) (long) trampCost);
     
@@ -474,17 +470,7 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
         fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp body\n", __FILE__, __LINE__);
     }
 
-    Register tmp = REG_NULL;
-    Address trampJumpOffset = 0;
-    if (!merged) {
-        if (!trailer->generateCode(gen, noCost, trampJumpOffset, tmp)) {
-            fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp trailer\n", __FILE__, __LINE__);
-        }
-        gen.rs()->freeRegister(tmp);
-    }
-
-    
-    return trampJumpOffset;
+    return 0;
 }
 
 // This name is a bit of a misnomer. It's not the strict use count; it's the
@@ -1046,23 +1032,31 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
     }
     case getAddrOp: {
         switch(loperand->getoType()) {
+	case variableAddr:
+	  if (retReg == REG_NULL) {
+	    retReg = allocateAndKeep(gen, noCost);
+	  }
+	  assert (loperand->getOVar());
+	  loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, noCost, gen.rs(), size,
+				     gen.point(), gen.addrSpace());
+	  break;
+	case variableValue:
+	  if (retReg == REG_NULL) {
+	    retReg = allocateAndKeep(gen, noCost);
+	  }
+	  assert (loperand->getOVar());
+	  loperand->emitVariableLoad(loadOp, retReg, retReg, gen, noCost, gen.rs(), size,
+				     gen.point(), gen.addrSpace());
+	  break;
 	case DataAddr:
 	  {
-	    
             addr = reinterpret_cast<Address>(loperand->getOValue());
             if (retReg == REG_NULL) {
-                retReg = allocateAndKeep(gen, noCost);
+	      retReg = allocateAndKeep(gen, noCost);
             }
-	    if(loperand->getOVar())
-	    {
-	      emitVload(loadConstOp, loperand->getOVar(), retReg, retReg, gen, noCost, gen.rs(), size,
-			gen.point(), gen.addrSpace());
-	    }
-	    else
-	    {
-	      emitVload(loadConstOp, addr, retReg, retReg, gen,
-			noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-	    }
+	    assert(!loperand->getOVar());
+	    emitVload(loadConstOp, addr, retReg, retReg, gen,
+		      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
 	  }
             break;
         case FrameAddr: {
@@ -1125,24 +1119,19 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         
         src2 = gen.rs()->allocateRegister(gen, noCost);
         switch (loperand->getoType()) {
+	case variableValue:
+	      loperand->emitVariableStore(storeOp, src1, src2, gen,
+			 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+	      loperand->decUseCount(gen);
+	      break;
         case DataAddr:
-	  {
             addr = (Address) loperand->getOValue();
-	    if(loperand->getOVar() != NULL)
-	    {
-	      emitVstore(storeOp, src1, src2, loperand->getOVar(), gen,
-			 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-	    }
-	    else
-	    {
-	      emitVstore(storeOp, src1, src2, addr, gen,
-			 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-	    }
+	    assert(loperand->getOVar() == NULL);
+	    emitVstore(storeOp, src1, src2, addr, gen,
+		       noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             // We are not calling generateCode for the left branch,
             // so need to decrement the refcount by hand
             loperand->decUseCount(gen);
-	  }
-	  
             break;
         case FrameAddr:
             addr = (Address) loperand->getOValue();
@@ -1212,17 +1201,6 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         emitV(op, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
         gen.rs()->freeRegister(src1);
         gen.rs()->freeRegister(src2);
-        retReg = REG_NULL;
-        break;
-    }
-    case trampTrailer: {
-        // This ast cannot be shared because it doesn't return a register
-        codeBufIndex_t ret_index = emitA(op, 0, 0, 0, gen, noCost);
-
-        // Convert to a bytecount
-        // From 0: assume we're starting at the beginning of the code generator. Not a tremendous
-        // assumption but valid in all cases.
-        retAddr = gen.getDisplacement(0, ret_index);
         retReg = REG_NULL;
         break;
     }
@@ -1334,10 +1312,13 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        break;
    case variableAddr:
      assert(oVar);
-     emitVload(loadConstOp, oVar, retReg, retReg, gen,
+     emitVariableLoad(loadConstOp, retReg, retReg, gen,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
-     
+   case variableValue:
+     assert(oVar);
+     emitVariableLoad(loadOp, retReg, retReg, gen,
+		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
    case ReturnVal:
        src = emitR(getRetValOp, 0, 0, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
@@ -1361,16 +1342,9 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        break;
    case DataAddr:
      {
-       if(oVar != NULL)
-       {
-	 // int variable case
-	 emitVload(loadOp, oVar, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
-       }
-       else
-       {
-	 Address addr = reinterpret_cast<Address>(oValue);
-	 emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
-       }
+       assert(oVar == NULL);
+       Address addr = reinterpret_cast<Address>(oValue);
+       emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
      }
      
        break;
@@ -1827,7 +1801,6 @@ std::string getOpString(opCode op)
 	case whileOp: return("while") ;
 	case doOp: return("while") ;
 	case trampPreamble: return("preTramp");
-	case trampTrailer: return("goto");
 	case branchOp: return("goto");
 	case noOp: return("nop");
 	case andOp: return("and");
@@ -1884,8 +1857,6 @@ int AstOperatorNode::costHelper(enum CostStyleType costStyle) const {
         if (loperand) total += loperand->costHelper(costStyle);
         if (roperand) total += roperand->costHelper(costStyle);
         total += getInsnCost(op);
-    } else if (op == trampTrailer) {
-        total = getInsnCost(op);
     } else if (op == trampPreamble) {
         total = getInsnCost(op);
     } else {
@@ -2684,4 +2655,50 @@ unsigned AstNode::getTreeSize() {
 		size += children[i]->getTreeSize();
 	return size;
 	
+}
+
+int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
+{
+  mapped_module *mod = as->findModule(oVar->pdmod()->fileName());
+  if(mod && (oVar->pdmod() == mod->pmod()))
+  {
+    int_variable* tmp = mod->obj()->findVariable((image_variable*)(oVar));
+    return tmp;
+  }
+  return NULL;
+}
+
+
+void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
+				      bool noCost, registerSpace* rs, 
+				      int size, const instPoint* point, AddressSpace* as)
+{
+  int_variable* var = lookUpVar(as);
+  if(var)
+  {
+    fprintf(stderr, "Emitting load for %s at 0x%x\n", var->symTabName().c_str(), var->getAddress());
+    emitVload(op, var->getAddress(), src2, dest, gen, noCost, rs, size, point, as);
+  }
+  else
+  {
+    assert(!"TODO: implement the static case for variable not in this address space");
+    return;
+  }  
+}
+
+void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
+				      bool noCost, registerSpace* rs, 
+				      int size, const instPoint* point, AddressSpace* as)
+{
+  int_variable* var = lookUpVar(as);
+  if(var)
+  {
+    fprintf(stderr, "Emitting store for %s at 0x%x\n", var->symTabName().c_str(), var->getAddress());
+    emitVstore(op, src1, src2, var->getAddress(), gen, true, NULL, size, NULL, as);
+  }
+  else
+  {
+    assert(!"TODO: implement the static case for variable not in this address space");
+    return;
+  }  
 }

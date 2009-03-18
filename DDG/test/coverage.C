@@ -19,10 +19,10 @@ BPatch bpatch;
 int main(int argc, const char** argv)
 {
   
-  if( argc < 3 )
+  if( argc < 1 )
     {
       std::cerr << "Usage: " << argv[0] 
-		<< "test_DD <test_program> <func_to_analyze>" 
+		<< "coverage <test_program>" 
 		<< std::endl;
       exit( EXIT_FAILURE );
     }
@@ -32,16 +32,12 @@ int main(int argc, const char** argv)
   BPatch_image* appImage = app->getImage();
 
   BPatch_Vector <BPatch_function *> function;
-  appImage->findFunction(argv[2], 
-			 function);
+  appImage->getProcedures(function);
 
-  intraFunctionDDGCreator creator = intraFunctionDDGCreator::create(function[0]);
-  Dyninst::DDG::Graph::Ptr g = creator.getDDG();
-
-  std::string str(argv[2]);
-  str += ".dot";
-  g->printDOT(str);
-  
+  for (unsigned i = 511; i < function.size(); i++) {
+      intraFunctionDDGCreator creator = intraFunctionDDGCreator::create(function[i]);
+      Dyninst::DDG::Graph::Ptr g = creator.getDDG();
+  }
 
   return EXIT_SUCCESS;
 }

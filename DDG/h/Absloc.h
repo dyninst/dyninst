@@ -111,7 +111,8 @@ class Absloc : public AnnotatableSparse {
     // Get the set of Abslocs that may "contain" the current one; that is,
     // may be included in a use or definition. For example, the "Stack"
     // absloc contains any specific stack slot.
-    virtual AbslocSet getAliases() = 0;
+    virtual AbslocSet getAliases() const = 0;
+    virtual bool isPrecise() const = 0;
  protected:
 
     static bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
@@ -143,8 +144,8 @@ class RegisterLoc : public Absloc {
     static Absloc::Ptr getRegLoc(const InstructionAPI::RegisterAST::Ptr reg);
 
     // We have precise information about all registers.
-    virtual AbslocSet getAliases() { return AbslocSet(); }
-
+    virtual AbslocSet getAliases() const { return AbslocSet(); }
+    virtual bool isPrecise() const { return true; }
  private:
     RegisterLoc(const InstructionAPI::RegisterAST::Ptr reg) : reg_(reg) {};
     
@@ -165,27 +166,21 @@ class StackLoc : public Absloc {
     virtual std::string name() const;
 
     static void getStackLocs(AbslocSet &locs);
-    static void getDefinedLocs(AbslocSet &locs);
-    static void getBottomLocs(AbslocSet &locs);
 
     static Absloc::Ptr getStackLoc(int slot);
-    static Absloc::Ptr getBottomLoc(Address addr);
+    static Absloc::Ptr getStackLoc();
 
-    virtual AbslocSet getAliases();
+    virtual AbslocSet getAliases() const;
+    virtual bool isPrecise() const { return slot_ != STACK_GLOBAL; }
 
     static const int STACK_GLOBAL;
  private:
-    StackLoc(const int stackOffset) : slot_(stackOffset), id_(0) {};
-    StackLoc() : slot_(STACK_GLOBAL), id_(0) {};
+    StackLoc(const int stackOffset) : slot_(stackOffset) {};
+    StackLoc() : slot_(STACK_GLOBAL) {};
 
     const int slot_;
 
-    // If we're a "bottom" location, we need some unique ID. Use
-    // the address of the instruction as that ID.
-    Address id_;
-
     static StackMap stackLocs_;
-    static std::map<Address, StackLoc::Ptr> bottomLocs_;
 };
 
 #if 0
@@ -202,7 +197,7 @@ class HeapLoc : public Absloc {
 
     static Absloc::Ptr getHeapLoc(Address addr);
 
-    virtual AbslocSet getAliases();
+    virtual AbslocSet getAliases() const;
 
  private:
     HeapLoc() {};
@@ -224,31 +219,58 @@ class MemLoc : public Absloc {
     virtual ~MemLoc() {};
     virtual std::string name() const;
     static void getMemLocs(AbslocSet &locs);
-    static void getDefinedLocs(AbslocSet &locs);
-    static void getBottomLocs(AbslocSet &locs);
 
     // A specific word in memory
     static Absloc::Ptr getMemLoc(Address addr);
     // "Anywhere in memory"
     // The parameter here indicates a unique definition
     // so we can distinguish them.
-    static Absloc::Ptr getBottomLoc(Address addr);
+    static Absloc::Ptr getMemLoc();
 
     static const Address MEM_GLOBAL;
 
-    virtual AbslocSet getAliases();
+    virtual AbslocSet getAliases() const;
+    virtual bool isPrecise() const { return addr_ != MEM_GLOBAL; }
 
  private:
 
-    MemLoc(Address addr) : addr_(addr), id_(0) {};
-    MemLoc() : addr_(MEM_GLOBAL), id_(0) {};
+    MemLoc(Address addr) : addr_(addr) {};
+    MemLoc() : addr_(MEM_GLOBAL) {};
 
     Address addr_;
-    Address id_;
 
     static MemMap memLocs_; 
-    static MemMap bottomLocs_;
 };
+
+// We now have a virtual absloc for "uses" of immediates. We really
+// want every node in the graph to be reachable from a small set
+// of well-known nodes (e.g., "parameter" nodes). However, an instruction
+// such as "EAX = 5" doesn't use anything and thus isn't reachable from
+// a parameter node. We handle this by creating an "Immediate" absloc
+// and an "Immediate" node. 
+
+class ImmLoc : public Absloc { 
+    friend class Graph;
+    friend class Node;
+    friend class Edge;
+
+ public:
+    typedef boost::shared_ptr<ImmLoc> Ptr;
+    
+    virtual ~ImmLoc() {};
+    virtual std::string name() const;
+    static void getImmLocs(AbslocSet &) {};
+
+    static Absloc::Ptr getImmLoc();
+
+    virtual AbslocSet getAliases() const { return AbslocSet(); }
+    virtual bool isPrecise() const { return true; }
+
+ private:
+    ImmLoc() {};
+
+    static ImmLoc::Ptr immLoc_;
+};    
 
 };
 }
