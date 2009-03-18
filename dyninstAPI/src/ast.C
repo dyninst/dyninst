@@ -1319,6 +1319,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
      assert(oVar);
      emitVariableLoad(loadOp, retReg, retReg, gen,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+     break;
    case ReturnVal:
        src = emitR(getRetValOp, 0, 0, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
@@ -2676,7 +2677,7 @@ void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, c
   int_variable* var = lookUpVar(as);
   if(var)
   {
-    fprintf(stderr, "Emitting load for %s at 0x%x\n", var->symTabName().c_str(), var->getAddress());
+    //fprintf(stderr, "Emitting load for %s at 0x%lx\n", var->symTabName().c_str(), var->getAddress());
     emitVload(op, var->getAddress(), src2, dest, gen, noCost, rs, size, point, as);
   }
   else
@@ -2693,8 +2694,8 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
   int_variable* var = lookUpVar(as);
   if(var)
   {
-    fprintf(stderr, "Emitting store for %s at 0x%x\n", var->symTabName().c_str(), var->getAddress());
-    emitVstore(op, src1, src2, var->getAddress(), gen, true, NULL, size, NULL, as);
+    //fprintf(stderr, "Emitting store for %s at 0x%lx\n", var->symTabName().c_str(), var->getAddress());
+    emitVstore(op, src1, src2, var->getAddress(), gen, noCost, rs, size, point, as);
   }
   else
   {

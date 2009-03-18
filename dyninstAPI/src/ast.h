@@ -313,15 +313,15 @@ class AstNode {
 	  return NULL;
 	}
 	
-	virtual void emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
-				       bool noCost, registerSpace* rs, 
-				       int size, const instPoint* point, AddressSpace* as)
+	virtual void emitVariableStore(opCode, Register, Register, codeGen&, 
+				       bool, registerSpace*, 
+				       int, const instPoint*, AddressSpace*)
 	{
 	  assert(!"Never call this on anything but an operand");
 	}
-	virtual void emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
-				      bool noCost, registerSpace* rs, 
-				      int size, const instPoint* point, AddressSpace* as)
+	virtual void emitVariableLoad(opCode, Register, Register, codeGen&, 
+				      bool, registerSpace*, 
+				      int, const instPoint*, AddressSpace*)
 	{
 	  assert(!"Never call this on anything but an operand");
 	}

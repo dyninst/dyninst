@@ -148,6 +148,8 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
                                         const BPatch_snippet &rOperand);
     friend AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand, 
                                         const BPatch_snippet &rOperand);
+    friend AstNodePtr generateVariableBase(const BPatch_snippet &lOperand);
+    
 
     public:
 

@@ -198,6 +198,25 @@ void BPatch_snippet::BPatch_snippet_dtor()
 }
 
 
+AstNodePtr generateVariableBase(const BPatch_snippet &lOperand)
+{
+  AstNodePtr variableBase;
+  if((*(lOperand.ast_wrapper))->getoType() == AstNode::variableValue)
+  {
+    variableBase = AstNode::operandNode(AstNode::variableAddr, (*(lOperand.ast_wrapper))->getOVar());
+  }
+  else if((*(lOperand.ast_wrapper))->getoType() == AstNode::variableAddr)
+  {
+    variableBase = *(lOperand.ast_wrapper);
+  }
+  else
+  {
+    variableBase = AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper));
+  }
+  return variableBase;
+}
+
+
 //
 // generateArrayRef - Construct an Ast expression for an array.
 //
@@ -269,24 +288,14 @@ AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand,
     // Convert a[i] into *(&a + (* i sizeof(element)))
     //
 
-    AstNodePtr arrayBase;
-    if((*(lOperand.ast_wrapper))->getoType() == AstNode::variableValue)
-    {
-      arrayBase = AstNode::operandNode(AstNode::variableAddr, (*(lOperand.ast_wrapper))->getOVar());
-    }
-    else
-    {
-      arrayBase = AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper));
-    }
-    
+    AstNodePtr arrayBase = generateVariableBase(lOperand);
     AstNodePtr ast = AstNode::operandNode(AstNode::DataIndir,
-                               AstNode::operatorNode(plusOp,
-						     arrayBase,
-
-                                                     AstNode::operatorNode(timesOp,
-                                                                           AstNode::operandNode(AstNode::Constant,
-                                                                                                (void *)elementSize),
-                                                                           *(rOperand.ast_wrapper))));
+				      AstNode::operatorNode(plusOp,
+							arrayBase,
+							AstNode::operatorNode(timesOp,
+									    AstNode::operandNode(AstNode::Constant,
+                                                                                                           (void *)elementSize),
+                                                                                      *(rOperand.ast_wrapper))));
     if(!elementType->getUpPtr())
         new BPatch_type(elementType);
     ast->setType((BPatch_type *)elementType -> getUpPtr());
@@ -351,9 +360,11 @@ AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand,
     //
     // Convert s.f into *(&s + offset(s,f))
     //
+    AstNodePtr structBase = generateVariableBase(lOperand);
+    
     AstNodePtr ast = AstNode::operandNode(AstNode::DataIndir,
                                AstNode::operatorNode(plusOp,
-                                                     AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper)),
+                                                     structBase,
                                                      AstNode::operandNode(AstNode::Constant,
                                                                           (void *)offset)));
     if(!field->getType()->getUpPtr())
@@ -476,7 +487,7 @@ void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op,
           break;
       }         
    case BPatch_addr:  {
-       ast_wrapper = new AstNodePtr(AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper)));
+     ast_wrapper = new AstNodePtr(generateVariableBase(lOperand));
        // create a new type which is a pointer to type 
        BPatch_type *baseType = const_cast<BPatch_type *> 
            ((*(lOperand.ast_wrapper))->getType());
@@ -1474,7 +1485,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
        // convert to *(&basrVar + offset)
        AstNodePtr fieldExpr = AstNode::operandNode(AstNode::DataIndir,
                                                    AstNode::operatorNode(plusOp,
-                                                   AstNode::operatorNode(getAddrOp, (*ast_wrapper)),
+									 generateVariableBase(*this),
                                                    AstNode::operandNode(AstNode::Constant, (void *)offset)));
        if( field->getType() != NULL ) {
             AstNodePtr *newAst = new AstNodePtr(fieldExpr);
