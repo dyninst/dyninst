@@ -89,7 +89,8 @@ void setLoggingFilename(char *f)
 
 void rebuild_resumelog(const std::vector<resumeLogEntry> &entries)
 {
-   assert(enableLog);
+   if (!enableLog)
+      return;
 
    FILE *f = fopen(resumelog_name, "a");
    
