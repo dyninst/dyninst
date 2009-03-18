@@ -45,12 +45,14 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
-#include <boost/assign.hpp>
+#include <boost/assign/list_of.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
+using namespace boost::assign;
 using namespace boost;
+
 using namespace std;
 
 class test_instruction_read_write_Mutator : public InstructionMutator {
