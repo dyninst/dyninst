@@ -255,11 +255,25 @@ inline char * nativeDemanglerBrokenness( int (*P_native_demangle)(const char *, 
 	int length = 1024;
 	char * demangled = NULL;
 
+        /* Solaris native compiler adds "$X*." prefix to static variables compiled with
+	   debuggur option. The native demangler does not handle this prefix for now.
+           So we strip the prefix. We look for the first occurance of period is the string. */
+
+        char *stripsymbol = symbol;
+        char *prefix1 = strstr (stripsymbol, "$X"); 
+        if (prefix1 == stripsymbol ) {
+            char *prefix2 = strchr(stripsymbol, '.');
+            if (prefix2) {
+		prefix2++;
+		stripsymbol = prefix2 ;
+            }
+        }
+
 	while( true ) {
 		demangled = (char *)malloc( length * sizeof( char ) );
 		if( demangled == NULL ) { return NULL; }
 		
-		int result = (* P_native_demangle)( symbol, demangled, length );
+		int result = (* P_native_demangle)( stripsymbol, demangled, length );
 
 		switch( result ) {
 			case 0:

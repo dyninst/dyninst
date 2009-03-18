@@ -121,8 +121,8 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    result = tc_lock_lock(&DYNINST_trace_lock);
    if (result == DYNINST_DEAD_LOCK)
    {
-      fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
-                    __FILE__, __LINE__);
+      fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock in thread %lu \n",
+                    __FILE__, __LINE__,dyn_pthread_self() );
       return DYNINST_TRACEPIPE_ERRVAL;
    }
    
