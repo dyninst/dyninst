@@ -77,7 +77,9 @@ void DYNINSTbreakPoint()
     /* We set a global flag here so that we can tell
        if we're ever in a call to this when we get a 
        SIGBUS */
-   //int thread_index = DYNINSTthreadIndex();
+   /*
+   int thread_index = DYNINSTthreadIndex();
+   */
     DYNINST_break_point_event = 1;
     while (DYNINST_break_point_event)  {
         kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);

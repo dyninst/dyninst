@@ -64,7 +64,9 @@ void DYNINSTbreakPoint()
     /* We set a global flag here so that we can tell
        if we're ever in a call to this when we get a 
        SIGBUS */
-   //int thread_index = DYNINSTthreadIndex();
+   /*
+   int thread_index = DYNINSTthreadIndex();
+   */
     DYNINST_break_point_event = 1;
     while (DYNINST_break_point_event)  {
         kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
@@ -118,24 +120,6 @@ int DYNINSTloadLibrary(char *libname)
 void DYNINST_ThreadPInfo(void* tls, void** stkbase, dyntid_t* tid, 
                          long *pc, int* lwp, void** rs) 
 {
-#if 0 
-    /* Outdated?*/
-   unsigned pthread_context;
-   int *func_ptr;
-   struct __pthrdsinfo *ptr = (struct __pthrdsinfo *) tls;
-   *stkbase = (void*) (ptr->__pi_stackaddr);
-   /**tid = (int) ptr->__pi_ptid;*/
-   /**lwp = (int) ptr->__pi_tid;*/
-   *rs = &(ptr->__pi_context);
-   /* The PC is a little different. We grab the thread context
-      from a partial pthread structure. That +200 gives us the 
-      function pointer to the start function. That gives us the
-      start */
-   pthread_context = DYNINSTthreadContext();
-   pthread_context+=92;
-   func_ptr = (int *)*((int *)pthread_context);
-   *pc = *func_ptr;
-#endif
    /* Use the __pthrdsinfo struct defined in /usr/include/pthread.h */
    struct __pthrdsinfo *ptr = (struct __pthrdsinfo *) tls;
    /* Want: 
