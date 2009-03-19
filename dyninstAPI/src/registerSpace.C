@@ -593,7 +593,9 @@ bool registerSpace::isFreeRegister(Register num) {
     if (!reg) return false;
 
     if (reg->refCount > 0)
-        return false;
+        return false; 
+    if (reg->keptValue) 
+      return false;
     return true;
 }
 

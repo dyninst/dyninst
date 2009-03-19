@@ -312,7 +312,9 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
   Register freeLocalRegister = 0;
   unsigned int localZero = rs->GPRs()[0]->number;
   for( unsigned int i = 0; i < NUM_LOCALS; i++ ) {
-	if( rs->isFreeRegister( localZero + i ) ) { freeLocalRegister = localZero + i; break; }
+	if( rs->isFreeRegister( localZero + i ) ) { 
+	  freeLocalRegister = localZero + i; break; 
+	}
   } /* end freeLocalRegister search */
   if( freeLocalRegister == 0 ) {
 	fprintf(stderr, "Failed to find free local (0 - %d)\n", NUM_LOCALS);

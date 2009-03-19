@@ -1248,12 +1248,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                 if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
                 REGISTER_CHECK(right_dest);
             }
-	    gen.rs()->freeRegister(src1); // may be able to reuse it for dest
-	    gen.rs()->freeRegister(right_dest); // may be able to reuse it for dest
             if (retReg == REG_NULL) {
                 retReg = allocateAndKeep(gen, noCost);
             }
             emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+	    gen.rs()->freeRegister(src1); // Don't free inputs until afterwards; we have _no_ idea
+	    // what the underlying code might do with a temporary register.
+	    gen.rs()->freeRegister(right_dest); 
         }
     }
     }
