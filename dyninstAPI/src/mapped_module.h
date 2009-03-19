@@ -116,10 +116,10 @@ class mapped_module {
       std::string processDirectories(const std::string &fn) const;
 
       // Have we parsed line information yet?
-      bool lineInformation() const { 
-         Module *m = pmod()->mod();
-         return m->hasLineInformation(); 
-      }
+      //bool lineInformation() const { 
+       //  Module *m = pmod()->mod();
+       //  return m->hasLineInformation(); 
+     // }
 
       // We're not generic-asizing line information yet, so this
       // calls into the pdmodule class to do the work.

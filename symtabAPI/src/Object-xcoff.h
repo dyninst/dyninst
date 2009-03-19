@@ -239,11 +239,12 @@ class Object : public AObject {
     void parseTypeInfo(Symtab *obj);
     bool emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymbols, unsigned flag);
 
+#if 0
     bool getRegValueAtFrame(Address pc, 
                             Dyninst::MachRegister reg, 
                             Dyninst::MachRegisterVal &reg_result,
                             MemRegReader *reader);
-    bool hasFrameDebugInfo();
+#endif
 
 private:
 

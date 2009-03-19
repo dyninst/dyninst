@@ -35,8 +35,9 @@ using namespace Dyninst;
 using namespace SymtabAPI;
 using namespace std;
 
-AddressTranslate::AddressTranslate(PID pid_) :
+AddressTranslate::AddressTranslate(PID pid_, PROC_HANDLE phand) :
    pid(pid_),
+   phandle(phand),
    creation_error(false)
 {
 }
@@ -162,10 +163,10 @@ void LoadedLib::getOutputs(string &filename, Address &code, Address &data)
    data = 0;
 }
 
-#if !defined(os_linux) && !defined(os_solaris)
+//#if !defined(os_linux) && !defined(os_solaris)
 //This definition is for all the non-System V systems
 Address AddressTranslate::getLibraryTrapAddrSysV()
 {
    return 0x0;
 }
-#endif
+//#endif

@@ -62,7 +62,6 @@
 #include "BPatch_statement.h"
 #include "mapped_module.h"
 
-#include "symtabAPI/h/LineInformation.h"
 #include "common/h/Types.h"
 #include "InstrucIter-Function.h"
 

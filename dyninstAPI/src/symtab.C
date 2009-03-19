@@ -1483,10 +1483,10 @@ bool pdmodule::isShared() const
     return mod_->isShared();
 }
 
-LineInformation *pdmodule::getLineInformation()
-{
-    return mod_->getLineInformation();
-}
+//LineInformation *pdmodule::getLineInformation()
+//{
+//    return mod_->getLineInformation();
+//}
 
 Module *pdmodule::mod()
 {

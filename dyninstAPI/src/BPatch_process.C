@@ -65,7 +65,6 @@
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
-#include "symtabAPI/h/LineInformation.h"
 #include "BPatch_function.h"
 #include "callbacks.h"
 #include "BPatch_module.h"

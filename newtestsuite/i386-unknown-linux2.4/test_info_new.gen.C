@@ -5244,8 +5244,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_none", STOPPED, CREATE, false, "symtab", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5256,8 +5261,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_low", STOPPED, CREATE, false, "symtab", "gcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5268,8 +5278,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_high", STOPPED, CREATE, false, "symtab", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5280,8 +5295,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_max", STOPPED, CREATE, false, "symtab", "gcc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5293,8 +5313,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_pgcc_32_none", STOPPED, CREATE, false, "symtab", "pgcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -5309,8 +5334,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_pgcc_32_low", STOPPED, CREATE, false, "symtab", "pgcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -5325,8 +5355,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_pgcc_32_high", STOPPED, CREATE, false, "symtab", "pgcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -5341,8 +5376,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icc_32_none", STOPPED, CREATE, false, "symtab", "icc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5357,8 +5397,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icc_32_low", STOPPED, CREATE, false, "symtab", "icc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5373,8 +5418,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icc_32_high", STOPPED, CREATE, false, "symtab", "icc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5389,8 +5439,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icc_32_max", STOPPED, CREATE, false, "symtab", "icc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5404,8 +5459,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "symtab", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5416,8 +5476,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_low", STOPPED, CREATE, false, "symtab", "g++", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5428,8 +5493,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_high", STOPPED, CREATE, false, "symtab", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5440,8 +5510,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_max", STOPPED, CREATE, false, "symtab", "g++", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -5453,8 +5528,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_pgCC_32_none", STOPPED, CREATE, false, "symtab", "pgCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -5469,8 +5549,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_pgCC_32_low", STOPPED, CREATE, false, "symtab", "pgCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -5485,8 +5570,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_pgCC_32_high", STOPPED, CREATE, false, "symtab", "pgCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
@@ -5501,8 +5591,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icpc_32_none", STOPPED, CREATE, false, "symtab", "iCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5517,8 +5612,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icpc_32_low", STOPPED, CREATE, false, "symtab", "iCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5533,8 +5633,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icpc_32_high", STOPPED, CREATE, false, "symtab", "iCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5549,8 +5654,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icpc_32_max", STOPPED, CREATE, false, "symtab", "iCC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_anno_basic_types", "test_anno_basic_types", "test_anno_basic_types.so", false, "{test: test_anno_basic_types, mutator: test_anno_basic_types, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_line_info", "test_line_info", "test_line_info.so", false, "{test: test_line_info, mutator: test_line_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_module", "test_module", "test_module.so", false, "{test: test_module, mutator: test_module, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_relocations", "test_relocations", "test_relocations.so", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.so", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_type_info", "test_type_info", "test_type_info.so", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
@@ -5558,6 +5668,75 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_icpc_32_max", STOPPED, DESERIALIZE, false, "symtab", "iCC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: iCC, run_mode: deserialize}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "symtab", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_g++_32_low", STOPPED, CREATE, false, "symtab", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_g++_32_high", STOPPED, CREATE, false, "symtab", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_g++_32_max", STOPPED, CREATE, false, "symtab", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#ifdef PGI
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_pgCC_32_none", STOPPED, CREATE, false, "symtab", "pgCC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: none, compiler: pgCC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_pgCC_32_low", STOPPED, CREATE, false, "symtab", "pgCC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: low, compiler: pgCC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef PGI
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_pgCC_32_high", STOPPED, CREATE, false, "symtab", "pgCC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: high, compiler: pgCC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(PGI)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_icpc_32_none", STOPPED, CREATE, false, "symtab", "iCC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: none, compiler: iCC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_icpc_32_low", STOPPED, CREATE, false, "symtab", "iCC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: low, compiler: iCC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_icpc_32_high", STOPPED, CREATE, false, "symtab", "iCC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: high, compiler: iCC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(ICC)
+#ifdef ICC
+  test_count = 0;
+  rg = new RunGroup("symtab_cxx_group_test.mutatee_solo_icpc_32_max", STOPPED, CREATE, false, "symtab", "iCC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_exception", "test_exception", "test_exception.so", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: max, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)

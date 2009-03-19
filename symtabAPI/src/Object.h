@@ -75,6 +75,8 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
  *   section....
 ************************************************************************/
 
+class MemRegReader;
+
 class AObject {
 public:
     SYMTAB_EXPORT AObject();
@@ -122,6 +124,12 @@ public:
     SYMTAB_EXPORT void * getErrFunc() const;
     SYMTAB_EXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
     SYMTAB_EXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
+
+	SYMTAB_EXPORT virtual bool hasFrameDebugInfo() {return false;}
+	SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
+			Dyninst::MachRegister /*reg*/, 
+			Dyninst::MachRegisterVal & /*reg_result*/,
+			MemRegReader * /*reader*/) {return false;}
 
 protected:
     SYMTAB_EXPORT virtual ~AObject();

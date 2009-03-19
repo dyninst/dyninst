@@ -436,17 +436,25 @@ test_thread_8.mutatee_solo_g++_64_none: test_thread_8_mutatee_solo_g++_64_none.o
 # Mutatees compiled with g++ for symtab
 ######################################################################
 
-symtab_SOLO_MUTATEES_gnu_cxx = symtab_group_test.mutatee_solo_g++_64_high symtab_group_test.mutatee_solo_g++_64_low symtab_group_test.mutatee_solo_g++_64_max symtab_group_test.mutatee_solo_g++_64_none 
+symtab_SOLO_MUTATEES_gnu_cxx = symtab_cxx_group_test.mutatee_solo_g++_64_high symtab_cxx_group_test.mutatee_solo_g++_64_low symtab_cxx_group_test.mutatee_solo_g++_64_max symtab_cxx_group_test.mutatee_solo_g++_64_none symtab_group_test.mutatee_solo_g++_64_high symtab_group_test.mutatee_solo_g++_64_low symtab_group_test.mutatee_solo_g++_64_max symtab_group_test.mutatee_solo_g++_64_none 
 
 # Now a list of rules for compiling the mutatees with g++
 
-symtab_group_test.mutatee_solo_g++_64_high: symtab_group_test_group_g++_64_high.o test_lookup_func_mutatee_solo_g++_64_high.o test_lookup_var_mutatee_solo_g++_64_high.o test_anno_basic_types_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
+symtab_cxx_group_test.mutatee_solo_g++_64_high: test_exception_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-symtab_group_test.mutatee_solo_g++_64_low: symtab_group_test_group_g++_64_low.o test_lookup_func_mutatee_solo_g++_64_low.o test_lookup_var_mutatee_solo_g++_64_low.o test_anno_basic_types_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
+symtab_cxx_group_test.mutatee_solo_g++_64_low: test_exception_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-symtab_group_test.mutatee_solo_g++_64_max: symtab_group_test_group_g++_64_max.o test_lookup_func_mutatee_solo_g++_64_max.o test_lookup_var_mutatee_solo_g++_64_max.o test_anno_basic_types_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
+symtab_cxx_group_test.mutatee_solo_g++_64_max: test_exception_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-symtab_group_test.mutatee_solo_g++_64_none: symtab_group_test_group_g++_64_none.o test_lookup_func_mutatee_solo_g++_64_none.o test_lookup_var_mutatee_solo_g++_64_none.o test_anno_basic_types_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
+symtab_cxx_group_test.mutatee_solo_g++_64_none: test_exception_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+symtab_group_test.mutatee_solo_g++_64_high: symtab_group_test_group_g++_64_high.o test_lookup_func_mutatee_solo_g++_64_high.o test_lookup_var_mutatee_solo_g++_64_high.o test_line_info_mutatee_solo_g++_64_high.o test_module_mutatee_solo_g++_64_high.o test_relocations_mutatee_solo_g++_64_high.o test_symtab_ser_funcs_mutatee_solo_g++_64_high.o test_type_info_mutatee_solo_g++_64_high.o test_anno_basic_types_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+symtab_group_test.mutatee_solo_g++_64_low: symtab_group_test_group_g++_64_low.o test_lookup_func_mutatee_solo_g++_64_low.o test_lookup_var_mutatee_solo_g++_64_low.o test_line_info_mutatee_solo_g++_64_low.o test_module_mutatee_solo_g++_64_low.o test_relocations_mutatee_solo_g++_64_low.o test_symtab_ser_funcs_mutatee_solo_g++_64_low.o test_type_info_mutatee_solo_g++_64_low.o test_anno_basic_types_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+symtab_group_test.mutatee_solo_g++_64_max: symtab_group_test_group_g++_64_max.o test_lookup_func_mutatee_solo_g++_64_max.o test_lookup_var_mutatee_solo_g++_64_max.o test_line_info_mutatee_solo_g++_64_max.o test_module_mutatee_solo_g++_64_max.o test_relocations_mutatee_solo_g++_64_max.o test_symtab_ser_funcs_mutatee_solo_g++_64_max.o test_type_info_mutatee_solo_g++_64_max.o test_anno_basic_types_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+symtab_group_test.mutatee_solo_g++_64_none: symtab_group_test_group_g++_64_none.o test_lookup_func_mutatee_solo_g++_64_none.o test_lookup_var_mutatee_solo_g++_64_none.o test_line_info_mutatee_solo_g++_64_none.o test_module_mutatee_solo_g++_64_none.o test_relocations_mutatee_solo_g++_64_none.o test_symtab_ser_funcs_mutatee_solo_g++_64_none.o test_type_info_mutatee_solo_g++_64_none.o test_anno_basic_types_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 
 # Exceptional rules for mutatees compiled with g++
@@ -1281,30 +1289,78 @@ dyninst_group_test_group_g++_64_low.o: dyninst_group_test_group.c
 	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 
 # Generic rules for g++'s mutatees and varying optimization levels for symtab
+test_exception_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_exception_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_exception_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_exception_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
 symtab_group_test_group_g++_64_high.o: symtab_group_test_group.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -DGROUPABLE=1 -o $@ $<
 symtab_group_test_group_g++_64_max.o: symtab_group_test_group.c
@@ -1782,13 +1838,13 @@ symtab_SOLO_MUTATEES_gnu_cc = symtab_group_test.mutatee_solo_gcc_64_high symtab_
 
 # Now a list of rules for compiling the mutatees with gcc
 
-symtab_group_test.mutatee_solo_gcc_64_high: symtab_group_test_group_gcc_64_high.o test_lookup_func_mutatee_solo_gcc_64_high.o test_lookup_var_mutatee_solo_gcc_64_high.o test_anno_basic_types_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
+symtab_group_test.mutatee_solo_gcc_64_high: symtab_group_test_group_gcc_64_high.o test_lookup_func_mutatee_solo_gcc_64_high.o test_lookup_var_mutatee_solo_gcc_64_high.o test_line_info_mutatee_solo_gcc_64_high.o test_module_mutatee_solo_gcc_64_high.o test_relocations_mutatee_solo_gcc_64_high.o test_symtab_ser_funcs_mutatee_solo_gcc_64_high.o test_type_info_mutatee_solo_gcc_64_high.o test_anno_basic_types_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-symtab_group_test.mutatee_solo_gcc_64_low: symtab_group_test_group_gcc_64_low.o test_lookup_func_mutatee_solo_gcc_64_low.o test_lookup_var_mutatee_solo_gcc_64_low.o test_anno_basic_types_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
+symtab_group_test.mutatee_solo_gcc_64_low: symtab_group_test_group_gcc_64_low.o test_lookup_func_mutatee_solo_gcc_64_low.o test_lookup_var_mutatee_solo_gcc_64_low.o test_line_info_mutatee_solo_gcc_64_low.o test_module_mutatee_solo_gcc_64_low.o test_relocations_mutatee_solo_gcc_64_low.o test_symtab_ser_funcs_mutatee_solo_gcc_64_low.o test_type_info_mutatee_solo_gcc_64_low.o test_anno_basic_types_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-symtab_group_test.mutatee_solo_gcc_64_max: symtab_group_test_group_gcc_64_max.o test_lookup_func_mutatee_solo_gcc_64_max.o test_lookup_var_mutatee_solo_gcc_64_max.o test_anno_basic_types_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
+symtab_group_test.mutatee_solo_gcc_64_max: symtab_group_test_group_gcc_64_max.o test_lookup_func_mutatee_solo_gcc_64_max.o test_lookup_var_mutatee_solo_gcc_64_max.o test_line_info_mutatee_solo_gcc_64_max.o test_module_mutatee_solo_gcc_64_max.o test_relocations_mutatee_solo_gcc_64_max.o test_symtab_ser_funcs_mutatee_solo_gcc_64_max.o test_type_info_mutatee_solo_gcc_64_max.o test_anno_basic_types_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-symtab_group_test.mutatee_solo_gcc_64_none: symtab_group_test_group_gcc_64_none.o test_lookup_func_mutatee_solo_gcc_64_none.o test_lookup_var_mutatee_solo_gcc_64_none.o test_anno_basic_types_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
+symtab_group_test.mutatee_solo_gcc_64_none: symtab_group_test_group_gcc_64_none.o test_lookup_func_mutatee_solo_gcc_64_none.o test_lookup_var_mutatee_solo_gcc_64_none.o test_line_info_mutatee_solo_gcc_64_none.o test_module_mutatee_solo_gcc_64_none.o test_relocations_mutatee_solo_gcc_64_none.o test_symtab_ser_funcs_mutatee_solo_gcc_64_none.o test_type_info_mutatee_solo_gcc_64_none.o test_anno_basic_types_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 
 # Exceptional rules for mutatees compiled with gcc
@@ -2683,30 +2739,78 @@ dyninst_group_test_group_gcc_64_low.o: dyninst_group_test_group.c
 	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -o $@ $<
 
 # Generic rules for gcc's mutatees and varying optimization levels for symtab
+test_exception_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_exception_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_exception_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_exception_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.C ../src/symtab/test_exception_mutatee.C
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_exception -DGROUPABLE=0 -DMUTATEE_SRC=../src/symtab/test_exception_mutatee.C -o $@ $<
+test_type_info_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
 test_anno_basic_types_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
 symtab_group_test_group_gcc_64_high.o: symtab_group_test_group.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -DGROUPABLE=1 -o $@ $<
 symtab_group_test_group_gcc_64_max.o: symtab_group_test_group.c

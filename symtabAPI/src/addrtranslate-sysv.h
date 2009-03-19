@@ -99,6 +99,8 @@ public:
    LoadedLib *getAOut();
    AddressTranslateSysV(int pid, ProcessReader *reader_);
    AddressTranslateSysV();
+   Address getLibraryTrapAddrSysV();
+
 private:
    ProcessReader *reader;
    Address interpreter_base;

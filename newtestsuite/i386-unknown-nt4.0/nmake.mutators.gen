@@ -18,11 +18,11 @@ instruction_MUTATORS_SO = test_instruction_read_write.dll test_instruction_farca
 
 instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.obj test_instruction_farcall.obj 
 
-symtab_MUTATORS = test_lookup_func test_lookup_var test_anno_basic_types 
+symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module test_relocations test_type_info test_symtab_ser_funcs test_anno_basic_types test_exception 
 
-symtab_MUTATORS_SO = test_lookup_func.dll test_lookup_var.dll test_anno_basic_types.dll 
+symtab_MUTATORS_SO = test_lookup_func.dll test_lookup_var.dll test_line_info.dll test_module.dll test_relocations.dll test_type_info.dll test_symtab_ser_funcs.dll test_anno_basic_types.dll test_exception.dll 
 
-symtab_OBJS_ALL_MUTATORS = test_lookup_func.obj test_lookup_var.obj test_anno_basic_types.obj 
+symtab_OBJS_ALL_MUTATORS = test_lookup_func.obj test_lookup_var.obj test_line_info.obj test_module.obj test_relocations.obj test_type_info.obj test_symtab_ser_funcs.obj test_anno_basic_types.obj test_exception.obj 
 
 mutators: $(dyninst_MUTATORS_SO) $(instruction_MUTATORS_SO) $(symtab_MUTATORS_SO)
 
@@ -500,6 +500,18 @@ test_anno_basic_types.dll: test_anno_basic_types.obj $(LIBTESTSUITE)
 test_anno_basic_types.obj: ../src/symtab/test_anno_basic_types.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 
+test_exception.dll: test_exception.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ test_exception.obj $(MUTATOR_LIBS)
+
+test_exception.obj: ../src/symtab/test_exception.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+test_line_info.dll: test_line_info.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ test_line_info.obj $(MUTATOR_LIBS)
+
+test_line_info.obj: ../src/symtab/test_line_info.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
 test_lookup_func.dll: test_lookup_func.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ test_lookup_func.obj $(MUTATOR_LIBS)
 
@@ -510,5 +522,29 @@ test_lookup_var.dll: test_lookup_var.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ test_lookup_var.obj $(MUTATOR_LIBS)
 
 test_lookup_var.obj: ../src/symtab/test_lookup_var.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+test_module.dll: test_module.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ test_module.obj $(MUTATOR_LIBS)
+
+test_module.obj: ../src/symtab/test_module.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+test_relocations.dll: test_relocations.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ test_relocations.obj $(MUTATOR_LIBS)
+
+test_relocations.obj: ../src/symtab/test_relocations.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+test_symtab_ser_funcs.dll: test_symtab_ser_funcs.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ test_symtab_ser_funcs.obj $(MUTATOR_LIBS)
+
+test_symtab_ser_funcs.obj: ../src/symtab/test_symtab_ser_funcs.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+test_type_info.dll: test_type_info.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ test_type_info.obj $(MUTATOR_LIBS)
+
+test_type_info.obj: ../src/symtab/test_type_info.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 

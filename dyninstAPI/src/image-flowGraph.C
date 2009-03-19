@@ -61,7 +61,6 @@
 
 #include "dyninstAPI/src/InstrucIter.h"
 
-#include "symtabAPI/h/LineInformation.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
 #if defined(TIMED_PARSE)

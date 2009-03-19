@@ -341,7 +341,8 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(int pid_, 
-                                                            ProcessReader *reader_)
+                                                            ProcessReader *reader_,
+															PROC_HANDLE)
 {
    AddressTranslate *at = new AddressTranslateSysV(pid_, reader_);
    
@@ -357,7 +358,7 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
 
 AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *reader_)
 {
-   return createAddressTranslator(getpid(), reader_);
+   return createAddressTranslator(getpid(), reader_, INVALID_HANDLE_VALUE);
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<LoadedLibrary> &name_addrs)
@@ -681,7 +682,7 @@ Address AddressTranslateSysV::getTrapAddr()
    return trap_addr;
 }
 
-Address AddressTranslate::getLibraryTrapAddrSysV()
+Address AddressTranslateSysV::getLibraryTrapAddrSysV()
 {
    AddressTranslateSysV *addr_sysv = dynamic_cast<AddressTranslateSysV *>(this);
    return addr_sysv->getTrapAddr();

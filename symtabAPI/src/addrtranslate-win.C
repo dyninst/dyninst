@@ -52,8 +52,10 @@ private:
 public:
    virtual bool init();
    virtual bool refresh();
-   AddressTranslateWin(PID pid);
+   AddressTranslateWin(PID pid, PROC_HANDLE phandle);
    void setNoProc(bool b);
+   virtual Address getLibraryTrapAddrSysV();
+
 };
 
 }
@@ -67,9 +69,9 @@ void AddressTranslateWin::setNoProc(bool b)
    no_proc = b;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *)
+AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, PROC_HANDLE phandle_)
 {
-	AddressTranslateWin *new_translate = new AddressTranslateWin(pid_);
+	AddressTranslateWin *new_translate = new AddressTranslateWin(pid_, phandle_);
 	if (!new_translate)
 		return NULL;
 	if (new_translate->creation_error)
@@ -79,7 +81,8 @@ AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessRea
 
 AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *)
 {
-	return createAddressTranslator(GetCurrentProcess(), NULL);
+	//return createAddressTranslator(GetCurrentProcess(), NULL);
+	return createAddressTranslator(GetCurrentProcessId(), NULL, GetCurrentProcess());
 }
 
 bool AddressTranslateWin::init()
@@ -105,7 +108,7 @@ void printSysError(unsigned errNo) {
 
 bool AddressTranslateWin::refresh()
 {
-	HANDLE currentProcess = pid;
+	HANDLE currentProcess = phandle;
 	int result;
 
    if (no_proc)
@@ -164,8 +167,8 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    return &mapped_regions;
 }
 
-AddressTranslateWin::AddressTranslateWin(PID pid) :
-	AddressTranslate(pid),
+AddressTranslateWin::AddressTranslateWin(PID pid, PROC_HANDLE phandle_) :
+	AddressTranslate(pid, phandle_),
    no_proc(false)
 {
 	init();
@@ -193,7 +196,7 @@ Symtab *LoadedLib::getSymtab()
 
 AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<LoadedLibrary> &name_addrs)
 {
-   AddressTranslateWin *at = new AddressTranslateWin(INVALID_HANDLE_VALUE);
+   AddressTranslateWin *at = new AddressTranslateWin(-1, INVALID_HANDLE_VALUE);
    at->setNoProc(true);
    
    if (!at) {
@@ -220,7 +223,7 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
    return at;
 }
 
-Address AddressTranslate::getLibraryTrapAddrSysV()
+Address AddressTranslateWin::getLibraryTrapAddrSysV()
 {
    return 0x0;
 }

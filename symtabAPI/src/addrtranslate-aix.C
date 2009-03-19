@@ -52,6 +52,7 @@ public:
 
    virtual bool refresh();
    virtual ~AddressTranslateAIX();
+   Address getLibraryTrapAddrSysV();
 };
 
 class LoadedLibAIX : public LoadedLib {
@@ -213,7 +214,8 @@ bool AddressTranslateAIX::refresh()
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, 
-                                                            ProcessReader *)
+                                                            ProcessReader *,
+															PROC_HANDLE)
 {
    AddressTranslate *at = new AddressTranslateAIX(pid_);
    
@@ -466,7 +468,7 @@ void LoadedLibAIX::getOutputs(string &filename, Address &code, Address &data)
    data = data_load_addr;
 }
 
-Address AddressTranslate::getLibraryTrapAddrSysV()
+Address AddressTranslateAIX::getLibraryTrapAddrSysV()
 {
    return 0x0;
 }

@@ -61,7 +61,6 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 
-#include "symtabAPI/h/LineInformation.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/InstructionSource.h"
@@ -613,7 +612,7 @@ class pdmodule {
    const std::set<image_instPoint*> &getUnresolvedControlFlow();
    void addUnresolvedControlFlow(image_instPoint* badPt);
 
-   LineInformation *getLineInformation();
+   //LineInformation *getLineInformation();
    Module *mod();
 
    image *imExec() const { return exec_; }
