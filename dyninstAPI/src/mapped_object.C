@@ -1123,7 +1123,7 @@ mapped_module* mapped_object::getDefaultModule()
   mapped_module* ret = findModule("DEFAULT_MODULE");
   if(ret) return ret;
   
-  assert(!everyModule.empty());
+  assert(everyModule.size() > 0);
   return everyModule[0];
   
 }
