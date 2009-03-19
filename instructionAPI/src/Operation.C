@@ -33,6 +33,11 @@
 #include "arch-x86.h"
 #include "entryIDs-IA32.h"
 #include "../../common/h/Singleton.h"
+#include "Register.h"
+#include <map>
+#include <boost/assign/list_of.hpp>
+
+using namespace boost::assign;
 
 namespace Dyninst
 {
@@ -290,12 +295,14 @@ namespace Dyninst
     public:
       OperationMaps()
       {
-	thePC = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
-	pcAndSP = list_of(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())))
-	(RegisterAST::Ptr(new RegisterAST(r_eSP)));
-	stackPointer = list_of(RegisterAST::Ptr(new RegisterAST(r_eSP)));
-	framePointer = list_of(RegisterAST::Ptr(new RegisterAST(r_eBP)));
-	spAndBP = list_of(RegisterAST::Ptr(new RegisterAST(r_eSP)))(RegisterAST::Ptr(new RegisterAST(r_eBP)));
+	thePC.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
+	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
+	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	
+	stackPointer.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	framePointer.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
+	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
 	
 	nonOperandRegisterReads = 
 	map_list_of
@@ -338,11 +345,11 @@ namespace Dyninst
       std::set<RegisterAST::Ptr> stackPointer;
       std::set<RegisterAST::Ptr> framePointer;
       std::set<RegisterAST::Ptr> spAndBP;
-      map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
-      map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
+      std::map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
+      std::map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
 
-      map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
-      map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
+      std::map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
+      std::map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
     };
     void Operation::SetUpNonOperandData()
     {

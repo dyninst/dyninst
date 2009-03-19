@@ -56,12 +56,15 @@
 class AstNode;
 // Don't include the boost shared_ptr library
 
+namespace dyn_detail 
+{
 namespace boost {
     template< typename T > class shared_ptr;
     template<> class shared_ptr<AstNode *>;
 }
+}
 
-typedef boost::shared_ptr<AstNode> AstNodePtr;
+typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 
 class process;
 class BPatch_process;

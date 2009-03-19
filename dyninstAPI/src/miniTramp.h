@@ -50,7 +50,6 @@
 #include "dyninstAPI/src/instPoint.h" // generatedCodeObject
 #include "dyninstAPI/src/multiTramp.h" // generatedCodeObject
 #include "dyninstAPI/src/ast.h"
-#include "boost/shared_ptr.hpp"
 
 // This is a serious problem: our code generation has no way to check
 // the size of the buffer it's emitting to.

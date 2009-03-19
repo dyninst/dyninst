@@ -35,7 +35,6 @@
 #include "Expression.h"
 #include <vector>
 #include <map>
-#include <boost/assign/list_of.hpp>
 #include <sstream>
 
 #include "RegisterIDs-x86.h"
@@ -53,7 +52,7 @@ namespace Dyninst
     {
     public:
       /// \brief A type definition for a reference-counted pointer to a %RegisterAST.
-      typedef boost::shared_ptr<RegisterAST> Ptr;
+      typedef dyn_detail::boost::shared_ptr<RegisterAST> Ptr;
       
       /// Construct a register, assigning it the ID \c id.
       RegisterAST(int id);
@@ -66,7 +65,7 @@ namespace Dyninst
 
       /// By definition, the use set of a %RegisterAST object is itself.
       /// \param uses This %RegisterAST will be inserted into \c uses.
-      virtual void getUses(set<InstructionAST::Ptr>& uses) const;
+      virtual void getUses(set<InstructionAST::Ptr>& uses);
 
       /// \c isUsed returns true if \c findMe is a %RegisterAST that represents
       /// the same register as this %RegisterAST, and false otherwise.
