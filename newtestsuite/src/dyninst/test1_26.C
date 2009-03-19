@@ -70,6 +70,9 @@ extern "C" DLLEXPORT  TestMutator *test1_26_factory() {
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
 test_results_t test1_26_Mutator::executeTest() {
+  if (appImage == NULL)
+    return SKIPPED;
+  
   if (isMutateeFortran(appImage)) {
     return SKIPPED;
   }
