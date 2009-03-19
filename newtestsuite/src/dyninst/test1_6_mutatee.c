@@ -64,29 +64,29 @@ int test1_6_func1() {
   } else {
     logerror("**Failed** test #6 (arithmetic operators)\n");
     if (test1_6_globalVariable1 != 60+2)
-      logerror("    addition error 60+2 got %d\n", test1_6_globalVariable1);
+      logerror("    addition error (const) 60+2 got %d\n", test1_6_globalVariable1);
     if (test1_6_globalVariable2 != 64-1)
-      logerror("    subtraction error 64-1 got %d\n", test1_6_globalVariable2);
+      logerror("    subtraction error (const) 64-1 got %d\n", test1_6_globalVariable2);
     if (test1_6_globalVariable3 != 66/3)
-      logerror("    division error 66/3 got %d\n", test1_6_globalVariable3);
+      logerror("    division error (const) 66/3 got %d\n", test1_6_globalVariable3);
     if (test1_6_globalVariable4 != 67/3)
-      logerror("    division error 67/3 got %d\n", test1_6_globalVariable4);
+      logerror("    division error (const) 67/3 got %d\n", test1_6_globalVariable4);
     if (test1_6_globalVariable5 != 6 * 5)
-      logerror("    mult error 6*5 got %d\n", test1_6_globalVariable5);
+      logerror("    mult error 6*5 (const) got %d\n", test1_6_globalVariable5);
     if (test1_6_globalVariable6 != 3)
-      logerror("    comma error 10,3 got %d\n", test1_6_globalVariable6);
+      logerror("    comma error 10,3 (const) got %d\n", test1_6_globalVariable6);
     if (test1_6_globalVariable1a != 60+2)
-      logerror("    addition error 60+2 got %d\n", test1_6_globalVariable1a);
+      logerror("    addition error 60+2 (var) got %d\n", test1_6_globalVariable1a);
     if (test1_6_globalVariable2a != 64-1)
-      logerror("    subtraction error 64-1 got %d\n", test1_6_globalVariable2a);
+      logerror("    subtraction error 64-1 (var) got %d\n", test1_6_globalVariable2a);
     if (test1_6_globalVariable3a != 66/3)
-      logerror("    division error 66/3 got %d\n", test1_6_globalVariable3a);
+      logerror("    division error 66/3 (var) got %d\n", test1_6_globalVariable3a);
     if (test1_6_globalVariable4a != 67/3)
-      logerror("    division error 67/3 got %d\n", test1_6_globalVariable4a);
+      logerror("    division error 67/3 (var) got %d\n", test1_6_globalVariable4a);
     if (test1_6_globalVariable5a != 6 * 5)
-      logerror("    mult error 6*5 got %d\n", test1_6_globalVariable5a);
+      logerror("    mult error 6*5 (var) got %d\n", test1_6_globalVariable5a);
     if (test1_6_globalVariable6a != 3)
-      logerror("    comma error 10,3 got %d\n", test1_6_globalVariable6a);
+      logerror("    comma error 10,3 (var) got %d\n", test1_6_globalVariable6a);
     retval = -1; /* Test failed */
   }
   return retval;
