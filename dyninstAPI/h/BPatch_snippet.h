@@ -71,6 +71,8 @@ class BPatch_process;
 class BPatch_function;
 class BPatch_point;
 class BPatch_addressSpace;
+class int_variable;
+
 
 /*
  * Used to specify whether a snippet should be installed before other snippets
@@ -146,6 +148,8 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
                                         const BPatch_snippet &rOperand);
     friend AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand, 
                                         const BPatch_snippet &rOperand);
+    friend AstNodePtr generateVariableBase(const BPatch_snippet &lOperand);
+    
 
     public:
 
@@ -440,37 +444,50 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     BPatch_point	*scope;
     bool		isLocal;
     BPatch_type *type;
+    int_variable *intvar;
+    
 
     AddressSpace *getAS();
  private:
-    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
-                        AddressSpace *in_lladdSpace,
-                        void *in_address,
-                        int in_size);
-    BPatch_variableExpr(char *in_name, 
-                        BPatch_addressSpace *in_addSpace,
-                        AddressSpace *as,
-                        AstNodePtr *ast_wrapper_,
-                        BPatch_type *type);
+    // Used to get expressions for the components of a structure
+    // Used to get function pointers
     BPatch_variableExpr(char *in_name, 
                         BPatch_addressSpace *in_addSpace,
                         AddressSpace *as,
                         AstNodePtr *ast_wrapper_,
                         BPatch_type *type, void* in_address);
+    // Used to get forked copies of variable expressions
+    // Used by malloc & malloc_by_type
     BPatch_variableExpr(BPatch_addressSpace *in_addSpace, 
                         AddressSpace *as,
                         void *in_address, 
                         int in_register, BPatch_type *type, 
                         BPatch_storageClass storage = BPatch_storageAddr,
                         BPatch_point *scp = NULL);
+    // Used for locals (naturally)
     BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
                         AddressSpace *as,
                         BPatch_localVar *lv, BPatch_type *type,
                         BPatch_point *scp);
     
-    BPatch_variableExpr(const char *name, BPatch_addressSpace *in_addSpace,
-                        AddressSpace *ll_addSpace, void *in_address, 
-                        BPatch_type *type);
+    //    BPatch_variableExpr(const char *name, BPatch_addressSpace *in_addSpace,
+    //                    AddressSpace *ll_addSpace, void *in_address, 
+    //                    BPatch_type *type);
+    // Used by findOrCreateVariable
+    BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
+			AddressSpace *ll_addSpace, int_variable *iv,
+			BPatch_type *type);
+
+    static BPatch_variableExpr* makeVariableExpr(BPatch_addressSpace* in_addSpace,
+						 int_variable* v,
+						 BPatch_type* type);
+    static BPatch_variableExpr* makeVariableExpr(BPatch_addressSpace* in_addSpace,
+						 AddressSpace* in_llAddSpace,
+						 std::string name,
+						 void* offset,
+						 BPatch_type* type);
+    
+    
 
   public:
 

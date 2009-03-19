@@ -75,7 +75,7 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
 //#include "InstrucIter.h"
-
+#include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 #include <sstream>
@@ -1669,7 +1669,6 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
    else
       emitMovImmToRM(REGNUM_EBP, -1*(dest<<2), (int)imm, gen);
 }
-
 
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
                codeGen &gen, bool /*noCost*/, 

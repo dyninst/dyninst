@@ -764,7 +764,8 @@ int write_printf(const char *format, ...)
   va_start(va, format);
   int ret = vfprintf(dyn_debug_write_file, format, va);
   va_end(va);
-
+  fflush(dyn_debug_write_file);
+  
   debugPrintLock->_Unlock(FILE__, __LINE__);
 
   return ret;

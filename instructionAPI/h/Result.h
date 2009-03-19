@@ -35,6 +35,7 @@
 #include <sstream>
 #include <string.h> // memcmp
 #include <inttypes.h>
+#include <assert.h>
 
 
 namespace Dyninst

@@ -142,7 +142,7 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     lastMini(NULL),
     valid(false),
     optimized_out_guards(false),
-    guardState_(unset_BTR),
+    guardState_(guarded_BTR),
     suppress_threads_(false),
     instVersion_(),
     when_(when)
@@ -460,7 +460,6 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
       fprintf(stderr, "Gripe: base tramp creation failed\n");
       retval = false;
     }
-
 
     trampPostOffset = gen.used();
     restoreStartOffset = 0;

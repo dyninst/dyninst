@@ -294,7 +294,7 @@ class AddressSpace : public InstructionSource {
                               Address) { return false; }
     
     // Trampoline guard get/set functions
-    Address trampGuardBase(void) { return trampGuardBase_; }
+    int_variable* trampGuardBase(void) { return trampGuardBase_; }
     AstNodePtr trampGuardAST(void);
 
     // Get the current code generator (or emitter)
@@ -387,7 +387,7 @@ class AddressSpace : public InstructionSource {
     // Loaded mapped objects (may be just 1)
     pdvector<mapped_object *> mapped_objects;
 
-    Address trampGuardBase_; // Tramp recursion index mapping
+    int_variable* trampGuardBase_; // Tramp recursion index mapping
     AstNodePtr trampGuardAST_;
 
     void *up_ptr_;

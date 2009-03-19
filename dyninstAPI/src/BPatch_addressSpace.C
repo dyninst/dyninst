@@ -41,7 +41,6 @@
 
 #define BPATCH_FILE
 
-
 #include "process.h"
 #include "EventHandler.h"
 #include "mailbox.h"
@@ -70,6 +69,8 @@
 #include "BPatch_addressSpace.h"
 
 #include "BPatch_instruction.h"
+
+#include <sstream>
 
 BPatch_addressSpace::BPatch_addressSpace() :
    image(NULL)
@@ -155,9 +156,7 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
          type = BPatch::bpatch->type_Untyped;
    }
    
-   BPatch_variableExpr *var;
-   var = new BPatch_variableExpr(v->symTabName().c_str(), this, as,
-                                 (void *) v->getAddress(), type);
+   BPatch_variableExpr *var = BPatch_variableExpr::makeVariableExpr(this, v, type);
    mod->var_map[v] = var;
    return var;
 }
@@ -447,7 +446,10 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
    assert(as.size());
    void *ptr = (void *) as[0]->inferiorMalloc(n, dataHeap);
    if (!ptr) return NULL;
-   return new BPatch_variableExpr(this, as[0], ptr, Null_Register, 
+   std::stringstream namestr;
+   namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
+   std::string name = namestr.str();
+   return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
          BPatch::bpatch->type_Untyped);
 }
 
@@ -477,7 +479,10 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
    BPatch_type &t = const_cast<BPatch_type &>(type);
    void *mem = (void *) as[0]->inferiorMalloc(t.getSize(), dataHeap);
    if (!mem) return NULL;
-   return new BPatch_variableExpr(this, as[0], mem, Null_Register, &t);
+   std::stringstream namestr;
+   namestr << "dyn_malloc_0x" << std::hex << mem << "_" << type.getName();
+   std::string name = namestr.str();
+   return BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, &t);
 }
 
 
@@ -491,6 +496,12 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
 
 bool BPatch_addressSpace::freeInt(BPatch_variableExpr &ptr)
 {
+  if(ptr.intvar)
+  {
+    // kill the symbols
+    
+  }
+  
    ptr.getAS()->inferiorFree((Address)ptr.getBaseAddr());
    return true;
 }

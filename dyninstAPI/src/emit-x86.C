@@ -475,7 +475,6 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, codeGen &gen)
     return true;
 }
 
-
 //
 // 64-bit code generation helper functions
 //

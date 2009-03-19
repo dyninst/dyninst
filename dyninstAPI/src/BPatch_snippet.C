@@ -62,6 +62,7 @@
 #include "addressSpace.h"
 
 #include "mapped_object.h" // for savetheworld
+#include "mapped_module.h"
 
 #include "registerSpace.h"
 
@@ -197,6 +198,25 @@ void BPatch_snippet::BPatch_snippet_dtor()
 }
 
 
+AstNodePtr generateVariableBase(const BPatch_snippet &lOperand)
+{
+  AstNodePtr variableBase;
+  if((*(lOperand.ast_wrapper))->getoType() == AstNode::variableValue)
+  {
+    variableBase = AstNode::operandNode(AstNode::variableAddr, (*(lOperand.ast_wrapper))->getOVar());
+  }
+  else if((*(lOperand.ast_wrapper))->getoType() == AstNode::variableAddr)
+  {
+    variableBase = *(lOperand.ast_wrapper);
+  }
+  else
+  {
+    variableBase = AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper));
+  }
+  return variableBase;
+}
+
+
 //
 // generateArrayRef - Construct an Ast expression for an array.
 //
@@ -268,14 +288,14 @@ AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand,
     // Convert a[i] into *(&a + (* i sizeof(element)))
     //
 
+    AstNodePtr arrayBase = generateVariableBase(lOperand);
     AstNodePtr ast = AstNode::operandNode(AstNode::DataIndir,
-                               AstNode::operatorNode(plusOp,
-                                                     AstNode::operatorNode(getAddrOp,
-                                                                           *(lOperand.ast_wrapper)),
-                                                     AstNode::operatorNode(timesOp,
-                                                                           AstNode::operandNode(AstNode::Constant,
-                                                                                                (void *)elementSize),
-                                                                           *(rOperand.ast_wrapper))));
+				      AstNode::operatorNode(plusOp,
+							arrayBase,
+							AstNode::operatorNode(timesOp,
+									    AstNode::operandNode(AstNode::Constant,
+                                                                                                           (void *)elementSize),
+                                                                                      *(rOperand.ast_wrapper))));
     if(!elementType->getUpPtr())
         new BPatch_type(elementType);
     ast->setType((BPatch_type *)elementType -> getUpPtr());
@@ -340,9 +360,11 @@ AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand,
     //
     // Convert s.f into *(&s + offset(s,f))
     //
+    AstNodePtr structBase = generateVariableBase(lOperand);
+    
     AstNodePtr ast = AstNode::operandNode(AstNode::DataIndir,
                                AstNode::operatorNode(plusOp,
-                                                     AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper)),
+                                                     structBase,
                                                      AstNode::operandNode(AstNode::Constant,
                                                                           (void *)offset)));
     if(!field->getType()->getUpPtr())
@@ -465,7 +487,7 @@ void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op,
           break;
       }         
    case BPatch_addr:  {
-       ast_wrapper = new AstNodePtr(AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper)));
+     ast_wrapper = new AstNodePtr(generateVariableBase(lOperand));
        // create a new type which is a pointer to type 
        BPatch_type *baseType = const_cast<BPatch_type *> 
            ((*(lOperand.ast_wrapper))->getType());
@@ -950,38 +972,6 @@ void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &
  * in_address	The address of the variable in the inferior's address space.
  * type		The type of the variable.
  */
-BPatch_variableExpr::BPatch_variableExpr(const char *in_name,
-                                         BPatch_addressSpace * in_addSpace,
-                                         AddressSpace *in_lladdSpace,
-                                         void *in_address,
-                                         BPatch_type *in_type) :
-   name(in_name),
-   appAddSpace(in_addSpace),
-   lladdrSpace(in_lladdSpace),
-   address(in_address),
-   size(0),
-   scope(NULL),
-   isLocal(false),
-   type(in_type)
-   
-{
-    vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
-    AstNodePtr *variableAst;
-    variableAst = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
-    (*variableAst)->setTypeChecking(BPatch::bpatch->isTypeChecked());
-    (*variableAst)->setType(type);
-    variableASTs->push_back(variableAst);
-    ast_wrapper = new AstNodePtr(AstNode::variableNode(*variableASTs));
-
-    assert(BPatch::bpatch != NULL);
-    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
-
-    if (!type)
-      type = BPatch::bpatch->type_Untyped;
-    (*ast_wrapper)->setType(type);
-    size = type->getSize();
-}
-
 /*
  * BPatch_variableExpr::BPatch_variableExpr
  *
@@ -1018,30 +1008,59 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
     size = type->getSize();
 }
 
-BPatch_variableExpr::BPatch_variableExpr(char *in_name,
-                                         BPatch_addressSpace *in_addSpace,
-                                         AddressSpace *in_lladdSpace,
-                                         AstNodePtr *ast_wrapper_,
-                                         BPatch_type *typ) :
-   name(in_name),
-   appAddSpace(in_addSpace),
-   lladdrSpace(in_lladdSpace),
-   address(NULL), 
-   scope(NULL), 
-   isLocal(false),
-   type(typ)
-{
-    
-    ast_wrapper = ast_wrapper_;
-    assert(ast_wrapper);
+BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
+			AddressSpace *ll_addSpace, int_variable *iv,
+					 BPatch_type *type)
+  : name(NULL),
+    appAddSpace(in_addSpace),
+    lladdrSpace(ll_addSpace),
+    address(NULL),
+    scope(NULL),
+    isLocal(false),
+    type(type)
+{  
+  const image_variable* img_var = NULL;
+  if(iv)
+  {
+    name = iv->symTabName().c_str();
+    address = reinterpret_cast<void*>(iv->getAddress());
+    intvar = iv;
+    img_var = iv->ivar();
+  }
+  size = type->getSize();
+  if(img_var)
+  {
+    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::variableValue, img_var));
+  }
+  else
+  {
+    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, (void*)(NULL)));
+  }
+  
 
-    assert(BPatch::bpatch != NULL);
-    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
-
-    (*ast_wrapper)->setType(type);
-
-    size = type->getSize();
+  (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  (*ast_wrapper)->setType(type); 
 }
+
+
+BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
+						 int_variable* v,
+						 BPatch_type* type)
+{
+  AddressSpace* llAS = v->mod()->proc();
+  return new BPatch_variableExpr(in_addSpace, llAS, v, type);
+}
+
+BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* in_addSpace,
+							   AddressSpace* in_llAddSpace,
+							   std::string name,
+							   void* offset,
+							   BPatch_type* type)
+{
+  int_variable* v = in_llAddSpace->getAOut()->getDefaultModule()->createVariable(name, reinterpret_cast<Address>(offset), type->getSize());
+  return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
+}
+
 
 unsigned int BPatch_variableExpr::getSizeInt() CONST_EXPORT
 {
@@ -1323,41 +1342,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     scope = scp;
 }
 
-/*
- * BPatch_variableExpr::BPatch_variableExpr
- *
- * Construct a snippet representing an untyped variable of a given size at the
- * given address.
- *
- * in_address   The address of the variable in the inferior's address space.
- */
-BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
-                                         AddressSpace *in_lladdrSpace,
-                                         void *in_address,
-                                         int in_size) :
-    appAddSpace(in_addSpace), 
-    lladdrSpace(in_lladdrSpace),
-    address(in_address),
-    scope(NULL),
-    isLocal(false),
-    type(BPatch::bpatch->type_Untyped)
-{
 
-    vector<AstNodePtr *> *variableASTs = new vector<AstNodePtr *>;
-    AstNodePtr *variableAst;
-//    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
-    variableAst = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
-    (*variableAst)->setTypeChecking(BPatch::bpatch->isTypeChecked());
-    (*variableAst)->setType(BPatch::bpatch->type_Untyped);
-    variableASTs->push_back(variableAst);
-    ast_wrapper = new AstNodePtr(AstNode::variableNode(*variableASTs));
-
-    assert(BPatch::bpatch != NULL);
-    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
-    (*ast_wrapper)->setType(type);
-
-    size = in_size;
-}
 
 
 /*
@@ -1500,7 +1485,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
        // convert to *(&basrVar + offset)
        AstNodePtr fieldExpr = AstNode::operandNode(AstNode::DataIndir,
                                                    AstNode::operatorNode(plusOp,
-                                                   AstNode::operatorNode(getAddrOp, (*ast_wrapper)),
+									 generateVariableBase(*this),
                                                    AstNode::operandNode(AstNode::Constant, (void *)offset)));
        if( field->getType() != NULL ) {
             AstNodePtr *newAst = new AstNodePtr(fieldExpr);

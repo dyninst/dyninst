@@ -62,11 +62,14 @@ class process;
 class AddressSpace;
 class instPoint;
 class int_function;
+class int_variable;
+
 class codeGen;
 class codeRange;
 class instruction;
 class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
 //class BPatch_type;
+class image_variable;
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
@@ -143,13 +146,15 @@ class AstNode {
                            DataIndir,
 			   Param,
                            ReturnVal, 
-                           DataAddr,  // ?
+                           DataAddr,  // Used to represent a variable in memory
                            FrameAddr, // Calculate FP 
                            RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 
                            //PreviousStackFrameDataReg,
                            //RegValue, // A possibly spilled, possibly saved register.
                            // Both the above are now: origRegister 
                            origRegister,
+			   variableAddr,
+			   variableValue,
                            undefOperandType };
 
         enum memoryType {
@@ -165,6 +170,7 @@ class AstNode {
 
         static AstNodePtr operandNode(operandType ot, void *arg);
         static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
+        static AstNodePtr operandNode(operandType ot, const image_variable* iv);
 
         static AstNodePtr memoryNode(memoryType ot, int which);
 
@@ -303,6 +309,22 @@ class AstNode {
 
 	virtual void setOValue(void *) { assert(0); }
 	virtual const void *getOValue() const { assert(0); return NULL; }
+	virtual const image_variable* getOVar() const {
+	  return NULL;
+	}
+	
+	virtual void emitVariableStore(opCode, Register, Register, codeGen&, 
+				       bool, registerSpace*, 
+				       int, const instPoint*, AddressSpace*)
+	{
+	  assert(!"Never call this on anything but an operand");
+	}
+	virtual void emitVariableLoad(opCode, Register, Register, codeGen&, 
+				      bool, registerSpace*, 
+				      int, const instPoint*, AddressSpace*)
+	{
+	  assert(!"Never call this on anything but an operand");
+	}
 	// only function that's defined in metric.C (only used in metri.C)
 	bool condMatch(AstNode* a,
 		       pdvector<dataReqNode*> &data_tuple1,
@@ -409,6 +431,8 @@ class AstOperandNode : public AstNode {
     // And an indirect (say, a load)
     AstOperandNode(operandType ot, AstNodePtr l);
 
+    AstOperandNode(operandType ot, const image_variable* iv);
+    
     ~AstOperandNode() {
         if (oType == ConstantString) free((char *)oValue);
     }
@@ -420,6 +444,11 @@ class AstOperandNode : public AstNode {
 
     virtual void setOValue(void *o) { oValue = o; }
     virtual const void *getOValue() const { return oValue; };
+    virtual const image_variable* getOVar() const 
+    {
+      return oVar;
+    }
+    
 
     virtual AstNodePtr operand() const { return operand_; }
 
@@ -435,19 +464,26 @@ class AstOperandNode : public AstNode {
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
+    virtual void emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
+			   bool noCost, registerSpace* rs, 
+			   int size, const instPoint* point, AddressSpace* as);
+    virtual void emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
+			  bool noCost, registerSpace* rs, 
+			  int size, const instPoint* point, AddressSpace* as);
         
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
                                      Address &retAddr,
                                      Register &retReg);
-
+    int_variable* lookUpVar(AddressSpace* as);
+    
     AstOperandNode() {};
 
     operandType oType;
     void *oValue;
+    const image_variable* oVar;
     AstNodePtr operand_;
-    
 };
 
 
