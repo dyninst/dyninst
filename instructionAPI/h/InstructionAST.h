@@ -35,8 +35,9 @@
 #include "util.h"
 #include <vector>
 #include <set>
-#include <boost/shared_ptr.hpp>
+#include <dyn_detail/boost/shared_ptr.hpp>
 #include <iostream>
+#include <dyn_detail/boost/enable_shared_from_this.hpp>
 
 namespace Dyninst
 {
@@ -60,10 +61,10 @@ namespace Dyninst
     /// - They are of the same type
     /// - If leaf nodes, they represent the same immediate value or the same register
     /// - If non-leaf nodes, they represent the same operation and their corresponding children are equal
-    class INSTRUCTION_EXPORT InstructionAST
+    class INSTRUCTION_EXPORT InstructionAST : public dyn_detail::boost::enable_shared_from_this<InstructionAST>
     {
     public:
-      typedef boost::shared_ptr<InstructionAST> Ptr;
+      typedef dyn_detail::boost::shared_ptr<InstructionAST> Ptr;
 
       InstructionAST();
       virtual ~InstructionAST();
@@ -86,7 +87,7 @@ namespace Dyninst
       ///   - A %BinaryFunction uses the use sets of its children
       ///   - An %Immediate uses nothing
       ///   - A %Dereference uses the use set of its child
-      virtual void getUses(set<InstructionAST::Ptr>& uses) const = 0;
+      virtual void getUses(set<InstructionAST::Ptr>& uses) = 0;
 
       /// \return True if \c findMe is used by this AST node.
       /// \param findMe AST node to find in the use set of this node

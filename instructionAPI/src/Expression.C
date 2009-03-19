@@ -29,14 +29,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "../h/Expression.h"
+#include "Expression.h"
 
 namespace Dyninst
 {
   namespace InstructionAPI
   {
     Expression::Expression(Result_Type t) :
-      userSetValue(t)
+      InstructionAST(), userSetValue(t)
     {
     } 
     Expression::~Expression() 
@@ -73,7 +73,7 @@ namespace Dyninst
 			++curChild)
 		{
 			Expression::Ptr curChild_asExpr = 
-				boost::dynamic_pointer_cast<Expression>(*curChild);
+				dyn_detail::boost::dynamic_pointer_cast<Expression>(*curChild);
 			if(curChild_asExpr)
 			{
 				retVal = retVal || curChild_asExpr->bind(expr, value);

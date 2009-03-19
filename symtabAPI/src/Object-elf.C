@@ -5018,8 +5018,10 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
    for (;;) {
       int last_cur = cur;
       cur = (low + hi) / 2;
-      if (cur == last_cur)
-         return false;
+      if (cur == last_cur) {
+         new_off = off;
+         return true;
+      }
       
       const DbgAddrConversion_t &cur_d = DebugSectionMap[cur];
       

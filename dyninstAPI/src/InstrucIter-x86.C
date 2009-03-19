@@ -1034,6 +1034,10 @@ bool InstrucIter::isFPRead()
 	    return true;
 	  }
 	}
+	else
+	{
+	  return true;
+	}
       }
     }
   }
@@ -1074,6 +1078,10 @@ bool InstrucIter::isFPWrite()
 	  {
 	    return true;
 	  }
+	}
+	else
+	{
+	  return true;
 	}
       }
     }
@@ -1200,11 +1208,11 @@ void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used,
     liveness_printf("Instruction at 0x%x reads FPRs\n", current);
     localUsed.insert(r_DummyFPR);
   }
-  if(isFPWrite())
-  {
-    liveness_printf("Instruction at 0x%x writes FPRs\n", current);
-      localDefined.insert(r_DummyFPR);
-  }
+  //  if(isFPWrite())
+  //{
+  //  liveness_printf("Instruction at 0x%x writes FPRs\n", current);
+  //  localDefined.insert(r_DummyFPR);
+  //}
   if(detailedInsn.getPrefixCount())
   {
     unsigned char repPrefix = detailedInsn.getPrefix()->getPrefix(RepGroup);
