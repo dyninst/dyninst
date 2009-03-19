@@ -16,7 +16,8 @@
                   mutatee/3, mutatee_requires_libs/2, mutatee_comp/1, lang/1,
                   comp_lang/2, platform/4, compiler_opt_trans/3,
                   comp_mut/2, compiler_platform/2,
-                  mcomp_plat/2, test_runmode/2, comp_std_flags_str/2,
+                  mcomp_plat/2, test_runmode/2, 
+		  test_serializable/1, comp_std_flags_str/2,
                   comp_mutatee_flags_str/2, test_runs_everywhere/1,
                   mutatee_special_make_str/2, mutatee_special_requires/2,
                   groupable_test/1, test_platform/2,
@@ -139,10 +140,21 @@ compiler_for_mutatee('dyninst_cxx_group_test', Compiler) :-
 mutatee('symtab_group_test', [
    'test_lookup_func_mutatee.c',
 	'test_lookup_var_mutatee.c',
+	'test_line_info_mutatee.c',
+	'test_module_mutatee.c',
+	'test_relocations_mutatee.c',
+	'test_symtab_ser_funcs_mutatee.c',
+	'test_type_info_mutatee.c',
    'test_anno_basic_types_mutatee.c'
    ]).
 compiler_for_mutatee('symtab_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
+
+mutatee('symtab_cxx_group_test', [
+	'test_exception_mutatee.C'
+   ]).
+compiler_for_mutatee('symtab_cxx_group_test', Compiler) :-
+    comp_lang(Compiler, 'c++').
 
 test('test1_1', 'test1_1', 'dyninst_group_test').
 test_description('test1_1', 'instrument with zero-arg function call').
@@ -2066,15 +2078,61 @@ mutator('test_lookup_func', ['test_lookup_func.C']).
 test_runmode('test_lookup_func', 'createProcess').
 test_start_state('test_lookup_func', 'stopped').
 tests_module('test_lookup_func', 'symtab').
+test_serializable('test_lookup_func').
 
 test('test_lookup_var', 'test_lookup_var', 'symtab_group_test').
-test_description('test_lookup_var', 'Lookup a single function with SymtabAPI').
+test_description('test_lookup_var', 'Lookup a single variable with SymtabAPI').
 test_runs_everywhere('test_lookup_var').
 groupable_test('test_lookup_var').
 mutator('test_lookup_var', ['test_lookup_var.C']).
 test_runmode('test_lookup_var', 'createProcess').
 test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
+
+test('test_line_info', 'test_line_info', 'symtab_group_test').
+test_description('test_line_info', 'SymtabAPI Line Information').
+test_runs_everywhere('test_line_info').
+groupable_test('test_line_info').
+mutator('test_line_info', ['test_line_info.C']).
+test_runmode('test_line_info', 'createProcess').
+test_start_state('test_line_info', 'stopped').
+tests_module('test_line_info', 'symtab').
+
+test('test_module', 'test_module', 'symtab_group_test').
+test_description('test_module', 'SymtabAPI Module detection & management').
+test_runs_everywhere('test_module').
+groupable_test('test_module').
+mutator('test_module', ['test_module.C']).
+test_runmode('test_module', 'createProcess').
+test_start_state('test_module', 'stopped').
+tests_module('test_module', 'symtab').
+
+test('test_relocations', 'test_relocations', 'symtab_group_test').
+test_description('test_relocations', 'SymtabAPI relocation table parsing').
+test_runs_everywhere('test_relocations').
+groupable_test('test_relocations').
+mutator('test_relocations', ['test_relocations.C']).
+test_runmode('test_relocations', 'createProcess').
+test_start_state('test_relocations', 'stopped').
+tests_module('test_relocations', 'symtab').
+
+test('test_type_info', 'test_type_info', 'symtab_group_test').
+test_description('test_type_info', 'SymtabAPI Type Information').
+test_runs_everywhere('test_type_info').
+groupable_test('test_type_info').
+mutator('test_type_info', ['test_type_info.C']).
+test_runmode('test_type_info', 'createProcess').
+test_start_state('test_type_info', 'stopped').
+tests_module('test_type_info', 'symtab').
+
+test('test_symtab_ser_funcs', 'test_symtab_ser_funcs', 'symtab_group_test').
+test_description('test_symtab_ser_funcs', 'Base SymtabAPI seialization function sanity checks').
+test_runs_everywhere('test_symtab_ser_funcs').
+groupable_test('test_symtab_ser_funcs').
+mutator('test_symtab_ser_funcs', ['test_symtab_ser_funcs.C']).
+test_runmode('test_symtab_ser_funcs', 'createProcess').
+test_start_state('test_symtab_ser_funcs', 'stopped').
+tests_module('test_symtab_ser_funcs', 'symtab').
 
 % should this really be groupable?
 test('test_anno_basic_types', 'test_anno_basic_types', 'symtab_group_test').
@@ -2085,6 +2143,15 @@ mutator('test_anno_basic_types', ['test_anno_basic_types.C']).
 test_runmode('test_anno_basic_types', 'createProcess').
 test_start_state('test_anno_basic_types', 'stopped').
 tests_module('test_anno_basic_types', 'symtab').
+
+test('test_exception', 'test_exception', 'symtab_cxx_group_test').
+test_description('test_exception', 'SymtabAPI C++ Exception detection and sanity checks').
+test_runs_everywhere('test_exception').
+groupable_test('test_exception').
+mutator('test_exception', ['test_exception.C']).
+test_runmode('test_exception', 'createProcess').
+test_start_state('test_exception', 'stopped').
+tests_module('test_exception', 'symtab').
 
 % instructionAPI tests
 test('test_instruction_read_write', 'test_instruction_read_write', none).
@@ -2719,6 +2786,7 @@ mutatee_requires_libs(Mutatee, []) :-
 runmode('createProcess').
 runmode('useAttach').
 runmode('binary').
+runmode('deserialize').
 
 % test_runmode/2
 % test_runmode(?Test, ?Runmode)
@@ -2729,6 +2797,7 @@ test_runmode(Test, 'createProcess') :- test_runmode(Test, 'dynamic').
 test_runmode(Test, 'useAttach') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'createProcess') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'binary') :- test_runmode(Test, 'staticdynamic').
+test_runmode(Test, 'deserialize') :- test_serializable(Test).
 
 % runmode_platform/2
 % runmode_platform(?Platform, ?Runmode)
@@ -2738,6 +2807,7 @@ runmode_platform(P, 'createProcess') :- platform(_, _, _, P).
 runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
+runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
 
 % mutatee_peers/2
 mutatee_peers(M, P) :-

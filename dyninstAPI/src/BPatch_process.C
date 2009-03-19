@@ -65,7 +65,6 @@
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
-#include "symtabAPI/h/LineInformation.h"
 #include "BPatch_function.h"
 #include "callbacks.h"
 #include "BPatch_module.h"
@@ -378,7 +377,8 @@ BPatch_process::BPatch_process(process *nProc)
    BPatch::bpatch->registerProcess(this);
 
    // Create an initial thread
-   for (unsigned i=0; i<llproc->threads.size(); i++) {
+   for (unsigned i=0; i<llproc->threads.size(); i++) 
+   {
       dyn_thread *dynthr = llproc->threads[i];
       BPatch_thread *thrd = new BPatch_thread(this, dynthr);
       threads.push_back(thrd);
@@ -403,7 +403,8 @@ void BPatch_process::BPatch_process_dtor()
 {
     
    if (!detached &&
-       !getAsync()->detachFromProcess(this)) {
+       !getAsync()->detachFromProcess(llproc)) 
+   {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
    }
@@ -418,15 +419,19 @@ void BPatch_process::BPatch_process_dtor()
    
    image = NULL;
 
-   if (pendingInsertions) {
-       for (unsigned f = 0; f < pendingInsertions->size(); f++) {
+   if (pendingInsertions) 
+   {
+       for (unsigned f = 0; f < pendingInsertions->size(); f++) 
+	   {
            delete (*pendingInsertions)[f];
        }
+
        delete pendingInsertions;
        pendingInsertions = NULL;
    }
 
-   if (!llproc) { 
+   if (!llproc) {
+
       return; 
    }
 
@@ -437,10 +442,15 @@ void BPatch_process::BPatch_process_dtor()
     * If we attached to the process, then we detach and leave it be,
     * otherwise we'll terminate it
     **/
-   if (createdViaAttach) {
+
+   if (createdViaAttach) 
+   {
        llproc->detachProcess(true);
-   }else  {
-       if (llproc->isAttached()) {
+   }
+   else  
+   {
+       if (llproc->isAttached()) 
+	   {
            proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
            terminateExecutionInt();
        }
@@ -696,7 +706,7 @@ bool BPatch_process::wasRunningWhenAttachedInt()
 bool BPatch_process::detachInt(bool cont)
 {
    //__UNLOCK;
-   if (!getAsync()->detachFromProcess(this)) {
+   if (!getAsync()->detachFromProcess(llproc)) {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
    }
@@ -1988,9 +1998,11 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
                          unsigned long stack_start,  
                          unsigned long start_addr)
 {
-   //fprintf(stderr, "%s[%d][%s]:  welcome to createOrUpdateBPThread(tid = %lu)\n",
-   //      FILE__, __LINE__, getThreadStr(getExecThreadID()), tid);
+   async_printf("%s[%d]:  welcome to createOrUpdateBPThread(tid = %lu)\n",
+         FILE__, __LINE__, tid);
+
    BPatch_thread *bpthr = this->getThread(tid);
+
    if (!bpthr)
       bpthr = this->getThreadByIndex(index);
 
@@ -2006,10 +2018,12 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
 
    bool found = false;
    for (unsigned i=0; i<threads.size(); i++)
-      if (threads[i] == bpthr) {
+      if (threads[i] == bpthr) 
+	  {
          found = true;
          break;
       }
+
    if (!found)
       threads.push_back(bpthr);
 
@@ -2069,10 +2083,17 @@ bool BPatch_process::updateThreadInfo()
    if (!llproc->recognize_threads(NULL))
        return false;
    
+   async_printf("%s[%d]:  about to startup async thread\n", FILE__, __LINE__);
+
    //We want to startup the event handler thread even if there's
    // no registered handlers so we can start getting MT events.
    if (!getAsync()->startupThread())
+   {
+	   async_printf("%s[%d]:  startup async thread failed\n", FILE__, __LINE__);
        return false;
+   }
+
+   async_printf("%s[%d]:  startup async thread: ok\n", FILE__, __LINE__);
    return true;
 }
 
@@ -2080,7 +2101,9 @@ bool BPatch_process::updateThreadInfo()
  * This function continues a stopped process, letting it execute in single step mode,
  * and printing the current instruction as it executes.
  **/
-void BPatch_process::debugSuicideInt() {
+
+void BPatch_process::debugSuicideInt() 
+{
     llproc->debugSuicide();
 }
 
@@ -2089,16 +2112,22 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
                                                   unsigned long stack_top, 
                                                   unsigned long start_pc, process *proc_)
 {
+	async_printf("%s[%d]:  welcome to handleThreadCreate\n", FILE__, __LINE__);
    //bool thread_exists = (getThread(threadid) != NULL);
-  if (!llproc && proc_) llproc = proc_;
+
+  if (!llproc && proc_) 
+	  llproc = proc_;
+
   BPatch_thread *newthr = 
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
 
   bool result = BPatch::bpatch->registerThreadCreate(this, newthr);
+
   if (!result)
      return newthr;
 
-  if (newthr->isDeadOnArrival()) {
+  if (newthr->isDeadOnArrival()) 
+  {
     //  thread was created, yes, but it also already exited...  set up and 
     //  execute thread exit callbacks too... (this thread will not trigger
     //  other thread events since we never attached to it)
@@ -2108,7 +2137,9 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
-    for (unsigned int i = 0; i < cbs.size(); ++i) {
+
+    for (unsigned int i = 0; i < cbs.size(); ++i) 
+	{
         BPatch::bpatch->mutateeStatusChange = true;
         llproc->sh->signalEvent(evtThreadExit);
         AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
@@ -2117,6 +2148,7 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
         cb(this, newthr);
     }
   }
+
   return newthr;
 }
 

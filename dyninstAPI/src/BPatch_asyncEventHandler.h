@@ -43,43 +43,20 @@
 #ifndef __BPATCH_ASYNC_EVENT_HANDLER_H__
 #define __BPATCH_ASYNC_EVENT_HANDLER_H__
 
-#if defined (os_osf)
-#include <standards.h>
-#endif
-
 #include <errno.h>
-#include <BPatch_eventLock.h>
-#include <BPatch.h>
-#include <BPatch_process.h>
-#include <BPatch_image.h>
-#include <BPatch_Vector.h>
-
 #include "os.h"
 #include "EventHandler.h"
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for BPatch_asyncEventType
-                                           //  and BPatch_asyncEventRecord
+#include "process.h"
+#include <BPatch_process.h> // for BPatch_asyncEventType
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for BPatch_asyncEventRecord
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 
-#if 0
-typedef enum {
-    REsuccess,
-    REnoData,
-    REinsufficientData,
-    REreadError,
-    REillegalProcess,
-    REerror
-} asyncReadReturnValue_t;
-#endif
 
 typedef struct {
-    pdvector<BPatch_function *> *mutatee_side_cbs;
-    pdvector<BPatchSnippetHandle *> *handles;
-} thread_event_cb_record;
-
-typedef struct {
-  BPatch_process *process;
+  process *proc;
   int fd;
+  PDSOCKET sock;
 } process_record;
 
 const char *asyncEventType2Str(BPatch_asyncEventType evtype); 
@@ -90,27 +67,29 @@ const char *asyncEventType2Str(BPatch_asyncEventType evtype);
 #define DYNINST_CLASS_NAME BPatch_asyncEventHandler
 
 class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
-  friend THREAD_RETURN asyncHandlerWrapper(void *);
-  friend class BPatch;  // only BPatch constructs & does init
-  friend class BPatch_eventMailbox;
-  public:
-    //  BPatch_asyncEventHandler::connectToProcess()
-    //  Tells the async event handler that there is a new process
-    //  to listen for.
-    bool connectToProcess(BPatch_process *p);
+	friend THREAD_RETURN asyncHandlerWrapper(void *);
+	friend class BPatch;  // only BPatch constructs & does init
+	friend class BPatch_eventMailbox;
+	public:
+	//  BPatch_asyncEventHandler::connectToProcess()
+	//  Tells the async event handler that there is a new process
+	//  to listen for.
+	bool connectToProcess(process *p);
 
-    //  BPatch_asyncEventHandler::detachFromProcess()
-    //  stop paying attention to events from specified process
-    bool detachFromProcess(BPatch_process *p);
+	//  BPatch_asyncEventHandler::detachFromProcess()
+	//  stop paying attention to events from specified process
+	bool detachFromProcess(process *p);
 
-    bool startupThread();
+	bool startupThread();
 
     bool registerMonitoredPoint(BPatch_point *);
+
   private: 
     BPatch_asyncEventHandler();
     pdvector<EventRecord> event_queue;
     bool initialize();  //  want to catch init errors, so we do most init here
     virtual ~BPatch_asyncEventHandler();
+	PDSOCKET setup_socket(int mutatee_pid, std::string &sock_fname);
 
     //  BPatch_asyncEventHandler::shutDown()
     //  Sets a flag that the async thread will check during its next iteration.
@@ -141,32 +120,27 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     //  use oneTimeCode to call a function in the mutatee to handle
     //  closing of the comms socket.
 
-    bool mutateeDetach(BPatch_process *p);
+    bool mutateeDetach(process *p);
 
     //  BPatch_asyncEventHandler::cleanUpTerminatedProcs()
     //  clean up any references to terminated processes in our lists
     //  (including any user specified callbacks).
     bool cleanUpTerminatedProcs();
 
-    //  BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
+    //  BPatch_asyncEventHandler::cleanupProc(process *p)
     //  remove a particular process without detaching. Used in 
     //  exec.
-    bool cleanupProc(BPatch_process *p);
-
-    //  BPatch_asyncEventHandler::instrumentThreadEvent
-    //  Associates a function in the thread library with a eventType
-    BPatchSnippetHandle *instrumentThreadEvent(BPatch_process *process,
-                                               BPatch_asyncEventType t,
-                                               BPatch_function *f);
-
-    //  These vars are only modified as part of init (before/while threads are
-    //  created) so we do not need to worry about locking them:
-    PDSOCKET sock;
-    bool shutDownFlag;
+    bool cleanupProc(process *p);
 
 #if defined (os_windows)
+    //  These vars are only modified as part of init (before/while threads are
+    //  created) so we do not need to worry about locking them:
+    PDSOCKET windows_sock;
     unsigned int listen_port;
+#else
+	int control_pipe_read, control_pipe_write;
 #endif
+    bool shutDownFlag;
 
     //  The rest:  Data in this class that is not exclusively set during init
     //   will have to be locked.  

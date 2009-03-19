@@ -2247,15 +2247,4 @@ void Object::parseTypeInfo(Symtab *obj)
    //  fprintf(stderr, "%s[%d]:  parseTypes for %s, num_active = %d\n", FILE__, __LINE__, mod->fileName().c_str(), num_active);
 }
 
-bool Object::getRegValueAtFrame(Address, 
-                            Dyninst::MachRegister, 
-                            Dyninst::MachRegisterVal &,
-                            MemRegReader *)
-{
-   return false;
-}
 
-bool Object::hasFrameDebugInfo()
-{
-   return false;
-}

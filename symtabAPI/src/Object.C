@@ -947,17 +947,31 @@ ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
               << " }" << endl;
 }
 
-#ifdef DEBUG 
 
-ostream & relocationEntry::operator<< (ostream &s) const {
-   s << "target_addr_ = " << target_addr_ << endl;
-   s << "rel_addr_ = " << rel_addr_ << endl;
-   s << "addend_ = " << addend_ << endl;
-   s << "rtype_ = " << rtype_ << endl;
-   s << "name_ = " << name_ << endl;
-   return s; 
+ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const relocationEntry &r) 
+{
+	s << "target_addr=" << r.target_addr_ 
+		<< "rel_addr=" << r.rel_addr_ 
+		<< "addend=" << r.addend_ 
+		<< "rtype=" << r.rtype_ 
+		<< "name=" << r.name_ ;
+	return s; 
+}
+     Offset tryStart_;
+	       unsigned trySize_;
+		         Offset catchStart_;
+				       bool hasTry_;
+
+ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb) 
+{
+	s << "tryStart=" << eb.tryStart_ 
+		<< "trySize=" << eb.trySize_ 
+		<< "catchStart=" << eb.catchStart_ 
+		<< "hasTry=" << eb.trySize_ ;
+	return s; 
 }
 
+#ifdef DEBUG 
 ostream &operator<<(ostream &os, relocationEntry &q) {
    return q.operator<<(os);
 }

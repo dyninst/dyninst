@@ -438,49 +438,48 @@ class AnnotatableSparse
          return true;
       }
 
+	  template<class T>
+	  bool removeAnnotation(AnnotationClass<T> &a_id)
+	  {
+		  void *obj = this;
+		  annos_by_type_t *abt = getAnnosOfType(a_id, false /*do create if needed*/);
+		  assert(abt);
+
+		  annos_by_type_t::iterator iter = abt->find(obj);
+		  if (iter == abt->end())
+		  {
+			  //  annotation does not exist, so we return false (remove failed)
+			  return false;
+		  }
+		  else
+		  {
+			  abt->erase(iter);
+			  //  if the annotation already exists and is identical (by pointer, of course)
+			  //  what is the best solution?  Replacement makes no sense, since it is the
+			  //  same.  The question is -- do we fail and report this situation as a logic
+			  //  error?  This is probably the most conservative and hence safest approach,
+			  //  but, since the pointer is identical, let's play nice and just report 
+			  //  success?
+
+			  return true;
+
+			  //  maybe want to do (silent) replace here?
+			  //fprintf(stderr, "%s[%d]:  failing to add already existing annotation here\n", FILE__, __LINE__);
+			  //return false;
+
+		  }
+	      return false;
+	  }
+
 #if 0
-      template<class T>
-         bool clearAnnotationsOfType(AnnotationClass<T> &a_id)
-         {
-            annos_by_type_t *abt = getAnnosOfType(a_id, false /*don't create if none*/);
+	  int nelems_to_create = aid - annos.size() + 1;
 
-            if (!abt)
-            {
-               return false;
-            }
-
-            int nelem_cleared = abt->size();
-            abt->clear();
-
-            return (nelem_cleared != 0);
-         }
-#endif
-
-      template<class T>
-      bool removeAnnotation(AnnotationClass<T> &a_id)
-      {
-         int aid = a_id.getID();
-
-         if (aid >= annos.size()) 
-         {
-            fprintf(stderr, "%s[%d]:  failed to remove nonexistant annotation\n", 
-                    __FILE__, __LINE__);
-            return false;
-         }
-
-         annos_t::iterator a_iter(aid);
-         annos.erase(a_iter);
-         //annos.erase(aid);
-
-#if 0
-         int nelems_to_create = aid - annos.size() + 1;
-
-         if (nelems_to_create > 0)
-         {
-            if (!do_create)
-            {
-               return NULL;
-            }
+	  if (nelems_to_create > 0)
+	  {
+		  if (!do_create)
+		  {
+			  return NULL;
+		  }
 
             while (nelems_to_create)
             {
@@ -510,8 +509,6 @@ class AnnotatableSparse
          }
 
 #endif
-         return true;
-      }
 
 };
 

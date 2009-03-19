@@ -63,7 +63,6 @@
 #include "InstrucIter.h"
 
 #include "BPatch_statement.h"
-#include "symtabAPI/h/LineInformation.h"
 
 #include "BPatch_flowGraph.h"
 #include "mapped_object.h"

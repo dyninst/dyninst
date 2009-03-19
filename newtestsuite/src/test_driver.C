@@ -123,6 +123,7 @@ bool runDefaultStarts = true;
 bool runCreate = true;
 bool runAttach = false;
 bool runRewriter = false;
+bool runDeserialize = false;
 bool useHumanLog = true;
 bool enableLogging = true;
 bool printLabels = false;
@@ -469,11 +470,12 @@ void executeTest(ComponentTester *tester,
 
 void disableUnwantedTests(std::vector<RunGroup *> groups)
 {
-   if (!runCreate || !runAttach || !runRewriter) {
+   if (!runCreate || !runAttach || !runRewriter || !runDeserialize) {
       for (unsigned  i = 0; i < groups.size(); i++) {
          if (((groups[i]->useAttach == CREATE) && !runCreate) ||
              ((groups[i]->useAttach == USEATTACH) && !runAttach) ||
-             ((groups[i]->useAttach == DISK) && !runRewriter))
+             ((groups[i]->useAttach == DISK) && !runRewriter) ||
+             ((groups[i]->useAttach == DESERIALIZE) && !runDeserialize))
          {
             for (unsigned j=0; j<groups[i]->tests.size(); j++)
                groups[i]->tests[j]->disabled = true;
@@ -1276,16 +1278,25 @@ int parseArgs(int argc, char *argv[])
          runRewriter = true;
          runDefaultStarts = false;
       }
+      else if ( strcmp(argv[i], "-serialize") == 0 )
+      {
+         runDefaultStarts = false;
+         runCreate = true;
+         runAttach = false;
+         runDeserialize = true;
+      }
       else if (strcmp(argv[i], "-allmode") == 0)
       {
          runCreate = true;
          runAttach = true;
+         runDeserialize = true;
          runDefaultStarts = false;
       }
       else if (strcmp(argv[i], "-all") == 0)
       {
          runCreate = true;
          runAttach = true;
+         runDeserialize = true;
          runAllCompilers = true;
          runAllComps = true;
       }
@@ -1294,6 +1305,7 @@ int parseArgs(int argc, char *argv[])
          //Like -all, but with full optimization levels
          runCreate = true;
          runAttach = true;
+         runDeserialize = true;
          runAllCompilers = true;
          runAllComps = true;
          optLevel = opt_all;

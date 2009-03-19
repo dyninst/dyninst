@@ -229,6 +229,7 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
       sprintf(errorLine, "Process %d has terminated with code 0x%x\n",
               proc->getPid(), (int) ev.what);
       statusLine(errorLine);
+	  async_printf("%s[%d]: %s\n", errorLine);
 #if defined(os_windows)
       //  on the unixes we do this at syscall exit()
       proc->triggerNormalExitCallback(ev.what);
@@ -239,6 +240,7 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
               proc->getPid(), (int) ev.what);
       logLine(errorLine);
       statusLine(errorLine);
+	  async_printf("%s[%d]: %s\n", errorLine);
       printDyninstStats();
       // The process is gone at this point; we just have a return code.
       // So handle the exit _before_ we do the user-level callback, as
@@ -249,6 +251,7 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
       sprintf(errorLine, "process %d has terminated for unknown reason\n",
               proc->getPid());
       logLine(errorLine);
+	  async_printf("%s[%d]: %s\n", errorLine);
       ret = proc->handleProcessExit();
       //ret = true; //  maybe this should be false?  (this case is an error)
     }
@@ -609,8 +612,11 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         // First the platform-independent stuff
         // (/proc and waitpid)
     case evtProcessExit:
+		char buf[128];
         signal_printf("%s[%d]: handling process exit\n", FILE__, __LINE__);
+        async_printf("%s[%d]: handling process exit: %s\n", FILE__, __LINE__, ev.sprint_event(buf));
         ret = handleProcessExit(ev, continueHint);
+        async_printf("%s[%d]: handled process exit\n", FILE__, __LINE__);
         break;
     case evtProcessCreate:
         ret = handleProcessCreate(ev, continueHint);

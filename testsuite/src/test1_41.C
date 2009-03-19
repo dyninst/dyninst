@@ -119,6 +119,7 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
         bool res = module->getStatements(statements);
         if (!res) {
            fprintf(stderr, "%s[%d]:  getStatements()\n", __FILE__, __LINE__);
+           logerror( "%s[%d]:  getStatements()\n", __FILE__, __LINE__);
            abort();
         }
 

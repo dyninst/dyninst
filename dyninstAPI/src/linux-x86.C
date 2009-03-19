@@ -97,6 +97,7 @@ using namespace Dyninst;
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
+const char *DL_OPEN_FUNC_USER = NULL;
 const char DL_OPEN_FUNC_EXPORTED[] = "dlopen";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
@@ -1257,11 +1258,31 @@ bool process::loadDYNINSTlib()
 {
     pdvector<int_function *> dlopen_funcs;
 
-    if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
-	return loadDYNINSTlib_exported();
+	//  allow user to override default dlopen func names 
+	//  with env. var
+
+	DL_OPEN_FUNC_USER = getenv("DYNINST_DLOPEN_FUNC");
+
+	if (DL_OPEN_FUNC_USER)
+	{
+		if (findFuncsByAll(DL_OPEN_FUNC_USER, dlopen_funcs)) 
+		{
+			bool ok =  loadDYNINSTlib_exported(DL_OPEN_FUNC_USER);
+
+			if (ok) 
+				return true;
+
+			//  else fall through and try the default dlopen names
+		} 
+	}
+
+    if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) 
+	{
+		return loadDYNINSTlib_exported(DL_OPEN_FUNC_EXPORTED);
     } 
-    else {
-	return loadDYNINSTlib_hidden();
+    else 
+	{
+		return loadDYNINSTlib_hidden();
     }
 }
 
@@ -1515,127 +1536,146 @@ bool process::loadDYNINSTlib_hidden() {
   return true;
 }
 
-bool process::loadDYNINSTlib_exported()
+bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 {
-    // dlopen takes two arguments:
-    // const char *libname;
-    // int mode;
-    // We put the library name on the stack, push the args, and
-    // emit the call
+	// dlopen takes two arguments:
+	// const char *libname;
+	// int mode;
+	// We put the library name on the stack, push the args, and
+	// emit the call
 
-    Address codeBase = findFunctionToHijack(this);
-    if (!codeBase) {
-	startup_cerr << "Couldn't find a point to insert dlopen call" << endl;
-	return false;
-    }
+	Address codeBase = findFunctionToHijack(this);
+	if (!codeBase) 
+	{
+		startup_cerr << "Couldn't find a point to insert dlopen call" << endl;
+		return false;
+	}
 
-    Address dyninstlib_str_addr = 0;
-    Address dlopen_call_addr = 0;
+	Address dyninstlib_str_addr = 0;
+	Address dlopen_call_addr = 0;
 
-    pdvector<int_function *> dlopen_funcs;
-    if (!findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
-	startup_cerr << "Couldn't find method to load dynamic library" << endl;
-	return false;
-    } 
+	pdvector<int_function *> dlopen_funcs;
 
-    assert(dlopen_funcs.size() != 0);
-    if (dlopen_funcs.size() > 1) {
-	logLine("WARNING: More than one dlopen found, using the first\n");
-    }
-    Address dlopen_addr = dlopen_funcs[0]->getAddress();
+	if (!findFuncsByAll(dlopen_name ? dlopen_name : DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) 
+	{
+		startup_cerr << "Couldn't find method to load dynamic library" << endl;
+		return false;
+	} 
 
-    // We now fill in the scratch code buffer with appropriate data
-    codeGen scratchCodeBuffer(BYTES_TO_SAVE);
-    assert(dyninstRT_name.length() < BYTES_TO_SAVE);
+	assert(dlopen_funcs.size() != 0);
+	
+	if (dlopen_funcs.size() > 1) 
+	{
+		logLine("WARNING: More than one dlopen found, using the first\n");
+	}
 
-    // The library name goes first
-    dyninstlib_str_addr = codeBase;
-    scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+	Address dlopen_addr = dlopen_funcs[0]->getAddress();
+
+	// We now fill in the scratch code buffer with appropriate data
+	codeGen scratchCodeBuffer(BYTES_TO_SAVE);
+	assert(dyninstRT_name.length() < BYTES_TO_SAVE);
+
+	// The library name goes first
+	dyninstlib_str_addr = codeBase;
+	scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
 #if defined(bug_syscall_changepc_rewind)
-    //Fill in with NOPs, see loadDYNINSTlib_hidden
-    scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
+	//Fill in with NOPs, see loadDYNINSTlib_hidden
+	scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
 #endif
 
-    // Now the real code
-    dlopen_call_addr = codeBase + scratchCodeBuffer.used();
-    
-    bool mode64bit = (getAddressWidth() == sizeof(uint64_t));
-    if (!mode64bit) {
-	// Push mode
-	emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
-      
-	// Push string addr
-	emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
-      
-	instruction::generateCall(scratchCodeBuffer,
-				  scratchCodeBuffer.used() + codeBase,
-				  dlopen_addr);
+	// Now the real code
+	dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
-	// And the break point
-	dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-	instruction::generateTrap(scratchCodeBuffer);
-    }
-    else {
-	// Set mode
-	emitMovImmToReg64(REGNUM_RSI, DLOPEN_MODE, false, scratchCodeBuffer);
-	// Set string addr
-	emitMovImmToReg64(REGNUM_RDI, dyninstlib_str_addr, true,
-			  scratchCodeBuffer);
-	// The call (must be done through a register in order to reach)
-	emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
-	emitSimpleInsn(0xff, scratchCodeBuffer);
-	emitSimpleInsn(0xd0, scratchCodeBuffer);
+	bool mode64bit = (getAddressWidth() == sizeof(uint64_t));
 
-	// And the break point
-	dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-	instruction::generateTrap(scratchCodeBuffer);
-    }
+	if (!mode64bit) 
+	{
+		// Push mode
+		emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
 
-    if (!readDataSpace((void *)codeBase,
-		       sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
-	fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-	return false;
-    }
+		// Push string addr
+		emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
 
-    if (!writeDataSpace((void *)(codeBase), scratchCodeBuffer.used(),
-			scratchCodeBuffer.start_ptr())) {
-	fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-	return false;
-    }
+		instruction::generateCall(scratchCodeBuffer,
+				scratchCodeBuffer.used() + codeBase,
+				dlopen_addr);
 
-    // save registers
-    dyn_lwp *lwp_to_use = NULL;
-    if (process::IndependentLwpControl() && getRepresentativeLWP() == NULL)
-	lwp_to_use = getInitialThread()->get_lwp();
-    else
-	lwp_to_use = getRepresentativeLWP();
+		// And the break point
+		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
+		instruction::generateTrap(scratchCodeBuffer);
+	}
+	else 
+	{
+		// Set mode
+		emitMovImmToReg64(REGNUM_RSI, DLOPEN_MODE, false, scratchCodeBuffer);
+		// Set string addr
+		emitMovImmToReg64(REGNUM_RDI, dyninstlib_str_addr, true,
+				scratchCodeBuffer);
+		// The call (must be done through a register in order to reach)
+		emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
+		emitSimpleInsn(0xff, scratchCodeBuffer);
+		emitSimpleInsn(0xd0, scratchCodeBuffer);
 
-    savedRegs = new dyn_saved_regs;
-    bool status = lwp_to_use->getRegisters(savedRegs);
+		// And the break point
+		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
+		instruction::generateTrap(scratchCodeBuffer);
+	}
 
-    assert((status != false) && (savedRegs != (void *)-1));
+	if (!readDataSpace((void *)codeBase,
+				sizeof(savedCodeBuffer), savedCodeBuffer, true)) 
+	{
+		fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+		return false;
+	}
 
-    if (!lwp_to_use->changePC(dlopen_call_addr,NULL))  {
-	logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
-	return false;
-    }
-    setBootstrapState(loadingRT_bs);
-    return true;
+	if (!writeDataSpace((void *)(codeBase), scratchCodeBuffer.used(),
+				scratchCodeBuffer.start_ptr())) 
+	{
+		fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+		return false;
+	}
+
+	// save registers
+	dyn_lwp *lwp_to_use = NULL;
+
+	if (process::IndependentLwpControl() && getRepresentativeLWP() == NULL)
+	{
+		lwp_to_use = getInitialThread()->get_lwp();
+	}
+	else
+	{
+		lwp_to_use = getRepresentativeLWP();
+	}
+
+	savedRegs = new dyn_saved_regs;
+	bool status = lwp_to_use->getRegisters(savedRegs);
+
+	assert((status != false) && (savedRegs != (void *)-1));
+
+	if (!lwp_to_use->changePC(dlopen_call_addr,NULL))  
+	{
+		logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+		return false;
+	}
+
+	setBootstrapState(loadingRT_bs);
+	return true;
 }
 
-Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
-    // find variable __stack_prot
+Address process::tryUnprotectStack(codeGen &buf, Address codeBase) 
+{
+	// find variable __stack_prot
 
-    // mprotect READ/WRITE __stack_prot
-    pdvector<int_variable *> vars; 
-    pdvector<int_function *> funcs;
+	// mprotect READ/WRITE __stack_prot
+	pdvector<int_variable *> vars; 
+	pdvector<int_function *> funcs;
 
-    Address var_addr;
-    Address func_addr;
-    Address ret_addr;
-    int size;
-    int pagesize;
+	Address var_addr;
+	Address func_addr;
+	Address ret_addr;
+	int size;
+	int pagesize;
     Address page_start;
     bool ret;
     

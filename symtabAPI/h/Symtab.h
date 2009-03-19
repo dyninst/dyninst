@@ -39,12 +39,6 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 
-
-typedef struct {} user_funcs_a;
-typedef struct {} user_regions_a;
-typedef struct {} user_types_a;
-typedef struct {} user_symbols_a;
-
 class MappedFile;
 
 namespace Dyninst{
@@ -71,6 +65,8 @@ class Symtab : public LookupInterface,
 
    friend class Archive;
    friend class Symbol;
+   friend class Function;
+   friend class Variable;
    friend class Module;
    friend class Region;
    friend class emitElf;
@@ -521,6 +517,7 @@ class Symtab : public LookupInterface,
  * Used to represent something like a C++ try/catch block.  
  * Currently only used on Linux/x86
  **/
+SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
 class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
@@ -538,6 +535,7 @@ class ExceptionBlock : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT Offset catchStart() const;
       SYMTAB_EXPORT bool contains(Offset a) const;
 
+      friend std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
    private:
       Offset tryStart_;
       unsigned trySize_;
@@ -549,6 +547,7 @@ class ExceptionBlock : public Serializable, public AnnotatableSparse {
 // on sparc-solaris: target_addr_ = rel_addr_ = PLT entry addr
 // on x86-solaris: target_addr_ = PLT entry addr
 //		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
+SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
 class relocationEntry : public Serializable, public AnnotatableSparse {
    public:
@@ -576,8 +575,8 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
-      SYMTAB_EXPORT std::ostream & operator<<(std::ostream &s) const;
-      friend std::ostream &operator<<(std::ostream &os, relocationEntry &q);
+      //SYMTAB_EXPORT std::ostream & operator<<(std::ostream &s) const;
+      friend std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
       enum {pltrel = 1, dynrel = 2} relocationType;
 

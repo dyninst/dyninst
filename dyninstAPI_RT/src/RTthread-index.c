@@ -116,6 +116,7 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK) {
        rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
+       fprintf(stderr," %s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
       /* We specifically return DYNINST_max_num_threads so that instrumentation has someplace safe to scribble
          in case of an error. */
        /* DO NOT USE print statements here. That's horribly unsafe if we've instrumented
@@ -220,6 +221,7 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK) {
        rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
+       fprintf(stderr," %s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
       /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
       }
@@ -285,6 +287,7 @@ int DYNINST_free_index(dyntid_t tid)
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK) {
        rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
+       fprintf(stderr," %s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
       return -1;
    }
 

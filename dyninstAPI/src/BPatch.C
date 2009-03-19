@@ -807,10 +807,13 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
 #if defined(cap_async_events)
     // We're already attached to the parent... let's see if the
     // simple way works.
-    if (!getAsync()->mutateeDetach(child)) {
+    if (!getAsync()->mutateeDetach(child->lowlevel_process())) {
         bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
     }
-    if (!getAsync()->connectToProcess(child)) {
+   // if (!getAsync()->detachFromProcess(child)) {
+    //    bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
+    //}
+    if (!getAsync()->connectToProcess(child->lowlevel_process())) {
         bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
     else 
@@ -874,7 +877,8 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
  * Gives us some cleanup time
  */
 
-void BPatch::registerExecCleanup(process *p, char *) {
+void BPatch::registerExecCleanup(process *p, char *) 
+{
     BPatch_process *execing = getProcessByPid(p->getPid());
     assert(execing);
 
@@ -882,7 +886,7 @@ void BPatch::registerExecCleanup(process *p, char *) {
        registerThreadExit(p, execing->threads[i]->getTid(), false);
 
     // tell the async that the process went away
-    getAsync()->cleanupProc(execing);
+    getAsync()->cleanupProc(p);
 }    
 
 /*
@@ -899,9 +903,11 @@ void BPatch::registerExecExit(process *proc)
     int execPid = proc->getPid();
     BPatch_process *process = getProcessByPid(execPid);
     assert(process);
+
    // build a new BPatch_image for this one
    if (process->image)
       process->image->removeAllModules();
+
    process->image = new BPatch_image(process);
 
    // The async pipe should be gone... handled in registerExecCleanup
@@ -912,13 +918,39 @@ void BPatch::registerExecExit(process *proc)
    //   process->deleteBPThread(process->threads[i]);
 
 #if defined(cap_async_events)
-   if (!getAsync()->connectToProcess(process)) {
+   //  I think in the case of exec that we do not need to re-initiate a async connection
+   //  to the process that exec'd 
+#if 1 
+    if (!getAsync()->mutateeDetach(proc)) {
+        bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
+    }
+
+   async_printf("%s[%d]:  about to connect to exec process\n", FILE__, __LINE__);
+
+   if (!getAsync()->connectToProcess(proc)) 
+   {
       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+	  async_printf("%s[%d]:  connect to exec process failed\n", FILE__, __LINE__);
    } 
    else
+   {
       asyncActive = true;
+	  async_printf("%s[%d]:  connect to exec process success\n", FILE__, __LINE__);
+   }
+
+#else
+
+      asyncActive = true;
+	  async_printf("%s[%d]:  connect to exec process skipped\n", FILE__, __LINE__);
+
 #endif
-   if (!process->updateThreadInfo()) return;
+#endif
+
+   if (!process->updateThreadInfo()) 
+   {
+	   fprintf(stderr, "%s[%d]:  failed to updateThreadInfo after exec\n", FILE__, __LINE__);
+	   return;
+   }
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
@@ -1323,7 +1355,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 
 #if defined(cap_async_events)
    async_printf("%s[%d]:  about to connect to process\n", FILE__, __LINE__);
-   if (!getAsync()->connectToProcess(ret)) {
+   if (!getAsync()->connectToProcess(ret->llproc)) {
       bpfatal("%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       fprintf(stderr,"%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
@@ -1388,7 +1420,7 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
    }
 
 #if defined(cap_async_events)
-   if (!getAsync()->connectToProcess(ret)) {
+   if (!getAsync()->connectToProcess(ret->llproc)) {
       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
    } 

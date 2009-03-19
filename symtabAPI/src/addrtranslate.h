@@ -78,14 +78,16 @@ class LoadedLib {
 class AddressTranslate {
  protected:
    PID pid;
+   PROC_HANDLE phandle;
    bool creation_error;
 
-   AddressTranslate(PID pid);
+   AddressTranslate(PID pid, PROC_HANDLE phand = INVALID_HANDLE_VALUE);
    vector<LoadedLib *> libs;
  public:
 
    static AddressTranslate *createAddressTranslator(PID pid_,
-                                                    ProcessReader *reader_ = NULL);
+                                                    ProcessReader *reader_ = NULL,
+													PROC_HANDLE phand = INVALID_HANDLE_VALUE);
    static AddressTranslate *createAddressTranslator(ProcessReader *reader_ = NULL);
    static AddressTranslate *createAddressTranslator(const std::vector<LoadedLibrary> &name_addrs);
    
@@ -98,7 +100,7 @@ class AddressTranslate {
    LoadedLib *getLoadedLib(std::string name);
    LoadedLib *getLoadedLib(Symtab *sym);
 
-   Address getLibraryTrapAddrSysV();
+   virtual Address getLibraryTrapAddrSysV();
 };
 
 }

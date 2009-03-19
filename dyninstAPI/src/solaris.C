@@ -88,20 +88,6 @@
 #include "ast.h"
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
-#if 0	//moved to Object-elf.C	
-
-int (*P_native_demangle)(const char *, char *, size_t);
-
-void loadNativeDemangler() {
-  
-  P_native_demangle = NULL;
-  void *hDemangler = dlopen("libdemangle.so", DLOPEN_MODE);
-  if (hDemangler != NULL)
-    P_native_demangle = (int (*) (const char *, char *, size_t)) 
-      dlsym(hDemangler, "cplus_demangle");
-}
-#endif
-
 extern "C" {
 extern long sysconf(int);
 };

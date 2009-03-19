@@ -62,7 +62,6 @@
 #include "BPatch_collections.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_statement.h"
-#include "symtabAPI/h/LineInformation.h"
 #include "BPatch_function.h" 
 
 #include "addressSpace.h"
@@ -958,7 +957,8 @@ bool BPatch_image::getSourceLinesInt(unsigned long addr,
 
 bool BPatch_image::getAddressRangesInt( const char * lineSource, 
       unsigned int lineNo, 
-      std::vector< LineInformation::AddressRange > & ranges ) 
+      std::vector< std::pair<unsigned long, unsigned long> > & ranges ) 
+      //std::vector< LineInformation::AddressRange > & ranges ) 
 {
    unsigned int originalSize = ranges.size();
 

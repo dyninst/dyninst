@@ -106,6 +106,7 @@ namespace Dyninst
    
 #if defined(_MSC_VER)
    typedef int PID;
+   typedef HANDLE PROC_HANDLE;
    typedef HANDLE LWP;
    typedef HANDLE THR_ID;
 
@@ -115,12 +116,16 @@ namespace Dyninst
 
 #else
    typedef int PID;
+   typedef int PROC_HANDLE;
    typedef int LWP;
    typedef int THR_ID;
 
 #define NULL_PID     -1
 #define NULL_LWP     -1
 #define NULL_THR_ID     -1
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE -1
+#endif
 #endif
 
    int ThrIDToTid(Dyninst::THR_ID id);

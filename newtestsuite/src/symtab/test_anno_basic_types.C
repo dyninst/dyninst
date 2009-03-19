@@ -39,9 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include <iostream>
-#include <typeinfo>
-#include <stdexcept>
 #include "symtab_comp.h"
 #include "test_lib.h"
 
@@ -53,6 +50,7 @@
 using namespace Dyninst;
 //using namespace SymtabAPI;
 
+#if 0
 #define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
 #define REPORT_EFAIL catch(const LocErr &err) { \
    err.print(stderr); \
@@ -82,6 +80,7 @@ class LocErr : public std::runtime_error {
             file__.c_str(), line__, what());
    }
 };
+#endif
 
 class test_anno_basic_types_Mutator : public SymtabMutator 
 {
@@ -121,9 +120,42 @@ class TestClassDense : public TestClass, public AnnotatableDense
 };
 
 template <class TC, class T>
-void verify_anno(TC &tcs, const T &test_val, const char *anno_name_to_use)
+void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL)
 {
-   AnnotationClass<T> my_ac(anno_name_to_use ? anno_name_to_use : typeid(T).name());
+	std::string an(typeid(T).name());
+
+	if (anno_prefix_to_use)
+	{
+		std::string prefix(anno_prefix_to_use);
+		an = prefix + an;
+	}
+
+   AnnotationClass<T> my_ac(an.c_str());
+
+   if (!tcs.removeAnnotation(my_ac))
+      EFAIL("failed to remove annotation here");
+
+   //  try to get the annotation now.
+   //  if its still there, then we have a failure
+   
+   T *out = NULL;
+
+   if (tcs.getAnnotation(out, my_ac))
+      EFAIL("failed to get annotation here");
+}
+
+template <class TC, class T>
+void verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NULL)
+{
+	std::string an(typeid(T).name());
+
+	if (anno_prefix_to_use)
+	{
+		std::string prefix(anno_prefix_to_use);
+		an = prefix + an;
+	}
+
+   AnnotationClass<T> my_ac(an.c_str());
 
    T *out = NULL;
 
@@ -138,15 +170,22 @@ void verify_anno(TC &tcs, const T &test_val, const char *anno_name_to_use)
 }
 
 template <class TC, class T>
-void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_name_to_use)
+void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NULL)
 {
 
    //  A very simple function that adds an annotation of type T to the given class
    //  then just verifies that it can retrieve the annotation and then checks that
    //  the value of the annotation is the same as was provided.
-   const char *an = anno_name_to_use ? anno_name_to_use : typeid(T).name();
 
-   AnnotationClass<T> my_ac(an);
+	std::string an(typeid(T).name());
+
+	if (anno_prefix_to_use)
+	{
+		std::string prefix(anno_prefix_to_use);
+		an = prefix + an;
+	}
+
+   AnnotationClass<T> my_ac(an.c_str());
 
    if (!tcs.addAnnotation(&test_val, my_ac))
       EFAIL("failed to add annotation here");
@@ -171,15 +210,15 @@ void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_name_t
 
 template <class TC, class T>
 void add_verify_dispatch(TC &tcs, const T &test_val, bool do_add, 
-      const char *anno_name_to_use = NULL)
+      const char *anno_prefix_to_use = NULL)
 {
    if (do_add)
    {
-      add_get_and_verify_anno(tcs, test_val, anno_name_to_use);
+      add_get_and_verify_anno(tcs, test_val, anno_prefix_to_use);
    }
    else
    {
-      verify_anno(tcs, test_val, anno_name_to_use);
+      verify_anno(tcs, test_val, anno_prefix_to_use);
    }
 }
 
@@ -222,6 +261,32 @@ void test_for_annotatable()
       add_verify_dispatch<T, float>(tc, -6e5, do_add,"auxname9");
       add_verify_dispatch<T, double>(tc, -6e50, do_add,"auxname10");
 
+	  if (!do_add)
+	  {
+		  //  remove first set
+		  remove_anno<T, int>(tc);
+		  remove_anno<T, unsigned int>(tc);
+		  remove_anno<T, char>(tc);
+		  remove_anno<T, unsigned char>(tc);
+		  remove_anno<T, short>(tc);
+		  remove_anno<T, unsigned short>(tc);
+		  remove_anno<T, long>(tc);
+		  remove_anno<T, unsigned long>(tc);
+		  remove_anno<T, float>(tc);
+		  remove_anno<T, double>(tc);
+
+		  //  verify that second set remains
+		  add_verify_dispatch<T, int>(tc, -6000, do_add, "auxname1");
+		  add_verify_dispatch<T, unsigned int>(tc, 6001, do_add,"auxname2");
+		  add_verify_dispatch<T, char>(tc, -1*'e', do_add,"auxname3");
+		  add_verify_dispatch<T, unsigned char>(tc, 'f', do_add,"auxname4");
+		  add_verify_dispatch<T, short>(tc, -34, do_add,"auxname5");
+		  add_verify_dispatch<T, unsigned short>(tc, 60, do_add,"auxname6");
+		  add_verify_dispatch<T, long>(tc, -600000, do_add,"auxname7");
+		  add_verify_dispatch<T, unsigned long>(tc, 600001, do_add,"auxname8");
+		  add_verify_dispatch<T, float>(tc, -6e5, do_add,"auxname9");
+		  add_verify_dispatch<T, double>(tc, -6e50, do_add,"auxname10");
+	  }
    } while (do_add);
 }
 

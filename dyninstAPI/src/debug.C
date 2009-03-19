@@ -367,7 +367,7 @@ bool init_debug() {
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
   }
-  if (p=getenv("DYNINST_DEBUG_STACKANALYSIS")) {
+  if ((p=getenv("DYNINST_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling DyninstAPI stack analysis debugging\n");
     dyn_debug_stackanalysis = 1;
   }

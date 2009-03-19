@@ -79,9 +79,16 @@ void RTmutatedBinary_init()
 void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
 #endif
 
+#if defined (cap_async_events)
+struct passwd *passwd_info = NULL;
+#endif
+
 void libdyninstAPI_RT_init() 
 {
    static int initCalledOnce = 0;
+
+   rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to libdyninstAPI_RT_init()\n", __FILE__, __LINE__);
+
    if (initCalledOnce) return;
    initCalledOnce++;
 
@@ -99,6 +106,7 @@ void libdyninstAPI_RT_init()
       DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
                   libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
    }
+
    rtdebug_printf("%s[%d]:  did DYNINSTinit\n", __FILE__, __LINE__);
 }
 
@@ -116,48 +124,81 @@ static char socket_path[255];
 int DYNINSTasyncConnect(int pid)
 {
   
-   rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  entry\n", __FILE__, __LINE__);
+#if defined (cap_async_events)
+
   int sock_fd;
   int err = 0;
   struct sockaddr_un sadr;
   rtBPatch_asyncEventRecord ev;
-  uid_t euid;
-  struct passwd *passwd_info;
+   int res;
+   int mutatee_pid;
+   uid_t euid;
+
+   rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  entry\n", __FILE__, __LINE__);
+   rtdebug_printf("%s[%d]:  DYNINSTinit:  before geteuid\n", __FILE__, __LINE__);
+
+   euid = geteuid();
+   passwd_info = getpwuid(euid);
+   assert(passwd_info);
 
   if (async_socket != -1)
   {
-      /*
-        Not illegal - we lazy-connect
-        fprintf(stderr, "[%s:%u] - DYNINSTasyncConnect already initialized\n",
-             __FILE__, __LINE__);
-      */
+	  fprintf(stderr, "%s[%d]: - DYNINSTasyncConnect already initialized\n",
+			  __FILE__, __LINE__);
 
-     rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  already connected\n", __FILE__, __LINE__);
+     rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  already connected\n", 
+			 __FILE__, __LINE__);
      return 0;
   }
-  euid = geteuid();
-  passwd_info = getpwuid(euid);
-  assert(passwd_info);
 
-  snprintf(socket_path, (size_t) 255, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid);
+  rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  before socket 2\n", __FILE__, __LINE__);
+  mutatee_pid = getpid();
+
+  snprintf(socket_path, (size_t) 255, "%s/dyninstAsync.%s.%d.%d", 
+		  P_tmpdir, passwd_info->pw_name, pid, mutatee_pid);
+
+  rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  before socket: %s\n", __FILE__, __LINE__, socket_path);
+
+  errno = 0;
+
   sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
-  if (sock_fd < 0) {
-    perror("DYNINSTasyncConnect() socket()");
+
+  if (sock_fd < 0) 
+  {
+    fprintf(stderr, "%s[%d]: DYNINSTasyncConnect() socket(%s): %s\n", 
+			__FILE__, __LINE__, socket_path, strerror(errno));
     abort();
   }
+
+  rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  after socket\n", __FILE__, __LINE__);
 
   sadr.sun_family = PF_UNIX;
   strcpy(sadr.sun_path, socket_path);
 
-  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
+  rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  before connect\n", __FILE__, __LINE__);
+  res = 0;
+  errno = 0;
+
+  res = connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)); 
+
+  if (res < 0)
+  {
     perror("DYNINSTasyncConnect() connect()");
   }
 
+  rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  after connect to %s, res = %d, -- %s\n", 
+		  __FILE__, __LINE__, socket_path, res, strerror(errno));
+
   /* maybe need to do fcntl to set nonblocking writes on this fd */
 
-  assert(async_socket == -1);
+  if (async_socket == -1)
+  {
+	  rtdebug_printf("%s[%d]:  WARN:  async socket has not been reset!!\n", __FILE__, __LINE__);
+  }
+
   async_socket = sock_fd;
 
+#if 0
   /* after connecting, we need to send along our pid */
   ev.type = rtBPatch_newConnectionEvent;
   ev.pid = getpid();
@@ -169,17 +210,24 @@ int DYNINSTasyncConnect(int pid)
 
  /* unlink(path); */
 
-  if (err) {
+  if (err) 
+  {
     fprintf(stderr, "%s[%d]:  report new connection failed\n", __FILE__, __LINE__);
     return 0;
   }
   /* initialize spinlock */
+#endif
   
   needToDisconnect = 1;
 
  /* atexit(exit_func); */
+  rtdebug_printf("%s[%d]:  leaving DYNINSTasyncConnect\n", __FILE__, __LINE__);
   return 1; 
-
+#else
+  fprintf(stderr, "%s[%d]:  called DYNINSTasyncConect when async_events disabled\n",
+		  __FILE__, __LINE__);
+  return 0;
+#endif
 }
 
 int DYNINSTasyncDisconnect()
@@ -197,8 +245,13 @@ int DYNINSTwriteEvent(void *ev, size_t sz)
 {
   int res;
 
-  /* Connect if not already connected */
-  DYNINSTasyncConnect(DYNINST_mutatorPid);
+  
+    rtdebug_printf("%s[%d]:  welcome to DYNINSTwriteEvent: %d bytes\n", __FILE__, __LINE__, sz);
+  if (-1 == async_socket)
+  {
+	  fprintf(stderr, "%s[%d]:  failed to DYNINSTwriteEvent, no socket\n", __FILE__, __LINE__);
+	  return -1;
+  }
 
 try_again:
   res = write(async_socket, ev, sz); 

@@ -69,6 +69,7 @@ class codeGen;
 // RPC state enumerated type
 typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForSignal,
                irpcNotReadyForIRPC } irpcState_t;
+const char *irpcState2Str(irpcState_t s);
 
 const char *irpcStateAsString(irpcState_t state);
 

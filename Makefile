@@ -20,7 +20,8 @@ ValueAdded = valueAdded/sharedMem
 
 testsuites = dyninstAPI/tests testsuite 
 
-allSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dyninstAPI/tests testsuite dynutil instructionAPI stackwalk newtestsuite valueAdded/sharedMem DDG
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI stackwalk DDG
+allSubdirs	= $(allCoreSubdirs) dyninstAPI/tests testsuite newtestsuite valueAdded/sharedMem
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet
@@ -172,6 +173,7 @@ $(allSubdirs_noinstall):
 # Generate targets of the form install_<target> for all directories in
 # allSubdirs_noinstall
 allSubdirs_explicitInstall = $(patsubst %,install_%,$(allSubdirs_noinstall))
+coreSubdirs_explicitInstall = $(patsubst %,install_%,$(coreSubdirs))
 
 $(allSubdirs_explicitInstall): install_%: %
 	+@if [ -f $(@:install_%=%)/$(PLATFORM)/Makefile ]; then \
@@ -184,12 +186,22 @@ $(allSubdirs_explicitInstall): install_%: %
 	fi
 
 
+$(coreSubdirs_explicitInstall): install_%: %
+	+@if [ -f $(@:install_%=%)/$(PLATFORM)/Makefile ]; then \
+		$(MAKE) -C $(@:install_%=%)/$(PLATFORM) install \
+	elif [ -f $(@:install_%=%)/Makefile ]; then \
+		$(MAKE) -C $(@:install_%=%) install; \
+	else \
+		@echo $(@:install_%=%) has no Makefile; \
+		false; \
+	fi
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
 stackwalk: symtabAPI dynutil
 dyninstAPI: symtabAPI instructionAPI
 symtabAPI dyninstAPI: dynutil
 dyner codeCoverage dyninstAPI/tests testsuite newtestsuite: dyninstAPI
+newtestsuite: $(coreSubdirs_explicitInstall)
 
 # This rule passes down the documentation-related make stuff to
 # lower-level Makefiles in the individual "docs" directories.

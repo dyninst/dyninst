@@ -44,10 +44,11 @@
 
 // The constructor for TestInfo
 TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
-                   const char *isoname, const char *ilabel)
-  : index(i), name(iname), mutator_name(imrname), soname(isoname),
-    label(ilabel), mutator(NULL), disabled(false), enabled(false),
-    result_reported(false)
+                   const char *isoname, bool _serialize_enable, const char *ilabel) :
+	index(i), name(iname), mutator_name(imrname), soname(isoname),
+	serialize_enable(_serialize_enable),
+	label(ilabel), mutator(NULL), disabled(false), enabled(false),
+	result_reported(false)
 {
    for (unsigned i=0; i<NUM_RUNSTATES; i++)
    {

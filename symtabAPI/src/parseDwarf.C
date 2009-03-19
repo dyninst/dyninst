@@ -47,6 +47,29 @@
 #include "Type-mem.h"
 #include <stdarg.h>
 
+#ifndef DW_FRAME_CFA_COL3
+//  This is a newer feature of libdwarf (which has been causing some other 
+//  compilation problems locally) -- so we just fudge it for the moment
+#define DW_FRAME_CFA_COL3               1036
+/* Use this to get the cfa. */
+extern "C" {
+int dwarf_get_fde_info_for_cfa_reg3(
+		Dwarf_Fde /*fde*/,
+		Dwarf_Addr       /*pc_requested*/, 
+		Dwarf_Small  *   /*value_type*/, 
+		Dwarf_Signed *   /*offset_relevant*/,
+		Dwarf_Signed *    /*register*/,  
+		Dwarf_Signed *    /*offset_or_block_len*/,
+		Dwarf_Ptr   *    /*block_ptr */,
+		Dwarf_Addr*      /*row_pc_out*/,
+		Dwarf_Error*     /*error*/)
+{
+	fprintf(stderr, "%s[%d]:  WARNING:  inside dummy dwarf functions\n", FILE__, __LINE__);
+	return 0;
+}
+}
+#endif
+
 std::map<Dwarf_Off, fieldListType*> enclosureMap;
 
 int dwarf_printf(const char *format, ...);

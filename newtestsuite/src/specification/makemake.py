@@ -344,6 +344,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('CREATE, ')
 		elif group['run_mode'] == 'useAttach':
 			out.write('USEATTACH, ')
+		elif group['run_mode'] == 'deserialize':
+			out.write('DESERIALIZE, ')
 		else:
 			out.write('DISK, ')
 		if group['groupable'] == 'true':
@@ -368,7 +370,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			# I need to get the mutator that this test maps to..
 			mutator = test_mutator(test)
 			ts = build_label(test, mutator, group)
-			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s%s", "%s"));\n' % (test, mutator, mutator, LibSuffix, ts))
+			if test in ['test_serializable']:
+				serialize_enable = 'true'
+			else:
+				serialize_enable = 'false'
+			out.write('  rg->tests.push_back(new TestInfo(test_count++, "%s", "%s", "%s%s", %s, "%s"));\n' % (test, mutator, mutator, LibSuffix, serialize_enable, ts))
 		out.write('  rg->index = group_count++;\n')
 		out.write('  tests.push_back(rg);\n')
 		# Close compiler presence #ifdef
@@ -1041,7 +1047,11 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			# I need to get the mutator that this test maps to..
 			mutator = test_mutator(test)
 			ts = build_label(test, mutator, group)
-			test_params.append({'test': test, 'mutator': mutator, 'LibSuffix': LibSuffix, 'ts': ts, 'endrungroup': 'false'})
+			if test in ['test_serializable']:
+				serialize_enable = 'true'
+			else:
+				serialize_enable = 'false'
+			test_params.append({'test': test, 'mutator': mutator, 'LibSuffix': LibSuffix, 'serialize_enable' : serialize_enable, 'ts': ts, 'endrungroup': 'false'})
 		test_params[-1]['endrungroup'] = 'true'
 		if(group_empty == 'false'):
 			rungroup_params.append({'presencevar': presencevar, 'mutatee_name': mutatee_name, 'state_init': state_init, 
@@ -1073,14 +1083,15 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
     const char * iname;
     const char * mrname;
     const char * isoname;
+	bool serialize_enable;
     const char * ilabel;
   } test_params[] = {"""
 
 	out.write(body)
 
-	out.write(' {%s, "%s", "%s", "%s%s", "%s"}' % (test_params[0]['endrungroup'], test_params[0]['test'], test_params[0]['mutator'], test_params[0]['mutator'], test_params[0]['LibSuffix'], test_params[0]['ts']))
+	out.write(' {%s, "%s", "%s", "%s%s", %s, "%s"}' % (test_params[0]['endrungroup'], test_params[0]['test'], test_params[0]['mutator'], test_params[0]['mutator'], test_params[0]['LibSuffix'], test_params[i]['serialize_enable'], test_params[0]['ts']))
 	for i in range(1, len(test_params)):
-		out.write(',\n {%s, "%s", "%s", "%s%s", "%s"}' % (test_params[i]['endrungroup'], test_params[i]['test'], test_params[i]['mutator'], test_params[i]['mutator'], test_params[i]['LibSuffix'], test_params[i]['ts']))
+		out.write(',\n {%s, "%s", "%s", "%s%s", %s, "%s"}' % (test_params[i]['endrungroup'], test_params[i]['test'], test_params[i]['mutator'], test_params[i]['mutator'], test_params[i]['LibSuffix'], test_params[i]['serialize_enable'], test_params[i]['ts']))
 
 #TODO presencevar
 	body = """ };
@@ -1094,7 +1105,7 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
     
     do {
       tp_index++;
-      rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].ilabel));
+      rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
     } while (tp_index < %d && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;

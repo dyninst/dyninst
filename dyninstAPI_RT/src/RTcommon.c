@@ -214,6 +214,7 @@ static void initTrampGuards(unsigned maxthreads)
 void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
 {
    int calledByFork = 0, calledByAttach = 0;
+   rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to DYNINSTinit()\n", __FILE__, __LINE__);
    initFPU();
 
    tc_lock_init(&DYNINST_trace_lock);
