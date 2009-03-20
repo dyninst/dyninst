@@ -6,3 +6,15 @@ DEPENDS
 *.so.1
 *.a
 V_*
+*.obj
+*.ilk
+*.ncb
+*.dll
+*.exe
+*.pdb
+*.suo
+*.exp
+*.lib
+*.idb
+BuildLog.htm
+*resumelog*
