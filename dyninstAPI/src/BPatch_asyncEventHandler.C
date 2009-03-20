@@ -229,12 +229,6 @@ bool BPatch_asyncEventHandler::connectToProcess(process *p)
 		   false); // false: not running
    assert(rpcNeedsContinue);
 
-
-   if (!llproc->continueProc())
-   {
-	   fprintf(stderr, "%s[%d]:  failed to continueProc\n", FILE__, __LINE__);
-   }
-
    async_printf("%s[%d]:  continued proc to run RPC -- wait for RPCSignal\n", FILE__, __LINE__);
 
    if (p->hasExited()) 
@@ -1582,11 +1576,6 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
 		   false); // false: not running
    assert(rpcNeedsContinue);
 
-
-   if (!p->continueProc())
-   {
-	   fprintf(stderr, "%s[%d]:  failed to continueProc\n", FILE__, __LINE__);
-   }
 
    async_printf("%s[%d]:  continued proc to run RPC -- wait for RPCSignal\n", FILE__, __LINE__);
 

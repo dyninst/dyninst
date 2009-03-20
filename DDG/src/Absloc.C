@@ -61,6 +61,7 @@
 using namespace Dyninst;
 using namespace Dyninst::DDG;
 using namespace Dyninst::InstructionAPI;
+using namespace dyn_detail::boost;
 
 void Absloc::getAbslocs(AbslocSet &locs) {
     RegisterLoc::getRegisterLocs(locs);
@@ -111,7 +112,7 @@ Absloc::Ptr Absloc::getAbsloc(const InstructionAPI::Expression::Ptr exp,
 
     // If exp is a register (that is, the original operand was *reg) then 
     // its use set will currently _not_ include itself. So add it.
-    if (boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(exp))
+    if (dynamic_pointer_cast<InstructionAPI::RegisterAST>(exp))
         regUses.insert(exp);
 
     if (regUses.empty()) {
@@ -184,8 +185,7 @@ void Absloc::getUsedAbslocs(const InstructionAPI::Instruction insn,
          r != regReads.end();
          r++) {
         // We have 'used' this Absloc
-        Absloc::Ptr aP = Absloc::getAbsloc(*r);        
-        uses.insert(Absloc::getAbsloc(*r));
+                uses.insert(Absloc::getAbsloc(*r));
     }
 
     // Also handle memory writes
@@ -214,7 +214,10 @@ void Absloc::getDefinedAbslocs(const InstructionAPI::Instruction insn,
          w != regWrites.end();
          w++) {
         // We have 'defined' this Absloc
-        Absloc::Ptr aP = Absloc::getAbsloc(*w);
+#if 0
+        if (((*w)->getID() >= 80) &&
+            ((*w)->getID() <= 100)) continue;
+#endif
         defs.insert(Absloc::getAbsloc(*w));
     }
 
@@ -309,7 +312,8 @@ bool Absloc::convertResultToSlot(const InstructionAPI::Result &res, int &addr) {
 }
 
 bool Absloc::isFramePointer(const InstructionAPI::InstructionAST::Ptr &reg, Function *func, Address addr) {
-    InstructionAPI::RegisterAST::Ptr container = boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
+
+    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
 
     if (!container) return false;
 
@@ -332,7 +336,7 @@ bool Absloc::isFramePointer(const InstructionAPI::InstructionAST::Ptr &reg, Func
 }
 
 bool Absloc::isStackPointer(const InstructionAPI::InstructionAST::Ptr &reg, Function *, Address) {
-    InstructionAPI::RegisterAST::Ptr container = boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
+    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
 
     if (!container) return false;
 
@@ -349,7 +353,7 @@ bool Absloc::isStackPointer(const InstructionAPI::InstructionAST::Ptr &reg, Func
 void Absloc::bindFP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Address addr) {
     assert(isFramePointer(reg, func, addr));
     
-    InstructionAPI::RegisterAST::Ptr container = boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(reg);
+    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(reg);
 
     if (container->getID() == InstructionAPI::r_EBP) {
         InstructionAPI::Result res(InstructionAPI::s32,0);
@@ -382,7 +386,7 @@ void Absloc::bindSP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Ad
         return;
     }
 
-    InstructionAPI::RegisterAST::Ptr container = boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(reg);
+    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(reg);
 
     if (container->getID() == InstructionAPI::r_EBP) {
         InstructionAPI::Result res(InstructionAPI::s32, height.height());
@@ -405,7 +409,7 @@ void RegisterLoc::getRegisterLocs(AbslocSet &locs) {
 
 Absloc::Ptr RegisterLoc::getRegLoc(const InstructionAPI::RegisterAST::Ptr reg) {
     // Upconvert the register to its canonical container
-    InstructionAPI::RegisterAST::Ptr container = boost::dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
+    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
     if (!container) {
         assert(0);
         return Absloc::Ptr();
@@ -443,7 +447,6 @@ void StackLoc::getStackLocs(AbslocSet &locs) {
     }
 }
 Absloc::Ptr StackLoc::getStackLoc(int slot) {
-    // Look up by name and return    
     if (stackLocs_.find(slot) == stackLocs_.end()) {
         StackLoc::Ptr sP = StackLoc::Ptr(new StackLoc(slot));
         
@@ -567,7 +570,7 @@ std::string ImmLoc::name() const {
 Absloc::Ptr ImmLoc::getImmLoc() {
     if (immLoc_) return immLoc_;
 
-    immLoc_ = boost::shared_ptr<ImmLoc>(new ImmLoc());
+    immLoc_ = ImmLoc::Ptr(new ImmLoc());
 
     return immLoc_;
 }

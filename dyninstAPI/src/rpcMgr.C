@@ -510,6 +510,7 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
        rpcThr->getReturnValueIRPC();
     else 
        rpcLwp->getReturnValueIRPC();
+    
     continueHint = true;
   }
   else if (ev.status == statusRPCDone) {
@@ -519,9 +520,10 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
     assert(ev.address == currRPC->rpcCompletionAddr); 
 
     // currRPC goes away in handleCompleted... so slurp the result here
-    if (currRPC->rpc->runProcessWhenDone) 
-        continueHint = true;
-
+    if (currRPC->rpc->runProcessWhenDone) {
+	  continueHint = true;
+    }
+    
     rpcThr = currRPC->rpcthr;
     rpcLwp = currRPC->rpclwp;
     if(rpcThr) {
@@ -568,27 +570,14 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
       // running...
       // Should this be moved to whoever's waiting on the iRPC?
       // Better, go to independent control on more platforms.
-      if (existsActiveIRPC())
-          continueHint = true;
+    if (existsActiveIRPC()) {
+       continueHint = true;
+    }
+    
   }
-
-#if 0
-  // Check to see the current Dyninst state....
-
-  if (proc()->reachedBootstrapState(bootstrapped_bs) && !proc()->inExec_) {
-      bool whocares = false;
-      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(ev.proc->getPid(), &whocares);
-      if (bproc) {
-          if (bproc->isVisiblyStopped == false) {
-              continueHint = true;
-          }
-      }
-  }
-#endif
-
   return true;
 }
-
+  
 // Run da suckers
 // Take all RPCs posted and run them (if possible)
 // Return true if any RPCs were launched (and the process is running),

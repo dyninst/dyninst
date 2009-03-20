@@ -323,11 +323,40 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
 
 }
 
-bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num, 
-                                             bool noCost)
+
+
+bool registerSpace::trySpecificRegister(codeGen &gen, Register num, 
+					bool noCost)
 {
     registerSlot *tmp;
-    assert(registers_.find(num, tmp));
+    registers_.find(num, tmp);
+    if (!tmp) return false;
+
+    registerSlot *reg = registers_[num];
+    if (reg->offLimits) return false;
+    else if (reg->refCount > 0) return false;
+    else if (reg->liveState == registerSlot::live) {
+        if (!spillRegister(num, gen, noCost)) {
+            return false;
+        }
+    }
+    else if (reg->keptValue) {
+      return false;
+    }
+    
+    reg->markUsed(true);
+
+    regalloc_printf("Allocated register %d\n", num);
+
+    return true;
+}
+
+bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
+					     bool noCost) 
+{
+    registerSlot *tmp;
+    registers_.find(num, tmp);
+    if (!tmp) return false;
 
     registerSlot *reg = registers_[num];
     if (reg->offLimits) return false;
@@ -588,6 +617,10 @@ void registerSpace::forceFreeRegister(Register num)
     reg->refCount = 0;
 }
 
+// DO NOT USE THIS!!!! to tell if you can use a register as
+// a scratch register; do that with trySpecificRegister
+// or allocateSpecificRegister. This is _ONLY_ to determine
+// if a register should be saved (e.g., over a call).
 bool registerSpace::isFreeRegister(Register num) {
     registerSlot *reg = findRegister(num);
     if (!reg) return false;

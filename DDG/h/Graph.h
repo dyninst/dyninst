@@ -49,7 +49,7 @@
 #if !defined(DDG_GRAPH_H)
 #define DDG_GRAPH_H
 
-#include <boost/shared_ptr.hpp>
+#include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
 #include <list>
 #include <queue>
@@ -74,11 +74,11 @@ class Graph : public AnnotatableSparse {
     friend class Iterator;
     
  public:
-    typedef boost::shared_ptr<Graph> Ptr;
+    typedef dyn_detail::boost::shared_ptr<Graph> Ptr;
     typedef Node::Ptr NodePtr;
     typedef std::set<NodePtr> NodeSet;
-    
-    typedef boost::shared_ptr<Absloc> AbslocPtr;
+
+    typedef Absloc::Ptr AbslocPtr;
     typedef std::set<AbslocPtr> AbslocSet;
     
     typedef std::map<AbslocPtr, NodePtr> AbslocMap;

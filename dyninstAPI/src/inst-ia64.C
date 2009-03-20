@@ -308,15 +308,21 @@ void emitRegisterToRegisterCopy( Register source, Register destination, codeGen 
 } /* end emitRegisterToRegisterCopy() */
 
 /* private refactoring function */
-Register findFreeLocal( registerSpace * rs, char * failure ) {
+Register findFreeLocal(codeGen &gen, registerSpace * rs, char * failure ) {
   Register freeLocalRegister = 0;
   unsigned int localZero = rs->GPRs()[0]->number;
   for( unsigned int i = 0; i < NUM_LOCALS; i++ ) {
-	if( rs->isFreeRegister( localZero + i ) ) { 
+	if (rs->trySpecificRegister(gen, localZero + i)) {
 	  freeLocalRegister = localZero + i; break; 
 	}
   } /* end freeLocalRegister search */
   if( freeLocalRegister == 0 ) {
+  for( unsigned int i = 0; i < NUM_LOCALS; i++ ) {
+	if (rs->allocateScratchRegister(gen, localZero + i)) {
+	  freeLocalRegister = localZero + i; break; 
+	}
+  }
+  if (freeLocalRegister == 0) {
 	fprintf(stderr, "Failed to find free local (0 - %d)\n", NUM_LOCALS);
 	rs->debugPrint();
 	fprintf( stderr, "%s", failure );
@@ -375,7 +381,7 @@ Register emitFuncCall( opCode op, codeGen & gen,
 
   /* Grab a register -- temporary for transfer to branch register,
 	 and a registerSpace register for the return value. */
-  Register rsRegister = findFreeLocal( gen.rs(), "Unable to find local register in which to store callee address, aborting.\n" );
+  Register rsRegister = findFreeLocal(gen, gen.rs(), "Unable to find local register in which to store callee address, aborting.\n" );
   gen.rs()->incRefCount( rsRegister );
 
   instruction integerNOP( NOP_I );
