@@ -67,7 +67,9 @@ char *Address_str (Address addr)
 int ThrIDToTid(Dyninst::THR_ID id)
 {
 #if defined(os_windows)
-   return GetThreadId(id);
+	// This is vista-only; for the time being, we'll return the handle as a dword
+	//   return GetThreadId(id);
+	return (unsigned long) id;
 #else
    return (int) id;
 #endif

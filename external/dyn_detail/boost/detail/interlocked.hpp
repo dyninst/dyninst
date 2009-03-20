@@ -48,9 +48,9 @@ extern "C" long __cdecl InterlockedExchangeAdd( long*, long );
 # define DYN_DETAIL_BOOST_INTERLOCKED_EXCHANGE_ADD InterlockedExchangeAdd
 
 # define DYN_DETAIL_BOOST_INTERLOCKED_COMPARE_EXCHANGE_POINTER(dest,exchange,compare) \
-    ((void*)BOOST_INTERLOCKED_COMPARE_EXCHANGE((long*)(dest),(long)(exchange),(long)(compare)))
+    ((void*)DYN_DETAIL_BOOST_INTERLOCKED_COMPARE_EXCHANGE((long*)(dest),(long)(exchange),(long)(compare)))
 # define DYN_DETAIL_BOOST_INTERLOCKED_EXCHANGE_POINTER(dest,exchange) \
-    ((void*)BOOST_INTERLOCKED_EXCHANGE((long*)(dest),(long)(exchange)))
+    ((void*)DYN_DETAIL_BOOST_INTERLOCKED_EXCHANGE((long*)(dest),(long)(exchange)))
 
 #elif defined( BOOST_MSVC ) || defined( BOOST_INTEL_WIN )
 
@@ -114,11 +114,11 @@ extern "C" __declspec(dllimport) long __stdcall InterlockedExchangeAdd( long vol
 
 } // namespace dyn_detail
 
-# define DYN_DETAIL_BOOST_INTERLOCKED_INCREMENT ::boost::detail::InterlockedIncrement
-# define DYN_DETAIL_BOOST_INTERLOCKED_DECREMENT ::boost::detail::InterlockedDecrement
-# define DYN_DETAIL_BOOST_INTERLOCKED_COMPARE_EXCHANGE ::boost::detail::InterlockedCompareExchange
-# define DYN_DETAIL_BOOST_INTERLOCKED_EXCHANGE ::boost::detail::InterlockedExchange
-# define DYN_DETAIL_BOOST_INTERLOCKED_EXCHANGE_ADD ::boost::detail::InterlockedExchangeAdd
+# define DYN_DETAIL_BOOST_INTERLOCKED_INCREMENT ::dyn_detail::boost::detail::InterlockedIncrement
+# define DYN_DETAIL_BOOST_INTERLOCKED_DECREMENT ::dyn_detail::boost::detail::InterlockedDecrement
+# define DYN_DETAIL_BOOST_INTERLOCKED_COMPARE_EXCHANGE ::dyn_detail::boost::detail::InterlockedCompareExchange
+# define DYN_DETAIL_BOOST_INTERLOCKED_EXCHANGE ::dyn_detail::boost::detail::InterlockedExchange
+# define DYN_DETAIL_BOOST_INTERLOCKED_EXCHANGE_ADD ::dyn_detail::boost::detail::InterlockedExchangeAdd
 
 # define DYN_DETAIL_BOOST_INTERLOCKED_COMPARE_EXCHANGE_POINTER(dest,exchange,compare) \
     ((void*)DYN_DETAIL_BOOST_INTERLOCKED_COMPARE_EXCHANGE((long volatile*)(dest),(long)(exchange),(long)(compare)))

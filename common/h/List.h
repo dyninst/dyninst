@@ -45,7 +45,7 @@
 #define LIST_H
 
 #include "common/h/language.h"
-#include <string.h>
+
 #include <ostream>
 
 #if !defined(DO_INLINE_P)
