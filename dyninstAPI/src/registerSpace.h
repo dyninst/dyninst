@@ -239,6 +239,8 @@ class registerSpace {
     // Like the above, but excluding a set of registers (that we don't want
     // to touch)
     Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true);
+    // Aaand like the above from a specific set of registers (rather than excluding)
+    bool trySpecificRegister(codeGen &gen, Register reg, bool noCost = true);
 
     bool saveAllRegisters(codeGen &gen, bool noCost);
     bool restoreAllRegisters(codeGen &gen, bool noCost);
@@ -265,6 +267,10 @@ class registerSpace {
     void cleanSpace();
     
     // Check to see if the register is free
+    // DO NOT USE THIS!!!! to tell if you can use a register as
+    // a scratch register; do that with trySpecificRegister
+    // or allocateSpecificRegister. This is _ONLY_ to determine
+    // if a register should be saved (e.g., over a call).
     bool isFreeRegister(Register k);
     
     // Checks to see if register starts live
