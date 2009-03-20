@@ -289,6 +289,15 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\src\RegisterIDs-x86.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

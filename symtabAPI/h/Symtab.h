@@ -535,7 +535,7 @@ class ExceptionBlock : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT Offset catchStart() const;
       SYMTAB_EXPORT bool contains(Offset a) const;
 
-      friend std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
+      friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
    private:
       Offset tryStart_;
       unsigned trySize_;
@@ -576,7 +576,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
       //SYMTAB_EXPORT std::ostream & operator<<(std::ostream &s) const;
-      friend std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
+      friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
       enum {pltrel = 1, dynrel = 2} relocationType;
 

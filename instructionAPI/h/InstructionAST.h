@@ -32,6 +32,12 @@
 #if !defined(INSTRUCTIONAST_H)
 #define INSTRUCTIONAST_H
 
+#if defined(_MSC_VER)
+// Exported class inheriting from non-exported class.  This is by design; don't
+// use the shared_from_this externally!
+#pragma warning(disable:4251)
+#endif
+
 #include "util.h"
 #include <vector>
 #include <set>
@@ -108,6 +114,10 @@ namespace Dyninst
     };
   };
 };
+#if defined(_MSC_VER)
+// reenable warning
+#pragma warning(default:4251)
+#endif
 
 
 #endif //!defined(INSTRUCTIONAST_H)

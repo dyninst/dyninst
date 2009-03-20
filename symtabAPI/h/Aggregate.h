@@ -46,6 +46,7 @@ namespace Dyninst{
 namespace SymtabAPI{
 
 class Symbol;
+class Module;
 
 class Aggregate : public AnnotatableSparse 
 {
@@ -64,17 +65,17 @@ class Aggregate : public AnnotatableSparse
       SYMTAB_EXPORT Symbol * getFirstSymbol() const;
 
       /***** Symbol naming *****/
-      SYMTAB_EXPORT const vector<std::string> &getAllMangledNames();
-      SYMTAB_EXPORT const vector<std::string> &getAllPrettyNames();
-      SYMTAB_EXPORT const vector<std::string> &getAllTypedNames();
-      SYMTAB_EXPORT virtual bool addMangledName(string name, bool isPrimary);
-      SYMTAB_EXPORT virtual bool addPrettyName(string name, bool isPrimary);
-      SYMTAB_EXPORT virtual bool addTypedName(string name, bool isPrimary);
+	  SYMTAB_EXPORT const std::vector<std::string> &getAllMangledNames();
+	  SYMTAB_EXPORT const std::vector<std::string> &getAllPrettyNames();
+	  SYMTAB_EXPORT const std::vector<std::string> &getAllTypedNames();
+      SYMTAB_EXPORT virtual bool addMangledName(std::string name, bool isPrimary);
+      SYMTAB_EXPORT virtual bool addPrettyName(std::string name, bool isPrimary);
+      SYMTAB_EXPORT virtual bool addTypedName(std::string name, bool isPrimary);
    protected:
 
-      bool addMangledNameInt(string name, bool isPrimary);
-      bool addPrettyNameInt(string name, bool isPrimary);
-      bool addTypedNameInt(string name, bool isPrimary);
+	   bool addMangledNameInt(std::string name, bool isPrimary);
+	   bool addPrettyNameInt(std::string name, bool isPrimary);
+	   bool addTypedNameInt(std::string name, bool isPrimary);
 
 
       // Offset comes from a symbol

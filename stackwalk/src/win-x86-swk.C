@@ -87,7 +87,7 @@ bool ProcSelf::readMem(void *dest, Address source, size_t size)
 }
 
 ProcSelf::ProcSelf() :
-   ProcessState(_getpid());
+   ProcessState(_getpid())
 {
 }
 

@@ -39,6 +39,8 @@
 
 #include "Annotatable.h"
 #include "Aggregate.h"
+#include "Type.h"
+#include "Symbol.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -66,7 +68,7 @@ class Function : public Aggregate
       SYMTAB_EXPORT int   getFramePtrRegnum() const;
 
       /***** x84_64-Specific Frame Pointer Information *****/
-      SYMTAB_EXPORT bool  setFramePtr(vector<loc_t> *locs);
+	  SYMTAB_EXPORT bool  setFramePtr(std::vector<loc_t> *locs);
       SYMTAB_EXPORT std::vector<loc_t>  *getFramePtr() const;
 
       /***** Local Variable Information *****/
