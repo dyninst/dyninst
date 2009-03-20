@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include "dyntypes.h"
 #include <map>
 #include <algorithm>
 #include <list>
@@ -47,7 +48,7 @@
 #include "Graph.h"
 #include "Node.h"
 
-#include "boost/tuple/tuple.hpp"
+#include <sys/times.h>
 
 // Example intra-function DDG creator
 // Heavily borrows from the Dyninst internal liveness.C file
@@ -61,9 +62,27 @@ class BPatch_basicBlock;
 class BPatch_flowGraph;
 class BPatch_function;
 
+using namespace __gnu_cxx;
+namespace __gnu_cxx {
+    template<typename T> struct hash<dyn_detail::boost::shared_ptr<T> > {
+        hash<char *> h;
+        unsigned operator()(const dyn_detail::boost::shared_ptr<T> &p) const {
+            return h((char *)p.get());
+        }
+    };
+    template<> struct hash<BPatch_basicBlock *> {
+        hash<char *> h;
+        unsigned operator()(const BPatch_basicBlock *p) const {
+            return h((char *)p);
+        }
+    };
+};
+
+
 class intraFunctionDDGCreator {
     typedef InstructionAPI::Instruction Insn;
     typedef std::set<Insn> InsnSet;
+    //typedef Absloc::Ptr AbslocPtr;
     typedef Absloc::Ptr AbslocPtr;
     typedef std::set<AbslocPtr> AbslocSet;
     typedef Node::Ptr NodePtr;
@@ -72,7 +91,27 @@ class intraFunctionDDGCreator {
     typedef BPatch_flowGraph Flowgraph;
     typedef BPatch_function Function;
 
+ public:
+    static clock_t initTime;
+    static clock_t interTime;
+    static clock_t intraTime;
 
+    static clock_t initGetInsnTime;
+    static clock_t initGetDefAbslocTime;
+    static clock_t initUpdateDefKillTime;
+
+    static clock_t defSetGetAliasTime;
+    static clock_t defSetPreciseTime;
+    static clock_t defSetElseTime;
+    static clock_t defSetAliasTime;
+
+    static clock_t interMergeTime;
+    static clock_t interCalcOutTime;
+    static clock_t interOutTime;
+
+    static clock_t intraGetUseDef;
+    static clock_t intraCreateNodes;
+    static clock_t intraUpdateDefSet;
 
     // The set of instructions that define an absloc used at the current
     // instruction
@@ -100,25 +139,25 @@ class intraFunctionDDGCreator {
     // to be a) unique and b) findable. Finally, we create a tuple that represents
     // a candidate Node in our analysis data structures. 
     typedef std::pair<AbslocPtr, InsnInstance> cNode;
-    typedef std::set<cNode> cNodeSet;
+    typedef std::vector<cNode> cNodeSet;
 
     // Temporary use: a data type for summarizing the definitions of Abslocs
     // from a particular block.
     // We use a map of cNodes to handle aliasing issues; see block comment
     // in intraFunctionCreator.C
-    typedef std::map<AbslocPtr, cNodeSet> DefMap;
+    typedef dyn_hash_map<AbslocPtr, cNodeSet> DefMap;
 
     // We also want to keep around kill information so we can efficiently
     // do the interprocedural analysis. This turns into a boolean, as we
     // don't really care _who_ kills (that's summarized in the gen set)
     // so long as _someone_ did.
-    typedef std::map<AbslocPtr, bool> KillMap;
-    typedef std::map<Block *, KillMap> KillSet;
+    typedef dyn_hash_map<AbslocPtr, bool> KillMap;
+    typedef dyn_hash_map<Block *, KillMap> KillSet;
 
     // A map from each Block to its DefMap data structure.    
-    typedef std::map<Block *, DefMap> ReachingDefsGlobal;
+    typedef dyn_hash_map<Block *, DefMap> ReachingDefsGlobal;
 
-    typedef std::map<Address, AbslocSet> AbslocMap;
+    typedef dyn_hash_map<Address, AbslocSet> AbslocMap;
  public:
     static intraFunctionDDGCreator create(Function *func);
     Graph::Ptr getDDG();
@@ -134,11 +173,11 @@ class intraFunctionDDGCreator {
 
     void initializeGenKillSets(std::set<Block *> &allBlocks);
 
-    void updateDefSet(const Absloc::Ptr D,
+    void updateDefSet(const AbslocPtr D,
                       DefMap &defMap,
                       cNode &cnode);
 
-    void updateKillSet(const Absloc::Ptr D,
+    void updateKillSet(const AbslocPtr D,
                        KillMap &kills);
 
     void merge(DefMap &target,
@@ -152,15 +191,15 @@ class intraFunctionDDGCreator {
     void genSetToReachingDefs(Block *current,
                               const cNodeSet &gens,
                               cNodeSet &defs);
+    
+    void initCallGenKill(const Instruction &insn,
+                         const Address &addr,
+                         DefMap &gens,
+                         KillMap &kills);
 
-    void recordCallState(const Instruction &insn,
-                         const Address &a,
-                         const DefMap &localDefs,
+    void createCallNodes(const Instruction &insn,
+                         const Address &addr,
                          const DefMap &reachingDefs);
-
-    void handleCall(const Address &a,
-                    AbslocSet &used,
-                    AbslocSet &def);
     
     void getPredecessors(Block *block,
                          std::vector<Block *> &preds);
@@ -171,6 +210,8 @@ class intraFunctionDDGCreator {
     void debugLocalSet(const DefMap &set, char *str);
     void debugAbslocSet(const AbslocSet &a, char *str);
     void debugDefMap(const DefMap &d, char *str);
+
+    Function *getCallee(const Address &a);
 
     NodePtr makeNodeFromCandidate(cNode cnode);
 

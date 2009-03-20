@@ -47,8 +47,6 @@
 #include "Node.h"
 #include <assert.h>
 
-#include "boost/lexical_cast.hpp"
-
 #include "BPatch_function.h"
 
 
