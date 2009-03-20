@@ -48,8 +48,7 @@
 #define TEST_DYNAMIC_LIB2	"libXt.so"
 
 #elif defined(x86_64_unknown_linux2_4_test)
-//#define	TEST_DYNAMIC_LIB	"libform.so.5.6"
-#define	TEST_DYNAMIC_LIB	"libform.so"
+#define	TEST_DYNAMIC_LIB	"libm.so.6"
 #define TEST_DYNAMIC_LIB2	"libresolv.so"
 
 #elif defined(mips_sgi_irix6_4_test) || defined(alpha_dec_osf4_0_test)
