@@ -4009,20 +4009,6 @@ bool process::continueProc(int signalToContinueWith)
   // Asynchronously signals "make my people run".
   sh->continueProcessAsync(signalToContinueWith);
 
-#if 0
-
-  // Handled by the SignalGenerator...
-  bool res = continueProc_(signalToContinueWith);
-  if (!res) 
-  {
-    fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
-    showErrorCallback(38, "System error: can't continue process");
-    return false;
-  }
-
-  set_status(running);
-#endif
-
   return true;
 }
 

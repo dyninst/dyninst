@@ -48,7 +48,7 @@
 #if !defined(DDG_NODE_H)
 #define DDG_NODE_H
 
-#include <boost/shared_ptr.hpp>
+#include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
 #include <string>
 #include "Annotatable.h"
@@ -73,12 +73,12 @@ class Node : public AnnotatableSparse {
     friend class Creator;
     
  public:
-    typedef boost::shared_ptr<Node> Ptr;
+    typedef dyn_detail::boost::shared_ptr<Node> Ptr;
     //typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
     
     typedef InstructionAPI::Instruction InsnPtr; 
-    typedef boost::shared_ptr<Edge> EdgePtr;
-    typedef boost::shared_ptr<Absloc> AbslocPtr;
+    typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
+    typedef Absloc::Ptr AbslocPtr;
     typedef std::set<EdgePtr> EdgeSet;
     
     bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
@@ -119,8 +119,8 @@ class InsnNode : public Node {
     friend class Creator;
     
  public:
-    typedef boost::shared_ptr<InsnNode> Ptr;
-    //typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
+    typedef dyn_detail::boost::shared_ptr<InsnNode> Ptr;
+    //typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
     
     static Node::Ptr createNode(Address addr, InsnPtr insn, AbslocPtr absloc);
     
@@ -160,7 +160,7 @@ class ParameterNode : public Node {
     friend class Creator;
     
  public:
-    typedef boost::shared_ptr<ParameterNode> Ptr;
+    typedef dyn_detail::boost::shared_ptr<ParameterNode> Ptr;
     
     static Node::Ptr createNode(AbslocPtr absloc);
     
@@ -190,7 +190,7 @@ class VirtualNode : public Node {
     friend class Creator;
     
  public:
-    typedef boost::shared_ptr<VirtualNode> Ptr;
+    typedef dyn_detail::boost::shared_ptr<VirtualNode> Ptr;
     
     static Node::Ptr createNode();
     
@@ -210,7 +210,7 @@ class CallNode : public Node {
     friend class Creator;
 
  public:
-    typedef boost::shared_ptr<VirtualNode> Ptr;
+    typedef dyn_detail::boost::shared_ptr<VirtualNode> Ptr;
 
     static Node::Ptr createNode(Function *func);
     

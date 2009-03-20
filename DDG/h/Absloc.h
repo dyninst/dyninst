@@ -48,7 +48,7 @@
 
 #include <values.h>
 
-#include <boost/shared_ptr.hpp>
+#include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
 #include <string>
 #include "Annotatable.h"
@@ -81,7 +81,7 @@ class Absloc : public AnnotatableSparse {
  public:
     // Get a list of all abstract locations currently defined
     // by the graph.
-    typedef boost::shared_ptr<Absloc> Ptr;
+    typedef dyn_detail::boost::shared_ptr<Absloc> Ptr;
     typedef std::set<Ptr> AbslocSet;
     
     static void getAbslocs(AbslocSet &locs);
@@ -135,8 +135,9 @@ class RegisterLoc : public Absloc {
 
  public:
     typedef std::map<InstructionAPI::RegisterAST, RegisterLoc::Ptr> RegisterMap;
+    typedef dyn_detail::boost::shared_ptr<RegisterLoc> Ptr;
+    
 
-    typedef boost::shared_ptr<RegisterLoc> Ptr;
     virtual ~RegisterLoc() {};
     virtual std::string name() const { return reg_->format(); }
     static void getRegisterLocs(AbslocSet &locs);
@@ -160,8 +161,8 @@ class StackLoc : public Absloc {
 
  public:
     typedef std::map<int, StackLoc::Ptr> StackMap;
+    typedef dyn_detail::boost::shared_ptr<StackLoc> Ptr;
 
-    typedef boost::shared_ptr<StackLoc> Ptr;
     virtual ~StackLoc() {};
     virtual std::string name() const;
 
@@ -190,7 +191,7 @@ class HeapLoc : public Absloc {
     friend class Edge;
 
  public:
-    typedef boost::shared_ptr<HeapLoc> Ptr;
+    typedef dyn_detail::boost::shared_ptr<HeapLoc> Ptr;
     virtual ~HeapLoc() {};
     virtual std::string name() const { return "HEAP"; }
     static void getHeapLocs(AbslocSet &locs);
@@ -212,7 +213,7 @@ class MemLoc : public Absloc {
     friend class Edge;
 
  public:
-    typedef boost::shared_ptr<MemLoc> Ptr;
+    typedef dyn_detail::boost::shared_ptr<MemLoc> Ptr;
     typedef std::map<Address, MemLoc::Ptr> MemMap;
     typedef std::set<MemLoc::Ptr> MemSet;
 
@@ -255,7 +256,7 @@ class ImmLoc : public Absloc {
     friend class Edge;
 
  public:
-    typedef boost::shared_ptr<ImmLoc> Ptr;
+    typedef dyn_detail::boost::shared_ptr<ImmLoc> Ptr;
     
     virtual ~ImmLoc() {};
     virtual std::string name() const;

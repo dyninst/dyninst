@@ -46,8 +46,8 @@
 #if !defined(DDG_EDGE_H)
 #define DDG_EDGE_H
 
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
+#include "dyn_detail/boost/shared_ptr.hpp"
+#include "dyn_detail/boost/weak_ptr.hpp"
 #include <set>
 #include "Annotatable.h"
 
@@ -76,9 +76,9 @@ namespace DDG {
         } type_t;
 
     public:
-        typedef boost::shared_ptr<Edge> Ptr;
-        typedef boost::shared_ptr<Node> NodeSharedPtr;
-        typedef boost::weak_ptr<Node> NodePtr;
+        typedef dyn_detail::boost::shared_ptr<Edge> Ptr;
+        typedef dyn_detail::boost::shared_ptr<Node> NodeSharedPtr;
+        typedef dyn_detail::boost::weak_ptr<Node> NodePtr;
         
         static Ptr createEdge(const NodeSharedPtr source, const NodeSharedPtr target, const type_t type = Unknown);
 

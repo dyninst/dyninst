@@ -2318,6 +2318,7 @@ bool AstOperandNode::canBeKept() const {
     case RegOffset:
     case origRegister:
     case DataAddr:
+    case variableValue:
         return false;
     default:
 		break;

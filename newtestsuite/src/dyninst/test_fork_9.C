@@ -93,6 +93,9 @@ static int msgid;
 static void prepareTestCase5(procType proc_type, BPatch_thread *thread, forkWhen when)
 {
    static BPatchSnippetHandle *parSnippetHandle5;
+   logerror("prepareTestCase5, %d, %p, %d\n",
+	    proc_type, thread, when);
+   
 
    if(proc_type == Parent_p  &&  when == PreFork) {
       BPatch_image *parImage = thread->getImage();
