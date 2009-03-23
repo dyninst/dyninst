@@ -449,8 +449,11 @@ BPatch_variableExpr *BPatch_addressSpace::mallocInt(int n)
    std::stringstream namestr;
    namestr << "dyn_malloc_0x" << std::hex << ptr << "_" << n << "_bytes";
    std::string name = namestr.str();
+   
+   BPatch_type *type = BPatch::bpatch->createScalar(name.c_str(), n);
+
    return BPatch_variableExpr::makeVariableExpr(this, as[0], name, ptr,
-         BPatch::bpatch->type_Untyped);
+                                                type);
 }
 
 
@@ -506,6 +509,20 @@ bool BPatch_addressSpace::freeInt(BPatch_variableExpr &ptr)
    return true;
 }
 
+BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
+                                                            Dyninst::Address addr,
+                                                            BPatch_type *type) {
+    assert(BPatch::bpatch != NULL);
+    std::vector<AddressSpace *> as;
+    getAS(as);
+    assert(as.size());
+
+    return BPatch_variableExpr::makeVariableExpr(this, 
+                                                 as[0],
+                                                 name,
+                                                 (void *)addr, 
+                                                 type);
+}
 
 
 /*

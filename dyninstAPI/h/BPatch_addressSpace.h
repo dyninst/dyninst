@@ -317,6 +317,16 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (ptr),
     bool,free,(BPatch_variableExpr &ptr));
 
+    // BPatch_addressSpace::createVariable
+    // 
+    // Wrap an existing piece of allocated memory with a BPatch_variableExpr.
+    // Used (for instance) by the shared memory library to wrap its externally
+    // allocated memory for use by BPatch.
+    
+    API_EXPORT(Int, (name, addr, type),
+               BPatch_variableExpr *, createVariable, 
+               (std::string name, Dyninst::Address addr, BPatch_type *type = NULL));
+
     API_EXPORT(Int, (regs),
                bool, getRegisters, (std::vector<BPatch_register> &regs));
 

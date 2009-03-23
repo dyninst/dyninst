@@ -721,7 +721,8 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   
   AstNodePtr *wrapper = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
   // variableExpr owns the AST
-  return new BPatch_variableExpr(fname, proc, lladdSpace, wrapper, type, (void *) remoteAddress);
+  return new BPatch_variableExpr(fname, proc, lladdSpace, wrapper, 
+                                 type, (void *) remoteAddress); 
   //return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
   
 #else
@@ -734,7 +735,8 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   AstNodePtr *ast = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
   
   // the variableExpr owns the ast now.
-  return new BPatch_variableExpr(fname, addSpace, lladdSpace, ast, type, (void *) remoteAddress);
+  return new BPatch_variableExpr(fname, addSpace, lladdSpace, ast, 
+                                 type, (void *) remoteAddress);
   
 #endif
 

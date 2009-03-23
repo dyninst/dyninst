@@ -965,16 +965,6 @@ void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &
 /*
  * BPatch_variableExpr::BPatch_variableExpr
  *
- * Construct a snippet representing a variable of the given type at the given
- * address.
- *
- * in_process	The BPatch_process that the variable resides in.
- * in_address	The address of the variable in the inferior's address space.
- * type		The type of the variable.
- */
-/*
- * BPatch_variableExpr::BPatch_variableExpr
- *
  * Construct a snippet representing a variable of the given type and the passed
  *   ast.
  *
@@ -1057,8 +1047,11 @@ BPatch_variableExpr* BPatch_variableExpr::makeVariableExpr(BPatch_addressSpace* 
 							   void* offset,
 							   BPatch_type* type)
 {
-  int_variable* v = in_llAddSpace->getAOut()->getDefaultModule()->createVariable(name, reinterpret_cast<Address>(offset), type->getSize());
-  return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
+    
+    int_variable* v = in_llAddSpace->getAOut()->getDefaultModule()->createVariable(name, 
+                                                                                   reinterpret_cast<Address>(offset), 
+                                                                                   type->getSize());
+    return new BPatch_variableExpr(in_addSpace, in_llAddSpace, v, type);
 }
 
 
