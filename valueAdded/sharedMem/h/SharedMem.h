@@ -61,6 +61,8 @@ class shmMgrPreallocInternal;
 class BPatch_type;
 class BPatch_variableExpr;
 
+#include "dyntypes.h"
+
 #include      <sys/types.h>
 #include      <sys/shm.h>
 #include "BPatch_Vector.h"
@@ -69,12 +71,12 @@ class BPatch_variableExpr;
 class shMallocHandle {
     friend class shmMgr;
  private:
-    void * addrInMutator_;
+    Dyninst::Address addrInMutator_;
     BPatch_variableExpr *expr_;
-    shMallocHandle(void *a, BPatch_variableExpr *e) : addrInMutator_(a), expr_(e) {};
+    shMallocHandle(Dyninst::Address a, BPatch_variableExpr *e) : addrInMutator_(a), expr_(e) {};
  public:
-    void *addressInMutatee() const;
-    void *addressInMutator() const { return addrInMutator_; }
+    Dyninst::Address addressInMutatee() const;
+    Dyninst::Address addressInMutator() const { return addrInMutator_; }
     BPatch_variableExpr *expr() const { return expr_; }
     ~shMallocHandle();
 };
@@ -92,14 +94,14 @@ class shmMgr {
 
     bool freeWhenDeleted;
 
-    void * applicToDaemon(void * addr) const;
-    void * daemonToApplic(void * addr) const;
-    void * getOffsetDaemon(void * addr) const;
-    void * getOffsetApplic(void * addr) const;
+    Dyninst::Address  applicToDaemon(Dyninst::Address  addr) const;
+    Dyninst::Address  daemonToApplic(Dyninst::Address  addr) const;
+    Dyninst::Address  getOffsetDaemon(Dyninst::Address  addr) const;
+    Dyninst::Address  getOffsetApplic(Dyninst::Address  addr) const;
 
     /* Do all the work of creating a new shared memory segment
        and getting the RT lib to hook to it */
-    void addShmSegment(void * /*size*/);
+    void addShmSegment(Dyninst::Address  /*size*/);
 
     shmMgr(BPatch_process *proc, key_t shmSegKey, unsigned shmSize_, bool freeWhenDel = true);
     // Fork constructor
@@ -108,10 +110,10 @@ class shmMgr {
 
     bool initialize();
 
-    void *malloc_int(unsigned size, bool align = false);
+    Dyninst::Address malloc_int(unsigned size, bool align = false);
 
-    void * translateFromParentDaemon(void * addr, const shmMgr *parent);
-    void * translateFromParentApplic(void * addr, const shmMgr *parent);
+    Dyninst::Address  translateFromParentDaemon(Dyninst::Address  addr, const shmMgr *parent);
+    Dyninst::Address  translateFromParentApplic(Dyninst::Address  addr, const shmMgr *parent);
     
   public:
     

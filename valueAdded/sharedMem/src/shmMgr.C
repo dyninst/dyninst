@@ -147,8 +147,8 @@ shmMgr::~shmMgr()
   }  
 }
 
-void *shmMgr::malloc_int(unsigned size, bool /* align = true*/) {
-    void *retAddr = NULL;
+Dyninst::Address shmMgr::malloc_int(unsigned size, bool /* align = true*/) {
+    Dyninst::Address retAddr = 0;
     
     if (freespace < size) {
         // No way to get any allocation, try to allocate new shared memory segment
@@ -156,11 +156,11 @@ void *shmMgr::malloc_int(unsigned size, bool /* align = true*/) {
         if (new_seg == NULL) {
             // No luck
             fprintf(stderr, "shmMgr: unable to allocate: unsufficient space, failed to allocate new segment\n");
-            return NULL;
+            return 0;
         }
         if (!new_seg->attach(app)) {
             fprintf(stderr, "shmMgr: unable to allocate: unsufficient space, failed to attach to new segment\n");
-            return NULL;
+            return 0;
         }
         
         nextKeyToTry++;
@@ -172,21 +172,21 @@ void *shmMgr::malloc_int(unsigned size, bool /* align = true*/) {
     // Pass it to our shared memory segments
 
     for (unsigned iter = 0; iter < theShms.size(); iter++) {
-        retAddr = (void *) theShms[iter]->malloc(size);
-        if (retAddr != NULL) {
+        retAddr = (Dyninst::Address) theShms[iter]->malloc(size);
+        if (retAddr != 0) {
             freespace -= size;
             return retAddr;
         }
     }
 
-    assert(retAddr == NULL);
-    return NULL;
+    assert(retAddr == 0);
+    return 0;
 }
 
 void shmMgr::free(shMallocHandle *handle) 
 {
     assert(handle);
-    Address addr = (Address) handle->addressInMutator();
+    Dyninst::Address addr = (Dyninst::Address) handle->addressInMutator();
 
     delete handle;
 
@@ -200,8 +200,8 @@ void shmMgr::free(shMallocHandle *handle)
 }
 
 shMallocHandle *shmMgr::malloc(unsigned size, bool align /* = true*/, BPatch_type *type /* = NULL */) {
-    void *retAddr = malloc_int(size, align);
-    if (retAddr == NULL) return NULL;
+    Dyninst::Address retAddr = malloc_int(size, align);
+    if (retAddr == 0) return 0;
 
     char buffer[1024];
     snprintf(buffer, 1024, "%s-%p-%d", "shMemVar", retAddr, size);
@@ -213,22 +213,23 @@ shMallocHandle *shmMgr::malloc(unsigned size, bool align /* = true*/, BPatch_typ
     }
     
     // Okay, we've got an address. Let's wrap it up and go.
-    BPatch_variableExpr *expr = new BPatch_variableExpr(buffer, app, 
-                                       daemonToApplic(retAddr), 
-                                       type);
+    BPatch_variableExpr *expr = app->createVariable(buffer, 
+                                                    daemonToApplic(retAddr),
+                                                    type);
+    if (expr == NULL) return NULL;
 
     return new shMallocHandle(retAddr, expr);
 }
 
 // Assumption: the vectors of shared segments in each manager
 // are equivalent
-void * shmMgr::translateFromParentDaemon(void *vaddr, const shmMgr *parShmMgr) {
-    Address addr = (Address) vaddr;
+Dyninst::Address  shmMgr::translateFromParentDaemon(Dyninst::Address vaddr, const shmMgr *parShmMgr) {
+    Dyninst::Address addr = (Dyninst::Address) vaddr;
     for (unsigned i = 0; i < parShmMgr->theShms.size(); i++) {
         if (parShmMgr->theShms[i]->addrInSegmentDaemon(addr)) {
-            Address offset = parShmMgr->theShms[i]->offsetInDaemon(addr);
+            Dyninst::Address offset = parShmMgr->theShms[i]->offsetInDaemon(addr);
             assert(theShms.size() > i);
-            return (void *)theShms[i]->getAddrInDaemon(offset);
+            return (Dyninst::Address )theShms[i]->getAddrInDaemon(offset);
         }
     }
     assert(0 && "Translation failed");
@@ -239,36 +240,36 @@ void * shmMgr::translateFromParentDaemon(void *vaddr, const shmMgr *parShmMgr) {
 
 // Assumption: the vectors of shared segments in each manager
 // are equivalent
-void *shmMgr::translateFromParentApplic(void *vaddr, const shmMgr *parShmMgr) {
-    Address addr = (Address) vaddr;
+Dyninst::Address shmMgr::translateFromParentApplic(Dyninst::Address vaddr, const shmMgr *parShmMgr) {
+    Dyninst::Address addr = (Dyninst::Address) vaddr;
     for (unsigned i = 0; i < parShmMgr->theShms.size(); i++) {
         if (parShmMgr->theShms[i]->addrInSegmentApplic(addr)) {
-            Address offset = parShmMgr->theShms[i]->offsetInApplic(addr);
+            Dyninst::Address offset = parShmMgr->theShms[i]->offsetInApplic(addr);
             assert(theShms.size() > i);
-            return (void *)theShms[i]->getAddrInApplic(offset);
+            return (Dyninst::Address )theShms[i]->getAddrInApplic(offset);
         }
     }
     assert(0 && "Translation failed");
     return 0;
 }
 
-void * shmMgr::applicToDaemon(void *vapplic) const {
-    Address applic = (Address) vapplic;
+Dyninst::Address  shmMgr::applicToDaemon(Dyninst::Address vapplic) const {
+    Dyninst::Address applic = (Dyninst::Address) vapplic;
     for (unsigned i = 0; i < theShms.size(); i++)
         if (theShms[i]->addrInSegmentApplic(applic)) {
-            Address ret = theShms[i]->applicToDaemon(applic);
+            Dyninst::Address ret = theShms[i]->applicToDaemon(applic);
 
-            return (void *)ret;
+            return (Dyninst::Address )ret;
         }
     return 0;
 }
 
-void *shmMgr::daemonToApplic(void *vdaemon) const {
-    Address daemon = (Address) vdaemon;
+Dyninst::Address shmMgr::daemonToApplic(Dyninst::Address vdaemon) const {
+    Dyninst::Address daemon = (Dyninst::Address) vdaemon;
     for (unsigned i = 0; i < theShms.size(); i++)
         if (theShms[i]->addrInSegmentDaemon(daemon)) {
-            Address ret = theShms[i]->daemonToApplic(daemon);
-            return (void *)ret;
+            Dyninst::Address ret = theShms[i]->daemonToApplic(daemon);
+            return (Dyninst::Address )ret;
         }
     return 0;
 }
@@ -279,9 +280,9 @@ shmMgr *shmMgr::handleFork(BPatch_process *childProc) {
     // for now we force the user to call getChildHandle(...)
 }
 
-void *shMallocHandle::addressInMutatee() const {
-    if (!expr_) return NULL;
-    return expr_->getBaseAddr();
+Dyninst::Address shMallocHandle::addressInMutatee() const {
+    if (!expr_) return 0;
+    return (Dyninst::Address) expr_->getBaseAddr();
 }
 
 shMallocHandle::~shMallocHandle() {
