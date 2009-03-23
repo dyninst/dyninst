@@ -227,10 +227,10 @@ docs install-man:
 
 umd-nightly:
 	$(MAKE) clean
-	$(MAKE) DyninstAPI
+	$(MAKE) DyninstAPI ValueAdded
 
 # Used for nightly builds
-nightly: DyninstAPI
+nightly: DyninstAPI ValueAdded
 	$(MAKE) -C newtestsuite/$(PLATFORM) all
 
 #nightly:
