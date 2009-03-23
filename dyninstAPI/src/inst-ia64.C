@@ -317,10 +317,11 @@ Register findFreeLocal(codeGen &gen, registerSpace * rs, char * failure ) {
 	}
   } /* end freeLocalRegister search */
   if( freeLocalRegister == 0 ) {
-  for( unsigned int i = 0; i < NUM_LOCALS; i++ ) {
-	if (rs->allocateScratchRegister(gen, localZero + i)) {
-	  freeLocalRegister = localZero + i; break; 
-	}
+	  for( unsigned int i = 0; i < NUM_LOCALS; i++ ) {
+		  if (rs->allocateSpecificRegister(gen, localZero + i)) {
+			  freeLocalRegister = localZero + i; break; 
+		  }
+	  }
   }
   if (freeLocalRegister == 0) {
 	fprintf(stderr, "Failed to find free local (0 - %d)\n", NUM_LOCALS);

@@ -230,7 +230,7 @@ class registerSpace {
 
 
     Register allocateRegister(codeGen &gen, bool noCost);
-    bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost);
+    bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost = true);
 
 
     // Like allocate, but don't keep it around; if someone else tries to
@@ -239,7 +239,8 @@ class registerSpace {
     // Like the above, but excluding a set of registers (that we don't want
     // to touch)
     Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true);
-    // Aaand like the above from a specific set of registers (rather than excluding)
+
+
     bool trySpecificRegister(codeGen &gen, Register reg, bool noCost = true);
 
     bool saveAllRegisters(codeGen &gen, bool noCost);
