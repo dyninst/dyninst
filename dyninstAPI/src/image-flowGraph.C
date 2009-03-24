@@ -138,23 +138,18 @@ bool image::analyzeImage()
         if(!pdf->parsed()) {
             parsing_printf("[%s:%u] calling parse() at 0x%lx (ptr %p)\n",
                 FILE__,__LINE__,pdf->getOffset(),pdf);
+
+            /** Symtab-defined functions are already so ingrained in our
+                data structures at this point that they must be entered
+                into to the rest regardless of whether they were
+                parsed correctly or not. **/
+
+            enterFunctionInTables(pdf);
     
-            if(pdf->parse()) {
-                enterFunctionInTables(pdf);
-            } else {
+            if(!pdf->parse()) {
                 parsing_printf("[%s:%u] symtab-defined function %s at 0x%lx "
                                "failed to parse\n",FILE__,__LINE__,
                     pdf->symTabName().c_str(),pdf->getOffset());
-
-                /** FIXME removing symtab-defined functions is currently unsafe,
-                    as there is no mechanism to remove the symbols (and thus
-                    their up-pointers) through the SymtabAPI. See bug 906.
-                    For the time being, leaving these crufty functions around.
-                **/
-                // symtab functions need to be removed from the list
-                // of known functions by address
-                //funcsByEntryAddr.undef(pdf->getOffset());
-                //delete pdf;
             }
         }
     }
@@ -1357,23 +1352,24 @@ image_func * image_func::bindCallTarget(
                 FILE__,__LINE__,targetFunc->getOffset());
 
         if(targetFunc->parse()) {
-            targetFunc->img()->recordFunction(targetFunc);
-
             parsing_printf("[%s:%u] recursive parsing of 0x%lx complete\n",
                 FILE__,__LINE__,targetFunc->getOffset());
+
+            targetFunc->img()->recordFunction(targetFunc);
         } else {
             parsing_printf("[%s:%u] recursive parsing of 0x%lx failed\n",
                 FILE__,__LINE__,targetFunc->getOffset());
 
-            /* XXX Because of the enormous amount of references to functions
-                   created during parsing, it is not currently safe to
-                   delete image_func objects once they have been partially
-                   parsed. This needs a design-level fix.
-            // only want to delete this function if FindOrCreateFunc
-            // actually created one
-            if(created) 
-                delete targetFunc;
-            */
+            /* XXX Symtab-declared functions need to be added to the tables
+                   to maintain consistency */
+            if(targetFunc->howDiscovered() == FS_SYMTAB) {
+                parsing_printf("[%s:%u] symtab-defined function %s at 0x%lx "
+                               "failed to parse\n",FILE__,__LINE__,
+                     targetFunc->symTabName().c_str(),targetFunc->getOffset());
+
+                targetFunc->img()->recordFunction(targetFunc);
+            }
+
             targetFunc = NULL;
         }
     }
