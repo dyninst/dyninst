@@ -507,6 +507,8 @@ bool image_func::parse()
                 // non-stub existing blocks are handled by
                 // parseSharedBlocks
                 preParsed = true;
+            } else {
+                ph_entryBlock->addFunc(this);
             }
         }
         else
@@ -1372,6 +1374,9 @@ image_func * image_func::bindCallTarget(
 
             targetFunc = NULL;
         }
+
+        parsing_printf("[%s:%u] resuming parsing of %s\n",
+            FILE__,__LINE__,prettyName().c_str());
     }
                 
     return targetFunc;
