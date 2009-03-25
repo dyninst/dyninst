@@ -51,10 +51,10 @@
 
 // Two-level codeRange structure
 #include "mapped_object.h"
-
+#include "mapped_module.h"
 #if defined(cap_instruction_api)
-#include "../../instructionAPI/h/InstructionDecoder.h"
-#include "../../instructionAPI/h/Instruction.h"
+#include "InstructionDecoder.h"
+#include "Instruction.h"
 
 #else
 #include "InstrucIter.h"
@@ -1534,4 +1534,22 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
    assert(!range->is_function());
    return false;
    
+}
+
+void AddressSpace::setTrampGuard(int_variable* tg)
+{
+  trampGuardBase_ = tg;
+}
+
+
+int_variable* AddressSpace::createTrampGuard()
+{
+  // If we have one, just return it
+  if(trampGuardBase_) return trampGuardBase_;
+  Address base = inferiorMalloc(getAddressWidth());
+  trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", base, getAddressWidth());
+  int trampInit = 1;
+  // And make a range for it.
+  writeDataSpace((void *)base, sizeof(unsigned), &trampInit);    
+  return trampGuardBase_;
 }
