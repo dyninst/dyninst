@@ -296,6 +296,9 @@ class AddressSpace : public InstructionSource {
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
     AstNodePtr trampGuardAST(void);
+    virtual int_variable* createTrampGuard();
+    void setTrampGuard(int_variable* tg);
+    
 
     // Get the current code generator (or emitter)
     Emitter *getEmitter();
