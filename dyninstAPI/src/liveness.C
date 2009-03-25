@@ -705,8 +705,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
     InstructionDecoder decoder;
     const unsigned char* bufferToDecode = 
     reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
-    Instruction currentInsn = decoder.decode(bufferToDecode, 
-					     block()->origInstance()->endAddr() - addr());
+    Instruction currentInsn = decoder.decode(bufferToDecode);
     std::set<RegisterAST::Ptr> tmpRead;
     std::set<RegisterAST::Ptr> tmpWritten;
     currentInsn.getReadSet(tmpRead);

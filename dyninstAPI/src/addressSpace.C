@@ -1111,10 +1111,8 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder;
-    // FIXME: compute real size
-    size_t maxSize = 10;
-    Instruction curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr), 
-		maxSize);
+    Instruction curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr));
+    
     Expression::Ptr target = curInsn.getControlFlowTarget();
 	RegisterAST thePC = RegisterAST::makePC();
 	target->bind(&thePC, Result(u32, addr + curInsn.size()));

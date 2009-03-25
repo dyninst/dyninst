@@ -62,7 +62,7 @@ namespace Dyninst
       return Instruction(m_Operation, operands, decodedSize, rawInstruction - decodedSize);      
     }
     
-    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* buffer, size_t /*len*/)
+    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* buffer)
     {
       vector<Expression::Ptr> operands;
       rawInstruction = buffer;

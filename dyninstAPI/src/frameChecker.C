@@ -17,7 +17,7 @@ frameChecker::frameChecker(const unsigned char* addr, size_t max_length)
   
   for(unsigned i = 0; i < max_insns && bytesDecoded < max_length; i++)
   {
-    m_Insns.push_back(d.decode(addr, max_length - bytesDecoded));
+    m_Insns.push_back(d.decode(addr));
     addr += m_Insns.back().size();
     bytesDecoded += m_Insns.back().size();
   }

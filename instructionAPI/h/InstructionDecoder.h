@@ -61,23 +61,14 @@ namespace Dyninst
     /// Calls to \c decode will proceed to decode instructions sequentially from that buffer until its
     /// end is reached.  At that point, all subsequent calls to \c decode will return an invalid
     /// %Instruction object.
+    ///
+    /// An %InstructionDecoder object may alternately be constructed without designating a buffer,
+    /// and the buffer may be specified at the time \c decode is called.  This method of use may be
+    /// more convenient for users who are decoding non-contiguous instructions.
 
     class InstructionDecoder
     {
     public:
-      INSTRUCTION_EXPORT InstructionDecoder() : 
-         locs(NULL),
-         cond(NULL),
-         mac(NULL),
-         decodedInstruction(NULL), 
-         m_Operation(NULL),
-         is32BitMode(true),
-         sizePrefixPresent(false),
-         bufferBegin(NULL),
-         bufferSize(0),
-         rawInstruction(NULL)
-      {
-      }
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
       INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size) : 
          locs(NULL),
@@ -93,15 +84,33 @@ namespace Dyninst
       {
       }
       
+      /// Construct an %InstructionDecoder object with no buffer specified.
+      INSTRUCTION_EXPORT InstructionDecoder() : 
+         locs(NULL),
+         cond(NULL),
+         mac(NULL),
+         decodedInstruction(NULL), 
+         m_Operation(NULL),
+         is32BitMode(true),
+         sizePrefixPresent(false),
+         bufferBegin(NULL),
+         bufferSize(0),
+         rawInstruction(NULL)
+      {
+      }
       
       INSTRUCTION_EXPORT ~InstructionDecoder();
 
-      INSTRUCTION_EXPORT Instruction decode(const unsigned char* buffer, size_t size);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
       INSTRUCTION_EXPORT Instruction decode();
+      /// Decode the instruction at \c buffer, interpreting it as machine language of the type
+      /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 
+      /// an invalid %Instruction object will be returned.  The %Instruction's \c size field will contain 
+      /// the size of the instruction decoded.
+      INSTRUCTION_EXPORT Instruction decode(const unsigned char* buffer);
       
     protected:
       void decodeOperands(std::vector<Expression::Ptr>& operands);

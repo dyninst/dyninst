@@ -80,6 +80,7 @@ while(@ARGV)
 	$line =~ s/\\(\w*)section\{(.*)Documentation\}/\\$1section\{$2\}/;
 	$line =~ s/\\(\w*)subsection\{(.*)Class Reference\}/\\$1subsection\{$2Class\}/;
 	$line =~ s/\\(\w*)subsection\{(.*)Struct Reference\}/\\$1subsection\{$2Struct\}/;
+	$line =~ s/\\bf/\\textbf/g;
 
 	# remove section headers if they're tagged for removal
 	$line =~ s/\\\w*section\{REMOVE\}//;
