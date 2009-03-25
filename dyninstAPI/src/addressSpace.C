@@ -1551,5 +1551,6 @@ int_variable* AddressSpace::createTrampGuard()
   int trampInit = 1;
   // And make a range for it.
   writeDataSpace((void *)base, sizeof(unsigned), &trampInit);    
+  inst_printf("Tramp guard created at address 0x%lx\n", base);
   return trampGuardBase_;
 }
