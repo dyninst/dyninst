@@ -4642,7 +4642,7 @@ unsigned pcRelJCC::apply(Address addr)
    REGET_PTR(newInsn, *gen);
 
    //Go back and fill in the size of the jump at B into the 'jump <C>'
-   signed char tmp = (signed char) (newInsn - fill_in_jumpsize);
+   signed char tmp = (signed char) (newInsn - fill_in_jumpsize) - 1;
    *fill_in_jumpsize = tmp;
 
    return (unsigned) (newInsn - orig_loc);
