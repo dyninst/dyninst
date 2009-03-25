@@ -3754,6 +3754,7 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
    const char * nextStabString = stabEntry->getStringBase();
 
    const char * currentSourceFile = NULL;
+   const char * moduleName = NULL;
    Function *currentFunction = NULL;
    Offset currentAddress = 0;
    unsigned currentLineBase = 0;
@@ -3788,6 +3789,8 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
                { 
                   ++currentSourceFile; 
                }
+
+	       moduleName = currentSourceFile;
 
                // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
             }
@@ -3950,7 +3953,7 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
                {
                   if (functionLineToPossiblyAdd < newLineSpec)
                   {
-                     li[currentSourceFile].addLine(currentSourceFile, 
+                     li[moduleName].addLine(currentSourceFile, 
                                                    functionLineToPossiblyAdd, 
                                                    current_col, currentAddress, 
                                                    newLineAddress );
@@ -3963,7 +3966,7 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
                //      FILE__, __LINE__, currentSourceFile, newLineSpec, 
                //      currentAddress, newLineAddress);
 
-               li[currentSourceFile].addLine(currentSourceFile, newLineSpec, 
+               li[moduleName].addLine(currentSourceFile, newLineSpec, 
                                              current_col, currentAddress, 
                                              newLineAddress );
 

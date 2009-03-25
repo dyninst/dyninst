@@ -586,6 +586,7 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
     return true;
 }
 
+
 bool BinaryEdit::initialize() {
     // Create the tramp guard
 
@@ -593,16 +594,6 @@ bool BinaryEdit::initialize() {
     // get the functions we need. However, we kinda need the recursion
     // guard. This is an integer (one per thread, for now - 1) that 
     // begins initialized to 1.
-
-    Address base = inferiorMalloc(getAddressWidth());
-    trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", base, getAddressWidth());
-    // And initialize
-    int trampInit = 1;
-    // And make a range for it.
-    writeDataSpace((void *)base, sizeof(unsigned), &trampInit);
-
-
-    inst_printf("Tramp guard created at address 0x%lx\n", base);
 
     return true;
 }

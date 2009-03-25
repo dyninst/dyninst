@@ -452,14 +452,18 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     // functions need to have newBlk added to their blocklists.
     //
     // Because of the way that pre-parsed code is handled, only functions
-    // that have already been parsed need this information.
+    // that have already been parsed need this information. Also,
+    // functions that have not yet added the original block to their lists
+    // (i.e., the creator of the block) are not updated; they will later
+    // get to it when recursive parsing returns to them.
+    
     existing = newBlk->getFirstFunc();
     parsing_printf("... newBlk->getFirstFunc() location: 0x%lx\n",
         (existing ? existing->getOffset() : 0));
     set<image_func *>::iterator fit = funcs_.begin();
     for( ; fit != funcs_.end(); ++fit)
     {
-        if(*fit != existing && (*fit)->parsed())
+        if(*fit != existing && (*fit)->parsed() && (*fit)->containsBlock(this))
         {
             parsing_printf("... adding func at 0x%lx to newBlk\n",
                 (*fit)->getOffset());
