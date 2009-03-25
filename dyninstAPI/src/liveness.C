@@ -180,7 +180,7 @@ map<IA32Regs, Register> reverseRegisterMap = map_list_of
   (r_DR5, REGNUM_IGNORED)
   (r_DR6, REGNUM_IGNORED)
   (r_DR7, REGNUM_IGNORED)
-
+  (r_ALLGPRS, REGNUM_IGNORED)
 ;
 
 Register convertRegID(IA32Regs toBeConverted)
