@@ -39,7 +39,7 @@ AnnotationClass<localVarCollection> FunctionLocalVariablesAnno(std::string("Func
 AnnotationClass<localVarCollection> FunctionParametersAnno(std::string("FunctionParametersAnno"));
 AnnotationClass<std::vector<std::string> > SymbolVersionNamesAnno("SymbolVersionNamesAnno");
 AnnotationClass<std::string> SymbolFileNameAnno("SymbolFileNameAnno");
-AnnotationClass<std::vector<Symbol *> > UserFuncsAnno(std::string("UserFuncsAnno"));
+AnnotationClass<std::vector<Function *> > UserFuncsAnno(std::string("UserFuncsAnno"));
 AnnotationClass<std::vector<Region *> > UserRegionsAnno(std::string("UserRegionsAnno"));
 AnnotationClass<std::vector<Type *> > UserTypesAnno(std::string("UserTypesAnno"));
 AnnotationClass<std::vector<Symbol *> > UserSymbolsAnno(std::string("UserSymbolsAnno"));

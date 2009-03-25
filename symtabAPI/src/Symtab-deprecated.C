@@ -67,7 +67,7 @@ bool Symtab::findFuncByEntryOffset(std::vector<Symbol *>& ret, const Offset entr
         serr = No_Such_Function;
         return false;
     }
-    func->getAllSymbols(ret);
+    func->getSymbols(ret);
     return true;
 }
 
@@ -77,7 +77,7 @@ bool Symtab::findSymbolByType(std::vector<Symbol *> &ret,
                               bool isMangled,
                               bool isRegex,
                               bool checkCase) {
-    nameType_t nameType;
+    NameType nameType;
     if (isMangled) nameType = mangledName;
     else nameType = prettyName;
 

@@ -1374,8 +1374,8 @@ bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int /* 
      }
   }
   if (!p) {
-     fprintf(stderr, "%s[%d]:  no process corresp to pid %d\n", FILE__, __LINE__);
-     return false;
+      fprintf(stderr, "%s[%d]:  no process corresp to pid %d\n", FILE__, __LINE__, pid);
+      return false;
   }
 
   ret = p->readDataSpace((void *)addr, nelem, (void *)data, true /*display error?*/);

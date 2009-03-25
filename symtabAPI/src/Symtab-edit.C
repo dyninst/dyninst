@@ -95,6 +95,16 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
     return true;
 }
 
+bool Symtab::delFunction(Function *func) {
+    fprintf(stderr, "Function is unimplemented!\n");
+    return false;
+}
+
+bool Symtab::delVariable(Variable *var) {
+    fprintf(stderr, "Function is unimplemented!\n");
+    return false;
+}
+
 bool Symtab::delSymbol(Symbol *sym)
 {
     switch (sym->getType()) {
@@ -199,6 +209,8 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
 {
     if (!newSym)
     	return false;
+    if (!newSym->isInDynSymtab())
+        return false;
 
     string filename = referringSymbol->getModule()->exec()->name();
     vector<string> *vers, *newSymVers = new vector<string>;
@@ -218,19 +230,13 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
         newSym->setVersions(*newSymVers);
     }
 
-    return addSymbol(newSym, true);
+    return addSymbol(newSym);
 }
 
-bool Symtab::addSymbol(Symbol *newSym, bool isDynamic) 
+bool Symtab::addSymbol(Symbol *newSym) 
 {
     if (!newSym)
     	return false;
-
-    if (isDynamic) 
-    {
-        newSym->clearIsInSymtab();
-        newSym->setDynSymtab();
-    }	
 
 #if !defined(os_windows)
     // Windows: variables are created with an empty module
@@ -242,7 +248,6 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
 #endif
     
     // This mimics the behavior during parsing
-
     fixSymModule(newSym);
 
     // If there aren't any pretty names, create them
@@ -261,4 +266,158 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
 
     return true;
 }
+
+
+Function *Symtab::createFunction(std::string name, 
+                                 Offset offset, 
+                                 size_t sz,
+                                 Module *mod)
+{
+    Region *reg = NULL;
+    
+    if (!findRegion(reg, ".text")) {
+        assert(0 && "could not find text region");
+        fprintf(stderr, "%s[%d]:  could not find data region\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    if (!reg) {
+        fprintf(stderr, "%s[%d]:  could not find text region\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    // Let's get the module hammered out. 
+    if (mod == NULL) {
+        mod = getDefaultModule();
+    }
+
+    // Check to see if we contain this module...
+    bool found = false;
+    for (unsigned i = 0; i < _mods.size(); i++) {
+        if (_mods[i] == mod) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        fprintf(stderr, "Mod is %p/%s\n",
+                mod, mod->fileName().c_str());
+        for (unsigned i = 0; i < _mods.size(); i++) {
+            fprintf(stderr, "Matched against %p/%s\n",
+                    _mods[i], _mods[i]->fileName().c_str());
+        }
+        fprintf(stderr, "This %p; mod symtab %p\n",
+                this, mod->exec());
+
+        assert(0 && "passed invalid module\n");
+        return NULL;
+    }
+    
+    Symbol *statSym = new Symbol(name, 
+                                 Symbol::ST_FUNCTION, 
+                                 Symbol::SL_GLOBAL,
+                                 Symbol::SV_DEFAULT, 
+                                 offset, 
+                                 reg, 
+                                 sz,
+                                 false,
+                                 false);
+    Symbol *dynSym = new Symbol(name,
+                                Symbol::ST_FUNCTION,
+                                Symbol::SL_GLOBAL,
+                                Symbol::SV_DEFAULT,
+                                offset,
+                                reg,
+                                sz,
+                                true,
+                                false);
+    
+    statSym->setModule(mod);
+    dynSym->setModule(mod);
+
+    if (!addSymbol(statSym) || !addSymbol(dynSym)) {
+        assert(0 && "failed to add symbol\n");
+        fprintf(stderr, "%s[%d]:  symtab failed to addSymbol\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    Function *func = statSym->getFunction();
+    if (!func) {		
+        assert(0 && "failed aggregate creation");
+        fprintf(stderr, "%s[%d]:  symtab failed to create function\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    return func;
+}
+
+
+
+Variable *Symtab::createVariable(std::string name, 
+                                 Offset offset, 
+                                 size_t sz,
+                                 Module *mod)
+{
+    Region *reg = NULL;
+    
+    if (!findRegion(reg, ".data")) {
+        fprintf(stderr, "%s[%d]:  could not find data region\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    if (!reg) {
+        fprintf(stderr, "%s[%d]:  could not find data region\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    // Let's get the module hammered out. 
+    if (mod == NULL) {
+        mod = getDefaultModule();
+    }
+    // Check to see if we contain this module...
+    bool found = false;
+    for (unsigned i = 0; i < _mods.size(); i++) {
+        if (_mods[i] == mod) {
+            found = true;
+            break;
+        }
+    }
+    if (!found) return NULL;
+    
+    Symbol *statSym = new Symbol(name, 
+                                 Symbol::ST_OBJECT, 
+                                 Symbol::SL_GLOBAL,
+                                 Symbol::SV_DEFAULT, 
+                                 offset, 
+                                 reg, 
+                                 sz,
+                                 false,
+                                 false);
+    Symbol *dynSym = new Symbol(name,
+                                Symbol::ST_OBJECT,
+                                Symbol::SL_GLOBAL,
+                                Symbol::SV_DEFAULT,
+                                offset,
+                                reg,
+                                sz,
+                                true,
+                                false);
+    
+    statSym->setModule(mod);
+    dynSym->setModule(mod);
+
+    if (!addSymbol(statSym) || !addSymbol(dynSym)) {
+        fprintf(stderr, "%s[%d]:  symtab failed to addSymbol\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    Variable *var = statSym->getVariable();
+    if (!var) {		
+        fprintf(stderr, "%s[%d]:  symtab failed to create var\n", FILE__, __LINE__);
+        return NULL;
+    }
+    
+    return var;
+}
+
 

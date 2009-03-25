@@ -121,7 +121,7 @@ const char * image_edge::getTypeString()
 //
 // Note - this must define funcEntry and funcReturn
 // 
-image_func::image_func(const std::string &symbol,
+image_func::image_func(const std::string &name,
 		       Address offset, 
 		       const unsigned symTabSize,
 		       pdmodule *m,
@@ -163,35 +163,10 @@ image_func::image_func(const std::string &symbol,
 #endif
     endOffset_ = offset + symTabSize;
     Symtab * st = i->getObject();
-#if 0
-    Region * sec = NULL;
-    if (st)
-       st->findRegion(sec, ".text");
 
-    Symbol *sym_;
-    sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
-                      Symbol::SV_DEFAULT, offset, sec, symTabSize);
-    std::vector<Module *> mods;
-    st->getAllModules(mods);
-    if (mods.size())
-        sym_->setModule(mods[0]);
-#endif
+    func_ = st->createFunction(name, offset, symTabSize, m->mod());
 
-	//  createFunction both creates the func and adds it to all relevant indices
-
-    func_ = Function::createFunction(st, symbol, m->fileName(), offset, symTabSize);
     assert(func_);
-
-#if 0
-    i->getObject()->addSymbol(sym_);
-
-    func_ = sym_->getFunction();
-    assert(func_);
-
-    //i->getObject()->addSymbol(sym_);								
-    //sym_->setUpPtr(this);
-    //symTabNames_.push_back(symbol);
-#endif
 
     image_func *th = this;
 
@@ -237,7 +212,7 @@ image_func::image_func(Function *func, pdmodule *m, image *i, FuncSource src):
         fprintf(stderr, "image_func_count: %d (%d)\n",
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
-    endOffset_ = func->getAddress() + func->getFirstSymbol()->getSize();
+    endOffset_ = func->getOffset() + func->getFirstSymbol()->getSize();
  }	
 
 

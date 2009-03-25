@@ -218,71 +218,79 @@ Object::Module::FindFile( std::string name )
 
 void
 Object::File::DefineSymbols( dyn_hash_map<std::string, std::vector< Symbol *> >& allSyms,
-				const std::string& modName ) const
+                             map<Symbol *, std::string> &symsToMods,
+                             const std::string& modName ) const
 {
-	for( std::vector<Object::intSymbol*>::const_iterator iter = syms.begin(); iter != syms.end(); iter++ )
-    {
-	const Object::intSymbol* curSym = * iter;
+    for( std::vector<Object::intSymbol*>::const_iterator iter = syms.begin(); iter != syms.end(); iter++ ) {
+        const Object::intSymbol* curSym = * iter;
 	assert( curSym != NULL );
-	curSym->DefineSymbol( allSyms, modName );
+	curSym->DefineSymbol( allSyms, symsToMods, modName );
     }
 }
 
 void
 Object::intSymbol::DefineSymbol(dyn_hash_map<std::string,std::vector<Symbol *> >&allSyms,
-				const std::string& modName ) const
+				map<Symbol *, std::string> &symsToMods,
+                                const std::string& modName ) const
 {
-    allSyms[GetName()].push_back(new Symbol(GetName(), 
-                                            modName,
-                                            (Symbol::SymbolType) GetType(),
-                                            (Symbol::SymbolLinkage) GetLinkage(),
-											Symbol::SV_UNKNOWN,
-											(Offset)GetAddr(),
-                                            GetRegion(),
-                                            GetSize()) );
+    Symbol *sym = new Symbol(GetName(), 
+                             (Symbol::SymbolType) GetType(),
+                             (Symbol::SymbolLinkage) GetLinkage(),
+                             Symbol::SV_UNKNOWN,
+                             (Offset)GetAddr(),
+                             GetRegion(),
+                             GetSize());
+    allSyms[GetName()].push_back(sym);
+    symsToMods[sym] = modName;
 }
 
 void
 Object::Module::DefineSymbols( const Object* obj,
-				dyn_hash_map<std::string, std::vector< Symbol *> > & syms ) const
+                               dyn_hash_map<std::string, std::vector< Symbol *> > & syms,
+                               map<Symbol *, std::string> &symsToMods ) const
 {
-	// define Paradyn/dyninst modules and symbols
-	if( !isDll )
+    // define Paradyn/dyninst modules and symbols
+    if( !isDll )
 	{
         // this is an EXE
         for( std::vector<Object::File*>::const_iterator iter = files.begin();
                 iter != files.end();
-                iter++ )
-        {
+             iter++ ) {
             const File* curFile = *iter;
             assert( curFile != NULL );
-
+            
             //fprintf(stderr, "ObjMod::DefineSymbols for %s\n", curFile->GetName().c_str());
             // add a Symbol for the file
-            syms[curFile->GetName()].push_back( new Symbol( curFile->GetName(), 
-                        "",
-                        Symbol::ST_MODULE,
-                        Symbol::SL_GLOBAL,
-						Symbol::SV_UNKNOWN,
-                        obj->code_off(),	// TODO use real base of symbols for file
-                        NULL, 0 ) );		  // TODO Pass Section pointer also
+            Symbol *sym = new Symbol( curFile->GetName(), 
+                                      Symbol::ST_MODULE,
+                                      Symbol::SL_GLOBAL,
+                                      Symbol::SV_UNKNOWN,
+                                      obj->code_off(),	// TODO use real base of symbols for file
+                                      NULL, 0 );	// TODO Pass Section pointer also
             // TODO also pass size
             // add symbols for each of the file's symbols
-            curFile->DefineSymbols( syms, curFile->GetName() );
+            syms[curFile->getName()].push_back(sym);
+            symsToMods[sym] = curFile->getName();
+
+            curFile->DefineSymbols( syms, symsToMods, curFile->GetName() );
         }
     }
     else
     {
         // we represent a DLL
         // add one Symbol for the entire module
-        syms[name].push_back( new Symbol( name,
-                    "",
-                    Symbol::ST_MODULE,
-                    Symbol::SL_GLOBAL,
-					Symbol::SV_UNKNOWN,
-                    obj->code_off(),
-                    NULL,					//TODO pass Sections pointer
-                    obj->code_len()) );
+
+        Symbol *sym = new Symbol(name,
+                                 Symbol::ST_MODULE,
+                                 Symbol::SL_GLOBAL,
+                                 Symbol::SV_UNKNOWN,
+                                 obj->code_off(),
+                                 NULL,					//TODO pass Sections pointer
+                                 obj->code_len()) );
+    
+        syms[name].push_back(sym); 
+        symsToMods[sym] = name;
+
         // add symbols for each of the module's symbols
         for( std::vector<Object::File*>::const_iterator iter = files.begin();
                 iter != files.end();
@@ -291,7 +299,7 @@ Object::Module::DefineSymbols( const Object* obj,
             const File* curFile = *iter;
             assert( curFile != NULL );
             // add symbols for each of the file's symbols
-            curFile->DefineSymbols( syms, name );
+            curFile->DefineSymbols( syms, symsToMods, name );
         }
     }
 }
@@ -629,7 +637,7 @@ void Object::ParseSymbolInfo( bool alloc_syms )
    assert( curModule != NULL );
    curModule->BuildSymbolMap( this );
    if (alloc_syms)
-      curModule->DefineSymbols( this, symbols_ );
+      curModule->DefineSymbols( this, symbols_, symsToModules_ );
    no_of_symbols_ = symbols_.size();
 
    //fprintf(stderr, "%s[%d]:  removed call to parseFileLineInfo here\n", FILE__, __LINE__);

@@ -47,6 +47,12 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
+typedef enum {
+    mangledName = 1,
+    prettyName = 2,
+    typedName = 4,
+    anyName = 7 } NameType;
+
 
 typedef enum { 
    lang_Unknown,

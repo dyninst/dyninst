@@ -48,17 +48,10 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-
-
-Variable::Variable() :
-   type_(NULL)
+Variable::Variable(Symbol *sym) :
+    Aggregate(sym),
+    type_(NULL)
 {
-}
-
-Variable *Variable::createVariable(Symbol *sym) {
-    Variable *var = new Variable();
-    var->addSymbol(sym);
-    return var;
 }
 
 void Variable::setType(Type *type)

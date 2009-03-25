@@ -1617,10 +1617,10 @@ bool process::getDyninstRTLibName() {
 // Load the dyninst library
 bool process::loadDYNINSTlib()
 {
-	loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
-	Address LoadLibAddr;
-    Symbol sym;
-
+    loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
+    Address LoadLibAddr;
+    int_symbol sym;
+    
     dyn_lwp *lwp;
     lwp = getInitialLwp();
  /*   if (lwp->status() == running) {
@@ -1634,7 +1634,7 @@ bool process::loadDYNINSTlib()
             printf("unable to find function LoadLibrary\n");
             assert(0);
         }
-    LoadLibAddr = sym.getAddr();
+    LoadLibAddr = sym->getAddr();
     assert(LoadLibAddr);
 
     char ibuf[BYTES_TO_SAVE];

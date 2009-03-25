@@ -1320,7 +1320,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
 
         // find the Symbol corresponding to the int_function
         std::vector<Symbol *> syms;
-        callee->ifunc()->func()->getAllSymbols(syms);
+        callee->ifunc()->func()->getSymbols(syms);
 
         if (syms.size() == 0) {
             char msg[256];

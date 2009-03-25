@@ -329,19 +329,14 @@ codeRange *AddressSpace::findModByAddr(Address addr) {
 }
 
 // Returns the named symbol from the image or a shared object
-bool AddressSpace::getSymbolInfo( const std::string &name, Symbol &ret ) 
+bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret ) 
 {
   for (unsigned i = 0; i < mapped_objects.size(); i++) {
-    bool sflag;
-    sflag = mapped_objects[i]->getSymbolInfo( name, ret );
-    
-    if( sflag ) {
-      return true;
-    }
+      if (mapped_objects[i]->getSymbolInfo( name, ret ))
+          return true;
   }
   return false;
 }
-
 
 
 bool AddressSpace::getOrigRanges(pdvector<codeRange *> &ranges) {

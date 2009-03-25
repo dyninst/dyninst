@@ -324,7 +324,7 @@ int_variable* mapped_module::createVariable(std::string name, Address addr, int 
   Address base = obj()->dataBase();
   Offset offset = addr - base;
   
-  image_variable* img_var = pmod()->createImageVariable(offset, name, size);
+  image_variable* img_var = pmod()->imExec()->createImageVariable(offset, name, size, pmod());
   int_variable* ret = new int_variable(img_var, base, this);
   obj()->addVariable(ret);
   return ret;

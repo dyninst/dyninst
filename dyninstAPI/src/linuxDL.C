@@ -629,7 +629,7 @@ bool dynamic_linking::initialize() {
     
     /* Is this a dynamic executable? */
     std::string dyn_str = std::string("DYNAMIC");
-    Symbol dyn_sym;
+    int_symbol dyn_sym;
     if( ! proc->getSymbolInfo( dyn_str, dyn_sym ) ) { 
         startup_printf("[%s][%d]Failed to find DYNAMIC symbol in dyn::init, "
                        "this may not be a dynamic executable\n",__FILE__,__LINE__);
@@ -675,7 +675,7 @@ bool dynamic_linking::initialize() {
         return false; 
     }        
 
-    r_debug_addr = vars[0]->getAddress();
+    r_debug_addr = vars[0]->getOffset();
 
     if (!isValidMemory(r_debug_addr + ld_base, proc->getPid())) {
        ld_base = ld_base_backup;
@@ -700,7 +700,7 @@ bool dynamic_linking::initialize() {
         return false;
     }
     
-    dlopen_addr = funcs[0]->getAddress() + ld_base;
+    dlopen_addr = funcs[0]->getOffset() + ld_base;
     assert( dlopen_addr );
     
     dynlinked = true;
@@ -958,7 +958,7 @@ bool dynamic_linking::installTracing()
     instruction returnToBZero = generateReturnTo( 0 );
     IA64_bundle returnBundle( MMBstop, memoryNOP, memoryNOP, returnToBZero );
 
-    Symbol r_brk_target;
+    int_symbol r_brk_target;
     if (!proc->getSymbolInfo("R_BRK_TARGET", r_brk_target))
         assert(0);
     r_brk_target_addr = r_brk_target.getAddr(); assert( r_brk_target_addr );

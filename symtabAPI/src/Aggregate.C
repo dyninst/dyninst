@@ -47,16 +47,17 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-Aggregate::Aggregate() : module_(NULL)
-{}
-
-Offset Aggregate::getAddress() const {
-    return symbols_[0]->getAddr();
+Aggregate::Aggregate(Symbol *sym) :
+    module_(NULL)
+{
+    assert(sym);
+    module_ = sym->getModule();
+    symbols_.push_back(sym);
+    mangledNames_.push_back(sym->getMangledName());
+    prettyNames_.push_back(sym->getPrettyName());
+    typedNames_.push_back(sym->getTypedName());
 }
 
-Module *Aggregate::getModule() const {
-    return module_;
-}
 
 const vector<std::string> &Aggregate::getAllMangledNames() {
     return mangledNames_;
@@ -129,7 +130,7 @@ bool Aggregate::removeSymbol(Symbol *sym) {
     return false;
 }
 
-bool Aggregate::getAllSymbols(std::vector<Symbol *> &syms) const 
+bool Aggregate::getSymbols(std::vector<Symbol *> &syms) const 
 {
     syms = symbols_;
     return true;
@@ -243,4 +244,3 @@ bool Aggregate::addTypedNameInt(string name, bool isPrimary) {
         typedNames_.push_back(name);
     return true;
 }
-

@@ -129,111 +129,47 @@ void fileDescriptor::setLoadAddr(Address a)
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
-#if 0
-pdvector<image*> image::allImages;
-#endif
-
 int codeBytesSeen = 0;
 
 
-/* imported from platform specific library list.  This is lists all
-   library functions we are interested in instrumenting. */
 
-pdmodule *image::newModule(const string &name, const Address addr, supportedLanguages lang)
+// makeImageFunction(): define an image_func for the provided Function.
+// 
+// This used to attempt to derive module information; we now do that
+// in Symtab.
+
+image_func *image::makeImageFunction(Function *lookUp) 
 {
-
-   pdmodule *ret = NULL;
-   // modules can be defined several times in C++ due to templates and
-   //   in-line member functions.
-   if ((ret = findModule(name))) {
-      return(ret);
-   }
-
-   parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
-         name.c_str(), addr);
-
-   string fileNm, fullNm;
-   fullNm = name;
-   fileNm = extract_pathname_tail(name).c_str();
-
-   // /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
-   Module *mod;
-   if (linkedFile->findModuleByName(mod, fileNm))
-      ret = new pdmodule(mod, this);
-   else {
-      ret = new pdmodule(lang, addr, fullNm, this);
-   }
-   modsByFileName[ret->fileName()] = ret;
-   modsByFullName[ret->fullName()] = ret;
-   _mods.push_back(ret);
-
-   return(ret);
-}
-
-
-// makeOneFunction(): find name of enclosing module and define function symbol
-//
-// module information comes from one of three sources:
-//   #1 - debug format (stabs, DWARF, etc.)
-//   #2 - file format (ELF, COFF)
-//   #3 - file name (a.out, libXXX.so)
-// (in order of decreasing reliability)
-image_func *image::makeOneFunction(vector<Symbol *> &mods,
-      Function *lookUp) 
-{
-   // find module name
-   Address modAddr = 0;
-   string modName = lookUp->getModule()->fullName();
-   // /* DEBUG */ fprintf( stderr, "%s[%d]: makeOneFunction()'s module: %s\n", FILE__, __LINE__, modName.c_str() );
-
-   if (modName == "") {
-      modName = name_ + "_module";
-   } else if (modName == "DEFAULT_MODULE") {
-      string modName_3 = modName;
-      findModByAddr(lookUp->getFirstSymbol(), mods, modName, modAddr, modName_3);
-   }
-
-   pdmodule *use = getOrCreateModule(modName, modAddr);
-   assert(use);
-
-#if defined(arch_ia64)
-   parsing_printf("New function %s at 0x%llx\n",
-         lookUp->getFirstSymbol()->getName().c_str(), 
-         lookUp->getAddress());
-#else
-   parsing_printf("New function %s at 0x%x\n",
-         lookUp->getFirstSymbol()->getName().c_str(), 
-         lookUp->getAddress());
-#endif
+    pdmodule *pdmod = getOrCreateModule(lookUp->getModule());
 
    image_func *func = new image_func(lookUp, 
-         use, 
-         this,
-         FS_SYMTAB);
-
+                                     pdmod, 
+                                     this,
+                                     FS_SYMTAB);
+   
    /* Among symbol table functions, the ones with @ in the name are most likely OpenMP functions,
       if any non-OpenMP functions sneak in here we'll take care of them later when 
       closer analysis is done */
 
 #if defined(os_solaris)
-   if(strstr(lookUp->getFirstSymbol()->getName().c_str(), "_$") != NULL){
-      image_parRegion * pR = new image_parRegion(lookUp->getAddress(),func);    
-      parallelRegions.push_back(pR);
+   if(strstr(lookUp->getAllMangledNames()[0].c_str(), "_$") != NULL){
+       image_parRegion * pR = new image_parRegion(lookUp->getOffset(),func);    
+       parallelRegions.push_back(pR);
    }
 #endif 
 
 
 #if defined(os_aix)
 
-   if(strstr(lookUp->getFirstSymbol()->getName().c_str(), "@OL@") != NULL){
-      image_parRegion * pR = new image_parRegion(lookUp->getAddress(),func);    
-      parallelRegions.push_back(pR);
+   if(strstr(lookUp->getAllMangledNames()[0].c_str(), "@OL@") != NULL){
+       image_parRegion * pR = new image_parRegion(lookUp->getOffset(),func);    
+       parallelRegions.push_back(pR);
    } 
 #endif
-
-  assert(func);
+   
+   assert(func);
  
-  return func;
+   return func;
 }
 
 
@@ -340,24 +276,35 @@ void image::findMain()
             if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))
             {
             	//logLine( "No static symbol for function main\n" );
-                Symbol *newSym = new Symbol("DYNINST_pltMain", "DEFAULT_MODULE",
-                          Symbol::ST_FUNCTION, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
-                          mainAddress,textsec, UINT_MAX );
-        
+                Symbol *newSym = new Symbol("DYNINST_pltMain", 
+                                            Symbol::ST_FUNCTION, 
+                                            Symbol::SL_GLOBAL,
+                                            Symbol::SV_DEFAULT,
+                                            mainAddress,textsec, 
+                                            UINT_MAX );
                 linkedFile->addSymbol( newSym );
            }
            else
            {
-           	Symbol *newSym= new Symbol( "main", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                           Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, mainAddress,textsec, UINT_MAX );
+           	Symbol *newSym= new Symbol( "main", 
+                                            Symbol::ST_FUNCTION,
+                                            Symbol::SL_GLOBAL, 
+                                            Symbol::SV_DEFAULT, 
+                                            mainAddress,
+                                            textsec, 
+                                            UINT_MAX );
 	        linkedFile->addSymbol(newSym);		
             }
         }
     	if( !foundStart )
     	{
-            Symbol *startSym = new Symbol( "_start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                   Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, textsec->getRegionAddr(),textsec, UINT_MAX );
-    
+            Symbol *startSym = new Symbol( "_start",
+                                           Symbol::ST_FUNCTION,
+                                           Symbol::SL_GLOBAL,
+                                           Symbol::SV_DEFAULT, 
+                                           textsec->getRegionAddr(),
+                                           textsec,
+                                           UINT_MAX );
             //cout << "sim for start!" << endl;
         
 	    linkedFile->addSymbol(startSym);		
@@ -366,8 +313,13 @@ void image::findMain()
     	{
 	    Region *finisec;
 	    linkedFile->findRegion(finisec,".fini");
-            Symbol *finiSym = new Symbol( "_fini","DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                        Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, finisec->getRegionAddr(), finisec, UINT_MAX );
+            Symbol *finiSym = new Symbol( "_fini",
+                                          Symbol::ST_FUNCTION,
+                                          Symbol::SL_GLOBAL, 
+                                          Symbol::SV_DEFAULT, 
+                                          finisec->getRegionAddr(),
+                                          finisec, 
+                                          UINT_MAX );
 	    linkedFile->addSymbol(finiSym);		
     	}
     }
@@ -376,11 +328,18 @@ void image::findMain()
     vector < Symbol *>syms;
     if(linkedFile->findRegion(dynamicsec, ".dynamic")==true)
     {
-        if(linkedFile->findSymbolByType(syms,"_DYNAMIC",Symbol::ST_UNKNOWN)==false)
+        if(linkedFile->findSymbolByType(syms,
+                                        "_DYNAMIC",
+                                        Symbol::ST_UNKNOWN,
+                                        mangledName)==false)
         {
-	    Symbol *newSym = new Symbol( "_DYNAMIC", "DEFAULT_MODULE", 
-					Symbol::ST_OBJECT, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT,
-					dynamicsec->getRegionAddr(), dynamicsec, 0 );
+	    Symbol *newSym = new Symbol( "_DYNAMIC", 
+					Symbol::ST_OBJECT, 
+                                         Symbol::SL_GLOBAL, 
+                                         Symbol::SV_DEFAULT,
+					dynamicsec->getRegionAddr(), 
+                                         dynamicsec, 
+                                         0 );
 	    linkedFile->addSymbol(newSym);
 	}
     }
@@ -453,14 +412,14 @@ void image::findMain()
                mainAddr = (Offset)( currAddr + disp );      
        }  
        
-       Symbol *sym = new Symbol( "main",  "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                   Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, mainAddr, sec);
+       Symbol *sym = new Symbol( "main", Symbol::ST_FUNCTION,
+                                 Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, mainAddr, sec);
        linkedFile->addSymbol(sym);
       
    
        //since we are here make up a sym for _start as well
 
-       Symbol *sym1 = new Symbol( "__start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
+       Symbol *sym1 = new Symbol( "__start", Symbol::ST_FUNCTION,
                    Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, sec->getRegionAddr(), sec);
        linkedFile->addSymbol(sym1);
    }
@@ -491,30 +450,23 @@ void image::findMain()
        }
        if (!found_main) {
            syms.clear();
-           if(!linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Symbol::ST_UNKNOWN)) {
-               //make up a symbol for default module too
-               Symbol *modSym = new Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Symbol::ST_MODULE, 
-                                           Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, imageOffset_, NULL, 0);
-               linkedFile->addSymbol(modSym);
-           }
-           syms.clear();
-           if(!linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN)) {
+           if(!linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN, mangledName)) {
                //use 'start' for mainCRTStartup.
-               Symbol *startSym = new Symbol( "start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
+               Symbol *startSym = new Symbol( "start",  Symbol::ST_FUNCTION,
                                               Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, eAddr , 0, UINT_MAX );
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
-           if(!linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN)) {
+           if(!linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN, mangledName)) {
                //make up a func name for the start of the text section
-               Symbol *sSym = new Symbol( "winStart", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
+               Symbol *sSym = new Symbol( "winStart", Symbol::ST_FUNCTION,
                                           Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, imageOffset_, 0, UINT_MAX );
                linkedFile->addSymbol(sSym);
            }
            syms.clear();
-           if(!linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN)) {
+           if(!linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN, mangledName)) {
                //make up one for the end of the text section
-               Symbol *fSym = new Symbol( "winFini", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
+               Symbol *fSym = new Symbol( "winFini", Symbol::ST_FUNCTION,
                                           Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, imageOffset_ + linkedFile->imageLength() - 1, 
                                           0, UINT_MAX );
                linkedFile->addSymbol(fSym);
@@ -523,7 +475,7 @@ void image::findMain()
            startup_printf("[%s:%u] - findmain could not find symbol "
                           "for main, using binary entry point %x\n",
                           __FILE__, __LINE__, eAddr);
-           linkedFile->addSymbol(new Symbol("main","DEFAULT_MODULE",
+           linkedFile->addSymbol(new Symbol("main",
                                             Symbol::ST_FUNCTION, Symbol::SL_GLOBAL, Symbol::SV_DEFAULT, eAddr));
        }
    }
@@ -538,8 +490,7 @@ void image::findMain()
  * if found we flag this image as the executable (a.out). 
  */
 
-bool image::symbolsToFunctions(vector<Symbol *> &mods,
-			       pdvector<image_func *> *raw_funcs)
+bool image::symbolsToFunctions(pdvector<image_func *> &raw_funcs)
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -563,30 +514,30 @@ bool image::symbolsToFunctions(vector<Symbol *> &mods,
       is_a_out = false;
   
   // Checking for libdyninstRT (DYNINSTinit())
-   if (linkedFile->findFunctionsByName(funcs, "DYNINSTinit") ||
-       linkedFile->findFunctionsByName(funcs, "_DYNINSTinit"))
-       is_libdyninstRT = true;
-   else
-       is_libdyninstRT = false;
-   
-   // find the real functions -- those with the correct type in the symbol table
-   vector<Function *> allFuncs;
-   if(!linkedFile->getAllFunctions(allFuncs))
-       return true;
-   vector<Function *>::iterator funcIter = allFuncs.begin();
-   for(; funcIter!=allFuncs.end();funcIter++) {
-       Function *lookUp = *funcIter;
+  if (linkedFile->findFunctionsByName(funcs, "DYNINSTinit") ||
+      linkedFile->findFunctionsByName(funcs, "_DYNINSTinit"))
+      is_libdyninstRT = true;
+  else
+      is_libdyninstRT = false;
+  
+  // find the real functions -- those with the correct type in the symbol table
+  vector<Function *> allFuncs;
+  if(!linkedFile->getAllFunctions(allFuncs))
+      return true;
+  vector<Function *>::iterator funcIter = allFuncs.begin();
+  for(; funcIter!=allFuncs.end();funcIter++) {
+      Function *lookUp = *funcIter;
        
        if (lookUp->getModule()->fullName() == "DYNINSTheap") {
            // Do nothing for now; we really don't want to report it as
            // a real symbol.
        }
        else {
-           image_func *new_func = makeOneFunction(mods, lookUp);
+           image_func *new_func = makeImageFunction(lookUp);
            if (!new_func)
-               fprintf(stderr, "%s[%d]:  makeOneFunction failed\n", FILE__, __LINE__);
+               fprintf(stderr, "%s[%d]:  makeImageFunction failed\n", FILE__, __LINE__);
            else {
-               raw_funcs->push_back(new_func);
+               raw_funcs.push_back(new_func);
                if (!lookUp->addAnnotation(new_func, ImageFuncUpPtrAnno))
                    {
                        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
@@ -649,11 +600,12 @@ bool image::addSymtabVariables()
         varIter != allVars.end(); 
         varIter++) {
        Variable *symVar = *varIter;
+
        parsing_printf("New variable, mangled %s, module %s...\n",
                       symVar->getAllMangledNames()[0].c_str(),
                       symVar->getFirstSymbol()->getModuleName().c_str());
-       pdmodule *use = getOrCreateModule(symVar->getFirstSymbol()->getModuleName().c_str(),
-                                         symVar->getAddress());
+       pdmodule *use = getOrCreateModule(symVar->getModule());
+
        assert(use);
        image_variable *var = new image_variable(symVar, use);
        if (!var->svar()->addAnnotation(var, ImageVariableUpPtrAnno)) {
@@ -670,6 +622,7 @@ bool image::addSymtabVariables()
 
        exportedVariables.push_back(var);
        everyUniqueVariable.push_back(var);
+       varsByAddr[var->getOffset()] = var;
    }
 
 #if defined(TIMED_PARSE)
@@ -760,9 +713,16 @@ const pdvector<image_variable*> &image::getCreatedVariables()
   return createdVariables;
 }
 
-const pdvector <pdmodule*> &image::getModules() 
+bool image::getModules(vector<pdmodule *> &mods) 
 {
-  return _mods;
+    bool ret = false;
+   pdvector<pdmodule *> toReturn;
+    for (map<Module *, pdmodule *>::const_iterator iter = mods_.begin();
+         iter != mods_.end(); iter++) {
+        ret = true;
+        mods.push_back(iter->second);
+    }
+    return ret;
 }
 
 void print_module_vector_by_short_name(std::string prefix ,
@@ -1072,7 +1032,6 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    is_a_out(false),
    main_call_addr_(0),
    nativeCompiler(false),    
-   _mods(0),
    funcsByEntryAddr(addrHash4),
    nextBlockID_(0),
    pltFuncs(NULL),
@@ -1188,18 +1147,6 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
    findMain();
 
-   vector<Symbol *> uniqMods;
-   linkedFile->getAllSymbolsByType(uniqMods, Symbol::ST_MODULE);
-
-#if 0		// Moved to symtabAPI 
-#if defined(os_solaris) || defined(os_aix) || defined(os_linux)
-   // make sure we're using the right demangler
-
-   nativeCompiler = parseCompilerType(&linkedFile);
-   parsing_printf("isNativeCompiler: %d\n", nativeCompiler);
-#endif
-#endif
-
    // define all of the functions
    statusLine("winnowing functions");
 
@@ -1210,38 +1157,17 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 
    // define all of the functions, this also defines all of the modules
    startup_printf("%s[%d]:  before symbolsToFunctions\n", FILE__, __LINE__);
-   if (!symbolsToFunctions(uniqMods, &raw_funcs)) {
+   if (!symbolsToFunctions(raw_funcs)) {
        fprintf(stderr, "Error converting symbols to functions in file %s\n", desc.file().c_str());
-      err = true;
-      return;
+       err = true;
+       return;
    }
  
-   //Now done in the symtab land
-#if 0  
-   // wait until all modules are defined before applying languages to
-   // them we want to do it this way so that module information comes
-   // from the function symbols, first and foremost, to avoid any
-   // internal module-function mismatching.
-  
-   // get Information on the language each modules is written in
-   // (prior to making modules)
-   dictionary_hash<std::string, supportedLanguages> mod_langs(std::string::hash);
-   getModuleLanguageInfo(&mod_langs);
-   setModuleLanguages(&mod_langs);
-#endif  
-
-   // Once languages are assigned, we can build demangled names (in
-   // the wider sense of demangling which includes stripping _'s from
-   // fortran names -- this is why language information must be
-   // determined before this step).
-
-   // Also identifies aliases (multiple names with equal addresses)
-
    startup_printf("%s[%d]:  before buildFunctionLists\n", FILE__, __LINE__);
    if (!buildFunctionLists(raw_funcs)) {
        fprintf(stderr, "Error building function lists in file %s\n", desc.file().c_str());
-     err = true;
-     return;
+       err = true;
+       return;
    }
 
    // And symtab variables
@@ -1271,11 +1197,10 @@ image::~image()
 
     unsigned i;
 
-    // linkedFile : static, will go away automatically
-    for (i = 0; i < _mods.size(); i++) {
-        delete _mods[i];
+    for (map<Module *, pdmodule *>::iterator iter = mods_.begin();
+         iter != mods_.end(); iter++) {
+        delete (iter->second);
     }
-    _mods.clear();
 
     for (i = 0; i < everyUniqueFunction.size(); i++) {
         delete everyUniqueFunction[i];
@@ -1411,7 +1336,7 @@ const std::set<image_instPoint*> &pdmodule::getUnresolvedControlFlow()
 image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
  {
      // get or create module
-     pdmodule *mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
+     pdmodule *mod = getOrCreateModule(linkedFile->getDefaultModule());
      //KEVINTODO: if there are functions both preceding and succeeding
      //this one that lie in the same module, use that module instead
 
@@ -1422,7 +1347,7 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      } else {
          snprintf( funcName, 32, "entry_%lx", functionEntryAddr);	
      }
-     Symbol *funcSym = new Symbol(funcName, "DEFAULT_MODULE",
+     Symbol *funcSym = new Symbol(funcName,
                                   Symbol::ST_FUNCTION,
                                   Symbol::SL_GLOBAL, 
                                   Symbol::SV_DEFAULT,
@@ -1493,32 +1418,17 @@ Module *pdmodule::mod()
     return mod_;
 }
 
-#ifdef CHECK_ALL_CALL_POINTS
-void image::checkAllCallPoints() {
-    for (unsigned i = 0; i < _mods.size(); i++) {
-        _mods[i]->checkAllCallPoints();
-    }
-}
-#endif
-pdmodule *image::getOrCreateModule(const string &modName, 
-				   const Address modAddr) {
-    string nameToUse;
-    if (modName.length())
-        nameToUse = modName;
-    else
-        nameToUse = "DEFAULT_MODULE";
+pdmodule *image::getOrCreateModule(Module *mod) {
+    if (mods_.find(mod) != mods_.end())
+        return mods_[mod];
 
-    pdmodule *fm = findModule(nameToUse);
-    if (fm) return fm;
+    pdmodule *pdmod = new pdmodule(mod, this);
 
-    const char *str = nameToUse.c_str();
-    int len = nameToUse.length();
-    assert(len>0);
-
-    // TODO ignore directory definitions for now
-    if (str[len-1] == '/') 
-        return NULL;
-    return (newModule(nameToUse, modAddr, lang_Unknown));
+    mods_[mod] = pdmod;
+    modsByFileName[pdmod->fileName()] = pdmod;
+    modsByFullName[pdmod->fullName()] = pdmod;
+    
+    return pdmod;
 }
 
 
@@ -1565,7 +1475,7 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
     //Have to change here
     pdvector<image_func *>* res = new pdvector<image_func *>;
     vector<Function *> funcs;
-    linkedFile->findFunctionsByName(funcs, name.c_str(), Symtab::prettyName);
+    linkedFile->findFunctionsByName(funcs, name.c_str(), prettyName);
 
     for(unsigned index=0; index < funcs.size(); index++)
     {
@@ -1599,7 +1509,7 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string 
     pdvector<image_func *>* res = new pdvector<image_func *>;
 
     vector<Function *> funcs;
-    linkedFile->findFunctionsByName(funcs, name.c_str(), Symtab::mangledName);
+    linkedFile->findFunctionsByName(funcs, name.c_str(), mangledName);
 
     for(unsigned index=0; index < funcs.size(); index++) {
         Function *symFunc = funcs[index];
@@ -1628,7 +1538,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const std::strin
     pdvector<image_variable *>* res = new pdvector<image_variable *>;
 
     vector<Variable *> vars;
-    linkedFile->findVariablesByName(vars, name.c_str(), Symtab::prettyName);
+    linkedFile->findVariablesByName(vars, name.c_str(), prettyName);
     
     for (unsigned index=0; index < vars.size(); index++) {
         Variable *symVar = vars[index];
@@ -1660,7 +1570,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
     pdvector<image_variable *>* res = new pdvector<image_variable *>;
 
     vector<Variable *> vars;
-    linkedFile->findVariablesByName(vars, name.c_str(), Symtab::mangledName);
+    linkedFile->findVariablesByName(vars, name.c_str(), mangledName);
     
     for (unsigned index=0; index < vars.size(); index++) {
         Variable *symVar = vars[index];
@@ -1796,14 +1706,12 @@ bool image::isData(const Address &where)  const{
    return linkedFile->isData(addr); 
 }
 
-bool image::symbol_info(const std::string& symbol_name, Symbol &ret_sym) {
+Symbol *image::symbol_info(const std::string& symbol_name) {
    vector< Symbol *> symbols;
-   if(!(linkedFile->findSymbolByType(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN))) 
+   if(!(linkedFile->findSymbolByType(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN, mangledName))) 
        return false;
 
-   
-   ret_sym = *(symbols[0]);
-   return true;
+   return symbols[0];
 }
 
 
@@ -1837,9 +1745,23 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
    return pltFuncs;
 }
 
-image_variable* pdmodule::createImageVariable(Offset offset, std::string name, int size)
+image_variable* image::createImageVariable(Offset offset, std::string name, int size, pdmodule *mod)
 {
-  Dyninst::SymtabAPI::Variable *svar = mod()->createVariable(name, offset, size);
-  image_variable* ret = new image_variable(svar, this);
-  return ret;
+    // What to do here?
+    if (varsByAddr.defines(offset))
+        return varsByAddr[offset];
+
+    Variable *sVar = getObject()->createVariable(name, offset, size, mod->mod());
+
+    image_variable *ret = new image_variable(sVar, mod);
+
+    extern AnnotationClass<image_variable> ImageVariableUpPtrAnno;
+    if (!sVar->addAnnotation(ret, ImageVariableUpPtrAnno)) {
+        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+    }
+
+    createdVariables.push_back(ret);
+    everyUniqueVariable.push_back(ret);
+    varsByAddr[offset] = ret;
+    return ret;
 }

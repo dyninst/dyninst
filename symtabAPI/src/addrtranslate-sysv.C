@@ -631,7 +631,10 @@ void FCNode::parsefile() {
    parsed_file = true;
 
    vector<Symbol *> syms;
-   result = symtable->findSymbolByType(syms, R_DEBUG_NAME, Symbol::ST_OBJECT);
+   result = symtable->findSymbolByType(syms, 
+                                       R_DEBUG_NAME, 
+                                       Symbol::ST_OBJECT,
+                                       anyName);
    if (result && syms.size() != 0) {
       Symbol *rDebugSym = syms[0];   
       r_debug_offset = rDebugSym->getAddr();
@@ -640,7 +643,8 @@ void FCNode::parsefile() {
 
    for (unsigned i=0; i<NUM_DBG_BREAK_NAMES; i++) {
       result = symtable->findSymbolByType(syms, dbg_break_names[i], 
-                                          Symbol::ST_FUNCTION);
+                                          Symbol::ST_FUNCTION,
+                                          anyName);
       if (!result || !syms.size())
          continue;
       Symbol *rTrapSym = syms[0];

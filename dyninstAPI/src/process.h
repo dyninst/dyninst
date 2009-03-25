@@ -314,11 +314,6 @@ class process : public AddressSpace {
     //  Useful for debug output?  (belongs in process class?)
     bool dumpMemory(void *addr, unsigned nbytes);
     
-    
-    // This will find the named symbol in the image or in a shared object
-    // Necessary since some things don't show up as a function or variable.
-    //    bool getSymbolInfo( const std::string &name, Dyninst::SymtabAPI::Symbol &ret );
-    
     // Not at all sure we want to use this anymore...
     void overwriteImage( image* /*img */) {
         assert(0);

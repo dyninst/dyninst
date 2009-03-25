@@ -1309,14 +1309,28 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
       Symbol *commonBlockVar;
       std::vector<Symbol *> commonBlockVars;
-      if (!objFile->findSymbolByType(commonBlockVars, commonBlockName, Symbol::ST_OBJECT))
+      if (!objFile->findSymbolByType(commonBlockVars, 
+                                     commonBlockName, 
+                                     Symbol::ST_OBJECT,
+                                     mangledName))
 	{
-	  if (!objFile->findSymbolByType(commonBlockVars, commonBlockName, Symbol::ST_OBJECT, true))
+	  if (!objFile->findSymbolByType(commonBlockVars, 
+                                         commonBlockName, 
+                                         Symbol::ST_OBJECT, 
+                                         mangledName, 
+                                         true))
 	    {
 	      //pgcc 6 is naming common blocks with a trailing underscore
 	      std::string cbvname = std::string(commonBlockName) + std::string("_");
-	      if (!objFile->findSymbolByType(commonBlockVars, cbvname, Symbol::ST_OBJECT)){
-		objFile->findSymbolByType(commonBlockVars, cbvname, Symbol::ST_OBJECT, true);
+	      if (!objFile->findSymbolByType(commonBlockVars, 
+                                             cbvname, 
+                                             Symbol::ST_OBJECT,
+                                             mangledName)){
+                  objFile->findSymbolByType(commonBlockVars,
+                                            cbvname, 
+                                            Symbol::ST_OBJECT, 
+                                            mangledName,
+                                            true);
 	      }
 	    }	
 	}
@@ -1433,7 +1447,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       char * variableName = NULL;
       status = dwarf_diename( specEntry, & variableName, NULL );
       DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
+
       /* If we're fortran, get rid of the trailing _ */
       if (variableName && (currentFunction || currentEnclosure)) {
 	supportedLanguages lang = module->language();
@@ -1466,7 +1480,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       std::string fileName;
       Dwarf_Unsigned fileNameDeclVal;
       if (currentEnclosure || currentFunction) {
-	/* Acquire the variable's lineNo. We don't use this for globals */
+          /* Acquire the variable's lineNo. We don't use this for globals */
             
 	Dwarf_Attribute fileDeclAttribute;
 	status = dwarf_attr( specEntry, DW_AT_decl_file, & fileDeclAttribute, NULL );
@@ -2291,7 +2305,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
     return;
     }
   */		
-  dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile );
+  dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile->file().c_str() );
 
   /* Start the dwarven debugging. */
   Module *mod = NULL, *fixUnknownMod = NULL;
@@ -2357,9 +2371,12 @@ void Object::parseDwarfTypes( Symtab *objFile)
       if (!objFile->findModuleByName(mod, fName))
 	{
 	  modName = objFile->file();
-	  if (!objFile->findModuleByName(mod, modName))
-	    continue;
-	}
+	  if (!objFile->findModuleByName(mod, modName)) {
+              dwarf_printf("%s[%d]: could not find module by name %s or %s, skipping...\n",
+                           __FILE__, __LINE__, modName.c_str(), fName.c_str());
+              continue;
+          }
+        }
     }
     if (!fixUnknownMod)
       fixUnknownMod = mod;
@@ -2413,38 +2430,6 @@ void Object::parseDwarfTypes( Symtab *objFile)
 
    moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
-
-int dwarf_printf(const char *format, ...)
-{
-  static int dyn_debug_dwarf = 0;
-
-  if (dyn_debug_dwarf == -1) {
-    return 0;
-  }
-  if (!dyn_debug_dwarf) {
-    char *p = getenv("DYNINST_DEBUG_DWARF");
-    if (!p)
-      p = getenv("SYMTAB_DEBUG_DWARF");
-    if (p) {
-      fprintf(stderr, "Enabling SymtabAPI dwarf parsing\n");
-      dyn_debug_dwarf = 1;
-    }
-    else {
-      dyn_debug_dwarf = -1;
-      return 0;
-    }
-  }
-
-  if (!format)
-    return -1;
-
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  return ret;
-}
 
 Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg)
 {
@@ -2625,7 +2610,7 @@ bool Object::getRegValueAtFrame(Address pc,
    }
    
    assert(res_addr);
-   bool bresult;
+   bool bresult = false;
    if (word_size == 4) {
       uint32_t i;
       bresult = reader->ReadMem(res_addr, &i, word_size);
