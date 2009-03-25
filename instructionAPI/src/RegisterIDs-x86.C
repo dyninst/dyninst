@@ -110,6 +110,16 @@ namespace Dyninst
       (r_TR5, RegInfo(u32, "TR5"))
       (r_TR6, RegInfo(u32, "TR6"))
       (r_TR7, RegInfo(u32, "TR7"))
+#if defined(arch_x86_64)
+      (r_R8, RegInfo(u64, "R8"))
+      (r_R9, RegInfo(u64, "R9"))
+      (r_R10, RegInfo(u64, "R10"))
+      (r_R11, RegInfo(u64, "R11"))
+      (r_R12, RegInfo(u64, "R12"))
+      (r_R13, RegInfo(u64, "R13"))
+      (r_R14, RegInfo(u64, "R14"))
+      (r_R15, RegInfo(u64, "R15"))
+#endif
       (r_EFLAGS, RegInfo(u32, "EFLAGS"))
       (r_ALLGPRS, RegInfo(u32, "ALLGPRS_PSEUDOREGISTER"));
 

@@ -52,6 +52,11 @@ namespace Dyninst
     }
     static const unsigned char modrm_use_sib = 4;
     
+    INSTRUCTION_EXPORT void InstructionDecoder::setMode(bool is64)
+    {
+      ia32_set_mode_64(is64);
+    }
+    
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
     {
       if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction();
@@ -76,37 +81,40 @@ namespace Dyninst
       unsigned scale;
       Register index;
       Register base;
+      Result_Type aw = ia32_is_mode_64() ? u32 : u64;
+      
       decode_SIB(locs->sib_byte, scale, index, base);
       // 0x04 is both a "use SIB" and a "don't scale, just use the base" code
       // rename later
-      if(index == modrm_use_sib)
+      if(index == modrm_use_sib && (!(ia32_is_mode_64()) || !(locs->rex_x)))
       {
-	return Expression::Ptr(new RegisterAST(makeRegisterID(base, opType)));
+	return Expression::Ptr(new RegisterAST(makeRegisterID(base, opType, locs->rex_x)));
       }
       else
       {
-	Expression::Ptr scaleAST(new Immediate(Result(s32, dword_t(scale))));
-	Expression::Ptr indexAST(new RegisterAST(makeRegisterID(index, opType)));
-	Expression::Ptr baseAST(new RegisterAST(makeRegisterID(base, opType)));
-	return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, u32), baseAST, u32);
+	Expression::Ptr scaleAST(new Immediate(Result(aw, dword_t(scale))));
+	Expression::Ptr indexAST(new RegisterAST(makeRegisterID(index, opType, locs->rex_x)));
+	Expression::Ptr baseAST(new RegisterAST(makeRegisterID(base, opType, locs->rex_b)));
+	return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
       }
     }
      
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
-	if(ia32_is_mode_64())
-    {
-		if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
-		{
-			return Expression::Ptr(new RegisterAST(r_RIP));
-		}
+      if(ia32_is_mode_64())
+      {
+	if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
+	{
+	  return Expression::Ptr(new RegisterAST(r_RIP));
 	}
-
+      }
+      
       
       // This handles the rm and reg fields; the mod field affects how this expression is wrapped
       if(locs->modrm_rm != modrm_use_sib || locs->modrm_mod == 0x03)
       {
-		return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType)));
+		return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType,
+								      (locs->rex_b == 1))));
       }
       else
       {
@@ -230,17 +238,25 @@ namespace Dyninst
       },      
       {
 	r_TR0, r_TR1, r_TR2, r_TR3, r_TR4, r_TR5, r_TR6, r_TR7
-      }      
+      },
+      {
+	r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15
+      }
+      
     };
       
-    int InstructionDecoder::makeRegisterID(unsigned int intelReg, unsigned int opType)
+    int InstructionDecoder::makeRegisterID(unsigned int intelReg, unsigned int opType,
+					   bool isExtendedReg)
     {
+      if(isExtendedReg)
+      {
+	return IntelRegTable[10][intelReg];
+      }
       if(locs->rex_w)
       {
 	// AMD64 with 64-bit operands
 	return IntelRegTable[4][intelReg];
       }
-      
       switch(opType)
       {
       case op_b:
@@ -397,7 +413,7 @@ namespace Dyninst
 	break;
       case am_G:
 	{
-	  Expression::Ptr op(new RegisterAST(makeRegisterID(locs->modrm_reg, operand.optype)));
+	  Expression::Ptr op(new RegisterAST(makeRegisterID(locs->modrm_reg, operand.optype, locs->rex_r)));
 	  outputOperands.push_back(op);
 	}
 	break;

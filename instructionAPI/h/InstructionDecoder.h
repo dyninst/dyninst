@@ -112,6 +112,8 @@ namespace Dyninst
       /// the size of the instruction decoded.
       INSTRUCTION_EXPORT Instruction decode(const unsigned char* buffer);
       
+      INSTRUCTION_EXPORT void setMode(bool is64);
+      
     protected:
       void decodeOperands(std::vector<Expression::Ptr>& operands);
 
@@ -132,7 +134,7 @@ namespace Dyninst
 	return Expression::Ptr(new BinaryFunction(lhs, rhs, resultType, BinaryFunction::funcT::Ptr(new BinaryFunction::multResult())));
       } 
       Expression::Ptr getModRMDisplacement();
-      int makeRegisterID(unsigned int intelReg, unsigned int opType);
+      int makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);
       Expression::Ptr decodeImmediate(unsigned int opType, unsigned int position);
       Result_Type makeSizeType(unsigned int opType);
       
