@@ -25,15 +25,17 @@ void check_sync();
 void check_async();
 
 /* oneTimeCodes will set these to the tid for the desired thread */
+/*
 TVOLATILE thread_t sync_test;
 TVOLATILE thread_t async_test;
+*/
 volatile int sync_failure = 0;
 volatile int async_failure = 0;
 volatile int timeout_failure = 0;
 
 volatile unsigned thr_exits;
 
-void check_sync()
+void check_sync(thread_t sync_test)
 {
    thread_t tid = threadSelf();
    int id = -1, i;
@@ -57,7 +59,7 @@ void check_sync()
    sync_failure++;
 }
 
-void check_async()
+void check_async(thread_t async_test)
 {
    thread_t tid = threadSelf();
    int id = -1, i;
