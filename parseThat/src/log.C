@@ -1,7 +1,7 @@
 #include "log.h"
 #include "config.h"
 
-void dlog(logLevel level, char *format, ...)
+void dlog(logLevel level, const char *format, ...)
 {
     va_list argp;
 

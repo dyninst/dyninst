@@ -18,6 +18,7 @@ using namespace std;
 
 #define HISTORY_RECORD_DIR_DEFAULT ".parseThat"
 #define HISTORY_RECORD_INDEX_FILE ".history_index"
+#define DEFAULT_HUNT_FILE "hunt_parseThat"
 
 enum RunMode {
     SINGLE_BINARY,
@@ -88,6 +89,12 @@ struct Config {
   bool use_save_world;  // Use save-the-world functionality.
   
   bool use_process;  //Standard process style of instrumentation or binary edit
+   bool hunt_crashes; //Keep running until crash is found
+   bool hunt_crashed; //True if process crashed
+   int hunt_low;
+   int hunt_high;
+   FILE *hunt_file;
+   
   char writeFilePath[PATH_MAX];
 
 

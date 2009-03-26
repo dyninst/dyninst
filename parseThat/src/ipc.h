@@ -87,6 +87,8 @@ enum messageID {
 
     ID_DATA_STRING,
 
+    ID_CRASH_HUNT_NUM_ACTIONS,
+
     ID_MAX
 };
 

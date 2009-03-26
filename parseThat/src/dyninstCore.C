@@ -26,6 +26,27 @@ using namespace std;
 /*******************************************************************************
  * Monitor functions
  */
+static int curSnippet = 0;
+bool shouldInsert()
+{
+   static int numCalled = 0;
+
+   numCalled++;
+
+   if (!config.hunt_crashes || config.hunt_low == -1 || config.hunt_high == -1) {
+      curSnippet++;
+      return true;
+   }
+
+   if (numCalled-1 < config.hunt_low)
+      return false;
+   if (numCalled-1 >= config.hunt_high)
+      return false;
+
+   curSnippet++;
+   return true;
+}
+
 void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int *tabDepth, logLevel priority)
 {
     switch (currStat) {
@@ -82,6 +103,7 @@ void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int
 	case ID_EXIT_SIGNAL: dlog(priority, "Mutatee exited via signal %d\n", msgData->int_data); break;
 	case ID_DATA_STRING: dlog(priority, "%s\n", msgData->str_data); break;
 	case ID_TRACE_POINT: dlog(priority, "TRACE_POINT: %s\n", msgData->str_data); break;
+            case ID_CRASH_HUNT_NUM_ACTIONS: dlog(priority, "Crash hunting checked %d points\n", msgData->int_data); break;
 	default: dlog(ERR, "Internal error.  Invalid MessageID used with ID_INFO status.\n");
 	}
 	break;
@@ -118,7 +140,7 @@ int launch_monitor(FILE *infd)
 	priority = getPriID(msgData.id_data);
 
 	if (getMsgID(msgData.id_data) == ID_POST_FORK ||
-	    getMsgID(msgData.id_data) == ID_INIT_CREATE_PROCESS && currStat == ID_PASS) {
+          (getMsgID(msgData.id_data) == ID_INIT_CREATE_PROCESS && currStat == ID_PASS)) {
 	    config.grandchildren.insert(msgData.int_data);
 	}
 
@@ -132,6 +154,11 @@ int launch_monitor(FILE *infd)
 		config.trace_history.pop_front();
 	    continue;
 	}
+
+      if (getMsgID(msgData.id_data) == ID_CRASH_HUNT_NUM_ACTIONS)
+      {
+         config.hunt_high = msgData.int_data;
+      }
 
 	if (priority <= config.verbose) {
 	    stateBasedPrint(&msgData, prevStat, currStat, &tabDepth, priority);
@@ -315,14 +342,21 @@ int launch_mutator()
 	for (i = 0; i < appModules->size(); ++i) {
 	    int mod_warn_cnt = 0, mod_pass_cnt = 0;
 	    (*appModules)[i]->getName(buf, sizeof(buf));
-
+         fprintf(stderr, "[%s:%u] - Have module %s\n", __FILE__, __LINE__, buf);
 	    // Check module inclusion/exclusion regular expression rules.
 	    reason = config.mod_rules.getReason(buf);
-	    if (reason) sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO, reason);
-	    if (!config.mod_rules.isValid(buf)) continue;
+         if (reason) 
+            sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO, reason);
+         if (!config.mod_rules.isValid(buf)) {
+            fprintf(stderr, "[%s:%u] - Skipping here\n", __FILE__, __LINE__);
+            continue;
+         }
 
 	    if (config.transMode == TRANS_MODULE)
-		if (!dynStartTransaction(dh)) continue;
+            if (!dynStartTransaction(dh)) {
+               fprintf(stderr, "[%s:%u] - Skipping here\n", __FILE__, __LINE__);
+               continue;
+            }
 
 	    sendMsg(config.outfd, ID_INST_MODULE, INFO, ID_TEST, buf);
 
@@ -331,11 +365,13 @@ int launch_mutator()
 	    if (!appFunctions) {
 		sendMsg(config.outfd, ID_INST_GET_FUNCS, VERB1, ID_FAIL,
 			"Failure in BPatch_module::getProcedures()");
+            fprintf(stderr, "[%s:%u] - Skipping here\n", __FILE__, __LINE__);
 		return(-1);
 	    } else
 		sendMsg(config.outfd, ID_INST_GET_FUNCS, VERB1, ID_PASS,
 			appFunctions->size());
 
+         fprintf(stderr, "[%s:%u] - Instrumenting %d functions in %s\n", __FILE__, __LINE__, appFunctions->size(), buf);
 	    for (j = 0; j < appFunctions->size(); ++j) {
 		int func_warn_cnt = 0, func_pass_cnt = 0;
 		(*appFunctions)[j]->getName(buf, sizeof(buf));
@@ -430,6 +466,9 @@ int launch_mutator()
 	}
     }
     
+   if (config.hunt_crashes) {
+      sendMsg(config.outfd, ID_CRASH_HUNT_NUM_ACTIONS, INFO, ID_INFO, curSnippet);
+   }
 
     if (!config.use_process)
       {
@@ -539,6 +578,9 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
 
     case ExitedViaSignal:
 	sendMsg(config.outfd, ID_EXIT_SIGNAL, INFO, ID_INFO, proc->getExitSignal());
+         if (config.hunt_crashes) {
+            sendMsg(config.outfd, ID_CRASH_HUNT_NUM_ACTIONS, INFO, ID_INFO, curSnippet);
+         }
 	exit(-1);  // Nothing left to do.  The mutatee is gone.
 	break;
 
@@ -726,6 +768,8 @@ bool insertTraceSnippet(dynHandle *dh, BPatch_function *func, BPatch_Vector<BPat
     sendMsg(config.outfd, ID_TRACE_INSERT, VERB3);
 
     for (unsigned int i = 0; i < points->size(); ++i) {
+      if (!shouldInsert())
+         continue;
 	sendMsg(config.outfd, ID_TRACE_INSERT_ONE, VERB4);
 
 	point = (*points)[i];
@@ -901,6 +945,8 @@ bool instrumentFunctionEntry(dynHandle *dh, BPatch_function *func)
 	sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_PASS);
     }
 
+   if (shouldInsert())
+   {
     sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3);
     handle = dh->addSpace->insertSnippet(incSnippet, *points);
     if (!handle) {
@@ -909,6 +955,7 @@ bool instrumentFunctionEntry(dynHandle *dh, BPatch_function *func)
 	goto fail;
     } else
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3, ID_PASS);
+   }
 
     if (trace_fd) insertTraceSnippet(dh, func, points);
 
@@ -955,6 +1002,7 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
     }
 
     sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3);
+   if (shouldInsert()) {
     handle = dh->addSpace->insertSnippet(incSnippet, *points);
     if (!handle) {
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3, ID_FAIL,
@@ -963,6 +1011,7 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
 
     } else
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3, ID_PASS);
+   }
 
     if (trace_fd) insertTraceSnippet(dh, func, points);
 
@@ -1025,6 +1074,9 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 
     sendMsg(config.outfd, ID_INST_BB_LIST, VERB3);
     for (iter = allBlocks.begin(); iter != allBlocks.end(); iter++) {
+      if (!shouldInsert())
+         continue;
+
 	sendMsg(config.outfd, ID_INST_GET_BB_POINTS, VERB4);
 	BPatch_Vector<BPatch_point*> *points = (*iter)->findPoint(ops);
 	if (!points) {
@@ -1120,6 +1172,8 @@ bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 
     sendMsg(config.outfd, ID_INST_BB_LIST, VERB3);
     for (iter = allBlocks.begin(); iter != allBlocks.end(); iter++) {
+      if (!shouldInsert())
+          continue;
 	sendMsg(config.outfd, ID_INST_GET_BB_POINTS, VERB4);
 	BPatch_Vector<BPatch_point*> *points = (*iter)->findPoint(ops);
 	if (!points) {
@@ -1215,6 +1269,8 @@ bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
 
     sendMsg(config.outfd, ID_INST_BB_LIST, VERB3);
     for (iter = allBlocks.begin(); iter != allBlocks.end(); iter++) {
+      if (!shouldInsert())
+         continue;
 	sendMsg(config.outfd, ID_INST_GET_BB_POINTS, VERB4);
 	BPatch_Vector<BPatch_point*> *points = (*iter)->findPoint(ops);
 	if (!points) {

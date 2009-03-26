@@ -55,6 +55,12 @@ void configInit()
 
     config.dynlib = NULL;
 
+    config.hunt_crashes = false;
+    config.hunt_crashed = false;
+    config.hunt_low = -1;
+    config.hunt_high = -1;
+    config.hunt_file = NULL;
+
     homedir = getenv("HOME");
     if (!homedir) {
 	config.record_dir[0] = '\0';
@@ -91,6 +97,8 @@ bool validate_file(const char *file)
 {
     int retval;
     char header[2];
+    return true;
+
     FILE *fd = fopen(file, "r");
 
     if (!fd) {
