@@ -222,6 +222,9 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   unsigned int size = 26;
   unsigned int expectedInsns = 9;
   InstructionDecoder d(buffer, size);
+#if defined(arch_x86_64_test)
+  d.setMode(true);
+#endif
   std::vector<Instruction> decodedInsns;
   Instruction i;
   do
@@ -230,7 +233,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     decodedInsns.push_back(i);
   }
   while(i.isValid());
-  if(decodedInsns.size() != expectedInsns) // six valid, one invalid
+  if(decodedInsns.size() != expectedInsns)
   {
     logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
     for(std::vector<Instruction>::iterator curInsn = decodedInsns.begin();
@@ -297,22 +300,55 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   expectedWritten = list_of(al)(zero)(carry)(sign)(overflow)(parity)(adjust);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[5], expectedRead, expectedWritten));
 
-  RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
+#if defined(arch_x86_64_test)
+  RegisterAST::Ptr bp(new RegisterAST(r_RBP));
+#else
+  RegisterAST::Ptr bp(new RegisterAST(r_EBP));
+#endif
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(ebp);
+  expectedRead = list_of(bp);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[6], expectedRead, expectedWritten));
   
   RegisterAST::Ptr dl(new RegisterAST(r_DL));
   expectedRead.clear();
   expectedWritten.clear();
-#if defined(arch_x86_64_test)
-  RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
-  expectedRead = list_of(rbp)(dl);
-#else
-  expectedRead = list_of(ebp)(dl);
-#endif
+  expectedRead = list_of(bp)(dl);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[7], expectedRead, expectedWritten));
+
+
+#if defined(arch_x86_64_test)
+  const unsigned char amd64_specific[] = 
+  {
+    0x44, 0x89, 0x45, 0xc4
+  };
+  unsigned int amd64_size = 4;
+  unsigned int amd64_num_valid_insns = 1;
+  vector<Instruction> amd64Insns;
+  
+  InstructionDecoder amd64_decoder(amd64_specific, amd64_size);
+  amd64_decoder.setMode(true);
+  
+  Instruction tmp;
+  do
+  {
+    tmp = amd64_decoder.decode();
+    amd64Insns.push_back(tmp);
+  } while(tmp.isValid());
+  amd64Insns.pop_back();
+  if(amd64Insns.size() != amd64_num_valid_insns) 
+  {
+    logerror("FAILED: expected %d instructions in AMD64-specific part, got %d\n", amd64_num_valid_insns,
+	     amd64Insns.size());
+    return FAILED;
+  }
+  RegisterAST::Ptr r8(new RegisterAST(r_R8));
+  
+  expectedRead = list_of(bp)(r8);
+  expectedWritten.clear();
+  
+  retVal = failure_accumulator(retVal, verify_read_write_sets(amd64Insns[0], expectedRead, expectedWritten));
+#endif
   return retVal;
 }
 

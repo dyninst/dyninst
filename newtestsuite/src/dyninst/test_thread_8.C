@@ -243,18 +243,6 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
    }
    BPatch_function *check_async = asyncfuncs[0];   
 
-   BPatch_variableExpr *sync_var, *async_var;
-   sync_var = img->findVariable("sync_test");
-   if(sync_var == NULL) {
-      logerror("ERROR: Didn't find 'sync_test' variable\n");
-      return error_exit();
-   }
-   async_var = img->findVariable("async_test");
-   if(async_var == NULL) {
-      logerror("ERROR: Didn't find 'async_test' variable\n");
-      return error_exit();
-   }
-
    proc->continueExecution();
 
    // Wait for NUM_THREADS to be created
@@ -310,13 +298,11 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
             error15 = 1;
             continue;
          }
-         BPatch_constExpr *val = new BPatch_constExpr(tid);
-         BPatch_arithExpr *set_async_test = 
-            new BPatch_arithExpr(BPatch_assign, *async_var, *val);
+         BPatch_constExpr asyncVarExpr(tid);
          BPatch_Vector<BPatch_snippet *> args;
+	 args.push_back(&asyncVarExpr);
          BPatch_funcCallExpr call_check_async(*check_async, args);
          BPatch_Vector<BPatch_snippet *> async_code;
-         async_code.push_back(set_async_test);
          async_code.push_back(&call_check_async);
          BPatch_sequence *code = new BPatch_sequence(async_code);
          dprintf(stderr, "%s[%d]: issuing oneTimeCodeAsync for tid %lu\n", __FILE__, __LINE__, tid);
@@ -344,13 +330,11 @@ int test_thread_8_Mutator::mutatorTest(BPatch *bpatch)
             error15 = 1;
             continue;
          }
-         BPatch_constExpr *val = new BPatch_constExpr(pthread_ids[i]);
-         BPatch_arithExpr *set_sync_test = 
-            new BPatch_arithExpr(BPatch_assign, *sync_var, *val);
+         BPatch_constExpr syncVarExpr(pthread_ids[i]);
          BPatch_Vector<BPatch_snippet *> args;
+	 args.push_back(&syncVarExpr);
          BPatch_funcCallExpr call_check_sync(*check_sync, args);
          BPatch_Vector<BPatch_snippet *> sync_code;
-         sync_code.push_back(set_sync_test);
          sync_code.push_back(&call_check_sync);
          BPatch_sequence *code = new BPatch_sequence(sync_code);
          dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);

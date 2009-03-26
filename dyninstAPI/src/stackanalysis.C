@@ -501,8 +501,7 @@ StackAnalysis::StackHeight StackAnalysis::getStackCleanAmount(image_func *func) 
     
     for (unsigned i=0; i < func->funcExits().size(); i++) {
         cur = (unsigned char *) func->getPtrToInstruction(func->funcExits()[i]->offset());
-        size_t size = 0;
-        Instruction insn = decoder.decode(cur, size);
+        Instruction insn = decoder.decode(cur);
         
         entryID what = insn.getOperation().getID();
         if (what != e_ret_near)

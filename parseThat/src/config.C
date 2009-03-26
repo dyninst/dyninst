@@ -24,6 +24,7 @@ void configInit()
 
     config.target[0] = '\0';
     config.outfd = stdout;
+    config.instType = DEFAULT;
     
     config.record_enabled = false;
     config.no_fork = false;
