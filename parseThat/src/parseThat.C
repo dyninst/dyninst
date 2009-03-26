@@ -163,6 +163,22 @@ void parseArgs(int argc, char **argv)
 		}
 		break;
 
+            case 'f':		
+		if (++i < argc) {
+		    config.inst_function = argv[i];
+		    if (strchr (config.inst_function, ':')) {
+		    	config.instType = USER_FUNC;
+		    } else {
+		    	fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
+		    	userError();
+		    }
+		} else {
+		    fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
+		    userError();
+		}
+		break;
+
+
 	    case 'h':
 		config.record_enabled = 1;
 		break;
@@ -625,6 +641,10 @@ void usage(const char *progname)
     fprintf(stderr, "\n");
     fprintf(stderr, "  -c <filename>\n");
     fprintf(stderr, "    Specifies batch mode configuration file.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -f <library_name:function_name>\n");
+    fprintf(stderr, "    The function specified is used to generate instrumentation.\n");
+    fprintf(stderr, "    If this option is not specified, default instrumentation is generated.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -h\n");
     fprintf(stderr, "    Enables history record logging.  Log files will be placed in:\n");

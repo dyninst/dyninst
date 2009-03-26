@@ -49,6 +49,12 @@ enum InstLevel {
     INST_MAX
 };
 
+enum InstType {
+    USER_FUNC,
+    DEFAULT 
+};
+
+
 enum RunState {
     NORMAL,
     SIGCHLD_WAIT,
@@ -68,6 +74,11 @@ struct Config {
 
     // For BATCH_FILE runMode.
     const char *config_file;
+	
+    // For instrumenting with functions loaded from library
+    // format library:function_name
+    const char *inst_function;
+    InstType instType;
 
     // Output file string and descriptor.
     const char *output_file;
