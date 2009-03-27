@@ -1634,7 +1634,7 @@ bool process::loadDYNINSTlib()
             printf("unable to find function LoadLibrary\n");
             assert(0);
         }
-    LoadLibAddr = sym->getAddr();
+    LoadLibAddr = sym.getAddr();
     assert(LoadLibAddr);
 
     char ibuf[BYTES_TO_SAVE];
