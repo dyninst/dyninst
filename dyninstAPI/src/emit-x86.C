@@ -1955,7 +1955,7 @@ Address getInterModuleFuncAddr(int_function *func, codeGen& gen)
 
     // find the Symbol corresponding to the int_function
     std::vector<Symbol *> syms;
-    func->ifunc()->func()->getAllSymbols(syms);
+    func->ifunc()->func()->getSymbols(syms);
 
     if (syms.size() == 0) {
         char msg[256];
@@ -2003,7 +2003,7 @@ Address getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 
     // find the Symbol corresponding to the int_variable
     std::vector<Symbol *> syms;
-    var->svar()->getAllSymbols(syms);
+    var->svar()->getSymbols(syms);
 
     if (syms.size() == 0) {
         char msg[256];
