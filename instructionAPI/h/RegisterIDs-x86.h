@@ -34,7 +34,7 @@
 
 #include <vector>
 #include <map>
-#include "../../dynutil/h/util.h"
+#include "util.h"
 #include "Result.h"
 
 namespace Dyninst
