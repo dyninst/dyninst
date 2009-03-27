@@ -1370,6 +1370,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
 
     return true;
 }
+
 /*
  * emit code for op(src1,src2, dest)
  * ibuf is an instruction buffer where instructions are generated
@@ -2356,4 +2357,5 @@ bool image::isAligned(const Address/* where*/) const
 {
    return true;
 }
+
 

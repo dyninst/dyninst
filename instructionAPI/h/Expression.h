@@ -47,48 +47,76 @@ namespace Dyninst
  
     class Expression;
 
-    /// An %Expression is an AST representation of how the value of an operand is computed.
+    /// An %Expression is an AST representation of how the value of an
+    /// operand is computed.
     ///
-    /// The %Expression class extends the %InstructionAST class by adding the concept of evaluation
-    /// to the nodes of an %InstructionAST.  Evaluation attempts to determine the Result of the computation that the
-    /// AST being evaluated represents.  It will fill in results of as many of the nodes in the tree as possible,
-    /// and if full evaluation is possible, it will return the result of the computation performed by the tree.
+    /// The %Expression class extends the %InstructionAST class by
+    /// adding the concept of evaluation to the nodes of an
+    /// %InstructionAST.  Evaluation attempts to determine the Result
+    /// of the computation that the AST being evaluated represents.
+    /// It will fill in results of as many of the nodes in the tree as
+    /// possible, and if full evaluation is possible, it will return
+    /// the result of the computation performed by the tree.
     ///
-    /// Permissible leaf nodes of a %Expression tree are %RegisterAST and %Immediate objects.  Permissible internal
-    /// nodes are %BinaryFunction and %Dereference objects.  An %Expression may represent an
-    /// immediate value, the contents of a register, or the contents of memory at a given address, interpreted as a particular type.
+    /// Permissible leaf nodes of a %Expression tree are %RegisterAST
+    /// and %Immediate objects.  Permissible internal nodes are
+    /// %BinaryFunction and %Dereference objects.  An %Expression may
+    /// represent an immediate value, the contents of a register, or
+    /// the contents of memory at a given address, interpreted as a
+    /// particular type.
     /// 
-    /// The %Results in an %Expression tree contain a type and a value.
-    /// Their values may be an undefined value or an instance of their associated type.  When two %Results are combined using a %BinaryFunction,
-    /// the %BinaryFunction specifies the output type.  Sign extension, type promotion, truncation, and all other necessary conversions are
-    /// handled automatically based on the input types and the output type.
-    /// If both of the %Results that are combined
-    /// have defined values, the combination will also have a defined value; otherwise, the combination's value will be undefined.
-    /// For more information, see Result, BinaryFunction, and Dereference.
+    /// The %Results in an %Expression tree contain a type and a
+    /// value.  Their values may be an undefined value or an instance
+    /// of their associated type.  When two %Results are combined
+    /// using a %BinaryFunction, the %BinaryFunction specifies the
+    /// output type.  Sign extension, type promotion, truncation, and
+    /// all other necessary conversions are handled automatically
+    /// based on the input types and the output type.  If both of the
+    /// %Results that are combined have defined values, the
+    /// combination will also have a defined value; otherwise, the
+    /// combination's value will be undefined.  For more information,
+    /// see Result, BinaryFunction, and Dereference.
     ///
-    /// A user may specify the result of evaluating a given %Expression.  This mechanism is designed to allow the user to provide
-    /// a %Dereference or %RegisterAST with information about the state of memory or registers.
-    /// It may additionally be used to change the value of an %Immediate or to specify the result of a %BinaryFunction.
-    /// This mechanism may be used to support other advanced analyses.
+    /// A user may specify the result of evaluating a given
+    /// %Expression.  This mechanism is designed to allow the user to
+    /// provide a %Dereference or %RegisterAST with information about
+    /// the state of memory or registers.  It may additionally be used
+    /// to change the value of an %Immediate or to specify the result
+    /// of a %BinaryFunction.  This mechanism may be used to support
+    /// other advanced analyses.
     ///
-    /// In addition to specifying the result of evaluating a given %Expression as a whole, it is possible to create a subexpression
-    /// and \c %bind the result of evaluating that subexpression to a known value within a given expression.  For example, a user
-    /// may \c %bind a register to its value throughout a given %Expression.
+    /// In order to make it more convenient to specify the results
+    /// of particular subexpressions, the \c bind method is provided.
+    /// \c bind allows the user to specify that a given subexpression
+    /// has a particular value everywhere that it appears in an expression.
+    /// For example, if the state of certain registers is known at the
+    /// time an instruction is executed, a user can \c bind those registers
+    /// to their known values throughout an %Expression.
     ///
-    /// The evaluation mechanism, as mentioned above, will evaluate as many sub-expressions of an expression as possible.
-    /// Any operand that is more complicated than a single immediate value, however, will depend on register or memory
-    /// values.
-    /// The %Results of evaluating each subexpression are cached automatically using the \c setValue mechanism.
-    /// The %Expression then attempts to determine its %Result based on the %Results of its children.
-    /// If this %Result can be determined (most likely because register contents have been filled in via \c setValue), it will be returned from \c eval;
-    /// if it can not be determined, a %Result with an undefined value will be returned.
-    /// See Figure 6 for an illustration of this concept; the operand represented is
-    /// [ \c EBX + \c 4 * \c EAX ].  The contents of \c EBX and \c EAX have been determined through some outside mechanism,
-    /// and have been defined with \c setValue.  The \c eval mechanism proceeds to determine the address being read by the %Dereference,
-    /// since this information can be determined given the contents of the registers.
-    /// This address is available from the %Dereference through its child in the tree, even though calling \c eval 
-    /// on the %Dereference returns a %Result with an undefined value.
-    /// \dotfile deref-eval.dot "Applying \c eval to a Dereference tree with the state of the registers known and the state of memory unknown"
+    /// The evaluation mechanism, as mentioned above, will evaluate as
+    /// many sub-expressions of an expression as possible.  Any
+    /// operand that is more complicated than a single immediate
+    /// value, however, will depend on register or memory values.  The
+    /// %Results of evaluating each subexpression are cached
+    /// automatically using the \c setValue mechanism.  The
+    /// %Expression then attempts to determine its %Result based on
+    /// the %Results of its children.  If this %Result can be
+    /// determined (most likely because register contents have been
+    /// filled in via \c setValue or \c bind), it will be returned from \c eval;
+    /// if it can not be determined, a %Result with an undefined value
+    /// will be returned.  See Figure 6 for an illustration of this
+    /// concept; the operand represented is [ \c EBX + \c 4 * \c EAX
+    /// ].  The contents of \c EBX and \c EAX have been determined
+    /// through some outside mechanism, and have been defined with \c
+    /// setValue.  The \c eval mechanism proceeds to determine the
+    /// address being read by the %Dereference, since this information
+    /// can be determined given the contents of the registers.  This
+    /// address is available from the %Dereference through its child
+    /// in the tree, even though calling \c eval on the %Dereference
+    /// returns a %Result with an undefined value.  \dotfile
+    /// deref-eval.dot "Applying \c eval to a Dereference tree with
+    /// the state of the registers known and the state of memory
+    /// unknown"
     ///
     class INSTRUCTION_EXPORT Expression : public InstructionAST
     {
@@ -116,10 +144,15 @@ namespace Dyninst
       /// \c size returns the size of this %Expression's %Result, in bytes.
       int size() const;
 	  
-      /// \c bind searches for any instance of the %Expression \c expr within
+      /// \c bind searches for all instances of the %Expression \c expr within
       /// this %Expression, and sets the result of \c eval for those subexpressions
       /// to \c value.  \c bind returns true if at least one instance of \c expr
       /// was found in this %Expression.
+      ///
+      /// \c bind does not operate on subexpressions that happen to evaluate to
+      /// the same value.  For example, if a dereference of 0xDEADBEEF is bound to
+      /// 0, and a register is bound to 0xDEADBEEF, a dereference of that register is not
+      /// bound to 0.
       bool bind(Expression* expr, Result value);
   
     private:

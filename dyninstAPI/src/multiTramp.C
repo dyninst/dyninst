@@ -609,8 +609,7 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
 #if defined(cap_instruction_api)
 	using namespace Dyninst::InstructionAPI;
 	InstructionDecoder decoder;
-	Instruction instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)), 
-				  bbl->lastInsnAddr() - instAddr);
+	Instruction instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)));
 	size = instInsn.size();
 #else
         InstrucIter ah(instAddr,proc);

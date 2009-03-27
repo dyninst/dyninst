@@ -1941,6 +1941,182 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 	return true;
 }
 
+#endif /* end of AMD64-specific functions */
 
-#endif
+Address getInterModuleFuncAddr(int_function *func, codeGen& gen)
+{
+    AddressSpace *addrSpace = gen.addrSpace();
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address relocation_address;
+
+    if (!binEdit || !func) {
+        assert(!"Invalid function call (function info is missing)");
+    }
+
+    // find the Symbol corresponding to the int_function
+    std::vector<Symbol *> syms;
+    func->ifunc()->func()->getAllSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, func->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(4);
+        unsigned int dat = 0;
+        binEdit->writeDataSpace((void*)relocation_address, 4, &dat);
+
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+
+    return relocation_address;
+}
+
+Address getInterModuleVarAddr(const image_variable *var, codeGen& gen)
+{
+    AddressSpace *addrSpace = gen.addrSpace();
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address relocation_address;
+
+    if (!binEdit || !var) {
+        assert(!"Invalid variable load (variable info is missing)");
+    }
+
+    // find the Symbol corresponding to the int_variable
+    std::vector<Symbol *> syms;
+    var->svar()->getAllSymbols(syms);
+
+    if (syms.size() == 0) {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
+                , __FILE__, __LINE__, var->symTabName().c_str());
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+    // try to find a dynamic symbol
+    // (take first static symbol if none are found)
+    Symbol *referring = syms[0];
+    for (unsigned k=0; k<syms.size(); k++) {
+        if (syms[k]->isInDynSymtab()) {
+            referring = syms[k];
+            break;
+        }
+    }
+
+    // have we added this relocation already?
+    relocation_address = binEdit->getDependentRelocationAddr(referring);
+
+    if (!relocation_address) {
+        // inferiorMalloc addr location and initialize to zero
+        relocation_address = binEdit->inferiorMalloc(4);
+        unsigned int dat = 0;
+        binEdit->writeDataSpace((void*)relocation_address, 4, &dat);
+
+        // add write new relocation symbol/entry
+        binEdit->addDependentRelocation(relocation_address, referring);
+    }
+
+    return relocation_address;
+}
+
+bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) 
+{
+    // make the call
+    // we are using an indirect call here because we don't know the
+    // address of this instruction, so we can't use a relative call.
+	// The only direct, absolute calls available on x86 are far calls,
+	// which require the callee to be aware that they're being far-called.
+	// So we grit our teeth and deal with the indirect call.
+	// Physical register
+    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);  // mov eax, addr
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+    return true;
+}
+
+bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
+    //fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
+    
+    AddressSpace *addrSpace = gen.addrSpace();
+    BinaryEdit *binEdit = addrSpace->edit();
+    Address dest;
+	// Physical register
+    Register ptr = gen.rs()->allocateRegister(gen, false);
+
+    // find int_function reference in address space
+    // (refresh func_map)
+    pdvector<int_function *> funcs;
+    addrSpace->findFuncsByAll(callee->prettyName(), funcs);
+
+    // test to see if callee is in a shared module
+    if (callee->obj()->isSharedLib() && binEdit != NULL) {
+
+        // create or retrieve jump slot
+        dest = getInterModuleFuncAddr(callee, gen);
+
+        // load register with address from jump slot
+        emitMovPCRMToReg(ptr, dest-gen.currAddr(), gen);
+
+    } else {
+        dest = callee->getAddress();
+
+        // load register with function address
+        emitMovImmToReg(ptr, dest, gen);                    // mov e_x, addr
+    }
+
+    // emit call
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, ptr, gen);     // call *(e_x)
+
+    gen.rs()->freeRegister(ptr);
+
+    return true;
+}
+
+void EmitterIA32::emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen)
+{
+    // create or retrieve jump slot
+    Address addr = getInterModuleVarAddr(var, gen);
+
+    //fprintf(stderr, "Emitting inter-module load for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
+
+    // load register with address from jump slot
+    emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen);
+    emitMovRegToRM(REGNUM_EBP, -4*dest, REGNUM_EAX, gen);
+
+    // get the variable with an indirect load
+    emitLoadIndir(dest, dest, gen);
+}
+
+void EmitterIA32::emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen)
+{
+    // create or retrieve jump slot
+    Address addr = getInterModuleVarAddr(var, gen);
+
+    //fprintf(stderr, "Emitting inter-module store for %s at 0x%lx\n", var->symTabName().c_str(), addr);
+
+    // load register with address from jump slot
+    emitMovPCRMToReg(REGNUM_EAX, addr-gen.currAddr(), gen);
+
+    // get the variable with an indirect load
+    emitStore(REGNUM_EAX, source, size, gen);
+}
 
