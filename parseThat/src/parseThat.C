@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 {
     parseArgs(argc, argv);
 
-   if (config.hunt_crashes) {
+   if (config.hunt_crashes && !config.no_fork) {
       getNextTarget();
       return runHunt();
    }
@@ -158,7 +158,7 @@ bool runHunt()
       //Initial run over everything, get ranges.
       runParseThat(bannerLen);
       if (!config.hunt_crashed) {
-         fprintf(hunt_file, "No crashes detected in initail run\n");
+         fprintf(hunt_file, "No crashes detected in initial run\n");
          goto done;
       }
       hard_low = config.hunt_low = 0;
