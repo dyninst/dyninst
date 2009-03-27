@@ -80,6 +80,7 @@ public:
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
     bool emitLoadRelative(registerSlot* /*dest*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); return true; }
+    void emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -94,6 +95,8 @@ public:
 
     void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
     void emitStoreRelative(registerSlot* /*source*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); }
+
+    void emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
@@ -189,6 +192,7 @@ public:
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
     bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
+    void emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen) { assert(0); return true; }
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -203,6 +207,8 @@ public:
     void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
 
     void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
+
+    bool emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen) { assert(0); return true; }
 
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
@@ -256,6 +262,11 @@ class EmitterAMD64Stat : public EmitterAMD64 {
 
 extern EmitterAMD64Dyn emitterAMD64Dyn;
 extern EmitterAMD64Stat emitterAMD64Stat;
+
+/* useful functions for inter-library function/variable references
+ * (used in the binary rewriter) */
+Address getInterModuleFuncAddr(int_function *func, codeGen& gen);
+Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
 
 #endif
 
