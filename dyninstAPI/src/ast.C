@@ -60,6 +60,9 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
+#include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/binaryEdit.h"
+
 #if defined(arch_sparc)
 #include "dyninstAPI/src/inst-sparc.h"
 #elif defined(arch_power)
@@ -431,6 +434,7 @@ void AstNode::printRC()
 #endif
 
 AstNode::~AstNode() {
+    //printf("at ~AstNode()  count=%d\n", referenceCount);
 }
 
 Address AstMiniTrampNode::generateTramp(codeGen &gen,
@@ -2671,7 +2675,6 @@ int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
   return NULL;
 }
 
-
 void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
 				      bool noCost, registerSpace* rs, 
 				      int size, const instPoint* point, AddressSpace* as)
@@ -2684,8 +2687,7 @@ void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, c
   }
   else
   {
-    assert(!"TODO: implement the static case for variable not in this address space");
-    return;
+    gen.codeEmitter()->emitLoadShared(dest, oVar, size, gen);
   }  
 }
 
@@ -2701,7 +2703,6 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
   }
   else
   {
-    assert(!"TODO: implement the static case for variable not in this address space");
-    return;
+    gen.codeEmitter()->emitStoreShared(src1, oVar, size, gen);
   }  
 }

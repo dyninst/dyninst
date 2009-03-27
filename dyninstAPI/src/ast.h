@@ -390,6 +390,11 @@ class AstOperatorNode : public AstNode {
  public:
     AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
     
+    ~AstOperatorNode() {
+        //printf("at ~AstOperatorode()\n");
+        //debugPrint();
+    }
+
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType();
@@ -434,6 +439,8 @@ class AstOperandNode : public AstNode {
     AstOperandNode(operandType ot, const image_variable* iv);
     
     ~AstOperandNode() {
+        //printf("at ~AstOperandNode()\n");
+        //debugPrint();
         if (oType == ConstantString) free((char *)oValue);
     }
         
