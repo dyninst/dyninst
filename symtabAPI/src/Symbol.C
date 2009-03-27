@@ -350,3 +350,19 @@ ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb)
 	return s; 
 }
 
+inline
+bool
+Symbol::operator==(const Symbol& s) const 
+{
+    return ((s.module_ == module_) && 
+            (s.type_ == type_) &&
+            (s.linkage_ == linkage_) &&
+            (s.visibility_ == visibility_) &&
+            (s.offset_ == offset_) &&
+            (s.region_ == region_) &&
+            (s.size_ == size_) &&
+            (s.isDynamic_ == isDynamic_) &&
+            (s.isAbsolute_ == isAbsolute_) &&
+            (s.mangledName_ == mangledName_));
+}
+

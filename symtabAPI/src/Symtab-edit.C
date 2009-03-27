@@ -95,113 +95,140 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
     return true;
 }
 
-bool Symtab::delFunction(Function *func) {
-    fprintf(stderr, "Function is unimplemented!\n");
-    return false;
-}
-
-bool Symtab::delVariable(Variable *var) {
-    fprintf(stderr, "Function is unimplemented!\n");
-    return false;
-}
-
-bool Symtab::delSymbol(Symbol *sym)
-{
-    switch (sym->getType()) {
-    case Symbol::ST_FUNCTION: {
-        Function *func = NULL;
-        if (findFuncByEntryOffset(func, sym->getAddr())) {
-            // Remove this symbol from the function
-            func->removeSymbol(sym);
-            // What if we removed the last symbol from the function?
-            // Argh. Ah, well. Users may do that - leave it there for now.
-        break;
+bool Symtab::deleteFunction(Function *func) {
+    // First, remove the function
+    std::vector<Function *>::iterator iter;
+    for (iter = everyFunction.begin(); iter != everyFunction.end(); iter++) {
+        if ((*iter) == func) {
+            everyFunction.erase(iter);
         }
     }
-    case Symbol::ST_OBJECT: {
-        Variable *var = NULL;
-        if (findVariableByOffset(var, sym->getAddr())) {
-            var->removeSymbol(sym);
-            // See above
+
+    funcsByOffset.erase(func->getOffset());
+
+    // Now handle the Aggregate stuff
+    return deleteAggregate(func);
+}
+
+bool Symtab::deleteVariable(Variable *var) {
+    // First, remove the function
+    std::vector<Variable *>::iterator iter;
+    for (iter = everyVariable.begin(); iter != everyVariable.end(); iter++) {
+        if ((*iter) == var) {
+            everyVariable.erase(iter);
         }
-        break;
-    }
-    case Symbol::ST_MODULE: {
-        // TODO Module should be an Aggregation
-        break;
-    }
-    default:
-        break;
     }
 
+    varsByOffset.erase(var->getOffset());
+    return deleteAggregate(var);
+}
+
+bool Symtab::deleteAggregate(Aggregate *agg) {
+    std::vector<Symbol *> syms;
+    agg->getSymbols(syms);
+
+    bool ret = true;
+    for (unsigned i = 0; i < syms.size(); i++) {
+        if (!deleteSymbolFromIndices(syms[i]))
+            ret = false;
+    }
+    return ret;
+}
+
+bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
     // Remove from global indices
-    for (std::vector<Symbol *>::iterator iter = everyDefinedSymbol.begin();
-         iter != everyDefinedSymbol.end();
+    std::vector<Symbol *>::iterator iter;
+
+    // everyDefinedSymbol
+    for (iter = everyDefinedSymbol.begin(); iter != everyDefinedSymbol.end(); iter++) {
+        if ((*iter) == sym) everyDefinedSymbol.erase(iter);
+    }
+
+    // userAddedSymbols
+    for (iter = userAddedSymbols.begin(); iter != userAddedSymbols.end(); iter++) {
+        if ((*iter) == sym) userAddedSymbols.erase(iter);
+    }
+
+    for (iter = undefDynSyms[sym->getMangledName()].begin(); 
+         iter != undefDynSyms[sym->getMangledName()].end(); iter++) {
+        if ((*iter) == sym) undefDynSyms[sym->getMangledName()].erase(iter);
+    }
+
+    for (iter = symsByOffset[sym->getOffset()].begin(); iter != symsByOffset[sym->getOffset()].end(); iter++) {
+        if ((*iter) == sym) symsByOffset[sym->getOffset()].erase(iter);
+    }
+
+    for (iter = symsByMangledName[sym->getMangledName()].begin(); iter != symsByMangledName[sym->getMangledName()].end(); iter++) {
+        if ((*iter) == sym) symsByMangledName[sym->getMangledName()].erase(iter);
+    }
+
+    for (iter = symsByPrettyName[sym->getPrettyName()].begin(); iter != symsByPrettyName[sym->getPrettyName()].end(); iter++) {
+        if ((*iter) == sym) symsByPrettyName[sym->getPrettyName()].erase(iter);
+    }
+
+    for (iter = symsByTypedName[sym->getTypedName()].begin(); iter != symsByTypedName[sym->getTypedName()].end(); iter++) {
+        if ((*iter) == sym) symsByTypedName[sym->getTypedName()].erase(iter);
+    }
+
+    return true;
+}
+
+bool Symtab::deleteSymbol(Symbol *sym)
+{
+    if (sym->aggregate_) {
+        sym->aggregate_->removeSymbol(sym);
+    }
+
+    return deleteSymbolFromIndices(sym);
+}
+
+bool Symtab::changeSymbolOffset(Symbol *sym, Offset newOffset) {
+    // If we aren't part of an aggregate, change the symbol offset
+    // and update symsByOffset.
+    // If we are part of an aggregate and the only symbol element,
+    // do that and update funcsByOffset or varsByOffset.
+    // If we are and not the only symbol, do 1), remove from 
+    // the aggregate, and make a new aggregate.
+
+    Offset oldOffset = sym->offset_;
+    std::vector<Symbol *>::iterator iter;
+    for (iter = symsByOffset[oldOffset].begin();
+         iter != symsByOffset[oldOffset].end();
          iter++) {
-        if (*iter == sym) {
-            everyDefinedSymbol.erase(iter);
+        if ((*iter) == sym) {
+            symsByOffset[oldOffset].erase(iter);
             break;
         }
     }
-    // Delete from user added symbols
-    for (std::vector<Symbol *>::iterator iter = userAddedSymbols.begin();
-         iter != userAddedSymbols.end();
-         iter++) {
-        if (*iter == sym) {
-            userAddedSymbols.erase(iter);
-            break;
+    sym->offset_ = newOffset;
+    symsByOffset[newOffset].push_back(sym);
+
+    if (sym->aggregate_ == NULL) return true;
+    else 
+        return sym->aggregate_->changeSymbolOffset(sym);
+
+}
+
+bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset) {
+    Function *func = dynamic_cast<Function *>(agg);
+    Variable *var = dynamic_cast<Variable *>(agg);
+
+    if (func) {
+        funcsByOffset.erase(oldOffset);
+        if (funcsByOffset.find(newOffset) == funcsByOffset.end())
+            funcsByOffset[newOffset] = func;
+        else {
+            // Already someone there... odd, so don't do anything.
         }
     }
-    // From undefined dynamic symbols, if it exists
-    if (undefDynSyms.find(sym->getName()) != undefDynSyms.end())
-        undefDynSyms.erase(sym->getName());
-
-    // And now from the other maps
-    // symsByOffset:
-    std::vector<Symbol *> offsetSyms = symsByOffset[sym->getAddr()];
-    for (std::vector<Symbol *>::iterator iter = offsetSyms.begin();
-         iter != offsetSyms.end();
-         iter++) {
-        if (*iter == sym) {
-            offsetSyms.erase(iter);
+    if (var) {
+        varsByOffset.erase(oldOffset);
+        if (varsByOffset.find(newOffset) == varsByOffset.end())
+            varsByOffset[newOffset] = var;
+        else {
+            // Already someone there... odd, so don't do anything.
         }
     }
-    symsByOffset[sym->getAddr()] = offsetSyms;
-
-    // symsByMangledName, same idea. 
-    std::vector<Symbol *> mangledSyms = symsByMangledName[sym->getName()];
-    for (std::vector<Symbol *>::iterator iter = mangledSyms.begin();
-         iter != mangledSyms.end();
-         iter++) {
-        if (*iter == sym) {
-            mangledSyms.erase(iter);
-        }
-    }
-    symsByMangledName[sym->getName()] = mangledSyms;
-
-    // symsByPrettyName, same idea. 
-    std::vector<Symbol *> prettySyms = symsByPrettyName[sym->getPrettyName()];
-    for (std::vector<Symbol *>::iterator iter = prettySyms.begin();
-         iter != prettySyms.end();
-         iter++) {
-        if (*iter == sym) {
-            prettySyms.erase(iter);
-        }
-    }
-    symsByPrettyName[sym->getPrettyName()] = prettySyms;
-
-    // symsByTypedName, same idea. 
-    std::vector<Symbol *> typedSyms = symsByTypedName[sym->getTypedName()];
-    for (std::vector<Symbol *>::iterator iter = typedSyms.begin();
-         iter != typedSyms.end();
-         iter++) {
-        if (*iter == sym) {
-            typedSyms.erase(iter);
-        }
-    }
-    symsByTypedName[sym->getTypedName()] = typedSyms;
-
-    // Don't delete; it still exists in the linkedFile
     return true;
 }
 

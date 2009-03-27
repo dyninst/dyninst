@@ -217,3 +217,12 @@ bool Function::addParam(localVar *param)
 Function::~Function()
 {
 }
+
+bool Function::removeSymbol(Symbol *sym) {
+    removeSymbolInt(sym);
+    if (symbols_.empty()) {
+        module_->exec()->deleteFunction(this);
+    }
+    return true;
+}
+

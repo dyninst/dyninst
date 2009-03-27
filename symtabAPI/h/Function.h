@@ -58,7 +58,8 @@ class Function : public Aggregate
  public:
     //SYMTAB_EXPORT static Function *createFunction(Symtab *st, std::string fname, std::string modname,Offset offset, size_t sz);
 
-      
+    /* Symbol management */
+    SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
       
       /***** Return Type Information *****/
       SYMTAB_EXPORT Type  * getReturnType() const;
@@ -81,6 +82,7 @@ class Function : public Aggregate
       bool addLocalVar(localVar *);
       bool addParam(localVar *);
    private:
+
       Type          *retType_;
       int           framePtrRegNum_;
       std::vector<loc_t> *locs_;

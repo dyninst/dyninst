@@ -269,8 +269,8 @@ Object::Module::DefineSymbols( const Object* obj,
                                       NULL, 0 );	// TODO Pass Section pointer also
             // TODO also pass size
             // add symbols for each of the file's symbols
-            syms[curFile->getName()].push_back(sym);
-            symsToMods[sym] = curFile->getName();
+            syms[curFile->GetName()].push_back(sym);
+            symsToMods[sym] = curFile->GetName();
 
             curFile->DefineSymbols( syms, symsToMods, curFile->GetName() );
         }
@@ -286,7 +286,7 @@ Object::Module::DefineSymbols( const Object* obj,
                                  Symbol::SV_UNKNOWN,
                                  obj->code_off(),
                                  NULL,					//TODO pass Sections pointer
-                                 obj->code_len()) );
+                                 obj->code_len());
     
         syms[name].push_back(sym); 
         symsToMods[sym] = name;
@@ -1053,7 +1053,7 @@ static void enumLocalVars(Function *func,
     IMAGEHLP_STACK_FRAME frame;
     memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
 
-	frame.InstructionOffset = locals->base + func->getAddress();
+    frame.InstructionOffset = locals->base + func->getOffset();
     int result = SymSetContext(locals->p, &frame, NULL);
 	/*if (!result) {            
 		fprintf(stderr, "[%s:%u] - Couldn't SymSetContext\n", __FILE__, __LINE__);
@@ -1070,8 +1070,8 @@ static void enumLocalVars(Function *func,
 		memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
 
 		frame.InstructionOffset = locals->base +
-								  func->getAddress() + 
-								  func->getSize();
+                    func->getOffset() + 
+                    func->getSize();
 		result = SymSetContext(locals->p, &frame, NULL);
 		result = SymEnumSymbols(locals->p, 0, NULL, enumLocalSymbols, locals);
 	}

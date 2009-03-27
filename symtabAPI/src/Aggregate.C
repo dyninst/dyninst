@@ -37,6 +37,9 @@
 #include "Module.h"
 #include "Collections.h"
 
+#include "Function.h"
+#include "Variable.h"
+
 #include "symtabAPI/src/Object.h"
 
 
@@ -117,17 +120,15 @@ bool Aggregate::addSymbol(Symbol *sym) {
     return true;
 }
 
-bool Aggregate::removeSymbol(Symbol *sym) {
+bool Aggregate::removeSymbolInt(Symbol *sym) {
     std::vector<Symbol *>::iterator iter;
     for (iter = symbols_.begin(); iter != symbols_.end(); iter++) {
-        if (*iter == sym) {
+        if ((*iter) == sym) {
             symbols_.erase(iter);
-            return true;
+            break;
         }
     }
-    // TODO: remove from names. Do we ever call this?
-
-    return false;
+    return true;
 }
 
 bool Aggregate::getSymbols(std::vector<Symbol *> &syms) const 
@@ -242,5 +243,22 @@ bool Aggregate::addTypedNameInt(string name, bool isPrimary) {
     }
     else
         typedNames_.push_back(name);
+    return true;
+}
+
+bool Aggregate::changeSymbolOffset(Symbol *sym) {
+    Offset oldOffset = getOffset();
+
+    removeSymbolInt(sym);
+
+    if (symbols_.empty()) {
+        // This was the only one; so add it back in and update our address
+        // in the Symtab.
+        symbols_.push_back(sym);
+        module_->exec()->changeAggregateOffset(this, oldOffset, getOffset());
+    }
+    else {
+        module_->exec()->addSymbolToAggregates(sym);
+    }
     return true;
 }

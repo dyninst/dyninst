@@ -64,3 +64,11 @@ Type* Variable::getType()
    module_->exec()->parseTypesNow();
    return type_;
 }
+
+bool Variable::removeSymbol(Symbol *sym) {
+    removeSymbolInt(sym);
+    if (symbols_.empty()) {
+        module_->exec()->deleteVariable(this);
+    }
+    return true;
+}

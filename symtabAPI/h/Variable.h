@@ -49,9 +49,13 @@ class Variable : public Aggregate {
    SYMTAB_EXPORT static Variable *createVariable(Symbol *sym);
    
  public:
+    /* Symbol management */
+    SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
+
    SYMTAB_EXPORT void setType(Type *type);
    SYMTAB_EXPORT Type *getType();
  private:
+
    Type *type_;
 };
 

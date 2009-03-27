@@ -72,6 +72,7 @@ class Symtab : public LookupInterface,
    friend class emitElf;
    friend class emitElf64;
    friend class emitWin;
+   friend class Aggregate;
 
  public:
 
@@ -176,8 +177,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Function *createFunction(std::string name, Offset offset, size_t size, Module *mod = NULL);
    SYMTAB_EXPORT Variable *createVariable(std::string name, Offset offset, size_t size, Module *mod = NULL);
 
-   SYMTAB_EXPORT bool delFunction(Function *func);
-   SYMTAB_EXPORT bool delVariable(Variable *var);
+   SYMTAB_EXPORT bool deleteFunction(Function *func);
+   SYMTAB_EXPORT bool deleteVariable(Variable *var);
 
 
    /*****Query Functions*****/
@@ -270,7 +271,8 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT ~Symtab();
 
-   bool delSymbol(Symbol *sym); 
+   bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
+   bool deleteSymbol(Symbol *sym); 
 
    static builtInTypeCollection *builtInTypes;
    static typeCollection *stdTypes;
@@ -315,10 +317,16 @@ class Symtab : public LookupInterface,
    // Change the type of a symbol after the fact
    bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 
+   bool changeSymbolOffset(Symbol *sym, Offset newOffset);
+   bool deleteSymbolFromIndices(Symbol *sym);
+
+   bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset);
+   bool deleteAggregate(Aggregate *agg);
+
    // Used by binaryEdit.C...
  public:
-   Module *getOrCreateModule(const std::string &modName, 
-                             const Offset modAddr);
+   SYMTAB_EXPORT Module *getOrCreateModule(const std::string &modName, 
+                                           const Offset modAddr);
  private:
    void createDefaultModule();
 

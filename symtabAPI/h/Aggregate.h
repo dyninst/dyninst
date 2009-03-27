@@ -65,7 +65,7 @@ class Aggregate : public AnnotatableSparse
 
       /***** Symbol Collection Management *****/
       SYMTAB_EXPORT bool addSymbol(Symbol *sym);
-      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
+      SYMTAB_EXPORT virtual bool removeSymbol(Symbol *sym) = 0;
       SYMTAB_EXPORT bool getSymbols(std::vector<Symbol *>&syms) const;
       SYMTAB_EXPORT Symbol * getFirstSymbol() const;
 
@@ -89,6 +89,8 @@ class Aggregate : public AnnotatableSparse
       bool addPrettyNameInt(std::string name, bool isPrimary);
       bool addTypedNameInt(std::string name, bool isPrimary);
 
+      SYMTAB_EXPORT bool removeSymbolInt(Symbol *sym);
+      SYMTAB_EXPORT virtual bool changeSymbolOffset(Symbol *sym);
 
       // Offset comes from a symbol
       // Module we keep here so we can have the correct "primary"

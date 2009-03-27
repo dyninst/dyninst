@@ -306,16 +306,6 @@ Symbol::Symbol(unsigned)
 }
 #endif
 
-inline
-bool
-Symbol::operator==(const Symbol& s) const 
-{
-   // explicitly ignore tags when comparing symbols
-    Symbol tmp = s;
-    tmp.tag_ = tag_;
-    return (tmp == *this);
-}
-
 class LookupInterface 
 {
    public:
