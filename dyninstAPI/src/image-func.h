@@ -361,6 +361,7 @@ class image_func : public codeRange,
    bool addTypedName(std::string name, bool isPrimary = false);
 
    Address getOffset() const {return func_->getFirstSymbol()->getAddr();}
+   Address getPtrOffset() const {return func_->getFirstSymbol()->getPtrAddr();}
    Address getEndOffset(); // May trigger parsing
    unsigned getSymTabSize() const { return func_->getFirstSymbol()->getSize(); }
 

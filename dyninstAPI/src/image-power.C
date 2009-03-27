@@ -93,6 +93,9 @@ bool image_func::archCheckEntry(InstrucIter &ah, image_func * /* func */)
     // a function (and return false)
 
     // We don't consider linkage snippets "functions". 
+    dictionary_hash<Address, std::string> *pltFuncs = img()->getPltFuncs();
+    if (pltFuncs && pltFuncs->defines(*ah))
+        return false;
     /*
     Address dontcare1;
     if (ah.isInterModuleCallSnippet(dontcare1))

@@ -778,6 +778,12 @@ bool Symtab::updateIndices(Symbol *sym, std::string newName, nameType_t nameType
     return true;
 }
 
+#if 0
+/* checkPPC64DescriptorSymbols() is no longer needed.  3-word descriptor
+ * symbols are properly taken care of during symbol parsing.  See
+ * fix_opd_function_addresses() in Object-elf.C for details.
+ */
+
 #if defined(ppc64_linux)
 /* Special case for ppc64 ELF binaries. Sometimes a function has a 3-byte descriptor symbol
  * along with it in the symbol table and "." preceding its original pretty name for the correct
@@ -812,6 +818,7 @@ void Symtab::checkPPC64DescriptorSymbols(Object *linkedFile)
 
 }
 
+#endif
 #endif
 
 //  setModuleLanguages is only called after modules have been defined.
@@ -1194,7 +1201,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     //statusLine("winnowing functions");
 
 #if defined(ppc64_linux)
-    checkPPC64DescriptorSymbols(linkedFile);
+    //checkPPC64DescriptorSymbols(linkedFile);
 #endif
 
     // a vector to hold all created symbols until they are properly classified

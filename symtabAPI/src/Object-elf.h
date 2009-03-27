@@ -427,20 +427,22 @@ class Object : public AObject {
   Offset   dynamic_addr_;	 //.dynamic section
   Offset   dynsym_addr_;        // .dynsym section
   Offset   dynstr_addr_;        // .dynstr section
+  Offset   opd_addr_;
+  unsigned opd_size_;
   Offset   got_addr_;           // global offset table
-  unsigned  got_size_;           // global offset table
+  unsigned got_size_;           // global offset table
   Offset   plt_addr_;           // procedure linkage table
-  unsigned  plt_size_;           // procedure linkage table
-  unsigned  plt_entry_size_;     // procedure linkage table
+  unsigned plt_size_;           // procedure linkage table
+  unsigned plt_entry_size_;     // procedure linkage table
   Offset   rel_plt_addr_;       // .rel[a].plt section
-  unsigned  rel_plt_size_;       // .rel[a].plt section
-  unsigned  rel_plt_entry_size_; // .rel[a].plt section
+  unsigned rel_plt_size_;       // .rel[a].plt section
+  unsigned rel_plt_entry_size_; // .rel[a].plt section
   
   unsigned  rel_size_;       // DT_REL/DT_RELA in dynamic section
   unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
 
   Offset   stab_off_;           // .stab section
-  unsigned  stab_size_;          // .stab section
+  unsigned stab_size_;          // .stab section
   Offset   stabstr_off_;        // .stabstr section
 
   Offset   stab_indx_off_;	 // .stab.index section
@@ -494,7 +496,7 @@ class Object : public AObject {
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-		    Elf_X_Shdr*& got_scnp,  Elf_X_Shdr*& dynsym_scnp,
+		    Elf_X_Shdr*& opd_scnp, Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
@@ -532,6 +534,8 @@ class Object : public AObject {
 		     std::string module);
 
   void fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool EEL);
+  void fix_opd_function_addresses(std::vector<Symbol *> &allsymbols, Elf_X_Shdr *opd_scnh);
+  void create_libc_section_functions(std::vector<Symbol *> &allsymbols);
   void override_weak_symbols(std::vector<Symbol *> &allsymbols);
   void insert_symbols_shared(std::vector<Symbol *> &allsymbols);
   void find_code_and_data(Elf_X &elf,

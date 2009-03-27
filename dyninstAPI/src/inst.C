@@ -289,6 +289,9 @@ bool AddressSpace::replaceFunctionCall(instPoint *point,
           }
       }
       codeGen gen(point->insn().size());
+      gen.setAddrSpace(this);
+      gen.setPoint(point);
+
       // Uninstrumented
       // Replace the call
       if (func == NULL) {	// Replace with NOOPs

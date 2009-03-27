@@ -265,6 +265,7 @@ const char* STAB_NAME        = ".stab";
 const char* STABSTR_NAME     = ".stabstr";
 const char* STAB_INDX_NAME   = ".stab.index";
 const char* STABSTR_INDX_NAME= ".stab.indexstr";
+const char* OPD_NAME         = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
 const char* PLT_NAME         = ".plt";
 #if ! defined( arch_ia64 )
@@ -296,7 +297,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                         Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
                         Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
                         Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-                        Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
+                        Elf_X_Shdr*& opd_scnp, Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
                         Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, 
                         Elf_X_Shdr*& eh_frame, Elf_X_Shdr*& gcc_except, 
                         Elf_X_Shdr *& interp_scnp, bool)
@@ -326,6 +327,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
    dynsym_addr_ = 0;
    dynstr_addr_ = 0;
    fini_addr_ = 0;
+   opd_addr_ = 0;
+   opd_size_ = 0;
    got_addr_ = 0;
    got_size_ = 0;
    plt_addr_ = 0;
@@ -486,6 +489,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
       else if (strcmp(name, RO_DATA_NAME) == 0) {
          if (!dataddr) dataddr = scnp->sh_addr();
+      }
+      else if (strcmp(name, OPD_NAME) == 0) {
+         opd_scnp = scnp;
+         opd_addr_ = scnp->sh_addr();
+         opd_size_ = scnp->sh_size();
       }
       else if (strcmp(name, GOT_NAME) == 0) {
          got_scnp = scnp;
@@ -826,6 +834,31 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
        //  have PLT_INITIAL_ENTRY_SIZE (72)
        //  see binutils/bfd/elf32-ppc.c/h if more info is needed
 	    //next_plt_entry_addr += 72;  // 1st 6 PLT entries art special
+
+#elif defined(arch_power) && defined(arch_64bit) && defined(os_linux)
+       // PPC64 Linux Bug: PPC64 Linux binaries do not properly identify
+       // text PLT entries.  They only specify the data PLT within the GOT.
+       // By observation, the text PLT is placed at the beginning of the .text
+       // segment, and has 28 bytes of instructions per entry.
+       next_plt_entry_addr = text_addr_;
+
+       // Hacky Heuristic: GCC compilers produce either 24 or 28 byte text PLT
+       // entries.  28 byte text PLT entries begin with an addis (op 15) while
+       // the 24 byte version starts with a std instruction (op 62).
+       for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+           if (regions_[iter]->getRegionName() == TEXT_NAME) {
+               unsigned char insn_byte = *((unsigned char *)regions_[iter]->getPtrToRawData());
+               insn_byte = insn_byte >> 2;
+
+               if (insn_byte == 15)
+                   plt_entry_size_ = 28;
+               else if (insn_byte != 62)
+                   fprintf(stderr, "*** Unknown text PLT opcode %d.  Assuming 24 byte entry size.\n", insn_byte);
+
+               break;
+           }
+       }
+
 #else
 	    next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
 #endif
@@ -902,6 +935,7 @@ void Object::load_object(bool alloc_syms)
    Offset dataddr = 0;
    Elf_X_Shdr *rel_plt_scnp = 0;
    Elf_X_Shdr *plt_scnp = 0; 
+   Elf_X_Shdr *opd_scnp = 0;
    Elf_X_Shdr *got_scnp = 0;
    Elf_X_Shdr *dynsym_scnp = 0;
    Elf_X_Shdr *dynstr_scnp = 0;
@@ -931,7 +965,7 @@ void Object::load_object(bool alloc_syms)
 
       if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-               rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
+               rel_plt_scnp,plt_scnp,opd_scnp,got_scnp,dynsym_scnp,
                dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) 
       {
          goto cleanup;
@@ -997,6 +1031,8 @@ void Object::load_object(bool alloc_syms)
             symdata = symscnp->get_data();
             strdata = strscnp->get_data();
             parse_symbols(allsymbols, symdata, strdata, bssscnp, symscnp, false, module);
+            fix_opd_function_addresses(allsymbols, opd_scnp);
+            create_libc_section_functions(allsymbols);
          }   
 
          // don't reorder symbols anymore
@@ -1101,6 +1137,7 @@ void Object::load_shared_object(bool alloc_syms)
    Offset dataddr = 0;
    Elf_X_Shdr *rel_plt_scnp = 0;
    Elf_X_Shdr *plt_scnp = 0; 
+   Elf_X_Shdr *opd_scnp = 0;
    Elf_X_Shdr *got_scnp = 0;
    Elf_X_Shdr *dynsym_scnp = 0;
    Elf_X_Shdr *dynstr_scnp = 0;
@@ -1119,7 +1156,7 @@ void Object::load_shared_object(bool alloc_syms)
 
       if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-               rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
+               rel_plt_scnp, plt_scnp, opd_scnp, got_scnp, dynsym_scnp,
                dynstr_scnp, dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
          goto cleanup2;
 
@@ -1162,6 +1199,9 @@ void Object::load_shared_object(bool alloc_syms)
                log_elferror(err_func_, "locating symbol/string data");
                goto cleanup2;
             }
+
+            fix_opd_function_addresses(allsymbols, opd_scnp);
+            create_libc_section_functions(allsymbols);
          } 
 
          // don't reorder symbols anymore
@@ -1734,6 +1774,91 @@ void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isE
     unsigned long difftime = lendtime - lstarttime;
     double dursecs = difftime/(1000 * 1000);
     cout << "****fix zero function sizes took "<<dursecs <<" secs" << endl;
+#endif
+}
+
+// Some PPC64 compilers only produce function symbols which point into the .opd
+// section.  Find the actual function address in .text, and fix symbol.
+void Object::fix_opd_function_addresses(std::vector<Symbol *> &allsymbols, Elf_X_Shdr *opd_scnh)
+{
+#if defined(TIMED_PARSE)
+    struct timeval starttime;
+    gettimeofday(&starttime, NULL);
+#endif
+    unsigned u, nsymbols;
+    unsigned long opdStart, opdEnd;
+    char *opdData;
+
+    if (!opd_scnh) return;
+
+    nsymbols = allsymbols.size();
+    opdStart = opd_scnh->sh_addr();
+    opdEnd   = opd_scnh->sh_addr() + opd_scnh->sh_size();
+    opdData  = (char *)opd_scnh->get_data().d_buf();
+
+    for (u=0; u < nsymbols; u++) {
+        if (allsymbols[u]->getType() == Symbol::ST_FUNCTION ||
+            allsymbols[u]->getType() == Symbol::ST_NOTYPE) {
+
+            Offset oldAddr = allsymbols[u]->getAddr();
+            if (opdStart <= oldAddr && oldAddr < opdEnd) {
+                // Now we know the symbol address falls within the .opd section.
+                // Stash original address as a pointer address.
+                allsymbols[u]->setPtrAddr( oldAddr );
+
+                // Find the actual address.
+                // Actual address = (.opd Data) + (Symbol Address - .opd Address)
+                allsymbols[u]->setAddr(*(Offset *)(opdData + (oldAddr - opdStart)));
+                //fprintf(stderr, "Correcting %s .opd address (0x%lx) to (0x%lx)\n",
+                //      allsymbols[u]->getName().c_str(), oldAddr,
+                //      *((Offset *)(opdData + (oldAddr - opdStart))));
+
+                // Finally, if the symbol had no type, fix it.
+                allsymbols[u]->setSymbolType(Symbol::ST_FUNCTION);
+            }
+        }
+    }
+#if defined(TIMED_PARSE)
+    struct timeval endtime;
+    gettimeofday(&endtime, NULL);
+    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+    unsigned long difftime = lendtime - lstarttime;
+    double dursecs = difftime/(1000 * 1000);
+    cout << "****fix opd function addresses took "<<dursecs <<" secs" << endl;
+#endif
+}
+
+void Object::create_libc_section_functions(std::vector<Symbol *> &allsymbols)
+{
+#if defined(TIMED_PARSE)
+    struct timeval starttime;
+    gettimeofday(&starttime, NULL);
+#endif
+    for (unsigned i = 0; i < allsymbols.size(); ++i) {
+        const char *symbolName = allsymbols[i]->getName().c_str();
+        if (allsymbols[i]->getType() == Symbol::ST_NOTYPE) {
+            for (unsigned j = 0; j < regions_.size(); ++j) {
+                const char *regionName = regions_[j]->getRegionName().c_str();
+                if (regions_[j]->isText() &&
+                    strstr(regionName, "_libc_") &&
+                    strstr(symbolName, regionName) &&
+                    regions_[j]->getMemOffset() == allsymbols[i]->getAddr()) {
+
+                    allsymbols[i]->setSymbolType(Symbol::ST_FUNCTION);
+                }
+            }
+        }
+    }
+
+#if defined(TIMED_PARSE)
+    struct timeval endtime;
+    gettimeofday(&endtime, NULL);
+    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+    unsigned long difftime = lendtime - lstarttime;
+    double dursecs = difftime/(1000 * 1000);
+    cout << "****create libc section functions took "<<dursecs <<" secs" << endl;
 #endif
 }
 

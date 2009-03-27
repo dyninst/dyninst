@@ -965,6 +965,17 @@ bool dynamic_linking::installTracing()
 
     InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( r_brk_target_addr, proc );
     jAddr.replaceBundleWith( returnBundle );
+
+#elif defined(arch_power) && defined(arch_64bit)
+    /* 64-bit POWER architectures also use function descriptors instead of directly
+       pointing at the function code.  Find the actual address of the function.
+    */
+    Address actualAddr;
+    if (! proc->readDataSpace( (void *)breakAddr, 8, (void *)&actualAddr, true ) ) {
+        bperr( "Failed to read breakAddr_.\n" );
+        return 0;
+    }
+    breakAddr = actualAddr;
 #endif
 
     sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, // not used

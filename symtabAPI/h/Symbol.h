@@ -140,11 +140,12 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool          operator== (const Symbol &) const;
 
    SYMTAB_EXPORT const std::string&getModuleName ()        const;
-   SYMTAB_EXPORT Module*	        getModule()		        const; 
+   SYMTAB_EXPORT Module*           getModule()	           const; 
    SYMTAB_EXPORT SymbolType        getType ()              const;
    SYMTAB_EXPORT SymbolLinkage     getLinkage ()           const;
    SYMTAB_EXPORT Offset            getAddr ()              const;
-   SYMTAB_EXPORT Region		    *getSec ()      	    const;
+   SYMTAB_EXPORT Offset            getPtrAddr()            const;
+   SYMTAB_EXPORT Region	          *getSec ()               const;
    SYMTAB_EXPORT bool              isInDynSymtab()         const;
    SYMTAB_EXPORT bool              isInSymtab()            const;
    SYMTAB_EXPORT bool              isAbsolute()            const;
@@ -170,6 +171,7 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT const std::string &getName() const { return getMangledName(); }
 
    SYMTAB_EXPORT bool setAddr (Offset newAddr);
+   SYMTAB_EXPORT bool setPtrAddr (Offset newAddr);
 
    SYMTAB_EXPORT bool setSymbolType(SymbolType sType);
 
@@ -208,9 +210,10 @@ class Symbol : public Serializable,
    SymbolLinkage linkage_;
    SymbolVisibility visibility_;
    Offset        addr_;
-   Region*      sec_;
+   Offset        ptr_addr_;  // For function pointers, on platforms with function descriptors
+   Region*       sec_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
-   void *upPtr_;
+   void*         upPtr_;
    bool          isInDynsymtab_;
    bool          isInSymtab_;
    bool          isAbsolute_;

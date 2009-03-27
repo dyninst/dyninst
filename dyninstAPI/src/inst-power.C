@@ -2404,7 +2404,7 @@ bool process::hasBeenBound(const relocationEntry &entry,
 void emitFuncJump(opCode              op, 
                   codeGen            &gen,
                   const int_function *func,
-                  AddressSpace       * /*proc*/,
+                  AddressSpace       *proc,
                   const instPoint    *point,
                   bool)
 {
@@ -2433,13 +2433,88 @@ void emitFuncJump(opCode              op,
     // Good thing for us the registerSpace isn't used. Because we don't 
     // have one (???)
     tramp->generateRestores(gen, NULL);
-    
+
+#if defined(arch_power) && defined(arch_64bit) && defined(os_linux)
+    pdvector<int_variable *> vars;
+    if (!proc->findVarsByAll("DYNINSTlinkSave", vars)) {
+        fprintf(stderr, "Cound not find DYNINSTlinkSave in mutatee.\n");
+    }
+    assert(vars.size() == 1);
+    Address linkSave = vars[0]->getAddress();
+
+    vars.clear();
+    if (!proc->findVarsByAll("DYNINSTtocSave", vars)) {
+        fprintf(stderr, "Cound not find DYNINSTtocSave in mutatee.\n");
+    }
+    assert(vars.size() == 1);
+    Address tocSave = vars[0]->getAddress();
+
+    // Move r1 r0
+    instruction::generateImm(gen, ORILop, 1, 0, 0);
+
+    // Save TOC
+    instruction::loadPartialImmIntoReg(gen, 1, tocSave);
+    instruction::generateMemAccess64(gen, STDop, STDUxop, 2, 1, (int16_t)BOT_LO(tocSave));
+
+    // Save Link Register
+    instruction savelk;
+    (*savelk).raw = 0;                    //mfspr:  mflr scratchReg
+    (*savelk).xform.op = EXTop;
+    (*savelk).xform.rt = 2;
+    (*savelk).xform.ra = SPR_LR & 0x1f;
+    (*savelk).xform.rb = (SPR_LR >> 5) & 0x1f;
+    (*savelk).xform.xo = MFSPRxop;
+    savelk.generate(gen);
+    instruction::loadPartialImmIntoReg(gen, 1, linkSave);
+    instruction::generateMemAccess64(gen, STDop, STDUxop, 2, 1, (int16_t)BOT_LO(linkSave));
+
+    // Restore r1
+    instruction::generateImm(gen, ORILop, 0, 1, 0);
+
+    // Prepare New TOC
+    Address toc = proc->proc()->getTOCoffsetInfo(const_cast<int_function *>(func));
+    instruction::loadImmIntoReg(gen, 2, toc);
+
+    // Call New Function
+    Address fromAddr = gen.currAddr();
+    Address toAddr = func->getAddress();
+    instruction::generateInterFunctionBranch(gen, fromAddr, toAddr, true);
+
+    // Move r1 r0
+    instruction::generateImm(gen, ORILop, 1, 0, 0);
+
+    // Restore Link Register
+    instruction::loadPartialImmIntoReg(gen, 1, linkSave);
+    instruction::generateMemAccess64(gen, LDop, LDxop, 2, 1, (int16_t)BOT_LO(linkSave));
+    instruction restlk;
+    (*restlk).raw = 0;                    //mtspr:  mtlr scratchReg
+    (*restlk).xform.op = EXTop;
+    (*restlk).xform.rt = 2;
+    (*restlk).xform.ra = SPR_LR & 0x1f;
+    (*restlk).xform.rb = (SPR_LR >> 5) & 0x1f;
+    (*restlk).xform.xo = MTSPRxop;
+    restlk.generate(gen);
+
+    // Restore TOC
+    instruction::loadPartialImmIntoReg(gen, 1, tocSave);
+    instruction::generateMemAccess64(gen, LDop, LDxop, 2, 1, (int16_t)BOT_LO(tocSave));
+
+    // Restore r1
+    instruction::generateImm(gen, ORILop, 0, 1, 0);
+
+    // Return to caller
+    instruction brl(BRLraw);
+    brl.generate(gen);
+
+#else // Not PPC64 Linux
     Address fromAddr = gen.currAddr();
     Address toAddr = func->getAddress();
 
     instruction::generateInterFunctionBranch(gen,
                                              fromAddr,
                                              toAddr);
+#endif
+
     return;
 }
 
@@ -2591,6 +2666,8 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
     if (p->getAddressWidth() == sizeof(uint64_t)) {
         Address buffer[3];
         Address val_to_write = f->getAddress();
+        // Use function descriptor address, if available.
+        if (f->getPtrAddress()) val_to_write = f->getPtrAddress();
         assert(p->proc());
         Address toc = p->proc()->getTOCoffsetInfo(val_to_write);
         buffer[0] = val_to_write;

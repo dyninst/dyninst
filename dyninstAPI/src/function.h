@@ -360,9 +360,10 @@ class int_function : public patchTarget {
 
    // May change when we relocate...
    Address getAddress() const {return addr_;}
+   Address getPtrAddress() const {return ptrAddr_;}
+
    // Don't use this...
    unsigned getSize_NP();
-
 
    // Not defined here so we don't have to play header file magic
    // Not const; we can add names via the Dyninst layer
@@ -581,6 +582,7 @@ class int_function : public patchTarget {
 
    ///////////////////// Basic func info
    Address addr_; // Absolute address of the start of the function
+   Address ptrAddr_; // Absolute address of the function descriptor, if exists
 
    image_func *ifunc_;
    mapped_module *mod_; // This is really a dodge; translate a list of

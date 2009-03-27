@@ -304,7 +304,7 @@ SYMTAB_EXPORT Symbol::Symbol(const Symbol& s) :
    AnnotatableSparse(),
    module_(s.module_), 
    type_(s.type_), linkage_(s.linkage_), visibility_(s.visibility_),
-   addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
+   addr_(s.addr_), ptr_addr_(s.ptr_addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
    aggregate_(s.aggregate_),
@@ -574,8 +574,8 @@ SYMTAB_EXPORT Module* Symbol::getModule() const
 
 SYMTAB_EXPORT bool Symbol::setModule(Module *mod) 
 {
-	module_ = mod; 
-	return true;
+    module_ = mod; 
+    return true;
 }
 
 SYMTAB_EXPORT Symbol::SymbolType Symbol::getType() const 
@@ -596,6 +596,11 @@ SYMTAB_EXPORT Symbol::SymbolVisibility Symbol::getVisibility() const
 SYMTAB_EXPORT Offset Symbol::getAddr() const 
 {
     return addr_;
+}
+
+SYMTAB_EXPORT Offset Symbol::getPtrAddr() const
+{
+    return ptr_addr_;
 }
 
 SYMTAB_EXPORT Region *Symbol::getSec() const 
@@ -668,14 +673,20 @@ SYMTAB_EXPORT Symbol::SymbolTag Symbol::tag() const
 
 SYMTAB_EXPORT bool Symbol::setModuleName(string module)
 {
-	moduleName_ = module;
-	return true;
+    moduleName_ = module;
+    return true;
 }
 
 SYMTAB_EXPORT bool Symbol::setAddr (Offset newAddr) 
 {
-      addr_ = newAddr;
-      return true;
+    addr_ = newAddr;
+    return true;
+}
+
+SYMTAB_EXPORT bool Symbol::setPtrAddr (Offset newAddr)
+{
+    ptr_addr_ = newAddr;
+    return true;
 }
 
 SYMTAB_EXPORT bool Symbol::setDynSymtab() 
@@ -716,7 +727,7 @@ SYMTAB_EXPORT bool Symbol::clearIsAbsolute()
 
 SYMTAB_EXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
+    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), ptr_addr_(0), sec_(NULL), size_(0),
     isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), 
     aggregate_(NULL),
     tag_(TAG_UNKNOWN),
@@ -731,7 +742,7 @@ SYMTAB_EXPORT Symbol::Symbol(const string iname, const string imodule,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
     : type_(itype), linkage_(ilinkage), visibility_(ivisibility),
-    addr_(iaddr), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
+    addr_(iaddr), ptr_addr_(0), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
@@ -746,7 +757,7 @@ SYMTAB_EXPORT Symbol::Symbol(const string iname, Module *mod,
     Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
     bool isAbsolute)
     : module_(mod), type_(itype), linkage_(ilinkage), visibility_(ivisibility),
-    addr_(iaddr), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
+    addr_(iaddr), ptr_addr_(0), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
     isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
     retType_(NULL)
 {
@@ -766,11 +777,11 @@ SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
     
     SymbolType oldType = type_;	
     type_ = sType;
-    if (module_->exec())
+    if (module_ && module_->exec())
         module_->exec()->changeType(this, oldType);
 
     // TODO: update aggregate with information
-    
+
     return true;
 }
 
@@ -895,6 +906,7 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, tag_, symbolTag2Str, "tag");
       gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
       gtranslate(s, addr_, "addr");
+      gtranslate(s, ptr_addr_, "ptr_addr");
       gtranslate(s, size_, "size");
       gtranslate(s, isInDynsymtab_, "isInDynsymtab");
       gtranslate(s, isInSymtab_, "isInSymtab");
@@ -912,6 +924,7 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       translate(param.linkage_, "linkage");
       translate(param.tag_, "tag");
       getSD().translate(param.addr_, "addr");
+      getSD().translate(param.ptr_addr_, "ptr_addr");
       getSD().translate(param.size_, "size");
       getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
       getSD().translate(param.isInSymtab_, "isInSymtab");
@@ -937,6 +950,7 @@ ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
         //<< " linkage=" << (unsigned) s.linkage_
               << " linkage=" << s.symbolLinkage2Str(s.linkage_)
               << " addr=0x"    << hex << s.addr_ << dec
+              << " ptr_addr="<< s.ptr_addr_
         //<< " tag="     << (unsigned) s.tag_
               << " tag="     << s.symbolTag2Str(s.tag_)
               << " isAbs="   << s.isAbsolute_
