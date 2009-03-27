@@ -117,6 +117,10 @@ bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instructio
   return !insns.empty();
   
 }
+#else
+bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instruction>& insns) {
+  return false;
+}
 #endif // defined(cap_instruction_api)
 
 unsigned long BPatch_parRegion::getStartAddressInt() CONST_EXPORT 
