@@ -1329,7 +1329,7 @@ static ia32_entry twoByteMap[256] = {
   { e_xadd, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
   { e_xadd, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
   { e_No_Entry, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_movnti , t_done, 0, 0, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS) },
+  { e_movnti , t_done, 0, true, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS) },
   { e_No_Entry, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0 },
