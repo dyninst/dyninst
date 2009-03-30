@@ -1114,6 +1114,9 @@ mapped_module* mapped_object::getDefaultModule()
 {
   mapped_module* ret = findModule("DEFAULT_MODULE");
   if(ret) return ret;
+
+  // Make sure the everyModule vector is initialized
+  getModules();
   
   assert(everyModule.size() > 0);
   return everyModule[0];
