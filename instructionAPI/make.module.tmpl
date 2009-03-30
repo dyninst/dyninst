@@ -14,17 +14,7 @@ RELEASE_NUM	= 5.2
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 
-ifdef GCC_2_95
-# This may cause problems on Alpha
-# GCC has a new mangled name squisher (-fsquangle) which can be 
-# set to "on" by default. This causes linker problems, so we
-# default to "off".
-CFLAGS		+= -fno-squangle
-CXXFLAGS	+= -fno-squangle
-endif
-
-
-LDFLAGS += -lpthread -lcommon
+LDFLAGS += -lcommon
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
@@ -44,10 +34,6 @@ CFLAGS += -DAUTO_TEMPLATES
 CXXFLAGS += -DAUTO_TEMPLATES
 endif
 
-TO_INC   = ../h
-
-#PUBLIC_H = 
-
 SRCS +=	../src/Instruction.C \
 	../src/InstructionAST.C \
 	../src/Operation.C \
@@ -55,17 +41,6 @@ SRCS +=	../src/Instruction.C \
 	../src/Register.C \
 	../src/Expression.C \
 	../src/BinaryFunction.C
-
-
-ifndef USES_NATIVE_CC
-ifdef CROSSCOMPILER
-SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
-else
-SYSLIBS         += -liberty
-endif
-else
-SYSLIBS		+= -ldemangle
-endif
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../external
@@ -91,8 +66,6 @@ PUBLIC_H =      BinaryFunction.h \
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
-	cp $(TO_INC)/*.h $(TO_CORE)/../include
-
 
 docs:
 	cd ..; doxygen instructionAPI.conf

@@ -182,7 +182,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../instructionAPI/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
