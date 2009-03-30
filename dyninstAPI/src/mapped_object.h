@@ -53,6 +53,24 @@
 
 class mapped_module;
 
+class int_symbol {
+ public:
+    int_symbol(Symbol *sym, Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
+    int_symbol() : addr_(0), sym_(NULL) {};
+
+    Address getAddr() const { return addr_; }
+    unsigned getSize() const { return sym_->getSize(); }
+    const string &symTabName() const { return sym_->getMangledName(); }
+    const string &prettyName() const { return sym_->getPrettyName(); }
+    const string &typedName() const { return sym_->getTypedName(); }
+    const Symbol *sym() const { return sym_; }
+
+ private:
+    Address addr_;
+    const Symbol *sym_;
+};
+
+
 class int_variable {
     // Should subclass this and function off the same thing...
 
@@ -188,8 +206,7 @@ class mapped_object : public codeRange {
     bool isopenedWithdlopen() { return dlopenUsed; };
 #endif
 
-    // Annoying low-level requirement... direct access to the symbol table.
-    bool  getSymbolInfo(const std::string &n,Symbol &info);
+    bool  getSymbolInfo(const std::string &n, int_symbol &sym);
 
     // All name lookup functions are vectorized, because you can have
     // multiple overlapping names for all sorts of reasons.

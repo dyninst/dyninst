@@ -735,10 +735,10 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 			correct.
 		*/
 #if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
-		Symbol info;
+                int_symbol info;
 		std::string dynamicSection = "_DYNAMIC";
 		sh_obj->getSymbolInfo(dynamicSection,info);
-		baseAddr = sh_obj->getBaseAddress() + info.getAddr();
+		baseAddr = sh_obj->getBaseAddress() + info->getAddr();
 		//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->fileName().c_str(), baseAddr);
 #endif
 
@@ -3947,21 +3947,6 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
     return true;
 }
 
-// Returns the named symbol from the image or a shared object
-/*bool process::getSymbolInfo( const std::string &name, Symbol &ret ) 
-{
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        bool sflag;
-        sflag = mapped_objects[i]->getSymbolInfo( name, ret );
-        
-        if( sflag ) {
-            return true;
-        }
-    }
-    return false;
-}
-*/
-
 void process::addSignalHandler(Address addr, unsigned size) {
     signal_handler_location *newSig = new signal_handler_location(addr, 
                                                                   size);
@@ -3975,7 +3960,7 @@ void process::findSignalHandler(mapped_object *obj)
     assert(obj);
 
     // Old skoon
-    Symbol sigSym;
+    int_symbol sigSym;
     std::string signame(SIGNAL_HANDLER);
 
    startup_printf("%s[%d]: findSignalhandler(%p): gettingSymbolInfo\n", FILE__, __LINE__, obj);

@@ -2829,7 +2829,7 @@ bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTr
 	
   /* We need the address of the _U_dyn_info_list in the remote process in order
 	 to register the baseTrampDynamicInfo. */
-  Symbol dyn_info_list;
+  int_symbol dyn_info_list;
   if (!proc->proc()->getSymbolInfo( "_U_dyn_info_list", dyn_info_list))
 	  return ! proc->proc()->isBootstrappedYet();
   

@@ -47,36 +47,50 @@ namespace SymtabAPI{
 
 class Symbol;
 class Module;
+class Symtab; 
 
 class Aggregate : public AnnotatableSparse 
 {
+    friend class Symtab;
+ protected:
+      SYMTAB_EXPORT Aggregate(Symbol *sym);
    public:
-      SYMTAB_EXPORT Aggregate();
       
       virtual ~Aggregate() {};
 
-      SYMTAB_EXPORT Offset   getAddress() const;
-      SYMTAB_EXPORT Module * getModule() const;
+      SYMTAB_EXPORT Offset   getOffset() const { return getFirstSymbol()->getOffset(); }
+      SYMTAB_EXPORT unsigned getSize() const { return getFirstSymbol()->getSize(); }
+      SYMTAB_EXPORT Module * getModule() const { return module_; }
+      SYMTAB_EXPORT Region * getRegion() const { return getFirstSymbol()->getRegion(); }
 
       /***** Symbol Collection Management *****/
       SYMTAB_EXPORT bool addSymbol(Symbol *sym);
-      SYMTAB_EXPORT bool removeSymbol(Symbol *sym);
-      SYMTAB_EXPORT bool getAllSymbols(std::vector<Symbol *>&syms) const;
+      SYMTAB_EXPORT virtual bool removeSymbol(Symbol *sym) = 0;
+      SYMTAB_EXPORT bool getSymbols(std::vector<Symbol *>&syms) const;
       SYMTAB_EXPORT Symbol * getFirstSymbol() const;
 
       /***** Symbol naming *****/
-	  SYMTAB_EXPORT const std::vector<std::string> &getAllMangledNames();
-	  SYMTAB_EXPORT const std::vector<std::string> &getAllPrettyNames();
-	  SYMTAB_EXPORT const std::vector<std::string> &getAllTypedNames();
+      SYMTAB_EXPORT const std::vector<std::string> &getAllMangledNames();
+      SYMTAB_EXPORT const std::vector<std::string> &getAllPrettyNames();
+      SYMTAB_EXPORT const std::vector<std::string> &getAllTypedNames();
+
+      /***** Aggregate updating *****/
       SYMTAB_EXPORT virtual bool addMangledName(std::string name, bool isPrimary);
       SYMTAB_EXPORT virtual bool addPrettyName(std::string name, bool isPrimary);
       SYMTAB_EXPORT virtual bool addTypedName(std::string name, bool isPrimary);
+
+      SYMTAB_EXPORT bool setModule(Module *mod);
+      SYMTAB_EXPORT bool setSize(unsigned size);
+      SYMTAB_EXPORT bool setOffset(unsigned offset);
+      
    protected:
 
-	   bool addMangledNameInt(std::string name, bool isPrimary);
-	   bool addPrettyNameInt(std::string name, bool isPrimary);
-	   bool addTypedNameInt(std::string name, bool isPrimary);
+      bool addMangledNameInt(std::string name, bool isPrimary);
+      bool addPrettyNameInt(std::string name, bool isPrimary);
+      bool addTypedNameInt(std::string name, bool isPrimary);
 
+      SYMTAB_EXPORT bool removeSymbolInt(Symbol *sym);
+      SYMTAB_EXPORT virtual bool changeSymbolOffset(Symbol *sym);
 
       // Offset comes from a symbol
       // Module we keep here so we can have the correct "primary"

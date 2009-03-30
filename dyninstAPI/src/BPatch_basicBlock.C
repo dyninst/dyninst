@@ -53,10 +53,8 @@
 #include "function.h"
 #include "InstrucIter.h"
 #include "BPatch_instruction.h"
-#if defined(cap_instruction_api)
-#include "instructionAPI/h/Instruction.h"
-#include "instructionAPI/h/InstructionDecoder.h"
-#endif
+#include "Instruction.h"
+#include "InstructionDecoder.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_edge.h"
 
@@ -440,6 +438,16 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
       curInsn = d.decode();
   }
   return !insnInstances.empty();  
+}
+#else
+bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction>& insns)
+{
+  return false;
+}
+
+bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction, Address> >& insnInstances)
+{
+  return false;
 }
 #endif // defined(cap_instruction_api)
 

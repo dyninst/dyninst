@@ -109,6 +109,7 @@ class Object : public AObject
             void	SetSize( DWORD cb )					{ size = cb; }
 
             void DefineSymbol( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
+                               map<Symbol *, std::string> &symsToMods,
                                const std::string& modName ) const;
 	};
 
@@ -129,6 +130,7 @@ class Object : public AObject
 		}
 
             void DefineSymbols( dyn_hash_map<std::string, std::vector< Symbol *> >& syms,
+                                map<Symbol *, std::string> &symsToMods,
                                 const std::string& modName ) const;
             std::string GetName( void ) const		{ return name; }
             const std::vector<intSymbol*>& GetSymbols( void )	const		{ return syms; }
@@ -158,7 +160,8 @@ class Object : public AObject
             void AddFile( File* pFile )				{ files.push_back( pFile ); }
 
             void DefineSymbols( const Object* obj,
-                                dyn_hash_map<std::string, std::vector< Symbol *> > & syms ) const;
+                                dyn_hash_map<std::string, std::vector< Symbol *> > & syms,
+                                map<Symbol *, std::string> &symsToMods ) const;
             void BuildSymbolMap( const Object* obj ) const; 
 
             std::string GetName( void ) const            { return name; }

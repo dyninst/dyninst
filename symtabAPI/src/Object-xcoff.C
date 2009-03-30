@@ -1226,31 +1226,30 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
          object_printf("Creating new symbol: %s, %s, %d, %d, 0x%lx, %d, %d\n",
                        name.c_str(), modName.c_str(), type, linkage, value, sec, size);
 
-         Symbol *sym = new Symbol(name, modName, type, linkage, Symbol::SV_DEFAULT, value, sec, size);
+         Symbol *sym = new Symbol(name, 
+                                  type, 
+                                  linkage, 
+                                  Symbol::SV_DEFAULT, 
+                                  value, 
+                                  sec, 
+                                  size);
        
-         symbols_[name].push_back( sym );
+         symbols_[name].push_back(sym);
+         symsByOffset_[value].push_back(sym);
+         symsToModules_[sym] = modName;
+
          if (symbols_.find(modName)!=symbols_.end()) {
             // Adjust module's address, if necessary, to ensure that it's <= the
             // address of this new symbol
            
             std::vector< Symbol *> & mod_symbols = symbols_[modName];
            
-#if defined( DEBUG )
-            if( mod_symbols.size() != 1 ) {
-               fprintf( stderr, "%s[%d]: module name has more than one symbol:\n", __FILE__, __LINE__  );
-               for( unsigned int i = 0; i < mod_symbols.size(); i++ ) {
-                  cerr << *(mod_symbols[i]) << endl;
-               }
-               fprintf( stderr, "\n" );
-            }
-#endif /* defined( DEBUG ) */               
-
             Symbol *mod_symbol = mod_symbols[ 0 ];
-           
-            if (value < mod_symbol->getAddr()) {
-               //cerr << "adjusting addr of module " << modName
-               //     << " to " << value << endl;
-               mod_symbol->setAddr(value);
+
+            for (unsigned i = 0; i < mod_symbols.size(); i++) {
+                if (mod_symbols[i]->getType() == Symbol::ST_MODULE) {
+                    mod_symbol->offset_ = value;
+                }
             }
          }  
       } else if (sym->n_sclass == C_FILE) {
@@ -1290,11 +1289,13 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
          else {
             modName = name;
          }
-         Symbol *modSym = new Symbol(modName, modName,
-                                     Symbol::ST_MODULE, linkage, visibility,
+         Symbol *modSym = new Symbol(modName, 
+                                     Symbol::ST_MODULE, 
+                                     linkage, 
+                                     visibility,
                                      UINT_MAX // dummy address for now!
                                      );
-                             
+
          /* The old code always had the last module win. */
          if ( symbols_[modName].size() == 0 ) {
             symbols_[modName].push_back( modSym );
@@ -2119,12 +2120,11 @@ void Object::parseTypeInfo(Symtab *obj)
             commonBlockName = nmPtr;
 
             std::vector<Symbol *>vars;
-            if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT))
-            {
-               if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT, true))
-                  commonBlockVar = NULL;
-               else
-                  commonBlockVar = vars[0];
+            if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT, mangledName)) {
+                if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT, prettyName))
+                    commonBlockVar = NULL;
+                else
+                    commonBlockVar = vars[0];
             }
             else
                commonBlockVar = vars[0];
@@ -2150,9 +2150,9 @@ void Object::parseTypeInfo(Symtab *obj)
 
             // copy this set of fields
             std::vector<Symbol *> bpmv;
-            if (obj->findSymbolByType(bpmv, funcName, Symbol::ST_FUNCTION) || !bpmv.size()) {
+            if (obj->findSymbolByType(bpmv, funcName, Symbol::ST_FUNCTION, mangledName) || !bpmv.size()) {
                string newName = "." + funcName;
-               if (obj->findSymbolByType(bpmv, newName, Symbol::ST_FUNCTION) || !bpmv.size()) {
+               if (obj->findSymbolByType(bpmv, newName, Symbol::ST_FUNCTION, mangledName) || !bpmv.size()) {
                   //bperr("unable to locate current function %s\n", funcName.c_str());
                }
                else{

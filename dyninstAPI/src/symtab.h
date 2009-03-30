@@ -203,10 +203,6 @@ class image_variable {
  private:
     image_variable() {};
  public:
-    image_variable(Address offset,
-                   const std::string &name,
-                   pdmodule *mod);
-
     image_variable(Variable *var,
     		   pdmodule *mod);
 
@@ -321,8 +317,6 @@ class image : public codeRange, public InstructionSource {
    const pdvector <image_variable *> *findVarVectorByPretty(const std::string &name);
    const pdvector <image_variable *> *findVarVectorByMangled(const std::string &name);
 
-
-
    // Find the vector of functions determined by a filter function
    pdvector <image_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
                                                     void *user_data, 
@@ -346,6 +340,10 @@ class image : public codeRange, public InstructionSource {
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
    void addTypedPrettyName(image_func *func, const char *typedName);
+
+   // Create an image variable (e.g., malloced variable). Creates the
+   // variable and adds to appropriate data structures.
+   image_variable* createImageVariable(Address offset, std::string name, int size, pdmodule *mod);
 	
    bool symbolExists(const std::string &); /* Check symbol existence */
    void postProcess(const std::string);          /* Load .pif file */
@@ -389,7 +387,7 @@ class image : public codeRange, public InstructionSource {
    bool isNativeCompiler() const { return nativeCompiler; }
 
    // Return symbol table information
-   bool symbol_info(const std::string& symbol_name, Symbol& ret);
+   Symbol *symbol_info(const std::string& symbol_name);
    // And used for finding inferior heaps.... hacky, but effective.
    bool findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret);
 
@@ -407,7 +405,7 @@ class image : public codeRange, public InstructionSource {
    bool getInferiorHeaps(vector<pair<string, Address> > &codeHeaps,
                          vector<pair<string, Address> > &dataHeaps);
 
-   const pdvector<pdmodule*> &getModules();
+   bool getModules(vector<pdmodule *> &mods);
 
     int getNextBlockID() { return nextBlockID_++; }
 
@@ -435,8 +433,7 @@ class image : public codeRange, public InstructionSource {
    // Remove a function from the lists of instrumentable functions, once already inserted.
    int removeFuncFromInstrumentable(image_func *func);
 
-   image_func *makeOneFunction(vector<Symbol *> &mods,
-                                Function *lookUp);
+   image_func *makeImageFunction(Function *lookUp);
 
 
    //
@@ -453,13 +450,14 @@ class image : public codeRange, public InstructionSource {
 #endif
 
    // creates the module if it does not exist
-   pdmodule *getOrCreateModule (const string &modName, const Address modAddr);
-   pdmodule *newModule(const string &name, const Address addr, supportedLanguages lang);
+   pdmodule *getOrCreateModule (Module *mod);
 
-   bool symbolsToFunctions(vector<Symbol *> &mods, pdvector<image_func *> *raw_funcs);
+   bool symbolsToFunctions(pdvector<image_func *> &raw_funcs);
+
 
    //bool addAllVariables();
    bool addSymtabVariables();
+
    // And all those we find via analysis... like, how?
    bool addDiscoveredVariables();
 
@@ -505,7 +503,7 @@ class image : public codeRange, public InstructionSource {
    Archive *archive;
 #endif
 
-   pdvector<pdmodule *> _mods;
+   map<Module *, pdmodule *> mods_;
 
    //
    // Hash Tables of Functions....
@@ -571,8 +569,6 @@ class image : public codeRange, public InstructionSource {
 class pdmodule {
    friend class image;
  public:
-   pdmodule(supportedLanguages lang, Address adr, string &fullNm, image *e)
-            : mod_(new Module(lang,(Offset)adr,fullNm,e->getObject())), exec_(e){}
    pdmodule(Module *mod, image *e)
    	    : mod_(mod), exec_(e) {}
 
@@ -616,7 +612,6 @@ class pdmodule {
    Module *mod();
 
    image *imExec() const { return exec_; }
-   image_variable* createImageVariable(Address offset, std::string name, int size);
    
  private:
    std::set<image_instPoint*> unresolvedControlFlow;

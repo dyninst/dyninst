@@ -39,17 +39,23 @@ namespace Dyninst{
 namespace SymtabAPI{
 
 class Symbol;
+ class Symtab;
 
-class Variable : public Aggregate
-{
- public:
-   SYMTAB_EXPORT Variable();
-   
+class Variable : public Aggregate {
+    friend class Symtab;
+
+ private:
+   SYMTAB_EXPORT Variable(Symbol *sym);
    SYMTAB_EXPORT static Variable *createVariable(Symbol *sym);
    
+ public:
+    /* Symbol management */
+    SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
+
    SYMTAB_EXPORT void setType(Type *type);
    SYMTAB_EXPORT Type *getType();
  private:
+
    Type *type_;
 };
 
