@@ -1355,7 +1355,9 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
                                   0,
                                   UINT_MAX);
      // create function stub, update datastructures
-     linkedFile->addSymbol( funcSym );
+     if (!linkedFile->addSymbol( funcSym )) {
+         return NULL;
+     }
      
      // Adding the symbol finds or creates a Function object...
      assert(funcSym->getFunction());

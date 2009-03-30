@@ -265,17 +265,11 @@ bool Symtab::addSymbol(Symbol *newSym)
     if (!newSym)
     	return false;
 
-#if !defined(os_windows)
-    // Windows: variables are created with an empty module
-    if (newSym->getModuleName().length() == 0) 
-    {
-        //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
-        return false;
+    // Expected default behavior: if there is no
+    // module use the default.
+    if (newSym->getModule() == NULL) {
+        newSym->setModule(getDefaultModule());
     }
-#endif
-    
-    // This mimics the behavior during parsing
-    fixSymModule(newSym);
 
     // If there aren't any pretty names, create them
     if (newSym->getPrettyName() == "") {
