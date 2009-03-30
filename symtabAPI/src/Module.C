@@ -35,6 +35,7 @@
 #include "Symtab.h"
 #include "Collections.h"
 #include "Function.h"
+#include "Variable.h"
 
 #include "common/h/pathName.h"
 
@@ -521,3 +522,22 @@ void Module::serialize(SerializerBase *sb, const char *tag)
    //   param.exec_ = parent_symtab;
 }
 
+bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string name,
+				 NameType nameType,
+				 bool isRegex,
+				 bool checkCase) {
+  bool succ = false;
+  std::vector<Variable *> tmp;
+
+  if (!exec()->findVariablesByName(tmp, name, nameType, isRegex, checkCase)) {
+    return false;
+  }
+  for (unsigned i = 0; i < tmp.size(); i++) {
+    if (tmp[i]->getModule() == this) {
+      ret.push_back(tmp[i]);
+      succ = true;
+    }
+  }
+  return succ;
+}
+  
