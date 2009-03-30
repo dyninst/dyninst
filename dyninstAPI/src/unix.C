@@ -1591,7 +1591,7 @@ bool process::startDebugger()
       return false;
    }
    if (strcmp(dyn_debug_crash_debugger, "core") == 0) {
-      exit(0);
+      exit(-1);
    }
 
    fprintf(stderr, "Don't know how to start debugger %s\n", 
