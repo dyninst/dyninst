@@ -240,7 +240,7 @@ volatile int DYNINST_dummy_create_var;
 void DYNINST_dummy_create()
 {
    /*   fprintf(stderr, "[%s:%u] - In DYNINST_dummy_create\n", __FILE__, __LINE__);*/
-   /*DYNINST_dummy_create_var++;*/
+   DYNINST_dummy_create_var++;
 }
 
 /**
