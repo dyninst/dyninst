@@ -273,6 +273,25 @@ namespace Dyninst
       
       return retVal;
     }
+    INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
+    {
+      switch(m_InsnOp.getID())
+      {
+      case e_ret_far:
+      case e_ret_near:
+      case e_iret:
+      case e_jmp:
+      case e_leave:
+      case e_hlt:
+      case e_sysret:
+      case e_sysexit:
+	return false;
+      default:
+	return true;
+      }
+      
+    }
+    
   };
 };
 
