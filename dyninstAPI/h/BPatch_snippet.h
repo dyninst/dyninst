@@ -52,6 +52,7 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_callbacks.h"
 #include "BPatch_instruction.h" // for register type
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 class AstNode;
 // Don't include the boost shared_ptr library
@@ -66,6 +67,7 @@ namespace boost {
 
 typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 
+class AstNode;
 class process;
 class BPatch_process;
 class BPatch_function;
@@ -144,10 +146,10 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_sequence;
     friend class BPatch_insnExpr;
     friend class BPatch_stopThreadExpr;
-    friend AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand, 
-                                        const BPatch_snippet &rOperand);
-    friend AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand, 
-                                        const BPatch_snippet &rOperand);
+    friend AstNodePtr generateArrayRef(const BPatch_snippet &lOperand, 
+                                       const BPatch_snippet &rOperand);
+    friend AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
+                                       const BPatch_snippet &rOperand);
     friend AstNodePtr generateVariableBase(const BPatch_snippet &lOperand);
     
 
@@ -198,8 +200,10 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
 
     bool,is_trivial,());
 
-    protected:
-    AstNodePtr *ast_wrapper; 
+    //    protected:
+    //AstNodePtr *ast_wrapper; 
+
+    AstNodePtr ast_wrapper;
 
 };
 
@@ -454,7 +458,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     BPatch_variableExpr(char *in_name, 
                         BPatch_addressSpace *in_addSpace,
                         AddressSpace *as,
-                        AstNodePtr *ast_wrapper_,
+                        AstNodePtr ast_wrapper_,
                         BPatch_type *type, void* in_address);
     // Used to get forked copies of variable expressions
     // Used by malloc & malloc_by_type

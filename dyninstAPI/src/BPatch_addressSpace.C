@@ -292,7 +292,7 @@ bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
    }
 
 
-   return point->point->replaceCode(*(snippet->ast_wrapper));
+   return point->point->replaceCode(snippet->ast_wrapper);
 }
 
 
@@ -653,11 +653,10 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
    }
 
    if (BPatch::bpatch->isTypeChecked()) {
-      assert(expr.ast_wrapper);
-      if ((*(expr.ast_wrapper))->checkType() == BPatch::bpatch->type_Error) {
+      if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
          inst_printf("[%s:%u] - Type error inserting instrumentation\n",
                FILE__, __LINE__);
-         (*(expr.ast_wrapper))->debugPrint();
+         expr.ast_wrapper->debugPrint();
          return false;
       }
    }
