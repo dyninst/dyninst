@@ -481,7 +481,7 @@ bool process::loadDYNINSTlib() {
       -argument functions the same, check the version anyway, since
       we'll probably need to later. */
    bool useFourArguments = true;
-   Symbol libcVersionSymbol;
+   int_symbol libcVersionSymbol;
    if( getSymbolInfo( "__libc_version", libcVersionSymbol ) ) {
       char libcVersion[ sizeof( int ) * libcVersionSymbol.getSize() + 1 ];
       libcVersion[ sizeof( int ) * libcVersionSymbol.getSize() ] = '\0';

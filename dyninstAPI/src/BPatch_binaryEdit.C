@@ -109,6 +109,8 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      creation_error = true;
      return;
   }
+  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
+  
   llBinEdits[path] = origBinEdit;
   
   std::queue<std::string> files;
@@ -141,6 +143,11 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      llBinEdit->registerFunctionCallback(createBPFuncCB);
      llBinEdit->registerInstPointCallback(createBPPointCB);
      llBinEdit->set_up_ptr(this);
+     if(llBinEdit != origBinEdit)
+     {
+       llBinEdit->setTrampGuard(masterTrampGuard);
+     }
+     
   }
 
   image = new BPatch_image(this);

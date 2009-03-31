@@ -561,6 +561,8 @@ class image_func : public codeRange,
    
    const Function *func() const { return func_; }
 
+   bool containsBlock(image_basicBlock *);
+
  private:
    
    void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
@@ -587,7 +589,6 @@ class image_func : public codeRange,
 
    ///////////////////// CFG and function body
    set<image_basicBlock*, image_basicBlock::compare> blockList;
-   bool containsBlock(image_basicBlock *);
 
    bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
    bool makesNoCalls_;

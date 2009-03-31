@@ -51,10 +51,10 @@
 
 // Two-level codeRange structure
 #include "mapped_object.h"
-
+#include "mapped_module.h"
 #if defined(cap_instruction_api)
-#include "../../instructionAPI/h/InstructionDecoder.h"
-#include "../../instructionAPI/h/Instruction.h"
+#include "InstructionDecoder.h"
+#include "Instruction.h"
 
 #else
 #include "InstrucIter.h"
@@ -329,19 +329,14 @@ codeRange *AddressSpace::findModByAddr(Address addr) {
 }
 
 // Returns the named symbol from the image or a shared object
-bool AddressSpace::getSymbolInfo( const std::string &name, Symbol &ret ) 
+bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret ) 
 {
   for (unsigned i = 0; i < mapped_objects.size(); i++) {
-    bool sflag;
-    sflag = mapped_objects[i]->getSymbolInfo( name, ret );
-    
-    if( sflag ) {
-      return true;
-    }
+      if (mapped_objects[i]->getSymbolInfo( name, ret ))
+          return true;
   }
   return false;
 }
-
 
 
 bool AddressSpace::getOrigRanges(pdvector<codeRange *> &ranges) {
@@ -1111,10 +1106,8 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder;
-    // FIXME: compute real size
-    size_t maxSize = 10;
-    Instruction curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr), 
-		maxSize);
+    Instruction curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr));
+    
     Expression::Ptr target = curInsn.getControlFlowTarget();
 	RegisterAST thePC = RegisterAST::makePC();
 	target->bind(&thePC, Result(u32, addr + curInsn.size()));
@@ -1534,4 +1527,23 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
    assert(!range->is_function());
    return false;
    
+}
+
+void AddressSpace::setTrampGuard(int_variable* tg)
+{
+  trampGuardBase_ = tg;
+}
+
+
+int_variable* AddressSpace::createTrampGuard()
+{
+  // If we have one, just return it
+  if(trampGuardBase_) return trampGuardBase_;
+  Address base = inferiorMalloc(getAddressWidth());
+  trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", base, getAddressWidth());
+  int trampInit = 1;
+  // And make a range for it.
+  writeDataSpace((void *)base, sizeof(unsigned), &trampInit);    
+  inst_printf("Tramp guard created at address 0x%lx\n", base);
+  return trampGuardBase_;
 }

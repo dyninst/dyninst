@@ -169,6 +169,7 @@ int launch_monitor(FILE *infd)
 void printSummary(BPatch_thread *, BPatch_exitType);
 void reportNewProcess(BPatch_thread *, BPatch_thread *);
 bool insertSummary(BPatch_function *, BPatch_variableExpr *);
+bool generateInstrumentation(dynHandle *, BPatch_function *, BPatch_snippet *);
 BPatch_variableExpr *allocateIntegerInMutatee(dynHandle *, BPatch_function *);
 bool instrumentFunctionEntry(dynHandle *, BPatch_function *);
 bool instrumentFunctionExit(dynHandle *, BPatch_function *);
@@ -868,22 +869,69 @@ void closeTracePipe()
     if (trace_fd) trace_fd->writeValue(&negOne);
 }
 
+bool generateInstrumentation(dynHandle *dh, BPatch_function *func, BPatch_snippet* incSnippet) {
+
+    if (config.instType == USER_FUNC) {
+	// Instrument user's function call
+
+	// config.inst_function is of the format library:function_name
+	char *instLibrary  = (char *) malloc (1024);
+	char *instFunction;
+
+	instFunction = strchr(config.inst_function, ':');
+	if (!instFunction) {
+	     sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
+		     "Failure in loading instrumentation function");
+	     return false;
+	}
+	instFunction++;
+
+	int offset = strcspn (config.inst_function, ":");
+	strncpy (instLibrary, config.inst_function, offset);
+	instLibrary[offset] = '\0';
+        if(! dh->proc->loadLibrary(instLibrary)) {
+	     sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
+		     "Failure in loading library");
+	     return false;
+	}
+        BPatch_Vector<BPatch_function *> funcs;
+        if( NULL ==  dh->image->findFunction(instFunction, funcs) || !funcs.size() || NULL == funcs[0]){
+	     sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
+		     "Unable to find function");
+	     return false;;
+	}
+	BPatch_function *instCallFunc = funcs[0];
+	BPatch_Vector<BPatch_snippet *> instCallArgs;
+	/* How to push function's argument */
+	BPatch_funcCallExpr instCallExpr(*instCallFunc, instCallArgs);
+	*incSnippet = instCallExpr;
+
+    } else {
+
+        BPatch_variableExpr *countVar = allocateIntegerInMutatee(dh);
+        if (!countVar) return false;
+        if (!insertSummary(func, countVar)) return false;
+
+        // Should we test for errors on this?
+         BPatch_arithExpr instArithExpr( BPatch_assign, *countVar,
+				   BPatch_arithExpr(BPatch_plus, *countVar,
+						    BPatch_constExpr(1)));
+	*incSnippet = instArithExpr; 
+    }
+	
+    return true;
+}
+
 bool instrumentFunctionEntry(dynHandle *dh, BPatch_function *func)
 {
     BPatch_Vector<BPatch_point *> *points;
     BPatchSnippetHandle *handle;
-    BPatch_arithExpr incSnippet(BPatch_negate, BPatch_snippet());  // Dummy constructor
+    BPatch_snippet incSnippet; 
 
     sendMsg(config.outfd, ID_INST_FUNC_ENTRY, VERB2);
 
-    BPatch_variableExpr *countVar = allocateIntegerInMutatee(dh);
-    if (!countVar) goto fail;
-    if (!insertSummary(func, countVar)) goto fail;
-
-    // Should we test for errors on this?
-    incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
-				   BPatch_arithExpr(BPatch_plus, *countVar,
-						    BPatch_constExpr(1)));
+    if (! generateInstrumentation(dh, func, &incSnippet) )
+    	goto fail;
 
     sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3);
     points = func->findPoint(BPatch_entry);
@@ -925,18 +973,12 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
 {
     BPatch_Vector<BPatch_point *> *points;
     BPatchSnippetHandle *handle;
-    BPatch_arithExpr incSnippet(BPatch_negate, BPatch_snippet());  // Dummy constructor
+    BPatch_snippet incSnippet; 
 
     sendMsg(config.outfd, ID_INST_FUNC_EXIT, VERB2);
 
-    BPatch_variableExpr *countVar = allocateIntegerInMutatee(dh);
-    if (!countVar) goto fail;
-    if (!insertSummary(func, countVar)) goto fail;
-
-    // Should we test for errors on this?
-    incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
-				   BPatch_arithExpr(BPatch_plus, *countVar,
-						    BPatch_constExpr(1)));
+    if (! generateInstrumentation (dh, func, &incSnippet))
+    	goto fail;
 
     sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3);
     points = func->findPoint(BPatch_exit);
@@ -978,8 +1020,7 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
 bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 {
     BPatch_Set<BPatch_basicBlock*> allBlocks;
-    BPatch_variableExpr *countVar;
-    BPatch_arithExpr incSnippet(BPatch_negate, BPatch_snippet());  // Dummy constructor
+    BPatch_snippet incSnippet; 
     BPatch_Set<BPatch_opCode> ops;
     BPatch_Set<BPatch_basicBlock*>::iterator iter;
     int bb_warn_cnt = 0, bb_pass_cnt = 0;
@@ -1012,14 +1053,9 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_PASS);
     }
 
-    countVar = allocateIntegerInMutatee(dh);
-    if (!countVar) goto fail;
-    if (!insertSummary(func, countVar)) goto fail;
+    if (! generateInstrumentation (dh, func, &incSnippet))
+    	goto fail;
 
-    // Should we test for errors on this?
-    incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
-				   BPatch_arithExpr(BPatch_plus, *countVar,
-						    BPatch_constExpr(1)));
     ops.insert(BPatch_opLoad);
     ops.insert(BPatch_opStore);
 
@@ -1074,8 +1110,7 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 {
     BPatch_Set<BPatch_basicBlock*> allBlocks;
-    BPatch_variableExpr *countVar;
-    BPatch_arithExpr incSnippet(BPatch_negate, BPatch_snippet());  // Dummy constructor
+    BPatch_snippet incSnippet; 
     BPatch_Set<BPatch_opCode> ops;
     BPatch_Set<BPatch_basicBlock*>::iterator iter;
     int bb_warn_cnt = 0, bb_pass_cnt = 0;
@@ -1108,14 +1143,9 @@ bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_PASS);
     }
 
-    countVar = allocateIntegerInMutatee(dh);
-    if (!countVar) goto fail;
-    if (!insertSummary(func, countVar)) goto fail;
+    if (! generateInstrumentation (dh, func, &incSnippet))
+    	goto fail;
 
-    // Should we test for errors on this?
-    incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
-				   BPatch_arithExpr(BPatch_plus, *countVar,
-						    BPatch_constExpr(1)));
     ops.insert(BPatch_opLoad);
 
     sendMsg(config.outfd, ID_INST_BB_LIST, VERB3);
@@ -1169,8 +1199,7 @@ bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
 {
     BPatch_Set<BPatch_basicBlock*> allBlocks;
-    BPatch_variableExpr *countVar;
-    BPatch_arithExpr incSnippet(BPatch_negate, BPatch_snippet());  // Dummy constructor
+    BPatch_snippet incSnippet; 
     BPatch_Set<BPatch_opCode> ops;
     BPatch_Set<BPatch_basicBlock*>::iterator iter;
     int bb_warn_cnt = 0, bb_pass_cnt = 0;
@@ -1203,14 +1232,9 @@ bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_PASS);
     }
 
-    countVar = allocateIntegerInMutatee(dh);
-    if (!countVar) goto fail;
-    if (!insertSummary(func, countVar)) goto fail;
+    if (! generateInstrumentation (dh, func, &incSnippet))
+    	goto fail;
 
-    // Should we test for errors on this?
-    incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
-				   BPatch_arithExpr(BPatch_plus, *countVar,
-						    BPatch_constExpr(1)));
     ops.insert(BPatch_opStore);
 
     sendMsg(config.outfd, ID_INST_BB_LIST, VERB3);

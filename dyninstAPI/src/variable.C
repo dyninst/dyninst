@@ -47,26 +47,6 @@
 #include "Annotatable.h"
 #include "mapped_object.h"
 
-image_variable::image_variable(Address offset,
-      const std::string &name,
-      pdmodule *mod) :
-   pdmod_(mod) 
-{
-    Symbol *sym  = new Symbol(name.c_str(), mod->fileName(), 
-                              Symbol::ST_OBJECT, 
-                              Symbol::SL_GLOBAL, 
-                              Symbol::SV_DEFAULT, offset);
-    mod->imExec()->getObject()->addSymbol(sym);
-    var_ = sym->getVariable();
-    image_variable *th = this;
-    extern AnnotationClass<image_variable> ImageVariableUpPtrAnno;
-    if (!var_->addAnnotation(th, ImageVariableUpPtrAnno)) {
-        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
-    }
-    
-    //sym_->setUpPtr(this);								    
-}
-
 image_variable::image_variable(Variable *var, pdmodule *mod) :
     var_(var),			       
     pdmod_(mod) 
@@ -75,7 +55,7 @@ image_variable::image_variable(Variable *var, pdmodule *mod) :
 
 Address image_variable::getOffset() const 
 {
-   return var_->getAddress();
+   return var_->getOffset();
 }
 
 bool image_variable::addSymTabName(const std::string &name, bool isPrimary) 

@@ -37,6 +37,9 @@
 #include "Module.h"
 #include "Collections.h"
 
+#include "Function.h"
+#include "Variable.h"
+
 #include "symtabAPI/src/Object.h"
 
 
@@ -47,16 +50,17 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-Aggregate::Aggregate() : module_(NULL)
-{}
-
-Offset Aggregate::getAddress() const {
-    return symbols_[0]->getAddr();
+Aggregate::Aggregate(Symbol *sym) :
+    module_(NULL)
+{
+    assert(sym);
+    module_ = sym->getModule();
+    symbols_.push_back(sym);
+    mangledNames_.push_back(sym->getMangledName());
+    prettyNames_.push_back(sym->getPrettyName());
+    typedNames_.push_back(sym->getTypedName());
 }
 
-Module *Aggregate::getModule() const {
-    return module_;
-}
 
 const vector<std::string> &Aggregate::getAllMangledNames() {
     return mangledNames_;
@@ -116,20 +120,18 @@ bool Aggregate::addSymbol(Symbol *sym) {
     return true;
 }
 
-bool Aggregate::removeSymbol(Symbol *sym) {
+bool Aggregate::removeSymbolInt(Symbol *sym) {
     std::vector<Symbol *>::iterator iter;
     for (iter = symbols_.begin(); iter != symbols_.end(); iter++) {
-        if (*iter == sym) {
+        if ((*iter) == sym) {
             symbols_.erase(iter);
-            return true;
+            break;
         }
     }
-    // TODO: remove from names. Do we ever call this?
-
-    return false;
+    return true;
 }
 
-bool Aggregate::getAllSymbols(std::vector<Symbol *> &syms) const 
+bool Aggregate::getSymbols(std::vector<Symbol *> &syms) const 
 {
     syms = symbols_;
     return true;
@@ -244,3 +246,19 @@ bool Aggregate::addTypedNameInt(string name, bool isPrimary) {
     return true;
 }
 
+bool Aggregate::changeSymbolOffset(Symbol *sym) {
+    Offset oldOffset = getOffset();
+
+    removeSymbolInt(sym);
+
+    if (symbols_.empty()) {
+        // This was the only one; so add it back in and update our address
+        // in the Symtab.
+        symbols_.push_back(sym);
+        module_->exec()->changeAggregateOffset(this, oldOffset, getOffset());
+    }
+    else {
+        module_->exec()->addSymbolToAggregates(sym);
+    }
+    return true;
+}

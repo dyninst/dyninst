@@ -121,7 +121,7 @@ const char * image_edge::getTypeString()
 //
 // Note - this must define funcEntry and funcReturn
 // 
-image_func::image_func(const std::string &symbol,
+image_func::image_func(const std::string &name,
 		       Address offset, 
 		       const unsigned symTabSize,
 		       pdmodule *m,
@@ -163,35 +163,10 @@ image_func::image_func(const std::string &symbol,
 #endif
     endOffset_ = offset + symTabSize;
     Symtab * st = i->getObject();
-#if 0
-    Region * sec = NULL;
-    if (st)
-       st->findRegion(sec, ".text");
 
-    Symbol *sym_;
-    sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
-                      Symbol::SV_DEFAULT, offset, sec, symTabSize);
-    std::vector<Module *> mods;
-    st->getAllModules(mods);
-    if (mods.size())
-        sym_->setModule(mods[0]);
-#endif
+    func_ = st->createFunction(name, offset, symTabSize, m->mod());
 
-	//  createFunction both creates the func and adds it to all relevant indices
-
-    func_ = Function::createFunction(st, symbol, m->fileName(), offset, symTabSize);
     assert(func_);
-
-#if 0
-    i->getObject()->addSymbol(sym_);
-
-    func_ = sym_->getFunction();
-    assert(func_);
-
-    //i->getObject()->addSymbol(sym_);								
-    //sym_->setUpPtr(this);
-    //symTabNames_.push_back(symbol);
-#endif
 
     image_func *th = this;
 
@@ -237,7 +212,7 @@ image_func::image_func(Function *func, pdmodule *m, image *i, FuncSource src):
         fprintf(stderr, "image_func_count: %d (%d)\n",
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
-    endOffset_ = func->getAddress() + func->getFirstSymbol()->getSize();
+    endOffset_ = func->getOffset() + func->getFirstSymbol()->getSize();
  }	
 
 
@@ -477,14 +452,18 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     // functions need to have newBlk added to their blocklists.
     //
     // Because of the way that pre-parsed code is handled, only functions
-    // that have already been parsed need this information.
+    // that have already been parsed need this information. Also,
+    // functions that have not yet added the original block to their lists
+    // (i.e., the creator of the block) are not updated; they will later
+    // get to it when recursive parsing returns to them.
+    
     existing = newBlk->getFirstFunc();
     parsing_printf("... newBlk->getFirstFunc() location: 0x%lx\n",
         (existing ? existing->getOffset() : 0));
     set<image_func *>::iterator fit = funcs_.begin();
     for( ; fit != funcs_.end(); ++fit)
     {
-        if(*fit != existing && (*fit)->parsed())
+        if(*fit != existing && (*fit)->parsed() && (*fit)->containsBlock(this))
         {
             parsing_printf("... adding func at 0x%lx to newBlk\n",
                 (*fit)->getOffset());

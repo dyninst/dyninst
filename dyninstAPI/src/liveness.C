@@ -180,7 +180,7 @@ map<IA32Regs, Register> reverseRegisterMap = map_list_of
   (r_DR5, REGNUM_IGNORED)
   (r_DR6, REGNUM_IGNORED)
   (r_DR7, REGNUM_IGNORED)
-
+  (r_ALLGPRS, REGNUM_IGNORED)
 ;
 
 Register convertRegID(IA32Regs toBeConverted)
@@ -705,8 +705,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
     InstructionDecoder decoder;
     const unsigned char* bufferToDecode = 
     reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
-    Instruction currentInsn = decoder.decode(bufferToDecode, 
-					     block()->origInstance()->endAddr() - addr());
+    Instruction currentInsn = decoder.decode(bufferToDecode);
     std::set<RegisterAST::Ptr> tmpRead;
     std::set<RegisterAST::Ptr> tmpWritten;
     currentInsn.getReadSet(tmpRead);

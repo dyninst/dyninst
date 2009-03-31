@@ -102,7 +102,7 @@ void vectorNameMatchKLUDGE(Module *mod, char *demangled_sym, std::vector<Functio
   for (unsigned int i = 0; i < bpfv.size(); ++i) {
     std::string l_mangled;
     std::vector<Symbol *> syms;
-    bpfv[i]->getAllSymbols(syms);
+    bpfv[i]->getSymbols(syms);
     if (syms.size()) {
         l_mangled = syms[0]->getMangledName();
         
@@ -477,7 +477,10 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             if (BPtype) 
             {
                std::vector<Symbol *> ret;
-	       bool result = mod->findSymbolByType(ret, name, Symbol::ST_OBJECT);
+	       bool result = mod->findSymbolByType(ret, 
+                                                   name,
+                                                   Symbol::ST_OBJECT,
+                                                   mangledName);
 	       if (result && ret.size()) {
 		 for (unsigned i=0; i<ret.size(); i++) {
 		   Variable *var = ret[i]->getVariable();
@@ -614,8 +617,15 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                {
                   Symtab *img = mod->exec();
                   std::vector<Symbol *>syms;
-                  if (img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) ||
-		      img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) 
+                  if (img->findSymbolByType(syms, 
+                                            nameTrailer,
+                                            Symbol::ST_OBJECT,
+                                            mangledName) ||
+		      img->findSymbolByType(syms, 
+                                            nameTrailer,
+                                            Symbol::ST_OBJECT, 
+                                            mangledName,
+                                            true)) 
                   {
 		     
                      mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);

@@ -419,10 +419,16 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             referring = dependentRelocations[i]->getReferring();
-            newSymbol = new Symbol(
-                                   referring->getName(), "DEFAULT_MODULE",
-                                   Symbol::ST_FUNCTION, Symbol::SL_GLOBAL,
-                                   Symbol::SV_DEFAULT, (Address)0, NULL, 8, true, false);
+            newSymbol = new Symbol(referring->getName(), 
+                                   Symbol::ST_FUNCTION, 
+                                   Symbol::SL_GLOBAL,
+                                   Symbol::SV_DEFAULT, 
+                                   (Address)0, 
+                                   NULL, 
+                                   8,
+                                   true, 
+                                   false);
+            newSymbol->setModule(symObj->getDefaultModule());
             symObj->addSymbol(newSymbol, referring);
             if (!symObj->hasRel() && !symObj->hasRela()) {
                // TODO: probably should add new relocation section and
@@ -447,7 +453,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
 
       pdvector<Symbol *> newSyms;
-      buildDyninstSymbols(newSyms, newSec);
+      buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
+                                                                     lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
          symObj->addSymbol(newSyms[i], false);
       }
@@ -579,6 +586,7 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
     return true;
 }
 
+
 bool BinaryEdit::initialize() {
     // Create the tramp guard
 
@@ -586,16 +594,6 @@ bool BinaryEdit::initialize() {
     // get the functions we need. However, we kinda need the recursion
     // guard. This is an integer (one per thread, for now - 1) that 
     // begins initialized to 1.
-
-    Address base = inferiorMalloc(getAddressWidth());
-    trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", base, getAddressWidth());
-    // And initialize
-    int trampInit = 1;
-    // And make a range for it.
-    writeDataSpace((void *)base, sizeof(unsigned), &trampInit);
-
-
-    inst_printf("Tramp guard created at address 0x%lx\n", base);
 
     return true;
 }
@@ -630,7 +628,8 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 
 
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
-                                     Region *newSec) {
+                                     Region *newSec,
+                                     Module *newMod) {
     pdvector<codeRange *> ranges;
     textRanges_.elements(ranges);
 
@@ -675,7 +674,6 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
             name.append("_dyninst");
 
             Symbol *newSym = new Symbol(name.c_str(),
-                                        "DyninstInst",
                                         Symbol::ST_FUNCTION,
                                         Symbol::SL_GLOBAL,
                                         Symbol::SV_DEFAULT,
@@ -683,6 +681,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                                         newSec,
                                         size,
                                         (void *)startRange);
+            newSym->setModule(newMod);
             newSyms.push_back(newSym);
 
             currFunc = NULL;

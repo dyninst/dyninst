@@ -1154,9 +1154,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
 
     symbols.push_back(sym);
     dynsymbols.push_back(sym);
-    dynsymVector.push_back(
-            new Symbol("", NULL, Symbol::ST_NOTYPE, Symbol::SL_LOCAL, 
-                       Symbol::SV_DEFAULT, 0, 0, 0));
+    dynsymVector.push_back(Symbol::magicEmitElfSymbol());
     versionSymTable.push_back(0);
 
     for(i=0; i<allSymbols.size();i++) {

@@ -79,7 +79,7 @@ class MemRegReader;
 
 class AObject {
 public:
-    SYMTAB_EXPORT AObject();
+    SYMTAB_EXPORT AObject() {};
     SYMTAB_EXPORT unsigned nsymbols () const;
     
     SYMTAB_EXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
@@ -100,7 +100,6 @@ public:
 
     SYMTAB_EXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
     SYMTAB_EXPORT std::vector<Region *> getAllRegions() const;
-
 
     SYMTAB_EXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
                                                                     supportedLanguages working_lang);
@@ -124,12 +123,15 @@ public:
     SYMTAB_EXPORT void * getErrFunc() const;
     SYMTAB_EXPORT dyn_hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
     SYMTAB_EXPORT MappedFile *getMappedFileForDebugInfo() { return mfForDebugInfo; }
-
-	SYMTAB_EXPORT virtual bool hasFrameDebugInfo() {return false;}
-	SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
-			Dyninst::MachRegister /*reg*/, 
-			Dyninst::MachRegisterVal & /*reg_result*/,
-			MemRegReader * /*reader*/) {return false;}
+    
+    SYMTAB_EXPORT virtual bool hasFrameDebugInfo() {return false;}
+    SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
+                                                  Dyninst::MachRegister /*reg*/, 
+                                                  Dyninst::MachRegisterVal & /*reg_result*/,
+                                                  MemRegReader * /*reader*/) {return false;}
+    
+    SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
+    SYMTAB_EXPORT void clearSymsToMods();
 
 protected:
     SYMTAB_EXPORT virtual ~AObject();
@@ -139,13 +141,15 @@ protected:
                       dyn_hash_map<std::string, LineInformation> &, 
                       void (*)(const char *)) { assert(0); }
     SYMTAB_EXPORT AObject(const AObject &obj);
-    SYMTAB_EXPORT AObject&  operator= (const AObject &obj);
 
     MappedFile *mf;
     MappedFile *mfForDebugInfo;
 
     std::vector< Region *> regions_;
+
     dyn_hash_map< std::string, std::vector< Symbol *> > symbols_;
+    map< Symbol *, std::string > symsToModules_;
+    dyn_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
 
     char*   code_ptr_;
     Offset code_off_;

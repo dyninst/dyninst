@@ -53,36 +53,57 @@ bool Module::findSymbolByType(std::vector<Symbol *> &found,
       bool isRegex, 
       bool checkCase)
 {
-   unsigned orig_size = found.size();
-   std::vector<Symbol *> obj_syms;
+    return findSymbolByType(found,
+                            name,
+                            sType,
+                            isMangled ? mangledName : prettyName,
+                            isRegex,
+                            checkCase);
+}
 
-   if (!exec()->findSymbolByType(obj_syms, name, sType, isMangled, isRegex, checkCase))
-   {
-      //fprintf(stderr, "%s[%d]:  no symbols matching %s found\n", FILE__, __LINE__, name.c_str());
-      return false;
-   }
+bool Module::findSymbolByType(std::vector<Symbol *> &found, 
+                              const std::string name,
+                              Symbol::SymbolType sType, 
+                              NameType nameType,
+                              bool isRegex,
+                              bool checkCase) {
+    unsigned orig_size = found.size();
+    std::vector<Symbol *> obj_syms;
+    
+    if (!exec()->findSymbolByType(obj_syms, name, sType, nameType, isRegex, checkCase)) {
+        //fprintf(stderr, "%s[%d]:  no symbols matching %s found\n", FILE__, __LINE__, name.c_str());
+        return false;
+    }
+    
+    for (unsigned i = 0; i < obj_syms.size(); i++) {
+        if (obj_syms[i]->getModule() == this)
+            found.push_back(obj_syms[i]);
+    }
+    
+    if (found.size() > orig_size) 
+        return true;
+    
+    return false;        
+}
 
-   for (unsigned i = 0; i < obj_syms.size(); i++)  
-   {
-      if (obj_syms[i]->getModule() == this)
-         found.push_back(obj_syms[i]);
-#if 0
-      else 
-      {
-         if (obj_syms[i]->getName() == name) {
-            fprintf(stderr, "%s[%d]:  found symbol %s in different module %s not %s\n", 
-                  FILE__, __LINE__, name.c_str(), 
-                  obj_syms[i]->getModule()->fileName().c_str(), 
-                  this->fileName().c_str());
-         }
-      }
-#endif
-   }
-
-   if (found.size() > orig_size) 
-      return true;
-
-   return false;        
+bool Module::getAllSymbols(std::vector<Symbol *> &found) {
+    unsigned orig_size = found.size();
+    std::vector<Symbol *> obj_syms;
+    
+    if (!exec()->getAllSymbols(obj_syms)) {
+        //fprintf(stderr, "%s[%d]:  no symbols matching %s found\n", FILE__, __LINE__, name.c_str());
+        return false;
+    }
+    
+    for (unsigned i = 0; i < obj_syms.size(); i++) {
+        if (obj_syms[i]->getModule() == this)
+            found.push_back(obj_syms[i]);
+    }
+    
+    if (found.size() > orig_size) 
+        return true;
+    
+    return false;        
 }
 
 const std::string &Module::fileName() const
@@ -282,13 +303,6 @@ bool Module::findVariableType(Type *&type, std::string name)
    return true;
 }
 
-void Symtab::parseTypesNow()
-{
-   if (isTypeInfoValid_)
-      return;
-
-   parseTypes();
-}
 
 bool Module::setLineInfo(LineInformation *lineInfo)
 {
@@ -507,21 +521,3 @@ void Module::serialize(SerializerBase *sb, const char *tag)
    //   param.exec_ = parent_symtab;
 }
 
-Variable *Module::createVariable(std::string name, Offset offset, int size) 
-{
-  Symbol* s = new Symbol(name, this, Symbol::ST_OBJECT, Symbol::SL_GLOBAL,
-			 Symbol::SV_DEFAULT, offset, NULL, size, 
-			 false, // is NOT in dynamic symbol table
-			 true, // is also in the static symbol table
-			 false); // not an absolute address
-  exec()->addSymbol(s, false);
-  Symbol* d = new Symbol(name, this, Symbol::ST_OBJECT, Symbol::SL_GLOBAL,
-			 Symbol::SV_DEFAULT, offset, NULL, size, 
-			 true, // dynamic version...
-			 false, // is NOT also in the static symbol table
-			 false); // not an absolute address
-  exec()->addSymbol(d, true);
-  return s->getVariable();
-}
-
-  

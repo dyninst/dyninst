@@ -1,6 +1,6 @@
 digraph G
 {
-  edge [fontname="Helvetica",fontsize=10,labelfontname="Helvetica",labelfontsize=10,dir=back,color="midnightblue",style="solid"];
+  edge [fontname="Helvetica",fontsize=10,labelfontname="Helvetica",labelfontsize=10,dir=back,color="midnightblue",style="solid",arrowhead="open"];
   node [fontname="Helvetica",fontsize=10,shape=record,height=0.2,width=0.4,color="black"];
   Node1 [label="InstructionAST",color="white", fillcolor="black", style="filled" fontcolor="white"];
   Node1 -> Node2;

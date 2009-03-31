@@ -74,7 +74,7 @@ using namespace Dyninst;
 using namespace SymtabAPI;
 
 class int_function;
-
+class int_symbol;
 
 class Dyn_Symbol;
 class BinaryEdit;
@@ -218,7 +218,8 @@ class AddressSpace : public InstructionSource {
     // This will find the named symbol in the image or in a shared object
     // Necessary since some things don't show up as a function or variable.
     //    bool getSymbolInfo( const std::string &name, Dyn_Symbol &ret );
-    bool getSymbolInfo( const std::string &name, Dyninst::SymtabAPI::Symbol &ret );
+    // This gets wrapped with an int_symbol and returned.
+    bool getSymbolInfo( const std::string &name, int_symbol &ret );
 
     // getAllFunctions: returns a vector of all functions defined in the
     // a.out and in the shared objects
@@ -296,6 +297,9 @@ class AddressSpace : public InstructionSource {
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
     AstNodePtr trampGuardAST(void);
+    virtual int_variable* createTrampGuard();
+    void setTrampGuard(int_variable* tg);
+    
 
     // Get the current code generator (or emitter)
     Emitter *getEmitter();

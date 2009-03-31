@@ -719,7 +719,8 @@ int_function *mapped_object::findFuncByAddr(const Address &addr) {
 
 const pdvector<mapped_module *> &mapped_object::getModules() {
     // everyModule may be out of date...
-    const pdvector<pdmodule *> &pdmods = parse_img()->getModules();
+    std::vector<pdmodule *> pdmods;
+    parse_img()->getModules(pdmods);
     if (everyModule.size() == pdmods.size())
         return everyModule;
     for (unsigned i = 0; i < pdmods.size(); i++) {
@@ -1077,32 +1078,23 @@ void *mapped_object::get_local_ptr() const
 }
 
 
-bool mapped_object::getSymbolInfo(const std::string &n, Symbol &info) 
+bool mapped_object::getSymbolInfo(const std::string &n, int_symbol &info) 
 {
-   if (image_) {
-      if (!image_->symbol_info(n, info)) {
-         // Leading underscore...
-         std::string n1 = std::string("_") + n;
-         if (!image_->symbol_info(n1, info))
-            return false;
-      }
+    assert(image_);
 
-      // Shift to specialize; we check whether code or data, and
-      // add the appropriate offset. On most platforms these are the
-      // same, but may be different (cf. AIX)
-
-      // Check symbol type.
-      if (info.getType() == Symbol::ST_OBJECT) {
-         info.setAddr(info.getAddr() + dataBase_);
-      }
-      else {
-         info.setAddr(info.getAddr() + codeBase_);
-      }
-
-      return true;
-   }
-   assert(0);
-   return false;
+    Symbol *lowlevel_sym = image_->symbol_info(n);
+    if (!lowlevel_sym) {
+        lowlevel_sym = image_->symbol_info(std::string("_") + n);
+    }
+    
+    if (!lowlevel_sym) return false;
+    
+    if (lowlevel_sym->getType() == Symbol::ST_OBJECT)
+        info = int_symbol(lowlevel_sym, dataBase_);
+    else
+        info = int_symbol(lowlevel_sym, codeBase_);
+    
+    return true;
 }
 
 mapped_module *mapped_object::getOrCreateForkedModule(mapped_module *parMod) 

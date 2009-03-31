@@ -63,7 +63,7 @@ bool dynamic_linking::initialize() {
     r_state = 0;
     // First, find if we're a dynamic executable
     std::string dyn_str = std::string("DYNAMIC");
-    Symbol dyn_sym;
+    int_symbol dyn_sym;
     if( ! proc->getSymbolInfo(dyn_str, dyn_sym)) {
         bperr( "Failed to find string DYNAMIC\n");
         return false; 

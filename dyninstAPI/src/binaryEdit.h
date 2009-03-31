@@ -177,7 +177,8 @@ class BinaryEdit : public AddressSpace {
     std::vector<depRelocation *> dependentRelocations;
 
     void buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
-                             Region *newSec);
+                             Region *newSec,
+                             Module *mod);
     mapped_object *mobj;
 };
 
