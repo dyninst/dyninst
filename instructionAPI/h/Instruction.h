@@ -226,6 +226,7 @@ namespace Dyninst
       typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
       
     private:
+      Expression::Ptr makeReturnExpression() const;
       std::vector<Operand> m_Operands;
       Operation m_InsnOp;
       bool m_Valid;

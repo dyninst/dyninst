@@ -33,6 +33,7 @@
 #include "../h/Instruction.h"
 #include "../h/Register.h"
 #include "../h/Operation.h"
+#include "Dereference.h"
 #include <boost/iterator/indirect_iterator.hpp>
 #include <iostream>
 using namespace std;
@@ -249,6 +250,10 @@ namespace Dyninst
       {
 	return Expression::Ptr();
       }
+      if(m_InsnOp.getID() == e_ret_near || m_InsnOp.getID() == e_ret_far)
+      {
+	return makeReturnExpression();
+      }
       assert(m_Operands.size() == 1);
       return m_Operands[0].getValue();
     }
@@ -281,7 +286,6 @@ namespace Dyninst
       case e_ret_near:
       case e_iret:
       case e_jmp:
-      case e_leave:
       case e_hlt:
       case e_sysret:
       case e_sysexit:
@@ -294,6 +298,12 @@ namespace Dyninst
     INSTRUCTION_EXPORT bool Instruction::isLegalInsn() const
     {
       return (m_InsnOp.getID() != e_No_Entry);
+    }
+    Expression::Ptr Instruction::makeReturnExpression() const
+    {
+      Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(r_rSP));
+      Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
+      return retLoc;
     }
     
     
