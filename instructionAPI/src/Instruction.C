@@ -291,6 +291,11 @@ namespace Dyninst
       }
       
     }
+    INSTRUCTION_EXPORT bool Instruction::isLegalInsn() const
+    {
+      return (m_InsnOp.getID() != e_No_Entry);
+    }
+    
     
   };
 };

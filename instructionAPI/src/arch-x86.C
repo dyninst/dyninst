@@ -870,7 +870,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW2R },
+  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 38 */
   { e_cmp, t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
   { e_cmp, t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
@@ -2435,11 +2435,40 @@ bool ia32_is_mode_64() {
 }
 
 ia32_entry movsxd = { e_movsxd, t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R };
-
+ia32_entry invalid = { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 };
+		       
 static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 {
     if (*gotit_ptr == &oneByteMap[0x63]) // APRL redefined to MOVSXD
 	*gotit_ptr = &movsxd;
+    if (*gotit_ptr == &oneByteMap[0x06] || // Invalid instructions in 64-bit mode: push es
+	*gotit_ptr == &oneByteMap[0x07] || // pop es
+	*gotit_ptr == &oneByteMap[0x0E] || // push cs
+	*gotit_ptr == &oneByteMap[0x16] || // push ss
+	*gotit_ptr == &oneByteMap[0x17] || // pop ss
+	*gotit_ptr == &oneByteMap[0x1E] || // push ds
+	*gotit_ptr == &oneByteMap[0x1F] || // pop ds
+	*gotit_ptr == &oneByteMap[0x27] || // daa
+	*gotit_ptr == &oneByteMap[0x2F] || // das
+	*gotit_ptr == &oneByteMap[0x37] || // aaa
+	*gotit_ptr == &oneByteMap[0x3F] || // aas
+	*gotit_ptr == &oneByteMap[0x60] || // pusha
+	*gotit_ptr == &oneByteMap[0x61] || // popa
+	*gotit_ptr == &oneByteMap[0x62] || // bound gv, ma
+	*gotit_ptr == &oneByteMap[0x82] || // group 1 eb/ib
+	*gotit_ptr == &oneByteMap[0x9A] || // call ap
+	*gotit_ptr == &oneByteMap[0x9E] || // sahf
+	*gotit_ptr == &oneByteMap[0x9F] || // lahf
+	*gotit_ptr == &oneByteMap[0xC4] || // les gz, mp
+	*gotit_ptr == &oneByteMap[0xC5] || // lds gz, mp
+	*gotit_ptr == &oneByteMap[0xCE] || // into
+	*gotit_ptr == &oneByteMap[0xD4] || // aam ib
+	*gotit_ptr == &oneByteMap[0xD5] || // aad ib
+	*gotit_ptr == &oneByteMap[0xD6] || // salc
+	*gotit_ptr == &oneByteMap[0xEA]) { // jump ap
+      *gotit_ptr = &invalid;
+    }
+    
 }
 
 /* full decoding version: supports memory access information */

@@ -868,7 +868,7 @@ static ia32_entry oneByteMap[256] = {
   { e_xor, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW2R },
+  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 38 */
   { e_cmp, t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
   { e_cmp, t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
