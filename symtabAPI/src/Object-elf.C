@@ -42,6 +42,8 @@
 #include "Aggregate.h"
 #include "Function.h"
 
+#include "debug.h"
+
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
 #include "emitElf-64.h"
 #endif
@@ -2398,12 +2400,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                            count++;
                         }
                      }
-
-                     //if ( count < syms.size() ) 
-                     //{
-                     // /* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
-                     //}
-                  }
+		  }
                }
                break;
             }
@@ -3980,8 +3977,8 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 
                if (funcs.size() > 1) 
                {
-                  fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s\n", 
-                          FILE__, __LINE__, (unsigned long) funcs.size(), stabEntry->name(i));
+                  fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s (stringbuf %s)\n", 
+                          FILE__, __LINE__, (unsigned long) funcs.size(), stabEntry->name(i), stringbuf);
                }
 
                currentFunction = funcs[0];
@@ -4262,6 +4259,7 @@ void Object::parseTypeInfo(Symtab *obj)
 
 void Object::parseStabTypes(Symtab *obj)
 {
+  types_printf("Entry to parseStabTypes for %s\n", obj->name().c_str());
    stab_entry *stabptr = NULL;
    const char *next_stabstr = NULL;
 
@@ -4294,12 +4292,15 @@ void Object::parseStabTypes(Symtab *obj)
 
 
     stabptr = get_stab_info();
-    if(!stabptr)
+    if (!stabptr) {
+      types_printf("\tWarning: no stab ptr, returning immediately\n");
     	return;
-   
+    }
+
     //Using the Object to get the pointers to the .stab and .stabstr
     // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
     next_stabstr = stabptr->getStringBase();
+    types_printf("\t Parsing %d stab entries\n", stabptr->count());
     for (i=0; i<stabptr->count(); i++) {
 	switch(stabptr->type(i)){
 	    case N_UNDF: /* start of object file */
@@ -4345,23 +4346,22 @@ void Object::parseStabTypes(Symtab *obj)
 	           ptr++;
 		   modName = ptr;
 	       }
-	       if (obj->findModuleByName(mod, modName)) 
-          {
-               parseActive = true;
-               if (!mod) 
-               {
-                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-               }
-               else if (!mod->getModuleTypes()) 
-               {
-                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-               }
-               else 
-                  mod->getModuleTypes()->clearNumberedTypes();
+	       if (obj->findModuleByName(mod, modName)) {
+		 parseActive = true;
+		 if (!mod) {
+		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		 }
+		 else if (!mod->getModuleTypes()) 
+		   {
+		     fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		   }
+		 else 
+		   mod->getModuleTypes()->clearNumberedTypes();
 	       } 
-          else 
-          {
-               parseActive = false;
+	       else {
+		 //parseActive = false;
+		 mod = obj->getDefaultModule();
+		 types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName, mod->fileName().c_str());
 	       }
 
 #ifdef TIMED_PARSE

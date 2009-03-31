@@ -61,9 +61,9 @@ class BPatch_basicBlockLoop;
 class BPatch_process;
 class BPatch_frame;
 class BPatch_edge;
-#if defined(cap_instruction_api)
-#include "instructionAPI/h/Instruction.h"
-#endif
+
+#include "Instruction.h"
+
 
 
 /*
@@ -258,10 +258,8 @@ public:
 
     const BPatch_memoryAccess *,getMemoryAccess,());
 
-#if defined(cap_instruction_api)
     API_EXPORT(Int, (),
-	       Dyninst::InstructionAPI::Instruction, getInsnAtPoint, ());
-#endif
+	       Dyninst::InstructionAPI::Instruction::Ptr, getInsnAtPoint, ());
 
 
     //  BPatch_point::getCurrentSnippets

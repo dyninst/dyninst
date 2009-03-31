@@ -219,6 +219,8 @@ namespace Dyninst
       /// an %InstructionDecoder has reached the end of its assigned range, and that decoding should terminate.
       INSTRUCTION_EXPORT bool isValid() const;
       
+      typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
+      
     private:
       std::vector<Operand> m_Operands;
       Operation m_InsnOp;
