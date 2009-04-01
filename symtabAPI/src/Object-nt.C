@@ -238,6 +238,7 @@ Object::intSymbol::DefineSymbol(dyn_hash_map<std::string,std::vector<Symbol *> >
                              (Symbol::SymbolLinkage) GetLinkage(),
                              Symbol::SV_UNKNOWN,
                              (Offset)GetAddr(),
+                             NULL,
                              GetRegion(),
                              GetSize());
     allSyms[GetName()].push_back(sym);
@@ -266,6 +267,7 @@ Object::Module::DefineSymbols( const Object* obj,
                                       Symbol::SL_GLOBAL,
                                       Symbol::SV_UNKNOWN,
                                       obj->code_off(),	// TODO use real base of symbols for file
+                                      NULL,
                                       NULL, 0 );	// TODO Pass Section pointer also
             // TODO also pass size
             // add symbols for each of the file's symbols
@@ -285,6 +287,7 @@ Object::Module::DefineSymbols( const Object* obj,
                                  Symbol::SL_GLOBAL,
                                  Symbol::SV_UNKNOWN,
                                  obj->code_off(),
+                                 NULL,
                                  NULL,					//TODO pass Sections pointer
                                  obj->code_len());
     

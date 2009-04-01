@@ -424,11 +424,11 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                                    Symbol::SL_GLOBAL,
                                    Symbol::SV_DEFAULT, 
                                    (Address)0, 
+                                   symObj->getDefaultModule(),
                                    NULL, 
                                    8,
                                    true, 
                                    false);
-            newSymbol->setModule(symObj->getDefaultModule());
             symObj->addSymbol(newSymbol, referring);
             if (!symObj->hasRel() && !symObj->hasRela()) {
                // TODO: probably should add new relocation section and
@@ -678,10 +678,10 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                                         Symbol::SL_GLOBAL,
                                         Symbol::SV_DEFAULT,
                                         startAddr,
+                                        newMod,
                                         newSec,
                                         size,
                                         (void *)startRange);
-            newSym->setModule(newMod);
             newSyms.push_back(newSym);
 
             currFunc = NULL;
