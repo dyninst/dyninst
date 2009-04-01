@@ -2100,7 +2100,7 @@ void EmitterIA32::emitLoadShared(Register dest, const image_variable *var, int s
 
     // load register with address from jump slot
     emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen);
-    emitMovRegToRM(REGNUM_EBP, -4*dest, REGNUM_EAX, gen);
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 
     // get the variable with an indirect load
     emitLoadIndir(dest, dest, gen);
@@ -2112,11 +2112,17 @@ void EmitterIA32::emitStoreShared(Register source, const image_variable *var, in
     Address addr = getInterModuleVarAddr(var, gen);
 
     //fprintf(stderr, "Emitting inter-module store for %s at 0x%lx\n", var->symTabName().c_str(), addr);
+    
+    // temporary virtual register for storing destination address
+    Register dest = gen.rs()->allocateRegister(gen, false);
 
     // load register with address from jump slot
     emitMovPCRMToReg(REGNUM_EAX, addr-gen.currAddr(), gen);
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 
     // get the variable with an indirect load
-    emitStore(REGNUM_EAX, source, size, gen);
+    emitStoreIndir(dest, source, gen);
+
+    gen.rs()->freeRegister(dest);
 }
 
