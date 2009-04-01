@@ -349,6 +349,37 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   
   retVal = failure_accumulator(retVal, verify_read_write_sets(amd64Insns[0], expectedRead, expectedWritten));
 #endif
+
+  Expression::Ptr cft = decodedInsns[3].getControlFlowTarget();
+  if(!cft) {
+    logerror("FAILED: call had no control flow target\n");
+    return FAILED;
+  }
+  RegisterAST* the_ip = new RegisterAST(r_EIP);
+  
+  if(!cft->bind(the_ip, Result(u32, 0))) {
+    logerror("FAILED: bind found no IP in call Jz CFT\n");
+    return FAILED;
+  }
+  
+  Result theTarget = cft->eval();
+  if(!theTarget.defined) {
+    logerror("FAILED: bind of IP on a Jz operand did not resolve all dependencies\n");
+    return FAILED;
+  }
+  if(theTarget.type != u32) {
+    logerror("FAILED: CFT was not address type\n");
+    logerror("   %s\n", theTarget.format().c_str());
+    return FAILED;
+  }
+  if(theTarget.val.u32val != 0x20) {
+    logerror("FAILED: expected call to %x, got call to %x\n", 0x20, theTarget.val.u32val);
+    logerror("   %s\n", theTarget.format().c_str());
+    return FAILED;
+  }
+  logerror("PASSED call CFT subtest\n");
+  delete the_ip;
+  
   return retVal;
 }
 

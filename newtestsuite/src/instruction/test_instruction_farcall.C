@@ -75,6 +75,9 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
   unsigned int expectedInsns = 2;
   
   InstructionDecoder d(buffer, size);
+#if defined(arch_x86_64_test)
+  d.setMode(true);
+#endif
   std::vector<Instruction> decodedInsns;
   Instruction i;
   do
@@ -83,6 +86,18 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
     decodedInsns.push_back(i);
   }
   while(i.isValid());
+#if defined(arch_x86_64_test)
+  if(decodedInsns.empty() || !decodedInsns[0].isValid() || decodedInsns[0].isLegalInsn())
+  {
+    logerror("FAILED: %s\n", decodedInsns.empty() ? "no instructions decoded" : "first instruction was valid");
+    return FAILED;
+  }
+  else
+  {
+    logerror("PASSED: far call invalid on AMD64\n");
+    return PASSED;
+  }
+#else
   if(decodedInsns.size() != expectedInsns) // six valid, one invalid
   {
     logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
@@ -106,4 +121,5 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
     return FAILED;
   }
   return PASSED;
+#endif
 }
