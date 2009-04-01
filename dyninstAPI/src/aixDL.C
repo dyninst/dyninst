@@ -74,7 +74,7 @@ bool dynamic_linking::installTracing() {
 
   AstNodePtr retval = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
   
-  char *loadfunc = NULL;
+  const char *loadfunc = NULL;
   switch (proc->getAddressWidth()) {
     case 4: loadfunc = "load1"; break;
     case 8: loadfunc = "uload"; break;
