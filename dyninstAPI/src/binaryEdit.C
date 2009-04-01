@@ -456,7 +456,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
-         symObj->addSymbol(newSyms[i], false);
+         symObj->addSymbol(newSyms[i]);
       }
         
       // Okay, now...
