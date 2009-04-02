@@ -68,7 +68,7 @@ static bool sort_by_sym_ptr(const Symbol *a, const Symbol *b) {
 }
 
 bool Symtab::findSymbolByType(std::vector<Symbol *> &ret, const std::string name,
-                              Symbol::SymbolType sType, nameType_t nameType,
+                              Symbol::SymbolType sType, NameType nameType,
                               bool isRegex, bool checkCase)
 {
     unsigned old_size = ret.size();
@@ -223,7 +223,7 @@ bool sort_by_func_ptr(const Function *a, const Function *b) {
 }
 
 bool Symtab::findFunctionsByName(std::vector<Function *> &ret, const std::string name,
-                                 nameType_t nameType, bool isRegex, bool checkCase) {
+                                 NameType nameType, bool isRegex, bool checkCase) {
     std::vector<Symbol *> funcSyms;
     if (!findSymbolByType(funcSyms, name, Symbol::ST_FUNCTION, nameType, isRegex, checkCase))
         return false;
@@ -264,7 +264,7 @@ static bool sort_by_var_ptr(const Variable * a, const Variable *b) {
 }
 
 bool Symtab::findVariablesByName(std::vector<Variable *> &ret, const std::string name,
-                                 nameType_t nameType, bool isRegex, bool checkCase) {
+                                 NameType nameType, bool isRegex, bool checkCase) {
     std::vector<Symbol *> varSyms;
     if (!findSymbolByType(varSyms, name, Symbol::ST_OBJECT, nameType, isRegex, checkCase))
         return false;
@@ -619,12 +619,12 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
 struct SymbolCompareByAddr
 {
    bool operator()(Function *a, Function *b)
-   {
-      return (a->getAddress() < b->getAddress());
+    {
+       return (a->getOffset() < b->getOffset());
    }
 };
 
-bool Symtab::getNearestFunction(Offset offset, Function* &func)
+bool Symtab::getContainingFunction(Offset offset, Function* &func)
 {
    if (!isCode(offset)) {
       return false;
@@ -646,7 +646,7 @@ bool Symtab::getNearestFunction(Offset offset, Function* &func)
       if (last_mid == mid)
          break;
       last_mid = mid;
-      Offset cur = everyFunction[mid]->getAddress();
+      Offset cur = everyFunction[mid]->getOffset();
       if (cur > offset) {
          high = mid;
          continue;
@@ -661,13 +661,26 @@ bool Symtab::getNearestFunction(Offset offset, Function* &func)
       }
    }
 
-   if ((everyFunction[low]->getAddress() <= offset) &&
+   if ((everyFunction[low]->getOffset() <= offset) &&
        ((low+1 == everyFunction.size()) || 
-        (everyFunction[low+1]->getAddress() > offset)))
+        (everyFunction[low+1]->getOffset() > offset)))
    {
          func = everyFunction[low];
          return true;
    }
    return false;
 }
- 
+
+
+Module *Symtab::getDefaultModule() {
+    Module *mod = NULL;
+    // TODO: automatically pick the module that contains this address?
+    // For now, DEFAULT_MODULE or (if we have only one) that one.
+    if (_mods.size() == 1)
+        return _mods[0];
+    else {
+        if (!findModuleByName(mod, "DEFAULT_MODULE"))
+            return NULL;
+    }
+    return mod;
+}

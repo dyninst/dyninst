@@ -17,6 +17,6 @@ enum logLevel {
     LOG_ONLY
 };
 
-void dlog(logLevel, char *, ...);
+void dlog(logLevel, const char *, ...);
 
 #endif

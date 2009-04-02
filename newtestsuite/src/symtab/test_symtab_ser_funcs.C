@@ -97,14 +97,6 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		{
 			fprintf(stderr, "\t%p--%p\n", r1->getDiskOffset(), r2->getDiskOffset());
 		}
-		Type *t1 = s1.getReturnType();
-		Type *t2 = s2.getReturnType();
-		if (t1 && !t2) fprintf(stderr, "%s[%d]:  type discrep\n", FILE__, __LINE__);
-		if (!t1 && t2) fprintf(stderr, "%s[%d]:  type discrep\n", FILE__, __LINE__);
-		if (t1)
-		{
-			fprintf(stderr, "\t%d--%d\n", t1->getID(), t2->getID());
-		}
 	}
 
 	template <class C>

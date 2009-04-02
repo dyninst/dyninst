@@ -97,6 +97,7 @@ int_function::int_function(image_func *f,
     
 
     addr_ = f->getOffset() + baseAddr;
+    ptrAddr_ = (f->getPtrOffset() ? f->getPtrOffset() + baseAddr : 0);
 
     parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
                    symTabName().c_str(), addr_);
@@ -125,6 +126,7 @@ int_function::int_function(const int_function *parFunc,
                            mapped_module *childMod,
                            process *childP) :
     addr_(parFunc->addr_),
+    ptrAddr_(parFunc->ptrAddr_),
     ifunc_(parFunc->ifunc_),
     mod_(childMod),
     blockIDmap(intHash),

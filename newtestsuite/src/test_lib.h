@@ -49,6 +49,9 @@
 #include "TestData.h"
 #include "test_info_new.h"
 #include "test_lib_dll.h"
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
 #if !defined(P_sleep)
 #if defined(os_windows_test)

@@ -103,7 +103,8 @@ extern void verifyValue(const char *name, int *a, int index, int value,
  || defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(ppc64_linux)
 #if defined(x86_64_unknown_linux2_4) && (__WORDSIZE == 32)
 static const char *libNameA = "libtestA_m32.so";
 #else

@@ -342,8 +342,15 @@ namespace Dyninst
       {
       case 0:
 	// No operand
-	assert(!"Mismatched number of operands--check tables");
-	return;
+	{
+	  fprintf(stderr, "ERROR: Instruction with mismatched operands.  Raw bytes: ");
+	  for(int i = 0; i < decodedInstruction->getSize(); i++) {
+	    fprintf(stderr, "%x ", rawInstruction[i]);
+	  }
+	  fprintf(stderr, "\n");
+	  assert(!"Mismatched number of operands--check tables");
+	  return;
+	}
       case am_A:
 	{
 	  // am_A only shows up as a far call/jump.  Position 1 should be universally safe.

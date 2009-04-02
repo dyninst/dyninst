@@ -419,10 +419,16 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             referring = dependentRelocations[i]->getReferring();
-            newSymbol = new Symbol(
-                                   referring->getName(), "DEFAULT_MODULE",
-                                   Symbol::ST_FUNCTION, Symbol::SL_GLOBAL,
-                                   Symbol::SV_DEFAULT, (Address)0, NULL, 8, true, false);
+            newSymbol = new Symbol(referring->getName(), 
+                                   Symbol::ST_FUNCTION, 
+                                   Symbol::SL_GLOBAL,
+                                   Symbol::SV_DEFAULT, 
+                                   (Address)0, 
+                                   symObj->getDefaultModule(),
+                                   NULL, 
+                                   8,
+                                   true, 
+                                   false);
             symObj->addSymbol(newSymbol, referring);
             if (!symObj->hasRel() && !symObj->hasRela()) {
                // TODO: probably should add new relocation section and
@@ -447,9 +453,10 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       }
 
       pdvector<Symbol *> newSyms;
-      buildDyninstSymbols(newSyms, newSec);
+      buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
+                                                                     lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
-         symObj->addSymbol(newSyms[i], false);
+         symObj->addSymbol(newSyms[i]);
       }
         
       // Okay, now...
@@ -621,7 +628,8 @@ Address BinaryEdit::getDependentRelocationAddr(Symbol *referring) {
 
 
 void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
-                                     Region *newSec) {
+                                     Region *newSec,
+                                     Module *newMod) {
     pdvector<codeRange *> ranges;
     textRanges_.elements(ranges);
 
@@ -666,11 +674,11 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
             name.append("_dyninst");
 
             Symbol *newSym = new Symbol(name.c_str(),
-                                        "DyninstInst",
                                         Symbol::ST_FUNCTION,
                                         Symbol::SL_GLOBAL,
                                         Symbol::SV_DEFAULT,
                                         startAddr,
+                                        newMod,
                                         newSec,
                                         size,
                                         (void *)startRange);

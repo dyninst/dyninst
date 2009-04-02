@@ -72,13 +72,9 @@ class Symtab : public LookupInterface,
    friend class emitElf;
    friend class emitElf64;
    friend class emitWin;
+   friend class Aggregate;
 
  public:
-   typedef enum {
-       mangledName = 1,
-       prettyName = 2,
-       typedName = 4,
-       anyName = 7 } nameType_t;
 
    /***** Public Member Functions *****/
    public:
@@ -111,11 +107,11 @@ class Symtab : public LookupInterface,
    // Symbol
 
    SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                           const std::string name,
-                                           Symbol::SymbolType sType, 
-                                           nameType_t nameType,
-                                           bool isRegex = false, 
-                                           bool checkCase = false);
+                                               const std::string name,
+                                               Symbol::SymbolType sType, 
+                                               NameType nameType = anyName,
+                                               bool isRegex = false, 
+                                               bool checkCase = false);
    SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
    SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
@@ -131,16 +127,16 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool findFuncByEntryOffset(Function *&ret, const Offset offset);
    SYMTAB_EXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
-                                      nameType_t nameType = anyName, 
+                                      NameType nameType = anyName, 
                                       bool isRegex = false,
                                       bool checkCase = true);
    SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
-   SYMTAB_EXPORT bool getNearestFunction(Offset offset, Function* &func);
+   SYMTAB_EXPORT bool getContainingFunction(Offset offset, Function* &func);
 
    // Variable
    SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
    SYMTAB_EXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
-                                      nameType_t nameType = anyName, 
+                                      NameType nameType = anyName, 
                                       bool isRegex = false, 
                                       bool checkCase = true);
    SYMTAB_EXPORT bool getAllVariables(std::vector<Variable *> &ret);
@@ -150,7 +146,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool getAllModules(std::vector<Module *>&ret);
    SYMTAB_EXPORT bool findModuleByOffset(Module *&ret, Offset off);
    SYMTAB_EXPORT bool findModuleByName(Module *&ret, const std::string name);
-
+   SYMTAB_EXPORT Module *getDefaultModule();
 
    // Region
 
@@ -176,8 +172,13 @@ class Symtab : public LookupInterface,
     *** SYMBOL ADDING FUNCS **************
     **************************************/
 
-   SYMTAB_EXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
+   SYMTAB_EXPORT bool addSymbol(Symbol *newsym);
    SYMTAB_EXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
+   SYMTAB_EXPORT Function *createFunction(std::string name, Offset offset, size_t size, Module *mod = NULL);
+   SYMTAB_EXPORT Variable *createVariable(std::string name, Offset offset, size_t size, Module *mod = NULL);
+
+   SYMTAB_EXPORT bool deleteFunction(Function *func);
+   SYMTAB_EXPORT bool deleteVariable(Variable *var);
 
 
    /*****Query Functions*****/
@@ -271,7 +272,8 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT ~Symtab();
 
-   bool delSymbol(Symbol *sym); 
+   bool delSymbol(Symbol *sym) { return deleteSymbol(sym); }
+   bool deleteSymbol(Symbol *sym); 
 
    static builtInTypeCollection *builtInTypes;
    static typeCollection *stdTypes;
@@ -299,7 +301,7 @@ class Symtab : public LookupInterface,
    bool demangleSymbol(Symbol *&sym);
    bool addSymbolToIndices(Symbol *&sym);
    bool addSymbolToAggregates(Symbol *&sym);
-   bool updateIndices(Symbol *sym, std::string newName, nameType_t nameType);
+   bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 
    void setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *mod_langs);
@@ -316,8 +318,19 @@ class Symtab : public LookupInterface,
    // Change the type of a symbol after the fact
    bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 
-   Module *getOrCreateModule(const std::string &modName, 
-         const Offset modAddr);
+   bool changeSymbolOffset(Symbol *sym, Offset newOffset);
+   bool deleteSymbolFromIndices(Symbol *sym);
+
+   bool changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newOffset);
+   bool deleteAggregate(Aggregate *agg);
+
+   // Used by binaryEdit.C...
+ public:
+   SYMTAB_EXPORT Module *getOrCreateModule(const std::string &modName, 
+                                           const Offset modAddr);
+ private:
+   void createDefaultModule();
+
    Module *newModule(const std::string &name, const Offset addr, supportedLanguages lang);
    
    //bool buildFunctionLists(std::vector <Symbol *> &raw_funcs);
@@ -519,6 +532,7 @@ class Symtab : public LookupInterface,
  * Currently only used on Linux/x86
  **/
 SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &q);
+
 class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:

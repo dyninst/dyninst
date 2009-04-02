@@ -219,7 +219,14 @@ namespace Dyninst
       /// an %InstructionDecoder has reached the end of its assigned range, and that decoding should terminate.
       INSTRUCTION_EXPORT bool isValid() const;
       
+      /// Returns true if this %Instruction object represents a legal instruction, as specified by the architecture
+      /// used to decode this instruction.
+      INSTRUCTION_EXPORT bool isLegalInsn() const;
+      
+      typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
+      
     private:
+      Expression::Ptr makeReturnExpression() const;
       std::vector<Operand> m_Operands;
       Operation m_InsnOp;
       bool m_Valid;

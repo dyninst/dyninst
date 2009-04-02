@@ -77,7 +77,8 @@ const char Builder_id[]=COMPILER; /* defined on compile line */
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(ppc64_linux)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -103,7 +104,8 @@ int isAttached = 0;
 
 #if defined(mips_sgi_irix6_4) \
  || defined(x86_64_unknown_linux2_4) \
- || defined(rs6000_ibm_aix5_1)
+ || defined(rs6000_ibm_aix5_1) \
+ || defined(ppc64_linux)
 int pointerSize = sizeof(void *);
 #endif
 

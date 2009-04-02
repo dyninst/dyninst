@@ -60,6 +60,9 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
+#include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/binaryEdit.h"
+
 #if defined(arch_sparc)
 #include "dyninstAPI/src/inst-sparc.h"
 #elif defined(arch_power)
@@ -98,6 +101,7 @@ AstNode::AstNode() {
    size = 4;
    bptype = NULL;
    doTypeCheck = true;
+
 }
 
 AstNodePtr AstNode::nullNode() {
@@ -125,7 +129,8 @@ AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
     return AstNodePtr(new AstSequenceNode(sequence));
 }
 
-AstNodePtr AstNode::variableNode(vector<AstNodePtr *>&ast_wrappers, vector<pair<Offset, Offset> >*ranges) {
+AstNodePtr AstNode::variableNode(vector<AstNodePtr> &ast_wrappers, 
+                                 vector<pair<Offset, Offset> >*ranges) {
     return AstNodePtr(new AstVariableNode(ast_wrappers, ranges));
 }
 
@@ -349,7 +354,7 @@ AstSequenceNode::AstSequenceNode(pdvector<AstNodePtr > &sequence) :
     }
 }
 
-AstVariableNode::AstVariableNode(vector<AstNodePtr *>&ast_wrappers, vector<pair<Offset, Offset> > *ranges) :
+AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Offset, Offset> > *ranges) :
     ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
 {
 }
@@ -431,6 +436,7 @@ void AstNode::printRC()
 #endif
 
 AstNode::~AstNode() {
+    //printf("at ~AstNode()  count=%d\n", referenceCount);
 }
 
 Address AstMiniTrampNode::generateTramp(codeGen &gen,
@@ -1606,7 +1612,7 @@ bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &addr,
                                           Register &retReg) {
 
-    return (*ast_wrappers_[index])->generateCode_phase2(gen, noCost, addr, retReg);
+    return ast_wrappers_[index]->generateCode_phase2(gen, noCost, addr, retReg);
 }
 
 bool AstInsnNode::generateCode_phase2(codeGen &gen, bool,
@@ -2270,7 +2276,7 @@ bool AstSequenceNode::accessesParam() {
 }
 
 bool AstVariableNode::accessesParam() {
-    return (*ast_wrappers_[index])->accessesParam();
+    return ast_wrappers_[index]->accessesParam();
 }
 
 // Our children may have incorrect useCounts (most likely they 
@@ -2349,7 +2355,7 @@ bool AstSequenceNode::canBeKept() const {
 }
 
 bool AstVariableNode::canBeKept() const {
-    return (*ast_wrappers_[index])->canBeKept();
+    return ast_wrappers_[index]->canBeKept();
 }
 
 bool AstMiniTrampNode::canBeKept() const {
@@ -2423,7 +2429,7 @@ void AstSequenceNode::getChildren(pdvector<AstNodePtr > &children) {
 }
 
 void AstVariableNode::getChildren(pdvector<AstNodePtr > &children) {
-    (*ast_wrappers_[index])->getChildren(children);
+    ast_wrappers_[index]->getChildren(children);
 }
 
 void AstMiniTrampNode::getChildren(pdvector<AstNodePtr > &children) {
@@ -2516,7 +2522,7 @@ bool AstSequenceNode::containsFuncCall() const {
 }
 
 bool AstVariableNode::containsFuncCall() const {
-    return (*ast_wrappers_[index])->containsFuncCall();
+    return ast_wrappers_[index]->containsFuncCall();
 }
 
 bool AstInsnMemoryNode::containsFuncCall() const {
@@ -2620,10 +2626,15 @@ void AstNode::debugPrint(unsigned level) {
     else if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";
     else if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
     else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
+    else type = "unknownNode";
     
-    
-    ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
-    
+    if (dynamic_cast<AstNode *>(this)) {
+        ast_printf("AstNode <no data>\n");
+    }
+    else {
+        ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
+    }
+
     pdvector<AstNodePtr> children;
     getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
@@ -2671,7 +2682,6 @@ int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
   return NULL;
 }
 
-
 void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, codeGen& gen, 
 				      bool noCost, registerSpace* rs, 
 				      int size, const instPoint* point, AddressSpace* as)
@@ -2684,8 +2694,7 @@ void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, c
   }
   else
   {
-    assert(!"TODO: implement the static case for variable not in this address space");
-    return;
+    gen.codeEmitter()->emitLoadShared(dest, oVar, size, gen);
   }  
 }
 
@@ -2701,7 +2710,6 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
   }
   else
   {
-    assert(!"TODO: implement the static case for variable not in this address space");
-    return;
+    gen.codeEmitter()->emitStoreShared(src1, oVar, size, gen);
   }  
 }

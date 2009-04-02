@@ -263,7 +263,7 @@ bool ifxml_start_element(SerializerBase *sb, const char *tag)
    SerDes &sd = sb->getSD();
    SerDesXML *sdxml = dynamic_cast<SerDesXML *>(&sd);
    assert(sdxml);
-   start_xml_elem(sdxml->writer, tag);
+   ::start_xml_elem(sdxml->writer, tag);
 
 #if 0
    sxml->getSD_xml().start_element(tag);
@@ -301,7 +301,7 @@ COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
    SerDes &sd = sb->getSD();
    SerDesXML *sdxml = dynamic_cast<SerDesXML *>(&sd);
    assert(sdxml);
-   end_xml_elem(sdxml->writer);
+   ::end_xml_elem(sdxml->writer);
    
 #if 0
    sxml->getSD_xml().end_element();
@@ -365,7 +365,7 @@ SerDesXML::~SerDesXML()
 
 void SerDesXML::vector_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
-   bool rc = start_xml_elem(writer, tag);
+   bool rc = ::start_xml_elem(writer, tag);
 
    if (!rc)
    {
@@ -382,7 +382,7 @@ void SerDesXML::vector_start(unsigned int &/*size*/, const char *tag) DECLTHROW(
 
 void SerDesXML::vector_end()
 {
-   bool rc = end_xml_elem(writer);
+   bool rc = ::end_xml_elem(writer);
    if (!rc) 
    {
       SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
@@ -398,7 +398,7 @@ void SerDesXML::vector_end()
 
 void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
-   bool rc = start_xml_elem(writer, tag);
+   bool rc = ::start_xml_elem(writer, tag);
 
    if (!rc)
    {
@@ -414,7 +414,7 @@ void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) DECLTHRO
 
 void SerDesXML::multimap_end()
 {
-   bool rc = end_xml_elem(writer);
+   bool rc = ::end_xml_elem(writer);
    if (!rc) 
    {
       SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
@@ -430,7 +430,7 @@ void SerDesXML::multimap_end()
 
 void SerDesXML::hash_map_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
-   bool rc = start_xml_elem(writer,  tag);
+   bool rc = ::start_xml_elem(writer,  tag);
 
    if (!rc)
    {
@@ -446,7 +446,7 @@ void SerDesXML::hash_map_start(unsigned int &/*size*/, const char *tag) DECLTHRO
 
 void SerDesXML::hash_map_end()
 {
-   bool rc = end_xml_elem(writer);
+   bool rc = ::end_xml_elem(writer);
    if (!rc) 
    {
       SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
@@ -462,7 +462,7 @@ void SerDesXML::hash_map_end()
 
 void SerDesXML::annotation_start(const char * /*id*/, const char * tag) 
 {
-   bool rc = start_xml_elem(writer, tag);
+   bool rc = ::start_xml_elem(writer, tag);
 
    if (!rc)
    {
@@ -472,7 +472,7 @@ void SerDesXML::annotation_start(const char * /*id*/, const char * tag)
 
 void SerDesXML::annotation_end()
 {
-   bool rc = end_xml_elem(writer);
+   bool rc = ::end_xml_elem(writer);
    if (!rc) 
    {
       SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
@@ -725,7 +725,7 @@ void SerDesXML::translate(pdstring &param, const char *tag)
 void SerDesXML::translate(std::vector<std::string> &param, const char *tag,
                           const char *elem_tag)
 {
-   bool rc = start_xml_elem(writer, tag);
+   bool rc = ::start_xml_elem(writer, tag);
    if (!rc)
    {
       SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
@@ -742,7 +742,7 @@ void SerDesXML::translate(std::vector<std::string> &param, const char *tag,
       translate(param[i], elem_tag);
     
 
-   rc = end_xml_elem(writer);
+   rc = ::end_xml_elem(writer);
    if (!rc)
    {
       SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterEndElement");

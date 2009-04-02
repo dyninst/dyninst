@@ -51,15 +51,17 @@ class Symbol;
 
 class Function : public Aggregate, public Serializable
 {
-   public:
-      SYMTAB_EXPORT Function();
-      SYMTAB_EXPORT ~Function();
-      SYMTAB_EXPORT static Function *createFunction(Symbol *sym);
-      SYMTAB_EXPORT static Function *createFunction(Symtab *st, std::string fname, std::string modname,Offset offset, size_t sz);
+    friend class Symtab;
+ private:
+    SYMTAB_EXPORT Function(Symbol *sym);
+    SYMTAB_EXPORT ~Function();
+    
+ public:
+    //SYMTAB_EXPORT static Function *createFunction(Symtab *st, std::string fname, std::string modname,Offset offset, size_t sz);
 
-	  SYMTAB_EXPORT int getSize() const { return getFirstSymbol()->getSize(); };
-
-
+    /* Symbol management */
+    SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
+      
       /***** Return Type Information *****/
       SYMTAB_EXPORT Type  * getReturnType() const;
       SYMTAB_EXPORT bool	setReturnType(Type *);
@@ -83,6 +85,7 @@ class Function : public Aggregate, public Serializable
       bool addLocalVar(localVar *);
       bool addParam(localVar *);
    private:
+
       Type          *retType_;
       int           framePtrRegNum_;
       std::vector<loc_t> *locs_;

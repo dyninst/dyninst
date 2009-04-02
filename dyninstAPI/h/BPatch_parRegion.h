@@ -51,9 +51,7 @@ class process;
 class InstrucIter;
 class BPatch_function;
 class BPatch_instruction;
-#if defined(cap_instruction_api)
-#include "instructionAPI/h/Instruction.h"
-#endif
+#include "Instruction.h"
 
 typedef enum{
   OMP_NONE, OMP_PARALLEL, OMP_DO_FOR,OMP_DO_FOR_LOOP_BODY, OMP_SECTIONS, OMP_SINGLE, 
@@ -97,10 +95,8 @@ class BPATCH_DLL_EXPORT BPatch_parRegion: public BPatch_eventLock{
   API_EXPORT(Int, (),
              BPatch_Vector<BPatch_instruction *> *,getInstructions,());
 
-#if defined(cap_instruction_api)
   API_EXPORT(Int, (insns),
 	     bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction>& insns));
-#endif
 
 
   /** BPatch_parRegion::size   */

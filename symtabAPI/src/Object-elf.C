@@ -42,6 +42,8 @@
 #include "Aggregate.h"
 #include "Function.h"
 
+#include "debug.h"
+
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
 #include "emitElf-64.h"
 #endif
@@ -265,6 +267,7 @@ const char* STAB_NAME        = ".stab";
 const char* STABSTR_NAME     = ".stabstr";
 const char* STAB_INDX_NAME   = ".stab.index";
 const char* STABSTR_INDX_NAME= ".stab.indexstr";
+const char* OPD_NAME         = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
 const char* PLT_NAME         = ".plt";
 #if ! defined( arch_ia64 )
@@ -296,7 +299,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                         Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
                         Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
                         Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-                        Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
+                        Elf_X_Shdr*& opd_scnp, Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
                         Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, 
                         Elf_X_Shdr*& eh_frame, Elf_X_Shdr*& gcc_except, 
                         Elf_X_Shdr *& interp_scnp, bool)
@@ -326,6 +329,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
    dynsym_addr_ = 0;
    dynstr_addr_ = 0;
    fini_addr_ = 0;
+   opd_addr_ = 0;
+   opd_size_ = 0;
    got_addr_ = 0;
    got_size_ = 0;
    plt_addr_ = 0;
@@ -486,6 +491,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
       else if (strcmp(name, RO_DATA_NAME) == 0) {
          if (!dataddr) dataddr = scnp->sh_addr();
+      }
+      else if (strcmp(name, OPD_NAME) == 0) {
+         opd_scnp = scnp;
+         opd_addr_ = scnp->sh_addr();
+         opd_size_ = scnp->sh_size();
       }
       else if (strcmp(name, GOT_NAME) == 0) {
          got_scnp = scnp;
@@ -826,6 +836,31 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
        //  have PLT_INITIAL_ENTRY_SIZE (72)
        //  see binutils/bfd/elf32-ppc.c/h if more info is needed
 	    //next_plt_entry_addr += 72;  // 1st 6 PLT entries art special
+
+#elif defined(arch_power) && defined(arch_64bit) && defined(os_linux)
+       // PPC64 Linux Bug: PPC64 Linux binaries do not properly identify
+       // text PLT entries.  They only specify the data PLT within the GOT.
+       // By observation, the text PLT is placed at the beginning of the .text
+       // segment, and has 28 bytes of instructions per entry.
+       next_plt_entry_addr = text_addr_;
+
+       // Hacky Heuristic: GCC compilers produce either 24 or 28 byte text PLT
+       // entries.  28 byte text PLT entries begin with an addis (op 15) while
+       // the 24 byte version starts with a std instruction (op 62).
+       for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+           if (regions_[iter]->getRegionName() == TEXT_NAME) {
+               unsigned char insn_byte = *((unsigned char *)regions_[iter]->getPtrToRawData());
+               insn_byte = insn_byte >> 2;
+
+               if (insn_byte == 15)
+                   plt_entry_size_ = 28;
+               else if (insn_byte != 62)
+                   fprintf(stderr, "*** Unknown text PLT opcode %d.  Assuming 24 byte entry size.\n", insn_byte);
+
+               break;
+           }
+       }
+
 #else
 	    next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
 #endif
@@ -902,6 +937,7 @@ void Object::load_object(bool alloc_syms)
    Offset dataddr = 0;
    Elf_X_Shdr *rel_plt_scnp = 0;
    Elf_X_Shdr *plt_scnp = 0; 
+   Elf_X_Shdr *opd_scnp = 0;
    Elf_X_Shdr *got_scnp = 0;
    Elf_X_Shdr *dynsym_scnp = 0;
    Elf_X_Shdr *dynstr_scnp = 0;
@@ -931,7 +967,7 @@ void Object::load_object(bool alloc_syms)
 
       if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-               rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
+               rel_plt_scnp,plt_scnp,opd_scnp,got_scnp,dynsym_scnp,
                dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) 
       {
          goto cleanup;
@@ -985,8 +1021,6 @@ void Object::load_object(bool alloc_syms)
 #endif
       if (alloc_syms) 
       {
-         std::vector<Symbol *> allsymbols;
-
          // find symbol and string data
          string module = "DEFAULT_MODULE";
          string name   = "DEFAULT_NAME";
@@ -996,21 +1030,10 @@ void Object::load_object(bool alloc_syms)
          {
             symdata = symscnp->get_data();
             strdata = strscnp->get_data();
-            parse_symbols(allsymbols, symdata, strdata, bssscnp, symscnp, false, module);
+            parse_symbols(symdata, strdata, bssscnp, symscnp, opd_scnp, false, module);
          }   
 
-         // don't reorder symbols anymore
-         //sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
-         //VECTOR_SORT(allsymbols,symbol_compare);
-
-         no_of_symbols_ = allsymbols.size();
-
-         // Dyninst functionality--not needed anymore?
-         //fix_zero_function_sizes(allsymbols, 0);
-         //override_weak_symbols(allsymbols);
-
-         // dump "allsymbols" into "symbols_" (data member)
-         insert_symbols_static(allsymbols);
+         no_of_symbols_ = nsymbols();
 
          // try to resolve the module names of global symbols
          // Sun compiler stab.index section 
@@ -1026,7 +1049,7 @@ void Object::load_object(bool alloc_syms)
          {
             symdata = dynsym_scnp->get_data();
             strdata = dynstr_scnp->get_data();
-            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
+            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, opd_scnp, false, module);
          }
 
          //TODO
@@ -1101,6 +1124,7 @@ void Object::load_shared_object(bool alloc_syms)
    Offset dataddr = 0;
    Elf_X_Shdr *rel_plt_scnp = 0;
    Elf_X_Shdr *plt_scnp = 0; 
+   Elf_X_Shdr *opd_scnp = 0;
    Elf_X_Shdr *got_scnp = 0;
    Elf_X_Shdr *dynsym_scnp = 0;
    Elf_X_Shdr *dynstr_scnp = 0;
@@ -1119,7 +1143,7 @@ void Object::load_shared_object(bool alloc_syms)
 
       if (!loaded_elf(txtaddr, dataddr, bssscnp, symscnp, strscnp,
                stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-               rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
+               rel_plt_scnp, plt_scnp, opd_scnp, got_scnp, dynsym_scnp,
                dynstr_scnp, dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
          goto cleanup2;
 
@@ -1144,7 +1168,6 @@ void Object::load_shared_object(bool alloc_syms)
 
       if (alloc_syms) {
          // build symbol dictionary
-         std::vector<Symbol *> allsymbols;
          string module = mf->pathname();
          string name   = "DEFAULT_NAME";
 
@@ -1157,39 +1180,21 @@ void Object::load_shared_object(bool alloc_syms)
                log_elferror(err_func_, "locating symbol/string data");
                goto cleanup2;
             }
-            bool result = parse_symbols(allsymbols, symdata, strdata, bssscnp, symscnp, false, module);
+            bool result = parse_symbols(symdata, strdata, bssscnp, symscnp, opd_scnp, false, module);
             if (!result) {
                log_elferror(err_func_, "locating symbol/string data");
                goto cleanup2;
             }
          } 
 
-         // don't reorder symbols anymore
-         //sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
-         //VECTOR_SORT(allsymbols,symbol_compare);
-         
-         // Dyninst functionality--not needed anymore?
-         //fix_zero_function_sizes(allsymbols, 0);
-         //override_weak_symbols(allsymbols);
-         
-         no_of_symbols_ = allsymbols.size();
-         insert_symbols_shared(allsymbols);
+         no_of_symbols_ = nsymbols();
 
          if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
          {
             symdata = dynsym_scnp->get_data();
             strdata = dynstr_scnp->get_data();
-            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
+            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, opd_scnp, false, module);
          }
-         //TODO
-         //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
-         //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
-         //         symbols only in dynsymtab & symbols present in both).
-         // Else add dynamic symbol to dictionary
-         // (or) Have two sepearate dictionaries. Makes life easy!
-         // Think about it today!!
-
-         //allsymbols = merge(allsymbols, alldynSymbols);
 
 #if defined(TIMED_PARSE)
          struct timeval endtime;
@@ -1309,12 +1314,71 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 } 
 
 
+// Official Procedure Descriptor handler
+//
+// Some platforms (PPC64 Linux libc v2.1) only produce function
+// symbols which point into the .opd section.  Find the actual
+// function address in .text, and fix the symbol.
+
+void fix_opd_symbol(char *opdData, unsigned long opdStart,
+                    unsigned long opdEnd, Symbol *sym)
+{
+    if (!sym) return;
+
+    Symbol::SymbolType stype = sym->getType();
+    Offset soffset = sym->getOffset();
+
+    if (stype == Symbol::ST_FUNCTION || stype == Symbol::ST_NOTYPE) {
+        if (opdStart <= soffset && soffset < opdEnd) {
+            // Now we know the symbol address falls within the
+            // .opd section.  Find the actual address stored
+            // in the .opd section descriptor.
+            Offset newOffset = *(Offset *)(opdData + (soffset - opdStart));
+
+            // Stash the original address as a pointer address.
+            sym->setPtrOffset(soffset);
+
+            // Update offset with 1st word in descriptor.
+            sym->setOffset(newOffset);
+            //fprintf(stderr, "%s: .opd addr (0x%lx) -> (0x%lx)\n",
+            //        sname.c_str(), soffset, newOffset);
+
+            // Finally, if the symbol had no type, fix it.
+            sym->setSymbolType(Symbol::ST_FUNCTION);
+        }
+    }
+}
+
+// Libc section function handler
+//
+// Some versions of libc have internal memory handling functions
+// that only have NOTYPE symbols to represent them.  However,
+// these symbols do have corresponding regions of the same name.
+
+void fix_libc_section_function_symbol(std::vector< Region *> *regions, Symbol *sym)
+{
+    if (!regions || !sym) return;
+
+    if (sym->getType() == Symbol::ST_NOTYPE) {
+        for (unsigned j = 0; j < regions->size(); ++j) {
+            const char *regionName = (*regions)[j]->getRegionName().c_str();
+            if ((*regions)[j]->isText() &&
+                strstr(regionName, "_libc_") &&
+                strstr(sym->getMangledName().c_str(), regionName) &&
+                (*regions)[j]->getMemOffset() == sym->getOffset()) {
+
+                sym->setSymbolType(Symbol::ST_FUNCTION);
+            }
+        }
+    }
+}
+
 // parse_symbols(): populate "allsymbols"
-bool Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
-      Elf_X_Data &symdata, Elf_X_Data &strdata,
-      Elf_X_Shdr* bssscnp,
-      Elf_X_Shdr* symscnp,
-      bool shared, string smodule)
+bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
+                           Elf_X_Shdr* bssscnp,
+                           Elf_X_Shdr* symscnp,
+                           Elf_X_Shdr* opdscnp,
+                           bool /*shared*/, string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -1323,6 +1387,15 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 
    if (!symdata.isValid() || !strdata.isValid()) {
       return false;
+   }
+
+   unsigned long opdStart = 0;
+   unsigned long opdEnd = 0;
+   char *opdData = 0;
+   if (opdscnp) {
+       opdStart = opdscnp->sh_addr();
+       opdEnd   = opdscnp->sh_addr() + opdscnp->sh_size();
+       opdData  = (char *)opdscnp->get_data().d_buf();
    }
 
    Elf_X_Sym syms = symdata.get_sym();
@@ -1348,11 +1421,11 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          unsigned ssize = syms.st_size(i);
          unsigned secNumber = syms.st_shndx(i);
 
-         Offset saddr;
+         Offset soffset;
          if (symscnp->isFromDebugFile()) {
-            Offset saddr_dbg = syms.st_value(i);
-            if (saddr_dbg) {
-               bool result = convertDebugOffset(saddr_dbg, saddr);
+            Offset soffset_dbg = syms.st_value(i);
+            if (soffset_dbg) {
+               bool result = convertDebugOffset(soffset_dbg, soffset);
                if (!result) {
                   //Symbol does not match any section, can't convert
                   continue;
@@ -1360,7 +1433,7 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
             }
          }
          else {
-            saddr = syms.st_value(i);
+            soffset = syms.st_value(i);
          }
 
          /* icc BUG: Variables in BSS are categorized as ST_NOTYPE instead of 
@@ -1374,7 +1447,7 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
             Offset bssStart = Offset(bssscnp->sh_addr());
             Offset bssEnd = Offset (bssStart + bssscnp->sh_size()) ;
             
-            if(( bssStart <= saddr) && ( saddr < bssEnd ) && (ssize > 0) && 
+            if(( bssStart <= soffset) && ( soffset < bssEnd ) && (ssize > 0) && 
                (stype == Symbol::ST_NOTYPE)) 
             {
                stype = Symbol::ST_OBJECT;
@@ -1382,7 +1455,7 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          }
 
          // discard "dummy" symbol at beginning of file
-         if (i==0 && sname == "" && saddr == (Offset)0)
+         if (i==0 && sname == "" && soffset == (Offset)0)
             continue;
 
          Region *sec;
@@ -1391,19 +1464,36 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          else
             sec = NULL;
          
-         Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, 
-                                     saddr, sec, ssize);
+         Symbol *newsym = new Symbol(sname, 
+                                     stype,
+                                     slinkage, 
+                                     svisibility, 
+                                     soffset,
+                                     NULL,
+                                     sec, 
+                                     ssize,
+                                     false,
+                                     (secNumber == SHN_ABS));
 	 
-         if (secNumber == SHN_ABS)
-            newsym->setIsAbsolute();
+         if (opdscnp)
+             fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
+         fix_libc_section_function_symbol(&regions_, newsym);
+
+         symbols_[sname].push_back(newsym);
+         symsByOffset_[newsym->getOffset()].push_back(newsym);
+         symsToModules_[newsym] = smodule; 
+#if 0
          // register symbol in dictionary
-         if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-             (shared) && (sname == extract_pathname_tail(smodule))) {
+         if ((etype == STT_FILE) && 
+             (ebinding == STB_LOCAL) && 
+             (shared) && 
+             (sname == extract_pathname_tail(smodule))) {
             // symbols_[sname] = newsym; // special case
             symbols_[sname].push_back( newsym );
          } else {
             allsymbols.push_back(newsym); // normal case
          }
+#endif
       }
    } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -1420,15 +1510,17 @@ bool Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 
 // parse_symbols(): populate "allsymbols"
 // Lazy parsing of dynamic symbol  & string tables
-// Parsing the dynamic symbols lazily would certainly not increase the overhead of the entire parse
+// Parsing the dynamic symbols lazily would certainly 
+// not increase the overhead of the entire parse
 void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #if !defined(os_solaris)
                                    dyn_scnp
 #endif 
                                    , Elf_X_Data &symdata, 
                                    Elf_X_Data &strdata,
+                                   Elf_X_Shdr* opdscnp,
                                    bool /*shared*/, 
-                                   string smodule)
+                                   std::string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -1504,7 +1596,16 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
    }
    
 #endif
- 
+
+   unsigned long opdStart = 0;
+   unsigned long opdEnd = 0;
+   char *opdData = 0;
+   if (opdscnp) {
+       opdStart = opdscnp->sh_addr();
+       opdEnd   = opdscnp->sh_addr() + opdscnp->sh_size();
+       opdData  = (char *)opdscnp->get_data().d_buf();
+   }
+
   if(syms.isValid()) { 
    for (unsigned i = 0; i < syms.count(); i++) {
       int etype = syms.ST_TYPE(i);
@@ -1517,11 +1618,11 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
       Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
       unsigned ssize = syms.st_size(i);
-      Offset saddr = syms.st_value(i);
+      Offset soffset = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
 
       // discard "dummy" symbol at beginning of file
-      if (i==0 && sname == "" && saddr == (Offset)0)
+      if (i==0 && sname == "" && soffset == (Offset)0)
           continue;
 
       /* 11/4/08: don't discard symbols with same name and address */
@@ -1529,7 +1630,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       if(symbols_.find(sname) != symbols_.end()) {
           vector<Symbol *> syms = symbols_[sname];
           for(unsigned j = 0; j < syms.size(); j++){
-              if(syms[j]->getAddr() == saddr){
+              if(syms[j]->getOffset() == soffset){
 #if !defined(os_solaris)
                   if(versymSec) {
                       if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
@@ -1550,9 +1651,21 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       else
          sec = NULL;		
 
-      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, svisibility, saddr, sec, ssize, /*NULL,*/ true, false);
-      if (secNumber == SHN_ABS)
-          newsym->setIsAbsolute();
+      Symbol *newsym = new Symbol(sname, 
+                                  stype, 
+                                  slinkage, 
+                                  svisibility, 
+                                  soffset, 
+                                  NULL,
+                                  sec, 
+                                  ssize, 
+                                  true,  // is dynamic
+                                  (secNumber == SHN_ABS));
+      
+      if (opdscnp)
+          fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
+      fix_libc_section_function_symbol(&regions_, newsym);
+
 #if !defined(os_solaris)
       if(versymSec) {
           if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end()) {
@@ -1570,7 +1683,9 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       }
 #endif
       // register symbol in dictionary
-      symbols_[sname].push_back( newsym );
+      symbols_[sname].push_back(newsym);
+      symsByOffset_[newsym->getOffset()].push_back(newsym);
+      symsToModules_[newsym] = smodule; 
    }
   }
 
@@ -1585,257 +1700,23 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #endif
 }
 
-/********************************************************
- *
- * Apparently, some compilers do not fill in the symbol sizes
- *  correctly (in the symbol table) for functions.  Run through
- *  symbol std::vector allsymbols, and compute ?correct? sizes....
- * This patch to symbol sizes runs through allsymbols && tries
- *  to patch all functions symbols recorded with a size of 0,
- *  or which have been EEL overwritten.
- * Assumes that allsymbols is sorted, with e.g. symbol_compare....
- *
-********************************************************/
-void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isEEL)
-{
-#if defined(TIMED_PARSE)
-   struct timeval starttime;
-   gettimeofday(&starttime, NULL);
-#endif
-   unsigned u, v, nsymbols;
-
-   nsymbols = allsymbols.size();
-	unsigned int u_section_idx = 0;
-   for (u=0; u < nsymbols; u++) {
-      //  If function symbol, and size set to 0, or if the
-      //   executable has been EEL rewritten, patch the size
-      //
-		//  Patch the symbol size to the difference between the address
-		//  of this symbol and the next, unless the next symbol is beyond
-		//  the boundary of the section to which this symbol belongs.  In
-		//  that case, set the size to the difference between the section
-		//  end and this symbol.
-		// 
-      if (allsymbols[u]->getType() == Symbol::ST_FUNCTION
-          && (isEEL || allsymbols[u]->getSize() == 0) )
-      {
-			// find the section to which allsymbols[u] belongs
-			// (most likely, it is the section to which allsymbols[u-1] 
-			// belonged)
-			// Note that this assumes the section headers std::vector is sorted
-			// in increasing order
-			//
-			while( u_section_idx < allRegionHdrs.size() )
-			{
-				Offset slow = allRegionHdrs[u_section_idx]->sh_addr();
-				Offset shi = slow + allRegionHdrs[u_section_idx]->sh_size();
-#if defined(os_irix)
-				slow -= get_base_addr();
-				shi -= get_base_addr();
-#endif
-				if( (allsymbols[u]->getAddr() >= slow) &&
-                (allsymbols[u]->getAddr() < shi) )
-				{
-					// we found u's section
-					break;
-				}
-
-				// try the next section
-				u_section_idx++;
-			}
-
-         //Some platforms (Fedora Core 2) thought it would be really 
-         // funny if they stuck size 0 symbols inbetween sections.  
-         // we'll just delete the symbol in this case.
-         if (u_section_idx == allRegionHdrs.size())
-         {
-            //Delete item u
-            for (unsigned i = u; i < allsymbols.size()-1; i++)
-               allsymbols[i] = allsymbols[i+1];
-            allsymbols.pop_back();
-            //Search next item
-            u--; nsymbols--;
-            continue;
-         }
-
-			assert( u_section_idx < allRegionHdrs.size() );
-
-			// search for the next symbol after allsymbols[u]
-         v = u+1;
-         while (v < nsymbols && allsymbols[v]->getAddr() == allsymbols[u]->getAddr())
-			{
-            v++;
-			}
-
-			unsigned int symSize = 0;
-			unsigned int v_section_idx = 0;
-         if (v < nsymbols) {
-
-				// find the section to which allsymbols[v] belongs
-				// (most likely, it is in the same section as symbol u)
-				// Note that this assumes the section headers std::vector is
-				// sorted in increasing order
-				while( v_section_idx < allRegionHdrs.size() )
-				{
-					Offset slow = allRegionHdrs[v_section_idx]->sh_addr();
-					Offset shi = slow + allRegionHdrs[v_section_idx]->sh_size();
-#if defined(os_irix)
-					slow -= get_base_addr();
-					shi -= get_base_addr();
-#endif
-					if( (allsymbols[v]->getAddr() >= slow) &&
-                   (allsymbols[v]->getAddr() < shi) )
-					{
-						// we found v's section
-						break;
-					}
-
-					// try the next section
-					v_section_idx++;
-				}
-
-				if( u_section_idx == v_section_idx )
-				{
-					// symbol u and symbol v are in the same section
-					// 
-					// take the size of symbol u to be the difference
-					// between their two addresses
-					//
-               symSize = ((unsigned int)allsymbols[v]->getAddr()) - 
-                  (unsigned int)allsymbols[u]->getAddr();
-				}
-         }
-			
-			if( (v == nsymbols) || (u_section_idx != v_section_idx) )
-			{
-				// u is the last symbol in its section
-				//
-				// its size is the distance from its address to the
-				// end of its section
-				//
-				symSize = allRegionHdrs[u_section_idx]->sh_addr() + 
-               allRegionHdrs[u_section_idx]->sh_size() -
-#if defined(os_irix)
-               (allsymbols[u]->getAddr() + get_base_addr());
-#else
-            allsymbols[u]->getAddr();
-#endif
-			}
-
-			// update the symbol size
-         allsymbols[u]->setSize( symSize );
-      }
-   }
-#if defined(TIMED_PARSE)
-    struct timeval endtime;
-    gettimeofday(&endtime, NULL);
-    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-    unsigned long difftime = lendtime - lstarttime;
-    double dursecs = difftime/(1000 * 1000);
-    cout << "****fix zero function sizes took "<<dursecs <<" secs" << endl;
-#endif
-}
-
-/********************************************************
- *  
- *  Run over list of symbols found in a SHARED LIBRARY ONLY -
- *   Override weak AND LOCAL symbol references for which there is also
- *   a global symbol reference, by setting the size on the weak
- *   reference to 0.
- *  Also potentially patches the size on such symbols (note that 
- *   Object::fix_symbol_sizes (above) patches sizes on functions
- *   recorded with a size of 0).  This fixes non-zero sized functions
- *   in the case where 2 functions follow each other in the symbol
- *   table, and the first has a size which would extend into the
- *   second.  WHY IS THIS ONLY DONE FOR SHARED LIBRARIES.... 
- *
- *  Assumes that allsymbols is sorted, with e.g. symbol_compare....
- *
-********************************************************/
-void Object::override_weak_symbols(std::vector<Symbol *> &allsymbols) {
-#if defined(TIMED_PARSE)
-   struct timeval starttime;
-   gettimeofday(&starttime, NULL);
-#endif
-    signed i, nsymbols; // these need to be signed
-    u_int next_start;
-    int next_size;
-    bool i_weak_or_local;
-    bool ip1_weak_or_local;
-
-    //cerr << "overriding weak symbols for which there is also a global symbol reference...." << endl;
-    nsymbols = allsymbols.size();
-    for (i=0; i < nsymbols - 1; i++) {
-	if((allsymbols[i]->getType() == Symbol::ST_FUNCTION)
-		&& (allsymbols[i+1]->getType() == Symbol::ST_FUNCTION)) {
-
-	    // where symbol i+1 should start, based on start of symbol i
-	    //  and size of symbol i....
-	    next_start=allsymbols[i]->getAddr()+allsymbols[i]->getSize();
-	
-	    // do symbols i and i+1 have weak or local bindings....
-	    i_weak_or_local = ((allsymbols[i]->getLinkage() == Symbol::SL_WEAK) ||
-			       (allsymbols[i]->getLinkage() == Symbol::SL_LOCAL));
-	    ip1_weak_or_local = ((allsymbols[i+1]->getLinkage() == Symbol::SL_WEAK) ||
-			       (allsymbols[i+1]->getLinkage() == Symbol::SL_LOCAL));
-
-	    // if the symbols have the same address and one is weak or local
-	    // and the other is global keeep the global one
-	    if((allsymbols[i]->getAddr() == allsymbols[i+1]->getAddr()) && 
-		    (((i_weak_or_local) &&
-		      (allsymbols[i+1]->getLinkage() == Symbol::SL_GLOBAL)) || 
-                     ((allsymbols[i]->getLinkage() == Symbol::SL_GLOBAL) &&
-		      (ip1_weak_or_local)))) {
-
-		if (i_weak_or_local) {
-		    allsymbols[i]->setSize(0);
-		    //cerr << " (type 1) removing symbol " << allsymbols[i];
-		} else {
-		    allsymbols[i+1]->setSize(0);
-		    //cerr << " (type 1) removing symbol " << allsymbols[i+1];
-		}
-	    }
-	    // looks like may possibly need to patch size of symbol i
-	    //  based on start of symbol i + 1????
-	    else if (next_start > allsymbols[i+1]->getAddr() && 
-                     allsymbols[i]->getAddr() != allsymbols[i+1]->getAddr()) {
-	        next_size = allsymbols[i+1]->getAddr() - allsymbols[i]->getAddr();
-		allsymbols[i]->setSize(next_size);
-		  //cerr << " (type 2) changing symbol size of symbol "
-		  //     << allsymbols[i] << "to size " << next_size << endl;
-	    }
-	}
-    }
-#if defined(TIMED_PARSE)
-    struct timeval endtime;
-    gettimeofday(&endtime, NULL);
-    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-    unsigned long difftime = lendtime - lstarttime;
-    double dursecs = difftime/(1000 * 1000);
-    cout << "*****override weak symbols took "<<dursecs <<" secs" << endl;
-#endif
-}
-
 #if defined(USES_DWARF_DEBUG)
 
-static string find_symbol(string name,
-              dyn_hash_map<string, std::vector< Symbol *> > &symbols)
+string Object::find_symbol(string name)
 {
   string name2;
 
   // pass #1: unmodified
   name2 = name;
-  if (symbols.find(name2)!=symbols.end()) return name2;
+  if (symbols_.find(name2)!=symbols_.end()) return name2;
 
   // pass #2: leading underscore (C)
   name2 = "_" + name;
-  if (symbols.find(name2)!=symbols.end()) return name2;
+  if (symbols_.find(name2)!=symbols_.end()) return name2;
 
   // pass #3: trailing underscore (Fortran)
   name2 = name + "_";
-  if (symbols.find(name2)!=symbols.end())
+  if (symbols_.find(name2)!=symbols_.end())
   	return name2;
 
   return "";
@@ -1843,28 +1724,6 @@ static string find_symbol(string name,
 
 #endif
 
-// Insert sym into syms. If syms already contains another symbol with the
-// same name, inserts sym under a versioned name (,v%d appended to the original
-// name)
-static void insertUniqdSymbol(Symbol *sym,
-                              dyn_hash_map<string, std::vector< Symbol *> > *syms,
-                              dyn_hash_map<Offset, string > *namesByAddr)
-{
-    Offset symAddr = sym->getAddr();
-    const string & symName = sym->getName();
-    
-	/* The old version of this function generated unique names
-	   for conflicting symbols, favoring globally-defined symbols
-	   over local ones.  This is no longer necessary. */	   
-	(*syms)[symName].push_back( sym );
-
-	/* This is stupid (because it's legal and normal for more than
-	   one symbol to point at the same address), but duplicates 
-	   what happens below.  The look up by name prefers the global 
-	   symbols to the local ones, but the look up by address 
-	   favors the last-defined. */
-	(*namesByAddr)[symAddr] = symName;
-}
 
 /********************************************************
  *
@@ -1893,9 +1752,7 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
 
-void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, 
-      dyn_hash_map< string, std::vector< Symbol *> > & symbols, 
-      dyn_hash_map< Offset, string > & symbolNamesByAddr ) 
+void Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry)
 {
 start: 
 
@@ -2034,9 +1891,15 @@ start:
             /* Try to find the corresponding global symbol name. */
 
             Dwarf_Die declEntry = nameEntry;
-            string globalSymbol = find_symbol( dieName, symbols );
 
-            if ( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) 
+            std::vector<Symbol *> foundSymbols;
+            
+            string globalSymbol = find_symbol(dieName);
+
+            if (globalSymbol != "") {
+                foundSymbols = symbols_[globalSymbol];
+            }
+            else if ( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) 
             {
                /* Then scan forward for its concrete instance. */
 
@@ -2081,13 +1944,9 @@ start:
 
                         // bperr( "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
 
-                        if ( symbolNamesByAddr.find((Address)lowPC)!=symbolNamesByAddr.end()) 
-                        {
-                           string symName = symbolNamesByAddr[(Address)lowPC];
-                           if ( symbols.find(symName) != symbols.end() ) 
-                           {
-                              globalSymbol = symName;
-                           }
+                        if ( symsByOffset_.find((Address)lowPC) != 
+                             symsByOffset_.end()) {
+                            foundSymbols = symsByOffset_[(Address)lowPC];
                         }
 
                         dwarf_dealloc( dbg, siblingDie, DW_DLA_DIE );
@@ -2101,108 +1960,67 @@ start:
                } /* end iteration. */
             } /* end if we're trying to do a by-address look up. */
 
-            /* Update the module information. */
-
-            if ( globalSymbol != "" ) 
-            {
-               assert( symbols.find(globalSymbol)!=symbols.end());
-
-               /* If it's not specified, is an inlined function in the same
-                  CU/namespace as its use. */
-
-               if ( isDeclaredNotInlined && nameEntry != dieEntry ) 
-               {
-                  /* Then the function's definition is where it was
-                     declared, not wherever it happens to be referenced.
-
-                     Use the decl_file as the useModuleName, if available. */
-
-                  Dwarf_Attribute fileNoAttribute;
-                  status = dwarf_attr( declEntry, DW_AT_decl_file, & fileNoAttribute, NULL );
-                  assert( status != DW_DLV_ERROR );
-
-                  if ( status == DW_DLV_OK ) 
-                  {
-                     Dwarf_Unsigned fileNo;
-                     status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
-                     assert( status == DW_DLV_OK );
-
-                     dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
-
-                     useModuleName = declFileNoToName[ fileNo - 1 ];
-
-                     // bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
-
-                  } /* end if we have declaration file listed */
-                  else 
-                  {
-                     /* This should never happen, but there's not much
-                        we can do if it does. */
-                  }
-               } /* end if isDeclaredNotInlined */
-
-               unsigned int count = 0;
-
-               std::vector< Symbol *> & syms = symbols[ globalSymbol ];
-
-               // /* DEBUG */ fprintf( stderr, "%s[%d]: symbol '%s' is in module '%s'.\n", __FILE__, __LINE__, globalSymbol.c_str(), useModuleName.c_str() );
-
-               /* If there's only one of symbol of that name, set it regardless. */
-
-               if ( syms.size() == 1 ) 
-               { 
-                  syms[0]->setModuleName( useModuleName ); 
-               }
-               else 
-               {
-                  for ( unsigned int i = 0; i < syms.size(); i++ ) 
-                  {
-                     if ( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) 
-                     {
-                        symbols[ globalSymbol ][i]->setModuleName( useModuleName );
-                        count++;
-                     }
-                  }
-
-                  //if ( count < syms.size() ) 
-                  //{
-                     // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, globalSymbol.c_str() );
-                  //}
-
+            if (foundSymbols.size()) {
+                /* If it's not specified, is an inlined function in the same
+                   CU/namespace as its use. */
+                
+                if ( isDeclaredNotInlined && nameEntry != dieEntry ) {
+                    /* Then the function's definition is where it was
+                       declared, not wherever it happens to be referenced.
+                       
+                       Use the decl_file as the useModuleName, if available. */
+                    
+                    Dwarf_Attribute fileNoAttribute;
+                    status = dwarf_attr( declEntry, DW_AT_decl_file, & fileNoAttribute, NULL );
+                    assert( status != DW_DLV_ERROR );
+                    
+                    if ( status == DW_DLV_OK ) {
+                        Dwarf_Unsigned fileNo;
+                        status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
+                        assert( status == DW_DLV_OK );
+                        
+                        dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
+                        
+                        useModuleName = declFileNoToName[ fileNo - 1 ];
+                        
+                        // bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
+                        
+                    } /* end if we have declaration file listed */
+                    else {
+                        /* This should never happen, but there's not much
+                           we can do if it does. */
+                    }
+                } /* end if isDeclaredNotInlined */
+                
+                if (foundSymbols.size() == 1) {
+                    symsToModules_[foundSymbols[0]] = useModuleName;
+                }
+               else {
+                   for ( unsigned int i = 0; i < foundSymbols.size(); i++ ) {
+                       if ( foundSymbols[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
+                           symsToModules_[foundSymbols[i]] = useModuleName;
+                       }
+                   }
                }
             } /* end if we found the name in the global symbols */
-            else if ( ! isAbstractOrigin && (symbols.find(dieName)!=symbols.end())) 
-            {
-               unsigned int count = 0;
-               std::vector< Symbol *> & syms = symbols[ dieName ];
+            else if ( !isAbstractOrigin &&
+                      (symbols_.find(dieName) != symbols_.end())) {
+                std::vector< Symbol *> & syms = symbols_[ dieName ];
 
                /* If there's only one, apply regardless. */
 
-               if ( syms.size() == 1 ) 
-               {
-                  symbols[ globalSymbol ][0]->setModuleName( useModuleName ); 
-               }
-               else 
-               { 
-                  for ( unsigned int i = 0; i < syms.size(); i++ ) 
-                  {
-                     if ( syms[ i ]->getLinkage() == Symbol::SL_LOCAL ) 
-                     {
-                        symbols[ globalSymbol ][i]->setModuleName( useModuleName );
-                        count++;
-                     }
-                  }
-
-                  //if ( count < syms.size() ) 
-                  //{
-                     // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, dieName );
-                  //}
-
-               }
+                if ( syms.size() == 1 ) {
+                    symsToModules_[syms[0]] = useModuleName;
+                }
+                else {
+                    for ( unsigned int i = 0; i < syms.size(); i++ ) {
+                        if ( syms[ i ]->getLinkage() == Symbol::SL_LOCAL ) {
+                            symsToModules_[syms[i]] = useModuleName;
+                        }
+                    }
+                }
             } /* end if we think it's a local symbol */
-
             dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-
          } 
 
          break;
@@ -2272,37 +2090,25 @@ start:
 
             /* Update the module information. */
 
-            string symName = find_symbol( dieName, symbols );
+            string symName = find_symbol(dieName);
 
             if ( symName != "" ) 
             {
-               assert(symbols.find(symName)!=symbols.end());
+                assert(symbols_.find(symName)!=symbols_.end());
 
                /* We're assuming global variables. */
-               unsigned int count = 0;
-               std::vector< Symbol *> & syms = symbols[ symName ];
+               std::vector< Symbol *> & syms = symbols_[ symName ];
 
                /* If there's only one of symbol of that name, set it regardless. */
-               if ( syms.size() == 1 ) 
-               {
-                  symbols[ symName ][0]->setModuleName( useModuleName ); 
+               if ( syms.size() == 1 ) {
+                   symsToModules_[syms[0]] = useModuleName; 
                }
-               else 
-               {
-                  for ( unsigned int i = 0; i < syms.size(); i++ ) 
-                  {
-                     if ( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) 
-                     {
-                        symbols[ symName ][i]->setModuleName( useModuleName );
-                        count++;
-                     }
+               else {
+                  for ( unsigned int i = 0; i < syms.size(); i++ ) {
+                      if ( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
+                          symsToModules_[syms[i]] = useModuleName;
+                      }
                   }
-
-                  //if ( count < syms.size() ) 
-                  //{
-                     // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, symName.c_str() );
-                  //}									
-
                }
             }
 
@@ -2325,9 +2131,8 @@ start:
    status = dwarf_child( dieEntry, & childDwarf, NULL );
    assert( status != DW_DLV_ERROR );
 
-   if ( status == DW_DLV_OK ) 
-   {
-      fixSymbolsInModule( dbg, moduleName, childDwarf, symbols, symbolNamesByAddr );
+   if ( status == DW_DLV_OK )  {
+       fixSymbolsInModule(dbg, moduleName, childDwarf); 
    }
 
    /* Recurse to its sibling, if any. */
@@ -2346,59 +2151,27 @@ start:
    }
 } /* end fixSymbolsInModule */
 
-typedef struct {
-   Address low;
-   Address high;
-   std::string module_name;
-} module_range_t;
 
-struct SortModules
+unsigned Object::fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &modules) 
 {
-   bool operator()(const module_range_t &a, const module_range_t &b) {
-      return a.low < b.low;
-   }
-};
+    if (modules.empty()) return 0;
 
-unsigned fixSymbolsInModuleByRange(std::vector<module_range_t> &modules,
-                          dyn_hash_map<string, std::vector<Symbol*> > &symbols)
-{
-   unsigned nsyms_altered = 0;
+    unsigned nsyms_altered = 0;
+    
+    for (dyn_hash_map<Offset, std::vector<Symbol *> >::iterator iter = symsByOffset_.begin();
+         iter != symsByOffset_.end();
+         iter++) {
+        Offset off = iter->first;
+        std::vector<Symbol *> &syms = iter->second;       
 
-   dyn_hash_map< string, std::vector< Symbol *> >::iterator iter = symbols.begin();
-   for (;iter!=symbols.end();iter++)
-   {
-      std::string symName = iter->first;
-      std::vector<Symbol *> & syms = iter->second;
-
-      for ( unsigned int i = 0; i < syms.size(); i++ ) 
-      {
-         Symbol *sym = syms[i];
-
-         unsigned high = modules.size(); 
-         unsigned low = 0;
-         unsigned mid;
-         unsigned last = high+1;
-         for (;;) {
-            Address sym_addr = sym->getAddr();
-            mid = (high + low) / 2;
-            if (mid == last) {
-               break;
+        std::string modname;
+        if (modules.find((Dwarf_Addr) off, modname)) {
+            for (unsigned i = 0; i < syms.size(); i++) {
+                symsToModules_[syms[i]] = modname;
+                nsyms_altered++;
             }
-            last = mid;
-            if (sym_addr >= modules[mid].low && sym_addr < modules[mid].high) {
-               sym->setModuleName(modules[mid].module_name);
-            nsyms_altered++;
-               break;
-            }
-            else if (sym_addr < modules[mid].low) {
-               high = mid;
-            }
-            else if (sym_addr > modules[mid].high) {
-               low = mid;
-         }
-         }
-      }
-   }
+        }
+    }
 
    return nsyms_altered;
 }
@@ -2413,7 +2186,8 @@ bool Object::fix_global_symbol_modules_static_dwarf()
    Dwarf_Debug &dbg = *dbg_ptr;
 
    Dwarf_Unsigned hdr;
-   std::vector<module_range_t> module_ranges;
+
+   IntervalTree<Dwarf_Addr, std::string> module_ranges;
 
    /* Iterate over the CU headers. */
    while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
@@ -2470,12 +2244,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
          }
 
          // Set module names for all symbols that belong to the range
-
-         module_range_t mod;
-         mod.low = modLowPC;
-         mod.high = modHighPC;
-         mod.module_name = moduleName;
-         module_ranges.push_back(mod);
+         module_ranges.insert(modLowPC, modHighPC, moduleName);
       }
       else 
       {
@@ -2487,17 +2256,16 @@ bool Object::fix_global_symbol_modules_static_dwarf()
          {
             /* Walk the tree. */
 
-            //fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
-            //      FILE__, __LINE__, moduleName.c_str());
+             //fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
+             //     FILE__, __LINE__, moduleName.c_str());
 
-            fixSymbolsInModule( dbg, moduleName, moduleDIE, symbols_, symbolNamesByAddr );
-
-            /* Deallocate declFileNoToName. */
-
-            for ( Dwarf_Signed i = 0; i < declFileNo; i++ ) 
-            {
-               dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
-            }
+             fixSymbolsInModule(dbg, moduleName, moduleDIE);
+             
+             /* Deallocate declFileNoToName. */
+             
+             for ( Dwarf_Signed i = 0; i < declFileNo; i++ ) {                
+                 dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
+             }
 
             dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
 
@@ -2506,11 +2274,9 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 
    } /* end scan over CU headers. */
 
-   if (module_ranges.size()) {
-      std::sort(module_ranges.begin(), module_ranges.end(), SortModules());
-      fixSymbolsInModuleByRange(module_ranges, symbols_);
+   if (!module_ranges.empty()) {
+       fixSymbolsInModuleByRange(module_ranges);
    }
-   /* Clean up. */
 
    return true;
 }
@@ -2666,12 +2432,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                            count++;
                         }
                      }
-
-                     //if ( count < syms.size() ) 
-                     //{
-                     // /* DEBUG */ fprintf( stderr, "%s[%d]: STABS-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, SymName.c_str() );
-                     //}
-                  }
+		  }
                }
                break;
             }
@@ -2725,32 +2486,20 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                   string nameFromStab = string(sname);
                   delete[] sname;
 
-                  if (symbols_.find(nameFromStab)!=symbols_.end()) 
-                  {
-                      symbols_[nameFromStab][0]->setModuleName(module);
+                  for (unsigned i = 0; i < symbols_[nameFromStab].size(); i++) {
+                      symsToModules_[symbols_[nameFromStab][i]] = module;
                   }
                }
                else 
                {
-                  if (symbolNamesByAddr.find(entryAddr)==symbolNamesByAddr.end()) 
-                  {
-                     //bperr( "fix_global_symbol_modules_static_stab "
-                     //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
-                     break;
-                  }
-
-                  string symName = symbolNamesByAddr[entryAddr];
-                  assert(symbols_.find(symName)!=symbols_.end());
-                  std::vector< Symbol *> & syms = symbols_[symName];
-
-                  if ( syms.size() == 1 ) 
-                  {
-                     symbols_[symName][0]->setModuleName(module);
-                  }
-
-                  else 
-                  { 
-                     
+                   if (symsByOffset_.find(entryAddr)==symsByOffset_.end()) {
+                       //bperr( "fix_global_symbol_modules_static_stab "
+                       //	   "can't find address 0x%lx of STABS entry %s\n", entryAddr, p);
+                       break;
+                   }
+                   for (unsigned i = 0; i < symsByOffset_[entryAddr].size(); i++) {
+                       symsToModules_[symsByOffset_[entryAddr][i]] = module;
+                   }
 #if !defined (os_solaris)
                      //  This is definitely triggered on mutatees compiled with
                      //  the solaris compilers -- the fix seems tricky and
@@ -2758,18 +2507,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
                      //  and/or add sufficient further nuance to go back to the
                      //  symbol table to infer which nearly identical symbol belongs
                      //  to which modules
-                     fprintf( stderr, "%s[%d]: Nonunique id %s in module:\n", 
-                           FILE__, __LINE__, symName.c_str() ); 
-
-                     //for (unsigned int i = 0; i < syms.size(); ++i) {
-                      //  fprintf(stderr, "\t");
-                      //  cerr << *(syms[i]) << endl;
-                     //}
 #endif
-
-                  }
-                  /* Otherwise, don't assign a module if we don't know
-                     to which symbol this refers. */
                }
                break;
             }
@@ -2785,52 +2523,6 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
       return true;
    }
 
-
-/********************************************************
- *
- * Run over allsymbols, and stuff symbols contained according 
- *  to following rules:
- * LOCAL symbols - into (data member) symbols_
- * GLOBAL symbols - into (paramater) global_symbols
- * WEAK symbols - looks like this case isn't handled correctly
- *  for static libraries....
- *
- ********************************************************/
-void Object::insert_symbols_static(std::vector<Symbol *> &allsymbols)
-{
-   unsigned nsymbols = allsymbols.size();
-#ifdef TIMED_PARSE
-   cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
-      << " symbols into symbols_ dictionary" << endl; 
-#endif
-   for (unsigned u = 0; u < nsymbols; u++) 
-   {
-      insertUniqdSymbol(allsymbols[u], &symbols_, &symbolNamesByAddr);
-   }    
-}
-
-/********************************************************
- *
- * Run over allsymbols, and stuff symbols it contains into (data
- *  member) symbols_. 
- *
- * Assumes that all kludges, patches, fixes, hacks, to objects
- *  in allsymbols have already been made, and that it safe to
- *  dump them into symbols_ (data member, instead of stack var....)....
- *
- ********************************************************/
-void Object::insert_symbols_shared(std::vector<Symbol *> &allsymbols) {
-   unsigned i, nsymbols;
-
-   nsymbols = allsymbols.size();
-#ifdef TIMED_PARSE
-   cout << __FILE__ << ":" << __LINE__ << ": stuffing "<<nsymbols 
-      << " symbols into symbols_ dictionary" << endl; 
-#endif
-   for (i=0;i<nsymbols;i++) {
-      insertUniqdSymbol(allsymbols[i], &symbols_, &symbolNamesByAddr);
-   }
-}
 
 // find_code_and_data(): populates the following members:
 //   code_ptr_, code_off_, code_len_
@@ -3049,6 +2741,7 @@ Object::Object(const Object& obj)
    DbgSectionMapSorted = obj.DbgSectionMapSorted;
 }
 
+#if 0
 const Object& Object::operator=(const Object& obj) 
 {
    (void) AObject::operator=(obj);
@@ -3070,7 +2763,6 @@ const Object& Object::operator=(const Object& obj)
    relocation_table_  = obj.relocation_table_;
    fbt_  = obj.fbt_;
    dwarvenDebugInfo = obj.dwarvenDebugInfo;
-   symbolNamesByAddr = obj.symbolNamesByAddr;
    versionMapping = obj.versionMapping;
    versionFileNameMapping = obj.versionFileNameMapping;
    deps_ = obj.deps_;
@@ -3078,6 +2770,7 @@ const Object& Object::operator=(const Object& obj)
    DbgSectionMapSorted = obj.DbgSectionMapSorted;
    return *this;
 }
+#endif
 
 Object::~Object()
 {
@@ -3088,7 +2781,6 @@ Object::~Object()
    for(i=0; i<allRegionHdrs.size();i++)
       delete allRegionHdrs[i];
    allRegionHdrs.clear();
-   symbolNamesByAddr.clear();
    versionMapping.clear();
    versionFileNameMapping.clear();
    deps_.clear();
@@ -3329,7 +3021,7 @@ typedef struct {
 static int read_val_of_type(int type, unsigned long *value, const unsigned char *addr,
                            const mach_relative_info &mi)
 {
-   unsigned size;
+    unsigned size = 0;
    if (type == DW_EH_PE_omit)
       return 0;
 
@@ -4317,8 +4009,8 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 
                if (funcs.size() > 1) 
                {
-                  fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s\n", 
-                          FILE__, __LINE__, (unsigned long) funcs.size(), stabEntry->name(i));
+                  fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s (stringbuf %s)\n", 
+                          FILE__, __LINE__, (unsigned long) funcs.size(), stabEntry->name(i), stringbuf);
                }
 
                currentFunction = funcs[0];
@@ -4326,7 +4018,7 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
                functionLineToPossiblyAdd = currentLineBase;
 
                assert(currentFunction);
-               currentAddress = currentFunction->getAddress();
+               currentAddress = currentFunction->getOffset();
 
             }
             break;
@@ -4363,7 +4055,7 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
                //}
 
                //  Addresses specified in SLINEs are relative to the beginning of the fn
-               Offset newLineAddress = stabEntry->val(i) + currentFunction->getAddress();
+               Offset newLineAddress = stabEntry->val(i) + currentFunction->getOffset();
 
                if (newLineAddress <= currentAddress)
                {
@@ -4599,6 +4291,7 @@ void Object::parseTypeInfo(Symtab *obj)
 
 void Object::parseStabTypes(Symtab *obj)
 {
+  types_printf("Entry to parseStabTypes for %s\n", obj->name().c_str());
    stab_entry *stabptr = NULL;
    const char *next_stabstr = NULL;
 
@@ -4631,12 +4324,15 @@ void Object::parseStabTypes(Symtab *obj)
 
 
     stabptr = get_stab_info();
-    if(!stabptr)
+    if (!stabptr) {
+      types_printf("\tWarning: no stab ptr, returning immediately\n");
     	return;
-   
+    }
+
     //Using the Object to get the pointers to the .stab and .stabstr
     // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
     next_stabstr = stabptr->getStringBase();
+    types_printf("\t Parsing %d stab entries\n", stabptr->count());
     for (i=0; i<stabptr->count(); i++) {
 	switch(stabptr->type(i)){
 	    case N_UNDF: /* start of object file */
@@ -4682,23 +4378,22 @@ void Object::parseStabTypes(Symtab *obj)
 	           ptr++;
 		   modName = ptr;
 	       }
-	       if (obj->findModuleByName(mod, modName)) 
-          {
-               parseActive = true;
-               if (!mod) 
-               {
-                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-               }
-               else if (!mod->getModuleTypes()) 
-               {
-                  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-               }
-               else 
-                  mod->getModuleTypes()->clearNumberedTypes();
+	       if (obj->findModuleByName(mod, modName)) {
+		 parseActive = true;
+		 if (!mod) {
+		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		 }
+		 else if (!mod->getModuleTypes()) 
+		   {
+		     fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		   }
+		 else 
+		   mod->getModuleTypes()->clearNumberedTypes();
 	       } 
-          else 
-          {
-               parseActive = false;
+	       else {
+		 //parseActive = false;
+		 mod = obj->getDefaultModule();
+		 types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName, mod->fileName().c_str());
 	       }
 
 #ifdef TIMED_PARSE
@@ -4746,13 +4441,19 @@ void Object::parseStabTypes(Symtab *obj)
                 Symbol *info = NULL;
                 // Shouldn't this be a function name lookup?
                 std::vector<Symbol *>syms;
-                if(!obj->findSymbolByType(syms, *currentFunctionName, Symbol::ST_FUNCTION))
-                {
-                    if(!obj->findSymbolByType(syms, "_"+*currentFunctionName, Symbol::ST_FUNCTION))
-                    {
+                if(!obj->findSymbolByType(syms, 
+                                          *currentFunctionName, 
+                                          Symbol::ST_FUNCTION,
+                                          mangledName)) {
+                    if(!obj->findSymbolByType(syms, 
+                                              "_"+*currentFunctionName, 
+                                              Symbol::ST_FUNCTION,
+                                              mangledName)) {
                         string fortranName = *currentFunctionName + string("_");
-                        if (obj->findSymbolByType(syms, fortranName, Symbol::ST_FUNCTION))
-                        {
+                        if (obj->findSymbolByType(syms, 
+                                                  fortranName,
+                                                  Symbol::ST_FUNCTION,
+                                                  mangledName)) {
                             delete currentFunctionName;
                             currentFunctionName = new string(fortranName);
                             info = syms[0];
@@ -4786,34 +4487,47 @@ void Object::parseStabTypes(Symtab *obj)
 
 		    //TODO? change this. findLocalVar will cause an infinite loop
 		    std::vector<Symbol *>vars;
-		    if(!obj->findSymbolByType(vars, *commonBlockName, Symbol::ST_OBJECT))
-            {
-                if(!obj->findSymbolByType(vars, *commonBlockName, Symbol::ST_OBJECT, true))
-                    commonBlockVar = NULL;
-                else
-                    commonBlockVar = vars[0];
-            }
-            else
-                commonBlockVar = vars[0];
-            if (!commonBlockVar) {
-                // //bperr("unable to find variable %s\n", commonBlockName);
-            } else {
-                commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(*commonBlockName));
-                if (commonBlock == NULL) {
-                    // its still the null type, create a new one for it
-                    commonBlock = new typeCommon(*commonBlockName);
-                    mod->getModuleTypes()->addGlobalVariable(*commonBlockName, commonBlock);
+		    if(!obj->findSymbolByType(vars, 
+                                              *commonBlockName, 
+                                              Symbol::ST_OBJECT,
+                                              mangledName)) {
+                        if(!obj->findSymbolByType(vars, 
+                                                  *commonBlockName, 
+                                                  Symbol::ST_OBJECT,
+                                                  mangledName,
+                                                  true))
+                            commonBlockVar = NULL;
+                        else
+                            commonBlockVar = vars[0];
+                    }
+                    else
+                        commonBlockVar = vars[0];
+                    if (!commonBlockVar) {
+                        // //bperr("unable to find variable %s\n", commonBlockName);
+                    } else {
+                        commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(*commonBlockName));
+                        if (commonBlock == NULL) {
+                            // its still the null type, create a new one for it
+                            commonBlock = new typeCommon(*commonBlockName);
+                            mod->getModuleTypes()->addGlobalVariable(*commonBlockName, commonBlock);
+                        }
+                        // reset field list
+                        commonBlock->beginCommonBlock();
+                    }
+                    break;
                 }
-                // reset field list
-                commonBlock->beginCommonBlock();
-            }
-            break;
-            }
 		case N_ECOMM: {
 		    //copy this set of fields
                     assert(currentFunctionName);
-		    if(!obj->findSymbolByType(bpfv, *currentFunctionName, Symbol::ST_FUNCTION)) {
-		    	if(!obj->findSymbolByType(bpfv, *currentFunctionName, Symbol::ST_FUNCTION, true)){
+		    if(!obj->findSymbolByType(bpfv, 
+                                              *currentFunctionName, 
+                                              Symbol::ST_FUNCTION,
+                                              mangledName)) {
+		    	if(!obj->findSymbolByType(bpfv, 
+                                                  *currentFunctionName, 
+                                                  Symbol::ST_FUNCTION, 
+                                                  mangledName,
+                                                  true)){
 		            // //bperr("unable to locate current function %s\n", currentFunctionName->c_str());
 			}
 			else{

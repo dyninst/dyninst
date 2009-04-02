@@ -63,7 +63,7 @@ using namespace Dyninst::SymtabAPI;
 template class  dictionary_hash_iter <Address, Symbol*>;
 
 //template class  dictionary_hash_iter <instPoint*, unsigned>;
-template class  dictionary_hash_iter <std::string, Symbol>;
+//template class  dictionary_hash_iter <std::string, Symbol>;
 class pdmodule;
 template class  dictionary_hash_iter <std::string, pdmodule *>;
 
@@ -78,8 +78,8 @@ template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */
 
-template class dictionary_hash <std::string, Symbol>;
-template class pdvector<dictionary_hash <std::string, Symbol>::entry>;
+//template class dictionary_hash <std::string, Symbol>;
+//template class pdvector<dictionary_hash <std::string, Symbol>::entry>;
 
 class BPatch_point;
 template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
@@ -149,9 +149,9 @@ template class dictionary_hash< Address, void * >;
 template class pdvector< dictionary_hash< Address, void * >::entry >;
 #endif /* defined( arch_ia64 ) */
 
-template class pdvector< Symbol >;
-template class dictionary_hash< std::string, pdvector< Symbol > >;
-template class pdvector<dictionary_hash < std::string, pdvector <Symbol> >::entry>;
+//template class pdvector< Symbol >;
+//template class dictionary_hash< std::string, pdvector< Symbol > >;
+//template class pdvector<dictionary_hash < std::string, pdvector <Symbol> >::entry>;
 
 template class dictionary_hash< std::string, bool >;
 template class pdvector< dictionary_hash< std::string, bool >::entry >;

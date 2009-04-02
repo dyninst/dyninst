@@ -174,166 +174,6 @@ class ScopedSerializerBase : public SerializerBase
 	COMMON_EXPORT T *getScope() {return scope;}
 };
 
-class SerDesXML;
-class SerDesBin;
-
-template <class T>
-class SerializerXML : public ScopedSerializerBase<T> 
-{
-   public:
-   virtual bool isXML() {return true;}
-   virtual bool isBin () {return false;}
-
-      COMMON_EXPORT SerializerXML(T *t, const char *name_, std::string filename, 
-            iomode_t dir, bool verbose) :
-         ScopedSerializerBase<T>(t, name_, filename, dir, verbose) {}
-
-      COMMON_EXPORT ~SerializerXML() {}
-
-      COMMON_EXPORT SerDesXML &getSD_xml()
-	  {
-		  SerDes &sd = getSD();
-		  SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
-		  assert(sdxml);
-		  return *sdxml;
-	  }
-
-      COMMON_EXPORT static bool start_xml_element(SerializerBase *, const char *)
-	  {
-		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
-
-		  if (!sxml)
-		  {
-			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
-					  FILE__, __LINE__);
-			  return false;
-		  }
-
-		  SerDesXML sdxml = sxml->getSD_xml();
-		  start_xml_elem(sdxml.writer, tag);
-		  return true;
-	  }
-
-      COMMON_EXPORT static bool end_xml_element(SerializerBase *, const char *)
-	  {
-		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
-
-		  if (!sxml)
-		  {
-			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
-					  FILE__, __LINE__);
-			  return false;
-		  }
-
-		  SerDesXML sdxml = sxml->getSD_xml();
-		  end_xml_elem(sdxml.writer);
-
-		  return true;
-	  }
-};
-
-template <class T>
-class SerializerBin : public ScopedSerializerBase<T> {
-   friend class SerDesBin;
-
-
-   public:
-   virtual bool isXML() {return false;}
-   virtual bool isBin () {return true;}
-
-   COMMON_EXPORT SerializerBin(T *t, const char *name_, std::string filename, 
-         iomode_t dir, bool verbose) :
-	   ScopedSerializerBase<T>(t, name_, filename, dir, verbose)
-
-   {
-	   if (serializationDisabled())
-	   {
-		   fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n",
-				   FILE__, __LINE__);
-
-		   throw SerializerError(FILE__, __LINE__,
-				   std::string("serialization disabled"),
-				   SerializerError::ser_err_disabled);
-	   }
-
-	   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
-
-	   iter = active_bin_serializers.find(name_);
-
-	   if (iter == active_bin_serializers.end())
-	   {
-		   fprintf(stderr, "%s[%d]:  Adding Active serializer for name %s\n",
-				   FILE__, __LINE__, name_);
-
-		   active_bin_serializers[name_] = this;
-	   }
-	   else
-	   {
-		   fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n",
-				   FILE__, __LINE__, name_);
-	   }
-
-
-   }
-
-   COMMON_EXPORT ~SerializerBin()
-   {
-	   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
-
-	   iter = active_bin_serializers.find(name().c_str());
-
-	   if (iter == active_bin_serializers.end())
-	   {
-		   fprintf(stderr, "%s[%d]:  Weird, no static ptr for name %s\n",
-				   FILE__, __LINE__, name().c_str());
-	   }
-	   else
-	   {
-		   fprintf(stderr, "%s[%d]:  Removing active serializer for name %s\n",
-				   FILE__, __LINE__, name().c_str());
-		   active_bin_serializers.erase(iter);
-	   }
-
-   }
-
-   COMMON_EXPORT SerDesBin &getSD_bin()
-   {
-	   SerDes &sd = getSD();
-	   SerDesBin *sdbin = dynamic_cast<SerDesBin *> (&sd);
-	   assert(sdbin);
-	   return *sdbin;
-   }
-
-
-   static SerializerBin *findSerializerByName(const char *name_)
-   {
-	   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
-
-	   iter = active_bin_serializers.find(name_);
-
-	   if (iter == active_bin_serializers.end())
-	   {
-		   fprintf(stderr, "%s[%d]:  No static ptr for name %s\n",
-				   FILE__, __LINE__, name_);
-		   dumpActiveBinSerializers();
-	   }
-	   else
-	   {
-		   fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n",
-				   FILE__, __LINE__, name_);
-
-		   return iter->second;
-	   }
-
-	   return NULL;
-   }
-
-
-};
-
-
-//COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
-//COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
 
 class SerDes {
 
@@ -544,6 +384,172 @@ class SerDesBin : public SerDes {
    COMMON_EXPORT static bool invalidateCache(std::string cache_name);
 
 };
+
+bool start_xml_elem(void *writer, const char *tag);
+bool end_xml_elem(void *);
+
+template <class T>
+class SerializerXML : public ScopedSerializerBase<T> 
+{
+   public:
+   virtual bool isXML() {return true;}
+   virtual bool isBin () {return false;}
+
+      COMMON_EXPORT SerializerXML(T *t, const char *name_, std::string filename, 
+            iomode_t dir, bool verbose) :
+         ScopedSerializerBase<T>(t, name_, filename, dir, verbose) {}
+
+      COMMON_EXPORT ~SerializerXML() {}
+
+      COMMON_EXPORT SerDesXML &getSD_xml()
+	  {
+		  SerializerBase *sb = this;
+		  SerDes &sd = sb->getSD();
+		  SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
+		  assert(sdxml);
+		  return *sdxml;
+	  }
+
+      COMMON_EXPORT static bool start_xml_element(SerializerBase *sb, const char *tag)
+	  {
+		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+
+		  if (!sxml)
+		  {
+			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+					  FILE__, __LINE__);
+			  return false;
+		  }
+
+		  SerDesXML sdxml = sxml->getSD_xml();
+		  start_xml_elem(sdxml.writer, tag);
+		  return true;
+	  }
+
+      COMMON_EXPORT static bool end_xml_element(SerializerBase *sb, const char *)
+	  {
+		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+
+		  if (!sxml)
+		  {
+			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+					  FILE__, __LINE__);
+			  return false;
+		  }
+
+		  SerDesXML sdxml = sxml->getSD_xml();
+		  end_xml_elem(sdxml.writer);
+
+		  return true;
+	  }
+};
+
+template <class T>
+class SerializerBin : public ScopedSerializerBase<T> {
+   friend class SerDesBin;
+
+
+   public:
+   virtual bool isXML() {return false;}
+   virtual bool isBin () {return true;}
+
+   COMMON_EXPORT SerializerBin(T *t, const char *name_, std::string filename, 
+         iomode_t dir, bool verbose) :
+	   ScopedSerializerBase<T>(t, name_, filename, dir, verbose)
+
+   {
+	   SerializerBase *sb = this;
+	   if (sb->serializationDisabled())
+	   {
+		   fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n",
+				   FILE__, __LINE__);
+
+		   throw SerializerError(FILE__, __LINE__,
+				   std::string("serialization disabled"),
+				   SerializerError::ser_err_disabled);
+	   }
+
+	   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
+
+	   iter = sb->active_bin_serializers.find(name_);
+
+	   if (iter == sb->active_bin_serializers.end())
+	   {
+		   fprintf(stderr, "%s[%d]:  Adding Active serializer for name %s\n",
+				   FILE__, __LINE__, name_);
+
+		   sb->active_bin_serializers[name_] = this;
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n",
+				   FILE__, __LINE__, name_);
+	   }
+
+
+   }
+
+   COMMON_EXPORT ~SerializerBin()
+   {
+	   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
+
+	   SerializerBase *sb = this;
+	   iter = sb->active_bin_serializers.find(sb->name().c_str());
+
+	   if (iter == sb->active_bin_serializers.end())
+	   {
+		   fprintf(stderr, "%s[%d]:  Weird, no static ptr for name %s\n",
+				   FILE__, __LINE__, sb->name().c_str());
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  Removing active serializer for name %s\n",
+				   FILE__, __LINE__, sb->name().c_str());
+		   sb->active_bin_serializers.erase(iter);
+	   }
+
+   }
+
+   COMMON_EXPORT SerDesBin &getSD_bin()
+   {
+	   SerializerBase *sb = this;
+	   SerDes &sd = sb->getSD();
+	   SerDesBin *sdbin = dynamic_cast<SerDesBin *> (&sd);
+	   assert(sdbin);
+	   return *sdbin;
+   }
+
+
+   static SerializerBin *findSerializerByName(const char *name_)
+   {
+	   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
+
+	   iter = SerializerBase::active_bin_serializers.find(name_);
+
+	   if (iter == SerializerBase::active_bin_serializers.end())
+	   {
+		   fprintf(stderr, "%s[%d]:  No static ptr for name %s\n",
+				   FILE__, __LINE__, name_);
+		   SerializerBase::dumpActiveBinSerializers();
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n",
+				   FILE__, __LINE__, name_);
+
+		   return iter->second;
+	   }
+
+	   return NULL;
+   }
+
+
+};
+
+
+//COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
+//COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
+
 
 
 class COMMON_EXPORT SerFile {

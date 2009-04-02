@@ -49,6 +49,9 @@
 #include "symtabAPI/h/Symtab.h"
 #include "common/h/headers.h"
 #include "common/h/Types.h"
+
+#include "common/h/IntervalTree.h"
+
 #include <elf.h>
 #include <libelf.h>
 
@@ -320,7 +323,7 @@ class Object : public AObject {
           void (*)(const char *) = log_msg, void *base = NULL, bool alloc_syms = true);
   Object(const Object &);
   virtual ~Object();
-  const Object& operator=(const Object &);
+  //const Object& operator=(const Object &);
 
   bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&allSymbols, unsigned flag);  
   
@@ -391,10 +394,6 @@ class Object : public AObject {
 	// returns an offset from the base address of the object
 	// so the entry can easily be located in memory
 	Offset getPltSlot(std::string funcName) const ;
-	bool hasSymAtAddr( Offset adr )
-	{
-	    return (symbolNamesByAddr.find( adr )!=symbolNamesByAddr.end());
-	}
 	Offset textAddress(){ return text_addr_;}
 	bool isText( Offset addr ) const
 	{
@@ -427,20 +426,22 @@ class Object : public AObject {
   Offset   dynamic_addr_;	 //.dynamic section
   Offset   dynsym_addr_;        // .dynsym section
   Offset   dynstr_addr_;        // .dynstr section
+  Offset   opd_addr_;
+  unsigned opd_size_;
   Offset   got_addr_;           // global offset table
-  unsigned  got_size_;           // global offset table
+  unsigned got_size_;           // global offset table
   Offset   plt_addr_;           // procedure linkage table
-  unsigned  plt_size_;           // procedure linkage table
-  unsigned  plt_entry_size_;     // procedure linkage table
+  unsigned plt_size_;           // procedure linkage table
+  unsigned plt_entry_size_;     // procedure linkage table
   Offset   rel_plt_addr_;       // .rel[a].plt section
-  unsigned  rel_plt_size_;       // .rel[a].plt section
-  unsigned  rel_plt_entry_size_; // .rel[a].plt section
+  unsigned rel_plt_size_;       // .rel[a].plt section
+  unsigned rel_plt_entry_size_; // .rel[a].plt section
   
   unsigned  rel_size_;       // DT_REL/DT_RELA in dynamic section
   unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
 
   Offset   stab_off_;           // .stab section
-  unsigned  stab_size_;          // .stab section
+  unsigned stab_size_;          // .stab section
   Offset   stabstr_off_;        // .stabstr section
 
   Offset   stab_indx_off_;	 // .stab.index section
@@ -478,10 +479,6 @@ class Object : public AObject {
   // we use these to do a better job of finding the end of symbols
   std::vector<Elf_X_Shdr*> allRegionHdrs;
 
-  // It doesn't look like image's equivalent hashtable is built by
-  // the time we need it, and it's hard to get to anyway.
-  dyn_hash_map< Offset, std::string > symbolNamesByAddr;
-
   // Symbol version mappings. used to store symbol version names.
   dyn_hash_map<unsigned, std::vector<std::string> >versionMapping;
   dyn_hash_map<unsigned, std::string> versionFileNameMapping;
@@ -494,7 +491,7 @@ class Object : public AObject {
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-		    Elf_X_Shdr*& got_scnp,  Elf_X_Shdr*& dynsym_scnp,
+		    Elf_X_Shdr*& opd_scnp, Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
@@ -520,23 +517,20 @@ class Object : public AObject {
   void parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp, 
                     Elf_X_Shdr *&dynstr_scnp);
   
-  bool parse_symbols(std::vector<Symbol *> &allsymbols, 
-                     Elf_X_Data &symdata, Elf_X_Data &strdata,
+  bool parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                      Elf_X_Shdr* bssscnp,
                      Elf_X_Shdr* symscnp,
+		     Elf_X_Shdr* opdscnp,
                      bool shared_library,
                      std::string module);
   
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
-             Elf_X_Data &strdata, bool shared_library,
-		     std::string module);
+                             Elf_X_Data &strdata, Elf_X_Shdr* opdscnp,
+                             bool shared_library, std::string module);
 
-  void fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool EEL);
-  void override_weak_symbols(std::vector<Symbol *> &allsymbols);
-  void insert_symbols_shared(std::vector<Symbol *> &allsymbols);
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);
-  void insert_symbols_static(std::vector<Symbol *> &allsymbols);
+  //void insert_symbols_static(std::vector<Symbol *> &allsymbols);
   bool fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp,
 					     Elf_X_Shdr *stabstrscnp);
   bool fix_global_symbol_modules_static_dwarf();
@@ -547,6 +541,13 @@ class Object : public AObject {
   bool find_catch_blocks(Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                          Address textaddr, Address dataaddr,
                          std::vector<ExceptionBlock> &catch_addrs);
+
+#if defined(USES_DWARF_DEBUG)
+  string find_symbol(string name); 
+  void fixSymbolsInModule(Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry);
+  unsigned fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &module_ranges);
+#endif
+
  public:
   struct DbgAddrConversion_t {
      DbgAddrConversion_t() : dbg_offset(0x0), dbg_size(0x0), orig_offset(0x0) {}

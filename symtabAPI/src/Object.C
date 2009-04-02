@@ -300,12 +300,13 @@ SYMTAB_EXPORT Symbol::~Symbol ()
    }
 }
 
+#if 0
 SYMTAB_EXPORT Symbol::Symbol(const Symbol& s) :
    Serializable(),
    AnnotatableSparse(),
    module_(s.module_), 
    type_(s.type_), linkage_(s.linkage_), visibility_(s.visibility_),
-   addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
+   addr_(s.addr_), ptr_addr_(s.ptr_addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
    aggregate_(s.aggregate_),
@@ -544,318 +545,8 @@ SYMTAB_EXPORT Symbol& Symbol::operator=(const Symbol& s)
 #endif
    return *this;
 }
-
-SYMTAB_EXPORT const string& Symbol::getMangledName() const 
-{
-    return mangledName_;
-}
-
-SYMTAB_EXPORT const string& Symbol::getPrettyName() const 
-{
-    return prettyName_;
-}
-
-SYMTAB_EXPORT const string& Symbol::getTypedName() const 
-{
-    return typedName_;
-}
-
-SYMTAB_EXPORT const string& Symbol::getModuleName() const 
-{
-    if (module_)
-        return module_->fullName();
-    else
-        return moduleName_;
-}
-
-SYMTAB_EXPORT Module* Symbol::getModule() const 
-{
-    return module_;
-}
-
-SYMTAB_EXPORT bool Symbol::setModule(Module *mod) 
-{
-	module_ = mod; 
-	return true;
-}
-
-SYMTAB_EXPORT Symbol::SymbolType Symbol::getType() const 
-{
-    return type_;
-}
-
-SYMTAB_EXPORT Symbol::SymbolLinkage Symbol::getLinkage() const 
-{
-    return linkage_;
-}
-
-SYMTAB_EXPORT Symbol::SymbolVisibility Symbol::getVisibility() const 
-{
-    return visibility_;
-}
-
-SYMTAB_EXPORT Offset Symbol::getAddr() const 
-{
-    return addr_;
-}
-
-SYMTAB_EXPORT Region *Symbol::getSec() const 
-{
-    return sec_;
-}
-
-SYMTAB_EXPORT bool Symbol::isInDynSymtab() const 
-{
-    return isInDynsymtab_;
-}
-
-SYMTAB_EXPORT bool Symbol::isInSymtab() const 
-{
-    return isInSymtab_;
-}
-
-SYMTAB_EXPORT bool Symbol::isAbsolute() const
-{
-    return isAbsolute_;
-}
-
-SYMTAB_EXPORT bool Symbol::isFunction() const
-{
-    return (getFunction() != NULL);
-}
-
-SYMTAB_EXPORT bool Symbol::setFunction(Function *func)
-{
-    aggregate_ = func;
-    return true;
-}
-
-SYMTAB_EXPORT Function * Symbol::getFunction() const
-{
-    return dynamic_cast<Function *>(aggregate_);
-}
-
-SYMTAB_EXPORT bool Symbol::isVariable() const 
-{
-    return (getVariable() != NULL);
-}
-
-SYMTAB_EXPORT bool Symbol::setVariable(Variable *var) 
-{
-    aggregate_ = var;
-    return true;
-}
-
-SYMTAB_EXPORT Variable * Symbol::getVariable() const
-{
-    return dynamic_cast<Variable *>(aggregate_);
-}
-
-SYMTAB_EXPORT unsigned Symbol::getSize() const 
-{
-    return size_;
-}
-
-SYMTAB_EXPORT bool	Symbol::setSize(unsigned ns)
-{
-	size_ = ns;
-	return true;
-}
-
-SYMTAB_EXPORT Symbol::SymbolTag Symbol::tag() const 
-{
-    return tag_;
-}
-
-SYMTAB_EXPORT bool Symbol::setModuleName(string module)
-{
-	moduleName_ = module;
-	return true;
-}
-
-SYMTAB_EXPORT bool Symbol::setAddr (Offset newAddr) 
-{
-      addr_ = newAddr;
-      return true;
-}
-
-SYMTAB_EXPORT bool Symbol::setDynSymtab() 
-{
-    isInDynsymtab_= true;
-    return true;
-}
-
-SYMTAB_EXPORT bool Symbol::clearDynSymtab() 
-{
-    isInDynsymtab_ = false;
-    return true;
-}
-
-SYMTAB_EXPORT bool Symbol::setIsInSymtab() 
-{
-    isInSymtab_= true;
-    return true;
-}
-
-SYMTAB_EXPORT bool Symbol::clearIsInSymtab() 
-{
-    isInSymtab_= false;
-    return true;
-}
-
-SYMTAB_EXPORT bool Symbol::setIsAbsolute()
-{
-    isAbsolute_= true;
-    return true;
-}
-
-SYMTAB_EXPORT bool Symbol::clearIsAbsolute()
-{
-    isAbsolute_= false;
-    return true;
-}
-
-SYMTAB_EXPORT Symbol::Symbol()
-   : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), 
-    aggregate_(NULL),
-    tag_(TAG_UNKNOWN),
-    framePtrRegNum_(-1), retType_(NULL), moduleName_("")
-{
-   // note: this ctor is called surprisingly often (when we have
-   // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
-}
-
-SYMTAB_EXPORT Symbol::Symbol(const string iname, const string imodule,
-    SymbolType itype, SymbolLinkage ilinkage, SymbolVisibility ivisibility, Offset iaddr,
-    Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
-    bool isAbsolute)
-    : type_(itype), linkage_(ilinkage), visibility_(ivisibility),
-    addr_(iaddr), sec_(isec), size_(size), isInDynsymtab_(isInDynSymtab),
-    isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
-    retType_(NULL)
-{
-        module_ = NULL;
-    	moduleName_ = imodule;
-        mangledName_ = iname;
-        aggregate_ = NULL;
-}
-
-SYMTAB_EXPORT Symbol::Symbol(const string iname, Module *mod,
-    SymbolType itype, SymbolLinkage ilinkage, SymbolVisibility ivisibility, Offset iaddr,
-    Region *isec, unsigned size,  bool isInDynSymtab, bool isInSymtab,
-    bool isAbsolute)
-    : module_(mod), type_(itype), linkage_(ilinkage), visibility_(ivisibility),
-    addr_(iaddr), sec_(isec), size_(size),  isInDynsymtab_(isInDynSymtab), 
-    isInSymtab_(isInSymtab), isAbsolute_(isAbsolute), tag_(TAG_UNKNOWN), framePtrRegNum_(-1),
-    retType_(NULL)
-{
-    mangledName_ = iname;
-    aggregate_ = NULL;
-}
-
-
-SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
-{
-    if ((sType != ST_UNKNOWN)&&
-        (sType != ST_FUNCTION)&&
-        (sType != ST_OBJECT)&&
-        (sType != ST_MODULE)&&
-        (sType != ST_NOTYPE))
-        return false;
-    
-    SymbolType oldType = type_;	
-    type_ = sType;
-    if (module_->exec())
-        module_->exec()->changeType(this, oldType);
-
-    // TODO: update aggregate with information
-    
-    return true;
-}
-
-SYMTAB_EXPORT bool Symbol::setVersionFileName(std::string &fileName)
-{
-   std::string *fn_p = NULL;
-   if (getAnnotation(fn_p, SymbolFileNameAnno)) 
-   {
-      if (!fn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
-      }
-      else
-      {
-         fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", 
-                 FILE__, __LINE__, getMangledName().c_str());
-      }
-      return false;
-   }
-   else
-   {
-      //  not sure if we need to copy here or not, so let's do it...
-      std::string *fn = new std::string(fileName);
-      if (!addAnnotation(fn, SymbolFileNameAnno)) 
-      {
-         fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
-         return false;
-      }
-      return true;
-   }
-
-   return false;
-}
-
-SYMTAB_EXPORT bool Symbol::setVersions(std::vector<std::string> &vers)
-{
-   std::vector<std::string> *vn_p = NULL;
-   if (getAnnotation(vn_p, SymbolVersionNamesAnno)) 
-   {
-      if (!vn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
-      }
-      else
-         fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getMangledName().c_str());
-      return false;
-   }
-   else
-   {
-      if (!addAnnotation(&vers, SymbolVersionNamesAnno)) 
-      {
-         fprintf(stderr, "%s[%d]:  failed to add anno here\n", FILE__, __LINE__);
-      }
-   }
-
-   return true;
-}
-
-SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
-{
-   std::string *fn_p = NULL;
-
-   if (getAnnotation(fn_p, SymbolFileNameAnno)) 
-   {
-      if (!fn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here\n", FILE__, __LINE__);
-      }
-      else
-         fileName = *fn_p;
-
-      return true;
-   }
-
-   return false;
-
-#if 0
-   Annotatable<std::string, symbol_file_name_a> &fn = *this;
-   if (!fn.size()) {
-      return false;
-   }
-   fileName = fn[0];
-   return true;
 #endif
+#if 0
 }
 
 SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
@@ -878,93 +569,7 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
-#if 0
-template<class F, class T>
-struct if_bin {
-	 bool operator()(F &f, T &arg, SerializerBase *sb)
-	 {
-		 SerializerBin *sbin = dynamic_cast<SerializerBin *>(sb);
-		 if (!sbin) return true;
-   
-		 return f(sb, arg);
-	 }
-};
 
-template<class F, class T>
-struct if_input {
-	 bool operator()(F &f, T &arg, SerializerBase *sb)
-	 {
-		 if (!sb_is_output(sb)) 
-			 return true;
-   
-		 return f(sb, arg);
-	 }
-};
-#endif
-
-#if 0
-template <class F, class T>
-bool if_bin(F &f, T &arg, SerializerBase *sb)
-{
-	SerializerBin *sbin = dynamic_cast<SerializerBin *>(sb);
-	if (!sbin) return true;
-
-	return f(sb, arg);
-}
-
-template<class F, class T>
-bool if_input(F &f, T &arg, SerializerBase *sb)
-{
-	if (!sb_is_output(sb)) 
-		return true;
-
-	return f(sb, arg);
-}
-#endif
-
-bool Symbol::operator==(const Symbol& s) const
-{
-	// explicitly ignore tags when comparing symbols
-
-	//  compare sections by offset, not pointer
-	if (!sec_ && s.sec_) return false;
-	if (sec_ && !s.sec_) return false;
-	if (sec_)
-	{
-		if (sec_->getDiskOffset() != s.sec_->getDiskOffset())
-			return false;
-	}
-
-	// compare types by id, not pointer
-	if (!retType_ && s.retType_) return false;
-	if (retType_ && !s.retType_) return false;
-	if (retType_)
-	{
-		if (retType_->getID() != s.retType_->getID())
-			return false;
-	}
-
-	// compare modules by name, not pointer
-	if (!module_ && s.module_) return false;
-	if (module_ && !s.module_) return false;
-	if (module_)
-	{
-		if (module_->fullName() != s.module_->fullName())
-			return false;
-	}
-
-	return (   (type_    == s.type_)
-			&& (linkage_ == s.linkage_)
-			&& (addr_    == s.addr_)
-			&& (size_    == s.size_)
-			&& (isInDynsymtab_ == s.isInDynsymtab_)
-			&& (isInSymtab_ == s.isInSymtab_)
-			&& (isAbsolute_ == s.isAbsolute_)
-			&& (mangledName_ == s.mangledName_)
-			&& (prettyName_ == s.prettyName_)
-			&& (typedName_ == s.typedName_)
-			&& (moduleName_ == s.moduleName_));
-}
 
 void Symbol::serialize(SerializerBase *s, const char *tag) 
 {
@@ -1113,10 +718,13 @@ ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb)
 	return s; 
 }
 
+#endif
+
 #ifdef DEBUG 
 ostream &operator<<(ostream &os, relocationEntry &q) {
    return q.operator<<(os);
 }
+#endif
 
 /**************************************************
  *
@@ -1125,48 +733,15 @@ ostream &operator<<(ostream &os, relocationEntry &q) {
  *
  **************************************************/
 
-
-const ostream &AObject::dump_state_info(ostream &s) {
-
-   // key and value for distc hash iter.... 
-   string str;
-   Symbol sym;
-   hash_map<string, std::vector <Symbol> >::iterator symbols_iter = symbols_.begin();
-
-   s << "Debugging Info for AObject (address) : " << this << endl;
-
-   s << " file_ = " << file_ << endl;
-   s << " symbols_ = " << endl;
-
-   // and loop over all the symbols, printing symbol name and data....
-   //  or try at least....
-   for(;symbols_iter!=symbols_.end();symbols_iter++)
-   {
-      str = symbols_iter->first
-         for(int i = 0; i<symbols_iter->second->size(); i++)
-         {
-            sym = (*(symbols_iter->second))[i];
-            s << "  key = " << str << " val " << sym << endl;
-         }
-   }
-   s << " code_ptr_ = " << code_ptr_ << endl;
-   s << " code_off_ = " << code_off_ << endl;
-   s << " code_len_ = " << code_len_ << endl;
-   s << " data_ptr_ = " << data_ptr_ << endl;
-   s << " data_off_ = " << data_off_ << endl;
-   s << " data_len_ = " << data_len_ << endl;
-   return s;
-}
-
-#endif
-
-SYMTAB_EXPORT AObject::AObject()
-{
-}	
-
 SYMTAB_EXPORT unsigned AObject::nsymbols () const 
 { 
-   return symbols_.size(); 
+    unsigned n = 0;
+    for (dyn_hash_map<std::string, std::vector<Symbol *> >::const_iterator i = symbols_.begin();
+         i != symbols_.end(); 
+         i++) {
+        n += i->second.size();
+    }
+    return n;
 }
 
 SYMTAB_EXPORT bool AObject::get_symbols(string & name, 
@@ -1297,29 +872,6 @@ SYMTAB_EXPORT AObject::AObject(const AObject &obj)
 {
 } 
 
-SYMTAB_EXPORT AObject& AObject::operator=(const AObject &obj) 
-{   
-   if (this == &obj) {
-      return *this;
-   }
-
-   mf = obj.mf;
-   mfForDebugInfo = obj.mfForDebugInfo;
-   symbols_   = obj.symbols_;
-   code_ptr_  = obj.code_ptr_;
-   code_off_  = obj.code_off_;
-   code_len_  = obj.code_len_;
-   data_ptr_  = obj.data_ptr_;
-   data_off_  = obj.data_off_;
-   data_len_  = obj.data_len_;
-   err_func_  = obj.err_func_;
-   loader_off_ = obj.loader_off_; 
-   loader_len_ = obj.loader_len_;
-   is_dynamic_ = obj.is_dynamic_;
-   addressWidth_nbytes = obj.addressWidth_nbytes;
-   return *this;
-}
-
 //  a helper routine that selects a language based on information from the symtab
 supportedLanguages AObject::pickLanguage(string &working_module, char *working_options,
       supportedLanguages working_lang)
@@ -1441,5 +993,13 @@ const string & SymbolIter::currkey() const
 Symbol *SymbolIter::currval() 
 {
    return ((symbolIterator->second)[ currentPositionInVector ]);
+}
+
+const std::string AObject::findModuleForSym(Symbol *sym) {
+    return symsToModules_[sym];
+}
+
+void AObject::clearSymsToMods() {
+    symsToModules_.clear();
 }
 

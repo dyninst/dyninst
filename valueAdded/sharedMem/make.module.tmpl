@@ -25,8 +25,9 @@ PUBLIC_H = SharedMem.h
 
 SRCS = $(MUTATOR_SRCS)
 
-CXXFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -I$(TO_ROOT)/dynutil/h -I$(TO_ROOT)/symtabAPI/h -fPIC
-CFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -I$(TO_ROOT)/dynutil/h -I$(TO_ROOT)/symtabAPI/h -fPIC
+TO_ROOT = ../../..
+CXXFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -I$(TO_ROOT)/dynutil/h -I$(TO_ROOT)/symtabAPI/h -I$(TO_ROOT)/instructionAPI/h -fPIC
+CFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -I$(TO_ROOT)/dynutil/h -I$(TO_ROOT)/symtabAPI/h -fPIC -I$(TO_ROOT)/instructionAPI/h
 
 TARGETS = libdynShmMutatee.so libdynShmMutator.so
 

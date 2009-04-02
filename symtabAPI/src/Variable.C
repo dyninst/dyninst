@@ -48,17 +48,10 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-
-
-Variable::Variable() :
-   type_(NULL)
+Variable::Variable(Symbol *sym) :
+    Aggregate(sym),
+    type_(NULL)
 {
-}
-
-Variable *Variable::createVariable(Symbol *sym) {
-    Variable *var = new Variable();
-    var->addSymbol(sym);
-    return var;
 }
 
 void Variable::setType(Type *type)
@@ -75,7 +68,13 @@ Type* Variable::getType()
 void Variable::serialize(SerializerBase *sb, const char *tag)
 {
 	fprintf(stderr, "%s[%d]:  implement me\n", FILE__, __LINE__);
-	Aggregate *agg = this;
-	assert(agg);
-	//agg->serialize(sb);
+}
+
+bool Variable::removeSymbol(Symbol *sym) 
+{
+    removeSymbolInt(sym);
+    if (symbols_.empty()) {
+        module_->exec()->deleteVariable(this);
+    }
+    return true;
 }

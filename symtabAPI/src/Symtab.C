@@ -625,23 +625,39 @@ bool Symtab::createAggregates() {
 }
  
 bool Symtab::fixSymModule(Symbol *&sym) {
-#if !defined(os_windows)
-    // Occasionally get symbols with no module.
-    // Variables on Windows platform
-    if (sym->getModuleName().length() == 0) return false;
-#endif    
+    //////////
+    //////////
+    //////////
+    //
+    // It has been decided that all libraries shall have only one
+    // module named after the library. The a.out has one module
+    // per (reported) source file, plus DEFAULT_MODULE for everything
+    // else. This is enforced here, although the Object-* files might
+    // do it as well.
+    Module *mod = NULL;
+    if (getObjectType() == obj_SharedLib) {
+        mod = getDefaultModule();
+    }
+    else {
+        std::string modName = getObject()->findModuleForSym(sym);
+        if (modName.length() == 0) {
+            mod = getDefaultModule();
+        }
+        else {
+            mod = getOrCreateModule(modName, sym->getOffset());
+        }
+    }
+    if (!mod)
+        return false;
 
-    Module *newMod = getOrCreateModule(sym->getModuleName(), sym->getAddr());
-    assert(newMod);
-    sym->setModule(newMod);
+    sym->setModule(mod);
     return true;
 }
 
 bool Symtab::demangleSymbol(Symbol *&sym) {
     switch (sym->getType()) {
     case Symbol::ST_FUNCTION: {
-        Module *rawmod = getOrCreateModule(sym->getModuleName(),sym->getAddr());
-        
+        Module *rawmod = sym->getModule();
         assert(rawmod);
         
         // At this point we need to generate the following information:
@@ -671,8 +687,8 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
             pretty_name = working_name;
         }
 
-        sym->setPrettyName(pretty_name);
-        sym->setTypedName(typed_name);
+        sym->prettyName_ = pretty_name;
+        sym->typedName_ = typed_name;
         
         break;
     }
@@ -682,10 +698,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
         
         char *prettyName = P_cplus_demangle(sym->getMangledName().c_str(), nativeCompiler, false);
         if (prettyName) {
-            sym->setPrettyName(prettyName);
-        }
-        else {
-            sym->setPrettyName(sym->getMangledName().c_str());
+            sym->prettyName_ = prettyName;
         }
         break;
     }
@@ -722,7 +735,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym) {
             // Create a new function
             // Also, update the symbol to point to this function.
 
-            func = Function::createFunction(sym);
+            func = new Function(sym);
 
             everyFunction.push_back(func);
             sorted_everyFunction = false;
@@ -742,7 +755,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym) {
         if (!var) {
             // Create a new function
             // Also, update the symbol to point to this function.
-            var = Variable::createVariable(sym);
+            var = new Variable(sym);
             
             everyVariable.push_back(var);
             varsByOffset[sym->getAddr()] = var;
@@ -762,7 +775,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym) {
 
 /* Add the new name to the appropriate symbol index */
 
-bool Symtab::updateIndices(Symbol *sym, std::string newName, nameType_t nameType) {
+bool Symtab::updateIndices(Symbol *sym, std::string newName, NameType nameType) {
     if (nameType & mangledName) {
         // Add this symbol under the given name (as mangled)
         symsByMangledName[newName].push_back(sym);
@@ -777,6 +790,12 @@ bool Symtab::updateIndices(Symbol *sym, std::string newName, nameType_t nameType
     }
     return true;
 }
+
+#if 0
+/* checkPPC64DescriptorSymbols() is no longer needed.  3-word descriptor
+ * symbols are properly taken care of during symbol parsing.  See
+ * parse_symbols() in Object-elf.C for details.
+ */
 
 #if defined(ppc64_linux)
 /* Special case for ppc64 ELF binaries. Sometimes a function has a 3-byte descriptor symbol
@@ -812,6 +831,7 @@ void Symtab::checkPPC64DescriptorSymbols(Object *linkedFile)
 
 }
 
+#endif
 #endif
 
 //  setModuleLanguages is only called after modules have been defined.
@@ -863,8 +883,29 @@ void Symtab::setModuleLanguages(dyn_hash_map<std::string, supportedLanguages> *m
    }
 }
 
+void Symtab::createDefaultModule() {
+    Module *mod = NULL;
+    if (getObjectType() == obj_SharedLib) {
+        mod = new Module(lang_Unknown, 
+                         imageOffset_,
+                         name(),
+                         this);
+    }
+    else {
+        mod = new Module(lang_Unknown, 
+                         imageOffset_,
+                         "DEFAULT_MODULE",
+                         this);
+    }
+    modsByFileName[mod->fileName()] = mod;
+    modsByFullName[mod->fullName()] = mod;
+    _mods.push_back(mod);
+}
+
+
+
 Module *Symtab::getOrCreateModule(const std::string &modName, 
-      const Offset modAddr)
+                                  const Offset modAddr)
 {
    std::string nameToUse;
    if (modName.length() > 0)
@@ -891,7 +932,7 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
  
 Module *Symtab::newModule(const std::string &name, const Offset addr, supportedLanguages lang)
 {
-    Module *ret = new Module();
+    Module *ret = NULL;
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
 
@@ -900,8 +941,6 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
         return(ret);
     }
 
-    delete ret;
-
     //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
     //				name.c_str(), addr);
     
@@ -909,7 +948,7 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     fullNm = name;
     fileNm = extract_pathname_tail(name);
 
-     // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
+    // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
 
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
@@ -975,7 +1014,6 @@ Symtab::Symtab(std::string filename,bool &err) :
 
    defaultNamespacePrefix = "";
 }
-
 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    is_a_out(false), 
@@ -1194,7 +1232,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     //statusLine("winnowing functions");
 
 #if defined(ppc64_linux)
-    checkPPC64DescriptorSymbols(linkedFile);
+    //checkPPC64DescriptorSymbols(linkedFile);
 #endif
 
     // a vector to hold all created symbols until they are properly classified
@@ -1228,12 +1266,15 @@ bool Symtab::extractInfo(Object *linkedFile)
     // don't sort the symbols--preserve the original ordering
     //sort(raw_syms.begin(),raw_syms.end(),symbol_compare);
 
+    createDefaultModule();
+
     if (!fixSymModules(raw_syms)) 
     {
         err = false;
         serr = Syms_To_Functions;
         return false;
     }
+    getObject()->clearSymsToMods();
 
     // wait until all modules are defined before applying languages to
     // them we want to do it this way so that module information comes
@@ -1351,43 +1392,6 @@ Symtab::Symtab(const Symtab& obj) :
       undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
 
    }
-
-
-
-#if 0
-    is_a_out = obj.is_a_out;
-    main_call_addr_ = obj.main_call_addr_; // address of call to main()
-    
-    nativeCompiler = obj.nativeCompiler;
-    defaultNamespacePrefix = obj.defaultNamespacePrefix;
-    
-    //sections
-    no_of_sections = obj.no_of_sections;
-    unsigned i;
-    for(i=0;i<obj.regions_.size();i++)
-        regions_.push_back(new Region(*(obj.regions_[i])));
-    for(i=0;i<regions_.size();i++)
-        regionsByEntryAddr[regions_[i]->getRegionAddr()] = regions_[i];
-
-    // TODO FIXME: copying symbols/Functions/Variables
-    
-    for(i=0;i<obj._mods.size();i++)
-        _mods.push_back(new Module(*(obj._mods[i])));
-    for(i=0;i<_mods.size();i++)
-    {
-        modsByFileName[_mods[i]->fileName()] = _mods[i];
-        modsByFullName[_mods[i]->fullName()] = _mods[i];
-    }
-    
-    for(i=0; i<relocation_table_.size();i++) {
-        relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
-        //undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
-        undefDynSyms[obj.relocation_table_[i].name()].push_back(relocation_table_[i].getDynSym());
-    }
-    
-    for(i=0;i<excpBlocks.size();i++)
-        excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
-#endif
 
    for (i=0;i<excpBlocks.size();i++)
    {
@@ -2663,6 +2667,14 @@ Object *Symtab::getObject()
    return obj_private;
 }
 
+void Symtab::parseTypesNow()
+{
+   if (isTypeInfoValid_)
+      return;
+
+   parseTypes();
+}
+
 MemRegReader::~MemRegReader()
 {
 }
@@ -2688,6 +2700,7 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
    }
    return true;
 }
+
 #endif
 
 SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)

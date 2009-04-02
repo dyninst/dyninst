@@ -102,7 +102,7 @@ void vectorNameMatchKLUDGE(Module *mod, char *demangled_sym, std::vector<Functio
   for (unsigned int i = 0; i < bpfv.size(); ++i) {
     std::string l_mangled;
     std::vector<Symbol *> syms;
-    bpfv[i]->getAllSymbols(syms);
+    bpfv[i]->getSymbols(syms);
     if (syms.size()) {
         l_mangled = syms[0]->getMangledName();
         
@@ -206,6 +206,13 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
    Type * newType = NULL; // For new types to add to the collection
    localVar *locVar = NULL;
    cnt= 0;
+
+   types_printf("parseStabString, mod %p/%s, linenum %d, stabstr %s\n",
+		mod,
+		(mod != NULL) ? mod->fileName().c_str() : "NULL",
+		linenum, 
+		stabstr);
+
    std::string fName = mod->fileName();
 
    /* get type or variable name */
@@ -226,6 +233,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
    if ( name[0] != '\0' && stabstr[cnt] != ':' ) 
    {
+     types_printf("\t returning name %s\n", name.c_str());
       return name;
    }
 
@@ -476,17 +484,19 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
             if (BPtype) 
             {
-               std::vector<Symbol *> ret;
-	       bool result = mod->findSymbolByType(ret, name, Symbol::ST_OBJECT);
-	       if (result && ret.size()) {
-		 for (unsigned i=0; i<ret.size(); i++) {
-		   Variable *var = ret[i]->getVariable();
-		   if (!var)
-		     continue;
-		   var->setType(BPtype);
-		 }
+	      Module *toUse = mod;
+               std::vector<Variable *> ret;
+	       bool result = mod->findVariablesByName(ret, name);
+	       if (!result) {
+		 // Might be in a different module...
+		 if (mod->exec()->getDefaultModule()->findVariablesByName(ret, name))
+		   toUse = mod->exec()->getDefaultModule();
 	       }
-               mod->getModuleTypes()->addGlobalVariable(name, BPtype);
+	       for (unsigned i=0; i<ret.size(); i++) {
+		 ret[i]->setType(BPtype);
+	       }
+
+               toUse->getModuleTypes()->addGlobalVariable(name, BPtype);
             }
             else 
             break;
@@ -614,8 +624,15 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                {
                   Symtab *img = mod->exec();
                   std::vector<Symbol *>syms;
-                  if (img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) ||
-		      img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) 
+                  if (img->findSymbolByType(syms, 
+                                            nameTrailer,
+                                            Symbol::ST_OBJECT,
+                                            mangledName) ||
+		      img->findSymbolByType(syms, 
+                                            nameTrailer,
+                                            Symbol::ST_OBJECT, 
+                                            mangledName,
+                                            true)) 
                   {
 		     
                      mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);

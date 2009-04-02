@@ -81,6 +81,8 @@ class Symbol : public Serializable,
 {
    friend class typeCommon;
    friend class Symtab;
+   friend class AObject;
+   friend class Object;
 
    friend std::string parseStabString(Module *, int linenum, char *, int, 
          typeCommon *);
@@ -125,29 +127,73 @@ class Symbol : public Serializable,
    };
    static const char *symbolVisibility2Str(SymbolVisibility t);
 
-   SYMTAB_EXPORT Symbol (); // note: this ctor is called surprisingly often!
-   SYMTAB_EXPORT Symbol (unsigned);
-   SYMTAB_EXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-         SymbolVisibility, Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
-         bool isInSymtab_ = true, bool isAbsolute_ = false);
-   SYMTAB_EXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-         SymbolVisibility, Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
-         bool isInSymtab_ = true, bool isAbsolute_ = false);
-   SYMTAB_EXPORT Symbol (const Symbol &);
+   SYMTAB_EXPORT Symbol () :
+       module_(NULL),
+       type_(ST_NOTYPE),
+       linkage_(SL_UNKNOWN),
+       visibility_(SV_UNKNOWN),
+       offset_(0),
+       region_(NULL),
+       size_(0),
+       isDynamic_(false),
+       isAbsolute_(false),
+       aggregate_(NULL),
+       mangledName_(Symbol::emptyString),
+       prettyName_(Symbol::emptyString),
+       typedName_(Symbol::emptyString),
+       tag_(TAG_UNKNOWN) {}
+
+   SYMTAB_EXPORT static Symbol *magicEmitElfSymbol();
+
+   SYMTAB_EXPORT Symbol (const std::string name,
+                         SymbolType t,
+                         SymbolLinkage l,
+                         SymbolVisibility v,
+                         Offset o,
+                         Module *module = NULL, 
+                         Region *r = NULL, 
+                         unsigned s = 0,
+                         bool d = false,
+                         bool a = false) :
+       module_(module),
+       type_(t),
+       linkage_(l),
+       visibility_(v),
+       offset_(o),
+       region_(r),
+       size_(s),
+       isDynamic_(d),
+       isAbsolute_(a),
+       aggregate_(NULL),
+       mangledName_(name),
+       prettyName_(name),
+       typedName_(name),
+       tag_(TAG_UNKNOWN) {
+
+   }
+
    SYMTAB_EXPORT ~Symbol();
 
-   SYMTAB_EXPORT Symbol&        operator= (const Symbol &);
    SYMTAB_EXPORT bool          operator== (const Symbol &) const;
 
-   SYMTAB_EXPORT const std::string&getModuleName ()        const;
-   SYMTAB_EXPORT Module*	        getModule()		        const; 
-   SYMTAB_EXPORT SymbolType        getType ()              const;
-   SYMTAB_EXPORT SymbolLinkage     getLinkage ()           const;
-   SYMTAB_EXPORT Offset            getAddr ()              const;
-   SYMTAB_EXPORT Region		    *getSec ()      	    const;
-   SYMTAB_EXPORT bool              isInDynSymtab()         const;
-   SYMTAB_EXPORT bool              isInSymtab()            const;
-   SYMTAB_EXPORT bool              isAbsolute()            const;
+   /***********************************************************
+     Name Output Functions
+    ***********************************************************/		
+   SYMTAB_EXPORT const std::string&      getMangledName () const;
+   SYMTAB_EXPORT const std::string&	 getPrettyName() const;
+   SYMTAB_EXPORT const std::string&      getTypedName() const;
+
+   SYMTAB_EXPORT Module *getModule() const { return module_; } 
+   SYMTAB_EXPORT SymbolType getType () const { return type_; }
+   SYMTAB_EXPORT SymbolLinkage getLinkage () const { return linkage_; }
+   SYMTAB_EXPORT Offset getOffset() const { return offset_; }
+   SYMTAB_EXPORT Offset getPtrOffset() const { return ptr_offset_; }
+   SYMTAB_EXPORT unsigned getSize() const { return size_; }
+   SYMTAB_EXPORT Region *getRegion() const { return region_; }
+
+   SYMTAB_EXPORT bool isInDynSymtab() const { return isDynamic_; }
+   SYMTAB_EXPORT bool isInSymtab() const { return isInDynSymtab(); }
+   SYMTAB_EXPORT bool isAbsolute() const { return isAbsolute_; }
 
    SYMTAB_EXPORT bool              isFunction()            const;
    SYMTAB_EXPORT bool              setFunction(Function * func);
@@ -157,63 +203,61 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool              setVariable(Variable *var);
    SYMTAB_EXPORT Variable *        getVariable()           const;
 
-	SYMTAB_EXPORT SymbolVisibility getVisibility() const;
+   SYMTAB_EXPORT SymbolVisibility getVisibility() const { return visibility_; }
 
-   /***********************************************************
-     Name Output Functions
-    ***********************************************************/		
-   SYMTAB_EXPORT const std::string&      getMangledName ()              const;
-   SYMTAB_EXPORT const std::string&	     getPrettyName()       	const;
-   SYMTAB_EXPORT const std::string&      getTypedName() 		const;
 
-   /* Deprecated */
-   SYMTAB_EXPORT const std::string &getName() const { return getMangledName(); }
+   //////////////// Modification
+   SYMTAB_EXPORT bool setOffset (Offset newOffset);
+   SYMTAB_EXPORT bool setPtrOffset (Offset newOffset);
+   SYMTAB_EXPORT bool setSize(unsigned ns);
+   SYMTAB_EXPORT bool setModule(Module *mod);
 
-   SYMTAB_EXPORT bool setAddr (Offset newAddr);
+   SYMTAB_EXPORT bool setMangledName(std::string &name); 
+   SYMTAB_EXPORT bool setPrettyName(std::string &name); 
+   SYMTAB_EXPORT bool setTypedName(std::string &name); 
 
    SYMTAB_EXPORT bool setSymbolType(SymbolType sType);
 
-   SYMTAB_EXPORT unsigned            getSize ()               const;
    SYMTAB_EXPORT SymbolTag            tag ()               const;
-   SYMTAB_EXPORT bool	setSize(unsigned ns);
-   SYMTAB_EXPORT bool	setModuleName(std::string module);
-   SYMTAB_EXPORT bool 	setModule(Module *mod);
-   SYMTAB_EXPORT bool  setDynSymtab();
-   SYMTAB_EXPORT bool  clearDynSymtab();
-   SYMTAB_EXPORT bool  setIsInSymtab();
-   SYMTAB_EXPORT bool  clearIsInSymtab();
-   SYMTAB_EXPORT bool  setIsAbsolute();
-   SYMTAB_EXPORT bool  clearIsAbsolute();
+   SYMTAB_EXPORT bool  setDynamic(bool d) { isDynamic_ = d; return true;}
+   SYMTAB_EXPORT bool  setAbsolute(bool a) { isAbsolute_ = a; return true; }
 
    SYMTAB_EXPORT bool  setVersionFileName(std::string &fileName);
    SYMTAB_EXPORT bool  setVersions(std::vector<std::string> &vers);
    SYMTAB_EXPORT bool  setVersionNum(unsigned verNum);
+
    SYMTAB_EXPORT bool  getVersionFileName(std::string &fileName);
    SYMTAB_EXPORT bool  getVersions(std::vector<std::string> *&vers);
-   SYMTAB_EXPORT bool  VersionNum(unsigned &verNum);
-
-   SYMTAB_EXPORT Type *  getReturnType() {return retType_;}
+   SYMTAB_EXPORT bool  getVersionNum(unsigned &verNum);
 
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
+
+   //////////// DEPRECATED
+   SYMTAB_EXPORT Region		   *getSec ()      	   const { return getRegion(); }
+   SYMTAB_EXPORT Offset            getAddr ()              const { return getOffset(); }
+   SYMTAB_EXPORT const std::string&getModuleName ()        const;
+   SYMTAB_EXPORT const std::string &getName() const { return getMangledName(); }
+   SYMTAB_EXPORT bool setAddr (Offset newAddr) { return setOffset(newAddr); }
+   SYMTAB_EXPORT bool	setModuleName(std::string) { return false; }
+
 
    public:
    static std::string emptyString;
 
 
    private:
-   void setPrettyName(std::string pN) { prettyName_ = pN; };
-   void setTypedName(std::string tN) { typedName_ = tN; };
 
    Module*       module_;
    SymbolType    type_;
    SymbolLinkage linkage_;
    SymbolVisibility visibility_;
-   Offset        addr_;
-   Region*      sec_;
+   Offset        offset_;
+   Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
+   Region*       region_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
-   bool          isInDynsymtab_;
-   bool          isInSymtab_;
+
+   bool          isDynamic_;
    bool          isAbsolute_;
 
    Aggregate *   aggregate_; // Pointer to Function or Variable container, if appropriate.
@@ -223,13 +267,6 @@ class Symbol : public Serializable,
    std::string typedName_;
 
    SymbolTag     tag_;
-   int           framePtrRegNum_;
-   Type          *retType_;
-   // Module Objects are created in Symtab and not in Object.
-   // So we need a way to store the name of the module in 
-   // which the symbol is present.
-   std::string moduleName_;  
-   std::string fileName_;
 
 #if !defined (USE_ANNOTATIONS)
    std::vector<std::string> verNames_;
@@ -239,15 +276,17 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
 };
 
+#if 0
 inline
 Symbol::Symbol(unsigned)
-   : //name_("*bad-symbol*"), module_("*bad-module*"),
-   module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
-   isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
-   retType_(NULL), moduleName_("")
+    : //name_("*bad-symbol*"), module_("*bad-module*"),
+    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
+    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
+    retType_(NULL), moduleName_("")
    //vars_(NULL), params_(NULL) 
 {
 }
+#endif
 
 #if 0
 bool
@@ -261,15 +300,6 @@ Symbol::operator==(const Symbol& s) const
 	if (sec_)
 	{
 		if (sec_->getDiskOffset() != s.sec_->getDiskOffset())
-			return false;
-	}
-
-	// compare types by id, not pointer
-	if (!retType_ && s.retType_) return false;
-	if (retType_ && !s.retType_) return false;
-	if (retType_)
-	{
-		if (retType_ != s.retType_)
 			return false;
 	}
 
