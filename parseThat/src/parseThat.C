@@ -1,3 +1,4 @@
+#include <queue>
 #include <iostream>
 #include <string>
 #include <cctype>
@@ -20,15 +21,31 @@ using namespace std;
 void userError();
 void parseArgs(int argc, char **argv);
 void usage(const char *);
+bool runHunt();
+bool runParseThat(int &bannerLen);
 
 int main(int argc, char **argv)
 {
-    int bannerLen;
     parseArgs(argc, argv);
 
-    while (getNextTarget()) {
-	int pipefd[2];
+   if (config.hunt_crashes && !config.no_fork) {
+      getNextTarget();
+      return runHunt();
+   }
 
+   int bannerLen = 0;
+    while (getNextTarget()) {
+      runParseThat(bannerLen);
+   }
+   dlog(INFO, "Analysis complete.\n");
+   cleanupFinal();
+
+   return 0;
+}
+
+bool runParseThat(int &bannerLen)
+{
+   int pipefd[2];
 
 	if (config.no_fork || !config.use_process) {
 	    return launch_mutator();
@@ -116,17 +133,123 @@ int main(int argc, char **argv)
 		exit(-2);
 	    }
 
-	    return( launch_mutator() );
+      int result = launch_mutator();
+      exit(result);
 
 	} else {
 	    /* Fork Error Case */
 	    dlog(ERR, "Error on fork(): %s\n", strerror(errno));
 	    exit(-2);
 	}
+   return 0;
+}
+
+bool runHunt()
+{
+   int hard_low = -1;
+   int hard_high = -1;
+   int bannerLen = 0;
+
+   FILE *hunt_file = config.hunt_file;
+   std::queue<std::pair<int, int> > postponed_crashes;
+
+   if (config.hunt_low == -1 || config.hunt_high == -1) 
+   {
+      //Initial run over everything, get ranges.
+      runParseThat(bannerLen);
+      if (!config.hunt_crashed) {
+         fprintf(hunt_file, "No crashes detected in initial run\n");
+         goto done;
+      }
+      hard_low = config.hunt_low = 0;
+      hard_high = config.hunt_high;
+
+      if (hard_high == -1) {
+         fprintf(hunt_file, "Mutator crash prevent range discovery, fix this first\n");
+         fflush(hunt_file);
+         goto done;
+      }
+   }
+   else {
+      hard_low = config.hunt_low;
+      hard_high = config.hunt_high;
     }
+      
+
+   for (;;) {
+      int mid = (hard_low + hard_high) / 2;
+      
+      if (mid == hard_low) {
+         fprintf(hunt_file, "** Found Crash point at [%d, %d) **\n", 
+                 hard_low, hard_high);
+         fflush(hunt_file);
+         if (!postponed_crashes.size())
+            goto done;
+         std::pair<int, int> p = postponed_crashes.front();
+         postponed_crashes.pop();
+         hard_low = p.first;
+         hard_high = p.second;
+         continue;
+      }
+
+      fprintf(hunt_file, "Crash is in interval [%d, %d)\n", hard_low, hard_high);
+
+      config.hunt_low = hard_low;
+      config.hunt_high = mid;
+      config.hunt_crashed = false;
+
+      fprintf(hunt_file, "\tRunning interval [%d, %d)...", hard_low, mid);
+      fflush(hunt_file);
+      runParseThat(bannerLen);
+      bool low_half_crash = config.hunt_crashed;
+      if (low_half_crash)
+         fprintf(hunt_file, "Crashed\n");
+      else
+         fprintf(hunt_file, "Success\n");
+
+      config.hunt_low = mid;
+      config.hunt_high = hard_high;
+      fprintf(hunt_file, "\tRunning interval [%d, %d)...", mid, hard_high);
+      fflush(hunt_file);
+      runParseThat(bannerLen);
+      bool high_half_crash = config.hunt_crashed;
+      if (high_half_crash)
+         fprintf(hunt_file, "Crashed\n");
+      else
+         fprintf(hunt_file, "Success\n");
+      
+      if (low_half_crash && !high_half_crash) {
+         hard_high = mid;
+      }
+      else if (!low_half_crash && high_half_crash) {
+         hard_low = mid;
+      }
+      else if (low_half_crash && high_half_crash) {
+         std::pair<int, int> p;
+         p.first = mid;
+         p.second = hard_high;
+         postponed_crashes.push(p);
+
+         hard_high = mid;
+      }
+      else if (!low_half_crash && !high_half_crash) {
+         fprintf(hunt_file, "** Found Crash point at [%d, %d) **\n", 
+                 hard_low, hard_high);
+         fflush(hunt_file);
+         if (!postponed_crashes.size())
+            goto done;
+         std::pair<int, int> p = postponed_crashes.front();
+         postponed_crashes.pop();
+         hard_low = p.first;
+         hard_high = p.second;
+         continue;
+      }
+   }
+
+ done:
+   fclose(hunt_file);
     dlog(INFO, "Analysis complete.\n");
     cleanupFinal();
-
     return 0;
 }
 
@@ -439,7 +562,20 @@ void parseArgs(int argc, char **argv)
 		    if (!config.mod_rules.insert(arg, RULE_SKIP))
                         userError();
 		    if (needShift) ++i;
-
+               } else if (strcmp(ptr, "-hunt") == 0) {
+                  config.hunt_crashes = true;
+                  if (arg) {
+                     config.hunt_file = fopen(arg, "w");
+                  }
+                  else {
+                     config.hunt_file = fopen(DEFAULT_HUNT_FILE, "w");
+                  }
+                  if (!config.hunt_file)
+                     config.hunt_file = stderr;
+               } else if (strcmp(ptr, "-hunt-low") == 0) {
+                  config.hunt_low = atoi(arg);
+               } else if (strcmp(ptr, "-hunt-high") == 0) {
+                  config.hunt_high = atoi(arg);
 		} else if (strcmp(ptr, "-trace") == 0) {
 		    tempInt = 0;
                     if (isdigit(*arg)) {
@@ -509,11 +645,11 @@ void parseArgs(int argc, char **argv)
 	    fprintf(stderr, "Attach mode requries an image file in addition to process id.\n");
 	else
 	    fprintf(stderr, "No directory or program specified.\n");
-	userError();
+      //userError();
     }
 
     // Determine run mode, if necessary.
-    if (config.runMode != BATCH_FILE) {
+   if (config.runMode != BATCH_FILE && config.target[0] != '\0') {
 	errno = 0;
 	struct stat file_stat;
 	if (stat(config.target, &file_stat) != 0) {

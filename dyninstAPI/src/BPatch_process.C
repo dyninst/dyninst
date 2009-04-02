@@ -1027,7 +1027,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
             instPoint *point = bppoint->point;
             callWhen when = bir->when_[j];
             
-            miniTramp *mini = point->addInst(*(bir->snip.ast_wrapper),
+            miniTramp *mini = point->addInst(bir->snip.ast_wrapper,
                                              when,
                                              bir->order_,
                                              bir->trampRecursive_,
@@ -1377,7 +1377,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                    //       we just skip it for catchup (function parameters live on
                    //       the stack too)
                    
-                   if ((*(bir->snip.ast_wrapper))->accessesParam())
+                   if (bir->snip.ast_wrapper->accessesParam())
                        continue;
                    
 #if 0
@@ -1763,7 +1763,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    inferiorrpc_printf("%s[%d]: launching RPC on process pid %d\n",
                       FILE__, __LINE__, llproc->getPid());
 
-   llproc->getRpcMgr()->postRPCtoDo(*(expr.ast_wrapper),
+   llproc->getRpcMgr()->postRPCtoDo(expr.ast_wrapper,
                                     false, 
                                     BPatch_process::oneTimeCodeCallbackDispatch,
                                     (void *)info,

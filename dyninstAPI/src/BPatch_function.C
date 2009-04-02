@@ -719,7 +719,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
   
   
-  AstNodePtr *wrapper = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
+  AstNodePtr wrapper(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
   // variableExpr owns the AST
   return new BPatch_variableExpr(fname, proc, lladdSpace, wrapper, 
                                  type, (void *) remoteAddress); 
@@ -732,7 +732,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   //  But since we are adding this as part of the DPCL compatibility process
   //  we use the IBM API, to eliminate one API difference.
   
-  AstNodePtr *ast = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
+  AstNodePtr ast(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
   
   // the variableExpr owns the ast now.
   return new BPatch_variableExpr(fname, addSpace, lladdSpace, ast, 

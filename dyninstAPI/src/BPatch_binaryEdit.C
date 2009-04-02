@@ -213,7 +213,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
             instPoint *point = bppoint->point;
             callWhen when = bir->when_[j];
             
-            miniTramp *mini = point->addInst(*(bir->snip.ast_wrapper),
+            miniTramp *mini = point->addInst(bir->snip.ast_wrapper,
                                              when,
                                              bir->order_,
                                              bir->trampRecursive_,

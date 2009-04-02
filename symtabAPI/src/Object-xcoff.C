@@ -1231,6 +1231,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
                                   linkage, 
                                   Symbol::SV_DEFAULT, 
                                   value, 
+                                  NULL,
                                   sec, 
                                   size);
        
@@ -1293,8 +1294,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
                                      Symbol::ST_MODULE, 
                                      linkage, 
                                      visibility,
-                                     UINT_MAX // dummy address for now!
-                                     );
+                                     UINT_MAX); // dummy address for now!
 
          /* The old code always had the last module win. */
          if ( symbols_[modName].size() == 0 ) {

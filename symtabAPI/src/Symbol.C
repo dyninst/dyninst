@@ -55,6 +55,7 @@ Symbol *Symbol::magicEmitElfSymbol() {
                       SV_DEFAULT,
                       0,
                       NULL,
+                      NULL,
                       0,
                       false,
                       false);

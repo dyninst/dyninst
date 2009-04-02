@@ -870,7 +870,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
   { e_xor, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW2R },
+  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 38 */
   { e_cmp, t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
   { e_cmp, t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
@@ -970,7 +970,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, 0, s1W2R }, // this is just M in the book
                                                         // AFAICT the 2nd operand is not accessed
   { e_mov, t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
-  { e_pop, t_done, 0, true, { Ev, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, true, { Ev, eSP, Zz }, 0, s1W2RW },
   /* 90 */
   { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // actually xchg eax,eax
   { e_xchg, t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
@@ -1036,12 +1036,12 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_No_Entry, t_grp, Grp11, true, { Eb, Ib, Zz }, 0, s1W2R },
   { e_No_Entry, t_grp, Grp11, true, { Ev, Iz, Zz }, 0, s1W2R },
   /* C8 */
-  { e_enter,   t_done, 0, false, { Iw, Ib, Zz }, 0, fENTER << FPOS },
+  { e_enter,   t_done, 0, false, { Iw, Ib, Zz }, 0, s1R2R | (fENTER << FPOS) },
   { e_leave,   t_done, 0, false, { Zz, Zz, Zz }, 0, fLEAVE << FPOS },
-  { e_ret_far, t_done, 0, false, { Iw, Zz, Zz }, (IS_RETF | IS_RETC), fFARRET << FPOS },
+  { e_ret_far, t_done, 0, false, { Iw, Zz, Zz }, (IS_RETF | IS_RETC), s1R | (fFARRET << FPOS) },
   { e_ret_far, t_done, 0, false, { Zz, Zz, Zz }, (IS_RETF), fFARRET << FPOS },
   { e_int3,   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_int,     t_done, 0, false, { Ib, Zz, Zz }, 0, sNONE },
+  { e_int,     t_done, 0, false, { Ib, Zz, Zz }, 0, s1R },
   { e_into,    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_iret,    t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fIRET << FPOS},
   /* D0 */
@@ -1067,12 +1067,12 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
   { e_loop,     t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
   { e_jcxz_jec, t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R },
-  { e_in,       t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R | fIO << FPOS },
-  { e_in,       t_done, 0, false, { eAX, Ib, Zz }, 0, s1W2R | fIO << FPOS },
-  { e_out,      t_done, 0, false, { Ib, AL, Zz }, 0, s1W2R | fIO << FPOS },
-  { e_out,      t_done, 0, false, { Ib, eAX, Zz }, 0, s1W2R | fIO << FPOS },
+  { e_in,       t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { e_in,       t_done, 0, false, { eAX, Ib, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { e_out,      t_done, 0, false, { Ib, AL, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { e_out,      t_done, 0, false, { Ib, eAX, Zz }, 0, s1W2R | (fIO << FPOS) },
   /* E8 */
-  { e_call, t_done, 0, false, { Jz, Zz, Zz }, (IS_CALL | REL_X), fCALL << FPOS },
+  { e_call, t_done, 0, false, { Jz, Zz, Zz }, (IS_CALL | REL_X), s1R | (fCALL << FPOS) },
   { e_jmp,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JUMP | REL_X), s1R },
   { e_jmp,  t_done, 0, false, { Ap, Zz, Zz }, (IS_JUMP | PTR_WX), s1R },
   { e_jmp,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JUMP | REL_B), s1R },
@@ -1331,7 +1331,7 @@ static ia32_entry twoByteMap[256] = {
   { e_xadd, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
   { e_xadd, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
   { e_No_Entry, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_movnti , t_done, 0, 0, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS) },
+  { e_movnti , t_done, 0, true, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS) },
   { e_No_Entry, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0 },
@@ -2435,11 +2435,40 @@ bool ia32_is_mode_64() {
 }
 
 ia32_entry movsxd = { e_movsxd, t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R };
-
+ia32_entry invalid = { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 };
+		       
 static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 {
     if (*gotit_ptr == &oneByteMap[0x63]) // APRL redefined to MOVSXD
 	*gotit_ptr = &movsxd;
+    if (*gotit_ptr == &oneByteMap[0x06] || // Invalid instructions in 64-bit mode: push es
+	*gotit_ptr == &oneByteMap[0x07] || // pop es
+	*gotit_ptr == &oneByteMap[0x0E] || // push cs
+	*gotit_ptr == &oneByteMap[0x16] || // push ss
+	*gotit_ptr == &oneByteMap[0x17] || // pop ss
+	*gotit_ptr == &oneByteMap[0x1E] || // push ds
+	*gotit_ptr == &oneByteMap[0x1F] || // pop ds
+	*gotit_ptr == &oneByteMap[0x27] || // daa
+	*gotit_ptr == &oneByteMap[0x2F] || // das
+	*gotit_ptr == &oneByteMap[0x37] || // aaa
+	*gotit_ptr == &oneByteMap[0x3F] || // aas
+	*gotit_ptr == &oneByteMap[0x60] || // pusha
+	*gotit_ptr == &oneByteMap[0x61] || // popa
+	*gotit_ptr == &oneByteMap[0x62] || // bound gv, ma
+	*gotit_ptr == &oneByteMap[0x82] || // group 1 eb/ib
+	*gotit_ptr == &oneByteMap[0x9A] || // call ap
+	*gotit_ptr == &oneByteMap[0x9E] || // sahf
+	*gotit_ptr == &oneByteMap[0x9F] || // lahf
+	*gotit_ptr == &oneByteMap[0xC4] || // les gz, mp
+	*gotit_ptr == &oneByteMap[0xC5] || // lds gz, mp
+	*gotit_ptr == &oneByteMap[0xCE] || // into
+	*gotit_ptr == &oneByteMap[0xD4] || // aam ib
+	*gotit_ptr == &oneByteMap[0xD5] || // aad ib
+	*gotit_ptr == &oneByteMap[0xD6] || // salc
+	*gotit_ptr == &oneByteMap[0xEA]) { // jump ap
+      *gotit_ptr = &invalid;
+    }
+    
 }
 
 /* full decoding version: supports memory access information */
@@ -3568,7 +3597,8 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
 {
   const ia32_prefixes& pref = instruct.prf;
   unsigned int& insnType = instruct.legacy_type;
-  unsigned int operSzAttr = (pref.getPrefix(2) == PREFIX_SZOPER ? 1 : 2); // 32-bit mode implicit
+
+  unsigned int operSzAttr = getOperSz(pref);
 
   if (pref.getPrefix(0)) // no distinction between these
     insnType |= PREFIX_INST;

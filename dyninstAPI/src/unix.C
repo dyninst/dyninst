@@ -154,8 +154,8 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
          ev.what = status.pr_what;
          if (!decodeSignal(ev)) {
             char buf[128];
-            fprintf(stderr, "%s[%d]:  decodeSignal failed\n", 
-                  FILE__, __LINE__, ev.sprint_event(buf));
+            fprintf(stderr, "%s[%d]:  decodeSignal failed: %s\n", 
+                    FILE__, __LINE__, ev.sprint_event(buf));
             return false;
          }
          break;
@@ -1300,7 +1300,7 @@ bool DBI_writeDataSpace(pid_t pid, Address addr, int nelem, Address data, int /*
      }
   }
   if (!p) {
-     fprintf(stderr, "%s[%d]:  no process corresp to pid %d\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  no process corresp to pid %d\n", FILE__, __LINE__, pid);
      return false;
   }
 
@@ -1591,7 +1591,7 @@ bool process::startDebugger()
       return false;
    }
    if (strcmp(dyn_debug_crash_debugger, "core") == 0) {
-      exit(0);
+      exit(-1);
    }
 
    fprintf(stderr, "Don't know how to start debugger %s\n", 

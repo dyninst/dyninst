@@ -81,6 +81,7 @@ const char *msgStr(messageID msgID)
     case ID_SUMMARY_INSERT:		return "Inserting information into summary report.";
 
     case ID_DATA_STRING:		return "Passing string to monitor.";
+    case ID_CRASH_HUNT_NUM_ACTIONS:       return "Counting number of hunt actions.";
 
     default:				return "Unknown message ID";
     }
@@ -348,11 +349,16 @@ void sigchldHandler(int signal)
 		if (WCOREDUMP(status)) dlog(ERR, "* Core file generated.\n");
 #endif
 		dlog(ERR, "*\n");
+            config.hunt_crashed = true;
 
 	    } else if (WIFEXITED(status)) {
 		dlog(INFO, "Dyninst mutator exited normally and returned %d.\n", WEXITSTATUS(status));
 	    }
-	    if (pid == config.pid) config.state = CHILD_EXITED;
+         if (pid == config.pid) {
+            config.state = CHILD_EXITED;
+            if (WEXITSTATUS(status) != 0)
+               config.hunt_crashed = true;
+         }
 	}
 	options = WNOHANG;
     } while (pid != 0 && pid != -1);

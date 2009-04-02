@@ -4,13 +4,8 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-#DEBUG_FLAG = -g
 AUTO_TEMPLATES= true
-#NO_IMPLICIT_TEMPLATES = true
 USES_BOOST = true
-
-# For debugging.
-#NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -25,8 +20,6 @@ SRCS = 	../src/arch-x86.C \
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
-
-LIBS    += -lgcc
 
 AS		= /usr/bin/as
 
