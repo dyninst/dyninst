@@ -836,7 +836,8 @@ private:
    
    Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
 			  Address near_=0, bool *err=NULL);
-
+   virtual void inferiorFree(Address item);
+   virtual bool inferiorRealloc(Address item, unsigned newSize);
 
    // garbage collect instrumentation
 

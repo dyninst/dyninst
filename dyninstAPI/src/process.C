@@ -1299,6 +1299,15 @@ const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
 //unsigned int totalSizeAlloc = 0;
 
+void process::inferiorFree(Address item) {
+  inferiorFreeInternal(item);
+}
+
+bool process::inferiorRealloc(Address item, unsigned newSize)
+{
+  return inferiorReallocInternal(item, newSize);
+}
+
 Address process::inferiorMalloc(unsigned size, inferiorHeapType type, 
 				Address near_, bool *err)
 {
