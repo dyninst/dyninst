@@ -33,6 +33,8 @@ COMMON_EXPORT bool &serializer_debug_flag();
 
 
 class SerializerBase;
+
+
 typedef enum {sd_serialize, sd_deserialize} iomode_t;
 typedef bool (*deserialize_and_annotate_t)(SerializerBase *, void *parent);
 
@@ -485,12 +487,13 @@ void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
 COMMON_EXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag);
 COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/);
 
-class SerializerBin;
-class SerializerXML;
+//template<class T> class SerializerBin<T>;
+//template<class T> class SerializerXML<T>;
 
 COMMON_EXPORT bool sb_is_input(SerializerBase *sb);
 COMMON_EXPORT bool sb_is_output(SerializerBase *sb);
 
+#if 0
 template <class T>
 bool ifinput(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)
 {
@@ -531,10 +534,8 @@ bool ifxml(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)
 
    return (*f)(sxml, itp);
 }
-
+#endif
 #if 0
-template <class S, class TT>
-void gtranslate(S *ser, TT&it, void (*use_func)(SerializerBase *, TT &, void *), const char *tag = NULL, const char *tag2)
 {
    fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
          __FILE__, __LINE__,
@@ -607,6 +608,45 @@ bool gtranslate_w_err(S *ser, T&it, const char *tag = NULL, const char *tag2 = N
    }
    return true;
 }
+
+//  These are for testing purposes -- do not use elsewhere
+//  Must deallocate serializer that is returned when done.
+#if 0
+SerializerBase *nonpublic_make_bin_serializer(std::string file);
+SerializerBase *nonpublic_make_bin_deserializer(std::string file);
+void nonpublic_free_bin_serializer(SerializerBase *sb);
+#endif
+#if 0
+template <class T> class SerializerBin;
+
+template <class T>
+inline SerializerBase *nonpublic_make_bin_serializer(T *t, std::string file)
+{
+	SerializerBin<T> *ser;
+	ser = new SerializerBin<T>(t, "SerializerBin", file, sd_serialize, true);
+	return ser;
+}
+
+template <class T>
+inline void nonpublic_free_bin_serializer(SerializerBase *sb)
+{
+	SerializerBin<T> *sbin = dynamic_cast<SerializerBin<T> *>(sb);
+	if (sbin)
+	{
+		delete(sbin);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+}
+
+template <class T>
+inline SerializerBase *nonpublic_make_bin_deserializer(T *t,std::string file)
+{
+	SerializerBin<T> *ser;
+	ser = new SerializerBin<T>(t, "DeserializerBin", file, sd_deserialize, true);
+	return ser;
+}
+#endif
 
 } /* namespace Dyninst */
 #endif

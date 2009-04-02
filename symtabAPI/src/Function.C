@@ -279,3 +279,12 @@ bool Function::addParam(localVar *param)
 Function::~Function()
 {
 }
+
+void Function::serialize(SerializerBase *sb, const char *tag)
+{
+	fprintf(stderr, "%s[%d]:  implement me\n", FILE__, __LINE__);
+	Aggregate *agg = this;
+	assert(agg);
+	//agg->serialize(sb);
+}
+

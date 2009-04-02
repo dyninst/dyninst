@@ -33,6 +33,7 @@
 #define _Variable_h_
 
 #include "Annotatable.h"
+#include "Serialization.h"
 #include "Aggregate.h"
 
 namespace Dyninst{
@@ -40,7 +41,7 @@ namespace SymtabAPI{
 
 class Symbol;
 
-class Variable : public Aggregate
+class Variable : public Aggregate, public Serializable
 {
  public:
    SYMTAB_EXPORT Variable();
@@ -49,6 +50,9 @@ class Variable : public Aggregate
    
    SYMTAB_EXPORT void setType(Type *type);
    SYMTAB_EXPORT Type *getType();
+
+   SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Variable");
+
  private:
    Type *type_;
 };

@@ -192,6 +192,8 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool  getVersions(std::vector<std::string> *&vers);
    SYMTAB_EXPORT bool  VersionNum(unsigned &verNum);
 
+   SYMTAB_EXPORT Type *  getReturnType() {return retType_;}
+
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
@@ -210,7 +212,6 @@ class Symbol : public Serializable,
    Offset        addr_;
    Region*      sec_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
-   void *upPtr_;
    bool          isInDynsymtab_;
    bool          isInSymtab_;
    bool          isAbsolute_;
@@ -248,27 +249,44 @@ Symbol::Symbol(unsigned)
 {
 }
 
-inline
+#if 0
 bool
 Symbol::operator==(const Symbol& s) const 
 {
    // explicitly ignore tags when comparing symbols
+
+	//  compare sections by offset, not pointer
+	if (!sec_ && s.sec_) return false;
+	if (sec_ && !s.sec_) return false;
+	if (sec_)
+	{
+		if (sec_->getDiskOffset() != s.sec_->getDiskOffset())
+			return false;
+	}
+
+	// compare types by id, not pointer
+	if (!retType_ && s.retType_) return false;
+	if (retType_ && !s.retType_) return false;
+	if (retType_)
+	{
+		if (retType_ != s.retType_)
+			return false;
+	}
+
    return ((module_  == s.module_)
          && (type_    == s.type_)
          && (linkage_ == s.linkage_)
          && (addr_    == s.addr_)
-         && (sec_     == s.sec_)
          && (size_    == s.size_)
-         && (upPtr_    == s.upPtr_)
          && (isInDynsymtab_ == s.isInDynsymtab_)
          && (isInSymtab_ == s.isInSymtab_)
          && (isAbsolute_ == s.isAbsolute_)
-         && (retType_    == s.retType_)
          && (mangledName_ == s.mangledName_)
          && (prettyName_ == s.prettyName_)
          && (typedName_ == s.typedName_)
          && (moduleName_ == s.moduleName_));
 }
+#endif
 
 class LookupInterface 
 {

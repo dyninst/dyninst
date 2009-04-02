@@ -132,8 +132,11 @@ bool isOutput(Dyninst::SerializerBase *ser)
 
 bool isBinary(Dyninst::SerializerBase *ser)
 {
+#if 0
    SerializerBin *sb = dynamic_cast<SerializerBin *>(ser);
    return (sb != NULL);
+#endif
+   return ser->isBin();
 }
 
 void trans_adapt(SerializerBase *ser, Serializable &it, const char *tag)
@@ -257,6 +260,10 @@ bool sb_is_output(SerializerBase *sb)
 
 } /* namespace Dyninst */
 
+bool SerializerBase::global_disable = false;
+dyn_hash_map<const char *, SerializerBase *> SerializerBase::active_bin_serializers;
+
+#if 0
 SerDesBin &SerializerBin::getSD_bin()
 {
    SerDes &sd = getSD();
@@ -264,15 +271,18 @@ SerDesBin &SerializerBin::getSD_bin()
    assert(sdbin);
    return *sdbin;
 }
+#endif
 
-bool SerializerBin::global_disable = false;
-dyn_hash_map<const char *, SerializerBin *> SerializerBin::active_bin_serializers;
+#if 0
+//bool SerializerBin::global_disable = false;
+dyn_hash_map<const char *, SerializerBase *> SerializerBase::active_bin_serializers;
+#endif
 
-void SerializerBin::dumpActiveBinSerializers()
+void SerializerBase::dumpActiveBinSerializers()
 {
    fprintf(stderr, "%s[%d]:  have serializers:\n", FILE__, __LINE__);
 
-   dyn_hash_map<const char *, SerializerBin *>::iterator iter;
+   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
 
    for (iter = active_bin_serializers.begin(); 
          iter != active_bin_serializers.end(); 
@@ -282,9 +292,11 @@ void SerializerBin::dumpActiveBinSerializers()
    }
 }
 
+#if 0
+template <class T>
 SerializerBin::SerializerBin(const char *name_, std::string filename, 
       iomode_t dir, bool verbose) :
-   SerializerBase(name_, filename, dir, verbose) 
+   ScopedSerializerBase<T>(name_, filename, dir, verbose) 
 {
    if (global_disable) 
    {
@@ -314,7 +326,9 @@ SerializerBin::SerializerBin(const char *name_, std::string filename,
    }
 
 }
-
+#endif
+#if 0
+template <class T>
 SerializerBin::~SerializerBin()
 {
    dyn_hash_map<const char *, SerializerBin *>::iterator iter;
@@ -333,7 +347,9 @@ SerializerBin::~SerializerBin()
       active_bin_serializers.erase(iter);
    }
 }
+#endif
 
+#if 0
 SerializerBin *SerializerBin::findSerializerByName(const char *name_)
 {
    dyn_hash_map<const char *, SerializerBin *>::iterator iter;
@@ -366,10 +382,12 @@ void SerializerBin::globalEnable()
 {
    global_disable = false;
 }
+#endif
 
 FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/) 
 {
-   if (SerializerBin::global_disable) {
+   if (SerializerBase::serializationDisabled()) 
+   {
       fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n", FILE__, __LINE__);
       throw SerializerError(FILE__, __LINE__, 
             std::string("serialization disabled"), 
@@ -971,24 +989,33 @@ void SerDesBin::translate(const char * &param, int bufsize, const char *tag)
          SER_ERR("msg");
       }
 
-      if (len <= 0) 
+      if (len < 0) 
       {
-         fprintf(stderr, "%s[%d]:  bad bufsize %d\n", FILE__, __LINE__, len);
+         fprintf(stderr, "%s[%d]:  bad bufsize %d for %s\n", FILE__, __LINE__, len, tag ? tag : "no_tag");
          char msg[128];
          sprintf(msg, "bad bufsize, %d ", len);
          SER_ERR("msg");
       }
 
-      char *l_ptr = const_cast<char *> (param);
-      rc = fread(l_ptr, sizeof(char), len, f);
+	  char *l_ptr = const_cast<char *> (param);
+	  if (len != 0)
+	  {
+		  rc = fread(l_ptr, sizeof(char), len, f);
 
-      if (len != rc) 
-      {
-         fprintf(stderr, "%s[%d]:  fread, got %d not %d: %s\n", FILE__, __LINE__, rc, len, strerror(errno));
-         SER_ERR("fread");
-      }
+		  if (len != rc) 
+		  {
+			  fprintf(stderr, "%s[%d]:  fread, got %d not %d: %s\n", 
+					  FILE__, __LINE__, rc, len, strerror(errno));
+			  SER_ERR("fread");
+		  }
+	  }
+	  else 
+	  {
+		  fprintf(stderr, "%s[%d]:  WARN:  zero length string for %s\n", FILE__, __LINE__, tag ? tag : "no_tag_provided");
+	  }
 
-      l_ptr[len] = '\0';
+	  l_ptr[len] = '\0';
+
    }
 
    if (noisy)
@@ -1226,3 +1253,34 @@ void SerializerBase::translate_base(std::string &v, const char *t)
 }
 
 
+#if 0
+namespace Dyninst {
+	template <class T>
+SerializerBase *nonpublic_make_bin_serializer(T *t, std::string file)
+{
+	SerializerBin *ser;
+	ser = new SerializerBin<T>(t, "SerializerBin", file, sd_serialize, true);
+	return ser;
+}
+
+template <class T>
+void nonpublic_free_bin_serializer(SerializerBase *sb)
+{
+	SerializerBin<T> *sbin = dynamic_cast<SerializerBin<T> *>(sb);
+	if (sbin)
+	{
+		delete(sbin);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+}
+
+template <class T>
+SerializerBase *nonpublic_make_bin_deserializer(T *t,std::string file)
+{
+	SerializerBin *ser;
+	ser = new SerializerBin<T>(t, "DeserializerBin", file, sd_deserialize, true);
+	return ser;
+}
+}
+#endif

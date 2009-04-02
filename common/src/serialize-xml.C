@@ -61,6 +61,7 @@ HINSTANCE hXML;
 #define XMLCHAR_CAST (const char *)
 #endif
 
+#if 0
 SerDesXML &SerializerXML::getSD_xml()
 {
    SerDes &sd = getSD();
@@ -68,6 +69,7 @@ SerDesXML &SerializerXML::getSD_xml()
    assert(sdxml);
    return *sdxml;
 }
+#endif
 
 
 #if 0
@@ -237,6 +239,7 @@ bool write_xml_elem(void * /*writer*/, const char * /*tag*/, const char * /*fmt*
 namespace Dyninst {
 bool ifxml_start_element(SerializerBase *sb, const char *tag)
 {
+#if 0
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
    if (!sxml) 
    {
@@ -248,8 +251,19 @@ bool ifxml_start_element(SerializerBase *sb, const char *tag)
       fprintf(stderr, "%s[%d]:  ERROR:  request to deserialize xml\n", FILE__, __LINE__);
       return false;
    }
+#endif
+   if (!sb->isXML())
+	   return false;
+   if (!sb->isOutput())
+   {
+      fprintf(stderr, "%s[%d]:  ERROR:  request to deserialize xml\n", FILE__, __LINE__);
+      return false;
+   }
 
-   start_xml_elem(sxml->getSD_xml().writer, tag);
+   SerDes &sd = sb->getSD();
+   SerDesXML *sdxml = dynamic_cast<SerDesXML *>(&sd);
+   assert(sdxml);
+   start_xml_elem(sdxml->writer, tag);
 
 #if 0
    sxml->getSD_xml().start_element(tag);
@@ -262,6 +276,7 @@ bool ifxml_start_element(SerializerBase *sb, const char *tag)
 namespace Dyninst {
 COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 {
+#if 0
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
    if (!sxml) 
@@ -274,8 +289,19 @@ COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
       fprintf(stderr, "%s[%d]:  ERROR:  request to deserialize xml\n", FILE__, __LINE__);
       return false;
    }
+#endif
+   if (!sb->isXML())
+	   return false;
+   if (!sb->isOutput())
+   {
+      fprintf(stderr, "%s[%d]:  ERROR:  request to deserialize xml\n", FILE__, __LINE__);
+      return false;
+   }
 
-   end_xml_elem(sxml->getSD_xml().writer);
+   SerDes &sd = sb->getSD();
+   SerDesXML *sdxml = dynamic_cast<SerDesXML *>(&sd);
+   assert(sdxml);
+   end_xml_elem(sdxml->writer);
    
 #if 0
    sxml->getSD_xml().end_element();
@@ -285,6 +311,7 @@ COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 }
 }
 
+#if 0
 bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
@@ -305,7 +332,9 @@ bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
 
    return true;
 }
+#endif
 
+#if 0
 bool SerializerXML::end_xml_element(SerializerBase * sb, const char  * /*tag*/)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
@@ -325,6 +354,7 @@ bool SerializerXML::end_xml_element(SerializerBase * sb, const char  * /*tag*/)
 #endif
    return true;
 }
+#endif
 SerDesXML::~SerDesXML()
 {
 #if defined (cap_have_libxml)

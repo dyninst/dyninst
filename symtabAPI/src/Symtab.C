@@ -2096,6 +2096,21 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    return true;	
 }
 
+SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
+{
+	Type *t;
+   parseTypesNow();
+
+   if (!_mods.size())
+      return NULL;
+
+   t = _mods[0]->getModuleTypes()->findType(type_id);
+
+   if (t == NULL)
+      return NULL;
+
+   return t;	
+}
 SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
 {
    parseTypesNow();
@@ -2400,8 +2415,10 @@ void Symtab::serialize(SerializerBase *sb, const char *tag)
       ifxml_end_element(sb, tag);
 
 
+#if 0
       ifinput(Symtab::setup_module_up_ptrs, sb, this);
       ifinput(fixup_relocation_symbols, sb, this);
+#endif
 
       //  Patch up module's exec_ (pointer to Symtab) at a higher level??
       //if (getSD().iomode() == sd_deserialize)
@@ -2672,4 +2689,30 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
    return true;
 }
 #endif
+
+SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
+{
+	SerializerBin<Symtab> *ser;
+	ser = new SerializerBin<Symtab>(t, "SerializerBin", file, sd_serialize, true);
+	return ser;
+}
+
+SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
+{
+	SerializerBin<Symtab> *ser;
+	ser = new SerializerBin<Symtab>(t, "DeserializerBin", file, sd_deserialize, true);
+	return ser;
+}
+
+void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
+{
+	SerializerBin<Symtab> *sbin = dynamic_cast<SerializerBin<Symtab> *>(sb);
+	if (sbin)
+	{
+		delete(sbin);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+
+}
 

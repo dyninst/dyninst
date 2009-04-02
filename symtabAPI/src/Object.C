@@ -37,6 +37,7 @@
 
 #include "Symtab.h"
 #include "Module.h"
+#include "Region.h"
 #include "Collections.h"
 #include "annotations.h"
 #include "Symbol.h"
@@ -875,19 +876,116 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    }
 
    return false;
+}
 
 #if 0
-   Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
-   if (!sv.size()) {
-      return false;
-   }
-   vers = &(sv[0]);
-   return true;
+template<class F, class T>
+struct if_bin {
+	 bool operator()(F &f, T &arg, SerializerBase *sb)
+	 {
+		 SerializerBin *sbin = dynamic_cast<SerializerBin *>(sb);
+		 if (!sbin) return true;
+   
+		 return f(sb, arg);
+	 }
+};
+
+template<class F, class T>
+struct if_input {
+	 bool operator()(F &f, T &arg, SerializerBase *sb)
+	 {
+		 if (!sb_is_output(sb)) 
+			 return true;
+   
+		 return f(sb, arg);
+	 }
+};
 #endif
+
+#if 0
+template <class F, class T>
+bool if_bin(F &f, T &arg, SerializerBase *sb)
+{
+	SerializerBin *sbin = dynamic_cast<SerializerBin *>(sb);
+	if (!sbin) return true;
+
+	return f(sb, arg);
+}
+
+template<class F, class T>
+bool if_input(F &f, T &arg, SerializerBase *sb)
+{
+	if (!sb_is_output(sb)) 
+		return true;
+
+	return f(sb, arg);
+}
+#endif
+
+bool Symbol::operator==(const Symbol& s) const
+{
+	// explicitly ignore tags when comparing symbols
+
+	//  compare sections by offset, not pointer
+	if (!sec_ && s.sec_) return false;
+	if (sec_ && !s.sec_) return false;
+	if (sec_)
+	{
+		if (sec_->getDiskOffset() != s.sec_->getDiskOffset())
+			return false;
+	}
+
+	// compare types by id, not pointer
+	if (!retType_ && s.retType_) return false;
+	if (retType_ && !s.retType_) return false;
+	if (retType_)
+	{
+		if (retType_->getID() != s.retType_->getID())
+			return false;
+	}
+
+	// compare modules by name, not pointer
+	if (!module_ && s.module_) return false;
+	if (module_ && !s.module_) return false;
+	if (module_)
+	{
+		if (module_->fullName() != s.module_->fullName())
+			return false;
+	}
+
+	return (   (type_    == s.type_)
+			&& (linkage_ == s.linkage_)
+			&& (addr_    == s.addr_)
+			&& (size_    == s.size_)
+			&& (isInDynsymtab_ == s.isInDynsymtab_)
+			&& (isInSymtab_ == s.isInSymtab_)
+			&& (isAbsolute_ == s.isAbsolute_)
+			&& (mangledName_ == s.mangledName_)
+			&& (prettyName_ == s.prettyName_)
+			&& (typedName_ == s.typedName_)
+			&& (moduleName_ == s.moduleName_));
 }
 
 void Symbol::serialize(SerializerBase *s, const char *tag) 
 {
+	struct getTypeByID {
+		bool operator()(SerializerBase *sb, unsigned int &tid)
+		{
+			fprintf(stderr, "%s[%d]:  getting type by id here (not yet)\n", FILE__, __LINE__);
+			return true;
+		}
+	};
+
+	//  Need to serialize types before symbols
+	//  Use typeID as unique identifier
+	Type *t = retType_;
+	unsigned int t_id = t ? t->getID() : (unsigned int) 0xdeadbeef; 
+
+	//  Need to serialize regions before symbols
+	//  Use disk offset as unique identifier
+	Region *r = sec_;
+	Offset r_off = r ? r->getDiskOffset() : (Offset) 0;
+
    try {
       ifxml_start_element(s, tag);
       gtranslate(s, type_, symbolType2Str, "type");
@@ -899,31 +997,75 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, isInDynsymtab_, "isInDynsymtab");
       gtranslate(s, isInSymtab_, "isInSymtab");
       gtranslate(s, isAbsolute_, "isAbsolute");
-      gtranslate(s, prettyName_, "prettyName", "prettyName");
-      gtranslate(s, mangledName_, "mangledName", "mangledName");
-      gtranslate(s, typedName_, "typedName", "typedName");
+      gtranslate(s, prettyName_, "prettyName");
+      gtranslate(s, mangledName_, "mangledName");
+      gtranslate(s, typedName_, "typedName");
       gtranslate(s, framePtrRegNum_, "framePtrRegNum");
-      //  Note:  have to deal with retType_ here?? Probably use type id.
+      gtranslate(s, t_id, "typeID");
+      gtranslate(s, r_off, "regionDiskOffset");
       gtranslate(s, moduleName_, "moduleName");
+      gtranslate(s, fileName_, "fileName");
       ifxml_end_element(s, "Symbol");
+
+   //  Now, if we are doing binary deserialization, lookup type and region by unique ids
+	  if (s->isBin())
+	  {
+		  if (s->isInput())
+		  {
+			  ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(s);
+			  if (!ssb)
+			  {
+				  fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				  SER_ERR("FIXME");
+			  }
+			  Symtab *st = ssb->getScope();
+			  assert(st);
+			  Module *m = NULL;
+			  if (!st->findModuleByName(m, moduleName_) || !m)
+			  {
+					  fprintf(stderr, "%s[%d]:  WARNING:  cannot find module '%s' for symbol during deserailize\n", FILE__, __LINE__, moduleName_.c_str());
+			  }
+			  else
+			  {
+				  module_ = m;
+			  }
+
+			  if (t_id == 0xdeadbeef)
+				  retType_ = NULL;
+			  else 
+			  {
+				  Type *t = st->findType(t_id);
+				  if (!t)
+				  {
+					  fprintf(stderr, "%s[%d]:  WARNING:  cannot find type for symbol during deserailize\n", FILE__, __LINE__);
+				  }
+				  else
+				  {
+					  retType_ = t;
+				  }
+			  }
+			  Region *r = NULL;
+			  if (!st->findRegionByEntry(r, r_off) || !r)
+			  {
+				  fprintf(stderr, "%s[%d]:  WARNING:  cannot find region for symbol during deserailize\n", FILE__, __LINE__);
+			  }
+			  else 
+			  {
+				  sec_ = r;
+			  }
+			  
+		  }
+	  }
 #if 0
-      symbol_start(param);
-      translate(param.type_, "type");
-      translate(param.linkage_, "linkage");
-      translate(param.tag_, "tag");
-      getSD().translate(param.addr_, "addr");
-      getSD().translate(param.size_, "size");
-      getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
-      getSD().translate(param.isInSymtab_, "isInSymtab");
-      getSD().translate(param.prettyName_, "prettyName", "prettyName");
-      getSD().translate(param.mangledName_, "mangledName", "mangledName");
-      getSD().translate(param.typedName_, "typedName", "typedName");
-      getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
-      //  Note:  have to deal with retType_ here?? Probably use type id.
-      getSD().translate(param.moduleName_, "moduleName");
-      symbol_end(param);
+	  getTypeByID tbid;
+	  if_bin(if_input(tbid, 
+				  t_id, 
+				  s),
+			  t_id, 
+			  s);
 #endif
    } SER_CATCH("Symbol");
+
 }
 
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 

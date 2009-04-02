@@ -151,7 +151,9 @@ const char *Region::regionType2Str(RegionType rt)
 
 void Region::serialize(SerializerBase *sb, const char *tag)
 {
+#if 0
    ifxml(SerializerXML::start_xml_element, sb, tag);
+#endif
    gtranslate(sb, regNum_, "RegionNumber");
    gtranslate(sb, name_, "RegionName");
    gtranslate(sb, diskOff_, "DiskOffset");
@@ -164,7 +166,9 @@ void Region::serialize(SerializerBase *sb, const char *tag)
    gtranslate(sb, rels_, "Relocations", "Relocation");
    gtranslate(sb, buffer_, "Buffer");
    gtranslate(sb, isLoadable_, "isLoadable");
+#if 0
    ifxml(SerializerXML::end_xml_element, sb, tag);
+#endif
 }
 
 unsigned Region::getRegionNumber() const

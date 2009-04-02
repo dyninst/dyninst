@@ -71,6 +71,7 @@ class Aggregate : public AnnotatableSparse
       SYMTAB_EXPORT virtual bool addMangledName(std::string name, bool isPrimary);
       SYMTAB_EXPORT virtual bool addPrettyName(std::string name, bool isPrimary);
       SYMTAB_EXPORT virtual bool addTypedName(std::string name, bool isPrimary);
+
    protected:
 
 	   bool addMangledNameInt(std::string name, bool isPrimary);

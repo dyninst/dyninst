@@ -38,6 +38,7 @@
 #define _Function_h_
 
 #include "Annotatable.h"
+#include "Serialization.h"
 #include "Aggregate.h"
 #include "Type.h"
 #include "Symbol.h"
@@ -48,7 +49,7 @@ namespace SymtabAPI{
 class Symbol;
 
 
-class Function : public Aggregate
+class Function : public Aggregate, public Serializable
 {
    public:
       SYMTAB_EXPORT Function();
@@ -75,6 +76,8 @@ class Function : public Aggregate
       SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
       SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
       SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
+
+	  SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Function");
 
       /* internal helper functions */
       bool addLocalVar(localVar *);

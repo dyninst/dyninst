@@ -205,6 +205,7 @@ class Symtab : public LookupInterface,
 
    /***** Type Information *****/
    SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name);
+   SYMTAB_EXPORT virtual Type *findType(unsigned type_id);
    SYMTAB_EXPORT virtual bool findVariableType(Type *&type, std::string name);
 
    SYMTAB_EXPORT bool addType(Type *typ);

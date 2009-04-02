@@ -71,3 +71,11 @@ Type* Variable::getType()
    module_->exec()->parseTypesNow();
    return type_;
 }
+
+void Variable::serialize(SerializerBase *sb, const char *tag)
+{
+	fprintf(stderr, "%s[%d]:  implement me\n", FILE__, __LINE__);
+	Aggregate *agg = this;
+	assert(agg);
+	//agg->serialize(sb);
+}
