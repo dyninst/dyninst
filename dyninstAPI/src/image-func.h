@@ -360,8 +360,8 @@ class image_func : public codeRange,
    bool addPrettyName(std::string name, bool isPrimary = false);
    bool addTypedName(std::string name, bool isPrimary = false);
 
-   Address getOffset() const {return func_->getFirstSymbol()->getAddr();}
-   Address getPtrOffset() const {return func_->getFirstSymbol()->getPtrAddr();}
+   Address getOffset() const {return func_->getFirstSymbol()->getOffset();}
+   Address getPtrOffset() const {return func_->getFirstSymbol()->getPtrOffset();}
    Address getEndOffset(); // May trigger parsing
    unsigned getSymTabSize() const { return func_->getFirstSymbol()->getSize(); }
 

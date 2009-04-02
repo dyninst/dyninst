@@ -525,8 +525,8 @@ class Object : public AObject {
                      std::string module);
   
   void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
-                             Elf_X_Data &strdata, bool shared_library,
-                             std::string module);
+                             Elf_X_Data &strdata, Elf_X_Shdr* opdscnp,
+                             bool shared_library, std::string module);
 
   void find_code_and_data(Elf_X &elf,
        Offset txtaddr, Offset dataddr);

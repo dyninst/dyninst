@@ -592,7 +592,8 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 
 #if defined(mips_sgi_irix6_4)        \
  || defined(x86_64_unknown_linux2_4) \
- || defined(rs6000_ibm_aix64)
+ || defined(rs6000_ibm_aix64)        \
+ || defined(ppc64_linux)
 
     BPatch_variableExpr *pointerSizeVar = appImage->findVariable("pointerSize");
     if (!pointerSizeVar) {
@@ -2317,7 +2318,8 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4) \
- || defined(rs6000_ibm_aix4_1)
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(ppc64_linux)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
 
@@ -2428,7 +2430,8 @@ void mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(alpha_dec_osf4_0) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(ppc64_linux)
 
     if (mutateeFortran) {
 	return;
@@ -3612,11 +3615,7 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
                   }
                 }
 	}
-	else 
-   {
-      fprintf(stderr,  "%s[%d]: appThread->getSourceLines(%lu) returned false!\n", 
-            __FILE__, __LINE__, lastAddr -1);
-   }
+	else fprintf(stderr,  "%s[%d]: appThread->getSourceLines returned false!\n", __FILE__, __LINE__);
 #endif
 }
 

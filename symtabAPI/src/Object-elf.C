@@ -1049,7 +1049,7 @@ void Object::load_object(bool alloc_syms)
          {
             symdata = dynsym_scnp->get_data();
             strdata = dynstr_scnp->get_data();
-            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
+            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, opd_scnp, false, module);
          }
 
          //TODO
@@ -1193,7 +1193,7 @@ void Object::load_shared_object(bool alloc_syms)
          {
             symdata = dynsym_scnp->get_data();
             strdata = dynstr_scnp->get_data();
-            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
+            parse_dynamicSymbols(dynamic_scnp, symdata, strdata, opd_scnp, false, module);
          }
 
 #if defined(TIMED_PARSE)
@@ -1314,6 +1314,65 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 } 
 
 
+// Official Procedure Descriptor handler
+//
+// Some platforms (PPC64 Linux libc v2.1) only produce function
+// symbols which point into the .opd section.  Find the actual
+// function address in .text, and fix the symbol.
+
+void fix_opd_symbol(char *opdData, unsigned long opdStart,
+                    unsigned long opdEnd, Symbol *sym)
+{
+    if (!sym) return;
+
+    Symbol::SymbolType stype = sym->getType();
+    Offset soffset = sym->getOffset();
+
+    if (stype == Symbol::ST_FUNCTION || stype == Symbol::ST_NOTYPE) {
+        if (opdStart <= soffset && soffset < opdEnd) {
+            // Now we know the symbol address falls within the
+            // .opd section.  Find the actual address stored
+            // in the .opd section descriptor.
+            Offset newOffset = *(Offset *)(opdData + (soffset - opdStart));
+
+            // Stash the original address as a pointer address.
+            sym->setPtrOffset(soffset);
+
+            // Update offset with 1st word in descriptor.
+            sym->setOffset(newOffset);
+            //fprintf(stderr, "%s: .opd addr (0x%lx) -> (0x%lx)\n",
+            //        sname.c_str(), soffset, newOffset);
+
+            // Finally, if the symbol had no type, fix it.
+            sym->setSymbolType(Symbol::ST_FUNCTION);
+        }
+    }
+}
+
+// Libc section function handler
+//
+// Some versions of libc have internal memory handling functions
+// that only have NOTYPE symbols to represent them.  However,
+// these symbols do have corresponding regions of the same name.
+
+void fix_libc_section_function_symbol(std::vector< Region *> *regions, Symbol *sym)
+{
+    if (!regions || !sym) return;
+
+    if (sym->getType() == Symbol::ST_NOTYPE) {
+        for (unsigned j = 0; j < regions->size(); ++j) {
+            const char *regionName = (*regions)[j]->getRegionName().c_str();
+            if ((*regions)[j]->isText() &&
+                strstr(regionName, "_libc_") &&
+                strstr(sym->getMangledName().c_str(), regionName) &&
+                (*regions)[j]->getMemOffset() == sym->getOffset()) {
+
+                sym->setSymbolType(Symbol::ST_FUNCTION);
+            }
+        }
+    }
+}
+
 // parse_symbols(): populate "allsymbols"
 bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr* bssscnp,
@@ -1330,13 +1389,13 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
       return false;
    }
 
-   unsigned long opdStart;
-   unsigned long opdEnd;
-   char *opdData;
+   unsigned long opdStart = 0;
+   unsigned long opdEnd = 0;
+   char *opdData = 0;
    if (opdscnp) {
-       opdStart = opd_scnh->sh_addr();
-       opdEnd   = opd_scnh->sh_addr() + opd_scnh->sh_size();
-       opdData  = (char *)opd_scnh->get_data().d_buf();
+       opdStart = opdscnp->sh_addr();
+       opdEnd   = opdscnp->sh_addr() + opdscnp->sh_size();
+       opdData  = (char *)opdscnp->get_data().d_buf();
    }
 
    Elf_X_Sym syms = symdata.get_sym();
@@ -1415,56 +1474,12 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                                      false,
                                      (secNumber == SHN_ABS));
 	 
-         // Official Procedure Descriptor handler
-         //
-         // Some platforms (PPC64 Linux libc v2.1) only produce function
-         // symbols which point into the .opd section.  Find the actual
-         // function address in .text, and fix the symbol.
-
-         if (opd_scnh) {
-             if (stype == Symbol::ST_FUNCTION || stype == Symbol::ST_NOTYPE) {
-                 if (opdStart <= soffset && soffset < opdEnd) {
-                     // Now we know the symbol address falls within the
-                     // .opd section.  Find the actual address stored
-                     // in the .opd section descriptor.
-                     Offset newOffset =
-                         *(Offset *) opdData + (soffset - opdStart);
-
-                     // Stash the original address as a pointer address.
-                     newsym->setPtrOffset(soffset);
-
-                     // Update offset with 1st word in descriptor.
-                     newsym->setOffset(newOffset);
-                     //fprintf(stderr, "%s: .opd addr (0x%lx) -> (0x%lx)\n",
-                     //        sname.c_str(), soffset, newOffset);
-
-                     // Finally, if the symbol had no type, fix it.
-                     newsym->setSymbolType(Symbol::ST_FUNCTION);
-                 }
-             }
-         }
-
-         // Libc section function handler
-         //
-         // Some versions of libc have internal memory handling functions
-         // that only have NOTYPE symbols to represent them.  However,
-         // these symbols do have corresponding regions of the same name.
-
-         if (stype == Symbol::ST_NOTYPE) {
-             for (unsigned j = 0; j < regions_.size(); ++j) {
-                 const char *regionName = regions_[j]->getRegionName().c_str();
-                 if (regions_[j]->isText() &&
-                     strstr(regionName, "_libc_") &&
-                     strstr(sname.c_str(), regionName) &&
-                     regions_[j]->getMemOffset() == soffset) {
-
-                     newsym->setSymbolType(Symbol::ST_FUNCTION);
-                 }
-             }
-         }
+         if (opdscnp)
+             fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
+         fix_libc_section_function_symbol(&regions_, newsym);
 
          symbols_[sname].push_back(newsym);
-         symsByOffset_[soffset].push_back(newsym);
+         symsByOffset_[newsym->getOffset()].push_back(newsym);
          symsToModules_[newsym] = smodule; 
 #if 0
          // register symbol in dictionary
@@ -1502,6 +1517,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #endif 
                                    , Elf_X_Data &symdata, 
                                    Elf_X_Data &strdata,
+                                   Elf_X_Shdr* opdscnp,
                                    bool /*shared*/, 
                                    std::string smodule)
 {
@@ -1579,7 +1595,16 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
    }
    
 #endif
- 
+
+   unsigned long opdStart = 0;
+   unsigned long opdEnd = 0;
+   char *opdData = 0;
+   if (opdscnp) {
+       opdStart = opdscnp->sh_addr();
+       opdEnd   = opdscnp->sh_addr() + opdscnp->sh_size();
+       opdData  = (char *)opdscnp->get_data().d_buf();
+   }
+
   if(syms.isValid()) { 
    for (unsigned i = 0; i < syms.count(); i++) {
       int etype = syms.ST_TYPE(i);
@@ -1592,11 +1617,11 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
       Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
       unsigned ssize = syms.st_size(i);
-      Offset saddr = syms.st_value(i);
+      Offset soffset = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
 
       // discard "dummy" symbol at beginning of file
-      if (i==0 && sname == "" && saddr == (Offset)0)
+      if (i==0 && sname == "" && soffset == (Offset)0)
           continue;
 
       /* 11/4/08: don't discard symbols with same name and address */
@@ -1604,7 +1629,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       if(symbols_.find(sname) != symbols_.end()) {
           vector<Symbol *> syms = symbols_[sname];
           for(unsigned j = 0; j < syms.size(); j++){
-              if(syms[j]->getAddr() == saddr){
+              if(syms[j]->getOffset() == soffset){
 #if !defined(os_solaris)
                   if(versymSec) {
                       if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
@@ -1629,11 +1654,16 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
                                   stype, 
                                   slinkage, 
                                   svisibility, 
-                                  saddr, 
+                                  soffset, 
                                   sec, 
                                   ssize, 
                                   true,  // is dynamic
                                   (secNumber == SHN_ABS));
+      
+      if (opdscnp)
+          fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
+      fix_libc_section_function_symbol(&regions_, newsym);
+
 #if !defined(os_solaris)
       if(versymSec) {
           if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end()) {
@@ -1652,7 +1682,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #endif
       // register symbol in dictionary
       symbols_[sname].push_back(newsym);
-      symsByOffset_[saddr].push_back(newsym);
+      symsByOffset_[newsym->getOffset()].push_back(newsym);
       symsToModules_[newsym] = smodule; 
    }
   }
@@ -2129,7 +2159,7 @@ unsigned Object::fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string>
     for (dyn_hash_map<Offset, std::vector<Symbol *> >::iterator iter = symsByOffset_.begin();
          iter != symsByOffset_.end();
          iter++) {
-        Offset off = iter->first; 
+        Offset off = iter->first;
         std::vector<Symbol *> &syms = iter->second;       
 
         std::string modname;
@@ -2224,8 +2254,8 @@ bool Object::fix_global_symbol_modules_static_dwarf()
          {
             /* Walk the tree. */
 
-            //fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
-            //      FILE__, __LINE__, moduleName.c_str());
+             //fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
+             //     FILE__, __LINE__, moduleName.c_str());
 
              fixSymbolsInModule(dbg, moduleName, moduleDIE);
              

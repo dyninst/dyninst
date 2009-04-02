@@ -948,7 +948,7 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     fullNm = name;
     fileNm = extract_pathname_tail(name);
 
-     // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
+    // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
 
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
@@ -1014,7 +1014,6 @@ Symtab::Symtab(std::string filename,bool &err) :
 
    defaultNamespacePrefix = "";
 }
-
 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    is_a_out(false), 
