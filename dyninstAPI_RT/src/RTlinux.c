@@ -64,6 +64,11 @@ extern double DYNINSTstaticHeap_16M_anyHeap_1[];
 extern unsigned long sizeOfLowMemHeap1;
 extern unsigned long sizeOfAnyHeap1;
 
+#if defined(arch_power) && defined(arch_64bit) && defined(os_linux)
+unsigned long DYNINSTlinkSave;
+unsigned long DYNINSTtocSave;
+#endif
+
 /************************************************************************
  * void DYNINSTbreakPoint(void)
  *
@@ -370,10 +375,12 @@ static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
                                                    { 72, 76, 516, 84 },
                                                    { 72, 76, 532, 592 },
                                                    { 72, 476, 516, 80 } };
+
 #elif defined(arch_power)
 //Power
-#define POS_ENTRIES 2
+#define POS_ENTRIES 3
 static pthread_offset_t positions[POS_ENTRIES] = { { 72, 76, 508, 576 },
+						   { 144, 148, 992, 160 }, // PPC64
                                                    { 144, 148, 992, 1072 } };
 #else
 #error Need to define thread structures here
@@ -409,6 +416,18 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
       stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
 #endif
       void *start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
+
+#if defined(arch_power)
+      /* 64-bit POWER architectures also use function descriptors instead of directly
+       * pointing at the function code.  Find the actual address of the function.
+       *
+       * Actually, a process can't read its own OPD section.  Punt for now, but remember
+       * that we're storing the function descriptor address, not the actual function address!
+       */
+      //uint64_t actualAddr = *((uint64_t *)start_pc);
+      //fprintf(stderr, "*** Redirecting start_pc from 0x%lx to 0x%lx\n", start_pc, actualAddr);
+      //start_pc = (void *)actualAddr;
+#endif
 
       // Sanity checking. There are multiple different places that we have
       // found the stack address for a given pair of pid/lwpid locations,

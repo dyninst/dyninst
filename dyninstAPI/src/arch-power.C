@@ -126,7 +126,8 @@ void instruction::generateCall(codeGen &gen, Address from, Address to) {
 
 void instruction::generateInterFunctionBranch(codeGen &gen,
                                               Address from,
-                                              Address to) {
+                                              Address to,
+                                              bool link) {
     long disp = to - from;
 
     if (ABS(disp) <= MAX_BRANCH) {
@@ -146,7 +147,7 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
     insn.generate(gen);
 
     // And branch to CTR
-    instruction btctr(BCTRraw);
+    instruction btctr(link ? BCTRLraw : BCTRraw);
     btctr.generate(gen);
 }
 

@@ -69,7 +69,8 @@
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(ppc64_linux)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -1277,7 +1278,8 @@ void func21_1()
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(alpha_dec_osf4_0) \
  || defined(rs6000_ibm_aix4_1) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(ppc64_linux)
 
      printf("Passed test #21 (findFunction in module)\n");
      passedTest[21] = TRUE;
@@ -1304,7 +1306,8 @@ void func22_1()
  && !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(alpha_dec_osf4_0) \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(ppc64_linux)
 
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");
@@ -1436,7 +1439,8 @@ void func23_1()
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(ppc64_linux)
 
     printf("Skipped test #23 (local variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1513,7 +1517,8 @@ void func24_1()
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(ppc64_linux)
 
     printf("Skipped test #24 (arrary variables)\n");
     printf("\t- not implemented on this platform\n");
@@ -1715,7 +1720,8 @@ void func26_1()
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(ppc64_linux)
 
     printf("Skipped test #26 (struct elements)\n");
     printf("\t- not implemented on this platform\n");
@@ -1802,7 +1808,8 @@ void func27_1()
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(ppc64_linux)
 
     printf("Skipped test #27 (type compatibility)\n");
     printf("\t- not implemented on this platform\n");

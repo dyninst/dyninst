@@ -493,12 +493,13 @@ typedef unsigned codeBufIndex_t;
 // -------------------------- Raw instructions ------------------
 /* a few full instructions that are in forms we don't break down by field */
 // xlform
-#define MTLR0raw       0x7c0803a6	/* move from link reg -- mtlw r0 */
-#define MFLR0raw       0x7c0802a6	/* move from link reg -- mflr r0 */
+#define MTLR0raw       0x7c0803a6      /* move from link reg -- mtlw r0 */
+#define MFLR0raw       0x7c0802a6      /* move from link reg -- mflr r0 */
 #define BCTRraw        0x4e800420      /* bctr instrunction */
+#define BCTRLraw       0x4e800421      /* bctrl instrunction */
 #define BRraw          0x4e800020      /* br instruction */
-#define BRLraw         0x4e800021	/* branch and link to link reg */
-#define NOOPraw        0x60000000       /* noop, d form ORIL 0, 0, 0 */
+#define BRLraw         0x4e800021      /* branch and link to link reg */
+#define NOOPraw        0x60000000      /* noop, d form ORIL 0, 0, 0 */
 
 // -------------------------- Branch fields ------------------------------
 // BO field of branch conditional
@@ -645,7 +646,8 @@ class instruction {
 
     static void generateInterFunctionBranch(codeGen &gen,
                                             Address from,
-                                            Address to);
+                                            Address to,
+                                            bool link = false);
 
     // Using the process trap mapping for a branch
     static void generateBranchViaTrap(codeGen &gen,
