@@ -768,7 +768,7 @@ class instruction {
   bool isRetFar() const { return type_ & IS_RETF; }
   bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); }
   bool isJumpDir() const
-    { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
+    { return !(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
   bool isUncondJump() const
     { return ((type_ & IS_JUMP) && !(type_ & IS_JCC)); }
   bool isIndir() const { return type_ & INDIR; }
