@@ -372,7 +372,8 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     logerror("   %s\n", theTarget.format().c_str());
     return FAILED;
   }
-  if(theTarget.val.u32val != 0x20) {
+  // Call target should be to IP + displacement + size
+  if(theTarget.val.u32val != 0x25) {
     logerror("FAILED: expected call to %x, got call to %x\n", 0x20, theTarget.val.u32val);
     logerror("   %s\n", theTarget.format().c_str());
     return FAILED;

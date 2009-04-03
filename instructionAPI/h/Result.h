@@ -73,7 +73,8 @@ namespace Dyninst
     };
     enum Result_Type
     {
-      s8 = 0,
+      bit_flag = 0,
+      s8,
       u8,
       s16,
       u16,
@@ -85,12 +86,67 @@ namespace Dyninst
       u64,
       sp_float,
       dp_float,
-      bit_flag,
       // 48-bit pointers...yay Intel
       m512,
-      dbl128,
+      dbl128
     };
-
+    
+    template < Result_Type t > struct Result_type2type
+    {
+      typedef void* type;
+    };
+    template < > struct Result_type2type<s8>
+    {
+      typedef char type;
+    };   
+    template < > struct Result_type2type<u8>
+    {
+      typedef unsigned char type;
+    };    
+    template < > struct Result_type2type <s16>
+    {
+      typedef int16_t type;
+    };
+    template < > struct Result_type2type <u16>
+    {
+      typedef uint16_t type;
+    };
+    template <  > struct Result_type2type <s32>
+    {
+      typedef int32_t type;
+    };
+    template < > struct Result_type2type <u32>
+    {
+      typedef uint32_t type;
+    };
+    template <  > struct Result_type2type <s48>
+    {
+      typedef int64_t type;
+    };
+    template < > struct Result_type2type <u48>
+    {
+      typedef uint64_t type;
+    };
+    template <  > struct Result_type2type <s64>
+    {
+      typedef int64_t type;
+    };
+    template < > struct Result_type2type <u64>
+    {
+      typedef uint64_t type;
+    };      
+    template < > struct Result_type2type <sp_float>
+    {
+      typedef float type;
+    };   
+    template < > struct Result_type2type <dp_float>
+    {
+      typedef double type;
+    };   
+   template < > struct Result_type2type <bit_flag>
+    {
+      typedef unsigned char type;
+    };   
     /// A %Result object represents a value computed by a %Expression AST.
     ///
     /// The %Result class is a tagged-union representation of the results that
@@ -177,12 +233,6 @@ namespace Dyninst
 	case s64:
 	  val.s64val = (int64_t)(v);
 	  break;
-	case sp_float:
-	  val.floatval = (float)(v);
-	  break;
-	case dp_float:
-	  val.dblval = (double)(v);
-	  break;
 	case bit_flag:
 	  val.bitval = (v != 0) ? 1 : 0;
 	  break;
@@ -198,11 +248,28 @@ namespace Dyninst
         case dbl128:
 	  val.dbl128val = (void*) v;
 	  break;
+	  // Floats should be constructed with float types
 	default:
+	case sp_float:
+	case dp_float:
 	  assert(!"Invalid type!");
 	  break;
 	}
       }
+      Result(Result_Type t, float v)
+      {
+	type = t,
+	defined = true;
+	val.dblval = v;
+	assert(t == sp_float || t == dp_float);
+      }
+      Result(Result_Type t, double v)
+      {
+	type = t,
+	defined = true;
+	val.dblval = v;
+	assert(t == sp_float || t == dp_float);
+      }      
       ~Result()
       {
       }
@@ -338,6 +405,51 @@ namespace Dyninst
 	  return ret.str();
 	}
       }
+
+      
+
+      template< typename to_type >
+      to_type convert() const
+      {
+	switch(type)
+	{
+	case s8:
+	  return to_type(val.s8val);
+	case u8:
+	  return to_type(val.u8val);
+	case s16:
+	  return to_type(val.s16val);
+	case u16:
+	  return to_type(val.u16val);
+	case s32:
+	  return to_type(val.s32val);
+	case u32:
+	  return to_type(val.u32val);
+	case s48:
+	  return to_type(val.s48val);
+	case u48:
+	  return to_type(val.u48val);
+	case s64:
+	  return to_type(val.s64val);
+	case u64:
+	  return to_type(val.u64val);
+	case sp_float:
+	  return to_type(val.floatval);
+	case dp_float:
+	  return to_type(val.dblval);
+	case bit_flag:
+	  return to_type(val.bitval);
+	case m512:
+	case dbl128:
+	  assert(!"M512 and DBL128 types cannot be converted yet");
+	  return to_type(0);
+	default:
+	  assert(!"Invalid type in result!");
+	  return to_type(0);
+	}
+      }
+      
+
     /// Returns the size of the contained type, in bytes
       int size() const
       {
@@ -376,6 +488,8 @@ namespace Dyninst
     };
     
     Result operator+(const Result& arg1, const Result& arg2);
+    Result operator*(const Result& arg1, const Result& arg2);
+    
   };
 };
 

@@ -254,7 +254,13 @@ namespace Dyninst
       {
 	return makeReturnExpression();
       }
-      assert(m_Operands.size() == 1);
+      Expression::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
+      
+      if(!(m_Operands[0].isRead(thePC) || m_Operands.size() == 1))
+      {
+	fprintf(stderr, "WARNING: control flow target for instruction %s may be incorrect\n", format().c_str());
+      }
+      
       return m_Operands[0].getValue();
     }
     

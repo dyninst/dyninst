@@ -431,7 +431,10 @@ namespace Dyninst
 	{
 	  Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position));
 	  Expression::Ptr EIP(new RegisterAST(r_EIP));
-	  Expression::Ptr op(makeAddExpression(Offset, EIP, u32));
+	  Expression::Ptr InsnSize(new Immediate(Result(u8, decodedInstruction->getSize())));
+	  Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
+	  
+	  Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
 	  outputOperands.push_back(op);
 	}
 	break;
