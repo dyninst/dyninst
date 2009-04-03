@@ -200,7 +200,6 @@ class memoryTracker : public codeRange {
     memoryTracker(Address a, unsigned s) :
         alloced(false), a_(a), s_(s) {
         b_ = malloc(s_);
-	fprintf(stderr, "Malloc'd %p\n", b_);
     }
 
     memoryTracker(Address a, unsigned s, void *b) :

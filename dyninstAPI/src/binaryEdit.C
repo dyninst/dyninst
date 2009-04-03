@@ -195,7 +195,6 @@ Address BinaryEdit::inferiorMalloc(unsigned size,
 
 void BinaryEdit::inferiorFree(Address item)
 {
-  fprintf(stderr, "BE::InferiorFree %lx\n", item);
   inferiorFreeInternal(item);
 
   codeRange *obj;
