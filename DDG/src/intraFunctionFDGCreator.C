@@ -74,6 +74,17 @@ intraFunctionFDGCreator intraFunctionFDGCreator::create(Function* func) {
   return creator;
 }
 
+intraFunctionFDGCreator::~intraFunctionFDGCreator() {
+  for (InstWithAddrList::iterator iter = lastInstInBlock.begin();
+      iter != lastInstInBlock.end();
+      iter++) {
+    InstWithAddr* item = *iter;
+    if (item) {
+      delete item;
+    }
+  }
+}
+
 Graph::Ptr intraFunctionFDGCreator::getFDG() {
   if (func == NULL) return Graph::Ptr();
 
@@ -105,7 +116,7 @@ void intraFunctionFDGCreator::analyze() {
   cfg->getAllBasicBlocks(blocks);
 
   // create an array of <instruction, address> pairs indexed by block number.
-  lastInstInBlock = new InstWithAddr*[ blocks.size() ];
+  lastInstInBlock.resize(blocks.size());
   
   // mark blocks that end with a jump/return/branch instruction.
   markBlocksWithJump(blocks);

@@ -62,6 +62,8 @@ private:
 
   typedef set<Block*> BlockSet;
   typedef Node::Ptr NodePtr;
+  typedef vector<NodePtr> NodeList;
+  typedef vector<BlockSet> BlockSetList;
   
   /**
    * The function whose CDG is being created.
@@ -88,10 +90,10 @@ private:
   intraFunctionCDGCreator(Function *f) : func(f) {};
   
   void analyze();
-  void createInterBlockDeps(BlockSet& blocks, BlockSet dependencies[]);
-  void createNodeDeps(BlockSet& blocks, BlockSet dependencies[]);
-  void createNodes(BlockSet& blocks, NodePtr lastNodeInBlock[]);
-  void createDependencies(BlockSet& blocks, BlockSet dependencies[], NodePtr lastNodeInBlock[]);
+  void createInterBlockDeps(BlockSet& blocks, BlockSetList& dependencies);
+  void createNodeDeps(BlockSet& blocks, BlockSetList& dependencies);
+  void createNodes(BlockSet& blocks, NodeList& lastNodeInBlock);
+  void createDependencies(BlockSet& blocks, BlockSetList& dependencies, NodeList& lastNodeInBlock);
 };
 
 #endif /* INTRACDGCREATOR_H_ */

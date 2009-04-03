@@ -66,6 +66,7 @@ private:
   typedef Node::Ptr NodePtr;
   typedef set<NodePtr> NodeSet;
   typedef pair<Instruction, Address> InstWithAddr;
+  typedef vector<InstWithAddr*> InstWithAddrList;
   
   /**
    * The function whose FDG is being created.
@@ -95,7 +96,7 @@ private:
   /**
    * This is an array of InstWithAddress pointers. Its memory should be claimed.
    */
-  InstWithAddr** lastInstInBlock;
+  InstWithAddrList lastInstInBlock;
 
 public:
   /**
@@ -123,6 +124,10 @@ public:
    */
   static bool isBranchOp(const Operation& opType);
   
+  /**
+   * Destructor.
+   */
+  virtual ~intraFunctionFDGCreator();
 private:
   intraFunctionFDGCreator(Function *f) : func(f) {};
   

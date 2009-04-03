@@ -101,7 +101,7 @@ void intraFunctionCDGCreator::analyze() {
   cfg->getAllBasicBlocks(allBlocks);
 
   // initialize an array
-  BlockSet dependencies[allBlocks.size()];
+  BlockSetList dependencies(allBlocks.size());
   
   // create the dependencies between blocks
   createInterBlockDeps(allBlocks, dependencies);
@@ -114,7 +114,7 @@ void intraFunctionCDGCreator::analyze() {
  * Creates control flow dependencies between blocks. For more info, see Ferrante et. al.'s
  * "The program dependence graph and its use in optimization".
  */
-void intraFunctionCDGCreator::createInterBlockDeps(BlockSet& blocks, BlockSet dependencies[]) {
+void intraFunctionCDGCreator::createInterBlockDeps(BlockSet& blocks, BlockSetList& dependencies) {
   for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
     Block* block = *blockIter;
     vector<Block*> out;
@@ -138,8 +138,8 @@ void intraFunctionCDGCreator::createInterBlockDeps(BlockSet& blocks, BlockSet de
   }
 }
 
-void intraFunctionCDGCreator::createNodeDeps(BlockSet& blocks, BlockSet dependencies[]) {
-  NodePtr lastNodeInBlock[blocks.size()];
+void intraFunctionCDGCreator::createNodeDeps(BlockSet& blocks, BlockSetList& dependencies) {
+  NodeList lastNodeInBlock(blocks.size());
   createNodes(blocks, lastNodeInBlock);
   createDependencies(blocks, dependencies, lastNodeInBlock);
 }
@@ -148,7 +148,7 @@ void intraFunctionCDGCreator::createNodeDeps(BlockSet& blocks, BlockSet dependen
  * Creates individual nodes for each instruction and insert an edge from a virtual node to all
  * the nodes to avoid garbage collection by boost.
  */
-void intraFunctionCDGCreator::createNodes(BlockSet& blocks, NodePtr lastNodeInBlock[]) {
+void intraFunctionCDGCreator::createNodes(BlockSet& blocks, NodeList& lastNodeInBlock) {
   NodePtr virtNode = CDG->makeVirtualNode();
   for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
     vector<Instruction> instructions;
@@ -170,8 +170,8 @@ void intraFunctionCDGCreator::createNodes(BlockSet& blocks, NodePtr lastNodeInBl
 /**
  * Creates dependencies at the instruction level using the dependencies at the Block level.
  */
-void intraFunctionCDGCreator::createDependencies(BlockSet& blocks, BlockSet dependencies[],
-    NodePtr lastNodeInBlock[]) {
+void intraFunctionCDGCreator::createDependencies(BlockSet& blocks, BlockSetList& dependencies,
+    NodeList& lastNodeInBlock) {
   for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
     int blockNumber = (*blockIter)->getBlockNumber();
     BlockSet& depList = dependencies[ blockNumber ];
