@@ -96,7 +96,7 @@ class Graph : public AnnotatableSparse {
  public:
     
     bool initialNodes(NodeSet &nodes) const;
-    bool allNodes(NodeSet &nodes) const;
+    bool allNodes(NodeSet &nodes);
     
     // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
@@ -121,6 +121,11 @@ class Graph : public AnnotatableSparse {
     // from either a parameter node or this "immediate" node.
     NodePtr makeVirtualNode();
     
+    // Make a simple node in this graph. If the node already exists we return
+    // it; otherwise we create a new Node and add it to insnNodes_ (NOT
+    // entryNodes_; that is populated by calls to insertPair above).
+    NodePtr makeSimpleNode(Dyninst::InstructionAPI::Instruction &instruction, Address addr);
+    
     bool printDOT(const std::string fileName);
     
     void debugCallInfo();
@@ -134,6 +139,13 @@ class Graph : public AnnotatableSparse {
     // sources (definitions) of those parameters.
     void recordCall(Address callAddr,
                     const CNodeRec &callInfo);
+    
+    // Returns a new graph after copying the nodes and edges into this new graph.
+    Graph::Ptr copyGraph();
+    
+    // Returns a set of nodes which are related to the instruction at
+    // the given address.
+    NodeSet getNodesAtAddr(Address addr);
     
  private:
     static const Address INITIAL_ADDR;

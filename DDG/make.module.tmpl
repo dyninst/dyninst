@@ -37,7 +37,10 @@ SRCS +=	../src/Graph.C \
         ../src/Edge.C \
         ../src/Node.C \
         ../src/Absloc.C \
-        ../src/intraFunctionCreator.C
+        ../src/intraFunctionCreator.C \
+        ../src/intraFunctionCDGCreator.C \
+        ../src/intraFunctionFDGCreator.C \
+        ../src/intraFunctionPDGCreator.C
 
 
 ifndef USES_NATIVE_CC
@@ -51,7 +54,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../external
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../external -I../../dyninstAPI/h
 
 DOCDIR	= ../doc
 
