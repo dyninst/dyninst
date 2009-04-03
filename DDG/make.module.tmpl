@@ -10,9 +10,8 @@ SUITE_NAME	= Dyninst
 RELEASE_NUM	= 5.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
-
-CFLAGS		     += $(USEFULWARNINGS) $(DEFINES) -I../../instructionAPI/h
-CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES) -I../../instructionAPI/h
+CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
+CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 
 LDFLAGS += -lcommon
 

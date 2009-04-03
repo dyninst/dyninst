@@ -53,6 +53,19 @@ const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
 
 Graph::Graph() {};
 
+Graph::Ptr Graph::createGraph() {
+    return Graph::Ptr(new Graph());
+}
+
+void Graph::insertPair(NodePtr source, NodePtr target) {
+    // TODO handle parameter edge types.
+
+    Edge::Ptr e = Edge::createEdge(source, target);
+
+    source->addOutEdge(e);
+    target->addInEdge(e);
+}
+
 Graph::NodePtr Graph::makeNode(Dyninst::InstructionAPI::Instruction &insn,
                                Address addr,
                                AbslocPtr absloc) {
@@ -81,41 +94,19 @@ Graph::NodePtr Graph::makeParamNode(Absloc::Ptr a) {
     return parameterNodes_[a];
 }
 
+Graph::NodePtr Graph::makeReturnNode(Absloc::Ptr a) {
+    if (returnNodes_.find(a) == returnNodes_.end()) {
+        NodePtr n = ReturnNode::createNode(a);
+        returnNodes_[a] = n;
+        return n;
+    }
+    return returnNodes_[a];
+}
+
 Graph::NodePtr Graph::makeVirtualNode() {
     if (virtualNode_) return virtualNode_;
     virtualNode_ = VirtualNode::createNode(); 
     return virtualNode_;
-}
-
-Graph::Ptr Graph::createGraph() {
-    return Graph::Ptr(new Graph());
-}
-
-void Graph::insertPair(NodePtr source, NodePtr target) {
-    // TODO handle parameter edge types.
-
-    Edge::Ptr e = Edge::createEdge(source, target);
-
-    source->addOutEdge(e);
-    target->addInEdge(e);
-}
-
-const Graph::NodeSet Graph::entryNodes() const {
-    NodeSet ret;
-    
-    for (AbslocMap::const_iterator iter = parameterNodes_.begin();
-         iter != parameterNodes_.end(); iter++) {
-        ret.insert(iter->second);
-    }
-    if (virtualNode_) {
-        ret.insert(virtualNode_);
-    }
-    return ret;
-}
-
-void Graph::recordCall(Address callAddr,
-                       const CNodeRec &callInfo) {
-    callRecords_[callAddr] = callInfo;
 }
 
 bool Graph::printDOT(const std::string fileName) {
@@ -129,7 +120,8 @@ bool Graph::printDOT(const std::string fileName) {
     NodeSet visited;
     std::queue<Node::Ptr> worklist;
 
-    const NodeSet &entries = entryNodes();
+    NodeSet entries;
+    entryNodes(entries);
 
     // Initialize visitor worklist
     for (NodeSet::const_iterator i = entries.begin(); i != entries.end(); i++) {
@@ -171,24 +163,27 @@ bool Graph::printDOT(const std::string fileName) {
     return true;
 }
 
-void Graph::debugCallInfo() {
-    for (CNodeMap::const_iterator c_iter = callRecords_.begin();
-         c_iter != callRecords_.end();
-         c_iter++) {
-        fprintf(stderr, "Call at 0x%lx has the following reaching defs:\n",
-                c_iter->first);
-        for (CNodeRec::const_iterator a_iter = c_iter->second.begin();
-             a_iter != c_iter->second.end();
-             a_iter++) {
-            fprintf(stderr, "\t Absloc %s:\n",
-                    a_iter->first->name().c_str());
-            for (CNodeSet::const_iterator s_iter = a_iter->second.begin();
-                 s_iter != a_iter->second.end(); 
-                 s_iter++) {
-                fprintf(stderr, "\t\t 0x%lx / %s\n",
-                        s_iter->second,
-                        s_iter->first->name().c_str());
-            }
-        }
+
+void Graph::entryNodes(NodeSet &ret) const {
+    parameterNodes(ret);
+
+    if (virtualNode_) {
+        ret.insert(virtualNode_);
+    }
+    return;
+}
+
+void Graph::parameterNodes(NodeSet &ret) const {
+    for (AbslocMap::const_iterator iter = parameterNodes_.begin();
+         iter != parameterNodes_.end(); iter++) {
+        ret.insert(iter->second);
+    }
+    return;
+}
+
+void Graph::returnNodes(NodeSet &ret) const {
+    for (AbslocMap::const_iterator iter = returnNodes_.begin();
+         iter != returnNodes_.end(); iter++) {
+        ret.insert(iter->second);
     }
 }

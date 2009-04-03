@@ -77,6 +77,7 @@ namespace DDG {
 
     public:
         typedef dyn_detail::boost::shared_ptr<Edge> Ptr;
+        typedef std::set<Edge::Ptr> Set;
         typedef dyn_detail::boost::shared_ptr<Node> NodeSharedPtr;
         typedef dyn_detail::boost::weak_ptr<Node> NodePtr;
         

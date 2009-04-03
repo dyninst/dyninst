@@ -53,6 +53,7 @@
 #include <string>
 #include "Annotatable.h"
 #include "Instruction.h"
+#include "Edge.h"
 
 #include "Absloc.h"
 
@@ -74,12 +75,14 @@ class Node : public AnnotatableSparse {
     
  public:
     typedef dyn_detail::boost::shared_ptr<Node> Ptr;
+    typedef std::set<Node::Ptr> Set;
+
     //typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
     
     typedef InstructionAPI::Instruction InsnPtr; 
     typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
     typedef Absloc::Ptr AbslocPtr;
-    typedef std::set<EdgePtr> EdgeSet;
+    typedef Edge::Set EdgeSet;
     
     bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
     bool outs(EdgeSet &edges) const { return returnEdges(outs_, edges); }
@@ -178,6 +181,35 @@ class ParameterNode : public Node {
     
  private:
     ParameterNode(AbslocPtr a) :
+        absloc_(a) {};
+    
+    AbslocPtr absloc_;
+};
+
+class ReturnNode : public Node {
+    friend class Edge;
+    friend class Graph;
+    friend class Creator;
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<ReturnNode> Ptr;
+
+    static Node::Ptr createNode(AbslocPtr absloc);
+    
+    AbslocPtr absloc() const { return absloc_; }
+    
+    // We may use "virtual" nodes to represent initial definitions. These
+    // have no associated instruction, which we represent as a NULL insn().
+    //bool isVirtual() const { return insn(); }
+    
+    virtual std::string name() const;
+    
+    virtual bool isVirtual() const { return true; } 
+    
+    virtual ~ReturnNode() {};
+    
+ private:
+    ReturnNode(AbslocPtr a) :
         absloc_(a) {};
     
     AbslocPtr absloc_;

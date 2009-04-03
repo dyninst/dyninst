@@ -65,6 +65,10 @@ Node::Ptr ParameterNode::createNode(AbslocPtr absloc) {
     return Node::Ptr(new ParameterNode(absloc)); 
 }
 
+Node::Ptr ReturnNode::createNode(AbslocPtr absloc) {
+    return Node::Ptr(new ReturnNode(absloc)); 
+}
+
 Node::Ptr VirtualNode::createNode() {
     return Node::Ptr(new VirtualNode());
 }
@@ -93,6 +97,13 @@ std::string InsnNode::name() const {
 std::string ParameterNode::name() const {
     char buf[256];
     sprintf(buf, "N_PARAM_%s_",
+            absloc()->name().c_str());
+    return std::string(buf);
+}
+
+std::string ReturnNode::name() const {
+    char buf[256];
+    sprintf(buf, "N_RET_%s_",
             absloc()->name().c_str());
     return std::string(buf);
 }
