@@ -130,10 +130,12 @@ class AddressSpace : public InstructionSource {
 
     virtual Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
                                    Address near = 0, bool *err = NULL) = 0;
-    void inferiorFree(Address item);
+    virtual void inferiorFree(Address item) = 0;
+    void inferiorFreeInternal(Address item);
     // And a "constrain" call to free unused memory. This is useful because our
     // instrumentation is incredibly wasteful.
-    virtual bool inferiorRealloc(Address item, unsigned newSize);
+    virtual bool inferiorRealloc(Address item, unsigned newSize) = 0;
+    bool inferiorReallocInternal(Address item, unsigned newSize);
 
     bool isInferiorAllocated(Address block);
 

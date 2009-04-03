@@ -143,31 +143,20 @@ class Symbol : public Serializable,
        prettyName_(Symbol::emptyString),
        typedName_(Symbol::emptyString),
        tag_(TAG_UNKNOWN) {}
-#if 0
-   SYMTAB_EXPORT Symbol (unsigned);
-   SYMTAB_EXPORT Symbol (const std::string name,
-                         const std::string modulename,
-                         SymbolType, 
-                         SymbolLinkage,
-                         SymbolVisibility, 
-                         Offset, Region *sec = NULL, 
-                         unsigned size = 0, 
-                         bool isDynamic = false,
-                         bool isAbsolute_ = false);
-#endif
+
    SYMTAB_EXPORT static Symbol *magicEmitElfSymbol();
 
    SYMTAB_EXPORT Symbol (const std::string name,
-                         //Module *module, 
                          SymbolType t,
                          SymbolLinkage l,
                          SymbolVisibility v,
                          Offset o,
+                         Module *module = NULL, 
                          Region *r = NULL, 
                          unsigned s = 0,
                          bool d = false,
                          bool a = false) :
-       module_(NULL),
+       module_(module),
        type_(t),
        linkage_(l),
        visibility_(v),
@@ -189,8 +178,6 @@ class Symbol : public Serializable,
 
    SYMTAB_EXPORT bool          operator== (const Symbol &) const;
 
-
-
    /***********************************************************
      Name Output Functions
     ***********************************************************/		
@@ -198,12 +185,14 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT const std::string&	 getPrettyName() const;
    SYMTAB_EXPORT const std::string&      getTypedName() const;
 
-   SYMTAB_EXPORT unsigned getSize() const { return size_; }
-   SYMTAB_EXPORT Offset getOffset() const { return offset_; }
    SYMTAB_EXPORT Module *getModule() const { return module_; } 
    SYMTAB_EXPORT SymbolType getType () const { return type_; }
    SYMTAB_EXPORT SymbolLinkage getLinkage () const { return linkage_; }
+   SYMTAB_EXPORT Offset getOffset() const { return offset_; }
+   SYMTAB_EXPORT Offset getPtrOffset() const { return ptr_offset_; }
+   SYMTAB_EXPORT unsigned getSize() const { return size_; }
    SYMTAB_EXPORT Region *getRegion() const { return region_; }
+
    SYMTAB_EXPORT bool isInDynSymtab() const { return isDynamic_; }
    SYMTAB_EXPORT bool isInSymtab() const { return isInDynSymtab(); }
    SYMTAB_EXPORT bool isAbsolute() const { return isAbsolute_; }
@@ -220,7 +209,8 @@ class Symbol : public Serializable,
 
 
    //////////////// Modification
-   SYMTAB_EXPORT bool setOffset (Offset newAddr);
+   SYMTAB_EXPORT bool setOffset (Offset newOffset);
+   SYMTAB_EXPORT bool setPtrOffset (Offset newOffset);
    SYMTAB_EXPORT bool setSize(unsigned ns);
    SYMTAB_EXPORT bool setModule(Module *mod);
 
@@ -237,9 +227,10 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool  setVersionFileName(std::string &fileName);
    SYMTAB_EXPORT bool  setVersions(std::vector<std::string> &vers);
    SYMTAB_EXPORT bool  setVersionNum(unsigned verNum);
+
    SYMTAB_EXPORT bool  getVersionFileName(std::string &fileName);
    SYMTAB_EXPORT bool  getVersions(std::vector<std::string> *&vers);
-   SYMTAB_EXPORT bool  VersionNum(unsigned &verNum);
+   SYMTAB_EXPORT bool  getVersionNum(unsigned &verNum);
 
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
@@ -264,6 +255,7 @@ class Symbol : public Serializable,
    SymbolLinkage linkage_;
    SymbolVisibility visibility_;
    Offset        offset_;
+   Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
    Region*       region_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
    void *upPtr_;

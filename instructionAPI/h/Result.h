@@ -73,20 +73,20 @@ namespace Dyninst
     };
     enum Result_Type
     {
-      u8 = 0,
-      s8,
-      u16,
+      s8 = 0,
+      u8,
       s16,
-      u32,
+      u16,
       s32,
-      u64,
+      u32,
+      s48,
+      u48,
       s64,
+      u64,
       sp_float,
       dp_float,
       bit_flag,
       // 48-bit pointers...yay Intel
-      s48,
-      u48,
       m512,
       dbl128,
     };

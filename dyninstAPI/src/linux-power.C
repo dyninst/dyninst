@@ -769,6 +769,10 @@ bool process::insertTrapAtEntryPointOfMain()
     }
 
     if( funcs.size() > 1 ) {
+      for (unsigned j = 0; j < funcs.size(); ++j) {
+	funcs[j]->debugPrint();
+      }
+
         cerr << __FILE__ << __LINE__
              << ": found more than one main! using the first" << endl;
     }

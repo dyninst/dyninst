@@ -791,6 +791,12 @@ bool Symtab::updateIndices(Symbol *sym, std::string newName, NameType nameType) 
     return true;
 }
 
+#if 0
+/* checkPPC64DescriptorSymbols() is no longer needed.  3-word descriptor
+ * symbols are properly taken care of during symbol parsing.  See
+ * parse_symbols() in Object-elf.C for details.
+ */
+
 #if defined(ppc64_linux)
 /* Special case for ppc64 ELF binaries. Sometimes a function has a 3-byte descriptor symbol
  * along with it in the symbol table and "." preceding its original pretty name for the correct
@@ -825,6 +831,7 @@ void Symtab::checkPPC64DescriptorSymbols(Object *linkedFile)
 
 }
 
+#endif
 #endif
 
 //  setModuleLanguages is only called after modules have been defined.
@@ -941,7 +948,7 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     fullNm = name;
     fileNm = extract_pathname_tail(name);
 
-     // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
+    // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
 
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
@@ -1007,7 +1014,6 @@ Symtab::Symtab(std::string filename,bool &err) :
 
    defaultNamespacePrefix = "";
 }
-
 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    is_a_out(false), 
@@ -1226,7 +1232,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     //statusLine("winnowing functions");
 
 #if defined(ppc64_linux)
-    checkPPC64DescriptorSymbols(linkedFile);
+    //checkPPC64DescriptorSymbols(linkedFile);
 #endif
 
     // a vector to hold all created symbols until they are properly classified

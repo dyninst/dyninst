@@ -512,6 +512,8 @@ void instPoint::calcLiveness() {
    // First, ensure that the block liveness is done.
    func()->ifunc()->calcBlockLevelLiveness();
 
+   unsigned width = func()->ifunc()->img()->getObject()->getAddressWidth();
+
    // We know: 
    //    liveness in at the block level:
    block()->llb()->getLivenessIn();
@@ -666,12 +668,12 @@ void instPoint::calcLiveness() {
          read |= (registerSpace::getRegisterSpace(proc())->getReturnReadRegisters());
          // Nothing written implicitly by a return
       }
-      if (ii.isAJumpInstruction() && isExitBlock())
+      if (ii.isAJumpInstruction() && block()->llb()->isExitBlock())
       {
          //Tail call, union of call and return
-         read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
-                  (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
-         written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+          read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
+                   (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
+          written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
       }
       if (ii.isSyscall()) {
          read |= (registerSpace::getRegisterSpace(proc())->getSyscallReadRegisters());
@@ -704,6 +706,8 @@ bitArray instPoint::liveRegisters(callWhen when) {
     // postLiveRegisters_ is our _output_ liveness. If the 
     // instrumentation is pre-point, we need to update it with
     // the effects of this instruction.
+
+    unsigned width = func()->ifunc()->img()->getObject()->getAddressWidth();
 
     // Override: if we have an unparsed jump table in the _function_,
     // return "everything could be live".
@@ -795,7 +799,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
         read |= (registerSpace::getRegisterSpace(proc())->getCallReadRegisters());
         written |= (registerSpace::getRegisterSpace(proc())->getCallWrittenRegisters());
     }
-    if (ii.isAJumpInstruction() && isExitBlock())
+    if (ii.isAJumpInstruction() && block()->llb()->isExitBlock())
     {
        //Tail call, union of call and return
        read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |

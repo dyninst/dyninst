@@ -55,6 +55,7 @@ Symbol *Symbol::magicEmitElfSymbol() {
                       SV_DEFAULT,
                       0,
                       NULL,
+                      NULL,
                       0,
                       false,
                       false);
@@ -83,17 +84,23 @@ SYMTAB_EXPORT const string& Symbol::getModuleName() const
         return emptyString;
 }
 
-bool Symbol::setOffset(Offset newOffset) {
-    
-    return false;
+bool Symbol::setOffset(Offset newOffset)
+{
+    offset_ = newOffset;
+    return true;
+}
+
+bool Symbol::setPtrOffset(Offset newOffset)
+{
+    ptr_offset_ = newOffset;
+    return true;
 }
 
 SYMTAB_EXPORT bool Symbol::setModule(Module *mod) 
 {
-	module_ = mod; 
-	return true;
+    module_ = mod; 
+    return true;
 }
-
 
 SYMTAB_EXPORT bool Symbol::isFunction() const
 {
@@ -150,7 +157,7 @@ SYMTAB_EXPORT bool Symbol::setSymbolType(SymbolType sType)
     
     SymbolType oldType = type_;	
     type_ = sType;
-    if (module_->exec())
+    if (module_ && module_->exec())
         module_->exec()->changeType(this, oldType);
 
     // TODO: update aggregate with information
@@ -278,7 +285,8 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
       gtranslate(s, tag_, symbolTag2Str, "tag");
       gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
-      gtranslate(s, offset_, "addr");
+      gtranslate(s, offset_, "offset");
+      gtranslate(s, ptr_offset_, "ptr_offset");
       gtranslate(s, size_, "size");
       gtranslate(s, isDynamic_, "isDynamic"); 
       gtranslate(s, isAbsolute_, "isAbsolute");
@@ -292,7 +300,8 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
       translate(param.type_, "type");
       translate(param.linkage_, "linkage");
       translate(param.tag_, "tag");
-      getSD().translate(param.addr_, "addr");
+      getSD().translate(param.offset_, "offset");
+      getSD().translate(param.ptr_offste_, "ptr_offset");
       getSD().translate(param.size_, "size");
       getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
       getSD().translate(param.isInSymtab_, "isInSymtab");
@@ -317,7 +326,8 @@ ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
               << " type="    << s.symbolType2Str(s.type_)
         //<< " linkage=" << (unsigned) s.linkage_
               << " linkage=" << s.symbolLinkage2Str(s.linkage_)
-              << " addr=0x"    << hex << s.offset_ << dec
+              << " offset=0x"    << hex << s.offset_ << dec
+              << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
         //<< " tag="     << (unsigned) s.tag_
               << " tag="     << s.symbolTag2Str(s.tag_)
               << " isAbs="   << s.isAbsolute_

@@ -176,7 +176,7 @@ class AstNode {
 
         static AstNodePtr sequenceNode(pdvector<AstNodePtr > &sequence);
         
-        static AstNodePtr variableNode(std::vector<AstNodePtr *>&ast_wrappers_, std::vector<std::pair<Offset, Offset> > *ranges = NULL);
+        static AstNodePtr variableNode(std::vector<AstNodePtr>&ast_wrappers_, std::vector<std::pair<Offset, Offset> > *ranges = NULL);
 
         static AstNodePtr operatorNode(opCode ot, 
                                        AstNodePtr l = AstNodePtr(), 
@@ -584,7 +584,7 @@ class AstSequenceNode : public AstNode {
 
 class AstVariableNode : public AstNode {
   public:
-    AstVariableNode(std::vector<AstNodePtr *>&ast_wrappers, std::vector<std::pair<Offset, Offset> >*ranges);
+    AstVariableNode(std::vector<AstNodePtr>&ast_wrappers, std::vector<std::pair<Offset, Offset> >*ranges);
 
     ~AstVariableNode() {}
 
@@ -593,9 +593,9 @@ class AstVariableNode : public AstNode {
     virtual BPatch_type	  *checkType() { return getType(); }
     virtual bool accessesParam();
     virtual bool canBeKept() const;
-    virtual operandType getoType() const { return (*ast_wrappers_[index])->getoType(); };
-    virtual AstNodePtr operand() const { return (*ast_wrappers_[index])->operand(); }
-    virtual const void *getOValue() const { return (*ast_wrappers_[index])->getOValue(); };
+    virtual operandType getoType() const { return ast_wrappers_[index]->getoType(); };
+    virtual AstNodePtr operand() const { return ast_wrappers_[index]->operand(); }
+    virtual const void *getOValue() const { return ast_wrappers_[index]->getOValue(); };
 
     virtual void setVariableAST(codeGen &gen);
     virtual void getChildren(pdvector<AstNodePtr> &children);
@@ -608,7 +608,7 @@ class AstVariableNode : public AstNode {
                                      Register &retReg);
 
     AstVariableNode() {};
-    std::vector<AstNodePtr *>ast_wrappers_;
+    std::vector<AstNodePtr>ast_wrappers_;
     std::vector<std::pair<Offset, Offset> > *ranges_;
     unsigned index;
 

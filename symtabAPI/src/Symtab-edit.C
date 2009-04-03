@@ -339,6 +339,7 @@ Function *Symtab::createFunction(std::string name,
                                  Symbol::SL_GLOBAL,
                                  Symbol::SV_DEFAULT, 
                                  offset, 
+                                 mod,
                                  reg, 
                                  sz,
                                  false,
@@ -348,13 +349,11 @@ Function *Symtab::createFunction(std::string name,
                                 Symbol::SL_GLOBAL,
                                 Symbol::SV_DEFAULT,
                                 offset,
+                                mod,
                                 reg,
                                 sz,
                                 true,
                                 false);
-    
-    statSym->setModule(mod);
-    dynSym->setModule(mod);
 
     if (!addSymbol(statSym) || !addSymbol(dynSym)) {
         assert(0 && "failed to add symbol\n");
@@ -410,6 +409,7 @@ Variable *Symtab::createVariable(std::string name,
                                  Symbol::SL_GLOBAL,
                                  Symbol::SV_DEFAULT, 
                                  offset, 
+                                 mod,
                                  reg, 
                                  sz,
                                  false,
@@ -419,6 +419,7 @@ Variable *Symtab::createVariable(std::string name,
                                 Symbol::SL_GLOBAL,
                                 Symbol::SV_DEFAULT,
                                 offset,
+                                mod,
                                 reg,
                                 sz,
                                 true,

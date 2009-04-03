@@ -305,7 +305,7 @@ SYMTAB_EXPORT Symbol::Symbol(const Symbol& s) :
    AnnotatableSparse(),
    module_(s.module_), 
    type_(s.type_), linkage_(s.linkage_), visibility_(s.visibility_),
-   addr_(s.addr_), sec_(s.sec_), size_(s.size_), 
+   addr_(s.addr_), ptr_addr_(s.ptr_addr_), sec_(s.sec_), size_(s.size_), 
    isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
    isAbsolute_(s.isAbsolute_),
    aggregate_(s.aggregate_),
@@ -544,7 +544,6 @@ SYMTAB_EXPORT Symbol& Symbol::operator=(const Symbol& s)
 #endif
    return *this;
 }
-
 #endif
 
 /**************************************************

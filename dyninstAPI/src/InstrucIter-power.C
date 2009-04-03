@@ -1393,7 +1393,8 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
       Address textStart = desc.code();
       Address dataStart = desc.data();
       
-      assert(jumpStart < dataStart);
+      // I think this is valid on ppc64 linux.  dataStart and codeStart can be 0.
+      // assert(jumpStart < dataStart);
       
       bool tableData = false;
       

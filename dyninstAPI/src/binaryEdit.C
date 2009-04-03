@@ -179,16 +179,50 @@ Address BinaryEdit::inferiorMalloc(unsigned size,
             return 0;
         }
         ret = inferiorMallocInternal(size, lo, hi, anyHeap);
-        if (ret) break;
+        if (ret) {
+	  memoryTracker *newTracker = new memoryTracker(ret, size);
+	  newTracker->alloced = true;
+	  if (!memoryTracker_)
+	    memoryTracker_ = new codeRangeTree();
+	  memoryTracker_->insert(newTracker);
+
+	  break;
+	}
     }
 
-#ifdef BINEDIT_DEBUG
-    if (ret == 0x854106c) {
-        fprintf(stderr, "RETURNING B0RKEN ADDRESS\n");
-    }
-#endif
-    
     return ret;
+}
+
+void BinaryEdit::inferiorFree(Address item)
+{
+  inferiorFreeInternal(item);
+
+  codeRange *obj;
+  memoryTracker_->find(item, obj);
+  
+  delete obj;
+
+  memoryTracker_->remove(item);
+}
+
+bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
+{
+  bool result = inferiorReallocInternal(item, newsize);
+  if (!result)
+    return false;
+
+  codeRange *obj;
+  result = memoryTracker_->find(item, obj);
+  assert(result);
+
+  memoryTracker_->remove(item);
+
+  memoryTracker *mem_track = dynamic_cast<memoryTracker *>(obj);
+  assert(mem_track);
+  mem_track->realloc(newsize);
+
+  memoryTracker_->insert(obj);
+  return true;
 }
 
 unsigned BinaryEdit::getAddressWidth() const {
@@ -424,11 +458,11 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                                    Symbol::SL_GLOBAL,
                                    Symbol::SV_DEFAULT, 
                                    (Address)0, 
+                                   symObj->getDefaultModule(),
                                    NULL, 
                                    8,
                                    true, 
                                    false);
-            newSymbol->setModule(symObj->getDefaultModule());
             symObj->addSymbol(newSymbol, referring);
             if (!symObj->hasRel() && !symObj->hasRela()) {
                // TODO: probably should add new relocation section and
@@ -456,7 +490,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       buildDyninstSymbols(newSyms, newSec, symObj->getOrCreateModule("dyninstInst",
                                                                      lowWaterMark_));
       for (unsigned i = 0; i < newSyms.size(); i++) {
-         symObj->addSymbol(newSyms[i], false);
+         symObj->addSymbol(newSyms[i]);
       }
         
       // Okay, now...
@@ -530,18 +564,7 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
         addHeap(h);
     }
 
-    memoryTracker *newTracker = new memoryTracker(highWaterMark_, size);
-    newTracker->alloced = true;
-    if (!memoryTracker_)
-       memoryTracker_ = new codeRangeTree();
-    memoryTracker_->insert(newTracker);
-
-    //printf("[%s:%u] - New memory tracker for %p at 0x%lx:  load=0x%lx  size=%d\n",
-    //__FILE__, __LINE__, this, 
-    //newTracker->get_local_ptr(), highWaterMark_, size);
-
     highWaterMark_ += size;
-
 
     return true;
 }
@@ -564,22 +587,15 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
             continue;
         }
         else {
-			/*
-            newTracker = new memoryTracker(segs[i].loadaddr,
-                                           segs[i].size,
-                                           segs[i].data);*/
-			newTracker = new memoryTracker(regs[i]->getRegionAddr(),
-										   regs[i]->getDiskSize(),
-										   regs[i]->getPtrToRawData());
-		}
+	  newTracker = new memoryTracker(regs[i]->getRegionAddr(),
+					 regs[i]->getDiskSize(),
+					 regs[i]->getPtrToRawData());
+	  
+	}
         newTracker->alloced = false;
         if (!memoryTracker_)
-           memoryTracker_ = new codeRangeTree();
+	  memoryTracker_ = new codeRangeTree();
         memoryTracker_->insert(newTracker);
-
-        //printf("[%s:%u] - New memory tracker for %p at 0x%lx:  load=0x%lx  size=%d  [%s]\n",
-        //__FILE__, __LINE__, this,
-        //newTracker->get_local_ptr(), segs[i].loadaddr, segs[i].size, segs[i].name.c_str());
     }
 
     
@@ -678,10 +694,10 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                                         Symbol::SL_GLOBAL,
                                         Symbol::SV_DEFAULT,
                                         startAddr,
+                                        newMod,
                                         newSec,
                                         size,
                                         (void *)startRange);
-            newSym->setModule(newMod);
             newSyms.push_back(newSym);
 
             currFunc = NULL;
