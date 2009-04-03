@@ -679,6 +679,9 @@ class instruction {
                                long value);
     static void loadPartialImmIntoReg(codeGen &gen, Register rt,
                                       long value);
+
+    static void generateMoveFromLR(codeGen &gen, Register rt);
+    static void generateMoveToLR(codeGen &gen, Register rs);
     
     // We need instruction::size() all _over_ the place.
     static unsigned size() { return sizeof(instructUnion); } 

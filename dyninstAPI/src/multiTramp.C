@@ -1010,7 +1010,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         assert(!trampAddr_);
 
         inferiorHeapType heapToUse = anyHeap;
-#if defined(os_aix)
+#if defined(os_aix) && defined(bug_aix_broken_fork)
         // We need the base tramp to be in allocated heap space, not scavenged
         // text space, because scavenged text space is _not_ copied on fork.
         // Argh.
@@ -1137,7 +1137,7 @@ bool multiTramp::generateCodeWorker(unsigned size_required,
          assert(relocInsn);
          relocInsn->overrideTarget(obj->target_);
       }
-      
+      generatedMultiT_.setObj(obj);
       if( ! obj->generateCode( generatedMultiT_, trampAddr_, unwind_region ) ) {
          return false;
       }
@@ -1184,6 +1184,7 @@ bool multiTramp::generateCodeWorker(unsigned size_required,
          relocInsn->overrideTarget(&override);
       }
       
+      generatedMultiT_.setObj(obj);
       if( ! obj->generateCode( generatedMultiT_, trampAddr_, unwind_region ) ) {
          return false;
       }

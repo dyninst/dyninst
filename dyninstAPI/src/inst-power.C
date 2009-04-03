@@ -1174,7 +1174,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     if(BPatch::bpatch->isSaveFPROn()) // Save FPRs
 	saveFPRegisters(gen, gen.rs(), fpr_off);
 
-    // Save LR
+    // Save LR            
     saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET + STK_LR);
 
     // No more cookie. FIX aix stackwalking.
@@ -1393,6 +1393,14 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
                                    codeGen &gen,
                                    const pdvector<AstNodePtr> &operands, bool noCost,
                                    int_function *callee) {
+    bool saveState = true;
+
+    if (gen.obj() && 
+        dynamic_cast<replacedInstruction *>(gen.obj())) {
+        saveState = false;
+        inst_printf("In function replacement, not saving state\n");
+    }
+    
 
     Address toc_anchor = 0;
     pdvector <Register> srcs;
@@ -1413,6 +1421,28 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
     // exec() -> image "parent"
     toc_anchor = gen.addrSpace()->proc()->getTOCoffsetInfo(callee);
 
+    // Instead of saving the TOC (if we can't), just reset it afterwards.
+    Address caller_toc = 0;
+    if (gen.func()) {
+        caller_toc = gen.addrSpace()->proc()->getTOCoffsetInfo(gen.func());
+    }
+    else if (gen.point()) {
+        caller_toc = gen.addrSpace()->proc()->getTOCoffsetInfo(gen.point()->func());
+    }
+    else {
+        // Don't need it, and this might be an iRPC
+    }
+
+    inst_printf("Caller TOC 0x%lx; callee 0x%lx\n",
+            caller_toc, toc_anchor);
+
+    bool needToSaveLR = false;
+    registerSlot *regLR = (*(gen.rs()))[registerSpace::lr];
+    if (regLR && regLR->liveState == registerSlot::live) {
+        needToSaveLR = true;
+        inst_printf("... need to save LR\n");
+    }
+
     // Note: For 32-bit ELF PowerPC Linux (and other SYSV ABI followers)
     // r2 is described as "reserved for system use and is not to be 
     // changed by application code".
@@ -1422,19 +1452,21 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 
     //  Save the link register.
     // mflr r0
-    instruction mflr0(MFLR0raw);
-    mflr0.generate(gen);
+    if (needToSaveLR) {
+        assert(saveState);
+        instruction::generateMoveFromLR(gen, 0);
+        saveRegister(gen, 0, FUNC_CALL_SAVE);
+        savedRegs.push_back(0);
+        inst_printf("saved LR in 0\n");
+    }
 
-    // Register 0 is actually the link register, now. However, since we
-    // don't want to overwrite the LR slot, save it as "register 0"
-    saveRegister(gen, 0, FUNC_CALL_SAVE);
-    // Add 0 to the list of saved registers
-    savedRegs.push_back(0);
-
-    if (toc_anchor) {
+    if (saveState &&
+        toc_anchor &&
+        (toc_anchor != caller_toc)) {
         // Save register 2 (TOC)
         saveRegister(gen, 2, FUNC_CALL_SAVE);
         savedRegs.push_back(2);
+        inst_printf("Saved TOC in 2\n");
     }
 
     // see what others we need to save.
@@ -1446,11 +1478,13 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
        // keptValue == true (keep over the call)
        // liveState == live (technically, only if not saved by the callee) 
        
-       if ((reg->refCount > 0) || 
-           reg->keptValue ||
-           (reg->liveState == registerSlot::live)) {
+       if (saveState &&
+           ((reg->refCount > 0) || 
+            reg->keptValue ||
+            (reg->liveState == registerSlot::live))) {
           saveRegister(gen, reg->number, FUNC_CALL_SAVE);
           savedRegs.push_back(reg->number);
+          inst_printf("Saved %d\n", reg->number);
        }
     }
 
@@ -1495,9 +1529,9 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 
     // If we got the wrong register, we may need to do a 3-way swap. 
 
-    int scratchReg[8];
+    int scratchRegs[8];
     for (int a = 0; a < 8; a++) {
-	scratchReg[a] = -1;
+	scratchRegs[a] = -1;
     }
 
     // Now load the parameters into registers.
@@ -1515,9 +1549,9 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
         
 
         // If the parameter we want exists in a scratch register...
-	if (scratchReg[u] != -1) {
-	    instruction::generateImm(gen, ORILop, scratchReg[u], u+3, 0);
-	    gen.rs()->freeRegister(scratchReg[u]);
+	if (scratchRegs[u] != -1) {
+	    instruction::generateImm(gen, ORILop, scratchRegs[u], u+3, 0);
+	    gen.rs()->freeRegister(scratchRegs[u]);
             // We should check to make sure the one we want isn't occupied?
 	} else {
 	    for (unsigned v=u; v < srcs.size(); v++) {
@@ -1534,7 +1568,7 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
                 Register scratch = gen.rs()->getScratchRegister(gen);
 		instruction::generateImm(gen, ORILop, u+3, scratch, 0);
 		gen.rs()->freeRegister(u+3);
-		scratchReg[whichSource] = scratch;
+		scratchRegs[whichSource] = scratch;
 		hasSourceBeenCopied = true;
 
 		instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
@@ -1549,50 +1583,114 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 	} 
     }
 
-    if (toc_anchor) {
+    // Call generation time.
+    bool setTOC = false;
+    bool needLongBranch = true;
+
+    if (toc_anchor &&
+        (toc_anchor != caller_toc))
+        setTOC = true;
+
+    if (gen.startAddr() == -1) {
+        needLongBranch = true;
+        inst_printf("Unknown generation addr, long call required\n");
+    }
+    else {
+        long displacement = callee->getAddress() - gen.currAddr();
+        // Increase the displacement to be conservative. 
+        // We use fewer than 6 instructions, too. But again,
+        // conservative.
+        displacement += 6*instruction::size();
+        
+        if (ABS(displacement) > MAX_BRANCH) {
+            needLongBranch = true;
+            inst_printf("Need long call to get from 0x%lx to 0x%lx\n",
+                    gen.currAddr(), callee->getAddress());
+        }
+    }
+    
+    // Need somewhere to put the destination calculation...
+    int scratchReg = -1;
+    if (needLongBranch) {
+        if (setTOC) {
+            scratchReg = 2;
+        } 
+        else {
+            // Go with a scratch register... but if we 
+            // call getScratchRegister here we may accidentally
+            // stomp a parameter. 
+            scratchReg = 0;
+        }
+    }
+
+    if (needLongBranch) {
+        // Use scratchReg to set destination of the call...
+        emitVload(loadConstOp, callee->getAddress(), scratchReg, scratchReg, gen, false);
+        instruction::generateMoveToLR(gen, scratchReg);
+        inst_printf("Generated LR value in %d\n", scratchReg);
+    }
+
+    if (setTOC) {
         // Set up the new TOC value
         emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
         //inst_printf("toc setup (%d)...");
+        inst_printf("Set new TOC\n");
     }
 
-    // generate a branch to the subroutine to be called.
-    // load r0 with address, then move to link reg and branch and link.
+    if (needLongBranch) {
+        instruction brl(BRLraw);
+        brl.generate(gen);
+        inst_printf("Generated BRL\n");
+    }
+    else {
+        instruction::generateCall(gen, gen.currAddr(), callee->getAddress());
+        inst_printf("Generated short call from 0x%lx to 0x%lx\n",
+                gen.currAddr(), callee->getAddress());
+    }
 
-    emitVload(loadConstOp, callee->getAddress(), 0, 0, gen, false);
-    //inst_printf("addr setup (%d)....");
-  
-    // Move to link register
-    instruction mtlr0(MTLR0raw);
-    mtlr0.generate(gen);
-   
-    //inst_printf("mtlr0 (%d)...");
+    Register retReg = REG_NULL;
+    if (saveState) {
+        // get a register to keep the return value in.
+        retReg = gen.rs()->allocateRegister(gen, noCost);        
+        // put the return value from register 3 to the newly allocated register.
+        instruction::generateImm(gen, ORILop, 3, retReg, 0);
+        inst_printf("Moved return to %d\n", retReg);
+    }
 
-    // brl - branch and link through the link reg.
-
-    instruction brl(BRLraw);
-    brl.generate(gen);
-
-    // get a register to keep the return value in.
-    Register retReg = gen.rs()->allocateRegister(gen, noCost);
-
-    // put the return value from register 3 to the newly allocated register.
-    instruction::generateImm(gen, ORILop, 3, retReg, 0);
+        
+    // Otherwise we're replacing a call and so we don't want to move
+    // anything. 
 
     // restore saved registers.
+    // If saveState == false then this vector should be empty...
+    if (!saveState) assert(savedRegs.size() == 0);
     for (u_int ui = 0; ui < savedRegs.size(); ui++) {
 	restoreRegister(gen, savedRegs[ui], FUNC_CALL_SAVE);
+        inst_printf("Restored %d\n", savedRegs[ui]);
     }
   
     // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
     // Move to link register
     // Reused from above. instruction mtlr0(MTLR0raw);
-    mtlr0.generate(gen);
+    if (needToSaveLR) {
+        // We only use register 0 to save LR. 
+        instruction::generateMoveToLR(gen, 0);
+        inst_printf("Restored LR\n");
+    }
+    
+    if (!saveState && setTOC) {
+        // Need to reset the TOC
+        emitVload(loadConstOp, caller_toc, 2, 2, gen, false);
+        inst_printf("Resetting caller-side TOC via const load\n");
+    }        
+
     /*
       gen = (instruction *) gen;
       for (unsigned foo = initBase/4; foo < base/4; foo++)
       bperr( "0x%x,\n", gen[foo].raw);
-    */
+    */ 
     // return value is the register with the return value from the called function
+    inst_printf("Done with call emit\n");
     return(retReg);
 }
 

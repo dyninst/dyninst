@@ -1562,8 +1562,11 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     
 	// TODO: put register allocation here and have emitCall just
 	// move the return result.
-    
-    if (retReg == REG_NULL) {
+    if (tmp == REG_NULL) {
+        // Happens in function replacement... didn't allocate
+        // a return register.
+    }
+    else if (retReg == REG_NULL) {
         //emitFuncCall allocated tmp; we can use it, but let's see
         // if we should keep it around.
         retReg = tmp;
