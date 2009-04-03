@@ -731,18 +731,18 @@ bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
 }
 
 bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                                Address &retAddr,
-                                                Register &retReg) {
+                                             Address &retAddr,
+                                             Register &retReg) {
     retAddr = ADDR_NULL;
     retReg = REG_NULL;
-
-	assert(replacement);
-
+    
+    assert(replacement);
+    
     emitFuncJump(funcJumpOp, gen, replacement, gen.addrSpace(),
                  gen.point(), noCost);
-
-	decUseCount(gen);
-	return true;
+    
+    decUseCount(gen);
+    return true;
 }
 
 bool AstOperatorNode::initRegisters(codeGen &g) {
