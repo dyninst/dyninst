@@ -1098,7 +1098,7 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     
     Expression::Ptr target = curInsn.getControlFlowTarget();
 	RegisterAST thePC = RegisterAST::makePC();
-	target->bind(&thePC, Result(u32, addr + curInsn.size()));
+	target->bind(&thePC, Result(u32, addr));
 	Result cft = target->eval();
     if(cft.defined)
     {
