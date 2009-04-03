@@ -129,37 +129,6 @@ Graph::NodePtr Graph::makeSimpleNode(Dyninst::InstructionAPI::Instruction &insn,
     return newNode;
 }
 
-Graph::Ptr Graph::createGraph() {
-    return Graph::Ptr(new Graph());
-}
-
-void Graph::insertPair(NodePtr source, NodePtr target) {
-    // TODO handle parameter edge types.
-
-    Edge::Ptr e = Edge::createEdge(source, target);
-
-    source->addOutEdge(e);
-    target->addInEdge(e);
-}
-
-const Graph::NodeSet Graph::entryNodes() const {
-    NodeSet ret;
-    
-    for (AbslocMap::const_iterator iter = parameterNodes_.begin();
-         iter != parameterNodes_.end(); iter++) {
-        ret.insert(iter->second);
-    }
-    if (virtualNode_) {
-        ret.insert(virtualNode_);
-    }
-    return ret;
-}
-
-void Graph::recordCall(Address callAddr,
-                       const CNodeRec &callInfo) {
-    callRecords_[callAddr] = callInfo;
-}
-
 bool Graph::printDOT(const std::string fileName) {
     FILE *file = fopen(fileName.c_str(), "w");
     if (file == NULL) {

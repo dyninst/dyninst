@@ -141,8 +141,13 @@ Node::Ptr VirtualNode::copyTo(Graph::Ptr graph) {
 }
 
 Node::Ptr CallNode::copyTo(Graph::Ptr graph) {
-  assert("Not Supported!");
+  assert(0 && "Not Supported!");
   return graph->makeVirtualNode();
+}
+
+Node::Ptr ReturnNode::copyTo(Graph::Ptr graph) {
+    assert(0 && "Not supported!");
+    return graph->makeVirtualNode();
 }
 
 Node::Ptr SimpleNode::copyTo(Graph::Ptr graph) {

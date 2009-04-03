@@ -56,15 +56,15 @@
 #include "Edge.h"
 
 #include "Absloc.h"
-#include "Graph.h"
+//#include "Graph.h"
 
 namespace Dyninst {
 namespace DDG {
 
 class Dyninst::InstructionAPI::Instruction;
 class Edge;
- 
 class Absloc;
+class Graph;
 
 typedef BPatch_function Function;
 
@@ -83,7 +83,7 @@ class Node : public AnnotatableSparse {
     typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
     typedef Absloc::Ptr AbslocPtr;
     typedef Edge::Set EdgeSet;
-    typedef Graph::Ptr GraphPtr;
+    typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
     
     bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
     bool outs(EdgeSet &edges) const { return returnEdges(outs_, edges); }
@@ -208,6 +208,7 @@ class ReturnNode : public Node {
     //bool isVirtual() const { return insn(); }
     
     virtual std::string name() const;
+    Node::Ptr copyTo(GraphPtr graph);
     
     virtual bool isVirtual() const { return true; } 
     
