@@ -2176,6 +2176,17 @@ test_runmode('test_instruction_farcall', 'createProcess').
 test_start_state('test_instruction_farcall', 'stopped').
 tests_module('test_instruction_farcall', 'instruction').
 
+test('test_instruction_bind_eval', 'test_instruction_bind_eval', none).
+test_description('test_instruction_bind_eval', 'Tests bind and evaluation mechanism.').
+test_platform('test_instruction_bind_eval', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('test_instruction_bind_eval', ['test_instruction_bind_eval.C']).
+test_runmode('test_instruction_bind_eval', 'createProcess').
+test_start_state('test_instruction_bind_eval', 'stopped').
+tests_module('test_instruction_bind_eval', 'instruction').
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}
