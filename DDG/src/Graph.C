@@ -109,6 +109,57 @@ Graph::NodePtr Graph::makeVirtualNode() {
     return virtualNode_;
 }
 
+Graph::NodePtr Graph::makeSimpleNode(Dyninst::InstructionAPI::Instruction &insn, Address addr) {
+    // we need a dummy location. Here, we got one!
+    AbslocPtr absloc = ImmLoc::getImmLoc();
+    
+    // First check to see if we already have this one
+    if (insnNodes_[addr].find(absloc) != insnNodes_[addr].end()) { 
+        return insnNodes_[addr][absloc];
+    }
+
+    // Otherwise create a new Simple Node and insert it into the map.
+    // Since SimpleNode's are never present in a graph along with InsnNode's,
+    // we can use insnNodes_ freely.
+    Node::Ptr newNode = SimpleNode::createNode(addr, insn);
+    
+    // Update insnNodes_ so that we only create a particular node once.
+    insnNodes_[addr][absloc] = newNode;
+
+    return newNode;
+}
+
+Graph::Ptr Graph::createGraph() {
+    return Graph::Ptr(new Graph());
+}
+
+void Graph::insertPair(NodePtr source, NodePtr target) {
+    // TODO handle parameter edge types.
+
+    Edge::Ptr e = Edge::createEdge(source, target);
+
+    source->addOutEdge(e);
+    target->addInEdge(e);
+}
+
+const Graph::NodeSet Graph::entryNodes() const {
+    NodeSet ret;
+    
+    for (AbslocMap::const_iterator iter = parameterNodes_.begin();
+         iter != parameterNodes_.end(); iter++) {
+        ret.insert(iter->second);
+    }
+    if (virtualNode_) {
+        ret.insert(virtualNode_);
+    }
+    return ret;
+}
+
+void Graph::recordCall(Address callAddr,
+                       const CNodeRec &callInfo) {
+    callRecords_[callAddr] = callInfo;
+}
+
 bool Graph::printDOT(const std::string fileName) {
     FILE *file = fopen(fileName.c_str(), "w");
     if (file == NULL) {
@@ -186,4 +237,65 @@ void Graph::returnNodes(NodeSet &ret) const {
          iter != returnNodes_.end(); iter++) {
         ret.insert(iter->second);
     }
+}
+
+/**
+ * Puts all nodes into the given set.
+ */
+bool Graph::allNodes(NodeSet &nodes) {
+  for (NodeMap::iterator iter = insnNodes_.begin(); iter != insnNodes_.end(); iter++) {
+    AbslocMap& map = iter->second;
+    for (AbslocMap::iterator iter2 = map.begin(); iter2 != map.end(); iter2++) {
+      nodes.insert(iter2->second);
+    }
+  }
+  return true;
+}
+
+/**
+ * Returns a set of nodes which are related to the instruction at the given address.
+ */
+Graph::NodeSet Graph::getNodesAtAddr(Address addr) {
+  typedef AbslocMap::iterator AbslocIter;
+  NodeSet ret;
+  AbslocMap abslocMap = insnNodes_[addr];
+  for (AbslocIter iter = abslocMap.begin(); iter != abslocMap.end(); iter++) {
+    ret.insert(iter->second);
+  }
+  return ret;
+}
+
+/**
+ * Returns a new graph after copying the nodes and edges into this new graph.
+ */
+Graph::Ptr Graph::copyGraph() {
+  typedef NodeSet::iterator NodeIter;
+  typedef std::set<Edge::Ptr> EdgeSet;
+  typedef EdgeSet::iterator EdgeIter;
+  
+  Graph::Ptr newGraph = Graph::createGraph();
+  NodePtr virtNode = newGraph->makeVirtualNode();
+  NodeSet nodes;
+  allNodes(nodes);
+  for (NodeIter nodeIter = nodes.begin(); nodeIter != nodes.end(); nodeIter++) {
+    NodePtr node = *nodeIter;
+    // create a copy of the node and insert into the graph.
+    NodePtr newNode = node->copyTo(newGraph); // copyNode(copy, node);
+    newGraph->insertPair(virtNode, newNode);
+    
+    // process outgoing edges. no need to process incoming edges since they are
+    // outgoing edges from another node and will be processed then.
+    EdgeSet outEdges;
+    node->outs(outEdges);
+    for (EdgeIter iter = outEdges.begin(); iter != outEdges.end(); iter++) {
+      NodePtr target = (*iter)->target();
+      InstructionAPI::Instruction targetIns = target->insn();
+
+      // create a new target for this edge.
+      NodePtr newTarget = target->copyTo(newGraph); //copyNode(copy, target);
+      // add edge from newNode to newTarget.
+      newGraph->insertPair(newNode, newTarget);
+    }
+  }
+  return newGraph;
 }

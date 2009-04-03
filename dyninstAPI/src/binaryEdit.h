@@ -90,6 +90,8 @@ class BinaryEdit : public AddressSpace {
                            inferiorHeapType type=anyHeap,
                            Address near = 0, 
                            bool *err = NULL);
+    virtual void inferiorFree(Address item);
+    virtual bool inferiorRealloc(Address item, unsigned newSize);
 
     // Get the pointer size of the app we're modifying
     unsigned getAddressWidth() const;
@@ -211,6 +213,11 @@ class memoryTracker : public codeRange {
     Address get_address() const { return a_; }
     unsigned get_size() const { return s_; }
     void *get_local_ptr() const { return b_; }
+    void realloc(unsigned newsize) {
+      b_ = ::realloc(b_, newsize);
+      s_ = newsize;
+      assert(b_);
+    }
 
     bool alloced;
 

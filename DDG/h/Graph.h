@@ -96,7 +96,7 @@ class Graph : public AnnotatableSparse {
  public:
     
     bool initialNodes(NodeSet &nodes) const;
-    bool allNodes(NodeSet &nodes) const;
+    bool allNodes(NodeSet &nodes);
     
     // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
@@ -124,6 +124,11 @@ class Graph : public AnnotatableSparse {
     // from either a parameter node or this "immediate" node.
     NodePtr makeVirtualNode();
     
+    // Make a simple node in this graph. If the node already exists we return
+    // it; otherwise we create a new Node and add it to insnNodes_ (NOT
+    // entryNodes_; that is populated by calls to insertPair above).
+    NodePtr makeSimpleNode(Dyninst::InstructionAPI::Instruction &instruction, Address addr);
+    
     bool printDOT(const std::string fileName);
     
     // If you want to traverse the graph start here.
@@ -135,6 +140,13 @@ class Graph : public AnnotatableSparse {
     // Get nodes that represent all locations defined by the
     // function. These are the counterpart to the parameter nodes.
     void returnNodes(NodeSet &ret) const;
+    
+    // Returns a new graph after copying the nodes and edges into this new graph.
+    Graph::Ptr copyGraph();
+    
+    // Returns a set of nodes which are related to the instruction at
+    // the given address.
+    NodeSet getNodesAtAddr(Address addr);
     
  private:
     static const Address INITIAL_ADDR;
