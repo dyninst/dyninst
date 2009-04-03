@@ -92,7 +92,7 @@ namespace Dyninst
       }
       else
       {
-	Expression::Ptr scaleAST(new Immediate(Result(aw, dword_t(scale))));
+	Expression::Ptr scaleAST(new Immediate(Result(u8, dword_t(scale))));
 	Expression::Ptr indexAST(new RegisterAST(makeRegisterID(index, opType, locs->rex_x)));
 	Expression::Ptr baseAST(new RegisterAST(makeRegisterID(base, opType, locs->rex_b)));
 	return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
@@ -279,42 +279,42 @@ namespace Dyninst
       {
       case op_b:
       case op_c:
-	return s8;
+	return u8;
       case op_d:
       case op_ss:
       case op_allgprs:
       case op_si:
-	return s32;
+	return u32;
       case op_w:
       case op_a:
-	return s16;
+	return u16;
       case op_q:
       case op_sd:
-	return s64;
+	return u64;
       case op_v:
       case op_lea:
       case op_z:
 	if(is32BitMode ^ sizePrefixPresent)
 	{
-	  return s32;
+	  return u32;
 	}
 	else
 	{
-	  return s16;
+	  return u16;
 	}
 	break;
       case op_p:
 	// book says operand size; arch-x86 says word + word * operand size
 	if(is32BitMode ^ sizePrefixPresent)
 	{
-	  return s48;
+	  return u48;
 	}
 	else
 	{
-	  return s32;
+	  return u32;
 	}
       case op_dq:
-	return s64;
+	return u64;
       case op_512:
 	return m512;
       case op_pi:
