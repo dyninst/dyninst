@@ -1108,9 +1108,10 @@ Symtab::Symtab(char *, size_t, std::string , Offset, bool &, void *)
 
 bool sort_reg_by_addr(const Region* a, const Region* b)
 {
-   return a->getRegionAddr() < b->getRegionAddr();
+  if (a->getRegionAddr() == b->getRegionAddr())
+    return a->getMemSize() < b->getMemSize();
+  return a->getRegionAddr() < b->getRegionAddr();
 }
-
 
 extern void print_symbols( std::vector< Symbol *>& allsymbols );
 extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
