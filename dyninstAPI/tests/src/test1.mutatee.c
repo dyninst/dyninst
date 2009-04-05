@@ -2641,7 +2641,8 @@ void func39_1() {
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4) \
- || defined(rs6000_ibm_aix4_1)
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(ppc64_linux)
 
     /* The only possible failures occur in the mutator. */
     passedTest[ 39 ] = TRUE;
