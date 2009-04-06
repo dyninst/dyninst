@@ -62,9 +62,12 @@ namespace Dyninst
       if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction();
       vector<Expression::Ptr> operands;
       unsigned int decodedSize = decodeOpcode();
-      decodeOperands(operands);
-      rawInstruction += decodedSize;
-      return Instruction(m_Operation, operands, decodedSize, rawInstruction - decodedSize);      
+      if(decodeOperands(operands))
+      {
+	rawInstruction += decodedSize;
+	return Instruction(m_Operation, operands, decodedSize, rawInstruction - decodedSize);      
+      }
+      return Instruction();
     }
     
     INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* buffer)
@@ -72,8 +75,10 @@ namespace Dyninst
       vector<Expression::Ptr> operands;
       rawInstruction = buffer;
       unsigned int decodedSize = decodeOpcode();
-      decodeOperands(operands);
-      return Instruction(m_Operation, operands, decodedSize, rawInstruction);
+      if(decodeOperands(operands)) {
+	return Instruction(m_Operation, operands, decodedSize, rawInstruction);
+      }
+      return Instruction();
     }
 
     Expression::Ptr InstructionDecoder::makeSIBExpression(unsigned int opType)
@@ -330,7 +335,7 @@ namespace Dyninst
     }
     
 
-    void InstructionDecoder::decodeOneOperand(const ia32_operand& operand,
+    bool InstructionDecoder::decodeOneOperand(const ia32_operand& operand,
 					      std::vector<Expression::Ptr>& outputOperands)
     {
 		unsigned int regType = op_d;
@@ -349,7 +354,7 @@ namespace Dyninst
 	  }
 	  fprintf(stderr, "\n");
 	  assert(!"Mismatched number of operands--check tables");
-	  return;
+	  return false;
 	}
       case am_A:
 	{
@@ -381,31 +386,43 @@ namespace Dyninst
 	{
 	  // direct dereference
 	case 0x00:
-	  assert(operand.admet != am_R);
+	  if(operand.admet != am_R)
 	  {
 	    Expression::Ptr op(new Dereference(makeModRMExpression(regType), makeSizeType(operand.optype)));
 	    outputOperands.push_back(op);
+	  }
+	  else
+	  {
+	    return false;
 	  }
 	  break;
 	  // dereference with 8-bit offset following mod/rm byte
 	case 0x01:
 	case 0x02:
-	  assert(operand.admet != am_R);
+	  if(operand.admet != am_R)
 	  {
 	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
 								 makeSizeType(regType)));
 	    Expression::Ptr op(new Dereference(RMPlusDisplacement, makeSizeType(operand.optype)));
 	    outputOperands.push_back(op);
-	    break;
 	  }
+	  else
+	  {
+	    return false;
+	  }
+	  break;
 	case 0x03:
-	  assert(operand.admet != am_M);
+	  if(operand.admet != am_M)
 	  // use of actual register
 	  {
 	    outputOperands.push_back(makeModRMExpression(operand.optype));
-	    break;
 	  }
+	  else
+	  {
+	    return false;
+	  }
+	  break;	
 	default:
 	  assert(!"2-bit value modrm_mod out of range");
 	  break;
@@ -670,7 +687,7 @@ namespace Dyninst
 	printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
 	break;
       };
-      
+      return true;
     }
 
     unsigned int InstructionDecoder::decodeOpcode()
@@ -691,12 +708,16 @@ namespace Dyninst
       return decodedInstruction->getSize();
     }
     
-    void InstructionDecoder::decodeOperands(vector<Expression::Ptr>& operands)
+    bool InstructionDecoder::decodeOperands(vector<Expression::Ptr>& operands)
     {
       for(unsigned i = 0; i < m_Operation.numOperands(); i++)
       {
-	decodeOneOperand(decodedInstruction->getEntry()->operands[i], operands);
+	if(!decodeOneOperand(decodedInstruction->getEntry()->operands[i], operands))
+	{
+	  return false;
+	}
       }
+      return true;
     }
     
   };
