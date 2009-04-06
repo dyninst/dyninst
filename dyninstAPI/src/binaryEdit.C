@@ -464,12 +464,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                                    true, 
                                    false);
             symObj->addSymbol(newSymbol, referring);
-            if (!symObj->hasRel() && !symObj->hasRela()) {
+            if (!symObj->hasReldyn() && !symObj->hasReladyn()) {
                // TODO: probably should add new relocation section and
                // corresponding .dynamic table entries
                fprintf(stderr, "ERROR:  binary has no pre-existing relocation sections!\n");
                return false;
-            } else if (!symObj->hasRel() && symObj->hasRela()) {
+            } else if (!symObj->hasReldyn() && symObj->hasReladyn()) {
                newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
             } else {
                if (mobj->isSharedLib()) {

@@ -1507,11 +1507,11 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 #if defined (os_solaris)
     fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
 #else
-    if (obj->hasRel()) {
+    if (obj->hasReldyn()) {
         obj->addRegion(0, rels, j*sizeof(Elf32_Rel), ".rel.dyn", Region::RT_REL, true);
         updateDynamic(DT_RELSZ, j*sizeof(Elf32_Rel));
     }
-    if (obj->hasRela()) {
+    if (obj->hasReladyn()) {
         obj->addRegion(0, relas, k*sizeof(Elf32_Rela), ".rela.dyn", Region::RT_RELA, true);
         updateDynamic(DT_RELASZ, k*sizeof(Elf32_Rela));
     }
@@ -1536,10 +1536,10 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
             }
         }
     }
-    if (obj->hasRel()) {
+    if (obj->hasRelplt()) {
         obj->addRegion(0, relplts, j*sizeof(Elf32_Rel), ".rel.plt", Region::RT_REL, true);
     }
-    if (obj->hasRela()) {
+    if (obj->hasRelaplt()) {
         obj->addRegion(0, relaplts, k*sizeof(Elf32_Rela), ".rela.plt", Region::RT_RELA, true);
     }
 } 

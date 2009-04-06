@@ -1187,6 +1187,27 @@ bool Symtab::extractInfo(Object *linkedFile)
         {
             hasRela_ = true;
         }
+    
+        if (!regions_[index]->getRegionName().compare(".rel.dyn"))
+        {
+            hasReldyn_ = true;
+        }
+
+	if( !regions_[index]->getRegionName().compare(".rela.dyn") ) 
+	{
+	    hasReladyn_ = true;
+	}
+
+        if (!regions_[index]->getRegionName().compare(".rel.plt"))
+        {
+            hasRelplt_ = true;
+        }
+
+	if( !regions_[index]->getRegionName().compare(".rela.plt") ) 
+        {
+            hasRelaplt_ = true;
+        }
+        
     }
     // sort regions_ & codeRegions_ vectors
 
@@ -2139,6 +2160,26 @@ SYMTAB_EXPORT bool Symtab::hasRel() const
 SYMTAB_EXPORT bool Symtab::hasRela() const
 {
    return hasRela_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasReldyn() const
+{
+   return hasReldyn_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasReladyn() const
+{
+   return hasReladyn_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasRelplt() const
+{
+   return hasRelplt_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasRelaplt() const
+{
+   return hasRelaplt_;
 }
 
 bool Symtab::setDefaultNamespacePrefix(string &str)
