@@ -930,7 +930,7 @@ bool generateInstrumentation(dynHandle *dh, BPatch_function *func, BPatch_snippe
       int offset = strcspn (config.inst_function, ":");
       strncpy (instLibrary, config.inst_function, offset);
       instLibrary[offset] = '\0';
-      if(! dh->proc->loadLibrary(instLibrary)) {
+      if(! dh->addSpace->loadLibrary(instLibrary)) {
          sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
                  "Failure in loading library");
          return false;
