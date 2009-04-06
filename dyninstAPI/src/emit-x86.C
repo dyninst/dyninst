@@ -1040,7 +1040,13 @@ void EmitterAMD64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 
 void EmitterAMD64::emitLoadIndir(Register dest, Register addr_src, codeGen &gen)
 {
-    emitMovRMToReg64(dest, addr_src, 0, false, gen);
+    // this version assumes dest is a physical address
+    //emitMovRMToReg64(dest, addr_src, 0, false, gen);
+
+    // this more closely parallels the 32-bit version
+    emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, -1*(addr_src*8), true, gen); // mov eax, -(addr_reg*8)[ebp]
+    emitMovRMToReg64(REGNUM_RAX, REGNUM_RAX, 0, true, gen);         // mov eax, [eax]
+    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen); // mov -(dest*8)[ebp], eax
 }
 
 void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
@@ -1335,13 +1341,11 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
 
 
 bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
-#ifdef BINEDIT_DEBUG
-    fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
-#endif
+    //fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
+
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
-    Register ptr = gen.rs()->allocateRegister(gen, false);
 
     // find int_function reference in address space
     // (refresh func_map)
@@ -1351,68 +1355,61 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     // test to see if callee is in a shared module
     if (callee->obj()->isSharedLib() && binEdit != NULL) {
 
-        // find the Symbol corresponding to the int_function
-        std::vector<Symbol *> syms;
-        callee->obj()->parse_img()->getObject()->findSymbolByType(
-                syms, callee->symTabName(), Symbol::ST_FUNCTION,
-                true, false, true);
-        if (syms.size() == 0) {
-            char msg[256];
-            sprintf(msg, "%s[%d]:  internal error:  cannot find symbol %s"
-                    , __FILE__, __LINE__, callee->symTabName().c_str());
-            showErrorCallback(80, msg);
-            assert(0);
-        }
+        // create or retrieve jump slot
+        dest = getInterModuleFuncAddr(callee, gen);
 
-        // try to find a dynamic symbol
-        // (take first static symbol if none are found)
-        Symbol *referring = syms[0];
-        for (unsigned k=0; k<syms.size(); k++) {
-            if (syms[k]->isInDynSymtab()) {
-                referring = syms[k];
-                break;
-            }
-        }
-
-        // have we added this relocation already?
-        dest = binEdit->getDependentRelocationAddr(referring);
-
-        if (!dest) {
-            // inferiorMalloc addr location and initialize to zero
-            dest = binEdit->inferiorMalloc(8);
-            unsigned long dat = 0;
-            binEdit->writeDataSpace((void*)dest, 8, &dat);
-
-            // add write new relocation symbol/entry
-            binEdit->addDependentRelocation(dest, referring);
-        }
-
-        // load register with address from jump slot
-        
-        // DEBUG
-        //printf("jump slot: 0x%016x\ncurr addr: 0x%016x\noffset:    0x%016x\n\n",
-                //dest, gen.currAddr(), offset);
-
-        emitMovPCRMToReg64(ptr, dest-gen.currAddr(), gen);
+        emitMovPCRMToReg64(REGNUM_RAX, dest-gen.currAddr(), gen);
 
     } else {
         dest = callee->getAddress();
 
         // load register with function address
-        emitMovImmToReg64(ptr, dest, true, gen);                    // mov e_x, addr
+        emitMovImmToReg64(REGNUM_RAX, dest, true, gen);
     }
 
     // emit call
     GET_PTR(insn, gen);
     *insn++ = 0xFF;
-    *insn++ = static_cast<unsigned char>(0xD0 | ptr);
+    *insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RAX);
     SET_PTR(insn, gen);
-
-    gen.rs()->freeRegister(ptr);
 
     return true;
 }
 
+void EmitterAMD64::emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen)
+{
+    // create or retrieve jump slot
+    Address addr = getInterModuleVarAddr(var, gen);
+
+    //fprintf(stderr, "Emitting inter-module load for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
+
+    // load register with address from jump slot
+    emitMovPCRMToReg64(REGNUM_RAX, addr - gen.currAddr(), gen);
+    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen);
+
+    // get the variable with an indirect load
+    emitLoadIndir(dest, dest, gen);
+}
+
+void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen)
+{
+    // create or retrieve jump slot
+    Address addr = getInterModuleVarAddr(var, gen);
+
+    //fprintf(stderr, "Emitting inter-module store for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
+    
+    // temporary virtual register for storing destination address
+    Register dest = gen.rs()->allocateRegister(gen, false);
+
+    // load register with address from jump slot
+    emitMovPCRMToReg64(REGNUM_RAX, addr-gen.currAddr(), gen);
+    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen);
+
+    // get the variable with an indirect load
+    emitStoreIndir(dest, source, gen);
+
+    gen.rs()->freeRegister(dest);
+}
 
 
 // FIXME: comment here on the stack layout
@@ -1943,11 +1940,15 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 
 #endif /* end of AMD64-specific functions */
 
-Address getInterModuleFuncAddr(int_function *func, codeGen& gen)
+Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
+    unsigned int jump_slot_size = 4;
+#if defined(arch_x86_64)
+    jump_slot_size = 8;
+#endif
 
     if (!binEdit || !func) {
         assert(!"Invalid function call (function info is missing)");
@@ -1980,9 +1981,9 @@ Address getInterModuleFuncAddr(int_function *func, codeGen& gen)
 
     if (!relocation_address) {
         // inferiorMalloc addr location and initialize to zero
-        relocation_address = binEdit->inferiorMalloc(4);
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
         unsigned int dat = 0;
-        binEdit->writeDataSpace((void*)relocation_address, 4, &dat);
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, &dat);
 
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);
@@ -1991,11 +1992,15 @@ Address getInterModuleFuncAddr(int_function *func, codeGen& gen)
     return relocation_address;
 }
 
-Address getInterModuleVarAddr(const image_variable *var, codeGen& gen)
+Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address relocation_address;
+    unsigned int jump_slot_size = 4;
+#if defined(arch_x86_64)
+    jump_slot_size = 8;
+#endif
 
     if (!binEdit || !var) {
         assert(!"Invalid variable load (variable info is missing)");
@@ -2028,9 +2033,9 @@ Address getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 
     if (!relocation_address) {
         // inferiorMalloc addr location and initialize to zero
-        relocation_address = binEdit->inferiorMalloc(4);
+        relocation_address = binEdit->inferiorMalloc(jump_slot_size);
         unsigned int dat = 0;
-        binEdit->writeDataSpace((void*)relocation_address, 4, &dat);
+        binEdit->writeDataSpace((void*)relocation_address, jump_slot_size, &dat);
 
         // add write new relocation symbol/entry
         binEdit->addDependentRelocation(relocation_address, referring);
@@ -2059,8 +2064,6 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     AddressSpace *addrSpace = gen.addrSpace();
     BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
-	// Physical register
-    Register ptr = gen.rs()->allocateRegister(gen, false);
 
     // find int_function reference in address space
     // (refresh func_map)
@@ -2074,19 +2077,17 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
         dest = getInterModuleFuncAddr(callee, gen);
 
         // load register with address from jump slot
-        emitMovPCRMToReg(ptr, dest-gen.currAddr(), gen);
+        emitMovPCRMToReg(REGNUM_EAX, dest-gen.currAddr(), gen);
 
     } else {
         dest = callee->getAddress();
 
         // load register with function address
-        emitMovImmToReg(ptr, dest, gen);                    // mov e_x, addr
+        emitMovImmToReg(REGNUM_EAX, dest, gen);                    // mov e_x, addr
     }
 
     // emit call
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, ptr, gen);     // call *(e_x)
-
-    gen.rs()->freeRegister(ptr);
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);     // call *(e_x)
 
     return true;
 }
@@ -2111,7 +2112,7 @@ void EmitterIA32::emitStoreShared(Register source, const image_variable *var, in
     // create or retrieve jump slot
     Address addr = getInterModuleVarAddr(var, gen);
 
-    //fprintf(stderr, "Emitting inter-module store for %s at 0x%lx\n", var->symTabName().c_str(), addr);
+    //fprintf(stderr, "Emitting inter-module store for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
     
     // temporary virtual register for storing destination address
     Register dest = gen.rs()->allocateRegister(gen, false);
