@@ -36,6 +36,7 @@
 #include "Register.h"
 #include <map>
 #include <boost/assign/list_of.hpp>
+#include <sstream>
 
 using namespace boost::assign;
 
@@ -63,7 +64,10 @@ namespace Dyninst
       operationID = e->getID(l);
       if(mnemonic.empty())
       {
-	mnemonic = "[UNKNOWN]";
+	std::stringstream tmp;
+	tmp << "[UNKNOWN] (id = " << operationID << ", e->id = " << e->id << ")";
+	mnemonic = tmp.str();
+	
       }
       switch(e->opsema & 0xff)
       {
