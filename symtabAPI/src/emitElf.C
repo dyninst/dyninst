@@ -755,7 +755,7 @@ void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
         case DT_HASH:
-        case DT_GNU_HASH:
+	case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
         case DT_SYMTAB:
         case DT_STRTAB:
         case DT_REL:

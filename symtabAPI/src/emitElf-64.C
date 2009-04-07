@@ -1605,7 +1605,7 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
         switch(dyns[i].d_tag){
             case DT_NULL:
 	    	break;
-            case DT_GNU_HASH: // DT_GNU_HASH (not defined on all platforms)
+	    case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
                 dynsecData[curpos].d_tag = dyns[i].d_tag;
                 dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
                 dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
