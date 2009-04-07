@@ -493,8 +493,8 @@ void process::inferiorMallocConstraints(Address near, Address &lo,
             if (hi < (lo + branch_range))
                hi = lo + branch_range;
          }
-         if (hi > (unsigned) data_hi_addr) {
-            hi = (unsigned) data_hi_addr;
+         if (hi > data_hi_addr) {
+            hi = data_hi_addr;
             /*
             // Not sure why this is commented out.
             if (lo > (hi - branch_range))
