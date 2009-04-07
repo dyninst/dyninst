@@ -580,8 +580,6 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
       SYMTAB_EXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
 
-      SYMTAB_EXPORT relocationEntry(const relocationEntry& ra);
-
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
       SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "relocationEntry");
 

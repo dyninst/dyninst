@@ -54,6 +54,13 @@ extern const char *pdelf_get_shnames(Elf_X &elf);
 unsigned newdynstrIndex;
 unsigned newdynsymIndex;
 
+struct sortByIndex
+{
+bool operator ()(Symbol * lhs, Symbol* rhs) {
+	return lhs->getIndex() < rhs->getIndex();
+}
+};
+
 /* Descriptor for data to be converted to or from memory format.  */
 typedef struct
 {
@@ -1296,6 +1303,8 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
     std::vector<std::string> symbolStrs, dynsymbolStrs;
     std::vector<Symbol *> dynsymVector;
+    std::vector<Symbol *> allDynSymbols;
+    std::vector<Symbol *> allSymSymbols;
 
     // recreate a "dummy symbol"
     Elf32_Sym *sym = new Elf32_Sym();
@@ -1315,11 +1324,31 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
 
     for(i=0; i<allSymbols.size();i++) {
         if(allSymbols[i]->isInSymtab())
-            createElfSymbol(allSymbols[i], symbolStrs, symbolNamesLength, symbols);
-        if(allSymbols[i]->isInDynSymtab()) {
-            createElfSymbol(allSymbols[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
-            dynsymVector.push_back(allSymbols[i]);
-        }
+        	allSymSymbols.push_back(allSymbols[i]);
+	if(allSymbols[i]->isInDynSymtab()) 
+        	allDynSymbols.push_back(allSymbols[i]);
+    }
+ 
+    int max_index = -1;
+    for(i = 0; i < allDynSymbols.size();i++) {
+        if (max_index < allDynSymbols[i]->getIndex()) 
+		max_index = allDynSymbols[i]->getIndex();
+    }
+    for(i=0; i<allDynSymbols.size(); i++) {
+        	if (allDynSymbols[i]->getIndex() == -1) {
+			max_index++;
+			allDynSymbols[i]->setIndex(max_index);
+		}
+   }	
+  // reorder allSymbols based on index
+
+    std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
+
+    for(i=0; i<allSymSymbols.size();i++) 
+            createElfSymbol(allSymSymbols[i], symbolStrs, symbolNamesLength, symbols);
+    for(i=0; i<allDynSymbols.size();i++) {
+            createElfSymbol(allDynSymbols[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
+            dynsymVector.push_back(allDynSymbols[i]);
     }
 
     //reconstruct .symtab section

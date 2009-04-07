@@ -1650,6 +1650,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
     	 sec = regions_[secNumber];
       else
          sec = NULL;		
+	 int ind = int (i);
 
       Symbol *newsym = new Symbol(sname, 
                                   stype, 
@@ -1660,7 +1661,8 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
                                   sec, 
                                   ssize, 
                                   true,  // is dynamic
-                                  (secNumber == SHN_ABS));
+                                  (secNumber == SHN_ABS),
+				  ind);
       
       if (opdscnp)
           fix_opd_symbol(opdData, opdStart, opdEnd, newsym);

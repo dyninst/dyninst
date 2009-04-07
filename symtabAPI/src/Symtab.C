@@ -1159,6 +1159,10 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     hasRel_ = false;
     hasRela_ = false;
+    hasReldyn_ = false;
+    hasReladyn_ = false;
+    hasRelplt_ = false;
+    hasRelaplt_ = false;
     regions_ = linkedFile->getAllRegions();
 
     for (unsigned index=0;index<regions_.size();index++)
