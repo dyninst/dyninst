@@ -617,14 +617,17 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms) {
  * to refer to these aggregates, and build those objects here. 
  */
 
-bool Symtab::createAggregates() {
-    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
+bool Symtab::createAggregates() 
+{
+    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
+	{
         addSymbolToAggregates(everyDefinedSymbol[i]);
     }
     return true;
 }
  
-bool Symtab::fixSymModule(Symbol *&sym) {
+bool Symtab::fixSymModule(Symbol *&sym) 
+{
     //////////
     //////////
     //////////
@@ -706,7 +709,11 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
     return true;
 }
 
-bool Symtab::addSymbolToIndices(Symbol *&sym) {
+bool Symtab::addSymbolToIndices(Symbol *&sym) 
+{
+	assert(sym);
+	sym->index_ = everyDefinedSymbol.size();
+
     everyDefinedSymbol.push_back(sym);
     
     symsByOffset[sym->getAddr()].push_back(sym);
@@ -720,7 +727,8 @@ bool Symtab::addSymbolToIndices(Symbol *&sym) {
     return true;
 }
 
-bool Symtab::addSymbolToAggregates(Symbol *&sym) {
+bool Symtab::addSymbolToAggregates(Symbol *&sym) 
+{
     switch(sym->getType()) {
     case Symbol::ST_FUNCTION: {
         // We want to do the following:
@@ -2401,7 +2409,7 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
    return true;
 }
 
-void Symtab::serialize(SerializerBase *sb, const char *tag)
+void Symtab::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    try 
    {
@@ -2482,7 +2490,7 @@ SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
-void ExceptionBlock::serialize(SerializerBase *sb, const char *tag)
+void ExceptionBlock::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    try 
    {
@@ -2571,7 +2579,7 @@ SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const {
 	return rtype_;
 }
 
-void relocationEntry::serialize(SerializerBase *sb, const char *tag)
+void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    try 
    {
@@ -2595,6 +2603,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_OBJECT);
       CASE_RETURN_STR(ST_MODULE);
       CASE_RETURN_STR(ST_SECTION);
+      CASE_RETURN_STR(ST_DELETED);
       CASE_RETURN_STR(ST_NOTYPE);
    };
 
@@ -2703,21 +2712,30 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
 
 #endif
 
-SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
+namespace Dyninst {
+	namespace SymtabAPI {
+
+SYMTAB_EXPORT SerializerBin<Symtab> st_static_instance(NULL);
+
+SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
 {
 	SerializerBin<Symtab> *ser;
 	ser = new SerializerBin<Symtab>(t, "SerializerBin", file, sd_serialize, true);
+	Symtab *test_st = ser->getScope();
+	assert(test_st == t);
 	return ser;
 }
 
-SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
+SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
 {
 	SerializerBin<Symtab> *ser;
 	ser = new SerializerBin<Symtab>(t, "DeserializerBin", file, sd_deserialize, true);
+	Symtab *test_st = ser->getScope();
+	assert(test_st == t);
 	return ser;
 }
 
-void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
+SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 {
 	SerializerBin<Symtab> *sbin = dynamic_cast<SerializerBin<Symtab> *>(sb);
 	if (sbin)
@@ -2728,4 +2746,6 @@ void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 
 }
+} // namespace SymtabAPI
+} // namespace Dyninst
 

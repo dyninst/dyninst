@@ -55,9 +55,11 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
+#if 0
 extern SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *, std::string);
 extern SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *, std::string);
 extern void nonpublic_free_bin_symtab_serializer(SerializerBase *);
+#endif
 
 class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	std::vector<relocationEntry> relocations;
@@ -66,13 +68,17 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	std::vector<Type *> *builtintypes;
 	std::vector<Region *> regions;
 	std::vector<SymtabAPI::Module *> modules;
-	std::vector<Function *> functions;
-	std::vector<Variable *> variables;
+	std::vector<SymtabAPI::Function *> functions;
+	std::vector<SymtabAPI::Variable *> variables;
 	std::vector<Symbol *> symbols;
 
 	void parse() throw(LocErr);
 
-	void symbol_report(Symbol &s1, Symbol &s2)
+	static void variable_report(const Variable &s1, const Variable &s2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to variable report\n", FILE__, __LINE__);
+	}
+	static void symbol_report(const Symbol &s1, const Symbol &s2)
 	{
 		fprintf(stderr, "%s[%d]:  NONEQUAL symbols:\n", FILE__, __LINE__);
 		fprintf(stderr, "\t%s--%s\n", s1.getModuleName().c_str(), s2.getModuleName().c_str());
@@ -99,11 +105,14 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		}
 	}
 
+	typedef void (*symrep_t)(const Symbol &, const Symbol &);
+	typedef void (*varrep_t)(const Variable &, const Variable &);
+
 	template <class C>
-		bool serialize_test(Symtab *st, C &control) throw (LocErr)
+		bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) throw (LocErr)
 		{
-			fprintf(stderr, "%s[%d]: welcome to serialize test\n",
-					FILE__, __LINE__);
+			fprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
+					FILE__, __LINE__, typeid(C).name());
 
 			Tempfile tf;
 		std::string file(tf.getName());
@@ -113,11 +122,14 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		assert(sb_serializer_ptr);
 		SerializerBase &sb_serializer = (SerializerBase &) *sb_serializer_ptr;
 
-		control.serialize(&sb_serializer, NULL);
+		fprintf(stderr, "%s[%d]:  before serialize\n", FILE__, __LINE__);
+		Serializable *sable = &control;
+		sable->serialize(sb_serializer_ptr, NULL);
+		fprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+		fflush(NULL);
 
 		nonpublic_free_bin_symtab_serializer(sb_serializer_ptr);
 
-		fflush(NULL);
 
 		C deserialize_result;
 		SerializerBase *sb_deserializer_ptr;
@@ -128,7 +140,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		fprintf(stderr, "\n\n%s[%d]: about to deserialize\n\n",
 				FILE__, __LINE__);
 
-		deserialize_result.serialize(&sb_deserializer, NULL);
+		deserialize_result.serialize(sb_deserializer_ptr, NULL);
 
 		nonpublic_free_bin_symtab_serializer(sb_deserializer_ptr);
 
@@ -136,8 +148,12 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 		if (!(deserialize_result == control))
 		{
+			if (report)
+				(*report)(deserialize_result, control);
+#if 0
 			if (typeid(C) == typeid(Dyninst::SymtabAPI::Symbol))
 				symbol_report(deserialize_result, control);
+#endif
 			EFAIL("deserialize failed\n");
 		}
 
@@ -149,27 +165,28 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 #endif
 
 		fprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
+	//  FIXME:  need to catch serializer errors here
 	}
 
 	template <class T>
-	void serialize_test_vector(Symtab *st, std::vector<T> &vec)
+	void serialize_test_vector(Symtab *st, std::vector<T> &vec, void (*report)(const T &, const T &) )
 	{
 		for (unsigned int i = 0; i < vec.size(); ++i)
 		{
 			T &t = vec[i];
-			serialize_test(st, t);
+			serialize_test(st, t, report);
 		}
 	}
 
 	template <class T>
-	void serialize_test_vector(Symtab *st, std::vector<T *> &vec)
+	void serialize_test_vector(Symtab *st, std::vector<T *> &vec, void (*report)(const T &, const T &) )
 	{
 		for (unsigned int i = 0; i < vec.size(); ++i)
 		{
 			T *t = vec[i];
 			if (!t)
 				EFAIL("null array elem\n");
-			serialize_test(st, *t);
+			serialize_test(st, *t, report);
 		}
 	}
 
@@ -243,7 +260,13 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 	{
 		parse();
 
-		serialize_test(symtab, *symbols[0]);
+		symrep_t sr = &symbol_report;
+		varrep_t vr = &variable_report;
+		fprintf(stderr, "%s[%d]:  about to serialize test for variable:\n", FILE__, __LINE__);
+		cerr << *variables[0] <<endl;
+		serialize_test(symtab, *variables[0], &variable_report);
+		serialize_test(symtab, *symbols[0], &symbol_report);
+		//serialize_test(symtab, *symbols[0], sr);
 #if 0
 		serialize_test_vector(symtab, symbols);
 		serialize_test_vector(symtab, functions);

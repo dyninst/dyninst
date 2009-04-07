@@ -35,11 +35,10 @@
 #include "dwarf.h"
 #include "libdwarf.h"
 
+#include "Symtab.h"
 #include "Type.h"
-#include "Symbol.h"
 #include "Function.h"
 #include "Module.h"
-#include "Symtab.h"
 #include "symtabAPI/src/Object.h"
 #include "Collections.h"
 #include "common/h/pathName.h"
@@ -504,13 +503,13 @@ int convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
 						 Dwarf_Signed listLength, 
 						 Symtab * objFile, 
-						 vector<loc_t>& locs, Address lowpc,
+						 vector<VariableLocation>& locs, Address lowpc,
 						 long int * initialStackValue = NULL)
 #else
   bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
 						   Dwarf_Signed listLength, 
 						   Symtab *,
-						   vector<loc_t>& locs, Address lowpc, 
+						   vector<VariableLocation>& locs, Address lowpc, 
 						   long int * initialStackValue = NULL)
 #endif
 {
@@ -543,9 +542,9 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
     if ( listLength != 1)
     printf("%s[%d]: unable to decode location lists of non-unit length.\n", __FILE__, __LINE__ );
   */
-  for(unsigned locIndex = 0 ; locIndex < listLength; locIndex++) {
+  for (unsigned locIndex = 0 ; locIndex < listLength; locIndex++) {
     bool isLocSet = false;
-    loc_t loc;
+    VariableLocation loc;
     // Initialize location values.
     loc.stClass = storageAddr;
     loc.refClass = storageNoRef;
@@ -1207,11 +1206,19 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	//				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength, proc );
 #endif
 	dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
-	vector<loc_t> *locs = new vector<loc_t>();
+	//vector<loc_t> *locs = new vector<loc_t>();
+
+	std::vector<VariableLocation> *locs = newFunction->getFramePtr();
+	if (0 != locs->size())
+	{
+		fprintf(stderr, "%s[%d]:  FIXME:  writing over old frame pointer info\n", FILE__, __LINE__);
+		locs->resize(0);
+	}
+
 	bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
 	DWARF_NEXT_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
 
-	status = newFunction->setFramePtr(locs);
+	//status = newFunction->setFramePtr(locs);
 	DWARF_NEXT_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
 
 
@@ -1403,7 +1410,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       }
       DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
          
-      vector<loc_t> locs;
+      vector<VariableLocation> locs;
       bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
       deallocateLocationList( dbg, locationList, listLength );            
       if ( ! decodedAddressOrOffset ) { break; }
@@ -1619,7 +1626,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       }
       DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
          
-      vector<loc_t> locs;
+      vector<VariableLocation> locs;
       bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
       deallocateLocationList( dbg, locationList, listLength );
          
@@ -2069,7 +2076,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
       dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
-      vector<loc_t> locs;
+      vector<VariableLocation> locs;
       dwarf_printf(" Tag member %s decodeLocationListForStaticOffsetOrAddress \n", memberName);
       long int baseAddress = 0;
       bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, & baseAddress );

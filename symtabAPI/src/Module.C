@@ -38,6 +38,7 @@
 #include "Variable.h"
 
 #include "common/h/pathName.h"
+#include "common/h/serialize.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -392,17 +393,6 @@ Module::Module(const Module &mod) :
 
 Module::~Module()
 {
-
-   //  individual deletion of annotations??
-
-#if 0
-   if (!clearAnnotations()) 
-   {
-      fprintf(stderr, "%s[%d]:  failed to clear annotations\n", FILE__, __LINE__);
-   }
-#endif
-   //fprintf(stderr, "%s[%d]:  FIXME:  need to clear annotations??\n", FILE__, __LINE__);
-
 }
 
 bool Module::isShared() const
@@ -508,18 +498,33 @@ bool Module::setDefaultNamespacePrefix(string str)
     return exec_->setDefaultNamespacePrefix(str);
 }
 
-void Module::serialize(SerializerBase *sb, const char *tag)
+void Module::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    ifxml_start_element(sb, tag);
    gtranslate(sb, fileName_, "fileName");
    gtranslate(sb, fullName_, "fullName");
    gtranslate(sb, addr_, "Address");
-   gtranslate(sb, language_, supportedLanguages2Str, "Language");
+   gtranslate(sb, (int &) language_, "Language");
    ifxml_end_element(sb, tag);
 
-   //  Patch up exec_ (pointer to Symtab) at a higher level??
-   //if (getSD().iomode() == sd_deserialize)
-   //   param.exec_ = parent_symtab;
+   if (sb->isInput())
+   {
+	   ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+	   if (!ssb)
+	   {
+		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		   SER_ERR("dynamic_cast");
+	   }
+
+	   Symtab *st = ssb->getScope();
+	   if (!st)
+	   {
+		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		   SER_ERR("getScope");
+	   }
+
+	   exec_ = st;
+   }
 }
 
 bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string name,

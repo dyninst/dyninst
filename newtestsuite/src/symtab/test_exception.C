@@ -41,6 +41,7 @@
 
 #include "symtab_comp.h"
 #include "test_lib.h"
+#include <iostream>
 
 #include "Symtab.h"
 #include "Symbol.h"
@@ -79,7 +80,7 @@ test_results_t test_exception_Mutator::executeTest()
 
    for (unsigned int i = 0; i < excps.size(); ++i)
    {
-	   cerr << "     " << *(excps[i]) << endl;
+	   std::cerr << "     " << *(excps[i]) << std::endl;
    }
 
 #if 0

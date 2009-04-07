@@ -33,6 +33,8 @@
 #define _emit_Elf_64_h_
 
 #include "Object.h"
+#include <vector>
+using namespace std;
 
 namespace Dyninst{
 namespace SymtabAPI{

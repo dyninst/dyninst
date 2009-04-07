@@ -41,15 +41,6 @@ typedef bool (*deserialize_and_annotate_t)(SerializerBase *, void *parent);
 bool addDeserializeFuncForType(deserialize_and_annotate_t, const std::type_info *);
 deserialize_and_annotate_t getDeserializeFuncForType(const std::type_info *);
 
-class COMMON_EXPORT Serializable {
-   protected:
-      Serializable() {}
-      virtual ~Serializable() {}
-
-   public:
-      virtual void serialize(SerializerBase *,  const char * = NULL) = 0;
-};
-
 class SerializerError : public std::runtime_error {
    //  SerializerError:  a small class that is thrown by serialization/deserialization
    //  routines.  This exists as an attempt to standardize and simplify error handling
@@ -75,7 +66,7 @@ class SerializerError : public std::runtime_error {
    public:
 
 
-   SerializerError(const std::string &__file__, 
+   COMMON_EXPORT SerializerError(const std::string &__file__, 
          const int &__line__, 
          const std::string &msg, 
          SerializerErrorType __err__ = ser_err_unspecified) :
@@ -85,15 +76,25 @@ class SerializerError : public std::runtime_error {
       err__(__err__)
    {}
 
-   virtual ~SerializerError() throw() {}
+   COMMON_EXPORT virtual ~SerializerError() THROW {}
 
-   std::string file() const {return file__;}
-   int line() const {return line__;}
-   SerializerErrorType code() const {return err__;}
+   COMMON_EXPORT std::string file() const {return file__;}
+   COMMON_EXPORT int line() const {return line__;}
+   COMMON_EXPORT SerializerErrorType code() const {return err__;}
 };
 
 
 COMMON_EXPORT void printSerErr(const SerializerError &err);
+
+class Serializable {
+   protected:
+      COMMON_EXPORT Serializable() {}
+      COMMON_EXPORT virtual ~Serializable() {}
+
+   public:
+      COMMON_EXPORT virtual void serialize(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
+};
+
 
 template <class S, class T>
 void translate_vector(S *ser, std::vector<T> &vec,
@@ -342,7 +343,7 @@ class trans_adaptor {
    public:
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
+         //fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
       } 
 
       T * operator()(S *ser, T & it, const char *tag = NULL, const char * /*tag2*/ = NULL)
@@ -464,16 +465,16 @@ class trans_adaptor<S,
 template <class S, class T>
 void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
 {
-   fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
-         __FILE__, __LINE__,
-         "SerializerBase",
-         typeid(T).name(), &it);
+   //fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
+   //      __FILE__, __LINE__,
+   //      "SerializerBase",
+   //      typeid(T).name(), &it);
 
    //  Maybe just need to do try/catch here since the template mapping may 
    //  change the type of return value thru template specialization
 
    trans_adaptor<S, T> ta;
-   fprintf(stderr, "%s[%d]: gtranslate: before operation\n", __FILE__, __LINE__);
+   //fprintf(stderr, "%s[%d]: gtranslate: before operation\n", __FILE__, __LINE__);
 
    T *itp = ta(ser, it, tag, tag2);
 

@@ -261,7 +261,7 @@ bool sb_is_output(SerializerBase *sb)
 } /* namespace Dyninst */
 
 bool SerializerBase::global_disable = false;
-dyn_hash_map<const char *, SerializerBase *> SerializerBase::active_bin_serializers;
+COMMON_EXPORT dyn_hash_map<std::string, SerializerBase *> SerializerBase::active_bin_serializers;
 
 #if 0
 SerDesBin &SerializerBin::getSD_bin()
@@ -282,13 +282,13 @@ void SerializerBase::dumpActiveBinSerializers()
 {
    fprintf(stderr, "%s[%d]:  have serializers:\n", FILE__, __LINE__);
 
-   dyn_hash_map<const char *, SerializerBase *>::iterator iter;
+   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
 
    for (iter = active_bin_serializers.begin(); 
          iter != active_bin_serializers.end(); 
          iter++)
    {
-      fprintf(stderr, "\t%s--%p\n", iter->first, iter->second);
+      fprintf(stderr, "\t%s--%p\n", iter->first.c_str(), iter->second);
    }
 }
 
@@ -409,6 +409,7 @@ FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/)
       }
    }
 
+   errno = 0;
    fprintf(stderr, "%s[%d]:  opening cache file %s\n", FILE__, __LINE__, cache_name.c_str());
    f = fopen(cache_name.c_str(), (mode == sd_serialize) ? "w+" : "r");
    if (!f) {
@@ -420,7 +421,7 @@ FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/)
       SER_ERR(msg);
    }
 
-   fprintf(stderr, "%s[%d]:  opened cache file %s\n", FILE__, __LINE__, cache_name.c_str());
+   fprintf(stderr, "%s[%d]:  opened cache file %s: %s\n", FILE__, __LINE__, cache_name.c_str(), strerror(errno));
 
    try {
       if (mode == sd_serialize){
@@ -605,6 +606,7 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
    if (fptr) 
       f = fptr;
    else {
+	   fprintf(stderr, "%s[%d]:  trying to open %s\n", FILE__, __LINE__, cache_name.c_str());
       f = fopen(cache_name.c_str(), "r");
       if (!f) {
          char msg[128];
@@ -632,14 +634,16 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
       SER_ERR(msg);
    }
 
-   if (header.source_file_size != source_file_size) {
+   if (header.source_file_size != source_file_size) 
+   {
       char msg[128];
       sprintf(msg, "%s[%d]:  size discrepancy found for %s/%s\n", 
             FILE__, __LINE__, full_file_path.c_str(), cache_name.c_str());
       SER_ERR(msg);
    }
 
-   if (!verifyChecksum(full_file_path, header.sha1)) {
+   if (!verifyChecksum(full_file_path, header.sha1)) 
+   {
       char msg[128];
       sprintf(msg, "%s[%d]:  checksum discrepancy found for %s/%s\n", 
             FILE__, __LINE__, full_file_path.c_str(), cache_name.c_str());
@@ -653,7 +657,10 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
    }
 
    if (!fptr)
+   {
+	   fprintf(stderr, "%s[%d]:  closing file pointer here\n", FILE__, __LINE__);
       fclose (f);
+   }
 }
 
 
@@ -816,17 +823,24 @@ void SerDesBin::translate(char &param, const char *tag)
 void SerDesBin::translate(int &param, const char *tag)
 {
    int rc;
-   if (iomode_ == sd_serialize) {
+   if (iomode_ == sd_serialize) 
+   {
       rc = fwrite(&param, sizeof(int), 1, f);
 
       if (1 != rc) 
          SER_ERR("fwrite");
    }
-   else {
-      rc = fread(&param, sizeof(int), 1, f);
+   else 
+   {
+	   errno = 0;
+	   rc = fread(&param, sizeof(int), 1, f);
 
       if (1 != rc) 
+	  {
+		  fprintf(stderr, "%s[%d]:  failed to deserialize int-'%s', rc = %d:%s, noisy = %d\n", 
+				  FILE__, __LINE__, tag ? tag : "no_tag", rc, strerror(errno), noisy);
          SER_ERR("fread");
+	  }
    }
 
    if (noisy)
@@ -1011,7 +1025,8 @@ void SerDesBin::translate(const char * &param, int bufsize, const char *tag)
 	  }
 	  else 
 	  {
-		  fprintf(stderr, "%s[%d]:  WARN:  zero length string for %s\n", FILE__, __LINE__, tag ? tag : "no_tag_provided");
+		  //  Zero length strings are allowed
+		  //fprintf(stderr, "%s[%d]:  WARN:  zero length string for %s\n", FILE__, __LINE__, tag ? tag : "no_tag_provided");
 	  }
 
 	  l_ptr[len] = '\0';
@@ -1108,6 +1123,10 @@ SerializerBase::SerializerBase(const char *name_,
    assert(sf);
    sd = sf->getSD();
    assert(sd);
+}
+
+SerializerBase::SerializerBase() 
+{
 }
 
 SerializerBase *SerializerBase::getSerializer(std::string subsystem, std::string fname)

@@ -44,6 +44,7 @@
 
 #include "Symtab.h"
 #include "Symbol.h"
+#include <iostream>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -76,7 +77,7 @@ test_results_t test_relocations_Mutator::executeTest()
    fprintf(stderr, "%s[%d]:  have relocs:\n", FILE__, __LINE__);
    for (unsigned int i = 0; i < relocs.size(); ++i)
    {
-	   cerr << "      " <<  relocs[i] << endl;
+	   std::cerr << "      " <<  relocs[i] << std::endl;
    }
 #if 0
    if (relocs.size() != 3)

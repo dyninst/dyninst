@@ -167,6 +167,8 @@ const char *visibility2Str(visibility_t v)
    };
    return "bad_visibility";
 }
+
+#if 0
 const char *storageClass2Str(storageClass sc) 
 {
    switch(sc) {
@@ -177,7 +179,17 @@ const char *storageClass2Str(storageClass sc)
    return "bad_storage_class";
 }
 
-void Type::serialize(SerializerBase *s, const char *)
+const char *storageRefClass2Str(storageRefClass sc) 
+{
+   switch(sc) {
+      CASE_RETURN_STR(storageRef);
+      CASE_RETURN_STR(storageNoRef);
+   };
+   return "bad_storage_class";
+}
+#endif
+
+void Type::serialize(SerializerBase *s, const char *) THROW_SPEC (SerializerError)
 {
    //  this should no be called directly, but by serialization functions at leaf nodes
    //  of the c++hierarchy (objects that descent from Type)
@@ -1120,7 +1132,7 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
 	    localVar *locVar;
     	locVar = new localVar(fieldList[j]->getName(), 
 	        			     fieldList[j]->getType(), "", 0);
-    	loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+    	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
         loc->stClass = storageAddr;
         loc->refClass = storageNoRef;
         loc->reg = -1;    
@@ -1633,7 +1645,7 @@ void Field::fixupUnknown(Module *module) {
  * localVar Constructor
  *
  */
-localVar::localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t>* locs)
+localVar::localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<VariableLocation>* locs)
  :name_(name), type_(typ), fileName_(fileName), lineNum_(lineNum), locs_(locs), upPtr_(NULL)
 {
     type_->incrRefCount();
@@ -1648,7 +1660,7 @@ localVar::localVar(localVar &lvar)
    if(!lvar.locs_)
        locs_ = NULL;
    else {
-       locs_ = new vector<loc_t>;
+       locs_ = new vector<VariableLocation>;
        for(unsigned i=0;i<lvar.locs_->size();i++){
           locs_->push_back((*lvar.locs_)[i]);
        }
@@ -1658,18 +1670,18 @@ localVar::localVar(localVar &lvar)
       type_->incrRefCount();
 }
 
-bool localVar::addLocation(loc_t *location)
+bool localVar::addLocation(VariableLocation *location)
 {
     if(!locs_)
-    	locs_ = new std::vector<loc_t>;
+    	locs_ = new std::vector<VariableLocation>;
     locs_->push_back(*location);
     return true;
 }
 
-bool localVar::setLocation(vector<loc_t> &locs) {
+bool localVar::setLocation(vector<VariableLocation> &locs) {
     if(locs_)
         return false;
-    locs_ = new vector<loc_t>;
+    locs_ = new vector<VariableLocation>;
     *locs_ = locs;
     return true;
 }
@@ -1721,7 +1733,7 @@ std::string &localVar::getFileName() {
 	return fileName_; 
 }
 
-std::vector<Dyninst::SymtabAPI::loc_t> *localVar::getLocationLists() { 
+std::vector<Dyninst::SymtabAPI::VariableLocation> *localVar::getLocationLists() { 
 	return locs_; 
 }
 

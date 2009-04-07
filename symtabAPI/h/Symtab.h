@@ -33,8 +33,8 @@
 #define __SYMTAB_H__
  
 #include "Symbol.h"
-#include "Region.h"
 #include "LineInformation.h"
+#include "Region.h"
 
 #include "Annotatable.h"
 #include "Serialization.h"
@@ -49,6 +49,7 @@ class builtInTypeCollection;
 
 class ExceptionBlock;
 class Object;
+class localVar;
 class relocationEntry;
 
 class MemRegReader {
@@ -87,7 +88,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename);
    SYMTAB_EXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
 
-   SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Symtab");
+   SYMTAB_EXPORT 
+   void serialize(SerializerBase *sb, const char *tag = "Symtab") THROW_SPEC (SerializerError);
    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
 
@@ -115,6 +117,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
    SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
+
+   Symbol *findSymbolByIndex(unsigned);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols
@@ -278,6 +282,7 @@ class Symtab : public LookupInterface,
    static builtInTypeCollection *builtInTypes;
    static typeCollection *stdTypes;
 
+   Symbol *getSymbolByIndex(unsigned);
    protected:
    Symtab(std::string filename, std::string member_name, Offset offset, bool &err, void *base = NULL);
    Symtab(char *img, size_t size, std::string member_name, Offset offset, bool &err, void *base = NULL);
@@ -525,6 +530,7 @@ class Symtab : public LookupInterface,
                                            bool checkCase = false);
 
 
+
 };
 
 /**
@@ -536,7 +542,8 @@ SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &
 class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
-      SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "exceptionBlock");
+      SYMTAB_EXPORT 
+	  void serialize(SerializerBase *sb, const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
       SYMTAB_EXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb);
@@ -575,7 +582,8 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT relocationEntry(const relocationEntry& ra);
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
-      SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "relocationEntry");
+      SYMTAB_EXPORT 
+	  void serialize(SerializerBase *sb, const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
       SYMTAB_EXPORT Offset target_addr() const;
       SYMTAB_EXPORT Offset rel_addr() const;
@@ -604,6 +612,10 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       Symbol *dynref_;
       unsigned long relType_;
 };
+
+SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file);
+SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file);
+SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb);
 
 }//namespace SymtabAPI
 

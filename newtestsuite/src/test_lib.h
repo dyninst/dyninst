@@ -50,8 +50,11 @@
 #include "test_info_new.h"
 #include "test_lib_dll.h"
 #include <errno.h>
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #if !defined(P_sleep)
 #if defined(os_windows_test)
@@ -64,6 +67,9 @@
 #endif
 #endif
 
+#if defined(os_windows_test)
+#include <direct.h>
+#endif
 #define DYNINST_NO_ERROR -1
 
 #include "test_results.h"
@@ -178,12 +184,71 @@ class Tempfile {
 
 	//  file paths should be generalized to work on windows
 	char *fname;
+#if !defined (os_windows_test)
 	int fd;
+#else
+	HANDLE fd;
+#endif
 
 	public:
 
 	Tempfile()
 	{
+#if defined (os_windows_test)
+		fname = (char *)malloc(1024 *sizeof (char));
+		assert(fname);
+		const char *dyninst_root = getenv("DYNINST_ROOT");
+		char tmp_dir[1024];
+		struct stat statbuf;
+
+		if (!dyninst_root)
+		{
+			fprintf(stderr, "%s[%d]:  DYNINST_ROOT not specified\n", __FILE__, __LINE__);
+			abort();
+		}
+
+		_snprintf(tmp_dir, 1024, "%s\temp", dyninst_root);
+
+		if (0 != stat(tmp_dir, &statbuf))
+		{
+			if (ENOENT == errno)
+			{
+				//  doesn't exist, make it
+				if (0 != _mkdir(tmp_dir))
+				{
+					fprintf(stderr, "%s[%d]:  mkdir: %s\n", __FILE__, __LINE__, strerror(errno));
+					abort();
+				}
+			}
+			else
+			{
+				fprintf(stderr, "%s[%d]:  FIXME:  unexpected stat result: %s\n", 
+						__FILE__, __LINE__, strerror(errno));
+				abort();
+			}
+		}
+
+		if (0 != GetTempFileName(tmp_dir, "tempfile", 0, fname))
+		{
+			fprintf(stderr, "%s[%d]:  failed to create temp file name\n", __FILE__, __LINE__);
+			assert(0);
+		}
+
+		fd = CreateFile(fname,  
+				GENERIC_READ | GENERIC_WRITE, // open r-w 
+				0,                    // do not share 
+				NULL,                 // default security 
+				CREATE_ALWAYS,        // overwrite existing
+				FILE_ATTRIBUTE_NORMAL,// normal file 
+				NULL);                // no template 
+
+		if (fd == INVALID_HANDLE_VALUE) 
+		{ 
+			fprintf(stderr, "%s[%d]:  failed to create temp file\n", __FILE__, __LINE__);
+			assert(0);
+		} 
+
+#else
 		fname = strdup("/tmp/tmpfileXXXXXX");
 		fd = mkstemp(fname);
 
@@ -192,15 +257,24 @@ class Tempfile {
 			fprintf(stderr, "%s[%d]:  failed to make temp file\n", __FILE__, __LINE__);
 			abort();
 		}
+#endif
 	}
 
 	~Tempfile()
 	{
+#if defined (os_windows_test)
+		if (0 == DeleteFile(fname))
+		{
+			fprintf(stderr, "%s[%d]:  DeleteFile failed: %s\n",
+					__FILE__, __LINE__, strerror(errno));
+		}
+#else
 		if (0 != unlink (fname))
 		{
 			fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
 					__FILE__, __LINE__, strerror(errno));
 		}
+#endif
 		free (fname);
 	}
 

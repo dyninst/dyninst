@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-#ifndef Type_h_
-#define Type_h_
+#ifndef __Type_h__
+#define __Type_h__
 
 #include "Serialization.h"
 #include "Annotatable.h"
@@ -101,6 +101,7 @@ typedef enum {
  */
  
 const char *visibility2Str(visibility_t v);
+#if 0
 
 typedef enum {
 	storageAddr,
@@ -122,12 +123,15 @@ typedef enum {
     storageNoRef
 } storageRefClass;
 	
+const char *storageRefClass2Str(storageRefClass sc);
+
 /*
  * storageRefClass: Encodes if a variable can be accessed through a register/address.
  *
  * storageRef        - There is a pointer to variable.
  * storageNoRef      - No reference. Value can be obtained using storageClass.
  */
+#endif
 
 class SYMTAB_EXPORT Field{
    friend class typeStruct;
@@ -169,7 +173,7 @@ class Type : public Serializable, public AnnotatableSparse  {
 				      typeCommon *);
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
    public:
-  SYMTAB_EXPORT void serialize(SerializerBase *, const char *);
+  SYMTAB_EXPORT void serialize(SerializerBase *, const char *) THROW_SPEC (SerializerError);
  protected:
    typeId_t ID_;           /* unique ID of type */
    std::string name_;
@@ -525,6 +529,7 @@ class typeArray : public rangedType {
    SYMTAB_EXPORT void fixupUnknowns(Module *);
 };
 
+#if 0
 //location for a variable
 typedef struct {
    storageClass stClass;
@@ -534,7 +539,9 @@ typedef struct {
    Address lowPC;
    Address hiPC;
 } loc_t;
+#endif
 
+#if 0
 class SYMTAB_EXPORT localVar
 {
    friend class typeCommon;
@@ -571,6 +578,7 @@ class SYMTAB_EXPORT localVar
       void *getUpPtr() const;
       bool setUpPtr(void *);
 };
+#endif
 
 } // namespace SymtabAPI
 } // namespace Dyninst

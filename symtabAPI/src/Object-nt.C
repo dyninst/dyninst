@@ -992,7 +992,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
         storage = storageAddr;
         storageName = "Absolute";
     }
-	loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
 	loc->stClass = storage;
 	loc->refClass = storageNoRef;
 	loc->frameOffset = frameOffset;

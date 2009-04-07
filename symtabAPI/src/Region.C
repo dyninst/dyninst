@@ -149,11 +149,9 @@ const char *Region::regionType2Str(RegionType rt)
    return "bad_RegionTypeype";
 };
 
-void Region::serialize(SerializerBase *sb, const char *tag)
+void Region::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-#if 0
-   ifxml(SerializerXML::start_xml_element, sb, tag);
-#endif
+   ifxml_start_element(sb, tag);
    gtranslate(sb, regNum_, "RegionNumber");
    gtranslate(sb, name_, "RegionName");
    gtranslate(sb, diskOff_, "DiskOffset");
@@ -166,9 +164,7 @@ void Region::serialize(SerializerBase *sb, const char *tag)
    gtranslate(sb, rels_, "Relocations", "Relocation");
    gtranslate(sb, buffer_, "Buffer");
    gtranslate(sb, isLoadable_, "isLoadable");
-#if 0
-   ifxml(SerializerXML::end_xml_element, sb, tag);
-#endif
+   ifxml_end_element(sb, tag);
 }
 
 unsigned Region::getRegionNumber() const

@@ -37,8 +37,8 @@
 
 #include <algorithm>
 #include "common/h/parseauxv.h"
-#include "emitElf.h"
 #include "Symtab.h"
+#include "emitElf.h"
 
 #if defined(os_solaris)
 #include <sys/link.h>

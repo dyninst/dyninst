@@ -55,6 +55,13 @@ namespace Dyninst {
 #endif
 #endif
 
+#if defined(_MSC_VER)
+#define THROW_SPEC(x)
+#define THROW
+#else
+#define THROW_SPEC(x) throw (x)
+#define THROW throw ()
+#endif
 
 COMMON_EXPORT unsigned addrHashCommon(const Address &addr);
 COMMON_EXPORT unsigned ptrHash(const void * addr);

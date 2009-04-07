@@ -34,8 +34,11 @@
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
-#include "symtabAPI/src/Object.h"
-#include "symtabAPI/h/Symtab.h"
+#include "Type.h"
+#include "Variable.h"
+#include "Symbol.h"
+#include "Symtab.h"
+#include "Object.h"
 
 #include "emitElf.h"
 #include "Module.h"

@@ -43,8 +43,10 @@
 ************************************************************************/
 
 #include "symutil.h"
+#if 0
 #include "Collections.h"
 #include "Type.h"
+#endif
 
 #include "Annotatable.h"
 #include "Serialization.h"
@@ -53,13 +55,6 @@
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
 
-
-#if 0
-typedef struct {} symbol_file_name_a;
-typedef struct {} symbol_version_names_a;
-typedef struct {} symbol_variables_a;
-typedef struct {} symbol_parameters_a;
-#endif
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -71,6 +66,8 @@ class Region;
 class Aggregate;
 class Function;
 class Variable;
+class Type;
+class typeCollection;
 
 /************************************************************************
  * class Symbol
@@ -83,6 +80,7 @@ class Symbol : public Serializable,
    friend class Symtab;
    friend class AObject;
    friend class Object;
+   friend class Aggregate;
 
    friend std::string parseStabString(Module *, int linenum, char *, int, 
          typeCommon *);
@@ -95,6 +93,7 @@ class Symbol : public Serializable,
       ST_OBJECT,
       ST_MODULE,
       ST_SECTION,
+      ST_DELETED,
       ST_NOTYPE
    };
 
@@ -267,13 +266,16 @@ class Symbol : public Serializable,
    std::string typedName_;
 
    SymbolTag     tag_;
+   unsigned index_;
 
 #if !defined (USE_ANNOTATIONS)
    std::vector<std::string> verNames_;
 #endif
 
+   void restore_module_and_region(SerializerBase *, std::string &, Offset) THROW_SPEC (SerializerError);
    public:
-   SYMTAB_EXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
+   SYMTAB_EXPORT 
+	   void serialize(SerializerBase *, const char *tag = "Symbol") THROW_SPEC (SerializerError);
 };
 
 #if 0
@@ -285,36 +287,6 @@ Symbol::Symbol(unsigned)
     retType_(NULL), moduleName_("")
    //vars_(NULL), params_(NULL) 
 {
-}
-#endif
-
-#if 0
-bool
-Symbol::operator==(const Symbol& s) const 
-{
-   // explicitly ignore tags when comparing symbols
-
-	//  compare sections by offset, not pointer
-	if (!sec_ && s.sec_) return false;
-	if (sec_ && !s.sec_) return false;
-	if (sec_)
-	{
-		if (sec_->getDiskOffset() != s.sec_->getDiskOffset())
-			return false;
-	}
-
-   return ((module_  == s.module_)
-         && (type_    == s.type_)
-         && (linkage_ == s.linkage_)
-         && (addr_    == s.addr_)
-         && (size_    == s.size_)
-         && (isInDynsymtab_ == s.isInDynsymtab_)
-         && (isInSymtab_ == s.isInSymtab_)
-         && (isAbsolute_ == s.isAbsolute_)
-         && (mangledName_ == s.mangledName_)
-         && (prettyName_ == s.prettyName_)
-         && (typedName_ == s.typedName_)
-         && (moduleName_ == s.moduleName_));
 }
 #endif
 

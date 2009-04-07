@@ -50,6 +50,11 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+Aggregate::Aggregate() :
+    module_(NULL)
+{
+}
+
 Aggregate::Aggregate(Symbol *sym) :
     module_(NULL)
 {
@@ -62,13 +67,33 @@ Aggregate::Aggregate(Symbol *sym) :
 }
 
 
-const vector<std::string> &Aggregate::getAllMangledNames() {
+Offset Aggregate::getOffset() const 
+{ 
+	return getFirstSymbol()->getOffset();
+}
+
+unsigned Aggregate::getSize() const 
+{ 
+	return getFirstSymbol()->getSize(); 
+}
+
+Region * Aggregate::getRegion() const
+{
+   	return getFirstSymbol()->getRegion();
+}
+
+const vector<std::string> &Aggregate::getAllMangledNames() 
+{
     return mangledNames_;
 }
-const vector<std::string> &Aggregate::getAllPrettyNames() {
+
+const vector<std::string> &Aggregate::getAllPrettyNames() 
+{
     return prettyNames_;
 }
-const vector<std::string> &Aggregate::getAllTypedNames() {
+
+const vector<std::string> &Aggregate::getAllTypedNames() 
+{
     return typedNames_;
 }
 
@@ -246,19 +271,229 @@ bool Aggregate::addTypedNameInt(string name, bool isPrimary) {
     return true;
 }
 
-bool Aggregate::changeSymbolOffset(Symbol *sym) {
+bool Aggregate::changeSymbolOffset(Symbol *sym) 
+{
     Offset oldOffset = getOffset();
 
     removeSymbolInt(sym);
 
-    if (symbols_.empty()) {
+    if (symbols_.empty()) 
+	{
         // This was the only one; so add it back in and update our address
         // in the Symtab.
         symbols_.push_back(sym);
         module_->exec()->changeAggregateOffset(this, oldOffset, getOffset());
     }
-    else {
+    else 
+	{
         module_->exec()->addSymbolToAggregates(sym);
     }
     return true;
+}
+
+void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t, 
+		unsigned t_id) THROW_SPEC (SerializerError)
+{
+	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+	if (!ssb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Symtab *st = ssb->getScope();
+
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	t = st->findType(t_id);
+
+	if (!t)
+	{
+		//  This should probably throw, but let's play nice for now
+		fprintf(stderr, "%s[%d]:  FIXME: untyped aggregate\n", FILE__, __LINE__);
+	}
+}
+
+void Aggregate::restore_module_by_name(SerializerBase *sb,  
+		std::string &mname) THROW_SPEC (SerializerError)
+{
+	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+	if (!ssb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Symtab *st = ssb->getScope();
+
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	if (!st->findModuleByName(module_, mname) || !(module_))
+	{
+		//  This should probably throw, but let's play nice for now
+		fprintf(stderr, "%s[%d]:  FIXME: aggregate w/out module\n", FILE__, __LINE__);
+	}
+}
+
+void Aggregate::rebuild_symbol_vector(SerializerBase *sb,  
+		std::vector<unsigned> &sym_indexes) THROW_SPEC (SerializerError)
+{
+	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+	if (!ssb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Symtab *st = ssb->getScope();
+
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	if (!sym_indexes.size())
+	{
+		//  can't have any aggregates w/out symbols
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	symbols_.resize(sym_indexes.size());
+
+	for (unsigned int i = 0; i < sym_indexes.size(); ++i)
+	{
+		Symbol *s = st->findSymbolByIndex(sym_indexes[i]);
+
+		if (!s)
+		{
+			//  Should throw here, but for now let's just scream
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		}
+
+		symbols_[i] = s;
+	}
+}
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
+{
+	std::string modname = a.module_ ? a.module_->fullName() : std::string("no_mod");
+	os   << "Aggregate{"
+		<< " Module=" << modname
+		<< " MangledNames=["; 
+		for (unsigned int i = 0; i < a.mangledNames_.size(); ++i)
+		{
+			os << a.mangledNames_[i];
+			if ((i + 1) < a.mangledNames_.size())
+				os << ", ";
+		}
+		os << "]";
+
+		os << " PrettyNames=["; 
+		for (unsigned int i = 0; i < a.prettyNames_.size(); ++i)
+		{
+			os << a.prettyNames_[i];
+			if ((i + 1) < a.prettyNames_.size())
+				os << ", ";
+		}
+		os << "]";
+
+		os << " TypedNames=["; 
+		for (unsigned int i = 0; i < a.typedNames_.size(); ++i)
+		{
+			os << a.typedNames_[i];
+			if ((i + 1) < a.typedNames_.size())
+				os << ", ";
+		}
+		os << "]";
+		os << " }";
+
+		return os;
+}
+
+void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW_SPEC (SerializerError)
+{
+	std::string modname = module_ ? module_->fullName() : std::string("");
+	std::vector<unsigned> sym_indexes;
+	sym_indexes.resize(symbols_.size());
+
+	for (unsigned int i = 0; i < symbols_.size(); ++i)
+	{
+		assert(symbols_[i]);
+		sym_indexes[i] = symbols_[i]->index_;
+	}
+
+	try
+	{
+		ifxml_start_element(sb, tag);
+		gtranslate(sb, modname, "moduleName");
+		//  Arguably we should be able to reconstruct these name lists from the set of 
+		//  symbols, right?  
+		gtranslate(sb, mangledNames_, "mangledNameList");
+		gtranslate(sb, prettyNames_, "prettyNameList");
+		gtranslate(sb, typedNames_, "typedNameList");
+		gtranslate(sb, sym_indexes, "symbolIndexList");
+		ifxml_end_element(sb, tag);
+
+		restore_module_by_name(sb, modname);
+
+		if (sb->isBin() && sb->isInput())
+			rebuild_symbol_vector(sb, sym_indexes);
+	}
+	SER_CATCH(tag);
+
+}
+
+bool Aggregate::operator==(const Aggregate &a)
+{
+	if (mangledNames_.size() != a.mangledNames_.size()) return false;
+	if (prettyNames_.size() != a.prettyNames_.size()) return false;
+	if (typedNames_.size() != a.typedNames_.size()) return false;
+	if (symbols_.size() != a.symbols_.size()) return false;
+	if (module_ && !a.module_) return false;
+	if (!module_ && a.module_) return false;
+	if (module_ && (module_->fullName() != a.module_->fullName())) return false;
+
+	for (unsigned int i = 0; i < mangledNames_.size(); ++i)
+	{
+		if (mangledNames_[i] != a.mangledNames_[i]) return false;
+	}
+	for (unsigned int i = 0; i < prettyNames_.size(); ++i)
+	{
+		if (prettyNames_[i] != a.prettyNames_[i]) return false;
+	}
+	for (unsigned int i = 0; i < typedNames_.size(); ++i)
+	{
+		if (typedNames_[i] != a.typedNames_[i]) return false;
+	}
+	for (unsigned int i = 0; i < symbols_.size(); ++i)
+	{
+		Symbol *s1 = symbols_[i];
+		Symbol *s2 = a.symbols_[i];
+		if (s1 && !s2) return false;
+		if (!s1 && s2) return false;
+		if (!s1)
+			fprintf(stderr, "%s[%d]:  WARN:  NULL Symbol pointer here\n", FILE__, __LINE__);
+		else
+		{
+			//  just compare offset and a couple other params
+			if (s1->getOffset() != s2->getOffset()) return false;
+			if (s1->getType() != s2->getType()) return false;
+			if (s1->getSize() != s2->getSize()) return false;
+		}
+	}
+
+	return true;
 }

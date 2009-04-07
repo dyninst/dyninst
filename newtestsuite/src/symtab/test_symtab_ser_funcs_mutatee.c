@@ -40,7 +40,11 @@
  */
 
 
+int test_symtab_ser_funcs_var1;
+
 int test_symtab_ser_funcs_mutatee() {
+   test_symtab_ser_funcs_var1 = 1;
+
    /*If mutatee should run, things go here.*/
    return 0;
 }

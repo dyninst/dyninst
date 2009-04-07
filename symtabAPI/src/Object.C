@@ -90,6 +90,7 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
                 case Symbol::ST_OBJECT:   fprintf(fd, "  OBJ"); break;
                 case Symbol::ST_MODULE:   fprintf(fd, "  MOD"); break;
                 case Symbol::ST_SECTION:  fprintf(fd, "  SEC"); break;
+                case Symbol::ST_DELETED:  fprintf(fd, "  DEL"); break;
                 case Symbol::ST_NOTYPE:   fprintf(fd, "   - "); break;
             }
             switch (sym->getLinkage()) {

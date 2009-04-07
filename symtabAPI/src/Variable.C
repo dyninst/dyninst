@@ -39,6 +39,7 @@
 #include "Module.h"
 #include "Collections.h"
 #include "Variable.h"
+#include "Aggregate.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -54,6 +55,11 @@ Variable::Variable(Symbol *sym) :
 {
 }
 
+Variable::Variable() :
+    Aggregate(),
+    type_(NULL)
+{
+}
 void Variable::setType(Type *type)
 {
    type_ = type;
@@ -65,9 +71,55 @@ Type* Variable::getType()
    return type_;
 }
 
-void Variable::serialize(SerializerBase *sb, const char *tag)
+void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	fprintf(stderr, "%s[%d]:  implement me\n", FILE__, __LINE__);
+	fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
+	if (!sb)
+	{
+		SER_ERR("bad paramater sb");
+	}
+
+	//  Use typeID as unique identifier
+	unsigned int t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
+
+	try 
+	{
+		ifxml_start_element(sb, tag);
+		gtranslate(sb, t_id, "typeID");
+		Aggregate::serialize_aggregate(sb);
+		ifxml_end_element(sb, tag);
+		restore_type_by_id(sb, type_, t_id);
+	} 
+	SER_CATCH(tag);
+}
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
+{
+	std::string tname(v.type_ ? v.type_->getName() : "no_type");
+	const Aggregate *ag = dynamic_cast<const Aggregate *>(&v);
+	assert(ag);
+
+	os  << "Variable{"        
+		<< " type=" 
+		<< tname
+	    << " ";						   
+	os  << 	*ag;					   
+	os  << 	"}";
+	return os;	
+
+}
+bool Variable::operator==(const Variable &v)
+{
+	if (type_ && !v.type_)
+		return false;
+	if (!type_ && v.type_)
+		return false;
+	if (type_)
+		if (type_->getID() != v.type_->getID())
+		{
+			return false;
+		}
+	return ((Aggregate &)(*this)) == ((Aggregate &)v);
 }
 
 bool Variable::removeSymbol(Symbol *sym) 
@@ -77,4 +129,49 @@ bool Variable::removeSymbol(Symbol *sym)
         module_->exec()->deleteVariable(this);
     }
     return true;
+}
+
+namespace Dyninst {
+	namespace SymtabAPI {
+const char *storageClass2Str(Dyninst::SymtabAPI::storageClass sc) 
+{
+	switch(sc) {
+		CASE_RETURN_STR(storageAddr);
+		CASE_RETURN_STR(storageReg);
+		CASE_RETURN_STR(storageRegOffset);
+	};
+	return "bad_storage_class";
+}
+
+const char *storageRefClass2Str(Dyninst::SymtabAPI::storageRefClass sc) 
+{
+	switch(sc) {
+		CASE_RETURN_STR(storageRef);
+		CASE_RETURN_STR(storageNoRef);
+	};
+	return "bad_storage_class";
+}
+}
+}
+
+bool VariableLocation::operator==(const VariableLocation &f)
+{
+	if (stClass != f.stClass) return false;
+	if (refClass != f.refClass) return false;
+	if (reg != f.reg) return false;
+	if (frameOffset != f.frameOffset) return false;
+	if (hiPC != f.hiPC) return false;
+	if (lowPC != f.lowPC) return false;
+	return true;
+}
+void VariableLocation::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+{
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, (int &)stClass, "StorageClass");
+	gtranslate(sb, (int &)refClass, "StorageRefClass");
+	gtranslate(sb, reg, "register");
+	gtranslate(sb, frameOffset, "frameOffset");
+	gtranslate(sb, hiPC, "hiPC");
+	gtranslate(sb, lowPC, "lowPC");
+	ifxml_end_element(sb, tag);
 }

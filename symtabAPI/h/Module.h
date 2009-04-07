@@ -44,6 +44,8 @@ namespace SymtabAPI{
 
 class typeCollection;
 class LineInformation;
+class localVar;
+class Symtab;
 
 class Module : public LookupInterface,
                public Serializable, 
@@ -59,7 +61,7 @@ class Module : public LookupInterface,
    SYMTAB_EXPORT Module(const Module &mod);
    SYMTAB_EXPORT bool operator==(Module &mod);
 
-   SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Module");
+   SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Module") THROW_SPEC (SerializerError);
 
    SYMTAB_EXPORT const std::string &fileName() const;
    SYMTAB_EXPORT const std::string &fullName() const;

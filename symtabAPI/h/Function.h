@@ -40,18 +40,25 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 #include "Aggregate.h"
-#include "Type.h"
+#if 0
 #include "Symbol.h"
+#endif
+#include "Variable.h"
+
+SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
 
 namespace Dyninst{
 namespace SymtabAPI{
 
 class Symbol;
+class Type;
 
 
 class Function : public Aggregate, public Serializable
 {
     friend class Symtab;
+	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
+
  private:
     SYMTAB_EXPORT Function(Symbol *sym);
     SYMTAB_EXPORT ~Function();
@@ -71,16 +78,18 @@ class Function : public Aggregate, public Serializable
       SYMTAB_EXPORT int   getFramePtrRegnum() const;
 
       /***** x84_64-Specific Frame Pointer Information *****/
-	  SYMTAB_EXPORT bool  setFramePtr(std::vector<loc_t> *locs);
-      SYMTAB_EXPORT std::vector<loc_t>  *getFramePtr() const;
+	  //SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
+      SYMTAB_EXPORT std::vector<VariableLocation> *getFramePtr();
 
       /***** Local Variable Information *****/
       SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
       SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
       SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
 
-	  SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Function");
+	  SYMTAB_EXPORT
+	  void serialize(SerializerBase *sb, const char *tag = "Function") THROW_SPEC (SerializerError);
 
+	  bool operator==(const Function &);
       /* internal helper functions */
       bool addLocalVar(localVar *);
       bool addParam(localVar *);
@@ -88,7 +97,7 @@ class Function : public Aggregate, public Serializable
 
       Type          *retType_;
       int           framePtrRegNum_;
-      std::vector<loc_t> *locs_;
+      std::vector<VariableLocation> locs_;
 };
 
 

@@ -277,7 +277,7 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
 #endif
 }
 
-void Symbol::serialize(SerializerBase *s, const char *tag) 
+void Symbol::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 
 #if 0
@@ -305,6 +305,7 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 		gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
 		gtranslate(s, offset_, "offset");
 		gtranslate(s, size_, "size");
+		gtranslate(s, index_, "index");
 		gtranslate(s, isDynamic_, "isDynamic");
 		gtranslate(s, isAbsolute_, "isAbsolute");
 		gtranslate(s, prettyName_, "prettyName");
@@ -315,59 +316,53 @@ void Symbol::serialize(SerializerBase *s, const char *tag)
 		ifxml_end_element(s, "Symbol");
 
 		//  Now, if we are doing binary deserialization, lookup type and region by unique ids
-		if (s->isBin())
-		{
-			if (s->isInput())
-			{
-				ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(s);
-				if (!ssb)
-				{
-					fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-					SER_ERR("FIXME");
-				}
-				Symtab *st = ssb->getScope();
-				assert(st);
-				Module *m = NULL;
-				if (modname.length())
-				{
-					if (!st->findModuleByName(m, modname) || !m)
-					{
-						fprintf(stderr, "%s[%d]:  WARNING:  cannot find module '%s' for symbol during deserailize\n", FILE__, __LINE__, modname.c_str());
-					}
-				}
-				module_ = m;
+		if (s->isBin() && s->isInput())
+			restore_module_and_region(s, modname, r_off);
 
-#if 0
-				if (t_id == 0xdeadbeef)
-					retType_ = NULL;
-				else 
-				{
-					Type *t = st->findType(t_id);
-					if (!t)
-					{
-						fprintf(stderr, "%s[%d]:  WARNING:  cannot find type for symbol during deserailize\n", FILE__, __LINE__);
-					}
-					else
-					{
-						retType_ = t;
-					}
-				}
-#endif
-				Region *r = NULL;
-				if (!st->findRegionByEntry(r, r_off) || !r)
-				{
-					fprintf(stderr, "%s[%d]:  WARNING:  cannot find region for symbol during deserailize\n", FILE__, __LINE__);
-				}
-				else
-				{
-					region_ = r;
-				}
-
-			}
-		}
 	} SER_CATCH("Symbol");
 }
 
+void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, Offset r_off) THROW_SPEC (SerializerError)
+{
+	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(s);
+
+	if (!ssb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Symtab *st = ssb->getScope();
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	module_ = NULL;
+
+	if (modname.length())
+	{
+		//  All symbols should have an associated module
+		if (!st->findModuleByName(module_, modname) || !module_)
+		{
+			//  This should throw...  but not quite ready for that yet
+			fprintf(stderr, "%s[%d]:  WARNING:  No module '%s' for symbol\n", 
+					FILE__, __LINE__, modname.c_str());
+		}
+	}
+
+	region_ = NULL;
+
+	//  All symbols should have an associated region 
+	if (!st->findRegionByEntry(region_, r_off) || !region_)
+	{
+		//  This should throw...  but not quite ready for that yet
+		fprintf(stderr, "%s[%d]:  WARNING:  No region for symbol\n", 
+				FILE__, __LINE__);
+	}
+
+}
 
 #if 0
 void Symbol::serialize(SerializerBase *s, const char *tag) 
