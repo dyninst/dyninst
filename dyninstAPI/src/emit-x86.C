@@ -1040,13 +1040,7 @@ void EmitterAMD64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 
 void EmitterAMD64::emitLoadIndir(Register dest, Register addr_src, codeGen &gen)
 {
-    // this version assumes dest is a physical address
-    //emitMovRMToReg64(dest, addr_src, 0, false, gen);
-
-    // this more closely parallels the 32-bit version
-    emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, -1*(addr_src*8), true, gen); // mov eax, -(addr_reg*8)[ebp]
-    emitMovRMToReg64(REGNUM_RAX, REGNUM_RAX, 0, true, gen);         // mov eax, [eax]
-    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen); // mov -(dest*8)[ebp], eax
+    emitMovRMToReg64(dest, addr_src, 0, false, gen);
 }
 
 void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
@@ -1388,7 +1382,10 @@ void EmitterAMD64::emitLoadShared(Register dest, const image_variable *var, int 
     emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen);
 
     // get the variable with an indirect load
-    emitLoadIndir(dest, dest, gen);
+    //emitLoadIndir(dest, dest, gen);
+    emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, -1*(dest*8), true, gen); // mov eax, -(addr_reg*8)[ebp]
+    emitMovRMToReg64(REGNUM_RAX, REGNUM_RAX, 0, true, gen);         // mov eax, [eax]
+    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen); // mov -(dest*8)[ebp], eax
 }
 
 void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen)
