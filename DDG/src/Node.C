@@ -65,12 +65,20 @@ Node::Ptr ParameterNode::createNode(AbslocPtr absloc) {
     return Node::Ptr(new ParameterNode(absloc)); 
 }
 
+Node::Ptr ReturnNode::createNode(AbslocPtr absloc) {
+    return Node::Ptr(new ReturnNode(absloc)); 
+}
+
 Node::Ptr VirtualNode::createNode() {
     return Node::Ptr(new VirtualNode());
 }
 
 Node::Ptr CallNode::createNode(Function *func) {
     return Node::Ptr(new CallNode(func));
+}
+
+Node::Ptr SimpleNode::createNode(Address addr, InsnPtr insn) {
+    return Node::Ptr(new SimpleNode(addr, insn)); 
 }
 
 bool Node::returnEdges(const EdgeSet &local,
@@ -97,6 +105,13 @@ std::string ParameterNode::name() const {
     return std::string(buf);
 }
 
+std::string ReturnNode::name() const {
+    char buf[256];
+    sprintf(buf, "N_RET_%s_",
+            absloc()->name().c_str());
+    return std::string(buf);
+}
+
 std::string VirtualNode::name() const {
     return std::string("N_VIRTUAL");
 }
@@ -105,4 +120,36 @@ std::string CallNode::name() const {
     char buf[512];
     func_->getName(buf, 512);
     return std::string(buf);
+}
+
+std::string SimpleNode::name() const {
+    char buf[256];
+    sprintf(buf,"N_0x%lx_", addr());
+    return std::string(buf);
+}
+
+Node::Ptr InsnNode::copyTo(Graph::Ptr graph) {
+  return graph->makeNode(insn_, addr(), absloc());
+}
+
+Node::Ptr ParameterNode::copyTo(Graph::Ptr graph) {
+  return graph->makeParamNode(absloc());
+}
+
+Node::Ptr VirtualNode::copyTo(Graph::Ptr graph) {
+  return graph->makeVirtualNode();
+}
+
+Node::Ptr CallNode::copyTo(Graph::Ptr graph) {
+  assert(0 && "Not Supported!");
+  return graph->makeVirtualNode();
+}
+
+Node::Ptr ReturnNode::copyTo(Graph::Ptr graph) {
+    assert(0 && "Not supported!");
+    return graph->makeVirtualNode();
+}
+
+Node::Ptr SimpleNode::copyTo(Graph::Ptr graph) {
+  return graph->makeSimpleNode(insn_, addr());
 }

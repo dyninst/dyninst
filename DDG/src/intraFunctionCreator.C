@@ -728,8 +728,6 @@ void intraFunctionDDGCreator::updateDefSet(const AbslocPtr D,
 
 void intraFunctionDDGCreator::updateKillSet(const AbslocPtr D,
                                             KillMap &kills) {
-    AbslocSet aliases = D->getAliases();
-    
     if (D->isPrecise()) {
         // We also record that this block kills this absLoc.
         // It doesn't matter which instruction does it, since
@@ -760,26 +758,106 @@ intraFunctionDDGCreator::getUsedAbslocs(const Instruction &insn,
     return globalUsed[a];
 }
 
-void intraFunctionDDGCreator::initCallGenKill(const Instruction &I,
+void intraFunctionDDGCreator::initCallGenKill(const Instruction &,
                                               const Address &A,
                                               DefMap &gens,
                                               KillMap &kills) {
-    return;
-#if 0
+    // I know of no architecture where the call instruction is 1 byte. 
+    // So let's use call+1 as a placeholder for the effects of the call.
+
+    Address placeholder = A+1;
+ 
     Function *callee = getCallee(A);
+    if (!callee) {
+        // Let's see...
+        // a) Not a call. Inconceivable!
+        // b) Not a statically resolveable call. Difficult.
+        // It must be b), so let's make the *big* assumption
+        // that a calculated call will follow the ABI...
+        //
+        fprintf(stderr, "WARNING: no callee, skipping\n");
+        fprintf(stderr, "TODO: default gen/kill\n");
+        return;
+    }
 
     // Let's analyze...
     intraFunctionDDGCreator d = intraFunctionDDGCreator::create(callee);
     Graph::Ptr cDDG = d.getDDG();
-    
-    AbslocSet genSet = cDDG.getGens();
-    AbslocSet killSet = cDDG.getKills();
-#endif
+
+    // Okay, we need to update the gen set and kill set to represent
+    // this function. 
+    // 
+    // We assume that a function kills everything it generates; that is,
+    // we're not worried about aliasing. This is probably not correct
+    // for the heap, but is for the stack (assume no overlapping stacks)
+    // and (obviously) for registers.
+    //
+    // The gen set of the callee is equivalent to the set of abstract locations
+    // of return nodes.
+
+    Node::Set cReturns;
+    cDDG->returnNodes(cReturns);
+
+    for (Node::Set::iterator iter = cReturns.begin(); 
+         iter != cReturns.end(); iter++) {
+        Absloc::Ptr D = (*iter)->absloc();
+        // We need to make a virtual node on our side
+        // representing the definition made by the child.
+        // For now, that's a cNode...
+
+        // If we're not precise assume there is no overlap
+        // with the current function. 
+        if (!D->isPrecise())
+            continue;
+
+        cNode cnode = std::make_pair(D, InsnInstance(placeholder));
+        updateDefSet(D, gens, cnode);
+        updateKillSet(D, kills);
+    }
 }
 
 void intraFunctionDDGCreator::createCallNodes(const Instruction &I,
                                               const Address &A,
                                               const DefMap &reachingDefs) {
+
+    // I know of no architecture where the call instruction is 1 byte. 
+    // So let's use call+1 as a placeholder for the effects of the call.
+
+    Address placeholder = A+1;
+ 
+    Function *callee = getCallee(A);
+    if (!callee) {
+        // Let's see...
+        // a) Not a call. Inconceivable!
+        // b) Not a statically resolveable call. Difficult.
+        // It must be b), so let's make the *big* assumption
+        // that a calculated call will follow the ABI...
+        //
+        fprintf(stderr, "WARNING: no callee, skipping\n");
+        fprintf(stderr, "TODO: default gen/kill\n");
+        return;
+    }
+
+    // Let's analyze...
+    intraFunctionDDGCreator d = intraFunctionDDGCreator::create(callee);
+    Graph::Ptr cDDG = d.getDDG();
+
+    // Okay. We want to provide sufficient information to hook up nodes
+    // later. We assume (for great lack of complexity) that we don't have
+    // any aliasing between functions, so that the "gen" and "kill" sets
+    // of the child function are the same...
+
+    NodeSet cParams, cReturns;
+    cDDG->parameterNodes(cParams);
+    cDDG->returnNodes(cReturns);
+
+
+    // For each parameter node:
+    // 1) Create a formal node. 
+    // 2) Find all definitions that reach the formal node.
+    // 3) Create an edge
+    
+
 }
                                               
 Function *intraFunctionDDGCreator::getCallee(const Address &a) {

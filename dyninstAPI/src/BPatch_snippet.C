@@ -799,12 +799,6 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
  * linkage.
  *
  * func Identifies the function to jump to.  */
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0) \
- || defined(os_linux)
 void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
     const BPatch_function &func)
 {
@@ -812,14 +806,6 @@ void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
-#else
-void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
-    const BPatch_function & /* func */)
-{
-    BPatch_reportError(BPatchSerious, 109,
-                       "BPatch_funcJumpExpr is not implemented on this platform");
-}
-#endif
 
 
 /*

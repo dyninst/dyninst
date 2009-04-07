@@ -1231,6 +1231,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_instruction_bind_eval", "test_instruction_bind_eval", "test_instruction_bind_eval.so", false, "{test: test_instruction_bind_eval, mutator: test_instruction_bind_eval, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.so", false, "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, start_state: stopped, abi: 64, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;
@@ -1238,6 +1243,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_instruction_farcall", "test_instruction_farcall", "test_instruction_farcall.so", false, "{test: test_instruction_farcall, mutator: test_instruction_farcall, grouped: false, start_state: stopped, abi: 64, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "64");
+  rg->tests.push_back(new TestInfo(test_count++, "test_instruction_bind_eval", "test_instruction_bind_eval", "test_instruction_bind_eval.so", false, "{test: test_instruction_bind_eval, mutator: test_instruction_bind_eval, grouped: false, start_state: stopped, abi: 64, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;

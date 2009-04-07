@@ -717,6 +717,10 @@ bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 bool image_func::archIsATailCall(InstrucIter &ah, 
                                  pdvector< instruction >& allInstructions)
 {
+  if(allInstructions.size() < 2) {
+    return false;
+  }
+  
     unsigned numInsns = allInstructions.size() - 2;
 
     Address target = ah.getBranchTargetAddress();

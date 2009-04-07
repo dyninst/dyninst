@@ -95,11 +95,6 @@ extern "C" DLLEXPORT  TestMutator *test1_22_factory() {
 // static int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 // {
 test_results_t test1_22_Mutator::mutatorTest22() {
-#if defined(os_solaris_test) \
- || defined(alpha_dec_osf4_0_test) \
- || defined(os_linux_test) \
- || defined(os_windows_test)
-
     char errbuf[1024]; errbuf[0] = '\0';
     BPatch_module *modA = NULL;
     BPatch_module *modB = NULL;
@@ -250,9 +245,6 @@ test_results_t test1_22_Mutator::mutatorTest22() {
 	 return FAILED;
     }
     return PASSED;
-#else // Not running on one of the specified platforms
-    return SKIPPED;
-#endif
 }
 
 

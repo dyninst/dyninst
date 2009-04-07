@@ -641,7 +641,7 @@ Address AddressSpace::inferiorMallocInternal(unsigned size,
     return(h->addr);
 }
 
-void AddressSpace::inferiorFree(Address block) {
+void AddressSpace::inferiorFreeInternal(Address block) {
     // find block on active list
     infmalloc_printf("%s[%d]: inferiorFree for block at 0x%lx\n", FILE__, __LINE__, block);
     heapItem *h = NULL;  
@@ -679,7 +679,7 @@ void AddressSpace::inferiorMallocAlign(unsigned &size) {
     size = (size + alignment) & ~alignment;
 }
     
-bool AddressSpace::inferiorRealloc(Address block, unsigned newSize) {
+bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
 #if defined (cap_dynamic_heap)
     // This is why it's not a reference...
     inferiorMallocAlign(newSize);
@@ -714,18 +714,6 @@ bool AddressSpace::inferiorRealloc(Address block, unsigned newSize) {
     
     h->length = newSize;
     
-
-#if 0
-    // Old slow way
-    
-    
-    
-    // And run a compact; otherwise we'll end up with hugely fragmented memory.
-    // This is also quite expensive...
-    inferiorFreeCompact();
-
-#endif
-
     // New speedy way. Find the block that is the successor of the
     // active block; if it exists, simply enlarge it "downwards". Otherwise,
     // make a new block. 
@@ -1110,7 +1098,7 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     
     Expression::Ptr target = curInsn.getControlFlowTarget();
 	RegisterAST thePC = RegisterAST::makePC();
-	target->bind(&thePC, Result(u32, addr + curInsn.size()));
+	target->bind(&thePC, Result(u32, addr));
 	Result cft = target->eval();
     if(cft.defined)
     {
@@ -1295,7 +1283,6 @@ void trampTrapMappings::arrange_mapping(tramp_mapping_t &m, bool should_sort,
    else if (m.cur_index != INDEX_INVALID)
       mappings_to_update.push_back(&m);
 }
-
 
 void trampTrapMappings::flush() {
    if (!needs_updating)

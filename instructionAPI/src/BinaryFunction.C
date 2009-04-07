@@ -36,62 +36,124 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
+
+    Result doAddition(Result arg1, Result arg2, Result_Type ResultT)
+    {
+      switch(ResultT)
+      {
+      case s8:
+	return Result(ResultT, arg1.convert<Result_type2type<s8>::type >() + arg2.convert<
+		      Result_type2type<s8>::type >());
+      case u8:
+	return Result(ResultT, arg1.convert<Result_type2type<u8>::type >() + arg2.convert<
+		      Result_type2type<u8>::type >());
+      case s16:
+	return Result(ResultT, arg1.convert<Result_type2type<s16>::type >() + arg2.convert<
+		      Result_type2type<s16>::type >());
+      case u16:
+	return Result(ResultT, arg1.convert<Result_type2type<u16>::type >() + arg2.convert<
+		      Result_type2type<u16>::type >());
+      case s32:
+	return Result(ResultT, arg1.convert<Result_type2type<s32>::type >() + arg2.convert<
+		      Result_type2type<s32>::type >());
+      case u32:
+	return Result(ResultT, arg1.convert<Result_type2type<u32>::type >() + arg2.convert<
+		      Result_type2type<u32>::type >());
+      case s48:
+	return Result(ResultT, arg1.convert<Result_type2type<s48>::type >() + arg2.convert<
+		      Result_type2type<s48>::type >());
+      case u48:
+	return Result(ResultT, arg1.convert<Result_type2type<u48>::type >() + arg2.convert<
+		      Result_type2type<u48>::type >());
+      case s64:
+	return Result(ResultT, arg1.convert<Result_type2type<s64>::type >() + arg2.convert<
+		      Result_type2type<s64>::type >());
+      case u64:
+	return Result(ResultT, arg1.convert<Result_type2type<u64>::type >() + arg2.convert<
+		      Result_type2type<u64>::type >());
+      case sp_float:
+	return Result(ResultT, arg1.convert<Result_type2type<sp_float>::type >() + arg2.convert<
+		      Result_type2type<sp_float>::type >());
+      case dp_float:
+	return Result(ResultT, arg1.convert<Result_type2type<dp_float>::type >() + arg2.convert<
+		      Result_type2type<dp_float>::type >());
+      case bit_flag:
+	return Result(ResultT, arg1.convert<Result_type2type<bit_flag>::type >() + arg2.convert<
+		      Result_type2type<bit_flag>::type >());
+      default:
+	// m512 and dbl128 not implemented yet...
+	return Result(ResultT);
+      }
+    }
+    
+    Result doMultiplication(Result arg1, Result arg2, Result_Type ResultT)
+    {
+      switch(ResultT)
+      {
+      case s8:
+	return Result(ResultT, arg1.convert<Result_type2type<s8>::type >() * arg2.convert<
+		      Result_type2type<s8>::type >());
+      case u8:
+	return Result(ResultT, arg1.convert<Result_type2type<u8>::type >() * arg2.convert<
+		      Result_type2type<u8>::type >());
+      case s16:
+	return Result(ResultT, arg1.convert<Result_type2type<s16>::type >() * arg2.convert<
+		      Result_type2type<s16>::type >());
+      case u16:
+	return Result(ResultT, arg1.convert<Result_type2type<u16>::type >() * arg2.convert<
+		      Result_type2type<u16>::type >());
+      case s32:
+	return Result(ResultT, arg1.convert<Result_type2type<s32>::type >() * arg2.convert<
+		      Result_type2type<s32>::type >());
+      case u32:
+	return Result(ResultT, arg1.convert<Result_type2type<u32>::type >() * arg2.convert<
+		      Result_type2type<u32>::type >());
+      case s48:
+	return Result(ResultT, arg1.convert<Result_type2type<s48>::type >() * arg2.convert<
+		      Result_type2type<s48>::type >());
+      case u48:
+	return Result(ResultT, arg1.convert<Result_type2type<u48>::type >() * arg2.convert<
+		      Result_type2type<u48>::type >());
+      case s64:
+	return Result(ResultT, arg1.convert<Result_type2type<s64>::type >() * arg2.convert<
+		      Result_type2type<s64>::type >());
+      case u64:
+	return Result(ResultT, arg1.convert<Result_type2type<u64>::type >() * arg2.convert<
+		      Result_type2type<u64>::type >());
+      case sp_float:
+	return Result(ResultT, arg1.convert<Result_type2type<sp_float>::type >() * arg2.convert<
+		      Result_type2type<sp_float>::type >());
+      case dp_float:
+	return Result(ResultT, arg1.convert<Result_type2type<dp_float>::type >() * arg2.convert<
+		      Result_type2type<dp_float>::type >());
+      case bit_flag:
+	return Result(ResultT, arg1.convert<Result_type2type<bit_flag>::type >() * arg2.convert<
+		      Result_type2type<bit_flag>::type >());
+      default:
+	// m512 and dbl128 not implemented yet...
+	return Result(ResultT);
+      }
+    }
     Result operator+(const Result& arg1, const Result& arg2)
     {
-      Result_Type resultT = (arg1.type > arg2.type) ? arg1.type : arg2.type;
-      Result retVal(resultT);
+      Result_Type ResultT = arg1.type > arg2.type ? arg1.type : arg2.type;
       if(!arg1.defined || !arg2.defined)
       {
-	retVal.defined = false;
+	return Result(ResultT);
       }
-      else
-      {
-	retVal.defined = true;
-      }
-	  switch(resultT)
-	  {
-	  case u8:
-		  retVal.val.u8val = arg1.val.u8val + arg2.val.u8val;
-		  break;
-	  case s8:
-		  retVal.val.s8val = arg1.val.s8val + arg2.val.s8val;
-		  break;
-	  case u16:
-		  retVal.val.u16val = arg1.val.u16val + arg2.val.u16val;
-		  break;
-	  case s16:
-		  retVal.val.s16val = arg1.val.s16val + arg2.val.s16val;
-		  break;
-	  case u32:
-		  retVal.val.u32val = arg1.val.u32val + arg2.val.u32val;
-		  break;
-	  case s32:
-		  retVal.val.s32val = arg1.val.s32val + arg2.val.s32val;
-		  break;
-	  case u64:
-		  retVal.val.u64val = arg1.val.u64val + arg2.val.u64val;
-		  break;
-	  case s64:
-		  retVal.val.s64val = arg1.val.s64val + arg2.val.s64val;
-		  break;
-	  case bit_flag:
-		  retVal.val.bitval = arg1.val.bitval + arg2.val.bitval;
-		  break;
-	  case sp_float:
-	  case dp_float:
-	  case s48:
-	  case u48:
-	  case m512:
-	  case dbl128:
-		  assert("Addition not implemented for floats or non-basic types!");
-		  retVal.defined = false;
-		  break;
+      return doAddition(arg1, arg2, ResultT);
 
-
-	  }
-      return retVal;
     }    
+    Result operator*(const Result& arg1, const Result& arg2)
+    {
+      Result_Type ResultT = arg1.type > arg2.type ? arg1.type : arg2.type;
+      if(!arg1.defined || !arg2.defined)
+      {
+	return Result(ResultT);
+      }
+      return doMultiplication(arg1, arg2, ResultT);
 
+    }    
   };
 };
 

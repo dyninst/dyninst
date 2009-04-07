@@ -78,7 +78,7 @@ class EmitterPOWER : public Emitter {
     virtual void emitLoadIndir(Register, Register, codeGen &) { assert(0); }
     virtual bool emitLoadRelative(Register, Address, Register, codeGen &) { assert(0); return true;}
     virtual bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
-    virtual void emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen) { assert(0); }
+    virtual void emitLoadShared(Register, const image_variable *, int, codeGen &) { assert(0); }
 
     virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
 
@@ -92,7 +92,7 @@ class EmitterPOWER : public Emitter {
     virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
     virtual void emitStoreRelative(Register, Address, Register, codeGen &) { assert(0); }
     virtual void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
-    virtual void emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen) { assert(0); }
+    virtual void emitStoreShared(Register, const image_variable *, int, codeGen &) { assert(0); }
 
     virtual void emitStoreOrigRegister(Address, Register, codeGen &) { assert(0); }
 

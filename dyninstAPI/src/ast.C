@@ -731,18 +731,18 @@ bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
 }
 
 bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                                Address &retAddr,
-                                                Register &retReg) {
+                                             Address &retAddr,
+                                             Register &retReg) {
     retAddr = ADDR_NULL;
     retReg = REG_NULL;
-
-	assert(replacement);
-
+    
+    assert(replacement);
+    
     emitFuncJump(funcJumpOp, gen, replacement, gen.addrSpace(),
                  gen.point(), noCost);
-
-	decUseCount(gen);
-	return true;
+    
+    decUseCount(gen);
+    return true;
 }
 
 bool AstOperatorNode::initRegisters(codeGen &g) {
@@ -1562,8 +1562,11 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     
 	// TODO: put register allocation here and have emitCall just
 	// move the return result.
-    
-    if (retReg == REG_NULL) {
+    if (tmp == REG_NULL) {
+        // Happens in function replacement... didn't allocate
+        // a return register.
+    }
+    else if (retReg == REG_NULL) {
         //emitFuncCall allocated tmp; we can use it, but let's see
         // if we should keep it around.
         retReg = tmp;

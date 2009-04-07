@@ -86,6 +86,7 @@ class intraFunctionDDGCreator {
     typedef Absloc::Ptr AbslocPtr;
     typedef std::set<AbslocPtr> AbslocSet;
     typedef Node::Ptr NodePtr;
+    typedef Node::Set NodeSet;
     
     typedef BPatch_basicBlock Block;
     typedef BPatch_flowGraph Flowgraph;
@@ -124,6 +125,7 @@ class intraFunctionDDGCreator {
             addr(p.second),
             insn(p.first) {}
         InsnInstance() : addr(0), insn() {}
+        InsnInstance(Address a) : addr(a), insn() {}
         Address addr;
         Instruction insn;
         bool operator< (InsnInstance i) const {

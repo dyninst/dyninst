@@ -866,3 +866,25 @@ bool instruction::getUsedRegs(pdvector<int> &) {
 bool image::isAligned(const Address where) const {
    return (!(where & 0x3));
 }
+
+void instruction::generateMoveFromLR(codeGen &gen, Register rt) {
+    instruction insn;
+    (*insn).raw = 0;
+    (*insn).xform.op = MFSPRop;
+    (*insn).xform.rt = rt;
+    (*insn).xform.ra = SPR_LR & 0x1f;
+    (*insn).xform.rb = (SPR_LR >> 5) & 0x1f;
+    (*insn).xform.xo = MFSPRxop;
+    insn.generate(gen);
+}
+
+void instruction::generateMoveToLR(codeGen &gen, Register rs) {
+    instruction insn;
+    (*insn).raw = 0;
+    (*insn).xform.op = MTSPRop;
+    (*insn).xform.rt = rs;
+    (*insn).xform.ra = SPR_LR & 0x1f;
+    (*insn).xform.rb = (SPR_LR >> 5) & 0x1f;
+    (*insn).xform.xo = MTSPRxop;
+    insn.generate(gen);
+}

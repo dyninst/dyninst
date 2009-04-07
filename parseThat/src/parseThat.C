@@ -805,7 +805,7 @@ void usage(const char *progname)
     fprintf(stderr, "    Send all output from monitor to specified file.\n");
     fprintf(stderr, "    NOTE: Mutator and mutatee output will not be sent to file.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -binary-edit <filename>\n");
+    fprintf(stderr, "  --binary-edit=<filename>\n");
     fprintf(stderr, "    Use the binary rewriting feature to output a rewriten binary to");
     fprintf(stderr, "    <filename>\n");
     fprintf(stderr, "\n");

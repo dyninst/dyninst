@@ -122,7 +122,10 @@ class Emitter {
     virtual bool emitPop(codeGen &, Register) = 0;
     virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
     
-    virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee) = 0;;
+    virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee) = 0;
+
+    Address getInterModuleFuncAddr(int_function *func, codeGen& gen);
+    Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
 };
 
 #endif

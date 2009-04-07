@@ -2635,7 +2635,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
    else
       elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
 
-   mfForDebugInfo = findMappedFileForDebugInfo();
    // ELF header: sanity check
    //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
    if (!elfHdr.isValid())  {
@@ -2645,6 +2644,8 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
    else if (!pdelf_check_ehdr(elfHdr)) {
       log_elferror(err_func_, "ELF header failed integrity check");
    }
+   mfForDebugInfo = findMappedFileForDebugInfo();
+
    if( elfHdr.e_type() == 3 )
       load_shared_object(alloc_syms);
    else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {

@@ -81,6 +81,7 @@ class AstNode;
 class Emitter;
 class pcRelRegion;
 class int_function;
+class generatedCodeObject;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -209,18 +210,21 @@ class codeGen {
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
     void setFunction(int_function *f) { f_ = f; }
+    void setObj(generatedCodeObject *object) { obj_ = object; }
 
-    dyn_lwp *lwp() { return lwp_; }
-    dyn_thread *thread() { return thr_; }
-    //process *proc() { assert(proc_); return proc_; }
-    AddressSpace *addrSpace() { assert(aSpace_); return aSpace_; }
+    dyn_lwp *lwp();
+    dyn_thread *thread();
+    //process *proc();
+    AddressSpace *addrSpace();
     Address startAddr() const { return addr_; }
-    instPoint *point() const { return ip_; }
-    int_function *func() const { return f_; }
-    registerSpace *rs() { assert(rs_); return rs_; }
-    regTracker_t *tracker() { assert(t_); return t_;}
-    Emitter *codeEmitter() { assert(emitter_); return emitter_; }
+    instPoint *point();
+    int_function *func();
+    registerSpace *rs();
+    regTracker_t *tracker();
+    Emitter *codeEmitter();
     Emitter *emitter() { return codeEmitter(); } // A little shorter
+
+    generatedCodeObject *obj();
 
  private:
     codeBuf_t *buffer_;
@@ -240,6 +244,8 @@ class codeGen {
     instPoint *ip_;
     int_function *f_;
     bool isPadded_;
+
+    generatedCodeObject *obj_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;

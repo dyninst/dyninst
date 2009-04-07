@@ -847,7 +847,7 @@ class instruction {
   bool isCleaningRet() const {return type_ & IS_RETC; }
   bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); }
   bool isJumpDir() const
-    { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
+    { return !(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
   bool isUncondJump() const
     { return ((type_ & IS_JUMP) && !(type_ & IS_JCC)); }
   bool isNop() const { return *ptr_ == 0x90; }

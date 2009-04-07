@@ -50,6 +50,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "addressSpace.h"
+#include "process.h"
 #include "common/h/Types.h"
 #include "common/h/parseauxv.h"
 #if defined (os_osf)
@@ -57,6 +58,9 @@
 #endif
 #include "arch.h"
 #include "util.h"
+#include "function.h"
+#include "dyn_thread.h"
+#include "instPoint.h"
 
 #if defined(arch_x86) || defined(arch_x86_64)
 #define CODE_GEN_OFFSET_SIZE 1
@@ -82,7 +86,8 @@ codeGen::codeGen() :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    isPadded_(true)
+    isPadded_(true),
+    obj_(NULL)
 {}
 
 // size is in bytes
@@ -100,8 +105,8 @@ codeGen::codeGen(unsigned size) :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
-    isPadded_(true)
-
+    isPadded_(true),
+    obj_(NULL)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
     if (!buffer_)
@@ -131,7 +136,8 @@ codeGen::codeGen(const codeGen &g) :
     addr_(g.addr_),
     ip_(g.ip_),
     f_(g.f_),
-    isPadded_(g.isPadded_)
+    isPadded_(g.isPadded_),
+    obj_(g.obj_)
 {
     if (size_ != 0) {
         assert(allocated_); 
@@ -161,6 +167,7 @@ codeGen &codeGen::operator=(const codeGen &g) {
     lwp_ = g.lwp_;
     isPadded_ = g.isPadded_;
     int bufferSize = size_ + isPadded_ ? codeGenPadding : 0;
+    obj_ = g.obj_;
     
 
     if (size_ != 0) {
@@ -565,3 +572,46 @@ void toAddressPatch::set_address(Address a) {
 
 codeGen codeGen::baseTemplate;
 
+dyn_lwp *codeGen::lwp() {
+    if (lwp_) return lwp_;
+    if (thr_) return thr_->get_lwp();
+    return NULL;
+}
+
+dyn_thread *codeGen::thread() {
+    return thr_;
+}
+
+AddressSpace *codeGen::addrSpace() {
+    if (aSpace_) { return aSpace_; }
+    if (f_) { return f_->proc(); }
+    if (ip_) { return ip_->proc(); }
+    if (thr_) { return thr_->get_proc(); }
+    return NULL;
+}
+
+instPoint *codeGen::point() {
+    return ip_;
+}
+
+int_function *codeGen::func() {
+    if (f_) return f_;
+    if (ip_) return ip_->func();
+    return NULL;
+}
+
+registerSpace *codeGen::rs() {
+    return rs_;
+}
+
+regTracker_t *codeGen::tracker() {
+    return t_; 
+}
+
+Emitter *codeGen::codeEmitter() {
+    return emitter_;
+}
+
+generatedCodeObject *codeGen::obj() {
+    return obj_;
+}
