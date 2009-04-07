@@ -1378,14 +1378,10 @@ void EmitterAMD64::emitLoadShared(Register dest, const image_variable *var, int 
     //fprintf(stderr, "Emitting inter-module load for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
 
     // load register with address from jump slot
-    emitMovPCRMToReg64(REGNUM_RAX, addr - gen.currAddr(), gen);
-    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen);
+    emitMovPCRMToReg64(dest, addr - gen.currAddr(), gen);
 
     // get the variable with an indirect load
-    //emitLoadIndir(dest, dest, gen);
-    emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, -1*(dest*8), true, gen); // mov eax, -(addr_reg*8)[ebp]
-    emitMovRMToReg64(REGNUM_RAX, REGNUM_RAX, 0, true, gen);         // mov eax, [eax]
-    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen); // mov -(dest*8)[ebp], eax
+    emitLoadIndir(dest, dest, gen);
 }
 
 void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen)
@@ -1399,8 +1395,7 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, i
     Register dest = gen.rs()->allocateRegister(gen, false);
 
     // load register with address from jump slot
-    emitMovPCRMToReg64(REGNUM_RAX, addr-gen.currAddr(), gen);
-    emitMovRegToRM64(REGNUM_RBP, -1*(dest*8), REGNUM_RAX, true, gen);
+    emitMovPCRMToReg64(dest, addr-gen.currAddr(), gen);
 
     // get the variable with an indirect load
     emitStoreIndir(dest, source, gen);
