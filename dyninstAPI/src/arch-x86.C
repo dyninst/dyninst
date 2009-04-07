@@ -2066,8 +2066,8 @@ static ia32_entry sseMap[][4] = {
   { /* SSE7C */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_haddpd, t_done, 0, false, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { e_haddps, t_done, 0, false, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_haddpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_haddps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
   },
   { /* SSE7D */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
