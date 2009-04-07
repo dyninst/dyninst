@@ -745,8 +745,10 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 #if !defined(os_solaris)
 //This method updates the .dynamic section to reflect the changes to the relocation section
 void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
-    if(dynamicSecData.find(tag) == dynamicSecData.end())
+    if(dynamicSecData.find(tag) == dynamicSecData.end()) {
+	//printf(" Error updateDynamic - cannot find tag \n");
         return;
+    }
     
     switch(dynamicSecData[tag][0]->d_tag){
         case DT_STRSZ:
@@ -755,6 +757,7 @@ void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
         case DT_HASH:
+        case DT_GNU_HASH:
         case DT_SYMTAB:
         case DT_STRTAB:
         case DT_REL:
@@ -1779,7 +1782,18 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
     for(unsigned i = 0; i< count;i++){
         switch(dyns[i].d_tag){
             case DT_NULL:
-            case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
+	    	break;
+            case DT_GNU_HASH: // DT_GNU_HASH (not defined on all platforms)
+                dynsecData[curpos].d_tag = dyns[i].d_tag;
+                dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
+                dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
+		curpos++;
+                break;
+            case DT_HASH: // DT_GNU_HASH (not defined on all platforms)
+                dynsecData[curpos].d_tag = dyns[i].d_tag;
+                dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
+                dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
+		curpos++;
                 break;
             case DT_NEEDED:
                 rpathstr = &olddynStrData[dyns[i].d_un.d_val];
