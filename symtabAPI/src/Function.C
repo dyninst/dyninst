@@ -134,6 +134,7 @@ bool Function::getLocalVariables(std::vector<localVar *> &vars)
    localVarCollection *lvs = NULL;
    if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
    {
+      fprintf(stderr, "%s[%d]:  NO LOCAL VARS ANNO\n", FILE__, __LINE__);
       return false;
    }
    if (!lvs)
@@ -146,6 +147,7 @@ bool Function::getLocalVariables(std::vector<localVar *> &vars)
 
    if (vars.size())
       return true;
+   fprintf(stderr, "%s[%d]:  NO LOCAL VARS\n", FILE__, __LINE__);
    return false;
 }
 

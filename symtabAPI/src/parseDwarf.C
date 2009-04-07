@@ -1219,7 +1219,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	DWARF_NEXT_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
 
 	//status = newFunction->setFramePtr(locs);
-	DWARF_NEXT_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
+	//DWARF_NEXT_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
 
 
 	deallocateLocationList( dbg, locationList, listLength );
@@ -1406,6 +1406,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
       if ( status != DW_DLV_OK ) {
 	/* I think this is OK if the local variable was optimized away. */
+		fprintf(stderr, "%s[%d]:  DW_TAG_variable: no loc\n", FILE__, __LINE__);
 	break;
       }
       DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -1413,7 +1414,11 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       vector<VariableLocation> locs;
       bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
       deallocateLocationList( dbg, locationList, listLength );            
-      if ( ! decodedAddressOrOffset ) { break; }
+      if ( ! decodedAddressOrOffset ) 
+	  { 
+		fprintf(stderr, "%s[%d]:  DW_TAG_variable: failed to decode loc list\n", FILE__, __LINE__);
+		  break; 
+	  }
       
       for (unsigned i=0; i<locs.size(); i++) {
          if (locs[i].stClass != storageAddr) 
@@ -2313,6 +2318,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
     }
   */		
   dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile->file().c_str() );
+  fprintf(stderr,  "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile->file().c_str() );
 
   /* Start the dwarven debugging. */
   Module *mod = NULL, *fixUnknownMod = NULL;

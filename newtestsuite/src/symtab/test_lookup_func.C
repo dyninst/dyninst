@@ -44,6 +44,8 @@
 
 #include "Symtab.h"
 #include "Symbol.h"
+#include "Function.h"
+#include "Variable.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -78,6 +80,92 @@ test_results_t test_lookup_func_Mutator::executeTest()
       return FAILED;
    }
 
+   Function *f  = funcs[0];
+
+   if (!f)
+   {
+      logerror("[%s:%u] - NULL function returned\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   std::vector<localVar *> lvars;
+
+   if (!f->getLocalVariables(lvars))
+   {
+      logerror("[%s:%u] - failed to find local vars\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if (!lvars.size())
+   {
+      logerror("[%s:%u] - failed to find local vars\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if (lvars.size() != 1)
+   {
+      logerror("[%s:%u] - wrong number oflocal vars: %d, not 1\n", 
+               __FILE__, __LINE__, lvars.size());
+      return FAILED;
+   }
+
+   localVar *lv = lvars[0];
+
+   if (!lv)
+   {
+      logerror("[%s:%u] - NULL local var\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if (lv->getName() != std::string("my_local_var"))
+   {
+      logerror("[%s:%u] - local vars has bad name: %s, not my_local_var\n", 
+               __FILE__, __LINE__, lv->getName().c_str());
+      return FAILED;
+   }
+
+   std::vector<localVar *> params;
+
+   if (!f->getParams(params))
+   {
+      logerror("[%s:%u] - failed to find params\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if (!params.size())
+   {
+      logerror("[%s:%u] - failed to find params\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if (params.size() != 1)
+   {
+      logerror("[%s:%u] - wrong number of params: %d, not 1\n", 
+               __FILE__, __LINE__, params.size());
+      return FAILED;
+   }
+
+   localVar *param = params[0];
+
+   if (!param)
+   {
+      logerror("[%s:%u] - NULL param\n", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
+   if (param->getName() != std::string("my_param"))
+   {
+      logerror("[%s:%u] - local vars has bad name: %s, not my_local_var\n", 
+               __FILE__, __LINE__, param->getName().c_str());
+      return FAILED;
+   }
 #if 0
    Function *func = funcs[0];
 

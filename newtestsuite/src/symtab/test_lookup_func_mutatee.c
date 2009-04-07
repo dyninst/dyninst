@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-int lookup_func()
+int lookup_func(int my_param)
 {
-   return 4;
+	int my_local_var = 5 * my_param;
+	return 4 *my_local_var;
 }
 
 int test_lookup_func_mutatee() {
