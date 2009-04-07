@@ -98,8 +98,7 @@ namespace Dyninst
 	}
 	Result operator()(const Result& arg1, const Result& arg2) const
 	{
-	  // return arg1 * arg2;
-	  return arg1 + arg2;
+	  return arg1 * arg2;
 	}
       };      
             

@@ -192,7 +192,7 @@ public:
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
     bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
-    void emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen) { assert(0); }
+    void emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -208,7 +208,7 @@ public:
 
     void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
 
-    void emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen) { assert(0); }
+    void emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);

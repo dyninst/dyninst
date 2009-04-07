@@ -82,13 +82,14 @@ enum {
   SSE68, SSE69, SSE6A, SSE6B, SSE6C, SSE6D, SSE6E, SSE6F,
   SSE70, SSE74, SSE75, SSE76,
   SSE78, SSE79, SSE7C, SSE7D, SSE7E, SSE7F,
+  SSEB8,
   SSEC2, SSEC4, SSEC5, SSEC6,
-  SSED1, SSED2, SSED3, SSED4, SSED5, SSED6, SSED7,
+  SSED0, SSED1, SSED2, SSED3, SSED4, SSED5, SSED6, SSED7,
   SSED8, SSED9, SSEDA, SSEDB, SSEDC, SSEDD, SSEDE, SSEDF,
   SSEE0, SSEE1, SSEE2, SSEE3, SSEE4, SSEE5, SSEE6, SSEE7,
   SSEE8, SSEE9, SSEEA, SSEEB, SSEEC, SSEED, SSEEE, SSEEF,
-  SSEF1, SSEF2, SSEF3, SSEF4, SSEF5, SSEF6, SSEF7,
-  SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE
+  SSEF0, SSEF1, SSEF2, SSEF3, SSEF4, SSEF5, SSEF6, SSEF7,
+  SSEF8, SSEF9, SSEFA, SSEFB, SSEFC, SSEFD, SSEFE, SSEFF
 };
 
 
@@ -128,6 +129,7 @@ enum {
 #define Ms   { am_M, op_s }
 #define Md   { am_M, op_d }
 #define Mq   { am_M, op_q }
+#define Mdq   { am_M, op_dq }
 #define M512 { am_M, op_512 }
 #define Ob   { am_O, op_b }
 #define Ov   { am_O, op_v }
@@ -142,6 +144,7 @@ enum {
 #define Rd   { am_R, op_d }
 #define Td   { am_T, op_d }
 #define Sw   { am_S, op_w }
+#define Vd   { am_V, op_d }
 #define Vdq  { am_V, op_dq }
 #define Vpd  { am_V, op_pd }
 #define Vps  { am_V, op_ps }
@@ -1149,8 +1152,8 @@ static ia32_entry twoByteMap[256] = {
   { e_mov, t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Cd, Rd, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Dd, Rd, Zz }, 0, s1W2R },
-  { e_mov, t_done, 0, true, { Rd, Td, Zz }, 0, s1W2R },
-  { e_No_Entry,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mov, t_done, 0, true, { Rd, Td, Zz }, 0, s1W2R }, // actually a SSE5A
+  { e_No_Entry,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 }, // SSE5A
   { e_mov, t_done, 0, true, { Td, Rd, Zz }, 0, s1W2R },
   { e_No_Entry,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 28 */
@@ -1246,8 +1249,8 @@ static ia32_entry twoByteMap[256] = {
   /* 78 */
   { e_No_Entry, t_sse, SSE78, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE79, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, // SSE5A will go in 7A and 7B when it comes out
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7C, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7D, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7E, 0, { Zz, Zz, Zz }, 0, 0 },
@@ -1319,7 +1322,7 @@ static ia32_entry twoByteMap[256] = {
   { e_movzx, t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
   { e_movzx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
   /* B8 */
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEB8, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_ud2grp10, t_ill, 0, 0, { Zz, Zz, Zz }, 0, sNONE },
   { e_No_Entry, t_grp, Grp8, true, { Zz, Zz, Zz }, 0, 0 },
   { e_btc, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
@@ -1346,7 +1349,7 @@ static ia32_entry twoByteMap[256] = {
   { e_bswap, t_done, 0, false, { ESI, Zz, Zz }, 0, s1RW }, 
   { e_bswap, t_done, 0, false, { EDI, Zz, Zz }, 0, s1RW }, 
   /* D0 */
-  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED0, false, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSED1, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSED2, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSED3, true, { Zz, Zz, Zz }, 0, 0 },
@@ -1382,7 +1385,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSEEE, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEEF, true, { Zz, Zz, Zz }, 0, 0 },
   /* F0 */
-  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF0, false, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEF1, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEF2, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEF3, true, { Zz, Zz, Zz }, 0, 0 },
@@ -1398,7 +1401,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSEFC, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEFD, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEFE, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+  { e_No_Entry, t_sse, SSEFF, false, { Zz, Zz, Zz }, 0, 0 }
 };
 
 static ia32_entry groupMap[][8] = {
@@ -1740,9 +1743,9 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE12 */
     { e_movlps_movhlps, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movsldup, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
     { e_movlpd, t_done, 0, true, { Vq, Ws, Zz }, 0, s1W2R },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movddup, t_done, 0, true, { Vdq, Wq, Zz }, 0, s1W2R },
   },
   { /* SSE13 */
     { e_movlps, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
@@ -1764,7 +1767,7 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE16 */
     { e_movhps_movlhps, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // FIXME: wierd 2nd op
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movshdup, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
     { e_movhpd, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
@@ -1794,9 +1797,9 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE2B */
     { e_movntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS) },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movntss, t_done, 0, true, { Md, Vd, Zz }, 0, s1W2R | (fNT << FPOS) },
     { e_movntpd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movntsd, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R | (fNT << FPOS) },
   },
   { /* SSE2C */
     { e_cvttps2pi, t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
@@ -1836,14 +1839,14 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE52 */
     { e_rsqrtps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_rsqrtss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE53 */
     { e_rcpps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_rcpss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE54 */
@@ -2039,22 +2042,22 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE78 */
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_vmread, t_done, 0, true, { Ed, Gd, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_grp, Grp17, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_insertq, t_done, 0, false, {Vdq, VRq, Iw}, 0, s1RW2R3R}, // This is actually 2 8-bit immediates, treat as 1 16-bit for decode
+    { e_insertq, t_done, 0, true, {Vdq, VRq, Iw}, 0, s1RW2R3R}, // This is actually 2 8-bit immediates, treat as 1 16-bit for decode
   },
   { /* SSE79 */
+    { e_vmwrite, t_done, 0, true, { Ed, Gd, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_extrq, t_done, 0, false, {Vdq, VRq, Zz}, 0, s1RW2R},
-    { e_insertq, t_done, 0, false, {Vdq, VRdq, Zz}, 0, s1RW2R},
+    { e_extrq, t_done, 0, true, {Vdq, VRq, Zz}, 0, s1RW2R},
+    { e_insertq, t_done, 0, true, {Vdq, VRdq, Zz}, 0, s1RW2R},
   },
   { /* SSE7C */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_haddpd, t_done, 0, false, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { e_haddps, t_done, 0, false, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_haddpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_haddps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
   },
   { /* SSE7D */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -2072,6 +2075,12 @@ static ia32_entry sseMap[][4] = {
     { e_movq, t_done, 0, true, { Qq, Pq, Zz }, 0, s1W2R },
     { e_movdqu, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
     { e_movdqa, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  },
+  { /* SSEB8 */
+    { e_jmpe, t_done, 0, true, { Jz, Zz, Zz }, 0, s1R },
+    { e_popcnt, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC2 */
@@ -2097,6 +2106,12 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_shufpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  },
+  { /* SSED0 */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_addsubpd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_addsubps, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
   },
   { /* SSED1 */
     { e_psrlw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
@@ -2284,6 +2299,12 @@ static ia32_entry sseMap[][4] = {
     { e_pxor, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
+  { /* SSEF0 */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_lddqu, t_done, 0, true, { Vdq, Mdq, Zz }, 0, s1W2R },
+  },
   { /* SSEF1 */
     { e_psllw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -2366,6 +2387,12 @@ static ia32_entry sseMap[][4] = {
     { e_paddd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_paddd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  },
+  { /* SSEFF */
+    { e_ud, t_done, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_ud, t_done, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }
 };

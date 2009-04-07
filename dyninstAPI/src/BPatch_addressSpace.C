@@ -351,8 +351,6 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
       BPatch_function &newFunc)
 {
-#if defined(os_solaris) || defined(os_osf) || defined(os_linux) || \
-   defined(os_windows) \
 
    assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
    if (!getMutationsActive())
@@ -364,6 +362,24 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
       return true;
    }
 
+   BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
+
+   if (! pts || ! pts->size()) {
+      return false;
+   }
+
+   BPatch_funcJumpExpr fje(newFunc);
+
+#if defined(cap_instruction_replacement)
+   // Replace the first instruction with fje
+   for (unsigned i = 0; i < pts->size(); i++) {
+       BPatch_point *point = (*pts)[i];
+       point->getPoint()->replaceCode(fje.ast_wrapper);
+   }
+
+   return true;
+#else
+
    bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
    BPatch::bpatch->setTrampRecursive( true );
 
@@ -373,28 +389,12 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
    // The non-linking jump ensures that when NEWFUNC returns, it
    // returns directly to the caller of OLDFUNC.
 
-   BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
-   if (! pts || ! pts->size()) {
-      BPatch::bpatch->setTrampRecursive( old_recursion_flag );
-      return false;
-   }
 
-   BPatch_funcJumpExpr fje(newFunc);
    BPatchSnippetHandle * result = insertSnippet(fje, *pts, BPatch_callBefore);
 
    BPatch::bpatch->setTrampRecursive( old_recursion_flag );
 
    return (NULL != result);
-#else
-   char msg[2048];
-   char buf1[512], buf2[512];
-   sprintf(msg, "cannot replace func %s with func %s, not implemented",
-         oldFunc.getName(buf1, 512), newFunc.getName(buf2, 512));
-
-   BPatch_reportError(BPatchSerious, 109, msg);
-   BPatch_reportError(BPatchSerious, 109,
-         "replaceFunction is not implemented on this platform");
-   return false;
 #endif
 }
 

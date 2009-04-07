@@ -635,6 +635,7 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
     if(BSSExpandFlag)
        newEhdr->e_phnum= oldEhdr->e_phnum;
     
+    bool added_new_sec = false;
     newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
 
     Elf32_Phdr newSeg;
@@ -658,46 +659,49 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
         }
 
     	if(BSSExpandFlag) {
-    	    if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7))
+	  if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7))
     	    {
-	        	newPhdr->p_memsz += loadSecTotalSize + extraAlignSize;
-    	    	newPhdr->p_filesz = newPhdr->p_memsz;
-    	    	newPhdr->p_flags = 7;
-	        }	
+	      newPhdr->p_memsz += loadSecTotalSize + extraAlignSize;
+	      newPhdr->p_filesz = newPhdr->p_memsz;
+	      newPhdr->p_flags = 7;
+	    }	
     	}    
-	    if(addNewSegmentFlag) {
-	        if(tmp->p_type == PT_LOAD && tmp->p_flags == 5)
+	if(addNewSegmentFlag) {
+	  if(tmp->p_type == PT_LOAD && tmp->p_flags == 5)
             {
-                if (tmp->p_vaddr > pgSize) {
-                    newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
-                    newPhdr->p_paddr = newPhdr->p_vaddr;
-                    newPhdr->p_filesz += pgSize;
-                    newPhdr->p_memsz = newPhdr->p_filesz;
-                }
-	        }
-            // update first segment header with the page size offset
-	        if ((tmp->p_type == PT_LOAD && tmp->p_flags == 5 && tmp->p_vaddr == 0) ||
-                (tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
-                tmp->p_type == PT_NOTE || 
-                tmp->p_type == PT_INTERP)
-				newPhdr->p_offset += pgSize;
+	      if (tmp->p_vaddr > pgSize) {
+		newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
+		newPhdr->p_paddr = newPhdr->p_vaddr;
+		newPhdr->p_filesz += pgSize;
+		newPhdr->p_memsz = newPhdr->p_filesz;
+	      }
+	    }
+	  // update first segment header with the page size offset
+	  if ((tmp->p_type == PT_LOAD && tmp->p_flags == 5 && tmp->p_vaddr == 0) ||
+	      (tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
+	      tmp->p_type == PT_NOTE || 
+	      tmp->p_type == PT_INTERP)
+	    newPhdr->p_offset += pgSize;
     	} 
-	    newPhdr++;
+	newPhdr++;
     	if(addNewSegmentFlag) {
-	        if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7) && firstNewLoadSec)
+	  if(tmp->p_type == PT_LOAD && 
+	     (tmp->p_flags == 6 || tmp->p_flags == 7) && 
+	     firstNewLoadSec && !added_new_sec)
             {
-       	    	newSeg.p_type = PT_LOAD;
-    	    	newSeg.p_offset = firstNewLoadSec->sh_offset;
-        	   	newSeg.p_vaddr = newSegmentStart;
-        	 	newSeg.p_paddr = newSeg.p_vaddr;
-	        	newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-	    	    newSeg.p_memsz = newSeg.p_filesz;
-    	    	newSeg.p_flags = PF_R+PF_W+PF_X;
-	        	newSeg.p_align = tmp->p_align;
-            	memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
-    	    	newPhdr++;
+	      newSeg.p_type = PT_LOAD;
+	      newSeg.p_offset = firstNewLoadSec->sh_offset;
+	      newSeg.p_vaddr = newSegmentStart;
+	      newSeg.p_paddr = newSeg.p_vaddr;
+	      newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+	      newSeg.p_memsz = newSeg.p_filesz;
+	      newSeg.p_flags = PF_R+PF_W+PF_X;
+	      newSeg.p_align = tmp->p_align;
+	      memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
+	      added_new_sec = true;
+	      newPhdr++;
             }
-	    }    
+	}    
         tmp++;
     }
 }

@@ -115,9 +115,9 @@ namespace Dyninst
       INSTRUCTION_EXPORT void setMode(bool is64);
       
     protected:
-      void decodeOperands(std::vector<Expression::Ptr>& operands);
+      bool decodeOperands(std::vector<Expression::Ptr>& operands);
 
-      void decodeOneOperand(const ia32_operand& operand,
+      bool decodeOneOperand(const ia32_operand& operand,
 			    std::vector<Expression::Ptr>& outputOperands);
       unsigned int decodeOpcode();
       

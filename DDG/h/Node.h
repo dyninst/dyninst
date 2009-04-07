@@ -53,17 +53,18 @@
 #include <string>
 #include "Annotatable.h"
 #include "Instruction.h"
+#include "Edge.h"
 
 #include "Absloc.h"
+//#include "Graph.h"
 
 namespace Dyninst {
 namespace DDG {
 
 class Dyninst::InstructionAPI::Instruction;
 class Edge;
-class Graph;
- 
 class Absloc;
+class Graph;
 
 typedef BPatch_function Function;
 
@@ -74,12 +75,15 @@ class Node : public AnnotatableSparse {
     
  public:
     typedef dyn_detail::boost::shared_ptr<Node> Ptr;
+    typedef std::set<Node::Ptr> Set;
+
     //typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
     
     typedef InstructionAPI::Instruction InsnPtr; 
     typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
     typedef Absloc::Ptr AbslocPtr;
-    typedef std::set<EdgePtr> EdgeSet;
+    typedef Edge::Set EdgeSet;
+    typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
     
     bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
     bool outs(EdgeSet &edges) const { return returnEdges(outs_, edges); }
@@ -90,6 +94,8 @@ class Node : public AnnotatableSparse {
     
     virtual std::string name() const = 0;
 
+    virtual Node::Ptr copyTo(GraphPtr graph) = 0;
+    
     virtual bool isVirtual() const = 0;
     
     virtual ~Node() {};
@@ -133,7 +139,8 @@ class InsnNode : public Node {
     //bool isVirtual() const { return insn(); }
     
     std::string name() const;
-
+    Node::Ptr copyTo(GraphPtr graph);
+    
     bool isVirtual() const { return false; }
 
     virtual ~InsnNode() {};
@@ -171,6 +178,7 @@ class ParameterNode : public Node {
     //bool isVirtual() const { return insn(); }
     
     virtual std::string name() const;
+    Node::Ptr copyTo(GraphPtr graph);
     
     virtual bool isVirtual() const { return true; } 
     
@@ -178,6 +186,36 @@ class ParameterNode : public Node {
     
  private:
     ParameterNode(AbslocPtr a) :
+        absloc_(a) {};
+    
+    AbslocPtr absloc_;
+};
+
+class ReturnNode : public Node {
+    friend class Edge;
+    friend class Graph;
+    friend class Creator;
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<ReturnNode> Ptr;
+
+    static Node::Ptr createNode(AbslocPtr absloc);
+    
+    AbslocPtr absloc() const { return absloc_; }
+    
+    // We may use "virtual" nodes to represent initial definitions. These
+    // have no associated instruction, which we represent as a NULL insn().
+    //bool isVirtual() const { return insn(); }
+    
+    virtual std::string name() const;
+    Node::Ptr copyTo(GraphPtr graph);
+    
+    virtual bool isVirtual() const { return true; } 
+    
+    virtual ~ReturnNode() {};
+    
+ private:
+    ReturnNode(AbslocPtr a) :
         absloc_(a) {};
     
     AbslocPtr absloc_;
@@ -195,6 +233,7 @@ class VirtualNode : public Node {
     static Node::Ptr createNode();
     
     virtual std::string name() const;
+    Node::Ptr copyTo(GraphPtr graph);
     
     virtual bool isVirtual() const { return true; }
     
@@ -210,9 +249,10 @@ class CallNode : public Node {
     friend class Creator;
 
  public:
-    typedef dyn_detail::boost::shared_ptr<VirtualNode> Ptr;
+    typedef dyn_detail::boost::shared_ptr<CallNode> Ptr;
 
     static Node::Ptr createNode(Function *func);
+    Node::Ptr copyTo(GraphPtr graph);
     
     virtual std::string name() const;
     virtual bool isVirtual() const { return true; }
@@ -223,6 +263,37 @@ class CallNode : public Node {
         func_(func) {};
 
     Function *func_;
+};
+
+class SimpleNode : public Node {
+  friend class Edge;
+  friend class Graph;
+  friend class Creator;
+  
+public:
+   typedef dyn_detail::boost::shared_ptr<SimpleNode> Ptr;
+   
+   static Node::Ptr createNode(Address addr, InsnPtr insn);
+   
+   InsnPtr insn() const { return insn_; }
+   Address addr() const { return addr_; }
+   
+   std::string name() const;
+   Node::Ptr copyTo(GraphPtr graph);
+
+   bool isVirtual() const { return false; }
+
+   virtual ~SimpleNode() {};
+   
+private:
+   SimpleNode(Address addr, InsnPtr insn) : addr_(addr), insn_(insn) {};
+   
+   // Instructions don't include their address, so we include this for
+   // unique info. We could actually remove and recalculate the Insn
+   // based on the address, but I'll add that later. 
+   Address addr_;
+   
+   InsnPtr insn_;
 };
 
 };

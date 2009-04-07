@@ -76,7 +76,7 @@ class Graph : public AnnotatableSparse {
  public:
     typedef dyn_detail::boost::shared_ptr<Graph> Ptr;
     typedef Node::Ptr NodePtr;
-    typedef std::set<NodePtr> NodeSet;
+    typedef Node::Set NodeSet;
 
     typedef Absloc::Ptr AbslocPtr;
     typedef std::set<AbslocPtr> AbslocSet;
@@ -96,7 +96,7 @@ class Graph : public AnnotatableSparse {
  public:
     
     bool initialNodes(NodeSet &nodes) const;
-    bool allNodes(NodeSet &nodes) const;
+    bool allNodes(NodeSet &nodes);
     
     // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
@@ -115,25 +115,38 @@ class Graph : public AnnotatableSparse {
     // Make a node that represents a parameter; that is, an initial 
     // definition that isn't explicit in the code but must exist.
     NodePtr makeParamNode(Absloc::Ptr a);
+
+    // And a node that represents a return value.
+    NodePtr makeReturnNode(Absloc::Ptr a);
     
     // Make a node that represents a phantom "definition" to an
     // immediate value. We do this so that all nodes are reachable
     // from either a parameter node or this "immediate" node.
     NodePtr makeVirtualNode();
     
+    // Make a simple node in this graph. If the node already exists we return
+    // it; otherwise we create a new Node and add it to insnNodes_ (NOT
+    // entryNodes_; that is populated by calls to insertPair above).
+    NodePtr makeSimpleNode(Dyninst::InstructionAPI::Instruction &instruction, Address addr);
+    
     bool printDOT(const std::string fileName);
     
-    void debugCallInfo();
+    // If you want to traverse the graph start here.
+    void entryNodes(NodeSet &ret) const;
 
-    const NodeSet entryNodes() const;
+    // This is defined as the abstract locations this graph uses.
+    void parameterNodes(NodeSet &ret) const;
+
+    // Get nodes that represent all locations defined by the
+    // function. These are the counterpart to the parameter nodes.
+    void returnNodes(NodeSet &ret) const;
     
-    // We record a "snapshot" of liveness at each call site; this
-    // is used by the interprocedural iterator to hook together
-    // the caller and callee. It is trivial to identify the parameters
-    // in the callee, but we need to also identify the reaching def
-    // sources (definitions) of those parameters.
-    void recordCall(Address callAddr,
-                    const CNodeRec &callInfo);
+    // Returns a new graph after copying the nodes and edges into this new graph.
+    Graph::Ptr copyGraph();
+    
+    // Returns a set of nodes which are related to the instruction at
+    // the given address.
+    NodeSet getNodesAtAddr(Address addr);
     
  private:
     static const Address INITIAL_ADDR;
@@ -149,13 +162,14 @@ class Graph : public AnnotatableSparse {
     // Assertion: only parameter nodes will have no in-edges,
     // by definition.
     AbslocMap parameterNodes_;
-    
+
+    // Virtual nodes to represent locations defined by the function.
+    AbslocMap returnNodes_;
+
+    // A singleton node so that all "real" nodes have an in-edge
+    // and are thus reachable.
     NodePtr virtualNode_;
     
-    // Keep a snapshot of liveness information at each call
-    // site so that we can determine formals later.
-    CNodeMap callRecords_;
-
 };
 };
 }

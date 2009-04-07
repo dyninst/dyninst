@@ -1410,6 +1410,7 @@ bool process::loadDYNINSTlib()
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
     scratchCodeBuffer.setAddrSpace(this);
     scratchCodeBuffer.setAddr(codeBase);
+    scratchCodeBuffer.setFunction(scratch);
 
     Address dyninstlib_addr = 0;
     Address dlopencall_addr = 0;
