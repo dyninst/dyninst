@@ -51,8 +51,6 @@ using namespace Dyninst::SymtabAPI;
 using namespace std;
 
 extern const char *pdelf_get_shnames(Elf_X &elf);
-unsigned newdynstrIndex;
-unsigned newdynsymIndex;
 
 struct sortByIndex
 {
@@ -817,10 +815,6 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
     	if(newSecs[i]->isLoadable())
     	{
 	    secNames.push_back(newSecs[i]->getRegionName());
-            if(newSecs[i]->getRegionName() == ".dynstr")
-                newdynstrIndex = secNames.size() - 1;
-            else if(newSecs[i]->getRegionName() == ".dynsym")
-                newdynsymIndex = secNames.size() - 1;
     
 	    newNameIndexMapping[newSecs[i]->getRegionName()] = secNames.size() -1;
             // Add a new loadable section
@@ -1457,7 +1451,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     unsigned hashsecSize = 0;
     createHashSection(hashsecData, hashsecSize, dynsymVector);
     if(hashsecSize) {
-        obj->addRegion(0, hashsecData, hashsecSize*sizeof(Elf32_Word), ".gnu.hash", Region::RT_HASH, true);
+        obj->addRegion(0, hashsecData, hashsecSize*sizeof(Elf32_Word), ".hash", Region::RT_HASH, true);
     }
 
     Elf32_Dyn *dynsecData;
