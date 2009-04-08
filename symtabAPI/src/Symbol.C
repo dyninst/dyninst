@@ -237,15 +237,6 @@ SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
    }
 
    return false;
-
-#if 0
-   Annotatable<std::string, symbol_file_name_a> &fn = *this;
-   if (!fn.size()) {
-      return false;
-   }
-   fileName = fn[0];
-   return true;
-#endif
 }
 
 SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
@@ -266,27 +257,10 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    }
 
    return false;
-
-#if 0
-   Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
-   if (!sv.size()) {
-      return false;
-   }
-   vers = &(sv[0]);
-   return true;
-#endif
 }
 
 void Symbol::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
-
-#if 0
-	//  Need to serialize types before symbols
-	//  Use typeID as unique identifier
-	Type *t = retType_;
-	unsigned int t_id = t ? t->getID() : (unsigned int) 0xdeadbeef; 
-#endif
-
 	//  Need to serialize regions before symbols
 	//  Use disk offset as unique identifier
 	Region *r = region_;
@@ -364,47 +338,6 @@ void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, 
 
 }
 
-#if 0
-void Symbol::serialize(SerializerBase *s, const char *tag) 
-{
-	try {
-		ifxml_start_element(s, tag);
-		gtranslate(s, type_, symbolType2Str, "type");
-		gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
-		gtranslate(s, tag_, symbolTag2Str, "tag");
-		gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
-		gtranslate(s, offset_, "offset");
-		gtranslate(s, ptr_offset_, "ptr_offset");
-		gtranslate(s, size_, "size");
-		gtranslate(s, isDynamic_, "isDynamic"); 
-		gtranslate(s, isAbsolute_, "isAbsolute");
-		gtranslate(s, prettyName_, "prettyName", "prettyName");
-		gtranslate(s, mangledName_, "mangledName", "mangledName");
-		gtranslate(s, typedName_, "typedName", "typedName");
-		//  Note:  have to deal with retType_ here?? Probably use type id.
-		ifxml_end_element(s, "Symbol");
-#if 0
-		symbol_start(param);
-		translate(param.type_, "type");
-		translate(param.linkage_, "linkage");
-		translate(param.tag_, "tag");
-		getSD().translate(param.offset_, "offset");
-		getSD().translate(param.ptr_offste_, "ptr_offset");
-		getSD().translate(param.size_, "size");
-		getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
-		getSD().translate(param.isInSymtab_, "isInSymtab");
-		getSD().translate(param.prettyName_, "prettyName", "prettyName");
-		getSD().translate(param.mangledName_, "mangledName", "mangledName");
-		getSD().translate(param.typedName_, "typedName", "typedName");
-		getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
-		//  Note:  have to deal with retType_ here?? Probably use type id.
-		symbol_end(param);
-#endif
-	} SER_CATCH("Symbol");
-}
-#endif
-
-
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
 	return os << "{"
@@ -481,22 +414,4 @@ bool Symbol::operator==(const Symbol& s) const
 			&& (prettyName_ == s.prettyName_)
 			&& (typedName_ == s.typedName_));
 }
-
-#if 0
-inline
-bool
-Symbol::operator==(const Symbol& s) const 
-{
-	return ((s.module_ == module_) && 
-			(s.type_ == type_) &&
-			(s.linkage_ == linkage_) &&
-            (s.visibility_ == visibility_) &&
-            (s.offset_ == offset_) &&
-            (s.region_ == region_) &&
-            (s.size_ == size_) &&
-            (s.isDynamic_ == isDynamic_) &&
-            (s.isAbsolute_ == isAbsolute_) &&
-            (s.mangledName_ == mangledName_));
-}
-#endif
 

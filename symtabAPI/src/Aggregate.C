@@ -294,31 +294,6 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
 void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t, 
 		unsigned t_id) THROW_SPEC (SerializerError)
 {
-#if 0
-	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
-
-	if (!ssb)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	Symtab *st = ssb->getScope();
-
-	if (!st)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	t = st->findType(t_id);
-
-	if (!t)
-	{
-		//  This should probably throw, but let's play nice for now
-		fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
-	}
-#endif
 	if (module_)
 	{
 		typeCollection *tc = module_->getModuleTypes();
@@ -327,7 +302,8 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 			t = tc->findType(t_id);
 			if (!t)
 			{
-				fprintf(stderr, "%s[%d]: failed to find type in module collection\n", FILE__, __LINE__);
+				fprintf(stderr, "%s[%d]: failed to find type in module collection\n", 
+						FILE__, __LINE__);
 			}
 		}
 		else

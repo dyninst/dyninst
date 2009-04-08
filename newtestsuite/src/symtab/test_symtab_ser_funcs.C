@@ -73,7 +73,8 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 	void parse() THROW_SPEC (LocErr);
 
-	static void location_list_report(const std::vector<VariableLocation> *l1, const std::vector<VariableLocation> *l2)
+	static void location_list_report(const std::vector<VariableLocation> *l1, 
+			const std::vector<VariableLocation> *l2)
 	{
 		if (l1 && !l2) fprintf(stderr, "%s[%d]:  loc list discrep\n", FILE__, __LINE__);
 		if (!l1 && l2) fprintf(stderr, "%s[%d]:  loc list discrep\n", FILE__, __LINE__);
@@ -114,9 +115,75 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		}
 	}
 
+	static void namelist_report(const std::vector<std::string> &v1, 
+			const std::vector<std::string> &v2, const char *label)
+	{
+		assert(label);
+
+		fprintf(stderr, "%s[%d]:  namelist '%s':\n", FILE__, __LINE__, label);
+
+		int maxlen = v1.size() > v2.size() ? v1.size() : v2.size();
+
+		for (unsigned int i = 0; i < maxlen; ++i)
+		{
+			const std::string &s1 = (i < v1.size()) ? v1[i] : std::string("no_string");
+			const std::string &s2 = (i < v2.size()) ? v2[i] : std::string("no_string");
+			fprintf(stderr, "\t%s -- %s\n", s1.c_str(),  s2.c_str());
+		}
+	}
+
 	static void aggregate_report(const Aggregate &a1, const Aggregate &a2)
 	{
-		fprintf(stderr, "%s[%d]:  welcome to Aggregate report\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  Aggregate:\n", FILE__, __LINE__);
+
+		SymtabAPI::Module * m1 = a1.getModule();
+		SymtabAPI::Module * m2 = a2.getModule();
+
+		if (m1 && !m2)  fprintf(stderr, "%s[%d]:  module discrep\n", FILE__, __LINE__);
+		if (!m1 && m2)  fprintf(stderr, "%s[%d]:  module discrep\n", FILE__, __LINE__);
+		if (m1)
+		{
+			fprintf(stderr, "%s[%d]:  moduleName:  %s -- %s\n", FILE__, __LINE__, 
+					m1->fullName().c_str(), m2->fullName().c_str());
+			fprintf(stderr, "%s[%d]:  moduleOffset:  %p -- %p\n", FILE__, __LINE__, 
+					m1->addr(), m2->addr());
+		}
+
+		const std::vector<std::string> & mn1 = const_cast<Aggregate &>(a1).getAllMangledNames();
+		const std::vector<std::string> & mn2 = const_cast<Aggregate &>(a2).getAllMangledNames();
+		const std::vector<std::string> & pn1 = const_cast<Aggregate &>(a1).getAllPrettyNames();
+		const std::vector<std::string> & pn2 = const_cast<Aggregate &>(a2).getAllPrettyNames();
+		const std::vector<std::string> & tn1 = const_cast<Aggregate &>(a1).getAllTypedNames();
+		const std::vector<std::string> & tn2 = const_cast<Aggregate &>(a2).getAllTypedNames();
+
+		namelist_report(mn1, mn2, "mangled");
+		namelist_report(pn1, pn2, "pretty");
+		namelist_report(tn1, tn2, "typed");
+
+		std::vector<Symbol *> syms1;
+		std::vector<Symbol *> syms2;
+
+		bool r1 = a1.getSymbols(syms1);
+		bool r2 = a2.getSymbols(syms1);
+
+		if (r1 != r2) fprintf(stderr, "%s[%d]:  getSymbols discrep\n", FILE__, __LINE__);
+
+		int maxsym = syms1.size() > syms2.size() ? syms1.size() : syms2.size();
+
+		fprintf(stderr, "%s[%d]:  Symbol List:\n", FILE__, __LINE__);
+
+		for (unsigned int i = 0; i < maxsym; ++i)
+		{
+			Symbol *s1 = (i < syms1.size()) ? syms1[i] : NULL;
+			Symbol *s2 = (i < syms2.size()) ? syms2[i] : NULL;
+
+			fprintf(stderr, "\t[%s-%p] -- [%s-%p]\n", 
+					s1 ? s1->getName().c_str() : "no_sym",
+					s1 ? s1->getOffset() : 0xdeadbeef,
+					s2 ? s2->getName().c_str() : "no_sym",
+					s2 ? s2->getOffset() : 0xdeadbeef);
+
+		}
 	}
 
 	static void localvar_report(const localVar &lv1, const localVar &lv2)
@@ -126,12 +193,43 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 	static void relocation_report(const relocationEntry &r1, const relocationEntry &r2)
 	{
-		fprintf(stderr, "%s[%d]:  welcome to relcoation report\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  Relcoation\n", FILE__, __LINE__);
+		cerr << "     " << r1 << endl;
+		cerr << "     " << r2 << endl;
 	}
 
 	static void region_report(const Region &r1, const Region &r2)
 	{
-		fprintf(stderr, "%s[%d]:  welcome to region report\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  NONEQUAL Regions\n", FILE__, __LINE__);
+		fprintf(stderr, "\t name: %s -- %s\n", 
+				r1.getRegionName().c_str(), r2.getRegionName().c_str());
+		fprintf(stderr, "\t number: %u -- %u\n", 
+				r1.getRegionNumber(), r2.getRegionNumber());
+		fprintf(stderr, "\t type: %u -- %u\n", 
+				r1.getRegionType(), r2.getRegionType());
+		fprintf(stderr, "\t perms: %u -- %u\n", 
+				r1.getRegionPermissions(), r2.getRegionPermissions());
+		fprintf(stderr, "\t disk offset: %p -- %p\n", 
+				r1.getDiskOffset(), r2.getDiskOffset());
+		fprintf(stderr, "\t disk size: %lu -- %lu\n", 
+				r1.getDiskSize(), r2.getDiskSize());
+		fprintf(stderr, "\t mem offset: %p -- %p\n", 
+				r1.getMemOffset(), r2.getMemOffset());
+		fprintf(stderr, "\t isText: %s -- %s\n", 
+				r1.isText() ? "true" : "false",
+				r2.isText() ? "true" : "false");
+		fprintf(stderr, "\t isData: %s -- %s\n", 
+				r1.isData() ? "true" : "false",
+				r2.isData() ? "true" : "false");
+		fprintf(stderr, "\t isBSS: %s -- %s\n", 
+				r1.isBSS() ? "true" : "false",
+				r2.isBSS() ? "true" : "false");
+		fprintf(stderr, "\t isLoadable: %s -- %s\n", 
+				r1.isLoadable() ? "true" : "false",
+				r2.isLoadable() ? "true" : "false");
+		fprintf(stderr, "\t isDirty: %s -- %s\n", 
+				r1.isDirty() ? "true" : "false",
+				r2.isDirty() ? "true" : "false");
 	}
 
 	static void function_report(const Function &f1, const Function &f2)
@@ -140,8 +238,10 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 		Type *t1 = f1.getReturnType();
 		Type *t2 = f2.getReturnType();
+
 		if (t1 && !t2) fprintf(stderr, "%s[%d]:  ret type discrep\n", FILE__, __LINE__);
 		if (!t1 && t2) fprintf(stderr, "%s[%d]:  ret type discrep\n", FILE__, __LINE__);
+
 		if (t1)
 		{
 			fprintf(stderr, "\t%d--%d\n", t1->getID(), t2->getID());
@@ -218,12 +318,12 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	typedef void (*lvarrep_t)(const localVar &, const localVar &);
 
 	template <class C>
-		bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
-		{
-			dprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
-					FILE__, __LINE__, typeid(C).name());
+	bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
+	{
+		dprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
+				FILE__, __LINE__, typeid(C).name());
 
-			Tempfile tf;
+		Tempfile tf;
 		std::string file(tf.getName());
 
 		SerializerBase *sb_serializer_ptr;
@@ -232,7 +332,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		SerializerBase &sb_serializer = (SerializerBase &) *sb_serializer_ptr;
 
 		dprintf(stderr, "%s[%d]:  before serialize\n", FILE__, __LINE__);
-		
+
 		Serializable *sable = &control;
 		try 
 		{
@@ -291,30 +391,31 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 #endif
 
 		dprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
-	//  FIXME:  need to catch serializer errors here
 	}
 
 	template <class T>
-	void serialize_test_vector(Symtab *st, std::vector<T> &vec, void (*report)(const T &, const T &) )
-	{
-		for (unsigned int i = 0; i < vec.size(); ++i)
+		void serialize_test_vector(Symtab *st, std::vector<T> &vec, 
+				void (*report)(const T &, const T &) )
 		{
-			T &t = vec[i];
-			serialize_test(st, t, report);
+			for (unsigned int i = 0; i < vec.size(); ++i)
+			{
+				T &t = vec[i];
+				serialize_test(st, t, report);
+			}
 		}
-	}
 
 	template <class T>
-	void serialize_test_vector(Symtab *st, std::vector<T *> &vec, void (*report)(const T &, const T &) )
-	{
-		for (unsigned int i = 0; i < vec.size(); ++i)
+		void serialize_test_vector(Symtab *st, std::vector<T *> &vec, 
+				void (*report)(const T &, const T &) )
 		{
-			T *t = vec[i];
-			if (!t)
-				EFAIL("null array elem\n");
-			serialize_test(st, *t, report);
+			for (unsigned int i = 0; i < vec.size(); ++i)
+			{
+				T *t = vec[i];
+				if (!t)
+					EFAIL("null array elem\n");
+				serialize_test(st, *t, report);
+			}
 		}
-	}
 
 	public:
 
@@ -398,8 +499,6 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 		relgrep_t mr = &relocation_report;
 #endif
 
-		dprintf(stderr, "%s[%d]:  about to serialize test for variable:\n", FILE__, __LINE__);
-		cerr << *variables[0] <<endl;
 		serialize_test(symtab, *variables[0], &variable_report);
 		serialize_test(symtab, *functions[0], &function_report);
 		serialize_test(symtab, *symbols[0], &symbol_report);

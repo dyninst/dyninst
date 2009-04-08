@@ -425,55 +425,8 @@ int xcoffArchive_64::read_mbrhdr()
 
 std::vector<fileOpener *> fileOpener::openedFiles;
 
-#if 0
-fileOpener *fileOpener::openFile(const std::string &filename) {
-    // Logic: if we're opening a library, match by name. If
-    // we're opening an a.out, then we have to uniquely
-    // open each time (as we open in /proc, and exec has the
-    // same name).
-
-    if(filename.substr(0,5) != "/proc"){
-     for (unsigned i = 0; i < openedFiles.size(); i++) {
-            if (openedFiles[i]->file() == filename) {
-                openedFiles[i]->refcount_++;
-                return openedFiles[i];
-            }
-        }
-    }
-    
-    // Originally we were checking if its a shared Object. Now we 
-    // check if the filename does not start with a /proc
-    /*if (desc.isSharedObject()) {
-        for (unsigned i = 0; i < openedFiles.size(); i++) {
-            if (openedFiles[i]->file() == desc.file()) {
-                openedFiles[i]->refcount_++;
-                return openedFiles[i];
-            }
-        }
-    }*/
-    
-    // New file. Neeefty.
-    fileOpener *newFO = new fileOpener(filename);
-    assert(newFO);
-   
-    if (!newFO->open()) {
-        fprintf(stderr, "File %s\n", filename.c_str());
-        //perror("Opening file");
-        return NULL;
-    }
-    fprintf(stderr, "%s[%d]:  FIXME: DOING MMAP HERE!\n", FILE__, __LINE__);
-    abort();
-    if (!newFO->mmap()) {
-        fprintf(stderr, "File %s\n", filename.c_str());
-        //perror("mmaping file");
-        return NULL;
-    }
-    openedFiles.push_back(newFO);
-
-    return newFO;
-}
-#endif
-fileOpener *fileOpener::openFile(void *ptr, unsigned size) {
+fileOpener *fileOpener::openFile(void *ptr, unsigned size) 
+{
     // Logic: if we're opening a library, match by name. If
     // we're opening an a.out, then we have to uniquely
     // open each time (as we open in /proc, and exec has the
@@ -770,9 +723,6 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    unsigned toc_offset = 0;
    std::string modName;
    baseAddress_ = (Offset)fo_->getPtrAtOffset(offset);
-#if 0
-   baseAddress_ = offset + (Offset) mf->base_addr();
-#endif
 
    int linesfdptr=0;
    struct lineno* lines=NULL;

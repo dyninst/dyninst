@@ -18,6 +18,10 @@ namespace Dyninst {
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
 //  to the next (hopefully top-level) exception handler.
 
+#define serialize_printf serializer_printf
+
+COMMON_EXPORT int serializer_printf(const char *format, ...);
+
 
 COMMON_EXPORT bool &serializer_debug_flag();
 
@@ -82,10 +86,6 @@ class SerializerError : public std::runtime_error {
    COMMON_EXPORT int line() const {return line__;}
    COMMON_EXPORT SerializerErrorType code() const {return err__;}
 };
-
-#define serialize_printf serializer_printf
-
-int serializer_printf(const char *format, ...);
 
 
 COMMON_EXPORT void printSerErr(const SerializerError &err);

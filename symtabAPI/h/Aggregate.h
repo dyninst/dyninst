@@ -43,14 +43,6 @@
 #include <iostream>
 #include "Annotatable.h"
 
-#if 0
-#include "Symtab.h"
-#include "Symbol.h"
-#include "Variable.h"
-#include "Type.h"
-#endif
-
-
 //class Aggregate;
 //class Dyninst::SymtabAPI::Aggregate;
 //SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
@@ -73,11 +65,7 @@ class Aggregate;
 class Aggregate : public AnnotatableSparse 
 {
     friend class Symtab;
-#if defined (os_windows)
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
-#else
-	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
-#endif
  protected:
       SYMTAB_EXPORT Aggregate();
       SYMTAB_EXPORT Aggregate(Symbol *sym);

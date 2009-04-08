@@ -1485,18 +1485,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          symbols_[sname].push_back(newsym);
          symsByOffset_[newsym->getOffset()].push_back(newsym);
          symsToModules_[newsym] = smodule; 
-#if 0
-         // register symbol in dictionary
-         if ((etype == STT_FILE) && 
-             (ebinding == STB_LOCAL) && 
-             (shared) && 
-             (sname == extract_pathname_tail(smodule))) {
-            // symbols_[sname] = newsym; // special case
-            symbols_[sname].push_back( newsym );
-         } else {
-            allsymbols.push_back(newsym); // normal case
-         }
-#endif
       }
    } // syms.isValid()
 #if defined(TIMED_PARSE)
@@ -2747,40 +2735,8 @@ Object::Object(const Object& obj)
    DbgSectionMapSorted = obj.DbgSectionMapSorted;
 }
 
-#if 0
-const Object& Object::operator=(const Object& obj) 
-{
-   (void) AObject::operator=(obj);
-
-   dynsym_addr_ = obj.dynsym_addr_;
-   dynstr_addr_ = obj.dynstr_addr_;
-   got_addr_ = obj.got_addr_;
-   plt_addr_ = obj.plt_addr_;
-   plt_size_ = obj.plt_size_;
-   plt_entry_size_ = obj.plt_entry_size_;
-   rel_plt_addr_ = obj.rel_plt_addr_;
-   rel_plt_size_ = obj.rel_plt_size_;
-   rel_plt_entry_size_ = obj.rel_plt_entry_size_;
-   rel_size_ = obj.rel_size_;
-   rel_entry_size_ = obj.rel_entry_size_;
-   stab_off_ = obj.stab_off_;
-   stab_size_ = obj.stab_size_;
-   stabstr_off_ = obj.stabstr_off_;
-   relocation_table_  = obj.relocation_table_;
-   fbt_  = obj.fbt_;
-   dwarvenDebugInfo = obj.dwarvenDebugInfo;
-   versionMapping = obj.versionMapping;
-   versionFileNameMapping = obj.versionFileNameMapping;
-   deps_ = obj.deps_;
-   elfHdr = obj.elfHdr; 
-   DbgSectionMapSorted = obj.DbgSectionMapSorted;
-   return *this;
-}
-#endif
-
 Object::~Object()
 {
-   //   if (fileName) free((void *)fileName);
    unsigned i;
    relocation_table_.clear();
    fbt_.clear();

@@ -40,9 +40,6 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 #include "Aggregate.h"
-#if 0
-#include "Symbol.h"
-#endif
 #include "Variable.h"
 
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
