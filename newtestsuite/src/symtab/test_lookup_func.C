@@ -89,6 +89,13 @@ test_results_t test_lookup_func_Mutator::executeTest()
       return FAILED;
    }
 
+   if (0 == f->getOffset())
+   {
+      logerror("[%s:%u] - function with zero offsetn", 
+               __FILE__, __LINE__);
+      return FAILED;
+   }
+
    std::vector<localVar *> lvars;
 
    if (!f->getLocalVariables(lvars))

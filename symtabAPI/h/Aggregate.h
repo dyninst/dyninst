@@ -41,6 +41,7 @@
 #define _Aggregate_h_
 
 #include <iostream>
+#include "Annotatable.h"
 
 #if 0
 #include "Symtab.h"
@@ -48,8 +49,6 @@
 #include "Variable.h"
 #include "Type.h"
 #endif
-#include "Annotatable.h"
-#include "common/h/std_namesp.h"
 
 
 //class Aggregate;

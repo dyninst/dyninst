@@ -44,45 +44,143 @@
 
 #include "Symtab.h"
 #include "Symbol.h"
+#include "Function.h"
+#include "Variable.h"
+
 #include <iostream>
+#include <dirent.h>
+#include <errno.h>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
 
+bool resolve_libc_name(char *buf)
+{
+	DIR *dirp;
+	struct dirent *dp;
+
+	if (NULL == (dirp = opendir("/lib"))) 
+	{
+		fprintf(stderr, "%s[%d]: couldn’t open /lib: %s", FILE__, __LINE__, strerror(errno));
+		return false;
+	}
+
+	do {
+		errno = 0;
+		if ((dp = readdir(dirp)) != NULL) {
+			int nelem = strlen("libc.so");
+			if ( 0 != strncmp(dp->d_name, "libc.so", nelem))
+				continue;
+
+			fprintf(stderr, "found %s\n", dp->d_name);
+			sprintf(buf, "/lib/%s", dp->d_name);
+			closedir(dirp);
+			return true;
+
+		}
+	} while (dp != NULL);
+
+	return false;
+}
+
 class test_relocations_Mutator : public SymtabMutator {
-   std::vector<relocationEntry> relocs;
-public:
-   test_relocations_Mutator() { };
-   virtual test_results_t executeTest();
+	std::vector<relocationEntry> relocs;
+	char libc_name[128];
+	Symtab *libc;
+
+	bool open_libc()
+	{
+		if (!resolve_libc_name(libc_name))
+		{
+			fprintf(stderr, "%s[%d]:  cannot find libc....\n", FILE__, __LINE__);
+			return false;
+		}
+
+		if (!Symtab::openFile(libc, libc_name))
+		{
+			fprintf(stderr, "%s[%d]:  cannot create libc....\n", FILE__, __LINE__);
+			return false;
+		}
+
+		return true;
+	}
+
+	public:
+	test_relocations_Mutator() { };
+	virtual test_results_t executeTest();
 };
 
 extern "C" DLLEXPORT TestMutator* test_relocations_factory()
 {
-   return new test_relocations_Mutator();
+	return new test_relocations_Mutator();
 }
 
 test_results_t test_relocations_Mutator::executeTest()
 {
-   bool result = symtab->getFuncBindingTable(relocs);
+	bool result = symtab->getFuncBindingTable(relocs);
 
-   if (!result || !relocs.size() )
-   {
-      logerror("%s[%d]: - Unable to find relocations\n", 
-               FILE__, __LINE__);
-      fprintf(stderr, "%s[%d]: - Unable to find relocations\n", 
-               FILE__, __LINE__);
-      return FAILED;
-   }
+	if (!result || !relocs.size() )
+	{
+		logerror("%s[%d]: - Unable to find relocations\n", 
+				FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]: - Unable to find relocations\n", 
+				FILE__, __LINE__);
+		return FAILED;
+	}
 
-   fprintf(stderr, "%s[%d]:  have relocs:\n", FILE__, __LINE__);
-   for (unsigned int i = 0; i < relocs.size(); ++i)
-   {
+#if 0
+	fprintf(stderr, "%s[%d]:  have relocs:\n", FILE__, __LINE__);
+	for (unsigned int i = 0; i < relocs.size(); ++i)
+	{
 	   Symbol *s = relocs[i].getDynSym();
 	   std::cerr << "      " <<  relocs[i];
 	   if (s)
 		  std::cerr << "  symname:  " << s->getName() << "  symaddr: " <<s->getAddr() << " symtype = "<< Symbol::symbolType2Str(s->getType()) << "symlinkage = " <<Symbol::symbolLinkage2Str(s->getLinkage()) << " vis = " <<Symbol::symbolVisibility2Str(s->getVisibility()); 
 	   std::cerr << std::endl;
    }
+#endif
+
+	if (!open_libc())
+	{
+		fprintf(stderr, "%s[%d]:  failed to open libc\n", FILE__, __LINE__);
+		return FAILED;
+	}
+
+	bool err = false;
+
+	for (unsigned int i = 0; i < relocs.size(); ++i)
+	{
+		const std::string &relname = relocs[i].name();
+		std::vector<Dyninst::SymtabAPI::Function *> libc_matches;
+
+		if (!libc->findFunctionsByName(libc_matches, relname) || !libc_matches.size())
+		{
+			fprintf(stderr, "%s[%d]:  failed to find %s in libc\n", FILE__, __LINE__, 
+					relname.c_str());
+			err = true;
+		}
+		else
+		{
+			fprintf(stderr, "%s[%d]:  found %d matches for %s in libc\n", 
+					FILE__, __LINE__, libc_matches.size(), relname.c_str());
+
+			const Dyninst::SymtabAPI::Function *f = libc_matches[0];
+
+			if (!f)
+			{
+				fprintf(stderr, "%s[%d]:  BAD NEWS:  symtabAPI returned NULL func\n", 
+						FILE__, __LINE__);
+				err = true;
+			}
+			else 
+			{
+				Offset off = f->getOffset();
+				fprintf(stderr, "\toffset = %p, rel_target_addr = %p, rel_addr = %p\n", off, relocs[i].target_addr(), relocs[i].rel_addr());
+			}
+		}
+	}
+
+	if (err) return FAILED;
 #if 0
    if (relocs.size() != 3)
    {
