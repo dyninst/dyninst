@@ -209,8 +209,8 @@ test_results_t test_relocations_Mutator::executeTest()
 			}
 			else
 			{
-				fprintf(stderr, "%s[%d]:  found %d matches for %s in libc\n", 
-						FILE__, __LINE__, libc_matches.size(), expected_relocations[i].c_str());
+				//fprintf(stderr, "%s[%d]:  found %d matches for %s in libc\n", 
+			//			FILE__, __LINE__, libc_matches.size(), expected_relocations[i].c_str());
 
 				const Dyninst::SymtabAPI::Function *f = libc_matches[0];
 
@@ -226,19 +226,21 @@ test_results_t test_relocations_Mutator::executeTest()
 					//  properly resolve to the library...  for now existence 
 					//  will have to suffice.
 					Offset off = f->getOffset();
-					fprintf(stderr, "\toffset = %p, rel_target_addr = %p, rel_addr = %p\n", off, relocs[relocation_index].target_addr(), relocs[relocation_index].rel_addr());
+					//fprintf(stderr, "\toffset = %p, rel_target_addr = %p, rel_addr = %p\n", off, relocs[relocation_index].target_addr(), relocs[relocation_index].rel_addr());
 				}
 			}
 		}
 	}
 
 	if (err) {
+#if 0
 		fprintf(stderr, "%s[%d]:  have relocations:\n", FILE__, __LINE__);
 		for (unsigned int i = 0; i < relocs.size(); ++i)
 		{
 			std::cerr << "        " << relocs[i] << std::endl;
 
 		}
+#endif
 		return FAILED;
 	}
 

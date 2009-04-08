@@ -84,12 +84,14 @@ test_results_t test_exception_Mutator::executeTest()
       return FAILED;
    }
 
+#if  0
    fprintf(stderr, "%s[%d]:  have %d exception blocks:\n", FILE__, __LINE__, excps.size());
 
    for (unsigned int i = 0; i < excps.size(); ++i)
    {
 	   std::cerr << "     " << *(excps[i]) << std::endl;
    }
+#endif
 
 #if 0
    if (excps.size() != NUM_EXPECTED_EXCPS)
