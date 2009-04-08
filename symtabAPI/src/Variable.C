@@ -74,7 +74,7 @@ Type* Variable::getType()
 
 void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
+	//fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
 	if (!sb)
 	{
 		SER_ERR("bad paramater sb");

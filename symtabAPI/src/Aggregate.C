@@ -478,7 +478,8 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 	std::string modname = module_ ? module_->fullName() : std::string("");
 	std::vector<unsigned> sym_indexes;
 	sym_indexes.resize(symbols_.size());
-	fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
+
+	//fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
 
 	for (unsigned int i = 0; i < symbols_.size(); ++i)
 	{
@@ -505,7 +506,7 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 	}
 	SER_CATCH(tag);
 
-	fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
+	//fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
 }
 
 bool Aggregate::operator==(const Aggregate &a)

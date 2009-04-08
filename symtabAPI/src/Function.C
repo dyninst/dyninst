@@ -140,7 +140,6 @@ bool Function::getLocalVariables(std::vector<localVar *> &vars)
    localVarCollection *lvs = NULL;
    if (!getAnnotation(lvs, FunctionLocalVariablesAnno))
    {
-      fprintf(stderr, "%s[%d]:  NO LOCAL VARS ANNO\n", FILE__, __LINE__);
       return false;
    }
    if (!lvs)
@@ -227,7 +226,8 @@ Function::~Function()
 
 void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	fprintf(stderr, "%s[%d]:  welcome to Function::serialize\n", FILE__, __LINE__);
+	//fprintf(stderr, "%s[%d]:  welcome to Function::serialize\n", FILE__, __LINE__);
+
 	if (!sb)
 	{
 		SER_ERR("bad paramater sb");

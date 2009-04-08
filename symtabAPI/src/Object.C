@@ -242,16 +242,6 @@ SYMTAB_EXPORT Offset ExceptionBlock::catchStart() const
 	return catchStart_;
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
-   Serializable(),
-   target_addr_(ra.target_addr_), 
-   rel_addr_(ra.rel_addr_), 
-   addend_ (ra.addend_),
-   rtype_ (ra.rtype_),
-   name_(ra.name_), 
-   dynref_(ra.dynref_), relType_(ra.relType_) 
-{
-}
 
 SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
 {

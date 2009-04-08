@@ -141,7 +141,8 @@ class Symbol : public Serializable,
        mangledName_(Symbol::emptyString),
        prettyName_(Symbol::emptyString),
        typedName_(Symbol::emptyString),
-       tag_(TAG_UNKNOWN) {}
+       tag_(TAG_UNKNOWN) ,
+       index_(-1) {}
 
    SYMTAB_EXPORT static Symbol *magicEmitElfSymbol();
 
@@ -154,7 +155,8 @@ class Symbol : public Serializable,
                          Region *r = NULL, 
                          unsigned s = 0,
                          bool d = false,
-                         bool a = false) :
+                         bool a = false,
+			 int index=-1):
        module_(module),
        type_(t),
        linkage_(l),
@@ -168,7 +170,8 @@ class Symbol : public Serializable,
        mangledName_(name),
        prettyName_(name),
        typedName_(name),
-       tag_(TAG_UNKNOWN) {
+       tag_(TAG_UNKNOWN),
+       index_(index){
 
    }
 
@@ -205,6 +208,8 @@ class Symbol : public Serializable,
 
    SYMTAB_EXPORT SymbolVisibility getVisibility() const { return visibility_; }
 
+   SYMTAB_EXPORT int getIndex() const { return index_; }
+   SYMTAB_EXPORT bool setIndex(int index) { index_ = index; return true; }
 
    //////////////// Modification
    SYMTAB_EXPORT bool setOffset (Offset newOffset);
@@ -267,7 +272,7 @@ class Symbol : public Serializable,
    std::string typedName_;
 
    SymbolTag     tag_;
-   unsigned index_;
+   int index_;
 
 #if !defined (USE_ANNOTATIONS)
    std::vector<std::string> verNames_;

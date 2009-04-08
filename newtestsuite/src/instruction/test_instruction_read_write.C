@@ -218,10 +218,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     0x04, 0x30, // ADD AL, 0x30(8)
     0xc7, 0x45, 0xfc, 0x01, 0x00, 0x00, 0x00, // MOVL 0x01, -0x4(EBP)
     0x88, 0x55, 0xcc, // MOVB DL, -0x34(EBP)
-    0xF2, 0x0F, 0x12, 0xC0 // MOVDDUP XMM0, XMM1
+    0xF2, 0x0F, 0x12, 0xC0, // MOVDDUP XMM0, XMM1
+    0x66, 0x0F, 0x7C, 0xC9  // HADDPD XMM1, XMM1
   };
-  unsigned int size = 30;
-  unsigned int expectedInsns = 10;
+  unsigned int size = 34;
+  unsigned int expectedInsns = 11;
   InstructionDecoder d(buffer, size);
 #if defined(arch_x86_64_test)
   d.setMode(true);
@@ -328,7 +329,15 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     logerror("FAILURE: movddup expected size 4, decoded to %s, had size %d\n", decodedInsns[8].format().c_str(), decodedInsns[8].size());
     retVal = FAILED;
   }
-  
+  expectedRead.clear();
+  expectedWritten.clear();
+  expectedRead = list_of(xmm1);
+  expectedWritten = list_of(xmm1);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[9], expectedRead, expectedWritten));
+  if(decodedInsns[9].size() != 4) {
+    logerror("FAILURE: haddpd expected size 4, decoded to %s, had size %d\n", decodedInsns[9].format().c_str(), decodedInsns[9].size());
+    retVal = FAILED;
+  }  
 #if defined(arch_x86_64_test)
   const unsigned char amd64_specific[] = 
   {

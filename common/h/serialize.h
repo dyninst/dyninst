@@ -57,6 +57,7 @@
 #include "common/h/sha1.h"
 #include "common/h/pathName.h"
 
+
 namespace Dyninst {
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
@@ -129,7 +130,7 @@ class SerializerBase {
    
    COMMON_EXPORT virtual ~SerializerBase() 
    {
-      fprintf(stderr, "%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, 
+      serialize_printf("%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, 
             this, serializer_name.c_str());
    }
 
@@ -482,7 +483,7 @@ class SerializerBin : public ScopedSerializerBase<T> {
 
 	   if (iter == sb->active_bin_serializers.end())
 	   {
-		   fprintf(stderr, "%s[%d]:  Adding Active serializer for name %s\n",
+		   serialize_printf("%s[%d]:  Adding Active serializer for name %s\n",
 				   FILE__, __LINE__, name_);
 
 		   sb->active_bin_serializers[std::string(name_)] = this;
@@ -498,7 +499,7 @@ class SerializerBin : public ScopedSerializerBase<T> {
 
    virtual ~SerializerBin()
    {
-	   fprintf(stderr, "%s[%d]:  WELCOME TO SERIALIZER_BIN dtor\n", FILE__, __LINE__);
+	   serialize_printf("%s[%d]:  WELCOME TO SERIALIZER_BIN dtor\n", FILE__, __LINE__);
 	   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
 
 	   SerializerBase *sb = this;
@@ -511,7 +512,7 @@ class SerializerBin : public ScopedSerializerBase<T> {
 	   }
 	   else
 	   {
-		   fprintf(stderr, "%s[%d]:  Removing active serializer for name %s\n",
+		   serialize_printf("%s[%d]:  Removing active serializer for name %s\n",
 				   FILE__, __LINE__, sb->name().c_str());
 		   sb->active_bin_serializers.erase(iter);
 	   }
@@ -624,7 +625,7 @@ class SerFile {
       }
       else 
       {
-         fprintf(stderr, "%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, 
+         serialize_printf("%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, 
                filename.c_str(), mode == sd_serialize ? "output" : "input");
 
          f = SerDesBin::init(fname, mode, verbose);

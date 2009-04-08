@@ -65,6 +65,14 @@ extern "C" DLLEXPORT TestMutator* test_exception_factory()
 
 test_results_t test_exception_Mutator::executeTest()
 {
+#if defined (os_windows_test)
+	return SKIPPED;
+#endif
+
+#if defined (os_aix_test)
+	return SKIPPED;
+#endif
+
    bool result = symtab->getAllExceptions(excps);
 
    if (!result || !excps.size() )

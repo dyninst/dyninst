@@ -55,10 +55,9 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-#if 0
-extern SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *, std::string);
-extern SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *, std::string);
-extern void nonpublic_free_bin_symtab_serializer(SerializerBase *);
+bool debugPrint = false;
+#ifndef dprintf
+#define dprintf if (debugPrint) fprintf
 #endif
 
 class test_symtab_ser_funcs_Mutator : public SymtabMutator {
@@ -221,7 +220,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	template <class C>
 		bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
 		{
-			fprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
+			dprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
 					FILE__, __LINE__, typeid(C).name());
 
 			Tempfile tf;
@@ -232,10 +231,21 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		assert(sb_serializer_ptr);
 		SerializerBase &sb_serializer = (SerializerBase &) *sb_serializer_ptr;
 
-		fprintf(stderr, "%s[%d]:  before serialize\n", FILE__, __LINE__);
+		dprintf(stderr, "%s[%d]:  before serialize\n", FILE__, __LINE__);
+		
 		Serializable *sable = &control;
-		sable->serialize(sb_serializer_ptr, NULL);
-		fprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+		try 
+		{
+			sable->serialize(sb_serializer_ptr, NULL);
+		}
+		catch (const SerializerError &serr)
+		{
+			fprintf(stderr, "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
+			fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+			EFAIL("serialize failed\n");
+		}
+
+		dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
 		fflush(NULL);
 
 		nonpublic_free_bin_symtab_serializer(sb_serializer_ptr);
@@ -247,10 +257,19 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		assert(sb_deserializer_ptr);
 		SerializerBase &sb_deserializer = (SerializerBase &) *sb_deserializer_ptr;
 
-		fprintf(stderr, "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
+		dprintf(stderr, "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
 				FILE__, __LINE__, typeid(C).name());
 
-		deserialize_result.serialize(sb_deserializer_ptr, NULL);
+		try
+		{
+			deserialize_result.serialize(sb_deserializer_ptr, NULL);
+		}
+		catch (const SerializerError &serr)
+		{
+			fprintf(stderr, "%s[%d]:  deserializer function threw exception:\n", FILE__, __LINE__);
+			fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+			EFAIL("serialize failed\n");
+		}
 
 		nonpublic_free_bin_symtab_serializer(sb_deserializer_ptr);
 
@@ -271,7 +290,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			EFAIL("deserialize and operator== failed\n");
 #endif
 
-		fprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
+		dprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
 	//  FIXME:  need to catch serializer errors here
 	}
 
@@ -312,8 +331,10 @@ void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 {
 	bool result = symtab->getFuncBindingTable(relocations);
 
+#if !defined(os_aix_test)
 	if (!result || !relocations.size() )
 		EFAIL("relocations");
+#endif
 
 #if 0
 	//  need to make this a c++ test to get exceptions
@@ -377,20 +398,24 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 		relgrep_t mr = &relocation_report;
 #endif
 
-		fprintf(stderr, "%s[%d]:  about to serialize test for variable:\n", FILE__, __LINE__);
+		dprintf(stderr, "%s[%d]:  about to serialize test for variable:\n", FILE__, __LINE__);
 		cerr << *variables[0] <<endl;
 		serialize_test(symtab, *variables[0], &variable_report);
 		serialize_test(symtab, *functions[0], &function_report);
 		serialize_test(symtab, *symbols[0], &symbol_report);
 		serialize_test(symtab, *modules[0], &module_report);
+#if !defined (os_aix_test)
 		serialize_test(symtab, relocations[0], &relocation_report);
+#endif
 		serialize_test(symtab, *regions[0], &region_report);
 #if 0
 		serialize_test_vector(symtab, symbols);
 		serialize_test_vector(symtab, functions);
 		serialize_test_vector(symtab, variables);
 		serialize_test_vector(symtab, exceptions);
+#if !defined (os_aix_test)
 		serialize_test_vector(symtab, relocations);
+#endif
 		serialize_test_vector(symtab, regions);
 		serialize_test_vector(symtab, modules);
 

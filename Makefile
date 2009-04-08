@@ -18,10 +18,10 @@ DyninstAPI	= ready common symtabAPI instructionAPI dyninstAPI_RT dyninstAPI dynu
 InstructionAPI	= ready common instructionAPI dynutil
 ValueAdded = valueAdded/sharedMem
 
-testsuites = dyninstAPI/tests testsuite 
+testsuites = dyninstAPI/tests 
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI stackwalk DDG
-allSubdirs	= $(allCoreSubdirs) dyninstAPI/tests testsuite newtestsuite valueAdded/sharedMem
+allSubdirs	= $(allCoreSubdirs) dyninstAPI/tests valueAdded/sharedMem
 allSubdirs_noinstall =
 
 # We're not building the new test suite on all platforms yet
@@ -40,9 +40,12 @@ fullSystem	+= dyninstAPI/tests
 endif
 
 ifndef DONT_BUILD_TESTSUITE
-fullSystem	+= testsuite
+#fullSystem	+= testsuite
 endif
 
+ifndef DONT_BUILD_NEWTESTSUITE
+fullSystem	+= newtestsuite
+endif
 # Note that the first rule listed ("all") is what gets made by default,
 # i.e., if make is given no arguments.  Don't add other targets before all!
 

@@ -2318,7 +2318,6 @@ void Object::parseDwarfTypes( Symtab *objFile)
     }
   */		
   dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile->file().c_str() );
-  fprintf(stderr,  "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile->file().c_str() );
 
   /* Start the dwarven debugging. */
   Module *mod = NULL, *fixUnknownMod = NULL;

@@ -87,10 +87,10 @@ class Function : public Aggregate, public Serializable
       SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
       SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
 
-	  SYMTAB_EXPORT
-	  void serialize(SerializerBase *sb, const char *tag = "Function") THROW_SPEC (SerializerError);
+	  SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+			  const char *tag = "Function") THROW_SPEC (SerializerError);
 
-	  bool operator==(const Function &);
+	  SYMTAB_EXPORT bool operator==(const Function &);
       /* internal helper functions */
       bool addLocalVar(localVar *);
       bool addParam(localVar *);

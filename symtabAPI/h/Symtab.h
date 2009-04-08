@@ -227,6 +227,10 @@ class Symtab : public LookupInterface,
    /***** Relocation Sections *****/
    SYMTAB_EXPORT bool hasRel() const;
    SYMTAB_EXPORT bool hasRela() const;
+   SYMTAB_EXPORT bool hasReldyn() const;
+   SYMTAB_EXPORT bool hasReladyn() const;
+   SYMTAB_EXPORT bool hasRelplt() const;
+   SYMTAB_EXPORT bool hasRelaplt() const;
 
    /***** Write Back binary functions *****/
    SYMTAB_EXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
@@ -495,6 +499,11 @@ class Symtab : public LookupInterface,
    //Relocation sections
    bool hasRel_;
    bool hasRela_;
+   bool hasReldyn_;
+   bool hasReladyn_;
+   bool hasRelplt_;
+   bool hasRelaplt_;
+
 
    //Don't use obj_private, use getObject() instead.
  public:
@@ -582,8 +591,6 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
 			  Symbol *dynref = NULL, unsigned long relType = 0);
       SYMTAB_EXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, 
 			  unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
-
-      SYMTAB_EXPORT relocationEntry(const relocationEntry& ra);
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
 

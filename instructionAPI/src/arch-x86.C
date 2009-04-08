@@ -432,6 +432,7 @@ map<entryID, string> entryNames_IAPI = map_list_of
   (e_movapd, "movapd")
   (e_movaps, "movaps")
   (e_movd, "movd")
+  (e_movddup, "movddup")
   (e_movdq2q, "movdq2q")
   (e_movdqa, "movdqa")
   (e_movdqu, "movdqu")
@@ -2062,8 +2063,8 @@ static ia32_entry sseMap[][4] = {
   { /* SSE7D */
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { e_hsubpd, t_done, 0, false, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { e_hsubps, t_done, 0, false, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_hsubpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_hsubps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
   },
   { /* SSE7E */
     { e_movd, t_done, 0, true, { Ev, Pd, Zz }, 0, s1W2R },
@@ -2078,7 +2079,7 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEB8 */
-    { e_jmpe, t_done, 0, true, { Jz, Zz, Zz }, 0, s1R },
+    { e_jmpe, t_done, 0, false, { Jz, Zz, Zz }, 0, s1R },
     { e_popcnt, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
@@ -3513,15 +3514,15 @@ static const unsigned char sse_prefix[256] = {
   /* 4x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   /* 5x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   /* 6x */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  /* 7x */ 1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1, // Grp12-14 are SSE groups
+  /* 7x */ 1,1,1,1,1,1,1,0,1,1,0,0,1,1,1,1, // Grp12-14 are SSE groups
   /* 8x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   /* 9x */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
   /* Ax */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  /* Bx */ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+  /* Bx */ 0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,
   /* Cx */ 0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,
-  /* Dx */ 0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  /* Dx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   /* Ex */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  /* Fx */ 0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0
+  /* Fx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 };
 
 

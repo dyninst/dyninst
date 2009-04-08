@@ -39,6 +39,36 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+void func_relocations_mutatee()
+{
+	char buf[10];
+	struct stat statbuf;
+
+	//  some junk system calls to trigger entries in th relocation table
+	printf("a");
+	fprintf(stderr,"a");
+	sprintf(buf,"a");
+	snprintf(buf,2, "%s", "aaaaaa");
+	memcpy(buf, "aaaa", 4*sizeof(char));
+	strcmp(buf, "aaaa");
+	memset(buf, 0, 4*sizeof(char));
+	FILE *f = fopen("/blaarch", "rw");
+	fwrite(buf, sizeof(char), 4, f);
+	fread(buf, sizeof(char), 4, f);
+	fclose(f);
+	stat("/blaarch", &statbuf);
+	lstat("/blaarch", &statbuf);
+	fstat(7, &statbuf);
+}
+
+
 int test_relocations_mutatee() 
 {
 	fprintf(stderr, "welcome to test_relocations_mutatee\n");

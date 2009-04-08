@@ -83,6 +83,10 @@ class SerializerError : public std::runtime_error {
    COMMON_EXPORT SerializerErrorType code() const {return err__;}
 };
 
+#define serialize_printf serializer_printf
+
+int serializer_printf(const char *format, ...);
+
 
 COMMON_EXPORT void printSerErr(const SerializerError &err);
 
@@ -358,7 +362,7 @@ class trans_adaptor<S, Serializable, T2> {
    public:
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
+         serialize_printf("%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
       } 
 
       Serializable * operator()(S *ser, Serializable & it, const char *tag = NULL, 
@@ -374,7 +378,7 @@ class trans_adaptor<S, std::vector<T>, TT2 > {
    public:
       trans_adaptor()
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vectorl\n", __FILE__, __LINE__);
+         serialize_printf("%s[%d]:  trans_adaptor  -- vectorl\n", __FILE__, __LINE__);
       }
 
       std::vector<T> * operator()(S *ser, std::vector<T> &v, const char *tag = NULL, 
@@ -390,7 +394,7 @@ class trans_adaptor<S, std::vector<T *>, TT2>  {
    public: 
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vector of ptrs\n", __FILE__, __LINE__);
+         serialize_printf("%s[%d]:  trans_adaptor  -- vector of ptrs\n", __FILE__, __LINE__);
       }
 
       std::vector<T*> * operator()(S *ser, std::vector<T *> &v, const char *tag = NULL, 

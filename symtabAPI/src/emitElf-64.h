@@ -118,7 +118,7 @@ class emitElf64{
     void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf64_Shdr *shdr);
     bool createNonLoadableSections(Elf64_Shdr *& shdr);
-    bool createLoadableSections( Elf64_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &);
+    bool createLoadableSections( Elf64_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &,  dyn_hash_map<std::string,  unsigned>& newIndexMapping);
     void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);

@@ -1167,6 +1167,10 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     hasRel_ = false;
     hasRela_ = false;
+    hasReldyn_ = false;
+    hasReladyn_ = false;
+    hasRelplt_ = false;
+    hasRelaplt_ = false;
     regions_ = linkedFile->getAllRegions();
 
     for (unsigned index=0;index<regions_.size();index++)
@@ -1195,6 +1199,27 @@ bool Symtab::extractInfo(Object *linkedFile)
         {
             hasRela_ = true;
         }
+    
+        if (!regions_[index]->getRegionName().compare(".rel.dyn"))
+        {
+            hasReldyn_ = true;
+        }
+
+	if( !regions_[index]->getRegionName().compare(".rela.dyn") ) 
+	{
+	    hasReladyn_ = true;
+	}
+
+        if (!regions_[index]->getRegionName().compare(".rel.plt"))
+        {
+            hasRelplt_ = true;
+        }
+
+	if( !regions_[index]->getRegionName().compare(".rela.plt") ) 
+        {
+            hasRelaplt_ = true;
+        }
+        
     }
     // sort regions_ & codeRegions_ vectors
 
@@ -2168,6 +2193,26 @@ SYMTAB_EXPORT bool Symtab::hasRela() const
    return hasRela_;
 }
 
+SYMTAB_EXPORT bool Symtab::hasReldyn() const
+{
+   return hasReldyn_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasReladyn() const
+{
+   return hasReladyn_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasRelplt() const
+{
+   return hasRelplt_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasRelaplt() const
+{
+   return hasRelaplt_;
+}
+
 bool Symtab::setDefaultNamespacePrefix(string &str)
 {
    defaultNamespacePrefix = str;
@@ -2656,8 +2701,8 @@ void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC 
 			  if (iter != st->undefDynSyms.end())
 			  {
 				  std::vector<Symbol *> &possible_syms = iter->second;
-				  fprintf(stderr, "%s[%d]:  found %d possible sym matches for %s dynref\n", 
-						  FILE__, __LINE__, possible_syms.size(), symname.c_str());
+				  //fprintf(stderr, "%s[%d]:  found %d possible sym matches for %s dynref\n", 
+				//		  FILE__, __LINE__, possible_syms.size(), symname.c_str());
 				  for (unsigned int i = 0; i < possible_syms.size(); ++i)
 				  {
 					  Symbol * s = possible_syms[i];
