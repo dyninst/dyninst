@@ -81,6 +81,7 @@ class Symbol : public Serializable,
    friend class AObject;
    friend class Object;
    friend class Aggregate;
+   friend class relocationEntry;
 
    friend std::string parseStabString(Module *, int linenum, char *, int, 
          typeCommon *);

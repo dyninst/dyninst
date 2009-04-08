@@ -62,6 +62,7 @@ Variable::Variable() :
 }
 void Variable::setType(Type *type)
 {
+	//fprintf(stderr, "%s[%d]:  setting variable %s to type id %d\n", FILE__, __LINE__, prettyName.c_str(), type ? type->getID() : 0xdeadbeef);
    type_ = type;
 }
 
@@ -80,6 +81,7 @@ void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 	}
 
 	//  Use typeID as unique identifier
+	//  magic numbers stink, but we use both positive and negative numbers for type ids
 	unsigned int t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
 
 	try 
@@ -88,8 +90,18 @@ void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 		gtranslate(sb, t_id, "typeID");
 		Aggregate::serialize_aggregate(sb);
 		ifxml_end_element(sb, tag);
-		restore_type_by_id(sb, type_, t_id);
-	} 
+		if (sb->isInput())
+		{
+		   if (t_id == 0xdeadbeef)
+		   {
+			   type_ = NULL;
+		   }
+		   else
+		   {
+			   restore_type_by_id(sb, type_, t_id);
+		   }
+		} 
+	}
 	SER_CATCH(tag);
 }
 

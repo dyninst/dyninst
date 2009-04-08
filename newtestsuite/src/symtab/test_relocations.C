@@ -77,7 +77,11 @@ test_results_t test_relocations_Mutator::executeTest()
    fprintf(stderr, "%s[%d]:  have relocs:\n", FILE__, __LINE__);
    for (unsigned int i = 0; i < relocs.size(); ++i)
    {
-	   std::cerr << "      " <<  relocs[i] << std::endl;
+	   Symbol *s = relocs[i].getDynSym();
+	   std::cerr << "      " <<  relocs[i];
+	   if (s)
+		  std::cerr << "  symname:  " << s->getName() << "  symaddr: " <<s->getAddr() << " symtype = "<< Symbol::symbolType2Str(s->getType()) << "symlinkage = " <<Symbol::symbolLinkage2Str(s->getLinkage()) << " vis = " <<Symbol::symbolVisibility2Str(s->getVisibility()); 
+	   std::cerr << std::endl;
    }
 #if 0
    if (relocs.size() != 3)

@@ -72,12 +72,117 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	std::vector<SymtabAPI::Variable *> variables;
 	std::vector<Symbol *> symbols;
 
-	void parse() throw(LocErr);
+	void parse() THROW_SPEC (LocErr);
 
-	static void variable_report(const Variable &s1, const Variable &s2)
+	static void location_list_report(const std::vector<VariableLocation> *l1, const std::vector<VariableLocation> *l2)
 	{
-		fprintf(stderr, "%s[%d]:  welcome to variable report\n", FILE__, __LINE__);
+		if (l1 && !l2) fprintf(stderr, "%s[%d]:  loc list discrep\n", FILE__, __LINE__);
+		if (!l1 && l2) fprintf(stderr, "%s[%d]:  loc list discrep\n", FILE__, __LINE__);
+		if (l1)
+		{
+			int max_length = l1->size();
+
+			if (l2->size() > max_length) 
+				max_length = l2->size();
+
+			for (unsigned int i = 0; i < max_length; ++i)
+			{
+				const VariableLocation *loc1 = (i < l1->size()) ? (& (*l1)[i]) : NULL;
+				const VariableLocation *loc2 = (i < l2->size()) ? (& (*l2)[i]) : NULL;
+
+				if (loc1)
+				{
+					fprintf(stderr, "\t\t[%d, %d, %d, %l, %lu, %lu]\n", 
+							loc1->stClass, loc1->refClass, loc1->reg, loc1->frameOffset, 
+							loc1->hiPC, loc1->lowPC);
+				}
+				else
+				{
+					fprintf(stderr, "\t\t[no location at this index]\n");
+				}
+
+				if (loc2)
+				{
+					fprintf(stderr, "\t  ==  [%d, %d, %d, %l, %lu, %lu]\n", 
+							loc2->stClass, loc2->refClass, loc2->reg, loc2->frameOffset, 
+							loc2->hiPC, loc2->lowPC);
+				}
+				else
+				{
+					fprintf(stderr, "\t  ==  [no location at this index]\n");
+				}
+			}
+		}
 	}
+
+	static void aggregate_report(const Aggregate &a1, const Aggregate &a2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to Aggregate report\n", FILE__, __LINE__);
+	}
+
+	static void localvar_report(const localVar &lv1, const localVar &lv2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to localVar report\n", FILE__, __LINE__);
+	}
+
+	static void relocation_report(const relocationEntry &r1, const relocationEntry &r2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to relcoation report\n", FILE__, __LINE__);
+	}
+
+	static void region_report(const Region &r1, const Region &r2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to region report\n", FILE__, __LINE__);
+	}
+
+	static void function_report(const Function &f1, const Function &f2)
+	{
+		fprintf(stderr, "%s[%d]:  NONEQUAL functions\n", FILE__, __LINE__);
+
+		Type *t1 = f1.getReturnType();
+		Type *t2 = f2.getReturnType();
+		if (t1 && !t2) fprintf(stderr, "%s[%d]:  ret type discrep\n", FILE__, __LINE__);
+		if (!t1 && t2) fprintf(stderr, "%s[%d]:  ret type discrep\n", FILE__, __LINE__);
+		if (t1)
+		{
+			fprintf(stderr, "\t%d--%d\n", t1->getID(), t2->getID());
+		}
+		
+		fprintf(stderr, "\t%d--%d\n", f1.getFramePtrRegnum(), f2.getFramePtrRegnum());
+
+		std::vector<VariableLocation> *l1 = const_cast<Function &>(f1).getFramePtr();
+		std::vector<VariableLocation> *l2 = const_cast<Function &>(f2).getFramePtr();
+
+		location_list_report(l1, l2);
+
+		const Aggregate &a1 = (const Aggregate &) f1;
+		const Aggregate &a2 = (const Aggregate &) f2;
+		aggregate_report(a1, a2);
+	}
+
+	static void module_report(const SymtabAPI::Module &m1, const SymtabAPI::Module &m2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to module report\n", FILE__, __LINE__);
+	}
+
+	static void variable_report(const Variable &v1, const Variable &v2)
+	{
+		fprintf(stderr, "%s[%d]:  NONEQUAL Variables\n", FILE__, __LINE__);
+
+		Type *t1 = const_cast<Variable &>(v1).getType();
+		Type *t2 = const_cast<Variable &>(v2).getType();
+		if (t1 && !t2) fprintf(stderr, "%s[%d]:  type discrep\n", FILE__, __LINE__);
+		if (!t1 && t2) fprintf(stderr, "%s[%d]:  type discrep\n", FILE__, __LINE__);
+		if (t1)
+		{
+			fprintf(stderr, "\t%d--%d\n", t1->getID(), t2->getID());
+		}
+
+		const Aggregate &a1 = (const Aggregate &) v1;
+		const Aggregate &a2 = (const Aggregate &) v2;
+		aggregate_report(a1, a2);
+	}
+
 	static void symbol_report(const Symbol &s1, const Symbol &s2)
 	{
 		fprintf(stderr, "%s[%d]:  NONEQUAL symbols:\n", FILE__, __LINE__);
@@ -107,9 +212,14 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 	typedef void (*symrep_t)(const Symbol &, const Symbol &);
 	typedef void (*varrep_t)(const Variable &, const Variable &);
+	typedef void (*funcrep_t)(const Function &, const Function &);
+	typedef void (*modrep_t)(const SymtabAPI::Module &, const SymtabAPI::Module &);
+	typedef void (*regrep_t)(const Region &, const Region &);
+	typedef void (*relrep_t)(const relocationEntry &, const relocationEntry &);
+	typedef void (*lvarrep_t)(const localVar &, const localVar &);
 
 	template <class C>
-		bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) throw (LocErr)
+		bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
 		{
 			fprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
 					FILE__, __LINE__, typeid(C).name());
@@ -137,8 +247,8 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		assert(sb_deserializer_ptr);
 		SerializerBase &sb_deserializer = (SerializerBase &) *sb_deserializer_ptr;
 
-		fprintf(stderr, "\n\n%s[%d]: about to deserialize\n\n",
-				FILE__, __LINE__);
+		fprintf(stderr, "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
+				FILE__, __LINE__, typeid(C).name());
 
 		deserialize_result.serialize(sb_deserializer_ptr, NULL);
 
@@ -150,10 +260,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		{
 			if (report)
 				(*report)(deserialize_result, control);
-#if 0
-			if (typeid(C) == typeid(Dyninst::SymtabAPI::Symbol))
-				symbol_report(deserialize_result, control);
-#endif
+
 			EFAIL("deserialize failed\n");
 		}
 
@@ -201,7 +308,7 @@ extern "C" DLLEXPORT TestMutator* test_symtab_ser_funcs_factory()
 	return new test_symtab_ser_funcs_Mutator();
 }
 
-void test_symtab_ser_funcs_Mutator::parse() throw (LocErr)
+void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 {
 	bool result = symtab->getFuncBindingTable(relocations);
 
@@ -260,13 +367,24 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 	{
 		parse();
 
+#if 0
 		symrep_t sr = &symbol_report;
 		varrep_t vr = &variable_report;
+		modrep_t mr = &module_report;
+		funcrep_t mr = &function_report;
+		lvarrep_t mr = &localvar_report;
+		regrep_t mr = &region_report;
+		relgrep_t mr = &relocation_report;
+#endif
+
 		fprintf(stderr, "%s[%d]:  about to serialize test for variable:\n", FILE__, __LINE__);
 		cerr << *variables[0] <<endl;
 		serialize_test(symtab, *variables[0], &variable_report);
+		serialize_test(symtab, *functions[0], &function_report);
 		serialize_test(symtab, *symbols[0], &symbol_report);
-		//serialize_test(symtab, *symbols[0], sr);
+		serialize_test(symtab, *modules[0], &module_report);
+		serialize_test(symtab, relocations[0], &relocation_report);
+		serialize_test(symtab, *regions[0], &region_report);
 #if 0
 		serialize_test_vector(symtab, symbols);
 		serialize_test_vector(symtab, functions);

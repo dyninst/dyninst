@@ -468,11 +468,19 @@ bool Module::operator==(Module &mod)
       }
    }
 
+   if (exec_ && !mod.exec_) return false;
+   if (!exec_ && mod.exec_) return false;
+   if (exec_)
+   {
+	   if (exec_->file() != mod.exec_->file()) return false;
+	   if (exec_->name() != mod.exec_->name()) return false;
+   }
+
    return (
          (language_==mod.language_)
          && (addr_==mod.addr_)
          && (fullName_==mod.fullName_)
-         && (exec_==mod.exec_)
+         && (fileName_==mod.fileName_)
          );
 }
 

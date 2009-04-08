@@ -85,7 +85,7 @@ class TestClassDense : public TestClass, public AnnotatableDense
 };
 
 template <class TC, class T>
-void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL) throw (LocErr)
+void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL) THROW_SPEC (LocErr)
 {
 	std::string an(typeid(T).name());
 
@@ -110,7 +110,8 @@ void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL) throw (LocErr)
 }
 
 template <class TC, class T>
-void verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NULL) throw (LocErr)
+void verify_anno(TC &tcs, const T &test_val, 
+		const char *anno_prefix_to_use = NULL) THROW_SPEC (LocErr)
 {
 	std::string an(typeid(T).name());
 
@@ -135,7 +136,8 @@ void verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NU
 }
 
 template <class TC, class T>
-void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NULL) throw(LocErr)
+void add_get_and_verify_anno(TC &tcs, const T &test_val, 
+		const char *anno_prefix_to_use = NULL) THROW_SPEC(LocErr)
 {
 
    //  A very simple function that adds an annotation of type T to the given class
@@ -175,7 +177,7 @@ void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_prefix
 
 template <class TC, class T>
 void add_verify_dispatch(TC &tcs, const T &test_val, bool do_add, 
-      const char *anno_prefix_to_use = NULL) throw (LocErr)
+      const char *anno_prefix_to_use = NULL) THROW_SPEC (LocErr)
 {
    if (do_add)
    {
@@ -188,7 +190,7 @@ void add_verify_dispatch(TC &tcs, const T &test_val, bool do_add,
 }
 
 template <class T>
-void test_for_annotatable() throw(LocErr)
+void test_for_annotatable() THROW_SPEC (LocErr)
 {
    T tc;
    bool do_add = false;

@@ -61,10 +61,11 @@ class Function : public Aggregate, public Serializable
 
  private:
     SYMTAB_EXPORT Function(Symbol *sym);
-    SYMTAB_EXPORT ~Function();
     
  public:
-    //SYMTAB_EXPORT static Function *createFunction(Symtab *st, std::string fname, std::string modname,Offset offset, size_t sz);
+
+    SYMTAB_EXPORT Function();
+    SYMTAB_EXPORT ~Function();
 
     /* Symbol management */
     SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      

@@ -74,6 +74,7 @@ class Symtab : public LookupInterface,
    friend class emitElf64;
    friend class emitWin;
    friend class Aggregate;
+   friend class relocationEntry;
 
  public:
 
@@ -575,15 +576,19 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
    public:
 
       SYMTAB_EXPORT relocationEntry();
-      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, Offset add, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-      SYMTAB_EXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
+      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, Offset add, 
+			  std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, std::string n, 
+			  Symbol *dynref = NULL, unsigned long relType = 0);
+      SYMTAB_EXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, 
+			  unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
 
       SYMTAB_EXPORT relocationEntry(const relocationEntry& ra);
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
-      SYMTAB_EXPORT 
-	  void serialize(SerializerBase *sb, const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
+
+	  SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+			  const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
       SYMTAB_EXPORT Offset target_addr() const;
       SYMTAB_EXPORT Offset rel_addr() const;
@@ -602,6 +607,8 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
       enum {pltrel = 1, dynrel = 2} relocationType;
+
+	  SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
 
    private:
       Offset target_addr_;	// target address of call instruction 

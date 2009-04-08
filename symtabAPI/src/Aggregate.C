@@ -294,6 +294,7 @@ bool Aggregate::changeSymbolOffset(Symbol *sym)
 void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t, 
 		unsigned t_id) THROW_SPEC (SerializerError)
 {
+#if 0
 	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
 	if (!ssb)
@@ -315,7 +316,56 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 	if (!t)
 	{
 		//  This should probably throw, but let's play nice for now
-		fprintf(stderr, "%s[%d]:  FIXME: untyped aggregate\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
+	}
+#endif
+	if (module_)
+	{
+		typeCollection *tc = module_->getModuleTypes();
+		if (tc)
+		{
+			t = tc->findType(t_id);
+			if (!t)
+			{
+				fprintf(stderr, "%s[%d]: failed to find type in module collection\n", FILE__, __LINE__);
+			}
+		}
+		else
+		{
+			fprintf(stderr, "%s[%d]:  no types for module\n", FILE__, __LINE__);
+		}
+	}
+	else
+	{
+		fprintf(stderr, "%s[%d]:  bad deserialization order??\n", FILE__, __LINE__);
+		//SER_ERR("FIXME");
+	}
+
+	if (!t)
+	{
+		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+		if (!ssb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = ssb->getScope();
+
+		if (!st)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		t = st->findType(t_id);
+
+		if (!t)
+		{
+			//  This should probably throw, but let's play nice for now
+			fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
+		}
 	}
 }
 
@@ -428,6 +478,7 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 	std::string modname = module_ ? module_->fullName() : std::string("");
 	std::vector<unsigned> sym_indexes;
 	sym_indexes.resize(symbols_.size());
+	fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
 
 	for (unsigned int i = 0; i < symbols_.size(); ++i)
 	{
@@ -454,6 +505,7 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 	}
 	SER_CATCH(tag);
 
+	fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
 }
 
 bool Aggregate::operator==(const Aggregate &a)

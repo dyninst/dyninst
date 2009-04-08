@@ -56,6 +56,12 @@ Function::Function(Symbol *sym)
       framePtrRegNum_(-1)
 {}
 
+Function::Function()
+    : Aggregate(),
+      retType_(NULL), 
+      framePtrRegNum_(-1)
+{}
+
 Type * Function::getReturnType() const
 {
     return retType_;
@@ -238,7 +244,11 @@ void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 		gtranslate(sb, locs_, "framePointerLocationList");
 		Aggregate::serialize_aggregate(sb);
 		ifxml_end_element(sb, tag);
-		restore_type_by_id(sb, retType_, t_id);
+		if (sb->isInput())
+			if (t_id == 0xdeadbeef)
+				retType_ = NULL;
+			else
+				restore_type_by_id(sb, retType_, t_id);
 	}
 	SER_CATCH(tag);
 
