@@ -2524,7 +2524,13 @@ bool AstSequenceNode::containsFuncCall() const {
 	return false;
 }
 
-bool AstVariableNode::containsFuncCall() const {
+bool AstVariableNode::containsFuncCall() const 
+{
+	if (NULL == ast_wrappers_[index])
+	{
+		fprintf(stderr, "%s[%d]:  FIXME HERE\n", FILE__, __LINE__);
+		return false;
+	}
     return ast_wrappers_[index]->containsFuncCall();
 }
 

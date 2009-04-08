@@ -79,7 +79,7 @@ class Function : public Aggregate, public Serializable
       SYMTAB_EXPORT int   getFramePtrRegnum() const;
 
       /***** x84_64-Specific Frame Pointer Information *****/
-	  //SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
+	  SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
       SYMTAB_EXPORT std::vector<VariableLocation> *getFramePtr();
 
       /***** Local Variable Information *****/
@@ -98,7 +98,7 @@ class Function : public Aggregate, public Serializable
 
       Type          *retType_;
       int           framePtrRegNum_;
-      std::vector<VariableLocation> locs_;
+      std::vector<VariableLocation> *locs_;
 };
 
 

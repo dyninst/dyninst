@@ -53,12 +53,14 @@ using namespace Dyninst::SymtabAPI;
 Function::Function(Symbol *sym)
     : Aggregate(sym),
       retType_(NULL), 
+      locs_(NULL), 
       framePtrRegNum_(-1)
 {}
 
 Function::Function()
     : Aggregate(),
       retType_(NULL), 
+      locs_(NULL), 
       framePtrRegNum_(-1)
 {}
 
@@ -86,17 +88,17 @@ bool Function::setFramePtrRegnum(int regnum)
 
 std::vector<Dyninst::SymtabAPI::VariableLocation> *Function::getFramePtr() 
 {
-    return &locs_;
+    return locs_;
 }
 
-//bool Function::setFramePtr(vector<loc_t> *locs) 
-//{
- //   if (locs_) 
- //       return false;
-//    
-//    locs_ = locs;
-//    return true;
-//}
+bool Function::setFramePtr(vector<VariableLocation> *locs) 
+{
+    if (locs_) 
+        return false;
+    
+    locs_ = locs;
+    return true;
+}
 
 
 bool Function::findLocalVariable(std::vector<localVar *> &vars, std::string name)
@@ -241,14 +243,16 @@ void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 		ifxml_start_element(sb, tag);
 		gtranslate(sb, t_id, "typeID");
 		gtranslate(sb, framePtrRegNum_, "framePointerRegister");
-		gtranslate(sb, locs_, "framePointerLocationList");
+		//gtranslate(sb, locs_, "framePointerLocationList");
 		Aggregate::serialize_aggregate(sb);
 		ifxml_end_element(sb, tag);
 		if (sb->isInput())
+		{
 			if (t_id == 0xdeadbeef)
 				retType_ = NULL;
 			else
 				restore_type_by_id(sb, retType_, t_id);
+		}
 	}
 	SER_CATCH(tag);
 
@@ -288,12 +292,14 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f
 		<< " type=" << tname
 		<< " framePtrRegNum_=" << f.framePtrRegNum_
 		<< " FramePtrLocationList=[";
+#if 0
 	for (unsigned int i = 0; i < f.locs_.size(); ++i)
 	{
 		os << f.locs_[i]; 
 		if ( (i + 1) < f.locs_.size())
 			os << ", ";
 	}
+#endif
 	os  << "] ";
 	os  <<  *ag;
 	os  <<  "}";
@@ -316,6 +322,7 @@ bool Function::operator==(const Function &f)
 	if (framePtrRegNum_ != f.framePtrRegNum_)
 		return false;
 
+#if 0
 	if (locs_.size() != f.locs_.size())
 		return false;
 
@@ -324,6 +331,7 @@ bool Function::operator==(const Function &f)
 		if (locs_[i] == locs_[i])
 			return false;
 	}
+#endif
 
 	return ((Aggregate &)(*this)) == ((Aggregate &)f);
 }
