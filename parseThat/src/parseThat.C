@@ -205,13 +205,10 @@ bool runHunt_binaryEdit(){
 
 	result = waitpid(pid,&status,0);
 	if ( WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-		// ToDo: process exited with error
 		printf(" Exiting non-zero \n");
-		//config.hunt_crashed = true;
 		return true;
-	}else if (WIFSIGNALED (status) ) {
-		printf(" Exiting with  signal \n");
-		//config.hunt_crashed = true;
+	}else if (WIFSIGNALED (status) && WTERMSIG(status) != 1) {
+		printf(" Exiting with  signal %d \n", WTERMSIG(status));
 		return true;
 	}
 	
