@@ -62,6 +62,8 @@ void configInit()
     config.hunt_high = -1;
     config.hunt_file = NULL;
 
+    config.binary_args = NULL;
+
     homedir = getenv("HOME");
     if (!homedir) {
 	config.record_dir[0] = '\0';

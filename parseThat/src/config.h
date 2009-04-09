@@ -85,6 +85,10 @@ struct Config {
     const char *output_file;
     FILE *outfd;
 
+    // String to hold the list of arguments for executing rewritten binary
+    // in runHunt mode
+    char *binary_args;
+
     // History record directory.
     bool record_enabled;
     char record_dir[ PATH_MAX ];

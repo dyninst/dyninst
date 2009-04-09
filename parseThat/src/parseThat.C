@@ -9,6 +9,7 @@
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <sys/stat.h>		// Needed for stat() call in parseArgs().
+#include <sys/wait.h>
 using namespace std;
 
 #include "ipc.h"
@@ -47,7 +48,8 @@ bool runParseThat(int &bannerLen)
 {
    int pipefd[2];
 
-	if (config.no_fork || !config.use_process) {
+	//if (config.no_fork || !config.use_process) {
+	if (config.no_fork) {
 	    return launch_mutator();
 	}
 	
@@ -144,12 +146,84 @@ bool runParseThat(int &bannerLen)
    return 0;
 }
 
+bool runHunt_binaryEdit(){
+
+	int result, status;
+	int pid = fork();
+	if (pid == 0) {
+		// child case
+		// run new binary
+		char * exeFile = (char *) malloc (1024);
+		sprintf(exeFile, "./%s", config.writeFilePath);
+		int numargs = 0;
+		char **arg = (char **) malloc (2);
+		arg[0] = exeFile;
+
+		fprintf(stderr, "Executing new binary: \"%s", exeFile);
+		if (config.binary_args) {
+
+			char nargs[1024];
+	      		int offset = strcspn (config.binary_args, ":");
+			if(offset == 0) {
+				dlog(ERR, "\nInvalid format for command line arguments to the binary --args=<numArgs>:<comma-seperated args list>\n");
+				exit(-2);
+			}
+      			strncpy (nargs, config.binary_args, offset);
+        		nargs[offset] = '\0';
+			numargs = atoi(nargs);
+
+			arg = (char **) realloc (arg, numargs+2);
+
+			char *args = strchr(config.binary_args, ':');
+			args++;
+		
+			char *p = strtok(args, ",");
+			int i = 1;
+			while ( p != NULL && i <= numargs ) {
+				fprintf(stderr," %s", p);
+				arg[i] = p;
+				i++;
+				p = strtok(NULL, ",");
+			}
+			if (i <= numargs) {
+				dlog(ERR, "\nWrong number of arguments specified for executing binary. Expected %d but got only %d arguments\n", numargs, i-1);
+				exit(-2);
+			}
+		}
+			
+		fprintf(stderr,"\"\n");
+		arg[numargs+1] = NULL;
+
+		result = execvp(exeFile, arg);
+		perror ("execvp failed");
+		abort();
+	} else if(pid < 0) {
+	        /* Fork Error Case */
+		dlog(ERR, "Error on runHunt fork(): %s\n", strerror(errno));
+		exit(-2);
+	}
+
+	result = waitpid(pid,&status,0);
+	if ( WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+		// ToDo: process exited with error
+		printf(" Exiting non-zero \n");
+		//config.hunt_crashed = true;
+		return true;
+	}else if (WIFSIGNALED (status) ) {
+		printf(" Exiting with  signal \n");
+		//config.hunt_crashed = true;
+		return true;
+	}
+	
+	return false;
+}
+
 bool runHunt()
 {
    int hard_low = -1;
    int hard_high = -1;
    int bannerLen = 0;
-
+   bool crash = false;
    FILE *hunt_file = config.hunt_file;
    std::queue<std::pair<int, int> > postponed_crashes;
 
@@ -157,7 +231,12 @@ bool runHunt()
    {
       //Initial run over everything, get ranges.
       runParseThat(bannerLen);
-      if (!config.hunt_crashed) {
+
+      if (!config.use_process) {
+      	crash = runHunt_binaryEdit();
+      }
+	
+      if (!config.hunt_crashed && !crash) {
          fprintf(hunt_file, "No crashes detected in initial run\n");
          goto done;
       }
@@ -170,7 +249,16 @@ bool runHunt()
          goto done;
       }
    }
-   else {
+   else if(config.hunt_high == config.hunt_low+1) {
+      //Initial run over everything, get ranges.
+      runParseThat(bannerLen);
+
+      if (!config.use_process) {
+      	crash = runHunt_binaryEdit();
+      }
+      if (!crash) goto done;
+	
+   } else {
       hard_low = config.hunt_low;
       hard_high = config.hunt_high;
     }
@@ -201,7 +289,12 @@ bool runHunt()
       fprintf(hunt_file, "\tRunning interval [%d, %d)...", hard_low, mid);
       fflush(hunt_file);
       runParseThat(bannerLen);
-      bool low_half_crash = config.hunt_crashed;
+      crash = false;
+      if (!config.use_process) {
+      	crash = runHunt_binaryEdit();
+      }
+
+      bool low_half_crash = config.hunt_crashed || crash;
       if (low_half_crash)
          fprintf(hunt_file, "Crashed\n");
       else
@@ -212,7 +305,12 @@ bool runHunt()
       fprintf(hunt_file, "\tRunning interval [%d, %d)...", mid, hard_high);
       fflush(hunt_file);
       runParseThat(bannerLen);
-      bool high_half_crash = config.hunt_crashed;
+      crash = false;
+      if (!config.use_process) {
+      	crash = runHunt_binaryEdit();
+      }
+
+      bool high_half_crash = config.hunt_crashed || crash;
       if (high_half_crash)
          fprintf(hunt_file, "Crashed\n");
       else
@@ -290,7 +388,6 @@ void parseArgs(int argc, char **argv)
 		if (++i < argc) {
 		    config.inst_function = argv[i];
 		    if (strchr (config.inst_function, ':')) {
-		    	config.instType = USER_FUNC;
 		    } else {
 		    	fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
 		    	userError();
@@ -300,7 +397,6 @@ void parseArgs(int argc, char **argv)
 		    userError();
 		}
 		break;
-
 
 	    case 'h':
 		config.record_enabled = 1;
@@ -545,7 +641,22 @@ void parseArgs(int argc, char **argv)
 		      strcpy(config.writeFilePath,arg);
 		      printf("Write File Path is %s\n", config.writeFilePath);
 		    }
-		} else if (strcmp(ptr, "-skip-func") == 0) {
+		} else if (strcmp(ptr, "-args") == 0) {
+		    if (!arg) {
+		    	fprintf(stderr, "-args requires an argument of the format <number_of_arguments:comma-seperated list of arguments>\n");
+		    	userError();
+		    }
+		    else
+		    {
+		      if (!strchr (arg, ':')) {
+		    	fprintf(stderr, "-args requires an argument of the format <number_of_arguments:comma-seperated list of arguments>\n");
+		    	userError();
+		      }
+		      config.binary_args = (char *) malloc (strlen(arg)+1);
+		      strcpy(config.binary_args,arg);
+		    }
+			
+		}  else if (strcmp(ptr, "-binary-edit") == 0) {
 		  if (!arg) {
 		    fprintf(stderr, "--skip-func requires a regular expression argument.\n");
 			userError();
@@ -616,6 +727,7 @@ void parseArgs(int argc, char **argv)
 	    }
 	}
     }
+
 
     // Prepare child arguments
     if (i < argc) {
@@ -808,6 +920,10 @@ void usage(const char *progname)
     fprintf(stderr, "  --binary-edit=<filename>\n");
     fprintf(stderr, "    Use the binary rewriting feature to output a rewriten binary to");
     fprintf(stderr, "    <filename>\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  --args=<number_of_arguments:comma-separated list of arguments>\n");
+    fprintf(stderr, "    While using runHunt, --args is used to specify a list of command line arguments\n");
+    fprintf(stderr, "    to run the rewritten bimary with.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -p <int>\n");
     fprintf(stderr, "    Parse level.  Valid parameters range from 0 to %d, where:\n", PARSE_MAX - 1);
