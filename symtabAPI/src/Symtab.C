@@ -701,7 +701,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
 bool Symtab::addSymbolToIndices(Symbol *&sym) 
 {
 	assert(sym);
-	sym->index_ = everyDefinedSymbol.size();
+//	sym->index_ = everyDefinedSymbol.size();
 
     everyDefinedSymbol.push_back(sym);
     
