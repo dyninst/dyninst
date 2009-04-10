@@ -48,6 +48,7 @@
 #include <string.h>	
 
 #include "Type.h"
+#include "Variable.h"
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
@@ -382,7 +383,7 @@ public:
 
     void fixupUnknown(BPatch_module *);
     Dyninst::SymtabAPI::localVar *getSymtabVar();
-    BPatch_storageClass convertToBPatchStorage(Dyninst::SymtabAPI::loc_t *loc);
+    BPatch_storageClass convertToBPatchStorage(Dyninst::SymtabAPI::VariableLocation *loc);
 
 public:
     //  end of functions for nternal use only

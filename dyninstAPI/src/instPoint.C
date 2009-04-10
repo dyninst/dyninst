@@ -142,54 +142,58 @@ bool instPoint::replaceCode(AstNodePtr ast) {
 // Get the appropriate base tramp structure. Cannot rely on
 // multiTramps existing.
 
-baseTramp *instPoint::getBaseTramp(callWhen when) {
-  switch(when) {
-  case callPreInsn:
-      if (!preBaseTramp_) {
-          preBaseTramp_ = new baseTramp(this, when);
-      }
-    return preBaseTramp_;
-    break;
-  case callPostInsn:
-      if (!postBaseTramp_) {
-        postBaseTramp_ = new baseTramp(this, when);
-    }
-    return postBaseTramp_;
-    break;
-  case callBranchTargetInsn:
-    if (!targetBaseTramp_) {
-      targetBaseTramp_ = new baseTramp(this, when);
-    }
-    return targetBaseTramp_;
-    break;
-  default:
-    assert(0);
-    break;
-  }
-  return NULL;
+baseTramp *instPoint::getBaseTramp(callWhen when) 
+{
+	switch(when) {
+		case callPreInsn:
+			if (!preBaseTramp_) 
+			{
+				preBaseTramp_ = new baseTramp(this, when);
+			}
+			return preBaseTramp_;
+			break;
+		case callPostInsn:
+			if (!postBaseTramp_) 
+			{
+				postBaseTramp_ = new baseTramp(this, when);
+			}
+			return postBaseTramp_;
+			break;
+		case callBranchTargetInsn:
+			if (!targetBaseTramp_) 
+			{
+				targetBaseTramp_ = new baseTramp(this, when);
+			}
+			return targetBaseTramp_;
+			break;
+		default:
+			assert(0);
+			break;
+	}
+	return NULL;
 }
 
 bool instPoint::match(Address a) const { 
-    if (a == addr()) return true;
+	if (a == addr()) return true;
 
-    for (unsigned i = 0; i < instances.size(); i++)
-        if (instances[i]->addr() == a)
-            return true;
-    return false;
+	for (unsigned i = 0; i < instances.size(); i++)
+		if (instances[i]->addr() == a)
+			return true;
+	return false;
 }
 
 instPoint *instPoint::createArbitraryInstPoint(Address addr, 
-                                               AddressSpace *proc,
-                                               int_function *func) 
+		AddressSpace *proc,
+		int_function *func) 
 {
-  // See if we get lucky
-  if (!func) 
-     return NULL;
+	// See if we get lucky
+	if (!func) 
+		return NULL;
 
-  //Create all non-arbitrary instPoints before creating arbitrary ones.
-  func->funcEntries();
-  func->funcExits();
-  func->funcCalls();
+	//Create all non-arbitrary instPoints before creating arbitrary ones.
+	func->funcEntries();
+	func->funcExits();
+	func->funcCalls();
   
   inst_printf("Creating arbitrary point at 0x%x\n", addr);
   instPoint *newIP = func->findInstPByAddr(addr);
@@ -1193,9 +1197,12 @@ Address instPoint::callTarget() const {
     return img_p_->callTarget() + func()->obj()->codeBase();
 }
 
-bool instPoint::optimizeBaseTramps(callWhen when) {
+bool instPoint::optimizeBaseTramps(callWhen when) 
+{
    baseTramp *tramp = getBaseTramp(when);
+
    if (tramp)
       return tramp->doOptimizations();
+
    return false;
 }

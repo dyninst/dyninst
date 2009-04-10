@@ -93,7 +93,6 @@ bool addrfunccmp( image_func* pdf1, image_func* pdf2 )
 }
 #endif
 
-
 //analyzeImage() constructs a flow graph of basic blocks in the image and
 //assigns them to functions. It follows calls to discover new functions,
 //as well as using heuristics to search for functions within gaps between
@@ -1003,10 +1002,10 @@ bool image_func::buildCFG(
             }
             else if( ah.isAJumpInstruction() )
             {
-	      processJump(ah, currBlk, 
-			  funcBegin, funcEnd, allInstructions, leaders, worklist,
-			  leadersToBlock, pltFuncs);
-	      break;
+               processJump(ah, currBlk, 
+                           funcBegin, funcEnd, allInstructions, leaders, worklist,
+                           leadersToBlock, pltFuncs);
+               break;
             }
             else if( ah.isAReturnInstruction() )
             {
@@ -1161,54 +1160,58 @@ bool image_func::buildCFG(
 		        }
 		
 		
-                if(targetFunc && (targetFunc->symTabName() == "exit" ||
-                                  targetFunc->symTabName() == "abort" ||
-                                  targetFunc->symTabName() == "__f90_stop" ||
-                                  targetFunc->symTabName() == "fancy_abort"))
-                { 
-                    parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-                        targetFunc->symTabName().c_str(),
-                        target, currAddr);
-                }
-                else if((*pltFuncs).defines(target) && 
-                        ((*pltFuncs)[target] == "exit" || 
-                        (*pltFuncs)[target] == "abort" ||
-                        (*pltFuncs)[target] == "__f90_stop" ||
-                        (*pltFuncs)[target] == "fancy_abort"))
-                {
-                      parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-                          (*pltFuncs)[target].c_str(),
-                          target, currAddr);
-                }
-                else if(!simulateJump)
-                {
-                    // we don't wire up a fallthrough edge if we're treating
-                    // the call insruction as an unconditional branch
-                    
-                    // link up the fallthrough edge unless we know for
-                    // certain that the target function does not return,
-                    // or if the target is an entry in the PLT (and not
-                    // one of the special-case non-returning entries above)
-                    if(targetFunc && targetFunc->returnStatus() == RS_NORETURN
-                       && !(*pltFuncs).defines(target))
-                    {
-                        parsing_printf("[%s:%u] not parsing past non-returning "
-                                       "call at 0x%lx (to %s)\n",
-                            FILE__,__LINE__,*ah,
-                            targetFunc->symTabName().c_str());
-                    }
-                    else
-                    {
-                        Address next = ah.peekNext();
-                        addBasicBlock(next,
+              if(targetFunc && (targetFunc->symTabName() == "exit" ||
+                                targetFunc->symTabName() == "abort" ||
+                                targetFunc->symTabName() == "__f90_stop" ||
+                                targetFunc->symTabName() == "fancy_abort" ||
+                                targetFunc->symTabName() == "__stack_chk_fail" ||
+                       		targetFunc->symTabName() == "__assert_fail"))
+              { 
+                 parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
+                                targetFunc->symTabName().c_str(),
+                                target, currAddr);
+              }
+              else if((*pltFuncs).defines(target) && 
+                      ((*pltFuncs)[target] == "exit" || 
+                       (*pltFuncs)[target] == "abort" ||
+                       (*pltFuncs)[target] == "__f90_stop" ||
+                       (*pltFuncs)[target] == "fancy_abort" ||
+                       (*pltFuncs)[target] == "__stack_chk_fail" ||
+                       (*pltFuncs)[target] == "__assert_fail"))
+              {
+                 parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
+                                (*pltFuncs)[target].c_str(),
+                                target, currAddr);
+              }
+              else if(!simulateJump)
+              {
+                 // we don't wire up a fallthrough edge if we're treating
+                 // the call insruction as an unconditional branch
+                 
+                 // link up the fallthrough edge unless we know for
+                 // certain that the target function does not return,
+                 // or if the target is an entry in the PLT (and not
+                 // one of the special-case non-returning entries above)
+                 if(targetFunc && targetFunc->returnStatus() == RS_NORETURN
+                    && !(*pltFuncs).defines(target))
+                 {
+                    parsing_printf("[%s:%u] not parsing past non-returning "
+                                   "call at 0x%lx (to %s)\n",
+                                   FILE__,__LINE__,*ah,
+                                   targetFunc->symTabName().c_str());
+                 }
+                 else
+                 {
+                    Address next = ah.peekNext();
+                    addBasicBlock(next,
                                   currBlk,
                                   leaders,
                                   leadersToBlock,
                                   ET_FUNLINK,
                                   worklist);
-                    }
-                }
-                break;
+                 }
+              }
+              break;
             }
             else if( ah.isALeaveInstruction() )
             {

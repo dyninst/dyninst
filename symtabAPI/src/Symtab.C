@@ -535,10 +535,6 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // code. 
         
         // removed 1/09: this should be done in Dyninst, not Symtab
-#if 0
-        if (sym->getMangledName()[0] == '.') 
-            continue;
-#endif
 
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
@@ -553,13 +549,6 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // consistency issue. This should be a null check.
 
         // Symbols can have an offset of 0 if they don't refer to things within a file.
-#if 0
-        if (!isValidOffset(sym->getAddr())) {
-            fprintf(stderr, "Symbol %s has invalid offset 0x%lx\n", sym->getName().c_str(), sym->getAddr());
-            fprintf(stderr, "... in file %s\n", name().c_str());
-            return false;
-        }
-#endif
 
         raw_syms.push_back(sym);
     }
@@ -617,14 +606,17 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms) {
  * to refer to these aggregates, and build those objects here. 
  */
 
-bool Symtab::createAggregates() {
-    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) {
+bool Symtab::createAggregates() 
+{
+    for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
+	{
         addSymbolToAggregates(everyDefinedSymbol[i]);
     }
     return true;
 }
  
-bool Symtab::fixSymModule(Symbol *&sym) {
+bool Symtab::fixSymModule(Symbol *&sym) 
+{
     //////////
     //////////
     //////////
@@ -706,7 +698,11 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
     return true;
 }
 
-bool Symtab::addSymbolToIndices(Symbol *&sym) {
+bool Symtab::addSymbolToIndices(Symbol *&sym) 
+{
+	assert(sym);
+//	sym->index_ = everyDefinedSymbol.size();
+
     everyDefinedSymbol.push_back(sym);
     
     symsByOffset[sym->getAddr()].push_back(sym);
@@ -720,7 +716,8 @@ bool Symtab::addSymbolToIndices(Symbol *&sym) {
     return true;
 }
 
-bool Symtab::addSymbolToAggregates(Symbol *&sym) {
+bool Symtab::addSymbolToAggregates(Symbol *&sym) 
+{
     switch(sym->getType()) {
     case Symbol::ST_FUNCTION: {
         // We want to do the following:
@@ -1160,6 +1157,10 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     hasRel_ = false;
     hasRela_ = false;
+    hasReldyn_ = false;
+    hasReladyn_ = false;
+    hasRelplt_ = false;
+    hasRelaplt_ = false;
     regions_ = linkedFile->getAllRegions();
 
     for (unsigned index=0;index<regions_.size();index++)
@@ -1188,6 +1189,27 @@ bool Symtab::extractInfo(Object *linkedFile)
         {
             hasRela_ = true;
         }
+    
+        if (!regions_[index]->getRegionName().compare(".rel.dyn"))
+        {
+            hasReldyn_ = true;
+        }
+
+	if( !regions_[index]->getRegionName().compare(".rela.dyn") ) 
+	{
+	    hasReladyn_ = true;
+	}
+
+        if (!regions_[index]->getRegionName().compare(".rel.plt"))
+        {
+            hasRelplt_ = true;
+        }
+
+	if( !regions_[index]->getRegionName().compare(".rela.plt") ) 
+        {
+            hasRelaplt_ = true;
+        }
+        
     }
     // sort regions_ & codeRegions_ vectors
 
@@ -1312,18 +1334,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         serr = Syms_To_Functions;
         return false;
     }
-	
-#if 0
-    // define all of the functions, this also defines all of the modules
-    if (!symbolsToFunctions(linkedFile, &raw_syms))
-    {
-        fprintf(stderr, "%s[%d] Error converting symbols to functions in file %s\n", 
-                __FILE__, __LINE__, mf->filename().c_str());
-        err = false;
-        serr = Syms_To_Functions;
-        return false;
-    }
-#endif
 	
     // Once languages are assigned, we can build demangled names (in
     // the wider sense of demangling which includes stripping _'s from
@@ -1589,11 +1599,6 @@ bool Symtab::exportXML(string file)
    {
       SerializerXML sb("XMLTranslator", file, sd_serialize, true);
       serialize(&sb, "Symtab");
-#if 0
-      SymtabTranslatorXML trans(this, file);
-      if ( serialize(*this, trans))
-         return true;
-#endif
    } 
    catch (const SerializerError &err) 
    {
@@ -1617,15 +1622,6 @@ bool Symtab::exportBin(string file)
       SerializerBin sb("BinSerializer", file, sd_serialize, true);
       serialize(&sb, "Symtab");
 
-#if 0 
-      bool verbose = false;
-      if (strstr(file.c_str(), "cache_ld")) verbose = true;
-      SymtabTranslatorBin *transptr = SymtabTranslatorBin::getTranslator(this, file, sd_serialize, verbose);
-      assert(transptr);
-      SymtabTranslatorBin &trans = *transptr;
-      if (serialize(*this, trans))
-         return true;
-#endif
       fprintf(stderr, "%s[%d]:  binary serialization ok\n", __FILE__, __LINE__);
       return true;
    }
@@ -1673,16 +1669,6 @@ Symtab *Symtab::importBin(std::string file)
       if (strstr(file.c_str(), "ld-")) verbose = true;
       SerializerBin sb("BinTranslator", file, sd_deserialize, true);
       st->serialize(&sb);
-#if 0
-      SymtabTranslatorBin *transptr = SymtabTranslatorBin::getTranslator(st, file, sd_deserialize, verbose);
-      assert(transptr);
-      SymtabTranslatorBin &trans = *transptr;
-      if (deserialize(*st, trans)) {
-         fprintf(stderr, "%s[%d]:  deserialized '%s' from cache\n", FILE__, __LINE__, file.c_str());
-         if (!st) fprintf(stderr, "%s[%d]:  FIXME:  no symtab\n", FILE__, __LINE__);
-         return st;
-      }
-#endif
    }
 
    catch (const SerializerError &err)
@@ -2101,6 +2087,25 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    return true;	
 }
 
+SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
+{
+	Type *t = NULL;
+   parseTypesNow();
+
+   if (!_mods.size())
+      return NULL;
+
+   for (unsigned int i = 0; i < _mods.size(); ++i)
+   {
+	   t = _mods[0]->getModuleTypes()->findType(type_id);
+	   if (t) break;
+   }
+
+   if (t == NULL)
+      return NULL;
+
+   return t;	
+}
 SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
 {
    parseTypesNow();
@@ -2140,6 +2145,26 @@ SYMTAB_EXPORT bool Symtab::hasRel() const
 SYMTAB_EXPORT bool Symtab::hasRela() const
 {
    return hasRela_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasReldyn() const
+{
+   return hasReldyn_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasReladyn() const
+{
+   return hasReladyn_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasRelplt() const
+{
+   return hasRelplt_;
+}
+
+SYMTAB_EXPORT bool Symtab::hasRelaplt() const
+{
+   return hasRelaplt_;
 }
 
 bool Symtab::setDefaultNamespacePrefix(string &str)
@@ -2387,7 +2412,7 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
    return true;
 }
 
-void Symtab::serialize(SerializerBase *sb, const char *tag)
+void Symtab::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    try 
    {
@@ -2405,8 +2430,10 @@ void Symtab::serialize(SerializerBase *sb, const char *tag)
       ifxml_end_element(sb, tag);
 
 
+#if 0
       ifinput(Symtab::setup_module_up_ptrs, sb, this);
       ifinput(fixup_relocation_symbols, sb, this);
+#endif
 
       //  Patch up module's exec_ (pointer to Symtab) at a higher level??
       //if (getSD().iomode() == sd_deserialize)
@@ -2466,7 +2493,7 @@ SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
-void ExceptionBlock::serialize(SerializerBase *sb, const char *tag)
+void ExceptionBlock::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    try 
    {
@@ -2555,17 +2582,126 @@ SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const {
 	return rtype_;
 }
 
-void relocationEntry::serialize(SerializerBase *sb, const char *tag)
+bool relocationEntry::operator==(const relocationEntry &r) const
 {
+	if (target_addr_ != r.target_addr_) return false;
+	if (rel_addr_ != r.rel_addr_) return false;
+	if (addend_ != r.addend_) return false;
+	if (rtype_ != r.rtype_) return false;
+	if (name_ != r.name_) return false;
+	if (relType_ != r.relType_) return false;
+	if (dynref_ && !r.dynref_) return false;
+	if (!dynref_ && r.dynref_) return false;
+	if (dynref_)
+	{
+		if (dynref_->getName() != r.dynref_->getName()) return false;
+		if (dynref_->getOffset() != r.dynref_->getOffset()) return false;
+	}
+
+	return true;
+}
+
+void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+{
+	//  on deserialize need to rebuild symtab::undefDynSyms before deserializing relocations
+
+	std::string symname = dynref_ ? dynref_->getName() : std::string("");
+	Offset symoff = dynref_ ? dynref_->getOffset() : (Offset) -1;
+
    try 
    {
       ifxml_start_element(sb, tag);
       gtranslate(sb, target_addr_, "targetAddress");
       gtranslate(sb, rel_addr_, "relocationAddress");
+      gtranslate(sb, addend_, "Addend");
       gtranslate(sb, name_, "relocationName");
+      gtranslate(sb, (int &) rtype_, "regionType");
       gtranslate(sb, relType_, "relocationType");
-      //  deserialize: Re-assign dynref_ symbol elsewhere (in Symtab class)
+      gtranslate(sb, symname, "SymbolName");
+      gtranslate(sb, symoff, "SymbolOffset");
       ifxml_end_element(sb, tag);
+
+	  if (sb->isInput())
+	  {
+		  dynref_ = NULL;
+		  if (symname != std::string(""))
+		  {
+			  //  if we have a name for this symbol, the offset should not be -1;
+			  if (symoff == (Offset) -1)
+			  {
+				  fprintf(stderr, "%s[%d]:  inconsistent symname and offset combo!\n", 
+						  FILE__, __LINE__);
+			  }
+
+			  ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+			  if (!ssb)
+			  {
+				  fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				  SER_ERR("FIXME");
+			  }
+
+			  Symtab *st = ssb->getScope();
+
+			  if (!st)
+			  {
+				  fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				  SER_ERR("FIXME");
+			  }
+
+			  std::map<std::string, std::vector<Symbol *> >::iterator iter;
+			  iter = st->undefDynSyms.find(symname);
+
+			  if (iter != st->undefDynSyms.end())
+			  {
+				  std::vector<Symbol *> &possible_syms = iter->second;
+				  //fprintf(stderr, "%s[%d]:  found %d possible sym matches for %s dynref\n", 
+				//		  FILE__, __LINE__, possible_syms.size(), symname.c_str());
+				  for (unsigned int i = 0; i < possible_syms.size(); ++i)
+				  {
+					  Symbol * s = possible_syms[i];
+					  if (s->getOffset() == symoff)
+					  {
+						  dynref_ = s;
+						  break;
+					  }
+				  }
+			  }
+			  else
+			  {
+				  //  This shouldn't happen, but check to see if we can find the relevant
+				  //  symbol in the regular indexes.
+				  std::vector<Symbol *> possible_syms;
+
+				  if (! st->findSymbolByType(possible_syms, symname, Symbol::ST_FUNCTION, anyName)
+						  || !possible_syms.size())
+				  {
+					  if (! st->findSymbolByType(possible_syms, symname, Symbol::ST_UNKNOWN, anyName)
+							  || !possible_syms.size())
+					  {
+						  //fprintf(stderr, "%s[%d]:  can't find symbol named %s for reloc\n", 
+					//			  FILE__, __LINE__, symname.c_str());
+					  }
+				  }
+
+				  if (possible_syms.size())
+				  {
+					  fprintf(stderr, "%s[%d]:  WARN: found %d syms for dynref in ord index\n", 
+							  FILE__, __LINE__, possible_syms.size());
+					  for (unsigned int i = 0; i < possible_syms.size(); ++i)
+					  {
+						  Symbol *s = possible_syms[i];
+						  if (s->getOffset() == symoff)
+						  {
+							  dynref_ = s;
+							  break;
+						  }
+					  }
+				  }
+			  }
+
+		  }
+	  }
    } SER_CATCH("relocationEntry");
 }
 
@@ -2579,6 +2715,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_OBJECT);
       CASE_RETURN_STR(ST_MODULE);
       CASE_RETURN_STR(ST_SECTION);
+      CASE_RETURN_STR(ST_DELETED);
       CASE_RETURN_STR(ST_NOTYPE);
    };
 
@@ -2677,13 +2814,46 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
          fprintf(stderr, "%s[%d]:  really should not happen\n", FILE__, __LINE__);
          return false;
       }
-#if 0
-#else
       fprintf(stderr, "%s[%d]:  WARN:  disabled serializer init here\n", FILE__, __LINE__);
-#endif
    }
    return true;
 }
 
 #endif
+
+namespace Dyninst {
+	namespace SymtabAPI {
+
+
+SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
+{
+	SerializerBin<Symtab> *ser;
+	ser = new SerializerBin<Symtab>(t, "SerializerBin", file, sd_serialize, true);
+	Symtab *test_st = ser->getScope();
+	assert(test_st == t);
+	return ser;
+}
+
+SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
+{
+	SerializerBin<Symtab> *ser;
+	ser = new SerializerBin<Symtab>(t, "DeserializerBin", file, sd_deserialize, true);
+	Symtab *test_st = ser->getScope();
+	assert(test_st == t);
+	return ser;
+}
+
+SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
+{
+	SerializerBin<Symtab> *sbin = dynamic_cast<SerializerBin<Symtab> *>(sb);
+	if (sbin)
+	{
+		delete(sbin);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+
+}
+} // namespace SymtabAPI
+} // namespace Dyninst
 

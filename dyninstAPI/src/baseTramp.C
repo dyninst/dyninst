@@ -759,8 +759,16 @@ bool baseTramp::doOptimizations()
    miniTramp *cur_mini = firstMini;
    bool hasFuncCall = false;
 
-   while (cur_mini) {
-       if (cur_mini->ast_->containsFuncCall()) {
+   while (cur_mini) 
+   {
+	   if ((!cur_mini->ast_))
+	   {
+		   fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
+		   return false;
+	   }
+
+       if (cur_mini->ast_->containsFuncCall()) 
+	   {
            hasFuncCall = true;
            break;
        }

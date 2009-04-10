@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-#ifndef Type_h_
-#define Type_h_
+#ifndef __Type_h__
+#define __Type_h__
 
 #include "Serialization.h"
 #include "Annotatable.h"
@@ -102,33 +102,6 @@ typedef enum {
  
 const char *visibility2Str(visibility_t v);
 
-typedef enum {
-	storageAddr,
-	storageReg,
-	storageRegOffset
-} storageClass;
-
-const char *storageClass2Str(storageClass sc);
-/*
- * storageClass: Encodes how a variable is stored.
- *
- * storageAddr           - Absolute address of variable.
- * storageReg            - Register which holds variable value.
- * storageRegOffset      - Address of variable = $reg + address.
- */
-
-typedef enum {
-    storageRef,
-    storageNoRef
-} storageRefClass;
-	
-/*
- * storageRefClass: Encodes if a variable can be accessed through a register/address.
- *
- * storageRef        - There is a pointer to variable.
- * storageNoRef      - No reference. Value can be obtained using storageClass.
- */
-
 class SYMTAB_EXPORT Field{
    friend class typeStruct;
    friend class typeUnion;
@@ -169,7 +142,7 @@ class Type : public Serializable, public AnnotatableSparse  {
 				      typeCommon *);
    static Type* upgradePlaceholder(Type *placeholder, Type *new_type);
    public:
-  SYMTAB_EXPORT void serialize(SerializerBase *, const char *);
+  SYMTAB_EXPORT void serialize(SerializerBase *, const char *) THROW_SPEC (SerializerError);
  protected:
    typeId_t ID_;           /* unique ID of type */
    std::string name_;
@@ -523,53 +496,6 @@ class typeArray : public rangedType {
    SYMTAB_EXPORT bool isCompatible(Type *otype);
    SYMTAB_EXPORT bool operator==(const Type &otype) const;
    SYMTAB_EXPORT void fixupUnknowns(Module *);
-};
-
-//location for a variable
-typedef struct {
-   storageClass stClass;
-   storageRefClass refClass;
-   int reg;
-   long frameOffset;
-   Address lowPC;
-   Address hiPC;
-} loc_t;
-
-class SYMTAB_EXPORT localVar
-{
-   friend class typeCommon;
-   friend class localVarCollection;
- 
-    std::string name_;
-    Type *type_;
-    std::string fileName_;
-    int lineNum_;
-    std::vector<loc_t> *locs_;
-    void *upPtr_;
-    
-    // scope_t scope;
-  
-  public:
-    localVar() {}
-      //  Internal use only
-      localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t> *locs = NULL);
-      // Copy constructor
-      localVar(localVar &lvar);
-      bool addLocation(loc_t *location);
-      bool setLocation(std::vector<loc_t> &locs);
-      ~localVar();
-      void fixupUnknown(Module *);
- public:
-      //  end of functions for internal use only
-      std::string &getName();
-      Type *getType();
-      bool setType(Type *newType);
-      int  getLineNum();
-      std::string &getFileName();
-      std::vector<loc_t> *getLocationLists();
-
-      void *getUpPtr() const;
-      bool setUpPtr(void *);
 };
 
 } // namespace SymtabAPI

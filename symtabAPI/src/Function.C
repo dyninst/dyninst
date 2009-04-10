@@ -53,8 +53,15 @@ using namespace Dyninst::SymtabAPI;
 Function::Function(Symbol *sym)
     : Aggregate(sym),
       retType_(NULL), 
-      framePtrRegNum_(-1), 
-      locs_(NULL)
+      locs_(NULL), 
+      framePtrRegNum_(-1)
+{}
+
+Function::Function()
+    : Aggregate(),
+      retType_(NULL), 
+      locs_(NULL), 
+      framePtrRegNum_(-1)
 {}
 
 Type * Function::getReturnType() const
@@ -79,14 +86,14 @@ bool Function::setFramePtrRegnum(int regnum)
     return true;
 }
 
-std::vector<Dyninst::SymtabAPI::loc_t> *Function::getFramePtr() const 
+std::vector<Dyninst::SymtabAPI::VariableLocation> *Function::getFramePtr() 
 {
     return locs_;
 }
 
-bool Function::setFramePtr(vector<loc_t> *locs) 
+bool Function::setFramePtr(vector<VariableLocation> *locs) 
 {
-    if(locs_) 
+    if (locs_) 
         return false;
     
     locs_ = locs;
@@ -147,6 +154,7 @@ bool Function::getLocalVariables(std::vector<localVar *> &vars)
 
    if (vars.size())
       return true;
+   fprintf(stderr, "%s[%d]:  NO LOCAL VARS\n", FILE__, __LINE__);
    return false;
 }
 
@@ -195,34 +203,136 @@ bool Function::addLocalVar(localVar *locVar)
 
 bool Function::addParam(localVar *param)
 {
-   localVarCollection *ps = NULL;
+	localVarCollection *ps = NULL;
 
-   if (!getAnnotation(ps, FunctionParametersAnno))
-   {
-      ps = new localVarCollection();
+	if (!getAnnotation(ps, FunctionParametersAnno))
+	{
+		ps = new localVarCollection();
 
-      if (!addAnnotation(ps, FunctionParametersAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
-               FILE__, __LINE__);
-         return false;
-      }
-   }
+		if (!addAnnotation(ps, FunctionParametersAnno))
+		{
+			fprintf(stderr, "%s[%d]:  failed to add local var collecton anno\n", 
+					FILE__, __LINE__);
+			return false;
+		}
+	}
 
-   ps->addLocalVar(param);
+	ps->addLocalVar(param);
 
-   return true;
+	return true;
 }
 
 Function::~Function()
 {
 }
 
-bool Function::removeSymbol(Symbol *sym) {
-    removeSymbolInt(sym);
-    if (symbols_.empty()) {
-        module_->exec()->deleteFunction(this);
-    }
-    return true;
+void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+{
+	//fprintf(stderr, "%s[%d]:  welcome to Function::serialize\n", FILE__, __LINE__);
+
+	if (!sb)
+	{
+		SER_ERR("bad paramater sb");
+	}
+
+	//  Use typeID as unique identifier
+	unsigned int t_id = retType_ ? retType_->getID() : (unsigned int) 0xdeadbeef;
+
+	try
+	{
+		ifxml_start_element(sb, tag);
+		gtranslate(sb, t_id, "typeID");
+		gtranslate(sb, framePtrRegNum_, "framePointerRegister");
+		//gtranslate(sb, locs_, "framePointerLocationList");
+		Aggregate::serialize_aggregate(sb);
+		ifxml_end_element(sb, tag);
+		if (sb->isInput())
+		{
+			if (t_id == 0xdeadbeef)
+				retType_ = NULL;
+			else
+				restore_type_by_id(sb, retType_, t_id);
+		}
+	}
+	SER_CATCH(tag);
+
+}
+
+bool Function::removeSymbol(Symbol *sym) 
+{
+	removeSymbolInt(sym);
+	if (symbols_.empty()) {
+		module_->exec()->deleteFunction(this);
+	}
+	return true;
+}
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::VariableLocation &l)
+{
+	const char *stc = storageClass2Str(l.stClass);
+	const char *strc = storageRefClass2Str(l.refClass);
+	os << "{"
+		<< "storageClass=" << stc
+		<< " storageRefClass=" << strc
+		<< " reg=" << l.reg
+		<< " frameOffset=" << l.frameOffset
+		<< " lowPC=" << l.lowPC
+		<< " hiPC=" << l.hiPC
+		<< "}";
+	return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f)
+{
+	std::string tname(f.retType_ ? f.retType_->getName() : "no_type");
+	const Aggregate *ag = dynamic_cast<const Aggregate *>(&f);
+	assert(ag);
+
+	os  << "Function{"
+		<< " type=" << tname
+		<< " framePtrRegNum_=" << f.framePtrRegNum_
+		<< " FramePtrLocationList=[";
+#if 0
+	for (unsigned int i = 0; i < f.locs_.size(); ++i)
+	{
+		os << f.locs_[i]; 
+		if ( (i + 1) < f.locs_.size())
+			os << ", ";
+	}
+#endif
+	os  << "] ";
+	os  <<  *ag;
+	os  <<  "}";
+	return os;
+
+}
+
+bool Function::operator==(const Function &f)
+{
+	if (retType_ && !f.retType_)
+		return false;
+	if (!retType_ && f.retType_)
+		return false;
+	if (retType_)
+		if (retType_->getID() != f.retType_->getID())
+		{
+			return false;
+		}
+
+	if (framePtrRegNum_ != f.framePtrRegNum_)
+		return false;
+
+#if 0
+	if (locs_.size() != f.locs_.size())
+		return false;
+
+	for (unsigned int i = 0; i < locs_.size(); ++i)
+	{
+		if (locs_[i] == locs_[i])
+			return false;
+	}
+#endif
+
+	return ((Aggregate &)(*this)) == ((Aggregate &)f);
 }
 

@@ -33,7 +33,6 @@
 #define __ARCHIVE_H__
  
 using namespace std;
-using namespace __gnu_cxx; 
 
 class MappedFile;
 

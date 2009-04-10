@@ -42,45 +42,10 @@
 #include "symtab_comp.h"
 #include "test_lib.h"
 
-//#include "Symtab.h"
-//#include "Symbol.h"
-
 #include "Annotatable.h"
 
 using namespace Dyninst;
 //using namespace SymtabAPI;
-
-#if 0
-#define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
-#define REPORT_EFAIL catch(const LocErr &err) { \
-   err.print(stderr); \
-   return FAILED; }
-
-class LocErr : public std::runtime_error {
-   std::string file__;
-   int line__;
-
-   public:
-   LocErr(const std::string &__file__,
-         const int &__line__,
-         const std::string &msg) :
-      runtime_error(msg),
-      file__(__file__),
-      line__(__line__)
-   {}
-
-   virtual ~LocErr() throw() {}
-
-   std::string file() const {return file__;}
-   int line() const {return line__;}
-
-   void print(FILE * stream)  const
-   {
-      fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n", 
-            file__.c_str(), line__, what());
-   }
-};
-#endif
 
 class test_anno_basic_types_Mutator : public SymtabMutator 
 {
@@ -120,7 +85,7 @@ class TestClassDense : public TestClass, public AnnotatableDense
 };
 
 template <class TC, class T>
-void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL)
+void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL) THROW_SPEC (LocErr)
 {
 	std::string an(typeid(T).name());
 
@@ -145,7 +110,8 @@ void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL)
 }
 
 template <class TC, class T>
-void verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NULL)
+void verify_anno(TC &tcs, const T &test_val, 
+		const char *anno_prefix_to_use = NULL) THROW_SPEC (LocErr)
 {
 	std::string an(typeid(T).name());
 
@@ -170,7 +136,8 @@ void verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NU
 }
 
 template <class TC, class T>
-void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_prefix_to_use = NULL)
+void add_get_and_verify_anno(TC &tcs, const T &test_val, 
+		const char *anno_prefix_to_use = NULL) THROW_SPEC(LocErr)
 {
 
    //  A very simple function that adds an annotation of type T to the given class
@@ -210,7 +177,7 @@ void add_get_and_verify_anno(TC &tcs, const T &test_val, const char *anno_prefix
 
 template <class TC, class T>
 void add_verify_dispatch(TC &tcs, const T &test_val, bool do_add, 
-      const char *anno_prefix_to_use = NULL)
+      const char *anno_prefix_to_use = NULL) THROW_SPEC (LocErr)
 {
    if (do_add)
    {
@@ -223,7 +190,7 @@ void add_verify_dispatch(TC &tcs, const T &test_val, bool do_add,
 }
 
 template <class T>
-void test_for_annotatable()
+void test_for_annotatable() THROW_SPEC (LocErr)
 {
    T tc;
    bool do_add = false;
@@ -307,8 +274,8 @@ test_results_t test_anno_basic_types_Mutator::executeTest()
    {
       fprintf(stderr, "%s[%d]:  ERROR, size creep in dense annotation class\n", 
             FILE__, __LINE__);
-      fprintf(stderr, "sizeof(TestClass) + sizeof(void *)= %d, sizeof(TestClassSparse) = %d\n", 
-            sizeof(TestClass) + sizeof(void *), sizeof(TestClassSparse));
+      fprintf(stderr, "sizeof(TestClass) + sizeof(void *)= %d, sizeof(TestClassDense) = %d\n", 
+            sizeof(TestClass) + sizeof(void *), sizeof(TestClassDense));
       return FAILED;
    }
 

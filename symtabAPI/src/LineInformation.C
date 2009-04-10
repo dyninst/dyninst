@@ -276,7 +276,7 @@ bool LineNoTuple::operator==(const LineNoTuple &cmp) const
    return (!strcmp(first,cmp.first)); 
 }
 
-void LineInformation::serialize(SerializerBase *sb, const char *)
+void LineInformation::serialize(SerializerBase *sb, const char *) THROW_SPEC (SerializerError)
 {
    fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
          FILE__, __LINE__, sb);

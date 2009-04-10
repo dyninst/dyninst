@@ -37,6 +37,7 @@
 
 #include "Symtab.h"
 #include "Module.h"
+#include "Region.h"
 #include "Collections.h"
 #include "annotations.h"
 #include "Symbol.h"
@@ -89,6 +90,7 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
                 case Symbol::ST_OBJECT:   fprintf(fd, "  OBJ"); break;
                 case Symbol::ST_MODULE:   fprintf(fd, "  MOD"); break;
                 case Symbol::ST_SECTION:  fprintf(fd, "  SEC"); break;
+                case Symbol::ST_DELETED:  fprintf(fd, "  DEL"); break;
                 case Symbol::ST_NOTYPE:   fprintf(fd, "   - "); break;
             }
             switch (sym->getLinkage()) {
@@ -240,16 +242,6 @@ SYMTAB_EXPORT Offset ExceptionBlock::catchStart() const
 	return catchStart_;
 }
 
-SYMTAB_EXPORT relocationEntry::relocationEntry(const relocationEntry& ra) : 
-   Serializable(),
-   target_addr_(ra.target_addr_), 
-   rel_addr_(ra.rel_addr_), 
-   addend_ (ra.addend_),
-   rtype_ (ra.rtype_),
-   name_(ra.name_), 
-   dynref_(ra.dynref_), relType_(ra.relType_) 
-{
-}
 
 SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
 {
@@ -299,250 +291,9 @@ SYMTAB_EXPORT Symbol::~Symbol ()
    }
 }
 
-#if 0
-SYMTAB_EXPORT Symbol::Symbol(const Symbol& s) :
-   Serializable(),
-   AnnotatableSparse(),
-   module_(s.module_), 
-   type_(s.type_), linkage_(s.linkage_), visibility_(s.visibility_),
-   addr_(s.addr_), ptr_addr_(s.ptr_addr_), sec_(s.sec_), size_(s.size_), 
-   isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
-   isAbsolute_(s.isAbsolute_),
-   aggregate_(s.aggregate_),
-   mangledName_(s.mangledName_), 
-   prettyName_(s.prettyName_), 
-   typedName_(s.typedName_), 
-   tag_(s.tag_), 
-   framePtrRegNum_(s.framePtrRegNum_),
-   retType_(s.retType_), 
-   moduleName_(s.moduleName_) 
-{
-#if 0
-   Annotatable <std::string, symbol_file_name_a> &sfa = *this;
-   const Annotatable <std::string, symbol_file_name_a> &sfa_src = s;
-   if (sfa_src.size())
-      sfa.addAnnotation(sfa_src[0]);
-
-   Annotatable <std::vector<std::string>, symbol_version_names_a> &sva = *this;
-   const Annotatable <std::vector<std::string>, symbol_version_names_a> &sva_src = s;
-   if (sva_src.size())
-      sva.addAnnotation(sva_src[0]);
-
-   Annotatable<localVarCollection, symbol_variables_a, true> &lvA = *this;
-   const Annotatable<localVarCollection, symbol_variables_a, true> &lvA_src = s;
-   if (lvA_src.size())
-      lvA.addAnnotation(lvA_src[0]);
-
-   Annotatable<localVarCollection, symbol_parameters_a, true> &pA = *this;
-   const Annotatable<localVarCollection, symbol_parameters_a, true> &pA_src = s;
-   if (pA_src.size())
-      pA.addAnnotation(pA_src[0]);
-   fprintf(stderr, "%s[%d]:  FIXME??  copy annotations here or not??\n", FILE__, __LINE__);
-#endif
-
-   std::string *sfa_p = NULL;
-   if (s.getAnnotation(sfa_p, SymbolFileNameAnno))
-   {
-      if (!sfa_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         std::string *sfa_p2 = new std::string(*sfa_p);
-
-         if (!addAnnotation(sfa_p2, SymbolFileNameAnno)) 
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-
-   std::vector<std::string> *svn_p = NULL;
-   if (s.getAnnotation(svn_p, SymbolVersionNamesAnno))
-   {
-      if (!svn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         //  note:  in an older version we just copied one element from this
-         // vector when the symbol got copied.  I think this is incorrect.
-         //fprintf(stderr, "%s[%d]:  alloc'ing new vector for symbol versions\n", FILE__, __LINE__);
-
-         //  if we alloc here, probably want to check in dtor to make
-         //  sure that we are deleting this if it exists.
-         //std::vector<std::string> *svn_p2 = new std::vector<std::string>();
-
-         //for (unsigned int i = 0; i < svn_p->size(); ++i)
-         //{
-         //   svn_p2->push_back(std::string((*svn_p)[i]));
-         //}
-
-         if (!addAnnotation(svn_p, SymbolVersionNamesAnno))
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-
-   localVarCollection *vars_p = NULL;
-   if (s.getAnnotation(vars_p, FunctionLocalVariablesAnno))
-   {
-      if (!vars_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         if (!addAnnotation(vars_p, FunctionLocalVariablesAnno))
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-
-   localVarCollection *params_p = NULL;
-   if (s.getAnnotation(params_p, FunctionParametersAnno))
-   {
-      if (!params_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         if (!addAnnotation(params_p, FunctionParametersAnno))
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-}
-
-SYMTAB_EXPORT Symbol& Symbol::operator=(const Symbol& s) 
-{
-   module_  = s.module_;
-   type_    = s.type_;
-   linkage_ = s.linkage_;
-   addr_    = s.addr_;
-   sec_     = s.sec_;
-   size_    = s.size_;
-   isInDynsymtab_ = s.isInDynsymtab_;
-   isInSymtab_ = s.isInSymtab_;
-   isAbsolute_ = s.isAbsolute_;
-   aggregate_ = s.aggregate_;
-   tag_     = s.tag_;
-   mangledName_ = s.mangledName_;
-   prettyName_ = s.prettyName_;
-   typedName_ = s.typedName_;
-   framePtrRegNum_ = s.framePtrRegNum_;
-
-   std::string *sfa_p = NULL;
-
-   if (s.getAnnotation(sfa_p, SymbolFileNameAnno))
-   {
-      if (!sfa_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         std::string *sfa_p2 = new std::string(*sfa_p);
-
-         if (!addAnnotation(sfa_p2, SymbolFileNameAnno))
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-
-   std::vector<std::string> *svn_p = NULL;
-   if (s.getAnnotation(svn_p, SymbolVersionNamesAnno))
-   {
-      if (!svn_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         //  note:  in an older version we just copied one element from this
-         // vector when the symbol got copied.  I think this is incorrect.
-         //fprintf(stderr, "%s[%d]:  alloc'ing new vector for symbol versions\n", FILE__, __LINE__);
-
-         //  if we alloc here, probably want to check in dtor to make
-         //  sure that we are deleting this if it exists.
-         //std::vector<std::string> *svn_p2 = new std::vector<std::string>();
-
-         //for (unsigned int i = 0; i < svn_p->size(); ++i)
-         //{
-         //   svn_p2->push_back(std::string((*svn_p)[i]));
-         //}
-
-         if (!addAnnotation(svn_p, SymbolVersionNamesAnno))
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-
-   localVarCollection *vars_p = NULL;
-   if (s.getAnnotation(vars_p, FunctionLocalVariablesAnno))
-   {
-      if (!vars_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         if (!addAnnotation(vars_p, FunctionLocalVariablesAnno))
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-
-   localVarCollection *params_p = NULL;
-   if (s.getAnnotation(params_p, FunctionParametersAnno))
-   {
-      if (!params_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         if (!addAnnotation(params_p, FunctionParametersAnno))
-         {
-            fprintf(stderr, "%s[%d]:  failed ot addAnnotation here\n", FILE__, __LINE__);
-         }
-      }
-   }
-#if 0
-#if 1 
-   fprintf(stderr, "%s[%d]:  WARNING:  assignment ctor not assigning local variables and parameters\n", FILE__, __LINE__);
-#else
-   Annotatable <std::string, symbol_file_name_a> &sfa = *this;
-   const Annotatable <std::string, symbol_file_name_a> &sfa_src = s;
-   if (sfa_src.size())
-      sfa.addAnnotation(sfa_src[0]);
-
-   Annotatable <std::vector<std::string>, symbol_version_names_a> &sva = *this;
-   const Annotatable <std::vector<std::string>, symbol_version_names_a> &sva_src = s;
-   if (sva_src.size())
-      sva.addAnnotation(sva_src[0]);
-
-   Annotatable<localVarCollection, symbol_variables_a, true> &lvA = *this;
-   const Annotatable<localVarCollection, symbol_variables_a,true> &lvA_src = s;
-   if (lvA_src.size())
-      lvA.addAnnotation(lvA_src[0]);
-
-   Annotatable<localVarCollection, symbol_parameters_a, true> &pA = *this;
-   const Annotatable<localVarCollection, symbol_parameters_a,true> &pA_src = s;
-   if (pA_src.size())
-      pA.addAnnotation(pA_src[0]);
-#endif
-#endif
-   return *this;
+#ifdef DEBUG 
+ostream &operator<<(ostream &os, relocationEntry &q) {
+   return q.operator<<(os);
 }
 #endif
 

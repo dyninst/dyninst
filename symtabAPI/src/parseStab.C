@@ -271,7 +271,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          else 
          {
             locVar = new localVar(name, ptrType, fName, linenum);
-            loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+            VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
             loc->stClass = storageRegOffset;
             loc->refClass = storageNoRef;
             loc->frameOffset = framePtr;
@@ -308,7 +308,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          ptrType = mod->getModuleTypes()->findOrCreateType( ID);
 
          locVar = new localVar(name, ptrType, fName, linenum);
-         loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+         VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
          loc->stClass = storageRegOffset;
          loc->refClass = storageNoRef;
          loc->frameOffset = framePtr;
@@ -530,7 +530,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                localVar *param;
 
                param = new localVar(name, ptrType, fName, linenum);
-               loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+               VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
                loc->stClass = storageRegOffset;
                loc->refClass = storageNoRef;
                loc->frameOffset = framePtr;
@@ -558,7 +558,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                localVar *var;
                var = new localVar(name, ptrType, fName, linenum);
-               loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+               VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
                loc->stClass = storageRegOffset;
                loc->refClass = storageNoRef;
                loc->frameOffset = 0;
@@ -808,7 +808,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                if (symt_current_func) 
                {
                   locVar = new localVar(name, BPtype, fName, linenum);
-                  loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+                  VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
                   loc->stClass = storageAddr;
                   loc->refClass = storageNoRef;
                   loc->frameOffset = framePtr;

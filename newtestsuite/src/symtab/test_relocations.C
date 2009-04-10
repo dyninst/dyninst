@@ -44,51 +44,206 @@
 
 #include "Symtab.h"
 #include "Symbol.h"
+#include "Function.h"
+#include "Variable.h"
+
+#include <iostream>
+#include <errno.h>
+#if !defined(os_windows_test)
+#include <dirent.h>
+#endif
 
 using namespace Dyninst;
 using namespace SymtabAPI;
 
+bool resolve_libc_name(char *buf)
+{
+#if defined(os_windows_test)
+	return false;
+#else
+	DIR *dirp;
+	struct dirent *dp;
+
+	if (NULL == (dirp = opendir("/lib"))) 
+	{
+		fprintf(stderr, "%s[%d]: couldn’t open /lib: %s", FILE__, __LINE__, strerror(errno));
+		return false;
+	}
+
+	do {
+		errno = 0;
+		if ((dp = readdir(dirp)) != NULL) {
+			int nelem = strlen("libc.so");
+			if ( 0 != strncmp(dp->d_name, "libc.so", nelem))
+				continue;
+
+			fprintf(stderr, "found %s\n", dp->d_name);
+			sprintf(buf, "/lib/%s", dp->d_name);
+			closedir(dirp);
+			return true;
+
+		}
+	} while (dp != NULL);
+
+	return false;
+#endif
+}
+
 class test_relocations_Mutator : public SymtabMutator {
-   std::vector<relocationEntry> relocs;
-public:
-   test_relocations_Mutator() { };
-   virtual test_results_t executeTest();
+	std::vector<relocationEntry> relocs;
+	char libc_name[128];
+	Symtab *libc;
+	std::vector<std::string> expected_relocations;
+
+	bool open_libc()
+	{
+		if (!resolve_libc_name(libc_name))
+		{
+			fprintf(stderr, "%s[%d]:  cannot find libc....\n", FILE__, __LINE__);
+			return false;
+		}
+
+		if (!Symtab::openFile(libc, libc_name))
+		{
+			fprintf(stderr, "%s[%d]:  cannot create libc....\n", FILE__, __LINE__);
+			return false;
+		}
+
+		return true;
+	}
+
+	public:
+	test_relocations_Mutator() 
+	{ 
+		expected_relocations.push_back(std::string("printf"));
+		expected_relocations.push_back(std::string("fprintf"));
+		expected_relocations.push_back(std::string("sprintf"));
+		expected_relocations.push_back(std::string("snprintf"));
+		expected_relocations.push_back(std::string("memcpy"));
+		expected_relocations.push_back(std::string("strcmp"));
+		expected_relocations.push_back(std::string("memset"));
+		expected_relocations.push_back(std::string("fopen"));
+		expected_relocations.push_back(std::string("fwrite"));
+		expected_relocations.push_back(std::string("fread"));
+		expected_relocations.push_back(std::string("fclose"));
+		expected_relocations.push_back(std::string("__xstat"));
+		expected_relocations.push_back(std::string("__lxstat"));
+		expected_relocations.push_back(std::string("__fxstat"));
+	};
+	virtual test_results_t executeTest();
 };
 
 extern "C" DLLEXPORT TestMutator* test_relocations_factory()
 {
-   return new test_relocations_Mutator();
+	return new test_relocations_Mutator();
 }
 
 test_results_t test_relocations_Mutator::executeTest()
 {
-   bool result = symtab->getFuncBindingTable(relocs);
+#if defined (os_windows_test)
+	return SKIPPED;
+#endif
 
-   if (!result || !relocs.size() )
-   {
-      logerror("%s[%d]: - Unable to find relocations\n", 
-               FILE__, __LINE__);
-      fprintf(stderr, "%s[%d]: - Unable to find relocations\n", 
-               FILE__, __LINE__);
-      return FAILED;
-   }
+#if defined (os_aix_test)
+	return SKIPPED;
+#endif
 
-   fprintf(stderr, "%s[%d]:  have relocs:\n", FILE__, __LINE__);
-   for (unsigned int i = 0; i < relocs.size(); ++i)
-   {
-	   cerr << "      " <<  relocs[i] << endl;
-   }
+	bool result = symtab->getFuncBindingTable(relocs);
+
+	if (!result || !relocs.size() )
+	{
+		logerror("%s[%d]: - Unable to find relocations\n", 
+				FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]: - Unable to find relocations\n", 
+				FILE__, __LINE__);
+		return FAILED;
+	}
+
 #if 0
-   if (relocs.size() != 3)
-   {
-      logerror("%s[%d]: - wrong number of relocs??: %d\n", 
-               FILE__, __LINE__, relocs.size());
-      fprintf(stderr, "%s[%d]: - wrong number of relocs??: %d\n", 
-               FILE__, __LINE__, relocs.size());
-      return FAILED;
+	fprintf(stderr, "%s[%d]:  have relocs:\n", FILE__, __LINE__);
+	for (unsigned int i = 0; i < relocs.size(); ++i)
+	{
+	   Symbol *s = relocs[i].getDynSym();
+	   std::cerr << "      " <<  relocs[i];
+	   if (s)
+		  std::cerr << "  symname:  " << s->getName() << "  symaddr: " <<s->getAddr() << " symtype = "<< Symbol::symbolType2Str(s->getType()) << "symlinkage = " <<Symbol::symbolLinkage2Str(s->getLinkage()) << " vis = " <<Symbol::symbolVisibility2Str(s->getVisibility()); 
+	   std::cerr << std::endl;
    }
 #endif
 
-   return PASSED;
+	if (!open_libc())
+	{
+		fprintf(stderr, "%s[%d]:  failed to open libc\n", FILE__, __LINE__);
+		return FAILED;
+	}
+
+	bool err = false;
+
+	for (unsigned int i = 0; i < expected_relocations.size(); ++i)
+	{
+		int relocation_index ;
+		bool found = false;
+		for (unsigned int j = 0; j < relocs.size(); ++j)
+		{
+			const std::string &relname = relocs[j].name();
+			if (relname == expected_relocations[i])
+			{
+				found = true;
+				relocation_index = i;
+				break;
+			}
+		}
+		if (!found)
+		{
+			fprintf(stderr, "%s[%d]:  could not find relocation for %s\n", 
+					FILE__, __LINE__, expected_relocations[i].c_str());
+			err = true;
+		}
+		else {
+			std::vector<Function *> libc_matches;
+			if (!libc->findFunctionsByName(libc_matches, expected_relocations[i]) || !libc_matches.size())
+			{
+				fprintf(stderr, "%s[%d]:  failed to find %s in libc\n", FILE__, __LINE__, 
+						expected_relocations[i].c_str());
+				err = true;
+			}
+			else
+			{
+				//fprintf(stderr, "%s[%d]:  found %d matches for %s in libc\n", 
+			//			FILE__, __LINE__, libc_matches.size(), expected_relocations[i].c_str());
+
+				const Dyninst::SymtabAPI::Function *f = libc_matches[0];
+
+				if (!f)
+				{
+					fprintf(stderr, "%s[%d]:  BAD NEWS:  symtabAPI returned NULL func\n", 
+							FILE__, __LINE__);
+					err = true;
+				}
+				else 
+				{
+					//  maybe eventually we can check that the relocation address
+					//  properly resolve to the library...  for now existence 
+					//  will have to suffice.
+					Offset off = f->getOffset();
+					//fprintf(stderr, "\toffset = %p, rel_target_addr = %p, rel_addr = %p\n", off, relocs[relocation_index].target_addr(), relocs[relocation_index].rel_addr());
+				}
+			}
+		}
+	}
+
+	if (err) {
+#if 0
+		fprintf(stderr, "%s[%d]:  have relocations:\n", FILE__, __LINE__);
+		for (unsigned int i = 0; i < relocs.size(); ++i)
+		{
+			std::cerr << "        " << relocs[i] << std::endl;
+
+		}
+#endif
+		return FAILED;
+	}
+
+	return PASSED;
 }
 

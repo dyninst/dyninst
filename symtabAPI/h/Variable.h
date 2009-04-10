@@ -33,31 +33,126 @@
 #define _Variable_h_
 
 #include "Annotatable.h"
+#include "Serialization.h"
+#include "Symtab.h"
 #include "Aggregate.h"
 
+//class Dyninst::SymtabAPI::Variable;
+SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
+
 namespace Dyninst{
-namespace SymtabAPI{
+namespace SymtabAPI {
+
+/*
+ * storageClass: Encodes how a variable is stored.
+ *
+ * storageAddr           - Absolute address of variable.
+ * storageReg            - Register which holds variable value.
+ * storageRegOffset      - Address of variable = $reg + address.
+ */
+
+typedef enum {
+	storageAddr,
+	storageReg,
+	storageRegOffset
+} storageClass;
+
+const char *storageClass2Str(storageClass sc);
+
+/*
+ * storageRefClass: Encodes if a variable can be accessed through a register/address.
+ *
+ * storageRef        - There is a pointer to variable.
+ * storageNoRef      - No reference. Value can be obtained using storageClass.
+ */
+typedef enum {
+	storageRef,
+	storageNoRef
+} storageRefClass;
+
+const char *storageRefClass2Str(storageRefClass sc);
+
+//location for a variable
+class VariableLocation : public Serializable {
+	public:
+	storageClass stClass;
+	storageRefClass refClass;
+	int reg;
+	long frameOffset;
+	Address lowPC;
+	Address hiPC;
+	SYMTAB_EXPORT bool operator==(const VariableLocation &);
+	SYMTAB_EXPORT void serialize(SerializerBase *, const char *tag = "VariableLocation") THROW_SPEC (SerializerError);
+};
+
+class SYMTAB_EXPORT localVar
+{
+	friend class typeCommon;
+	friend class localVarCollection;
+
+	std::string name_;
+	Type *type_;
+	std::string fileName_;
+	int lineNum_;
+	std::vector<VariableLocation> *locs_;
+	void *upPtr_;
+
+	// scope_t scope;
+
+	public:
+	localVar() {}
+	//  Internal use only
+	localVar(std::string name,  Type *typ, std::string fileName, 
+			int lineNum, std::vector<VariableLocation> *locs = NULL);
+	// Copy constructor
+	localVar(localVar &lvar);
+	bool addLocation(VariableLocation *location);
+	bool setLocation(std::vector<VariableLocation> &locs);
+	~localVar();
+	void fixupUnknown(Module *);
+
+	public:
+	//  end of functions for internal use only
+	std::string &getName();
+	Type *getType();
+	bool setType(Type *newType);
+	int  getLineNum();
+	std::string &getFileName();
+	std::vector<VariableLocation> *getLocationLists();
+
+	void *getUpPtr() const;
+	bool setUpPtr(void *);
+};
 
 class Symbol;
- class Symtab;
+class Symtab;
+class Aggregate;
 
-class Variable : public Aggregate {
-    friend class Symtab;
+class Variable : public Aggregate, public Serializable {
+	friend class Symtab;
+	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
 
- private:
+	private:
    SYMTAB_EXPORT Variable(Symbol *sym);
    SYMTAB_EXPORT static Variable *createVariable(Symbol *sym);
    
  public:
+   SYMTAB_EXPORT Variable();
     /* Symbol management */
     SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
 
    SYMTAB_EXPORT void setType(Type *type);
    SYMTAB_EXPORT Type *getType();
+
+   SYMTAB_EXPORT 
+   void serialize(SerializerBase *sb, const char *tag = "Variable") THROW_SPEC (SerializerError);
+   SYMTAB_EXPORT bool operator==(const Variable &v);
+
  private:
 
    Type *type_;
 };
+
 
 }
 }

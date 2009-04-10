@@ -218,137 +218,170 @@ static void test7cb(BPatch_process * /* proc*/, void *buf, unsigned int bufsize)
 }
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-test_results_t test_callback_2_Mutator::executeTest() {
-  //  a simple single threaded user messagin scenario where we want to send
-  //  async messages at function entry/exit and call points.
+test_results_t test_callback_2_Mutator::executeTest() 
+{
+	//  a simple single threaded user messagin scenario where we want to send
+	//  async messages at function entry/exit and call points.
 
-    // load libtest12.so -- currently only used by subtest 5, but make it generally
-    // available
-    char *libname = "./libTest12.so";    
+	// load libtest12.so -- currently only used by subtest 5, but make it generally
+	// available
+	char *libname = "./libTest12.so";    
+
 #if defined(arch_x86_64_test)
-    if (appThread->getProcess()->getAddressWidth() == 4)
-      libname = "./libTest12_m32.so";
+	if (appThread->getProcess()->getAddressWidth() == 4)
+		libname = "./libTest12_m32.so";
 #endif
-    dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
-    if (!appThread->loadLibrary(libname)) {
-      logerror("%s[%d]:  failed to load library %s, cannot proceed\n", 
-	      __FILE__, __LINE__, libname);
-      appThread->getProcess()->terminateExecution();
-      return FAILED;
-    }
 
-  BPatchUserEventCallback cb = test7cb;
-  if (!bpatch->registerUserEventCallback(cb)) {
-    FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]: could not register callback\n", __FILE__, __LINE__);
-    appThread->getProcess()->terminateExecution();
-    return FAILED;
-  }
+	dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
 
-  //  instrument entry and exit of call7_1, as well as call points inside call7_1
-  const char *call1name = "test_callback_2_call1";
-  BPatch_function *call7_1 = findFunction(call1name, appImage,TESTNO, TESTNAME);
-  BPatch_point *entry = findPoint(call7_1, BPatch_entry,TESTNO, TESTNAME);
-  if (NULL == entry) {
-    logerror("    Unable to find entry point to function %s\n", call1name);
-    appThread->getProcess()->terminateExecution();
-    return FAILED;
-  }
-  BPatch_point *exit = findPoint(call7_1, BPatch_exit,TESTNO, TESTNAME);
-  if (NULL == entry) {
-    logerror("    Unable to find exit point to function %s\n", call1name);
-    appThread->getProcess()->terminateExecution();
-    return FAILED;
-  }
-  BPatch_point *callsite = findPoint(call7_1, BPatch_subroutine,TESTNO, TESTNAME);
-  if (NULL == callsite) {
-    logerror("    Unable to find subroutine call point in function %s\n",
-	     call1name);
-    appThread->getProcess()->terminateExecution();
-    return FAILED;
-  }
+	if (!appThread->loadLibrary(libname)) 
+	{
+		logerror("%s[%d]:  failed to load library %s, cannot proceed\n", 
+				__FILE__, __LINE__, libname);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
 
-  //  These are our asynchronous message functions (in libTest12) that we
-  //  attach to the "interesting" points
-  BPatch_function *reportEntry = findFunction("reportEntry", appImage,TESTNO, TESTNAME);
-  BPatch_function *reportExit = findFunction("reportExit", appImage,TESTNO, TESTNAME);
-  BPatch_function *reportCallsite = findFunction("reportCallsite", appImage,TESTNO, TESTNAME);
+	BPatchUserEventCallback cb = test7cb;
 
-  //  Do the instrumentation
-  BPatchSnippetHandle *entryHandle = at(entry, reportEntry, TESTNO, TESTNAME);
-  BPatchSnippetHandle *exitHandle = at(exit, reportExit, TESTNO, TESTNAME);
-  BPatchSnippetHandle *callsiteHandle = at(callsite, reportCallsite, TESTNO, TESTNAME);
+	if (!bpatch->registerUserEventCallback(cb)) 
+	{
+		FAIL_MES(TESTNAME, TESTDESC);
+		logerror("%s[%d]: could not register callback\n", __FILE__, __LINE__);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
 
-  if (debugPrint) {
-     int one = 1;
-     char *varName = "libraryDebug";
-     if (setVar(varName, (void *) &one, TESTNO, TESTNAME)) {
-       logerror("    Error setting variable '%s' in mutatee\n", varName);
-       appThread->getProcess()->terminateExecution();
-       return FAILED;
-     }
-  }
- //  unset mutateeIdle to trigger mutatee to issue messages.
+	//  instrument entry and exit of call7_1, as well as call points inside call7_1
 
-  int timeout = 0;
+	const char *call1name = "test_callback_2_call1";
 
-  appThread->getProcess()->continueExecution();
+	BPatch_function *call7_1 = findFunction(call1name, appImage,TESTNO, TESTNAME);
 
-  //  wait until we have received the desired number of events
-  //  (or timeout happens)
-  while(!test7err && !test7done && (timeout < TIMEOUT)) {
-    sleep_ms(SLEEP_INTERVAL/*ms*/);
-    timeout += SLEEP_INTERVAL;
-    bpatch->pollForStatusChange();
-  }
+	BPatch_point *entry = findPoint(call7_1, BPatch_entry,TESTNO, TESTNAME);
 
-  if (timeout >= TIMEOUT) {
-    FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]:  test timed out: %d ms\n",
-           __FILE__, __LINE__, TIMEOUT);
-    test7err = true;
-  }
+	if (NULL == entry) 
+	{
+		logerror("%s[%d]: Unable to find entry point to function %s\n", 
+				__FILE__, __LINE__, call1name);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
 
-  appThread->getProcess()->stopExecution();
+	BPatch_point *exit = findPoint(call7_1, BPatch_exit,TESTNO, TESTNAME);
 
-  if (!bpatch->removeUserEventCallback(test7cb)) {
-    FAIL_MES(TESTNAME, TESTDESC);
-    logerror("%s[%d]:  failed to remove callback\n",
-           __FILE__, __LINE__);
-    appThread->getProcess()->terminateExecution();
-    return FAILED;
-  }
+	if (NULL == entry) 
+	{
+		logerror("%s[%d]:  Unable to find exit point to function %s\n", 
+				__FILE__, __LINE__, call1name);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
 
-  int one = 1;
-  if (setVar("test_callback_2_idle", (void *) &one, TESTNO, TESTNAME)) {
-    logerror("Error setting variable 'test_callback_2_idle' in mutatee\n");
-    test7err = true;
-    appThread->getProcess()->terminateExecution();
-  }
+	BPatch_point *callsite = findPoint(call7_1, BPatch_subroutine,TESTNO, TESTNAME);
 
-  // And let it run out
-  if (!appThread->isTerminated()) {
-    appThread->getProcess()->continueExecution();
-  }
+	if (NULL == callsite) 
+	{
+		logerror("%s[%d]:  Unable to find subroutine call point in function %s\n",
+				__FILE__, __LINE__, call1name);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
 
-  while (!appThread->isTerminated()) {
-    // Workaround for pgCC_high mutatee issue
-    bpatch->waitForStatusChange();
-  }
-  
-  if (!test7err) {
-    PASS_MES(TESTNAME, TESTDESC);
-    return PASSED;
-  }
+	//  These are our asynchronous message functions (in libTest12) that we
+	//  attach to the "interesting" points
 
-  FAIL_MES(TESTNAME, TESTDESC);
-  return FAILED;
+	BPatch_function *reportEntry = findFunction("reportEntry", appImage,TESTNO, TESTNAME);
+	BPatch_function *reportExit = findFunction("reportExit", appImage,TESTNO, TESTNAME);
+	BPatch_function *reportCallsite = findFunction("reportCallsite", appImage,TESTNO, TESTNAME);
+
+	//  Do the instrumentation
+	BPatchSnippetHandle *entryHandle = at(entry, reportEntry, TESTNO, TESTNAME);
+	BPatchSnippetHandle *exitHandle = at(exit, reportExit, TESTNO, TESTNAME);
+	BPatchSnippetHandle *callsiteHandle = at(callsite, reportCallsite, TESTNO, TESTNAME);
+
+	if (debugPrint) 
+	{
+		int one = 1;
+		char *varName = "libraryDebug";
+		if (setVar(varName, (void *) &one, TESTNO, TESTNAME)) 
+		{
+			logerror("%s[%d]:  Error setting variable '%s' in mutatee\n", varName);
+			appThread->getProcess()->terminateExecution();
+			return FAILED;
+		}
+	}
+
+	//  unset mutateeIdle to trigger mutatee to issue messages.
+
+	int timeout = 0;
+
+	appThread->getProcess()->continueExecution();
+
+	//  wait until we have received the desired number of events
+	//  (or timeout happens)
+
+	while(!test7err && !test7done && (timeout < TIMEOUT)) 
+	{
+		sleep_ms(SLEEP_INTERVAL/*ms*/);
+		timeout += SLEEP_INTERVAL;
+		bpatch->pollForStatusChange();
+	}
+
+	if (timeout >= TIMEOUT) 
+	{
+		FAIL_MES(TESTNAME, TESTDESC);
+		logerror("%s[%d]:  test timed out: %d ms\n",
+				__FILE__, __LINE__, TIMEOUT);
+		test7err = true;
+	}
+
+	appThread->getProcess()->stopExecution();
+
+	if (!bpatch->removeUserEventCallback(test7cb)) 
+	{
+		FAIL_MES(TESTNAME, TESTDESC);
+		logerror("%s[%d]:  failed to remove callback\n",
+				__FILE__, __LINE__);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
+
+	int one = 1;
+
+	if (setVar("test_callback_2_idle", (void *) &one, TESTNO, TESTNAME)) 
+	{
+		logerror("Error setting variable 'test_callback_2_idle' in mutatee\n");
+		test7err = true;
+		appThread->getProcess()->terminateExecution();
+	}
+
+	// And let it run out
+	if (!appThread->isTerminated()) 
+	{
+		appThread->getProcess()->continueExecution();
+	}
+
+	while (!appThread->isTerminated()) 
+	{
+		// Workaround for pgCC_high mutatee issue
+		bpatch->waitForStatusChange();
+	}
+
+	if (!test7err) 
+	{
+		PASS_MES(TESTNAME, TESTDESC);
+		return PASSED;
+	}
+
+	FAIL_MES(TESTNAME, TESTDESC);
+	return FAILED;
 }
 
 // extern "C" int test12_7_mutatorMAIN(ParameterDict &param)
 test_results_t test_callback_2_Mutator::setup(ParameterDict &param) {
-  DyninstMutator::setup(param);
-  debugPrint = param["debugPrint"]->getInt();
-  bpatch = (BPatch *)(param["bpatch"]->getPtr());
-  return PASSED;
+	DyninstMutator::setup(param);
+	debugPrint = param["debugPrint"]->getInt();
+	bpatch = (BPatch *)(param["bpatch"]->getPtr());
+	return PASSED;
 }

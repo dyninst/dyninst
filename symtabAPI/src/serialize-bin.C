@@ -507,3 +507,32 @@ void bogus_func()
    //localVarCollection *lvC;
    //sd_translate(lvC, sd_bin);
 }
+
+#if 0
+SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
+{
+	SerializerBin<Symtab> *ser;
+	ser = new SerializerBin<Symtab>(t, "SerializerBin", file, sd_serialize, true);
+	return ser;
+}
+
+SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
+{
+	SerializerBin<Symtab> *ser;
+	ser = new SerializerBin<Symtab>(t, "DeserializerBin", file, sd_deserialize, true);
+	return ser;
+}
+
+void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
+{
+	SerializerBin<Symtab> *sbin = dynamic_cast<SerializerBin<Symtab> *>(sb);
+	if (sbin)
+	{
+		delete(sbin);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+
+}
+#endif
+

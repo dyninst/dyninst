@@ -148,7 +148,7 @@ protected:
     std::vector< Region *> regions_;
 
     dyn_hash_map< std::string, std::vector< Symbol *> > symbols_;
-    map< Symbol *, std::string > symsToModules_;
+	std::map< Symbol *, std::string > symsToModules_;
     dyn_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
 
     char*   code_ptr_;

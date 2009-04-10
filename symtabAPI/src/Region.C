@@ -82,17 +82,26 @@ Region& Region::operator=(const Region &reg)
 
 bool Region::operator==(const Region &reg)
 {
+            //(rawDataPtr_ == reg.rawDataPtr_) &&
+            //(buffer_ == reg.buffer_));
+
+	if (rels_.size() != reg.rels_.size()) return false;
+
+	for (unsigned int i = 0; i < rels_.size(); ++i)
+	{
+		if (!(rels_[i]== reg.rels_[i])) return false;
+	}
+
     return ((regNum_== reg.regNum_) &&
             (name_ == reg.name_) &&
             (diskOff_ == reg.diskOff_) &&
             (diskSize_ == reg.diskSize_) &&
             (memOff_ == reg.memOff_) &&
             (memSize_ == reg.memSize_) &&
-            (rawDataPtr_ == reg.rawDataPtr_) &&
             (permissions_ == reg.permissions_) &&
             (rType_ == reg.rType_) &&
             (isDirty_ == reg.isDirty_) &&
-            (buffer_ == reg.buffer_));
+            (isLoadable_ == reg.isLoadable_));
 }
 
 ostream& Region::operator<< (ostream &os)
@@ -149,9 +158,9 @@ const char *Region::regionType2Str(RegionType rt)
    return "bad_RegionTypeype";
 };
 
-void Region::serialize(SerializerBase *sb, const char *tag)
+void Region::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-   ifxml(SerializerXML::start_xml_element, sb, tag);
+   ifxml_start_element(sb, tag);
    gtranslate(sb, regNum_, "RegionNumber");
    gtranslate(sb, name_, "RegionName");
    gtranslate(sb, diskOff_, "DiskOffset");
@@ -162,9 +171,13 @@ void Region::serialize(SerializerBase *sb, const char *tag)
    gtranslate(sb, rType_, regionType2Str, "RegionType");
    gtranslate(sb, isDirty_, "Dirty");
    gtranslate(sb, rels_, "Relocations", "Relocation");
-   gtranslate(sb, buffer_, "Buffer");
    gtranslate(sb, isLoadable_, "isLoadable");
-   ifxml(SerializerXML::end_xml_element, sb, tag);
+   ifxml_end_element(sb, tag);
+   if (sb->isInput())
+   {
+	   buffer_ = NULL;
+	   rawDataPtr_ = NULL;
+   }
 }
 
 unsigned Region::getRegionNumber() const

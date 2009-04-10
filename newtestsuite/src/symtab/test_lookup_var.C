@@ -78,16 +78,6 @@ test_results_t test_lookup_func_Mutator::executeTest()
       return FAILED;
    }
 
-#if 0
-    Variable *var = vars[0];
-
-   if (var->getType() != Symbol::ST_OBJECT)
-   {
-      logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
-               __FILE__, __LINE__);
-      return FAILED;
-   }
-#endif
 
    return PASSED;
 }

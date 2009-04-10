@@ -39,6 +39,7 @@
 #include "Module.h"
 #include "Collections.h"
 #include "Variable.h"
+#include "Aggregate.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -48,27 +49,273 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+localVar::localVar(std::string name,  Type *typ, std::string fileName, 
+		int lineNum, std::vector<VariableLocation>* locs) :
+	name_(name), 
+	type_(typ), 
+	fileName_(fileName), 
+	lineNum_(lineNum), 
+	locs_(locs), 
+	upPtr_(NULL)
+{
+	type_->incrRefCount();
+}
+
+localVar::localVar(localVar &lvar) 
+{
+	name_ = lvar.name_;
+	type_ = lvar.type_;
+	fileName_ = lvar.fileName_;
+	lineNum_ = lvar.lineNum_;
+
+	if (!lvar.locs_)
+	{
+		locs_ = NULL;
+	}
+	else 
+	{
+		locs_ = new vector<VariableLocation>;
+
+		for (unsigned i=0;i<lvar.locs_->size();i++)
+		{
+			locs_->push_back((*lvar.locs_)[i]);
+		}
+	}
+
+	upPtr_ = lvar.upPtr_;
+
+	if (type_ != NULL)
+	{
+		type_->incrRefCount();
+	}
+}
+
+bool localVar::addLocation(VariableLocation *location)
+{
+	if (!locs_)
+	{
+		locs_ = new std::vector<VariableLocation>;
+	}
+
+	locs_->push_back(*location);
+
+	return true;
+}
+
+bool localVar::setLocation(vector<VariableLocation> &locs) 
+{
+	if (locs_)
+		return false;
+
+	locs_ = new vector<VariableLocation>;
+	*locs_ = locs;
+
+	return true;
+}
+
+localVar::~localVar()
+{
+	//XXX jdd 5/25/99 More to do later
+	type_->decrRefCount();
+	delete locs_;
+	locs_ = NULL;
+	delete locs_;
+}
+
+void localVar::fixupUnknown(Module *module) 
+{
+	if (type_->getDataClass() == dataUnknownType) 
+	{
+		Type *otype = type_;
+		type_ = module->getModuleTypes()->findType(type_->getID());
+
+		if (type_)
+		{
+			type_->incrRefCount();
+			otype->decrRefCount();
+		}
+		else
+			type_ = otype;
+	}
+}
+
+std::string &localVar::getName() 
+{
+	return name_;
+}
+
+Type *localVar::getType() 
+{
+	return type_;
+}
+
+bool localVar::setType(Type *newType) 
+{
+	type_ = newType;
+	return true;
+}
+
+int localVar::getLineNum() 
+{
+	return lineNum_;
+}
+
+std::string &localVar::getFileName() 
+{
+	return fileName_;
+}
+
+std::vector<Dyninst::SymtabAPI::VariableLocation> *localVar::getLocationLists() 
+{
+	return locs_;
+}
+
+void *localVar::getUpPtr() const
+{
+	return upPtr_;
+}
+
+bool localVar::setUpPtr(void *upPtr) 
+{
+	upPtr_ = upPtr;
+	return true;
+}
+
 Variable::Variable(Symbol *sym) :
-    Aggregate(sym),
-    type_(NULL)
+	Aggregate(sym),
+	type_(NULL)
 {
 }
 
+Variable::Variable() :
+	Aggregate(),
+	type_(NULL)
+{
+}
 void Variable::setType(Type *type)
 {
-   type_ = type;
+	//fprintf(stderr, "%s[%d]:  setting variable %s to type id %d\n", FILE__, __LINE__, prettyName.c_str(), type ? type->getID() : 0xdeadbeef);
+	type_ = type;
 }
 
 Type* Variable::getType()
 {
-   module_->exec()->parseTypesNow();
-   return type_;
+	module_->exec()->parseTypesNow();
+	return type_;
 }
 
-bool Variable::removeSymbol(Symbol *sym) {
+void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+{
+	//fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
+	if (!sb)
+	{
+		SER_ERR("bad paramater sb");
+	}
+
+	//  Use typeID as unique identifier
+	//  magic numbers stink, but we use both positive and negative numbers for type ids
+	unsigned int t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
+
+	try 
+	{
+		ifxml_start_element(sb, tag);
+		gtranslate(sb, t_id, "typeID");
+		Aggregate::serialize_aggregate(sb);
+		ifxml_end_element(sb, tag);
+		if (sb->isInput())
+		{
+		   if (t_id == 0xdeadbeef)
+		   {
+			   type_ = NULL;
+		   }
+		   else
+		   {
+			   restore_type_by_id(sb, type_, t_id);
+		   }
+		} 
+	}
+	SER_CATCH(tag);
+}
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
+{
+	std::string tname(v.type_ ? v.type_->getName() : "no_type");
+	const Aggregate *ag = dynamic_cast<const Aggregate *>(&v);
+	assert(ag);
+
+	os  << "Variable{"        
+		<< " type=" 
+		<< tname
+	    << " ";						   
+	os  << 	*ag;					   
+	os  << 	"}";
+	return os;	
+
+}
+bool Variable::operator==(const Variable &v)
+{
+	if (type_ && !v.type_)
+		return false;
+	if (!type_ && v.type_)
+		return false;
+	if (type_)
+		if (type_->getID() != v.type_->getID())
+		{
+			return false;
+		}
+	return ((Aggregate &)(*this)) == ((Aggregate &)v);
+}
+
+bool Variable::removeSymbol(Symbol *sym) 
+{
     removeSymbolInt(sym);
     if (symbols_.empty()) {
         module_->exec()->deleteVariable(this);
     }
     return true;
+}
+
+namespace Dyninst {
+	namespace SymtabAPI {
+const char *storageClass2Str(Dyninst::SymtabAPI::storageClass sc) 
+{
+	switch(sc) {
+		CASE_RETURN_STR(storageAddr);
+		CASE_RETURN_STR(storageReg);
+		CASE_RETURN_STR(storageRegOffset);
+	};
+	return "bad_storage_class";
+}
+
+const char *storageRefClass2Str(Dyninst::SymtabAPI::storageRefClass sc) 
+{
+	switch(sc) {
+		CASE_RETURN_STR(storageRef);
+		CASE_RETURN_STR(storageNoRef);
+	};
+	return "bad_storage_class";
+}
+}
+}
+
+bool VariableLocation::operator==(const VariableLocation &f)
+{
+	if (stClass != f.stClass) return false;
+	if (refClass != f.refClass) return false;
+	if (reg != f.reg) return false;
+	if (frameOffset != f.frameOffset) return false;
+	if (hiPC != f.hiPC) return false;
+	if (lowPC != f.lowPC) return false;
+	return true;
+}
+void VariableLocation::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+{
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, (int &)stClass, "StorageClass");
+	gtranslate(sb, (int &)refClass, "StorageRefClass");
+	gtranslate(sb, reg, "register");
+	gtranslate(sb, frameOffset, "frameOffset");
+	gtranslate(sb, hiPC, "hiPC");
+	gtranslate(sb, lowPC, "lowPC");
+	ifxml_end_element(sb, tag);
 }

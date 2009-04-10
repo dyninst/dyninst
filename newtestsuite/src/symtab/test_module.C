@@ -128,7 +128,7 @@ test_results_t test_module_Mutator::executeTest()
 	   std::string modfullname = mod->fullName();
 	   Offset offset = mod->addr();
 
-	   fprintf(stderr, "%s[%d]:  considering module %s\n", FILE__, __LINE__, modname.c_str());
+	   //fprintf(stderr, "%s[%d]:  considering module %s\n", FILE__, __LINE__, modname.c_str());
 
 	   if (malformed_module(mod))
 	   {

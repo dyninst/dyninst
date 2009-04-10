@@ -60,3 +60,4 @@ class ComponentTester {
 };
 
 #endif
+

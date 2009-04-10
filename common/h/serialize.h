@@ -57,6 +57,7 @@
 #include "common/h/sha1.h"
 #include "common/h/pathName.h"
 
+
 namespace Dyninst {
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
@@ -87,6 +88,12 @@ class SerFile;
 
 class SerializerBase {
 
+	public:
+		//  TODO:  make these private or protected
+   COMMON_EXPORT static dyn_hash_map<std::string, SerializerBase *> active_bin_serializers;
+   static bool global_disable;
+	private:
+
    SerFile *sf;
    SerDes *sd;
 
@@ -96,13 +103,34 @@ class SerializerBase {
    COMMON_EXPORT static dyn_hash_map<std::string, subsystem_serializers_t> all_serializers;
 
    public:
+   COMMON_EXPORT static void globalDisable()
+   {
+	   global_disable = true;
+   }
+   COMMON_EXPORT static bool serializationDisabled()
+   {
+	   return global_disable; 
+   }
+
+   COMMON_EXPORT static void globalEnable()
+   {
+	   global_disable = false;
+   }
+   COMMON_EXPORT virtual bool isXML() = 0;
+   COMMON_EXPORT virtual bool isBin ()= 0;
+   COMMON_EXPORT bool isInput () {return iomode() == sd_deserialize;}
+   COMMON_EXPORT bool isOutput () {return iomode() == sd_serialize;}
+
+   COMMON_EXPORT static void dumpActiveBinSerializers();
 
    COMMON_EXPORT SerializerBase(const char *name_, std::string filename, 
          iomode_t dir, bool verbose); 
 
+   COMMON_EXPORT SerializerBase();
+   
    COMMON_EXPORT virtual ~SerializerBase() 
    {
-      fprintf(stderr, "%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, 
+      serialize_printf("%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, 
             this, serializer_name.c_str());
    }
 
@@ -137,63 +165,33 @@ class SerializerBase {
 };
 
 
-class SerDesXML;
-class SerDesBin;
-
-class SerializerXML : public SerializerBase {
-
-   public:
-
-      COMMON_EXPORT SerializerXML(const char *name_, std::string filename, 
-            iomode_t dir, bool verbose) :
-         SerializerBase(name_, filename, dir, verbose) {}
-
-      COMMON_EXPORT ~SerializerXML() {}
-
-      COMMON_EXPORT SerDesXML &getSD_xml();
-
-      COMMON_EXPORT static bool start_xml_element(SerializerBase *, const char *);
-      COMMON_EXPORT static bool end_xml_element(SerializerBase *, const char *);
+template <class T>
+class ScopedSerializerBase : public SerializerBase
+{
+	T *scope;
+	public:
+	ScopedSerializerBase(T *scope_, const char *name_, std::string filename, 
+			iomode_t dir, bool verbose) :
+		SerializerBase(name_, filename, dir, verbose), scope(scope_) {}
+	ScopedSerializerBase(T *scope_) :
+		SerializerBase(), scope(scope_) {}
+	virtual ~ScopedSerializerBase() {}
+	T *getScope() {return scope;}
 };
 
-class SerializerBin : public SerializerBase {
-   friend class SerDesBin;
-
-   static dyn_hash_map<const char *, SerializerBin *> active_bin_serializers;
-   static bool global_disable;
-
-   public:
-
-   COMMON_EXPORT SerializerBin(const char *name_, std::string filename, 
-         iomode_t dir, bool verbose); 
-
-   COMMON_EXPORT ~SerializerBin(); 
-
-   COMMON_EXPORT SerDesBin &getSD_bin();
-   static void globalDisable();
-   static void globalEnable();
-
-   static SerializerBin *findSerializerByName(const char *);
-
-   static void dumpActiveBinSerializers();
-};
-
-
-//COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
-//COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
 
 class SerDes {
 
-   //  SerDes is a base class that provides generic serialization/deserialization
-   //  access primitives and a common interface, (a toolbox, if you will).
-   //  It is specialized (currently) by SerDesBin and SerDesXML, which implement the 
-   //  actual low-level ser-des routines 
+	//  SerDes is a base class that provides generic serialization/deserialization
+	//  access primitives and a common interface, (a toolbox, if you will).
+	//  It is specialized (currently) by SerDesBin and SerDesXML, which implement the 
+	//  actual low-level ser-des routines 
 
-   //  anno_funcs is a mapping of annotation type
-   //  onto functions used to deserialize that type of annotation
-   //  NOTE:  annotation types identifiers might not be consistent between different
-   //  runs of dyninst, since annotation name->type mapping is determined dynamically
-   //  at runtime.  Thus, when deserializing annotations, a new mapping will have to be 
+	//  anno_funcs is a mapping of annotation type
+	//  onto functions used to deserialize that type of annotation
+	//  NOTE:  annotation types identifiers might not be consistent between different
+	//  runs of dyninst, since annotation name->type mapping is determined dynamically
+	//  at runtime.  Thus, when deserializing annotations, a new mapping will have to be 
    //  constructed.
 
    public:
@@ -263,7 +261,6 @@ class SerDes {
 
 class SerDesXML : public SerDes {
    friend class SerFile;
-   friend class SerializerXML;
    friend bool COMMON_EXPORT ifxml_start_element(SerializerBase *, const char *);
    friend bool COMMON_EXPORT ifxml_end_element(SerializerBase *, const char *);
 
@@ -393,8 +390,178 @@ class SerDesBin : public SerDes {
 
 };
 
+bool start_xml_elem(void *writer, const char *tag);
+bool end_xml_elem(void *);
 
-class COMMON_EXPORT SerFile {
+template <class T>
+class SerializerXML : public ScopedSerializerBase<T> 
+{
+   public:
+   COMMON_EXPORT virtual bool isXML() {return true;}
+   COMMON_EXPORT virtual bool isBin () {return false;}
+
+      COMMON_EXPORT SerializerXML(T *t, const char *name_, std::string filename, 
+            iomode_t dir, bool verbose) :
+         ScopedSerializerBase<T>(t, name_, filename, dir, verbose) {}
+
+      COMMON_EXPORT virtual ~SerializerXML() {}
+
+      COMMON_EXPORT SerDesXML &getSD_xml()
+	  {
+		  SerializerBase *sb = this;
+		  SerDes &sd = sb->getSD();
+		  SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
+		  assert(sdxml);
+		  return *sdxml;
+	  }
+
+      COMMON_EXPORT static bool start_xml_element(SerializerBase *sb, const char *tag)
+	  {
+		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+
+		  if (!sxml)
+		  {
+			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+					  FILE__, __LINE__);
+			  return false;
+		  }
+
+		  SerDesXML sdxml = sxml->getSD_xml();
+		  start_xml_elem(sdxml.writer, tag);
+		  return true;
+	  }
+
+      COMMON_EXPORT static bool end_xml_element(SerializerBase *sb, const char *)
+	  {
+		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+
+		  if (!sxml)
+		  {
+			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+					  FILE__, __LINE__);
+			  return false;
+		  }
+
+		  SerDesXML sdxml = sxml->getSD_xml();
+		  end_xml_elem(sdxml.writer);
+
+		  return true;
+	  }
+};
+
+template <class T>
+class SerializerBin : public ScopedSerializerBase<T> {
+   friend class SerDesBin;
+
+
+   public:
+   virtual bool isXML() {return false;}
+   virtual bool isBin () {return true;}
+
+   SerializerBin(T *t)  :
+	   ScopedSerializerBase<T>(t) {}
+
+   SerializerBin(T *t, const char *name_, std::string filename, 
+         iomode_t dir, bool verbose) :
+	   ScopedSerializerBase<T>(t, name_, filename, dir, verbose)
+
+   {
+	   SerializerBase *sb = this;
+	   if (sb->serializationDisabled())
+	   {
+		   fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n",
+				   FILE__, __LINE__);
+
+		   throw SerializerError(FILE__, __LINE__,
+				   std::string("serialization disabled"),
+				   SerializerError::ser_err_disabled);
+	   }
+
+	   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
+
+	   iter = sb->active_bin_serializers.find(std::string(name_));
+
+	   if (iter == sb->active_bin_serializers.end())
+	   {
+		   serialize_printf("%s[%d]:  Adding Active serializer for name %s\n",
+				   FILE__, __LINE__, name_);
+
+		   sb->active_bin_serializers[std::string(name_)] = this;
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n",
+				   FILE__, __LINE__, name_);
+	   }
+
+
+   }
+
+   virtual ~SerializerBin()
+   {
+	   serialize_printf("%s[%d]:  WELCOME TO SERIALIZER_BIN dtor\n", FILE__, __LINE__);
+	   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
+
+	   SerializerBase *sb = this;
+	   iter = sb->active_bin_serializers.find(sb->name());
+
+	   if (iter == sb->active_bin_serializers.end())
+	   {
+		   fprintf(stderr, "%s[%d]:  Weird, no static ptr for name %s\n",
+				   FILE__, __LINE__, sb->name().c_str());
+	   }
+	   else
+	   {
+		   serialize_printf("%s[%d]:  Removing active serializer for name %s\n",
+				   FILE__, __LINE__, sb->name().c_str());
+		   sb->active_bin_serializers.erase(iter);
+	   }
+
+   }
+
+   SerDesBin &getSD_bin()
+   {
+	   SerializerBase *sb = this;
+	   SerDes &sd = sb->getSD();
+	   SerDesBin *sdbin = dynamic_cast<SerDesBin *> (&sd);
+	   assert(sdbin);
+	   return *sdbin;
+   }
+
+
+   static SerializerBin *findSerializerByName(const char *name_)
+   {
+	   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
+
+	   iter = SerializerBase::active_bin_serializers.find(std::string(name_));
+
+	   if (iter == SerializerBase::active_bin_serializers.end())
+	   {
+		   fprintf(stderr, "%s[%d]:  No static ptr for name %s\n",
+				   FILE__, __LINE__, name_);
+		   SerializerBase::dumpActiveBinSerializers();
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n",
+				   FILE__, __LINE__, name_);
+
+		   return iter->second;
+	   }
+
+	   return NULL;
+   }
+
+
+};
+
+
+//COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
+//COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
+
+
+
+class SerFile {
 
    SerDes *sd;
 #if defined (cap_have_libxml)
@@ -406,12 +573,12 @@ class COMMON_EXPORT SerFile {
 
    public:
 
-   SerDes *getSD() 
+   COMMON_EXPORT SerDes *getSD() 
    {
       return sd;
    }
 
-   SerFile(std::string fname, iomode_t mode, bool verbose = false) :
+   COMMON_EXPORT SerFile(std::string fname, iomode_t mode, bool verbose = false) :
       writer (NULL), 
       f(NULL), 
       iomode_(mode), 
@@ -458,7 +625,7 @@ class COMMON_EXPORT SerFile {
       }
       else 
       {
-         fprintf(stderr, "%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, 
+         serialize_printf("%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, 
                filename.c_str(), mode == sd_serialize ? "output" : "input");
 
          f = SerDesBin::init(fname, mode, verbose);
@@ -473,7 +640,7 @@ class COMMON_EXPORT SerFile {
       }
    }
 
-   iomode_t iomode() 
+   COMMON_EXPORT iomode_t iomode() 
    {
       return iomode_;
    }
@@ -496,9 +663,9 @@ class SpecAdaptor {
 
    public:
 
-      SpecAdaptor() {}
+      COMMON_EXPORT SpecAdaptor() {}
 
-      T *operator()(S *s, T &t, const char *tag) 
+      COMMON_EXPORT T *operator()(S *s, T &t, const char *tag) 
       {
          s->translate_base(t, tag);
          return &t;
@@ -510,9 +677,9 @@ class SpecAdaptor<S, T *> {
 
    public:
 
-      SpecAdaptor() {}
+      COMMON_EXPORT SpecAdaptor() {}
 
-      T* operator()(S *s, T *t, const char *tag) 
+      COMMON_EXPORT T* operator()(S *s, T *t, const char *tag) 
       {
          assert(t);
          assert(s);
@@ -521,7 +688,7 @@ class SpecAdaptor<S, T *> {
       }
 };
 
-   template <class S, class T> 
+template <class S, class T> 
 void sd_translate(S *sd, T &it, const char * tag) 
 {
    fprintf(stderr, "%s[%d]:  welcome to sd_translate<%s, %s>(%p)\n", 
@@ -545,7 +712,7 @@ class trans_adaptor<S, dyn_hash_map<T, TT2> > {
 
    public:
 
-      trans_adaptor() 
+      COMMON_EXPORT trans_adaptor() 
       {
          fprintf(stderr, "%s[%d]:  welcome to trans_adaptor<%s, hash<%s, %s> >()\n",
                FILE__, __LINE__,
@@ -553,7 +720,7 @@ class trans_adaptor<S, dyn_hash_map<T, TT2> > {
                typeid(T).name(), typeid(TT2).name() );
       }
 
-      dyn_hash_map<T, TT2> * operator()(S *ser, dyn_hash_map<T, TT2> &m, 
+      COMMON_EXPORT dyn_hash_map<T, TT2> * operator()(S *ser, dyn_hash_map<T, TT2> &m, 
             const char *tag = NULL, const char *tag2 = NULL) 
       {
          fprintf(stderr, "%s[%d]:  hash_size = %d\n", FILE__, __LINE__, m.size());
@@ -566,6 +733,7 @@ class trans_adaptor<S, dyn_hash_map<T, TT2> > {
 
 
 
+#if 0
 class SerTest : public Serializable {
 
    int my_int;
@@ -593,5 +761,6 @@ class SerTest : public Serializable {
       serialize( &sb);
    }
 };
+#endif
 } /*namespace Dyninst*/
 #endif

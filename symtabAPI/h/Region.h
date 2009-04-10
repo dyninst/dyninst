@@ -87,7 +87,6 @@ class Region : public Serializable, public AnnotatableSparse {
          std::string name = "", char *rawDataPtr = NULL);
    SYMTAB_EXPORT Region(const Region &reg);
    SYMTAB_EXPORT Region& operator=(const Region &reg);
-   SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag = "Region");
    SYMTAB_EXPORT std::ostream& operator<< (std::ostream &os);
    SYMTAB_EXPORT bool operator== (const Region &reg);
 
@@ -123,6 +122,9 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT RegionType getRegionType() const;
 
    SYMTAB_EXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
+
+   SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+		   const char *tag = "Region") THROW_SPEC (SerializerError);
 
    protected:                     
    SYMTAB_EXPORT Region(unsigned regnum, std::string name, Offset diskOff,

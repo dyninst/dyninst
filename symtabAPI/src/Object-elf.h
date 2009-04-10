@@ -44,16 +44,20 @@
 #endif
 
 
-#include "common/h/MappedFile.h"
-#include "symtabAPI/h/Symbol.h"
-#include "symtabAPI/h/Symtab.h"
 #include "common/h/headers.h"
 #include "common/h/Types.h"
-
+#include "common/h/MappedFile.h"
 #include "common/h/IntervalTree.h"
+
+#if 0
+#include "symtabAPI/h/Symbol.h"
+#include "symtabAPI/h/Symtab.h"
+#endif
+
 
 #include <elf.h>
 #include <libelf.h>
+#include <string>
 
 #include "Elf_X.h"
 
@@ -543,8 +547,8 @@ class Object : public AObject {
                          std::vector<ExceptionBlock> &catch_addrs);
 
 #if defined(USES_DWARF_DEBUG)
-  string find_symbol(string name); 
-  void fixSymbolsInModule(Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry);
+  std::string find_symbol(std::string name); 
+  void fixSymbolsInModule(Dwarf_Debug dbg, std::string & moduleName, Dwarf_Die dieEntry);
   unsigned fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &module_ranges);
 #endif
 

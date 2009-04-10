@@ -237,15 +237,6 @@ SYMTAB_EXPORT bool Symbol::getVersionFileName(std::string &fileName)
    }
 
    return false;
-
-#if 0
-   Annotatable<std::string, symbol_file_name_a> &fn = *this;
-   if (!fn.size()) {
-      return false;
-   }
-   fileName = fn[0];
-   return true;
-#endif
 }
 
 SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
@@ -266,61 +257,92 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    }
 
    return false;
-
-#if 0
-   Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
-   if (!sv.size()) {
-      return false;
-   }
-   vers = &(sv[0]);
-   return true;
-#endif
 }
 
-void Symbol::serialize(SerializerBase *s, const char *tag) 
+void Symbol::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
-   try {
-      ifxml_start_element(s, tag);
-      gtranslate(s, type_, symbolType2Str, "type");
-      gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
-      gtranslate(s, tag_, symbolTag2Str, "tag");
-      gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
-      gtranslate(s, offset_, "offset");
-      gtranslate(s, ptr_offset_, "ptr_offset");
-      gtranslate(s, size_, "size");
-      gtranslate(s, isDynamic_, "isDynamic"); 
-      gtranslate(s, isAbsolute_, "isAbsolute");
-      gtranslate(s, prettyName_, "prettyName", "prettyName");
-      gtranslate(s, mangledName_, "mangledName", "mangledName");
-      gtranslate(s, typedName_, "typedName", "typedName");
-      //  Note:  have to deal with retType_ here?? Probably use type id.
-      ifxml_end_element(s, "Symbol");
-#if 0
-      symbol_start(param);
-      translate(param.type_, "type");
-      translate(param.linkage_, "linkage");
-      translate(param.tag_, "tag");
-      getSD().translate(param.offset_, "offset");
-      getSD().translate(param.ptr_offste_, "ptr_offset");
-      getSD().translate(param.size_, "size");
-      getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
-      getSD().translate(param.isInSymtab_, "isInSymtab");
-      getSD().translate(param.prettyName_, "prettyName", "prettyName");
-      getSD().translate(param.mangledName_, "mangledName", "mangledName");
-      getSD().translate(param.typedName_, "typedName", "typedName");
-      getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
-      //  Note:  have to deal with retType_ here?? Probably use type id.
-      symbol_end(param);
-#endif
-   } SER_CATCH("Symbol");
+	//  Need to serialize regions before symbols
+	//  Use disk offset as unique identifier
+	Region *r = region_;
+	Offset r_off = r ? r->getDiskOffset() : (Offset) 0;
+	std::string modname = "";
+	if (!module_)
+		fprintf(stderr, "%s[%d]:  WARN:  NULL module\n", FILE__, __LINE__);
+	else
+	    modname = module_->fullName();
+
+	try {
+		ifxml_start_element(s, tag);
+		gtranslate(s, type_, symbolType2Str, "type");
+		gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
+		gtranslate(s, tag_, symbolTag2Str, "tag");
+		gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
+		gtranslate(s, offset_, "offset");
+		gtranslate(s, size_, "size");
+		gtranslate(s, index_, "index");
+		gtranslate(s, isDynamic_, "isDynamic");
+		gtranslate(s, isAbsolute_, "isAbsolute");
+		gtranslate(s, prettyName_, "prettyName");
+		gtranslate(s, mangledName_, "mangledName");
+		gtranslate(s, typedName_, "typedName");
+		gtranslate(s, r_off, "regionDiskOffset");
+		gtranslate(s, modname, "moduleName");
+		ifxml_end_element(s, "Symbol");
+
+		//  Now, if we are doing binary deserialization, lookup type and region by unique ids
+		if (s->isBin() && s->isInput())
+			restore_module_and_region(s, modname, r_off);
+
+	} SER_CATCH("Symbol");
 }
 
+void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, Offset r_off) THROW_SPEC (SerializerError)
+{
+	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(s);
+
+	if (!ssb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Symtab *st = ssb->getScope();
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	module_ = NULL;
+
+	if (modname.length())
+	{
+		//  All symbols should have an associated module
+		if (!st->findModuleByName(module_, modname) || !module_)
+		{
+			//  This should throw...  but not quite ready for that yet
+			fprintf(stderr, "%s[%d]:  WARNING:  No module '%s' for symbol\n", 
+					FILE__, __LINE__, modname.c_str());
+		}
+	}
+
+	region_ = NULL;
+
+	//  All symbols should have an associated region 
+	if (!st->findRegionByEntry(region_, r_off) || !region_)
+	{
+		//  This should throw...  but not quite ready for that yet
+		fprintf(stderr, "%s[%d]:  WARNING:  No region for symbol\n", 
+				FILE__, __LINE__);
+	}
+
+}
 
 ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
-    return os << "{"
-              << " mangled=" << s.getMangledName()
-              << " pretty="  << s.getPrettyName()
+	return os << "{"
+		<< " mangled=" << s.getMangledName()
+		<< " pretty="  << s.getPrettyName()
               << " module="  << s.module_
         //<< " type="    << (unsigned) s.type_
               << " type="    << s.symbolType2Str(s.type_)
@@ -360,19 +382,36 @@ ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const ExceptionBlock &eb)
 	return s; 
 }
 
-inline
-bool
-Symbol::operator==(const Symbol& s) const 
+bool Symbol::operator==(const Symbol& s) const
 {
-    return ((s.module_ == module_) && 
-            (s.type_ == type_) &&
-            (s.linkage_ == linkage_) &&
-            (s.visibility_ == visibility_) &&
-            (s.offset_ == offset_) &&
-            (s.region_ == region_) &&
-            (s.size_ == size_) &&
-            (s.isDynamic_ == isDynamic_) &&
-            (s.isAbsolute_ == isAbsolute_) &&
-            (s.mangledName_ == mangledName_));
+	// explicitly ignore tags when comparing symbols
+
+	//  compare sections by offset, not pointer
+	if (!region_ && s.region_) return false;
+	if (region_ && !s.region_) return false;
+	if (region_)
+	{
+		if (region_->getDiskOffset() != s.region_->getDiskOffset())
+			return false;
+	}
+
+	// compare modules by name, not pointer
+	if (!module_ && s.module_) return false;
+	if (module_ && !s.module_) return false;
+	if (module_)
+	{
+		if (module_->fullName() != s.module_->fullName())
+			return false;
+	}
+
+	return (   (type_    == s.type_)
+			&& (linkage_ == s.linkage_)
+			&& (offset_    == s.offset_)
+			&& (size_    == s.size_)
+			&& (isDynamic_ == s.isDynamic_)
+			&& (isAbsolute_ == s.isAbsolute_)
+			&& (mangledName_ == s.mangledName_)
+			&& (prettyName_ == s.prettyName_)
+			&& (typedName_ == s.typedName_));
 }
 

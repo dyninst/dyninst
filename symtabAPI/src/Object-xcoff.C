@@ -72,6 +72,7 @@ using namespace std;
 #include <iomanip>
 
 #include <xcoff.h>
+#include <exceptab.h>
 #define __AR_BIG__
 #define __AR_SMALL__
 #include <ar.h> // archive file format.
@@ -424,55 +425,8 @@ int xcoffArchive_64::read_mbrhdr()
 
 std::vector<fileOpener *> fileOpener::openedFiles;
 
-#if 0
-fileOpener *fileOpener::openFile(const std::string &filename) {
-    // Logic: if we're opening a library, match by name. If
-    // we're opening an a.out, then we have to uniquely
-    // open each time (as we open in /proc, and exec has the
-    // same name).
-
-    if(filename.substr(0,5) != "/proc"){
-     for (unsigned i = 0; i < openedFiles.size(); i++) {
-            if (openedFiles[i]->file() == filename) {
-                openedFiles[i]->refcount_++;
-                return openedFiles[i];
-            }
-        }
-    }
-    
-    // Originally we were checking if its a shared Object. Now we 
-    // check if the filename does not start with a /proc
-    /*if (desc.isSharedObject()) {
-        for (unsigned i = 0; i < openedFiles.size(); i++) {
-            if (openedFiles[i]->file() == desc.file()) {
-                openedFiles[i]->refcount_++;
-                return openedFiles[i];
-            }
-        }
-    }*/
-    
-    // New file. Neeefty.
-    fileOpener *newFO = new fileOpener(filename);
-    assert(newFO);
-   
-    if (!newFO->open()) {
-        fprintf(stderr, "File %s\n", filename.c_str());
-        //perror("Opening file");
-        return NULL;
-    }
-    fprintf(stderr, "%s[%d]:  FIXME: DOING MMAP HERE!\n", FILE__, __LINE__);
-    abort();
-    if (!newFO->mmap()) {
-        fprintf(stderr, "File %s\n", filename.c_str());
-        //perror("mmaping file");
-        return NULL;
-    }
-    openedFiles.push_back(newFO);
-
-    return newFO;
-}
-#endif
-fileOpener *fileOpener::openFile(void *ptr, unsigned size) {
+fileOpener *fileOpener::openFile(void *ptr, unsigned size) 
+{
     // Logic: if we're opening a library, match by name. If
     // we're opening an a.out, then we have to uniquely
     // open each time (as we open in /proc, and exec has the
@@ -645,6 +599,7 @@ Region::RegionType getRegionType(unsigned flags){
 #define SCNH_SCNPTR(i)  ((*(uint64_t *)(scnh_base + scn_size * (i) + s_scnptr_off)) >> word_shift)
 #define SCNH_RELPTR(i)  ((*(uint64_t *)(scnh_base + scn_size * (i) + s_relptr_off)) >> word_shift)
 #define SCNH_LNNOPTR(i) ((*(uint64_t *)(scnh_base + scn_size * (i) + s_lnnoptr_off)) >> word_shift)
+#define SCNH_EXCEPTPTR(i) ((*(uint64_t *)(scnh_base + scn_size * (i) + s_exceptptr_off)) >> word_shift)
 #define SCNH_NRELOC(i)  ((*(uint32_t *)(scnh_base + scn_size * (i) + s_nreloc_off)) >> half_shift)
 #define SCNH_NLNNO(i)   ((*(uint32_t *)(scnh_base + scn_size * (i) + s_nlnno_off)) >> half_shift)
 #define SCNH_FLAGS(i)    (*(uint32_t *)(scnh_base + scn_size * (i) + s_flags_off))
@@ -655,6 +610,79 @@ Region::RegionType getRegionType(unsigned flags){
 // and are only meant to be used from within Object::parse_aout().
 // 
 
+bool Object::fillExceptionTable(struct exceptab *etab, unsigned int etab_size, bool is64,
+		struct syment *symbols)
+
+{
+	//  Unfortunately the xcoff exception table appears to hold locations for 
+	//  trap instructions, but nothing to do with c++ exceptions??
+	//  This routine is not what we want
+	if (!etab)
+	{
+		fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
+		return false;
+	}
+
+	for (unsigned int i = 0; i < etab_size; ++i)
+	{
+		struct exceptab *tabentry = ((struct exceptab *)etab) + i;
+		if (!tabentry)
+		{
+			fprintf(stderr, "%s[%d]:  bad table entry!\n", FILE__, __LINE__);
+			continue;
+		}
+
+		//  Warn:  header files expressly warn against using sizeof(EXCEPTTAB)
+		if (is64)
+		{
+			char lang = tabentry->_u._s64._lang64;
+			char reason = tabentry->_u._s64._reason64;
+			if (reason == 0)
+			{
+				//  This case happens for the first exception entry
+				//  for a given function.  If this is zero, the address
+				//  field contains the symbol table entry of the 
+				//  relevant function
+				int symindex = tabentry->_u._s64._addr64.e_symndx;
+				struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
+				const char *name =  &stringPool[ sym->n_offset64 ];
+				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%s\n", 
+						FILE__, __LINE__, lang, reason,  name ? name : "no_name");
+			}
+			else
+			{
+				uint64_t addr = tabentry->_u._s64._addr64.e_paddr;
+				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%p\n", 
+						FILE__, __LINE__, lang, reason, addr);
+			}
+			//catch_addrs_.push_back(new ExceptionBlock(addr));
+		}
+		else 
+		{
+			char lang = tabentry->_u._s32._lang32;
+			char reason = tabentry->_u._s32._reason32;
+			if (reason == 0)
+			{
+				//  This case happens for the first exception entry
+				//  for a given function.  If this is zero, the address
+				//  field contains the symbol table entry of the 
+				//  relevant function
+				int symindex = tabentry->_u._s32._addr32.e_symndx;
+				struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
+				const char *name =  &stringPool[ sym->n_offset32 ] ;
+				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%s\n", 
+						FILE__, __LINE__, lang, reason, name ? name : "no_name");
+			}
+			else
+			{
+				uint32_t addr = tabentry->_u._s32._addr32.e_paddr;
+				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%p\n", 
+						FILE__, __LINE__, lang, reason, addr);
+			}
+		}
+	}
+	return true;
+}
 
 void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
 {
@@ -664,19 +692,22 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    std::string name;
    unsigned long value;
    unsigned secno;
-   unsigned textSecNo = 0, dataSecNo = 0, loaderSecNo = 0;
+   unsigned textSecNo = 0, dataSecNo = 0, loaderSecNo = 0, exceptSecNo = 0;
    union auxent *aux = NULL;
    struct filehdr hdr;
    struct aouthdr aout;
    struct syment *sym = NULL;
    union auxent *csect = NULL;
-   char *stringPool=NULL;
    Symbol::SymbolType type; 
+   stringPool = NULL;
    bool foundDebug = false;
    bool foundLoader = false;
    bool foundData = false;
    bool foundText = false;
        
+   unsigned exceptab_size_ = 0;
+   struct exceptab * exceptab_ = NULL;
+
    stabs_ = NULL;
    nstabs_ = 0;
    stringpool_ = NULL;
@@ -692,9 +723,6 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    unsigned toc_offset = 0;
    std::string modName;
    baseAddress_ = (Offset)fo_->getPtrAtOffset(offset);
-#if 0
-   baseAddress_ = offset + (Offset) mf->base_addr();
-#endif
 
    int linesfdptr=0;
    struct lineno* lines=NULL;
@@ -729,7 +757,8 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    //
    uint64_t scn_size;
    uint64_t s_name_off, s_paddr_off, s_vaddr_off, s_size_off, s_scnptr_off;
-   uint64_t s_relptr_off, s_lnnoptr_off, s_nreloc_off, s_nlnno_off, s_flags_off;
+   uint64_t s_relptr_off, s_lnnoptr_off;
+   uint64_t s_nreloc_off, s_nlnno_off, s_flags_off;
    uint64_t word_shift, half_shift;
 
    if (is64) {
@@ -926,6 +955,21 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
       }
       if (SCNH_FLAGS(i) & STYP_BSS) {
          bss_size_ = SCNH_SIZE(i);
+      }
+      if (SCNH_FLAGS(i) & STYP_EXCEPT) {
+		  exceptSecNo = i;
+         exceptab_size_ = SCNH_SIZE(i);
+#if 0
+         if (!fo_->set(offset + SCNH_SCNPTR(i)))
+            PARSE_AOUT_DIE("Seeking to exception table", 49);
+         exceptab_ = (struct exceptab *)fo_->ptr();
+         if (!exceptab_)
+            PARSE_AOUT_DIE("Reading line information table", 49);
+		 if (!fillExceptionTable(exceptab_, exceptab_size_, is64, symbols))
+		 {
+			 fprintf(stderr, "%s[%d]:  WARNING:  failed to read exceptions\n", FILE__, __LINE__);
+		 }
+#endif
       }
    }
 

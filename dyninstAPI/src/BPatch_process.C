@@ -1056,9 +1056,19 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
        batchInsertionRecord *&bir = (*pendingInsertions)[i];
        for (unsigned j = 0; j < bir->points_.size(); j++) {
            BPatch_point *bppoint = bir->points_[j];
+		   if (!bppoint)
+		   {
+			   fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
+			   continue;
+		   }
            instPoint *point = bppoint->point;
-           point->optimizeBaseTramps(bir->when_[j]);
+		   if (!point)
+		   {
+			   fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
+			   continue;
+		   }
 
+           point->optimizeBaseTramps(bir->when_[j]);
            instrumentedFunctions.insert(point->func());
        }
    }

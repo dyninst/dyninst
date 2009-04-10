@@ -40,7 +40,18 @@
 #if !defined(_Aggregate_h_)
 #define _Aggregate_h_
 
+#include <iostream>
 #include "Annotatable.h"
+
+//class Aggregate;
+//class Dyninst::SymtabAPI::Aggregate;
+//SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
+#if defined (os_windows)
+SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
+#else
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
+#endif
+//std::ostream &::operator<<(std::ostream &os, const Aggregate &);
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -48,20 +59,24 @@ namespace SymtabAPI{
 class Symbol;
 class Module;
 class Symtab; 
+class Region; 
+class Aggregate; 
 
 class Aggregate : public AnnotatableSparse 
 {
     friend class Symtab;
+	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
  protected:
+      SYMTAB_EXPORT Aggregate();
       SYMTAB_EXPORT Aggregate(Symbol *sym);
    public:
       
       virtual ~Aggregate() {};
 
-      SYMTAB_EXPORT Offset   getOffset() const { return getFirstSymbol()->getOffset(); }
-      SYMTAB_EXPORT unsigned getSize() const { return getFirstSymbol()->getSize(); }
+      SYMTAB_EXPORT Offset   getOffset() const;
+      SYMTAB_EXPORT unsigned getSize() const;
       SYMTAB_EXPORT Module * getModule() const { return module_; }
-      SYMTAB_EXPORT Region * getRegion() const { return getFirstSymbol()->getRegion(); }
+      SYMTAB_EXPORT Region * getRegion() const;
 
       /***** Symbol Collection Management *****/
       SYMTAB_EXPORT bool addSymbol(Symbol *sym);
@@ -83,6 +98,9 @@ class Aggregate : public AnnotatableSparse
       SYMTAB_EXPORT bool setSize(unsigned size);
       SYMTAB_EXPORT bool setOffset(unsigned offset);
       
+	  bool operator==(const Aggregate &a);
+
+
    protected:
 
       bool addMangledNameInt(std::string name, bool isPrimary);
@@ -102,6 +120,11 @@ class Aggregate : public AnnotatableSparse
       std::vector<std::string> mangledNames_;
       std::vector<std::string> prettyNames_;
       std::vector<std::string> typedNames_;
+
+	  void restore_type_by_id(SerializerBase *, Type *&, unsigned) THROW_SPEC (SerializerError);
+	  void restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError);
+	  void rebuild_symbol_vector(SerializerBase *, std::vector<unsigned> &) THROW_SPEC (SerializerError);
+	  SYMTAB_EXPORT void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
 };
 
 }

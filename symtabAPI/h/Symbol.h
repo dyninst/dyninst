@@ -43,9 +43,6 @@
 ************************************************************************/
 
 #include "symutil.h"
-#include "Collections.h"
-#include "Type.h"
-
 #include "Annotatable.h"
 #include "Serialization.h"
 
@@ -53,13 +50,6 @@
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
 
-
-#if 0
-typedef struct {} symbol_file_name_a;
-typedef struct {} symbol_version_names_a;
-typedef struct {} symbol_variables_a;
-typedef struct {} symbol_parameters_a;
-#endif
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -71,6 +61,8 @@ class Region;
 class Aggregate;
 class Function;
 class Variable;
+class Type;
+class typeCollection;
 
 /************************************************************************
  * class Symbol
@@ -83,6 +75,8 @@ class Symbol : public Serializable,
    friend class Symtab;
    friend class AObject;
    friend class Object;
+   friend class Aggregate;
+   friend class relocationEntry;
 
    friend std::string parseStabString(Module *, int linenum, char *, int, 
          typeCommon *);
@@ -95,6 +89,7 @@ class Symbol : public Serializable,
       ST_OBJECT,
       ST_MODULE,
       ST_SECTION,
+      ST_DELETED,
       ST_NOTYPE
    };
 
@@ -135,14 +130,14 @@ class Symbol : public Serializable,
        offset_(0),
        region_(NULL),
        size_(0),
-       upPtr_(NULL),
        isDynamic_(false),
        isAbsolute_(false),
        aggregate_(NULL),
        mangledName_(Symbol::emptyString),
        prettyName_(Symbol::emptyString),
        typedName_(Symbol::emptyString),
-       tag_(TAG_UNKNOWN) {}
+       tag_(TAG_UNKNOWN) ,
+       index_(-1) {}
 
    SYMTAB_EXPORT static Symbol *magicEmitElfSymbol();
 
@@ -155,7 +150,8 @@ class Symbol : public Serializable,
                          Region *r = NULL, 
                          unsigned s = 0,
                          bool d = false,
-                         bool a = false) :
+                         bool a = false,
+			 int index=-1):
        module_(module),
        type_(t),
        linkage_(l),
@@ -163,14 +159,14 @@ class Symbol : public Serializable,
        offset_(o),
        region_(r),
        size_(s),
-       upPtr_(NULL),
        isDynamic_(d),
        isAbsolute_(a),
        aggregate_(NULL),
        mangledName_(name),
        prettyName_(name),
        typedName_(name),
-       tag_(TAG_UNKNOWN) {
+       tag_(TAG_UNKNOWN),
+       index_(index){
 
    }
 
@@ -207,6 +203,8 @@ class Symbol : public Serializable,
 
    SYMTAB_EXPORT SymbolVisibility getVisibility() const { return visibility_; }
 
+   SYMTAB_EXPORT int getIndex() const { return index_; }
+   SYMTAB_EXPORT bool setIndex(int index) { index_ = index; return true; }
 
    //////////////// Modification
    SYMTAB_EXPORT bool setOffset (Offset newOffset);
@@ -258,7 +256,6 @@ class Symbol : public Serializable,
    Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
    Region*       region_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
-   void *upPtr_;
 
    bool          isDynamic_;
    bool          isAbsolute_;
@@ -270,33 +267,20 @@ class Symbol : public Serializable,
    std::string typedName_;
 
    SymbolTag     tag_;
-   //int           framePtrRegNum_;
-   //Type          *retType_;
-   // Module Objects are created in Symtab and not in Object.
-   // So we need a way to store the name of the module in 
-   // which the symbol is present.
-   //std::string moduleName_;  
-   //std::string fileName_;
+   int index_;
 
 #if !defined (USE_ANNOTATIONS)
    std::vector<std::string> verNames_;
 #endif
 
-   public:
-   SYMTAB_EXPORT void serialize(SerializerBase *, const char *tag = "Symbol");
-};
+   void restore_module_and_region(SerializerBase *, 
+		   std::string &, Offset) THROW_SPEC (SerializerError);
 
-#if 0
-inline
-Symbol::Symbol(unsigned)
-    : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
-    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
-    retType_(NULL), moduleName_("")
-   //vars_(NULL), params_(NULL) 
-{
-}
-#endif
+   public:
+
+   SYMTAB_EXPORT void serialize(SerializerBase *, 
+		   const char *tag = "Symbol") THROW_SPEC (SerializerError);
+};
 
 class LookupInterface 
 {

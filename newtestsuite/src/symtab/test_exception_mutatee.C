@@ -43,7 +43,7 @@
 
 int excp_func2()
 {
-	throw std::runtime_error("exception2");
+	throw std::runtime_error(std::string("exception2"));
    return 4;
 }
 
@@ -62,7 +62,7 @@ int func2()
 
 int excp_func1()
 {
-	throw std::runtime_error("exception1");
+	throw std::runtime_error(std::string("exception1"));
    return 4;
 }
 

@@ -41,6 +41,7 @@
 
 #include "symtab_comp.h"
 #include "test_lib.h"
+#include <iostream>
 
 #include "Symtab.h"
 #include "Symbol.h"
@@ -64,6 +65,14 @@ extern "C" DLLEXPORT TestMutator* test_exception_factory()
 
 test_results_t test_exception_Mutator::executeTest()
 {
+#if defined (os_windows_test)
+	return SKIPPED;
+#endif
+
+#if defined (os_aix_test)
+	return SKIPPED;
+#endif
+
    bool result = symtab->getAllExceptions(excps);
 
    if (!result || !excps.size() )
@@ -75,12 +84,14 @@ test_results_t test_exception_Mutator::executeTest()
       return FAILED;
    }
 
+#if  0
    fprintf(stderr, "%s[%d]:  have %d exception blocks:\n", FILE__, __LINE__, excps.size());
 
    for (unsigned int i = 0; i < excps.size(); ++i)
    {
-	   cerr << "     " << *(excps[i]) << endl;
+	   std::cerr << "     " << *(excps[i]) << std::endl;
    }
+#endif
 
 #if 0
    if (excps.size() != NUM_EXPECTED_EXCPS)

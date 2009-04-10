@@ -399,7 +399,7 @@ char *resolve_file_path(const char *fname, char *resolved_path)
       fprintf(stderr, "%s[%d]:  realpath(%s): %s\n", FILE__, __LINE__, fname, strerror(errno));
       return NULL;
    }
-   fprintf(stderr, "%s[%d]:  resolved file path: %s\n", FILE__, __LINE__, resolved_path);
+   //fprintf(stderr, "%s[%d]:  resolved file path: %s\n", FILE__, __LINE__, resolved_path);
 
    // (2) if no slashes, try CWD
    if (!strpbrk(resolved_path, "/\\")) {

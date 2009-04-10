@@ -44,40 +44,484 @@
 
 #include "Symtab.h"
 #include "Symbol.h"
+#include "Function.h"
+#include "Variable.h"
+#include "Module.h"
+#include "Region.h"
+#include "Type.h"
+#include "Archive.h"
+#include "Serialization.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
 
+bool debugPrint = false;
+#ifndef dprintf
+#define dprintf if (debugPrint) fprintf
+#endif
+
 class test_symtab_ser_funcs_Mutator : public SymtabMutator {
-public:
-   test_symtab_ser_funcs_Mutator() { };
-   virtual test_results_t executeTest();
+	std::vector<relocationEntry> relocations;
+	std::vector<ExceptionBlock *> exceptions;
+	std::vector<Type *> *stdtypes;
+	std::vector<Type *> *builtintypes;
+	std::vector<Region *> regions;
+	std::vector<SymtabAPI::Module *> modules;
+	std::vector<SymtabAPI::Function *> functions;
+	std::vector<SymtabAPI::Variable *> variables;
+	std::vector<Symbol *> symbols;
+
+	void parse() THROW_SPEC (LocErr);
+
+	static void location_list_report(const std::vector<VariableLocation> *l1, 
+			const std::vector<VariableLocation> *l2)
+	{
+		if (l1 && !l2) fprintf(stderr, "%s[%d]:  loc list discrep\n", FILE__, __LINE__);
+		if (!l1 && l2) fprintf(stderr, "%s[%d]:  loc list discrep\n", FILE__, __LINE__);
+		if (l1)
+		{
+			int max_length = l1->size();
+
+			if (l2->size() > max_length) 
+				max_length = l2->size();
+
+			for (unsigned int i = 0; i < max_length; ++i)
+			{
+				const VariableLocation *loc1 = (i < l1->size()) ? (& (*l1)[i]) : NULL;
+				const VariableLocation *loc2 = (i < l2->size()) ? (& (*l2)[i]) : NULL;
+
+				if (loc1)
+				{
+					fprintf(stderr, "\t\t[%d, %d, %d, %l, %lu, %lu]\n", 
+							loc1->stClass, loc1->refClass, loc1->reg, loc1->frameOffset, 
+							loc1->hiPC, loc1->lowPC);
+				}
+				else
+				{
+					fprintf(stderr, "\t\t[no location at this index]\n");
+				}
+
+				if (loc2)
+				{
+					fprintf(stderr, "\t  ==  [%d, %d, %d, %l, %lu, %lu]\n", 
+							loc2->stClass, loc2->refClass, loc2->reg, loc2->frameOffset, 
+							loc2->hiPC, loc2->lowPC);
+				}
+				else
+				{
+					fprintf(stderr, "\t  ==  [no location at this index]\n");
+				}
+			}
+		}
+	}
+
+	static void namelist_report(const std::vector<std::string> &v1, 
+			const std::vector<std::string> &v2, const char *label)
+	{
+		assert(label);
+
+		fprintf(stderr, "%s[%d]:  namelist '%s':\n", FILE__, __LINE__, label);
+
+		int maxlen = v1.size() > v2.size() ? v1.size() : v2.size();
+
+		for (unsigned int i = 0; i < maxlen; ++i)
+		{
+			const std::string &s1 = (i < v1.size()) ? v1[i] : std::string("no_string");
+			const std::string &s2 = (i < v2.size()) ? v2[i] : std::string("no_string");
+			fprintf(stderr, "\t%s -- %s\n", s1.c_str(),  s2.c_str());
+		}
+	}
+
+	static void aggregate_report(const Aggregate &a1, const Aggregate &a2)
+	{
+		fprintf(stderr, "%s[%d]:  Aggregate:\n", FILE__, __LINE__);
+
+		SymtabAPI::Module * m1 = a1.getModule();
+		SymtabAPI::Module * m2 = a2.getModule();
+
+		if (m1 && !m2)  fprintf(stderr, "%s[%d]:  module discrep\n", FILE__, __LINE__);
+		if (!m1 && m2)  fprintf(stderr, "%s[%d]:  module discrep\n", FILE__, __LINE__);
+		if (m1)
+		{
+			fprintf(stderr, "%s[%d]:  moduleName:  %s -- %s\n", FILE__, __LINE__, 
+					m1->fullName().c_str(), m2->fullName().c_str());
+			fprintf(stderr, "%s[%d]:  moduleOffset:  %p -- %p\n", FILE__, __LINE__, 
+					m1->addr(), m2->addr());
+		}
+
+		const std::vector<std::string> & mn1 = const_cast<Aggregate &>(a1).getAllMangledNames();
+		const std::vector<std::string> & mn2 = const_cast<Aggregate &>(a2).getAllMangledNames();
+		const std::vector<std::string> & pn1 = const_cast<Aggregate &>(a1).getAllPrettyNames();
+		const std::vector<std::string> & pn2 = const_cast<Aggregate &>(a2).getAllPrettyNames();
+		const std::vector<std::string> & tn1 = const_cast<Aggregate &>(a1).getAllTypedNames();
+		const std::vector<std::string> & tn2 = const_cast<Aggregate &>(a2).getAllTypedNames();
+
+		namelist_report(mn1, mn2, "mangled");
+		namelist_report(pn1, pn2, "pretty");
+		namelist_report(tn1, tn2, "typed");
+
+		std::vector<Symbol *> syms1;
+		std::vector<Symbol *> syms2;
+
+		bool r1 = a1.getSymbols(syms1);
+		bool r2 = a2.getSymbols(syms1);
+
+		if (r1 != r2) fprintf(stderr, "%s[%d]:  getSymbols discrep\n", FILE__, __LINE__);
+
+		int maxsym = syms1.size() > syms2.size() ? syms1.size() : syms2.size();
+
+		fprintf(stderr, "%s[%d]:  Symbol List:\n", FILE__, __LINE__);
+
+		for (unsigned int i = 0; i < maxsym; ++i)
+		{
+			Symbol *s1 = (i < syms1.size()) ? syms1[i] : NULL;
+			Symbol *s2 = (i < syms2.size()) ? syms2[i] : NULL;
+
+			fprintf(stderr, "\t[%s-%p] -- [%s-%p]\n", 
+					s1 ? s1->getName().c_str() : "no_sym",
+					s1 ? s1->getOffset() : 0xdeadbeef,
+					s2 ? s2->getName().c_str() : "no_sym",
+					s2 ? s2->getOffset() : 0xdeadbeef);
+
+		}
+	}
+
+	static void localvar_report(const localVar &lv1, const localVar &lv2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to localVar report\n", FILE__, __LINE__);
+	}
+
+	static void relocation_report(const relocationEntry &r1, const relocationEntry &r2)
+	{
+		fprintf(stderr, "%s[%d]:  Relcoation\n", FILE__, __LINE__);
+		cerr << "     " << r1 << endl;
+		cerr << "     " << r2 << endl;
+	}
+
+	static void region_report(const Region &r1, const Region &r2)
+	{
+		fprintf(stderr, "%s[%d]:  NONEQUAL Regions\n", FILE__, __LINE__);
+		fprintf(stderr, "\t name: %s -- %s\n", 
+				r1.getRegionName().c_str(), r2.getRegionName().c_str());
+		fprintf(stderr, "\t number: %u -- %u\n", 
+				r1.getRegionNumber(), r2.getRegionNumber());
+		fprintf(stderr, "\t type: %u -- %u\n", 
+				r1.getRegionType(), r2.getRegionType());
+		fprintf(stderr, "\t perms: %u -- %u\n", 
+				r1.getRegionPermissions(), r2.getRegionPermissions());
+		fprintf(stderr, "\t disk offset: %p -- %p\n", 
+				r1.getDiskOffset(), r2.getDiskOffset());
+		fprintf(stderr, "\t disk size: %lu -- %lu\n", 
+				r1.getDiskSize(), r2.getDiskSize());
+		fprintf(stderr, "\t mem offset: %p -- %p\n", 
+				r1.getMemOffset(), r2.getMemOffset());
+		fprintf(stderr, "\t isText: %s -- %s\n", 
+				r1.isText() ? "true" : "false",
+				r2.isText() ? "true" : "false");
+		fprintf(stderr, "\t isData: %s -- %s\n", 
+				r1.isData() ? "true" : "false",
+				r2.isData() ? "true" : "false");
+		fprintf(stderr, "\t isBSS: %s -- %s\n", 
+				r1.isBSS() ? "true" : "false",
+				r2.isBSS() ? "true" : "false");
+		fprintf(stderr, "\t isLoadable: %s -- %s\n", 
+				r1.isLoadable() ? "true" : "false",
+				r2.isLoadable() ? "true" : "false");
+		fprintf(stderr, "\t isDirty: %s -- %s\n", 
+				r1.isDirty() ? "true" : "false",
+				r2.isDirty() ? "true" : "false");
+	}
+
+	static void function_report(const Function &f1, const Function &f2)
+	{
+		fprintf(stderr, "%s[%d]:  NONEQUAL functions\n", FILE__, __LINE__);
+
+		Type *t1 = f1.getReturnType();
+		Type *t2 = f2.getReturnType();
+
+		if (t1 && !t2) fprintf(stderr, "%s[%d]:  ret type discrep\n", FILE__, __LINE__);
+		if (!t1 && t2) fprintf(stderr, "%s[%d]:  ret type discrep\n", FILE__, __LINE__);
+
+		if (t1)
+		{
+			fprintf(stderr, "\t%d--%d\n", t1->getID(), t2->getID());
+		}
+		
+		fprintf(stderr, "\t%d--%d\n", f1.getFramePtrRegnum(), f2.getFramePtrRegnum());
+
+		std::vector<VariableLocation> *l1 = const_cast<Function &>(f1).getFramePtr();
+		std::vector<VariableLocation> *l2 = const_cast<Function &>(f2).getFramePtr();
+
+		location_list_report(l1, l2);
+
+		const Aggregate &a1 = (const Aggregate &) f1;
+		const Aggregate &a2 = (const Aggregate &) f2;
+		aggregate_report(a1, a2);
+	}
+
+	static void module_report(const SymtabAPI::Module &m1, const SymtabAPI::Module &m2)
+	{
+		fprintf(stderr, "%s[%d]:  welcome to module report\n", FILE__, __LINE__);
+	}
+
+	static void variable_report(const Variable &v1, const Variable &v2)
+	{
+		fprintf(stderr, "%s[%d]:  NONEQUAL Variables\n", FILE__, __LINE__);
+
+		Type *t1 = const_cast<Variable &>(v1).getType();
+		Type *t2 = const_cast<Variable &>(v2).getType();
+		if (t1 && !t2) fprintf(stderr, "%s[%d]:  type discrep\n", FILE__, __LINE__);
+		if (!t1 && t2) fprintf(stderr, "%s[%d]:  type discrep\n", FILE__, __LINE__);
+		if (t1)
+		{
+			fprintf(stderr, "\t%d--%d\n", t1->getID(), t2->getID());
+		}
+
+		const Aggregate &a1 = (const Aggregate &) v1;
+		const Aggregate &a2 = (const Aggregate &) v2;
+		aggregate_report(a1, a2);
+	}
+
+	static void symbol_report(const Symbol &s1, const Symbol &s2)
+	{
+		fprintf(stderr, "%s[%d]:  NONEQUAL symbols:\n", FILE__, __LINE__);
+		fprintf(stderr, "\t%s--%s\n", s1.getModuleName().c_str(), s2.getModuleName().c_str());
+		fprintf(stderr, "\t%s--%s\n", s1.getMangledName().c_str(), s2.getMangledName().c_str());
+		fprintf(stderr, "\t%s--%s\n", s1.getPrettyName().c_str(), s2.getPrettyName().c_str());
+		fprintf(stderr, "\t%s--%s\n", s1.getTypedName().c_str(), s2.getTypedName().c_str());
+		fprintf(stderr, "\t%d--%d\n", s1.getType(), s2.getType());
+		fprintf(stderr, "\t%d--%d\n", s1.getLinkage(), s2.getLinkage());
+		fprintf(stderr, "\t%d--%d\n", s1.getVisibility(), s2.getVisibility());
+		fprintf(stderr, "\t%d--%d\n", s1.isInDynSymtab(), s2.isInDynSymtab());
+		fprintf(stderr, "\t%d--%d\n", s1.isAbsolute(), s2.isAbsolute());
+		fprintf(stderr, "\t%d--%d\n", s1.isFunction(), s2.isFunction());
+		fprintf(stderr, "\t%d--%d\n", s1.isVariable(), s2.isVariable());
+		fprintf(stderr, "\t%p--%p\n", s1.getAddr(), s2.getAddr());
+		fprintf(stderr, "\t%d--%d\n", s1.getSize(), s2.getSize());
+		fprintf(stderr, "\t%d--%d\n", s1.tag(), s2.tag());
+		Region *r1 = s1.getSec();
+		Region *r2 = s2.getSec();
+		if (r1 && !r2) fprintf(stderr, "%s[%d]:  region discrep\n", FILE__, __LINE__);
+		if (!r1 && r2) fprintf(stderr, "%s[%d]:  region discrep\n", FILE__, __LINE__);
+		if (r1)
+		{
+			fprintf(stderr, "\t%p--%p\n", r1->getDiskOffset(), r2->getDiskOffset());
+		}
+	}
+
+	typedef void (*symrep_t)(const Symbol &, const Symbol &);
+	typedef void (*varrep_t)(const Variable &, const Variable &);
+	typedef void (*funcrep_t)(const Function &, const Function &);
+	typedef void (*modrep_t)(const SymtabAPI::Module &, const SymtabAPI::Module &);
+	typedef void (*regrep_t)(const Region &, const Region &);
+	typedef void (*relrep_t)(const relocationEntry &, const relocationEntry &);
+	typedef void (*lvarrep_t)(const localVar &, const localVar &);
+
+	template <class C>
+	bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
+	{
+		dprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
+				FILE__, __LINE__, typeid(C).name());
+
+		Tempfile tf;
+		std::string file(tf.getName());
+
+		SerializerBase *sb_serializer_ptr;
+		sb_serializer_ptr = nonpublic_make_bin_symtab_serializer(st, file);
+		assert(sb_serializer_ptr);
+		SerializerBase &sb_serializer = (SerializerBase &) *sb_serializer_ptr;
+
+		dprintf(stderr, "%s[%d]:  before serialize\n", FILE__, __LINE__);
+
+		Serializable *sable = &control;
+		try 
+		{
+			sable->serialize(sb_serializer_ptr, NULL);
+		}
+		catch (const SerializerError &serr)
+		{
+			fprintf(stderr, "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
+			fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+			EFAIL("serialize failed\n");
+		}
+
+		dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+		fflush(NULL);
+
+		nonpublic_free_bin_symtab_serializer(sb_serializer_ptr);
+
+
+		C deserialize_result;
+		SerializerBase *sb_deserializer_ptr;
+		sb_deserializer_ptr = nonpublic_make_bin_symtab_deserializer(st, file);
+		assert(sb_deserializer_ptr);
+		SerializerBase &sb_deserializer = (SerializerBase &) *sb_deserializer_ptr;
+
+		dprintf(stderr, "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
+				FILE__, __LINE__, typeid(C).name());
+
+		try
+		{
+			deserialize_result.serialize(sb_deserializer_ptr, NULL);
+		}
+		catch (const SerializerError &serr)
+		{
+			fprintf(stderr, "%s[%d]:  deserializer function threw exception:\n", FILE__, __LINE__);
+			fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+			EFAIL("serialize failed\n");
+		}
+
+		nonpublic_free_bin_symtab_serializer(sb_deserializer_ptr);
+
+		//  First check whether operator== (which must exist) returns equivalence
+
+		if (!(deserialize_result == control))
+		{
+			if (report)
+				(*report)(deserialize_result, control);
+
+			EFAIL("deserialize failed\n");
+		}
+
+#if 0
+		//  Next (since we can't trust operator==() 100%, do a raw mem compare
+
+		if (memcmp(&control, &deserialize_result, sizeof(C)))
+			EFAIL("deserialize and operator== failed\n");
+#endif
+
+		dprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
+	}
+
+	template <class T>
+		void serialize_test_vector(Symtab *st, std::vector<T> &vec, 
+				void (*report)(const T &, const T &) )
+		{
+			for (unsigned int i = 0; i < vec.size(); ++i)
+			{
+				T &t = vec[i];
+				serialize_test(st, t, report);
+			}
+		}
+
+	template <class T>
+		void serialize_test_vector(Symtab *st, std::vector<T *> &vec, 
+				void (*report)(const T &, const T &) )
+		{
+			for (unsigned int i = 0; i < vec.size(); ++i)
+			{
+				T *t = vec[i];
+				if (!t)
+					EFAIL("null array elem\n");
+				serialize_test(st, *t, report);
+			}
+		}
+
+	public:
+
+	test_symtab_ser_funcs_Mutator() { };
+	virtual test_results_t executeTest();
 };
 
 extern "C" DLLEXPORT TestMutator* test_symtab_ser_funcs_factory()
 {
-   return new test_symtab_ser_funcs_Mutator();
+	return new test_symtab_ser_funcs_Mutator();
+}
+
+void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
+{
+	bool result = symtab->getFuncBindingTable(relocations);
+
+#if !defined(os_aix_test)
+	if (!result || !relocations.size() )
+		EFAIL("relocations");
+#endif
+
+#if 0
+	//  need to make this a c++ test to get exceptions
+	result = symtab->getAllExceptions(exceptions);
+
+	if (!result || !exceptions.size() )
+		EFAIL("exceptions");
+#endif
+
+	result = symtab->getAllRegions(regions);
+
+	if (!result || !regions.size() )
+		EFAIL("regions");
+
+	result = symtab->getAllModules(modules);
+
+	if (!result || !modules.size() )
+		EFAIL("modules");
+
+	result = symtab->getAllVariables(variables);
+
+	if (!result || !variables.size() )
+		EFAIL("variables");
+
+	result = symtab->getAllFunctions(functions);
+
+	if (!result || !functions.size() )
+		EFAIL("functions");
+
+	result = symtab->getAllDefinedSymbols(symbols);
+
+	if (!result || !symbols.size() )
+		EFAIL("symbols");
+
+	stdtypes = symtab->getAllstdTypes();
+
+	if (!stdtypes)
+		EFAIL("stdtypes");
+
+	builtintypes = symtab->getAllbuiltInTypes();
+
+	if (!builtintypes)
+	{
+		EFAIL("builtintypes");
+	}
 }
 
 test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 {
-   std::vector<Function *> funcs;
-   bool result = symtab->findFunctionsByName(funcs, std::string("lookup_func"));
+	try 
+	{
+		parse();
 
-   if (!result || !funcs.size() )
-   {
-      logerror("[%s:%u] - Unable to find test_lookup_func\n", 
-               __FILE__, __LINE__);
-      return FAILED;
-   }
+#if 0
+		symrep_t sr = &symbol_report;
+		varrep_t vr = &variable_report;
+		modrep_t mr = &module_report;
+		funcrep_t mr = &function_report;
+		lvarrep_t mr = &localvar_report;
+		regrep_t mr = &region_report;
+		relgrep_t mr = &relocation_report;
+#endif
 
-   if (funcs.size() != 1)
-   {
-      logerror("[%s:%u] - Too many functions found??: %d\n", 
-               __FILE__, __LINE__, funcs.size());
-      return FAILED;
-   }
+		serialize_test(symtab, *variables[0], &variable_report);
+		serialize_test(symtab, *functions[0], &function_report);
+		serialize_test(symtab, *symbols[0], &symbol_report);
+		serialize_test(symtab, *modules[0], &module_report);
+#if !defined (os_aix_test)
+		serialize_test(symtab, relocations[0], &relocation_report);
+#endif
+		serialize_test(symtab, *regions[0], &region_report);
+#if 0
+		serialize_test_vector(symtab, symbols);
+		serialize_test_vector(symtab, functions);
+		serialize_test_vector(symtab, variables);
+		serialize_test_vector(symtab, exceptions);
+#if !defined (os_aix_test)
+		serialize_test_vector(symtab, relocations);
+#endif
+		serialize_test_vector(symtab, regions);
+		serialize_test_vector(symtab, modules);
 
-   return PASSED;
+		serialize_test(symtab, *symtab);
+#endif
+	}
+	REPORT_EFAIL;
+
+	return PASSED;
 }
-

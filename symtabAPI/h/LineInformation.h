@@ -76,7 +76,7 @@ class LineInformation : public Serializable,
                         private RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess > 
 {
    public:
-      SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "LineInformation");
+      SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "LineInformation") THROW_SPEC (SerializerError);
       typedef RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::const_iterator const_iterator;
       typedef RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::AddressRange AddressRange;
 

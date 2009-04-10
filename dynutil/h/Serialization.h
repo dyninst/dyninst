@@ -18,6 +18,10 @@ namespace Dyninst {
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
 //  to the next (hopefully top-level) exception handler.
 
+#define serialize_printf serializer_printf
+
+COMMON_EXPORT int serializer_printf(const char *format, ...);
+
 
 COMMON_EXPORT bool &serializer_debug_flag();
 
@@ -33,20 +37,13 @@ COMMON_EXPORT bool &serializer_debug_flag();
 
 
 class SerializerBase;
+
+
 typedef enum {sd_serialize, sd_deserialize} iomode_t;
 typedef bool (*deserialize_and_annotate_t)(SerializerBase *, void *parent);
 
 bool addDeserializeFuncForType(deserialize_and_annotate_t, const std::type_info *);
 deserialize_and_annotate_t getDeserializeFuncForType(const std::type_info *);
-
-class COMMON_EXPORT Serializable {
-   protected:
-      Serializable() {}
-      virtual ~Serializable() {}
-
-   public:
-      virtual void serialize(SerializerBase *,  const char * = NULL) = 0;
-};
 
 class SerializerError : public std::runtime_error {
    //  SerializerError:  a small class that is thrown by serialization/deserialization
@@ -73,7 +70,7 @@ class SerializerError : public std::runtime_error {
    public:
 
 
-   SerializerError(const std::string &__file__, 
+   COMMON_EXPORT SerializerError(const std::string &__file__, 
          const int &__line__, 
          const std::string &msg, 
          SerializerErrorType __err__ = ser_err_unspecified) :
@@ -83,15 +80,25 @@ class SerializerError : public std::runtime_error {
       err__(__err__)
    {}
 
-   virtual ~SerializerError() throw() {}
+   COMMON_EXPORT virtual ~SerializerError() THROW {}
 
-   std::string file() const {return file__;}
-   int line() const {return line__;}
-   SerializerErrorType code() const {return err__;}
+   COMMON_EXPORT std::string file() const {return file__;}
+   COMMON_EXPORT int line() const {return line__;}
+   COMMON_EXPORT SerializerErrorType code() const {return err__;}
 };
 
 
 COMMON_EXPORT void printSerErr(const SerializerError &err);
+
+class Serializable {
+   protected:
+      COMMON_EXPORT Serializable() {}
+      COMMON_EXPORT virtual ~Serializable() {}
+
+   public:
+      COMMON_EXPORT virtual void serialize(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
+};
+
 
 template <class S, class T>
 void translate_vector(S *ser, std::vector<T> &vec,
@@ -340,7 +347,7 @@ class trans_adaptor {
    public:
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
+         //fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
       } 
 
       T * operator()(S *ser, T & it, const char *tag = NULL, const char * /*tag2*/ = NULL)
@@ -355,7 +362,7 @@ class trans_adaptor<S, Serializable, T2> {
    public:
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
+         serialize_printf("%s[%d]:  trans_adaptor  -- general\n", __FILE__, __LINE__);
       } 
 
       Serializable * operator()(S *ser, Serializable & it, const char *tag = NULL, 
@@ -371,7 +378,7 @@ class trans_adaptor<S, std::vector<T>, TT2 > {
    public:
       trans_adaptor()
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vectorl\n", __FILE__, __LINE__);
+         serialize_printf("%s[%d]:  trans_adaptor  -- vectorl\n", __FILE__, __LINE__);
       }
 
       std::vector<T> * operator()(S *ser, std::vector<T> &v, const char *tag = NULL, 
@@ -387,7 +394,7 @@ class trans_adaptor<S, std::vector<T *>, TT2>  {
    public: 
       trans_adaptor() 
       {
-         fprintf(stderr, "%s[%d]:  trans_adaptor  -- vector of ptrs\n", __FILE__, __LINE__);
+         serialize_printf("%s[%d]:  trans_adaptor  -- vector of ptrs\n", __FILE__, __LINE__);
       }
 
       std::vector<T*> * operator()(S *ser, std::vector<T *> &v, const char *tag = NULL, 
@@ -462,16 +469,16 @@ class trans_adaptor<S,
 template <class S, class T>
 void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
 {
-   fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
-         __FILE__, __LINE__,
-         "SerializerBase",
-         typeid(T).name(), &it);
+   //fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
+   //      __FILE__, __LINE__,
+   //      "SerializerBase",
+   //      typeid(T).name(), &it);
 
    //  Maybe just need to do try/catch here since the template mapping may 
    //  change the type of return value thru template specialization
 
    trans_adaptor<S, T> ta;
-   fprintf(stderr, "%s[%d]: gtranslate: before operation\n", __FILE__, __LINE__);
+   //fprintf(stderr, "%s[%d]: gtranslate: before operation\n", __FILE__, __LINE__);
 
    T *itp = ta(ser, it, tag, tag2);
 
@@ -485,12 +492,13 @@ void gtranslate(S *ser, T &it, const char *tag = NULL, const char *tag2 = NULL)
 COMMON_EXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag);
 COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/);
 
-class SerializerBin;
-class SerializerXML;
+//template<class T> class SerializerBin<T>;
+//template<class T> class SerializerXML<T>;
 
 COMMON_EXPORT bool sb_is_input(SerializerBase *sb);
 COMMON_EXPORT bool sb_is_output(SerializerBase *sb);
 
+#if 0
 template <class T>
 bool ifinput(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)
 {
@@ -531,10 +539,8 @@ bool ifxml(bool (*f)(SerializerBase *, T*), SerializerBase *sb, T *itp)
 
    return (*f)(sxml, itp);
 }
-
+#endif
 #if 0
-template <class S, class TT>
-void gtranslate(S *ser, TT&it, void (*use_func)(SerializerBase *, TT &, void *), const char *tag = NULL, const char *tag2)
 {
    fprintf(stderr, "%s[%d]:  welcome to gtranslate<%s, %s>(%p)\n",
          __FILE__, __LINE__,
@@ -607,6 +613,45 @@ bool gtranslate_w_err(S *ser, T&it, const char *tag = NULL, const char *tag2 = N
    }
    return true;
 }
+
+//  These are for testing purposes -- do not use elsewhere
+//  Must deallocate serializer that is returned when done.
+#if 0
+SerializerBase *nonpublic_make_bin_serializer(std::string file);
+SerializerBase *nonpublic_make_bin_deserializer(std::string file);
+void nonpublic_free_bin_serializer(SerializerBase *sb);
+#endif
+#if 0
+template <class T> class SerializerBin;
+
+template <class T>
+inline SerializerBase *nonpublic_make_bin_serializer(T *t, std::string file)
+{
+	SerializerBin<T> *ser;
+	ser = new SerializerBin<T>(t, "SerializerBin", file, sd_serialize, true);
+	return ser;
+}
+
+template <class T>
+inline void nonpublic_free_bin_serializer(SerializerBase *sb)
+{
+	SerializerBin<T> *sbin = dynamic_cast<SerializerBin<T> *>(sb);
+	if (sbin)
+	{
+		delete(sbin);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+}
+
+template <class T>
+inline SerializerBase *nonpublic_make_bin_deserializer(T *t,std::string file)
+{
+	SerializerBin<T> *ser;
+	ser = new SerializerBin<T>(t, "DeserializerBin", file, sd_deserialize, true);
+	return ser;
+}
+#endif
 
 } /* namespace Dyninst */
 #endif

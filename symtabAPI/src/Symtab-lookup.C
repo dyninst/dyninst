@@ -67,6 +67,14 @@ static bool sort_by_sym_ptr(const Symbol *a, const Symbol *b) {
     return a < b;
 }
 
+Symbol *Symtab::findSymbolByIndex(unsigned ndx)
+{
+	Symbol *s = NULL;
+	if (ndx < everyDefinedSymbol.size())
+		s = everyDefinedSymbol[ndx];
+	return s;
+}
+
 bool Symtab::findSymbolByType(std::vector<Symbol *> &ret, const std::string name,
                               Symbol::SymbolType sType, NameType nameType,
                               bool isRegex, bool checkCase)

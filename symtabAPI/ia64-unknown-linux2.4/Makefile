@@ -47,7 +47,7 @@ ifndef LIBELFSTATIC
 LIBS += -lelf
 endif
 ifndef LIBIBERTYSTATIC
-LIBS	+= -liberty
+#LIBS	+= -liberty
 endif
 
 LIBS    += -L$(LIBUNWIND_LIB) -lunwind-ptrace -lunwind -lunwind-ia64

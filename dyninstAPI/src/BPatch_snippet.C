@@ -44,27 +44,30 @@
 #define BPATCH_FILE
 
 #include <string.h>
-#include "ast.h"
-#include "symtab.h"
-#include "process.h"
-#include "instPoint.h"
+
+#include "common/h/Time.h"
+#include "common/h/timing.h"
 
 #include "BPatch.h"
 #include "BPatch_addressSpace.h"
 #include "BPatch_snippet.h"
 #include "BPatch_type.h"
 #include "BPatch_function.h"
-#include "symtabAPI/h/Type.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
-#include "common/h/Time.h"
-#include "common/h/timing.h"
-#include "addressSpace.h"
 
+#include "addressSpace.h"
 #include "mapped_object.h" // for savetheworld
 #include "mapped_module.h"
-
+#include "ast.h"
+#include "symtab.h"
+#include "process.h"
+#include "instPoint.h"
 #include "registerSpace.h"
+
+#include "symtabAPI/h/Type.h"
+#include "symtabAPI/h/Variable.h"
+
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -1184,12 +1187,12 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     Address baseAddr =  scp->getFunction()->lowlevel_func()->obj()->codeBase();
     vector<AstNodePtr> variableASTs;
     vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
-    vector<Dyninst::SymtabAPI::loc_t> *locs = lv->getSymtabVar()->getLocationLists();
-    vector<Dyninst::SymtabAPI::loc_t> newlocs;
+    vector<Dyninst::SymtabAPI::VariableLocation> *locs = lv->getSymtabVar()->getLocationLists();
+    vector<Dyninst::SymtabAPI::VariableLocation> newlocs;
 	
 
     // Get the frame pointer location list for the local variable's function
-    vector<Dyninst::SymtabAPI::loc_t> *fplocs = 
+    vector<Dyninst::SymtabAPI::VariableLocation> *fplocs = 
        				scp->getFunction()->lowlevel_func()->ifunc()->getSymtabFunction()->getFramePtr();
 
     for(unsigned i=0; i<locs->size(); i++) {
@@ -1220,7 +1223,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 		   
 		   */
    	
-                 Dyninst::SymtabAPI::loc_t newloc;
+                 Dyninst::SymtabAPI::VariableLocation newloc;
                  newloc.stClass = (*locs)[i].stClass ;
                  newloc.refClass = (*locs)[i].refClass;
                  newloc.reg = (*locs)[i].reg;
@@ -1248,7 +1251,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
            } // fploc iteration
        } else { // if not storageFrameOffset or fplocs == NULL
 
-    	 Dyninst::SymtabAPI::loc_t newloc;
+    	 Dyninst::SymtabAPI::VariableLocation newloc;
          newloc.stClass = (*locs)[i].stClass ;
          newloc.refClass = (*locs)[i].refClass;
          newloc.reg = (*locs)[i].reg;

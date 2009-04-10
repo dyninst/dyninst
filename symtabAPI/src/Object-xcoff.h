@@ -250,6 +250,7 @@ private:
 
     void load_object(bool alloc_syms);
     void load_archive(bool is_aout, bool alloc_syms);
+	bool fillExceptionTable(struct exceptab *, unsigned int, bool, struct syment *);
     void parse_aout(int offset, bool is_aout, bool alloc_syms);
     void parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li);
     void parseLineInformation(dyn_hash_map<std::string, LineInformation> &li, std::string * currentSourceFile,
@@ -275,6 +276,7 @@ private:
     Offset entryAddress_;
     Offset baseAddress_;
     
+	char *stringPool;
 
     int  nstabs_;
     int  nlines_;
