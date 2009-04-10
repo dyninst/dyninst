@@ -385,6 +385,7 @@ void parseArgs(int argc, char **argv)
 		if (++i < argc) {
 		    config.inst_function = argv[i];
 		    if (strchr (config.inst_function, ':')) {
+		    	config.instType = USER_FUNC;
 		    } else {
 		    	fprintf(stderr, "-f flag requires an argument of the format library:function_name.\n");
 		    	userError();
