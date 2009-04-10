@@ -271,11 +271,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          else 
          {
             locVar = new localVar(name, ptrType, fName, linenum);
+#if 0
             VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-            loc->stClass = storageRegOffset;
-            loc->refClass = storageNoRef;
-            loc->frameOffset = framePtr;
-            loc->reg = -1;
+#endif
+            VariableLocation loc;
+            loc.stClass = storageRegOffset;
+            loc.refClass = storageNoRef;
+            loc.frameOffset = framePtr;
+            loc.reg = -1;
             locVar->addLocation(loc);
             if (!ptrType) {
                //bperr("adding local var with missing type %s, type = %d\n",
@@ -308,11 +311,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          ptrType = mod->getModuleTypes()->findOrCreateType( ID);
 
          locVar = new localVar(name, ptrType, fName, linenum);
+#if 0
          VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-         loc->stClass = storageRegOffset;
-         loc->refClass = storageNoRef;
-         loc->frameOffset = framePtr;
-         loc->reg = -1;
+#endif
+         VariableLocation loc;
+         loc.stClass = storageRegOffset;
+         loc.refClass = storageNoRef;
+         loc.frameOffset = framePtr;
+         loc.reg = -1;
          locVar->addLocation(loc);
 
          if (!ptrType) 
@@ -530,11 +536,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                localVar *param;
 
                param = new localVar(name, ptrType, fName, linenum);
+#if 0
                VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-               loc->stClass = storageRegOffset;
-               loc->refClass = storageNoRef;
-               loc->frameOffset = framePtr;
-               loc->reg = -1;
+#endif
+               VariableLocation loc;
+               loc.stClass = storageRegOffset;
+               loc.refClass = storageNoRef;
+               loc.frameOffset = framePtr;
+               loc.reg = -1;
                param->addLocation(loc);
 
                if (symt_current_func) 
@@ -558,11 +567,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                localVar *var;
                var = new localVar(name, ptrType, fName, linenum);
+#if 0
                VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-               loc->stClass = storageRegOffset;
-               loc->refClass = storageNoRef;
-               loc->frameOffset = 0;
-               loc->reg = -1;
+#endif
+               VariableLocation loc;
+               loc.stClass = storageRegOffset;
+               loc.refClass = storageNoRef;
+               loc.frameOffset = 0;
+               loc.reg = -1;
                var->addLocation(loc);
 
                if (symt_current_mangled_func_name.length()) 
@@ -808,11 +820,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                if (symt_current_func) 
                {
                   locVar = new localVar(name, BPtype, fName, linenum);
+#if 0
                   VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-                  loc->stClass = storageAddr;
-                  loc->refClass = storageNoRef;
-                  loc->frameOffset = framePtr;
-                  loc->reg = -1;
+#endif
+                  VariableLocation loc;
+                  loc.stClass = storageAddr;
+                  loc.refClass = storageNoRef;
+                  loc.frameOffset = framePtr;
+                  loc.reg = -1;
                   locVar->addLocation(loc);
 
                   if (!symt_current_func->addLocalVar(locVar)) 

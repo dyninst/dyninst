@@ -1102,7 +1102,8 @@ void typeCommon::beginCommonBlock() {
     fieldList = emptyList;
 }
 
-void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
+void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) 
+{
     unsigned int i, j;
 
     // create local variables in func's scope for each field of common block
@@ -1111,11 +1112,14 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
 	    localVar *locVar;
     	locVar = new localVar(fieldList[j]->getName(), 
 	        			     fieldList[j]->getType(), "", 0);
+#if 0
     	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-        loc->stClass = storageAddr;
-        loc->refClass = storageNoRef;
-        loc->reg = -1;    
-        loc->frameOffset = fieldList[j]->getOffset()+(Offset) baseAddr;
+#endif
+    	VariableLocation loc;
+        loc.stClass = storageAddr;
+        loc.refClass = storageNoRef;
+        loc.reg = -1;    
+        loc.frameOffset = fieldList[j]->getOffset()+(Offset) baseAddr;
         locVar->addLocation(loc);
 
 	// localVar->addField() TODO????
@@ -1616,122 +1620,6 @@ void Field::fixupUnknown(Module *module) {
       otype->decrRefCount();
    }
 }
-
-#if 0
-/**************************************************************************
- * localVar
- *************************************************************************/
-/*
- * localVar Constructor
- *
- */
-localVar::localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<VariableLocation>* locs)
- :name_(name), type_(typ), fileName_(fileName), lineNum_(lineNum), locs_(locs), upPtr_(NULL)
-{
-    type_->incrRefCount();
-}
-#endif
-
-#if 0
-localVar::localVar(localVar &lvar) 
-{
-   name_ = lvar.name_;
-   type_ = lvar.type_;
-   fileName_ = lvar.fileName_;
-   lineNum_ = lvar.lineNum_;
-   if(!lvar.locs_)
-       locs_ = NULL;
-   else {
-       locs_ = new vector<VariableLocation>;
-       for(unsigned i=0;i<lvar.locs_->size();i++){
-          locs_->push_back((*lvar.locs_)[i]);
-       }
-   }	
-   upPtr_ = lvar.upPtr_;
-   if (type_ != NULL)
-      type_->incrRefCount();
-}
-
-bool localVar::addLocation(VariableLocation *location)
-{
-    if(!locs_)
-    	locs_ = new std::vector<VariableLocation>;
-    locs_->push_back(*location);
-    return true;
-}
-
-bool localVar::setLocation(vector<VariableLocation> &locs) {
-    if(locs_)
-        return false;
-    locs_ = new vector<VariableLocation>;
-    *locs_ = locs;
-    return true;
-}
-#endif
-
-#if 0
-/*
- * localVar destructor
- *
- */
-localVar::~localVar()
-{
-    //XXX jdd 5/25/99 More to do later
-    type_->decrRefCount();
-    delete locs_;
-    locs_ = NULL;
-    delete locs_;
-}
-
-void localVar::fixupUnknown(Module *module) {
-   if (type_->getDataClass() == dataUnknownType) {
-      Type *otype = type_;
-      type_ = module->getModuleTypes()->findType(type_->getID());
-      if(type_){
-          type_->incrRefCount();
-           otype->decrRefCount();
-      }
-      else
-          type_ = otype;
-   }
-}
-
-std::string &localVar::getName() {
-	return name_; 
-}
-
-Type *localVar::getType() { 
-	return type_; 
-}
-
-bool localVar::setType(Type *newType) {
-	type_ = newType;
-	return true;
-}
-#endif
-
-#if 0
-int localVar::getLineNum() { 
-	return lineNum_; 
-}
-
-std::string &localVar::getFileName() { 
-	return fileName_; 
-}
-
-std::vector<Dyninst::SymtabAPI::VariableLocation> *localVar::getLocationLists() { 
-	return locs_; 
-}
-
-void *localVar::getUpPtr() const{
-    return upPtr_;
-}
-
-bool localVar::setUpPtr(void *upPtr) {
-    upPtr_ = upPtr;
-    return true;
-}
-#endif
 
 /**************************************************************************
  * CBlock

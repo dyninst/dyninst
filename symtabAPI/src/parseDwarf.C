@@ -1564,7 +1564,13 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	  fileName = srcFiles[fileNameDeclVal-1];
 	}
 	localVar * newVariable = new localVar( vName, variableType, fileName, (int) variableLineNo);
+	for (unsigned int i = 0; i < locs.size(); ++i)
+	{
+		newVariable->addLocation(locs[i]);
+	}
+#if 0
 	newVariable->setLocation(locs);
+#endif
 	localVarCollection *lvs = NULL; 
 	if (!currentFunction->getAnnotation(lvs, FunctionLocalVariablesAnno))
 	  {
@@ -1737,7 +1743,14 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       std::string pName = convertCharToString(parameterName);
       localVar * newParameter = new localVar( pName, parameterType, fileName, (int) parameterLineNo);
       assert( newParameter != NULL );
+	  for (unsigned int i = 0; i < locs.size(); ++i)
+	  {
+		  newParameter->addLocation(locs[i]);
+	  }
+
+#if 0
       newParameter->setLocation(locs);
+#endif
          
       /* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
       localVarCollection *lvs = NULL;

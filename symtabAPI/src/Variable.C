@@ -49,137 +49,6 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-localVar::localVar(std::string name,  Type *typ, std::string fileName, 
-		int lineNum, std::vector<VariableLocation>* locs) :
-	name_(name), 
-	type_(typ), 
-	fileName_(fileName), 
-	lineNum_(lineNum), 
-	locs_(locs), 
-	upPtr_(NULL)
-{
-	type_->incrRefCount();
-}
-
-localVar::localVar(localVar &lvar) 
-{
-	name_ = lvar.name_;
-	type_ = lvar.type_;
-	fileName_ = lvar.fileName_;
-	lineNum_ = lvar.lineNum_;
-
-	if (!lvar.locs_)
-	{
-		locs_ = NULL;
-	}
-	else 
-	{
-		locs_ = new vector<VariableLocation>;
-
-		for (unsigned i=0;i<lvar.locs_->size();i++)
-		{
-			locs_->push_back((*lvar.locs_)[i]);
-		}
-	}
-
-	upPtr_ = lvar.upPtr_;
-
-	if (type_ != NULL)
-	{
-		type_->incrRefCount();
-	}
-}
-
-bool localVar::addLocation(VariableLocation *location)
-{
-	if (!locs_)
-	{
-		locs_ = new std::vector<VariableLocation>;
-	}
-
-	locs_->push_back(*location);
-
-	return true;
-}
-
-bool localVar::setLocation(vector<VariableLocation> &locs) 
-{
-	if (locs_)
-		return false;
-
-	locs_ = new vector<VariableLocation>;
-	*locs_ = locs;
-
-	return true;
-}
-
-localVar::~localVar()
-{
-	//XXX jdd 5/25/99 More to do later
-	type_->decrRefCount();
-	delete locs_;
-	locs_ = NULL;
-	delete locs_;
-}
-
-void localVar::fixupUnknown(Module *module) 
-{
-	if (type_->getDataClass() == dataUnknownType) 
-	{
-		Type *otype = type_;
-		type_ = module->getModuleTypes()->findType(type_->getID());
-
-		if (type_)
-		{
-			type_->incrRefCount();
-			otype->decrRefCount();
-		}
-		else
-			type_ = otype;
-	}
-}
-
-std::string &localVar::getName() 
-{
-	return name_;
-}
-
-Type *localVar::getType() 
-{
-	return type_;
-}
-
-bool localVar::setType(Type *newType) 
-{
-	type_ = newType;
-	return true;
-}
-
-int localVar::getLineNum() 
-{
-	return lineNum_;
-}
-
-std::string &localVar::getFileName() 
-{
-	return fileName_;
-}
-
-std::vector<Dyninst::SymtabAPI::VariableLocation> *localVar::getLocationLists() 
-{
-	return locs_;
-}
-
-void *localVar::getUpPtr() const
-{
-	return upPtr_;
-}
-
-bool localVar::setUpPtr(void *upPtr) 
-{
-	upPtr_ = upPtr;
-	return true;
-}
 
 Variable::Variable(Symbol *sym) :
 	Aggregate(sym),
@@ -319,3 +188,191 @@ void VariableLocation::serialize(SerializerBase *sb, const char *tag) THROW_SPEC
 	gtranslate(sb, lowPC, "lowPC");
 	ifxml_end_element(sb, tag);
 }
+
+localVar::localVar(std::string name,  Type *typ, std::string fileName, 
+		int lineNum, std::vector<VariableLocation> *locs) :
+	Serializable(),
+	name_(name), 
+	type_(typ), 
+	fileName_(fileName), 
+	lineNum_(lineNum) 
+{
+	type_->incrRefCount();
+
+	if (locs)
+	{
+		for (unsigned int i = 0; i < locs->size(); ++i)
+		{
+			locs_.push_back((*locs)[i]);
+		}
+	}
+}
+
+localVar::localVar(localVar &lvar) :
+	Serializable()
+{
+	name_ = lvar.name_;
+	type_ = lvar.type_;
+	fileName_ = lvar.fileName_;
+	lineNum_ = lvar.lineNum_;
+
+	for (unsigned int i = 0; i < lvar.locs_.size(); ++i)
+	{
+		locs_.push_back(lvar.locs_[i]);
+	}
+
+	if (type_ != NULL)
+	{
+		type_->incrRefCount();
+	}
+}
+
+bool localVar::addLocation(VariableLocation &location)
+{
+	locs_.push_back(location);
+
+	return true;
+}
+
+#if 0
+bool localVar::setLocation(vector<VariableLocation> &locs) 
+{
+	if (locs_)
+		return false;
+
+	locs_ = new vector<VariableLocation>;
+	*locs_ = locs;
+
+	return true;
+}
+#endif
+
+localVar::~localVar()
+{
+	//XXX jdd 5/25/99 More to do later
+	type_->decrRefCount();
+}
+
+void localVar::fixupUnknown(Module *module) 
+{
+	if (type_->getDataClass() == dataUnknownType) 
+	{
+		Type *otype = type_;
+		type_ = module->getModuleTypes()->findType(type_->getID());
+
+		if (type_)
+		{
+			type_->incrRefCount();
+			otype->decrRefCount();
+		}
+		else
+			type_ = otype;
+	}
+}
+
+std::string &localVar::getName() 
+{
+	return name_;
+}
+
+Type *localVar::getType() 
+{
+	return type_;
+}
+
+bool localVar::setType(Type *newType) 
+{
+	type_ = newType;
+	return true;
+}
+
+int localVar::getLineNum() 
+{
+	return lineNum_;
+}
+
+std::string &localVar::getFileName() 
+{
+	return fileName_;
+}
+
+std::vector<Dyninst::SymtabAPI::VariableLocation> &localVar::getLocationLists() 
+{
+	return locs_;
+}
+
+bool localVar::operator==(const localVar &l)
+{
+	if (type_ && !l.type_) return false;
+	if (!type_ && l.type_) return false;
+
+	if (type_)
+	{
+		if (type_->getID() != l.type_->getID())
+			return false;
+	}
+
+	if (name_ != l.name_) return false;
+	if (fileName_ != l.fileName_) return false;
+	if (lineNum_ != l.lineNum_) return false;
+
+	if (locs_.size() != l.locs_.size()) return false;
+
+	for (unsigned int i = 0; i < locs_.size(); ++i)
+	{
+		if ( !(locs_[i] == l.locs_[i]) ) return false;
+	}
+
+	return true;
+}
+
+void localVar::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+{
+	//  Use typeID as unique identifier
+	//  magic numbers stink, but we use both positive and negative numbers for type ids
+	unsigned int t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
+
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, name_, "Name");
+	gtranslate(sb, fileName_, "FileName");
+	gtranslate(sb, lineNum_, "LineNumber");
+	gtranslate(sb, t_id, "TypeID");
+	gtranslate(sb, locs_, "Locations", "Location");
+	ifxml_end_element(sb, tag);
+
+	if (sb->isInput())
+	{
+		if (t_id == 0xdeadbeef)
+		{
+			type_ = NULL;
+		}
+		else 
+		{
+			ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+			if (!ssb)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			Symtab *st = ssb->getScope();
+
+			if (!st)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			type_ = st->findType(t_id);
+
+			if (!type_)
+			{
+				//  This should probably throw, but let's play nice for now
+				fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
+			}
+		}
+
+	}
+}
+

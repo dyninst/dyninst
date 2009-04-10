@@ -241,63 +241,63 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
         return AstNodePtr();
     }
 
-    Type *elementType = arrayType->getBaseType();
+	Type *elementType = arrayType->getBaseType();
 
-    assert(elementType);
-    long int elementSize = elementType->getSize();
+	assert(elementType);
+	long int elementSize = elementType->getSize();
 
-    // check that the type of the right operand is an integer.
-    //  We have to be a little forgiving of this parameter, since we could 
-    //  be indexing using a funcCall snippet, for which no return type is available.
-    //  Ideally we could always know this information, but until then, if no
-    //  type information is available, assume that the user knows what they're doing
-    //  (just print a warning, don't fail).
+	// check that the type of the right operand is an integer.
+	//  We have to be a little forgiving of this parameter, since we could 
+	//  be indexing using a funcCall snippet, for which no return type is available.
+	//  Ideally we could always know this information, but until then, if no
+	//  type information is available, assume that the user knows what they're doing
+	//  (just print a warning, don't fail).
 
-    BPatch_type *indexType = const_cast<BPatch_type *>(rOperand.ast_wrapper->getType());
-    if (!indexType) {
-        char err_buf[512];
-        sprintf(err_buf, "%s[%d]:  %s %s\n",
-		__FILE__, __LINE__,
-		"Warning:  cannot ascertain type of index parameter is of integral type, ",
-		"This is not a failure... but be warned that type-checking has failed. ");
-        BPatch_reportError(BPatchWarning, 109, err_buf);
-      
-    }
-    else if (strcmp(indexType->getName(), "int")
-             && strcmp(indexType->getName(), "short")
-             && strcmp(indexType->getName(), "long")
-             && strcmp(indexType->getName(), "signed")
-             && strcmp(indexType->getName(), "unsigned int")
-             && strcmp(indexType->getName(), "unsigned short")
-             && strcmp(indexType->getName(), "unsigned long")
-             && strcmp(indexType->getName(), "unsigned")) {
-        char err_buf[256];
-        sprintf(err_buf, "%s[%d]: non-integer array index type %s\n",
-                __FILE__, __LINE__,  indexType->getName());
-        fprintf(stderr, "%s\n", err_buf);
-	BPatch_reportError(BPatchSerious, 109, err_buf);
-        return AstNodePtr();
-    }
-    //fprintf(stderr, "%s[%d]:  indexing with type %s\n", __FILE__, __LINE__, 
-    //        indexType->getName());
+	BPatch_type *indexType = const_cast<BPatch_type *>(rOperand.ast_wrapper->getType());
+	if (!indexType) {
+		char err_buf[512];
+		sprintf(err_buf, "%s[%d]:  %s %s\n",
+				__FILE__, __LINE__,
+				"Warning:  cannot ascertain type of index parameter is of integral type, ",
+				"This is not a failure... but be warned that type-checking has failed. ");
+		BPatch_reportError(BPatchWarning, 109, err_buf);
 
-    //
-    // Convert a[i] into *(&a + (* i sizeof(element)))
-    //
+	}
+	else if (strcmp(indexType->getName(), "int")
+			&& strcmp(indexType->getName(), "short")
+			&& strcmp(indexType->getName(), "long")
+			&& strcmp(indexType->getName(), "signed")
+			&& strcmp(indexType->getName(), "unsigned int")
+			&& strcmp(indexType->getName(), "unsigned short")
+			&& strcmp(indexType->getName(), "unsigned long")
+			&& strcmp(indexType->getName(), "unsigned")) {
+		char err_buf[256];
+		sprintf(err_buf, "%s[%d]: non-integer array index type %s\n",
+				__FILE__, __LINE__,  indexType->getName());
+		fprintf(stderr, "%s\n", err_buf);
+		BPatch_reportError(BPatchSerious, 109, err_buf);
+		return AstNodePtr();
+	}
+	//fprintf(stderr, "%s[%d]:  indexing with type %s\n", __FILE__, __LINE__, 
+	//        indexType->getName());
 
-    AstNodePtr arrayBase = generateVariableBase(lOperand);
-    AstNodePtr ast = AstNode::operandNode(AstNode::DataIndir,
-				      AstNode::operatorNode(plusOp,
-                                                            arrayBase,
-                                                            AstNode::operatorNode(timesOp,
-                                                                                  AstNode::operandNode(AstNode::Constant,
-                                                                                                       (void *)elementSize),
-                                                                                  rOperand.ast_wrapper)));
-    if(!elementType->getUpPtr())
-        new BPatch_type(elementType);
-    ast->setType((BPatch_type *)elementType -> getUpPtr());
+	//
+	// Convert a[i] into *(&a + (* i sizeof(element)))
+	//
 
-    return AstNodePtr(ast);
+	AstNodePtr arrayBase = generateVariableBase(lOperand);
+	AstNodePtr ast = AstNode::operandNode(AstNode::DataIndir,
+			AstNode::operatorNode(plusOp,
+				arrayBase,
+				AstNode::operatorNode(timesOp,
+					AstNode::operandNode(AstNode::Constant,
+						(void *)elementSize),
+					rOperand.ast_wrapper)));
+	if(!elementType->getUpPtr())
+		new BPatch_type(elementType);
+	ast->setType((BPatch_type *)elementType -> getUpPtr());
+
+	return AstNodePtr(ast);
 }
 
 
@@ -305,43 +305,43 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
 // generateFieldRef - Construct an Ast expression for an structure field.
 //
 AstNodePtr generateFieldRef(const BPatch_snippet &lOperand, 
-                                   const BPatch_snippet &rOperand)
+		const BPatch_snippet &rOperand)
 {
-    if (lOperand.ast_wrapper == AstNodePtr()) return AstNodePtr();
-    if (rOperand.ast_wrapper == AstNodePtr()) return AstNodePtr();
+	if (lOperand.ast_wrapper == AstNodePtr()) return AstNodePtr();
+	if (rOperand.ast_wrapper == AstNodePtr()) return AstNodePtr();
 
-    if (lOperand.ast_wrapper->getType() == NULL) 
-         BPatch_reportError(BPatchSerious, 109,
-                            "array reference has no type information");
+	if (lOperand.ast_wrapper->getType() == NULL) 
+		BPatch_reportError(BPatchSerious, 109,
+				"array reference has no type information");
 
-    typeStruct *structType = lOperand.ast_wrapper->getType()->getSymtabType()->getStructType();
-    if (!structType) {
-	BPatch_reportError(BPatchSerious, 109,
-	       "structure reference has no type information, or structure reference to non-structure type");
-        return AstNodePtr();
-    }
+	typeStruct *structType = lOperand.ast_wrapper->getType()->getSymtabType()->getStructType();
+	if (!structType) {
+		BPatch_reportError(BPatchSerious, 109,
+				"structure reference has no type information, or structure reference to non-structure type");
+		return AstNodePtr();
+	}
 
-    // check that the type of the right operand is a string.
-    BPatch_type *fieldType = const_cast<BPatch_type *>(rOperand.ast_wrapper->getType());
-    if (rOperand.ast_wrapper->getoType()!=AstNode::ConstantString 
-	|| !fieldType
-	|| strcmp(fieldType->getName(), "char *")) {
-	// XXX - Should really check if this is a short/long too
-	BPatch_reportError(BPatchSerious, 109,
-			   "field name is not of type char *");
-        return AstNodePtr();
-    }
-    
-    vector<Field *> *fields;
-    Field *field = NULL;
+	// check that the type of the right operand is a string.
+	BPatch_type *fieldType = const_cast<BPatch_type *>(rOperand.ast_wrapper->getType());
+	if (rOperand.ast_wrapper->getoType()!=AstNode::ConstantString 
+			|| !fieldType
+			|| strcmp(fieldType->getName(), "char *")) {
+		// XXX - Should really check if this is a short/long too
+		BPatch_reportError(BPatchSerious, 109,
+				"field name is not of type char *");
+		return AstNodePtr();
+	}
 
-    // check that the name of the right operand is a field of the left operand
-    fields = structType->getComponents();
+	vector<Field *> *fields;
+	Field *field = NULL;
 
-    unsigned int i;
+	// check that the name of the right operand is a field of the left operand
+	fields = structType->getComponents();
 
-    for (i=0; i < fields->size(); i++) {
-      field = (*fields)[i];
+	unsigned int i;
+
+	for (i=0; i < fields->size(); i++) {
+		field = (*fields)[i];
       if (!strcmp(field->getName().c_str(), (const char *) rOperand.ast_wrapper->getOValue()))
 	break;
     }
@@ -1187,7 +1187,8 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
     Address baseAddr =  scp->getFunction()->lowlevel_func()->obj()->codeBase();
     vector<AstNodePtr> variableASTs;
     vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
-    vector<Dyninst::SymtabAPI::VariableLocation> *locs = lv->getSymtabVar()->getLocationLists();
+    vector<Dyninst::SymtabAPI::VariableLocation> &locsref = lv->getSymtabVar()->getLocationLists();
+    vector<Dyninst::SymtabAPI::VariableLocation> *locs = &locsref;
     vector<Dyninst::SymtabAPI::VariableLocation> newlocs;
 	
 

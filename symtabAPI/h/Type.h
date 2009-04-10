@@ -57,7 +57,6 @@ class typeRef;
 class CBlock;
 class typeCollection;
 class fieldListType;
-class localVarCollection;
 class TypeMemManager;
 
 //TODO?? class BPatch(to be  ??)function;

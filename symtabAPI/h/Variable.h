@@ -85,44 +85,6 @@ class VariableLocation : public Serializable {
 	SYMTAB_EXPORT void serialize(SerializerBase *, const char *tag = "VariableLocation") THROW_SPEC (SerializerError);
 };
 
-class SYMTAB_EXPORT localVar
-{
-	friend class typeCommon;
-	friend class localVarCollection;
-
-	std::string name_;
-	Type *type_;
-	std::string fileName_;
-	int lineNum_;
-	std::vector<VariableLocation> *locs_;
-	void *upPtr_;
-
-	// scope_t scope;
-
-	public:
-	localVar() {}
-	//  Internal use only
-	localVar(std::string name,  Type *typ, std::string fileName, 
-			int lineNum, std::vector<VariableLocation> *locs = NULL);
-	// Copy constructor
-	localVar(localVar &lvar);
-	bool addLocation(VariableLocation *location);
-	bool setLocation(std::vector<VariableLocation> &locs);
-	~localVar();
-	void fixupUnknown(Module *);
-
-	public:
-	//  end of functions for internal use only
-	std::string &getName();
-	Type *getType();
-	bool setType(Type *newType);
-	int  getLineNum();
-	std::string &getFileName();
-	std::vector<VariableLocation> *getLocationLists();
-
-	void *getUpPtr() const;
-	bool setUpPtr(void *);
-};
 
 class Symbol;
 class Symtab;
@@ -153,6 +115,53 @@ class Variable : public Aggregate, public Serializable {
    Type *type_;
 };
 
+class localVar : public Serializable, public AnnotatableSparse
+{
+	friend class typeCommon;
+	friend class localVarCollection;
+
+	std::string name_;
+	Type *type_;
+	std::string fileName_;
+	int lineNum_;
+	std::vector<VariableLocation> locs_;
+#if 0
+	std::vector<VariableLocation> *locs_;
+	void *upPtr_;
+#endif
+
+	// scope_t scope;
+
+	public:
+	SYMTAB_EXPORT localVar() {}
+	//  Internal use only
+	localVar(std::string name,  Type *typ, std::string fileName, 
+			int lineNum, std::vector<VariableLocation> *locs = NULL);
+	// Copy constructor
+	localVar(localVar &lvar);
+	bool addLocation(VariableLocation &location);
+#if 0
+	bool setLocation(std::vector<VariableLocation> &locs);
+#endif
+	~localVar();
+	void fixupUnknown(Module *);
+
+	public:
+	//  end of functions for internal use only
+	SYMTAB_EXPORT std::string &getName();
+	SYMTAB_EXPORT Type *getType();
+	SYMTAB_EXPORT bool setType(Type *newType);
+	SYMTAB_EXPORT int  getLineNum();
+	SYMTAB_EXPORT std::string &getFileName();
+	SYMTAB_EXPORT std::vector<VariableLocation> &getLocationLists();
+	SYMTAB_EXPORT bool operator==(const localVar &l);
+	SYMTAB_EXPORT void serialize(SerializerBase *, 
+			const char * = "localVar") THROW_SPEC(SerializerError);
+#if 0
+	void *getUpPtr() const;
+	bool setUpPtr(void *);
+#endif
+};
 
 }
 }

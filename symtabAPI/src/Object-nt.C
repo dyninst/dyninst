@@ -992,11 +992,14 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
         storage = storageAddr;
         storageName = "Absolute";
     }
+#if 0
 	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-	loc->stClass = storage;
-	loc->refClass = storageNoRef;
-	loc->frameOffset = frameOffset;
-	loc->reg = reg;
+#endif
+	VariableLocation loc;
+	loc.stClass = storage;
+	loc.refClass = storageNoRef;
+	loc.frameOffset = frameOffset;
+	loc.reg = reg;
 	
 	std::string vName = convertCharToString(pSymInfo->Name);
 	std::string fName = convertCharToString(func->getModule()->fileName().c_str());

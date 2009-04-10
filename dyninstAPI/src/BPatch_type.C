@@ -61,6 +61,7 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+AnnotationClass<BPatch_localVar> LocalVarUpPtrAnno("LocalVarUpPtrAnno");
 //static int findIntrensicType(const char *name);
 
 // This is the ID that is decremented for each type a user defines. It is
@@ -407,25 +408,37 @@ BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
     if (!type)
         type = new BPatch_type(lVar->getType());
     type->incrRefCount();
-    vector<Dyninst::SymtabAPI::VariableLocation> *locs = lVar_->getLocationLists();
-    if (!locs)
+
+    vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar_->getLocationLists();
+
+    if (!locs.size())
        storageClass = BPatch_storageFrameOffset;
     else
-       storageClass = convertToBPatchStorage(& (*locs)[0]);
-    lVar->setUpPtr(this);
+       storageClass = convertToBPatchStorage(& locs[0]);
+
+
+
+	if (!lVar->addAnnotation(this, LocalVarUpPtrAnno))
+	{
+		fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+	}
+
+#if 0
+	lVar->setUpPtr(this);
+#endif
 }
 
 BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::SymtabAPI::VariableLocation *loc)
 {
-   Dyninst::SymtabAPI::storageClass stClass = loc->stClass;
-   storageRefClass refClass = loc->refClass;
-   if((stClass == storageAddr) && (refClass == storageNoRef))
-       return BPatch_storageAddr;
-   else if((stClass == storageAddr) && (refClass == storageRef))
-       return BPatch_storageAddrRef;
-   else if((stClass == storageReg) && (refClass == storageNoRef))
-       return BPatch_storageReg;
-   else if((stClass == storageReg) && (refClass == storageRef))
+	Dyninst::SymtabAPI::storageClass stClass = loc->stClass;
+	storageRefClass refClass = loc->refClass;
+	if((stClass == storageAddr) && (refClass == storageNoRef))
+		return BPatch_storageAddr;
+	else if((stClass == storageAddr) && (refClass == storageRef))
+		return BPatch_storageAddrRef;
+	else if((stClass == storageReg) && (refClass == storageNoRef))
+		return BPatch_storageReg;
+	else if((stClass == storageReg) && (refClass == storageRef))
        return BPatch_storageRegRef;
    else if((stClass == storageRegOffset) && (loc->reg == -1))
        return BPatch_storageFrameOffset;
@@ -454,18 +467,24 @@ int BPatch_localVar::getLineNum() {
 }
 
 //TODO?? - get the first frame offset
-long BPatch_localVar::getFrameOffset() { 
-   vector<Dyninst::SymtabAPI::VariableLocation> *locs = lVar->getLocationLists();
-   if(!locs)
+long BPatch_localVar::getFrameOffset() {
+
+   vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar->getLocationLists();
+
+   if (locs.size())
       return -1;
-   return (*(locs))[0].frameOffset;
+
+   return locs[0].frameOffset;
 }
 
-int BPatch_localVar::getRegister() { 
-    vector<Dyninst::SymtabAPI::VariableLocation> *locs = lVar->getLocationLists();
-    if(!locs)
+int BPatch_localVar::getRegister() {
+
+    vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar->getLocationLists();
+
+    if (!locs.size())
         return -1;
-    return (*(locs))[0].reg;
+
+    return locs[0].reg;
 }
 
 BPatch_storageClass BPatch_localVar::getStorageClass() {
