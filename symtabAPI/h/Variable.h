@@ -102,13 +102,15 @@ class SYMTAB_EXPORT localVar
 	public:
 	localVar() {}
 	//  Internal use only
-	localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<VariableLocation> *locs = NULL);
+	localVar(std::string name,  Type *typ, std::string fileName, 
+			int lineNum, std::vector<VariableLocation> *locs = NULL);
 	// Copy constructor
 	localVar(localVar &lvar);
 	bool addLocation(VariableLocation *location);
 	bool setLocation(std::vector<VariableLocation> &locs);
 	~localVar();
 	void fixupUnknown(Module *);
+
 	public:
 	//  end of functions for internal use only
 	std::string &getName();

@@ -40,9 +40,6 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 #include "Aggregate.h"
-#if 0
-#include "Symbol.h"
-#endif
 #include "Variable.h"
 
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
@@ -79,7 +76,7 @@ class Function : public Aggregate, public Serializable
       SYMTAB_EXPORT int   getFramePtrRegnum() const;
 
       /***** x84_64-Specific Frame Pointer Information *****/
-	  //SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
+	  SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
       SYMTAB_EXPORT std::vector<VariableLocation> *getFramePtr();
 
       /***** Local Variable Information *****/
@@ -98,7 +95,7 @@ class Function : public Aggregate, public Serializable
 
       Type          *retType_;
       int           framePtrRegNum_;
-      std::vector<VariableLocation> locs_;
+      std::vector<VariableLocation> *locs_;
 };
 
 

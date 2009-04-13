@@ -214,14 +214,6 @@ vector<Type *> *Module::getAllTypes()
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
-#if 0
-      tc = new typeCollection();
-      if (!addAnnotation(tc, ModuleTypeInfoAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-         return NULL;
-      }
-#endif
       return NULL;
    }
    if (!tc)
@@ -239,14 +231,6 @@ vector<pair<string, Type *> > *Module::getAllGlobalVars()
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
-#if 0
-      tc = new typeCollection();
-      if (!addAnnotation(tc, ModuleTypeInfoAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-         return NULL;
-      }
-#endif
       return NULL;
    }
    if (!tc)

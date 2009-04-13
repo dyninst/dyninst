@@ -168,27 +168,6 @@ const char *visibility2Str(visibility_t v)
    return "bad_visibility";
 }
 
-#if 0
-const char *storageClass2Str(storageClass sc) 
-{
-   switch(sc) {
-      CASE_RETURN_STR(storageAddr);
-      CASE_RETURN_STR(storageReg);
-      CASE_RETURN_STR(storageRegOffset);
-   };
-   return "bad_storage_class";
-}
-
-const char *storageRefClass2Str(storageRefClass sc) 
-{
-   switch(sc) {
-      CASE_RETURN_STR(storageRef);
-      CASE_RETURN_STR(storageNoRef);
-   };
-   return "bad_storage_class";
-}
-#endif
-
 void Type::serialize(SerializerBase *s, const char *) THROW_SPEC (SerializerError)
 {
    //  this should no be called directly, but by serialization functions at leaf nodes
@@ -1638,6 +1617,7 @@ void Field::fixupUnknown(Module *module) {
    }
 }
 
+#if 0
 /**************************************************************************
  * localVar
  *************************************************************************/
@@ -1650,7 +1630,9 @@ localVar::localVar(std::string name,  Type *typ, std::string fileName, int lineN
 {
     type_->incrRefCount();
 }
+#endif
 
+#if 0
 localVar::localVar(localVar &lvar) 
 {
    name_ = lvar.name_;
@@ -1685,7 +1667,9 @@ bool localVar::setLocation(vector<VariableLocation> &locs) {
     *locs_ = locs;
     return true;
 }
+#endif
 
+#if 0
 /*
  * localVar destructor
  *
@@ -1724,7 +1708,9 @@ bool localVar::setType(Type *newType) {
 	type_ = newType;
 	return true;
 }
+#endif
 
+#if 0
 int localVar::getLineNum() { 
 	return lineNum_; 
 }
@@ -1745,6 +1731,7 @@ bool localVar::setUpPtr(void *upPtr) {
     upPtr_ = upPtr;
     return true;
 }
+#endif
 
 /**************************************************************************
  * CBlock

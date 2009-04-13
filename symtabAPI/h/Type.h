@@ -101,37 +101,6 @@ typedef enum {
  */
  
 const char *visibility2Str(visibility_t v);
-#if 0
-
-typedef enum {
-	storageAddr,
-	storageReg,
-	storageRegOffset
-} storageClass;
-
-const char *storageClass2Str(storageClass sc);
-/*
- * storageClass: Encodes how a variable is stored.
- *
- * storageAddr           - Absolute address of variable.
- * storageReg            - Register which holds variable value.
- * storageRegOffset      - Address of variable = $reg + address.
- */
-
-typedef enum {
-    storageRef,
-    storageNoRef
-} storageRefClass;
-	
-const char *storageRefClass2Str(storageRefClass sc);
-
-/*
- * storageRefClass: Encodes if a variable can be accessed through a register/address.
- *
- * storageRef        - There is a pointer to variable.
- * storageNoRef      - No reference. Value can be obtained using storageClass.
- */
-#endif
 
 class SYMTAB_EXPORT Field{
    friend class typeStruct;
@@ -528,57 +497,6 @@ class typeArray : public rangedType {
    SYMTAB_EXPORT bool operator==(const Type &otype) const;
    SYMTAB_EXPORT void fixupUnknowns(Module *);
 };
-
-#if 0
-//location for a variable
-typedef struct {
-   storageClass stClass;
-   storageRefClass refClass;
-   int reg;
-   long frameOffset;
-   Address lowPC;
-   Address hiPC;
-} loc_t;
-#endif
-
-#if 0
-class SYMTAB_EXPORT localVar
-{
-   friend class typeCommon;
-   friend class localVarCollection;
- 
-    std::string name_;
-    Type *type_;
-    std::string fileName_;
-    int lineNum_;
-    std::vector<loc_t> *locs_;
-    void *upPtr_;
-    
-    // scope_t scope;
-  
-  public:
-    localVar() {}
-      //  Internal use only
-      localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t> *locs = NULL);
-      // Copy constructor
-      localVar(localVar &lvar);
-      bool addLocation(loc_t *location);
-      bool setLocation(std::vector<loc_t> &locs);
-      ~localVar();
-      void fixupUnknown(Module *);
- public:
-      //  end of functions for internal use only
-      std::string &getName();
-      Type *getType();
-      bool setType(Type *newType);
-      int  getLineNum();
-      std::string &getFileName();
-      std::vector<loc_t> *getLocationLists();
-
-      void *getUpPtr() const;
-      bool setUpPtr(void *);
-};
-#endif
 
 } // namespace SymtabAPI
 } // namespace Dyninst

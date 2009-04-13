@@ -1075,7 +1075,7 @@ unsigned saveSPRegisters(codeGen &gen,
     //
     // Well, if it isn't used, then it's dead, and we won't save it.
     // ARGH inferior RPCs...
-#if defined(os_aix)
+#if defined(os_aix) && !defined(arch_64bit)
     registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
     if (mq->liveState == registerSlot::live) {
         saveSPR(gen, 10, mq->encoding(), save_off + spr0_off); num_saved++;
@@ -1122,7 +1122,7 @@ unsigned restoreSPRegisters(codeGen &gen,
     restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_restored++;
     restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
 
-#if defined(os_aix)
+#if defined(os_aix) && !defined(arch_64bit)
     // See comment in saveSPRegisters
     registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
     if (mq->liveState == registerSlot::spilled) {

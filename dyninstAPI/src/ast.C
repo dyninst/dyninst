@@ -2524,7 +2524,8 @@ bool AstSequenceNode::containsFuncCall() const {
 	return false;
 }
 
-bool AstVariableNode::containsFuncCall() const {
+bool AstVariableNode::containsFuncCall() const 
+{
     return ast_wrappers_[index]->containsFuncCall();
 }
 

@@ -49,27 +49,159 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+localVar::localVar(std::string name,  Type *typ, std::string fileName, 
+		int lineNum, std::vector<VariableLocation>* locs) :
+	name_(name), 
+	type_(typ), 
+	fileName_(fileName), 
+	lineNum_(lineNum), 
+	locs_(locs), 
+	upPtr_(NULL)
+{
+	type_->incrRefCount();
+}
+
+localVar::localVar(localVar &lvar) 
+{
+	name_ = lvar.name_;
+	type_ = lvar.type_;
+	fileName_ = lvar.fileName_;
+	lineNum_ = lvar.lineNum_;
+
+	if (!lvar.locs_)
+	{
+		locs_ = NULL;
+	}
+	else 
+	{
+		locs_ = new vector<VariableLocation>;
+
+		for (unsigned i=0;i<lvar.locs_->size();i++)
+		{
+			locs_->push_back((*lvar.locs_)[i]);
+		}
+	}
+
+	upPtr_ = lvar.upPtr_;
+
+	if (type_ != NULL)
+	{
+		type_->incrRefCount();
+	}
+}
+
+bool localVar::addLocation(VariableLocation *location)
+{
+	if (!locs_)
+	{
+		locs_ = new std::vector<VariableLocation>;
+	}
+
+	locs_->push_back(*location);
+
+	return true;
+}
+
+bool localVar::setLocation(vector<VariableLocation> &locs) 
+{
+	if (locs_)
+		return false;
+
+	locs_ = new vector<VariableLocation>;
+	*locs_ = locs;
+
+	return true;
+}
+
+localVar::~localVar()
+{
+	//XXX jdd 5/25/99 More to do later
+	type_->decrRefCount();
+	delete locs_;
+	locs_ = NULL;
+	delete locs_;
+}
+
+void localVar::fixupUnknown(Module *module) 
+{
+	if (type_->getDataClass() == dataUnknownType) 
+	{
+		Type *otype = type_;
+		type_ = module->getModuleTypes()->findType(type_->getID());
+
+		if (type_)
+		{
+			type_->incrRefCount();
+			otype->decrRefCount();
+		}
+		else
+			type_ = otype;
+	}
+}
+
+std::string &localVar::getName() 
+{
+	return name_;
+}
+
+Type *localVar::getType() 
+{
+	return type_;
+}
+
+bool localVar::setType(Type *newType) 
+{
+	type_ = newType;
+	return true;
+}
+
+int localVar::getLineNum() 
+{
+	return lineNum_;
+}
+
+std::string &localVar::getFileName() 
+{
+	return fileName_;
+}
+
+std::vector<Dyninst::SymtabAPI::VariableLocation> *localVar::getLocationLists() 
+{
+	return locs_;
+}
+
+void *localVar::getUpPtr() const
+{
+	return upPtr_;
+}
+
+bool localVar::setUpPtr(void *upPtr) 
+{
+	upPtr_ = upPtr;
+	return true;
+}
+
 Variable::Variable(Symbol *sym) :
-    Aggregate(sym),
-    type_(NULL)
+	Aggregate(sym),
+	type_(NULL)
 {
 }
 
 Variable::Variable() :
-    Aggregate(),
-    type_(NULL)
+	Aggregate(),
+	type_(NULL)
 {
 }
 void Variable::setType(Type *type)
 {
 	//fprintf(stderr, "%s[%d]:  setting variable %s to type id %d\n", FILE__, __LINE__, prettyName.c_str(), type ? type->getID() : 0xdeadbeef);
-   type_ = type;
+	type_ = type;
 }
 
 Type* Variable::getType()
 {
-   module_->exec()->parseTypesNow();
-   return type_;
+	module_->exec()->parseTypesNow();
+	return type_;
 }
 
 void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)

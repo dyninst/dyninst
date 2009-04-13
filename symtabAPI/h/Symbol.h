@@ -43,11 +43,6 @@
 ************************************************************************/
 
 #include "symutil.h"
-#if 0
-#include "Collections.h"
-#include "Type.h"
-#endif
-
 #include "Annotatable.h"
 #include "Serialization.h"
 
@@ -278,23 +273,14 @@ class Symbol : public Serializable,
    std::vector<std::string> verNames_;
 #endif
 
-   void restore_module_and_region(SerializerBase *, std::string &, Offset) THROW_SPEC (SerializerError);
-   public:
-   SYMTAB_EXPORT 
-	   void serialize(SerializerBase *, const char *tag = "Symbol") THROW_SPEC (SerializerError);
-};
+   void restore_module_and_region(SerializerBase *, 
+		   std::string &, Offset) THROW_SPEC (SerializerError);
 
-#if 0
-inline
-Symbol::Symbol(unsigned)
-    : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
-    isInDynsymtab_(false), isInSymtab_(true), isAbsolute_(false), tag_(TAG_UNKNOWN),
-    retType_(NULL), moduleName_("")
-   //vars_(NULL), params_(NULL) 
-{
-}
-#endif
+   public:
+
+   SYMTAB_EXPORT void serialize(SerializerBase *, 
+		   const char *tag = "Symbol") THROW_SPEC (SerializerError);
+};
 
 class LookupInterface 
 {

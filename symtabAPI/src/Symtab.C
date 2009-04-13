@@ -535,10 +535,6 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // code. 
         
         // removed 1/09: this should be done in Dyninst, not Symtab
-#if 0
-        if (sym->getMangledName()[0] == '.') 
-            continue;
-#endif
 
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
@@ -553,13 +549,6 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // consistency issue. This should be a null check.
 
         // Symbols can have an offset of 0 if they don't refer to things within a file.
-#if 0
-        if (!isValidOffset(sym->getAddr())) {
-            fprintf(stderr, "Symbol %s has invalid offset 0x%lx\n", sym->getName().c_str(), sym->getAddr());
-            fprintf(stderr, "... in file %s\n", name().c_str());
-            return false;
-        }
-#endif
 
         raw_syms.push_back(sym);
     }
@@ -712,7 +701,7 @@ bool Symtab::demangleSymbol(Symbol *&sym) {
 bool Symtab::addSymbolToIndices(Symbol *&sym) 
 {
 	assert(sym);
-	sym->index_ = everyDefinedSymbol.size();
+//	sym->index_ = everyDefinedSymbol.size();
 
     everyDefinedSymbol.push_back(sym);
     
@@ -1116,9 +1105,10 @@ Symtab::Symtab(char *, size_t, std::string , Offset, bool &, void *)
 
 bool sort_reg_by_addr(const Region* a, const Region* b)
 {
-   return a->getRegionAddr() < b->getRegionAddr();
+  if (a->getRegionAddr() == b->getRegionAddr())
+    return a->getMemSize() < b->getMemSize();
+  return a->getRegionAddr() < b->getRegionAddr();
 }
-
 
 extern void print_symbols( std::vector< Symbol *>& allsymbols );
 extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
@@ -1344,18 +1334,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         serr = Syms_To_Functions;
         return false;
     }
-	
-#if 0
-    // define all of the functions, this also defines all of the modules
-    if (!symbolsToFunctions(linkedFile, &raw_syms))
-    {
-        fprintf(stderr, "%s[%d] Error converting symbols to functions in file %s\n", 
-                __FILE__, __LINE__, mf->filename().c_str());
-        err = false;
-        serr = Syms_To_Functions;
-        return false;
-    }
-#endif
 	
     // Once languages are assigned, we can build demangled names (in
     // the wider sense of demangling which includes stripping _'s from
@@ -1621,11 +1599,6 @@ bool Symtab::exportXML(string file)
    {
       SerializerXML sb("XMLTranslator", file, sd_serialize, true);
       serialize(&sb, "Symtab");
-#if 0
-      SymtabTranslatorXML trans(this, file);
-      if ( serialize(*this, trans))
-         return true;
-#endif
    } 
    catch (const SerializerError &err) 
    {
@@ -1649,15 +1622,6 @@ bool Symtab::exportBin(string file)
       SerializerBin sb("BinSerializer", file, sd_serialize, true);
       serialize(&sb, "Symtab");
 
-#if 0 
-      bool verbose = false;
-      if (strstr(file.c_str(), "cache_ld")) verbose = true;
-      SymtabTranslatorBin *transptr = SymtabTranslatorBin::getTranslator(this, file, sd_serialize, verbose);
-      assert(transptr);
-      SymtabTranslatorBin &trans = *transptr;
-      if (serialize(*this, trans))
-         return true;
-#endif
       fprintf(stderr, "%s[%d]:  binary serialization ok\n", __FILE__, __LINE__);
       return true;
    }
@@ -1705,16 +1669,6 @@ Symtab *Symtab::importBin(std::string file)
       if (strstr(file.c_str(), "ld-")) verbose = true;
       SerializerBin sb("BinTranslator", file, sd_deserialize, true);
       st->serialize(&sb);
-#if 0
-      SymtabTranslatorBin *transptr = SymtabTranslatorBin::getTranslator(st, file, sd_deserialize, verbose);
-      assert(transptr);
-      SymtabTranslatorBin &trans = *transptr;
-      if (deserialize(*st, trans)) {
-         fprintf(stderr, "%s[%d]:  deserialized '%s' from cache\n", FILE__, __LINE__, file.c_str());
-         if (!st) fprintf(stderr, "%s[%d]:  FIXME:  no symtab\n", FILE__, __LINE__);
-         return st;
-      }
-#endif
    }
 
    catch (const SerializerError &err)
@@ -2861,10 +2815,7 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
          fprintf(stderr, "%s[%d]:  really should not happen\n", FILE__, __LINE__);
          return false;
       }
-#if 0
-#else
       fprintf(stderr, "%s[%d]:  WARN:  disabled serializer init here\n", FILE__, __LINE__);
-#endif
    }
    return true;
 }
@@ -2874,7 +2825,6 @@ bool dummy_for_ser_instance(std::string file, SerializerBase *sb)
 namespace Dyninst {
 	namespace SymtabAPI {
 
-//SYMTAB_EXPORT SerializerBin<Symtab> st_static_instance(NULL);
 
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
 {

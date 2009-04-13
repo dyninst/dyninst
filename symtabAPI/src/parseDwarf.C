@@ -1207,19 +1207,29 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 #endif
 	dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
 	//vector<loc_t> *locs = new vector<loc_t>();
+	vector<VariableLocation> *locs = new vector<VariableLocation>();
 
+		bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
+		DWARF_NEXT_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
+
+#if 0
 	std::vector<VariableLocation> *locs = newFunction->getFramePtr();
-	if (0 != locs->size())
+	if (0 == locs->size())
 	{
-		fprintf(stderr, "%s[%d]:  FIXME:  writing over old frame pointer info\n", FILE__, __LINE__);
-		locs->resize(0);
+		for (unsigned int i = 0; i < nlocs.size(); ++i)
+			locs->push_back(nlocs[i]);
+		//fprintf(stderr, "%s[%d]:  FIXME:  writing over old frame pointer info\n", FILE__, __LINE__);
+		//locs->resize(0);
+
 	}
+	else 
+	{
+		fprintf(stderr, "%s[%d]:  FIXME:  not writing over old loclist\n", FILE__, __LINE__);
+	}
+#endif
 
-	bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, *locs, lowpc, NULL);
-	DWARF_NEXT_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
-
-	//status = newFunction->setFramePtr(locs);
-	//DWARF_NEXT_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
+	status = newFunction->setFramePtr(locs);
+	DWARF_NEXT_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
 
 
 	deallocateLocationList( dbg, locationList, listLength );
