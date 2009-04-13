@@ -2335,25 +2335,25 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
       //Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
-	  Offset end = regions_[i]->getRegionAddr() + regions_[i]->getRegionSize();
+      Offset end = regions_[i]->getRegionAddr() + regions_[i]->getRegionSize();
       if (regions_[i]->getRegionAddr() == 0) 
          continue;
 
       prevSecoffset = secoffset;
 
       unsigned region_offset = (unsigned)((char *)(regions_[i]->getPtrToRawData())
-            - linkedFile->mem_image());
+                                          - linkedFile->mem_image());
 
       if (region_offset < (unsigned)prevSecoffset)
       {
          //secoffset += regions_[i]->getDiskSize();
-		 secoffset += regions_[i]->getRegionSize();
+         secoffset += regions_[i]->getRegionSize();
       }
       else 
       {
          secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
          //secoffset += regions_[i]->getDiskSize();
-		 secoffset += regions_[i]->getRegionSize();
+         secoffset += regions_[i]->getRegionSize();
       }
 
       /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
@@ -2368,13 +2368,13 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
       }
 
       if (     (i < (regions_.size()-2)) 
-            && ((end + size) < regions_[i+1]->getRegionAddr())) 
+               && ((end + size) < regions_[i+1]->getRegionAddr())) 
       {
          /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
                  i, i+1);
                  fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
                  end, regions_[i+1]->getSecAddr());
-          */   
+         */   
          newSectionInsertPoint = i+1;
          highWaterMark = end;
          break;
@@ -2383,21 +2383,22 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
    //   return highWaterMark;
 
-   #if defined (os_windows)
+#if defined (os_windows)
 	unsigned pgSize = getObject()-> getSecAlign();
 	//printf("pgSize:0x%x\n", pgSize);
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	while(newaddr < highWaterMark)
-        newaddr += pgSize;
+      newaddr += pgSize;
 	//printf("getfreeoffset:%lu\n", newaddr);
 	return newaddr;
 
 #else
 	unsigned pgSize = P_getpagesize();
-	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
+	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)
 		newaddr += pgSize;
-	 return newaddr;
+
+   return newaddr;
 #endif	
 }
 
