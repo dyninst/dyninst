@@ -109,12 +109,12 @@ class Symtab : public LookupInterface,
 
    // Symbol
 
-   SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                               const std::string name,
-                                               Symbol::SymbolType sType, 
-                                               NameType nameType = anyName,
-                                               bool isRegex = false, 
-                                               bool checkCase = false);
+   SYMTAB_EXPORT virtual bool findSymbol(std::vector<Symbol *> &ret, 
+                                         const std::string name,
+                                         Symbol::SymbolType sType = Symbol::ST_UNKNOWN,
+                                         NameType nameType = anyName,
+                                         bool isRegex = false, 
+                                         bool checkCase = false);
    SYMTAB_EXPORT virtual bool getAllSymbols(std::vector<Symbol *> &ret);
    SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
@@ -132,18 +132,18 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool findFuncByEntryOffset(Function *&ret, const Offset offset);
    SYMTAB_EXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
-                                      NameType nameType = anyName, 
-                                      bool isRegex = false,
-                                      bool checkCase = true);
+                                          NameType nameType = anyName, 
+                                          bool isRegex = false,
+                                          bool checkCase = true);
    SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
    SYMTAB_EXPORT bool getContainingFunction(Offset offset, Function* &func);
 
    // Variable
    SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
    SYMTAB_EXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
-                                      NameType nameType = anyName, 
-                                      bool isRegex = false, 
-                                      bool checkCase = true);
+                                          NameType nameType = anyName, 
+                                          bool isRegex = false, 
+                                          bool checkCase = true);
    SYMTAB_EXPORT bool getAllVariables(std::vector<Variable *> &ret);
 
    // Module
@@ -533,14 +533,11 @@ class Symtab : public LookupInterface,
    
    SYMTAB_EXPORT bool findFuncByEntryOffset(std::vector<Symbol *>&ret, const Offset offset);
    SYMTAB_EXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
-                                           const std::string name,
-                                           Symbol::SymbolType sType, 
-                                           bool isMangled = false,
-                                           bool isRegex = false, 
-                                           bool checkCase = false);
-
-
-
+                                               const std::string name,
+                                               Symbol::SymbolType sType, 
+                                               bool isMangled = false,
+                                               bool isRegex = false, 
+                                               bool checkCase = false);
 };
 
 /**

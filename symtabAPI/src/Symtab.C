@@ -2673,10 +2673,10 @@ void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC 
 				  //  symbol in the regular indexes.
 				  std::vector<Symbol *> possible_syms;
 
-				  if (! st->findSymbolByType(possible_syms, symname, Symbol::ST_FUNCTION, anyName)
+				  if (! st->findSymbol(possible_syms, symname, Symbol::ST_FUNCTION, anyName)
 						  || !possible_syms.size())
 				  {
-					  if (! st->findSymbolByType(possible_syms, symname, Symbol::ST_UNKNOWN, anyName)
+					  if (! st->findSymbol(possible_syms, symname, Symbol::ST_UNKNOWN, anyName)
 							  || !possible_syms.size())
 					  {
 						  //fprintf(stderr, "%s[%d]:  can't find symbol named %s for reloc\n", 
