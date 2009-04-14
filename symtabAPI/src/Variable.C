@@ -258,7 +258,7 @@ void localVar::fixupUnknown(Module *module)
 	if (type_->getDataClass() == dataUnknownType) 
 	{
 		Type *otype = type_;
-		type_ = module->getModuleTypes()->findType(type_->getID());
+		type_ = module->getModuleTypesPrivate()->findType(type_->getID());
 
 		if (type_)
 		{

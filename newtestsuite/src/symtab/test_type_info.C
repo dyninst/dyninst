@@ -583,7 +583,6 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 
    return PASSED;
 }
-
 test_results_t test_type_info_Mutator::executeTest()
 {
 

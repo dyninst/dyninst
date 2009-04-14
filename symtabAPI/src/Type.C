@@ -481,10 +481,12 @@ bool typePointer::isCompatible(Type *otype) {
    return baseType_->isCompatible(oPointertype->baseType_);
 }
 
-void typePointer::fixupUnknowns(Module *module) {
-   if (baseType_->getDataClass() == dataUnknownType) {
+void typePointer::fixupUnknowns(Module *module) 
+{
+   if (baseType_->getDataClass() == dataUnknownType) 
+   {
       Type *optr = baseType_;
-      baseType_ = module->getModuleTypes()->findType(baseType_->getID());
+      baseType_ = module->getModuleTypesPrivate()->findType(baseType_->getID());
       baseType_->incrRefCount();
       optr->decrRefCount();
    }
@@ -588,17 +590,20 @@ bool typeFunction::isCompatible(Type *otype) {
    return true;
 }   
 
-void typeFunction::fixupUnknowns(Module *module) {
-   if (retType_->getDataClass() == dataUnknownType) {
+void typeFunction::fixupUnknowns(Module *module) 
+{
+   if (retType_->getDataClass() == dataUnknownType) 
+   {
       Type *otype = retType_;
-      retType_ = module->getModuleTypes()->findType(retType_->getID());
+      retType_ = module->getModuleTypesPrivate()->findType(retType_->getID());
       retType_->incrRefCount();
       otype->decrRefCount();
    }
+
    for (unsigned int i = 0; i < params_.size(); i++)
    {
       Type *otype = params_[i];
-      params_[i] = module->getModuleTypes()->findType(params_[i]->getID());
+      params_[i] = module->getModuleTypesPrivate()->findType(params_[i]->getID());
       params_[i]->incrRefCount();
       otype->decrRefCount();
    }	 
@@ -786,10 +791,12 @@ bool typeArray::isCompatible(Type *otype) {
    return arrayElem->isCompatible(oArraytype->arrayElem);
 }
 
-void typeArray::fixupUnknowns(Module *module) {
-   if (arrayElem->getDataClass() == dataUnknownType) {
+void typeArray::fixupUnknowns(Module *module) 
+{
+   if (arrayElem->getDataClass() == dataUnknownType) 
+   {
       Type *otype = arrayElem;
-      arrayElem = module->getModuleTypes()->findType(arrayElem->getID());
+      arrayElem = module->getModuleTypesPrivate()->findType(arrayElem->getID());
       arrayElem->incrRefCount();
       otype->decrRefCount();
    }
@@ -1340,10 +1347,12 @@ void typeTypedef::updateSize()
    updatingSize = false;
 }
 
-void typeTypedef::fixupUnknowns(Module *module) {
-   if (baseType_->getDataClass() == dataUnknownType) {
+void typeTypedef::fixupUnknowns(Module *module) 
+{
+   if (baseType_->getDataClass() == dataUnknownType) 
+   {
       Type *otype = baseType_;
-      baseType_ = module->getModuleTypes()->findType(baseType_->getID());
+      baseType_ = module->getModuleTypesPrivate()->findType(baseType_->getID());
       baseType_->incrRefCount();
       otype->decrRefCount();
    }
@@ -1410,10 +1419,12 @@ bool typeRef::isCompatible(Type *otype) {
    return baseType_->isCompatible(const_cast<Type *>(oReftype->getConstituentType()));
 }   
 
-void typeRef::fixupUnknowns(Module *module) {
-   if (baseType_->getDataClass() == dataUnknownType) {
+void typeRef::fixupUnknowns(Module *module) 
+{
+   if (baseType_->getDataClass() == dataUnknownType) 
+   {
       Type *otype = baseType_;
-      baseType_ = module->getModuleTypes()->findType(baseType_->getID());
+      baseType_ = module->getModuleTypesPrivate()->findType(baseType_->getID());
       baseType_->incrRefCount();
       otype->decrRefCount();
    }
@@ -1812,7 +1823,7 @@ void Field::fixupUnknown(Module *module)
    if (type_->getDataClass() == dataUnknownType) 
    {
       Type *otype = type_;
-      type_ = module->getModuleTypes()->findType(type_->getID());
+      type_ = module->getModuleTypesPrivate()->findType(type_->getID());
       type_->incrRefCount();
       otype->decrRefCount();
    }

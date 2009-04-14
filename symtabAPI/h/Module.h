@@ -136,6 +136,9 @@ class Module : public LookupInterface,
                                                bool checkCase = false);
 
 
+   //  Super secret private methods that aren't really private
+   SYMTAB_EXPORT typeCollection *getModuleTypesPrivate();
+
    private:
 
    std::string fileName_;                   // short file 

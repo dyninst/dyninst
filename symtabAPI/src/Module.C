@@ -248,7 +248,11 @@ vector<pair<string, Type *> > *Module::getAllGlobalVars()
 typeCollection *Module::getModuleTypes()
 {
 	exec_->parseTypesNow();
+	return getModuleTypesPrivate();
+}
 
+typeCollection *Module::getModuleTypesPrivate()
+{
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
@@ -275,7 +279,7 @@ typeCollection *Module::getModuleTypes()
 bool Module::findType(Type *&type, std::string name)
 {
    exec_->parseTypesNow();
-   type = getModuleTypes()->findType(name);
+   type = getModuleTypesPrivate()->findType(name);
 
    if (type == NULL)
       return false;
@@ -286,7 +290,7 @@ bool Module::findType(Type *&type, std::string name)
 bool Module::findVariableType(Type *&type, std::string name)
 {
    exec_->parseTypesNow();
-   type = getModuleTypes()->findVariableType(name);
+   type = getModuleTypesPrivate()->findVariableType(name);
 
    if (type == NULL)
       return false;
@@ -327,7 +331,6 @@ bool Module::setLineInfo(LineInformation *lineInfo)
 
 bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
-   exec_->parseTypesNow();
    std::vector<Function *>mod_funcs;
 
    if (!exec_->getAllFunctions(mod_funcs))

@@ -1130,11 +1130,11 @@ static int variantValue(VARIANT *v) {
 
 // Changed. Not adding to stdTypes now
 static void addTypeToCollection(Type *type, Module *mod) {
-   mod->getModuleTypes()->addType(type);
+   mod->getModuleTypesPrivate()->addType(type);
 /*	   
    typeCollection *collection;
 
-   collection = mod ? mod->getModuleTypes() : Symtab::stdTypes;
+   collection = mod ? mod->getModuleTypesPrivate() : Symtab::stdTypes;
    assert(collection);
    assert(!collection->findType(type->getID()));
    collection->addType(type);
@@ -1670,7 +1670,7 @@ static Type *getType(HANDLE p, Offset base, int typeIndex, Module *mod)
    // If not, then start creating a new type.
    //
    if (mod)
-       collection = mod->getModuleTypes();
+       collection = mod->getModuleTypesPrivate();
    else
 	   collection = Symtab::stdTypes;
    assert(collection);
@@ -1831,7 +1831,7 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
       }
       if (name) {
          std::string vName = name;
-         mod->getModuleTypes()->addGlobalVariable(vName, type);
+         mod->getModuleTypesPrivate()->addGlobalVariable(vName, type);
       }
    }
    return TRUE;

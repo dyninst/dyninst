@@ -2079,7 +2079,7 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    if (!_mods.size())
       return false;
 
-   type = _mods[0]->getModuleTypes()->findType(name);
+   type = _mods[0]->getModuleTypesPrivate()->findType(name);
 
    if (type == NULL)
       return false;
@@ -2097,7 +2097,7 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
-	   t = _mods[0]->getModuleTypes()->findType(type_id);
+	   t = _mods[0]->getModuleTypesPrivate()->findType(type_id);
 	   if (t) break;
    }
 
@@ -2113,7 +2113,7 @@ SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
    if (!_mods.size())
       return false;
 
-   type = _mods[0]->getModuleTypes()->findVariableType(name);
+   type = _mods[0]->getModuleTypesPrivate()->findVariableType(name);
 
    if (type == NULL)
       return false;
