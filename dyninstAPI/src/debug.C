@@ -377,7 +377,7 @@ bool init_debug() {
   return true;
 }
 
-int signal_printf(const char *format, ...)
+int signal_printf_int(const char *format, ...)
 {
   if (!dyn_debug_signal) return 0;
   if (NULL == format) return -1;
@@ -395,7 +395,7 @@ int signal_printf(const char *format, ...)
   return ret;
 }
 
-int inferiorrpc_printf(const char *format, ...)
+int inferiorrpc_printf_int(const char *format, ...)
 {
   if (!dyn_debug_infrpc) return 0;
   if (NULL == format) return -1;
@@ -413,7 +413,7 @@ int inferiorrpc_printf(const char *format, ...)
   return ret;
 }
 
-int startup_printf(const char *format, ...)
+int startup_printf_int(const char *format, ...)
 {
   if (!dyn_debug_startup) return 0;
   if (NULL == format) return -1;
@@ -431,7 +431,7 @@ int startup_printf(const char *format, ...)
   return ret;
 }
 
-int parsing_printf(const char *format, ...)
+int parsing_printf_int(const char *format, ...)
 {
   if (!dyn_debug_parsing) return 0;
   if (NULL == format) return -1;
@@ -451,7 +451,7 @@ int parsing_printf(const char *format, ...)
   return ret;
 }
 
-int forkexec_printf(const char *format, ...)
+int forkexec_printf_int(const char *format, ...)
 {
   if (!dyn_debug_forkexec) return 0;
   if (NULL == format) return -1;
@@ -469,7 +469,7 @@ int forkexec_printf(const char *format, ...)
   return ret;
 }
 
-int proccontrol_printf(const char *format, ...)
+int proccontrol_printf_int(const char *format, ...)
 {
   if (!dyn_debug_proccontrol) return 0;
   if (NULL == format) return -1;
@@ -487,7 +487,7 @@ int proccontrol_printf(const char *format, ...)
   return ret;
 }
 
-int stackwalk_printf(const char *format, ...)
+int stackwalk_printf_int(const char *format, ...)
 {
   if (!dyn_debug_stackwalk) return 0;
   if (NULL == format) return -1;
@@ -507,7 +507,7 @@ int stackwalk_printf(const char *format, ...)
 
 
 
-int inst_printf(const char *format, ...)
+int inst_printf_int(const char *format, ...)
 {
   if (!dyn_debug_inst) return 0;
   if (NULL == format) return -1;
@@ -525,7 +525,7 @@ int inst_printf(const char *format, ...)
   return ret;
 }
 
-int reloc_printf(const char *format, ...)
+int reloc_printf_int(const char *format, ...)
 {
   if (!dyn_debug_reloc) return 0;
   if (NULL == format) return -1;
@@ -543,7 +543,7 @@ int reloc_printf(const char *format, ...)
   return ret;
 }
 
-int dyn_unw_printf(const char *format, ...)
+int dyn_unw_printf_int(const char *format, ...)
 {
   if (!dyn_debug_dyn_unw ) return 0;
   if (NULL == format) return -1;
@@ -561,7 +561,7 @@ int dyn_unw_printf(const char *format, ...)
   return ret;
 }
 
-int dbi_printf(const char *format, ...)
+int dbi_printf_int(const char *format, ...)
 {
   if (!dyn_debug_dyn_dbi ) return 0;
   if (NULL == format) return -1;
@@ -579,7 +579,7 @@ int dbi_printf(const char *format, ...)
   return ret;
 }
 
-int mutex_printf(const char *format, ...)
+int mutex_printf_int(const char *format, ...)
 {
   if (!dyn_debug_mutex ) return 0;
   if (NULL == format) return -1;
@@ -597,7 +597,7 @@ int mutex_printf(const char *format, ...)
   return ret;
 }
 
-int mailbox_printf(const char *format, ...)
+int mailbox_printf_int(const char *format, ...)
 {
   if (!dyn_debug_mailbox ) return 0;
   if (NULL == format) return -1;
@@ -615,7 +615,7 @@ int mailbox_printf(const char *format, ...)
   return ret;
 }
 
-int async_printf(const char *format, ...)
+int async_printf_int(const char *format, ...)
 {
   if (!dyn_debug_async ) return 0;
   if (NULL == format) return -1;
@@ -633,7 +633,7 @@ int async_printf(const char *format, ...)
   return ret;
 }
 
-int dwarf_printf(const char *format, ...)
+int dwarf_printf_int(const char *format, ...)
 {
   if (!dyn_debug_dwarf ) return 0;
   if (NULL == format) return -1;
@@ -652,7 +652,7 @@ int dwarf_printf(const char *format, ...)
 }
 
 
-int thread_printf(const char *format, ...)
+int thread_printf_int(const char *format, ...)
 {
   if (!dyn_debug_thread) return 0;
   if (NULL == format) return -1;
@@ -671,7 +671,7 @@ int thread_printf(const char *format, ...)
 }
 
 
-int catchup_printf(const char *format, ...)
+int catchup_printf_int(const char *format, ...)
 {
 
     if (!dyn_debug_catchup) return 0;
@@ -708,7 +708,7 @@ int bpatch_printf(const char *format, ...)
   return ret;
 }
 
-int regalloc_printf(const char *format, ...)
+int regalloc_printf_int(const char *format, ...)
 {
   if (!dyn_debug_regalloc) return 0;
   if (NULL == format) return -1;
@@ -726,7 +726,7 @@ int regalloc_printf(const char *format, ...)
   return ret;
 }
 
-int ast_printf(const char *format, ...)
+int ast_printf_int(const char *format, ...)
 {
   if (!dyn_debug_ast) return 0;
   if (NULL == format) return -1;
@@ -744,7 +744,7 @@ int ast_printf(const char *format, ...)
   return ret;
 }
 
-int write_printf(const char *format, ...)
+int write_printf_int(const char *format, ...)
 {
   if (!dyn_debug_write) return 0;
   if (NULL == format) return -1;
@@ -771,7 +771,7 @@ int write_printf(const char *format, ...)
   return ret;
 }
 
-int liveness_printf(const char *format, ...)
+int liveness_printf_int(const char *format, ...)
 {
   if (!dyn_debug_liveness) return 0;
   if (NULL == format) return -1;
@@ -789,7 +789,7 @@ int liveness_printf(const char *format, ...)
   return ret;
 }
 
-int infmalloc_printf(const char *format, ...)
+int infmalloc_printf_int(const char *format, ...)
 {
   if (!dyn_debug_infmalloc) return 0;
   if (NULL == format) return -1;
@@ -808,7 +808,7 @@ int infmalloc_printf(const char *format, ...)
 }
 
 
-int stanalysis_printf(const char *format, ...)
+int stackanalysis_printf_int(const char *format, ...)
 {
   if (!dyn_debug_stackanalysis) return 0;
   if (NULL == format) return -1;

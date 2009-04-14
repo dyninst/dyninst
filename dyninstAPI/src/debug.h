@@ -140,31 +140,89 @@ extern StatContainer stats_codegen;
 #define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
 #define crash_cerr        if (dyn_debug_crash) cerr
 
-// C prototypes
-extern int signal_printf(const char *format, ...);
-extern int inferiorrpc_printf(const char *format, ...);
-extern int startup_printf(const char *format, ...);
-extern int parsing_printf(const char *format, ...);
-extern int forkexec_printf(const char *format, ...);
-extern int proccontrol_printf(const char *format, ...);
-extern int stackwalk_printf(const char *format, ...);
-extern int inst_printf(const char *format, ...);
-extern int reloc_printf(const char *format, ...);
-extern int dyn_unw_printf(const char *format, ...);
-extern int dbi_printf(const char *format, ...);
-extern int mutex_printf(const char *format, ...);
-extern int mailbox_printf(const char *format, ...);
-extern int async_printf(const char *format, ...);
-extern int dwarf_printf(const char *format, ...);
-extern int thread_printf(const char *format, ...);
-extern int catchup_printf(const char *format, ...);
-extern int regalloc_printf(const char *format, ...);
-extern int ast_printf(const char *format, ...);
-extern int write_printf(const char *format, ...);
-extern int liveness_printf(const char *format, ...);
-extern int infmalloc_printf(const char *forma, ...);
-extern int crash_printf(const char *format, ...);
-extern int stanalysis_printf(const char *format, ...);
+// C prototypes for internal debugging functions
+extern int signal_printf_int(const char *format, ...);
+extern int inferiorrpc_printf_int(const char *format, ...);
+extern int startup_printf_int(const char *format, ...);
+extern int parsing_printf_int(const char *format, ...);
+extern int forkexec_printf_int(const char *format, ...);
+extern int proccontrol_printf_int(const char *format, ...);
+extern int stackwalk_printf_int(const char *format, ...);
+extern int inst_printf_int(const char *format, ...);
+extern int reloc_printf_int(const char *format, ...);
+extern int dyn_unw_printf_int(const char *format, ...);
+extern int dbi_printf_int(const char *format, ...);
+extern int mutex_printf_int(const char *format, ...);
+extern int mailbox_printf_int(const char *format, ...);
+extern int async_printf_int(const char *format, ...);
+extern int dwarf_printf_int(const char *format, ...);
+extern int thread_printf_int(const char *format, ...);
+extern int catchup_printf_int(const char *format, ...);
+extern int regalloc_printf_int(const char *format, ...);
+extern int ast_printf_int(const char *format, ...);
+extern int write_printf_int(const char *format, ...);
+extern int liveness_printf_int(const char *format, ...);
+extern int infmalloc_printf_int(const char *format, ...);
+extern int crash_printf_int(const char *format, ...);
+extern int stackanalysis_printf_int(const char *format, ...);
+
+#if defined(__GNUC__)
+
+#define signal_printf(format, args...) do { if (dyn_debug_signal) signal_printf_int(format, ## args); } while(0)
+#define inferiorrpc_printf(format, args...) do {if (dyn_debug_infrpc) inferiorrpc_printf_int(format, ## args); } while(0)
+#define startup_printf(format, args...) do { if (dyn_debug_startup) startup_printf_int(format, ## args); } while(0)
+#define parsing_printf(format, args...) do {if (dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)
+#define forkexec_printf(format, args...) do {if (dyn_debug_forkexec) forkexec_printf_int(format, ## args); } while(0)
+#define proccontrol_printf(format, args...) do {if (dyn_debug_proccontrol) proccontrol_printf_int(format, ## args); } while(0)
+#define stackwalk_printf(format, args...) do {if (dyn_debug_stackwalk) stackwalk_printf_int(format, ## args); } while(0)
+#define inst_printf(format, args...) do {if (dyn_debug_inst) inst_printf_int(format, ## args); } while(0)
+#define reloc_printf(format, args...) do {if (dyn_debug_reloc) reloc_printf_int(format, ## args); } while(0)
+#define dyn_unw_printf(format, args...) do {if (dyn_debug_dyn_unw) dyn_unw_printf_int(format, ## args); } while(0)
+#define dbi_printf(format, args...) do {if (dyn_debug_dyn_dbi) dbi_printf_int(format, ## args); } while(0)
+#define mutex_printf(format, args...) do {if (dyn_debug_mutex) mutex_printf_int(format, ## args); } while(0)
+#define mailbox_printf(format, args...) do {if (dyn_debug_mailbox) mailbox_printf_int(format, ## args); } while(0)
+#define async_printf(format, args...) do {if (dyn_debug_async) async_printf_int(format, ## args); } while(0)
+#define dwarf_printf(format, args...) do {if (dyn_debug_dwarf) dwarf_printf_int(format, ## args); } while(0)
+#define thread_printf(format, args...) do {if (dyn_debug_thread) thread_printf_int(format, ## args); } while(0)
+#define catchup_printf(format, args...) do {if (dyn_debug_catchup) catchup_printf_int(format, ## args); } while(0)
+#define regalloc_printf(format, args...) do {if (dyn_debug_regalloc) regalloc_printf_int(format, ## args); } while(0)
+#define ast_printf(format, args...) do {if (dyn_debug_ast) ast_printf_int(format, ## args); } while(0)
+#define write_printf(format, args...) do {if (dyn_debug_write) write_printf_int(format, ## args); } while(0)
+#define liveness_printf(format, args...) do {if (dyn_debug_liveness) liveness_printf_int(format, ## args); } while(0)
+#define infmalloc_printf(format, args...) do {if (dyn_debug_infmalloc) infmalloc_printf_int(format, ## args); } while(0)
+#define crash_printf(format, args...) do {if (dyn_debug_crash) crash_printf_int(format, ## args); } while(0)
+#define stackanalysis_printf(format, args...) do {if (dyn_debug_stackanalysis) stackanalysis_printf_int(format, ## args); } while(0)
+
+#else
+// Non-GCC doesn't have the ## macro
+#define signal_printf signal_printf_int
+#define inferiorrpc_printf inferriorrpc_printf_int
+#define startup_printf startup_printf_int
+#define parsing_printf parsing_printf_int
+#define forkexec_printf forkexec_printf_int
+#define proccontrol_printf proccontrol_printf_int
+#define stackwalk_printf stackwalk_printf_int
+#define inst_printf inst_printf_int
+#define reloc_printf reloc_printf_int
+#define dyn_unw_printf dyn_unw_printf_int
+#define dbi_printf dbi_printf_int
+#define mutex_printf mutex_printf_int
+#define mailbox_printf mailbox_printf_int
+#define async_printf async_printf_int
+#define dwarf_printf dwarf_printf_int
+#define thread_printf thread_printf_int
+#define catchup_printf catchup_printf_int
+#define regalloc_printf regalloc_printf_int
+#define ast_printf ast_printf_int
+#define write_printf write_printf_int
+#define liveness_printf liveness_printf_int
+#define infmalloc_printf infmalloc_printf_int
+#define crash_printf crash_printf_int
+#define stackanalysis_printf stackanalysis_printf_int
+
+
+#endif
+
 
 // And initialization
 extern bool init_debug();
