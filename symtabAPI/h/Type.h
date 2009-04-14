@@ -137,7 +137,7 @@ class Field : public Serializable, public AnnotatableSparse  {
    bool setUpPtr(void *);
 #endif
    
-   void fixupUnknown(Module *);
+   SYMTAB_EXPORT void fixupUnknown(Module *);
    SYMTAB_EXPORT void serialize(SerializerBase *sb, const char *tag="Field") THROW_SPEC(SerializerError);
 };
 				  
@@ -206,8 +206,10 @@ public:
    SYMTAB_EXPORT std::string &getName();
    SYMTAB_EXPORT bool setName(std::string);
 
+#if 0
    SYMTAB_EXPORT bool setUpPtr(void *);
    SYMTAB_EXPORT void *getUpPtr() const;
+#endif
 
    SYMTAB_EXPORT dataClass getDataClass() const;
 

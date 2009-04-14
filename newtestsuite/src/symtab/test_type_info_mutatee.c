@@ -39,7 +39,31 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-int test_type_info_mutatee() {
+enum enum1 {ef1_1, ef1_2, ef1_3, ef1_4};
+typedef enum {ef2_1, ef2_2, ef2_3, ef2_4} enum2;
+
+typedef void (*func_ptr_typedef_t)(int);
+
+union {
+	char *my_str;
+	int my_int;
+} my_union;
+
+void my_test_type_info_func(int foo)
+{
+	fprintf(stderr, "booga booga: %d\n", foo);
+}
+
+void my_test_type_info_func2()
+{
+	void (*myfuncptr)(int) = my_test_type_info_func;
+	(*myfuncptr)(5);
+	func_ptr_typedef_t myfuncptr2 = my_test_type_info_func;
+	(*myfuncptr2)(6);
+}
+
+int test_type_info_mutatee() 
+{
    /*If mutatee should run, things go here.*/
    return 0;
 }

@@ -2454,175 +2454,209 @@ extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 void Object::parseDwarfTypes( Symtab *objFile) 
 {
-  // Man do we do to a lot of trouble for this...
-  /*	
-    assert( moduleTypes );
+	// Man do we do to a lot of trouble for this...
+	/*	
+		assert( moduleTypes );
 
-    if ( moduleTypes->dwarfParsed() ) {
-    dwarf_printf( "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
-    std::vector<Symbol *> * bpfuncs = getProcedures( true );
-    assert( bpfuncs );
-    for( unsigned int i = 0; i < bpfuncs->size(); i++ ) {
-    (*bpfuncs)[i]->fixupUnknown( this );
-    }
-    return;
-    }
-  */		
-  dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile->file().c_str() );
+		if ( moduleTypes->dwarfParsed() ) {
+		dwarf_printf( "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
+		std::vector<Symbol *> * bpfuncs = getProcedures( true );
+		assert( bpfuncs );
+		for( unsigned int i = 0; i < bpfuncs->size(); i++ ) {
+		(*bpfuncs)[i]->fixupUnknown( this );
+		}
+		return;
+		}
+	 */		
+	dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile->file().c_str() );
 
-  /* Start the dwarven debugging. */
-  Module *mod = NULL, *fixUnknownMod = NULL;
+	/* Start the dwarven debugging. */
+	Module *mod = NULL, *fixUnknownMod = NULL;
 
-   Dwarf_Debug *dbg_ptr = dwarf.dbg();
-   DWARF_RETURN_IF( !dbg_ptr, "%s[%d]: error initializing libdwarf.\n", 
-                    __FILE__, __LINE__ );
-   Dwarf_Debug &dbg = *dbg_ptr;
+	Dwarf_Debug *dbg_ptr = dwarf.dbg();
+	DWARF_RETURN_IF( !dbg_ptr, "%s[%d]: error initializing libdwarf.\n", 
+			__FILE__, __LINE__ );
+	Dwarf_Debug &dbg = *dbg_ptr;
 
-  /* Iterate over the compilation-unit headers. */
-  Dwarf_Unsigned hdr;
+	/* Iterate over the compilation-unit headers. */
+	Dwarf_Unsigned hdr;
 
-  while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
-    /* Obtain the module DIE. */
-    Dwarf_Die moduleDIE;
-    int status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL );
-    DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error finding next CU header.\n", __FILE__, __LINE__ );
-
-    /* Make sure we've got the right one. */
-    Dwarf_Half moduleTag;
-    status = dwarf_tag( moduleDIE, & moduleTag, NULL );
-    DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error acquiring CU header tag.\n", __FILE__, __LINE__ );
-    assert( moduleTag == DW_TAG_compile_unit );
-
-    /* We may need this later. */
-    Dwarf_Off cuOffset;
-    status = dwarf_dieoffset( moduleDIE, & cuOffset, NULL );
-    DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error acquiring CU header offset.\n", __FILE__, __LINE__ );
-
-    /* Extract the name of this module. */
-    char * moduleName;
-    status = dwarf_diename( moduleDIE, & moduleName, NULL );
-    if ( status == DW_DLV_NO_ENTRY ) {
-      moduleName = strdup( "{ANONYMOUS}" );
-      assert( moduleName != NULL );
-    }
-    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring module name.\n", __FILE__, __LINE__ );
-    dwarf_printf( "%s[%d]: considering compilation unit '%s'\n", __FILE__, __LINE__, moduleName );
-
-    /* Set the language, if any. */
-    Dwarf_Attribute languageAttribute;
-    status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
-    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring language attribute.\n", __FILE__, __LINE__ );
-
-    //      /* Set the lowPC, if any. */
-    //      Dwarf_Attribute lowPCAttribute;
-    //      status = dwarf_attr( moduleDIE, DW_AT_low_pc, & lowPCAttribute, NULL );
-    //      DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring language attribute.\n", __FILE__, __LINE__ );
-      
-    Dwarf_Addr lowPCdwarf = 0;
-    Address lowpc = 0;
-    status = dwarf_lowpc( moduleDIE, &lowPCdwarf, NULL );
-    if ( status == DW_DLV_OK)
-      lowpc = (Address)lowPCdwarf;
-    //      status = dwarf_formaddr( lowPCAttribute, &lowPCdwarf, NULL );
-    //      if(status == DW_DLV_OK)
-    //          lowpc = (Address)lowPCdwarf;
-
-    /* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
-    if (!objFile->findModuleByName(mod, moduleName)){
-      std::string modName = moduleName;
-      std::string fName = extract_pathname_tail(modName);
-      if (!objFile->findModuleByName(mod, fName))
+	while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
 	{
-	  modName = objFile->file();
-	  if (!objFile->findModuleByName(mod, modName)) {
-              dwarf_printf("%s[%d]: could not find module by name %s or %s, skipping...\n",
-                           __FILE__, __LINE__, modName.c_str(), fName.c_str());
-              continue;
-          }
-        }
-    }
-    if (!fixUnknownMod)
-      fixUnknownMod = mod;
+		/* Obtain the module DIE. */
+		Dwarf_Die moduleDIE;
+		int status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL );
+		DWARF_RETURN_IF( status != DW_DLV_OK, 
+				"%s[%d]: error finding next CU header.\n", __FILE__, __LINE__ );
 
-    Dwarf_Signed cnt;
-    char **srcfiles;
-    status = dwarf_srcfiles(moduleDIE, &srcfiles,&cnt, NULL);
-    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring source file names.\n", __FILE__, __LINE__ );
+		/* Make sure we've got the right one. */
+		Dwarf_Half moduleTag;
+		status = dwarf_tag( moduleDIE, & moduleTag, NULL );
+		DWARF_RETURN_IF( status != DW_DLV_OK, 
+				"%s[%d]: error acquiring CU header tag.\n", __FILE__, __LINE__ );
+		assert( moduleTag == DW_TAG_compile_unit );
 
-    dwarf_printf( "%s[%d]: Start walkDwarvenTree for module '%s' \n", __FILE__, __LINE__, moduleName );
-    if ( !walkDwarvenTree( dbg, moduleDIE, mod, objFile, cuOffset, srcfiles, lowpc) ) {
-      enclosureMap.clear();
-      //bpwarn ( "Error while parsing DWARF info for module '%s'.\n", moduleName );
-      dwarf_printf( "%s[%d]: Error while parsing DWARF info for module '%s' \n", __FILE__, __LINE__, moduleName );
-      return;
-    }
-    enclosureMap.clear();
-    dwarf_printf( "%s[%d]: Done walkDwarvenTree for module '%s' \n", __FILE__, __LINE__, moduleName );
-    if (status == DW_DLV_OK){
-      for (unsigned i = 0; i < cnt; ++i) {
-	/* use srcfiles[i] */
-	dwarf_dealloc(dbg, srcfiles[i], DW_DLA_STRING);
-      }
-      dwarf_dealloc(dbg, srcfiles, DW_DLA_LIST);
-    }
+		/* We may need this later. */
+		Dwarf_Off cuOffset;
+		status = dwarf_dieoffset( moduleDIE, & cuOffset, NULL );
+		DWARF_RETURN_IF( status != DW_DLV_OK, 
+				"%s[%d]: error acquiring CU header offset.\n", __FILE__, __LINE__ );
 
-    dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
-  } /* end iteration over compilation-unit headers. */
+		/* Extract the name of this module. */
+		char * moduleName;
+		status = dwarf_diename( moduleDIE, & moduleName, NULL );
 
-  if (!fixUnknownMod)
-    return;
+		if ( status == DW_DLV_NO_ENTRY ) 
+		{
+			moduleName = strdup( "{ANONYMOUS}" );
+			assert( moduleName != NULL );
+		}
 
-  /* Fix type list. */
-  typeCollection *moduleTypes = fixUnknownMod->getModuleTypes();
-  assert(moduleTypes);
-  dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
-  for(;typeIter!=moduleTypes->typesByID.end();typeIter++){
-    typeIter->second->fixupUnknowns(fixUnknownMod);
-  } /* end iteratation over types. */
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, 
+				"%s[%d]: error acquiring module name.\n", __FILE__, __LINE__ );
 
-  /* Fix the types of variabls. */   
-  std::string variableName;
-  dyn_hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
-  for(;variableIter!=moduleTypes->globalVarsByName.end();variableIter++){ 
-    if (variableIter->second->getDataClass() == dataUnknownType && 
-	moduleTypes->findType( variableIter->second->getID() ) != NULL ) {
-      moduleTypes->globalVarsByName[ variableIter->first ] = moduleTypes->findType( variableIter->second->getID() );
-    } /* end if data class is unknown but the type exists. */
-  } /* end iteration over variables. */
+		dwarf_printf( "%s[%d]: considering compilation unit '%s'\n", 
+				__FILE__, __LINE__, moduleName );
+
+		/* Set the language, if any. */
+		Dwarf_Attribute languageAttribute;
+		status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
+
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, 
+				"%s[%d]: error acquiring language attribute.\n", __FILE__, __LINE__ );
+
+		//      /* Set the lowPC, if any. */
+		//      Dwarf_Attribute lowPCAttribute;
+		//      status = dwarf_attr( moduleDIE, DW_AT_low_pc, & lowPCAttribute, NULL );
+		//      DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring language attribute.\n", __FILE__, __LINE__ );
+
+		Dwarf_Addr lowPCdwarf = 0;
+		Address lowpc = 0;
+		status = dwarf_lowpc( moduleDIE, &lowPCdwarf, NULL );
+		if ( status == DW_DLV_OK)
+		{
+			lowpc = (Address)lowPCdwarf;
+		}
+
+		//      status = dwarf_formaddr( lowPCAttribute, &lowPCdwarf, NULL );
+		//      if(status == DW_DLV_OK)
+		//          lowpc = (Address)lowPCdwarf;
+
+		/* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
+		if (!objFile->findModuleByName(mod, moduleName))
+		{
+			std::string modName = moduleName;
+			std::string fName = extract_pathname_tail(modName);
+
+			if (!objFile->findModuleByName(mod, fName))
+			{
+				modName = objFile->file();
+
+				if (!objFile->findModuleByName(mod, modName)) 
+				{
+					dwarf_printf("%s[%d]: could not find module by name %s or %s, skipping...\n",
+							__FILE__, __LINE__, modName.c_str(), fName.c_str());
+					continue;
+				}
+			}
+		}
+
+		if (!fixUnknownMod)
+			fixUnknownMod = mod;
+
+		Dwarf_Signed cnt;
+		char **srcfiles;
+		status = dwarf_srcfiles(moduleDIE, &srcfiles,&cnt, NULL);
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, 
+				"%s[%d]: error acquiring source file names.\n", __FILE__, __LINE__ );
+
+		dwarf_printf( "%s[%d]: Start walkDwarvenTree for module '%s' \n", 
+				__FILE__, __LINE__, moduleName );
+
+		if ( !walkDwarvenTree( dbg, moduleDIE, mod, objFile, cuOffset, srcfiles, lowpc) ) 
+		{
+			enclosureMap.clear();
+			//bpwarn ( "Error while parsing DWARF info for module '%s'.\n", moduleName );
+			dwarf_printf( "%s[%d]: Error while parsing DWARF info for module '%s' \n", 
+					__FILE__, __LINE__, moduleName );
+			return;
+		}
+
+		enclosureMap.clear();
+		dwarf_printf( "%s[%d]: Done walkDwarvenTree for module '%s' \n", 
+				__FILE__, __LINE__, moduleName );
+
+		if (status == DW_DLV_OK)
+		{
+			for (unsigned i = 0; i < cnt; ++i) 
+			{
+				/* use srcfiles[i] */
+				dwarf_dealloc(dbg, srcfiles[i], DW_DLA_STRING);
+			}
+			dwarf_dealloc(dbg, srcfiles, DW_DLA_LIST);
+		}
+
+		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
+	} /* end iteration over compilation-unit headers. */
+
+	if (!fixUnknownMod)
+		return;
+
+	/* Fix type list. */
+	typeCollection *moduleTypes = fixUnknownMod->getModuleTypes();
+	assert(moduleTypes);
+	dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
+	for (;typeIter!=moduleTypes->typesByID.end();typeIter++)
+	{
+		typeIter->second->fixupUnknowns(fixUnknownMod);
+	} /* end iteratation over types. */
+
+	/* Fix the types of variabls. */   
+	std::string variableName;
+	dyn_hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
+	for (;variableIter!=moduleTypes->globalVarsByName.end();variableIter++)
+	{ 
+		if (variableIter->second->getDataClass() == dataUnknownType && 
+				moduleTypes->findType( variableIter->second->getID() ) != NULL ) 
+		{
+			moduleTypes->globalVarsByName[ variableIter->first ] 
+				= moduleTypes->findType( variableIter->second->getID() );
+		} /* end if data class is unknown but the type exists. */
+	} /* end iteration over variables. */
 
 
-   moduleTypes->setDwarfParsed();
+	moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
 
 Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg)
 {
-   return (Dyninst::MachRegister) (reg);
+	return (Dyninst::MachRegister) (reg);
 }
 
 Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg)
 {
-   return (Dwarf_Signed) reg;
+	return (Dwarf_Signed) reg;
 }
 
 bool Object::hasFrameDebugInfo()
 {
-   dwarf.setupFdeData();
-   return (dwarf.fde_data.size() != 0);
+	dwarf.setupFdeData();
+	return (dwarf.fde_data.size() != 0);
 }
 
 bool Object::getRegValueAtFrame(Address pc, 
-                                Dyninst::MachRegister reg, 
-                                Dyninst::MachRegisterVal &reg_result,
-                                MemRegReader *reader)
+		Dyninst::MachRegister reg, 
+		Dyninst::MachRegisterVal &reg_result,
+		MemRegReader *reader)
 {
-   int result;
-   Dwarf_Fde fde;
-   Dwarf_Addr lowpc, hipc;
-   Dwarf_Error err;
+	int result;
+	Dwarf_Fde fde;
+	Dwarf_Addr lowpc, hipc;
+	Dwarf_Error err;
 
-   /**
-    * Initialize the FDE and CIE data.  This is only really done once, 
-    * after which setupFdeData will immediately return.
+	/**
+	 * Initialize the FDE and CIE data.  This is only really done once, 
+	 * after which setupFdeData will immediately return.
     **/
    dwarf.setupFdeData();
    if (!dwarf.fde_data.size()) {

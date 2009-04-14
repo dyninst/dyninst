@@ -211,6 +211,8 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
 
 vector<Type *> *Module::getAllTypes()
 {
+	exec_->parseTypesNow();
+
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
@@ -218,7 +220,7 @@ vector<Type *> *Module::getAllTypes()
    }
    if (!tc)
    {
-      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", FILE__, __LINE__);
       return NULL;
    }
 
@@ -227,6 +229,7 @@ vector<Type *> *Module::getAllTypes()
 
 vector<pair<string, Type *> > *Module::getAllGlobalVars()
 {
+	exec_->parseTypesNow();
 
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
@@ -244,6 +247,8 @@ vector<pair<string, Type *> > *Module::getAllGlobalVars()
 
 typeCollection *Module::getModuleTypes()
 {
+	exec_->parseTypesNow();
+
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {

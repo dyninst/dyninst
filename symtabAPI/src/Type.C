@@ -70,9 +70,10 @@ namespace Dyninst {
    types six ways to Sunday, let's do them all in one centralized place. */
 
 
-Type *Type::createFake(std::string name) {
+Type *Type::createFake(std::string name) 
+{
    // Creating a fake type without a name is just silly
-   assert(name != "");
+   assert(name != std::string(""));
 
    Type *t = new Type(name);
    t->type_ = dataNullType;
