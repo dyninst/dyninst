@@ -77,7 +77,7 @@ static int numContainedLoops(BPatch_basicBlockLoop *loop)
 // static int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage)
 // {
 test_results_t test1_34_Mutator::executeTest() {
-#if !defined(os_windows_test) && !defined(os_aix_test)
+#if !defined(os_windows_test)
     unsigned int i;
 
     BPatch_Vector<BPatch_function *> bpfv;

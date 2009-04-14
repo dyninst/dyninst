@@ -2845,7 +2845,8 @@ void mutatorTest25(BPatch_thread *appThread, BPatch_image *appImage)
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(ia64_unknown_linux2_4) \
  && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_nt4_0)
+ && !defined(i386_unknown_nt4_0) \
+ && !defined(ppc64_linux)
 
     // without type info need to inform
     BPatch_type *type = appImage->findType("void *");
@@ -4934,7 +4935,8 @@ void mutatorTest39(BPatch_thread * /*appThread*/, BPatch_image *appImage)
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4) \
- || defined(rs6000_ibm_aix4_1)
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(ppc64_linux)
 
    BPatch_Vector<BPatch_function *> bpmv;
 
