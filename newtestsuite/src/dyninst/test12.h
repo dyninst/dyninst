@@ -20,7 +20,7 @@
 #define TEST7_NUMCALLS 10 /* number of callpoint messages we expect in subetst7 */
 #define MAX_TEST 8 
 #define TIMEOUT 15000 /* ms */
-#define SLEEP_INTERVAL 100 /*100 ms*/
+#define SLEEP_INTERVAL 10 /*100 ms*/
 #if defined (os_windows_test)
 #error
 #else

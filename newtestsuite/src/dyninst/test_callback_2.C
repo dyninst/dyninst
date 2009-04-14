@@ -242,6 +242,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		return FAILED;
 	}
 
+	dprintf("%s[%d]:  loaded test library: %s\n", __FILE__, __LINE__, libname);
 	BPatchUserEventCallback cb = test7cb;
 
 	if (!bpatch->registerUserEventCallback(cb)) 
@@ -312,12 +313,16 @@ test_results_t test_callback_2_Mutator::executeTest()
 		}
 	}
 
+	dprintf("%s[%d]:  did instrumentation, continuing process...: %s\n", 
+			__FILE__, __LINE__, libname);
 	//  unset mutateeIdle to trigger mutatee to issue messages.
 
 	int timeout = 0;
 
 	appThread->getProcess()->continueExecution();
 
+	dprintf("%s[%d]:  continued process...: %s\n", 
+			__FILE__, __LINE__, libname);
 	//  wait until we have received the desired number of events
 	//  (or timeout happens)
 
@@ -327,6 +332,9 @@ test_results_t test_callback_2_Mutator::executeTest()
 		timeout += SLEEP_INTERVAL;
 		bpatch->pollForStatusChange();
 	}
+
+	dprintf("%s[%d]:  after wait loop:  test7err = %s, test7done = %s, timeout = %d\n", 
+			__FILE__, __LINE__, test7err ? "true" : "false", test7done ? "true" : "false", timeout);
 
 	if (timeout >= TIMEOUT) 
 	{
@@ -338,6 +346,9 @@ test_results_t test_callback_2_Mutator::executeTest()
 
 	appThread->getProcess()->stopExecution();
 
+	dprintf("%s[%d]:  stopped process...\n", 
+			__FILE__, __LINE__ );
+
 	if (!bpatch->removeUserEventCallback(test7cb)) 
 	{
 		FAIL_MES(TESTNAME, TESTDESC);
@@ -347,6 +358,15 @@ test_results_t test_callback_2_Mutator::executeTest()
 		return FAILED;
 	}
 
+	dprintf("%s[%d]:  removed callback...\n", 
+			__FILE__, __LINE__ );
+	if (!appThread->getProcess()->terminateExecution())
+	{
+		fprintf(stderr, "%s[%d]:  terminateExecution failed\n", FILE__, __LINE__);
+		return FAILED;
+	}
+
+#if 0
 	int one = 1;
 
 	if (setVar("test_callback_2_idle", (void *) &one, TESTNO, TESTNAME)) 
@@ -355,7 +375,9 @@ test_results_t test_callback_2_Mutator::executeTest()
 		test7err = true;
 		appThread->getProcess()->terminateExecution();
 	}
+#endif
 
+#if 0
 	// And let it run out
 	if (!appThread->isTerminated()) 
 	{
@@ -367,6 +389,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		// Workaround for pgCC_high mutatee issue
 		bpatch->waitForStatusChange();
 	}
+#endif
 
 	if (!test7err) 
 	{

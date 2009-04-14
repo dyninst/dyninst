@@ -48,6 +48,7 @@
 
 void func_relocations_mutatee()
 {
+#if !defined(os_windows_test)
 	char buf[10];
 	struct stat statbuf;
 
@@ -66,6 +67,7 @@ void func_relocations_mutatee()
 	stat("/blaarch", &statbuf);
 	lstat("/blaarch", &statbuf);
 	fstat(7, &statbuf);
+#endif
 }
 
 

@@ -144,7 +144,7 @@ class localVar : public Serializable, public AnnotatableSparse
 	bool setLocation(std::vector<VariableLocation> &locs);
 #endif
 	~localVar();
-	void fixupUnknown(Module *);
+	SYMTAB_EXPORT void fixupUnknown(Module *);
 
 	public:
 	//  end of functions for internal use only
