@@ -271,9 +271,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          else 
          {
             locVar = new localVar(name, ptrType, fName, linenum);
-#if 0
-            VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-#endif
             VariableLocation loc;
             loc.stClass = storageRegOffset;
             loc.refClass = storageNoRef;
@@ -311,9 +308,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          ptrType = mod->getModuleTypesPrivate()->findOrCreateType( ID);
 
          locVar = new localVar(name, ptrType, fName, linenum);
-#if 0
-         VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-#endif
          VariableLocation loc;
          loc.stClass = storageRegOffset;
          loc.refClass = storageNoRef;
@@ -536,9 +530,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                localVar *param;
 
                param = new localVar(name, ptrType, fName, linenum);
-#if 0
-               VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-#endif
                VariableLocation loc;
                loc.stClass = storageRegOffset;
                loc.refClass = storageNoRef;
@@ -567,9 +558,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                localVar *var;
                var = new localVar(name, ptrType, fName, linenum);
-#if 0
-               VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-#endif
                VariableLocation loc;
                loc.stClass = storageRegOffset;
                loc.refClass = storageNoRef;
@@ -820,9 +808,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                if (symt_current_func) 
                {
                   locVar = new localVar(name, BPtype, fName, linenum);
-#if 0
-                  VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-#endif
                   VariableLocation loc;
                   loc.stClass = storageAddr;
                   loc.refClass = storageNoRef;

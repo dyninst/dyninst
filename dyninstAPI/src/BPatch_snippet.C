@@ -85,11 +85,6 @@ using namespace Dyninst::SymtabAPI;
 #endif
 
 
-//  This will be removed:
-int BPatch_snippet::PDSEP_astMinCost()
-{
-  return ast_wrapper->minCost();
-}
 
 /*
  * BPatch_snippet::BPatch_snippet
@@ -323,12 +318,6 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
 
 	ast->setType(elem_bptype);
 
-#if 0
-	if (!elementType->getUpPtr())
-		new BPatch_type(elementType);
-	ast->setType((BPatch_type *)elementType -> getUpPtr());
-#endif
-
 	return AstNodePtr(ast);
 }
 
@@ -431,12 +420,6 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
 
 	ast->setType(field_bptype);
 
-#if 0
-	if (!field->getType()->getUpPtr())
-		new BPatch_type(field->getType());
-	ast->setType((BPatch_type *)field->getType()->getUpPtr());
-#endif
-
 	return AstNodePtr(ast);
 }
 
@@ -452,10 +435,6 @@ AstNodePtr generateFieldRef(const BPatch_snippet &lOperand,
 void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
 		const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 {
-#if 0
-	fprintf(stderr, "%s[%d]:  welcome to BPatch_arithExprBin: types (l,r):", FILE__, __LINE__);
-	fprintf(stderr, " %s, %s\n",lOperand.ast_wrapper->getType() ? lOperand.ast_wrapper->getType()->getName() : "<no type>",  rOperand.ast_wrapper->getType() ? rOperand.ast_wrapper->getType()->getName() : "<no type>");
-#endif
 	assert(BPatch::bpatch != NULL);
 
 	opCode astOp = undefOp; // Quiet the compiler

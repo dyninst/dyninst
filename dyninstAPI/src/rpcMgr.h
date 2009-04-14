@@ -53,6 +53,7 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/debug.h"
 
 class dyn_lwp;
 class dyn_thread;

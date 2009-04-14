@@ -1696,9 +1696,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	{
 		newVariable->addLocation(locs[i]);
 	}
-#if 0
-	newVariable->setLocation(locs);
-#endif
+
 	localVarCollection *lvs = NULL; 
 	if (!currentFunction->getAnnotation(lvs, FunctionLocalVariablesAnno))
 	  {
@@ -1876,10 +1874,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		  newParameter->addLocation(locs[i]);
 	  }
 
-#if 0
-      newParameter->setLocation(locs);
-#endif
-         
       /* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
       localVarCollection *lvs = NULL;
       if (!currentFunction->getAnnotation(lvs, FunctionParametersAnno))

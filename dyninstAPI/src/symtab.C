@@ -896,9 +896,6 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
      return NULL;
   }
 
-#if 0
-  image::allImages.push_back(ret);
-#endif
   allImages.push_back(ret);
 
   // define all modules.

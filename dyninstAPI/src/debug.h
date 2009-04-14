@@ -196,7 +196,7 @@ extern int stackanalysis_printf_int(const char *format, ...);
 #else
 // Non-GCC doesn't have the ## macro
 #define signal_printf signal_printf_int
-#define inferiorrpc_printf inferriorrpc_printf_int
+#define inferiorrpc_printf inferiorrpc_printf_int
 #define startup_printf startup_printf_int
 #define parsing_printf parsing_printf_int
 #define forkexec_printf forkexec_printf_int

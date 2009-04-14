@@ -234,19 +234,6 @@ bool localVar::addLocation(VariableLocation &location)
 	return true;
 }
 
-#if 0
-bool localVar::setLocation(vector<VariableLocation> &locs) 
-{
-	if (locs_)
-		return false;
-
-	locs_ = new vector<VariableLocation>;
-	*locs_ = locs;
-
-	return true;
-}
-#endif
-
 localVar::~localVar()
 {
 	//XXX jdd 5/25/99 More to do later

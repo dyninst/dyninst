@@ -738,15 +738,6 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     bperr("%s[%d]:  select returned -1\n", FILE__, __LINE__);
     __UNLOCK;
 	return false;
-
-#if 0
-#if defined (os_windows)
-	return true;
-#else
-    bperr("%s[%d]:  select returned -1\n", FILE__, __LINE__);
-    return false;
-#endif
-#endif
   }
 
 
@@ -1296,46 +1287,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          return false;
 
       case evtThreadCreate:
-#if 0
-         {
-            //  Read details of new thread from fd 
-            async_printf("%s[%d]: reading event from fd %d\n",
-                  FILE__, __LINE__, ev.fd);
-
-#if 0
-            int lock_depth = eventlock->depth();
-            for (int i = 0; i < lock_depth; i++) {
-               eventlock->_Unlock(FILE__, __LINE__);
-            }
-#endif
-
-
-            unsigned long start_pc = (unsigned long) -1;
-            unsigned long stack_addr = (unsigned long) -1;
-            unsigned index = (unsigned) -1;
-            int lwpid = -1;
-            dynthread_t tid;
-
-            if (!readNewThreadEventInfo(ev.fd, start_pc, stack_addr, index, 
-						lwpid, tid, appProc->getAddressWidth()) ) {
-               fprintf(stderr, "%s[%d]:  failed to read thread event call record\n",
-                     FILE__, __LINE__);
-               return false;
-            }
-
-#if 0
-            for (int i = 0; i < lock_depth; i++) {
-               eventlock->_Lock(FILE__, __LINE__);
-            }
-#endif
-
-            bool ret = handleThreadCreate(appProc, ev, index, lwpid, tid, stack_addr, start_pc);
-
-            async_printf("%s[%d]: signalling event...\n", FILE__, __LINE__);
-            ev.proc->sh->signalEvent(evtThreadCreate);
-            async_printf("%s[%d]: done signalling event, returning %d\n", FILE__, __LINE__, ret);
-            return ret;
-#endif
       {
          //  Read details of new thread from fd 
          async_printf("%s[%d]: reading event from fd %d\n",

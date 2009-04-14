@@ -212,34 +212,25 @@ bool Type::setSize(unsigned int size)
    return true;
 }
 
-#if 0
-bool Type::setUpPtr(void *upPtr){
-   upPtr_ = upPtr;
-   return true;
-}
-
-void *Type::getUpPtr() const{
-   return upPtr_;
-}
-#endif
-
-
-void Type::incrRefCount() {
+void Type::incrRefCount() 
+{
    ++refCount;
 }
 
-
-void Type::decrRefCount() {
+void Type::decrRefCount() 
+{
     assert(refCount > 0);
     if (!--refCount)
         delete this;
 }
 
-std::string &Type::getName(){
+std::string &Type::getName()
+{
     return name_;
 }
 
-bool Type::setName(std::string name){
+bool Type::setName(std::string name)
+{
     name_ = std::string(name);
     return true;
 }
@@ -1784,18 +1775,6 @@ unsigned int Field::getSize()
    return type_->getSize();
 }
 
-#if 0
-void *Field::getUpPtr() const
-{
-    return upPtr_;
-}
-
-bool Field::setUpPtr(void *upPtr) {
-    upPtr_ = upPtr;
-    return true;
-}
-#endif
-
 Field::Field(Field &oField) :
 	Serializable()
 {
@@ -1803,9 +1782,6 @@ Field::Field(Field &oField) :
    offset_ = oField.offset_;
    fieldName_ = std::string(oField.fieldName_);
    vis_ = oField.vis_;
-#if 0
-   upPtr_ = oField.upPtr_;
-#endif
    fprintf(stderr, "%s[%d]:  copy annnotations here??\n", FILE__, __LINE__);
 
    if (type_ != NULL)
@@ -1867,17 +1843,6 @@ std::vector<Symbol *> *CBlock::getFunctions()
 {
   return &functions;
 }
-
-#if 0
-void *CBlock::getUpPtr() const{
-    return upPtr_;
-}
-
-bool CBlock::setUpPtr(void *upPtr) {
-    upPtr_ = upPtr;
-    return true;
-}
-#endif
 
 void CBlock::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
