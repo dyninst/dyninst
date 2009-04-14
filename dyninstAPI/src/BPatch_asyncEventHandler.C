@@ -1542,12 +1542,21 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
 
 #if 1
 
+   // We have a race condition here... if the process already exited we may have
+   // destroyed the signal generator.
+   if (p == NULL) return true;
+   if (p->sh == NULL) return true;
+
+
    while (p->sh->isActivelyProcessing()) 
    {
 	   async_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__,
 			   __LINE__, p->getPid());
 	   p->sh->waitForEvent(evtAnyEvent);
    }
+
+   // Check again here...
+   if (p->sh == NULL) return true;
 
    if (p->hasExited()) 
    {

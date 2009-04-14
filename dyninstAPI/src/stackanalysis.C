@@ -84,20 +84,20 @@ AnnotationClass <StackAnalysis::PresenceTree> StackPresenceAnno(std::string("Sta
 
 bool StackAnalysis::analyze()
 {
-    stanalysis_printf("Beginning stack analysis for function %s\n",
+    stackanalysis_printf("Beginning stack analysis for function %s\n",
                       func->symTabName().c_str());
     blocks = func->blocks();
     if (blocks.empty()) return false;
     
     blocks = func->blocks();
     
-    stanalysis_printf("\tSummarizing block effects\n");
+    stackanalysis_printf("\tSummarizing block effects\n");
     summarizeBlockDeltas();
     
-    stanalysis_printf("\tPerforming fixpoint analysis\n");
+    stackanalysis_printf("\tPerforming fixpoint analysis\n");
     calculateInterBlockDepth();
 
-    stanalysis_printf("\tCreating interval trees\n");
+    stackanalysis_printf("\tCreating interval trees\n");
     createIntervals();
 
     func->addAnnotation(heightIntervals_, StackHeightAnno);
@@ -108,7 +108,7 @@ bool StackAnalysis::analyze()
         debugStackPresences();
     }
 
-    stanalysis_printf("Finished stack analysis for function %s\n",
+    stackanalysis_printf("Finished stack analysis for function %s\n",
                       func->symTabName().c_str());
 
     return true;
@@ -134,7 +134,7 @@ void StackAnalysis::summarizeBlockDeltas() {
 
     for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
         Block *block = *iter;
-        stanalysis_printf("\t Block starting at 0x%lx\n", block->firstInsnOffset());
+        stackanalysis_printf("\t Block starting at 0x%lx\n", block->firstInsnOffset());
 
         StackHeight heightChange(0);
         StackPresence stackPresence;
@@ -169,7 +169,7 @@ void StackAnalysis::calculateInterBlockDepth() {
 
     while (!worklist.empty()) {
         Block *block = worklist.front();
-        stanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->firstInsnOffset());
+        stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->firstInsnOffset());
 
         worklist.pop();
 
@@ -242,7 +242,7 @@ void StackAnalysis::createIntervals() {
     for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
         Block *block = *iter;
 
-        stanalysis_printf("\t Interval creation: visiting block at 0x%lx\n", block->firstInsnOffset());
+        stackanalysis_printf("\t Interval creation: visiting block at 0x%lx\n", block->firstInsnOffset());
         
         curLB = block->firstInsnOffset();
         curUB = 0;
@@ -351,7 +351,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
                                        StackHeight &height,
                                        StackPresence &pres) 
 {
-    stanalysis_printf("\t\tInsn at 0x%lx\n", off); 
+    stackanalysis_printf("\t\tInsn at 0x%lx\n", off); 
     Expression::Ptr theStackPtr(new RegisterAST(r_eSP));
     Expression::Ptr stackPtr32(new RegisterAST(r_ESP));
     Expression::Ptr stackPtr64(new RegisterAST(r_RSP));
@@ -364,15 +364,15 @@ void StackAnalysis::computeInsnEffects(const Block *block,
     entryID what = insn.getOperation().getID();
 
     if (insn.isWritten(theFramePtr) || insn.isWritten(framePtr32) || insn.isWritten(framePtr64)) {
-        stanalysis_printf("\t\t\t FP written\n");
+        stackanalysis_printf("\t\t\t FP written\n");
         if (what == e_mov &&
             (insn.isRead(theStackPtr) || insn.isRead(stackPtr32) || insn.isRead(stackPtr64))) {
             pres = StackPresence::frame;
-            stanalysis_printf("\t\t\t Frame created\n");
+            stackanalysis_printf("\t\t\t Frame created\n");
         }
         else {
             pres = StackPresence::noFrame;
-            stanalysis_printf("\t\t\t Frame destroyed\n");
+            stackanalysis_printf("\t\t\t Frame destroyed\n");
         }
     }
     
@@ -391,11 +391,11 @@ void StackAnalysis::computeInsnEffects(const Block *block,
          if (!target_func)
              continue;
          height = getStackCleanAmount(target_func);
-         stanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", height.getString().c_str());
+         stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", height.getString().c_str());
          return;
       }
       height = StackHeight(0);
-      stanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
+      stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
       return;
    }
 
@@ -414,11 +414,11 @@ void StackAnalysis::computeInsnEffects(const Block *block,
        Operand arg = insn.getOperand(0);
        if (arg.getValue()->eval().defined) {
            height = StackHeight(sign * word_size); 
-           stanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %s\n", height.getString().c_str());
+           stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %s\n", height.getString().c_str());
            return;
        }
        height = StackHeight(sign * arg.getValue()->size());
-       stanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %s\n", height.getString().c_str());
+       stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %s\n", height.getString().c_str());
        return;
    }
    case e_sub:
@@ -459,21 +459,21 @@ void StackAnalysis::computeInsnEffects(const Block *block,
                height = StackHeight(StackHeight::bottom);
                break;
            }
-           stanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", height.getString().c_str());
+           stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", height.getString().c_str());
            return;
        }
    }
        height = StackHeight(StackHeight::bottom);
-       stanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", height.getString().c_str());
+       stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", height.getString().c_str());
        return;
        // We treat return as zero-modification right now
    case e_ret_near:
    case e_ret_far:
        height = StackHeight(0);
-       stanalysis_printf("\t\t\t Stack height changed by ret_near/ret_far %s\n", height.getString().c_str());
+       stackanalysis_printf("\t\t\t Stack height changed by ret_near/ret_far %s\n", height.getString().c_str());
        return;
    default:
-       stanalysis_printf("\t\t\t Stack height changed by unhandled insn %s: %s\n", 
+       stackanalysis_printf("\t\t\t Stack height changed by unhandled insn %s: %s\n", 
                          insn.format().c_str(), height.getString().c_str());
        height = StackHeight(StackHeight::bottom);
        return;
