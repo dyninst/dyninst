@@ -1020,6 +1020,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\InstructionCache.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\common\src\List.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1633,6 +1642,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\InstrucIter-Function.h">
+			</File>
+			<File
+				RelativePath=".\src\InstructionCache.h">
 			</File>
 			<File
 				RelativePath="..\common\h\List.h">
