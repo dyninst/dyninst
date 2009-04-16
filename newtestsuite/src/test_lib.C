@@ -100,6 +100,124 @@ FILE *errlog = NULL;
 const char *outlogname = "-";
 const char *errlogname = "-";
 
+LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
+	runtime_error(msg),
+	file__(std::string(__file__)),
+	line__(__line__)
+{}
+
+LocErr::~LocErr() THROW
+{}
+
+std::string LocErr::file() const
+{
+	return file__;
+}
+
+int LocErr::line() const
+{
+	return line__;
+}
+
+void LocErr::print(FILE *stream) const
+{
+	fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n",
+			file__.c_str(), line__, what());
+}
+
+Tempfile::Tempfile()
+{
+#if defined (os_windows_test)
+	fname = new char[1024];
+	assert(fname);
+	const char *dyninst_root = getenv("DYNINST_ROOT");
+	char tmp_dir[1024];
+	struct stat statbuf;
+
+	if (!dyninst_root)
+	{
+		fprintf(stderr, "%s[%d]:  DYNINST_ROOT not specified\n", __FILE__, __LINE__);
+		abort();
+	}
+
+	sprintf(tmp_dir, "%s\temp", dyninst_root);
+
+	if (0 != stat(tmp_dir, &statbuf))
+	{
+		if (ENOENT == errno)
+		{
+			//  doesn't exist, make it
+			if (0 != _mkdir(tmp_dir))
+			{
+				fprintf(stderr, "%s[%d]:  mkdir(%s): %s\n", __FILE__, __LINE__, tmp_dir, strerror(errno));
+				abort();
+			}
+		}
+		else
+		{
+			fprintf(stderr, "%s[%d]:  FIXME:  unexpected stat result: %s\n",
+					__FILE__, __LINE__, strerror(errno));
+			abort();
+		}
+	}
+
+	if (0 != GetTempFileName(tmp_dir, "tempfile", 0, fname))
+	{
+		fprintf(stderr, "%s[%d]:  failed to create temp file name\n", __FILE__, __LINE__);
+		assert(0);
+	}
+
+	fd = CreateFile(fname,
+			GENERIC_READ | GENERIC_WRITE, // open r-w 
+			0,                    // do not share 
+			NULL,                 // default security 
+			CREATE_ALWAYS,        // overwrite existing
+			FILE_ATTRIBUTE_NORMAL,// normal file 
+			NULL);                // no template 
+
+	if (fd == INVALID_HANDLE_VALUE)
+	{
+		fprintf(stderr, "%s[%d]:  failed to create temp file\n", __FILE__, __LINE__);
+		assert(0);
+	}
+#else
+	fname = strdup("/tmp/tmpfileXXXXXX");
+	fd = mkstemp(fname);
+
+	if (-1 == fd)
+	{
+		fprintf(stderr, "%s[%d]:  failed to make temp file\n", __FILE__, __LINE__);
+		abort();
+	}
+#endif
+}
+
+Tempfile::~Tempfile()
+{
+#if defined (os_windows_test)
+	if (0 == DeleteFile(fname))
+	{
+		fprintf(stderr, "%s[%d]:  DeleteFile failed: %s\n",
+				__FILE__, __LINE__, strerror(errno));
+	}
+	delete [] fname;
+#else
+	if (0 != unlink (fname))
+	{
+		fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
+				__FILE__, __LINE__, strerror(errno));
+	}
+	free (fname);
+#endif
+}
+
+const char *Tempfile::getName()
+{
+	return fname;
+}
+
+
+
 TestOutputDriver * output = NULL;
 
 // windows has strange support for sharing variables across
@@ -109,79 +227,79 @@ TestOutputDriver * getOutput() {
 	return output;
 }
 
-void setOutput(TestOutputDriver * new_output) {
-	if (output != NULL)
-		delete output;
-	output = new_output;
-}
+	void setOutput(TestOutputDriver * new_output) {
+		if (output != NULL)
+			delete output;
+		output = new_output;
+	}
 
 void setOutputLog(FILE *log_fp) {
-  if (log_fp != NULL) {
-    outlog = log_fp;
-  } else {
-    outlog = stdout;
-  }
+	if (log_fp != NULL) {
+		outlog = log_fp;
+	} else {
+		outlog = stdout;
+	}
 }
 
 FILE *getOutputLog() {
-  return outlog;
+	return outlog;
 }
 
 void setErrorLog(FILE *log_fp) {
-  if (log_fp != NULL) {
-    errlog = log_fp;
-  } else {
-    errlog = stderr;
-  }
+	if (log_fp != NULL) {
+		errlog = log_fp;
+	} else {
+		errlog = stderr;
+	}
 }
 
 FILE *getErrorLog() {
-  return errlog;
+	return errlog;
 }
 
 void setOutputLogFilename(char *log_fn) {
-  if (log_fn != NULL) {
-    outlogname = log_fn;
-  }
+	if (log_fn != NULL) {
+		outlogname = log_fn;
+	}
 }
 
 void setErrorLogFilename(char *log_fn) {
-  if (log_fn != NULL) {
-    errlogname = log_fn;
-  }
+	if (log_fn != NULL) {
+		errlogname = log_fn;
+	}
 }
 
 const char *getOutputLogFilename() {
-  return outlogname;
+	return outlogname;
 }
 
 const char *getErrorLogFilename() {
-  return errlogname;
+	return errlogname;
 }
 
 void logstatus(const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  getOutput()->vlog(LOGINFO, fmt, args);
-  va_end(args);
+	va_list args;
+	va_start(args, fmt);
+	getOutput()->vlog(LOGINFO, fmt, args);
+	va_end(args);
 }
 
 void logerror(const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  getOutput()->vlog(LOGERR, fmt, args);
-  va_end(args);
+	va_list args;
+	va_start(args, fmt);
+	getOutput()->vlog(LOGERR, fmt, args);
+	va_end(args);
 }
 
 void flushOutputLog() {
-  if (outlog != NULL) {
-    fflush(outlog);
-  }
+	if (outlog != NULL) {
+		fflush(outlog);
+	}
 }
 void flushErrorLog() {
-  if (errlog != NULL) {
-    fflush(errlog);
-  }
+	if (errlog != NULL) {
+		fflush(errlog);
+	}
 }
 
 // PID registration for mutatee cleanup
@@ -189,19 +307,19 @@ void flushErrorLog() {
 // change them.
 char *pidFilename = NULL;
 void setPIDFilename(char *pfn) {
-  pidFilename = pfn;
+	pidFilename = pfn;
 }
 char *getPIDFilename() {
-  return pidFilename;
+	return pidFilename;
 }
 void registerPID(int pid) {
-  if (NULL == pidFilename) {
-     return;
-  }
-  FILE *pidFile = fopen(pidFilename, "a");
-  if (NULL == pidFile) {
-     fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
-  } else {
+	if (NULL == pidFilename) {
+		return;
+	}
+	FILE *pidFile = fopen(pidFilename, "a");
+	if (NULL == pidFile) {
+		fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
+	} else {
      fprintf(pidFile, "%d\n", pid);
      fclose(pidFile);
   }

@@ -296,7 +296,7 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 {
 	if (module_)
 	{
-		typeCollection *tc = module_->getModuleTypes();
+		typeCollection *tc = module_->getModuleTypesPrivate();
 		if (tc)
 		{
 			t = tc->findType(t_id);

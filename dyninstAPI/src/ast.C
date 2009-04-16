@@ -2680,7 +2680,7 @@ int_variable* AstOperandNode::lookUpVar(AddressSpace* as)
   mapped_module *mod = as->findModule(oVar->pdmod()->fileName());
   if(mod && (oVar->pdmod() == mod->pmod()))
   {
-    int_variable* tmp = mod->obj()->findVariable((image_variable*)(oVar));
+    int_variable* tmp = mod->obj()->findVariable(const_cast<image_variable*>(oVar));
     return tmp;
   }
   return NULL;

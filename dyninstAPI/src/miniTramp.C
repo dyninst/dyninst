@@ -237,7 +237,7 @@ bool miniTrampInstance::generateCode(codeGen &gen,
                                      Address baseInMutatee,
                                      UNW_INFO_TYPE ** /* unwindInformation */ )
 #endif
-   {
+{
     inst_printf("miniTrampInstance(%p)::generateCode(%p, 0x%x, %d)\n",
                 this, gen.start_ptr(), baseInMutatee, gen.used());
     assert(mini);
@@ -245,8 +245,6 @@ bool miniTrampInstance::generateCode(codeGen &gen,
     if (!mini->generateMT(gen.rs()))
         return false;
 
-    unsigned addr_width = proc()->getAddressWidth();
-      
     // Copy code into the buffer
     gen.copy(mini->miniTrampCode_);
     // TODO unwind information

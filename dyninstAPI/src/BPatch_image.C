@@ -846,51 +846,66 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name,
 //
 
 BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
-      const char *name)
+		const char *name)
 {
-   // Get the function to search for it's local variables.
-   // XXX - should really use more detailed scoping info here - jkh 6/30/99
-  BPatch_function *func = const_cast<BPatch_function *> (scp.getFunction());
-   if (!func) {
-      std::string msg = std::string("point passed to findVariable lacks a function\n address point type passed?");
-      showErrorCallback(100, msg);
-      return NULL;
-   }
-   AddressSpace *as = func->lladdSpace;
+	// Get the function to search for it's local variables.
+	// XXX - should really use more detailed scoping info here - jkh 6/30/99
+	BPatch_function *func = const_cast<BPatch_function *> (scp.getFunction());
 
-   BPatch_localVar *lv = func->findLocalVar(name);
-   if (!lv) {
-      // look for it in the parameter scope now
-      lv = func->findLocalParam(name);
-   }
-   if (lv) {
-      return new BPatch_variableExpr(addSpace, as, lv, lv->getType(), &scp); 
-   }
+	if (!func) 
+	{
+		std::string msg = std::string("point passed to findVariable lacks a function\n address point type passed?");
+		showErrorCallback(100, msg);
+		return NULL;
+	}
 
-   // finally check the global scope.
-   // return findVariable(name);
+	AddressSpace *as = func->lladdSpace;
 
-   /* If we have something else to try, don't report errors on this failure. */
-   bool reportErrors = true;
-   char mangledName[100];
-   func->getName( mangledName, 100 );
-   char * lastScoping = NULL;      
-   if ( strrchr( mangledName, ':' ) != NULL ) { reportErrors = false; }
-   BPatch_variableExpr * gsVar = findVariable( name, reportErrors );
-   if ( gsVar == NULL ) {
-      /* Try finding it with the function's scope prefixed. */
+	BPatch_localVar *lv = func->findLocalVar(name);
 
-        if( (lastScoping = strrchr( mangledName, ':' )) != NULL ) {
-            * (lastScoping + sizeof(char)) = '\0';
-            char scopedName[200];
-            memmove( scopedName, mangledName, strlen( mangledName ) );
-            memmove( scopedName + strlen( mangledName ), name, strlen( name ) );
-            scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
-            bperr( "Searching for scoped name '%s'\n", scopedName );
-            gsVar = findVariable( scopedName ); 
-        }
-    }
-    return gsVar;
+	if (!lv) 
+	{
+		// look for it in the parameter scope now
+		lv = func->findLocalParam(name);
+	}
+
+	if (lv) 
+	{
+		return new BPatch_variableExpr(addSpace, as, lv, lv->getType(), &scp); 
+	}
+
+	// finally check the global scope.
+	// return findVariable(name);
+
+	/* If we have something else to try, don't report errors on this failure. */
+	bool reportErrors = true;
+	char mangledName[100];
+	func->getName( mangledName, 100 );
+	char * lastScoping = NULL;      
+
+	if ( strrchr( mangledName, ':' ) != NULL ) 
+	{ 
+		reportErrors = false; 
+	}
+
+	BPatch_variableExpr * gsVar = findVariable( name, reportErrors );
+
+	if ( gsVar == NULL ) 
+	{
+		/* Try finding it with the function's scope prefixed. */
+
+		if ( (lastScoping = strrchr( mangledName, ':' )) != NULL ) 
+		{
+			* (lastScoping + sizeof(char)) = '\0';
+			char scopedName[200];
+			memmove( scopedName, mangledName, strlen( mangledName ) );
+			memmove( scopedName + strlen( mangledName ), name, strlen( name ) );
+			scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
+			bperr( "Searching for scoped name '%s'\n", scopedName );
+			gsVar = findVariable( scopedName ); 
+		}
+	}
+	return gsVar;
 }
 
 /*

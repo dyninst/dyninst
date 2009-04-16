@@ -72,17 +72,12 @@
 #include "BPatch_private.h"
 
 #include "ast.h"
+#include "debug.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-void BPatch_process::PDSEP_updateObservedCostAddr(unsigned long a)
-{
-  if (llproc)
-    llproc->updateObservedCostAddr(a);
-}
-
-int BPatch_process::getAddressWidthInt(){ 
+int BPatch_process::getAddressWidthInt(){
 	return llproc->getAddressWidth();
 }
 

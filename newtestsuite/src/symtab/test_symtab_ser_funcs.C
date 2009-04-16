@@ -249,10 +249,10 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		
 		fprintf(stderr, "\t%d--%d\n", f1.getFramePtrRegnum(), f2.getFramePtrRegnum());
 
-		std::vector<VariableLocation> *l1 = const_cast<Function &>(f1).getFramePtr();
-		std::vector<VariableLocation> *l2 = const_cast<Function &>(f2).getFramePtr();
+		std::vector<VariableLocation> &l1 = const_cast<Function &>(f1).getFramePtr();
+		std::vector<VariableLocation> &l2 = const_cast<Function &>(f2).getFramePtr();
 
-		location_list_report(l1, l2);
+		location_list_report(&l1, &l2);
 
 		const Aggregate &a1 = (const Aggregate &) f1;
 		const Aggregate &a2 = (const Aggregate &) f2;
@@ -318,7 +318,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	typedef void (*lvarrep_t)(const localVar &, const localVar &);
 
 	template <class C>
-	bool serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
+	void serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
 	{
 		dprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
 				FILE__, __LINE__, typeid(C).name());
@@ -432,7 +432,7 @@ void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 {
 	bool result = symtab->getFuncBindingTable(relocations);
 
-#if !defined(os_aix_test)
+#if !defined(os_aix_test) && !defined (os_windows_test)
 	if (!result || !relocations.size() )
 		EFAIL("relocations");
 #endif
@@ -503,7 +503,7 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 		serialize_test(symtab, *functions[0], &function_report);
 		serialize_test(symtab, *symbols[0], &symbol_report);
 		serialize_test(symtab, *modules[0], &module_report);
-#if !defined (os_aix_test)
+#if !defined (os_aix_test) && !defined (os_windows)
 		serialize_test(symtab, relocations[0], &relocation_report);
 #endif
 		serialize_test(symtab, *regions[0], &region_report);

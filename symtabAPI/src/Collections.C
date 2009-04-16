@@ -249,38 +249,46 @@ Type *typeCollection::findTypeLocal(const int ID)
 }
 
 
-Type * typeCollection::findOrCreateType( const int ID ) {
-    if( typesByID.find(ID) != typesByID.end()) { return typesByID[ID]; }
+Type * typeCollection::findOrCreateType( const int ID ) 
+{
+	if ( typesByID.find(ID) != typesByID.end()) 
+	{ 
+		return typesByID[ID]; 
+	}
 
-    Type * returnType = NULL;
-    if( Symtab::builtInTypes ) {
-        returnType = Symtab::builtInTypes->findBuiltInType(ID);
-	if (returnType)
-	  return returnType;
-    }
+	Type * returnType = NULL;
 
-    /* Create a placeholder type. */
-    returnType = Type::createPlaceholder(ID);
-    assert( returnType != NULL );
-    
-    /* Having created the type, add it. */
-    addType( returnType );
+	if ( Symtab::builtInTypes ) 
+	{
+		returnType = Symtab::builtInTypes->findBuiltInType(ID);
+
+		if (returnType)
+			return returnType;
+	}
+
+	/* Create a placeholder type. */
+	returnType = Type::createPlaceholder(ID);
+	assert( returnType != NULL );
+
+	/* Having created the type, add it. */
+	addType( returnType );
 
     return returnType;
 } /* end findOrCreateType() */
 
 Type *typeCollection::findType(const int ID)
 {
-    if (typesByID.find(ID) != typesByID.end())
-    	return typesByID[ID];
-    else {
-	Type *ret = NULL;
-	
-	if (Symtab::builtInTypes) 
-	    ret = Symtab::builtInTypes->findBuiltInType(ID);
+	if (typesByID.find(ID) != typesByID.end())
+		return typesByID[ID];
+	else 
+	{
+		Type *ret = NULL;
 
-	return ret;
-    }
+		if (Symtab::builtInTypes) 
+			ret = Symtab::builtInTypes->findBuiltInType(ID);
+
+		return ret;
+	}
 }
 
 /*
@@ -294,9 +302,9 @@ Type *typeCollection::findType(const int ID)
  */
 Type *typeCollection::findVariableType(std::string &name)
 {
-    if (globalVarsByName.find(name) != globalVarsByName.end())
-    	return globalVarsByName[name];
-    else
+	if (globalVarsByName.find(name) != globalVarsByName.end())
+		return globalVarsByName[name];
+	else
 		return (Type *) NULL;
 }
 
@@ -310,7 +318,7 @@ Type *typeCollection::findVariableType(std::string &name)
  */
 void typeCollection::addType(Type *type)
 {
-  if(type->getName() != "") { //Type could have no name.
+	if(type->getName() != "") { //Type could have no name.
     typesByName[type->getName()] = type;
     type->incrRefCount();
   }

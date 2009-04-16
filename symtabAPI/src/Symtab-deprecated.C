@@ -81,5 +81,5 @@ bool Symtab::findSymbolByType(std::vector<Symbol *> &ret,
     if (isMangled) nameType = mangledName;
     else nameType = prettyName;
 
-    return findSymbolByType(ret, name, sType, nameType, isRegex, checkCase);
+    return findSymbol(ret, name, sType, nameType, isRegex, checkCase);
 }

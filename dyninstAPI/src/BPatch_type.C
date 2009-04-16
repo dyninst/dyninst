@@ -61,6 +61,10 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+AnnotationClass<BPatch_cblock> CommonBlockUpPtrAnno("CommonBlockUpPtr");
+AnnotationClass<BPatch_localVar> LocalVarUpPtrAnno("LocalVarUpPtrAnno");
+AnnotationClass<BPatch_field> FieldUpPtrAnno("FieldUpPtrAnno");
+AnnotationClass<BPatch_type> TypeUpPtrAnno("TypeUpPtr");
 //static int findIntrensicType(const char *name);
 
 // This is the ID that is decremented for each type a user defines. It is
@@ -93,34 +97,51 @@ BPatch_type *BPatch_type::createFake(const char *_name) {
 BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
     refCount(1)
 {
-  // if a derived type, make sure the upPtr is set for the base type.
-  // if it is not set, create a new BPatch_type for the upPtr
-  derivedType* derived = dynamic_cast<derivedType*>(typ_);
-  if (derived) {
-    Type* base = derived->getConstituentType();
-    if (!base->getUpPtr()) {
-      BPatch_type* dyninstType = new BPatch_type(base);
-      // We might consider registering this new type in BPatch.
-      // For now, just silence the warning:
-      (void) dyninstType;
-    }
-  }
+	// if a derived type, make sure the upPtr is set for the base type.
+	// if it is not set, create a new BPatch_type for the upPtr
 
-    typ_->setUpPtr(this);
-    type_ = convertToBPatchdataClass(typ_->getDataClass());
-    type_map[typ] = this;
+	derivedType* derived = dynamic_cast<derivedType*>(typ_);
+	if (derived) 
+	{
+		Type* base = derived->getConstituentType();
+
+		assert(base);
+		BPatch_type *bpt = NULL;
+
+		if (!base->getAnnotation(bpt, TypeUpPtrAnno))
+		{
+			//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
+
+			BPatch_type* dyninstType = new BPatch_type(base);
+			// We might consider registering this new type in BPatch.
+			// For now, just silence the warning:
+			(void) dyninstType;
+		}
+		else
+		{
+			assert (bpt);
+		}
+	}
+
+	assert(typ_);
+	typ_->addAnnotation(this, TypeUpPtrAnno);
+
+	type_ = convertToBPatchdataClass(typ_->getDataClass());
+	type_map[typ] = this;
 }
 
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
    ID(_ID), type_(_type), typ(NULL), refCount(1)
 {
-  if (_name != NULL)
-     typ = new Type(_name, ID, convertToSymtabType(_type));
-  else
-     typ = new Type("", ID, convertToSymtabType(_type));
-  assert(typ);
-  typ->setUpPtr(this);
-  type_map[typ] = this;
+	if (_name != NULL)
+		typ = new Type(_name, ID, convertToSymtabType(_type));
+	else
+		typ = new Type("", ID, convertToSymtabType(_type));
+	assert(typ);
+
+	typ->addAnnotation(this, TypeUpPtrAnno);
+
+	type_map[typ] = this;
 }
 
 BPatch_type *BPatch_type::findOrCreateType(Dyninst::SymtabAPI::Type *type)  
@@ -152,18 +173,23 @@ unsigned int BPatch_type::getSizeInt()
   return typ->getSize();
 }
 
-const char *BPatch_type::getName() const { 
+const char *BPatch_type::getName() const 
+{
    return typ->getName().c_str(); 
 }
 
-Type *BPatch_type::getSymtabType() const {
+Type *BPatch_type::getSymtabType() const 
+{
     return typ;
 }    
 
-const char *BPatch_type::getLow() const {
+const char *BPatch_type::getLow() const 
+{
     rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);
-    if(!rangetype)
+
+    if (!rangetype)
         return NULL;
+
     return (const char *)(long)rangetype->getLow(); 
 }
 
@@ -172,11 +198,29 @@ bool BPatch_type::isCompatibleInt(BPatch_type *otype)
     return typ->isCompatible(otype->typ);
 }
 
-BPatch_type *BPatch_type::getConstituentType() const {
-    derivedInterface *derivedType = dynamic_cast<derivedInterface *>(typ);
-    if(!derivedType)
-        return NULL;
-    return (BPatch_type *)derivedType->getConstituentType()->getUpPtr();
+BPatch_type *BPatch_type::getConstituentType() const 
+{
+	derivedInterface *derivedType = dynamic_cast<derivedInterface *>(typ);
+
+	if (!derivedType)
+		return NULL;
+
+	Type *ctype = derivedType->getConstituentType();
+	assert(ctype);
+
+	BPatch_type *bpt = NULL;
+
+	if (!ctype->getAnnotation(bpt, TypeUpPtrAnno))
+	{
+		fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
+	}
+	else
+	{
+		assert(bpt);
+	}
+
+		
+	return bpt;
 }
 
 BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
@@ -196,31 +240,53 @@ BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
          components->push_back(new BPatch_field((*comps)[i]));
     	return components;    
     }
-    if(enumtype) {
-        vector<pair<string, int> *> constants = enumtype->getConstants();
-	    for(unsigned i = 0; i < constants.size(); i++){
-	        Field *fld = new Field(constants[i]->first.c_str(), NULL);
-	        components->push_back(new BPatch_field(fld, BPatch_dataScalar, constants[i]->second, 0));
+
+    if (enumtype) 
+	{
+        vector<pair<string, int> > &constants = enumtype->getConstants();
+	    for (unsigned i = 0; i < constants.size(); i++)
+		{
+	        Field *fld = new Field(constants[i].first.c_str(), NULL);
+	        components->push_back(new BPatch_field(fld, BPatch_dataScalar, constants[i].second, 0));
 	    }
 	    return components;    
     }
+
     if(derivedtype)
         return getConstituentType()->getComponents();
     return NULL;
 }
 
-BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const {
-    typeCommon *commontype = dynamic_cast<typeCommon *>(typ);
-    if(!commontype)
-	return NULL;
-    	
-    std::vector<CBlock *> *cblocks = commontype->getCblocks();
-    if(!cblocks)
-        return NULL;
-    BPatch_Vector<BPatch_cblock *> *ret = new BPatch_Vector<BPatch_cblock *>();
-    for(unsigned i = 0; i < cblocks->size(); i++)
-        ret->push_back((BPatch_cblock *)(*cblocks)[i]->getUpPtr());
-    return ret;	
+BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const 
+{
+	typeCommon *commontype = dynamic_cast<typeCommon *>(typ);
+
+	if (!commontype)
+		return NULL;
+
+	std::vector<CBlock *> *cblocks = commontype->getCblocks();
+
+	if (!cblocks)
+		return NULL;
+
+	BPatch_Vector<BPatch_cblock *> *ret = new BPatch_Vector<BPatch_cblock *>();
+
+	for (unsigned i = 0; i < cblocks->size(); i++)
+	{
+		BPatch_cblock *bpcb = NULL;
+		CBlock *cb = (*cblocks)[i];
+		assert(cb);
+		if (!cb->getAnnotation(bpcb, CommonBlockUpPtrAnno))
+		{
+			fprintf(stderr, "%s[%d]:  WARN:  No Common Block UpPtr\n", FILE__, __LINE__);
+		}
+		else
+		{
+			assert(bpcb);
+			ret->push_back(bpcb);
+		}
+	}
+	return ret;	
 }
 
 const char *BPatch_type::getHigh() const {
@@ -332,7 +398,10 @@ char *BPatch_type::getName(char *buffer, int max) const
 BPatch_field::BPatch_field(Dyninst::SymtabAPI::Field *fld_, BPatch_dataClass typeDescriptor, int value_, int size_) :
     typeDes(typeDescriptor), value(value_), size(size_), fld(fld_)
 {
-    fld_->setUpPtr(this);
+	if (!fld_->addAnnotation(this, FieldUpPtrAnno))
+	{
+		fprintf(stderr, "%s[%d]: failed to add field list anno here\n", FILE__, __LINE__);
+	}
 }
 
 void BPatch_field::copy(BPatch_field &oField) 
@@ -367,9 +436,19 @@ const char *BPatch_field::getNameInt()
 
 BPatch_type *BPatch_field::getTypeInt()
 {
-  if(!fld->getType()->getUpPtr())
-      return new BPatch_type (fld->getType());
-  return (BPatch_type *)fld->getType()->getUpPtr();
+	BPatch_type *bpt= NULL;
+	assert(fld);
+	Type *t = fld->getType();
+	assert(t);
+
+	if (!t->getAnnotation(bpt, TypeUpPtrAnno))
+	{
+		//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
+		return new BPatch_type(fld->getType());
+	}
+
+	assert(bpt);
+	return bpt;
 }
 
 int BPatch_field::getValueInt()
@@ -403,29 +482,50 @@ void BPatch_field::fixupUnknown(BPatch_module *module) {
 
 BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
 {
-    type = (BPatch_type *)lVar->getType()->getUpPtr();
-    if (!type)
-        type = new BPatch_type(lVar->getType());
-    type->incrRefCount();
-    vector<Dyninst::SymtabAPI::VariableLocation> *locs = lVar_->getLocationLists();
-    if (!locs)
+	assert(lVar);
+
+	Type *t = lVar->getType();
+	assert(t);
+	
+	if (!t->getAnnotation(type, TypeUpPtrAnno))
+	{
+		//fprintf(stderr, "%s[%d]:  failed to get up ptr here\n", FILE__, __LINE__);
+		type = new BPatch_type(t);
+	}
+	else
+	{
+		assert(type);
+	}
+
+	type->incrRefCount();
+
+    vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar_->getLocationLists();
+
+    if (!locs.size())
        storageClass = BPatch_storageFrameOffset;
     else
-       storageClass = convertToBPatchStorage(& (*locs)[0]);
-    lVar->setUpPtr(this);
+       storageClass = convertToBPatchStorage(& locs[0]);
+
+
+
+	if (!lVar->addAnnotation(this, LocalVarUpPtrAnno))
+	{
+		fprintf(stderr, "%s[%d]:  failed to add annotation here\n", FILE__, __LINE__);
+	}
+
 }
 
 BPatch_storageClass BPatch_localVar::convertToBPatchStorage(Dyninst::SymtabAPI::VariableLocation *loc)
 {
-   Dyninst::SymtabAPI::storageClass stClass = loc->stClass;
-   storageRefClass refClass = loc->refClass;
-   if((stClass == storageAddr) && (refClass == storageNoRef))
-       return BPatch_storageAddr;
-   else if((stClass == storageAddr) && (refClass == storageRef))
-       return BPatch_storageAddrRef;
-   else if((stClass == storageReg) && (refClass == storageNoRef))
-       return BPatch_storageReg;
-   else if((stClass == storageReg) && (refClass == storageRef))
+	Dyninst::SymtabAPI::storageClass stClass = loc->stClass;
+	storageRefClass refClass = loc->refClass;
+	if((stClass == storageAddr) && (refClass == storageNoRef))
+		return BPatch_storageAddr;
+	else if((stClass == storageAddr) && (refClass == storageRef))
+		return BPatch_storageAddrRef;
+	else if((stClass == storageReg) && (refClass == storageNoRef))
+		return BPatch_storageReg;
+	else if((stClass == storageReg) && (refClass == storageRef))
        return BPatch_storageRegRef;
    else if((stClass == storageRegOffset) && (loc->reg == -1))
        return BPatch_storageFrameOffset;
@@ -454,18 +554,24 @@ int BPatch_localVar::getLineNum() {
 }
 
 //TODO?? - get the first frame offset
-long BPatch_localVar::getFrameOffset() { 
-   vector<Dyninst::SymtabAPI::VariableLocation> *locs = lVar->getLocationLists();
-   if(!locs)
+long BPatch_localVar::getFrameOffset() {
+
+   vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar->getLocationLists();
+
+   if (locs.size())
       return -1;
-   return (*(locs))[0].frameOffset;
+
+   return locs[0].frameOffset;
 }
 
-int BPatch_localVar::getRegister() { 
-    vector<Dyninst::SymtabAPI::VariableLocation> *locs = lVar->getLocationLists();
-    if(!locs)
+int BPatch_localVar::getRegister() {
+
+    vector<Dyninst::SymtabAPI::VariableLocation> &locs = lVar->getLocationLists();
+
+    if (!locs.size())
         return -1;
-    return (*(locs))[0].reg;
+
+    return locs[0].reg;
 }
 
 BPatch_storageClass BPatch_localVar::getStorageClass() {
@@ -506,13 +612,30 @@ void BPatch_cblock::fixupUnknowns(BPatch_module *module) {
 
 BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponentsInt()
 {
-  BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>;
-  std::vector<Field *> *vars = cBlk->getComponents();
-  if(!vars)
-     return NULL;
-  for(unsigned i=0; i<vars->size();i++)
-      components->push_back((BPatch_field *)(*vars)[i]->getUpPtr());
-  return components;
+	BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>;
+	std::vector<Field *> *vars = cBlk->getComponents();
+
+	if (!vars)
+		return NULL;
+
+	for (unsigned i=0; i<vars->size();i++)
+	{
+		Field *f = (*vars)[i];
+		assert(f);
+		BPatch_field *bpf = NULL;
+
+		if (!f->getAnnotation(bpf, FieldUpPtrAnno))
+		{
+			fprintf(stderr, "%s[%d]:  no up ptr anno here\n", FILE__, __LINE__);
+		}
+		else
+		{
+			assert (bpf);
+			components->push_back(bpf);
+		}
+	}
+
+	return components;
 }
 
 BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctionsInt()

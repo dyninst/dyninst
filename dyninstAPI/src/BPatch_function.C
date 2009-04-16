@@ -507,7 +507,8 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
  */
 BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
 {
-    if (!mod->isValid()) return NULL;
+    if (!mod->isValid()) 
+		return NULL;
     constructVarsAndParams();
     BPatch_localVar * var = localVariables->findLocalVar(name);
     return (var);
@@ -544,44 +545,69 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
     return cfg;
 }
 
-void BPatch_function::constructVarsAndParams(){
-    if(varsAndParamsValid)
+void BPatch_function::constructVarsAndParams()
+{
+    if (varsAndParamsValid)
        return;
-    if (mod) {
+
+    if (mod) 
+	{
         mod->parseTypesIfNecessary();
     }
 
     //Check flag to see if vars & params are already constructed
     std::vector<localVar *>vars;
-    if(lowlevel_func()->ifunc()->getSymtabFunction()->getLocalVariables(vars)) {
-        for(unsigned i = 0; i< vars.size(); i++) 
+
+    if (lowlevel_func()->ifunc()->getSymtabFunction()->getLocalVariables(vars)) 
+	{
+        for (unsigned i = 0; i< vars.size(); i++) 
 	    {
-            if (mod) {
+            if (mod) 
+			{
                 vars[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
             }
+
 	        localVariables->addLocalVar(new BPatch_localVar(vars[i]));
 	    }    
     }
+
     std::vector<localVar *>parameters;
-    if(lowlevel_func()->ifunc()->getSymtabFunction()->getParams(parameters)) {
-        for(unsigned i = 0; i< parameters.size(); i++) {
-            if (mod) {
+
+    if (lowlevel_func()->ifunc()->getSymtabFunction()->getParams(parameters)) 
+	{
+        for (unsigned i = 0; i< parameters.size(); i++) 
+		{
+            if (mod) 
+			{
                 parameters[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
             }
+
 	        BPatch_localVar *lparam = new BPatch_localVar(parameters[i]);
     	    funcParameters->addLocalVar(lparam);
 	        params.push_back(lparam);
     	}    
     }
-    if(!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()) {
+
+    if (!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()) 
+	{
         varsAndParamsValid = true;
         return;
     }
         
-    if(!lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()->getUpPtr())
-        retType = new BPatch_type(lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType());
-    else
-        retType = (BPatch_type *)lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType()->getUpPtr();
+	SymtabAPI::Type *ret_type = lowlevel_func()->ifunc()->getSymtabFunction()->getReturnType();
+	assert(ret_type);
+
+	extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
+
+	if (!ret_type->getAnnotation(retType, TypeUpPtrAnno))
+	{
+		//  BPatch_type ctor adds the annotation to the lowlevel symtab type, so 
+		//  no need to do it here.
+		retType = new BPatch_type(ret_type);
+	}
+	else
+		assert(retType);
+
     varsAndParamsValid = true;
 }
 
