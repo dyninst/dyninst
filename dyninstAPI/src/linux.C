@@ -1570,8 +1570,6 @@ bool dyn_lwp::realLWP_attach_() {
        return false;
      }
      if (evt == evtThreadExit && status_ == exited) {
-       fprintf(stderr, "[%s:%u] - Thread %d exited, and we caught it!\n",
-	       __FILE__, __LINE__, get_lwp_id());
        isDoingAttach_ = false;
        proc()->sh->remove_lwp_from_poll_list(get_lwp_id());       
        return false;
