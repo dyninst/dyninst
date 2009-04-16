@@ -55,9 +55,9 @@ void func7_1()
    */
   int x = 0;
   x = test_callback_2_call1();
-  //  sleep to make sure that all the async calls have had a chance to be received
-  //  before the process terminates.  (under ordinary circumstances process exits
-  //  take precedence in handling to any asynchronous events)
+  /*  sleep to make sure that all the async calls have had a chance to be received
+      before the process terminates.  (under ordinary circumstances process exits
+      take precedence in handling to any asynchronous events) */
   sleep(5);
 #if 0
   while (test_callback_2_idle == 0); /* Loop while *not* idle? */
