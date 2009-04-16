@@ -5686,6 +5686,7 @@ void process::debugSuicide() {
    pdvector<Frame> activeFrames;
    getAllActiveFrames(activeFrames);
  
+   last_single_step = 0;
    for (unsigned i=0; i < activeFrames.size(); i++) {
      Address addr = activeFrames[i].getPC();
      codeRange *range = findOrigByAddr(addr);
