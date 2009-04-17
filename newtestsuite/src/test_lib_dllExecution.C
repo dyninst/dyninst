@@ -152,7 +152,7 @@ ComponentTester *Module::loadModuleLibrary()
 
    HINSTANCE handle = LoadLibrary(dllname.c_str());
    if (!handle) {
-	   fprintf(stderr, "Error opening library %s ", dllname.c_str());
+	   fprintf(stderr, "%s[%d]: Error opening library %s ", __FILE__, __LINE__, dllname.c_str());
 		printErrorString();
 	   return NULL;
    }

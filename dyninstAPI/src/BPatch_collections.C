@@ -97,10 +97,10 @@ void BPatch_localVarCollection::addLocalVar(BPatch_localVar * var){
  */
 BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
 
-  if(localVariablesByName.defines(name) )
-    return localVariablesByName[name];
-  else
-    return (BPatch_localVar *)NULL;
+	if (localVariablesByName.defines(name) )
+		return localVariablesByName[name];
+	else
+		return (BPatch_localVar *)NULL;
 }
 
 /*

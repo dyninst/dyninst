@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2008 Barton P. Miller
+ * Copyright (c) 1996-2009 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,43 +39,31 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#if !defined(INSTRUCTION_CACHE_H)
+#define INSTRUCTION_CACHE_H
 
-void func_relocations_mutatee()
+#include "dyntypes.h"
+#include "bitArray.h"
+#include <map>
+
+class image_func;
+using namespace Dyninst;
+
+
+struct ReadWriteInfo
 {
-#if !defined(os_windows_test)
-	char buf[10];
-	struct stat statbuf;
-
-	//  some junk system calls to trigger entries in th relocation table
-	printf("a");
-	fprintf(stderr,"a");
-	sprintf(buf,"a");
-	snprintf(buf,2, "%s", "aaaaaa");
-	memcpy(buf, "aaaa", 4*sizeof(char));
-	strcmp(buf, "aaaa");
-	memset(buf, 0, 4*sizeof(char));
-	FILE *f = fopen("/blaarch", "rw");
-	fwrite(buf, sizeof(char), 4, f);
-	fread(buf, sizeof(char), 4, f);
-	fclose(f);
-	stat("/blaarch", &statbuf);
-	lstat("/blaarch", &statbuf);
-	fstat(7, &statbuf);
-#endif
-}
+  bitArray read;
+  bitArray written;
+  int insnSize;
+};
 
 
-int test_relocations_mutatee() 
+struct InstructionCache
 {
-	fprintf(stderr, "welcome to test_relocations_mutatee\n");
+  std::map<Address, ReadWriteInfo> cache;
+  image_func* currentFunction;
+  bool getLivenessInfo(Address addr, image_func* func, ReadWriteInfo& rw);
+  void insertInstructionInfo(Address addr, ReadWriteInfo rw, image_func* func);
+};
 
-   /*If mutatee should run, things go here.*/
-   return 0;
-}
-
+#endif //!defined(INSTRUCTION_CACHE_H)

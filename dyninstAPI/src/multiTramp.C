@@ -2733,7 +2733,7 @@ relocatedInstruction::relocatedInstruction(const unsigned char* insnPtr, Address
    targetOverride_(NULL) 
 {
   insn = new instruction;
-  insn->setInstruction((codeBuf_t*)insnPtr, (Address)(o));
+  insn->setInstruction((const codeBuf_t*)insnPtr, (Address)(o));
 }
 #endif
 

@@ -2091,13 +2091,13 @@ void Object::parseTypeInfo(Symtab *obj)
 	   }else{
                parseActive = true;
                // Clear out old types
-               mod->getModuleTypes()->clearNumberedTypes();
+               mod->getModuleTypesPrivate()->clearNumberedTypes();
             }
          }
          else{
             parseActive = true;
             // Clear out old types
-            mod->getModuleTypes()->clearNumberedTypes();
+            mod->getModuleTypesPrivate()->clearNumberedTypes();
          }
 
          //TODO? check for process directories??
@@ -2177,12 +2177,12 @@ void Object::parseTypeInfo(Symtab *obj)
             if (!commonBlockVar) {
                //bperr("unable to find variable %s\n", commonBlockName);
             } else {
-               commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(cbName));
+               commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypesPrivate()->findVariableType(cbName));
                if (commonBlock == NULL) {
                   // its still the null type, create a new one for it
                   //TODO? ? ID for this typeCommon ?
                   commonBlock = new typeCommon(cbName);
-                  mod->getModuleTypes()->addGlobalVariable(cbName, commonBlock);
+                  mod->getModuleTypesPrivate()->addGlobalVariable(cbName, commonBlock);
                }
                // reset field list
                commonBlock->beginCommonBlock();

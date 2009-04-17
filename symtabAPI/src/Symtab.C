@@ -1105,9 +1105,10 @@ Symtab::Symtab(char *, size_t, std::string , Offset, bool &, void *)
 
 bool sort_reg_by_addr(const Region* a, const Region* b)
 {
-   return a->getRegionAddr() < b->getRegionAddr();
+  if (a->getRegionAddr() == b->getRegionAddr())
+    return a->getMemSize() < b->getMemSize();
+  return a->getRegionAddr() < b->getRegionAddr();
 }
-
 
 extern void print_symbols( std::vector< Symbol *>& allsymbols );
 extern void print_symbol_map( dyn_hash_map< std::string, std::vector< Symbol *> > *symbols);
@@ -2078,7 +2079,11 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    if (!_mods.size())
       return false;
 
-   type = _mods[0]->getModuleTypes()->findType(name);
+   for (unsigned int i = 0; i < _mods.size(); ++i)
+   {
+	   type = _mods[i]->getModuleTypesPrivate()->findType(name);
+	   if (type) return true;
+   }
 
    if (type == NULL)
       return false;
@@ -2096,15 +2101,38 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
-	   t = _mods[0]->getModuleTypes()->findType(type_id);
+	   t = _mods[0]->getModuleTypesPrivate()->findType(type_id);
 	   if (t) break;
    }
 
    if (t == NULL)
-      return NULL;
+   {
+	   if (builtInTypes)
+	   {
+		   t = builtInTypes->findBuiltInType(type_id);
+		   if (t) return t;
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  no built in types!\n", FILE__, __LINE__);
+	   }
+
+	   if (stdTypes)
+	   {
+		   t = stdTypes->findType(type_id);
+		   if (t) return t;
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  no std types!\n", FILE__, __LINE__);
+	   }
+
+	   return NULL;
+   }
 
    return t;	
 }
+
 SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
 {
    parseTypesNow();
@@ -2112,7 +2140,7 @@ SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
    if (!_mods.size())
       return false;
 
-   type = _mods[0]->getModuleTypes()->findVariableType(name);
+   type = _mods[0]->getModuleTypesPrivate()->findVariableType(name);
 
    if (type == NULL)
       return false;
@@ -2288,25 +2316,25 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
       //Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
-	  Offset end = regions_[i]->getRegionAddr() + regions_[i]->getRegionSize();
+      Offset end = regions_[i]->getRegionAddr() + regions_[i]->getRegionSize();
       if (regions_[i]->getRegionAddr() == 0) 
          continue;
 
       prevSecoffset = secoffset;
 
       unsigned region_offset = (unsigned)((char *)(regions_[i]->getPtrToRawData())
-            - linkedFile->mem_image());
+                                          - linkedFile->mem_image());
 
       if (region_offset < (unsigned)prevSecoffset)
       {
          //secoffset += regions_[i]->getDiskSize();
-		 secoffset += regions_[i]->getRegionSize();
+         secoffset += regions_[i]->getRegionSize();
       }
       else 
       {
          secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
          //secoffset += regions_[i]->getDiskSize();
-		 secoffset += regions_[i]->getRegionSize();
+         secoffset += regions_[i]->getRegionSize();
       }
 
       /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
@@ -2321,13 +2349,13 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
       }
 
       if (     (i < (regions_.size()-2)) 
-            && ((end + size) < regions_[i+1]->getRegionAddr())) 
+               && ((end + size) < regions_[i+1]->getRegionAddr())) 
       {
          /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
                  i, i+1);
                  fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
                  end, regions_[i+1]->getSecAddr());
-          */   
+         */   
          newSectionInsertPoint = i+1;
          highWaterMark = end;
          break;
@@ -2336,21 +2364,22 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
    //   return highWaterMark;
 
-   #if defined (os_windows)
+#if defined (os_windows)
 	unsigned pgSize = getObject()-> getSecAlign();
 	//printf("pgSize:0x%x\n", pgSize);
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	while(newaddr < highWaterMark)
-        newaddr += pgSize;
+      newaddr += pgSize;
 	//printf("getfreeoffset:%lu\n", newaddr);
 	return newaddr;
 
 #else
 	unsigned pgSize = P_getpagesize();
-	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
+	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)
 		newaddr += pgSize;
-	 return newaddr;
+
+   return newaddr;
 #endif	
 }
 
@@ -2672,10 +2701,10 @@ void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC 
 				  //  symbol in the regular indexes.
 				  std::vector<Symbol *> possible_syms;
 
-				  if (! st->findSymbolByType(possible_syms, symname, Symbol::ST_FUNCTION, anyName)
+				  if (! st->findSymbol(possible_syms, symname, Symbol::ST_FUNCTION, anyName)
 						  || !possible_syms.size())
 				  {
-					  if (! st->findSymbolByType(possible_syms, symname, Symbol::ST_UNKNOWN, anyName)
+					  if (! st->findSymbol(possible_syms, symname, Symbol::ST_UNKNOWN, anyName)
 							  || !possible_syms.size())
 					  {
 						  //fprintf(stderr, "%s[%d]:  can't find symbol named %s for reloc\n", 

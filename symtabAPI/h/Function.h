@@ -62,7 +62,7 @@ class Function : public Aggregate, public Serializable
  public:
 
     SYMTAB_EXPORT Function();
-    SYMTAB_EXPORT ~Function();
+    SYMTAB_EXPORT virtual ~Function();
 
     /* Symbol management */
     SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
@@ -77,7 +77,10 @@ class Function : public Aggregate, public Serializable
 
       /***** x84_64-Specific Frame Pointer Information *****/
 	  SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
-      SYMTAB_EXPORT std::vector<VariableLocation> *getFramePtr();
+#if 0
+	  SYMTAB_EXPORT bool  addLocation(VariableLocation &loc);
+#endif
+      SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtr();
 
       /***** Local Variable Information *****/
       SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);

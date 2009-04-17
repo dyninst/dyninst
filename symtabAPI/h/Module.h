@@ -92,16 +92,16 @@ class Module : public LookupInterface,
    SYMTAB_EXPORT bool getAllFunctions(std::vector<Function *>&ret);
    SYMTAB_EXPORT bool findFunctionByEntryOffset(Function *&ret, const Offset offset);
    SYMTAB_EXPORT bool findFunctionsByName(std::vector<Function *> &ret, const std::string name,
-                                      NameType nameType = anyName, 
-                                      bool isRegex = false,
-                                      bool checkCase = true);
+                                          NameType nameType = anyName, 
+                                          bool isRegex = false,
+                                          bool checkCase = true);
 
    // Variable based methods
    SYMTAB_EXPORT bool findVariableByOffset(Variable *&ret, const Offset offset);
    SYMTAB_EXPORT bool findVariablesByName(std::vector<Variable *> &ret, const std::string name,
-                                      NameType nameType = anyName, 
-                                      bool isRegex = false, 
-                                      bool checkCase = true);
+                                          NameType nameType = anyName, 
+                                          bool isRegex = false, 
+                                          bool checkCase = true);
    SYMTAB_EXPORT bool getAllVariables(std::vector<Variable *> &ret);
 
 
@@ -135,6 +135,9 @@ class Module : public LookupInterface,
                                                bool isRegex = false, 
                                                bool checkCase = false);
 
+
+   //  Super secret private methods that aren't really private
+   SYMTAB_EXPORT typeCollection *getModuleTypesPrivate();
 
    private:
 

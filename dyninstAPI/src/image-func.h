@@ -55,6 +55,7 @@
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Symbol.h"
 #include "dyninstAPI/src/bitArray.h"
+#include "InstructionCache.h"
 #include <set>
 
 #include "symtabAPI/h/Function.h"
@@ -274,7 +275,10 @@ class image_basicBlock : public codeRange {
     bitArray use; // Registers used by instructions within the block
     bitArray def; // Registers defined by instructions within the block
     bitArray in;  // Summarized input liveness; we calculate output on the fly
-
+ public:
+    static InstructionCache cachedLivenessInfo;
+    
+ private:
     void summarizeBlockLivenessInfo();
     // Returns true if any information changed; false otherwise
     bool updateBlockLivenessInfo();

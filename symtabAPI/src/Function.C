@@ -53,15 +53,15 @@ using namespace Dyninst::SymtabAPI;
 Function::Function(Symbol *sym)
     : Aggregate(sym),
       retType_(NULL), 
-      locs_(NULL), 
-      framePtrRegNum_(-1)
+      framePtrRegNum_(-1),
+	  locs_(NULL)
 {}
 
 Function::Function()
     : Aggregate(),
       retType_(NULL), 
-      locs_(NULL), 
-      framePtrRegNum_(-1)
+      framePtrRegNum_(-1),
+	  locs_(NULL)
 {}
 
 Type * Function::getReturnType() const
@@ -86,11 +86,21 @@ bool Function::setFramePtrRegnum(int regnum)
     return true;
 }
 
-std::vector<Dyninst::SymtabAPI::VariableLocation> *Function::getFramePtr() 
+static std::vector<Dyninst::SymtabAPI::VariableLocation> emptyLocVec;
+std::vector<Dyninst::SymtabAPI::VariableLocation> &Function::getFramePtr() 
 {
-    return locs_;
+	if (locs_) return *locs_;
+	return emptyLocVec;
 }
 
+#if 0
+bool Function::addLocation(VariableLocation &loc)
+{
+	locs_.push_back(loc);
+    return true;
+}
+#endif
+#if 1 
 bool Function::setFramePtr(vector<VariableLocation> *locs) 
 {
     if (locs_) 
@@ -99,6 +109,7 @@ bool Function::setFramePtr(vector<VariableLocation> *locs)
     locs_ = locs;
     return true;
 }
+#endif
 
 
 bool Function::findLocalVariable(std::vector<localVar *> &vars, std::string name)
@@ -243,7 +254,9 @@ void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 		ifxml_start_element(sb, tag);
 		gtranslate(sb, t_id, "typeID");
 		gtranslate(sb, framePtrRegNum_, "framePointerRegister");
-		//gtranslate(sb, locs_, "framePointerLocationList");
+#if 0
+		gtranslate(sb, locs_, "framePointerLocationList");
+#endif
 		Aggregate::serialize_aggregate(sb);
 		ifxml_end_element(sb, tag);
 		if (sb->isInput())

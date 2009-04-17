@@ -49,6 +49,8 @@
 #include <string>
 #include "dyninstAPI/src/os.h"
 
+class Frame;
+
 class SignalGenerator : public SignalGeneratorCommon
 {
   friend class SignalHandler;
@@ -92,6 +94,7 @@ class SignalGenerator : public SignalGeneratorCommon
   bool decodeSigTrap(EventRecord &ev);
   bool decodeSigStopNInt(EventRecord &ev);
   bool decodeSigIll(EventRecord &ev);
+  bool isInstTrap(const EventRecord &ev, const Frame &af);
 
   //  decodeSyscall changes the field ev.what from a platform specific
   //  syscall representation, eg, SYS_fork, to a platform indep. one,

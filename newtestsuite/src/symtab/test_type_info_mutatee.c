@@ -39,7 +39,62 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-int test_type_info_mutatee() {
+enum enum1 {
+	ef1_1 = 20, 
+	ef1_2 = 40, 
+	ef1_3 = 60, 
+	ef1_4 = 80
+} e1;
+
+struct mystruct {
+	int elem1;
+	long elem2;
+	char elem3;
+	float elem4;
+} ms;
+
+typedef enum {ef2_1, ef2_2, ef2_3, ef2_4} enum2;
+
+typedef void (*func_ptr_typedef_t)(int);
+
+const char * my_string = "my_string";
+typedef int int_array_t [256];
+int_array_t my_array;
+
+typedef int * my_intptr_t;
+
+typedef int int_alias_t;
+
+union my_union{
+	char *my_str;
+	int my_int;
+} u1;
+
+void my_test_type_info_func(int foo)
+{
+	int rr =0;
+	my_intptr_t ip = &rr;
+	int_alias_t r = fprintf(stderr, "booga booga: %d: %s\n", foo, my_string);
+	if (r)
+	{
+		(*ip) = (int) r;
+		e1 =  ef1_1;
+		u1.my_int = rr;
+		ms.elem1 = rr;
+		my_array[0] = rr;
+	}
+}
+
+void my_test_type_info_func2()
+{
+	void (*myfuncptr)(int) = my_test_type_info_func;
+	(*myfuncptr)(5);
+	func_ptr_typedef_t myfuncptr2 = my_test_type_info_func;
+	(*myfuncptr2)(6);
+}
+
+int test_type_info_mutatee() 
+{
    /*If mutatee should run, things go here.*/
    return 0;
 }

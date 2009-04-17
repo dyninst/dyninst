@@ -67,17 +67,18 @@ static bool sort_by_sym_ptr(const Symbol *a, const Symbol *b) {
     return a < b;
 }
 
-Symbol *Symtab::findSymbolByIndex(unsigned ndx)
+std::vector<Symbol *> *Symtab::findSymbolByOffset(Offset o)
 {
-	Symbol *s = NULL;
-	if (ndx < everyDefinedSymbol.size())
-		s = everyDefinedSymbol[ndx];
-	return s;
+	//Symbol *s = NULL;
+	dyn_hash_map<Offset, std::vector<Symbol *> >::iterator iter;
+	iter = symsByOffset.find(o);
+	if (iter == symsByOffset.end()) return NULL;
+	return &(iter->second);
 }
 
-bool Symtab::findSymbolByType(std::vector<Symbol *> &ret, const std::string name,
-                              Symbol::SymbolType sType, NameType nameType,
-                              bool isRegex, bool checkCase)
+bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string name,
+                        Symbol::SymbolType sType, NameType nameType,
+                        bool isRegex, bool checkCase)
 {
     unsigned old_size = ret.size();
 
@@ -233,7 +234,7 @@ bool sort_by_func_ptr(const Function *a, const Function *b) {
 bool Symtab::findFunctionsByName(std::vector<Function *> &ret, const std::string name,
                                  NameType nameType, bool isRegex, bool checkCase) {
     std::vector<Symbol *> funcSyms;
-    if (!findSymbolByType(funcSyms, name, Symbol::ST_FUNCTION, nameType, isRegex, checkCase))
+    if (!findSymbol(funcSyms, name, Symbol::ST_FUNCTION, nameType, isRegex, checkCase))
         return false;
 
     std::vector<Function *> unsortedFuncs;
@@ -274,7 +275,7 @@ static bool sort_by_var_ptr(const Variable * a, const Variable *b) {
 bool Symtab::findVariablesByName(std::vector<Variable *> &ret, const std::string name,
                                  NameType nameType, bool isRegex, bool checkCase) {
     std::vector<Symbol *> varSyms;
-    if (!findSymbolByType(varSyms, name, Symbol::ST_OBJECT, nameType, isRegex, checkCase))
+    if (!findSymbol(varSyms, name, Symbol::ST_OBJECT, nameType, isRegex, checkCase))
         return false;
 
     std::vector<Variable *> unsortedVars;

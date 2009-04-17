@@ -2746,19 +2746,25 @@ bool process::attach()
 
    startup_printf("[%d]: attaching to representative LWP\n", getPid());
 
-   if( !getRepresentativeLWP()->attach()) {
+   if ( !getRepresentativeLWP()->attach()) 
+   {
       startup_printf("%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
       return false;
    }
 
-   while (lwp_iter.next(index, lwp)) {
+   while (lwp_iter.next(index, lwp)) 
+   {
        startup_printf("[%d]: attaching to LWP %d\n", getPid(), index);
 
-      if (!lwp->attach()) {
+      if (!lwp->attach()) 
+	  {
          deleteLWP(lwp);
+		 fprintf(stderr, "%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
          return false;
       }
    }
+
    // Fork calls attach() but is probably past this; silencing warning
    if (!reachedBootstrapState(attached_bs))
        setBootstrapState(attached_bs);
@@ -2766,7 +2772,12 @@ bool process::attach()
                  FILE__, __LINE__);
    //sh->signalActiveProcess();
    startup_printf("[%d]: setting process flags\n", getPid());
-   return setProcessFlags();
+
+   bool ret =  setProcessFlags();
+   if (!ret)
+	   fprintf(stderr, "%s[%d]:  failed to set process flags\n", FILE__, __LINE__);
+
+   return ret;
 }
 
 
@@ -5512,6 +5523,11 @@ void process::stepi(int lwp) {
    stepi(true, lwp);
 }
 
+#if defined(arch_x86_64)
+//MATT TODO: Temporarily commiting, but should remove
+void print_regs(dyn_lwp *lwp);
+#endif
+
 Address process::stepi(bool verbose, int lwp) {
    /**
     * Safety checking and warning messages
@@ -5581,6 +5597,13 @@ Address process::stepi(bool verbose, int lwp) {
       range->print_range();
    else
       fprintf(stderr, "\n");
+
+#if defined(arch_x86_64)
+   //MATT TODO: Temporarily commiting, but should remove
+   if (getAddressWidth() == 8) {
+      print_regs(lwp_to_step);
+   }
+#endif
    return nexti;
 }
 
@@ -5686,6 +5709,7 @@ void process::debugSuicide() {
    pdvector<Frame> activeFrames;
    getAllActiveFrames(activeFrames);
  
+   last_single_step = 0;
    for (unsigned i=0; i < activeFrames.size(); i++) {
      Address addr = activeFrames[i].getPC();
      codeRange *range = findOrigByAddr(addr);

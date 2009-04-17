@@ -333,10 +333,10 @@ void image::findMain()
     vector < Symbol *>syms;
     if(linkedFile->findRegion(dynamicsec, ".dynamic")==true)
     {
-        if(linkedFile->findSymbolByType(syms,
-                                        "_DYNAMIC",
-                                        Symbol::ST_UNKNOWN,
-                                        mangledName)==false)
+        if(linkedFile->findSymbol(syms,
+                                  "_DYNAMIC",
+                                  Symbol::ST_UNKNOWN,
+                                  mangledName)==false)
         {
 	    Symbol *newSym = new Symbol( "_DYNAMIC", 
 					Symbol::ST_OBJECT, 
@@ -466,7 +466,7 @@ void image::findMain()
        }
        if (!found_main) {
            syms.clear();
-           if(!linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN, mangledName)) {
+           if(!linkedFile->findSymbol(syms,"start",Symbol::ST_UNKNOWN, mangledName)) {
                //use 'start' for mainCRTStartup.
                Symbol *startSym = new Symbol( "start", 
                                               Symbol::ST_FUNCTION,
@@ -479,7 +479,7 @@ void image::findMain()
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
-           if(!linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN, mangledName)) {
+           if(!linkedFile->findSymbol(syms,"winStart",Symbol::ST_UNKNOWN, mangledName)) {
                //make up a func name for the start of the text section
                Symbol *sSym = new Symbol( "winStart", 
                                           Symbol::ST_FUNCTION,
@@ -492,7 +492,7 @@ void image::findMain()
                linkedFile->addSymbol(sSym);
            }
            syms.clear();
-           if(!linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN, mangledName)) {
+           if(!linkedFile->findSymbol(syms,"winFini",Symbol::ST_UNKNOWN, mangledName)) {
                //make up one for the end of the text section
                Symbol *fSym = new Symbol( "winFini", 
                                           Symbol::ST_FUNCTION,
@@ -896,9 +896,6 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
      return NULL;
   }
 
-#if 0
-  image::allImages.push_back(ret);
-#endif
   allImages.push_back(ret);
 
   // define all modules.
@@ -1748,7 +1745,7 @@ bool image::isData(const Address &where)  const{
 
 Symbol *image::symbol_info(const std::string& symbol_name) {
    vector< Symbol *> symbols;
-   if(!(linkedFile->findSymbolByType(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN, mangledName))) 
+   if(!(linkedFile->findSymbol(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN, anyName))) 
        return false;
 
    return symbols[0];
@@ -1759,7 +1756,7 @@ bool image::findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret) 
     unsigned start;
     vector <Symbol *>found;	
     std::string reg = prefix+std::string("*");
-    if(!linkedFile->findSymbolByType(found, reg.c_str(), Symbol::ST_UNKNOWN, false, true))
+    if(!linkedFile->findSymbol(found, reg.c_str(), Symbol::ST_UNKNOWN, anyName, true))
     	return false;
     for(start=0;start< found.size();start++)
 		ret.push_back(found[start]);

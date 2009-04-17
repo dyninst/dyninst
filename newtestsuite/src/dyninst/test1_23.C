@@ -105,7 +105,18 @@ test_results_t test1_23_Mutator::executeTest() {
   if (!var1 || !var2 || !var3 || !var4) {
     logerror("**Failed** test #23 (local variables)\n");
     if (!var1)
+	{
       logerror("  can't find local variable localVariable23_1\n");
+	  BPatch_function *f = point23_1[0]->getCalledFunction();
+	  assert(f);
+	  BPatch_Vector<BPatch_localVar *> *lvars = f->getVars();
+	  assert(lvars);
+	  fprintf(stderr, "%s[%d]:  have vars\n", FILE__, __LINE__);
+	  for (unsigned int i = 0; i < lvars->size(); ++i)
+	  {
+		  fprintf(stderr, "\t%s\n", (*lvars)[i]->getName());
+	  }
+	}
     if (!var2)
       logerror("  can't find local variable test1_23_shadowVariable1\n");
     if (!var3)

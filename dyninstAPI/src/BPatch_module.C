@@ -239,57 +239,85 @@ BPatch_module::~BPatch_module()
 
 bool BPatch_module::parseTypesIfNecessary() 
 {
-   if ( moduleTypes != NULL ) 
-      return false;
+	if ( moduleTypes != NULL ) 
+		return false;
 
-   if (!isValid())
-      return false;
+	if (!isValid())
+		return false;
 
-   bool is64 = (mod->pmod()->imExec()->getAddressWidth() == 8);
+	bool is64 = (mod->pmod()->imExec()->getAddressWidth() == 8);
 
-   if (sizeof(void *) == 8 && !is64) {
-      // Terrible Hack:
-      //   If mutatee and mutator address width is different,
-      //   we need to patch up certain standard types.
-      BPatch_type *typePtr;
+	if (sizeof(void *) == 8 && !is64) 
+	{
+		// Terrible Hack:
+		//   If mutatee and mutator address width is different,
+		//   we need to patch up certain standard types.
+		BPatch_type *typePtr;
 
-      typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-10);
-      typePtr->getSymtabType()->setSize(4);
+		typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-10);
+		typePtr->getSymtabType()->setSize(4);
 
-      typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-19);
-      typePtr->getSymtabType()->setSize(4);
-   }
+		typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-19);
+		typePtr->getSymtabType()->setSize(4);
+	}
 
-   mod->pmod()->mod()->exec()->parseTypesNow();
-   moduleTypes = BPatch_typeCollection::getModTypeCollection(this);
+	mod->pmod()->mod()->exec()->parseTypesNow();
+	moduleTypes = BPatch_typeCollection::getModTypeCollection(this);
 
-   vector<Type *> *modtypes = mod->pmod()->mod()->getAllTypes();
-   if (!modtypes)
-      return false;
+	vector<Type *> *modtypes = mod->pmod()->mod()->getAllTypes();
 
-   for (unsigned i=0; i<modtypes->size(); i++) {
-      Type *typ = (*modtypes)[i];
-      BPatch_type *type = new BPatch_type(typ);
-      moduleTypes->addType(type);
-   }
+	if (!modtypes)
+		return false;
 
-   vector<pair<string, Type *> > *globalVars = mod->pmod()->mod()->getAllGlobalVars();
-   if (!globalVars)
-      return false;
+	for (unsigned i=0; i<modtypes->size(); i++) 
+	{
+		Type *typ = (*modtypes)[i];
+		BPatch_type *type = new BPatch_type(typ);
+		moduleTypes->addType(type);
+	}
 
-   for (unsigned i=0; i<globalVars->size(); i++){
-      if (!(*globalVars)[i].second->getUpPtr())
-         new BPatch_type((*globalVars)[i].second);
-      moduleTypes->addGlobalVariable((*globalVars)[i].first.c_str(), 
-                                     (BPatch_type *)(*globalVars)[i].second->getUpPtr());
-   }
-   return true; 
+	vector<pair<string, Type *> > *globalVars = mod->pmod()->mod()->getAllGlobalVars();
+
+	if (!globalVars)
+		return false;
+
+	for (unsigned i=0; i<globalVars->size(); i++)
+	{
+		BPatch_type *var_type = NULL;
+		extern AnnotationClass<BPatch_type> TypeUpPtrAnno;
+
+		Type *ll_var_type = (*globalVars)[i].second;
+		std::string &var_name = (*globalVars)[i].first;
+
+		assert(ll_var_type);
+
+		if (!ll_var_type->getAnnotation(var_type, TypeUpPtrAnno))
+		{
+			var_type = new BPatch_type((*globalVars)[i].second);
+		}
+		else
+		{
+			assert(var_type);
+		}
+
+		moduleTypes->addGlobalVariable(var_name.c_str(), var_type);
+#if 0
+		if (!(*globalVars)[i].second->getUpPtr())
+		{
+			new BPatch_type((*globalVars)[i].second);
+		}
+
+		moduleTypes->addGlobalVariable((*globalVars)[i].first.c_str(), 
+				(BPatch_type *)(*globalVars)[i].second->getUpPtr());
+#endif
+	}
+	return true; 
 }
 
 BPatch_typeCollection *BPatch_module::getModuleTypesInt() 
 {
-   parseTypesIfNecessary();
-   return moduleTypes;
+	parseTypesIfNecessary();
+	return moduleTypes;
 }
 
 /*
@@ -299,9 +327,9 @@ BPatch_typeCollection *BPatch_module::getModuleTypesInt()
  * upon failure.
  */
 BPatch_Vector<BPatch_function *> *
-BPatch_module::getProceduresInt(bool incUninstrumentable) {
-   if (!isValid())
-      return NULL;
+	BPatch_module::getProceduresInt(bool incUninstrumentable) {
+		if (!isValid())
+			return NULL;
 
    BPatch_Vector<BPatch_function*> *funcs = new BPatch_Vector<BPatch_function*>();
    bool result = getProceduresInt(*funcs, incUninstrumentable);

@@ -157,6 +157,8 @@ bool SignalHandler::handleSingleStep(EventRecord &ev, bool &continueHint)
    }
    ev.lwp->setSingleStepping(false);
    sg->signalEvent(evtDebugStep);
+   Frame f = ev.lwp->getActiveFrame();
+   ev.proc->last_single_step = f.getPC();
    continueHint = false;
    return true;
 }
@@ -663,7 +665,14 @@ bool SignalHandler::handleEvent(EventRecord &ev)
 		       "trap to 0x%lx\n", FILE__, __LINE__, ev.address, 
 		       target_addr);
          ev.lwp->changePC(target_addr, NULL);
-         continueHint = true;
+         if (ev.lwp->isSingleStepping()) {
+            fprintf(stderr, "Trap mapping 0x%lx -> 0x%lx\n",
+                    ev.address, target_addr);
+            handleSingleStep(ev, continueHint);
+         }
+         else {
+            continueHint = true;
+         }
          ret = true;
          break;
      }
@@ -731,7 +740,7 @@ bool SignalHandler::handleEvent(EventRecord &ev)
          break;
      case evtDebugStep:
          handleSingleStep(ev, continueHint);
-         ret = 1;
+         ret = true;
          break;
      case evtUndefined:
         // Do nothing

@@ -1184,7 +1184,8 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    {
       std::vector<SymtabAPI::Symbol *> syms;
       result = vsyscall->findSymbolByType(syms, vsys_sigreturns[i], 
-                                          SymtabAPI::Symbol::ST_FUNCTION);
+                                          SymtabAPI::Symbol::ST_FUNCTION,
+                                          false, false, false);
       if (!result || !syms.size()) {
          continue;
       }

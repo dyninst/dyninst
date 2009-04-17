@@ -4345,12 +4345,12 @@ void Object::parseStabTypes(Symtab *obj)
 		 if (!mod) {
 		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 		 }
-		 else if (!mod->getModuleTypes()) 
+		 else if (!mod->getModuleTypesPrivate()) 
 		   {
 		     fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 		   }
 		 else 
-		   mod->getModuleTypes()->clearNumberedTypes();
+		   mod->getModuleTypesPrivate()->clearNumberedTypes();
 	       } 
 	       else {
 		 //parseActive = false;
@@ -4467,11 +4467,11 @@ void Object::parseStabTypes(Symtab *obj)
                     if (!commonBlockVar) {
                         // //bperr("unable to find variable %s\n", commonBlockName);
                     } else {
-                        commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(*commonBlockName));
+                        commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypesPrivate()->findVariableType(*commonBlockName));
                         if (commonBlock == NULL) {
                             // its still the null type, create a new one for it
                             commonBlock = new typeCommon(*commonBlockName);
-                            mod->getModuleTypes()->addGlobalVariable(*commonBlockName, commonBlock);
+                            mod->getModuleTypesPrivate()->addGlobalVariable(*commonBlockName, commonBlock);
                         }
                         // reset field list
                         commonBlock->beginCommonBlock();

@@ -573,6 +573,11 @@ void registerSpace::initialize()
     
     if (inited) return;
     inited = true;
+    if(xmmCapable())
+    {
+      hasXMM = true;
+    }
+    
 
     initialize32();
 #if defined(cap_32_64)
