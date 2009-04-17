@@ -94,11 +94,13 @@ static BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
   BPatch_Vector<BPatch_point *> *pts = f->findPoint(loc);
 
   if (!pts) {
+	  logerror("%s[%d]:  failed to find point\n", FILE__, __LINE__);
     FAIL_MES(TESTNAME, TESTDESC);
     return NULL;
   }
 
   if (pts->size() != 1) {
+	  logerror("%s[%d]:  failed to find point: found too many\n", FILE__, __LINE__);
       FAIL_MES(TESTNAME, TESTDESC);
       return NULL;
   }
@@ -161,6 +163,7 @@ bool test_callback_2_Mutator::setVar(const char *vname, void *addr, int testno,
    return false;
 }
 
+std::vector<std::string> elog;
 static void test7cb(BPatch_process * /* proc*/, void *buf, unsigned int bufsize)
 {
   static int callback_counter = 0;
@@ -182,6 +185,13 @@ static void test7cb(BPatch_process * /* proc*/, void *buf, unsigned int bufsize)
   if (debugPrint)
     dprintf("%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
 
+  switch (what) {
+	  case func_entry: elog.push_back(std::string("func_entry")); break;
+	  case func_callsite: elog.push_back(std::string("func_callsite")); break;
+	  case func_exit: elog.push_back(std::string("func_exit")); break;
+	  default:
+		  elog.push_back(std::string("unknown_event")); break;
+  }
 
   if (callback_counter == 0) {
     //  we expect the entry point to be reported first
@@ -215,6 +225,13 @@ static void test7cb(BPatch_process * /* proc*/, void *buf, unsigned int bufsize)
     test7done = true;
   }
   callback_counter++;
+}
+
+void log_res()
+{
+	logerror("%s[%d]:  Here's what happened: \n", FILE__, __LINE__);
+	for (unsigned int i = 0; i < elog.size(); ++i)
+		logerror("\t %s \n", elog[i].c_str());
 }
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
@@ -301,13 +318,24 @@ test_results_t test_callback_2_Mutator::executeTest()
 	BPatchSnippetHandle *exitHandle = at(exit, reportExit, TESTNO, TESTNAME);
 	BPatchSnippetHandle *callsiteHandle = at(callsite, reportCallsite, TESTNO, TESTNAME);
 
+	//  "at" may set test7err
+	if ((test7err)
+			|| ( (NULL == entryHandle) || (NULL == exitHandle) || (NULL == callsiteHandle)) )
+	{
+		logerror("%s[%d]:  instrumentation failed\n");
+		logerror("%s[%d]:  entryHandle = %p\n", entryHandle);
+		logerror("%s[%d]:  exitHandle = %p\n", exitHandle);
+		logerror("%s[%d]:  callsiteHandle = %p\n", callsiteHandle);
+		return FAILED;
+	}
 	if (debugPrint) 
 	{
 		int one = 1;
 		char *varName = "libraryDebug";
 		if (setVar(varName, (void *) &one, TESTNO, TESTNAME)) 
 		{
-			logerror("%s[%d]:  Error setting variable '%s' in mutatee\n", varName);
+			logerror("%s[%d]:  Error setting variable '%s' in mutatee\n", 
+					FILE__, __LINE__, varName);
 			appThread->getProcess()->terminateExecution();
 			return FAILED;
 		}
@@ -331,6 +359,25 @@ test_results_t test_callback_2_Mutator::executeTest()
 		sleep_ms(SLEEP_INTERVAL/*ms*/);
 		timeout += SLEEP_INTERVAL;
 		bpatch->pollForStatusChange();
+
+		if (appThread->getProcess()->isTerminated())
+		{
+			BPatch_exitType et = appThread->getProcess()->terminationStatus();
+			if (et == ExitedNormally)
+			{
+				int ecode = appThread->getProcess()->getExitCode();
+				logerror("%s[%d]:  normal exit with code %d\n",
+						__FILE__, __LINE__, ecode);
+			}
+			if (et == ExitedViaSignal)
+			{
+				int ecode = appThread->getProcess()->getExitSignal();
+				logerror("%s[%d]:  caught signal %d\n",
+						__FILE__, __LINE__, ecode);
+			}
+			log_res();
+			return FAILED;
+		}
 	}
 
 	dprintf("%s[%d]:  after wait loop:  test7err = %s, test7done = %s, timeout = %d\n", 
@@ -344,7 +391,12 @@ test_results_t test_callback_2_Mutator::executeTest()
 		test7err = true;
 	}
 
-	appThread->getProcess()->stopExecution();
+	if (!appThread->getProcess()->stopExecution())
+	{
+		logerror("%s[%d]:  stopExecution failed\n",
+				__FILE__, __LINE__);
+
+	}
 
 	dprintf("%s[%d]:  stopped process...\n", 
 			__FILE__, __LINE__ );
@@ -355,6 +407,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		logerror("%s[%d]:  failed to remove callback\n",
 				__FILE__, __LINE__);
 		appThread->getProcess()->terminateExecution();
+		log_res();
 		return FAILED;
 	}
 
@@ -362,8 +415,9 @@ test_results_t test_callback_2_Mutator::executeTest()
 			__FILE__, __LINE__ );
 	if (!appThread->getProcess()->terminateExecution())
 	{
-		fprintf(stderr, "%s[%d]:  terminateExecution failed\n", FILE__, __LINE__);
-		return FAILED;
+		//  don't care
+		//fprintf(stderr, "%s[%d]:  terminateExecution failed\n", FILE__, __LINE__);
+		//return FAILED;
 	}
 
 #if 0
@@ -397,6 +451,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		return PASSED;
 	}
 
+	log_res();
 	FAIL_MES(TESTNAME, TESTDESC);
 	return FAILED;
 }

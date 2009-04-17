@@ -372,7 +372,7 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 }
 
 void Aggregate::rebuild_symbol_vector(SerializerBase *sb,  
-		std::vector<unsigned> &sym_indexes) THROW_SPEC (SerializerError)
+		std::vector<Offset> *sym_offsets) THROW_SPEC (SerializerError)
 {
 	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
@@ -390,26 +390,41 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 		SER_ERR("FIXME");
 	}
 
-	if (!sym_indexes.size())
+	if (!sym_offsets)
 	{
 		//  can't have any aggregates w/out symbols
 		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
-	symbols_.resize(sym_indexes.size());
-
-	for (unsigned int i = 0; i < sym_indexes.size(); ++i)
+	if (!sym_offsets->size())
 	{
-		Symbol *s = st->findSymbolByIndex(sym_indexes[i]);
+		//  can't have any aggregates w/out symbols
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
 
-		if (!s)
+	symbols_.resize(sym_offsets->size());
+
+	for (unsigned int i = 0; i < sym_offsets->size(); ++i)
+	{
+		std::vector<Symbol *> *syms = st->findSymbolByOffset((*sym_offsets)[i]);
+
+		if (!syms)
 		{
 			//  Should throw here, but for now let's just scream
 			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		}
+		else
+		{
+			if (syms->size() > 1)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			}
 
-		symbols_[i] = s;
+			symbols_[i] = (*syms)[0];
+		}
+
 	}
 }
 
@@ -452,15 +467,15 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &
 void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW_SPEC (SerializerError)
 {
 	std::string modname = module_ ? module_->fullName() : std::string("");
-	std::vector<unsigned> sym_indexes;
-	sym_indexes.resize(symbols_.size());
+	std::vector<Offset> sym_offsets;
+	sym_offsets.resize(symbols_.size());
 
 	//fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
 
 	for (unsigned int i = 0; i < symbols_.size(); ++i)
 	{
 		assert(symbols_[i]);
-		sym_indexes[i] = symbols_[i]->index_;
+		sym_offsets[i] = symbols_[i]->offset_;
 	}
 
 	try
@@ -472,13 +487,13 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 		gtranslate(sb, mangledNames_, "mangledNameList");
 		gtranslate(sb, prettyNames_, "prettyNameList");
 		gtranslate(sb, typedNames_, "typedNameList");
-		gtranslate(sb, sym_indexes, "symbolIndexList");
+		gtranslate(sb, sym_offsets, "symbolOffsetList");
 		ifxml_end_element(sb, tag);
 
 		restore_module_by_name(sb, modname);
 
 		if (sb->isBin() && sb->isInput())
-			rebuild_symbol_vector(sb, sym_indexes);
+			rebuild_symbol_vector(sb, &sym_offsets);
 	}
 	SER_CATCH(tag);
 
