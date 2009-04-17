@@ -119,7 +119,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
          Symbol::SymbolType sType);
 
-   Symbol *findSymbolByIndex(unsigned);
+   std::vector<Symbol *> *findSymbolByOffset(Offset);
 
    // Return all undefined symbols in the binary. Currently used for finding
    // the .o's in a static archive that have definitions of these symbols

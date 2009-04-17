@@ -71,6 +71,16 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	std::vector<SymtabAPI::Variable *> variables;
 	std::vector<Symbol *> symbols;
 
+	typeEnum *type_enum;
+	typePointer *type_pointer;
+	typeTypedef *type_typedef;
+	typeStruct *type_struct;
+	typeUnion *type_union;
+	typeArray *type_array;
+	typeRef *type_ref;
+	typeCommon *type_common;
+	typeFunction *type_function;
+
 	void parse() THROW_SPEC (LocErr);
 
 	static void location_list_report(const std::vector<VariableLocation> *l1, 
@@ -196,6 +206,53 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		fprintf(stderr, "%s[%d]:  Relcoation\n", FILE__, __LINE__);
 		cerr << "     " << r1 << endl;
 		cerr << "     " << r2 << endl;
+	}
+
+	static void type_report( const Type & ct1, const Type &ct2)
+	{
+		Type &t1 = const_cast<Type &>(ct1);
+		Type &t2 = const_cast<Type &>(ct2);
+		fprintf(stderr, "%s[%d]:  Type report:\n", FILE__, __LINE__);
+		fprintf(stderr, "\t id: %d -- %d\n", t1.getID(), t2.getID());
+		fprintf(stderr, "\t size: %d -- %d\n", t1.getSize(), t2.getSize());
+		fprintf(stderr, "\t name: %s -- %s\n", t1.getName().c_str(), t2.getName().c_str());
+		fprintf(stderr, "\t dataclass: %d -- %d\n", (int)t1.getDataClass(), (int)t2.getDataClass());
+	}
+
+	static void type_enum_report( const typeEnum & ct1, const typeEnum &ct2)
+	{
+		type_report(ct1, ct2);
+
+		typeEnum &t1 = const_cast<typeEnum &>(ct1);
+		typeEnum &t2 = const_cast<typeEnum &>(ct2);
+
+		std::vector<std::pair<std::string, int> > &consts1 = t1.getConstants();
+		std::vector<std::pair<std::string, int> > &consts2 = t2.getConstants();
+		int max_len = consts1.size() > consts2.size() ? consts1.size() : consts2.size();
+
+		for (unsigned int i = 0; i < max_len; ++i)
+		{
+			if (i < consts1.size())
+			{
+				std::pair<std::string, int>  &c = consts1[i];
+				fprintf(stderr, "\t const %d: %s=%d:", i, c.first.c_str(), c.second);
+			}
+			else
+			{
+				fprintf(stderr, "\t const %d: no-entry:", i);
+			}
+
+			if (i < consts2.size())
+			{
+				std::pair<std::string, int>  &c = consts2[i];
+				fprintf(stderr, "\t:%s=%d", c.first.c_str(), c.second);
+			}
+			else
+			{
+				fprintf(stderr, "\t:no-entry", i);
+			}
+		}
+
 	}
 
 	static void region_report(const Region &r1, const Region &r2)
@@ -481,6 +538,101 @@ void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 	{
 		EFAIL("builtintypes");
 	}
+
+	Type *t = NULL;
+
+	std::string tname = "sf_enum1";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (type_enum = t->getEnumType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	tname = "sf_my_union";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (type_union = t->getUnionType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	tname = "sf_mystruct";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (type_struct = t->getStructType()))
+	{
+		EFAIL(tname.c_str());
+	}
+	
+	tname = "sf_int_alias_t";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (type_typedef = t->getTypedefType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	typeTypedef *tt  = NULL;
+
+	tname = "sf_int_array_t";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (tt = t->getTypedefType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (t = tt->getConstituentType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (type_array = t->getArrayType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	tname = "sf_my_intptr_t";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (tt = t->getTypedefType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (t = tt->getConstituentType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	if (NULL == (type_pointer = t->getPointerType()))
+	{
+		EFAIL(tname.c_str());
+	}
+
+	//  don't handle c++ or fortran yet...
+	type_ref = NULL;
+	type_common = NULL;
+	type_function = NULL;
 }
 
 test_results_t test_symtab_ser_funcs_Mutator::executeTest()
@@ -507,6 +659,16 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 		serialize_test(symtab, relocations[0], &relocation_report);
 #endif
 		serialize_test(symtab, *regions[0], &region_report);
+		serialize_test(symtab, *type_enum, &type_enum_report);
+#if 0
+	typeEnum *type_enum;
+	typePointer *type_pointer;
+	typeTypedef *type_typedef;
+	typeStruct *type_struct;
+	typeUnion *type_union;
+	typeArray *type_array;
+#endif
+
 #if 0
 		serialize_test_vector(symtab, symbols);
 		serialize_test_vector(symtab, functions);

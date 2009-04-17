@@ -67,12 +67,13 @@ static bool sort_by_sym_ptr(const Symbol *a, const Symbol *b) {
     return a < b;
 }
 
-Symbol *Symtab::findSymbolByIndex(unsigned ndx)
+std::vector<Symbol *> *Symtab::findSymbolByOffset(Offset o)
 {
-	Symbol *s = NULL;
-	if (ndx < everyDefinedSymbol.size())
-		s = everyDefinedSymbol[ndx];
-	return s;
+	//Symbol *s = NULL;
+	dyn_hash_map<Offset, std::vector<Symbol *> >::iterator iter;
+	iter = symsByOffset.find(o);
+	if (iter == symsByOffset.end()) return NULL;
+	return &(iter->second);
 }
 
 bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string name,

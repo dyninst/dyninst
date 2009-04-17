@@ -2079,7 +2079,11 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
    if (!_mods.size())
       return false;
 
-   type = _mods[0]->getModuleTypesPrivate()->findType(name);
+   for (unsigned int i = 0; i < _mods.size(); ++i)
+   {
+	   type = _mods[i]->getModuleTypesPrivate()->findType(name);
+	   if (type) return true;
+   }
 
    if (type == NULL)
       return false;
@@ -2102,10 +2106,33 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
    }
 
    if (t == NULL)
-      return NULL;
+   {
+	   if (builtInTypes)
+	   {
+		   t = builtInTypes->findBuiltInType(type_id);
+		   if (t) return t;
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  no built in types!\n", FILE__, __LINE__);
+	   }
+
+	   if (stdTypes)
+	   {
+		   t = stdTypes->findType(type_id);
+		   if (t) return t;
+	   }
+	   else
+	   {
+		   fprintf(stderr, "%s[%d]:  no std types!\n", FILE__, __LINE__);
+	   }
+
+	   return NULL;
+   }
 
    return t;	
 }
+
 SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
 {
    parseTypesNow();

@@ -425,6 +425,7 @@ class registerSpace {
     const bitArray &getSyscallReadRegisters() const;
     const bitArray &getSyscallWrittenRegisters() const;
 
+    const bitArray &getAllRegs() const;
  private:
     static bitArray callRead_;
     static bitArray callRead64_;
@@ -441,6 +442,8 @@ class registerSpace {
     static bitArray syscallWritten_;
     static bitArray syscallWritten64_;
 
+    static bitArray allRegs_;
+    static bitArray allRegs64_;
 
 #endif
 

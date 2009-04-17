@@ -102,6 +102,24 @@ void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 			   restore_type_by_id(sb, type_, t_id);
 		   }
 		} 
+		else
+		{
+			ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+			if (!ssb)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			Symtab *st = ssb->getScope();
+
+			//  remove this check
+			if ((t_id != 0xdeadbeef) && !st->findType(t_id))
+			{
+				fprintf(stderr, "%s[%d]:  ERROR:  serialize bad type %s\n", FILE__, __LINE__, type_->getName().c_str());
+			}
+		}
 	}
 	SER_CATCH(tag);
 }

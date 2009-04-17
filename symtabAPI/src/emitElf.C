@@ -154,14 +154,11 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, voi
    setVersion();
 }
 
-bool emitElf::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs, 
-      unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
+bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
 {
    Elf32_Sym *sym = new Elf32_Sym();
-   sym->st_name = symbolNamesLength;
+   sym->st_name = strIndex;
 
-   symbolStrs.push_back(symbol->getName());
-   symbolNamesLength += symbol->getName().length()+1;
    sym->st_value = symbol->getAddr();
    sym->st_size = symbol->getSize();
    sym->st_other = ELF32_ST_VISIBILITY(elfSymVisibility(symbol->getVisibility()));
@@ -433,7 +430,6 @@ bool emitElf::driver(Symtab *obj, string fName){
     Elf_Scn *scn = NULL, *newscn;
     Elf_Data *newdata = NULL, *olddata = NULL;
     Elf32_Shdr *newshdr, *shdr = NULL;
-
     dyn_hash_map<unsigned, unsigned> SecLinkMapping;
     dyn_hash_map<std::string, unsigned> newNameIndexMapping;
     dyn_hash_map<unsigned, std::string> oldIndexNameMapping;
@@ -1342,15 +1338,22 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     std::vector<Elf32_Sym *> dynsymbols;
 
     unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
+    dyn_hash_map<string, unsigned> dynSymNameMapping;
     std::vector<std::string> symbolStrs, dynsymbolStrs;
     std::vector<Symbol *> dynsymVector;
     std::vector<Symbol *> allDynSymbols;
     std::vector<Symbol *> allSymSymbols;
 
+    Region *sec;
+    if(obj->findRegion(sec, ".dynstr")) {
+        olddynStrData = (char *)(sec->getPtrToRawData());
+	olddynStrSize = sec->getRegionSize();
+	dynsymbolNamesLength = olddynStrSize+1;
+    }
+
     // recreate a "dummy symbol"
     Elf32_Sym *sym = new Elf32_Sym();
     symbolStrs.push_back("");
-    dynsymbolStrs.push_back("");
     sym->st_name = 0;
     sym->st_value = 0;
     sym->st_size = 0;
@@ -1364,10 +1367,12 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     versionSymTable.push_back(0);
 
     for(i=0; i<allSymbols.size();i++) {
-        if(allSymbols[i]->isInSymtab())
+        if(allSymbols[i]->isInSymtab()) {
         	allSymSymbols.push_back(allSymbols[i]);
-	if(allSymbols[i]->isInDynSymtab()) 
+	}	
+	if(allSymbols[i]->isInDynSymtab()) {
         	allDynSymbols.push_back(allSymbols[i]);
+	}	
     }
  
     int max_index = -1;
@@ -1376,19 +1381,55 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
 		max_index = allDynSymbols[i]->getIndex();
     }
     for(i=0; i<allDynSymbols.size(); i++) {
-        	if (allDynSymbols[i]->getIndex() == -1) {
+        if (allDynSymbols[i]->getIndex() == -1) {
 			max_index++;
 			allDynSymbols[i]->setIndex(max_index);
+	}
+
+  	if (allDynSymbols[i]->getStrIndex() == -1) {
+		// New Symbol - append to the list of strings
+		dynsymbolStrs.push_back( allDynSymbols[i]->getName().c_str());
+		allDynSymbols[i]->setStrIndex(dynsymbolNamesLength);
+		dynsymbolNamesLength += allDynSymbols[i]->getName().length() + 1;
+	} 
+
+   }	
+   
+   max_index = -1;
+   for(i = 0; i < allSymSymbols.size();i++) {
+        if (max_index < allSymSymbols[i]->getIndex()) 
+		max_index = allSymSymbols[i]->getIndex();
+   }
+
+   for(i=0; i<allSymSymbols.size(); i++) {
+       	if (allSymSymbols[i]->getIndex() == -1) {
+			max_index++;
+			allSymSymbols[i]->setIndex(max_index);
 		}
    }	
-  // reorder allSymbols based on index
 
     std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
+    std::sort(allSymSymbols.begin(), allSymSymbols.end(), sortByIndex());
 
-    for(i=0; i<allSymSymbols.size();i++) 
-            createElfSymbol(allSymSymbols[i], symbolStrs, symbolNamesLength, symbols);
+    /* We regenerate symtab and symstr section. We do not 
+       maintain the order of the strings and symbols as it was in
+       the original binary. Hence, the strings in symstr have new order and 
+       new index.
+       On the other hand, we do not regenerate dynsym and dynstr section. We copy over
+       old symbols and string in the original order as it was in the 
+       original binary. We preserve sh_index of Elf symbols (from Symbol's strIndex). We append 
+       new symbols and string that we create for the new binary (targ*, versions etc).
+     */  
+
+    for(i=0; i<allSymSymbols.size();i++) {
+	    //allSymSymbols[i]->setStrIndex(symbolNamesLength);
+            createElfSymbol(allSymSymbols[i], symbolNamesLength, symbols);
+	    symbolStrs.push_back(allSymSymbols[i]->getName());
+   	    symbolNamesLength += allSymSymbols[i]->getName().length()+1;
+    }
     for(i=0; i<allDynSymbols.size();i++) {
-            createElfSymbol(allDynSymbols[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
+            createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
+            dynSymNameMapping[allDynSymbols[i]->getName().c_str()] = allDynSymbols[i]->getIndex();
             dynsymVector.push_back(allDynSymbols[i]);
     }
 
@@ -1442,10 +1483,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     unsigned verneedSecSize = 0, verdefSecSize = 0;
                
     createSymbolVersions(obj, symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
-    Region *sec;
-    if(obj->findRegion(sec, ".dynstr"))
-        olddynStrData = (char *)sec->getPtrToRawData();
-
     // build new .hash section
     Elf32_Word *hashsecData;
     unsigned hashsecSize = 0;
@@ -1464,19 +1501,21 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     // relocations)
     if(!dynsymbolNamesLength)
         return true; 
-    --dynsymbolNamesLength;
-    char *dynstr = (char *)malloc(dynsymbolNamesLength+1);
-    cur=0;
-    dyn_hash_map<string, unsigned> dynSymNameMapping;
+
+    char *dynstr = (char *)malloc(dynsymbolNamesLength);
+    memcpy((void *)dynstr, (void *)olddynStrData, olddynStrSize);
+    cur = olddynStrSize+1;
     for(i=0;i<dynsymbolStrs.size();i++)
     {
         strcpy(&dynstr[cur],dynsymbolStrs[i].c_str());
         cur+=dynsymbolStrs[i].length()+1;
-        dynSymNameMapping[dynsymbolStrs[i]] = i;
+	if ( dynSymNameMapping.find(dynsymbolStrs[i]) == dynSymNameMapping.end()) {
+	        dynSymNameMapping[dynsymbolStrs[i]] = allDynSymbols.size()+i;
+	}
     }
-    
+
     obj->addRegion(0, dynsyms, dynsymbols.size()*sizeof(Elf32_Sym), ".dynsym", Region::RT_SYMTAB, true);
-    obj->addRegion(0, dynstr, dynsymbolNamesLength+1 , ".dynstr", Region::RT_STRTAB, true);
+    obj->addRegion(0, dynstr, dynsymbolNamesLength , ".dynstr", Region::RT_STRTAB, true);
 
 #if !defined(os_solaris)
     //add .gnu.version, .gnu.version_r, and .gnu.version_d sections
@@ -1777,7 +1816,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
         switch(dyns[i].d_tag){
             case DT_NULL:
 	    	break;
-			case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
+ 	    case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
                 dynsecData[curpos].d_tag = dyns[i].d_tag;
                 dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
                 dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);

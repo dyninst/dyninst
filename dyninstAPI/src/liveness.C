@@ -435,6 +435,15 @@ void instPoint::calcLiveness() {
 
    unsigned width = func()->ifunc()->img()->getObject()->getAddressWidth();
 
+   if (func()->ifunc()->instLevel() == HAS_BR_INDIR)
+   {
+     //Unresolved indirect jumps could go anywhere.  
+     //We'll be the most conservative possible in these cases, since
+     //we're missing control flow.
+     postLiveRegisters_ = (registerSpace::getRegisterSpace(width)->getAllRegs());
+     return;
+   }
+
    // We know: 
    //    liveness in at the block level:
    const bitArray &block_in = block()->llb()->getLivenessIn();

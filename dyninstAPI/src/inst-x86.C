@@ -241,6 +241,8 @@ void registerSpace::initialize32() {
     // And assume a syscall reads or writes _everything_
     syscallRead_ = getBitArray().set();
     syscallWritten_ = syscallRead_;
+
+    allRegs_ = getBitArray().set();
 #endif
 }
 
@@ -559,6 +561,7 @@ void registerSpace::initialize64() {
     syscallRead64_ = getBitArray().set();
     syscallWritten64_ = syscallRead_;
 
+    allRegs64_ = getBitArray().set();
 #endif
 
 }

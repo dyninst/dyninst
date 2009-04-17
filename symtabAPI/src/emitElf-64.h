@@ -64,6 +64,7 @@ class emitElf64{
     Elf_Data *symStrData;
     Elf_Data *dynStrData;
     char *olddynStrData;
+    unsigned olddynStrSize;
     Elf_Data *symTabData;
     Elf_Data *hashData;
     Elf_Data *dynsymData;
@@ -112,7 +113,7 @@ class emitElf64{
 
     void (*err_func_)(const char*);
 
-    bool createElfSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols, bool dynSymFlag = false);
+    bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_Sym *> &symbols, bool dynSymFlag = false);
     void findSegmentEnds();
     void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
     void fixPhdrs(unsigned &, unsigned &);
