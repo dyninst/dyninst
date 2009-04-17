@@ -1343,7 +1343,6 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
         return true; 
     char *dynstr = (char *)malloc(dynsymbolNamesLength+1);
     cur=0;
-    dyn_hash_map<string, unsigned> dynSymNameMapping;
     for(i=0;i<dynsymbolStrs.size();i++)
     {
         strcpy(&dynstr[cur],dynsymbolStrs[i].c_str());
