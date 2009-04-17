@@ -280,13 +280,13 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
       goto done;
    }
 
-   result = symtab->getNearestFunction(addr - lib.second, func);
+   result = symtab->getContainingFunction(addr - lib.second, func);
    if (!result || !func) {
       sw_printf("[%s:%u] - Error.  Address %lx wasn't part of a function\n",
                 __FILE__, __LINE__, addr);
       goto done;
    }
-   func_addr = func->getAddress() + lib.second;
+   func_addr = func->getOffset() + lib.second;
    
    result = proc->readMem(mem, func_addr, FUNCTION_PROLOG_TOCHECK);
    if (!result) {

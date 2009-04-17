@@ -285,21 +285,21 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
       goto symtab_fail;
    }
 
-   result = symtab->getNearestFunction(func_entry_offset, func_symbol);
+   result = symtab->getContainingFunction(func_entry_offset, func_symbol);
    if (!result || !func_symbol) {
       sw_printf("[%s:%u] - No functions begin at %lx\n", 
                 __FILE__, __LINE__, func_entry_offset);
       goto symtab_fail;
    }
 
-   result = symtab->getNearestFunction(pc_offset, pc_symbol);
+   result = symtab->getContainingFunction(pc_offset, pc_symbol);
    if (!result || !pc_symbol) {
       sw_printf("[%s:%u] - No functions begin at %lx\n", 
                 __FILE__, __LINE__, func_entry_offset);
       goto symtab_fail;
    }
 
-   return (func_symbol->getAddress() == pc_symbol->getAddress());
+   return (func_symbol->getOffset() == pc_symbol->getOffset());
  symtab_fail:   
 #endif
    //We don't have much to work with.  This is all heuristics anyway, so assume

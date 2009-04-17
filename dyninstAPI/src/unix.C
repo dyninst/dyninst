@@ -680,7 +680,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
                 FILE__, __LINE__, af.getPC());
 
   // (1)  Is this trap due to an instPoint ??
-  if (proc->trapMapping.definesTrapMapping(af.getPC())) {
+  if (isInstTrap(ev, af)) {
      ev.type = evtInstPointTrap;
      ev.address = af.getPC();
      return true;
@@ -1597,4 +1597,21 @@ bool process::startDebugger()
    fprintf(stderr, "Don't know how to start debugger %s\n", 
            dyn_debug_crash_debugger);
    return false;
+}
+
+bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
+{
+   bool trap_insn = proc->trapMapping.definesTrapMapping(af.getPC());
+   if (!ev.lwp->isSingleStepping() || !trap_insn) {
+      //Common case
+      return trap_insn;
+   }
+
+   /**
+    * We want to distinguish between single step traps and control 
+    * transfer traps.  The instruction at af.getPC()-1 is definitly a trap.
+    * If the last single step PC was af.getPC()-1, then we just executed the
+    * trap and should treat it as such.
+    **/
+   return (ev.proc->last_single_step == af.getPC() - 1);
 }

@@ -5523,6 +5523,11 @@ void process::stepi(int lwp) {
    stepi(true, lwp);
 }
 
+#if defined(arch_x86_64)
+//MATT TODO: Temporarily commiting, but should remove
+void print_regs(dyn_lwp *lwp);
+#endif
+
 Address process::stepi(bool verbose, int lwp) {
    /**
     * Safety checking and warning messages
@@ -5592,6 +5597,13 @@ Address process::stepi(bool verbose, int lwp) {
       range->print_range();
    else
       fprintf(stderr, "\n");
+
+#if defined(arch_x86_64)
+   //MATT TODO: Temporarily commiting, but should remove
+   if (getAddressWidth() == 8) {
+      print_regs(lwp_to_step);
+   }
+#endif
    return nexti;
 }
 
@@ -5697,6 +5709,7 @@ void process::debugSuicide() {
    pdvector<Frame> activeFrames;
    getAllActiveFrames(activeFrames);
  
+   last_single_step = 0;
    for (unsigned i=0; i < activeFrames.size(); i++) {
      Address addr = activeFrames[i].getPC();
      codeRange *range = findOrigByAddr(addr);

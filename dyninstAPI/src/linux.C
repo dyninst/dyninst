@@ -1555,13 +1555,25 @@ bool dyn_lwp::realLWP_attach_() {
    proc()->sh->add_lwp_to_poll_list(this);
 
    eventType evt;
+
+   pdvector<eventType> evts;   
+   evts.push_back(evtLwpAttach);
+   evts.push_back(evtThreadExit);
+   
    proc()->sh->signalActiveProcess();
    do {
-      evt = proc()->sh->waitForEvent(evtLwpAttach, proc_, this);
-      if (evt == evtProcessExit) {
-         isDoingAttach_ = false;
-         return false;
-      }
+
+     evt = proc()->sh->waitForOneOf(evts, this);
+     //evt = proc()->sh->waitForEvent(evtLwpAttach, proc_, this);
+     if (evt == evtProcessExit) {
+       isDoingAttach_ = false;
+       return false;
+     }
+     if (evt == evtThreadExit && status_ == exited) {
+       isDoingAttach_ = false;
+       proc()->sh->remove_lwp_from_poll_list(get_lwp_id());       
+       return false;
+     }
    } while (!is_attached());
    
    isDoingAttach_ = false;

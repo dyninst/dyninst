@@ -1799,3 +1799,14 @@ Frame process::preStackWalkInit(Frame startFrame)
   }
   return startFrame;
 }
+
+#if defined(arch_x86_64)
+void print_regs(dyn_lwp *lwp)
+{
+   struct dyn_saved_regs regs;
+   bool result = lwp->getRegisters(&regs, false);
+
+   if (result)
+      fprintf(stderr, "rax = %lx\n", regs.gprs.rax);
+}
+#endif

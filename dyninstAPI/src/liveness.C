@@ -54,6 +54,7 @@
 #include "instructionAPI/h/Register.h"
 #include "instructionAPI/h/Instruction.h"
 #include "addressSpace.h"
+using namespace Dyninst::InstructionAPI;
 #else
 #include "InstrucIter.h"
 #endif // defined(cap_instruction_api)
@@ -65,11 +66,20 @@
 #include "instructionAPI/h/RegisterIDs-x86.h"
 #endif
 
+#if defined(cap_instruction_api)
+ReadWriteInfo calcRWSets(Instruction insn, image_basicBlock* blk, unsigned width);
+#else
+ReadWriteInfo calcRWSets(InstrucIter ii, image_basicBlock* blk, unsigned width);
+#endif
+InstructionCache image_basicBlock::cachedLivenessInfo = InstructionCache();
+
+  
+
 // Move this to a platform-specific file
 #if defined(cap_instruction_api)
-using namespace Dyninst::InstructionAPI;
 #include <boost/assign/list_of.hpp>
 using namespace boost::assign;
+
 
 map<IA32Regs, Register> reverseRegisterMap = map_list_of
 (r_EAX, REGNUM_RAX)
@@ -282,11 +292,9 @@ void image_basicBlock::summarizeBlockLivenessInfo()
    def = in;
    use = in;
 
-   liveness_printf("%s[%d]: Getting liveness summary for block starting at 0x%lx\n", 
-                   FILE__, __LINE__, firstInsnOffset());
+   //liveness_printf("%s[%d]: Getting liveness summary for block starting at 0x%lx\n", 
+   //                FILE__, __LINE__, firstInsnOffset());
 
-   bitArray read = in;
-   bitArray written = in;
 
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
@@ -296,138 +304,51 @@ void image_basicBlock::summarizeBlockLivenessInfo()
    Instruction curInsn = decoder.decode();
    while(curInsn.isValid())
    {
-      std::set<RegisterAST::Ptr> cur_read, cur_written;
-      curInsn.getReadSet(cur_read);
-      curInsn.getWriteSet(cur_written);
-      liveness_printf("Read registers: ");
+     ReadWriteInfo curInsnRW;
+     if(!cachedLivenessInfo.getLivenessInfo(current, getFirstFunc(), curInsnRW))
+     {
+       curInsnRW = calcRWSets(curInsn, this, width);
+       cachedLivenessInfo.insertInstructionInfo(current, curInsnRW, getFirstFunc());
+     }
+     use |= (curInsnRW.read & ~def);
+     // And if written, then was defined
+     def |= curInsnRW.written;
       
-      for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
-           i != cur_read.end(); i++) 
-      {
-         liveness_printf("%s ", (*i)->format().c_str());
-         read[convertRegID(IA32Regs((*i)->getID()))] = true;
-      }
-      liveness_printf("\nWritten registers: ");
-      
-      for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
-           i != cur_written.end(); i++) {
-         liveness_printf("%s ", (*i)->format().c_str());
-         written[convertRegID(IA32Regs((*i)->getID()))] = true;
-      }
-      liveness_printf("\n");
-      entryID cur_op = curInsn.getOperation().getID();
-      if(cur_op == e_call)
-      {
-         read |= (registerSpace::getRegisterSpace(width)->getCallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-      }
-      else if (cur_op == e_jmp && isExitBlock())
-      {
-         //Tail call, union of call and return
-         read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
-                  (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
-         written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-      }
-      else if(cur_op == e_ret_near || cur_op == e_ret_far)
-      {
-         read |= (registerSpace::getRegisterSpace(width)->getReturnReadRegisters());
-         // Nothing written implicitly by a return
-      }
-      else if(cur_op == e_syscall)
-      {
-         read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
-      }
-      
-      // We have a special case for used registers. If a register
-      // was defined by an earlier instruction _in this block_,
-      // and used now, we _don't_ add the use to the summary. 
-      // This is because the summary represents conditions at
-      // the "top" of the block. 
-      
-      // If something is read, then it has been used.
-      use |= (read & ~def);
-      // And if written, then was defined
-      def |= written;
-      
-      liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n", 
-                      FILE__, __LINE__, curInsn.format().c_str(), current);
-      liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-      liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-      liveness_cerr << "Read    " << read << endl;
-      liveness_cerr << "Written " << written << endl;
-      liveness_cerr << "Used    " << use << endl;
-      liveness_cerr << "Defined " << def << endl;
+     //liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n", 
+     //                FILE__, __LINE__, curInsn.format().c_str(), current);
+     //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+     //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+     //liveness_cerr << "Read    " << curInsnRW.read << endl;
+     //liveness_cerr << "Written " << curInsnRW.written << endl;
+     //liveness_cerr << "Used    " << use << endl;
+     //liveness_cerr << "Defined " << def << endl;
 
-      
-      read.reset();
-      written.reset();
       current += curInsn.size();
       curInsn = decoder.decode();
    }
 #else    
    InstrucIter ii(this);
    while(ii.hasMore()) {
-      std::set<Register> tmpRead;
-      std::set<Register> tmpWritten;
-      ii.getAllRegistersUsedAndDefined(tmpRead, tmpWritten);
-
-      // We need to get numbers into our bit array representation
-      // However, we want a 0..n numbering rather than the native
-      // register numbers. For now, we map via the registerSpace. 
-
-      for (std::set<Register>::const_iterator i = tmpRead.begin(); i != tmpRead.end(); i++) {
-         read[*i] = true;
-      }
-      for (std::set<Register>::const_iterator i = tmpWritten.begin(); 
-           i != tmpWritten.end(); i++) {
-         written[*i] = true;
-      }
-
-      // TODO "If trusting the ABI..."
-      // Otherwise we should go interprocedural
-      if (ii.isACallInstruction()) {
-         read |= (registerSpace::getRegisterSpace(width)->getCallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-      }
-      if (ii.isAJumpInstruction() && isExitBlock())
-      {
-         //Tail call, union of call and return
-         read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
-                  (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
-         written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-      }
-      if (ii.isAReturnInstruction()) {
-         read |= (registerSpace::getRegisterSpace(width)->getReturnReadRegisters());
-         // Nothing written implicitly by a return
-      }
-      if (ii.isSyscall()) {
-         read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
-      }
-
-      // We have a special case for used registers. If a register
-      // was defined by an earlier instruction _in this block_,
-      // and used now, we _don't_ add the use to the summary. 
-      // This is because the summary represents conditions at
-      // the "top" of the block. 
-
+     ReadWriteInfo curInsnRW;
+     if(!cachedLivenessInfo.getLivenessInfo(*ii, getFirstFunc(), curInsnRW))
+     {
+       curInsnRW = calcRWSets(ii, this, width);
+       cachedLivenessInfo.insertInstructionInfo(*ii, curInsnRW, getFirstFunc());
+     }
       // If something is read, then it has been used.
-      use |= (read & ~def);
+      use |= (curInsnRW.read & ~def);
       // And if written, then was defined
-      def |= written;
+      def |= curInsnRW.written;
 
-      liveness_printf("%s[%d] After instruction at address 0x%lx:\n", FILE__, __LINE__, *ii);
-      liveness_cerr << read << endl << written << endl << use << endl << def << endl;
+	//liveness_printf("%s[%d] After instruction at address 0x%lx:\n", FILE__, __LINE__, *ii);
+	//liveness_cerr << curInsnRW.read << endl << curInsnRW.written << endl << use << endl << def << endl;
         
-      read.reset();
-      written.reset();
       ++ii;
    }
 #endif // (cap_instruction_api)
-   liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
-   liveness_cerr << in << endl << def << endl << use << endl;
-   liveness_printf("%s[%d] --------------------\n---------------------\n", FILE__, __LINE__);
+     //liveness_printf("%s[%d] Liveness summary for block:\n", FILE__, __LINE__);
+     //liveness_cerr << in << endl << def << endl << use << endl;
+     //liveness_printf("%s[%d] --------------------\n---------------------\n", FILE__, __LINE__);
 
    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
    return;
@@ -457,8 +378,8 @@ bool image_basicBlock::updateBlockLivenessInfo()
   if (in != oldIn)
       change = true;
       
-  liveness_printf("%s[%d] Step: block 0x%lx, hasChanged %d\n", FILE__, __LINE__, firstInsnOffset(), change);
-  liveness_cerr << in << endl;
+  //liveness_printf("%s[%d] Step: block 0x%lx, hasChanged %d\n", FILE__, __LINE__, firstInsnOffset(), change);
+  //liveness_cerr << in << endl;
 
   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 
@@ -516,7 +437,7 @@ void instPoint::calcLiveness() {
 
    // We know: 
    //    liveness in at the block level:
-   block()->llb()->getLivenessIn();
+   const bitArray &block_in = block()->llb()->getLivenessIn();
    //    liveness _out_ at the block level:
    const bitArray &block_out = block()->llb()->getLivenessOut();
 
@@ -530,95 +451,77 @@ void instPoint::calcLiveness() {
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
     
-   std::vector<std::pair<Address, Instruction> > blockInsns;
    Address blockBegin = block()->origInstance()->firstInsnAddr();
-    
+   Address blockEnd = block()->origInstance()->endAddr();
+   std::vector<Address> blockAddrs;
+   
    const unsigned char* insnBuffer = 
       reinterpret_cast<const unsigned char*>(block()->origInstance()->getPtrToInstruction(blockBegin));
     
    InstructionDecoder decoder(insnBuffer, block()->origInstance()->getSize());
    Instruction tmp;
-   Address curInsnAddr = block()->origInstance()->firstInsnAddr();
+   Address curInsnAddr = blockBegin;
    do
    {
-      tmp = decoder.decode();
-      blockInsns.push_back(std::make_pair(curInsnAddr, tmp));
-      curInsnAddr += tmp.size();
-   } while(tmp.isValid());
-   // Remove the invalid instruction from the end
-   blockInsns.pop_back();
+     ReadWriteInfo rw;
+     if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(curInsnAddr, func()->ifunc(), rw))
+     {
+       Instruction tmp = decoder.decode(insnBuffer);
+       rw = calcRWSets(tmp, block()->llb(), width);
+       block()->llb()->cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, func()->ifunc());
+     }
+     blockAddrs.push_back(curInsnAddr);
+     curInsnAddr += rw.insnSize;
+     insnBuffer += rw.insnSize;
+   } while(curInsnAddr < blockEnd);
     
     
    // We iterate backwards over instructions in the block. 
 
-   bitArray read(block_out.size());
-   bitArray written(block_out.size());
-    
-   std::vector<std::pair<Address, Instruction> >::reverse_iterator curInsn = blockInsns.rbegin();
+   std::vector<Address>::reverse_iterator current = blockAddrs.rbegin();
 
-   liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
-                   FILE__, __LINE__, curInsn != blockInsns.rend(), curInsn->first, addr());
+   //liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
+   //                FILE__, __LINE__, current != blockAddrs.rend(), *current, addr());
 
-   while(curInsn != blockInsns.rend() && curInsn->first > addr())
+   while(current != blockAddrs.rend() && *current > addr())
    {
       // Cache it in the instPoint we just covered (if such exists)
-      instPoint *possiblePoint = func()->findInstPByAddr(curInsn->first);
+      instPoint *possiblePoint = func()->findInstPByAddr(*current);
       if (possiblePoint) {
          if (possiblePoint->postLiveRegisters_.size() == 0) {
             possiblePoint->postLiveRegisters_ = postLiveRegisters_;
          }
       }
       
-      std::set<RegisterAST::Ptr> tmpRead;
-      std::set<RegisterAST::Ptr> tmpWritten;
-      curInsn->second.getReadSet(tmpRead);
-      curInsn->second.getWriteSet(tmpWritten);
-      
-      
-      for (std::set<RegisterAST::Ptr>::const_iterator i = tmpRead.begin(); 
-           i != tmpRead.end(); i++) {
-         read[convertRegID(IA32Regs((*i)->getID()))] = true;
-      }
-      for (std::set<RegisterAST::Ptr>::const_iterator i = tmpWritten.begin(); 
-           i != tmpWritten.end(); i++) {
-         written[convertRegID(IA32Regs((*i)->getID()))] = true;
-      }
-      entryID curEntry = curInsn->second.getOperation().getID();
-      
-      // TODO "If trusting the ABI..."
-      // Otherwise we should go interprocedural
-      if (curEntry == e_call) {
-         read |= (registerSpace::getRegisterSpace(proc())->getCallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(proc())->getCallWrittenRegisters());
-      }
-      else if (curEntry == e_jmp && block()->llb()->isExitBlock())
+      ReadWriteInfo rwAtCurrent;
+      if(block()->llb()->cachedLivenessInfo.getLivenessInfo(*current, func()->ifunc(), rwAtCurrent))
       {
-         //Tail call, union of call and return
-         read |= ((registerSpace::getRegisterSpace(proc())->getCallReadRegisters()) |
-                  (registerSpace::getRegisterSpace(proc())->getReturnReadRegisters()));
-         written |= (registerSpace::getRegisterSpace(proc())->getCallWrittenRegisters());
+	//liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
+	//		FILE__, __LINE__, addr(), *current);
+	//liveness_cerr << "Pre: " << postLiveRegisters_ << endl;
+	
+	postLiveRegisters_ &= (~rwAtCurrent.written);
+	postLiveRegisters_ |= rwAtCurrent.read;
+	//liveness_cerr << "Post: " << postLiveRegisters_ << endl;
+      
+	++current;
       }
-      if (curEntry == e_ret_near || curEntry == e_ret_far) {
-         read |= (registerSpace::getRegisterSpace(proc())->getReturnReadRegisters());
-         // Nothing written implicitly by a return
+      else
+      {
+	Instruction tmp = decoder.decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
+	rwAtCurrent = calcRWSets(tmp, block()->llb(), width);
+	//assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
+	//liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
+	//		FILE__, __LINE__, addr(), *current);
+	//liveness_cerr << "Pre: " << postLiveRegisters_ << endl;
+	
+	postLiveRegisters_ &= (~rwAtCurrent.written);
+	postLiveRegisters_ |= rwAtCurrent.read;
+	//liveness_cerr << "Post: " << postLiveRegisters_ << endl;
+	
+	++current;
       }
       
-      if (curEntry == e_syscall) {
-         read |= (registerSpace::getRegisterSpace(proc())->getSyscallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(proc())->getSyscallWrittenRegisters());
-      }
-      
-      liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
-                      FILE__, __LINE__, addr(), curInsn->first);
-      liveness_cerr << "Pre: " << postLiveRegisters_ << endl;
-      
-      postLiveRegisters_ &= (~written);
-      postLiveRegisters_ |= read;
-      liveness_cerr << "Post: " << postLiveRegisters_ << endl;
-      
-      written.reset();
-      read.reset();
-      ++curInsn;
    }
 #else
    // We iterate backwards over instructions in the block. 
@@ -629,11 +532,9 @@ void instPoint::calcLiveness() {
    // ii's inability to be a random-access iterator
    ii.setCurrentAddress(block()->origInstance()->lastInsnAddr());
 
-   bitArray read(block_out.size());
-   bitArray written(block_out.size());
     
-   liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
-                   FILE__, __LINE__, ii.hasPrev(), *ii, addr());
+   //liveness_printf("%s[%d] instPoint calcLiveness: %d, 0x%lx, 0x%lx\n", 
+   //                FILE__, __LINE__, ii.hasPrev(), *ii, addr());
 
    while(ii.hasPrev() && (*ii > addr())) {
 
@@ -644,52 +545,16 @@ void instPoint::calcLiveness() {
             possiblePoint->postLiveRegisters_ = postLiveRegisters_;
          }
       }
+      ReadWriteInfo regsAffected = calcRWSets(ii, block()->llb(), width);
 
-      std::set<Register> tmpRead;
-      std::set<Register> tmpWritten;
-      ii.getAllRegistersUsedAndDefined(tmpRead, tmpWritten);
+      //liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
+      //               FILE__, __LINE__, addr(), *ii);
+      //liveness_cerr << "Pre: " << postLiveRegisters_ << endl;
 
-      for (std::set<Register>::const_iterator i = tmpRead.begin(); 
-           i != tmpRead.end(); i++) {
-         read[*i] = true;
-      }
-      for (std::set<Register>::const_iterator i = tmpWritten.begin(); 
-           i != tmpWritten.end(); i++) {
-         written[*i] = true;
-      }
+      postLiveRegisters_ &= (~regsAffected.written);
+      postLiveRegisters_ |= regsAffected.read;
+      //liveness_cerr << "Post: " << postLiveRegisters_ << endl;
 
-      // TODO "If trusting the ABI..."
-      // Otherwise we should go interprocedural
-      if (ii.isACallInstruction()) {
-         read |= (registerSpace::getRegisterSpace(proc())->getCallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(proc())->getCallWrittenRegisters());
-      }
-      if (ii.isAReturnInstruction()) {
-         read |= (registerSpace::getRegisterSpace(proc())->getReturnReadRegisters());
-         // Nothing written implicitly by a return
-      }
-      if (ii.isAJumpInstruction() && block()->llb()->isExitBlock())
-      {
-         //Tail call, union of call and return
-          read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
-                   (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
-          written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-      }
-      if (ii.isSyscall()) {
-         read |= (registerSpace::getRegisterSpace(proc())->getSyscallReadRegisters());
-         written |= (registerSpace::getRegisterSpace(proc())->getSyscallWrittenRegisters());
-      }
-
-      liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
-                      FILE__, __LINE__, addr(), *ii);
-      liveness_cerr << "Pre: " << postLiveRegisters_ << endl;
-
-      postLiveRegisters_ &= (~written);
-      postLiveRegisters_ |= read;
-      liveness_cerr << "Post: " << postLiveRegisters_ << endl;
-
-      written.reset();
-      read.reset();
       --ii;
    }
 #endif // defined(cap_instruction_api)
@@ -726,103 +591,145 @@ bitArray instPoint::liveRegisters(callWhen when) {
     }
     assert(when == callPreInsn);
 
-    bitArray read(postLiveRegisters_.size());
-    bitArray written(postLiveRegisters_.size());
     bitArray ret(postLiveRegisters_);
 
+    ReadWriteInfo curInsnRW;
+    if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(addr(), func()->ifunc(), curInsnRW))
+    {
 #if defined(cap_instruction_api)
-    using namespace Dyninst::InstructionAPI;
-    
-    InstructionDecoder decoder;
-    const unsigned char* bufferToDecode = 
-    reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
-    Instruction currentInsn = decoder.decode(bufferToDecode);
-    std::set<RegisterAST::Ptr> tmpRead;
-    std::set<RegisterAST::Ptr> tmpWritten;
-    currentInsn.getReadSet(tmpRead);
-    currentInsn.getWriteSet(tmpWritten);
+      using namespace Dyninst::InstructionAPI;
+      
+      InstructionDecoder decoder;
+      const unsigned char* bufferToDecode = 
+      reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
+      Instruction currentInsn = decoder.decode(bufferToDecode);
 
-    for (std::set<RegisterAST::Ptr>::const_iterator i = tmpRead.begin(); 
-         i != tmpRead.end(); i++) {
-      read[convertRegID(IA32Regs((*i)->getID()))] = true;
-    }
-    for (std::set<RegisterAST::Ptr>::const_iterator i = tmpWritten.begin(); 
-         i != tmpWritten.end(); i++) {
-      written[convertRegID(IA32Regs((*i)->getID()))] = true;
-    }
+      curInsnRW = calcRWSets(currentInsn, block()->llb(), width);
 
-    entryID curOperation = currentInsn.getOperation().getID();
-    
-    
-    // TODO "If trusting the ABI..."
-    // Otherwise we should go interprocedural
-    if (curOperation == e_call)
-    {
-      read |= (registerSpace::getRegisterSpace(proc())->getCallReadRegisters());
-      written |= (registerSpace::getRegisterSpace(proc())->getCallWrittenRegisters());
-    }
-    else if (curOperation == e_jmp && block()->llb()->isExitBlock())
-    {
-       //Tail call, union of call and return
-       read |= ((registerSpace::getRegisterSpace(proc())->getCallReadRegisters()) |
-                (registerSpace::getRegisterSpace(proc())->getReturnReadRegisters()));
-       written |= (registerSpace::getRegisterSpace(proc())->getCallWrittenRegisters());
-    }
-    if (curOperation == e_ret_near || curOperation == e_ret_far)
-    {
-        read |= (registerSpace::getRegisterSpace(proc())->getReturnReadRegisters());
-        // Nothing written implicitly by a return
-    }
 #else
     // We need to do one more step.
     // Get the current instruction iterator.
-    InstrucIter ii(block());
-    ii.setCurrentAddress(addr());
+      InstrucIter ii(block());
+      ii.setCurrentAddress(addr());
 
-    std::set<Register> tmpRead;
-    std::set<Register> tmpWritten;
-    ii.getAllRegistersUsedAndDefined(tmpRead, tmpWritten);
+      curInsnRW = calcRWSets(ii, block()->llb(), width);
 
-    for (std::set<Register>::const_iterator i = tmpRead.begin(); 
-         i != tmpRead.end(); i++) {
-        read[*i] = true;
-    }
-    for (std::set<Register>::const_iterator i = tmpWritten.begin(); 
-         i != tmpWritten.end(); i++) {
-        written[*i] = true;
-    }
-
-
-    // TODO "If trusting the ABI..."
-    // Otherwise we should go interprocedural
-    if (ii.isACallInstruction()) {
-        read |= (registerSpace::getRegisterSpace(proc())->getCallReadRegisters());
-        written |= (registerSpace::getRegisterSpace(proc())->getCallWrittenRegisters());
-    }
-    if (ii.isAJumpInstruction() && block()->llb()->isExitBlock())
-    {
-       //Tail call, union of call and return
-       read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
-                (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
-       written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-    }
-    if (ii.isAReturnInstruction()) {
-        read |= (registerSpace::getRegisterSpace(proc())->getReturnReadRegisters());
-        // Nothing written implicitly by a return
-    }
 #endif // defined(cap_instruction_api)
-    ret &= (~written);
-    ret |= read;
+    }
+    
+    ret &= (~curInsnRW.written);
+    ret |= curInsnRW.read;
 
-    liveness_printf("Liveness out for instruction at 0x%lx\n",
-                    addr());
-    liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-    liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-    liveness_cerr << "Read    " << read << endl;
-    liveness_cerr << "Written " << written << endl;
-    liveness_cerr << "Live    " << ret << endl;
+    //liveness_printf("Liveness out for instruction at 0x%lx\n",
+    //                  addr());
+    //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+    //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+    //liveness_cerr << "Read    " << curInsnRW.read << endl;
+    //liveness_cerr << "Written " << curInsnRW.written << endl;
+    //liveness_cerr << "Live    " << ret << endl;
 
     return ret;
 }
 
-#endif
+
+#if defined(cap_instruction_api)
+ReadWriteInfo calcRWSets(Instruction curInsn, image_basicBlock* blk, unsigned int width)
+{
+  ReadWriteInfo ret;
+  ret.read = registerSpace::getBitArray();
+  ret.written = registerSpace::getBitArray();
+  ret.insnSize = curInsn.size();
+  
+  std::set<RegisterAST::Ptr> cur_read, cur_written;
+  curInsn.getReadSet(cur_read);
+  curInsn.getWriteSet(cur_written);
+  //liveness_printf("Read registers: ");
+      
+  for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
+       i != cur_read.end(); i++) 
+  {
+    //liveness_printf("%s ", (*i)->format().c_str());
+    ret.read[convertRegID(IA32Regs((*i)->getID()))] = true;
+  }
+  //liveness_printf("\nWritten registers: ");
+      
+  for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
+       i != cur_written.end(); i++) {
+    //liveness_printf("%s ", (*i)->format().c_str());
+    ret.written[convertRegID(IA32Regs((*i)->getID()))] = true;
+  }
+  //liveness_printf("\n");
+  entryID cur_op = curInsn.getOperation().getID();
+  if(cur_op == e_call)
+  {
+    ret.read |= (registerSpace::getRegisterSpace(width)->getCallReadRegisters());
+    ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+  }
+  else if (cur_op == e_jmp && blk->isExitBlock())
+  {
+    //Tail call, union of call and return
+    ret.read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
+		 (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
+    ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+  }
+  else if(cur_op == e_ret_near || cur_op == e_ret_far)
+  {
+    ret.read |= (registerSpace::getRegisterSpace(width)->getReturnReadRegisters());
+    // Nothing written implicitly by a return
+  }
+  else if(cur_op == e_syscall)
+  {
+    ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
+    ret.written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
+  }
+    
+  return ret;
+    
+}
+
+#else // POWER
+
+ReadWriteInfo calcRWSets(InstrucIter ii, image_basicBlock* blk, unsigned int width)
+{
+  ReadWriteInfo ret;
+  ret.read = registerSpace::getBitArray();
+  ret.written = registerSpace::getBitArray();
+  std::set<Register> tmpRead;
+  std::set<Register> tmpWritten;
+  ii.getAllRegistersUsedAndDefined(tmpRead, tmpWritten);
+  
+  for (std::set<Register>::const_iterator i = tmpRead.begin(); 
+       i != tmpRead.end(); i++) {
+    ret.read[*i] = true;
+  }
+  for (std::set<Register>::const_iterator i = tmpWritten.begin(); 
+       i != tmpWritten.end(); i++) {
+    ret.written[*i] = true;
+  }
+  
+  // TODO "If trusting the ABI..."
+  // Otherwise we should go interprocedural
+  if (ii.isACallInstruction()) {
+    ret.read |= (registerSpace::getRegisterSpace(width)->getCallReadRegisters());
+    ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+  }
+  if (ii.isAReturnInstruction()) {
+    ret.read |= (registerSpace::getRegisterSpace(width)->getReturnReadRegisters());
+    // Nothing written implicitly by a return
+  }
+  if (ii.isAJumpInstruction() && blk->isExitBlock())
+  {
+    //Tail call, union of call and return
+    ret.read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
+	     (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
+    ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+  }
+  if (ii.isSyscall()) {
+    ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
+    ret.written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
+  }
+  return ret;
+}
+
+#endif // cap_instruction_api
+#endif // cap_liveness
