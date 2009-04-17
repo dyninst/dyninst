@@ -368,6 +368,8 @@ void registerSpace::initialize32() {
     // Syscall - assume the same as call
     syscallRead_ = callRead_;
     syscallWritten_ = callWritten_;
+
+    allRegs_ = getBitArray().set();
 #endif
 }
 
@@ -516,6 +518,8 @@ void registerSpace::initialize64() {
     // Syscall - assume the same as call
     syscallRead64_ = callRead_;
     syscallWritten64_ = syscallWritten_;
+
+    allRegs64_ = getBitArray().set();
 #endif
 }
 
