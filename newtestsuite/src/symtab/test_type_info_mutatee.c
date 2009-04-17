@@ -56,9 +56,10 @@ void my_test_type_info_func(int foo)
 
 void my_test_type_info_func2()
 {
+   func_ptr_typedef_t myfuncptr2;
 	void (*myfuncptr)(int) = my_test_type_info_func;
 	(*myfuncptr)(5);
-	func_ptr_typedef_t myfuncptr2 = my_test_type_info_func;
+   myfuncptr2 = my_test_type_info_func;
 	(*myfuncptr2)(6);
 }
 
