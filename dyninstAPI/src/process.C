@@ -5562,8 +5562,12 @@ Address process::stepi(bool verbose, int lwp) {
     * then get a code range for the next instruction and print some information.
     **/
    dyn_lwp *lwp_to_step;
-   if (lwp == -1)
+   if (lwp == -1) {
       lwp_to_step = getRepresentativeLWP();
+      if (!lwp_to_step) {
+         lwp_to_step = getInitialLwp();
+      }
+   }
    else {
       lwp_to_step = lookupLWP(lwp);
       if (!lwp_to_step) {
