@@ -74,6 +74,8 @@ class ProcDebugLinux : public ProcDebug {
   unsigned cached_addr_width;
   void registerLibSpotter();
   Address lib_load_trap;
+ public:
+  static std::map<pid_t, int> unknown_pid_events;
 };
 
 class SigHandlerStepperImpl : public FrameStepper {
