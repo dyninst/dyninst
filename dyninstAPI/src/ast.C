@@ -1702,6 +1702,7 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
                                               bool noCost,
                                               Address &,
                                               Register &retReg) {
+    RETURN_KEPT_REG(retReg);
     if (retReg == REG_NULL) {
         retReg = allocateAndKeep(gen, noCost);
     }

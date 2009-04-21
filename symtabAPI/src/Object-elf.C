@@ -1467,6 +1467,8 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
          else
             sec = NULL;
          
+	 int ind = int (i);
+	 int strindex = syms.st_name(i);
          Symbol *newsym = new Symbol(sname, 
                                      stype,
                                      slinkage, 
@@ -1476,7 +1478,9 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                                      sec, 
                                      ssize,
                                      false,
-                                     (secNumber == SHN_ABS));
+                                     (secNumber == SHN_ABS),
+				     ind,
+				     strindex);
 	 
          if (opdscnp)
              fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
@@ -1641,8 +1645,10 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
     	 sec = regions_[secNumber];
       else
          sec = NULL;		
-	 int ind = int (i);
 
+      int ind = int (i);
+      int strindex = syms.st_name(i);
+	
       Symbol *newsym = new Symbol(sname, 
                                   stype, 
                                   slinkage, 
@@ -1653,7 +1659,8 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
                                   ssize, 
                                   true,  // is dynamic
                                   (secNumber == SHN_ABS),
-				  ind);
+				  ind,
+				  strindex);
       
       if (opdscnp)
           fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
