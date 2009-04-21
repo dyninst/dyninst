@@ -125,10 +125,6 @@ class localVar : public Serializable, public AnnotatableSparse
 	std::string fileName_;
 	int lineNum_;
 	std::vector<VariableLocation> locs_;
-#if 0
-	std::vector<VariableLocation> *locs_;
-	void *upPtr_;
-#endif
 
 	// scope_t scope;
 
@@ -140,9 +136,6 @@ class localVar : public Serializable, public AnnotatableSparse
 	// Copy constructor
 	localVar(localVar &lvar);
 	bool addLocation(VariableLocation &location);
-#if 0
-	bool setLocation(std::vector<VariableLocation> &locs);
-#endif
 	~localVar();
 	SYMTAB_EXPORT void fixupUnknown(Module *);
 
@@ -157,10 +150,6 @@ class localVar : public Serializable, public AnnotatableSparse
 	SYMTAB_EXPORT bool operator==(const localVar &l);
 	SYMTAB_EXPORT void serialize(SerializerBase *, 
 			const char * = "localVar") THROW_SPEC(SerializerError);
-#if 0
-	void *getUpPtr() const;
-	bool setUpPtr(void *);
-#endif
 };
 
 }

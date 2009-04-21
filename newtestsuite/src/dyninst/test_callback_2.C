@@ -83,9 +83,12 @@ extern "C" DLLEXPORT TestMutator *test_callback_2_factory() {
 
 extern int debugPrint;
 
-static bool test7done = false;
-static bool test7err = false;
-static unsigned long test7_tids[TEST8_THREADS];
+bool test7done = false;
+bool test7err = false;
+unsigned long test7_tids[TEST8_THREADS];
+int callback_counter = 0;
+
+std::vector<user_msg_t> elog;
 
 static BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
                         int testno, const char *testname)
@@ -126,9 +129,10 @@ test_callback_2_Mutator::at(BPatch_point * pt, BPatch_function *call,
   BPatchSnippetHandle *ret;
   ret = appThread->insertSnippet(snip, *pt,when);
 
-  if (!ret) {
-    FAIL_MES(TESTNAME, TESTDESC);
+  if (!ret) 
+  {
     logerror("%s[%d]:  could not insert instrumentation\n", __FILE__, __LINE__);
+    FAIL_MES(TESTNAME, TESTDESC);
     test7err = true;
   }
 
@@ -163,10 +167,9 @@ bool test_callback_2_Mutator::setVar(const char *vname, void *addr, int testno,
    return false;
 }
 
-std::vector<std::string> elog;
-static void test7cb(BPatch_process * /* proc*/, void *buf, unsigned int bufsize)
+
+static void test7cb(BPatch_process *  proc, void *buf, unsigned int bufsize)
 {
-  static int callback_counter = 0;
   if (debugPrint)
     dprintf("%s[%d]:  inside test7cb\n", __FILE__, __LINE__);
 
@@ -185,12 +188,11 @@ static void test7cb(BPatch_process * /* proc*/, void *buf, unsigned int bufsize)
   if (debugPrint)
     dprintf("%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
 
-  switch (what) {
-	  case func_entry: elog.push_back(std::string("func_entry")); break;
-	  case func_callsite: elog.push_back(std::string("func_callsite")); break;
-	  case func_exit: elog.push_back(std::string("func_exit")); break;
-	  default:
-		  elog.push_back(std::string("unknown_event")); break;
+  elog.push_back(*msg);
+
+  if (proc->getPid() != tid)
+  {
+	  fprintf(stderr, "%s[%d]:  ERROR:  got event for pid %lu, not %lu\n", FILE__, __LINE__, tid, proc->getPid());
   }
 
   if (callback_counter == 0) {
@@ -231,7 +233,17 @@ void log_res()
 {
 	logerror("%s[%d]:  Here's what happened: \n", FILE__, __LINE__);
 	for (unsigned int i = 0; i < elog.size(); ++i)
-		logerror("\t %s \n", elog[i].c_str());
+	{
+		std::string ewhat;
+		switch (elog[i].what) {
+			case func_entry: ewhat = std::string("func_entry"); break;
+			case func_callsite: ewhat = std::string("func_callsite"); break;
+			case func_exit: ewhat = std::string("func_exit"); break;
+			default:
+							ewhat = std::string("unknown_event"); break;
+		}
+		logerror("\t %s:  %d\n", ewhat.c_str(), elog[i].tid);
+  }
 }
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
@@ -243,6 +255,10 @@ test_results_t test_callback_2_Mutator::executeTest()
 	// load libtest12.so -- currently only used by subtest 5, but make it generally
 	// available
 	char *libname = "./libTest12.so";    
+	test7err = false;
+	test7done = false;
+	callback_counter = 0;
+	elog.resize(0);
 
 #if defined(arch_x86_64_test)
 	if (appThread->getProcess()->getAddressWidth() == 4)
@@ -282,6 +298,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 	{
 		logerror("%s[%d]: Unable to find entry point to function %s\n", 
 				__FILE__, __LINE__, call1name);
+		bpatch->removeUserEventCallback(test7cb);
 		appThread->getProcess()->terminateExecution();
 		return FAILED;
 	}
@@ -292,6 +309,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 	{
 		logerror("%s[%d]:  Unable to find exit point to function %s\n", 
 				__FILE__, __LINE__, call1name);
+		bpatch->removeUserEventCallback(test7cb);
 		appThread->getProcess()->terminateExecution();
 		return FAILED;
 	}
@@ -302,6 +320,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 	{
 		logerror("%s[%d]:  Unable to find subroutine call point in function %s\n",
 				__FILE__, __LINE__, call1name);
+		bpatch->removeUserEventCallback(test7cb);
 		appThread->getProcess()->terminateExecution();
 		return FAILED;
 	}
@@ -313,6 +332,28 @@ test_results_t test_callback_2_Mutator::executeTest()
 	BPatch_function *reportExit = findFunction("reportExit", appImage,TESTNO, TESTNAME);
 	BPatch_function *reportCallsite = findFunction("reportCallsite", appImage,TESTNO, TESTNAME);
 
+	if (!reportEntry)
+	{
+		logerror("%s[%d]:  reportEntry = NULL\n", FILE__, __LINE__);
+		bpatch->removeUserEventCallback(test7cb);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
+	if (!reportExit)
+	{
+		logerror("%s[%d]:  reportExit = NULL\n", FILE__, __LINE__);
+		bpatch->removeUserEventCallback(test7cb);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
+	if (!reportCallsite)
+	{
+		logerror("%s[%d]:  reportCallsite = NULL\n", FILE__, __LINE__);
+		bpatch->removeUserEventCallback(test7cb);
+		appThread->getProcess()->terminateExecution();
+		return FAILED;
+	}
+
 	//  Do the instrumentation
 	BPatchSnippetHandle *entryHandle = at(entry, reportEntry, TESTNO, TESTNAME);
 	BPatchSnippetHandle *exitHandle = at(exit, reportExit, TESTNO, TESTNAME);
@@ -320,12 +361,15 @@ test_results_t test_callback_2_Mutator::executeTest()
 
 	//  "at" may set test7err
 	if ((test7err)
-			|| ( (NULL == entryHandle) || (NULL == exitHandle) || (NULL == callsiteHandle)) )
+			||  (NULL == entryHandle) 
+			|| (NULL == exitHandle) 
+			|| (NULL == callsiteHandle) )
 	{
-		logerror("%s[%d]:  instrumentation failed\n");
-		logerror("%s[%d]:  entryHandle = %p\n", entryHandle);
-		logerror("%s[%d]:  exitHandle = %p\n", exitHandle);
-		logerror("%s[%d]:  callsiteHandle = %p\n", callsiteHandle);
+		logerror("%s[%d]:  instrumentation failed, test7err = %d\n", FILE__, __LINE__, test7err);
+		logerror("%s[%d]:  entryHandle = %p\n", FILE__, __LINE__, entryHandle);
+		logerror("%s[%d]:  exitHandle = %p\n", FILE__, __LINE__, exitHandle);
+		logerror("%s[%d]:  callsiteHandle = %p\n", FILE__, __LINE__, callsiteHandle);
+		bpatch->removeUserEventCallback(test7cb);
 		return FAILED;
 	}
 	if (debugPrint) 
@@ -336,6 +380,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		{
 			logerror("%s[%d]:  Error setting variable '%s' in mutatee\n", 
 					FILE__, __LINE__, varName);
+			bpatch->removeUserEventCallback(test7cb);
 			appThread->getProcess()->terminateExecution();
 			return FAILED;
 		}
@@ -376,6 +421,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 						__FILE__, __LINE__, ecode);
 			}
 			log_res();
+			bpatch->removeUserEventCallback(test7cb);
 			return FAILED;
 		}
 	}

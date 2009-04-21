@@ -56,17 +56,25 @@ extern int DYNINSTuserMessage(void *, unsigned int);
 
 unsigned int nextid = 0;
 int libraryDebug = 0;
+unsigned int did_report_entry = 0;
+unsigned int did_report_exit = 0;
 
 void reportEntry()
 {
+
   user_msg_t msg;
   msg.id = nextid++;
   msg.what = func_entry;
-  msg.tid = /*(unsigned long) pthread_self(); */ 0UL;
+  msg.tid = /*(unsigned long) pthread_self(); */ getpid();
   ldprintf(stderr, "%s[%d]:  reporting function entry, thread %lu\n", __FILE__, __LINE__, msg.tid);
+  if (did_report_entry)
+  {
+	  fprintf(stderr, "%s[%d]:  WARNING:  calling reportEntry AGAIN\n", __FILE__, __LINE__);
+  }
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
+  did_report_entry = 1;
 }
 
 void reportExit()
@@ -74,11 +82,16 @@ void reportExit()
   user_msg_t msg;
   msg.id = nextid++;
   msg.what = func_exit;
-  msg.tid = /*(unsigned long) pthread_self(); */ 0UL;
+  msg.tid = /*(unsigned long) pthread_self(); */ getpid();
   ldprintf(stderr, "%s[%d]:  reporting function exit, thread %lu\n", __FILE__, __LINE__, msg.tid);
+  if (did_report_exit)
+  {
+	  fprintf(stderr, "%s[%d]:  WARNING:  calling reportEntry AGAIN\n", __FILE__, __LINE__);
+  }
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);
   }
+  did_report_exit = 1;
 }
 
 void reportCallsite()
@@ -86,7 +99,7 @@ void reportCallsite()
   user_msg_t msg;
   msg.id = nextid++;
   msg.what = func_callsite;
-  msg.tid = /*(unsigned long) pthread_self(); */ 0UL;
+  msg.tid = /*(unsigned long) pthread_self(); */ getpid();
   ldprintf(stderr, "%s[%d]:  reporting function callsite, thread %lu\n", __FILE__, __LINE__, msg.tid);
   if (0 != DYNINSTuserMessage(&msg, sizeof(user_msg_t))) {
     fprintf(stderr, "%s[%d]:  DYNINSTuserMessage failed\n", __FILE__, __LINE__);

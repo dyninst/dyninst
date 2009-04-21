@@ -2749,7 +2749,6 @@ bool process::attach()
    if ( !getRepresentativeLWP()->attach()) 
    {
       startup_printf("%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
-      fprintf(stderr, "%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
       return false;
    }
 
@@ -2774,8 +2773,8 @@ bool process::attach()
    startup_printf("[%d]: setting process flags\n", getPid());
 
    bool ret =  setProcessFlags();
-   if (!ret)
-	   fprintf(stderr, "%s[%d]:  failed to set process flags\n", FILE__, __LINE__);
+   //if (!ret)
+   //  fprintf(stderr, "%s[%d]:  failed to set process flags\n", FILE__, __LINE__);
 
    return ret;
 }
