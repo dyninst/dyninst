@@ -229,8 +229,8 @@ class fieldListInterface {
 class rangedInterface {
  public:
    SYMTAB_EXPORT virtual ~rangedInterface() {};
-   SYMTAB_EXPORT virtual int getLow() const = 0;
-   SYMTAB_EXPORT virtual int getHigh() const  = 0;
+   SYMTAB_EXPORT virtual long getLow() const = 0;
+   SYMTAB_EXPORT virtual long getHigh() const  = 0;
 };  
 
 class derivedInterface{
@@ -287,8 +287,8 @@ class rangedType : public Type, public rangedInterface {
    SYMTAB_EXPORT rangedType();
    SYMTAB_EXPORT ~rangedType();
    SYMTAB_EXPORT bool operator==(const Type &) const;
-   SYMTAB_EXPORT int getLow() const { return low_; }
-   SYMTAB_EXPORT int getHigh() const { return hi_; }
+   SYMTAB_EXPORT long getLow() const { return low_; }
+   SYMTAB_EXPORT long getHigh() const { return hi_; }
 };
 
 class derivedType : public Type, public derivedInterface {

@@ -311,8 +311,8 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *
 
 	if (t->getLow() > t->getHigh())
 	{
-		fprintf(stderr, "%s[%d]:  bad ranges for type %s!\n", 
-				FILE__, __LINE__, tn.c_str());
+		fprintf(stderr, "%s[%d]:  bad ranges [%lu--%lu] for type %s!\n", 
+				FILE__, __LINE__, t->getLow(), t->getHigh(), tn.c_str());
 		return false;
 	}
 
@@ -452,26 +452,44 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 		{
 			std::vector<std::pair<std::string, std::string> > &expected_fields = *efields;
 
+			if (efields->size() != fields->size())
+			{
+				fprintf(stderr, "%s[%d]:  WARNING:  differing sizes for expected fields\n", 
+						FILE__, __LINE__);
+				fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
+						fields->size(), efields->size());
+			}
+
+			bool err = false;
 			for (unsigned int i = 0; i < fields->size(); ++i)
 			{
 				Field *f1 = (*fields)[i];
 				std::string fieldname = f1->getName();
 				std::string fieldtypename = f1->getType() ? f1->getType()->getName() : "";
 
-				if (fieldtypename != expected_fields[i].first)
+				std::string expected_fieldname = 
+					(expected_fields.size() > i) ? expected_fields[i].first 
+					: std::string("range_error");
+				std::string expected_fieldtypename = 
+					(expected_fields.size() > i) ? expected_fields[i].second 
+					: std::string("range_error");
+				if (fieldtypename != expected_fieldname)
 				{
 					fprintf(stderr, "%s[%d]:  Field type %s not expected %s\n", FILE__,
-							__LINE__, fieldtypename.c_str(), expected_fields[i].first.c_str());
-					return false;
+							__LINE__, fieldtypename.c_str(), expected_fieldname.c_str());
+					err = true;
 				}
 
-				if (fieldname != expected_fields[i].second)
+				if (fieldname != expected_fieldtypename)
 				{
-					fprintf(stderr, "%s[%d]:  Field type %s not expected %s\n", FILE__,
-							__LINE__, fieldname.c_str(), expected_fields[i].second.c_str());
-					return false;
+					fprintf(stderr, "%s[%d]:  Field type '%s' not expected '%s'\n", FILE__,
+							__LINE__, fieldname.c_str(), expected_fieldtypename.c_str());
+					err = true;
 				}
 			}
+
+			if (err) 
+				return false;
 		}
 	}
 

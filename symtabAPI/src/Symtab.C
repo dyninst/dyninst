@@ -528,8 +528,14 @@ bool Symtab::buildDemangledName( const std::string &mangled,
 
 bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &raw_syms) 
 {
-    for (SymbolIter symIter(*linkedFile); symIter; symIter++) {
+    for (SymbolIter symIter(*linkedFile); symIter; symIter++) 
+	{
         Symbol *sym = symIter.currval();
+		if (!sym) 
+		{
+			fprintf(stderr, "%s[%d]:  range error, stopping now\n", FILE__, __LINE__);
+			return true;
+		}
 
         // If a symbol starts with "." we want to skip it. These indicate labels in the
         // code. 
