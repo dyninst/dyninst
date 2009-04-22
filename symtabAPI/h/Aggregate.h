@@ -123,7 +123,7 @@ class Aggregate : public AnnotatableSparse
 
 	  void restore_type_by_id(SerializerBase *, Type *&, unsigned) THROW_SPEC (SerializerError);
 	  void restore_module_by_name(SerializerBase *, std::string &) THROW_SPEC (SerializerError);
-	  void rebuild_symbol_vector(SerializerBase *, std::vector<unsigned> &) THROW_SPEC (SerializerError);
+	  void rebuild_symbol_vector(SerializerBase *, std::vector<Offset> *) THROW_SPEC (SerializerError);
 	  SYMTAB_EXPORT void serialize_aggregate(SerializerBase *, const char * = "Aggregate") THROW_SPEC (SerializerError);
 };
 

@@ -109,13 +109,11 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_,
    curVersionNum = 2;
 }
 
-bool emitElf64::createElfSymbol(Symbol *symbol, vector<string> &symbolStrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols, bool dynSymFlag)
+bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_Sym *> &symbols, bool dynSymFlag)
 {
    Elf64_Sym *sym = new Elf64_Sym();
-   sym->st_name = symbolNamesLength;
+   sym->st_name = strIndex;
 
-   symbolStrs.push_back(symbol->getName());
-   symbolNamesLength += symbol->getName().length()+1;
    sym->st_value = symbol->getAddr();
    sym->st_size = symbol->getSize();
    sym->st_other = ELF64_ST_VISIBILITY(elfSymVisibility(symbol->getVisibility()));
@@ -553,6 +551,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
             //newSecs.push_back(new Section(oldEhdr->e_shnum+newSecs.size(),".dynamic", /*addr*/, newdata->d_size, dynData, Section::dynamicSection, true));
 	    }
 
+	    SecLinkMapping[scncount+1] = shdr->sh_link; 
 	    elf_update(newElf, ELF_C_NULL);
     }
 
@@ -565,6 +564,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
 
     // Second iteration to fix the link fields to point to the correct section
     scn = NULL;
+
     for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
     	shdr = elf64_getshdr(scn);
 	if (changeMapping[scncount+1] == 0 && SecLinkMapping[scncount+1] != 0) {
@@ -704,7 +704,7 @@ void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
             dynamicSecData[tag][0]->d_un.d_val = val;
             break;
         case DT_HASH:
-		case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
+	case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
         case DT_SYMTAB:
         case DT_STRTAB:
         case DT_REL:
@@ -1183,15 +1183,22 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
     std::vector<Elf64_Sym *> dynsymbols;
 
     unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
-    vector<string> symbolStrs, dynsymbolStrs;
+    dyn_hash_map<string, unsigned> dynSymNameMapping;
+    std::vector<std::string> symbolStrs, dynsymbolStrs;
     std::vector<Symbol *> dynsymVector;
     std::vector<Symbol *> allDynSymbols;
     std::vector<Symbol *> allSymSymbols;
 
+    Region *sec;
+    if(obj->findRegion(sec, ".dynstr")) {
+        olddynStrData = (char *)(sec->getPtrToRawData());
+	olddynStrSize = sec->getRegionSize();
+	dynsymbolNamesLength = olddynStrSize+1;
+    }
+
     // recreate a "dummy symbol"
     Elf64_Sym *sym = new Elf64_Sym();
     symbolStrs.push_back("");
-    dynsymbolStrs.push_back("");
     sym->st_name = 0;
     sym->st_value = 0;
     sym->st_size = 0;
@@ -1220,16 +1227,53 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
         	if (allDynSymbols[i]->getIndex() == -1) {
 			max_index++;
 			allDynSymbols[i]->setIndex(max_index);
+	}
+
+  	if (allDynSymbols[i]->getStrIndex() == -1) {
+		// New Symbol - append to the list of strings
+		dynsymbolStrs.push_back( allDynSymbols[i]->getName().c_str());
+		allDynSymbols[i]->setStrIndex(dynsymbolNamesLength);
+		dynsymbolNamesLength += allDynSymbols[i]->getName().length() + 1;
+	} 
+
+   }	
+   
+   max_index = -1;
+   for(i = 0; i < allSymSymbols.size();i++) {
+        if (max_index < allSymSymbols[i]->getIndex()) 
+		max_index = allSymSymbols[i]->getIndex();
+   }
+
+   for(i=0; i<allSymSymbols.size(); i++) {
+       	if (allSymSymbols[i]->getIndex() == -1) {
+			max_index++;
+			allSymSymbols[i]->setIndex(max_index);
 		}
    }	
   // reorder allSymbols based on index
 
     std::sort(allDynSymbols.begin(), allDynSymbols.end(), sortByIndex());
+    std::sort(allSymSymbols.begin(), allSymSymbols.end(), sortByIndex());
 
-    for(i=0; i<allSymSymbols.size();i++) 
-            createElfSymbol(allSymSymbols[i], symbolStrs, symbolNamesLength, symbols);
+    /* We regenerate symtab and symstr section. We do not 
+       maintain the order of the strings and symbols as it was in
+       the original binary. Hence, the strings in symstr have new order and 
+       new index.
+       On the other hand, we do not regenerate dynsym and dynstr section. We copy over
+       old symbols and string in the original order as it was in the 
+       original binary. We preserve sh_index of Elf symbols (from Symbol's strIndex). We append 
+       new symbols and string that we create for the new binary (targ*, versions etc).
+     */  
+
+    for(i=0; i<allSymSymbols.size();i++) {
+	    //allSymSymbols[i]->setStrIndex(symbolNamesLength);
+            createElfSymbol(allSymSymbols[i], symbolNamesLength, symbols);
+	    symbolStrs.push_back(allSymSymbols[i]->getName());
+   	    symbolNamesLength += allSymSymbols[i]->getName().length()+1;
+    }
     for(i=0; i<allDynSymbols.size();i++) {
-            createElfSymbol(allDynSymbols[i], dynsymbolStrs, dynsymbolNamesLength, dynsymbols, true);
+            createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
+            dynSymNameMapping[allDynSymbols[i]->getName().c_str()] = allDynSymbols[i]->getIndex();
             dynsymVector.push_back(allDynSymbols[i]);
     }
 
@@ -1283,10 +1327,6 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
     unsigned verneedSecSize = 0, verdefSecSize = 0, dynsecSize = 0;
                
     createSymbolVersions(obj, symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
-    Region *sec;
-    if(obj->findRegion(sec, ".dynstr"))
-        olddynStrData = (char *)sec->getPtrToRawData();
-
     // build new .hash section
     Elf64_Word *hashsecData;
     unsigned hashsecSize = 0;
@@ -1301,21 +1341,21 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
    
     if(!dynsymbolNamesLength)
         return true; 
-    --dynsymbolNamesLength;
     char *dynstr = (char *)malloc(dynsymbolNamesLength+1);
     cur=0;
-    dyn_hash_map<string, unsigned> dynSymNameMapping;
     for(i=0;i<dynsymbolStrs.size();i++)
     {
         strcpy(&dynstr[cur],dynsymbolStrs[i].c_str());
         cur+=dynsymbolStrs[i].length()+1;
-        dynSymNameMapping[dynsymbolStrs[i]] = i;
+	if ( dynSymNameMapping.find(dynsymbolStrs[i]) == dynSymNameMapping.end()) {
+	        dynSymNameMapping[dynsymbolStrs[i]] = allDynSymbols.size()+i;
+	}
     }
     
   	obj->addRegion(0, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Region::RT_SYMTAB, true);
 
     //reconstruct .dynstr section
-    obj->addRegion(0, dynstr, dynsymbolNamesLength+1 , ".dynstr", Region::RT_STRTAB, true);
+    obj->addRegion(0, dynstr, dynsymbolNamesLength , ".dynstr", Region::RT_STRTAB, true);
 
 #if !defined(os_solaris)
     //add .gnu.version section

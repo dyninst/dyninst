@@ -89,7 +89,8 @@ bitArray registerSpace::callWritten64_;
 bitArray registerSpace::returnRead64_;
 bitArray registerSpace::syscallRead64_;
 bitArray registerSpace::syscallWritten64_;
-
+bitArray registerSpace::allRegs_;
+bitArray registerSpace::allRegs64_;
 #endif
 
 bool registerSpace::hasXMM = false;
@@ -1098,6 +1099,19 @@ const bitArray &registerSpace::getSyscallWrittenRegisters() const {
         return syscallWritten_;
     }
 }
+
+const bitArray &registerSpace::getAllRegs() const
+{
+   if (addr_width == 4)
+      return allRegs_;
+   else if (addr_width == 8)
+      return allRegs64_;
+   else {
+      assert(0);
+      return allRegs_;
+   }   
+}
+
 
 bitArray registerSpace::getBitArray()  {
 #if defined(arch_x86) || defined(arch_x86_64)

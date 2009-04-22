@@ -40,6 +40,7 @@
  */
 
 #include <stdexcept>
+#include <string>
 
 int excp_func2()
 {

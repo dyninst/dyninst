@@ -56,17 +56,23 @@ class test_type_info_Mutator : public SymtabMutator {
    std::vector<Type *> *builtin_types;
    test_results_t verify_basic_type_lists();
    bool verify_type(Type *t);
-   bool verify_type_enum(typeEnum *t);
-   bool verify_type_pointer(typePointer *t);
+   bool verify_type_enum(typeEnum *t, std::vector<std::pair<std::string, int> > * = NULL);
+   bool verify_type_pointer(typePointer *t, std::string * = NULL);
    bool verify_type_function(typeFunction *t);
    bool verify_type_subrange(typeSubrange *t);
-   bool verify_type_array(typeArray *t);
-   bool verify_type_struct(typeStruct *t);
-   bool verify_type_union(typeUnion *t);
+   bool verify_type_array(typeArray *t, int * = NULL, int * = NULL, std::string * = NULL);
+   bool verify_type_struct(typeStruct *t, 
+		   std::vector<std::pair<std::string, std::string> > * = NULL, 
+		   std::vector<std::pair<std::string, std::string> > * = NULL);
+   bool verify_type_union(typeUnion *t, 
+		   std::vector<std::pair<std::string, std::string> > * = NULL, 
+		   std::vector<std::pair<std::string, std::string> > * = NULL);
    bool verify_type_scalar(typeScalar *t);
-   bool verify_type_typedef(typeTypedef *t);
+   bool verify_type_typedef(typeTypedef *t, std::string * = NULL);
    bool verify_field(Field *f);
-   bool verify_field_list(fieldListType *t);
+   bool verify_field_list(fieldListType *t, 
+		   std::vector<std::pair<std::string, std::string> > * = NULL, 
+		   std::vector<std::pair<std::string, std::string> > * = NULL);
 
    bool got_type_enum;
    bool got_type_pointer;
@@ -92,6 +98,8 @@ class test_type_info_Mutator : public SymtabMutator {
 	   got_type_scalar(false),
 	   got_type_typedef(false)
    { }
+
+   bool specific_type_tests();
 
    bool got_all_types()
    {
@@ -162,10 +170,11 @@ extern "C" DLLEXPORT TestMutator* test_type_info_factory()
    return new test_type_info_Mutator();
 }
 
-bool test_type_info_Mutator::verify_type_enum(typeEnum *t)
+bool test_type_info_Mutator::verify_type_enum(typeEnum *t, std::vector<std::pair<std::string, int> >*vals)
 {
 	got_type_enum = true;
 	std::string &tn = t->getName();
+	//std::cerr << "verify_type_enum for " << tn << std::endl;
 
 	std::vector<std::pair<std::string, int> > &constants = t->getConstants();
 
@@ -185,10 +194,44 @@ bool test_type_info_Mutator::verify_type_enum(typeEnum *t)
 		}
 	}
 
+	if (vals)
+	{
+		std::vector<std::pair<std::string, int> > &expected_vals = *vals;
+
+		if (expected_vals.size() != constants.size())
+		{
+			fprintf(stderr, "%s[%d]:  differing sizes for values: %d vs %d\n", 
+					FILE__, __LINE__, expected_vals.size(), constants.size());
+			return false;
+		}
+
+		for (unsigned int i = 0; i < expected_vals.size(); ++i)
+		{
+			std::string &tag1 = expected_vals[i].first;
+			std::string &tag2 = constants[i].first;
+			int &val1 = expected_vals[i].second;
+			int &val2 = constants[i].second;
+
+			if (tag1 != tag2)
+			{
+				fprintf(stderr, "%s[%d]:  enum elems[%d] differ: %s != %s\n", 
+						FILE__, __LINE__, i, tag1.c_str(), tag2.c_str());
+				return false;
+			}
+
+			if (val1 != val2)
+			{
+				fprintf(stderr, "%s[%d]:  enum elems[%d] differ: %d != %d\n", 
+						FILE__, __LINE__, i, val1, val2);
+				return false;
+			}
+		}
+	}
+
 	return true;
 }
 
-bool test_type_info_Mutator::verify_type_pointer(typePointer *t)
+bool test_type_info_Mutator::verify_type_pointer(typePointer *t, std::string *exp_base)
 {
 	got_type_pointer = true;
 	std::string &tn = t->getName();
@@ -198,6 +241,16 @@ bool test_type_info_Mutator::verify_type_pointer(typePointer *t)
 		fprintf(stderr, "%s[%d]:  NULL constituent type for type %s!\n", 
 				FILE__, __LINE__, tn.c_str());
 		return false;
+	}
+
+	if (exp_base)
+	{
+		if (c->getName() != *exp_base)
+		{
+			fprintf(stderr, "%s[%d]:  unexpected base type %s (not %s) for type %s\n",
+					FILE__, __LINE__, c->getName().c_str(), exp_base->c_str(), tn.c_str());
+			return false;
+		}
 	}
 	return true;
 }
@@ -235,24 +288,31 @@ bool test_type_info_Mutator::verify_type_subrange(typeSubrange *t)
 {
 	got_type_subrange = true;
 	std::string &tn = t->getName();
+
+	//std::cerr << "verify_type_subrange for " << tn << std::endl;
+
 	if (t->getLow() > t->getHigh())
 	{
 		fprintf(stderr, "%s[%d]:  bad range [%d--%d] for type %s!\n", 
 				FILE__, __LINE__, t->getLow(), t->getHigh(), tn.c_str());
 		return false;
 	}
+
 	return true;
 }
 
-bool test_type_info_Mutator::verify_type_array(typeArray *t)
+bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *exp_hi, 
+		std::string *base_type_name)
 {
 	got_type_array = true;
 	std::string &tn = t->getName();
 
+	//std::cerr << "verify_type_array for " << tn << std::endl;
+
 	if (t->getLow() > t->getHigh())
 	{
-		fprintf(stderr, "%s[%d]:  bad ranges for type %s!\n", 
-				FILE__, __LINE__, tn.c_str());
+		fprintf(stderr, "%s[%d]:  bad ranges [%lu--%lu] for type %s!\n", 
+				FILE__, __LINE__, t->getLow(), t->getHigh(), tn.c_str());
 		return false;
 	}
 
@@ -262,6 +322,36 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t)
 		fprintf(stderr, "%s[%d]:  NULL base type for type %s!\n", 
 				FILE__, __LINE__, tn.c_str());
 		return false;
+	}
+
+	if (exp_low)
+	{
+		if (*exp_low != t->getLow())
+		{
+			fprintf(stderr, "%s[%d]:  unexpected lowbound %d (not %d) for type %s!\n", 
+					FILE__, __LINE__, t->getLow(), *exp_low, tn.c_str());
+			return false;
+		}
+	}
+
+	if (exp_hi)
+	{
+		if (*exp_hi != t->getHigh())
+		{
+			fprintf(stderr, "%s[%d]:  unexpected hibound %d (not %d) for type %s!\n", 
+					FILE__, __LINE__, t->getHigh(), *exp_hi, tn.c_str());
+			return false;
+		}
+	}
+
+	if (base_type_name)
+	{
+		if (*base_type_name != b->getName())
+		{
+			fprintf(stderr, "%s[%d]:  unexpected basetype %s (not %s) for type %s!\n", 
+					FILE__, __LINE__, b->getName().c_str(), base_type_name->c_str(), tn.c_str());
+			return false;
+		}
 	}
 
 	return true;
@@ -306,21 +396,25 @@ bool test_type_info_Mutator::verify_field(Field *f)
 
 	return true;
 }
-bool test_type_info_Mutator::verify_field_list(fieldListType *t)
+
+bool test_type_info_Mutator::verify_field_list(fieldListType *t, 
+		std::vector<std::pair<std::string, std::string> > *comps, 
+		std::vector<std::pair<std::string, std::string> > *efields)
 {
 	std::string &tn = t->getName();
+
+	//std::cerr << "verify_field_list for " << tn << std::endl;
+
 	std::vector<Field *> *components = t->getComponents();
 
-#if 0
-	if (!components || !components->size())
+	if (comps && !components)
 	{
-		fprintf(stderr, "%s[%d]:  field list for %s has no components\n", 
-				FILE__, __LINE__, tn.c_str());
+		fprintf(stderr, "%s[%d]:  no components for type %s\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
-#endif
 
 	if (components)
+	{
 		for (unsigned int i = 0; i < components->size(); ++i)
 		{
 			Field *f = (*components)[i];
@@ -331,19 +425,18 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t)
 				return false;
 			}
 		}
+	}
 
 	std::vector<Field *> *fields = t->getFields();
 
-#if 0
-	if (!fields || !fields->size())
+	if (efields && !fields)
 	{
-		fprintf(stderr, "%s[%d]:  field list for %s has no fields\n", 
-				FILE__, __LINE__, tn.c_str());
+		fprintf(stderr, "%s[%d]:  no fields for type %s\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
-#endif
 
 	if (fields)
+	{
 		for (unsigned int i = 0; i < fields->size(); ++i)
 		{
 			Field *f = (*fields)[i];
@@ -355,15 +448,64 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t)
 			}
 		}
 
+		if (efields)
+		{
+			std::vector<std::pair<std::string, std::string> > &expected_fields = *efields;
+
+			if (efields->size() != fields->size())
+			{
+				fprintf(stderr, "%s[%d]:  WARNING:  differing sizes for expected fields\n", 
+						FILE__, __LINE__);
+				fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
+						fields->size(), efields->size());
+			}
+
+			bool err = false;
+			for (unsigned int i = 0; i < fields->size(); ++i)
+			{
+				Field *f1 = (*fields)[i];
+				std::string fieldname = f1->getName();
+				std::string fieldtypename = f1->getType() ? f1->getType()->getName() : "";
+
+				std::string expected_fieldname = 
+					(expected_fields.size() > i) ? expected_fields[i].first 
+					: std::string("range_error");
+				std::string expected_fieldtypename = 
+					(expected_fields.size() > i) ? expected_fields[i].second 
+					: std::string("range_error");
+				if (fieldtypename != expected_fieldname)
+				{
+					fprintf(stderr, "%s[%d]:  Field type %s not expected %s\n", FILE__,
+							__LINE__, fieldtypename.c_str(), expected_fieldname.c_str());
+					err = true;
+				}
+
+				if (fieldname != expected_fieldtypename)
+				{
+					fprintf(stderr, "%s[%d]:  Field type '%s' not expected '%s'\n", FILE__,
+							__LINE__, fieldname.c_str(), expected_fieldtypename.c_str());
+					err = true;
+				}
+			}
+
+			if (err) 
+				return false;
+		}
+	}
+
 	return true;
 }
 
-bool test_type_info_Mutator::verify_type_struct(typeStruct *t)
+bool test_type_info_Mutator::verify_type_struct(typeStruct *t, 
+		std::vector<std::pair<std::string, std::string> > *ecomps, 
+		std::vector<std::pair<std::string, std::string> > *efields)
 {
 	got_type_struct = true;
 	std::string &tn = t->getName();
 
-	if (!verify_field_list(t))
+	//std::cerr << "verify_struct for " << tn << std::endl;
+
+	if (!verify_field_list(t, ecomps, efields))
 	{
 		fprintf(stderr, "%s[%d]:  verify struct %s failing\n", FILE__, __LINE__, tn.c_str());
 		return false;
@@ -372,33 +514,43 @@ bool test_type_info_Mutator::verify_type_struct(typeStruct *t)
 	return true;
 }
 
-bool test_type_info_Mutator::verify_type_union(typeUnion *t)
+bool test_type_info_Mutator::verify_type_union(typeUnion *t, 
+		std::vector<std::pair<std::string, std::string> > *ecomps, 
+		std::vector<std::pair<std::string, std::string> > *efields)
 {
 	got_type_union = true;
 	std::string &tn = t->getName();
 
-	if (!verify_field_list(t))
+	//std::cerr << "verify_union for " << tn << std::endl;
+
+	if (!verify_field_list(t, ecomps, efields))
 	{
 		fprintf(stderr, "%s[%d]:  verify union %s failing\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
+
 	return true;
 }
 
 bool test_type_info_Mutator::verify_type_scalar(typeScalar *t)
 {
 	got_type_scalar = true;
-	//std::string &tn = t->getName();
+	std::string &tn = t->getName();
+
+	//std::cerr << "verify_scalar for " << tn << std::endl;
 
 	//  uh... nothing to do here....  (maybe check sizes??)
 
 	return true;
 }
 
-bool test_type_info_Mutator::verify_type_typedef(typeTypedef *t)
+bool test_type_info_Mutator::verify_type_typedef(typeTypedef *t, std::string *tn_constituent)
 {
 	got_type_typedef = true;
 	std::string &tn = t->getName();
+
+	//std::cerr << "verify_typedef for " << tn << std::endl;
+	
 	Type *c = t->getConstituentType();
 	if (!c)
 	{
@@ -406,6 +558,17 @@ bool test_type_info_Mutator::verify_type_typedef(typeTypedef *t)
 				FILE__, __LINE__, tn.c_str());
 		return false;
 	}
+
+	if (tn_constituent)
+	{
+		if (c->getName() != *tn_constituent)
+		{
+			fprintf(stderr, "%s[%d]:  unexpected constituent type '%s' (not %s) for type %s!\n", 
+					FILE__, __LINE__, c->getName().c_str(), tn_constituent->c_str(), tn.c_str());
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -483,6 +646,169 @@ bool test_type_info_Mutator::verify_type(Type *t)
 	return false;
 }
 
+bool test_type_info_Mutator::specific_type_tests()
+{
+	Type *t = NULL;
+
+	std::string tname = "enum1";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	typeEnum *te = t->getEnumType();
+	if (!te)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	std::vector<std::pair<std::string, int> > expected_vals;
+	expected_vals.push_back(std::pair<std::string, int>(std::string("ef1_1"), 20));
+	expected_vals.push_back(std::pair<std::string, int>(std::string("ef1_2"), 40));
+	expected_vals.push_back(std::pair<std::string, int>(std::string("ef1_3"), 60));
+	expected_vals.push_back(std::pair<std::string, int>(std::string("ef1_4"), 80));
+	if (!verify_type_enum(te, &expected_vals)) 
+		return false;
+
+	tname = "my_union";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	typeUnion *tu = t->getUnionType();
+	if (!tu)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	std::vector<std::pair<std::string, std::string> > expected_union_fields;
+	expected_union_fields.push_back(std::pair<std::string, std::string>("char *", "my_str"));
+	expected_union_fields.push_back(std::pair<std::string, std::string>("int", "my_int"));
+
+	if (!verify_type_union(tu, NULL, &expected_union_fields)) 
+		return false;
+
+	tname = "mystruct";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	typeStruct *ts = t->getStructType();
+	if (!ts)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	std::vector<std::pair<std::string, std::string> > expected_struct_fields;
+	expected_struct_fields.push_back(std::pair<std::string, std::string>("int", "elem1"));
+	expected_struct_fields.push_back(std::pair<std::string, std::string>("long int", "elem2"));
+	expected_struct_fields.push_back(std::pair<std::string, std::string>("char", "elem3"));
+	expected_struct_fields.push_back(std::pair<std::string, std::string>("float", "elem4"));
+
+	if (!verify_type_struct(ts, NULL, &expected_struct_fields)) 
+		return false;
+
+	tname = "int_alias_t";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	typeTypedef *ttd = t->getTypedefType();
+	if (!ttd)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	std::string expected_constituent_typename("int");
+	if (!verify_type_typedef(ttd, &expected_constituent_typename)) 
+		return false;
+
+	tname = "int_array_t";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	typeTypedef *tt = t->getTypedefType();
+	if (!tt)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	if (!verify_type_typedef(tt, NULL)) 
+		return false;
+
+	Type *tc = tt->getConstituentType();
+	if (!tc)
+	{
+		fprintf(stderr, "%s[%d]:  %s: no constituent type\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	typeArray *ta = tc->getArrayType();
+	if (!ta)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	std::string expected_array_base = "int";
+	int expected_low = 0;
+	int expected_hi = 255;
+	if (!verify_type_array(ta, &expected_low, &expected_hi, &expected_array_base)) 
+		return false;
+
+	tname = "my_intptr_t";
+	if (!symtab->findType(t, tname) || (NULL == t))
+	{
+		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	tt = t->getTypedefType();
+	if (!tt)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	if (!verify_type_typedef(tt, NULL)) 
+		return false;
+
+	tc = tt->getConstituentType();
+	if (!tc)
+	{
+		fprintf(stderr, "%s[%d]:  %s: no constituent type\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	typePointer *tp = tc->getPointerType();
+	if (!tp)
+	{
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		return false;
+	}
+
+	std::string expected_pointer_base = "int";
+	if (!verify_type_pointer(tp, &expected_pointer_base)) 
+		return false;
+
+	return true;
+}
+
 test_results_t test_type_info_Mutator::verify_basic_type_lists()
 {
    std_types = symtab->getAllstdTypes();
@@ -549,43 +875,25 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 
 	   if (!modtypes)
 	   {
-		   if (mods[i]->fileName() == std::string("DEFAULT_MODULE"))
-			   continue;
+		   //  we try to look at all modules that have types
+		   //  but not all do
+		   //  Only fail if the module is one of ours
 
-#if defined (os_aix_test)
-		   if (mods[i]->fileName() == std::string("Global_Linkage"))
-			   continue;
-		   if (mods[i]->fileName() == std::string("__threads_init.c"))
-			   continue;
-		   if (mods[i]->fileName() == std::string("scalb.c"))
-			   continue;
-		   if (mods[i]->fileName() == std::string("frexp.c"))
-			   continue;
-		   if (mods[i]->fileName() == std::string("ccFv5mEd.c"))
-			   continue;
-		   if (mods[i]->fileName() == std::string("__set_errno128.c"))
-			   continue;
-		   if (mods[i]->fileName() == std::string("ldexp.c"))
-			   continue;
-		   if (mods[i]->fileName() == std::string("modf.c"))
-			   continue;
-		   if (  (mods[i]->fileName()[mods[i]->fileName().length() - 2] == '.')
-		       &&(mods[i]->fileName()[mods[i]->fileName().length() - 1] == 's'))
+		   if (  mods[i]->fileName() == std::string("mutatee_util.c")
+		      ||(mods[i]->fileName() == std::string("solo_mutatee_boilerplate.c"))
+		      ||(mods[i]->fileName() == std::string("mutatee_driver.c")))
 		   {
-			   fprintf(stderr, "%s[%d]:  skipping module %s\n", FILE__, __LINE__, 
+			   fprintf(stderr, "%s[%d]:  module %s has no types\n", FILE__, __LINE__, 
 					   mods[i]->fileName().c_str());
-			   continue;
+
+			   return FAILED;
 		   }
-#endif
-
-		   fprintf(stderr, "%s[%d]:  module %s has no types\n", FILE__, __LINE__, 
-				   mods[i]->fileName().c_str());
-
-		   return FAILED;
+		   else
+			   continue;
 	   }
 
-	 //  fprintf(stderr, "%s[%d]:  examining types in module %s\n", FILE__, __LINE__,
-	 //		   mods[i]->fileName().c_str());
+	   //fprintf(stderr, "%s[%d]:  examining types in module %s\n", FILE__, __LINE__,
+	   //		   mods[i]->fileName().c_str());
 
 	   for (unsigned int j = 0; j < modtypes->size(); ++j)
 	   {
@@ -610,8 +918,15 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 	   return FAILED;
    }
 
+   if (!specific_type_tests())
+   {
+	   fprintf(stderr, "%s[%d]:  specific type test failed... \n", FILE__, __LINE__);
+	   return FAILED;
+   }
+
    return PASSED;
 }
+
 test_results_t test_type_info_Mutator::executeTest()
 {
 

@@ -235,7 +235,6 @@ bool Function::addParam(localVar *param)
 
 Function::~Function()
 {
-	fprintf(stderr, "%s[%d]:  function dtor\n", FILE__, __LINE__);
 }
 
 void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)

@@ -72,6 +72,7 @@ typedef enum __ptrace_request pt_req;
 #define cap_ptrace_setoptions
 
 ProcDebug::thread_map_t ProcDebugLinux::all_threads;
+std::map<pid_t, int> ProcDebugLinux::unknown_pid_events;
 
 static int P_gettid()
 {
@@ -277,10 +278,10 @@ DebugEvent ProcDebug::debug_get_event(bool block)
    thread_map_t::iterator i = ProcDebugLinux::all_threads.find(p);
    if (i == ProcDebugLinux::all_threads.end())
    {
-      sw_printf("[%s:%u] - Error, recieved unknown pid %d from waitpid",
+      sw_printf("[%s:%u] - Warning, recieved unknown pid %d from waitpid\n",
                 __FILE__, __LINE__, p);
-      setLastError(err_internal, "Error calling waitpid");
-      ev.dbg = dbg_err;
+      ProcDebugLinux::unknown_pid_events[p] = status;
+      ev.dbg = dbg_noevent;
       return ev;
    }
    
@@ -675,8 +676,11 @@ bool ProcDebugLinux::getThreadIds(std::vector<THR_ID> &thrds)
    thread_map_t::iterator i;
    for (i = threads.begin(); i != threads.end(); i++) {
       ThreadState *ts = (*i).second;
-      if (ts->state() != ps_running)
+      if (ts->state() != ps_running) {
+         fprintf(stderr, "Skipping thread %d in state %d\n", 
+                 ts->getTid(), ts->state());
          continue;
+      }
       thrds.push_back(ts->getTid());
    }
    return true;
@@ -1184,7 +1188,8 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    {
       std::vector<SymtabAPI::Symbol *> syms;
       result = vsyscall->findSymbolByType(syms, vsys_sigreturns[i], 
-                                          SymtabAPI::Symbol::ST_FUNCTION);
+                                          SymtabAPI::Symbol::ST_FUNCTION,
+                                          false, false, false);
       if (!result || !syms.size()) {
          continue;
       }
@@ -1229,6 +1234,18 @@ ThreadState* ThreadState::createThreadState(ProcDebug *parent,
    }
    if (already_attached) {
       newts->setState(ps_attached_intermediate);
+   }
+
+   std::map<pid_t, int>::iterator previous_event;
+   previous_event = ProcDebugLinux::unknown_pid_events.find(tid);
+   if (previous_event != ProcDebugLinux::unknown_pid_events.end()) {
+      int status = (*previous_event).second;
+      sw_printf("[%s:%u] - Matched new thread %d with old events with statis %lx\n",
+                __FILE__, __LINE__, tid, status);
+      if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP) {
+         newts->setState(ps_running);
+      }
+      ProcDebugLinux::unknown_pid_events.erase(previous_event);
    }
 
    ProcDebug::thread_map_t::iterator i = ProcDebugLinux::all_threads.find(tid);

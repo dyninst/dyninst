@@ -342,8 +342,26 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   status = dwarf_dieoffset( subrangeDIE, & subrangeOffset, NULL );
   DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dereferencing DWARF pointer\n", __FILE__, __LINE__ );
 
+  errno = 0;
+  long low_conv = strtol(loBound.c_str(), NULL, 10);
+  if (errno)
+  {
+	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
+			  FILE__, __LINE__, loBound.c_str(), strerror(errno));
+	  low_conv = LONG_MIN;
+  }
+
+  errno = 0;
+  long hi_conv = strtol(hiBound.c_str(), NULL, 10);
+  if (errno) 
+  {
+	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
+			  FILE__, __LINE__, hiBound.c_str(), strerror(errno));
+	  hi_conv = LONG_MAX;
+  }  
+
   std::string srName = subrangeName;
-  typeSubrange * rangeType = new typeSubrange( (int) subrangeOffset, 0, atoi(loBound.c_str()), atoi(hiBound.c_str()), srName );
+  typeSubrange * rangeType = new typeSubrange( (int) subrangeOffset, 0, low_conv, hi_conv, srName );
   assert( rangeType != NULL );
   rangeType = module->getModuleTypesPrivate()->addOrUpdateType( rangeType );
   if ( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }	

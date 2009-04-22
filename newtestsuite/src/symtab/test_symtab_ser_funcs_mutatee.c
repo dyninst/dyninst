@@ -39,13 +39,54 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+enum sf_enum1 {
+	sf1_1 = 20,
+	sf1_2 = 40,
+	sf1_3 = 60,
+	sf1_4 = 80
+} sf_e1;
+
+struct sf_mystruct {
+	int sf_elem1;
+	long sf_elem2;
+	char sf_elem3;
+	float sf_elem4;
+} sf_ms;
+
+typedef int sf_int_array_t [256];
+sf_int_array_t sf_my_array;
+
+typedef int * sf_my_intptr_t;
+
+typedef int sf_int_alias_t;
+
+union sf_my_union{
+	char *sf_my_str;
+	int sf_my_int;
+} sf_u1;
+
+
+void sf_my_test_type_info_func(int foo)
+{
+	int rr =0;
+	sf_my_intptr_t ip = &rr;
+	sf_int_alias_t r = fprintf(stderr, "booga booga: %d\n", foo);
+	if (r)
+	{
+		(*ip) = (int) r;
+		sf_e1 =  sf1_1;
+		sf_u1.sf_my_int = rr;
+		sf_ms.sf_elem1 = rr;
+		sf_my_array[0] = rr;
+	}
+}
 
 int test_symtab_ser_funcs_var1;
 
 int test_symtab_ser_funcs_mutatee() {
-   test_symtab_ser_funcs_var1 = 1;
+	test_symtab_ser_funcs_var1 = 1;
 
-   /*If mutatee should run, things go here.*/
-   return 0;
+	/*If mutatee should run, things go here.*/
+	return 0;
 }
 

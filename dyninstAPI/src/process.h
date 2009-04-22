@@ -1044,6 +1044,7 @@ private:
   static int stopThread_ID_counter;
   static dictionary_hash< Address, unsigned > stopThread_callbacks;
  public:  
+  Address last_single_step;
 
   ///////////////////////////////
   // Platform-specific

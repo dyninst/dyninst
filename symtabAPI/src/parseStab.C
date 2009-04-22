@@ -1194,7 +1194,8 @@ static Type *parseArrayDef(Module *mod, const char *name,
     return newType;
 }
 
-int guessSize(const char *low, const char *hi) {
+int guessSize(const char *low, const char *hi) 
+{
    long long l, h;
 
    if (low[0] == '0')
@@ -1318,10 +1319,31 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        //Create new type
        Type *newType;
        std::string tName = convertCharToString(name);
+
+	   errno = 0;
+	   long low_conv = strtol(low, NULL, 10);
+	   if (errno)
+	   {
+		   fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
+				   FILE__, __LINE__, low, strerror(errno));
+		   low_conv = LONG_MIN;
+	   }
+
+	   errno = 0;
+	   long hi_conv = strtol(hi, NULL, 10);
+	   if (errno)
+	   {
+		   fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
+				   FILE__, __LINE__, hi, strerror(errno));
+		   hi_conv = LONG_MAX;
+	   }
+
        if (baseType == NULL)
-           newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), atoi(low), atoi(hi), tName);
+           newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
+				   low_conv, hi_conv, tName);
        else
-           newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi), tName);
+           newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
+				   low_conv, hi_conv, tName);
        //Add to Collection
        mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
    }
@@ -1394,39 +1416,86 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
     hi[i] = '\0';
 
     std::string tname = convertCharToString(name);
-    if( j <= 0 ){
-        /* range */
+	if ( j <= 0 )
+	{
+		/* range */
 
-        // //bperr("\tLower limit: %s and Upper limit: %s\n", low, hi);
-        //Create new type
+		// //bperr("\tLower limit: %s and Upper limit: %s\n", low, hi);
+		//Create new type
+		errno = 0;
+		long low_conv = strtol(low, NULL, 10);
+		if (errno)
+		{
+			//fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
+		//			FILE__, __LINE__, low, strerror(errno));
+			low_conv = LONG_MIN;
+		}
 
-      if (baseType == NULL) {
-	newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), atoi(low), atoi(hi), tname);
-      }
-      else {
-	newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi), tname);
-      }
-      newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
-    } else if( j > 0){
-        j = atol(hi);
-        if(j == 0){
-            /*size */
-            int size = (int)j;
+		errno = 0;
+		long hi_conv = strtol(hi, NULL, 10);
+		if (errno)
+		{
+			//fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
+			//		FILE__, __LINE__, hi, strerror(errno));
+			hi_conv = LONG_MAX;
+		}
 
-            // //bperr("\tSize of Type : %d bytes\n",size);
-            //Create new type
+		if (baseType == NULL) 
+		{
+			newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), 
+					low_conv, hi_conv, tname);
+		}
+		else 
+		{
+			newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
+					low_conv, hi_conv, tname);
+		}
+		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
+	} 
+	else if( j > 0)
+	{
+		j = atol(hi);
+		if (j == 0)
+		{
+			/*size */
+			int size = (int)j;
 
-            newType = new typeScalar(ID, size, convertCharToString(name));
-            //Add to Collection
-            newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType);
-        } else {
-            /* range */
-            // //bperr("Type RANGE: ERROR!!\n");
-            if (baseType == NULL)
-                newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : sizeof(long), atoi(low), atoi(hi), tname);
-            else
-                newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi),tname);
-            newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
+			// //bperr("\tSize of Type : %d bytes\n",size);
+			//Create new type
+
+			newType = new typeScalar(ID, size, convertCharToString(name));
+			//Add to Collection
+			newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType);
+		} 
+		else 
+		{
+			/* range */
+			// //bperr("Type RANGE: ERROR!!\n");
+			errno = 0;
+			long low_conv = strtol(low, NULL, 10);
+			if (errno)
+			{
+				fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
+						FILE__, __LINE__, low, strerror(errno));
+				low_conv = LONG_MIN;
+			}
+
+			errno = 0;
+			long hi_conv = strtol(hi, NULL, 10);
+			if (errno)
+			{
+				fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
+						FILE__, __LINE__, hi, strerror(errno));
+				hi_conv = LONG_MAX;
+			}
+
+			if (baseType == NULL)
+				newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : sizeof(long), 
+						low_conv, hi_conv, tname);
+			else
+				newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
+						low_conv, hi_conv, tname);
+			newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
         }	
     }
     free(low);

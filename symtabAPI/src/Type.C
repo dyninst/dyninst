@@ -170,7 +170,7 @@ const char *visibility2Str(visibility_t v)
    return "bad_visibility";
 }
 
-void Type::serialize_type(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
+void Type::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
    //  this should no be called directly, but by serialization functions at leaf nodes
    //  of the c++hierarchy (objects that descent from Type)
@@ -179,6 +179,7 @@ void Type::serialize_type(SerializerBase *s, const char *tag) THROW_SPEC (Serial
    gtranslate(s, type_, dataClass2Str, "dataClass");
    gtranslate(s, name_, "name");
    gtranslate(s, size_, "size");
+   serialize_specific(s);
    ifxml_end_element(s, tag);
 
    if (s->isInput())
@@ -388,13 +389,12 @@ bool typeEnum::isCompatible(Type *otype)
    return true;
 }
 
-void typeEnum::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeEnum::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeEnum");
 	fprintf(stderr, "%s[%d]:  FIXME: translate consts here\n", FILE__, __LINE__);
 	//gtranslate(sb, consts, "consts");
-	serialize_type(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeEnum");
 }
 
 /* 
@@ -483,27 +483,31 @@ void typePointer::fixupUnknowns(Module *module)
    }
 }
 
-void typePointer::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typePointer::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	derivedType *dt = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typePointer");
 	dt->serialize_derived(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typePointer");
 }
 /*
  * FUNCTION
  */
 
-typeFunction::typeFunction(typeId_t ID, Type *retType, std::string name)
-   : Type(name, ID, dataFunction), retType_(retType) {
+typeFunction::typeFunction(typeId_t ID, Type *retType, std::string name) :
+    Type(name, ID, dataFunction), 
+	retType_(retType) 
+{
    size_ = sizeof(void *);
    if (retType)
      retType->incrRefCount();
 }
 
-typeFunction::typeFunction(Type *retType, std::string name)
-   : Type(name, USER_TYPE_ID--, dataFunction), retType_(retType) {
+typeFunction::typeFunction(Type *retType, std::string name) :
+    Type(name, USER_TYPE_ID--, dataFunction), 
+	retType_(retType) 
+{
    size_ = sizeof(void *);
    if (retType)
      retType->incrRefCount();
@@ -605,16 +609,14 @@ typeFunction::~typeFunction()
 	retType_->decrRefCount(); 
 }
 
-void typeFunction::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeFunction::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	int t_id = retType_ ? retType_->getID() : 0xdeadbeef;
-	Type *base_type = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeFunction");
 	gtranslate(sb, t_id, "retTypeID");
 	fprintf(stderr, "%s[%d]:  FIXME:  serialize param types here\n", FILE__, __LINE__);
-	base_type->serialize_type(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeFunction");
 }
 
 /*
@@ -626,17 +628,17 @@ void typeFunction::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Ser
 //{
 //}
 
-typeSubrange::typeSubrange(typeId_t ID, int size, int low, int hi, std::string name)
+typeSubrange::typeSubrange(typeId_t ID, int size, long low, long hi, std::string name)
   : rangedType(name, ID, dataSubrange, size, low, hi)
 {
 }
 
-typeSubrange::typeSubrange(int size, int low, int hi, std::string name)
+typeSubrange::typeSubrange(int size, long low, long hi, std::string name)
   : rangedType(name, USER_TYPE_ID--, dataSubrange, size, low, hi)
 {
 }
 
-typeSubrange *typeSubrange::create(std::string &name, int size, int low, int hi, Symtab *obj)
+typeSubrange *typeSubrange::create(std::string &name, int size, long low, long hi, Symtab *obj)
 {
    typeSubrange *typ = new typeSubrange(size, low, hi, name);
 
@@ -659,11 +661,11 @@ bool typeSubrange::isCompatible(Type *otype) {
    return getSize() == oRangetype->getSize();
 }
 
-void typeSubrange::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeSubrange::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeSubrange");
 	serialize_ranged(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeSubrange");
 }
 
 /*
@@ -671,110 +673,117 @@ void typeSubrange::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Ser
  */
 
 typeArray::typeArray(typeId_t ID,
-                                   Type *base,
-                                   int low,
-                                   int hi,
-                                   std::string name,
-                                   unsigned int sizeHint)
-   : rangedType(name, ID, dataArray, 0, low, hi), arrayElem(base), sizeHint_(sizeHint) {
-   assert(base != NULL);
-   arrayElem->incrRefCount();
+		Type *base,
+		long low,
+		long hi,
+		std::string name,
+		unsigned int sizeHint) :
+	rangedType(name, ID, dataArray, 0, low, hi), 
+	arrayElem(base), 
+	sizeHint_(sizeHint) 
+{
+	assert(base != NULL);
+	arrayElem->incrRefCount();
 }
 
 typeArray::typeArray(Type *base,
-                                   int low,
-                                   int hi,
-                                   std::string name,
-                                   unsigned int sizeHint)
-   : rangedType(name, USER_TYPE_ID--, dataArray, 0, low, hi), arrayElem(base), sizeHint_(sizeHint) {
-   assert(base != NULL);
-   arrayElem->incrRefCount();
+		long low,
+		long hi,
+		std::string name,
+		unsigned int sizeHint) :
+	rangedType(name, USER_TYPE_ID--, dataArray, 0, low, hi), 
+	arrayElem(base), 
+	sizeHint_(sizeHint) 
+{
+	assert(base != NULL);
+	arrayElem->incrRefCount();
 }
 
-typeArray *typeArray::create(std::string &name, Type *type, int low, int hi, Symtab *obj){
-   typeArray *typ = new typeArray(type, low, hi, name);
-   
-   if(obj)
-   	obj->addType(typ);
-				   
-   return typ;	
+typeArray *typeArray::create(std::string &name, Type *type, long low, long hi, Symtab *obj)
+{
+	typeArray *typ = new typeArray(type, low, hi, name);
+
+	if(obj)
+		obj->addType(typ);
+
+	return typ;	
 }
 
 bool typeArray::operator==(const Type &otype) const {
-   try {
-      const typeArray &oArraytype = dynamic_cast<const typeArray &>(otype);
-      return (rangedType::operator==(otype) && 
-              (*arrayElem)==*oArraytype.arrayElem);
-   } catch (...) {
-      return false;
-   }
+	try {
+		const typeArray &oArraytype = dynamic_cast<const typeArray &>(otype);
+		return (rangedType::operator==(otype) && 
+				(*arrayElem)==*oArraytype.arrayElem);
+	} catch (...) {
+		return false;
+	}
 }
 
 void typeArray::merge(Type *other) {
-   // There are wierd cases where we may define an array with an element
-   // that is a forward reference
-   
-    typeArray *otherarray = dynamic_cast<typeArray *>(other);
+	// There are wierd cases where we may define an array with an element
+	// that is a forward reference
 
-   if ( otherarray == NULL || this->ID_ != otherarray->ID_ || 
-        this->arrayElem->getDataClass() != dataUnknownType) {
-      //bperr( "Ignoring attempt to merge dissimilar types.\n" );
-      return;
-   }
+	typeArray *otherarray = dynamic_cast<typeArray *>(other);
 
-   arrayElem->decrRefCount();
-   otherarray->arrayElem->incrRefCount();
-   arrayElem = otherarray->arrayElem;
+	if ( otherarray == NULL || this->ID_ != otherarray->ID_ || 
+			this->arrayElem->getDataClass() != dataUnknownType) {
+		//bperr( "Ignoring attempt to merge dissimilar types.\n" );
+		return;
+	}
+
+	arrayElem->decrRefCount();
+	otherarray->arrayElem->incrRefCount();
+	arrayElem = otherarray->arrayElem;
 }
 
 Type *typeArray::getBaseType() const{
-    return arrayElem;
+	return arrayElem;
 }
 
 void typeArray::updateSize()
 {    
-   if (updatingSize) {
-      size_ = 0;
-      return;
-   }
-   updatingSize = true;
-    // Is our array element's Type still a placeholder?
-    if(arrayElem->getDataClass() == dataUnknownType)
-	size_ = 0;
-    
-    // Otherwise we can now calculate the array type's size
-    else {
+	if (updatingSize) {
+		size_ = 0;
+		return;
+	}
+	updatingSize = true;
+	// Is our array element's Type still a placeholder?
+	if(arrayElem->getDataClass() == dataUnknownType)
+		size_ = 0;
 
-	// Calculate the size of a single element
-	unsigned int elemSize = sizeHint_ ? sizeHint_ : arrayElem->getSize();
-	
-	// Calculate the size of the whole array
-	size_ = elemSize * (hi_ ? hi_ - low_ + 1 : 1);
-	
-    }
-   updatingSize = false;
+	// Otherwise we can now calculate the array type's size
+	else {
+
+		// Calculate the size of a single element
+		unsigned int elemSize = sizeHint_ ? sizeHint_ : arrayElem->getSize();
+
+		// Calculate the size of the whole array
+		size_ = elemSize * (hi_ ? hi_ - low_ + 1 : 1);
+
+	}
+	updatingSize = false;
 }
 
-bool typeArray::isCompatible(Type *otype) {
-   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
-       return true;
-   typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+	bool typeArray::isCompatible(Type *otype) {
+		if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+			return true;
+		typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
+		if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
-   typeArray *oArraytype = dynamic_cast<typeArray *>(otype);
+		typeArray *oArraytype = dynamic_cast<typeArray *>(otype);
 
-   if (oArraytype == NULL) {
-      //reportError(BPatchWarning, 112, 
-      //                   "Array and non-array are not type compatible");
-      return false;      
-   }
-   unsigned int ec1, ec2;
+		if (oArraytype == NULL) {
+			//reportError(BPatchWarning, 112, 
+			//                   "Array and non-array are not type compatible");
+			return false;      
+		}
+		unsigned int ec1, ec2;
 
    ec1 = hi_ - low_ + 1;
    ec2 = oArraytype->hi_ - oArraytype->low_ + 1;
    if (ec1 != ec2) {
       char message[80];
-      sprintf(message, "Incompatible number of elements [%d..%d] vs. [%d..%d]",
+      sprintf(message, "Incompatible number of elements [%lu..%lu] vs. [%lu..%lu]",
 	      this->low_, this->hi_, oArraytype->low_, oArraytype->hi_);
       //reportError(BPatchWarning, 112, message);
       return false;
@@ -793,15 +802,15 @@ void typeArray::fixupUnknowns(Module *module)
    }
 }
 
-void typeArray::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	int t_id = arrayElem ? arrayElem->getID() : 0xdeadbeef;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeArray");
 	serialize_ranged(sb);
 	gtranslate(sb, sizeHint_, "sizeHint");
 	gtranslate(sb, t_id, "elemTypeID");
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeArray");
 
 	if (sb->isInput())
 	{
@@ -812,13 +821,13 @@ void typeArray::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serial
  * STRUCT
  */
 
-typeStruct::typeStruct(typeId_t ID, std::string name) 
-   : fieldListType(name, ID, dataStructure) 
+typeStruct::typeStruct(typeId_t ID, std::string name) :
+    fieldListType(name, ID, dataStructure) 
 { 
 }
 
-typeStruct::typeStruct(std::string name) 
-   : fieldListType(name, USER_TYPE_ID--, dataStructure) 
+typeStruct::typeStruct(std::string name)  :
+    fieldListType(name, USER_TYPE_ID--, dataStructure) 
 {
 }
 
@@ -942,31 +951,32 @@ bool typeStruct::isCompatible(Type *otype)
    return true;
 }
 
-void typeStruct::fixupUnknowns(Module *module) {
+void typeStruct::fixupUnknowns(Module *module) 
+{
    for (unsigned int i = 0; i < fieldList.size(); i++)
       fieldList[i]->fixupUnknown(module);
 }
 
-void typeStruct::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeStruct::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	fieldListType *flt = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeStruct");
 	flt->serialize_fieldlist(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeStruct");
 }
 
 /*
  * UNION
  */
 
-typeUnion::typeUnion(typeId_t ID, std::string name) 
-   : fieldListType(name, ID, dataUnion) 
+typeUnion::typeUnion(typeId_t ID, std::string name) :
+    fieldListType(name, ID, dataUnion) 
 { 
 }
 
-typeUnion::typeUnion(std::string name) 
-   : fieldListType(name, USER_TYPE_ID--, dataUnion) 
+typeUnion::typeUnion(std::string name)  :
+    fieldListType(name, USER_TYPE_ID--, dataUnion) 
 {
 }
 
@@ -1090,13 +1100,13 @@ void typeUnion::fixupUnknowns(Module *module) {
       fieldList[i]->fixupUnknown(module);
 }
 
-void typeUnion::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeUnion::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	fieldListType *flt = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeUnion");
 	flt->serialize_fieldlist(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeUnion");
 }
 
 /*
@@ -1104,17 +1114,20 @@ void typeUnion::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serial
  */
 
    
-typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool isSigned)
-   : Type(name, ID, dataScalar), isSigned_(isSigned) {
+typeScalar::typeScalar(typeId_t ID, unsigned int size, std::string name, bool isSigned) :
+    Type(name, ID, dataScalar), isSigned_(isSigned) 
+{
    size_ = size;
 }
 
-typeScalar::typeScalar(unsigned int size, std::string name, bool isSigned)
-   : Type(name, USER_TYPE_ID--, dataScalar), isSigned_(isSigned) {
+typeScalar::typeScalar(unsigned int size, std::string name, bool isSigned) :
+    Type(name, USER_TYPE_ID--, dataScalar), isSigned_(isSigned) 
+{
    size_ = size;
 }
 
-typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj){
+typeScalar *typeScalar::create(std::string &name, int size, Symtab *obj)
+{
    typeScalar *typ = new typeScalar(size, name);
    
    if(obj)
@@ -1173,27 +1186,28 @@ bool typeScalar::isCompatible(Type *otype) {
    return false;
 }
 
-void typeScalar::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeScalar::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	Type *base_type = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeScalar");
 	gtranslate(sb, isSigned_, "isSigned");
-	base_type->serialize_type(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeScalar");
 }
 
 /* 
  * COMMON BLOCK
  */
 
-typeCommon::typeCommon(int ID, std::string name) 
-   : fieldListType(name, ID, dataCommon) {}
+typeCommon::typeCommon(int ID, std::string name) :
+    fieldListType(name, ID, dataCommon) 
+{}
 
-typeCommon::typeCommon(std::string name) 
-   : fieldListType(name, USER_TYPE_ID--, dataCommon) {}
+typeCommon::typeCommon(std::string name) :
+    fieldListType(name, USER_TYPE_ID--, dataCommon) 
+{}
 
-void typeCommon::beginCommonBlock() {
+void typeCommon::beginCommonBlock() 
+{
     std::vector<Field*> emptyList;
 
     // null out field list
@@ -1258,33 +1272,36 @@ void typeCommon::fixupUnknowns(Module *module) {
       cblocks[i]->fixupUnknowns(module);   
 }
 
-std::vector<CBlock *> *typeCommon::getCblocks() const { 
+std::vector<CBlock *> *typeCommon::getCblocks() const 
+{
 	return const_cast<std::vector<CBlock*>*>(&cblocks); 
 }
 
-void typeCommon::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeCommon::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	fieldListType *flt = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeCommon");
 	flt->serialize_fieldlist(sb);
 	gtranslate(sb, cblocks, "CommonBlocks", "CommonBlock");
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeCommon");
 }
 /*
  * TYPEDEF
  */
 
-typeTypedef::typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int sizeHint) 
-   : derivedType(name, ID, 0, dataTypedef) {
+typeTypedef::typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int sizeHint) :
+    derivedType(name, ID, 0, dataTypedef) 
+{
    assert(base != NULL);
    baseType_ = base;
    sizeHint_ = sizeHint / 8;
    baseType_->incrRefCount();
 }
 
-typeTypedef::typeTypedef(Type *base, std::string name, unsigned int sizeHint) 
-   : derivedType(name, USER_TYPE_ID--, 0, dataTypedef) {
+typeTypedef::typeTypedef(Type *base, std::string name, unsigned int sizeHint) :
+    derivedType(name, USER_TYPE_ID--, 0, dataTypedef) 
+{
    assert(base != NULL);
    baseType_ = base;
    sizeHint_ = sizeHint / 8;
@@ -1349,28 +1366,30 @@ void typeTypedef::fixupUnknowns(Module *module)
    }
 }
 
-void typeTypedef::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeTypedef::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	derivedType *dt = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeTypedef");
 	dt->serialize_derived(sb);
 	gtranslate(sb, sizeHint_, "sizeHint");
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeTypedef");
 }
 /*
  * REFERENCE
  */
 
-typeRef::typeRef(int ID, Type *refType, std::string name)
-   : derivedType(name, ID, 0, dataReference) {
+typeRef::typeRef(int ID, Type *refType, std::string name) :
+    derivedType(name, ID, 0, dataReference) 
+{
    baseType_ = refType;
-   if(refType)
+   if (refType)
    	refType->incrRefCount();
 }
 
-typeRef::typeRef(Type *refType, std::string name)
-   : derivedType(name, USER_TYPE_ID--, 0, dataReference) {
+typeRef::typeRef(Type *refType, std::string name) :
+    derivedType(name, USER_TYPE_ID--, 0, dataReference) 
+{
    baseType_ = refType;
    if(refType)
    	refType->incrRefCount();
@@ -1421,13 +1440,13 @@ void typeRef::fixupUnknowns(Module *module)
    }
 }
 		      
-void typeRef::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void typeRef::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	derivedType *dt = this;
 
-	ifxml_start_element(sb, tag);
+	ifxml_start_element(sb, "typeRef");
 	dt->serialize_derived(sb);
-	ifxml_end_element(sb, tag);
+	ifxml_end_element(sb, "typeRef");
 }
 /* 
  * Subclasses of class Type, with interfaces
@@ -1437,8 +1456,8 @@ void typeRef::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serializ
  * FIELD LIST Type
  */
 
-fieldListType::fieldListType(std::string &name, typeId_t ID, dataClass typeDes)
-   : Type(name, ID, typeDes), derivedFieldList(NULL)
+fieldListType::fieldListType(std::string &name, typeId_t ID, dataClass typeDes) :
+    Type(name, ID, typeDes), derivedFieldList(NULL)
 {   
    size_ = 0;
 }
@@ -1575,7 +1594,6 @@ void fieldListType::addField(unsigned num, Field *fld)
 
 void fieldListType::serialize_fieldlist(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
-	Type *base_type = this;
 	bool have_derived_field_list = (NULL != derivedFieldList);
    ifxml_start_element(sb, tag);
    gtranslate(sb, fieldList, "fieldList", "field");
@@ -1588,7 +1606,6 @@ void fieldListType::serialize_fieldlist(SerializerBase *sb, const char *tag) THR
 	   }
 	   gtranslate(sb, *derivedFieldList, "derivedFieldList");
    }
-   base_type->serialize_type(sb);
    ifxml_end_element(sb, tag);
 }
 
@@ -1643,7 +1660,6 @@ void derivedType::serialize_derived(SerializerBase *sb, const char *tag) THROW_S
 
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, t_id, "baseTypeID");
-	serialize_type(sb);
 	ifxml_end_element(sb, tag);
 	if (sb->isInput())
 	{
@@ -1654,13 +1670,19 @@ void derivedType::serialize_derived(SerializerBase *sb, const char *tag) THROW_S
  * RANGED
  */
 
-rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, int low, int hi) 
-   : Type(name, ID, typeDes), low_(low), hi_(hi) {
+rangedType::rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, long low, long hi) :
+   	Type(name, ID, typeDes), 
+	low_(low), 
+	hi_(hi) 
+{
    size_ = size;
 }
 
-rangedType::rangedType(std::string &name, dataClass typeDes, int size, int low, int hi) 
-   : Type(name, USER_TYPE_ID--, typeDes), low_(low), hi_(hi){
+rangedType::rangedType(std::string &name, dataClass typeDes, int size, long low, long hi) :
+    Type(name, USER_TYPE_ID--, typeDes), 
+	low_(low), 
+	hi_(hi)
+{
    size_ = size;
 }
 
@@ -1694,11 +1716,9 @@ bool rangedType::operator==(const Type &otype) const
 
 void rangedType::serialize_ranged(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
-	Type *base_type = this;
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, low_, "low");
 	gtranslate(sb, hi_, "high");
-	base_type->serialize_type(sb);
 	ifxml_end_element(sb, tag);
 }
 

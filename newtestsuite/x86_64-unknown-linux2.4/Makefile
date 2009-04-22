@@ -10,6 +10,8 @@ USES_DWARF_DEBUG = true
 USES_LIBELF = true
 DEBUG_FLAG = -g
 
+CC = gcc
+CXX = g++
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 include $(TO_CORE)/make.config 
