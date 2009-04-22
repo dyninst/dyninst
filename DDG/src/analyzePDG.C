@@ -39,19 +39,25 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "intraFunctionPDGCreator.h"
+#include <set>
+#include <map>
+
 
 #include "Graph.h"
-#include "intraFunctionCreator.h"
-#include "intraFunctionCDGCreator.h"
-#include "intraFunctionFDGCreator.h"
 
+#include "analyzePDG.h"
 #include "BPatch_function.h"
 #include "Annotatable.h"
 
 using namespace std;
 using namespace Dyninst;
-using namespace Dyninst::DDG;
+using namespace Dyninst::DepGraphAPI;
+
+DDG::Ptr PDGAnalyzer::analyze() {
+    return DDG::createGraph();
+}
+
+#if 0
 
 intraFunctionPDGCreator
 intraFunctionPDGCreator::create(
@@ -204,3 +210,5 @@ void intraFunctionXPDGCreator::mergeFDG() {
   // Merge it with xPDG.
   merge(xPDG, fdg);
 }
+
+#endif

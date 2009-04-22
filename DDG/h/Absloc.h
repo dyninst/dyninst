@@ -63,7 +63,7 @@
 class BPatch_function;
 
 namespace Dyninst {
-namespace DDG {
+namespace DepGraphAPI {
 
 class Graph;
 class Node;
@@ -83,31 +83,13 @@ class Absloc : public AnnotatableSparse {
     // by the graph.
     typedef dyn_detail::boost::shared_ptr<Absloc> Ptr;
     typedef std::set<Ptr> AbslocSet;
-    
+
     static void getAbslocs(AbslocSet &locs);
+    
     virtual std::string name() const = 0;
-    
-    //static Ptr createAbsloc(const std::string name);
-    
-    // Translate from an InstructionAPI Expression into an abstract
-    // location.
-    // We need some sort of "get state" function; for now we're doing
-    // Function and address...
-    static Absloc::Ptr getAbsloc(const InstructionAPI::Expression::Ptr exp,
-                                 Function *func,
-                                 Address addr);
-    static Absloc::Ptr getAbsloc(const InstructionAPI::RegisterAST::Ptr reg);
-    
+
     virtual ~Absloc() {};
 
-    static void getUsedAbslocs(const InstructionAPI::Instruction insn,
-                               Function *func,
-                               Address addr,
-                               AbslocSet &uses);
-    static void getDefinedAbslocs(const InstructionAPI::Instruction insn,
-                                  Function *func,
-                                  Address addr,
-                                  AbslocSet &defs);
     // Get the set of Abslocs that may "contain" the current one; that is,
     // may be included in a use or definition. For example, the "Stack"
     // absloc contains any specific stack slot.
@@ -115,16 +97,8 @@ class Absloc : public AnnotatableSparse {
     virtual bool isPrecise() const = 0;
  protected:
 
-    static bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
-    static bool convertResultToSlot(const InstructionAPI::Result &res, int &slot);
 
     Absloc() {};
-
-    static bool isFramePointer(const InstructionAPI::InstructionAST::Ptr &reg, Function *func, Address addr);
-    static bool isStackPointer(const InstructionAPI::InstructionAST::Ptr &reg, Function *func, Address addr);
-
-    static void bindFP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Address addr);
-    static void bindSP(InstructionAPI::InstructionAST::Ptr &reg, Function *func, Address addr);
 
 };
 
@@ -162,6 +136,8 @@ class StackLoc : public Absloc {
  public:
     typedef std::map<int, StackLoc::Ptr> StackMap;
     typedef dyn_detail::boost::shared_ptr<StackLoc> Ptr;
+
+    int slot() const { return slot_; }
 
     virtual ~StackLoc() {};
     virtual std::string name() const;

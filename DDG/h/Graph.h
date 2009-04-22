@@ -59,7 +59,7 @@
 #include "Absloc.h"
 
 namespace Dyninst {
-namespace DDG {
+namespace DepGraphAPI {
 
     class Dyninst::InstructionAPI::Instruction;
     class Edge;
@@ -75,80 +75,42 @@ class Graph : public AnnotatableSparse {
     
  public:
     typedef dyn_detail::boost::shared_ptr<Graph> Ptr;
+
     typedef Node::Ptr NodePtr;
     typedef Node::Set NodeSet;
-
-    typedef Absloc::Ptr AbslocPtr;
-    typedef std::set<AbslocPtr> AbslocSet;
     
-    typedef std::map<AbslocPtr, NodePtr> AbslocMap;
-    typedef std::map<Address, AbslocMap> NodeMap;
-    
-    typedef std::map<AbslocPtr, NodePtr> InitialMap;
-    
-    // Store sufficient information to identify a
-    // node (later) - used to record pre-call info.
-    typedef std::pair<AbslocPtr, Address> CNode;
-    typedef std::set<CNode> CNodeSet;
-    typedef std::map<AbslocPtr, CNodeSet> CNodeRec;
-    typedef std::map<Address, CNodeRec> CNodeMap;
-    
- public:
-    
-    bool initialNodes(NodeSet &nodes) const;
-    bool allNodes(NodeSet &nodes);
-    
+    typedef std::map<Address, NodeSet> NodeMap;
+ public:    
     // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
     
     // We effectively build the graph by specifying all edges,
     // since it is meaningless to have a disconnected node. 
     void insertPair(NodePtr source, NodePtr target);
-    
-    // Make a node in this graph. If the node already exists we return
-    // it; otherwise we create a new Node and add it to allNodes_ (NOT
-    // entryNodes_; that is populated by calls to insertPair above).
-    NodePtr makeNode(Dyninst::InstructionAPI::Instruction &instruction,
-                     Address addr,
-                     AbslocPtr absloc);
-    
-    // Make a node that represents a parameter; that is, an initial 
-    // definition that isn't explicit in the code but must exist.
-    NodePtr makeParamNode(Absloc::Ptr a);
 
-    // And a node that represents a return value.
-    NodePtr makeReturnNode(Absloc::Ptr a);
-    
-    // Make a node that represents a phantom "definition" to an
-    // immediate value. We do this so that all nodes are reachable
-    // from either a parameter node or this "immediate" node.
-    NodePtr makeVirtualNode();
-    
-    // Make a simple node in this graph. If the node already exists we return
-    // it; otherwise we create a new Node and add it to insnNodes_ (NOT
-    // entryNodes_; that is populated by calls to insertPair above).
-    NodePtr makeSimpleNode(Dyninst::InstructionAPI::Instruction &instruction, Address addr);
-    
-    bool printDOT(const std::string fileName);
+    void insertEntryNode(NodePtr entry);
     
     // If you want to traverse the graph start here.
-    void entryNodes(NodeSet &ret) const;
-
-    // This is defined as the abstract locations this graph uses.
-    void parameterNodes(NodeSet &ret) const;
-
-    // Get nodes that represent all locations defined by the
-    // function. These are the counterpart to the parameter nodes.
-    void returnNodes(NodeSet &ret) const;
+    virtual const NodeSet &entryNodes() const { return entryNodes_; };
     
+    // Get all nodes in the graph
+    virtual const NodeSet &allNodes() const { return nodes_; };
+
     // Returns a new graph after copying the nodes and edges into this new graph.
     Graph::Ptr copyGraph();
     
     // Returns a set of nodes which are related to the instruction at
     // the given address.
-    NodeSet getNodesAtAddr(Address addr);
+    const NodeSet &getNodesAtAddr(Address addr);
+
+    bool printDOT(const std::string fileName);
+
+    virtual ~Graph() {};
     
- private:
+ protected:
+     
+    void addNode(Node::Ptr node);
+     
     static const Address INITIAL_ADDR;
     
     // Create graph, add nodes.
@@ -157,20 +119,50 @@ class Graph : public AnnotatableSparse {
     // We also need to point to all Nodes to keep them alive; we can't 
     // pervasively use shared_ptr within the graph because we're likely
     // to have cycles.
-    NodeMap insnNodes_;
+    NodeSet nodes_;
     
+    NodeMap nodesByAddr_;
+
+    NodeSet entryNodes_;
+};
+
+
+class DDG : public Graph {
+ public:
+    typedef dyn_detail::boost::shared_ptr<DDG> Ptr;
+
+    typedef std::map<Address, NodeSet> AddrMap;
+    
+    typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
+    typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
+
+    typedef std::set<ActualParamNode::Ptr> ActualParamNodeSet;
+    typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
+
+
+    static Ptr createGraph();
+    
+    virtual ~DDG() {};
+
+    const FormalParamNodeSet &formalParameterNodes() const { return formalParamNodes_; }
+    const FormalReturnNodeSet &formalReturnNodes() const { return formalReturnNodes_; }
+    
+ private:
+
+    DDG() {};
+
     // Assertion: only parameter nodes will have no in-edges,
     // by definition.
-    AbslocMap parameterNodes_;
+    FormalParamNodeSet formalParamNodes_;
 
     // Virtual nodes to represent locations defined by the function.
-    AbslocMap returnNodes_;
+    FormalReturnNodeSet formalReturnNodes_;
 
-    // A singleton node so that all "real" nodes have an in-edge
-    // and are thus reachable.
-    NodePtr virtualNode_;
-    
+    AddrMap callParamNodes_;
+    AddrMap callReturnNodes_;
 };
+
+
 };
 }
 #endif

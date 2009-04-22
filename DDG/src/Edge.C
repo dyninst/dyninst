@@ -51,7 +51,7 @@
 // * Factory method
 // * Constructors
 
-using namespace Dyninst::DDG;
+using namespace Dyninst::DepGraphAPI;
 
 Edge::Ptr Edge::createEdge(const NodeSharedPtr source,
                            const NodeSharedPtr target,

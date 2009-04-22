@@ -1,4 +1,3 @@
-//#define LOTSOFDATA
 
 #include <iostream>
 #include <stdio.h>
@@ -12,9 +11,12 @@
 #include "BPatch_snippet.h"
 
 #include "Graph.h"
-#include "intraFunctionCreator.h"
+#include "Analyzer.h"
 
 BPatch bpatch;
+
+using namespace Dyninst;
+using namespace DepGraphAPI;
 
 int main(int argc, const char** argv)
 {
@@ -35,12 +37,13 @@ int main(int argc, const char** argv)
   appImage->findFunction(argv[2], 
 			 function);
 
-  intraFunctionDDGCreator creator = intraFunctionDDGCreator::create(function[0]);
-  Dyninst::DDG::Graph::Ptr g = creator.getDDG();
+  Analyzer a =  Analyzer::createAnalyzer(function[0]); 
+
+  DDG::Ptr ddg = a.createDDG();
 
   std::string str(argv[2]);
   str += ".dot";
-  g->printDOT(str);
+  ddg->printDOT(str);
   
 
   return EXIT_SUCCESS;

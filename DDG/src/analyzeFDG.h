@@ -47,19 +47,21 @@
 #include "Node.h"
 
 using namespace std;
-using namespace Dyninst;
-using namespace Dyninst::DDG;
-using namespace Dyninst::InstructionAPI;
 
 class BPatch_basicBlock;
 class BPatch_function;
+
+namespace Dyninst {
+namespace DepGraphAPI {
+
+using namespace InstructionAPI;
 
 /**
  * The tool that creates the Flow Dependence Graph (FDG) associated with a given 
  * function (currently BPatch_function).
  */
-class intraFunctionFDGCreator {
-private:
+class FDGAnalyzer {
+ public:
   typedef BPatch_basicBlock Block;
   typedef BPatch_function Function;
   typedef set<Block*> BlockSet;
@@ -67,16 +69,18 @@ private:
   typedef set<NodePtr> NodeSet;
   typedef pair<Instruction, Address> InstWithAddr;
   typedef vector<InstWithAddr*> InstWithAddrList;
+
+private:
   
   /**
-   * The function whose FDG is being created.
+   * Analyzed function
    */
-  Function *func;
+  Function *func_;
   
   /**
    * The Flow Dependence Graph
    */
-  Graph::Ptr FDG;
+  Graph::Ptr fdg;
   
   /**
    * Maps each block A to a set of Block S which A depends on (for all S, A depends on S). 
@@ -99,15 +103,16 @@ private:
   InstWithAddrList lastInstInBlock;
 
 public:
-  /**
-   * Creates an intraFunctionFDGCreator object associated with the given function.
-   */
-  static intraFunctionFDGCreator create(Function *func);
-  
+  FDGAnalyzer(Function *f) : func_(f) {};
+
   /**
    * Returns the FDG created by this intraFunctionCDGCreator object.
    */
-  Graph::Ptr getFDG();
+  Graph::Ptr analyze();
+
+  ~FDGAnalyzer();
+
+ private:
 
   /**
    * Returns true iff this operation is a return or exit operation.
@@ -127,19 +132,19 @@ public:
   /**
    * Destructor.
    */
-  virtual ~intraFunctionFDGCreator();
 private:
-  intraFunctionFDGCreator(Function *f) : func(f) {};
   
-  void analyze();
-  void createNodes(BlockSet& blocks);
-  void markBlocksWithJump(BlockSet& blocks);
-  void findDependencies(BlockSet& blocks);
+  void createNodes(BlockSet &blocks);
+  void markBlocksWithJump(BlockSet &blocks);
+  void findDependencies(BlockSet &blocks);
   void findBlocksOnWay(BlockSet& needThese, BlockSet& visited, Block* givenBlock);
   void findBlocksRecursive(BlockSet& needThese, BlockSet& visited, Block* givenBlock);
   
   void createDepToOtherBlocks(NodeSet& nodes, NodePtr source);
   bool createDepWithinBlock(NodeSet& nodes, NodePtr source);
+};
+
+};
 };
 
 #endif /* CONTROLFLOWFIXER_H_ */
