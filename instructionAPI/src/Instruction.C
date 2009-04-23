@@ -312,6 +312,11 @@ namespace Dyninst
       return retLoc;
     }
     
+    InsnCategory Instruction::getCategory() const
+    {
+      return entryToCategory(m_InsnOp.getID());
+    }
+    
     
   };
 };
