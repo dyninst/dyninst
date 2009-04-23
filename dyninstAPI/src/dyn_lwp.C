@@ -252,6 +252,9 @@ bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
     if(shouldWaitUntilStopped) {
         res = waitUntilStopped();
     }
+    if(status_ == exited) {
+      return true;
+    }
     
     proc()->set_lwp_status(this, stopped);
     return res;
