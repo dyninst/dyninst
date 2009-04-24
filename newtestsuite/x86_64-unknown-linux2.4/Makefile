@@ -8,10 +8,11 @@ NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-DEBUG_FLAG = -g
+DEBUG_FLAG = -g 
 
 CC = gcc
 CXX = g++
+PLATFORM_CXXFLAGS = 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 include $(TO_CORE)/make.config 
@@ -36,7 +37,8 @@ M_ABI_FLAG = -m32 -Di386_unknown_linux2_4 -Dm32_test
 #endif
 
 GNU_WARNING_FLAGS = -W -Wall
-MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
+#MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS) -fpe
+MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS) 
 MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 

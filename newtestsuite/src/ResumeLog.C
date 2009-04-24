@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <stdio.h>
 #include <assert.h>
 #include "test_results.h"
 #include "test_info_new.h"

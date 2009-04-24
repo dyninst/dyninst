@@ -48,6 +48,7 @@
 #include <string>
 #include <string.h> // for strrchr()
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "dyntypes.h"
 #include "util.h"
