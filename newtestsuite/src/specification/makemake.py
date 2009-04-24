@@ -558,7 +558,12 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 		for l in m['libraries']:
 			# Need to include the required libraries on the command line
 			# FIXME Use a compiler-specific command-line flag instead of '-l'
-			out.write("-l%s " % (l))
+			out.write("-l%s" % (l))
+			if os.environ.get('PLATFORM') == 'x86_64-unknown-linux2.4':
+				if m['abi'] == '32':
+					if l == 'testA':
+						out.write('_m32')
+			out.write(" ")
 		out.write('\n')
 
 		# ***ADD NEW BUILD-TIME ACTIONS HERE***

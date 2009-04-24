@@ -46,9 +46,23 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#if !defined(os_windows_test)
+#if defined (__cplusplus)
+extern "C" int relocation_test_variable1;
+extern "C" int relocation_test_variable2;
+extern "C" int relocation_test_function1(int);
+extern "C" int relocation_test_function2(int);
+#else
+extern int relocation_test_variable1;
+extern int relocation_test_variable2;
+extern int relocation_test_function1(int);
+extern int relocation_test_function2(int);
+#endif
+#endif
 void func_relocations_mutatee()
 {
 #if !defined(os_windows_test)
+	int r1, r2;
 	char buf[10];
 	struct stat statbuf;
 
@@ -67,6 +81,12 @@ void func_relocations_mutatee()
 	stat("/blaarch", &statbuf);
 	lstat("/blaarch", &statbuf);
 	fstat(7, &statbuf);
+
+	printf("%d, %d\n", relocation_test_variable1, relocation_test_variable2);
+	r1 = relocation_test_function1(1);
+	r2 = relocation_test_function2(2);
+	printf("%d, %d\n", r1, r2);
+
 #endif
 }
 

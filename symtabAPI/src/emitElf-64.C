@@ -377,9 +377,9 @@ bool emitElf64::driver(Symtab *obj, string fName){
     /* flag the file for no auto-layout */
     elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);
     
-    Elf_Scn *scn = NULL, *newscn;
+    Elf_Scn *scn = NULL, *newscn = NULL;
     Elf_Data *newdata = NULL, *olddata = NULL;
-    Elf64_Shdr *newshdr, *shdr;
+    Elf64_Shdr *newshdr = NULL, *shdr = NULL;
      dyn_hash_map<unsigned, unsigned> SecLinkMapping;
      dyn_hash_map<std::string, unsigned> newNameIndexMapping;
      dyn_hash_map<unsigned, std::string> oldIndexNameMapping;

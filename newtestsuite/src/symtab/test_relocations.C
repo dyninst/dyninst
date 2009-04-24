@@ -93,7 +93,7 @@ class test_relocations_Mutator : public SymtabMutator {
 	std::vector<relocationEntry> relocs;
 	char libc_name[128];
 	Symtab *libc;
-	std::vector<std::string> expected_relocations;
+	std::vector<std::string> expected_libc_relocations;
 
 	bool open_libc()
 	{
@@ -115,20 +115,20 @@ class test_relocations_Mutator : public SymtabMutator {
 	public:
 	test_relocations_Mutator() 
 	{ 
-		expected_relocations.push_back(std::string("printf"));
-		expected_relocations.push_back(std::string("fprintf"));
-		expected_relocations.push_back(std::string("sprintf"));
-		expected_relocations.push_back(std::string("snprintf"));
-		expected_relocations.push_back(std::string("memcpy"));
-		expected_relocations.push_back(std::string("strcmp"));
-		expected_relocations.push_back(std::string("memset"));
-		expected_relocations.push_back(std::string("fopen"));
-		expected_relocations.push_back(std::string("fwrite"));
-		expected_relocations.push_back(std::string("fread"));
-		expected_relocations.push_back(std::string("fclose"));
-		expected_relocations.push_back(std::string("__xstat"));
-		expected_relocations.push_back(std::string("__lxstat"));
-		expected_relocations.push_back(std::string("__fxstat"));
+		expected_libc_relocations.push_back(std::string("printf"));
+		expected_libc_relocations.push_back(std::string("fprintf"));
+		expected_libc_relocations.push_back(std::string("sprintf"));
+		expected_libc_relocations.push_back(std::string("snprintf"));
+		expected_libc_relocations.push_back(std::string("memcpy"));
+		expected_libc_relocations.push_back(std::string("strcmp"));
+		expected_libc_relocations.push_back(std::string("memset"));
+		expected_libc_relocations.push_back(std::string("fopen"));
+		expected_libc_relocations.push_back(std::string("fwrite"));
+		expected_libc_relocations.push_back(std::string("fread"));
+		expected_libc_relocations.push_back(std::string("fclose"));
+		expected_libc_relocations.push_back(std::string("__xstat"));
+		expected_libc_relocations.push_back(std::string("__lxstat"));
+		expected_libc_relocations.push_back(std::string("__fxstat"));
 	};
 	virtual test_results_t executeTest();
 };
@@ -177,16 +177,17 @@ test_results_t test_relocations_Mutator::executeTest()
 		return FAILED;
 	}
 
-	bool err = false;
 
-	for (unsigned int i = 0; i < expected_relocations.size(); ++i)
+	bool found_one = false;
+
+	for (unsigned int i = 0; i < expected_libc_relocations.size(); ++i)
 	{
 		int relocation_index ;
 		bool found = false;
 		for (unsigned int j = 0; j < relocs.size(); ++j)
 		{
 			const std::string &relname = relocs[j].name();
-			if (relname == expected_relocations[i])
+			if (relname == expected_libc_relocations[i])
 			{
 				found = true;
 				relocation_index = i;
@@ -195,23 +196,30 @@ test_results_t test_relocations_Mutator::executeTest()
 		}
 		if (!found)
 		{
+#if 0
 			fprintf(stderr, "%s[%d]:  could not find relocation for %s\n", 
-					FILE__, __LINE__, expected_relocations[i].c_str());
-			err = true;
+					FILE__, __LINE__, expected_libc_relocations[i].c_str());
+#endif
 		}
-		else {
+		else 
+		{
 			std::vector<Function *> libc_matches;
-			if (!libc->findFunctionsByName(libc_matches, expected_relocations[i]) || !libc_matches.size())
+			if (!libc->findFunctionsByName(libc_matches, expected_libc_relocations[i]) 
+					|| !libc_matches.size())
 			{
+#if 0
 				fprintf(stderr, "%s[%d]:  failed to find %s in libc\n", FILE__, __LINE__, 
-						expected_relocations[i].c_str());
+						expected_libc_relocations[i].c_str());
 				err = true;
+#endif
 			}
 			else
 			{
 				//fprintf(stderr, "%s[%d]:  found %d matches for %s in libc\n", 
-			//			FILE__, __LINE__, libc_matches.size(), expected_relocations[i].c_str());
+			//			FILE__, __LINE__, libc_matches.size(), expected_libc_relocations[i].c_str());
 
+				found_one = true;
+#if 0
 				const Dyninst::SymtabAPI::Function *f = libc_matches[0];
 
 				if (!f)
@@ -226,13 +234,16 @@ test_results_t test_relocations_Mutator::executeTest()
 					//  properly resolve to the library...  for now existence 
 					//  will have to suffice.
 					Offset off = f->getOffset();
-					//fprintf(stderr, "\toffset = %p, rel_target_addr = %p, rel_addr = %p\n", off, relocs[relocation_index].target_addr(), relocs[relocation_index].rel_addr());
+					//fprintf(stderr, "\toffset = %p, rel_target_addr = %p, rel_addr = %p\n", 
+					// off, relocs[relocation_index].target_addr(), relocs[relocation_index].rel_addr());
 				}
+#endif
 			}
 		}
 	}
 
-	if (err) {
+	if (!found_one) 
+	{
 #if 0
 		fprintf(stderr, "%s[%d]:  have relocations:\n", FILE__, __LINE__);
 		for (unsigned int i = 0; i < relocs.size(); ++i)
@@ -244,6 +255,40 @@ test_results_t test_relocations_Mutator::executeTest()
 		return FAILED;
 	}
 
+	//  OK, enough with libc...  now let's look at the (more controllable) relocations
+	//  from libtestA...
+
+	std::vector<std::string> expected_relocs;
+	expected_relocs.push_back(std::string("relocation_test_function1"));
+	expected_relocs.push_back(std::string("relocation_test_function2"));
+	//expected_relocs.push_back(std::string("relocation_test_variable1"));
+	//expected_relocs.push_back(std::string("relocation_test_variable2"));
+	int num_found = 0;
+	for (unsigned int i = 0; i < expected_relocs.size(); ++i)
+	{
+		bool foundit =  false;
+		for (unsigned int j = 0; j < relocs.size(); ++j)
+		{
+			if (relocs[j].name() == expected_relocs[i])
+			{
+				fprintf(stderr, "%s[%d]:  found expected reloc %s\n", FILE__, __LINE__, 
+						relocs[j].name().c_str());
+				foundit = true;
+				num_found++;
+				break;
+			}
+		}
+		if (!foundit)
+			fprintf(stderr, "%s[%d]:  failed to find relocation for %s\n", 
+					FILE__, __LINE__, expected_relocs[i].c_str());
+	}
+
+	if (num_found != expected_relocs.size())
+	{
+		fprintf(stderr, "%s[%d]:  found %d relocs, not the expected %d\n", 
+				FILE__, __LINE__, num_found, expected_relocs.size());
+		return FAILED;
+	}
 	return PASSED;
 }
 

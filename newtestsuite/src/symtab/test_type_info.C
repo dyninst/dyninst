@@ -84,6 +84,7 @@ class test_type_info_Mutator : public SymtabMutator {
    bool got_type_scalar;
    bool got_type_typedef;
 
+   supportedLanguages lang;
 	public:
    test_type_info_Mutator() : 
 	   std_types(NULL), 
@@ -96,7 +97,8 @@ class test_type_info_Mutator : public SymtabMutator {
 	   got_type_struct(false),
 	   got_type_union(false),
 	   got_type_scalar(false),
-	   got_type_typedef(false)
+	   got_type_typedef(false),
+	   lang(lang_Unknown)
    { }
 
    bool specific_type_tests();
@@ -452,20 +454,67 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 		{
 			std::vector<std::pair<std::string, std::string> > &expected_fields = *efields;
 
-			if (efields->size() != fields->size())
+			//  We would be prudent here to use module language info to check
+			//  whether this is c or c++, since that affects how many fields we have
+			//  (c++ may have fields that represent functions, ctors, etc)
+			//
+			//  But alas, our language determination is still a bit inconsistent
+			//  and can't really be treated as reliable
+			//
+
+			//if (lang = lang_CPlusPlus)
+			//{
+				//  C++ field lists may contain function definitions as well
+				// as fields
+			//	if (efields->size() < fields->size())
+			//	{
+			//		fprintf(stderr, "%s[%d]:  bad sizes for expected fields\n", 
+			//				FILE__, __LINE__);
+			//		fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
+			//				fields->size(), efields->size());
+			//	}
+			//}
+			//else
+			//{
+			//	if (efields->size() != fields->size())
+			//	{
+			//		fprintf(stderr, "%s[%d]:  WARNING:  differing sizes for expected fields\n", 
+			//				FILE__, __LINE__);
+			//		fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
+			//				fields->size(), efields->size());
+			//	}
+			//}
+
+			if (efields->size() > fields->size())
 			{
-				fprintf(stderr, "%s[%d]:  WARNING:  differing sizes for expected fields\n", 
+				fprintf(stderr, "%s[%d]:  bad sizes for expected fields\n", 
 						FILE__, __LINE__);
 				fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
 						fields->size(), efields->size());
+				return false;
 			}
 
 			bool err = false;
-			for (unsigned int i = 0; i < fields->size(); ++i)
+			for (unsigned int i = 0; i < expected_fields.size(); ++i)
 			{
+				if (fields->size() <= i)
+				{
+					fprintf(stderr, "%s[%d]:  cannot get %dth elem of %d size vec\n", 
+							FILE__, __LINE__, i, fields->size());
+					break;
+				}
+
 				Field *f1 = (*fields)[i];
 				std::string fieldname = f1->getName();
 				std::string fieldtypename = f1->getType() ? f1->getType()->getName() : "";
+				Type *ft = f1->getType();
+
+				//if (lang == lang_CPlusPlus && ft->getFunctionType())
+				//{
+				//	fprintf(stderr, "%s[%d]:  skipping field %s\n", FILE__, __LINE__, 
+				//			fieldname.c_str());
+				//	continue;
+				//}
 
 				std::string expected_fieldname = 
 					(expected_fields.size() > i) ? expected_fields[i].first 
@@ -475,7 +524,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 					: std::string("range_error");
 				if (fieldtypename != expected_fieldname)
 				{
-					fprintf(stderr, "%s[%d]:  Field type %s not expected %s\n", FILE__,
+					fprintf(stderr, "%s[%d]:  Field type '%s', not expected '%s'\n", FILE__,
 							__LINE__, fieldtypename.c_str(), expected_fieldname.c_str());
 					err = true;
 				}
@@ -519,6 +568,17 @@ bool test_type_info_Mutator::verify_type_union(typeUnion *t,
 		std::vector<std::pair<std::string, std::string> > *efields)
 {
 	got_type_union = true;
+//#if defined (os_solaris_test) || defined (os_aix_test)
+#if 0
+	static bool did_warning = false;
+	if (!did_warning)
+	{
+		fprintf(stderr, "%s[%d]: WARNING:  union verification skipped on this platform\n", 
+				FILE__, __LINE__);
+		did_warning = true;
+	}
+	return true;
+#else
 	std::string &tn = t->getName();
 
 	//std::cerr << "verify_union for " << tn << std::endl;
@@ -530,6 +590,7 @@ bool test_type_info_Mutator::verify_type_union(typeUnion *t,
 	}
 
 	return true;
+#endif
 }
 
 bool test_type_info_Mutator::verify_type_scalar(typeScalar *t)
@@ -709,7 +770,12 @@ bool test_type_info_Mutator::specific_type_tests()
 
 	std::vector<std::pair<std::string, std::string> > expected_struct_fields;
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("int", "elem1"));
+#if defined (os_aix_test)
+	//  this is kludgy and probably not general enough
+	expected_struct_fields.push_back(std::pair<std::string, std::string>("long", "elem2"));
+#else
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("long int", "elem2"));
+#endif
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("char", "elem3"));
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("float", "elem4"));
 
@@ -930,7 +996,34 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 test_results_t test_type_info_Mutator::executeTest()
 {
 
+	SymtabAPI::Module *mod = NULL;
+	std::vector<SymtabAPI::Module *> mods;
+	if (!symtab->getAllModules(mods))
+	{
+		fprintf(stderr, "%s[%d]:  failed to get all modules\n", FILE__, __LINE__);
+		return FAILED;
+	}
 
+	for (unsigned int i = 0; i < mods.size(); ++i)
+	{
+		std::string mname = mods[i]->fileName();
+		//fprintf(stderr, "%s[%d]:  considering module %s\n", FILE__, __LINE__, mname.c_str());
+		if (!strncmp("solo_mutatee", mname.c_str(), strlen("solo_mutatee")))
+		{
+			if (mod)
+				fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+			mod = mods[i];
+		}
+	}
+
+	if (!mod)
+	{
+		fprintf(stderr, "%s[%d]:  failed to find module\n", FILE__, __LINE__);
+		return FAILED;
+	}
+
+	lang = mod->language();
+	//fprintf(stderr, "%s[%d]:  lang = %s\n", FILE__, __LINE__, supportedLanguages2Str(lang));
 	test_results_t ret = verify_basic_type_lists();
    return ret;
 }

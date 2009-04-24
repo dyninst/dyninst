@@ -1326,11 +1326,7 @@ struct {
  {"symtab_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "high", "32"},
  {"symtab_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, USEATTACH, false, true, "symtab", "VC++", "high", "32"},
  {"symtab_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "max", "32"},
- {"symtab_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, false, true, "symtab", "VC++", "max", "32"},
- {"symtab_cxx_group_test_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "none", "32"},
- {"symtab_cxx_group_test_mutatee_solo_VC++_32_low.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "low", "32"},
- {"symtab_cxx_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "high", "32"},
- {"symtab_cxx_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "symtab", "VC++", "max", "32"} };
+ {"symtab_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, false, true, "symtab", "VC++", "max", "32"} };
 
   struct {
     bool endrungroup;
@@ -1410,14 +1406,10 @@ struct {
  {false, "test_relocations", "test_relocations", "test_relocations.dll", false, "{test: test_relocations, mutator: test_relocations, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {false, "test_symtab_ser_funcs", "test_symtab_ser_funcs", "test_symtab_ser_funcs.dll", false, "{test: test_symtab_ser_funcs, mutator: test_symtab_ser_funcs, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {true, "test_type_info", "test_type_info", "test_type_info.dll", false, "{test: test_type_info, mutator: test_type_info, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
- {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: deserialize}"},
- {true, "test_exception", "test_exception", "test_exception.dll", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
- {true, "test_exception", "test_exception", "test_exception.dll", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
- {true, "test_exception", "test_exception", "test_exception.dll", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
- {true, "test_exception", "test_exception", "test_exception.dll", false, "{test: test_exception, mutator: test_exception, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_cxx_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"} };
+ {true, "test_lookup_func", "test_lookup_func", "test_lookup_func.dll", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: VC++, run_mode: deserialize}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 20; i++) {
+  for (int i = 0; i < 16; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
@@ -1426,7 +1418,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 76 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 72 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

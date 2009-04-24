@@ -86,6 +86,19 @@ DLLEXPORT int call22_6(int x)
     return x + MAGIC22_6;
 }
 
+DLLEXPORT int relocation_test_variable1 = 5;
+DLLEXPORT int relocation_test_variable2 = 6;
+
+DLLEXPORT int relocation_test_function1(int x)
+{
+    return x * relocation_test_variable1;
+}
+
+DLLEXPORT int relocation_test_function2(int x)
+{
+    return x * relocation_test_variable2;
+}
+
 #if defined(os_windows_test) && defined(__cplusplus)
 }
 #endif

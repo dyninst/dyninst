@@ -2115,6 +2115,7 @@ mutator('test_relocations', ['test_relocations.C']).
 test_runmode('test_relocations', 'createProcess').
 test_start_state('test_relocations', 'stopped').
 tests_module('test_relocations', 'symtab').
+mutatee_requires_libs('symtab_group_test', ['testA']).
 
 test('test_type_info', 'test_type_info', 'symtab_group_test').
 test_description('test_type_info', 'SymtabAPI Type Information').
@@ -2146,12 +2147,15 @@ tests_module('test_anno_basic_types', 'symtab').
 
 test('test_exception', 'test_exception', 'symtab_cxx_group_test').
 test_description('test_exception', 'SymtabAPI C++ Exception detection and sanity checks').
-test_runs_everywhere('test_exception').
+%test_runs_everywhere('test_exception').
 groupable_test('test_exception').
 mutator('test_exception', ['test_exception.C']).
 test_runmode('test_exception', 'createProcess').
 test_start_state('test_exception', 'stopped').
 tests_module('test_exception', 'symtab').
+test_platform('test_exception', 'i386-unknown-linux2.4').
+test_platform('test_exception', 'i386-unknown-linux2.6').
+test_platform('test_exception', 'x86_64-unknown-linux2.4').
 
 % instructionAPI tests
 test('test_instruction_read_write', 'test_instruction_read_write', none).

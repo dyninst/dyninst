@@ -62,7 +62,7 @@ MUTATEE_NATIVE_CXX_CFLAGS = -qsmp=omp
 MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
 
 MUTATEE_CFLAGS_GNU = $(UNIFIED_DEF)
-MUTATEE_LDFLAGS_GNU += -Wl,-bexpall -Wl,-bnoobjreorder 
+MUTATEE_LDFLAGS_GNU += -Wl,-bexpall -Wl,-bnoobjreorder -Wl,-bdynamic -Wl,-brtl
 MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
