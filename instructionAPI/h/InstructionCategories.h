@@ -39,7 +39,7 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    typedef enum InsnCategory
+    enum InsnCategory
     {
       c_CallInsn,
       c_ReturnInsn,
