@@ -30,6 +30,7 @@
  */
 
 #include <string>
+#include "../h/InstructionCategories.h"
 #include "../h/Instruction.h"
 #include "../h/Register.h"
 #include "../h/Operation.h"
@@ -312,7 +313,7 @@ namespace Dyninst
       return retLoc;
     }
     
-    InsnCategory Instruction::getCategory() const
+    INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
       return entryToCategory(m_InsnOp.getID());
     }

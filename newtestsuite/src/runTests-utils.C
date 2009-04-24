@@ -12,7 +12,7 @@
 
 extern string pdscrdir;
 
-int timeout = 1200;
+int timeout = 2400;
 
 void initPIDFilename(char *buffer, size_t len) {
   snprintf(buffer, len, "pids.%d", getpid());

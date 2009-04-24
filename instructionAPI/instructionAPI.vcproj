@@ -215,6 +215,21 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\InstructionCategories.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\InstructionAST.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -323,6 +338,9 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 			</File>
 			<File
 				RelativePath=".\h\Instruction.h">
+			</File>
+			<File
+				RelativePath=".\h\InstructionCategories.h">
 			</File>
 			<File
 				RelativePath=".\h\InstructionAST.h">

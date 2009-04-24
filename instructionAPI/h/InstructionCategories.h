@@ -32,20 +32,21 @@
 #if !defined(INSTRUCTION_CATEGORIES_H)
 #define INSTRUCTION_CATEGORIES_H
 
+#include "util.h"
 #include "entryIDs-IA32.h"
 
 namespace Dyninst
 {
   namespace InstructionAPI
   {
-    enum InsnCategory
+    typedef enum InsnCategory
     {
       c_CallInsn,
       c_ReturnInsn,
       c_BranchInsn,
       c_NoCategory
     };
-    InsnCategory entryToCategory(entryID e);
+    INSTRUCTION_EXPORT InsnCategory entryToCategory(entryID e);
     
   }
 }
