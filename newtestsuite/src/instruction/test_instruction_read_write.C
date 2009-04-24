@@ -45,13 +45,15 @@
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 
+//#include <dyn_detail/boost/assign/list_of.hpp>
+//#include <dyn_detail/boost/iterator/indirect_iterator.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
-using namespace boost::assign;
 using namespace boost;
+using namespace boost::assign;
 
 using namespace std;
 

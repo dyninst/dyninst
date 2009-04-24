@@ -1,6 +1,7 @@
 #if defined(os_windows)
 #include "common/h/ntHeaders.h"
 #endif
+#include <stdio.h>
 #include <string>
 #include "dynutil/h/util.h"
 

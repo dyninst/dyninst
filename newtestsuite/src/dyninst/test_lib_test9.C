@@ -1,6 +1,7 @@
 #include "test_lib.h"
 #include "test_lib_test9.h"
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

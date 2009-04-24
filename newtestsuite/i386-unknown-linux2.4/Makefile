@@ -62,7 +62,7 @@ TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 
-LIBS_LIBTESTSUITE = -ldl
+LIBS_LIBTESTSUITE = -ldl -lstdc++
 
 STRIP_SO = strip -g
 
