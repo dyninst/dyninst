@@ -668,32 +668,38 @@ ReadWriteInfo calcRWSets(Instruction curInsn, image_basicBlock* blk, unsigned in
     ret.written[convertRegID(IA32Regs((*i)->getID()))] = true;
   }
   //liveness_printf("\n");
-  entryID cur_op = curInsn.getOperation().getID();
-  if(cur_op == e_call)
+  InsnCategory category = curInsn.getCategory();
+  switch(category)
   {
+  case c_CallInsn:
     ret.read |= (registerSpace::getRegisterSpace(width)->getCallReadRegisters());
     ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-  }
-  else if (cur_op == e_jmp && blk->isExitBlock())
-  {
-    //Tail call, union of call and return
-    ret.read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
-		 (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
-    ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
-  }
-  else if(cur_op == e_ret_near || cur_op == e_ret_far)
-  {
+    break;
+  case c_ReturnInsn:
     ret.read |= (registerSpace::getRegisterSpace(width)->getReturnReadRegisters());
     // Nothing written implicitly by a return
+    break;
+  case c_BranchInsn:
+    if(!curInsn.allowsFallThrough() && blk->isExitBlock())
+    {
+      //Tail call, union of call and return
+      ret.read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
+		   (registerSpace::getRegisterSpace(width)->getReturnReadRegisters()));
+      ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+    }
+    break;
+  default:
+    {
+      entryID cur_op = curInsn.getOperation().getID();
+      if(cur_op == e_syscall)
+      {
+	ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
+	ret.written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
+      }
+    }
+    break;
   }
-  else if(cur_op == e_syscall)
-  {
-    ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
-    ret.written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
-  }
-    
   return ret;
-    
 }
 
 #else // POWER

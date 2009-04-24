@@ -64,9 +64,10 @@ void func_relocations_mutatee()
 #if !defined(os_windows_test)
 	int r1, r2;
 	char buf[10];
+   FILE *f;
 	struct stat statbuf;
 
-	//  some junk system calls to trigger entries in th relocation table
+	/*  some junk system calls to trigger entries in th relocation table */
 	printf("a");
 	fprintf(stderr,"a");
 	sprintf(buf,"a");
@@ -74,7 +75,7 @@ void func_relocations_mutatee()
 	memcpy(buf, "aaaa", 4*sizeof(char));
 	strcmp(buf, "aaaa");
 	memset(buf, 0, 4*sizeof(char));
-	FILE *f = fopen("/blaarch", "rw");
+   f = fopen("/blaarch", "rw");
 	fwrite(buf, sizeof(char), 4, f);
 	fread(buf, sizeof(char), 4, f);
 	fclose(f);

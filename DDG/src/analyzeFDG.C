@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "intraFunctionFDGCreator.h"
+#include "analyzeFDG.h"
 
 // std
 #include <set>
@@ -64,17 +64,12 @@
 
 using namespace std;
 using namespace Dyninst;
-using namespace Dyninst::DDG;
+using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 
 static AnnotationClass <Graph::Ptr> FDGAnno(std::string("FDGAnno"));
 
-intraFunctionFDGCreator intraFunctionFDGCreator::create(Function* func) {
-  intraFunctionFDGCreator creator(func);
-  return creator;
-}
-
-intraFunctionFDGCreator::~intraFunctionFDGCreator() {
+FDGAnalyzer::~FDGAnalyzer() {
   for (InstWithAddrList::iterator iter = lastInstInBlock.begin();
       iter != lastInstInBlock.end();
       iter++) {
@@ -85,53 +80,45 @@ intraFunctionFDGCreator::~intraFunctionFDGCreator() {
   }
 }
 
-Graph::Ptr intraFunctionFDGCreator::getFDG() {
-  if (func == NULL) return Graph::Ptr();
+Graph::Ptr FDGAnalyzer::analyze() {
+    if (fdg) return fdg;
 
-  // Check to see if we've already analyzed this graph
-  // and if so return the annotated version.
-  Graph::Ptr *ret;
-  func->getAnnotation(ret, FDGAnno);
-  if (ret) return *ret;
+    if (func_ == NULL) return Graph::Ptr();
 
-  // Perform analysis
-  analyze();
+    Graph::Ptr *ret;
+    func_->getAnnotation(ret, FDGAnno);
+    if (ret) {
+        fdg = *ret;
+        return fdg;
+    }
 
-  // Store the annotation
-  // The annotation interface takes raw pointers. Give it a
-  // smart pointer pointer.
-  Graph::Ptr *ptr = new Graph::Ptr(FDG);
-  func->addAnnotation(ptr, FDGAnno);
+    // What we really want to hand into this is a CFG... for
+    // now, the set of blocks and entry block will suffice.
+    BlockSet blocks;
+    func_->getCFG()->getAllBasicBlocks(blocks);
 
-  return FDG;
-}
+    // Create a graph
+    fdg = Graph::createGraph();
+    
+    // create an array of <instruction, address> pairs indexed by block number.
+    lastInstInBlock.resize(blocks.size());
+    
+    // mark blocks that end with a jump/return/branch instruction.
+    markBlocksWithJump(blocks);
+    // find the dependencies between blocks.
+    findDependencies(blocks);
+    
+    // finally, create instruction level nodes.
+    createNodes(blocks);
 
-void intraFunctionFDGCreator::analyze() {
-  // Create a graph
-  FDG = Graph::createGraph();
-  
-  // get a set of basic blocks
-  BPatch_flowGraph* cfg = func->getCFG();
-  BlockSet blocks;
-  cfg->getAllBasicBlocks(blocks);
-
-  // create an array of <instruction, address> pairs indexed by block number.
-  lastInstInBlock.resize(blocks.size());
-  
-  // mark blocks that end with a jump/return/branch instruction.
-  markBlocksWithJump(blocks);
-  // find the dependencies between blocks.
-  findDependencies(blocks);
-
-  // finally, create instruction level nodes.
-  createNodes(blocks);
+    return fdg;
 }
 
 /**
  * Finds all blocks that end with a jump/return/branch instruction and puts them in
  * markedBlocks member list. It also stores the last instruction of marked blocks.
  */
-void intraFunctionFDGCreator::markBlocksWithJump(BlockSet& blocks) {
+void FDGAnalyzer::markBlocksWithJump(BlockSet &blocks) {
   for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
     Block* block = *blockIter;
     vector<Instruction> instructions;
@@ -158,7 +145,7 @@ void intraFunctionFDGCreator::markBlocksWithJump(BlockSet& blocks) {
   }
 }
 
-void intraFunctionFDGCreator::findDependencies(BlockSet& blocks) {
+void FDGAnalyzer::findDependencies(BlockSet &blocks) {
   for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
     Block* block = *blockIter;
     BlockSet blocksWithJumps;
@@ -168,16 +155,18 @@ void intraFunctionFDGCreator::findDependencies(BlockSet& blocks) {
   }
 }
 
-void intraFunctionFDGCreator::findBlocksOnWay(
-    BlockSet& needThese, BlockSet& visited, Block* givenBlock) {
+void FDGAnalyzer::findBlocksOnWay(BlockSet& needThese, 
+                                  BlockSet& visited, 
+                                  Block* givenBlock) {
   if (markedBlocks.find(givenBlock) != markedBlocks.end()) {
     needThese.insert(givenBlock);
   }
   findBlocksRecursive(needThese, visited, givenBlock);
 }
 
-void intraFunctionFDGCreator::findBlocksRecursive(BlockSet& needThese, BlockSet& visited,
-    Block* givenBlock) {
+void FDGAnalyzer::findBlocksRecursive(BlockSet& needThese, 
+                                      BlockSet& visited,
+                                      Block* givenBlock) {
   if ((visited.find(givenBlock) != visited.end())) {
     return;
   }
@@ -198,7 +187,8 @@ void intraFunctionFDGCreator::findBlocksRecursive(BlockSet& needThese, BlockSet&
   }
 }
 
-void intraFunctionFDGCreator::createDepToOtherBlocks(NodeSet& nodes, NodePtr source) {
+void FDGAnalyzer::createDepToOtherBlocks(NodeSet& nodes, 
+                                         NodePtr source) {
   if (nodes.find(source) != nodes.end()) {
     return;
   }
@@ -212,14 +202,15 @@ void intraFunctionFDGCreator::createDepToOtherBlocks(NodeSet& nodes, NodePtr sou
     if (targetInst->second == source->addr()) {
       continue;
     }
-    NodePtr target = FDG->makeSimpleNode(targetInst->first, targetInst->second);
-    FDG->insertPair(source, target);
+    NodePtr target = PhysicalNode::createNode(targetInst->second);
+    fdg->insertPair(source, target);
     
     createDepToOtherBlocks(nodes, target);
   }
 }
 
-bool intraFunctionFDGCreator::createDepWithinBlock(NodeSet& nodes, NodePtr source) {
+bool FDGAnalyzer::createDepWithinBlock(NodeSet& nodes, 
+                                       NodePtr source) {
   if (nodes.find(source) != nodes.end()) {
     return true;
   }
@@ -228,8 +219,8 @@ bool intraFunctionFDGCreator::createDepWithinBlock(NodeSet& nodes, NodePtr sourc
   InstWithAddr* inst = lastInstInBlock[ curBlock->getBlockNumber() ];
   if (inst && inst->second != source->addr()) {
     nodes.insert(source);
-    NodePtr target = FDG->makeSimpleNode(inst->first, inst->second);
-    FDG->insertPair(source, target);
+    NodePtr target = PhysicalNode::createNode(inst->second);
+    fdg->insertPair(source, target);
     
     // since I am doing it for every instruction, I don't need to go any further now.    
     return true;
@@ -237,8 +228,8 @@ bool intraFunctionFDGCreator::createDepWithinBlock(NodeSet& nodes, NodePtr sourc
   return false;
 }
 
-void intraFunctionFDGCreator::createNodes(BlockSet& blocks) {
-  NodePtr virtNode = FDG->makeVirtualNode();
+void FDGAnalyzer::createNodes(BlockSet &blocks) {
+  NodePtr virtNode = VirtualNode::createNode();
   NodeSet processedNodes;
   for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
     Block* block = *blockIter;
@@ -247,8 +238,8 @@ void intraFunctionFDGCreator::createNodes(BlockSet& blocks) {
     
     Address address = (Address) block->getStartAddress();
     for (unsigned i = 0; i < instructions.size(); i++) {
-      NodePtr node = FDG->makeSimpleNode(instructions[i], address);
-      FDG->insertPair(virtNode, node);
+      NodePtr node = PhysicalNode::createNode(address);
+      fdg->insertPair(virtNode, node);
       address += instructions[i].size();
       
       bool success = createDepWithinBlock(processedNodes, node);
@@ -260,7 +251,7 @@ void intraFunctionFDGCreator::createNodes(BlockSet& blocks) {
 }
 /**************************************************************************************************/
 /****************************   static functions   ************************************************/
-bool intraFunctionFDGCreator::isReturnOp(const Operation& opType) {
+bool FDGAnalyzer::isReturnOp(const Operation& opType) {
   entryID opId = opType.getID();
   if ((opId == e_iret) ||
       (opId == e_ret_far) ||
@@ -272,10 +263,10 @@ bool intraFunctionFDGCreator::isReturnOp(const Operation& opType) {
   return false;
 }
 
-bool intraFunctionFDGCreator::isJumpOp(const Operation& opType) {
+bool FDGAnalyzer::isJumpOp(const Operation& opType) {
   return (e_jmp == opType.getID());
 }
 
-bool intraFunctionFDGCreator::isBranchOp(const Operation& opType) {
+bool FDGAnalyzer::isBranchOp(const Operation& opType) {
   return ((e_jb <= opType.getID()) && (e_jz >= opType.getID()) && (e_jmp != opType.getID()));
 }

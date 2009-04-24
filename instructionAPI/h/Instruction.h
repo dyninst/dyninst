@@ -38,6 +38,7 @@
 #include "Expression.h"
 #include "Operation.h"
 #include "Operand.h"
+#include "InstructionCategories.h"
 
 #include "util.h"
 
@@ -222,6 +223,14 @@ namespace Dyninst
       /// Returns true if this %Instruction object represents a legal instruction, as specified by the architecture
       /// used to decode this instruction.
       INSTRUCTION_EXPORT bool isLegalInsn() const;
+
+      /// ALPHA: Returns the category that an instruction falls into.  This feature is presently incomplete, and we welcome feedback
+      /// on ways to extend it usefully.
+      ///
+      /// Currently, the valid categories are c_CallInsn, c_ReturnInsn, c_BranchInsn, and c_NoCategory, as defined
+      /// in %InstructionCategories.h.
+      INSTRUCTION_EXPORT InsnCategory getCategory() const;
+      
       
       typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
       

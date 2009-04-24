@@ -54,16 +54,19 @@
 class BPatch_function;
 
 using namespace std;
-using namespace Dyninst;
-using namespace Dyninst::DDG;
 
+namespace Dyninst {
+namespace DepGraphAPI {
+
+#if 0
+    // Let's just use the extended version, since the DDG + CDG seems to be incomplete...
 /**
  * The tool that creates the Program Dependence Graph (PDG) associated with a given 
  * function (currently BPatch_function). It creates a Data Dependency Graph (DDG)
  * and a Control Dependency Graph (CDG) using a intraFunctionDDGCreator and
  * a intraFunctionCDGCreator. These graphs are merged to create a PDG.
  */
-class intraFunctionPDGCreator {
+class PDGAnalyzer {
 private:
   typedef BPatch_function Function;
   typedef Node::Ptr NodePtr;
@@ -87,17 +90,17 @@ private:
 
 public:
   /**
-   * Creates an intraFunctionPDGCreator object associated with the given function.
+   * Creates an PDGAnalyzer object associated with the given function.
    */
-  static intraFunctionPDGCreator create(Function *func);
+  static PDGAnalyzer create(Function *func);
   
   /**
-   * Returns the PDG created by this intraFunctionPDGCreator object.
+   * Returns the PDG created by this PDGAnalyzer object.
    */
   Graph::Ptr getPDG();
 
 private:
-  intraFunctionPDGCreator(Function *f) : func(f) {};
+  PDGAnalyzer(Function *f) : func(f) {};
   void analyze();
   // Creates a CDG and merges it with the DDG that *must* be contained in the graph pointed by PDG.
   void mergeCDG();
@@ -109,13 +112,16 @@ private:
   static void addCdgEdgesToGraph(GraphPtr graph, NodePtr node);
 };
 
+#endif
+
 /**
  * The tool that creates the Extended Program Dependence Graph (xPDG) associated with a given 
  * function (currently BPatch_function). It creates a Program Dependency Graph (PDG)
- * and a Flow Dependency Graph (FDG) using a intraFunctionPDGCreator and
+ * and a Flow Dependency Graph (FDG) using a PDGAnalyzer and
  * a intraFunctionFDGCreator. These graphs are merged to create an xPDG.
  */
-class intraFunctionXPDGCreator {
+class PDGAnalyzer {
+
 private:
   typedef BPatch_function Function;
   typedef Node::Ptr NodePtr;
@@ -130,9 +136,12 @@ private:
   typedef map<Address, AbslocMap> NodeMap;
 
   /**
-   * The function whose xPDG is being created.
+   * Inputs to the PDG
    */
-  Function* func;
+  DDG::Ptr ddg_;
+  Graph::Ptr cdg_;
+  Graph::Ptr fdg_;
+
   
   /**
    * Extended Program Dependence Graph.
@@ -143,24 +152,27 @@ public:
   /**
    * Creates an intraFunctionXPDGCreator object associated with the given function.
    */
-  static intraFunctionXPDGCreator create(Function *func);
-  
-  /**
-   * Returns the xPDG created by this intraFunctionPDGCreator object.
-   */
-  Graph::Ptr getXPDG();
+  PDGAnalyzer(DDG::Ptr ddg, 
+              Graph::Ptr cdg,
+              Graph::Ptr fdg) :
+      ddg_(ddg),
+      cdg_(cdg),
+      fdg_(fdg) {};
 
-private:
-  intraFunctionXPDGCreator(Function *f) : func(f) {};
-  
   /**
    * Merges FDG with the PDG to create an xPDG.
    */
-  void analyze();
+  DDG::Ptr analyze();
+
+private:
   
   /**
    * Given a PDG that is copied into an xPDG, inserts FDG edges into the xPDG.
    */
   void mergeFDG();
 };
+
+};
+};
+
 #endif /* INTRAFUNCTIONPDGCREATOR_H_ */

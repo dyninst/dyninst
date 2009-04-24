@@ -52,7 +52,7 @@
 #include "Annotatable.h"
 
 namespace Dyninst {
-namespace DDG {
+namespace DepGraphAPI {
 
     class Graph;
     class Node;

@@ -47,7 +47,7 @@
 #include "Node.h"
 #include <assert.h>
 
-using namespace Dyninst::DDG;
+using namespace Dyninst::DepGraphAPI;
 
 const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
 
@@ -64,69 +64,21 @@ void Graph::insertPair(NodePtr source, NodePtr target) {
 
     source->addOutEdge(e);
     target->addInEdge(e);
-}
 
-Graph::NodePtr Graph::makeNode(Dyninst::InstructionAPI::Instruction &insn,
-                               Address addr,
-                               AbslocPtr absloc) {
-    // First check to see if we already have this one
-    if (insnNodes_[addr].find(absloc) != insnNodes_[addr].end()) { 
-        return insnNodes_[addr][absloc];
+    nodes_.insert(source);
+    nodes_.insert(target);
+
+    if (!source->isVirtual()) {
+        nodesByAddr_[source->addr()].insert(source);
+    }
+    if (!target->isVirtual()) {
+        nodesByAddr_[target->addr()].insert(target);
     }
 
-    // Otherwise create a new Node and insert it into the
-    // map. 
-
-    Node::Ptr newNode = InsnNode::createNode(addr, insn, absloc);
-    
-    // Update insnNodes_ so that we only create a particular node once.
-    insnNodes_[addr][absloc] = newNode;
-
-    return newNode;
 }
 
-Graph::NodePtr Graph::makeParamNode(Absloc::Ptr a) {
-    if (parameterNodes_.find(a) == parameterNodes_.end()) {
-        NodePtr n = ParameterNode::createNode(a);
-        parameterNodes_[a] = n;
-        return n;
-    }
-    return parameterNodes_[a];
-}
-
-Graph::NodePtr Graph::makeReturnNode(Absloc::Ptr a) {
-    if (returnNodes_.find(a) == returnNodes_.end()) {
-        NodePtr n = ReturnNode::createNode(a);
-        returnNodes_[a] = n;
-        return n;
-    }
-    return returnNodes_[a];
-}
-
-Graph::NodePtr Graph::makeVirtualNode() {
-    if (virtualNode_) return virtualNode_;
-    virtualNode_ = VirtualNode::createNode(); 
-    return virtualNode_;
-}
-
-Graph::NodePtr Graph::makeSimpleNode(Dyninst::InstructionAPI::Instruction &insn, Address addr) {
-    // we need a dummy location. Here, we got one!
-    AbslocPtr absloc = ImmLoc::getImmLoc();
-    
-    // First check to see if we already have this one
-    if (insnNodes_[addr].find(absloc) != insnNodes_[addr].end()) { 
-        return insnNodes_[addr][absloc];
-    }
-
-    // Otherwise create a new Simple Node and insert it into the map.
-    // Since SimpleNode's are never present in a graph along with InsnNode's,
-    // we can use insnNodes_ freely.
-    Node::Ptr newNode = SimpleNode::createNode(addr, insn);
-    
-    // Update insnNodes_ so that we only create a particular node once.
-    insnNodes_[addr][absloc] = newNode;
-
-    return newNode;
+const Graph::NodeSet &Graph::getNodesAtAddr(Address addr) {
+    return nodesByAddr_[addr];
 }
 
 bool Graph::printDOT(const std::string fileName) {
@@ -140,8 +92,7 @@ bool Graph::printDOT(const std::string fileName) {
     NodeSet visited;
     std::queue<Node::Ptr> worklist;
 
-    NodeSet entries;
-    entryNodes(entries);
+    const NodeSet &entries = entryNodes();
 
     // Initialize visitor worklist
     for (NodeSet::const_iterator i = entries.begin(); i != entries.end(); i++) {
@@ -161,12 +112,12 @@ bool Graph::printDOT(const std::string fileName) {
         }
         //fprintf(stderr, "\t inserting %s into visited set, %d elements pre-insert\n", source->name().c_str(), visited.size());
         visited.insert(source);
-        fprintf(file, "\t // %s\n", source->name().c_str());
+        fprintf(file, "\t // %s\n", source->format().c_str());
         Node::EdgeSet outs; source->outs(outs);
         //fprintf(stderr, "\t with %d out-edges\n", outs.size());
         for (Node::EdgeSet::iterator e = outs.begin(); e != outs.end(); e++) {
             Node::Ptr target = (*e)->target();
-            fprintf(file, "\t %s -> %s;\n", source->name().c_str(), target->name().c_str());
+            fprintf(file, "\t %s -> %s;\n", source->format().c_str(), target->format().c_str());
             if (visited.find(target) == visited.end()) {
                 //fprintf(stderr, "\t\t adding child %s\n", target->name().c_str());
                 worklist.push(target);
@@ -183,66 +134,20 @@ bool Graph::printDOT(const std::string fileName) {
     return true;
 }
 
-
-void Graph::entryNodes(NodeSet &ret) const {
-    parameterNodes(ret);
-
-    if (virtualNode_) {
-        ret.insert(virtualNode_);
-    }
-    return;
+DDG::Ptr DDG::createGraph() {
+    return Ptr(new DDG());
 }
 
-void Graph::parameterNodes(NodeSet &ret) const {
-    for (AbslocMap::const_iterator iter = parameterNodes_.begin();
-         iter != parameterNodes_.end(); iter++) {
-        ret.insert(iter->second);
-    }
-    return;
-}
-
-void Graph::returnNodes(NodeSet &ret) const {
-    for (AbslocMap::const_iterator iter = returnNodes_.begin();
-         iter != returnNodes_.end(); iter++) {
-        ret.insert(iter->second);
-    }
-}
-
-/**
- * Puts all nodes into the given set.
- */
-bool Graph::allNodes(NodeSet &nodes) {
-  for (NodeMap::iterator iter = insnNodes_.begin(); iter != insnNodes_.end(); iter++) {
-    AbslocMap& map = iter->second;
-    for (AbslocMap::iterator iter2 = map.begin(); iter2 != map.end(); iter2++) {
-      nodes.insert(iter2->second);
-    }
-  }
-  return true;
-}
-
-/**
- * Returns a set of nodes which are related to the instruction at the given address.
- */
-Graph::NodeSet Graph::getNodesAtAddr(Address addr) {
-  typedef AbslocMap::iterator AbslocIter;
-  NodeSet ret;
-  AbslocMap abslocMap = insnNodes_[addr];
-  for (AbslocIter iter = abslocMap.begin(); iter != abslocMap.end(); iter++) {
-    ret.insert(iter->second);
-  }
-  return ret;
-}
-
+#if 0
 /**
  * Returns a new graph after copying the nodes and edges into this new graph.
  */
-Graph::Ptr Graph::copyGraph() {
+DDG::Ptr DDG::copyGraph() {
   typedef NodeSet::iterator NodeIter;
   typedef std::set<Edge::Ptr> EdgeSet;
   typedef EdgeSet::iterator EdgeIter;
   
-  Graph::Ptr newGraph = Graph::createGraph();
+  DDG::Ptr newGraph = DDG::createGraph();
   NodePtr virtNode = newGraph->makeVirtualNode();
   NodeSet nodes;
   allNodes(nodes);
@@ -268,3 +173,5 @@ Graph::Ptr Graph::copyGraph() {
   }
   return newGraph;
 }
+
+#endif

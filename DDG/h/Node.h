@@ -56,23 +56,28 @@
 #include "Edge.h"
 
 #include "Absloc.h"
+
+#include "dyntypes.h"
+
 //#include "Graph.h"
 
+class BPatch_function;
+class BPatch_basicBlock;
+
 namespace Dyninst {
-namespace DDG {
+namespace DepGraphAPI {
 
 class Dyninst::InstructionAPI::Instruction;
 class Edge;
 class Absloc;
 class Graph;
 
+
 typedef BPatch_function Function;
 
 class Node : public AnnotatableSparse {
     friend class Edge;
     friend class Graph;
-    friend class Creator;
-    
  public:
     typedef dyn_detail::boost::shared_ptr<Node> Ptr;
     typedef std::set<Node::Ptr> Set;
@@ -84,17 +89,18 @@ class Node : public AnnotatableSparse {
     typedef Absloc::Ptr AbslocPtr;
     typedef Edge::Set EdgeSet;
     typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
-    
+
     bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
     bool outs(EdgeSet &edges) const { return returnEdges(outs_, edges); }
     
-    virtual InsnPtr insn() const { return InsnPtr(); };
-    virtual AbslocPtr absloc() const { return AbslocPtr(); };
-    virtual Address addr() const { return VIRTUAL_ADDR; };
+    bool hasInEdges() const { return ins_.size() != 0; }
+    bool hasOutEdges() const { return ins_.size() != 0; }
     
-    virtual std::string name() const = 0;
+    virtual Address addr() const { return INVALID_ADDR; }
+    
+    virtual std::string format() const = 0;
 
-    virtual Node::Ptr copyTo(GraphPtr graph) = 0;
+    //virtual Node::Ptr copyTo(GraphPtr graph) = 0;
     
     virtual bool isVirtual() const = 0;
     
@@ -115,125 +121,43 @@ class Node : public AnnotatableSparse {
     void addInEdge(const EdgePtr in) { ins_.insert(in); }
     void addOutEdge(const EdgePtr out) { outs_.insert(out); }
 
-    static const Address VIRTUAL_ADDR;
+    static const Address INVALID_ADDR;
 };
-
-
-class InsnNode : public Node {
-    friend class Edge;
-    friend class Graph;
-    friend class Creator;
+ 
+class PhysicalNode : public Node {
+    typedef dyn_detail::boost::shared_ptr<PhysicalNode> Ptr;
     
  public:
-    typedef dyn_detail::boost::shared_ptr<InsnNode> Ptr;
-    //typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
+    static Node::Ptr createNode(Address addr);
     
-    static Node::Ptr createNode(Address addr, InsnPtr insn, AbslocPtr absloc);
+    virtual Address addr() const { return addr_; }
     
-    InsnPtr insn() const { return insn_; }
-    AbslocPtr absloc() const { return absloc_; }
-    Address addr() const { return addr_; }
+    virtual std::string format() const;
     
-    // We may use "virtual" nodes to represent initial definitions. These
-    // have no associated instruction, which we represent as a NULL insn().
-    //bool isVirtual() const { return insn(); }
+    virtual bool isVirtual() const { return false; }
     
-    std::string name() const;
-    Node::Ptr copyTo(GraphPtr graph);
+    virtual ~PhysicalNode() {};
     
-    bool isVirtual() const { return false; }
+    // virtual Node::Ptr copyTo(GraphPtr graph);
 
-    virtual ~InsnNode() {};
+ protected:
+    PhysicalNode(Address addr) : addr_(addr) {};
     
- private:
-    InsnNode(Address addr, InsnPtr insn, AbslocPtr absloc) :
-        addr_(addr), insn_(insn), absloc_(absloc) {};
-    
-    // Instructions don't include their address, so we include this for
-    // unique info. We could actually remove and recalculate the Insn
-    // based on the address, but I'll add that later. 
-    Address addr_;
-    
-    InsnPtr insn_;
-    
-    // We keep a "One True List" of abstract locations, so all instructions
-    // that define a particular absloc will have the same pointer. 
-    AbslocPtr absloc_;
+    Address addr_; 
 };
-
-class ParameterNode : public Node {
-    friend class Edge;
-    friend class Graph;
-    friend class Creator;
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<ParameterNode> Ptr;
-    
-    static Node::Ptr createNode(AbslocPtr absloc);
-    
-    AbslocPtr absloc() const { return absloc_; }
-    
-    // We may use "virtual" nodes to represent initial definitions. These
-    // have no associated instruction, which we represent as a NULL insn().
-    //bool isVirtual() const { return insn(); }
-    
-    virtual std::string name() const;
-    Node::Ptr copyTo(GraphPtr graph);
-    
-    virtual bool isVirtual() const { return true; } 
-    
-    virtual ~ParameterNode() {};
-    
- private:
-    ParameterNode(AbslocPtr a) :
-        absloc_(a) {};
-    
-    AbslocPtr absloc_;
-};
-
-class ReturnNode : public Node {
-    friend class Edge;
-    friend class Graph;
-    friend class Creator;
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<ReturnNode> Ptr;
-
-    static Node::Ptr createNode(AbslocPtr absloc);
-    
-    AbslocPtr absloc() const { return absloc_; }
-    
-    // We may use "virtual" nodes to represent initial definitions. These
-    // have no associated instruction, which we represent as a NULL insn().
-    //bool isVirtual() const { return insn(); }
-    
-    virtual std::string name() const;
-    Node::Ptr copyTo(GraphPtr graph);
-    
-    virtual bool isVirtual() const { return true; } 
-    
-    virtual ~ReturnNode() {};
-    
- private:
-    ReturnNode(AbslocPtr a) :
-        absloc_(a) {};
-    
-    AbslocPtr absloc_;
-};
-
 
 class VirtualNode : public Node {
     friend class Edge;
     friend class Graph;
-    friend class Creator;
+    
     
  public:
     typedef dyn_detail::boost::shared_ptr<VirtualNode> Ptr;
     
     static Node::Ptr createNode();
     
-    virtual std::string name() const;
-    Node::Ptr copyTo(GraphPtr graph);
+    virtual std::string format() const;
+    //Node::Ptr copyTo(GraphPtr graph);
     
     virtual bool isVirtual() const { return true; }
     
@@ -243,18 +167,226 @@ class VirtualNode : public Node {
     VirtualNode() {};
 };
 
+
+class OperationNode : public PhysicalNode {
+    friend class Edge;
+    friend class Graph;
+    
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<OperationNode> Ptr;
+    
+    static Node::Ptr createNode(Address addr, AbslocPtr absloc);
+    
+    AbslocPtr absloc() const { return absloc_; }
+    Address addr() const { return addr_; }
+    
+    // We may use "virtual" nodes to represent initial definitions. These
+    // have no associated instruction, which we represent as a NULL insn().
+    //bool isVirtual() const { return insn(); }
+    
+    std::string format() const;
+    //Node::Ptr copyTo(GraphPtr graph);
+    
+    bool isVirtual() const { return false; }
+
+    virtual ~OperationNode() {};
+    
+ private:
+    OperationNode(Address addr, AbslocPtr absloc) :
+        PhysicalNode(addr), absloc_(absloc) {};
+    
+    // We keep a "One True List" of abstract locations, so all instructions
+    // that define a particular absloc will have the same pointer. 
+    AbslocPtr absloc_;
+};
+
+
+class BlockNode : public PhysicalNode {
+     friend class Edge;
+     friend class Graph;
+
+ typedef BPatch_basicBlock Block;
+
+ public:
+    typedef dyn_detail::boost::shared_ptr<BlockNode> Ptr;
+    
+    static Node::Ptr createNode(Block *);
+    
+    // We may use "virtual" nodes to represent initial definitions. These
+    // have no associated instruction, which we represent as a NULL insn().
+    //bool isVirtual() const { return insn(); }
+    
+    std::string format() const;
+    //Node::Ptr copyTo(GraphPtr graph);
+    
+    bool isVirtual() const { return false; }
+
+    virtual ~BlockNode() {};
+    
+ private:
+    BlockNode(Block *b);
+    
+    Block *block_;
+ };
+
+
+class FormalNode : public Node {
+    friend class Edge;
+    friend class Graph;
+    
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<FormalNode> Ptr;
+    
+    AbslocPtr absloc() const { return absloc_; }
+    
+    // We may use "virtual" nodes to represent initial definitions. These
+    // have no associated instruction, which we represent as a NULL insn().
+    //bool isVirtual() const { return insn(); }
+    
+    virtual std::string format() const = 0;
+    //Node::Ptr copyTo(GraphPtr graph) = 0;
+    
+    virtual bool isVirtual() const { return true; } 
+    
+    virtual ~FormalNode() {};
+    
+ protected:
+    FormalNode(AbslocPtr a) :
+        absloc_(a) {};
+    
+    AbslocPtr absloc_;
+};
+
+class FormalParamNode : public FormalNode {
+    friend class Edge;
+    friend class Graph;
+    
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<FormalParamNode> Ptr;
+    
+    static Node::Ptr createNode(AbslocPtr absloc);
+    
+    virtual std::string format() const;
+    // virtual Node::Ptr copyTo(GraphPtr graph);
+    
+    virtual ~FormalParamNode() {};
+    
+ private:
+    FormalParamNode(AbslocPtr a) :
+        FormalNode(a) {};
+};
+
+
+class FormalReturnNode : public FormalNode {
+    friend class Edge;
+    friend class Graph;
+    
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<FormalReturnNode> Ptr;
+
+    static Node::Ptr createNode(AbslocPtr absloc);
+    
+    virtual std::string format() const;
+    // virtual Node::Ptr copyTo(GraphPtr graph);
+    
+    virtual ~FormalReturnNode() {};
+    
+ private:
+    FormalReturnNode(AbslocPtr a) :
+        FormalNode(a) {};
+};
+
+
+class ActualNode : public Node {
+    friend class Edge;
+    friend class Graph;
+    
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<ActualNode> Ptr;
+    
+    Address addr() const { return addr_; }
+    AbslocPtr absloc() const { return absloc_; }
+    Function *func() const { return func_; }
+
+    virtual std::string format() const = 0;
+    // virtual Node::Ptr copyTo(GraphPtr graph);
+ 
+    virtual bool isVirtual() const { return true; }
+   
+    virtual ~ActualNode() {};
+    
+ protected:
+    ActualNode(Address addr, 
+               Function *func,
+               AbslocPtr a) :
+        addr_(addr),
+        func_(func),
+        absloc_(a) {};
+    
+    Address addr_;
+    Function *func_;
+    AbslocPtr absloc_;
+};
+
+class ActualParamNode : public ActualNode {
+    friend class Edge;
+    friend class Graph;
+    
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<ActualParamNode> Ptr;
+    
+    static Node::Ptr createNode(Address addr, Function *func, AbslocPtr absloc);
+    
+    virtual std::string format() const;
+    //Node::Ptr copyTo(GraphPtr graph);
+    virtual ~ActualParamNode() {};
+    
+ private:
+    ActualParamNode(Address addr, 
+                    Function *func,
+                    AbslocPtr a) :
+        ActualNode(addr, func, a) {};
+};
+
+class ActualReturnNode : public ActualNode {
+    friend class Edge;
+    friend class Graph;
+    
+    
+ public:
+    typedef dyn_detail::boost::shared_ptr<ActualReturnNode> Ptr;
+    
+    static Node::Ptr createNode(Address addr, Function *func, AbslocPtr absloc);
+    
+    virtual std::string format() const;
+    //Node::Ptr copyTo(GraphPtr graph);
+    virtual ~ActualReturnNode() {};
+    
+ private:
+    ActualReturnNode(Address addr, 
+                     Function *func,
+                     AbslocPtr a) :
+        ActualNode(addr, func, a) {};
+};
+
 class CallNode : public Node {
     friend class Edge;
     friend class Graph;
-    friend class Creator;
+    
 
  public:
     typedef dyn_detail::boost::shared_ptr<CallNode> Ptr;
 
     static Node::Ptr createNode(Function *func);
-    Node::Ptr copyTo(GraphPtr graph);
+    //Node::Ptr copyTo(GraphPtr graph);
     
-    virtual std::string name() const;
+    virtual std::string format() const;
     virtual bool isVirtual() const { return true; }
     virtual ~CallNode() {};
     
@@ -263,37 +395,6 @@ class CallNode : public Node {
         func_(func) {};
 
     Function *func_;
-};
-
-class SimpleNode : public Node {
-  friend class Edge;
-  friend class Graph;
-  friend class Creator;
-  
-public:
-   typedef dyn_detail::boost::shared_ptr<SimpleNode> Ptr;
-   
-   static Node::Ptr createNode(Address addr, InsnPtr insn);
-   
-   InsnPtr insn() const { return insn_; }
-   Address addr() const { return addr_; }
-   
-   std::string name() const;
-   Node::Ptr copyTo(GraphPtr graph);
-
-   bool isVirtual() const { return false; }
-
-   virtual ~SimpleNode() {};
-   
-private:
-   SimpleNode(Address addr, InsnPtr insn) : addr_(addr), insn_(insn) {};
-   
-   // Instructions don't include their address, so we include this for
-   // unique info. We could actually remove and recalculate the Insn
-   // based on the address, but I'll add that later. 
-   Address addr_;
-   
-   InsnPtr insn_;
 };
 
 };

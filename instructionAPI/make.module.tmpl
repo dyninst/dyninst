@@ -40,7 +40,8 @@ SRCS +=	../src/Instruction.C \
 	../src/Operand.C \
 	../src/Register.C \
 	../src/Expression.C \
-	../src/BinaryFunction.C
+	../src/BinaryFunction.C \
+	../src/InstructionCategories.C
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../external
@@ -60,7 +61,8 @@ PUBLIC_H =      BinaryFunction.h \
                 Operation.h \
                 Register.h \
                 RegisterIDs-x86.h \
-                Result.h 
+                Result.h \
+	       InstructionCategories.h
 
 
 

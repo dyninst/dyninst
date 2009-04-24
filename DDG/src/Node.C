@@ -53,33 +53,9 @@
 // Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
 
 using namespace Dyninst;
-using namespace Dyninst::DDG;
+using namespace Dyninst::DepGraphAPI;
 
-const Address Node::VIRTUAL_ADDR = (Address) -1;
-
-Node::Ptr InsnNode::createNode(Address addr, InsnPtr insn, AbslocPtr absloc) {
-    return Node::Ptr(new InsnNode(addr, insn, absloc)); 
-}
-
-Node::Ptr ParameterNode::createNode(AbslocPtr absloc) {
-    return Node::Ptr(new ParameterNode(absloc)); 
-}
-
-Node::Ptr ReturnNode::createNode(AbslocPtr absloc) {
-    return Node::Ptr(new ReturnNode(absloc)); 
-}
-
-Node::Ptr VirtualNode::createNode() {
-    return Node::Ptr(new VirtualNode());
-}
-
-Node::Ptr CallNode::createNode(Function *func) {
-    return Node::Ptr(new CallNode(func));
-}
-
-Node::Ptr SimpleNode::createNode(Address addr, InsnPtr insn) {
-    return Node::Ptr(new SimpleNode(addr, insn)); 
-}
+const Address Node::INVALID_ADDR = (Address) -1;
 
 bool Node::returnEdges(const EdgeSet &local,
                        EdgeSet &ret) const {
@@ -91,49 +67,145 @@ bool Node::returnEdges(const EdgeSet &local,
     return true;
 }
 
-std::string InsnNode::name() const {
+
+Node::Ptr PhysicalNode::createNode(Address addr) {
+    return Node::Ptr(new PhysicalNode(addr));
+}
+
+std::string PhysicalNode::format() const {
+    char buf[256];
+    sprintf(buf, "N_0x%lx", addr());
+    return std::string(buf);
+}
+
+Node::Ptr VirtualNode::createNode() {
+    return Node::Ptr(new VirtualNode());
+}
+
+std::string VirtualNode::format() const {
+    return std::string("N_VIRTUAL");
+}
+
+Node::Ptr OperationNode::createNode(Address addr, AbslocPtr absloc) {
+    return Node::Ptr(new OperationNode(addr, absloc)); 
+}
+
+std::string OperationNode::format() const {
     char buf[256];
     sprintf(buf,"N_0x%lx_%s_",
             addr(), absloc()->name().c_str());
     return std::string(buf);
 }
 
-std::string ParameterNode::name() const {
+Node::Ptr BlockNode::createNode(Block *b) {
+    return Node::Ptr(new BlockNode(b));
+}
+
+std::string BlockNode::format() const {
     char buf[256];
-    sprintf(buf, "N_PARAM_%s_",
+    sprintf(buf, "N_Block_0x%lx_",
+            block_->getStartAddress());
+    return std::string(buf);
+}
+
+BlockNode::BlockNode(Block *b) : PhysicalNode(b->getStartAddress()), block_(b) {};
+
+
+Node::Ptr FormalParamNode::createNode(AbslocPtr absloc) {
+    return Node::Ptr(new FormalParamNode(absloc)); 
+}
+
+std::string FormalParamNode::format() const {
+    char buf[256];
+    sprintf(buf, "N_Param_%s_",
             absloc()->name().c_str());
     return std::string(buf);
 }
 
-std::string ReturnNode::name() const {
+Node::Ptr FormalReturnNode::createNode(AbslocPtr absloc) {
+    return Node::Ptr(new FormalReturnNode(absloc)); 
+}
+
+std::string FormalReturnNode::format() const {
     char buf[256];
-    sprintf(buf, "N_RET_%s_",
+    sprintf(buf, "N_Return_%s_",
             absloc()->name().c_str());
     return std::string(buf);
 }
 
-std::string VirtualNode::name() const {
-    return std::string("N_VIRTUAL");
+
+Node::Ptr ActualParamNode::createNode(Address addr,
+                                      Function *func,
+                                      AbslocPtr a) {
+    return Node::Ptr(new ActualParamNode(addr, func, a));
 }
 
-std::string CallNode::name() const {
+std::string ActualParamNode::format() const {
+    char funcname[256];
+    if (func()) 
+        func()->getName(funcname, 256);
+    else
+        sprintf(funcname, "<UNKNOWN>");
+
+    char buf[512];
+
+    sprintf(buf, "N_%s_Arg_%s_",
+            funcname,
+            absloc()->name().c_str());
+    return std::string(buf);
+}
+
+Node::Ptr ActualReturnNode::createNode(Address addr,
+                                      Function *func,
+                                      AbslocPtr a) {
+    return Node::Ptr(new ActualReturnNode(addr, func, a));
+}
+
+std::string ActualReturnNode::format() const {
+    char funcname[256];
+    if (func()) 
+        func()->getName(funcname, 256);
+    else
+        sprintf(funcname, "<UNKNOWN>");
+    char buf[512];
+
+    sprintf(buf, "N_%s_Ret_%s_",
+            funcname,
+            absloc()->name().c_str());
+    return std::string(buf);
+}
+
+Node::Ptr CallNode::createNode(Function *func) {
+    return Node::Ptr(new CallNode(func));
+}
+
+
+
+std::string CallNode::format() const {
     char buf[512];
     func_->getName(buf, 512);
     return std::string(buf);
 }
 
-std::string SimpleNode::name() const {
-    char buf[256];
-    sprintf(buf,"N_0x%lx_", addr());
-    return std::string(buf);
-}
-
-Node::Ptr InsnNode::copyTo(Graph::Ptr graph) {
+#if 0
+Node::Ptr OperationNode::copyTo(Graph::Ptr graph) {
   return graph->makeNode(insn_, addr(), absloc());
 }
 
-Node::Ptr ParameterNode::copyTo(Graph::Ptr graph) {
-  return graph->makeParamNode(absloc());
+Node::Ptr FormalParamNode::copyTo(Graph::Ptr graph) {
+    return graph->makeFormalParamNode(absloc());
+}
+
+Node::Ptr FormalReturnNode::copyTo(Graph::Ptr graph) {
+    return graph->makeFormalReturnNode(absloc());
+}
+
+Node::Ptr ActualParamNode::copyTo(Graph::Ptr graph) {
+    return graph->makeCallParamNode(addr(), func(), absloc());
+}
+
+Node::Ptr ActualReturnNode::copyTo(Graph::Ptr graph) {
+    return graph->makeCallReturnNode(addr(), func(), absloc());
 }
 
 Node::Ptr VirtualNode::copyTo(Graph::Ptr graph) {
@@ -145,11 +217,8 @@ Node::Ptr CallNode::copyTo(Graph::Ptr graph) {
   return graph->makeVirtualNode();
 }
 
-Node::Ptr ReturnNode::copyTo(Graph::Ptr graph) {
-    assert(0 && "Not supported!");
-    return graph->makeVirtualNode();
-}
-
 Node::Ptr SimpleNode::copyTo(Graph::Ptr graph) {
   return graph->makeSimpleNode(insn_, addr());
 }
+
+#endif
