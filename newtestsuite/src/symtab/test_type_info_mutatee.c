@@ -48,7 +48,7 @@ enum enum1 {
 
 struct mystruct {
 	int elem1;
-	long elem2;
+	double elem2;
 	char elem3;
 	float elem4;
 } ms;
