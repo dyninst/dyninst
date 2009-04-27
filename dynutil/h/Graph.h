@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 2007-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -8,64 +8,46 @@
  * obligation to supply such updates or modifications or any other
  * form of support to you.
  * 
- * This license is for research uses.  For such uses, there is no
- * charge. We define "research use" to mean you may freely use it
- * inside your organization for whatever purposes you see fit. But you
- * may not re-distribute Paradyn or parts of Paradyn, in any form
- * source or binary (including derivatives), electronic or otherwise,
- * to any other organization or entity without our permission.
- * 
- * (for other uses, please contact us at paradyn@cs.wisc.edu)
- * 
- * All warranties, including without limitation, any warranty of
- * merchantability or fitness for a particular purpose, are hereby
- * excluded.
- * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * Even if advised of the possibility of such damages, under no
- * circumstances shall we (or any other person or entity with
- * proprietary rights in the software licensed hereunder) be liable
- * to you or any third party for direct, indirect, or consequential
- * damages of any character regardless of type of action, including,
- * without limitation, loss of profits, loss of use, loss of good
- * will, or computer failure or malfunction.  You agree to indemnify
- * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// DDG Graph class
-//
-// This class is a container for the DDG graph. We keep indices to
-// frequently requested information (e.g., a map of Instructions
-// to subnodes), a list of Initial nodes (representing initial
-// definitions), a list of Abslocs. 
+// Graph class
 
-#if !defined(DDG_GRAPH_H)
-#define DDG_GRAPH_H
+
+#if !defined(GRAPH_H)
+#define GRAPH_H
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
 #include <list>
 #include <queue>
+
 #include "Annotatable.h"
-#include "Instruction.h"
-#include "Node.h"
-#include "Absloc.h"
 
 namespace Dyninst {
-namespace DepGraphAPI {
-
-    class Dyninst::InstructionAPI::Instruction;
-    class Edge;
-    class Graph;
-    class Absloc;
-    class Node;
+class Edge;
+class Graph;
+class Node;
+class NodeIterator;
+class EdgeIterator;
     
 class Graph : public AnnotatableSparse {
     friend class Edge;
@@ -73,14 +55,31 @@ class Graph : public AnnotatableSparse {
     friend class Creator;
     friend class Iterator;
     
- public:
+ protected:
+
+    typedef dyn_detail::boost::shared_ptr<Node> NodePtr;
+    typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
+
+    typedef std::set<NodePtr> NodeSet;
+    typedef std::map<Address, NodeSet> NodeMap;
+
+ public:    
     typedef dyn_detail::boost::shared_ptr<Graph> Ptr;
 
-    typedef Node::Ptr NodePtr;
-    typedef Node::Set NodeSet;
+
     
-    typedef std::map<Address, NodeSet> NodeMap;
- public:    
+    // If you want to traverse the graph start here.
+    virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
+    
+    // Get all nodes in the graph
+    virtual void allNodes(NodeIterator &begin, NodeIterator &end);
+
+    virtual bool find(Address addr, NodeIterator &begin, NodeIterator &end);
+
+    bool printDOT(const std::string fileName);
+
+    virtual ~Graph() {};
+    
     // We create an empty graph and then add nodes and edges.
     static Ptr createGraph();
     
@@ -89,27 +88,10 @@ class Graph : public AnnotatableSparse {
     void insertPair(NodePtr source, NodePtr target);
 
     void insertEntryNode(NodePtr entry);
-    
-    // If you want to traverse the graph start here.
-    virtual const NodeSet &entryNodes() const { return entryNodes_; };
-    
-    // Get all nodes in the graph
-    virtual const NodeSet &allNodes() const { return nodes_; };
 
-    // Returns a new graph after copying the nodes and edges into this new graph.
-    Graph::Ptr copyGraph();
-    
-    // Returns a set of nodes which are related to the instruction at
-    // the given address.
-    const NodeSet &getNodesAtAddr(Address addr);
+    void addNode(NodePtr node);
 
-    bool printDOT(const std::string fileName);
-
-    virtual ~Graph() {};
-    
  protected:
-     
-    void addNode(Node::Ptr node);
      
     static const Address INITIAL_ADDR;
     
@@ -126,44 +108,6 @@ class Graph : public AnnotatableSparse {
     NodeSet entryNodes_;
 };
 
-
-class DDG : public Graph {
- public:
-    typedef dyn_detail::boost::shared_ptr<DDG> Ptr;
-
-    typedef std::map<Address, NodeSet> AddrMap;
-    
-    typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
-    typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
-
-    typedef std::set<ActualParamNode::Ptr> ActualParamNodeSet;
-    typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
-
-
-    static Ptr createGraph();
-    
-    virtual ~DDG() {};
-
-    const FormalParamNodeSet &formalParameterNodes() const { return formalParamNodes_; }
-    const FormalReturnNodeSet &formalReturnNodes() const { return formalReturnNodes_; }
-    
- private:
-
-    DDG() {};
-
-    // Assertion: only parameter nodes will have no in-edges,
-    // by definition.
-    FormalParamNodeSet formalParamNodes_;
-
-    // Virtual nodes to represent locations defined by the function.
-    FormalReturnNodeSet formalReturnNodes_;
-
-    AddrMap callParamNodes_;
-    AddrMap callReturnNodes_;
-};
-
-
-};
 }
 #endif
 

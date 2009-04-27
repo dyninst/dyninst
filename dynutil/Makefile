@@ -7,7 +7,10 @@ PUBLIC_H = Annotatable.h \
            dyntypes.h \
            util.h \
            Serialization.h \
-	  dyn_detail
+	   Graph.h \
+           Edge.h \
+           Node.h \
+	   dyn_detail 
 
 world:
 	@echo Nothing to be done for build

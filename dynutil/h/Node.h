@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 2007-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -8,54 +8,34 @@
  * obligation to supply such updates or modifications or any other
  * form of support to you.
  * 
- * This license is for research uses.  For such uses, there is no
- * charge. We define "research use" to mean you may freely use it
- * inside your organization for whatever purposes you see fit. But you
- * may not re-distribute Paradyn or parts of Paradyn, in any form
- * source or binary (including derivatives), electronic or otherwise,
- * to any other organization or entity without our permission.
- * 
- * (for other uses, please contact us at paradyn@cs.wisc.edu)
- * 
- * All warranties, including without limitation, any warranty of
- * merchantability or fitness for a particular purpose, are hereby
- * excluded.
- * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * Even if advised of the possibility of such damages, under no
- * circumstances shall we (or any other person or entity with
- * proprietary rights in the software licensed hereunder) be liable
- * to you or any third party for direct, indirect, or consequential
- * damages of any character regardless of type of action, including,
- * without limitation, loss of profits, loss of use, loss of good
- * will, or computer failure or malfunction.  You agree to indemnify
- * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-
-// DDG Nodes consist of an Instruction:Absloc pair. This is guaranteed to
-// be a single definition on all platforms. We don't convert to an abstract
-// language because we (assume) we need to keep the instruction information
-// around, and this is lost in a conversion process. 
-
-#if !defined(DDG_NODE_H)
-#define DDG_NODE_H
+#if !defined(NODE_H)
+#define NODE_H
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
 #include <string>
 #include "Annotatable.h"
-#include "Instruction.h"
-#include "Edge.h"
-
-#include "Absloc.h"
 
 #include "dyntypes.h"
 
@@ -65,36 +45,30 @@ class BPatch_function;
 class BPatch_basicBlock;
 
 namespace Dyninst {
-namespace DepGraphAPI {
 
-class Dyninst::InstructionAPI::Instruction;
 class Edge;
-class Absloc;
 class Graph;
-
-
-typedef BPatch_function Function;
+class NodeIterator;
+class EdgeIterator;
 
 class Node : public AnnotatableSparse {
     friend class Edge;
     friend class Graph;
+    
+    typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
+    typedef std::set<EdgePtr> EdgeSet;
+
  public:
     typedef dyn_detail::boost::shared_ptr<Node> Ptr;
-    typedef std::set<Node::Ptr> Set;
 
-    //typedef boost::shared_ptr<InstructionAPI::Instruction> InsnPtr;
-    
-    typedef InstructionAPI::Instruction InsnPtr; 
-    typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
-    typedef Absloc::Ptr AbslocPtr;
-    typedef Edge::Set EdgeSet;
-    typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
+    void ins(EdgeIterator &begin, EdgeIterator &end);
+    void outs(EdgeIterator &begin, EdgeIterator &end);
 
-    bool ins(EdgeSet &edges) const { return returnEdges(ins_, edges); }
-    bool outs(EdgeSet &edges) const { return returnEdges(outs_, edges); }
-    
-    bool hasInEdges() const { return ins_.size() != 0; }
-    bool hasOutEdges() const { return ins_.size() != 0; }
+    void ins(NodeIterator &begin, NodeIterator &end);
+    void outs(NodeIterator &begin, NodeIterator &end);
+
+    bool hasInEdges(); 
+    bool hasOutEdges();
     
     virtual Address addr() const { return INVALID_ADDR; }
     
@@ -112,12 +86,6 @@ class Node : public AnnotatableSparse {
     EdgeSet ins_;
     EdgeSet outs_;
     
-    // Do the work of ins() and outs() above
-    bool returnEdges(const EdgeSet &local,
-                     EdgeSet &ret) const;
-    
-    // For Creator-class methods to use: add a new edge to 
-    // a node.
     void addInEdge(const EdgePtr in) { ins_.insert(in); }
     void addOutEdge(const EdgePtr out) { outs_.insert(out); }
 
@@ -167,236 +135,18 @@ class VirtualNode : public Node {
     VirtualNode() {};
 };
 
-
-class OperationNode : public PhysicalNode {
-    friend class Edge;
-    friend class Graph;
-    
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<OperationNode> Ptr;
-    
-    static Node::Ptr createNode(Address addr, AbslocPtr absloc);
-    
-    AbslocPtr absloc() const { return absloc_; }
-    Address addr() const { return addr_; }
-    
-    // We may use "virtual" nodes to represent initial definitions. These
-    // have no associated instruction, which we represent as a NULL insn().
-    //bool isVirtual() const { return insn(); }
-    
-    std::string format() const;
-    //Node::Ptr copyTo(GraphPtr graph);
-    
-    bool isVirtual() const { return false; }
-
-    virtual ~OperationNode() {};
-    
- private:
-    OperationNode(Address addr, AbslocPtr absloc) :
-        PhysicalNode(addr), absloc_(absloc) {};
-    
-    // We keep a "One True List" of abstract locations, so all instructions
-    // that define a particular absloc will have the same pointer. 
-    AbslocPtr absloc_;
-};
-
-
-class BlockNode : public PhysicalNode {
-     friend class Edge;
-     friend class Graph;
-
- typedef BPatch_basicBlock Block;
+class NodeIterator {
+    friend class Node;
 
  public:
-    typedef dyn_detail::boost::shared_ptr<BlockNode> Ptr;
-    
-    static Node::Ptr createNode(Block *);
-    
-    // We may use "virtual" nodes to represent initial definitions. These
-    // have no associated instruction, which we represent as a NULL insn().
-    //bool isVirtual() const { return insn(); }
-    
-    std::string format() const;
-    //Node::Ptr copyTo(GraphPtr graph);
-    
-    bool isVirtual() const { return false; }
 
-    virtual ~BlockNode() {};
-    
- private:
-    BlockNode(Block *b);
-    
-    Block *block_;
- };
+    void operator++();
+    void operator++(int);
+    bool operator==(const NodeIterator &rhs);
+    bool operator!=(const NodeIterator &rhs);
 
-
-class FormalNode : public Node {
-    friend class Edge;
-    friend class Graph;
-    
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<FormalNode> Ptr;
-    
-    AbslocPtr absloc() const { return absloc_; }
-    
-    // We may use "virtual" nodes to represent initial definitions. These
-    // have no associated instruction, which we represent as a NULL insn().
-    //bool isVirtual() const { return insn(); }
-    
-    virtual std::string format() const = 0;
-    //Node::Ptr copyTo(GraphPtr graph) = 0;
-    
-    virtual bool isVirtual() const { return true; } 
-    
-    virtual ~FormalNode() {};
-    
- protected:
-    FormalNode(AbslocPtr a) :
-        absloc_(a) {};
-    
-    AbslocPtr absloc_;
+    Node::Ptr operator*();
 };
 
-class FormalParamNode : public FormalNode {
-    friend class Edge;
-    friend class Graph;
-    
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<FormalParamNode> Ptr;
-    
-    static Node::Ptr createNode(AbslocPtr absloc);
-    
-    virtual std::string format() const;
-    // virtual Node::Ptr copyTo(GraphPtr graph);
-    
-    virtual ~FormalParamNode() {};
-    
- private:
-    FormalParamNode(AbslocPtr a) :
-        FormalNode(a) {};
-};
-
-
-class FormalReturnNode : public FormalNode {
-    friend class Edge;
-    friend class Graph;
-    
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<FormalReturnNode> Ptr;
-
-    static Node::Ptr createNode(AbslocPtr absloc);
-    
-    virtual std::string format() const;
-    // virtual Node::Ptr copyTo(GraphPtr graph);
-    
-    virtual ~FormalReturnNode() {};
-    
- private:
-    FormalReturnNode(AbslocPtr a) :
-        FormalNode(a) {};
-};
-
-
-class ActualNode : public Node {
-    friend class Edge;
-    friend class Graph;
-    
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<ActualNode> Ptr;
-    
-    Address addr() const { return addr_; }
-    AbslocPtr absloc() const { return absloc_; }
-    Function *func() const { return func_; }
-
-    virtual std::string format() const = 0;
-    // virtual Node::Ptr copyTo(GraphPtr graph);
- 
-    virtual bool isVirtual() const { return true; }
-   
-    virtual ~ActualNode() {};
-    
- protected:
-    ActualNode(Address addr, 
-               Function *func,
-               AbslocPtr a) :
-        addr_(addr),
-        func_(func),
-        absloc_(a) {};
-    
-    Address addr_;
-    Function *func_;
-    AbslocPtr absloc_;
-};
-
-class ActualParamNode : public ActualNode {
-    friend class Edge;
-    friend class Graph;
-    
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<ActualParamNode> Ptr;
-    
-    static Node::Ptr createNode(Address addr, Function *func, AbslocPtr absloc);
-    
-    virtual std::string format() const;
-    //Node::Ptr copyTo(GraphPtr graph);
-    virtual ~ActualParamNode() {};
-    
- private:
-    ActualParamNode(Address addr, 
-                    Function *func,
-                    AbslocPtr a) :
-        ActualNode(addr, func, a) {};
-};
-
-class ActualReturnNode : public ActualNode {
-    friend class Edge;
-    friend class Graph;
-    
-    
- public:
-    typedef dyn_detail::boost::shared_ptr<ActualReturnNode> Ptr;
-    
-    static Node::Ptr createNode(Address addr, Function *func, AbslocPtr absloc);
-    
-    virtual std::string format() const;
-    //Node::Ptr copyTo(GraphPtr graph);
-    virtual ~ActualReturnNode() {};
-    
- private:
-    ActualReturnNode(Address addr, 
-                     Function *func,
-                     AbslocPtr a) :
-        ActualNode(addr, func, a) {};
-};
-
-class CallNode : public Node {
-    friend class Edge;
-    friend class Graph;
-    
-
- public:
-    typedef dyn_detail::boost::shared_ptr<CallNode> Ptr;
-
-    static Node::Ptr createNode(Function *func);
-    //Node::Ptr copyTo(GraphPtr graph);
-    
-    virtual std::string format() const;
-    virtual bool isVirtual() const { return true; }
-    virtual ~CallNode() {};
-    
- private:
-    CallNode(Function *func) : 
-        func_(func) {};
-
-    Function *func_;
-};
-
-};
 }
 #endif

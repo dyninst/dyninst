@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 2007-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -8,48 +8,52 @@
  * obligation to supply such updates or modifications or any other
  * form of support to you.
  * 
- * This license is for research uses.  For such uses, there is no
- * charge. We define "research use" to mean you may freely use it
- * inside your organization for whatever purposes you see fit. But you
- * may not re-distribute Paradyn or parts of Paradyn, in any form
- * source or binary (including derivatives), electronic or otherwise,
- * to any other organization or entity without our permission.
- * 
- * (for other uses, please contact us at paradyn@cs.wisc.edu)
- * 
- * All warranties, including without limitation, any warranty of
- * merchantability or fitness for a particular purpose, are hereby
- * excluded.
- * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * Even if advised of the possibility of such damages, under no
- * circumstances shall we (or any other person or entity with
- * proprietary rights in the software licensed hereunder) be liable
- * to you or any third party for direct, indirect, or consequential
- * damages of any character regardless of type of action, including,
- * without limitation, loss of profits, loss of use, loss of good
- * will, or computer failure or malfunction.  You agree to indemnify
- * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
 // Graph class implementation
 
 #include "Graph.h"
-#include "Absloc.h"
 #include "Edge.h"
 #include "Node.h"
 #include <assert.h>
 
-using namespace Dyninst::DepGraphAPI;
+using namespace Dyninst;
 
 const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
+
+void Graph::entryNodes(NodeIterator &begin, NodeIterator &end) {
+    assert(0);
+    return;
+}
+
+void Graph::allNodes(NodeIterator &begin, NodeIterator &end) {
+    assert(0);
+    return;
+}
+
+bool Graph::find(Address addr, NodeIterator &begin, NodeIterator &end) {
+    assert(0);
+    return false;
+}
 
 Graph::Graph() {};
 
@@ -62,23 +66,24 @@ void Graph::insertPair(NodePtr source, NodePtr target) {
 
     Edge::Ptr e = Edge::createEdge(source, target);
 
+    addNode(source);
+    addNode(target);
+
     source->addOutEdge(e);
     target->addInEdge(e);
-
-    nodes_.insert(source);
-    nodes_.insert(target);
-
-    if (!source->isVirtual()) {
-        nodesByAddr_[source->addr()].insert(source);
-    }
-    if (!target->isVirtual()) {
-        nodesByAddr_[target->addr()].insert(target);
-    }
-
 }
 
-const Graph::NodeSet &Graph::getNodesAtAddr(Address addr) {
-    return nodesByAddr_[addr];
+void Graph::insertEntryNode(NodePtr entry) {
+    addNode(entry);
+    entryNodes_.insert(entry);
+}
+
+void Graph::addNode(Node::Ptr node) {
+    if (node->hasInEdges() || node->hasOutEdges()) return;
+    nodes_.insert(node);
+    if (!node->isVirtual()) {
+        nodesByAddr_[node->addr()].insert(node);
+    }        
 }
 
 bool Graph::printDOT(const std::string fileName) {
@@ -92,11 +97,12 @@ bool Graph::printDOT(const std::string fileName) {
     NodeSet visited;
     std::queue<Node::Ptr> worklist;
 
-    const NodeSet &entries = entryNodes();
+    NodeIterator begin, end;
+    entryNodes(begin, end);
 
     // Initialize visitor worklist
-    for (NodeSet::const_iterator i = entries.begin(); i != entries.end(); i++) {
-        worklist.push(*i);
+    for (; begin != end; begin++) {
+        worklist.push(*begin);
     }
 
     while (!worklist.empty()) {
@@ -113,10 +119,13 @@ bool Graph::printDOT(const std::string fileName) {
         //fprintf(stderr, "\t inserting %s into visited set, %d elements pre-insert\n", source->name().c_str(), visited.size());
         visited.insert(source);
         fprintf(file, "\t // %s\n", source->format().c_str());
-        Node::EdgeSet outs; source->outs(outs);
+
+        NodeIterator outBegin, outEnd;
+        source->outs(outBegin, outEnd);
+
         //fprintf(stderr, "\t with %d out-edges\n", outs.size());
-        for (Node::EdgeSet::iterator e = outs.begin(); e != outs.end(); e++) {
-            Node::Ptr target = (*e)->target();
+        for (; outBegin != outEnd; outBegin++) {
+            Node::Ptr target = *outBegin;
             fprintf(file, "\t %s -> %s;\n", source->format().c_str(), target->format().c_str());
             if (visited.find(target) == visited.end()) {
                 //fprintf(stderr, "\t\t adding child %s\n", target->name().c_str());
@@ -133,45 +142,3 @@ bool Graph::printDOT(const std::string fileName) {
 
     return true;
 }
-
-DDG::Ptr DDG::createGraph() {
-    return Ptr(new DDG());
-}
-
-#if 0
-/**
- * Returns a new graph after copying the nodes and edges into this new graph.
- */
-DDG::Ptr DDG::copyGraph() {
-  typedef NodeSet::iterator NodeIter;
-  typedef std::set<Edge::Ptr> EdgeSet;
-  typedef EdgeSet::iterator EdgeIter;
-  
-  DDG::Ptr newGraph = DDG::createGraph();
-  NodePtr virtNode = newGraph->makeVirtualNode();
-  NodeSet nodes;
-  allNodes(nodes);
-  for (NodeIter nodeIter = nodes.begin(); nodeIter != nodes.end(); nodeIter++) {
-    NodePtr node = *nodeIter;
-    // create a copy of the node and insert into the graph.
-    NodePtr newNode = node->copyTo(newGraph); // copyNode(copy, node);
-    newGraph->insertPair(virtNode, newNode);
-    
-    // process outgoing edges. no need to process incoming edges since they are
-    // outgoing edges from another node and will be processed then.
-    EdgeSet outEdges;
-    node->outs(outEdges);
-    for (EdgeIter iter = outEdges.begin(); iter != outEdges.end(); iter++) {
-      NodePtr target = (*iter)->target();
-      InstructionAPI::Instruction targetIns = target->insn();
-
-      // create a new target for this edge.
-      NodePtr newTarget = target->copyTo(newGraph); //copyNode(copy, target);
-      // add edge from newNode to newTarget.
-      newGraph->insertPair(newNode, newTarget);
-    }
-  }
-  return newGraph;
-}
-
-#endif
