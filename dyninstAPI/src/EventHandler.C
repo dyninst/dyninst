@@ -247,6 +247,8 @@ bool InternalThread::createThread()
   }
 
   try {
+	  int n_try = 0;
+try_again:
   err = pthread_create(&handler_thread, &handler_thread_attr,
                        &eventHandlerWrapper, (void *) this);
   if (err) {
@@ -254,7 +256,22 @@ bool InternalThread::createThread()
           __FILE__, __LINE__, strerror(err), err);
     fprintf(stderr,"%s[%d]:  could not start async handler thread: %s, %d\n",
           __FILE__, __LINE__, strerror(err), err);
-    return false;
+	if (err == EAGAIN)
+	{
+		struct timeval slp;
+		slp.tv_sec = 0;
+		slp.tv_usec = 1000;
+		select(0, NULL, NULL, NULL, &slp);
+		n_try++;
+		if (n_try < 10)
+			goto try_again;
+		else
+		{
+			fprintf(stderr,"%s[%d]:  FAIL:  giving up on async handler thread: %s, %d\n",
+					__FILE__, __LINE__, strerror(err), err);
+		}
+	}
+	return false;
   }
   } catch(...) {
     assert(0);
