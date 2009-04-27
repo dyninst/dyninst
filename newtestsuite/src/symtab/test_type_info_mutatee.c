@@ -66,7 +66,7 @@ typedef int * my_intptr_t;
 typedef int int_alias_t;
 
 union my_union{
-	char *my_str;
+	float my_float;
 	int my_int;
 } u1;
 
