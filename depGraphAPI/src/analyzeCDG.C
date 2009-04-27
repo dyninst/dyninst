@@ -36,6 +36,7 @@
 
 #include "Absloc.h"
 #include "Graph.h"
+#include "CDG.h"
 
 // Dyninst
 #include "BPatch_basicBlock.h"
@@ -48,19 +49,20 @@
 // Annotation interface
 #include "Annotatable.h"
 
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 
-AnnotationClass <Graph::Ptr> CDGAnno(std::string("CDGAnno"));
+AnnotationClass <CDG::Ptr> CDGAnno(std::string("CDGAnno"));
 
 CDGAnalyzer::CDGAnalyzer(Function *f) : func_(f) {};
 
-Graph::Ptr CDGAnalyzer::analyze() {
-    if (func_ == NULL) return Graph::Ptr();
+CDG::Ptr CDGAnalyzer::analyze() {
+    if (func_ == NULL) return CDG::Ptr();
 
-    Graph::Ptr *ret;
+    CDG::Ptr *ret;
     func_->getAnnotation(ret, CDGAnno);
     if (ret) {
         cdg = *ret;
@@ -73,7 +75,7 @@ Graph::Ptr CDGAnalyzer::analyze() {
     func_->getCFG()->getAllBasicBlocks(blocks);
 
     // Create a graph
-    cdg = Graph::createGraph();
+    cdg = CDG::createGraph();
     
     // create the dependencies between blocks
     createInterBlockDeps(blocks);
@@ -82,7 +84,7 @@ Graph::Ptr CDGAnalyzer::analyze() {
     createNodeDeps(blocks);
 
     // Store as an annotation and return
-    Graph::Ptr *ptr = new Graph::Ptr(cdg);
+    CDG::Ptr *ptr = new CDG::Ptr(cdg);
     func_->addAnnotation(ptr, CDGAnno);
     
     return cdg;

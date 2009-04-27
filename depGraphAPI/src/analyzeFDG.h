@@ -45,8 +45,8 @@
 #include <map>
 #include "Graph.h"
 #include "Node.h"
+#include "Instruction.h"
 
-using namespace std;
 
 class BPatch_basicBlock;
 class BPatch_function;
@@ -55,6 +55,8 @@ namespace Dyninst {
 namespace DepGraphAPI {
 
 using namespace InstructionAPI;
+using namespace std;
+
 
 /**
  * The tool that creates the Flow Dependence Graph (FDG) associated with a given 

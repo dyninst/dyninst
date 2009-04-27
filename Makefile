@@ -16,11 +16,13 @@ SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI instructionAPI dyninstAPI_RT dyninstAPI dynutil
 InstructionAPI	= ready common instructionAPI dynutil
+DepGraphAPI = DyninstAPI depGraphAPI
 ValueAdded = valueAdded/sharedMem
+
 
 testsuites = dyninstAPI/tests 
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI stackwalk DDG
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI stackwalk depGraphAPI
 allSubdirs	= $(allCoreSubdirs) dyninstAPI/tests valueAdded/sharedMem
 allSubdirs_noinstall =
 
@@ -139,7 +141,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -205,6 +207,7 @@ dyninstAPI: symtabAPI instructionAPI
 symtabAPI dyninstAPI: dynutil
 dyner codeCoverage dyninstAPI/tests testsuite newtestsuite: dyninstAPI
 newtestsuite: $(coreSubdirs_explicitInstall)
+# depGraphAPI: instructionAPI dyninstAPI
 
 # This rule passes down the documentation-related make stuff to
 # lower-level Makefiles in the individual "docs" directories.

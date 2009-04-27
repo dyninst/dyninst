@@ -41,8 +41,9 @@
 #include "Instruction.h"
 #include "Graph.h"
 #include "Node.h"
+#include "DDG.h"
 
-#include "Analyzer.h"
+//#include "Analyzer.h"
 
 #include "dyninstAPI/src/image-func.h"
 
@@ -85,7 +86,7 @@ class DDGAnalyzer {
     typedef Absloc::Ptr AbslocPtr;
     typedef std::set<AbslocPtr> AbslocSet;
     typedef Node::Ptr NodePtr;
-    typedef Node::Set NodeSet;
+    typedef std::set<Node::Ptr> odeSet;
     
     // TODO: replace this with ParsingAPI concepts.
     typedef BPatch_basicBlock Block;

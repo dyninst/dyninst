@@ -37,7 +37,8 @@
 
 #include "Node.h"
 #include "Graph.h"
-
+#include "DepGraphNode.h"
+#include "CDG.h"
 
 class BPatch_basicBlock;
 class BPatch_flowGraph;
@@ -55,6 +56,9 @@ namespace DepGraphAPI {
  * Dyninst. The algorithm is borrowed from Ferrante et. al.
  */
 class CDGAnalyzer {
+
+    typedef BPatch_function Function;
+
  public:
   
   // TODO: replace this with ParsingAPI concepts.
@@ -83,7 +87,7 @@ class CDGAnalyzer {
   /**
    * Control Dependence Graph.
    */
-  Graph::Ptr cdg;
+  CDG::Ptr cdg;
 
   /*
    * Function 
@@ -100,7 +104,7 @@ class CDGAnalyzer {
 public:
   CDGAnalyzer(Function *f);
   
-  Graph::Ptr analyze();
+  CDG::Ptr analyze();
 
 };
 

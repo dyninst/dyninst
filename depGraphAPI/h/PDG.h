@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
  
-#if !defined(DDG_GRAPH_H)
-#define DDG_GRAPH_H
+#if !defined(PDG_GRAPH_H)
+#define PDG_GRAPH_H
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
@@ -56,11 +56,11 @@ namespace DepGraphAPI {
 
     class Absloc;
 
-class DDG : public Graph {
+class PDG : public Graph {
  public:
-    typedef dyn_detail::boost::shared_ptr<DDG> Ptr;
+    typedef dyn_detail::boost::shared_ptr<PDG> Ptr;
 
- protected:
+ private:
     typedef BPatch_function Function;
 
     typedef std::map<Address, NodeSet> AddrMap;
@@ -72,28 +72,18 @@ class DDG : public Graph {
     typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
  public:
 
-    static DDG::Ptr analyze(Function *func);
+    static PDG::Ptr analyze(Function *func);
     
-    virtual ~DDG() {};
+    virtual ~PDG() {};
 
-    void formalParameterNodes(NodeIterator &begin, NodeIterator &end);
-    void formalReturnNodes(NodeIterator &begin, NodeIterator &end);
+    static Ptr createGraph() { return PDG::Ptr(new PDG()); }
 
-    static Ptr createGraph() { return DDG::Ptr(new DDG()); }
-    
  private:
 
-    DDG() {};
+    PDG() {};
 
-    // Assertion: only parameter nodes will have no in-edges,
-    // by definition.
-    FormalParamNodeSet formalParamNodes_;
-
-    // Virtual nodes to represent locations defined by the function.
-    FormalReturnNodeSet formalReturnNodes_;
-
-    AddrMap callParamNodes_;
-    AddrMap callReturnNodes_;
+    CDG::Ptr cdg_;
+    DDG::Ptr ddg_;
 };
 
 };

@@ -30,13 +30,14 @@
  */
 
 #include "Annotatable.h"
-#include "Analyzer.h"
+#include "DepGraph.h"
 #include "analyzeDDG.h"
 #include "analyzeCDG.h"
 #include "analyzeFDG.h"
 #include "analyzePDG.h"
 
 #include "Graph.h"
+#include "DDG.h"
 
 #include "BPatch_function.h"
 #include "BPatch_flowGraph.h"
@@ -52,27 +53,27 @@ AnnotationClass <Graph::Ptr> PDGAnno(std::string("PDGAnno"));
 
 
 
-Analyzer::Analyzer(Function *func) : 
+DepGraph::DepGraph(Function *func) : 
     func_(func) {};
 
-Analyzer Analyzer::createAnalyzer(BPatch_function *func) {
+DepGraph DepGraph::create(BPatch_function *func) {
     // We need to strip out what we need and create (and return)
-    // an Analyzer object. For now, what we need is the image_func
+    // an DepGraph object. For now, what we need is the image_func
     // since it's our base representation.
 
-    if (!func) return Analyzer();
+    if (!func) return DepGraph();
 
-    return Analyzer(func);
+    return DepGraph(func);
 }
 
-DDG::Ptr Analyzer::createDDG() {
+DDG::Ptr DepGraph::createDDG() {
     if (func_ == NULL) return DDG::Ptr();
 
     DDGAnalyzer ddgA(func_);
     return ddgA.analyze();
 }
 
-Graph::Ptr Analyzer::createCDG() {
+Graph::Ptr DepGraph::createCDG() {
     if (func_ == NULL) return Graph::Ptr();
 
     CDGAnalyzer cdgA(func_);
@@ -80,7 +81,7 @@ Graph::Ptr Analyzer::createCDG() {
 }
 
 
-Graph::Ptr Analyzer::createFDG() {
+Graph::Ptr DepGraph::createFDG() {
     if (func_ == NULL) return Graph::Ptr();
 
     FDGAnalyzer fdgA(func_);
@@ -89,7 +90,7 @@ Graph::Ptr Analyzer::createFDG() {
 }
 
 
-Graph::Ptr Analyzer::createPDG() {
+Graph::Ptr DepGraph::createPDG() {
     if (func_ == NULL) return Graph::Ptr();
 
     // Common code: if we already have the FDG as an annotation, 

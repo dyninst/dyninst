@@ -48,6 +48,8 @@
 #include "Edge.h"
 #include "Graph.h"
 #include "Node.h"
+#include "DDG.h"
+#include "DepGraphNode.h"
 
 #include "boost/tuple/tuple.hpp"
 

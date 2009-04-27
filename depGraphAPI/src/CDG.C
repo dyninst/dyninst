@@ -28,9 +28,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
- 
-#if !defined(DDG_GRAPH_H)
-#define DDG_GRAPH_H
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
@@ -41,61 +38,17 @@
 #include "Node.h"
 #include "Absloc.h"
 #include "Graph.h"
-
 #include "DepGraphNode.h"
+#include "CDG.h"
+#include "analyzeCDG.h"
 
-class BPatch_function;
+#include "BPatch_function.h"
 
-namespace Dyninst {
-    class InstructionAPI::Instruction;
-    class Edge;
-    class Graph;
-    class Node;
+using namespace Dyninst;
+using namespace DepGraphAPI;
 
-namespace DepGraphAPI {
 
-    class Absloc;
-
-class DDG : public Graph {
- public:
-    typedef dyn_detail::boost::shared_ptr<DDG> Ptr;
-
- protected:
-    typedef BPatch_function Function;
-
-    typedef std::map<Address, NodeSet> AddrMap;
-    
-    typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
-    typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
-
-    typedef std::set<ActualParamNode::Ptr> ActualParamNodeSet;
-    typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
- public:
-
-    static DDG::Ptr analyze(Function *func);
-    
-    virtual ~DDG() {};
-
-    void formalParameterNodes(NodeIterator &begin, NodeIterator &end);
-    void formalReturnNodes(NodeIterator &begin, NodeIterator &end);
-
-    static Ptr createGraph() { return DDG::Ptr(new DDG()); }
-    
- private:
-
-    DDG() {};
-
-    // Assertion: only parameter nodes will have no in-edges,
-    // by definition.
-    FormalParamNodeSet formalParamNodes_;
-
-    // Virtual nodes to represent locations defined by the function.
-    FormalReturnNodeSet formalReturnNodes_;
-
-    AddrMap callParamNodes_;
-    AddrMap callReturnNodes_;
-};
-
-};
+CDG::Ptr CDG::analyze(Function *func) {
+    CDGAnalyzer cdgA(func);
+    return cdgA.analyze();
 }
-#endif
