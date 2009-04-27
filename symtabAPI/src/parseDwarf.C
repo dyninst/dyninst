@@ -2233,6 +2233,10 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", 
 				FILE__, __LINE__ );
 
+		if (!memberName)
+		{
+			fprintf(stderr, "%s[%d]:  weird, dwarf_diename returned NULL w/out error\n", FILE__, __LINE__);
+		}
 		Dwarf_Attribute typeAttribute;
 		status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
 
@@ -2248,7 +2252,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		Dwarf_Off typeOffset;
 		status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 
-		dwarf_printf("%s[%d]:  type id '%d' for type %s\n", FILE__, __LINE__, 
+		dwarf_printf("%s[%d]:  type id '%d' for type '%s'\n", FILE__, __LINE__, 
 				typeOffset, memberName ? memberName : "no_name");
 
 		DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
