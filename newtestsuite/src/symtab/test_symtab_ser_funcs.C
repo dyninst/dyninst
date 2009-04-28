@@ -219,6 +219,133 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		fprintf(stderr, "\t dataclass: %d -- %d\n", (int)t1.getDataClass(), (int)t2.getDataClass());
 	}
 
+	static void derived_type_report( const derivedType & ct1, const derivedType &ct2)
+	{
+		type_report(ct1, ct2);
+
+		derivedType &t1 = const_cast<derivedType &>(ct1);
+		derivedType &t2 = const_cast<derivedType &>(ct2);
+
+		Type *st1 = t1.getConstituentType();
+		Type *st2 = t2.getConstituentType();
+
+		if (st1 && !st2)
+		{
+			fprintf(stderr, "%s[%d]:  inconsistent constituent types\n", FILE__, __LINE__);
+			return;
+		}
+
+		if (!st1 && st2)
+		{
+			fprintf(stderr, "%s[%d]:  inconsistent constituent types\n", FILE__, __LINE__);
+			return;
+		}
+
+		if (!st1) 
+			return;
+
+		fprintf(stderr, "%s[%d]:  derived from '%s' -- '%s'\n", FILE__, __LINE__, 
+				st1->getName().c_str(), st2->getName().c_str());
+	}
+
+	static void type_pointer_report( const typePointer & ct1, const typePointer &ct2)
+	{
+		derived_type_report(ct1, ct2);
+	}
+
+	static void field_report(Field * f1, Field * &f2)
+	{
+		//Field *f1 = const_cast<Field *>(ct1);
+		//Field *f2 = const_cast<Field *>(ct2);
+		if (f1)
+		{
+			Type *t = f1->getType();
+			std::string tname = t ? t->getName() : std::string("no_type");
+			fprintf(stderr, "[%s %s %u %d %s]", tname.c_str(), f1->getName().c_str(), 
+					f1->getOffset(), f1->getSize(), visibility2Str(f1->getVisibility()));
+		}
+		if (f2)
+		{
+			Type *t = f2->getType();
+			std::string tname = t ? t->getName() : std::string("no_type");
+			fprintf(stderr, "--[%s %s %u %d %s]", tname.c_str(), f2->getName().c_str(), 
+					f2->getOffset(), f2->getSize(), visibility2Str(f2->getVisibility()));
+		}
+		fprintf(stderr, "\n");
+	}
+
+	static void field_list_type_report( const fieldListType & ct1, const fieldListType &ct2)
+	{
+		type_report(ct1, ct2);
+
+		fieldListType &t1 = const_cast<fieldListType &>(ct1);
+		fieldListType &t2 = const_cast<fieldListType &>(ct2);
+
+		std::vector<Field *> *c1 = t1.getComponents();
+		std::vector<Field *> *c2 = t2.getComponents();
+
+		if (c1 && !c2)
+		{
+			fprintf(stderr, "%s[%d]: component discrep\n", FILE__, __LINE__);
+		}
+
+		if (!c1 && c2)
+		{
+			fprintf(stderr, "%s[%d]: component discrep\n", FILE__, __LINE__);
+		}
+
+		if (c1)
+		{
+
+			unsigned int m = (c1->size() > c2->size()) ? c1->size() : c2->size();
+
+			fprintf(stderr, "%s[%d]:  components:\n", FILE__, __LINE__);
+
+			for (unsigned int i = 0; i < m; ++i)
+			{
+				Field *f1 = (c1->size() > i) ? (*c1)[i] : NULL;
+				Field *f2 = (c2->size() > i) ? (*c2)[i] : NULL;
+				field_report(f1, f2);
+			}
+		}
+
+		std::vector<Field *> *ff1 = t1.getFields();
+		std::vector<Field *> *ff2 = t2.getFields();
+
+		if (ff1 && !ff2)
+		{
+			fprintf(stderr, "%s[%d]: field discrep\n", FILE__, __LINE__);
+		}
+
+		if (!ff1 && ff2)
+		{
+			fprintf(stderr, "%s[%d]: field discrep\n", FILE__, __LINE__);
+		}
+
+		if (ff1)
+		{
+			unsigned int m = (ff1->size() > ff2->size()) ? ff1->size() : ff2->size();
+
+			fprintf(stderr, "%s[%d]:  fields:\n", FILE__, __LINE__);
+			for (unsigned int i = 0; i < m; ++i)
+			{
+				Field *f1 = (ff1->size() > i) ? (*ff1)[i] : NULL;
+				Field *f2 = (ff2->size() > i) ? (*ff2)[i] : NULL;
+				field_report(f1, f2);
+			}
+		}
+	}
+
+	static void type_struct_report( const typeStruct & ct1, const typeStruct &ct2)
+	{
+		field_list_type_report(ct1, ct2);
+	}
+
+	static void type_union_report( const typeUnion & ct1, const typeUnion &ct2)
+	{
+		field_list_type_report(ct1, ct2);
+	}
+
 	static void type_enum_report( const typeEnum & ct1, const typeEnum &ct2)
 	{
 		type_report(ct1, ct2);
@@ -437,6 +564,8 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			if (report)
 				(*report)(deserialize_result, control);
 
+			fprintf(stderr, "%s[%d]:  deserialize for %s failing\n", 
+					FILE__, __LINE__, typeid(C).name());
 			EFAIL("deserialize failed\n");
 		}
 
@@ -660,6 +789,9 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 #endif
 		serialize_test(symtab, *regions[0], &region_report);
 		serialize_test(symtab, *type_enum, &type_enum_report);
+		serialize_test(symtab, *type_pointer, &type_pointer_report);
+		serialize_test(symtab, *type_struct, &type_struct_report);
+		serialize_test(symtab, *type_union, &type_union_report);
 #if 0
 	typeEnum *type_enum;
 	typePointer *type_pointer;

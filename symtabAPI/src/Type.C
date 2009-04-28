@@ -159,6 +159,9 @@ const char *Dyninst::SymtabAPI::dataClass2Str(dataClass dc)
    return "bad_data_class";
 }
 
+namespace Dyninst {
+namespace SymtabAPI {
+
 const char *visibility2Str(visibility_t v) 
 {
    switch(v) {
@@ -168,6 +171,8 @@ const char *visibility2Str(visibility_t v)
       CASE_RETURN_STR(visUnknown);
    };
    return "bad_visibility";
+}
+}
 }
 
 void Type::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
@@ -959,10 +964,9 @@ void typeStruct::fixupUnknowns(Module *module)
 
 void typeStruct::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	fieldListType *flt = this;
-
 	ifxml_start_element(sb, "typeStruct");
-	flt->serialize_fieldlist(sb);
+	//flt->serialize_fieldlist(sb);
+	serialize_fieldlist(sb);
 	ifxml_end_element(sb, "typeStruct");
 }
 
@@ -1102,10 +1106,8 @@ void typeUnion::fixupUnknowns(Module *module) {
 
 void typeUnion::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	fieldListType *flt = this;
-
 	ifxml_start_element(sb, "typeUnion");
-	flt->serialize_fieldlist(sb);
+	serialize_fieldlist(sb);
 	ifxml_end_element(sb, "typeUnion");
 }
 
@@ -1279,10 +1281,10 @@ std::vector<CBlock *> *typeCommon::getCblocks() const
 
 void typeCommon::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	fieldListType *flt = this;
 
 	ifxml_start_element(sb, "typeCommon");
-	flt->serialize_fieldlist(sb);
+	//flt->serialize_fieldlist(sb);
+	serialize_fieldlist(sb);
 	gtranslate(sb, cblocks, "CommonBlocks", "CommonBlock");
 	ifxml_end_element(sb, "typeCommon");
 }
@@ -1478,8 +1480,15 @@ bool fieldListType::operator==(const Type &otype) const
          return false;
       for (unsigned int i = 0; i < fieldList.size(); i++) 
 	  {
-         if (fieldList[i] != oFieldtype.fieldList[i])
-            return false;
+		  Field *f1 = fieldList[i];
+		  Field *f2 = oFieldtype.fieldList[i];
+		  if (f1 && !f2) return false;
+		  if (!f1 && f2) return false;
+		  if (f1)
+		  {
+			  if ( !((*f1) == (*f2)) )
+				  return false;
+		  }
       }
       return Type::operator==(otype);
    } 
@@ -1792,7 +1801,7 @@ int Field::getOffset()
 
 unsigned int Field::getSize()
 {
-   return type_->getSize();
+   return type_ ? type_->getSize() : 0;
 }
 
 Field::Field(Field &oField) :
@@ -1825,6 +1834,20 @@ void Field::fixupUnknown(Module *module)
    }
 }
 
+bool Field::operator==(const Field &f) const
+{
+	if (type_ && !f.type_) return false;
+	if (!type_ && f.type_) return false;
+	if (type_)
+	{
+		if (type_->getID() != f.type_->getID()) return false;
+	}
+	if (fieldName_ != f.fieldName_) return false;
+	if (vis_ != f.vis_) return false;
+	if (offset_ != f.offset_) return false;
+	return true;
+}
+
 void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	unsigned int t_id = type_ ? type_->getID() : 0xdeadbeef;
@@ -1838,7 +1861,22 @@ void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serializer
 
 	if (sb->isInput())
 	{
-		fprintf(stderr, "%s[%d]:  FIXME:  lookup type by id here\n", FILE__, __LINE__);
+		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+		if (!ssb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = ssb->getScope();
+
+		if (t_id != 0xdeadbeef)
+		{
+			fprintf(stderr, "%s[%d]:  FIXME:  make this faster\n", FILE__, __LINE__);
+			type_ = st->findType(t_id);
+		}
+
 	}
 }
 
@@ -1848,10 +1886,10 @@ void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serializer
 
 void CBlock::fixupUnknowns(Module *module) 
 {
-   for (unsigned int i = 0; i < fieldList.size(); i++) 
-   {
-      fieldList[i]->fixupUnknown(module);
-   }
+	for (unsigned int i = 0; i < fieldList.size(); i++) 
+	{
+		fieldList[i]->fixupUnknown(module);
+	}
 }
 
 std::vector<Field *> *CBlock::getComponents()
