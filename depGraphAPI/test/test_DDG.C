@@ -1,0 +1,50 @@
+
+#include <iostream>
+#include <stdio.h>
+#include <stdint.h>
+#include <unistd.h>
+
+#include "BPatch.h"
+#include "BPatch_function.h"
+#include "BPatch_Vector.h"
+#include "BPatch_thread.h"
+#include "BPatch_snippet.h"
+
+#include "Graph.h"
+#include "Analyzer.h"
+
+BPatch bpatch;
+
+using namespace Dyninst;
+using namespace DepGraphAPI;
+
+int main(int argc, const char** argv)
+{
+  
+  if( argc < 3 )
+    {
+      std::cerr << "Usage: " << argv[0] 
+		<< "test_DD <test_program> <func_to_analyze>" 
+		<< std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+  BPatch_addressSpace *app = bpatch.openBinary(argv[1], true);
+
+  BPatch_image* appImage = app->getImage();
+
+  BPatch_Vector <BPatch_function *> function;
+  appImage->findFunction(argv[2], 
+			 function);
+
+  Analyzer a =  Analyzer::createAnalyzer(function[0]); 
+
+  DDG::Ptr ddg = a.createDDG();
+
+  std::string str(argv[2]);
+  str += ".dot";
+  ddg->printDOT(str);
+  
+
+  return EXIT_SUCCESS;
+}

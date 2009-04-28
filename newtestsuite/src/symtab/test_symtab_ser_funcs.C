@@ -346,6 +346,32 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		field_list_type_report(ct1, ct2);
 	}
 
+	static void ranged_type_report( const rangedType & ct1, const rangedType &ct2)
+	{
+		type_report(ct1, ct2);
+
+		rangedType &t1 = const_cast<rangedType &>(ct1);
+		rangedType &t2 = const_cast<rangedType &>(ct2);
+
+		fprintf(stderr, "%s[%d]:  ranged (high):  %lu -- %lu\n", FILE__, __LINE__, 
+				t1.getHigh(), t2.getHigh());
+		fprintf(stderr, "%s[%d]:  ranged (low):  %lu -- %lu\n", FILE__, __LINE__, 
+				t1.getLow(), t2.getLow());
+	}
+
+	static void type_array_report( const typeArray & ct1, const typeArray &ct2)
+	{
+		ranged_type_report(ct1, ct2);
+		typeArray &t1 = const_cast<typeArray &>(ct1);
+		typeArray &t2 = const_cast<typeArray &>(ct2);
+		Type *st1 = t1.getBaseType();
+		Type *st2 = t2.getBaseType();
+		std::string tname1 = st1 ? st1->getName() : std::string("no_base_type");
+		std::string tname2 = st2 ? st2->getName() : std::string("no_base_type");
+		fprintf(stderr, "%s[%d]:  array subtype: %s -- %s\n", FILE__, __LINE__, 
+				tname1.c_str(), tname2.c_str());
+	}
+
 	static void type_enum_report( const typeEnum & ct1, const typeEnum &ct2)
 	{
 		type_report(ct1, ct2);
@@ -792,6 +818,7 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 		serialize_test(symtab, *type_pointer, &type_pointer_report);
 		serialize_test(symtab, *type_struct, &type_struct_report);
 		serialize_test(symtab, *type_union, &type_union_report);
+		serialize_test(symtab, *type_array, &type_array_report);
 #if 0
 	typeEnum *type_enum;
 	typePointer *type_pointer;
