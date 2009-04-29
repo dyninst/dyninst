@@ -2235,7 +2235,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
 		if (!memberName)
 		{
-			fprintf(stderr, "%s[%d]:  weird, dwarf_diename returned NULL w/out error\n", FILE__, __LINE__);
+			//fprintf(stderr, "%s[%d]:  weird, dwarf_diename returned NULL w/out error\n", 
+		//	FILE__, __LINE__);
 		}
 		Dwarf_Attribute typeAttribute;
 		status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );

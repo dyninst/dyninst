@@ -796,16 +796,6 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 	{
 		parse();
 
-#if 0
-		symrep_t sr = &symbol_report;
-		varrep_t vr = &variable_report;
-		modrep_t mr = &module_report;
-		funcrep_t mr = &function_report;
-		lvarrep_t mr = &localvar_report;
-		regrep_t mr = &region_report;
-		relgrep_t mr = &relocation_report;
-#endif
-
 		serialize_test(symtab, *variables[0], &variable_report);
 		serialize_test(symtab, *functions[0], &function_report);
 		serialize_test(symtab, *symbols[0], &symbol_report);
@@ -819,6 +809,9 @@ test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 		serialize_test(symtab, *type_struct, &type_struct_report);
 		serialize_test(symtab, *type_union, &type_union_report);
 		serialize_test(symtab, *type_array, &type_array_report);
+		//  type_subrange??
+		//  type_scalar??
+		//  type_common_block??
 #if 0
 	typeEnum *type_enum;
 	typePointer *type_pointer;

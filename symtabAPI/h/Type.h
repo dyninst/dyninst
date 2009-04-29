@@ -99,7 +99,7 @@ typedef enum {
  *
  */
  
-const char *visibility2Str(visibility_t v);
+SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 
 class Field : public Serializable, public AnnotatableSparse  {
    friend class typeStruct;
