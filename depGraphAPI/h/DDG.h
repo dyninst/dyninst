@@ -63,8 +63,6 @@ class DDG : public Graph {
  protected:
     typedef BPatch_function Function;
 
-    typedef std::map<Address, NodeSet> AddrMap;
-    
     typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
     typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
 
@@ -79,11 +77,20 @@ class DDG : public Graph {
     void formalParameterNodes(NodeIterator &begin, NodeIterator &end);
     void formalReturnNodes(NodeIterator &begin, NodeIterator &end);
 
+    virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
+
+    bool actualParamNodes(Address call, NodeIterator &begin, NodeIterator &end);
+    bool actualReturnNodes(Address call, NodeIterator &begin, NodeIterator &end);
+
     static Ptr createGraph() { return DDG::Ptr(new DDG()); }
+
+    Node::Ptr virtualEntryNode() { return virtEntryNode_; }
+
+    virtual void insertEntryNode(NodePtr entry);
     
  private:
 
-    DDG() {};
+    DDG();
 
     // Assertion: only parameter nodes will have no in-edges,
     // by definition.
@@ -92,8 +99,11 @@ class DDG : public Graph {
     // Virtual nodes to represent locations defined by the function.
     FormalReturnNodeSet formalReturnNodes_;
 
-    AddrMap callParamNodes_;
-    AddrMap callReturnNodes_;
+    // Node to make sure everyone is reachable...
+    Node::Ptr virtEntryNode_;
+
+    NodeMap callParamNodes_;
+    NodeMap callReturnNodes_;
 };
 
 };
