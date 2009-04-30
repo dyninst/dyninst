@@ -1341,8 +1341,10 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
    
     if(!dynsymbolNamesLength)
         return true; 
-    char *dynstr = (char *)malloc(dynsymbolNamesLength+1);
-    cur=0;
+
+    char *dynstr = (char *)malloc(dynsymbolNamesLength);
+    memcpy((void *)dynstr, (void *)olddynStrData, olddynStrSize);
+    cur = olddynStrSize+1;
     for(i=0;i<dynsymbolStrs.size();i++)
     {
         strcpy(&dynstr[cur],dynsymbolStrs[i].c_str());
@@ -1352,8 +1354,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
 	}
     }
     
-  	obj->addRegion(0, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Region::RT_SYMTAB, true);
-
+    obj->addRegion(0, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Region::RT_SYMTAB, true);
     //reconstruct .dynstr section
     obj->addRegion(0, dynstr, dynsymbolNamesLength , ".dynstr", Region::RT_STRTAB, true);
 
