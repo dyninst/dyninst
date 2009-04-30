@@ -67,14 +67,85 @@ class Edge : public AnnotatableSparse {
     NodePtr target_;
 };
 
+ class EdgeIteratorImpl;
+
 class EdgeIterator {
-public:
-    void operator++();
-    void operator++(int);
+    friend class Node;
+    friend class Graph;
+    friend class Edge;
+
+ public:
+
+    EdgeIterator &operator++();
+    EdgeIterator operator++(int);
+    EdgeIterator &operator--();
+    EdgeIterator operator--(int);
+
+    bool operator==(const EdgeIterator &rhs) const;
+    bool operator!=(const EdgeIterator &rhs) const;
+
+    EdgeIterator &operator=(const EdgeIterator &rhs);
+
+    Edge::Ptr operator*() const;
+
+ protected:
+    // Make sure this is explicitly _not_ allowed (no vectors of iterators)
+    EdgeIterator() : iter_(NULL) {};
+    
+    // Main constructor
+    // The iter parameter becomes owned by the iterator and will be destroyed
+    // when the iterator is destroyed.
+    EdgeIterator(EdgeIteratorImpl *iter) : iter_(iter) {};
+
+    ~EdgeIterator();
+
+    // We hide the internal iteration behavior behind a pointer. 
+    // This allows us to override (yay for virtual functions).
+    EdgeIteratorImpl *iter_;
+};
+
+// This is a pure virtual interface class
+class EdgeIteratorImpl {
+    friend class EdgeIterator;
+    
+ public:
+    virtual void inc() = 0;
+    virtual void dec() = 0;
+    virtual Edge::Ptr get() = 0;
+    virtual bool equals(EdgeIteratorImpl *) = 0;
+    virtual EdgeIteratorImpl *copy() = 0;
+
+    virtual ~EdgeIteratorImpl() {};
+};
+
+// Types of edge iteration: over a set of edges
+class EdgeIteratorSet : public EdgeIteratorImpl {
+    friend class EdgeIterator;
+
+ public:
+    virtual void inc() { ++internal_; }
+    virtual void dec() { --internal_; }
+    virtual Edge::Ptr get() { return *internal_; }
+    virtual bool equals(EdgeIteratorImpl *rhs) {
+        EdgeIteratorSet *tmp = dynamic_cast<EdgeIteratorSet *>(rhs);
+        if (tmp == NULL) return false;
+        return internal_ == tmp->internal_;
+    }
+
+    virtual EdgeIteratorImpl *copy() {
+        return new EdgeIteratorSet(internal_);
+    }
+
+    virtual ~EdgeIteratorSet() {
+        // Nothing to do
+    }
+    
+    EdgeIteratorSet(const std::set<Edge::Ptr>::iterator iter) : internal_(iter) {};
+
+ private:
+    std::set<Edge::Ptr>::iterator internal_;
 };
 
 }
-
-
 #endif
 

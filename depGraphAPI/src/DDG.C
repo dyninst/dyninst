@@ -44,11 +44,81 @@
 
 #include "BPatch_function.h"
 
+#include "common/h/NodeIterator.h"
+#include "DDGIterator.h"
+
 using namespace Dyninst;
 using namespace DepGraphAPI;
+
+DDG::DDG() :
+    virtEntryNode_(VirtualNode::createNode())
+{}
 
 
 DDG::Ptr DDG::analyze(BPatch_function *func) {
     DDGAnalyzer ddgA(func);
-    return ddgA.analyze();
+
+    DDG::Ptr ddg = ddgA.analyze();
+
+    return ddg;
+}
+
+void DDG::insertEntryNode(NodePtr entry) {
+    FormalParamNode::Ptr formal = dyn_detail::boost::dynamic_pointer_cast<FormalParamNode>(entry);
+
+    // Currently we should only insert a formal parameter...
+    assert(formal);
+    formalParamNodes_.insert(formal);
+}
+
+
+void DDG::formalParameterNodes(NodeIterator &begin, NodeIterator &end) {
+    begin = NodeIterator(new FormalParamSetIter(formalParamNodes_.begin()));
+    end = NodeIterator(new FormalParamSetIter(formalParamNodes_.end()));
+}
+
+void DDG::formalReturnNodes(NodeIterator &begin, NodeIterator &end) {
+    begin = NodeIterator(new FormalReturnSetIter(formalReturnNodes_.begin()));
+    end = NodeIterator(new FormalReturnSetIter(formalReturnNodes_.end()));
+}
+
+bool DDG::actualParamNodes(Address call, NodeIterator &begin, NodeIterator &end) {
+    // We use call+1 to make sure it's unique...
+    Address addr = call+1;
+    NodeMap::iterator iter = callParamNodes_.find(addr);
+    if (iter == callParamNodes_.end()) return false;
+
+    begin = NodeIterator(new NodeIteratorSet(iter->second.begin()));
+    end = NodeIterator(new NodeIteratorSet(iter->second.end()));
+    return true;
+}
+
+
+bool DDG::actualReturnNodes(Address call, NodeIterator &begin, NodeIterator &end) {
+    // We use call+1 to make sure it's unique...
+    Address addr = call+1;
+    NodeMap::iterator iter = callReturnNodes_.find(addr);
+    if (iter == callReturnNodes_.end()) return false;
+
+    begin = NodeIterator(new NodeIteratorSet(iter->second.begin()));
+    end = NodeIterator(new NodeIteratorSet(iter->second.end()));
+    return true;
+}
+
+void DDG::entryNodes(NodeIterator &begin, NodeIterator &end) {
+    // This is a little more tricky... we want to iterate over all
+    // of the formal parameter nodes, then over the children of the
+    // virtual node (if any exist)
+    NodeIterator virtBegin, virtEnd;
+    virtEntryNode_->outs(virtBegin, virtEnd);
+    NodeIterator paramBegin(new FormalParamSetIter(formalParamNodes_.begin()));
+    NodeIterator paramEnd(new FormalParamSetIter(formalParamNodes_.end()));
+
+    begin = NodeIterator(new DDGEntryIter(paramBegin, paramEnd,
+                                          virtBegin, virtEnd));
+    end = NodeIterator(new DDGEntryIter(paramEnd, paramEnd,
+                                        virtEnd, virtEnd));
+
+    
+
 }

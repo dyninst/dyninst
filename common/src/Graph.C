@@ -36,23 +36,31 @@
 #include "Node.h"
 #include <assert.h>
 
+#include "NodeIterator.h"
+
 using namespace Dyninst;
 
 const Dyninst::Address Graph::INITIAL_ADDR = (Address) -1;
 
 void Graph::entryNodes(NodeIterator &begin, NodeIterator &end) {
-    assert(0);
+    begin = NodeIterator(new NodeIteratorSet(entryNodes_.begin()));
+    end = NodeIterator(new NodeIteratorSet(entryNodes_.end()));
     return;
 }
 
 void Graph::allNodes(NodeIterator &begin, NodeIterator &end) {
-    assert(0);
+    begin = NodeIterator(new NodeIteratorSet(nodes_.begin()));
+    end = NodeIterator(new NodeIteratorSet(nodes_.end()));
     return;
 }
 
 bool Graph::find(Address addr, NodeIterator &begin, NodeIterator &end) {
-    assert(0);
-    return false;
+    NodeMap::iterator iter = nodesByAddr_.find(addr);
+    if (iter == nodesByAddr_.end()) return false;
+
+    begin = NodeIterator(new NodeIteratorSet(iter->second.begin()));
+    end = NodeIterator(new NodeIteratorSet(iter->second.end()));
+    return true;
 }
 
 Graph::Graph() {};
@@ -107,33 +115,33 @@ bool Graph::printDOT(const std::string fileName) {
 
     while (!worklist.empty()) {
         Node::Ptr source = worklist.front();
+
         worklist.pop();
 
-        //fprintf(stderr, "Considering node %s\n", source->name().c_str());
+        //fprintf(stderr, "Considering node %s\n", source->format().c_str());
         
         // We may have already treated this node...
         if (visited.find(source) != visited.end()) {
             //fprintf(stderr, "\t skipping previously visited node\n");
             continue;
         }
-        //fprintf(stderr, "\t inserting %s into visited set, %d elements pre-insert\n", source->name().c_str(), visited.size());
+        //fprintf(stderr, "\t inserting %s into visited set, %d elements pre-insert\n", source->format().c_str(), visited.size());
         visited.insert(source);
         fprintf(file, "\t // %s\n", source->format().c_str());
 
         NodeIterator outBegin, outEnd;
         source->outs(outBegin, outEnd);
 
-        //fprintf(stderr, "\t with %d out-edges\n", outs.size());
         for (; outBegin != outEnd; outBegin++) {
             Node::Ptr target = *outBegin;
             fprintf(file, "\t %s -> %s;\n", source->format().c_str(), target->format().c_str());
             if (visited.find(target) == visited.end()) {
-                //fprintf(stderr, "\t\t adding child %s\n", target->name().c_str());
+                //fprintf(stderr, "\t\t adding child %s\n", target->format().c_str());
                 worklist.push(target);
             }
             else {
                 //fprintf(stderr, "\t\t skipping previously visited child %s\n", 
-                //target->name().c_str());
+                //target->format().c_str());
             }
         }
     }

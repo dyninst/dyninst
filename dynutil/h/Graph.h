@@ -86,8 +86,8 @@ class Graph : public AnnotatableSparse {
     // We effectively build the graph by specifying all edges,
     // since it is meaningless to have a disconnected node. 
     void insertPair(NodePtr source, NodePtr target);
-
-    void insertEntryNode(NodePtr entry);
+    
+    virtual void insertEntryNode(NodePtr entry);
 
     void addNode(NodePtr node);
 
@@ -105,6 +105,8 @@ class Graph : public AnnotatableSparse {
     
     NodeMap nodesByAddr_;
 
+    // May be overridden by children; don't assume it exists.
+    // Arguably should be removed entirely.
     NodeSet entryNodes_;
 };
 

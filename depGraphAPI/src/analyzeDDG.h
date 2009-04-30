@@ -288,8 +288,6 @@ class DDGAnalyzer {
 
     NodeMap nodeMap;
 
-    NodePtr virtualNode;
-
     NodeCache formalParamNodes_;
     NodeCache formalReturnNodes_;
 
