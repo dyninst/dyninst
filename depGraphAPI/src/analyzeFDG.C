@@ -128,7 +128,8 @@ void FDGAnalyzer::markBlocksWithJump(BlockSet &blocks) {
 
     Instruction& lastInst = instructions[ instructions.size() - 1 ];
     const Operation& opType = lastInst.getOperation();
-    if (isReturnOp(opType) || isJumpOp(opType) || isBranchOp(opType)) {
+    
+    if (isReturnOp(opType) || isBranchOp(opType)) {
       markedBlocks.insert(block);
       lastInstInBlock[ block->getBlockNumber() ] =
           new InstWithAddr(lastInst, (Address) (block->getEndAddress() - lastInst.size()));
@@ -188,38 +189,38 @@ void FDGAnalyzer::findBlocksRecursive(BlockSet& needThese,
 }
 
 void FDGAnalyzer::createDepToOtherBlocks(NodeSet& nodes, 
-                                         NodePtr source) {
-  if (nodes.find(source) != nodes.end()) {
+                                         NodePtr target) {
+  if (nodes.find(target) != nodes.end()) {
     return;
   }
-  nodes.insert(source);
-  Block* curBlock = addrToBlock[ source->addr() ];
+  nodes.insert(target);
+  Block* curBlock = addrToBlock[ target->addr() ];
   assert(curBlock);
   BlockSet& targets = blockToJumps[curBlock];
   for (BlockSet::iterator blIter = targets.begin(); blIter != targets.end(); blIter++) {
     InstWithAddr* targetInst = lastInstInBlock[ (*blIter)->getBlockNumber() ];
     assert (targetInst);
-    if (targetInst->second == source->addr()) {
+    if (targetInst->second == target->addr()) {
       continue;
     }
-    NodePtr target = PhysicalNode::createNode(targetInst->second);
+    NodePtr source = PhysicalNode::createNode(targetInst->second);
     fdg->insertPair(source, target);
     
-    createDepToOtherBlocks(nodes, target);
+    createDepToOtherBlocks(nodes, source);
   }
 }
 
 bool FDGAnalyzer::createDepWithinBlock(NodeSet& nodes, 
-                                       NodePtr source) {
-  if (nodes.find(source) != nodes.end()) {
+                                       NodePtr target) {
+  if (nodes.find(target) != nodes.end()) {
     return true;
   }
-  Block* curBlock = addrToBlock[ source->addr() ];
+  Block* curBlock = addrToBlock[ target->addr() ];
   assert(curBlock);
   InstWithAddr* inst = lastInstInBlock[ curBlock->getBlockNumber() ];
-  if (inst && inst->second != source->addr()) {
-    nodes.insert(source);
-    NodePtr target = PhysicalNode::createNode(inst->second);
+  if (inst && inst->second != target->addr()) {
+    nodes.insert(target);
+    NodePtr source = PhysicalNode::createNode(inst->second);
     fdg->insertPair(source, target);
     
     // since I am doing it for every instruction, I don't need to go any further now.    
@@ -252,21 +253,9 @@ void FDGAnalyzer::createNodes(BlockSet &blocks) {
 /**************************************************************************************************/
 /****************************   static functions   ************************************************/
 bool FDGAnalyzer::isReturnOp(const Operation& opType) {
-  entryID opId = opType.getID();
-  if ((opId == e_iret) ||
-      (opId == e_ret_far) ||
-      (opId == e_ret_near) ||
-      (opId == e_sysret) ||
-      (opId == e_sysexit)) {
-    return true;
-  }
-  return false;
-}
-
-bool FDGAnalyzer::isJumpOp(const Operation& opType) {
-  return (e_jmp == opType.getID());
+    return (entryToCategory(opType.getID()) == c_ReturnInsn);
 }
 
 bool FDGAnalyzer::isBranchOp(const Operation& opType) {
-  return ((e_jb <= opType.getID()) && (e_jz >= opType.getID()) && (e_jmp != opType.getID()));
+    return (entryToCategory(opType.getID()) == c_BranchInsn);
 }
