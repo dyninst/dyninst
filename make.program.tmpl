@@ -10,7 +10,7 @@
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
 
 ifndef DEST
-DEST		= $(TO_CORE)/$(PROGRAM_DEST)
+DEST		= $(PROGRAM_DEST)
 endif
 
 ifndef TARGETS
@@ -72,7 +72,7 @@ qpt: $(OBJS)
 	/unsup/qpt2/bin/qpt2 -s $(TARGET)
 endif
 
-VPATH		+= ../src:$(TO_CORE)/$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
+VPATH		+= ../src:$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
 
 
 echo:
