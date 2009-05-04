@@ -38,7 +38,8 @@ using namespace std;
 AddressTranslate::AddressTranslate(PID pid_, PROC_HANDLE phand) :
    pid(pid_),
    phandle(phand),
-   creation_error(false)
+   creation_error(false),
+   exec(NULL)
 {
 }
 
@@ -103,6 +104,11 @@ LoadedLib *AddressTranslate::getLoadedLib(Symtab *sym)
 
 AddressTranslate::~AddressTranslate()
 {
+}
+
+LoadedLib *AddressTranslate::getExecutable()
+{
+   return exec;
 }
 
 string LoadedLib::getName() const {

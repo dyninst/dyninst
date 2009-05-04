@@ -63,6 +63,7 @@ class Function;
 class Variable;
 class Type;
 class typeCollection;
+class Symtab;
 
 /************************************************************************
  * class Symbol
@@ -185,6 +186,7 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT const std::string&      getTypedName() const;
 
    SYMTAB_EXPORT Module *getModule() const { return module_; } 
+   SYMTAB_EXPORT Symtab *getSymtab() const;
    SYMTAB_EXPORT SymbolType getType () const { return type_; }
    SYMTAB_EXPORT SymbolLinkage getLinkage () const { return linkage_; }
    SYMTAB_EXPORT Offset getOffset() const { return offset_; }

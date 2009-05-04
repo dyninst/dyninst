@@ -114,6 +114,8 @@ private:
    Address r_debug_addr;
    Address trap_addr;
 
+   std::string exec_name;
+
    ProcessReader *createDefaultDebugger(int pid);
 };
 

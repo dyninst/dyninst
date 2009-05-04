@@ -146,8 +146,6 @@ bool AddressTranslateSysV::setInterpreter()
    result = true;
 
  done:
-   if (exe)
-      delete exe;
    return result;
 }
 
@@ -189,10 +187,13 @@ static char *deref_link(const char *path)
 
 LoadedLib *AddressTranslateSysV::getAOut()
 {
-  char name[64];
-  snprintf(name, 64, "/proc/%d/exe", pid);
-  LoadedLib *ll = new LoadedLib(deref_link(name), 0);
-  return ll;
+   if (!exec_name.length()) {
+      char name[64];
+      snprintf(name, 64, "/proc/%d/exe", pid);
+      exec_name = std::string(deref_link(name));
+   }
+   LoadedLib *ll = new LoadedLib(exec_name, 0);
+   return ll;
 }
 
 

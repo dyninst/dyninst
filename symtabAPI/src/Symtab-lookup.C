@@ -680,7 +680,6 @@ bool Symtab::getContainingFunction(Offset offset, Function* &func)
    return false;
 }
 
-
 Module *Symtab::getDefaultModule() {
     Module *mod = NULL;
     // TODO: automatically pick the module that contains this address?
@@ -693,3 +692,52 @@ Module *Symtab::getDefaultModule() {
     }
     return mod;
 }
+
+unsigned Function::getSize() {
+   if (functionSize_)
+      return functionSize_;
+   for (unsigned i=0; i<symbols_.size(); i++) {
+      if (symbols_[i]->getSize()) { 
+         functionSize_ = symbols_[i]->getSize();;
+         return functionSize_;
+      }
+   }
+
+   Symtab *symtab = getFirstSymbol()->getSymtab();
+   if (symtab->everyFunction.size() && !symtab->sorted_everyFunction)
+   {
+      std::sort(symtab->everyFunction.begin(), symtab->everyFunction.end(),
+                SymbolCompareByAddr());
+      symtab->sorted_everyFunction = true;
+   }
+
+   Offset offset = getOffset();
+   unsigned low = 0;
+   unsigned high = symtab->everyFunction.size();
+   unsigned last_mid = high+1;
+   unsigned mid;
+   for (;;)
+   {
+      mid = (low + high) / 2;
+      if (last_mid == mid)
+         return 0;
+      last_mid = mid;
+      Offset cur = symtab->everyFunction[mid]->getOffset();
+      if (cur > offset) {
+         high = mid;
+         continue;
+      }
+      if (cur < offset) {
+         low = mid;
+         continue;
+      }
+      if (cur == offset) {
+         if (mid + 1 >= symtab->everyFunction.size())
+            return 0;
+         Function *next_func = symtab->everyFunction[mid+1];
+         functionSize_ = next_func->getOffset() - getOffset();
+         return functionSize_;
+      }
+   }
+}
+

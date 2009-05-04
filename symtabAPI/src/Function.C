@@ -54,14 +54,16 @@ Function::Function(Symbol *sym)
     : Aggregate(sym),
       retType_(NULL), 
       framePtrRegNum_(-1),
-	  locs_(NULL)
+      locs_(NULL),
+      functionSize_(0)
 {}
 
 Function::Function()
     : Aggregate(),
       retType_(NULL), 
       framePtrRegNum_(-1),
-	  locs_(NULL)
+      locs_(NULL),
+      functionSize_(0)
 {}
 
 Type * Function::getReturnType() const
