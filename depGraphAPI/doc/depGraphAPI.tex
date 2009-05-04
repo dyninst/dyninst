@@ -11,8 +11,16 @@
 The DepGraphAPI is a multi-platform library for creating and analyzing
 dependence graph representations of binary code. These graph
 representations include data dependence graph (DDG), control
-dependence graph (CDG), and program dependence graph (PDG). The
-current beta of the DepGraphAPI depends on the InstructionAPI library
+dependence graph (CDG), program dependence graph (PDG), and extended program
+dependence graph (xPDG). A data dependence graph provides information about
+use-define chains in a function. A control dependence graph is composed of
+edges where the execution of the source determines whether the target of this
+edge will be executed. A program dependence graph is simply the
+combination of this two graphs. Finally, an extended program dependence graph
+is an extension to the PDG with extra dependencies used for creating executable
+slices.
+
+The current beta of the DepGraphAPI depends on the InstructionAPI library
 and the DyninstAPI; future versions will depend only on the
 InstructionAPI and ParsingAPI libraries released as part of the
 DyninstAPI. Currently we support the IA-32 and AMD-64 architectures as
@@ -38,6 +46,8 @@ particular target instruction is executed, or the set of instructions
 whose execution is determined by a particular source instruction.
 \item[PDG] The union of the data dependence graph and control
 dependence graph.
+\item[xPDG] An extension to the program dependence graph that contains extra
+dependecy edges and is suitable for generating executable slices.
 \end{description}
 
 A future goal of this library is to allow users to improve these graph
@@ -82,9 +92,10 @@ the binary into a series of sub-programs.
 \section{Abstractions}
 
 DepGraphAPI provides a simple set of abstractions over complicated
-data structures to make it easy to use. The DepGraphAPI provides three
+data structures to make it easy to use. The DepGraphAPI provides four
 graph variants: the data dependence graph (DDG), control dependence
-graph (CDG), and program dependence graph (PDG).
+graph (CDG), program dependence graph (PDG), and extended program dependence
+graph (xPDG).
 
 The fundamental representation used by this library is the graph. A
 graph is a set of nodes connected by directed edges; each edge has a
@@ -108,12 +119,12 @@ require the user to perform any manual memory allocation or deletion.
 function.
 \item[Node] The Node represents an element within the graph. Nodes are
 connected by edges and are labelled with information.
-\item[Physical Node] These Nodes represent an object within the
-program. They are labelled with the starting address of that object.
+\item[Physical Node] These Nodes represent an object  (instruction, basic
+block, etc.) within the program. They are labelled with the starting address
+of that object.
 \item[Virtual Node] These Nodes represent behavior that does not
-directly correspond to an object (instruction, basic block, etc.)
-within the program. Virtual nodes do not have an address associated
-with them.
+directly correspond to an object within the program. Virtual nodes do not have
+an address associated with them.
 \item[Edge] Edges connect Nodes. Edges are directed and have a source
 and target.
 \end{description}
@@ -140,10 +151,10 @@ called function.
 
 \subsection{Control Dependence Graph}
 
-The control dependence graph adds several specialized node types.
+The control dependence graph adds one new specialized node type:
 
 \begin{description}
-\item[BlockNode] - We represent
+\item[BlockNode] We represent
 control dependence at the block level for efficiency. Therefore, each
 node in the CDG represents a block. 
 \end{description}
@@ -152,6 +163,18 @@ node in the CDG represents a block.
 The Program Dependence Graph is the union of the DDG and CDG and is
 constructed from the same abstractions. The block-level information in
 the CDG is automatically converted to OperationNodes.
+
+\subsection{Extended Program Dependence Graph}
+Although users can use PDGs to slice programs, the slices obtained through PDGs
+are not always executable slices. An executable slice is a slice of a program that
+can be executed without any change in program behavior with respect to the
+given slicing criteria. Binary slices obtained through a PDG do not always
+include all necessary branch and return instructions that make the slice follow
+the flow of control of the original program due to fallthroughs. Therefore, an
+Extended Program Dependence Graph contains dependencies between an instruction
+\emph{i} and all instructions that are required to satisfy correct control flow
+in case \emph{i} appears in a slice. An xPDG also contains all nodes and edges
+that are parts of a regular PDG.
 
 \subsection{Annotations} 
 
@@ -396,7 +419,7 @@ This method returns true if a node is virtual.
 
 \subsubsection{PhysicalNode : Node}
 \begin{description}
-\item[Address addr()] This method This method returns the starting
+\item[Address addr()] This method returns the starting
 offset of the code object (basic block, instruction, or operation) the
 node represents.
 \item[bool isVirtual()] This method returns false for physical nodes.
@@ -422,9 +445,15 @@ This method returns the target node of an edge.
 \item[DDG::Ptr analyze(BPatch\_function *func)]
 This method creates and returns a DDG for the provided function.
 \item[void formalParameterNodes(NodeIterator \&begin, NodeIterator \&end) ]
-This method returns the vector of all formal parameters to the function.
+This method returns the range of all formal parameters to the function.
 \item[void formalReturnNodes(NodeIterator \&begin, NodeIterator \&end)]
-This method returns the vector of all formal returns from the function.
+This method returns the range of all formal returns from the function.
+\item[void actualParameterNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end) ]
+This method returns the range of all actual parameters for the call instruction
+at the given address.
+\item[void actualReturnNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end)]
+This method returns the range of all actual returns for the call instruction at
+the given address.
 \item[find(Address addr, Absloc::Ptr absloc, NodeIterator \&begin, NodeIterator \&end) ]
 This method returns the set of nodes that fit the specific address and absloc requirements. This node will be singular. 
 \end{description}
@@ -479,7 +508,11 @@ This method returns the callee function whose return is represented by this node
 \item[CDG::Ptr analyze(BPatch\_function *func)]
 This method creates and returns a CDG for the provided function.
 \item[find(BPatch\_basicBlock *block, NodeIterator \&begin, NodeIterator \&end)]
-This method returns the set of nodes representing the provided block.
+This method returns the set of nodes representing the provided block. This node
+will be singular.
+\item[find(Address addr, NodeIterator \&begin, NodeIterator \&end)]
+This method returns the set of block nodes that contain the provided address. This node
+will be singular.
 \end{description}
 
 \subsubsection{BlockNode : PhysicalNode}
@@ -493,6 +526,17 @@ This method returns the basic block represented by this node.
 \begin{description}
 \item[PDG::Ptr analyze(BPatch\_function *func)]
 Creates and returns a PDG for the provided function.
+\item[find(Address addr, Absloc::Ptr absloc, NodeIterator \&begin, NodeIterator \&end) ]
+This method returns the set of nodes that fit the specific address and absloc requirements. This node will be singular.
+\end{description}
+
+\subsection{Extended Program Dependence Graph}
+\subsubsection{xPDG}
+\begin{description}
+\item[xPDG::Ptr analyze(BPatch\_function *func)]
+Creates and returns an xPDG for the provided function.
+\item[find(Address addr, Absloc::Ptr absloc, NodeIterator \&begin, NodeIterator \&end) ]
+This method returns the set of nodes that fit the specific address and absloc requirements. This node will be singular.
 \end{description}
 
 \section{Implementation Status}
