@@ -45,8 +45,8 @@
 #include <map>
 #include "Graph.h"
 #include "Node.h"
+#include "Instruction.h"
 
-using namespace std;
 
 class BPatch_basicBlock;
 class BPatch_function;
@@ -55,6 +55,8 @@ namespace Dyninst {
 namespace DepGraphAPI {
 
 using namespace InstructionAPI;
+using namespace std;
+
 
 /**
  * The tool that creates the Flow Dependence Graph (FDG) associated with a given 
@@ -120,12 +122,7 @@ public:
   static bool isReturnOp(const Operation& opType);
 
   /**
-   * Returns true iff this operation is a jump operation.
-   */
-  static bool isJumpOp(const Operation& opType);
-
-  /**
-   * Returns true iff this operation is a branch operation such as jnz, jnle, etc.
+   * Returns true iff this operation is a branch operation (including jumps) such as jnz, jnle, etc.
    */
   static bool isBranchOp(const Operation& opType);
   

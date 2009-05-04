@@ -186,7 +186,7 @@ DDG::Ptr DDGAnalyzer::analyze() {
 
 
 DDGAnalyzer::DDGAnalyzer(Function *f) :
-    func_(f), virtualNode(VirtualNode::createNode()), addr_width(0) {};
+    func_(f), addr_width(0) {};
 
 
 /***********************************************************************************
@@ -303,31 +303,12 @@ void DDGAnalyzer::summarizeCallGenKill(const Insn &,
     AbslocSet abslocs; 
 
     Function *callee = getCallee(addr);
-    if (!callee) {
+    //if (!callee) {
         getABIDefinedAbslocs(abslocs);
-    }
-    else {
-        DDGAnalyzer d(callee);
-        DDG::Ptr cDDG = d.analyze();
-        
-        // Okay, we need to update the gen set and kill set to represent
-        // this function. 
-        // 
-        // We assume that a function kills everything it generates; that is,
-        // we're not worried about aliasing. This is probably not correct
-        // for the heap, but is for the stack (assume no overlapping stacks)
-        // and (obviously) for registers.
-        //
-        // The gen set of the callee is equivalent to the set of abstract locations
-        // of return nodes.
-        
-        const DDG::FormalReturnNodeSet &cReturns = cDDG->formalReturnNodes();
-        
-        for (DDG::FormalReturnNodeSet::const_iterator iter = cReturns.begin(); 
-             iter != cReturns.end(); iter++) {
-            abslocs.insert((*iter)->absloc());
-        }
-    }
+        //}
+        //else {
+        //assert(0);
+        //}
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
          iter++) {
@@ -593,7 +574,7 @@ void DDGAnalyzer::createInsnNodes(const Address &addr,
             // add an edge from the distinguished virtual
             // node.
             //fprintf(stderr, "\t\t\t\t ... from virtual node\n");
-            ddg->insertPair(virtualNode, T);
+            ddg->insertPair(ddg->virtualEntryNode(), T);
         }
         else { 
             for (AbslocSet::const_iterator u_iter = used.begin();
@@ -606,13 +587,19 @@ void DDGAnalyzer::createInsnNodes(const Address &addr,
                     // Just build a parameter node
                     cNode tmp(0, U, formalParam);
                     NodePtr S = makeNode(tmp);
+                    ddg->insertEntryNode(S);
                     ddg->insertPair(S, T);
                 }
                 else {
                     for (cNodeSet::iterator c_iter = localReachingDefs[U].begin();
                          c_iter != localReachingDefs[U].end(); c_iter++) {
                         NodePtr S = makeNode(*c_iter);
-                        // By definition we know S is in nodes
+
+// Sidestep: if S is a formal parameter node ensure that it's in the
+// set of entry nodes.
+                        if (c_iter->type == formalParam)
+                            ddg->insertEntryNode(S);
+
                         ddg->insertPair(S,T);
                         //fprintf(stderr, "\t\t\t\t ... from local definition %s/0x%lx\n",
                         //c_iter->first->name().c_str(),
@@ -681,21 +668,12 @@ void DDGAnalyzer::createCallNodes(const Address &A,
     AbslocSet abslocs;
  
     Function *callee = getCallee(A);
-    if (!callee) {
+    //if (!callee) {
         getABIUsedAbslocs(abslocs);
-    }
-    else {
-        // Let's analyze...
-        DDGAnalyzer d(callee);
-        DDG::Ptr cDDG = d.analyze();
-        
-        const DDG::FormalParamNodeSet &cParams = cDDG->formalParameterNodes();
-
-        for (DDG::FormalParamNodeSet::const_iterator iter = cParams.begin(); 
-             iter != cParams.end(); iter++) {
-            abslocs.insert((*iter)->absloc());
-        }
-    }
+        //    }
+        //    else {
+        //        assert(0);
+        //    }
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end(); iter++) {
         // Create an actualParameterNode for each absloc and hook up edges

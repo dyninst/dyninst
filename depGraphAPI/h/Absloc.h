@@ -49,8 +49,10 @@
 #include <values.h>
 
 #include "dyn_detail/boost/shared_ptr.hpp"
+
 #include <set>
 #include <string>
+
 #include "Annotatable.h"
 #include "Register.h"
 #include "Result.h"
@@ -63,18 +65,10 @@
 class BPatch_function;
 
 namespace Dyninst {
-namespace DepGraphAPI {
 
-class Graph;
-class Node;
-class Edge;
+namespace DepGraphAPI {
  
 class Absloc : public AnnotatableSparse {
-    
-    friend class Graph;
-    friend class Node;
-    friend class Edge;
-
     // Temporary typedef...
     typedef BPatch_function Function;
     
@@ -103,9 +97,6 @@ class Absloc : public AnnotatableSparse {
 };
 
 class RegisterLoc : public Absloc {
-    friend class Graph;
-    friend class Node;
-    friend class Edge;
 
  public:
     typedef std::map<InstructionAPI::RegisterAST, RegisterLoc::Ptr> RegisterMap;
@@ -129,10 +120,6 @@ class RegisterLoc : public Absloc {
 };
 
 class StackLoc : public Absloc {
-    friend class Graph;
-    friend class Node;
-    friend class Edge;
-
  public:
     typedef std::map<int, StackLoc::Ptr> StackMap;
     typedef dyn_detail::boost::shared_ptr<StackLoc> Ptr;
@@ -160,34 +147,7 @@ class StackLoc : public Absloc {
     static StackMap stackLocs_;
 };
 
-#if 0
-class HeapLoc : public Absloc {
-    friend class Graph;
-    friend class Node;
-    friend class Edge;
-
- public:
-    typedef dyn_detail::boost::shared_ptr<HeapLoc> Ptr;
-    virtual ~HeapLoc() {};
-    virtual std::string name() const { return "HEAP"; }
-    static void getHeapLocs(AbslocSet &locs);
-
-    static Absloc::Ptr getHeapLoc(Address addr);
-
-    virtual AbslocSet getAliases() const;
-
- private:
-    HeapLoc() {};
-    
-    static Absloc::Ptr heapLoc_;
-};
-#endif
-
 class MemLoc : public Absloc {
-    friend class Graph;
-    friend class Node;
-    friend class Edge;
-
  public:
     typedef dyn_detail::boost::shared_ptr<MemLoc> Ptr;
     typedef std::map<Address, MemLoc::Ptr> MemMap;
@@ -227,10 +187,6 @@ class MemLoc : public Absloc {
 // and an "Immediate" node. 
 
 class ImmLoc : public Absloc { 
-    friend class Graph;
-    friend class Node;
-    friend class Edge;
-
  public:
     typedef dyn_detail::boost::shared_ptr<ImmLoc> Ptr;
     
@@ -250,7 +206,7 @@ class ImmLoc : public Absloc {
 };    
 
 };
-}
+};
 
 #endif
 

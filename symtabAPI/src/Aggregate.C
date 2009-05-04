@@ -302,8 +302,8 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 			t = tc->findType(t_id);
 			if (!t)
 			{
-				fprintf(stderr, "%s[%d]: failed to find type in module collection\n", 
-						FILE__, __LINE__);
+				fprintf(stderr, "%s[%d]: failed to find type in module(%s) collection\n", 
+						FILE__, __LINE__, module_->fileName().c_str());
 			}
 		}
 		else
@@ -341,6 +341,18 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 		{
 			//  This should probably throw, but let's play nice for now
 			fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
+			std::vector<Module *> mods;
+			if (!st->getAllModules(mods))
+			{
+				fprintf(stderr, "%s[%d]:  failed to get all modules\n", FILE__, __LINE__);
+			}
+			for (unsigned int i = 0; i < mods.size(); ++i)
+			{
+				std::vector<Type *> *modtypes = mods[i]->getAllTypes();
+				fprintf(stderr, "%s[%d]:  module %s has %d types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), modtypes ? modtypes->size() : -1);
+				if (mods[i]->getModuleTypesPrivate()->findType(t_id))
+					fprintf(stderr, "%s[%d]:  found type %d in mod %s\n", FILE__, __LINE__, t_id, mods[i]->fileName().c_str());
+			}
 		}
 	}
 }

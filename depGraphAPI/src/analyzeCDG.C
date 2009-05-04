@@ -36,6 +36,7 @@
 
 #include "Absloc.h"
 #include "Graph.h"
+#include "CDG.h"
 
 // Dyninst
 #include "BPatch_basicBlock.h"
@@ -48,19 +49,20 @@
 // Annotation interface
 #include "Annotatable.h"
 
+
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 
-AnnotationClass <Graph::Ptr> CDGAnno(std::string("CDGAnno"));
+AnnotationClass <CDG::Ptr> CDGAnno(std::string("CDGAnno"));
 
 CDGAnalyzer::CDGAnalyzer(Function *f) : func_(f) {};
 
-Graph::Ptr CDGAnalyzer::analyze() {
-    if (func_ == NULL) return Graph::Ptr();
+CDG::Ptr CDGAnalyzer::analyze() {
+    if (func_ == NULL) return CDG::Ptr();
 
-    Graph::Ptr *ret;
+    CDG::Ptr *ret;
     func_->getAnnotation(ret, CDGAnno);
     if (ret) {
         cdg = *ret;
@@ -73,16 +75,13 @@ Graph::Ptr CDGAnalyzer::analyze() {
     func_->getCFG()->getAllBasicBlocks(blocks);
 
     // Create a graph
-    cdg = Graph::createGraph();
+    cdg = CDG::createGraph();
     
     // create the dependencies between blocks
-    createInterBlockDeps(blocks);
-    
-    // create instruction-level nodes and insert them into the graph
-    createNodeDeps(blocks);
+    createDependencies(blocks);
 
     // Store as an annotation and return
-    Graph::Ptr *ptr = new Graph::Ptr(cdg);
+    CDG::Ptr *ptr = new CDG::Ptr(cdg);
     func_->addAnnotation(ptr, CDGAnno);
     
     return cdg;
@@ -92,66 +91,41 @@ Graph::Ptr CDGAnalyzer::analyze() {
  * Creates control flow dependencies between blocks. For more info, see Ferrante et. al.'s
  * "The program dependence graph and its use in optimization".
  */
-void CDGAnalyzer::createInterBlockDeps(BlockSet &blocks) {
+void CDGAnalyzer::createDependencies(BlockSet &blocks) {
+    NodePtr entryNode = VirtualNode::createNode();
+    cdg->insertEntryNode(entryNode);
     for (BlockSet::iterator blockIter = blocks.begin(); 
-         blockIter != blocks.end(); blockIter++) {
-    Block* block = *blockIter;
-    vector<Block*> out;
-    block->getTargets(out);
-    for (unsigned i = 0; i < out.size(); i++) {
-      if (out[i]->postdominates(block)) {
-        continue;
-      }
+         blockIter != blocks.end();
+         blockIter++) {
+        Block* block = *blockIter;
+        
+        // create the node for this basic block
+        NodePtr source = makeNode(block);
+        // add an edge from the entry node to this one.
+        // note that even if the node was created earlier, this is the first time
+        // we are adding an edge from the entry node.
+        cdg->insertPair(entryNode, source);
+        
+        // Find nodes that are dependent on this node.
+        vector<Block*> out;
+        block->getTargets(out);
+        for (unsigned i = 0; i < out.size(); i++) {
+            if (out[i]->postdominates(block)) {
+                continue;
+            }
 
-      // Work on this edge right now: mark all parents of 'block'
-      // According to Ferrante et al. page 325, marking only this node and its parent is enough
-      Block* parent = block->getImmediatePostDominator();
+            // Work on this edge right now: mark all parents of 'block'
+            // According to Ferrante et al. page 325, marking only this node and its parent is enough
+            Block* parent = block->getImmediatePostDominator();
 
-      // traverse from out[i] to one of the parents marked in the previous step
-      for (Block* temp = out[i]; 
-           (temp != NULL) && (temp != block) && (temp != parent);
-           temp = temp->getImmediatePostDominator()) {
-        // mark them as control dependent to 'block'
-        dependencies[ temp ].insert(block);
-      }
-    }
-  }
-}
-
-void CDGAnalyzer::createNodeDeps(BlockSet &) {
-    //createNodes();
-    createDependencies();
-}
-
-/**
- * Creates individual nodes for each instruction and insert an edge from a virtual node to all
- * the nodes to avoid garbage collection by boost.
- */
-void CDGAnalyzer::createNodes(BlockSet &blocks) {
-
-    for (BlockSet::iterator blockIter = blocks.begin(); 
-         blockIter != blocks.end(); blockIter++) {
-
-        NodePtr node = BlockNode::createNode(*blockIter);
-        nodeMap[*blockIter] = node;
-    }
-}
-
-/**
- * Creates dependencies at the instruction level using the dependencies at the Block level.
- */
-void CDGAnalyzer::createDependencies() {
-    for (BlockMap::iterator iter = dependencies.begin(); 
-         iter != dependencies.end(); iter++) {
-        // Everything in iter->second depends on iter->first...
-        Node::Ptr source = makeNode(iter->first);
-
-        for (BlockSet::iterator blockIter = iter->second.begin();
-             blockIter != iter->second.end();
-             blockIter++) {
-            Node::Ptr target = makeNode(*blockIter);
-
-            cdg->insertPair(source, target);
+            // traverse from out[i] to one of the parents marked in the previous step
+            for (Block* temp = out[i]; 
+            (temp != NULL) && (temp != block) && (temp != parent);
+            temp = temp->getImmediatePostDominator()) {
+                // mark them as control dependent to 'block'
+                NodePtr target = makeNode(temp);
+                cdg->insertPair(source, target);
+            }
         }
     }
 }

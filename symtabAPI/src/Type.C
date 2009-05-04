@@ -159,6 +159,9 @@ const char *Dyninst::SymtabAPI::dataClass2Str(dataClass dc)
    return "bad_data_class";
 }
 
+namespace Dyninst {
+namespace SymtabAPI {
+
 const char *visibility2Str(visibility_t v) 
 {
    switch(v) {
@@ -168,6 +171,8 @@ const char *visibility2Str(visibility_t v)
       CASE_RETURN_STR(visUnknown);
    };
    return "bad_visibility";
+}
+}
 }
 
 void Type::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
@@ -709,24 +714,34 @@ typeArray *typeArray::create(std::string &name, Type *type, long low, long hi, S
 	return typ;	
 }
 
-bool typeArray::operator==(const Type &otype) const {
+bool typeArray::operator==(const Type &otype) const 
+{
 	try {
 		const typeArray &oArraytype = dynamic_cast<const typeArray &>(otype);
-		return (rangedType::operator==(otype) && 
-				(*arrayElem)==*oArraytype.arrayElem);
-	} catch (...) {
+		if (sizeHint_ != oArraytype.sizeHint_) return false;
+		if (arrayElem && !oArraytype.arrayElem) return false;
+		if (!arrayElem && oArraytype.arrayElem) return false;
+		if (arrayElem)
+		{
+			if (arrayElem->getID() != oArraytype.arrayElem->getID()) return false;
+		}
+		return (rangedType::operator==(otype)); 
+	} catch (...) 
+	{
 		return false;
 	}
 }
 
-void typeArray::merge(Type *other) {
+void typeArray::merge(Type *other) 
+{
 	// There are wierd cases where we may define an array with an element
 	// that is a forward reference
 
 	typeArray *otherarray = dynamic_cast<typeArray *>(other);
 
 	if ( otherarray == NULL || this->ID_ != otherarray->ID_ || 
-			this->arrayElem->getDataClass() != dataUnknownType) {
+			this->arrayElem->getDataClass() != dataUnknownType) 
+	{
 		//bperr( "Ignoring attempt to merge dissimilar types.\n" );
 		return;
 	}
@@ -736,58 +751,71 @@ void typeArray::merge(Type *other) {
 	arrayElem = otherarray->arrayElem;
 }
 
-Type *typeArray::getBaseType() const{
+Type *typeArray::getBaseType() const
+{
 	return arrayElem;
 }
 
 void typeArray::updateSize()
 {    
-	if (updatingSize) {
+	if (updatingSize) 
+	{
 		size_ = 0;
 		return;
 	}
+
 	updatingSize = true;
 	// Is our array element's Type still a placeholder?
-	if(arrayElem->getDataClass() == dataUnknownType)
+	if (arrayElem->getDataClass() == dataUnknownType)
 		size_ = 0;
 
 	// Otherwise we can now calculate the array type's size
-	else {
-
+	else 
+	{
 		// Calculate the size of a single element
 		unsigned int elemSize = sizeHint_ ? sizeHint_ : arrayElem->getSize();
 
 		// Calculate the size of the whole array
 		size_ = elemSize * (hi_ ? hi_ - low_ + 1 : 1);
-
 	}
 	updatingSize = false;
 }
 
-	bool typeArray::isCompatible(Type *otype) {
-		if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
-			return true;
-		typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
-		if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
+bool typeArray::isCompatible(Type *otype) 
+{
+	if (  (otype->getDataClass() == dataUnknownType) 
+			|| (otype->getDataClass() == dataNullType))
+		return true;
 
-		typeArray *oArraytype = dynamic_cast<typeArray *>(otype);
+	typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
 
-		if (oArraytype == NULL) {
-			//reportError(BPatchWarning, 112, 
-			//                   "Array and non-array are not type compatible");
-			return false;      
-		}
-		unsigned int ec1, ec2;
+	if (otypedef != NULL) 
+	{
+		return isCompatible(otypedef->getConstituentType());
+	}
+
+	typeArray *oArraytype = dynamic_cast<typeArray *>(otype);
+
+	if (oArraytype == NULL) 
+	{
+		//reportError(BPatchWarning, 112, 
+		//                   "Array and non-array are not type compatible");
+		return false;      
+	}
+	unsigned int ec1, ec2;
 
    ec1 = hi_ - low_ + 1;
    ec2 = oArraytype->hi_ - oArraytype->low_ + 1;
-   if (ec1 != ec2) {
+
+   if (ec1 != ec2) 
+   {
       char message[80];
       sprintf(message, "Incompatible number of elements [%lu..%lu] vs. [%lu..%lu]",
 	      this->low_, this->hi_, oArraytype->low_, oArraytype->hi_);
       //reportError(BPatchWarning, 112, message);
       return false;
    }
+
    return arrayElem->isCompatible(oArraytype->arrayElem);
 }
 
@@ -804,7 +832,7 @@ void typeArray::fixupUnknowns(Module *module)
 
 void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	int t_id = arrayElem ? arrayElem->getID() : 0xdeadbeef;
+	unsigned int t_id = arrayElem ? arrayElem->getID() : 0xdeadbeef;
 
 	ifxml_start_element(sb, "typeArray");
 	serialize_ranged(sb);
@@ -814,7 +842,22 @@ void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerErro
 
 	if (sb->isInput())
 	{
-		fprintf(stderr, "%s[%d]:  FIXME: lookup type by id here\n", FILE__, __LINE__);
+		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+		if (!ssb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = ssb->getScope();
+
+		if (t_id != 0xdeadbeef)
+		{
+			fprintf(stderr, "%s[%d]:  FIXME:  make this faster\n", FILE__, __LINE__);
+			arrayElem = st->findType(t_id);
+		}
+
 	}
 }
 /*
@@ -959,10 +1002,9 @@ void typeStruct::fixupUnknowns(Module *module)
 
 void typeStruct::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	fieldListType *flt = this;
-
 	ifxml_start_element(sb, "typeStruct");
-	flt->serialize_fieldlist(sb);
+	//flt->serialize_fieldlist(sb);
+	serialize_fieldlist(sb);
 	ifxml_end_element(sb, "typeStruct");
 }
 
@@ -1102,10 +1144,8 @@ void typeUnion::fixupUnknowns(Module *module) {
 
 void typeUnion::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	fieldListType *flt = this;
-
 	ifxml_start_element(sb, "typeUnion");
-	flt->serialize_fieldlist(sb);
+	serialize_fieldlist(sb);
 	ifxml_end_element(sb, "typeUnion");
 }
 
@@ -1279,10 +1319,10 @@ std::vector<CBlock *> *typeCommon::getCblocks() const
 
 void typeCommon::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
-	fieldListType *flt = this;
 
 	ifxml_start_element(sb, "typeCommon");
-	flt->serialize_fieldlist(sb);
+	//flt->serialize_fieldlist(sb);
+	serialize_fieldlist(sb);
 	gtranslate(sb, cblocks, "CommonBlocks", "CommonBlock");
 	ifxml_end_element(sb, "typeCommon");
 }
@@ -1478,8 +1518,15 @@ bool fieldListType::operator==(const Type &otype) const
          return false;
       for (unsigned int i = 0; i < fieldList.size(); i++) 
 	  {
-         if (fieldList[i] != oFieldtype.fieldList[i])
-            return false;
+		  Field *f1 = fieldList[i];
+		  Field *f2 = oFieldtype.fieldList[i];
+		  if (f1 && !f2) return false;
+		  if (!f1 && f2) return false;
+		  if (f1)
+		  {
+			  if ( !((*f1) == (*f2)) )
+				  return false;
+		  }
       }
       return Type::operator==(otype);
    } 
@@ -1792,7 +1839,7 @@ int Field::getOffset()
 
 unsigned int Field::getSize()
 {
-   return type_->getSize();
+   return type_ ? type_->getSize() : 0;
 }
 
 Field::Field(Field &oField) :
@@ -1825,6 +1872,20 @@ void Field::fixupUnknown(Module *module)
    }
 }
 
+bool Field::operator==(const Field &f) const
+{
+	if (type_ && !f.type_) return false;
+	if (!type_ && f.type_) return false;
+	if (type_)
+	{
+		if (type_->getID() != f.type_->getID()) return false;
+	}
+	if (fieldName_ != f.fieldName_) return false;
+	if (vis_ != f.vis_) return false;
+	if (offset_ != f.offset_) return false;
+	return true;
+}
+
 void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	unsigned int t_id = type_ ? type_->getID() : 0xdeadbeef;
@@ -1838,7 +1899,22 @@ void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serializer
 
 	if (sb->isInput())
 	{
-		fprintf(stderr, "%s[%d]:  FIXME:  lookup type by id here\n", FILE__, __LINE__);
+		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+		if (!ssb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = ssb->getScope();
+
+		if (t_id != 0xdeadbeef)
+		{
+			fprintf(stderr, "%s[%d]:  FIXME:  make this faster\n", FILE__, __LINE__);
+			type_ = st->findType(t_id);
+		}
+
 	}
 }
 
@@ -1848,10 +1924,10 @@ void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serializer
 
 void CBlock::fixupUnknowns(Module *module) 
 {
-   for (unsigned int i = 0; i < fieldList.size(); i++) 
-   {
-      fieldList[i]->fixupUnknown(module);
-   }
+	for (unsigned int i = 0; i < fieldList.size(); i++) 
+	{
+		fieldList[i]->fixupUnknown(module);
+	}
 }
 
 std::vector<Field *> *CBlock::getComponents()

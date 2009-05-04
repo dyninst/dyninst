@@ -2103,12 +2103,15 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
    parseTypesNow();
 
    if (!_mods.size())
+   {
+	   fprintf(stderr, "%s[%d]:  findType failing due to lack of modules\n", FILE__, __LINE__);
       return NULL;
+   }
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
-	   t = _mods[0]->getModuleTypesPrivate()->findType(type_id);
-	   if (t) break;
+	   t = _mods[i]->getModuleTypesPrivate()->findType(type_id);
+	   if (t)  break;
    }
 
    if (t == NULL)

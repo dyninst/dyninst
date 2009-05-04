@@ -28,61 +28,62 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
-// Analyzer class
-//
-// This class wraps all of our internal analysis for generating
-// a dependence graph. It is intended to be a thin user-visible
-// veneer over the inherent ugliness of detailed dependence
-// analysis. 
-
-#if !defined(DEP_GRAPH_API_ANALYZER_H)
-#define DEP_GRAPH_API_ANALYZER_H
+ 
+#if !defined(CDG_GRAPH_H)
+#define CDG_GRAPH_H
 
 #include "dyn_detail/boost/shared_ptr.hpp"
-
-// Needed for Graph::Ptr
+#include <set>
+#include <list>
+#include <queue>
+#include "Annotatable.h"
+#include "Instruction.h"
+#include "Node.h"
+#include "Absloc.h"
 #include "Graph.h"
+
+#include "DepGraphNode.h"
 
 class BPatch_function;
 
 namespace Dyninst {
+    class InstructionAPI::Instruction;
+    class Edge;
+    class Graph;
+    class Node;
 
 namespace DepGraphAPI {
 
-    // These are internal classes that cannot appear in this 
-    // header file
-    class DDGAnalyzer;
-    class CDGAnalyzer;
-    class FDGAnalyzer;
-    class PDGAnalyzer;
+    class Absloc;
 
-class Analyzer {
+class CDG : public Graph {
  public:
-    typedef BPatch_function Function;
-
-    // Included in case someone wants to make a vector
-    // of these things...
-    Analyzer() : func_(NULL) {};
-    
-    // Public interface. This will be extended as we get
-    // additional input types.
-    static Analyzer createAnalyzer(Function *);
-
-    // Build dependence graphs
-    DDG::Ptr createDDG();
-    Graph::Ptr createCDG();
-    Graph::Ptr createFDG();
-    Graph::Ptr createPDG();
+    typedef dyn_detail::boost::shared_ptr<CDG> Ptr;
 
  private:
-    // Internal constructor; use createAnalyzer() instead.
-    Analyzer(Function *func);
+    typedef BPatch_function Function;
+
+    typedef std::map<Address, NodeSet> AddrMap;
     
-    Function *func_;
+    typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
+    typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
+
+    typedef std::set<ActualParamNode::Ptr> ActualParamNodeSet;
+    typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
+
+ public:
+
+    static CDG::Ptr analyze(Function *func);
+    
+    virtual ~CDG() {};
+
+    static Ptr createGraph() { return CDG::Ptr(new CDG()); }
+
+ private:
+
+    CDG() {};
 };
 
 };
 }
 #endif
-

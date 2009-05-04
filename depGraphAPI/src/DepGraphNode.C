@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 2007-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -8,85 +8,44 @@
  * obligation to supply such updates or modifications or any other
  * form of support to you.
  * 
- * This license is for research uses.  For such uses, there is no
- * charge. We define "research use" to mean you may freely use it
- * inside your organization for whatever purposes you see fit. But you
- * may not re-distribute Paradyn or parts of Paradyn, in any form
- * source or binary (including derivatives), electronic or otherwise,
- * to any other organization or entity without our permission.
- * 
- * (for other uses, please contact us at paradyn@cs.wisc.edu)
- * 
- * All warranties, including without limitation, any warranty of
- * merchantability or fitness for a particular purpose, are hereby
- * excluded.
- * 
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
  * 
- * Even if advised of the possibility of such damages, under no
- * circumstances shall we (or any other person or entity with
- * proprietary rights in the software licensed hereunder) be liable
- * to you or any third party for direct, indirect, or consequential
- * damages of any character regardless of type of action, including,
- * without limitation, loss of profits, loss of use, loss of good
- * will, or computer failure or malfunction.  You agree to indemnify
- * us (and any other person or entity with proprietary rights in the
- * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+
 
 // Node class implementation
 
 #include "Graph.h"
-#include "Absloc.h"
 #include "Edge.h"
 #include "Node.h"
+#include "DepGraphNode.h"
 #include <assert.h>
 
+
+
 #include "BPatch_function.h"
-
-
-// Nodes are quite simple; they have an Insn, an Absloc, and a set of Edges.
 
 using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 
-const Address Node::INVALID_ADDR = (Address) -1;
-
-bool Node::returnEdges(const EdgeSet &local,
-                       EdgeSet &ret) const {
-    // Insert all edges in the "local" set into the
-    // "ret" set.
-    if (local.size() == 0) return false;
-
-    ret.insert(local.begin(), local.end());
-    return true;
-}
-
-
-Node::Ptr PhysicalNode::createNode(Address addr) {
-    return Node::Ptr(new PhysicalNode(addr));
-}
-
-std::string PhysicalNode::format() const {
-    char buf[256];
-    sprintf(buf, "N_0x%lx", addr());
-    return std::string(buf);
-}
-
-Node::Ptr VirtualNode::createNode() {
-    return Node::Ptr(new VirtualNode());
-}
-
-std::string VirtualNode::format() const {
-    return std::string("N_VIRTUAL");
-}
-
-Node::Ptr OperationNode::createNode(Address addr, AbslocPtr absloc) {
+Node::Ptr OperationNode::createNode(Address addr, Absloc::Ptr absloc) {
     return Node::Ptr(new OperationNode(addr, absloc)); 
 }
 
@@ -111,7 +70,7 @@ std::string BlockNode::format() const {
 BlockNode::BlockNode(Block *b) : PhysicalNode(b->getStartAddress()), block_(b) {};
 
 
-Node::Ptr FormalParamNode::createNode(AbslocPtr absloc) {
+Node::Ptr FormalParamNode::createNode(Absloc::Ptr absloc) {
     return Node::Ptr(new FormalParamNode(absloc)); 
 }
 
@@ -122,7 +81,7 @@ std::string FormalParamNode::format() const {
     return std::string(buf);
 }
 
-Node::Ptr FormalReturnNode::createNode(AbslocPtr absloc) {
+Node::Ptr FormalReturnNode::createNode(Absloc::Ptr absloc) {
     return Node::Ptr(new FormalReturnNode(absloc)); 
 }
 
@@ -136,7 +95,7 @@ std::string FormalReturnNode::format() const {
 
 Node::Ptr ActualParamNode::createNode(Address addr,
                                       Function *func,
-                                      AbslocPtr a) {
+                                      Absloc::Ptr a) {
     return Node::Ptr(new ActualParamNode(addr, func, a));
 }
 
@@ -157,7 +116,7 @@ std::string ActualParamNode::format() const {
 
 Node::Ptr ActualReturnNode::createNode(Address addr,
                                       Function *func,
-                                      AbslocPtr a) {
+                                      Absloc::Ptr a) {
     return Node::Ptr(new ActualReturnNode(addr, func, a));
 }
 
@@ -222,3 +181,4 @@ Node::Ptr SimpleNode::copyTo(Graph::Ptr graph) {
 }
 
 #endif
+

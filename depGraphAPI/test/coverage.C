@@ -13,7 +13,7 @@
 #include "BPatch_snippet.h"
 
 #include "Graph.h"
-#include "Analyzer.h"
+#include "DDG.h"
 
 BPatch bpatch;
 
@@ -39,8 +39,7 @@ int main(int argc, const char** argv)
   appImage->getProcedures(function);
 
   for (unsigned i = 0; i < function.size(); i++) {
-      Analyzer a = Analyzer::createAnalyzer(function[i]);
-      a.createDDG();
+      DDG::Ptr ddg = DDG::analyze(function[i]);
   }
 
   return EXIT_SUCCESS;

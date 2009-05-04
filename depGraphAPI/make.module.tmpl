@@ -32,11 +32,11 @@ TO_INC   = ../h
 
 #PUBLIC_H = 
 
-SRCS +=	../src/Graph.C \
-        ../src/Edge.C \
-        ../src/Node.C \
+SRCS +=	../src/DepGraphNode.C \
+        ../src/DDG.C \
+        ../src/CDG.C \
+        ../src/PDG.C \
         ../src/Absloc.C \
-        ../src/Analyze.C \
         ../src/analyzeDDG.C \
         ../src/analyzeCDG.C \
         ../src/analyzeFDG.C \
@@ -62,11 +62,10 @@ DOCDIR	= ../doc
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
 
-
-docs:
-	cd ..; doxygen instructionAPI.conf
-	cd $(DOCDIR)/latex; manual-preproc.pl *.tex; $(MAKE) clean
-	$(MAKE) -C $(DOCDIR)/latex
-
+PUBLIC_H =      Absloc.h \
+                DepGraphNode.h \
+                DDG.h \
+                CDG.h \
+                PDG.h
 
 

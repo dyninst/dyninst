@@ -48,7 +48,7 @@ enum enum1 {
 
 struct mystruct {
 	int elem1;
-	long elem2;
+	double elem2;
 	char elem3;
 	float elem4;
 } ms;
@@ -66,7 +66,7 @@ typedef int * my_intptr_t;
 typedef int int_alias_t;
 
 union my_union{
-	char *my_str;
+	float my_float;
 	int my_int;
 } u1;
 

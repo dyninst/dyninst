@@ -1108,7 +1108,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
   bool parsedChild = false;
 
   /* Is this is an entry we're interested in? */
-  switch( dieTag ) {
+  switch( dieTag ) 
+  {
     /* case DW_TAG_inline_subroutine: we don't care about these */
   case DW_TAG_subprogram:
   case DW_TAG_entry_point:
@@ -1466,6 +1467,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_common_block: 
 	{
+		dwarf_printf(" DW_TAG_common_block \n");
 		char * commonBlockName;
 		status = dwarf_diename( dieEntry, & commonBlockName, NULL );
 		DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -1525,6 +1527,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_constant: 
 	{
+		dwarf_printf(" DW_TAG_constant \n");
 		//bperr ( "Warning: dyninst ignores named constant entries.\n" );
 	} break;
 
@@ -1534,6 +1537,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	   don't have locations.) */
   case DW_TAG_variable: 
 	{
+		dwarf_printf(" DW_TAG_variable \n");
 		/* A variable may occur inside a function, as either static or local.
 		   A variable may occur inside a container, as C++ static member.
 		   A variable may not occur in either, as a global. 
@@ -1742,14 +1746,16 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       } /* end if this variable is not global */
     } 
     break;
-    /* It's probably worth noting that a formal parameter may have a
-       default value.  Since, AFAIK, Dyninst does nothing with this information,
-       neither will we. */
+
   case DW_TAG_formal_parameter: 
     {
+		dwarf_printf(" DW_TAG_formal_parameter \n");
       /* A formal parameter must occur in the context of a function.
 	 (That is, we can't do anything with a formal parameter to a
 	 function we don't know about.) */
+    /* It's probably worth noting that a formal parameter may have a
+       default value.  Since, AFAIK, Dyninst does nothing with this information,
+       neither will we. */
       if ( currentFunction == NULL ) {
 	dwarf_printf( "%s[%d]: ignoring formal parameter without corresponding function.\n", __FILE__, __LINE__ );
 	break;
@@ -1922,6 +1928,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_base_type: 
     {
+		dwarf_printf(" DW_TAG_base_type \n");
       /* What's the type's name? */
       char * typeName;
       status = dwarf_diename( dieEntry, & typeName, NULL );
@@ -1955,6 +1962,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_typedef: 
     {
+		dwarf_printf(" DW_TAG_typedef \n");
       char * definedName = NULL;
       status = dwarf_diename( dieEntry, & definedName, NULL );
       DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -2021,6 +2029,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_array_type: 
     {
+		dwarf_printf(" DW_TAG_array \n");
       /* Two words about pgf90 arrays.
 
       Primus: the PGI extensions to DWARF are documented in 
@@ -2078,6 +2087,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_subrange_type: 
     {
+		dwarf_printf(" DW_TAG_subrange \n");
       std::string loBound;
       std::string hiBound;
       parseSubRangeDIE( dbg, dieEntry, loBound, hiBound, module );
@@ -2085,6 +2095,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_enumeration_type: 
     {
+		dwarf_printf(" DW_TAG_enumeration \n");
       char * typeName = NULL;
       status = dwarf_diename( dieEntry, & typeName, NULL );
       DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -2100,6 +2111,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_inheritance: 
     {
+		dwarf_printf(" DW_TAG_inheritance \n");
       /* Acquire the super class's type. */
       Dwarf_Attribute scAttr;
       status = dwarf_attr( dieEntry, DW_AT_type, & scAttr, NULL );
@@ -2149,6 +2161,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
   case DW_TAG_union_type:
   case DW_TAG_class_type: 
     {
+		dwarf_printf(" DW_TAG_structure or DW_TAG_union DW_TAG_class \n");
       char * typeName = NULL;
       status = dwarf_diename( dieEntry, & typeName, NULL );
       DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -2173,19 +2186,22 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	containingType = dynamic_cast<fieldListType *>(module->getModuleTypesPrivate()->addOrUpdateType(ts));
 	break;
       }
-      case DW_TAG_union_type: {
-	typeUnion *tu = new typeUnion( (typeId_t) dieOffset, tName);
-	containingType = dynamic_cast<fieldListType *>(module->getModuleTypesPrivate()->addOrUpdateType(tu));
-	break;
-      }
-      }
-      newEnclosure = containingType;
+	  case DW_TAG_union_type: 
+	  {
+		  typeUnion *tu = new typeUnion( (typeId_t) dieOffset, tName);
+		  containingType = dynamic_cast<fieldListType *>(module->getModuleTypesPrivate()->addOrUpdateType(tu));
+		  dwarf_printf("%s[%d]:  new union %s\n", FILE__, __LINE__, tName.c_str());
+		  break;
+	  }
+	  }
+	  newEnclosure = containingType;
 
       dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
     } break;
 
   case DW_TAG_enumerator: 
     {
+		dwarf_printf(" DW_TAG_enumerator \n");
       /* An entry in an enumeration. */
       char * enumName = NULL;
       status = dwarf_diename( dieEntry, & enumName, NULL );
@@ -2210,101 +2226,160 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
     } break;
 
   case DW_TAG_member: 
-    {
-      char * memberName = NULL;
-      status = dwarf_diename( dieEntry, & memberName, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+	{
+		dwarf_printf(" DW_TAG_member \n");
+		char * memberName = NULL;
+		status = dwarf_diename( dieEntry, & memberName, NULL );
+		DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", 
+				FILE__, __LINE__ );
 
-      Dwarf_Attribute typeAttribute;
-      status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-      if ( status == DW_DLV_NO_ENTRY ) break;
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		if (!memberName)
+		{
+			//fprintf(stderr, "%s[%d]:  weird, dwarf_diename returned NULL w/out error\n", 
+		//	FILE__, __LINE__);
+		}
+		Dwarf_Attribute typeAttribute;
+		status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
 
-      Dwarf_Off typeOffset;
-      status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		if ( status == DW_DLV_NO_ENTRY ) 
+		{
+			dwarf_printf("%s[%d]:  parse member: no entry\n", FILE__, __LINE__);
+			break;
+		}
 
-      dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+		DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
+				__FILE__, __LINE__ );
 
-      //parsing_printf("%s/%d: %s/%d\n",
-      //			   __FILE__, __LINE__, memberName, typeOffset);
-      Type * memberType = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+		Dwarf_Off typeOffset;
+		status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 
-      Dwarf_Attribute locationAttr;
-      status = dwarf_attr( dieEntry, DW_AT_data_member_location, & locationAttr, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		dwarf_printf("%s[%d]:  type id '%d' for type '%s'\n", FILE__, __LINE__, 
+				typeOffset, memberName ? memberName : "no_name");
 
-      if ( status == DW_DLV_NO_ENTRY ) { break; }
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
+				FILE__, __LINE__ );
 
-      Dwarf_Locdesc **locationList;
-      Dwarf_Signed listLength;
-      status = dwarf_loclist_n( locationAttr, & locationList, & listLength, NULL );
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
-      dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
+		vector<VariableLocation> locs;
 
-      vector<VariableLocation> locs;
-      dwarf_printf(" Tag member %s decodeLocationListForStaticOffsetOrAddress \n", memberName);
-      long int baseAddress = 0;
-      bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, & baseAddress );
-      deallocateLocationList( dbg, locationList, listLength );
+		//parsing_printf("%s/%d: %s/%d\n",
+		//			   __FILE__, __LINE__, memberName, typeOffset);
 
-      if ( ! decodedAddress ) { break; }
-      assert( decodedAddress );
+		Type *memberType = module->getModuleTypesPrivate()->findOrCreateType((int) typeOffset );
 
-      assert( locs[0].stClass == storageAddr );
+		Dwarf_Attribute locationAttr;
+		status = dwarf_attr( dieEntry, DW_AT_data_member_location, & locationAttr, NULL );
 
-      /* DWARF stores offsets in bytes unless the member is a bit field.
-	 Correct memberOffset as indicated.  Also, memberSize is in bytes
-	 from the underlying type, not the # of bits used from it, so
-	 correct that as necessary as well. */
-      long int memberSize = memberType->getSize();
+		DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", 
+				FILE__, __LINE__ );
 
-      Dwarf_Attribute bitOffset;
-      status = dwarf_attr( dieEntry, DW_AT_bit_offset, & bitOffset, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		if ( status == DW_DLV_NO_ENTRY ) 
+		{
+			dwarf_printf("%s[%d]:  parse member %s: no location\n", FILE__, __LINE__, memberName ? memberName : "nameless_member");
+			//break;
+			//  some members do not have locations???  (see unions)
+		}
+		else
+		{
 
-      if ( status == DW_DLV_OK ) {
-	Dwarf_Unsigned memberOffset_du = locs[0].frameOffset;
-	status = dwarf_formudata( bitOffset, &memberOffset_du, NULL );
-	DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
+				FILE__, __LINE__ );
 
-	dwarf_dealloc( dbg, bitOffset, DW_DLA_ATTR );
+		Dwarf_Locdesc **locationList;
+		Dwarf_Signed listLength;
+		status = dwarf_loclist_n( locationAttr, & locationList, & listLength, NULL );
+		DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
+				FILE__, __LINE__ );
 
-	Dwarf_Attribute bitSize;
-	status = dwarf_attr( dieEntry, DW_AT_bit_size, & bitSize, NULL );
-	DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
-	Dwarf_Unsigned memberSize_du = memberSize;
-	status = dwarf_formudata( bitSize, &memberSize_du, NULL );
-	DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+		dwarf_printf(" Tag member %s decodeLocationListForStaticOffsetOrAddress \n", memberName);
+		long int baseAddress = 0;
+		bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, & baseAddress );
+		deallocateLocationList( dbg, locationList, listLength );
 
-	dwarf_dealloc( dbg, bitSize, DW_DLA_ATTR );
+		if ( ! decodedAddress ) 
+		{ 
+			dwarf_printf("%s[%d]:  failed to decode member address\n", FILE__, __LINE__);
+			break; 
+		}
 
-	/* If the DW_AT_byte_size field exists, there's some padding.
-	   FIXME?  We ignore padding for now.  (We also don't seem to handle
-	   bitfields right in getComponents() anyway...) */
-      }
-      else {
-	locs[0].frameOffset *= 8;
-	memberSize *= 8;
-      } /* end if not a bit field member. */
+		assert( decodedAddress );
 
-      if ( memberName != NULL ) {
-	std::string fName = convertCharToString(memberName);
-	currentEnclosure->addField( fName, memberType, locs[0].frameOffset);
-	dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
-      } else {
-	/* An anonymous union [in a struct]. */
-	std::string fName = "[anonymous union]";
-	currentEnclosure->addField( fName, memberType, locs[0].frameOffset);
-      }
-    } break;
+		assert( locs[0].stClass == storageAddr );
+		}
+
+		/* DWARF stores offsets in bytes unless the member is a bit field.
+		   Correct memberOffset as indicated.  Also, memberSize is in bytes
+		   from the underlying type, not the # of bits used from it, so
+		   correct that as necessary as well. */
+		long int memberSize = memberType->getSize();
+
+		Dwarf_Attribute bitOffset;
+		status = dwarf_attr( dieEntry, DW_AT_bit_offset, & bitOffset, NULL );
+		DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", 
+				FILE__, __LINE__ );
+
+		if ( status == DW_DLV_OK ) 
+		{
+			Dwarf_Unsigned memberOffset_du = locs[0].frameOffset;
+			status = dwarf_formudata( bitOffset, &memberOffset_du, NULL );
+			DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
+					FILE__, __LINE__ );
+
+			dwarf_dealloc( dbg, bitOffset, DW_DLA_ATTR );
+
+			Dwarf_Attribute bitSize;
+			status = dwarf_attr( dieEntry, DW_AT_bit_size, & bitSize, NULL );
+			DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
+					FILE__, __LINE__ );
+
+			Dwarf_Unsigned memberSize_du = memberSize;
+			status = dwarf_formudata( bitSize, &memberSize_du, NULL );
+			DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", 
+					FILE__, __LINE__ );
+
+			dwarf_dealloc( dbg, bitSize, DW_DLA_ATTR );
+
+			/* If the DW_AT_byte_size field exists, there's some padding.
+			   FIXME?  We ignore padding for now.  (We also don't seem to handle
+			   bitfields right in getComponents() anyway...) */
+		}
+		else 
+		{
+			dwarf_printf("%s[%d]:  got status != OK\n", FILE__, __LINE__);
+			if (locs.size())
+				locs[0].frameOffset *= 8;
+			memberSize *= 8;
+		} /* end if not a bit field member. */
+
+		if ( memberName != NULL ) 
+		{
+			std::string fName = convertCharToString(memberName);
+			int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
+			currentEnclosure->addField( fName, memberType, offset_to_use);
+			dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
+			dwarf_printf("%s[%d]:  new field: [%s] %s\n", FILE__, __LINE__, 
+					memberType ? memberType->getName().c_str() : "no_type", fName.c_str());
+		} 
+		else 
+		{
+			/* An anonymous union [in a struct]. */
+			std::string fName = "[anonymous union]";
+			int offset_to_use = locs.size() ? locs[0].frameOffset : -1;
+			currentEnclosure->addField( fName, memberType, offset_to_use);
+			dwarf_printf("%s[%d]:  new field: [%s] %s\n", FILE__, __LINE__, 
+					memberType ? memberType->getName().c_str() : "no_type", fName.c_str());
+		}
+	} 
+	break;
 
   case DW_TAG_const_type:
   case DW_TAG_packed_type:
-  case DW_TAG_volatile_type: {
+  case DW_TAG_volatile_type: 
+	{
+		dwarf_printf(" DW_TAG_const or DW_TAG_packed or DW_TAG_volatile \n");
     char * typeName = NULL;
     status = dwarf_diename( dieEntry, & typeName, NULL );
     DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -2360,7 +2435,9 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
        children of those types. */
   case DW_TAG_ptr_to_member_type:
   case DW_TAG_pointer_type:
-  case DW_TAG_reference_type: {
+  case DW_TAG_reference_type: 
+	{
+		dwarf_printf(" DW_TAG_subroutine or DW_TAG_ptr_to_member or DW_TAG_pointer or DW_TAG_reference \n");
     char * typeName = NULL;
     status = dwarf_diename( dieEntry, & typeName, NULL );
     DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -2411,7 +2488,11 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
   case DW_TAG_variant_part:
     /* We don't support this (Pascal) type. */
+		dwarf_printf(" DW_TAG_variant_part \n");
+		break;
   case DW_TAG_string_type:
+		dwarf_printf(" DW_TAG_string \n");
+		break;
     /* We don't support this (FORTRAN) type. */
   default:
     /* Nothing of interest. */
@@ -2422,40 +2503,45 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
   } /* end dieTag switch */
 
   if (!walk_error)
-    {
-      /* Recurse to its child, if any. */
-      Dwarf_Die childDwarf;
-      status = dwarf_child( dieEntry, & childDwarf, NULL );
-      DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-      
-      if( status == DW_DLV_OK && parsedChild == false ) {		
-	dwarf_printf( "Start walkDwarvenTree to child of  %lu with tag 0x%x \n", (unsigned long)dieOffset, dieTag );
-	bool result = walkDwarvenTree( dbg, childDwarf, module, objFile, cuOffset, 
-				       srcFiles, lowpc, newFunction, newCommonBlock, 
-				       newEnum, newEnclosure, true, depth+1 );
-	if (!result) {
-	  dwarf_printf("[%s:%u] - Failed to walk dwarven tree\n", 
-		       __FILE__, __LINE__);
-	  if (depth != 1)
-	    return false;
-	}
-      }
-    }
-  if (parseSibling == true) {
-    /* Recurse to its first sibling, if any. */
-    Dwarf_Die siblingDwarf;
-    status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
-    DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+  {
+	  /* Recurse to its child, if any. */
+	  Dwarf_Die childDwarf;
+	  status = dwarf_child( dieEntry, & childDwarf, NULL );
+	  DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-    /* Deallocate the entry we just parsed. */
-    dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+	  if ( status == DW_DLV_OK && parsedChild == false ) 
+	  {
+		  dwarf_printf( "Start walkDwarvenTree to child of  %lu with tag 0x%x \n", (unsigned long)dieOffset, dieTag );
+		  bool result = walkDwarvenTree( dbg, childDwarf, module, objFile, cuOffset, 
+				  srcFiles, lowpc, newFunction, newCommonBlock, 
+				  newEnum, newEnclosure, true, depth+1 );
+		  if (!result) 
+		  {
+			  dwarf_printf("[%s:%u] - Failed to walk dwarven tree\n", 
+					  __FILE__, __LINE__);
+			  if (depth != 1)
+				  return false;
+		  }
+	  }
+  }
 
-    if( status == DW_DLV_OK ) {
-      /* Do the tail-call optimization by hand. */
-      dieEntry = siblingDwarf;
-      dwarf_printf( "Start walkDwarvenTree to sibling of  %lu with tag 0x%x  - tail recursion \n", (unsigned long)dieOffset, dieTag);
-      goto tail_recursion;
-    }
+  if (parseSibling == true) 
+  {
+	  /* Recurse to its first sibling, if any. */
+	  Dwarf_Die siblingDwarf;
+	  status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+	  DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+
+	  /* Deallocate the entry we just parsed. */
+	  dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+
+	  if ( status == DW_DLV_OK ) 
+	  {
+		  /* Do the tail-call optimization by hand. */
+		  dieEntry = siblingDwarf;
+		  dwarf_printf( "Start walkDwarvenTree to sibling of  %lu with tag 0x%x  - tail recursion \n", (unsigned long)dieOffset, dieTag);
+		  goto tail_recursion;
+	  }
   }
 
   /* When would we return false? :) */

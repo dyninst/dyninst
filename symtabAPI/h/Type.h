@@ -99,7 +99,7 @@ typedef enum {
  *
  */
  
-const char *visibility2Str(visibility_t v);
+SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 
 class Field : public Serializable, public AnnotatableSparse  {
    friend class typeStruct;
@@ -117,7 +117,7 @@ class Field : public Serializable, public AnnotatableSparse  {
    void copy(Field &);
 
  public:
-   SYMTAB_EXPORT Field() {}
+   SYMTAB_EXPORT Field() : type_(NULL) {}
    SYMTAB_EXPORT Field(std::string name, Type *typ, int offsetVal = -1, 
 		   visibility_t vis = visUnknown);
    
@@ -134,6 +134,7 @@ class Field : public Serializable, public AnnotatableSparse  {
    SYMTAB_EXPORT void fixupUnknown(Module *);
    SYMTAB_EXPORT void serialize(SerializerBase *sb, 
 		   const char *tag="Field") THROW_SPEC(SerializerError);
+   SYMTAB_EXPORT virtual bool operator==(const Field &) const;
 };
 				  
 class Type : public Serializable, public AnnotatableSparse  {

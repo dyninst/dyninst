@@ -1426,8 +1426,14 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 		long low_conv = strtol(low, NULL, 10);
 		if (errno)
 		{
-			//fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
+		//	fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
 		//			FILE__, __LINE__, low, strerror(errno));
+			low_conv = LONG_MIN;
+		}
+
+		if (low_conv < LONG_MIN)
+		{
+			fprintf(stderr, "%s[%d]:  signed variable saturation...\n", FILE__, __LINE__);
 			low_conv = LONG_MIN;
 		}
 
@@ -1436,7 +1442,13 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 		if (errno)
 		{
 			//fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
-			//		FILE__, __LINE__, hi, strerror(errno));
+		//			FILE__, __LINE__, hi, strerror(errno));
+			hi_conv = LONG_MAX;
+		}
+
+		if (hi_conv > LONG_MAX)
+		{
+			fprintf(stderr, "%s[%d]:  signed variable saturation...\n", FILE__, __LINE__);
 			hi_conv = LONG_MAX;
 		}
 
