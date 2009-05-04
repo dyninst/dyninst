@@ -33,6 +33,9 @@
 #include <assert.h>
 #include "dyntypes.h"
 
+#if !defined LRUCache_h_
+#define LRUCache_h_
+
 template<class K, class V>
 class LRUCache {
  public:
@@ -250,7 +253,4 @@ class LRUCache {
    }
 };
 
-
-
-      
-   
+#endif

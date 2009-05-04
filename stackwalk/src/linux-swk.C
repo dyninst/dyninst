@@ -33,8 +33,9 @@
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/steppergroup.h"
-
 #include "stackwalk/h/procstate.h"
+#include "stackwalk/h/frame.h"
+
 #include "stackwalk/src/linux-swk.h"
 #include "stackwalk/src/symtab-swk.h"
 
@@ -357,7 +358,7 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
         if (ev.data.idata == (SIGTRAP | (PTRACE_EVENT_CLONE << 8))) {
            sw_printf("[%s:%u] - Discovered new thread in proc %d\n", 
                      __FILE__, __LINE__, pid);
-           pid_t newtid;
+           pid_t newtid = 0x0;
            ThreadState *new_thread = NULL;
            long iresult = ptrace((pt_req) PTRACE_GETEVENTMSG, thr->getTid(), 
                                  NULL, &newtid);
@@ -602,7 +603,7 @@ bool ProcDebugLinux::readMem(void *dest, Address source, size_t size)
    assert(thr); //Something should be stopped if we're here.
    pid_t tid = (pid_t) thr->getTid();
 
-   if ((cnt = ((Address)ap) % len)) {
+   if ((cnt = (source % len))) {
       /* Start of request is not aligned. */
       unsigned char *p = (unsigned char*) &w;
       
@@ -677,10 +678,11 @@ bool ProcDebugLinux::getThreadIds(std::vector<THR_ID> &thrds)
    for (i = threads.begin(); i != threads.end(); i++) {
       ThreadState *ts = (*i).second;
       if (ts->state() != ps_running) {
-         fprintf(stderr, "Skipping thread %d in state %d\n", 
-                 ts->getTid(), ts->state());
+         sw_printf("Skipping thread %d in state %d\n", 
+                   ts->getTid(), ts->state());
          continue;
       }
+              
       thrds.push_back(ts->getTid());
    }
    return true;
@@ -731,14 +733,20 @@ bool ProcDebugLinux::getDefaultThread(THR_ID &default_tid)
 
 ProcDebugLinux::ProcDebugLinux(PID pid)
    : ProcDebug(pid),
-     cached_addr_width(0)
+     cached_addr_width(0),
+     lib_load_trap(0x0),
+     trap_actual_len(0x0),
+     trap_install_error(false)
 {
 }
 
 ProcDebugLinux::ProcDebugLinux(const std::string &executable, 
                                const std::vector<std::string> &argv)
    : ProcDebug(executable, argv),
-     cached_addr_width(0)
+     cached_addr_width(0),
+     lib_load_trap(0x0),
+     trap_actual_len(0x0),
+     trap_install_error(false)
 {
 }
 
@@ -890,7 +898,7 @@ bool ProcDebugLinux::debug_create(const std::string &executable,
    return true;
 }
 
-SigHandlerStepperImpl::SigHandlerStepperImpl(Walker *w, DebugStepper *parent) :
+SigHandlerStepperImpl::SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent) :
    FrameStepper(w),
    parent_stepper(parent)
 {
@@ -949,9 +957,10 @@ SigHandlerStepperImpl::~SigHandlerStepperImpl()
 {
 }
 
-#define MAX_TRAP_LEN 8
 void ProcDebugLinux::registerLibSpotter()
 {
+   bool result;
+
    if (lib_load_trap)
       return;
 
@@ -966,22 +975,110 @@ void ProcDebugLinux::registerLibSpotter()
    if (!lib_load_trap) {
       sw_printf("[%s:%u] - Couldn't get trap addr, couldn't set up "
                 "library loading notification.\n", __FILE__, __LINE__);
+      trap_install_error = true;
       return;
    }
 
    char trap_buffer[MAX_TRAP_LEN];
-   unsigned actual_len;
-   getTrapInstruction(trap_buffer, MAX_TRAP_LEN, actual_len, true);
+   getTrapInstruction(trap_buffer, MAX_TRAP_LEN, trap_actual_len, true);
 
-   bool result = PtraceBulkWrite(lib_load_trap, actual_len, trap_buffer, pid);
+   result = PtraceBulkRead(lib_load_trap, trap_actual_len, trap_overwrite_buffer, pid);
+   if (!result) {
+      sw_printf("[%s:%u] - Error reading trap bytes from %lx\n", 
+                __FILE__, __LINE__, lib_load_trap);
+      trap_install_error = true;
+      return;
+   }
+   result = PtraceBulkWrite(lib_load_trap, trap_actual_len, trap_buffer, pid);
    if (!result) {
       sw_printf("[%s:%u] - Error writing trap to %lx, couldn't set up library "
                 "load address\n", __FILE__, __LINE__, lib_load_trap);
+      trap_install_error = true;
       return;
    }
    sw_printf("[%s:%u] - Successfully installed library trap at %lx\n",
              __FILE__, __LINE__, lib_load_trap);
 }
+
+bool ProcDebugLinux::detach_thread(int tid, bool leave_stopped)
+{
+   sw_printf("[%s:%u] - Detaching from tid %d\n", __FILE__, __LINE__, tid);
+   long int iresult = ptrace((pt_req) PTRACE_DETACH, tid, NULL, NULL);
+   if (iresult == -1) {
+      int error = errno;
+      sw_printf("[%s:%u] - Error.  Couldn't detach from %d: %s\n",
+                __FILE__, __LINE__, tid, strerror(error));
+      if (error != ESRCH) {
+         setLastError(err_internal, "Could not detach from thread\n");
+         return false;
+      }
+   }
+
+   thread_map_t::iterator j = all_threads.find(tid);
+   if (j == all_threads.end()) {
+      sw_printf("[%s:%u] - Error.  Expected to find %d in all threads\n",
+                __FILE__, __LINE__, tid);
+      setLastError(err_internal, "Couldn't find thread in internal data structures");
+      return false;
+   }
+
+   if (!leave_stopped) {
+      t_kill(tid, SIGCONT);
+   }
+
+   all_threads.erase(j);
+   return true;
+}
+
+bool ProcDebugLinux::detach(bool leave_stopped)
+{
+   bool result;
+   bool error = false;
+   sw_printf("[%s:%u] - Detaching from process %d\n", 
+             __FILE__, __LINE__, getProcessId());
+   result = pause();
+   if (!result) {
+      sw_printf("[%s:%u] - Error pausing process before detach\n",
+                __FILE__, __LINE__);
+      return false;
+   }
+
+   if (lib_load_trap && !trap_install_error)
+   {
+      result = PtraceBulkWrite(lib_load_trap, trap_actual_len, 
+                               trap_overwrite_buffer, pid);
+      if (!result) {
+         sw_printf("[%s:%u] - Error.  Couldn't restore load trap bytes at %lx\n",
+                   __FILE__, __LINE__, lib_load_trap);
+         setLastError(err_internal, "Could not remove library trap");
+         return false;
+      }
+      lib_load_trap = 0x0;
+   }
+   
+   for (thread_map_t::iterator i = threads.begin(); i != threads.end(); i++)
+   {
+      Dyninst::THR_ID tid = (*i).first;
+      ThreadState *thread_state = (*i).second;
+      if (tid == getProcessId())
+         continue;
+      result = detach_thread(tid, leave_stopped);
+      if (!result)
+         error = true;
+
+      delete thread_state;
+   }
+   threads.clear();
+
+   result = detach_thread(getProcessId(), leave_stopped);
+   if (!result)
+      error = true;
+
+   detach_arch_cleanup();
+
+   return !error;
+}
+
 
 static LibraryState *local_lib_state = NULL;
 extern "C" {
@@ -1302,7 +1399,7 @@ ThreadState* ThreadState::createThreadState(ProcDebug *parent,
 SigHandlerStepper::SigHandlerStepper(Walker *w) :
    FrameStepper(w)
 {
-   impl = new SigHandlerStepperImpl(w, (DebugStepper *) this);
+   impl = new SigHandlerStepperImpl(w, this);
 }
 
 gcframe_ret_t SigHandlerStepper::getCallerFrame(const Frame &in, Frame &out)
@@ -1343,3 +1440,195 @@ SigHandlerStepper::~SigHandlerStepper()
       delete impl;
    impl = NULL;
 }
+
+BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *p) :
+   FrameStepper(w),
+   parent(p),
+   initialized(false)
+{
+   sw_printf("[%s:%u] - Constructing BottomOfStackStepperImpl at %p\n",
+             __FILE__, __LINE__, this);
+}
+
+gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & /*out*/)
+{
+   /**
+    * This stepper never actually returns an 'out' frame.  It simply 
+    * tries to tell if we've reached the top of a stack and returns 
+    * either gcf_stackbottom or gcf_not_me.
+    **/
+   if (!initialized)
+      initialize();
+
+   std::vector<std::pair<Address, Address> >::iterator i;
+   for (i = ra_stack_tops.begin(); i != ra_stack_tops.end(); i++)
+   {
+      if (in.getRA() >= (*i).first && in.getRA() < (*i).second)
+         return gcf_stackbottom;
+   }
+
+   for (i = sp_stack_tops.begin(); i != sp_stack_tops.end(); i++)
+   {
+      if (in.getSP() >= (*i).first && in.getSP() < (*i).second)
+         return gcf_stackbottom;
+   }
+
+   /*   if (archIsBottom(in)) {
+      return gcf_stackbottom;
+      }*/
+   return gcf_not_me;
+}
+
+unsigned BottomOfStackStepperImpl::getPriority() const
+{
+   //Highest priority, test for top of stack first.
+   return 0x10000;
+}
+
+void BottomOfStackStepperImpl::registerStepperGroup(StepperGroup *group)
+{
+   unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
+   if (addr_width == 4)
+      group->addStepper(parent, 0, 0xffffffff);
+#if defined(arch_64bit)
+   else if (addr_width == 8)
+      group->addStepper(parent, 0, 0xffffffffffffffff);
+#endif
+   else
+      assert(0 && "Unknown architecture word size");
+}
+
+void BottomOfStackStepperImpl::initialize()
+{
+#if defined(cap_stackwalker_use_symtab)
+   std::vector<LibAddrPair> libs;
+   ProcessState *proc = walker->getProcessState();
+   assert(proc);
+
+   sw_printf("[%s:%u] - Initializing BottomOfStackStepper\n", __FILE__, __LINE__);
+   initialized = true;
+   
+   LibraryState *ls = proc->getLibraryTracker();
+   if (!ls) {
+      sw_printf("[%s:%u] - Error initing StackBottom.  No library state for process.\n",
+                __FILE__, __LINE__);
+      return;
+   }
+   SymtabLibState *symtab_ls = dynamic_cast<SymtabLibState *>(ls);
+   if (!symtab_ls) {
+      sw_printf("[%s:%u] - Error initing StackBottom. Unknown library state.\n",
+                __FILE__, __LINE__);
+   }
+   bool result = false;
+   std::vector<Function *> funcs;
+   std::vector<Function *>::iterator i;
+
+   //Find _start in a.out
+   LibAddrPair aout_libaddr = symtab_ls->getAOut();
+   Symtab *aout = SymtabWrapper::getSymtab(aout_libaddr.first);
+   if (!aout) {
+      sw_printf("[%s:%u] - Error. Could not locate a.out\n", __FILE__, __LINE__);
+   }
+   else {
+      result = aout->findFunctionsByName(funcs, "_start");
+      if (!result || !funcs.size()) {
+         sw_printf("[%s:%u] - Error. Could not locate _start\n", __FILE__, __LINE__);
+      }
+   }
+   for (i = funcs.begin(); i != funcs.end(); i++) {
+      Address start = (*i)->getOffset() + aout_libaddr.second;
+      Address end = start + (*i)->getSize();
+      sw_printf("[%s:%u] - Adding _start stack bottom [0x%lx, 0x%lx)\n",
+                __FILE__, __LINE__, start, end);
+      ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+   }
+
+   //Find clone in libc.
+   LibAddrPair clone_libaddr;
+   Symtab *clone_symtab = NULL;
+
+   LibAddrPair start_thread_libaddr;
+   Symtab *start_thread_symtab = NULL;
+   
+   //Find __clone function in libc
+   libs.clear();
+   result = symtab_ls->getLibraries(libs);
+   if (!result) {
+      sw_printf("[%s:%u] - Error. Failed to get libraries.\n", 
+                __FILE__, __LINE__);
+      return;
+   }
+   
+   if (libs.size() == 1) {
+      //Static binary
+      sw_printf("[%s:%u] - Think binary is static\n", __FILE__, __LINE__);
+      clone_libaddr = aout_libaddr;
+      clone_symtab = aout;
+      start_thread_libaddr = aout_libaddr;
+      start_thread_symtab = aout;
+   }
+   else {
+      std::vector<LibAddrPair>::iterator i;
+      for (i = libs.begin(); i != libs.end(); i++) {
+         if (strstr((*i).first.c_str(), "libc.so") ||
+             strstr((*i).first.c_str(), "libc-"))
+         {
+            clone_libaddr = (*i);
+            sw_printf("[%s:%u] - Looking for clone in %s\n", 
+                      __FILE__, __LINE__, clone_libaddr.first.c_str());
+            clone_symtab = SymtabWrapper::getSymtab(clone_libaddr.first);
+         }
+         if (strstr((*i).first.c_str(), "libpthread"))
+         {
+            start_thread_libaddr = (*i);
+            sw_printf("[%s:%u] - Looking for start_thread in %s\n", 
+                      __FILE__, __LINE__, start_thread_libaddr.first.c_str());
+            start_thread_symtab = SymtabWrapper::getSymtab(start_thread_libaddr.first);
+         }
+      }
+      if (!clone_symtab) {
+         sw_printf("[%s:%u] - Looking for clone in a.out\n", __FILE__, __LINE__);
+         clone_symtab = aout;
+         clone_libaddr = aout_libaddr;
+      }
+      if (!start_thread_symtab) {
+         sw_printf("[%s:%u] - Looking for start_thread in a.out\n",  __FILE__, __LINE__);
+         start_thread_symtab = aout;
+         start_thread_libaddr = aout_libaddr;
+      }
+   }
+
+   if (clone_symtab) {
+      funcs.clear();
+      result = clone_symtab->findFunctionsByName(funcs, "__clone");
+      if (!result)
+         return;
+      for (i = funcs.begin(); i != funcs.end(); i++) {
+         Address start = (*i)->getOffset() + clone_libaddr.second;
+         Address end = start + (*i)->getSize();
+         sw_printf("[%s:%u] - Adding __clone stack bottom [0x%lx, 0x%lx)\n",
+                   __FILE__, __LINE__, start, end);
+         ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+      }
+   }
+
+   if (start_thread_symtab) {
+      funcs.clear();
+      result = start_thread_symtab->findFunctionsByName(funcs, "start_thread");
+      if (!result)
+         return;
+      for (i = funcs.begin(); i != funcs.end(); i++) {
+         Address start = (*i)->getOffset() + start_thread_libaddr.second;
+         Address end = start + (*i)->getSize();
+         sw_printf("[%s:%u] - Adding start_thread stack bottom [0x%lx, 0x%lx)\n",
+                   __FILE__, __LINE__, start, end);
+         ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+      }
+   }
+#endif
+}
+
+BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
+{
+}
+

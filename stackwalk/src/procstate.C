@@ -340,29 +340,44 @@ bool ProcDebug::resume(Dyninst::THR_ID tid)
          setLastError(err_badparam, "Thread already exited");
          return false;
       }
-      bool result = resume_thread(thr);
-      if (result) {
+      if (!thr->isStopped()) {
+         sw_printf("[%s:%u] - thread %d is already running on process %d\n",
+                   __FILE__, __LINE__, tid, pid);
          thr->setUserStopped(false);
+      }
+      else {
+         bool result = resume_thread(thr);
+         if (result) {
+            thr->setUserStopped(false);
+         }
       }
    }
    
    //Handle the case where we're continuing all threads
    thread_map_t::iterator i;
    bool had_error = false;
-   for (i= threads.begin(); i != threads.end(); i++) {
+   for (i = threads.begin(); i != threads.end(); i++) {
       thr = (*i).second;
+      int thr_tid = thr->getTid();
       assert(thr);
       if (thr->state() == ps_exited) {
          sw_printf("[%s:%u] - thread %d on process %d already exited\n",
-                __FILE__, __LINE__, tid, pid);
+                __FILE__, __LINE__, thr_tid, pid);
          continue;
       }
+      if (!thr->isStopped()) {
+         sw_printf("[%s:%u] - thread %d is already running on process %d\n",
+                   __FILE__, __LINE__, thr_tid, pid);
+         thr->setUserStopped(false);
+         continue;
+      }
+
       sw_printf("[%s:%u] - Continuing thread %d on process %d\n",
-                __FILE__, __LINE__, tid, pid);
+                __FILE__, __LINE__, thr_tid, pid);
       bool result = resume_thread(thr);
-   if (!result) {
-         sw_printf("[%s:%u] - Error resumeing thread %d on process %d\n",
-                __FILE__, __LINE__, tid, pid);
+      if (!result) {
+         sw_printf("[%s:%u] - Error resuming thread %d on process %d\n",
+                __FILE__, __LINE__, thr_tid, pid);
          had_error = true;
       }
       else {

@@ -218,6 +218,8 @@ class ProcDebug : public ProcessState {
   virtual bool resume(Dyninst::THR_ID tid = NULL_THR_ID);
   virtual bool isTerminated();
 
+  virtual bool detach(bool leave_stopped = false) = 0;
+
   static int getNotificationFD();
   static bool handleDebugEvent(bool block = false);
  protected:

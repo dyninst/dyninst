@@ -147,28 +147,6 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   return gcf_success;
 }
  
-class LookupFuncStart : public FrameFuncHelper
-{
-private:
-   static std::map<Dyninst::PID, LookupFuncStart*> all_func_starts;
-   LookupFuncStart(ProcessState *proc_);
-   int ref_count;
-private:
-   void updateCache(Address addr, alloc_frame_t result);
-   bool checkCache(Address addr, alloc_frame_t &result);
-#if defined(cap_cache_func_starts)
-   //We need some kind of re-entrant safe synhronization before we can
-   // globally turn this caching on, but it would sure help things.
-   static const unsigned int cache_size = 64;
-   LRUCache<Address, alloc_frame_t> cache;
-#endif
-public:
-   static LookupFuncStart *getLookupFuncStart(ProcessState *p);
-   void releaseMe();
-   virtual alloc_frame_t allocatesFrame(Address addr);
-   ~LookupFuncStart();
-};
-
 std::map<Dyninst::PID, LookupFuncStart*> LookupFuncStart::all_func_starts;
 
 #if defined(cap_cache_func_starts)
@@ -370,6 +348,19 @@ bool LookupFuncStart::checkCache(Address /*addr*/, alloc_frame_t &/*result*/)
 }
 #endif
 
+void LookupFuncStart::clear_func_mapping(Dyninst::PID pid)
+{
+   std::map<Dyninst::PID, LookupFuncStart *>::iterator i;
+   i = all_func_starts.find(pid);
+   if (i == all_func_starts.end())
+      return;
+
+   LookupFuncStart *fs = (*i).second;
+   all_func_starts.erase(i);
+   
+   delete fs;
+}
+
 gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in, 
                                                    Frame &out, Symtab *symtab)
 {
@@ -422,123 +413,6 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address /*addr*/)
    return FrameFuncHelper::alloc_frame_t(unknown_t, unknown_s);
 }
 #endif
-
-gcframe_ret_t UninitFrameStepperImpl::getCallerFrame(const Frame &in, Frame &out)
-{
-   bool result;
-   int offset;
-   if (!alloc_frame)
-      return gcf_not_me;
-   FrameFuncHelper::alloc_frame_t frame_state = alloc_frame->allocatesFrame(in.getRA());
-
-   if (frame_state.second != FrameFuncHelper::unset_frame && 
-       frame_state.second != FrameFuncHelper::halfset_frame)
-      return gcf_not_me;
-
-   if (frame_state.second == FrameFuncHelper::unset_frame)
-      offset = getProcessState()->getAddressWidth();
-   else //frame_state == FrameFuncHelper::halfset_frame
-      offset = getProcessState()->getAddressWidth()*2;
-   out.setSP(in.getSP() + offset);
-      
-   Address pc;
-   location_t pc_loc;
-   
-   pc_loc.location = loc_address;
-   pc_loc.val.addr = offset + in.getSP();
-   result = getProcessState()->readMem(&pc, pc_loc.val.addr, 
-                                       getProcessState()->getAddressWidth());
-   if (!result) {
-      sw_printf("[%s:%u] - Error reading from stack at address %x\n",
-                __FILE__, __LINE__, pc_loc.val.addr);
-      return gcf_error;
-   }
-   out.setRALocation(pc_loc);
-   out.setRA(pc);
-
-   location_t fp_loc;
-   fp_loc.location = loc_register;
-   if (getProcessState()->getAddressWidth() == 4)
-      fp_loc.val.reg = EBP;
-   else 
-      fp_loc.val.reg = RBP;
-   out.setFP(in.getFP());
-   out.setFPLocation(fp_loc);
-
-   out.setSP(pc_loc.val.addr + getProcessState()->getAddressWidth());
-
-   return gcf_success;
-}
-
-UninitFrameStepperImpl::UninitFrameStepperImpl(Walker *w, 
-                                               FrameFuncHelper *f,
-                                               FrameStepper *parent_) :
-   FrameStepper(w),
-   parent(parent_)
-{
-   alloc_frame = f ? f : LookupFuncStart::getLookupFuncStart(w->getProcessState());
-}
-
-UninitFrameStepperImpl::~UninitFrameStepperImpl()
-{
-   LookupFuncStart *lookup = dynamic_cast<LookupFuncStart*>(alloc_frame);
-   if (lookup)
-      lookup->releaseMe();
-   else if (alloc_frame)
-      delete alloc_frame;
-}
-
-UninitFrameStepper::UninitFrameStepper(Walker *w, FrameFuncHelper *f) :
-   FrameStepper(w)
-{
-   impl = new UninitFrameStepperImpl(w, f, this);
-}
-
-gcframe_ret_t UninitFrameStepper::getCallerFrame(const Frame &in, Frame &out)
-{
-   if (impl)
-      return impl->getCallerFrame(in, out);
-   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Uninitialized frame walking not supported " 
-                "on this platform");
-   return gcf_error;
-}
-
-unsigned UninitFrameStepper::getPriority() const
-{
-   if (impl)
-      return impl->getPriority();
-   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Uninitialized frame walking not supported " 
-                "on this platform");
-   return 0;
-}
-
-void UninitFrameStepper::registerStepperGroup(StepperGroup *group)
-{
-   if (impl) {
-      impl->registerStepperGroup(group);
-      return;
-   }
-   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Uninitialized frame walking not supported " 
-                "on this platform");
-}
-
-UninitFrameStepper::~UninitFrameStepper()
-{
-   if (impl)
-      delete impl;
-   impl = NULL;
-}
-
-unsigned UninitFrameStepperImpl::getPriority() const
-{
-   return 0x10950;
-}
 
 namespace Dyninst {
 namespace Stackwalker {
