@@ -4,11 +4,18 @@ BUILD_MARK=
 BUILD_NUM=-576
 
 #Are any alternatives to g++ available?
-ICC_PROG = @_ICC_@
-PGC_PROG = @_PGC_@
-PGCXX_PROG = @_PGCXX_@
-NATIVECC_PROG = @_CC_@
-NATIVECXX_PROG = @_CXX_@
+
+M_intel_CC = @_ICC_@
+
+ifdef M_intel_CC
+ICC = 1
+endif
+
+M_pg_cc = @_PGC_@
+M_pg_cxx = @_PGCXX_@
+# PGI is defined in environment to point to path; needed for licensing, so we can rely on it
+M_native_cc = @_CC_@
+M_native_cxx = @_CXX_@
 
 #TCL/TK is required for all Paradyn builds, but not DyninstAPI
 TCLTK_LIB_DIR = @TCLTK_LIB_DIR@
@@ -52,7 +59,6 @@ FLEX_DIR = @LIBFLEX_LIB_DIR@
 
 USES_MMTIMER = @MMTIMER@
 
-PAPI_ROOT       = @PAPI_ROOT@
 AC_DEF 	       = @DEFS@
 
 @STACKPROT@
