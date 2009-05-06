@@ -88,16 +88,21 @@ class EdgeIterator {
 
     Edge::Ptr operator*() const;
 
- protected:
     // Make sure this is explicitly _not_ allowed (no vectors of iterators)
     EdgeIterator() : iter_(NULL) {};
-    
+
+    EdgeIterator(const EdgeIterator &rhs);
+
+    ~EdgeIterator();   
+
+    EdgeIterator(EdgeIteratorImpl *iter) : iter_(iter) {};
+
+ protected:
+
     // Main constructor
     // The iter parameter becomes owned by the iterator and will be destroyed
     // when the iterator is destroyed.
-    EdgeIterator(EdgeIteratorImpl *iter) : iter_(iter) {};
 
-    ~EdgeIterator();
 
     // We hide the internal iteration behavior behind a pointer. 
     // This allows us to override (yay for virtual functions).
@@ -133,14 +138,16 @@ class EdgeIteratorSet : public EdgeIteratorImpl {
     }
 
     virtual EdgeIteratorImpl *copy() {
-        return new EdgeIteratorSet(internal_);
+        EdgeIteratorSet *tmp = new EdgeIteratorSet(internal_);
+        return tmp;
     }
 
     virtual ~EdgeIteratorSet() {
         // Nothing to do
     }
     
-    EdgeIteratorSet(const std::set<Edge::Ptr>::iterator iter) : internal_(iter) {};
+    EdgeIteratorSet(const std::set<Edge::Ptr>::iterator iter) : internal_(iter) {
+    };
 
  private:
     std::set<Edge::Ptr>::iterator internal_;

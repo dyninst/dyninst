@@ -77,6 +77,32 @@ bool Node::hasOutEdges() {
     return !outs_.empty();
 }
 
+void Node::forwardClosure(NodeIterator &begin, NodeIterator &end) {
+    end = NodeIterator(new NodeSearchIterator());
+
+    if (!hasOutEdges()) {
+        begin = end;
+    }
+    else {
+        NodeIterator outBegin, outEnd;
+        outs(outBegin, outEnd);
+        begin = NodeIterator(new NodeSearchIterator(outBegin, outEnd, NodeSearchIterator::out, NodeSearchIterator::breadth));
+    }
+}
+
+void Node::backwardClosure(NodeIterator &begin, NodeIterator &end) {
+    end = NodeIterator(new NodeSearchIterator());
+
+    if (!hasInEdges()) {
+        begin = end;
+    }
+    else {
+        NodeIterator inBegin, inEnd;
+        ins(inBegin, inEnd);
+        begin = NodeIterator(new NodeSearchIterator(inBegin, inEnd, NodeSearchIterator::in, NodeSearchIterator::breadth));
+    }
+}
+
 
 Node::Ptr PhysicalNode::createNode(Address addr) {
     return Node::Ptr(new PhysicalNode(addr));
@@ -108,6 +134,21 @@ NodeIterator &NodeIterator::operator++() {
 NodeIterator NodeIterator::operator++(int) {
     NodeIterator ret = *this;
     ++(*this);
+    return ret;    
+}
+
+// Prefix...
+NodeIterator &NodeIterator::operator--() {
+    if (!iter_) return *this;
+    
+    iter_->dec();
+    return *this;
+}
+
+// Postfix...
+NodeIterator NodeIterator::operator--(int) {
+    NodeIterator ret = *this;
+    --(*this);
     return ret;    
 }
 

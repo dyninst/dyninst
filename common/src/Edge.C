@@ -124,5 +124,10 @@ EdgeIterator::~EdgeIterator() {
     if (iter_) delete iter_;
 }
 
-
-
+EdgeIterator::EdgeIterator(const EdgeIterator &rhs) {
+    if (rhs.iter_ == NULL) {
+        iter_ = NULL;
+    }
+    else
+        iter_ = rhs.iter_->copy();
+}
