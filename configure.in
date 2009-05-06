@@ -10,11 +10,11 @@ AC_CONFIG_AUX_DIR([autodyninst])
 AC_CONFIG_MACRO_DIR([autodyninst])
 
 AC_PROG_CXX(g++)
-AC_PATH_PROG(_ICC_, icc, false)
-AC_PATH_PROG(_PGC_, pgcc, false)
-AC_PATH_PROG(_PGCXX_, pgcc, false)
-AC_PATH_PROG(_CC_, cc, false)
-AC_PATH_PROG(_CXX_, CC, false)
+AC_PATH_PROG(_ICC_, icc)
+AC_PATH_PROG(_PGC_, pgcc)
+AC_PATH_PROG(_PGCXX_, pgCC)
+AC_PATH_PROG(_CC_, cc)
+AC_PATH_PROG(_CXX_, CC)
 AC_LANG(C++)
 
 
@@ -179,8 +179,7 @@ AC_SUBST(NASM)
 
 AC_MSG_CHECKING([for -fno-stack-protector])
 SAVED_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-fno-stack-protector"   AC_SUBST(LIBIBERTY_STATIC)
-
+CXXFLAGS="-fno-stack-protector"
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
 				[AC_MSG_RESULT([yes]); STACKPROT="DISABLE_STACK_PROT=1"], 
 				[AC_MSG_RESULT([no]); STACKPROT=""])
