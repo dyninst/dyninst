@@ -69,6 +69,9 @@
 #elif defined(x86_64_unknown_linux2_4_test)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
+#elif defined (ppc64_linux_test)
+#define	TEST_PTR_SIZE	8
+#define	TEST_PTR		TEST_PTR_64BIT
 
 #else /* Others are 32 bits. */
 #define TEST_PTR_SIZE	4
