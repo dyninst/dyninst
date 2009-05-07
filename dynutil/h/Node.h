@@ -68,6 +68,9 @@ class Node : public AnnotatableSparse {
 
     bool hasInEdges(); 
     bool hasOutEdges();
+
+    void forwardClosure(NodeIterator &begin, NodeIterator &end);
+    void backwardClosure(NodeIterator &begin, NodeIterator &end);
     
     virtual Address addr() const { return INVALID_ADDR; }
     

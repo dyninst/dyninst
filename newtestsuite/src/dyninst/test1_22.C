@@ -253,7 +253,7 @@ test_results_t test1_22_Mutator::mutatorTest22() {
 // {
 test_results_t test1_22_Mutator::executeTest() {
    int pointer_size = 0;
-#if defined(arch_x86_64_test)
+#if defined(arch_x86_64_test) || defined(ppc64_linux_test)
    pointer_size = pointerSize(appImage);
 #endif
    strncpy(libNameA, libNameAroot, 128);

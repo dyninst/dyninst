@@ -383,33 +383,39 @@ classes here.
 
 \begin{description}
 
-\item[entryNodes(NodeIterator \&begin, NodeIterator \&end)] This method returns a range of nodes (defined by begin and end) such that 1) all nodes in the graph are reachable from the nodes in this range by traversing out-edges and 2) the range is minimal. The nodes included in this range may be virtual. 
-\item[exitNodes(NodeIterator \&begin, NodeIterator \&end)]
+\item[void entryNodes(NodeIterator \&begin, NodeIterator \&end)] This method returns a range of nodes (defined by begin and end) such that 1) all nodes in the graph are reachable from the nodes in this range by traversing out-edges and 2) the range is minimal. The nodes included in this range may be virtual. 
+\item[void exitNodes(NodeIterator \&begin, NodeIterator \&end)]
 This method returns a range of nodes (defined by begin and end) such that 1) all nodes in the graph are reachable from the nodes in this range by traversing in-edges and 2) the range is minimal. The nodes included in this range may be virtual.
-\item[allNodes (NodeIterator \&begin, NodeIterator \&end)]
+\item[void allNodes (NodeIterator \&begin, NodeIterator \&end)]
 This method returns the range of all nodes in the graph.
-\item[printDOT(std::string fileName)]
+\item[void printDOT(std::string fileName)]
 This method generates a representation of the graph in DOT format.
-\item[find(Address addr, NodeIterator \&begin, NodeIterator \&end)]
-This method returns the set of physical nodes with the provided address. 
-\item[removeAnnotation()]
+\item[bool find(Address addr, NodeIterator \&begin, NodeIterator \&end)]
+This method sets \texttt{begin} and \texttt{end} to point to a range
+representing the nodes with a particular address. It returns true if
+the range is non-empty. 
+\item[void removeAnnotation()]
 This method removes the graph from internal storage. Once all user handles to the graph are discarded the graph will be destroyed.
 \end{description}
 
 \subsubsection{Node}
 
 \begin{description}
-\item[ins(EdgeIterator \&begin, EdgeIterator \&end)]
+\item[bool hasInEdges()] This method returns true if the node has at
+  least one in edge. 
+\item[void ins(EdgeIterator \&begin, EdgeIterator \&end)]
 This method returns the range of in edges to the node (edges that have the node as a target). 
-\item[ins(NodeIterator \&begin, NodeIterator \&end)]
+\item[void ins(NodeIterator \&begin, NodeIterator \&end)]
 This method is similar to the previous, but automatically traverses the edges and returns a range of source nodes. 
-\item[outs(EdgeIterator \&begin, EdgeIterator \&end)]
+\item[bool hasOutEdges()] This method returns true if the node has at
+  least one out edge. 
+\item[void outs(EdgeIterator \&begin, EdgeIterator \&end)]
 This method returns the range of out edges from the node (edges that have the node as a source). 
-\item[outs(NodeIterator \&begin, NodeIterator \&end)]
+\item[void outs(NodeIterator \&begin, NodeIterator \&end)]
 This method is similar to the previous, but automatically traverses the edges and returns a range of target nodes.
-\item[forwardClosure(NodeIterator \&begin, NodeIterator \&end)]
+\item[void forwardClosure(NodeIterator \&begin, NodeIterator \&end)]
 This method returns all nodes reachable from this node in the forward direction (by traversing out-edges).
-\item[backwardsClosure(NodeIterator \&begin, NodeIterator \&end)]
+\item[void backwardsClosure(NodeIterator \&begin, NodeIterator \&end)]
 This method returns all nodes reachable from this node by traversing in-edges.
 \item[std::string format()]
 This method returns a textual representation of the node.
@@ -454,17 +460,20 @@ at the given address.
 \item[void actualReturnNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end)]
 This method returns the range of all actual returns for the call instruction at
 the given address.
-\item[find(Address addr, Absloc::Ptr absloc, NodeIterator \&begin, NodeIterator \&end) ]
-This method returns the set of nodes that fit the specific address and absloc requirements. This node will be singular. 
+\item[bool find(Address addr, Absloc::Ptr absloc, NodeIterator \&begin, NodeIterator \&end) ]
+This method returns the range of nodes that fit the specific address
+and absloc requirements. This range will contain at most one
+element. It returns true if the range is non-empty, and false
+otherwise. 
 \end{description}
 
 \subsubsection{Absloc}
 \begin{description}
 \item[std:string format()]
 This method returns a textual representation of the abstract location. This representation is guaranteed to be unique for unique abstract locations.
-\item[getAliases(AbslocIterator \&begin, AbslocIterator \&end)]
+\item[void getAliases(AbslocIterator \&begin, AbslocIterator \&end)]
 If more than one Absloc may refer to the same abstract location (e.g., a particular stack slot and the representation of the entire stack) return any such aliases.
-\item[isPrecise()]
+\item[bool isPrecise()]
 This method returns true if the absloc does not contain any others; that is, if any aliases are more general than this one.
 \end{description}
 
@@ -507,12 +516,15 @@ This method returns the callee function whose return is represented by this node
 \begin{description}
 \item[CDG::Ptr analyze(BPatch\_function *func)]
 This method creates and returns a CDG for the provided function.
-\item[find(BPatch\_basicBlock *block, NodeIterator \&begin, NodeIterator \&end)]
-This method returns the set of nodes representing the provided block. This node
-will be singular.
-\item[find(Address addr, NodeIterator \&begin, NodeIterator \&end)]
-This method returns the set of block nodes that contain the provided address. This node
-will be singular.
+<<<<<<< HEAD:depGraphAPI/doc/depGraphAPI.tex
+\item[bool find(BPatch\_basicBlock *block, NodeIterator \&begin, NodeIterator \&end)]
+This method returns the range of nodes representing the provided
+block. This range will have at most one element. It returns true if
+the range is non-empty and false otherwise. 
+\item[bool find(Address addr, NodeIterator \&begin, NodeIterator
+\&end)] This method returns the range of nodes containing the provided
+address. It returns true if the range is non-empty and false
+otherwise.
 \end{description}
 
 \subsubsection{BlockNode : PhysicalNode}

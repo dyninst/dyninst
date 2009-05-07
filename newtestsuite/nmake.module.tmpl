@@ -95,22 +95,7 @@ UNCOMMON_INSTALL=true
 install: all
 
 clean: 
-	$(RM) *.ilk *.exp *.lib *.obj
-	$(RM) $(TESTLIBS) 
-	$(RM) $(TESTLIBS_ABI) 
-	$(RM) $(LIBTESTSUITE) 
-	$(RM) test_driver.exe runTests.exe libTest12.dll
-	$(RM) $(dyninst_MUTATORS_SO)
-	$(RM) $(dyninst_SOLO_MUTATEES)
-	$(RM) $(symtab_MUTATORS_SO)
-	$(RM) $(symtab_SOLO_MUTATEES)
-	$(RM) $(instruction_MUTATORS_SO)
-	$(RM) $(instruction_SOLO_MUTATEES)
-	$(RM) $(OUTPUT_DRIVERS)
-	$(RM) $(LIBDYNINSTCOMP)
-	$(RM) $(LIBSYMTABCOMP)
-	$(RM) $(LIBINSTRUCTIONCOMP)
-	$(RM) test11.exe
+	$(RM) *.ilk *.exp *.lib *.obj *.dll *.exe *.pdb
 
 # Old Install commands if we actually want to install
 # -$(MKDIR) $(DEST)
