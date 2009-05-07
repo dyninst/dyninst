@@ -36,17 +36,21 @@
 #include "stackwalk/h/framestepper.h"
 #include "dynutil/h/dyntypes.h"
 
+#if defined(cap_cache_func_starts)
+#include "common/h/lru_cache.h"
+#endif
+
 namespace Dyninst {
 namespace Stackwalker {
 
-#define MAX_WANDERER_DEPTH 4
+#define MAX_WANDERER_DEPTH 256
 
 class StepperWandererImpl : public FrameStepper {
  private:
    WandererHelper *whelper;
    FrameFuncHelper *fhelper;
    StepperWanderer *parent;
-   bool getTopWords(Address *words_out, Address start);
+   bool getWord(Address &words, Address start);
  public:
    StepperWandererImpl(Walker *walker_, WandererHelper *whelper_,
                        FrameFuncHelper *fhelper_, StepperWanderer *parent_);
@@ -55,16 +59,27 @@ class StepperWandererImpl : public FrameStepper {
    virtual ~StepperWandererImpl();
 };
 
-class UninitFrameStepperImpl : public FrameStepper {
- private:
-   FrameFuncHelper *alloc_frame;
-   FrameStepper *parent;
- public:
-   UninitFrameStepperImpl(Walker *w, FrameFuncHelper *f, 
-                          FrameStepper *parent_);
-   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   virtual unsigned getPriority() const;
-   virtual ~UninitFrameStepperImpl();
+class LookupFuncStart : public FrameFuncHelper
+{
+private:
+   static std::map<Dyninst::PID, LookupFuncStart*> all_func_starts;
+   LookupFuncStart(ProcessState *proc_);
+   int ref_count;
+private:
+   void updateCache(Address addr, alloc_frame_t result);
+   bool checkCache(Address addr, alloc_frame_t &result);
+#if defined(cap_cache_func_starts)
+   //We need some kind of re-entrant safe synhronization before we can
+   // globally turn this caching on, but it would sure help things.
+   static const unsigned int cache_size = 64;
+   LRUCache<Address, alloc_frame_t> cache;
+#endif
+public:
+   static LookupFuncStart *getLookupFuncStart(ProcessState *p);
+   void releaseMe();
+   virtual alloc_frame_t allocatesFrame(Address addr);
+   ~LookupFuncStart();
+   static void clear_func_mapping(Dyninst::PID);
 };
 
 }

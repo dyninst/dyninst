@@ -53,49 +53,52 @@ class Type;
 
 class Function : public Aggregate, public Serializable
 {
-    friend class Symtab;
+   friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
-
+   
  private:
-    SYMTAB_EXPORT Function(Symbol *sym);
-    
+   SYMTAB_EXPORT Function(Symbol *sym);
+   
  public:
+   
+   SYMTAB_EXPORT Function();
+   SYMTAB_EXPORT virtual ~Function();
+   
+   /* Symbol management */
+   SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
+   
+   /***** Return Type Information *****/
+   SYMTAB_EXPORT Type  * getReturnType() const;
+   SYMTAB_EXPORT bool	setReturnType(Type *);
+   
+   /***** IA64-Specific Frame Pointer Information *****/
+   SYMTAB_EXPORT bool  setFramePtrRegnum(int regnum);
+   SYMTAB_EXPORT int   getFramePtrRegnum() const;
+   
+   /***** Frame Pointer Information *****/
+   SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
+   SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtr();
+   
+   /***** Local Variable Information *****/
+   SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
+   SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
+   SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
+   
+   SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+                                const char *tag = "Function") THROW_SPEC (SerializerError);
 
-    SYMTAB_EXPORT Function();
-    SYMTAB_EXPORT virtual ~Function();
-
-    /* Symbol management */
-    SYMTAB_EXPORT bool removeSymbol(Symbol *sym);      
-      
-      /***** Return Type Information *****/
-      SYMTAB_EXPORT Type  * getReturnType() const;
-      SYMTAB_EXPORT bool	setReturnType(Type *);
-
-      /***** IA64-Specific Frame Pointer Information *****/
-      SYMTAB_EXPORT bool  setFramePtrRegnum(int regnum);
-      SYMTAB_EXPORT int   getFramePtrRegnum() const;
-
-      /***** x84_64-Specific Frame Pointer Information *****/
-	  SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
-      SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtr();
-
-      /***** Local Variable Information *****/
-      SYMTAB_EXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
-      SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
-      SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
-
-	  SYMTAB_EXPORT void serialize(SerializerBase *sb, 
-			  const char *tag = "Function") THROW_SPEC (SerializerError);
-
-	  SYMTAB_EXPORT bool operator==(const Function &);
-      /* internal helper functions */
-      bool addLocalVar(localVar *);
-      bool addParam(localVar *);
-   private:
-
-      Type          *retType_;
-      int           framePtrRegNum_;
-      std::vector<VariableLocation> *locs_;
+   SYMTAB_EXPORT unsigned getSize();
+   
+   SYMTAB_EXPORT bool operator==(const Function &);
+   /* internal helper functions */
+   bool addLocalVar(localVar *);
+   bool addParam(localVar *);
+ private:
+   
+   Type          *retType_;
+   int           framePtrRegNum_;
+   std::vector<VariableLocation> *locs_;
+   unsigned functionSize_;
 };
 
 

@@ -83,6 +83,7 @@ class AddressTranslate {
 
    AddressTranslate(PID pid, PROC_HANDLE phand = INVALID_HANDLE_VALUE);
    vector<LoadedLib *> libs;
+   LoadedLib *exec;
  public:
 
    static AddressTranslate *createAddressTranslator(PID pid_,
@@ -99,6 +100,7 @@ class AddressTranslate {
    bool getLibs(vector<LoadedLib *> &libs_);
    LoadedLib *getLoadedLib(std::string name);
    LoadedLib *getLoadedLib(Symtab *sym);
+   LoadedLib *getExecutable();
 
    virtual Address getLibraryTrapAddrSysV();
 };

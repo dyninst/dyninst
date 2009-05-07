@@ -64,4 +64,70 @@ Edge::Edge() {
 Edge::Edge(const NodePtr source, const NodePtr target) :
     source_(source), target_(target) {}
 
+///////////////////////////////////////////////////////////////
+// Edge iterator "implementation". The iterator just wraps an
+// internal implementation, so this code is pretty much 
+// boilerplate...
+///////////////////////////////////////////////////////////////
 
+// Prefix...
+EdgeIterator &EdgeIterator::operator++() {
+    if (!iter_) return *this;
+    
+    iter_->inc();
+    return *this;
+}
+
+// Postfix...
+EdgeIterator EdgeIterator::operator++(int) {
+    EdgeIterator ret = *this;
+    ++(*this);
+    return ret;    
+}
+
+
+Edge::Ptr EdgeIterator::operator*() const {
+    if (!iter_) return Edge::Ptr();
+
+    return iter_->get();
+}
+
+bool EdgeIterator::operator!=(const EdgeIterator &rhs) const {
+    if (!iter_) {
+        return (rhs.iter_ != NULL);
+    }
+    return !iter_->equals(rhs.iter_);
+}
+
+bool EdgeIterator::operator==(const EdgeIterator &rhs) const {
+    if (!iter_) {
+        return (rhs.iter_ == NULL);
+    }
+    return iter_->equals(rhs.iter_);
+}
+
+EdgeIterator &EdgeIterator::operator=(const EdgeIterator &rhs) {
+    if (rhs.iter_ == NULL) {
+        if (iter_) delete iter_; // No leaking!
+        iter_ = rhs.iter_; 
+        return *this;
+    }
+    else {
+        // We don't want just the pointer, as that would really
+        // make the two iterators work the same. That's bad. 
+        iter_ = rhs.iter_->copy();
+        return *this;
+    }
+}
+
+EdgeIterator::~EdgeIterator() {
+    if (iter_) delete iter_;
+}
+
+EdgeIterator::EdgeIterator(const EdgeIterator &rhs) {
+    if (rhs.iter_ == NULL) {
+        iter_ = NULL;
+    }
+    else
+        iter_ = rhs.iter_->copy();
+}

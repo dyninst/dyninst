@@ -252,6 +252,36 @@ void SymtabLibState::notifyOfUpdate() {
    needs_update = true;
 }
 
+LibAddrPair SymtabLibState::getAOut() {
+   LoadedLibrary exec;
+   updateLibs();
+   bool result = lookup->getExecutable(exec);
+   if (!result) {
+      sw_printf("[%s:%u] - Error.  SymtabAPI getExecutable failed\n",
+                __FILE__, __LINE__);
+      return LibAddrPair(std::string(""), 0x0);
+   }
+
+   std::vector<LibAddrPair> libs;
+   result = getLibraries(libs);
+   if (!result) {
+      sw_printf("[%s:%u] - Error.  getLibraries failed\n",
+                __FILE__, __LINE__);
+      return LibAddrPair(std::string(""), 0x0);
+   }
+
+   std::vector<LibAddrPair>::iterator i;
+   for (i = libs.begin(); i != libs.end(); i++) {
+      if ((*i).first == exec.name) {
+         return *i;
+      }
+   }
+
+   sw_printf("[%s:%u] - Could not find a.out in library list\n",
+             __FILE__, __LINE__);
+   return LibAddrPair(std::string(""), 0x0);
+}
+
 swkProcessReader::swkProcessReader(ProcessState *pstate) :
    procstate(pstate)
 {

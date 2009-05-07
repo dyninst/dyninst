@@ -27,7 +27,7 @@ IFLAGS += $(INSTRUCTION_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_DEF:%=%_test) $(FIRST_INCLUDE) -I../../external -I../../../include -I../src -g
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I../../../include -I../src -g
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)

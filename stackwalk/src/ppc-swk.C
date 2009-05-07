@@ -129,40 +129,6 @@ FrameFuncStepperImpl::~FrameFuncStepperImpl()
 {
 }
 
-UninitFrameStepper::UninitFrameStepper(Walker *w, FrameFuncHelper *) :
-   FrameStepper(w)
-{
-   impl = NULL;
-}
-
-gcframe_ret_t UninitFrameStepper::getCallerFrame(const Frame &, Frame &)
-{
-   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-   return gcf_error;
-}
-
-unsigned UninitFrameStepper::getPriority() const
-{
-   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-   return 0;
-}
-
-void UninitFrameStepper::registerStepperGroup(StepperGroup *)
-{
-   sw_printf("[%s:%u] - Error,  UninitFrame used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-}
-
-UninitFrameStepper::~UninitFrameStepper()
-{
-   impl = NULL;
-}
-
 StepperWanderer::StepperWanderer(Walker *, WandererHelper *, FrameFuncHelper *) :
    FrameStepper(NULL)
 {

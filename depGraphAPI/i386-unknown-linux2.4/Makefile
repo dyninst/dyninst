@@ -28,7 +28,7 @@ LIBS    += -lgcc
 
 AS		= /usr/bin/as
 
-TARGET = libDDG.so
+TARGET = libdepGraphAPI.so
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

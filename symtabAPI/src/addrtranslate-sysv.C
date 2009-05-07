@@ -214,7 +214,7 @@ template<class link_map_X>
 char *link_map_dyn<link_map_X>::l_name() 
 {
   if (loaded_name) return link_name;
-   
+
   for (unsigned int i = 0; i < sizeof(link_name); ++i) {
     if (!proc->readAddressSpace((Address) (link_elm.l_name + i),
                              sizeof(char), link_name + i))
@@ -482,12 +482,17 @@ bool AddressTranslateSysV::refresh()
    for (unsigned i=0; i<libs.size(); i++) {
       if (libs[i])
          delete libs[i];
+      if (libs[i] == exec)
+         exec = NULL;
    }
    libs.clear();
 
-   LoadedLib *exe = getAOut();
-   if (exe)
-     libs.push_back(exe);
+   if (!exec) {
+      exec = getAOut();
+   }
+   if (exec) {
+      libs.push_back(exec);
+   }
    
    if (!r_debug_addr)
       return true; //Static library
@@ -497,14 +502,24 @@ bool AddressTranslateSysV::refresh()
    if (address_size == sizeof(void*)) {
       r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
       if (!r_debug_native || !r_debug_native->is_valid())
-         return false;
+      {
+         result = true;
+         goto done;
+      }
       link_elm = new link_map_dyn<link_map>(reader, r_debug_native->r_map());
    }
    else { //64-bit mutator, 32-bit mutatee
       r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
-      if (!r_debug_32 || !r_debug_32->is_valid())
-         return false;
+      if (!r_debug_32 || !r_debug_32->is_valid()) {
+         result = true;
+         goto done;
+      }
       link_elm = new link_map_dyn<link_map_dyn32>(reader, r_debug_32->r_map());
+   }
+
+   if (!link_elm->is_valid()) {
+      result = true;
+      goto done;
    }
 
    do {
@@ -691,3 +706,4 @@ Address AddressTranslateSysV::getLibraryTrapAddrSysV()
    AddressTranslateSysV *addr_sysv = dynamic_cast<AddressTranslateSysV *>(this);
    return addr_sysv->getTrapAddr();
 }
+

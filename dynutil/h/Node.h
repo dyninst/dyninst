@@ -39,7 +39,6 @@
 
 #include "dyntypes.h"
 
-//#include "Graph.h"
 
 class BPatch_function;
 class BPatch_basicBlock;
@@ -69,6 +68,9 @@ class Node : public AnnotatableSparse {
 
     bool hasInEdges(); 
     bool hasOutEdges();
+
+    void forwardClosure(NodeIterator &begin, NodeIterator &end);
+    void backwardClosure(NodeIterator &begin, NodeIterator &end);
     
     virtual Address addr() const { return INVALID_ADDR; }
     
@@ -117,8 +119,7 @@ class PhysicalNode : public Node {
 class VirtualNode : public Node {
     friend class Edge;
     friend class Graph;
-    
-    
+
  public:
     typedef dyn_detail::boost::shared_ptr<VirtualNode> Ptr;
     
@@ -131,21 +132,57 @@ class VirtualNode : public Node {
     
     virtual ~VirtualNode() {};
 
- private:
     VirtualNode() {};
+
+ private:
 };
+
+ class NodeIteratorImpl;
 
 class NodeIterator {
     friend class Node;
+    friend class Graph;
+    friend class Edge;
 
  public:
 
-    void operator++();
-    void operator++(int);
-    bool operator==(const NodeIterator &rhs);
-    bool operator!=(const NodeIterator &rhs);
+    NodeIterator &operator++();
+    NodeIterator operator++(int);
 
-    Node::Ptr operator*();
+    NodeIterator &operator--();
+    NodeIterator operator--(int);
+
+    Node::Ptr operator*() const;
+
+    bool operator==(const NodeIterator &rhs) const;
+    bool operator!=(const NodeIterator &rhs) const;
+
+    NodeIterator &operator=(const NodeIterator &rhs);
+
+
+    // For code such as:
+    // NodeIterator begin, end;
+    // graph->entryNodes(begin, end);
+    NodeIterator();
+
+    // Main constructor
+    // The iter parameter becomes owned by the iterator and will be destroyed
+    // when the iterator is destroyed.
+    NodeIterator(NodeIteratorImpl *iter);
+
+    // Aaaand let's _really_ not forget the copy constructor
+    NodeIterator(const NodeIterator &rhs);
+
+    ~NodeIterator();
+
+ protected:
+
+    // We hide the internal iteration behavior behind a pointer. 
+    // This allows us to override (yay for virtual functions).
+    NodeIteratorImpl *iter_;
+
+    NodeIteratorImpl *copy() const;
+
 };
 
 }

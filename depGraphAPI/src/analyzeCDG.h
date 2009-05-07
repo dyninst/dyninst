@@ -75,11 +75,6 @@ class CDGAnalyzer {
   typedef map<Block *, NodePtr> NodeMap;
 
  private:
-  
-  // Temporary data structure to hold the dependencies
-  // for each block
-  BlockMap dependencies;
-
   // Temporary structure to hold nodes we've already
   // created
   NodeMap nodeMap;
@@ -94,10 +89,7 @@ class CDGAnalyzer {
    */
   Function *func_;
 
-  void createInterBlockDeps(BlockSet &blocks);
-  void createNodeDeps(BlockSet &blocks);
-  void createNodes(BlockSet &blocks);
-  void createDependencies();
+  void createDependencies(BlockSet &blocks);
 
   Node::Ptr makeNode(Block *);
   

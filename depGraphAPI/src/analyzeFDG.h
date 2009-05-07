@@ -122,12 +122,7 @@ public:
   static bool isReturnOp(const Operation& opType);
 
   /**
-   * Returns true iff this operation is a jump operation.
-   */
-  static bool isJumpOp(const Operation& opType);
-
-  /**
-   * Returns true iff this operation is a branch operation such as jnz, jnle, etc.
+   * Returns true iff this operation is a branch operation (including jumps) such as jnz, jnle, etc.
    */
   static bool isBranchOp(const Operation& opType);
   

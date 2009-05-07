@@ -147,3 +147,6 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/,
    return gcf_not_me;
 }
 
+void ProcDebugLinux::detach_arch_cleanup()
+{
+}

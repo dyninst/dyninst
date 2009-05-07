@@ -87,6 +87,7 @@ class AddressLookup : public AnnotatableSparse
    SYMTAB_EXPORT bool getDataLoadAddress(Symtab* sym, Address &load_addr);
 
    SYMTAB_EXPORT bool getLoadAddresses(std::vector<LoadedLibrary> &name_addrs);
+   SYMTAB_EXPORT bool getExecutable(LoadedLibrary &lib);
 
    SYMTAB_EXPORT bool refresh();
 

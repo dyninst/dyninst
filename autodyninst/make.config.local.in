@@ -4,9 +4,18 @@ BUILD_MARK=
 BUILD_NUM=-576
 
 #Are any alternatives to g++ available?
-_ICC_ = @_ICC_@
-_PGCC_ = @_PGCC_@
-_CC_ = @_CC_@
+
+M_intel_CC = @_ICC_@
+
+ifdef M_intel_CC
+ICC = 1
+endif
+
+M_pg_cc = @_PGC_@
+M_pg_cxx = @_PGCXX_@
+# PGI is defined in environment to point to path; needed for licensing, so we can rely on it
+M_native_cc = @_CC_@
+M_native_cxx = @_CXX_@
 
 #TCL/TK is required for all Paradyn builds, but not DyninstAPI
 TCLTK_LIB_DIR = @TCLTK_LIB_DIR@
@@ -33,13 +42,14 @@ USE_TCL83 = @USE_TCL83@
 
 #nice to have: where is libiberty?
 LIBIBERTY_LIB = @LIBIBERTY_LIB_DIR@
-LIBIBERTY_INC = @LIBIBERTY_INC_DIR@
 
 #For some libraries, we check if we have .a's and/or .so's to link against.
 LIBELF_STATIC = @LIBELF_STATIC@
 LIBELF_DYNAMIC = @LIBELF_DYNAMIC@
 LIBDWARF_STATIC = @LIBDWARF_STATIC@
 LIBDWARF_DYNAMIC = @LIBDWARF_DYNAMIC@
+LIBIBERTY_STATIC = @LIBIBERTY_STATIC@
+LIBIBERTY_DYNAMIC = @LIBIBERTY_DYNAMIC@
 
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@
@@ -47,10 +57,14 @@ NASM = @NASM@
 #Set to the directory containing libflex.a.  Needed to build MRNet and Paradyn.
 FLEX_DIR = @LIBFLEX_LIB_DIR@
 
-#If we're running on an IA-64 SMP, use the hardware wall clock.
-#HOSTNAME = $(shell hostname)
-#ifeq ($(HOSTNAME),juniper)
 USES_MMTIMER = @MMTIMER@
-#endif
 
-PAPI_ROOT       = @PAPI_ROOT@
+AC_DEF 	       = @DEFS@
+
+@STACKPROT@
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@/${PLATFORM}
+LIBRARY_DEST = @libdir@
+PROGRAM_DEST = @bindir@
+INCLUDE_DEST = @includedir@

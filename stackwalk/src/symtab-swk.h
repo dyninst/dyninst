@@ -39,6 +39,7 @@
 #include "dynutil/h/dyntypes.h"
 #include "stackwalk/h/procstate.h"
 #include "symtabAPI/h/AddrLookup.h"
+#include "symtabAPI/h/Function.h"
 #include <string>
 
 using namespace Dyninst::SymtabAPI;
@@ -81,6 +82,7 @@ class SymtabLibState : public LibraryState {
    virtual void notifyOfUpdate();
    virtual Address getLibTrapAddress();
    virtual ~SymtabLibState();
+   LibAddrPair getAOut();
 };
 
 class SymtabWrapper {

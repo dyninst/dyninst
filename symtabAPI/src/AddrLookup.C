@@ -208,7 +208,9 @@ bool AddressLookup::getAllSymtabs(std::vector<Symtab *> &tabs)
 
    for (unsigned i=0; i<libs.size(); i++)
    {
-      tabs.push_back(libs[i]->getSymtab());
+      Symtab *symt = libs[i]->getSymtab();
+      if (symt)
+         tabs.push_back(symt);
    }
 
    return true;
@@ -266,4 +268,16 @@ AddressLookup::~AddressLookup()
 bool AddressLookup::refresh()
 {
    return translator->refresh();
+}
+
+bool AddressLookup::getExecutable(LoadedLibrary &lib)
+{
+#if !defined(os_linux)
+   return false;
+#endif
+   LoadedLib *llib = translator->getExecutable();
+   if (!llib)
+      return false;
+   llib->getOutputs(lib.name, lib.codeAddr, lib.dataAddr);
+   return true;
 }

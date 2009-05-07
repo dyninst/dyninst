@@ -415,3 +415,6 @@ bool Symbol::operator==(const Symbol& s) const
 			&& (typedName_ == s.typedName_));
 }
 
+Symtab *Symbol::getSymtab() const { 
+   return module_->exec(); 
+}

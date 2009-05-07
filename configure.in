@@ -2,17 +2,19 @@ dnl == process this file with autoconf to produce a configure script ==
 
 
 AC_PREREQ(2.59)
-AC_INIT(./autodyninst/configure.in)
-AC_CONFIG_AUX_DIR(./autodyninst)
+AC_INIT([Dyninst], [6.0], [bugs@dyninst.org], [dyninst])
 
+AC_PREFIX_DEFAULT(`pwd`/..)
+
+AC_CONFIG_AUX_DIR([autodyninst])
+AC_CONFIG_MACRO_DIR([autodyninst])
 
 AC_PROG_CXX(g++)
-AC_PATH_PROG(_ICC_, icc, false)
-AC_SUBST(_ICC_)
-AC_PATH_PROGS(_PGCC_, pgcc pgCC, false)
-AC_SUBST(_PGCC_)
-AC_PATH_PROGS(_CC_, cc CC, false)
-AC_SUBST(_CC_)
+AC_PATH_PROG(_ICC_, icc)
+AC_PATH_PROG(_PGC_, pgcc)
+AC_PATH_PROG(_PGCXX_, pgCC)
+AC_PATH_PROG(_CC_, cc)
+AC_PATH_PROG(_CXX_, CC)
 AC_LANG(C++)
 
 
@@ -51,7 +53,6 @@ AC_ARG_WITH(package-base,
            ])
 # 3/15/09: We don't include libiberty in the cs.wisc.edu package-base.
 #          Why?  Putting these here for now...
-LIBIBERTY_INC_DIR="/usr/include";
 LIBIBERTY_LIB_DIR="/usr/lib";
 
 
@@ -65,17 +66,16 @@ AC_ARG_WITH(tcltk-incdir,
 AC_ARG_WITH(tcltk-libdir,
             [AS_HELP_STRING([--with-tcltk-libdir],[TCL/TK library directory])],
             [TCLTK_LIB_DIR="${withval}";],)
-PD_SOFT_CHECK_INC_DIR($TCLTK_INC_DIR, [tcl.h])
+PD_SOFT_CHECK_INC_DIR($TCLTK_INC_DIR, [tcl.h], [tcl])
 PD_SOFT_CHECK_LIB_DIR($TCLTK_LIB_DIR, $TCL_VERSION, [Tcl_Eval])
 AC_SUBST(USE_TCL83)
 AC_SUBST(TCLTK_INC_DIR)
 AC_SUBST(TCLTK_LIB_DIR)
 
 AC_CANONICAL_HOST
-echo $host_os
 
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
-   AC_MSG_NOTICE([AIX system, skipping libelf/libdwarf checks...])
+   AC_MSG_NOTICE([AIX system, skipping libelf...])
    
 else
    AC_ARG_WITH(libelf-incdir,
@@ -96,7 +96,7 @@ else
 fi
 
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
-   AC_MSG_NOTICE([AIX system, skipping libelf/libdwarf checks...])
+   AC_MSG_NOTICE([AIX system, skipping libdwarf...])
    
 else
    AC_ARG_WITH(libdwarf-incdir,
@@ -126,37 +126,43 @@ AC_ARG_WITH(libxml2-libdir,
             [AS_HELP_STRING([--with-libxml2-libdir],[LIBXML2 library directory])],
             [LIBXML2_LIB_DIR="${withval}";],)
 PD_SOFT_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h], [libxml])
-PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID], [libxml])
-AC_DEFINE
+PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
 AC_SUBST(LIBXML2_INC_DIR)
 AC_SUBST(LIBXML2_LIB_DIR)
 
-
-AC_ARG_WITH(libiberty-incdir,
-            [AS_HELP_STRING([--with-libiberty-incdir],[LIBIBERTY include directory])],
-            [LIBIBERTY_INC_DIR="${withval}";],)
-AC_ARG_WITH(libxml2-libdir,
+if test "`echo $host_os | cut -b-3`" = "aix" ; then
+   AC_MSG_NOTICE([AIX system, skipping libiberty...])
+else
+   AC_ARG_WITH(libiberty-libdir,
             [AS_HELP_STRING([--with-libiberty-libdir],[LIBIBERTY library directory])],
             [LIBIBERTY_LIB_DIR="${withval}";],)
-PD_SOFT_CHECK_INC_DIR($LIBIBERTY_INC_DIR,[libiberty.h])
-PD_SOFT_CHECK_LIB_DIR($LIBIBERTY_LIB_DIR,[iberty],[cplus_demangle])
-AC_SUBST(LIBIBERTY_INC_DIR)
-AC_SUBST(LIBIBERTY_LIB_DIR)
+   LIBS_HOLD=$LIBS
+   LIBS="-L$LIBIBERTY_LIB_DIR"
+   AC_CHECK_LIB([iberty], [cplus_demangle], [], 
+			  [AC_CHECK_FILE($LIBIBERTY_LIB_DIR/libiberty.a, 
+			  [],
+			  [AC_MSG_ERROR(Can't find libiberty in $LIBIBERTY_LIB_DIR)])])
+   LIBS=$LIBS_HOLD			  
+   AC_SUBST(LIBIBERTY_LIB_DIR)
+   PD_CHECK_LIB_TYPE($LIBIBERTY_LIB_DIR, iberty)
+   LIBIBERTY_STATIC="$LIB_TYPE_STATIC"
+   LIBIBERTY_DYNAMIC="$LIB_TYPE_DYNAMIC"
+   AC_SUBST(LIBIBERTY_STATIC)
+   AC_SUBST(LIBIBERTY_DYNAMIC)
+fi
 
-
-AC_ARG_WITH(libunwind-incdir,
+if test "$host_cpu" != "ia-64" ; then
+   AC_MSG_NOTICE([Not IA-64, skipping libunwind...])
+else
+   AC_ARG_WITH(libunwind-incdir,
             [AS_HELP_STRING([--with-libunwind-incdir],[LIBUNWIND include directory])],
             [LIBUNWIND_INC_DIR="${withval}";],)
-AC_ARG_WITH(libunwind-libdir,
+   AC_ARG_WITH(libunwind-libdir,
             [AS_HELP_STRING([--with-libunwind-libdir],[LIBUNWIND library directory])],
             [LIBUNWIND_LIB_DIR="${withval}";],)
 
-case $host in
-     ia64-*-*-*) PD_CHECK_INC_DIR(${LIBUNWIND_INC_DIR}, [libunwind.h]) ;;
-     *) ;;
-esac
-PD_SOFT_CHECK_INC_DIR($LIBUNWIND_INC_DIR,[unwind.h])
-PD_SOFT_CHECK_LIB_DIR($LIBUNWIND_LIB_DIR,[unwind],[main])
+   PD_CHECK_INC_DIR(${LIBUNWIND_INC_DIR}, [libunwind.h])
+fi
 AC_SUBST(LIBUNWIND_INC_DIR)
 AC_SUBST(LIBUNWIND_LIB_DIR)
 
@@ -171,6 +177,14 @@ AC_SUBST(LIBFLEX_LIB_DIR)
 AC_PATH_PROG(NASM, nasm, "", "${PACKAGE_BASE}/nasm/bin:$PATH")
 AC_SUBST(NASM)
 
+AC_MSG_CHECKING([for -fno-stack-protector])
+SAVED_CXXFLAGS=$CXXFLAGS
+CXXFLAGS="-fno-stack-protector"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
+				[AC_MSG_RESULT([yes]); STACKPROT="DISABLE_STACK_PROT=1"], 
+				[AC_MSG_RESULT([no]); STACKPROT=""])
+AC_SUBST(STACKPROT)
+CXXFLAGS=$SAVED_CXXFLAGS
 
 AC_MSG_CHECKING([whether to use MM timer])
 case $host in
@@ -180,6 +194,6 @@ esac
 AC_MSG_RESULT(${MMTIMER})
 AC_SUBST([MMTIMER])
 
-
-AC_CONFIG_FILES([make.config.local:./autodyninst/make.config.local.in])
+AC_SUBST([DEFS])
+AC_CONFIG_FILES([make.config.local:autodyninst/make.config.local.in])
 AC_OUTPUT

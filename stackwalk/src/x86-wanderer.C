@@ -70,52 +70,63 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
              __FILE__, __LINE__, in.getRA());
 
    const unsigned addr_width = getProcessState()->getAddressWidth();
+   std::vector<std::pair<Address, Address> > candidate;
 
-   Address words[MAX_WANDERER_DEPTH];
-   bool result = getTopWords(&(words[0]), in.getSP());
-   if (!result) {
-      sw_printf("[%s:%u] - getTopWords returned false\n", __FILE__, __LINE__);
-      return gcf_not_me;
-   }
-   
-   unsigned found_word = MAX_WANDERER_DEPTH;
-   Address found_target = 0x0;
-   std::vector<std::pair<unsigned, Address> > candidate;
-   for (unsigned i=0; i<MAX_WANDERER_DEPTH; i++)
-   {
+   Address current_stack = in.getSP();
+   unsigned num_words_tried = 0;
+   Address word;
+   bool result;
+   bool found_exact_match = false;
+   Address found_base = 0x0;
+   Address found_ra = 0x0;
+
+   do {
+      result = getWord(word, current_stack);
+      if (!result) {
+         sw_printf("[%s:%u] - getWord returned false\n", __FILE__, __LINE__);
+         return gcf_not_me;
+      }
+      
       Address target;
-      if (whelper->isPrevInstrACall(words[i], target))
+      if (whelper->isPrevInstrACall(word, target))
       {
          if (whelper->isPCInFunc(target, in.getRA()))
          {
-            sw_printf("[%s:%u] - Wanderer thinks word 0x%lx (0x%lx+%d) is return "
-                      " address\n", __FILE__, __LINE__, words[i], in.getSP(), i);
-            found_word = i;
-            found_target = target;
+            sw_printf("[%s:%u] - Wanderer thinks word 0x%lx at 0x%lx  is return "
+                      " address\n", __FILE__, __LINE__, word, current_stack);
+            found_base = current_stack;
+            found_ra = word;
+            found_exact_match = true;
+            break;
          }
          else
          {
-            candidate.push_back(std::pair<unsigned, Address>(i, target));
+            //candidate.push_back(std::pair<Address, Address>(word, current_stack));
          }
       }
-   }
+      current_stack += addr_width;
+      num_words_tried++;
+   } while (num_words_tried < MAX_WANDERER_DEPTH);
 
-   if (found_word != MAX_WANDERER_DEPTH && candidate.size()) {
-      /**
-       * I'm not sure what the best way to pick between candidates
-       * would be.  For now, we're picking the first one found.
-       **/
-      found_word = candidate[0].first;
-      found_target = candidate[0].second;
-   }
-
-   if (found_word == MAX_WANDERER_DEPTH) {
+   if (!found_exact_match && !candidate.size()) {
       sw_printf("[%s:%u] - Wanderer couldn't find anything in %u words\n",
                 __FILE__, __LINE__, MAX_WANDERER_DEPTH);
       return gcf_not_me;
    }
-   out.setRA(words[found_word]);
-   out.setSP(in.getSP() + (found_word+1) * addr_width);
+
+   if (!found_exact_match && candidate.size()) {
+      /**
+       * If we ever want to rely on candidates, then uncomment the above
+       * push_back and the below code.  This trades false negatives for
+       * potential false positives, but I'm not sure it's worth it.
+       **/
+      return gcf_not_me;
+      //found_ra = candidate[0].first;
+      //found_base = candidate[0].second;
+   }
+
+   out.setRA(found_ra);
+   out.setSP(found_base);
    
    if (fhelper->allocatesFrame(in.getRA()).first == FrameFuncHelper::savefp_only_frame) {
       Address new_fp;
@@ -136,34 +147,20 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
    
 }
 
-bool StepperWandererImpl::getTopWords(Address *words_out, Address start)
+bool StepperWandererImpl::getWord(Address &word_out, Address start)
 {
-   bool result;
-   Address words[MAX_WANDERER_DEPTH];
    const unsigned addr_width = getProcessState()->getAddressWidth();
-
-   result = getProcessState()->readMem(words, start, 
-                                       MAX_WANDERER_DEPTH * addr_width);
+   if (start < 1024) {
+      sw_printf("[%s:%u] - %lx too low to be valid memory\n",
+                __FILE__, __LINE__, start);
+      return false;
+   }
+   word_out = 0x0;
+   bool result = getProcessState()->readMem(&word_out, start, addr_width);
    if (!result) {
       sw_printf("[%s:%u] - Wanderer couldn't read from stack at 0x%lx\n",
                 __FILE__, __LINE__, start);
       return false;
-   }
-
-#if defined(arch_x86_64)
-   if (addr_width == 4) {
-      uint32_t *words_32 = (uint32_t *) (&(words[0]));
-      for (unsigned i=0; i<MAX_WANDERER_DEPTH; i++)
-      {
-         words_out[i] = static_cast<Address>(words_32[i]);
-      }
-      return true;
-   }
-#endif
-
-   for (unsigned i=0; i<MAX_WANDERER_DEPTH; i++)
-   {
-      words_out[i] = words[i];
    }
 
    return true;
@@ -175,6 +172,7 @@ bool WandererHelper::isPrevInstrACall(Address addr, Address &target)
    bool result;
    unsigned char buffer[max_call_length];
 
+   sw_printf("[%s:%u] - isPrevInstrACall on %lx\n", __FILE__, __LINE__, addr);
    Address start = addr - max_call_length;
    result = proc->readMem(buffer, start, max_call_length);
    if (!result)
@@ -185,10 +183,10 @@ bool WandererHelper::isPrevInstrACall(Address addr, Address &target)
    }
 
    if (buffer[max_call_length - 5] == 0xe8) {
-      int32_t disp = *((uint32_t *) buffer+1);
+      int32_t disp = *((int32_t *) (buffer+1));
       target = addr + disp;
-      sw_printf("[%s:%u] - Found call encoded by %x to %lx\n",
-                __FILE__, __LINE__, (int) buffer[0], target);
+      sw_printf("[%s:%u] - Found call encoded by %x to %lx (addr = %lx, disp = %lx)\n",
+                __FILE__, __LINE__, (int) buffer[0], target, addr, disp);
                 
       return true;
    }
@@ -248,7 +246,7 @@ bool WandererHelper::isPrevInstrACall(Address addr, Address &target)
 
 bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
 {
-   if (!func_entry || !pc || func_entry > pc)
+   if (!func_entry || !pc)
       return false;
    if (func_entry == pc)
       return true;
@@ -257,32 +255,113 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    LibAddrPair func_lib, pc_lib;
    LibraryState *tracker = proc->getLibraryTracker();
    std::vector<Symbol *> funcs;
+   Region *func_region;
+   Offset pc_offset, func_entry_offset;
+   bool result;
+   SymtabAPI::Function *func_symbol = NULL;
+   SymtabAPI::Function *pc_symbol = NULL;
 
-   bool result = tracker->getLibraryAtAddr(func_entry, func_lib);
+
+   result = tracker->getLibraryAtAddr(func_entry, func_lib);
    if (!result) {
       sw_printf("[%s:%u] - Failed to find library at %lx\n",
                 __FILE__, __LINE__, func_entry);
       return false;
    }
-      
-   result = tracker->getLibraryAtAddr(pc, pc_lib);
-   if (!result || pc_lib != func_lib)
-   {
-      sw_printf("[%s:%u] - %lx and %lx are from different libraries\n",
-                __FILE__, __LINE__, func_entry, pc);
-      return false;
-   }
-
-   Offset func_entry_offset = func_entry - func_lib.second;
-   Offset pc_offset = pc - pc_lib.second;
-   SymtabAPI::Function *func_symbol = NULL;
-   SymtabAPI::Function *pc_symbol = NULL;
+   func_entry_offset = func_entry - func_lib.second;
 
    symtab = SymtabWrapper::getSymtab(func_lib.first);
    if (!symtab) {
       sw_printf("[%s:%u] - Failed to open symtab for %s\n", 
                 __FILE__, __LINE__, func_lib.first.c_str());
       goto symtab_fail;
+   }
+
+   func_region = symtab->findEnclosingRegion(func_entry_offset);
+   if (func_region->getRegionName() == std::string(".plt")) {
+      sw_printf("[%s:%u] - %lx is a PLT entry, trying to map to real target\n",
+                __FILE__, __LINE__, func_entry);
+      int got_offset = -1;
+      Address got_abs = 0x0;
+      if (proc->getAddressWidth() == 4) {
+         //32-bit mode.  Recognize common PLT idioms
+         #define MAX_PLT32_IDIOM_SIZE 6
+         unsigned char buffer[MAX_PLT32_IDIOM_SIZE];
+         result = proc->readMem(buffer, func_entry, MAX_PLT32_IDIOM_SIZE);
+         if (buffer[0] == 0xff && buffer[1] == 0xa3) {
+            //Indirect jump off of ebx
+            got_offset = *((int32_t*) (buffer+2));
+         }
+         else if (buffer[0] == 0xff && buffer[1] == 0x25) {
+            //Indirect jump through absolute
+            got_abs = *((uint32_t*) (buffer+2));
+         }
+         else {
+            sw_printf("[%s:%u] - Unrecognized PLT idiom at %lx: ",
+                      __FILE__, __LINE__, func_entry);
+            for (unsigned i=0; i<MAX_PLT32_IDIOM_SIZE; i++) {
+               sw_printf("%x ", buffer[i]);
+            }
+            sw_printf("\n");
+         }
+      }
+      if (proc->getAddressWidth() == 8) {
+         //32-bit mode.  Recognize common PLT idioms
+         #define MAX_PLT64_IDIOM_SIZE 6
+         unsigned char buffer[MAX_PLT64_IDIOM_SIZE];
+         result = proc->readMem(buffer, func_entry, MAX_PLT64_IDIOM_SIZE);
+         if (buffer[0] == 0xff && buffer[1] == 0x25) {
+            //PC Relative jump indirect
+            got_abs = *((int32_t *) (buffer+2)) + func_entry + 6;
+         }
+         else {
+            sw_printf("[%s:%u] - Unrecognized PLT idiom at %lx: ",
+                      __FILE__, __LINE__, func_entry);
+            for (unsigned i=0; i<MAX_PLT32_IDIOM_SIZE; i++) {
+               sw_printf("%x ", buffer[i]);
+            }
+            sw_printf("\n");
+         }
+      }
+      
+      if (got_offset != -1) {
+         sw_printf("[%s:%u] - Computed PLT to be going through GOT offset %d\n",
+                   __FILE__, __LINE__, got_offset);
+         Region *got_region = NULL;
+         result = symtab->findRegion(got_region, ".got");
+         got_abs = got_offset + got_region->getMemOffset() + func_lib.second;
+      }
+
+      if (got_abs) {
+         Address real_target;
+         result = proc->readMem(&real_target, got_abs, proc->getAddressWidth());
+         sw_printf("[%s:%u] - Computed PLT to be going through GOT abs %lx to "
+                   "real target %lx\n", __FILE__, __LINE__, got_abs, real_target);
+         return isPCInFunc(real_target, pc);
+      }
+
+   }
+
+   result = tracker->getLibraryAtAddr(pc, pc_lib);
+   if (!result) {
+      sw_printf("[%s:%u] - Failed to find library at %lx\n",
+                __FILE__, __LINE__, pc);
+      return false;
+   }
+   pc_offset = pc - pc_lib.second;
+
+
+   if (func_entry > pc) {
+      sw_printf("[%s:%u] - func_entry %lx is greater than pc %lx\n",
+                __FILE__, __LINE__, func_entry, pc);
+      return false;
+   }
+   
+   if (pc_lib != func_lib)
+   {
+      sw_printf("[%s:%u] - %lx and %lx are from different libraries\n",
+                __FILE__, __LINE__, func_entry, pc);
+      return false;
    }
 
    result = symtab->getContainingFunction(func_entry_offset, func_symbol);
@@ -299,6 +378,8 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
       goto symtab_fail;
    }
 
+   sw_printf("[%s:%u] - Decided func at offset %lx and pc-func at offset %lx\n",
+             __FILE__, __LINE__, func_symbol->getOffset(), pc_symbol->getOffset());
    return (func_symbol->getOffset() == pc_symbol->getOffset());
  symtab_fail:   
 #endif

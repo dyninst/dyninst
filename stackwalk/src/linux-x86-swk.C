@@ -229,6 +229,8 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
 bool Walker::createDefaultSteppers()
 {
   FrameStepper *stepper;
+  WandererHelper *whelper_x86;
+  LookupFuncStart *frameFuncHelper_x86;
   bool result = true;
 
   stepper = new DebugStepper(this);
@@ -238,25 +240,36 @@ bool Walker::createDefaultSteppers()
   sw_printf("[%s:%u] - Stepper %p is DebugStepper\n",
             __FILE__, __LINE__, stepper);
 
-  stepper = new FrameFuncStepper(this);
+  frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
+  stepper = new FrameFuncStepper(this, frameFuncHelper_x86);
   result = addStepper(stepper);
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is FrameFuncStepper\n",
             __FILE__, __LINE__, stepper);
 
-  /*  stepper = new StepperWanderer(this);
+  //Call getLookupFuncStart twice to get reference counts correct.
+  frameFuncHelper_x86 = LookupFuncStart::getLookupFuncStart(getProcessState());
+  whelper_x86 = new WandererHelper(getProcessState());
+  stepper = new StepperWanderer(this, whelper_x86, frameFuncHelper_x86);
   result = addStepper(stepper);
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is StepperWanderer\n",
-  __FILE__, __LINE__, stepper);*/
+            __FILE__, __LINE__, stepper);
 
   stepper = new SigHandlerStepper(this);
   result = addStepper(stepper);
   if (!result)
      goto error;
   sw_printf("[%s:%u] - Stepper %p is SigHandlerStepper\n",
+            __FILE__, __LINE__, stepper);
+
+  stepper = new BottomOfStackStepper(this);
+  result = addStepper(stepper);
+  if (!result)
+     goto error;
+  sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
             __FILE__, __LINE__, stepper);
 
   return true;
@@ -343,3 +356,8 @@ bool DebugStepperImpl::isStackRegister(MachRegister reg)
 }
 
 #endif
+
+void ProcDebugLinux::detach_arch_cleanup()
+{
+   LookupFuncStart::clear_func_mapping(getProcessId());
+}

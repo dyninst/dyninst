@@ -11,7 +11,8 @@
 #include "BPatch_snippet.h"
 
 #include "Graph.h"
-#include "Analyzer.h"
+
+#include "DDG.h"
 
 BPatch bpatch;
 
@@ -37,9 +38,7 @@ int main(int argc, const char** argv)
   appImage->findFunction(argv[2], 
 			 function);
 
-  Analyzer a =  Analyzer::createAnalyzer(function[0]); 
-
-  DDG::Ptr ddg = a.createDDG();
+  DDG::Ptr ddg = DDG::analyze(function[0]);
 
   std::string str(argv[2]);
   str += ".dot";

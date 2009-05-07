@@ -29,13 +29,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef BLUEGENE_SWK_H
-#define BLUEGENE_SWK_H
+#ifndef LINUX_SWK_H
+#define LINUX_SWK_H
 
 #include "stackwalk/h/framestepper.h"
 
 #include "dyntypes.h"
 #include <set>
+
+#define MAX_TRAP_LEN 8
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -65,6 +67,9 @@ class ProcDebugLinux : public ProcDebug {
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
   virtual unsigned getAddressWidth();
+  virtual bool detach(bool leave_stopped = false);
+  bool detach_thread(int tid, bool leave_stopped);
+  void detach_arch_cleanup();
 
   bool pollForNewThreads();
   bool isLibraryTrap(Dyninst::THR_ID thrd);
@@ -74,24 +79,42 @@ class ProcDebugLinux : public ProcDebug {
   unsigned cached_addr_width;
   void registerLibSpotter();
   Address lib_load_trap;
+  char trap_overwrite_buffer[MAX_TRAP_LEN];
+  unsigned trap_actual_len;
+  bool trap_install_error;
  public:
   static std::map<pid_t, int> unknown_pid_events;
 };
 
 class SigHandlerStepperImpl : public FrameStepper {
 private:
-   DebugStepper *parent_stepper;
+   SigHandlerStepper *parent_stepper;
    void registerStepperGroupNoSymtab(StepperGroup *group);
 public:
-   SigHandlerStepperImpl(Walker *w, DebugStepper *parent);
+   SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~SigHandlerStepperImpl();  
 };
 
+class BottomOfStackStepperImpl : public FrameStepper {
+private:
+   BottomOfStackStepper *parent;
+   std::vector<std::pair<Address, Address> > ra_stack_tops;
+   std::vector<std::pair<Address, Address> >sp_stack_tops;
+   bool initialized;
+   void initialize();
+public:
+   BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *parent);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~BottomOfStackStepperImpl();  
+};
 
 void getTrapInstruction(char *buffer, unsigned buf_size, unsigned &actual_len, bool include_return);
+
 
 }
 }

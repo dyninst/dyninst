@@ -152,16 +152,16 @@ class SigHandlerStepper : public FrameStepper {
    virtual ~SigHandlerStepper();  
 };
 
-class UninitFrameStepperImpl;
-class UninitFrameStepper : public FrameStepper {
+class BottomOfStackStepperImpl;
+class BottomOfStackStepper : public FrameStepper {
  private:
-   UninitFrameStepperImpl *impl;
+   BottomOfStackStepperImpl *impl;
  public:
-   UninitFrameStepper(Walker *w, FrameFuncHelper *f = NULL);
+   BottomOfStackStepper(Walker *w);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   virtual void registerStepperGroup(StepperGroup *group);
    virtual unsigned getPriority() const;
-   virtual ~UninitFrameStepper();
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~BottomOfStackStepper();
 };
 
 }

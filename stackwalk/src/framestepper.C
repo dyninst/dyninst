@@ -38,6 +38,9 @@
 #include "stackwalk/src/sw.h"
 #include <assert.h>
 
+#if defined(os_linux)
+#include "stackwalk/src/linux-swk.h"
+#endif 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -129,3 +132,54 @@ FrameFuncHelper::~FrameFuncHelper()
 {
 }
 
+BottomOfStackStepper::BottomOfStackStepper(Walker *w) :
+   FrameStepper(w)
+{
+   sw_printf("[%s:%u] - Constructing BottomOfStackStepper at %p\n",
+             __FILE__, __LINE__, this);
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+   impl = new BottomOfStackStepperImpl(w, this);
+#else
+   impl = NULL;
+#endif
+}
+
+gcframe_ret_t BottomOfStackStepper::getCallerFrame(const Frame &in, Frame &out)
+{
+   if (impl) {
+      return impl->getCallerFrame(in, out);
+   }
+   sw_printf("[%s:%u] - Error, top of stack not implemented on this platform\n",
+             __FILE__, __LINE__);
+   setLastError(err_unsupported, "Top of stack recognition not supported on this platform");
+   return gcf_error;
+}
+
+unsigned BottomOfStackStepper::getPriority() const
+{
+   if (impl) {
+      return impl->getPriority();
+   }
+   sw_printf("[%s:%u] - Error, top of stack not implemented on this platform\n",
+             __FILE__, __LINE__);
+   setLastError(err_unsupported, "Top of stack recognition not supported on this platform");
+   return 0;
+}
+
+void BottomOfStackStepper::registerStepperGroup(StepperGroup *group)
+{
+   if (impl) {
+      return impl->registerStepperGroup(group);
+   }
+   sw_printf("[%s:%u] - Error, top of stack not implemented on this platform\n",
+             __FILE__, __LINE__);
+   setLastError(err_unsupported, "Top of stack recognition not supported on this platform");
+}
+
+BottomOfStackStepper::~BottomOfStackStepper()
+{
+   sw_printf("[%s:%u] - Deleting BottomOfStackStepper %p (impl %p)\n", 
+             __FILE__, __LINE__, this, impl);
+   if (impl)
+      delete impl;
+}

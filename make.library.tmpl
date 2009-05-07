@@ -58,16 +58,16 @@ endif # STATIC_LIBRARY
 endif  # OVERRIDE_LINK
 
 ifdef PUBLIC_H
-$(TO_CORE)/$(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
-	$(CP) $^ $(TO_CORE)/$(INCLUDE_DEST)
+$(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
+	$(CP) $^ $(INCLUDE_DEST)
 
-public_includes: $(patsubst %,$(TO_CORE)/$(INCLUDE_DEST)/%,$(PUBLIC_H))
+public_includes: $(patsubst %,$(INCLUDE_DEST)/%,$(PUBLIC_H))
 else
 public_includes:
 endif 
 
 ifndef DEST
-DEST		= $(TO_CORE)/$(LIBRARY_DEST)
+DEST		= $(LIBRARY_DEST)
 endif
 
 echo:
