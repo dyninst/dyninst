@@ -1,5 +1,7 @@
 # pick up INCLUDE_DEST
+include ../make.config
 include ../make.config.local
+
 
 CP = cp
 CP_DIR = cp -r
@@ -20,9 +22,11 @@ world:
 install: $(patsubst %,$(INCLUDE_DEST)/%,$(PUBLIC_H))
 
 $(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
-	$(CP) $^ $(INCLUDE_DEST)
+	mkdir -p $(INCLUDE_DEST)
+	$(CP) $^ $@
 $(INCLUDE_DEST)/dyn_detail: $(TO_INC)/dyn_detail
-	$(CP_DIR) $^ $(INCLUDE_DEST)
+	mkdir -p $(INCLUDE_DEST)
+	$(CP_DIR) $^ $@
 
 
 clean distclean:
