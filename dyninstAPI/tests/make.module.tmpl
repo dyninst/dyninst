@@ -66,7 +66,7 @@ COMPILER2_NATIVE_CXX = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CXX))
 COMPILER_NATIVE_CXX = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CXX))
 MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 
-TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs
+TEST_DEST = $(TO_CORE)/../$(PLATFORM)/testprogs
 
 #######################################################################
 ###  Basic definitions (filename prefixes)
