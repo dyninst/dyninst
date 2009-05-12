@@ -21,16 +21,8 @@ ValueAdded = valueAdded/sharedMem
 
 
 testsuites = dyninstAPI/tests 
-
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI stackwalk depGraphAPI
-allSubdirs	= $(allCoreSubdirs) dyninstAPI/tests valueAdded/sharedMem
 allSubdirs_noinstall =
 
-# We're not building the new test suite on all platforms yet
-ifeq ($(DONT_BUILD_NEWTESTSUITE),false)
-testsuites += newtestsuite
-allSubdirs_noinstall += newtestsuite
-endif
 
 ifndef DONT_BUILD_DYNINST
 fullSystem	+= $(DyninstAPI)
@@ -41,13 +33,19 @@ ifndef DONT_BUILD_OLDTESTSUITE
 fullSystem	+= dyninstAPI/tests
 endif
 
-ifndef DONT_BUILD_TESTSUITE
-#fullSystem	+= testsuite
+ifndef DONT_BUILD_NEWTESTSUITE
+testsuites += newtestsuite
+allSubdirs_noinstall += newtestsuite
+fullSystem += newtestsuite
+Build_list += newtestsuite
 endif
 
-ifndef DONT_BUILD_NEWTESTSUITE
-fullSystem	+= newtestsuite
-endif
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI depGraphAPI
+allSubdirs	= $(allCoreSubdirs) testsuites valueAdded/sharedMem
+
+# We're not building the new test suite on all platforms yet
+
+
 # Note that the first rule listed ("all") is what gets made by default,
 # i.e., if make is given no arguments.  Don't add other targets before all!
 
@@ -161,7 +159,7 @@ $(allSubdirs):
 		$(MAKE) -C $@ install; \
 	else \
 		echo $@ has no Makefile; \
-		false; \
+		true; \
 	fi
 
 $(allSubdirs_noinstall):
@@ -178,7 +176,7 @@ $(allSubdirs_noinstall):
 # Generate targets of the form install_<target> for all directories in
 # allSubdirs_noinstall
 allSubdirs_explicitInstall = $(patsubst %,install_%,$(allSubdirs_noinstall))
-coreSubdirs_explicitInstall = $(patsubst %,install_%,$(coreSubdirs))
+coreSubdirs_explicitInstall = $(patsubst %,install_%,$(allCoreSubdirs))
 
 $(allSubdirs_explicitInstall): install_%: %
 	+@if [ -f $(@:install_%=%)/$(PLATFORM)/Makefile ]; then \
@@ -187,18 +185,18 @@ $(allSubdirs_explicitInstall): install_%: %
 		$(MAKE) -C $(@:install_%=%) install; \
 	else \
 		@echo $(@:install_%=%) has no Makefile; \
-		false; \
+		true; \
 	fi
 
 
 $(coreSubdirs_explicitInstall): install_%: %
 	+@if [ -f $(@:install_%=%)/$(PLATFORM)/Makefile ]; then \
-		$(MAKE) -C $(@:install_%=%)/$(PLATFORM) install \
+		$(MAKE) -C $(@:install_%=%)/$(PLATFORM) install; \
 	elif [ -f $(@:install_%=%)/Makefile ]; then \
 		$(MAKE) -C $(@:install_%=%) install; \
 	else \
-		@echo $(@:install_%=%) has no Makefile; \
-		false; \
+		@echo $(@:install_%=%) has no Makefiles; \
+		true; \
 	fi
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
@@ -207,6 +205,7 @@ dyninstAPI: symtabAPI instructionAPI
 symtabAPI dyninstAPI: dynutil
 dyner codeCoverage dyninstAPI/tests testsuite newtestsuite: dyninstAPI
 newtestsuite: $(coreSubdirs_explicitInstall)
+depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 
 # This rule passes down the documentation-related make stuff to
