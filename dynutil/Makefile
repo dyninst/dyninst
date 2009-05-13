@@ -1,7 +1,7 @@
 # pick up INCLUDE_DEST
 include ../make.config
 
-
+LOCAL_INCLUDE_DEST = ../../include
 CP = cp
 CP_DIR = cp -r
 
@@ -15,16 +15,20 @@ PUBLIC_H = Annotatable.h \
            Node.h \
 	   dyn_detail 
 
+#INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))
+INSTALL_TARGETS = $(addprefix $(LOCAL_INCLUDE_DEST)/, $(PUBLIC_H))
 world:
 	@echo Nothing to be done for build
 
-install: $(patsubst %,$(INCLUDE_DEST)/%,$(PUBLIC_H))
+#install: $(patsubst %,$(INCLUDE_DEST)/%,$(PUBLIC_H))
+install: $(INSTALL_TARGETS)
+#	echo INSTALL_TARGETS = $(INSTALL_TARGETS);
 
-$(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
-	mkdir -p $(INCLUDE_DEST)
+$(LOCAL_INCLUDE_DEST)/%.h: $(TO_INC)/%.h
+	mkdir -p $(LOCAL_INCLUDE_DEST)
 	$(CP) $^ $@
-$(INCLUDE_DEST)/dyn_detail: $(TO_INC)/dyn_detail
-	mkdir -p $(INCLUDE_DEST)
+$(LOCAL_INCLUDE_DEST)/dyn_detail: $(TO_INC)/dyn_detail
+	mkdir -p $(LOCAL_INCLUDE_DEST)
 	$(CP_DIR) $^ $@
 
 
