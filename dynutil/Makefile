@@ -1,6 +1,5 @@
 # pick up INCLUDE_DEST
 include ../make.config
-include ../make.config.local
 
 
 CP = cp
