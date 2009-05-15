@@ -43,7 +43,7 @@ class emitElf{
   public:
     emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, void (*)(const char *) = log_msg);
     ~emitElf();
-    bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt);
+    bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table);
     bool driver(Symtab *obj, std::string fName);
  
   private:
@@ -119,8 +119,8 @@ class emitElf{
     void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf32_Shdr *shdr);
     bool createNonLoadableSections(Elf32_Shdr *& shdr);
-    bool createLoadableSections( Elf32_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &, dyn_hash_map<std::string,  unsigned>& newIndexMapping);
-    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
+    bool createLoadableSections( Elf32_Shdr* &shdr, unsigned &loadSecTotalSize, unsigned &, dyn_hash_map<std::string,  unsigned>& newIndexMapping, unsigned &sectionNumber);
+    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 

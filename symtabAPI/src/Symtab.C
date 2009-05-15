@@ -1195,27 +1195,14 @@ bool Symtab::extractInfo(Object *linkedFile)
         {
             hasRela_ = true;
         }
-    
-        if (!regions_[index]->getRegionName().compare(".rel.dyn"))
-        {
-            hasReldyn_ = true;
-        }
 
-	if( !regions_[index]->getRegionName().compare(".rela.dyn") ) 
-	{
-	    hasReladyn_ = true;
-	}
+#if defined(os_linux) || defined(os_solaris)
+        hasReldyn_ = linkedFile->hasReldyn();
+	hasReladyn_ = linkedFile->hasReladyn();
+        hasRelplt_ = linkedFile->hasRelplt();
+        hasRelaplt_ = linkedFile->hasRelaplt();
+#endif	
 
-        if (!regions_[index]->getRegionName().compare(".rel.plt"))
-        {
-            hasRelplt_ = true;
-        }
-
-	if( !regions_[index]->getRegionName().compare(".rela.plt") ) 
-        {
-            hasRelaplt_ = true;
-        }
-        
     }
     // sort regions_ & codeRegions_ vectors
 
