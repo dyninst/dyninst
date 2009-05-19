@@ -450,6 +450,7 @@ class Object : public AObject {
   bool hasRelaplt_;
 
   Offset   dynamic_offset_;
+  size_t   dynamic_size_;
   Offset   fini_addr_;
   Offset   text_addr_; 	 //.text section 
   Offset   text_size_; 	 //.text section size

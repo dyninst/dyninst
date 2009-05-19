@@ -199,7 +199,6 @@ Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr)
 
 /* Check if there is a section which belongs to the segment and update permissions of that section.
  * Return value indicates whether the segment has to be added to the list of regions*/
-
 bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
   bool present = false;
   for(unsigned i = 0; i < regions_.size() ;i++){
@@ -404,106 +403,133 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 
   // Find pointer to dynamic section
   unsigned phdr_count = 0;
-  Elf_X_Phdr elfPhdr = elfHdr.get_phdr(phdr_count);
   bool foundDynamicSection = false;
+  Elf_X_Phdr elfPhdr = elfHdr.get_phdr(phdr_count);
+  unsigned phdr_max_count = elfHdr.e_phnum();
 
-  while(!foundDynamicSection) {
+  while(!foundDynamicSection || phdr_count == phdr_max_count) {
     if(elfPhdr.p_type() == PT_DYNAMIC){
       foundDynamicSection = true;
       dynamic_offset_ = elfPhdr.p_offset();
+      dynamic_size_ = elfPhdr.p_memsz();
     }
     elfPhdr = elfHdr.get_phdr(++phdr_count);
   }
    
   Elf_X_Shdr *scnp;
    
-  for (int i = 0; i < elfHdr.e_shnum()+ elfHdrForDebugInfo.e_shnum();++i) {
+  foundDynamicSection = false;
+  int dynamic_section_index = 0;
+  unsigned int dynamic_section_type;
+  size_t dynamic_section_size = 0;
+  for (int i = 0; i < elfHdr.e_shnum();++i) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-    if (! scnp->isValid()) { // section is malformed
+    if (! scnp->isValid())  // section is malformed
       continue; 
+    if (dynamic_offset_ !=0 && scnp->sh_offset() == dynamic_offset_) {
+      if (!foundDynamicSection) {
+	dynamic_section_index = i;
+	dynamic_section_size = scnp->sh_size();
+	dynamic_section_type = scnp->sh_type();
+	foundDynamicSection = true;
+      } else {	
+	// If there are two or more sections with the same offset as the dynamic_offset,
+	// use other fields to chose which one the the dynamic section	
+	if (dynamic_section_size == dynamic_size_ && dynamic_section_type == SHT_DYNAMIC) {
+	  // We already have the right section
+	} else if ((scnp->sh_size() == dynamic_size_ && scnp->sh_type() == SHT_DYNAMIC) ||
+		   (scnp->sh_size() == dynamic_size_)) {
+	  // This section is a better match to be the dynamic section
+	  // than the previous one!
+	  dynamic_section_index = i;
+	  dynamic_section_size = scnp->sh_size();
+	  dynamic_section_type = scnp->sh_type();
+	}
+      } 
+    }	
+  }
+
+  if (dynamic_section_index != 0) {
+    scnp = new Elf_X_Shdr( elfHdr.get_shdr(dynamic_section_index) );
+    Elf_X_Data data = scnp->get_data();
+    Elf_X_Dyn dynsecData = data.get_dyn();
+    for (unsigned j = 0; j < dynsecData.count(); ++j) {
+      switch (dynsecData.d_tag(j)) {
+      case DT_REL:
+	hasReldyn_ = true;
+	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	break;
+      case DT_RELA:
+	hasReladyn_ = true;
+	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	break;
+      case DT_JMPREL:
+	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	break;
+      case DT_SYMTAB:
+      case DT_STRTAB:
+      case DT_VERSYM:
+      case DT_VERNEED:
+      case DT_HASH:
+	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	break;
+      case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
+	// We generate ELF HASH entries and not GNU_HASH - so implicitely change it here.
+	secAddrTagMapping[dynsecData.d_ptr(j)] = DT_HASH; 
+	break;
+      case DT_PLTGOT:
+	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	break;
+      case DT_RELSZ:
+	secTagSizeMapping[DT_REL] = dynsecData.d_val(j);
+	break;
+      case DT_RELASZ:
+	secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
+	break;
+      case DT_PLTRELSZ:
+	secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
+	break;
+      case DT_STRSZ:
+	secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
+	break;
+      case DT_PLTREL: 
+	if (dynsecData.d_val(j) == DT_REL)
+	  hasRelplt_ = true;
+	else if (dynsecData.d_val(j) == DT_RELA)
+	  hasRelaplt_ = true;
+	break;
+
+      }
     }
-    if (scnp->sh_offset() == dynamic_offset_) {
-      Elf_X_Data data = scnp->get_data();
-      Elf_X_Dyn dynsecData = data.get_dyn();
-      for (unsigned j = 0; j < dynsecData.count(); ++j) {
-	switch (dynsecData.d_tag(j)) {
-	case DT_REL:
-	  hasReldyn_ = true;
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_RELA:
-	  hasReladyn_ = true;
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_JMPREL:
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_SYMTAB:
-	case DT_STRTAB:
-	case DT_VERSYM:
-	case DT_VERNEED:
-	case DT_HASH:
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
-	  // We generate ELF HASH entries and not GNU_HASH - so implicitely change it here.
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = DT_HASH; 
-	  break;
-	case DT_PLTGOT:
-	  secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
-	  break;
-	case DT_RELSZ:
-	  secTagSizeMapping[DT_REL] = dynsecData.d_val(j);
-	  break;
-	case DT_RELASZ:
-	  secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
-	  break;
-	case DT_PLTRELSZ:
-	  secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
-	  break;
-	case DT_STRSZ:
-	  secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
-	  break;
-	case DT_PLTREL: 
-	  if (dynsecData.d_val(j) == DT_REL)
-	    hasRelplt_ = true;
-	  else if (dynsecData.d_val(j) == DT_RELA)
-	    hasRelaplt_ = true;
-	  break;
-
-	}
-      }
-
-		
-      dyn_hash_map<Offset, int>::iterator it = secAddrTagMapping.begin();
-      while (it != secAddrTagMapping.end()) {
-	int tag = it->second;
-	switch (tag) {
-	  // Only sections with these tags are moved in the new rewritten binary 
-	case DT_REL:
-	case DT_RELA:
-	case DT_SYMTAB:
-	case DT_STRTAB:
-	case DT_VERSYM:
-	case DT_VERNEED:
-	case DT_HASH:
-	case  0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
+      
+    dyn_hash_map<Offset, int>::iterator it = secAddrTagMapping.begin();
+    while (it != secAddrTagMapping.end()) {
+      int tag = it->second;
+      switch (tag) {
+	// Only sections with these tags are moved in the new rewritten binary 
+      case DT_REL:
+      case DT_RELA:
+      case DT_SYMTAB:
+      case DT_STRTAB:
+      case DT_VERSYM:
+      case DT_VERNEED:
+      case DT_HASH:
+      case  0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
 	  
-	  if (secTagSizeMapping.find(tag) != secTagSizeMapping.end()) {
-	    vector<Offset> row;
-	    row.push_back(it->first);
-	    row.push_back(it->first+ secTagSizeMapping[tag]);
-	    moveSecAddrRange.push_back(row);
-	  } else {
-	    vector<Offset> row;
-	    row.push_back(it->first);
-	    row.push_back(it->first);
-	    moveSecAddrRange.push_back(row);
-	  }
-	  break;
+	if (secTagSizeMapping.find(tag) != secTagSizeMapping.end()) {
+	  vector<Offset> row;
+	  row.push_back(it->first);
+	  row.push_back(it->first+ secTagSizeMapping[tag]);
+	  moveSecAddrRange.push_back(row);
+	} else {
+	  vector<Offset> row;
+	  row.push_back(it->first);
+	  row.push_back(it->first);
+	  moveSecAddrRange.push_back(row);
 	}
-	it++;
+	break;
       }
+      it++;
     }
   }
     
@@ -731,7 +757,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     }
     //TODO clean up this. it is ugly
 #if defined(arch_ia64)
-    else if (scnp->sh_offset() == dynamic_offset_) {
+    else if (i == dynamic_section_index) {
       dynamic_scnp = scnp;
       dynamic_addr_ = scnp->sh_addr();
       Elf_X_Data data = scnp->get_data();
@@ -749,7 +775,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       } // for
     }
 #else
-    else if (scnp->sh_offset() == dynamic_offset_) {
+    else if (i == dynamic_section_index) {
       dynamic_scnp = scnp;
       dynamic_addr_ = scnp->sh_addr();
     }
