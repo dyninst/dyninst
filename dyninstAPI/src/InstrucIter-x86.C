@@ -483,8 +483,32 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
        apply this adjustment or not.
 
        Questions, see nater@cs
+
+       Update - Scales of 8 happen.  Detect this and don't have the
+       jmp table size if so.
     */
-    if(addrWidth == 8) {
+    ia32_locations jmp_locs;
+    ia32_instruction jmp_insn(NULL, NULL, &jmp_locs);
+    ia32_decode(0, tableInsn.ptr(), jmp_insn);
+    unsigned scale = 0;
+    switch ((jmp_locs.sib_byte >> 6) & 3) {
+       case 0:
+          scale = 1;
+          break;
+       case 1:
+          scale = 2;
+          break;
+       case 2:
+          scale = 4;
+          break;
+       case 3:
+          scale = 8;
+          break;
+       default:
+          assert(0);
+    }
+     
+    if(addrWidth == 8 && scale == 4) {
         maxSwitch = maxSwitch >> 1;
         parsing_printf("\tmaxSwitch revised to %d\n",maxSwitch);
     }
