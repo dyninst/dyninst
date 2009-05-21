@@ -2612,8 +2612,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	  if(capa & IA32_DECODE_CONDITION) {
         ; // FIXME: translation to tttn & set it
 	  }
-      instruct = ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
-      return instruct;
+     ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
+     return instruct;
     case t_3dnow:
       // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
       // Right now we don't care what the actual opcode is, so there's no table

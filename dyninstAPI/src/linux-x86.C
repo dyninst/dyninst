@@ -1333,9 +1333,11 @@ bool process::loadDYNINSTlib_hidden() {
     // through speculative parsing.
     if(!findFuncsByAll(DL_OPEN_FUNC_INTERNAL, dlopen_int_funcs))
     {    
-        fprintf(stderr,"Failed to find _dl_open\n");
-    }                                                                               else
-    {                                                                                   if(dlopen_int_funcs.size() > 1)
+      startup_printf("Failed to find _dl_open\n");
+    } 
+    else
+    { 
+      if(dlopen_int_funcs.size() > 1)
         {
             startup_printf("%s[%d] warning: found %d matches for %s\n",
                            __FILE__,__LINE__,dlopen_int_funcs.size(),

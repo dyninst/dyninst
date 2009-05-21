@@ -123,23 +123,7 @@ class Symbol : public Serializable,
    };
    static const char *symbolVisibility2Str(SymbolVisibility t);
 
-   SYMTAB_EXPORT Symbol () :
-       module_(NULL),
-       type_(ST_NOTYPE),
-       linkage_(SL_UNKNOWN),
-       visibility_(SV_UNKNOWN),
-       offset_(0),
-       region_(NULL),
-       size_(0),
-       isDynamic_(false),
-       isAbsolute_(false),
-       aggregate_(NULL),
-       mangledName_(Symbol::emptyString),
-       prettyName_(Symbol::emptyString),
-       typedName_(Symbol::emptyString),
-       tag_(TAG_UNKNOWN) ,
-       index_(-1),
-       strindex_(-1) {}
+   SYMTAB_EXPORT Symbol();
 
    SYMTAB_EXPORT static Symbol *magicEmitElfSymbol();
 

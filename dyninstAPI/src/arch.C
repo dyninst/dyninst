@@ -141,7 +141,7 @@ codeGen::codeGen(const codeGen &g) :
 {
     if (size_ != 0) {
         assert(allocated_); 
-	int bufferSize = size_ + isPadded_ ? codeGenPadding : 0;
+        int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
         buffer_ = (codeBuf_t *) malloc(bufferSize);
         memcpy(buffer_, g.buffer_, bufferSize);
     }
@@ -166,16 +166,17 @@ codeGen &codeGen::operator=(const codeGen &g) {
     thr_ = g.thr_;
     lwp_ = g.lwp_;
     isPadded_ = g.isPadded_;
-    int bufferSize = size_ + isPadded_ ? codeGenPadding : 0;
+    int bufferSize = size_ + (isPadded_ ? codeGenPadding : 0);
     obj_ = g.obj_;
     
 
     if (size_ != 0) {
-        assert(allocated_); 
-	        buffer_ = (codeBuf_t *) malloc(bufferSize);
-		//allocate(g.size_);
+       assert(allocated_); 
+
+       buffer_ = (codeBuf_t *) malloc(bufferSize);
+       //allocate(g.size_);
 	
-        memcpy(buffer_, g.buffer_, bufferSize);
+       memcpy(buffer_, g.buffer_, bufferSize);
     }
     else
         buffer_ = NULL;

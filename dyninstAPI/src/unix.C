@@ -661,11 +661,14 @@ bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord &ev,
    return decodeSyscall(ev);
 }
 
-
 bool SignalGenerator::decodeSigTrap(EventRecord &ev)
 {
    char buf[128];
    process *proc = ev.proc;
+
+  Frame af = ev.lwp->getActiveFrame();
+  signal_printf("[%s:%u] - Starting decodeSigTrap from trap at 0x%lx\n",
+                FILE__, __LINE__, af.getPC());
 
    //fprintf(stderr, "%s[%d]:  SIGTRAP: %s\n", FILE__, __LINE__, ev.sprint_event(buf));
   if (decodeIfDueToProcessStartup(ev)) {
@@ -674,10 +677,6 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
                 proc->getBootstrapStateAsString().c_str());
      return true;
   }
-
-  Frame af = ev.lwp->getActiveFrame();
-  signal_printf("[%s:%u] - Starting decodeSigTrap from trap at 0x%lx\n",
-                FILE__, __LINE__, af.getPC());
 
   // (1)  Is this trap due to an instPoint ??
   if (isInstTrap(ev, af)) {

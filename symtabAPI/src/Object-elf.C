@@ -1577,6 +1577,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
       Offset soffset;
       if (symscnp->isFromDebugFile()) {
 	Offset soffset_dbg = syms.st_value(i);
+   soffset = soffset_dbg;
 	if (soffset_dbg) {
 	  bool result = convertDebugOffset(soffset_dbg, soffset);
 	  if (!result) {

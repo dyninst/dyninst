@@ -2711,7 +2711,7 @@ void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC 
 				  if (possible_syms.size())
 				  {
 					  fprintf(stderr, "%s[%d]:  WARN: found %d syms for dynref in ord index\n", 
-							  FILE__, __LINE__, possible_syms.size());
+                         FILE__, __LINE__, (int) possible_syms.size());
 					  for (unsigned int i = 0; i < possible_syms.size(); ++i)
 					  {
 						  Symbol *s = possible_syms[i];
