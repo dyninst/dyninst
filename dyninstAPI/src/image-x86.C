@@ -429,24 +429,6 @@ bool leadsToVisitedBlock(image_edge* e, const std::set<image_basicBlock*>& visit
   return visited.find(src) != visited.end();
 }
 
-struct copyToWorkList
-{
-  copyToWorkList(std::deque<image_basicBlock*>& wl, 
-		      const std::set<image_basicBlock*>& v) :
-  worklist(wl), visited(v)
-  {
-  }
-  std::deque<image_basicBlock*>& worklist;
-  const std::set<image_basicBlock*>& visited;
-  void operator()(image_edge* e)
-  {
-    if(isNonCallEdge(e) && !leadsToVisitedBlock(e, visited))
-    {
-      worklist.push_back(e->getSource());
-    }
-  }
-};
-
 bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkOffset)
 {
   InstrucIter ah(curBlock);
@@ -536,20 +518,25 @@ bool findThunkAndOffset(image_func* f, image_basicBlock* start, Address& thunkOf
   pdvector<image_edge*> sources;
   image_basicBlock* curBlock;
   worklist.insert(worklist.begin(), start);
+  visited.insert(start);
   while(!worklist.empty())
   {
     curBlock = worklist.front();
     worklist.pop_front();
-    visited.insert(curBlock);
     if(findThunkInBlock(f, curBlock, thunkOffset))
     {
       return true;
     }
-    else
-    {
+
       sources.clear();
       curBlock->getSources(sources);
-      std::for_each(sources.begin(), sources.end(), copyToWorkList(worklist, visited));
+    for (unsigned i=0; i<sources.size(); i++) {
+       image_edge *e = sources[i];
+       if(isNonCallEdge(e) && !leadsToVisitedBlock(e, visited))
+       {
+          worklist.push_back(e->getSource());
+          visited.insert(e->getSource());
+       }
     }
   }
   return false;
