@@ -670,8 +670,68 @@ bool image_func::archGetMultipleJumpTargets(
         }
 
 #if defined(cap_instruction_api)
+   {
+      /** 
+       * AMD-64 gcc emits a re-accuring idiom of: 
+       *         jmpq   *%r8
+       *         movaps %xmm7,-0xf(%rax)
+       *         movaps %xmm6,-0x1f(%rax)
+       *         movaps %xmm5,-0x2f(%rax)
+       *         movaps %xmm4,-0x3f(%rax)
+       *         movaps %xmm3,-0x4f(%rax)
+       *         movaps %xmm2,-0x5f(%rax)
+       *         movaps %xmm1,-0x6f(%rax)
+       *         movaps %xmm0,-0x7f(%rax)
+       *         <other>
+       *
+       * The jump register is calculated in such a way that it'll be difficult
+       * for our analysis to figure it out.  Instead we'll recognize the pattern
+       * of the 'movaps'.  Note that the following instruction is also a valid jump
+       * target
+       **/
+      std::set<Address> found;
+      unsigned num_movaps_found = 0;
+      InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(jumpAddr),
+                           (img()->imageOffset() + img()->imageLength()) - jumpAddr);
+      d.setMode(img()->getAddressWidth() == 8);
+      Address cur = jumpAddr;
+      unsigned last_insn_size = 0;
+      InstructionAPI::Instruction i = d.decode();
+      cur += i.size();
+      for (;;) {
+         InstructionAPI::Instruction insn = d.decode();
+         //All insns in sequence are movaps
+         if (insn.getOperation().getID() != e_movapd &&
+             insn.getOperation().getID() != e_movaps) 
+         {
+            found.insert(cur);
+            break;
+         }
+         //All insns are same size
+         if (last_insn_size == 0)
+            last_insn_size = insn.size();
+         else if (last_insn_size != insn.size())
+            break;
+
+         num_movaps_found++;
+         found.insert(cur);
+
+         cur += insn.size();
+      }
+      if (num_movaps_found == 8) {
+         //It's a match
+         for (std::set<Address>::iterator i=found.begin(); i != found.end(); i++) {
+            targets.insert(*i);
+         }
+         return true;
+      }
+   }
+#endif
+
+#if defined(cap_instruction_api)
 		InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(tableInsnAddr), 
                              tableInsn.size());
+   d.setMode(img()->getAddressWidth() == 8);
         Instruction tableInsn_iapi = d.decode();
         std::set<RegisterAST::Ptr> regsRead;
         tableInsn_iapi.getReadSet(regsRead);
