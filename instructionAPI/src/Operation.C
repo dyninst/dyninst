@@ -176,13 +176,9 @@ namespace Dyninst
       e->flagsUsed(flagsRead, flagsWritten, l);
       if(p && p->getCount())
       {
-	for(unsigned i = 0; i < p->getCount(); i++)
-	{
-	  if(p->getPrefix(i) == PREFIX_REP || p->getPrefix(i) == PREFIX_REPNZ)
+	if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
 	  {
 	    flagsRead.insert(r_DF);
-	    break;
-	  }
 	}
       }
 
