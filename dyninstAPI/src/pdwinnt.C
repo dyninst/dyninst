@@ -198,8 +198,6 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
 
    if (initial_func) {
      func = proc->findJumpTargetFuncByAddr(initial_func);
-     if (!func)
-        return false;
    }
 
    //Create the dyn_thread early as well.
