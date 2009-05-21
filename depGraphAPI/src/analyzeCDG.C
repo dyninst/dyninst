@@ -33,45 +33,44 @@
 #include <vector>
 
 #include "analyzeCDG.h"
-
-#include "Absloc.h"
-#include "Graph.h"
 #include "CDG.h"
+#include "DepGraphNode.h" // for BlockNode
 
 // Dyninst
 #include "BPatch_basicBlock.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_function.h"
 
-// InstructionAPI
-#include "Instruction.h"
-
 // Annotation interface
 #include "Annotatable.h"
-
 
 using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
-using namespace Dyninst::InstructionAPI;
 
+// Annotation type for storing CDGs.
 AnnotationClass <CDG::Ptr> CDGAnno(std::string("CDGAnno"));
 
+// Constructor. Copies given function into internal structure.
 CDGAnalyzer::CDGAnalyzer(Function *f) : func_(f) {};
 
+// Creates and returns a CDG for the given function.
 CDG::Ptr CDGAnalyzer::analyze() {
+	// No function, no CDG!
     if (func_ == NULL) return CDG::Ptr();
 
+	// Check the annotations. Did we compute the graph before?
     CDG::Ptr *ret;
     func_->getAnnotation(ret, CDGAnno);
     if (ret) {
+    	// yes, we did. Return it.
         cdg = *ret;
         return cdg;
     }
 
     // What we really want to hand into this is a CFG... for
     // now, the set of blocks and entry block will suffice.
-    CDGAnalyzer::BlockSet blocks;
+    BlockSet blocks;
     func_->getCFG()->getAllBasicBlocks(blocks);
 
     // Create a graph
@@ -92,8 +91,7 @@ CDG::Ptr CDGAnalyzer::analyze() {
  * "The program dependence graph and its use in optimization".
  */
 void CDGAnalyzer::createDependencies(BlockSet &blocks) {
-    NodePtr entryNode = VirtualNode::createNode();
-    cdg->insertEntryNode(entryNode);
+    NodePtr entryNode = cdg->virtualEntryNode();
     for (BlockSet::iterator blockIter = blocks.begin(); 
          blockIter != blocks.end();
          blockIter++) {
@@ -130,11 +128,12 @@ void CDGAnalyzer::createDependencies(BlockSet &blocks) {
     }
 }
 
+// Create and return a BlockNode.
 Node::Ptr CDGAnalyzer::makeNode(Block *b) {
+	// Create the BlockNode only if we haven't done so before.
     if (nodeMap.find(b) == nodeMap.end()) {
         Node::Ptr newNode = BlockNode::createNode(b);
         nodeMap[b] = newNode;
     }
-    
     return nodeMap[b];
 }
