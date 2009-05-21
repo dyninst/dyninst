@@ -2878,6 +2878,16 @@ SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 
 }
+
+SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
+{
+#if defined(os_linux)
+   return getObject()->getDynamicAddr();
+#else
+   return 0;
+#endif
+}
+
 } // namespace SymtabAPI
 } // namespace Dyninst
 

@@ -339,6 +339,11 @@ class Symtab : public LookupInterface,
  public:
    SYMTAB_EXPORT Module *getOrCreateModule(const std::string &modName, 
                                            const Offset modAddr);
+
+ public:
+   //Only valid on ELF formats
+   SYMTAB_EXPORT Offset getElfDynamicOffset();
+   
  private:
    void createDefaultModule();
 
