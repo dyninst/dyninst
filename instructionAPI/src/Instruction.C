@@ -226,6 +226,8 @@ namespace Dyninst
       {
 	curOperand->addEffectiveReadAddresses(memAccessors);
       }  
+      std::set<Expression::Ptr> implicitReads = m_InsnOp.getImplicitMemReads();
+      std::copy(implicitReads.begin(), implicitReads.end(), std::inserter(memAccessors, memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
@@ -236,6 +238,8 @@ namespace Dyninst
       {
 	curOperand->addEffectiveWriteAddresses(memAccessors);
       }  
+      std::set<Expression::Ptr> implicitWrites = m_InsnOp.getImplicitMemWrites();
+      std::copy(implicitWrites.begin(), implicitWrites.end(), std::inserter(memAccessors, memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
