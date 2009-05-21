@@ -375,6 +375,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
                                          instruction& maxSwitchInsn,
                                          instruction& branchInsn,
                                          bool isAddressInJmp,
+                                         bool foundJccAlongTaken,
 					 Address tableOffsetFromThunk)
 { 
   int addrWidth;
@@ -443,8 +444,6 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     return false;
   }
 
-  parsing_printf("\tmaxSwitch set to %d\n",maxSwitch);
-
   const unsigned char * p = branchInsn.op_ptr();
   if( *p == 0x0f ) {
     // skip to second byte of opcode
@@ -459,9 +458,20 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   //
   // Fact: we really should be testing whether this is an upper bound
   // before even getting into this code.
-  if( (*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f ) {
+  //
+  // Fact 2: Whether we add 1 also depends on whether the jcc reaches
+  // our switch statement along a taken or not-taken branch.  If we're
+  // reached along the taken branch (the less common case) then we
+  // want to test jbe or jle.
+  if (((*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f) && !foundJccAlongTaken) {
+     maxSwitch++;
+  }
+  if (((*p & 0x0f) == 0x06 || (*p & 0x0f) == 0x0e) && foundJccAlongTaken) {
     maxSwitch++;
   } 
+
+  parsing_printf("\tmaxSwitch set to %d\n",maxSwitch);
+
 
     /* XXX addresses into jump tables are computed using some form
        of addressing like the following one:

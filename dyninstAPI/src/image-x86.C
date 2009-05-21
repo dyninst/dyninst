@@ -287,14 +287,15 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
 }
 
 bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
-                       instruction &branchInsn, 
+                       instruction &branchInsn, bool &found_along_taken_br,
                        const std::set<Dyninst::InstructionAPI::RegisterAST::Ptr>& /*regsRead*/)
 {
-using namespace Dyninst::InstructionAPI;
+   using namespace Dyninst::InstructionAPI;
 
     BPatch_Set<image_basicBlock *> visited;
     pdvector<image_basicBlock *> WL;
     pdvector<image_edge *> sources;
+   pdvector<image_edge *> targets;
     image_basicBlock *curBlk;
     int depth = 0;
 
@@ -348,25 +349,45 @@ using namespace Dyninst::InstructionAPI;
                             }
                     }
 #else
+            parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
+                           *iter);
                 maxSwitch = iter.getInstruction();
                 maxSwitchAddr = *iter;
                 foundMaxSwitch = true;
 #endif
             }
-            if( iter.getInstruction().type() & IS_JCC ) {
+         if (iter.getInstruction().type() & IS_JCC) {
                 parsing_printf("\tFound jmp table cond br instruction at 0x%lx\n",
                     *iter);
                 branchInsn = iter.getInstruction();
                 foundCondBranch = true;
+
+            targets.clear();
+            curBlk->getTargets(targets);
+            bool taken_hit = false;
+            bool fallthrough_hit = false;
+            for (unsigned i=0; i<targets.size(); i++) {
+               if (targets[i]->getType() == ET_COND_TAKEN &&
+                   visited.contains(targets[i]->getTarget()))
+               {
+                  taken_hit = true;
+               }
+               if ((targets[i]->getType() == ET_COND_NOT_TAKEN ||
+                    targets[i]->getType() == ET_FALLTHROUGH) &&
+                   visited.contains(targets[i]->getTarget()))
+               {
+                  taken_hit = true;
+               }
+            }
+            found_along_taken_br = taken_hit && !fallthrough_hit;
                 break;
             }
             iter++;
         }
 
-        if(foundMaxSwitch && foundCondBranch) {
-            // done
-            break; 
-        } else {
+      if(foundMaxSwitch && foundCondBranch)
+         break; // done
+
             // look further back
             sources.clear();
             curBlk->getSources( sources );
@@ -385,7 +406,6 @@ using namespace Dyninst::InstructionAPI;
                 }
             }
         }
-    }
 #if defined (cap_use_pdvector)
     WL.zap();
 #else
@@ -575,17 +595,22 @@ bool image_func::archGetMultipleJumpTargets(
     pdvector< image_edge* > in;
     currBlk->getSources( in );
 
+   if (archIsIPRelativeBranch(ah)) {
+      return false;
+   }
+     
     Address tableInsnAddr;
+   Address jumpAddr = *ah;
 
     if( in.size() < 1 )
     {
       return false;
     }
-    else {
         // Assume that the table base address is calculated in the
         // branch instruction (encoded using SIB)
         instruction tableInsn = ah.getInstruction();
         bool isAddInJmp = true;
+   bool foundJccAlongTaken;
         tableInsnAddr = *ah;
 
         // branchInsn refers to the conditional branch that guards
@@ -659,7 +684,7 @@ bool image_func::archGetMultipleJumpTargets(
            This routine finds the comparison & conditional branch that guard
            the jump table.
         */
-        bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn, regsRead);
+   bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn, foundJccAlongTaken, regsRead);
 
         // Searches for a thunk (call-thunk or rip-relative LEA as one
         // sees on x86-64). thunkOffset is filled in with the /base address
@@ -671,7 +696,7 @@ bool image_func::archGetMultipleJumpTargets(
             parsing_printf("\tunable to fix max switch size\n");
             return false;
         }
-        else {
+ 
             parsing_printf("\ttableInsn at 0x%lx\n",tableInsnAddr);
             if(thunkOffset) {
                 parsing_printf("\tThunk-calculated table base address: 0x%lx\n",
@@ -690,7 +715,8 @@ bool image_func::archGetMultipleJumpTargets(
             //     thunkOffset to the base from tableInsn). This path
             //     of code is probably a bug but I don't know for sure.
             if( !ah.getMultipleJumpTargets( targets, tableInsn, 
-					  maxSwitch, branchInsn, isAddInJmp, thunkOffset ))
+                                   maxSwitch, branchInsn, isAddInJmp, 
+                                   foundJccAlongTaken, thunkOffset))
             {
                 return false;
             }
@@ -698,14 +724,12 @@ bool image_func::archGetMultipleJumpTargets(
             {
                 return targets.size() > 0;
             }
-        }
-    }
 }
 
 bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 {
    ExceptionBlock b;
-//    Symtab obj = img()->getObject();
+  //    Symtab obj = img()->getObject();
     if (img()->getObject()->findCatchBlock(b,a)) {
         catchStart = b.catchStart();
         return true;
