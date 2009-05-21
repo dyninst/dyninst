@@ -686,23 +686,7 @@ bool dynamic_linking::initialize() {
     r_debug_addr += ld_base;
 
     assert( r_debug_addr );
-    
-    /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
-    vector<Function *> funcs;
 
-    if (!ldsoOne->findFunctionsByName(funcs, "_dl_map_object")) {
-        startup_printf("Failed to find _dl_map_object, ret false from dyn::init\n");
-        return false;
-    }
-
-    if (funcs.size() != 1) {
-        startup_printf("Found %d symbols for _dl_map_object, expecting 1, ret false from dyn::init\n", funcs.size());
-        return false;
-    }
-    
-    dlopen_addr = funcs[0]->getOffset() + ld_base;
-    assert( dlopen_addr );
-    
     dynlinked = true;
 
     return true;
