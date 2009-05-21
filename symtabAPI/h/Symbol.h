@@ -138,26 +138,7 @@ class Symbol : public Serializable,
                          bool d = false,
                          bool a = false,
 			 int index= -1,
-			 int strindex = -1):
-       module_(module),
-       type_(t),
-       linkage_(l),
-       visibility_(v),
-       offset_(o),
-       region_(r),
-       size_(s),
-       isDynamic_(d),
-       isAbsolute_(a),
-       aggregate_(NULL),
-       mangledName_(name),
-       prettyName_(name),
-       typedName_(name),
-       tag_(TAG_UNKNOWN),
-       index_(index),
-       strindex_(strindex){
-
-   }
-
+			 int strindex = -1);
    SYMTAB_EXPORT ~Symbol();
 
    SYMTAB_EXPORT bool          operator== (const Symbol &) const;
