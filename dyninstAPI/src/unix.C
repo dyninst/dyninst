@@ -972,14 +972,39 @@ void reportPreloadError(const std::string &msg)
 
 // Setup the environment for preloading our runtime library
 // Modify pnum_entries and envs if not null, putenv otherwise
-bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
+bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries, std::string file)
 {
    unsigned num_entries = *pnum_entries;
-   char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
+   bool use_abi_rt = false;
+   std::string full_name;
+#if defined(arch_x86_64)
+   Symtab *symt_obj;
+   bool result = SymtabAPI::Symtab::openFile(symt_obj, file);
+   if (!result) {
+     return false;
+   }
+   use_abi_rt = (symt_obj->getAddressWidth() == 4);
+#endif
+
+   const char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
    if (rt_lib_name == 0) {
       reportPreloadError(std::string("setEnvPreload: DYNINSTAPI_RT_LIB is "
                "undefined"));
       return false;
+   }
+   if (use_abi_rt) {
+     const char *slash = P_strrchr(rt_lib_name, '/');
+     if (!slash)
+       slash = P_strrchr(rt_lib_name, '\\');
+     if (!slash)
+       return false;
+     const char *dot = P_strchr(slash, '.');
+     if (!dot)
+       return false;
+     full_name = std::string(rt_lib_name, dot - rt_lib_name) +
+       std::string("_m32") +
+       std::string(dot);
+     rt_lib_name = full_name.c_str();
    }
    // Check to see if the library given exists.
    if (access(rt_lib_name, R_OK)) {
@@ -988,7 +1013,6 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
       reportPreloadError(msg);
       return false;
    }
-
    const char *var_name = "LD_PRELOAD";
    if (envs != 0) {
       // Check if some LD_PRELOAD is already part of the environment.
@@ -1146,11 +1170,11 @@ bool forkNewProcess_real(std::string file,
          num_envs_entries = envp->size();
          envs[num_envs_entries] = NULL;
       }
-#if (defined(os_linux) && !defined(arch_x86_64)) || defined(os_solaris)
+#if (defined(os_linux) || defined(os_solaris))
       // Platforms that use LD_PRELOAD. We exclude x86_64 since we do
       // not yet know which kind of the RT lib to load (we determine
       // whether the mutatee is 32 or 64-bit only after starting it).
-      if (!setEnvPreload(max_envs_entries, envs, &num_envs_entries)) {
+      if (!setEnvPreload(max_envs_entries, envs, &num_envs_entries, file)) {
          P__exit(-1);
       }
 #endif
