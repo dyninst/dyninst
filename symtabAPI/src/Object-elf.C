@@ -419,8 +419,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   Elf_X_Shdr *scnp;
    
   foundDynamicSection = false;
-  int dynamic_section_index = 0;
-  unsigned int dynamic_section_type;
+  int dynamic_section_index = -1;
+  unsigned int dynamic_section_type = 0;
   size_t dynamic_section_size = 0;
   for (int i = 0; i < elfHdr.e_shnum();++i) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
@@ -449,7 +449,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     }	
   }
 
-  if (dynamic_section_index != 0) {
+#if !defined(os_solaris)
+  if (dynamic_section_index != -1) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(dynamic_section_index) );
     Elf_X_Data data = scnp->get_data();
     Elf_X_Dyn dynsecData = data.get_dyn();
@@ -532,6 +533,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       it++;
     }
   }
+#endif 
     
   for (int i = 0; i < elfHdr.e_shnum() + elfHdrForDebugInfo.e_shnum(); ++i) {
     const char *name;
@@ -671,13 +673,24 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     } else if (strcmp(name, STABSTR_NAME) == 0) {
       stabstrscnp = scnp;
       stabstr_off_ = scnp->sh_offset();
-    } else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
+    } 
+#if !defined(os_solaris)
+    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
 	       secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
       rel_plt_scnp = scnp;
       rel_plt_addr_ = scnp->sh_addr();
       rel_plt_size_ = scnp->sh_size();
       rel_plt_entry_size_ = scnp->sh_entsize();
     }
+#else
+    else if ((strcmp(name, REL_PLT_NAME) == 0) || 
+             (strcmp(name, REL_PLT_NAME2) == 0)) {
+      rel_plt_scnp = scnp;
+      rel_plt_addr_ = scnp->sh_addr();
+      rel_plt_size_ = scnp->sh_size();
+      rel_plt_entry_size_ = scnp->sh_entsize();
+    }
+#endif
     else if (strcmp(name, PLT_NAME) == 0) {
       plt_scnp = scnp;
       plt_addr_ = scnp->sh_addr();
@@ -731,6 +744,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
 #endif
     }
+#if !defined(os_solaris)
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
 	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {
       is_dynamic_ = true;
@@ -742,6 +756,17 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       dynstr_scnp = scnp;
       dynstr_addr_ = scnp->sh_addr();
     }
+#else
+    else if (strcmp(name, DYNSYM_NAME) == 0) {
+      is_dynamic_ = true;
+      dynsym_scnp = scnp;
+      dynsym_addr_ = scnp->sh_addr();
+    } else if (strcmp(name, DYNSTR_NAME) == 0) {
+      dynstr_scnp = scnp;
+      dynstr_addr_ = scnp->sh_addr();
+    }
+
+#endif
     else if (strcmp(name, ".debug_info") == 0) {
       dwarvenDebugInfo = true;
     }
@@ -812,11 +837,13 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   // sort the section headers by base address
   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 
+#if !defined(os_solaris)
   for (unsigned j = 0 ; j < regions_.size() ; j++) {
     if (secAddrTagMapping.find(regions_[j]->getRegionAddr()) != secAddrTagMapping.end()) {
       secTagRegionMapping[secAddrTagMapping[regions_[j]->getRegionAddr()]] = regions_[j];
     }
   }
+#endif
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
