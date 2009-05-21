@@ -129,6 +129,11 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
    //adr, insn.getTarget(adr));
    // calls to adr+5 are not really calls, they are used in 
    // dynamically linked libraries to get the address of the code.
+   if (ah.isADynamicCallInstruction()) {
+     parsing_printf("... Call 0x%lx is indirect\n", adr);
+     validTarget = false;
+     return true;
+   }
    if (insn.getTarget(adr) == adr + 5) {
        parsing_printf("... getting PC\n");
        // XXX we can do this like on sparc, but we don't need to: we do it
@@ -162,7 +167,7 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
    Address targetOffset = insn.getTarget(adr);
  
    if ( !img()->isValidAddress(targetOffset) ) {
-       parsing_printf("... Call to 0x%x is invalid (outside code or data)\n",
+       parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
        targetOffset);
        validTarget = false;
        return false;

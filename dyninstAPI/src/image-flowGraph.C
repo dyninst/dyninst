@@ -934,14 +934,6 @@ bool image_func::buildCFG(
 
                 BPatch_Set< Address > targets;
                 BPatch_Set< Address >::iterator iter;
-				if( archIsIPRelativeBranch(ah))
-				{
-					processJump(ah, currBlk, 
-						funcBegin, funcEnd, allInstructions, leaders, worklist,
-						leadersToBlock, pltFuncs);
-					break;
-				}
-
                
                 // get the list of targets
                 if(!archGetMultipleJumpTargets(targets,currBlk,ah,
