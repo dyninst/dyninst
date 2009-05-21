@@ -301,7 +301,7 @@ bool Region::patchData(Offset off, void *buf, unsigned size)
 bool Region::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType, 
       Region::RegionType rtype)
 {
-    rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType, rtype));
+    rels_.push_back(relocationEntry(ra, dynref->getMangledName(), dynref, relType, rtype));
     return true;
 }
 

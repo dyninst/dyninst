@@ -434,15 +434,15 @@ bool emitElf::driver(Symtab *obj, string fName){
     // resolve section name
     const char *name = &shnames[shdr->sh_name];
     obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    sectionNumber++;
-    changeMapping[sectionNumber] = 0;
-    oldIndexNameMapping[scncount+1] = string(name);
-    newNameIndexMapping[string(name)] = sectionNumber;
-
 
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
       continue;
+
+    sectionNumber++;
+    changeMapping[sectionNumber] = 0;
+    oldIndexNameMapping[scncount+1] = string(name);
+    newNameIndexMapping[string(name)] = sectionNumber;
 
     newscn = elf_newscn(newElf);
     newshdr = elf32_getshdr(newscn);
@@ -560,7 +560,7 @@ bool emitElf::driver(Symtab *obj, string fName){
       extraAlignSize += newOff - newshdr->sh_offset;
       newshdr->sh_offset = newOff;
     }
-	
+    
     secLinkMapping[sectionNumber] = shdr->sh_link; 
     secInfoMapping[sectionNumber] = shdr->sh_info; 
 
@@ -569,6 +569,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     if (shdr->sh_addr+shdr->sh_size == dataSegEnd && !createdLoadableSections) {
       createdLoadableSections = true;
       insertPoint = scncount;
+      
       if(!createLoadableSections(newshdr, loadSecTotalSize, extraAlignSize, newNameIndexMapping, sectionNumber))
 	return false;
     }
@@ -586,8 +587,41 @@ bool emitElf::driver(Symtab *obj, string fName){
   // Second iteration to fix the link fields to point to the correct section
   scn = NULL;
 
+  //fprintf(stderr, "======== changeMapping ===========\n");
+  
+  for(dyn_hash_map<unsigned, unsigned>::iterator current = changeMapping.begin();
+      current != changeMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%d => %d\n", current->first, current->second);
+  }
+  //fprintf(stderr, "======== secLinkMapping ===========\n");
+  
+  for(dyn_hash_map<unsigned, unsigned>::iterator current = secLinkMapping.begin();
+      current != secLinkMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%d => %d\n", current->first, current->second);
+  }
+  //fprintf(stderr, "======== oldIndexNameMapping ===========\n");
+  
+  for(dyn_hash_map<unsigned, string>::iterator current = oldIndexNameMapping.begin();
+      current != oldIndexNameMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%d => %s\n", current->first, current->second.c_str());
+  }
+  //fprintf(stderr, "======== newNameIndexMapping ===========\n");
+  
+  for(dyn_hash_map<string, unsigned>::iterator current = newNameIndexMapping.begin();
+      current != newNameIndexMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%s => %d\n", current->first.c_str(), current->second);
+  }  
   for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++){
     shdr = elf32_getshdr(scn);
+    
     if (changeMapping[scncount+1] == 0 && secLinkMapping[scncount+1] != 0) {
       unsigned linkIndex = secLinkMapping[scncount+1];
       string secName = oldIndexNameMapping[linkIndex];
@@ -1244,6 +1278,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
 	    newdata64->d_type = ELF_T_SYM;
 	  else
 	    newdata->d_type = ELF_T_SYM;
+	  
 	  newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab 
 	  newshdr->sh_flags=  0;
 	}
@@ -1372,9 +1407,9 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
 
     if (allDynSymbols[i]->getStrIndex() == -1) {
       // New Symbol - append to the list of strings
-      dynsymbolStrs.push_back( allDynSymbols[i]->getName().c_str());
+      dynsymbolStrs.push_back( allDynSymbols[i]->getMangledName().c_str());
       allDynSymbols[i]->setStrIndex(dynsymbolNamesLength);
-      dynsymbolNamesLength += allDynSymbols[i]->getName().length() + 1;
+      dynsymbolNamesLength += allDynSymbols[i]->getMangledName().length() + 1;
     } 
 
   }	
@@ -1794,18 +1829,21 @@ void emitElf::createHashSection(Elf32_Word *&hashsecData, unsigned &hashsecSize,
   hashsecData[0] = (Elf32_Word)nbuckets;
   hashsecData[1] = (Elf32_Word)nchains;
   i = 0;
-  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
+  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
+    if((*iter)->getName().empty()) continue;
+    if((*iter)->getRegion() == NULL) continue;
+    
     key = elfHash((*iter)->getName().c_str()) % nbuckets;
-    //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
     if (lastHash.find(key) != lastHash.end()) {
       hashsecData[2+nbuckets+lastHash[key]] = i;
+      //printf("hash entry:  %d: %s  =>  %u (%u)\n", (*iter)->getIndex(), (*iter)->getName().c_str(), key, nbuckets+lastHash[key]);
     }
     else {
       hashsecData[2+key] = i;
+      //printf("hash entry:  %d: %s  =>  %u (directly in bucket)\n", (*iter)->getIndex(), (*iter)->getName().c_str(), key);
     }
     lastHash[key] = i;
     hashsecData[2+nbuckets+i] = STN_UNDEF;
-    i++;
   }
 }
 
