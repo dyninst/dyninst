@@ -39,176 +39,213 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include "analyzePDG.h"
+
 #include <set>
 #include <map>
 
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 #include "Graph.h"
+#include "analyzeDDG.h"
+#include "analyzeCDG.h"
 
-#include "analyzePDG.h"
 #include "BPatch_function.h"
 #include "Annotatable.h"
 
+#include "instructionAPI/h/Register.h"
+
 using namespace std;
 using namespace Dyninst;
+using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::DepGraphAPI;
+using namespace dyn_detail::boost;
 
-DDG::Ptr PDGAnalyzer::analyze() {
-    return DDG::createGraph();
-}
+// Annotation type for storing PDGs.
+AnnotationClass<PDG::Ptr> PDGAnno(std::string("PDGAnno"));
 
-#if 0
+// Constructor. Copies given function into internal structure.
+PDGAnalyzer::PDGAnalyzer(Function *f) : func_(f) {}
 
-intraFunctionPDGCreator
-intraFunctionPDGCreator::create(
-    Function *func) {
-  intraFunctionPDGCreator creator(func);
-  return creator;
-}
+// Creates a PDG for the given function.
+PDG::Ptr PDGAnalyzer::analyze() {
+    // No function, no PDG!
+    if (func_ == NULL) return PDG::Ptr();
 
-// Handle the annotation interface
-AnnotationClass <Graph::Ptr> PDGAnno(string("PDGAnno"));
-
-Graph::Ptr intraFunctionPDGCreator::getPDG() {
-  if (func == NULL) return GraphPtr();
-
-  // Check to see if we've already analyzed this graph
-  // and if so return the annotated version.
-  GraphPtr *ret;
-  func->getAnnotation(ret, PDGAnno);
-  if (ret) return *ret;
-
-  // Perform analysis
-  analyze();
-  
-  // Store the annotation
-  // The annotation interface takes raw pointers. Give it a
-  // smart pointer pointer.
-  GraphPtr *ptr = new GraphPtr(PDG);
-  func->addAnnotation(ptr, PDGAnno);
-
-  return PDG;
-}
-
-void intraFunctionPDGCreator::analyze() {
-  // Get a handle to the DDG.
-  intraFunctionDDGCreator ddgCreator = intraFunctionDDGCreator::create(func);
-  GraphPtr ddg = ddgCreator.getDDG();
-  
-  // Copy DDG and put the result in PDG.
-  PDG = ddg->copyGraph();
-  
-  // merge CDG with DDG which is currently stored in PDG.
-  mergeCDG();
-}
-
-/**
- * Creates an edge from each source to each target and puts them in PDG.
- */
-void createEdges(Graph::Ptr graph, set<Node::Ptr>& sources, set<Node::Ptr>& targets) {
-  typedef set<Node::Ptr>::iterator NodeIter;
-  for (NodeIter sourceIter = sources.begin(); sourceIter != sources.end(); sourceIter++) {
-    Node::Ptr source = *sourceIter;
-    for (NodeIter targetIter = targets.begin(); targetIter != targets.end(); targetIter++) {
-      Node::Ptr target = *targetIter;
-      graph->insertPair(source, target);
+    // Check the annotations. Did we compute the graph before?
+    PDG::Ptr *ret;
+    func_->getAnnotation(ret, PDGAnno);
+    if (ret) {
+        // yes, we did. Return it.
+        pdg = *ret;
+        return pdg;
     }
-  }
+
+    // What we really want to hand into this is a CFG... for
+    // now, the set of blocks will suffice.
+    BlockSet blocks;
+    func_->getCFG()->getAllBasicBlocks(blocks);
+
+    // Create an empty graph
+    pdg = PDG::createGraph();
+
+    // merge with the DDG of this function.
+    mergeWithDDG();
+    // and with the CDG of this function.
+    mergeWithCDG();
+
+    // Store as an annotation and return
+    PDG::Ptr *ptr = new PDG::Ptr(pdg);
+    func_->addAnnotation(ptr, PDGAnno);
+
+    return pdg;
 }
 
-/**
- * Merges gr2 into gr1. It handles the case where more than one node represents a single
- * instruction.
- */
-void merge(Graph::Ptr gr1, Graph::Ptr gr2) {
-  typedef set<Node::Ptr> NodeSet;
-  typedef set<Edge::Ptr> EdgeSet;
-  typedef NodeSet::iterator NodeIter;
-  typedef EdgeSet::iterator EdgeIter;
+void PDGAnalyzer::mergeWithDDG() {
+    // find the entry node first
+    NodePtr virtEntryNode = pdg->virtualEntryNode();
 
-  NodeSet gr2Nodes;
-  gr2->allNodes(gr2Nodes);
-  for (NodeIter nodeIter = gr2Nodes.begin(); nodeIter != gr2Nodes.end(); nodeIter++) {
-    Node::Ptr node = *nodeIter;
+    // node map so that we can find the nodes created in the first pass during the second pass.
+    NodeMap nodeMap;
 
-    // find set of nodes in first graph which have the same address as 'node'
-    NodeSet sources = gr1->getNodesAtAddr(node->addr());
+    // get the DDG and its nodes.
+    Graph::Ptr ddg = DDG::analyze(func_);
+    NodeIterator ddgBegin, ddgEnd;
+    ddg->allNodes(ddgBegin, ddgEnd);
 
-    // get list of targets of this node
-    EdgeSet outEdges;
-    node->outs(outEdges);
-    for (EdgeIter iter = outEdges.begin(); iter != outEdges.end(); iter++) {
-      Node::Ptr target = (*iter)->target();
-      // find set of nodes in first graph which have the same address as 'target'
-      NodeSet targets = gr1->getNodesAtAddr(target->addr());;
+    // Pass 1: create all DDG nodes in PDG
+    for (NodeIterator ddgIter = ddgBegin; ddgIter != ddgEnd; ddgIter++) {
+        Node::Ptr node = *ddgIter;
+        // skip the virtual node
+        VirtualNode::Ptr virtNode = dynamic_pointer_cast<VirtualNode>(node);
+        if (virtNode) {
+            continue;
+        }
 
-      // create edges between sources and targets
-      createEdges(gr1, sources, targets);
+        // copy the node and add to the graph
+        NodePtr nodeCopy = node->copy();
+        nodeMap[node.get()] = nodeCopy;
+        pdg->addNode(nodeCopy);
+        pdg->insertPair(virtEntryNode, nodeCopy);
     }
-  }
-}
 
-void intraFunctionPDGCreator::mergeCDG() {
-  typedef EdgeSet::iterator EdgeIter;
-  intraFunctionCDGCreator cdgCreator = intraFunctionCDGCreator::create(func);
-  GraphPtr cdg = cdgCreator.getCDG();
+    // Pass 2: create the edges!
+    for (NodeIterator ddgIter = ddgBegin; ddgIter != ddgEnd; ddgIter++) {
+        Node::Ptr node = *ddgIter;
+        // skip the virtual node
+        VirtualNode::Ptr virtNode = dynamic_pointer_cast<VirtualNode>(node);
+        if (virtNode) {
+            continue;
+        }
+        // get the copy of the ddg node
+        NodePtr sourceCopy = nodeMap[node.get()];
+        assert(sourceCopy);
 
-  merge(PDG, cdg);
-}
+        // get list of targets of this node
+        NodeIterator outsBegin, outsEnd;
+        node->outs(outsBegin, outsEnd);
+        for (NodeIterator outsIter = outsBegin; outsIter != outsEnd; outsIter++) {
+            // get the copy of the ddg node
+            Node::Ptr target = *outsIter;
+            NodePtr targetCopy = nodeMap[target.get()];
+            assert(targetCopy);
 
-/**************************************************************************************************/
-/*************************  xPDG: Extended Program Dependence Graph   *****************************/
-// Handle the annotation interface
-AnnotationClass <Graph::Ptr> xPDGAnno(string("xPDGAnno"));
-
-intraFunctionXPDGCreator intraFunctionXPDGCreator::create(Function *func) {
-  intraFunctionXPDGCreator creator(func);
-  return creator;
-}
-
-Graph::Ptr intraFunctionXPDGCreator::getXPDG() {
-  if (func == NULL) return GraphPtr();
-
-  // Check to see if we've already analyzed this graph
-  // and if so return the annotated version.
-  GraphPtr *ret;
-  func->getAnnotation(ret, xPDGAnno);
-  if (ret) return *ret;
-
-  // Perform analysis
-  analyze();
-  
-  // Store the annotation
-  // The annotation interface takes raw pointers. Give it a
-  // smart pointer pointer.
-  GraphPtr *ptr = new GraphPtr(xPDG);
-  func->addAnnotation(ptr, xPDGAnno);
-
-  return xPDG;
-}
-
-void intraFunctionXPDGCreator::analyze() {
-  // Get a handle to the PDG.
-  intraFunctionPDGCreator pdgCreator = intraFunctionPDGCreator::create(func);
-  GraphPtr pdg = pdgCreator.getPDG();
-
-  // Copy it into xPDG.
-  xPDG = pdg->copyGraph();
-  
-  // Merge FDG with PDG that is currently stored in xPDG.
-  mergeFDG();
+            // now add an edge between these two copy nodes
+            pdg->insertPair(sourceCopy, targetCopy);
+        }
+    }
 }
 
 /**
- * Merges FDG with PDG that is currently stored in xPDG.
+ * Helper Method:
+ * Creates an edge from source to each target and puts them in PDG.
  */
-void intraFunctionXPDGCreator::mergeFDG() {
-  // Get a handle to the FDG.
-  intraFunctionFDGCreator fdgCreator = intraFunctionFDGCreator::create(func);
-  GraphPtr fdg = fdgCreator.getFDG();
-  
-  // Merge it with xPDG.
-  merge(xPDG, fdg);
+void PDGAnalyzer::createEdges(Graph::Ptr graph, Node::Ptr source,
+        NodeIterator targetsBegin, NodeIterator targetsEnd) {
+    for (NodeIterator targetIter = targetsBegin; targetIter != targetsEnd; targetIter++) {
+        Node::Ptr target = *targetIter;
+        graph->insertPair(source, target);
+    }
 }
 
-#endif
+void PDGAnalyzer::mergeWithCDG() {
+    typedef vector<Instruction>::iterator InsIter;
+
+    // get the CDG and all of its nodes.
+    Graph::Ptr cdg = CDG::analyze(func_);
+    NodeIterator cdgBegin, cdgEnd;
+    cdg->allNodes(cdgBegin, cdgEnd);
+    // Iterate over nodes in CDG (Basic Blocks).
+    // For each block, find the outgoing edges of this block. If there is an outgoing edge,
+    // the last instruction of this block *must* be a branch instruction with more than one
+    // targets. Create edges from this branch instruction to *all* instructions in all
+    // blocks that are in the outgoing blocks list.
+    for (NodeIterator cdgIter = cdgBegin; cdgIter != cdgEnd; cdgIter++) {
+        // skip the virtual node in CDG.
+        VirtualNode::Ptr virtNode = dynamic_pointer_cast<VirtualNode>(*cdgIter);
+        if (virtNode) {
+            continue;
+        }
+        // This node has to be a block node if not virtual
+        BlockNode::Ptr node = dynamic_pointer_cast<BlockNode>(*cdgIter);
+        assert(node);
+
+        // skip if there are no dependencies!
+        NodeIterator targetsBegin, targetsEnd;
+        node->outs(targetsBegin, targetsEnd);
+        if (targetsBegin == targetsEnd) {
+            continue;
+        }
+
+        Block* block = node->block();
+
+        // find last instruction in block
+        vector<Instruction> insns;
+        block->getInstructions(insns);
+        Address lastInstAddr = (Address) (block->getEndAddress() - insns[insns.size() - 1].size());
+
+        // Find the node that is related to the EIP register.
+        NodeIterator sourcesBegin, sourcesEnd;
+        pdg->Graph::find(lastInstAddr, sourcesBegin, sourcesEnd);
+        NodePtr source;
+        assert(sourcesBegin != sourcesEnd);
+        for (NodeIterator sIter = sourcesBegin; sIter != sourcesEnd; sIter++) {
+            OperationNode::Ptr opNode = dynamic_pointer_cast<OperationNode>(*sIter);
+            if (opNode) {
+                RegisterLoc::Ptr regLoc = dynamic_pointer_cast<RegisterLoc>(opNode->absloc());
+                if (regLoc) {
+                    RegisterAST::Ptr regAst = regLoc->getReg();
+                    if (regAst->getID() == r_EIP) {
+                        source = *sIter;
+                    }
+                }
+            }
+        }
+        // The source has to be set. If not, there is a problem!
+        assert(source);
+
+        // Now create an edge from the source to *all* instructions in all
+        // blocks that are in the outgoing blocks list.
+        for (NodeIterator targetIter = targetsBegin; targetIter != targetsEnd; targetIter++) {
+            BlockNode::Ptr targetNode = dynamic_pointer_cast<BlockNode>(*targetIter);
+            assert(targetNode);
+
+            Block* targetBlock = targetNode->block();
+            // for each instruction in block
+            vector<Instruction> targetInsns;
+            targetBlock->getInstructions(targetInsns);
+            Address targetAddr = (Address) targetBlock->getStartAddress();
+            for (InsIter insIter = targetInsns.begin(); insIter != targetInsns.end(); insIter++) {
+                // find all versions -> one set of targets
+                NodeIterator targetsBegin, targetsEnd;
+                pdg->Graph::find(targetAddr, targetsBegin, targetsEnd);
+
+                // create edges from source to targets
+                createEdges(pdg, source, targetsBegin, targetsEnd);
+
+                // increment the address by the size of this instruction
+                targetAddr += (*insIter).size();
+            }
+        }
+    }
+}

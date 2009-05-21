@@ -108,6 +108,10 @@ Node::Ptr PhysicalNode::createNode(Address addr) {
     return Node::Ptr(new PhysicalNode(addr));
 }
 
+Node::Ptr PhysicalNode::copy() {
+    return Node::Ptr(new PhysicalNode(addr()));
+}
+
 std::string PhysicalNode::format() const {
     char buf[256];
     sprintf(buf, "N_0x%lx", addr());
@@ -115,6 +119,10 @@ std::string PhysicalNode::format() const {
 }
 
 Node::Ptr VirtualNode::createNode() {
+    return Node::Ptr(new VirtualNode());
+}
+
+Node::Ptr VirtualNode::copy() {
     return Node::Ptr(new VirtualNode());
 }
 

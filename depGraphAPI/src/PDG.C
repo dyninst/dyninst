@@ -29,38 +29,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include <set>
-#include <list>
-#include <queue>
-#include "Annotatable.h"
-#include "Instruction.h"
-#include "Node.h"
-#include "Absloc.h"
-#include "Graph.h"
-#include "DepGraphNode.h"
-
-#include "DDG.h"
-#include "CDG.h"
 #include "PDG.h"
 
-#include "analyzeDDG.h"
-#include "analyzeCDG.h"
-// #include "analyzePDG.h"
+#include "Node.h"
+#include "analyzePDG.h"
 
-#include "BPatch_function.h"
+class BPatch_function;
 
-using namespace Dyninst;
-using namespace DepGraphAPI;
+using namespace Dyninst::DepGraphAPI;
 
+PDG::PDG() :
+        virtEntryNode_(VirtualNode::createNode()) {
+    insertEntryNode(virtEntryNode_);
+}
 
 PDG::Ptr PDG::analyze(Function *func) {
-    CDGAnalyzer cdgA(func);
-    DDGAnalyzer ddgA(func);
-
-    PDG::Ptr pdg = PDG::createGraph();
-    pdg->ddg_ = ddgA.analyze();
-    pdg->cdg_ = cdgA.analyze();
-
+    PDGAnalyzer pdgA(func);
+    PDG::Ptr pdg = pdgA.analyze();
     return pdg;
 }

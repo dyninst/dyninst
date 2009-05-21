@@ -112,6 +112,7 @@ class RegisterLoc : public Absloc {
     // We have precise information about all registers.
     virtual AbslocSet getAliases() const { return AbslocSet(); }
     virtual bool isPrecise() const { return true; }
+    const InstructionAPI::RegisterAST::Ptr getReg() { return reg_; }
  private:
     RegisterLoc(const InstructionAPI::RegisterAST::Ptr reg) : reg_(reg) {};
     

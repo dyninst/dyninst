@@ -66,6 +66,7 @@ class OperationNode : public PhysicalNode {
     bool isVirtual() const { return false; }
 
     virtual ~OperationNode() {};
+    virtual Node::Ptr copy();
     
  private:
     OperationNode(Address addr, Absloc::Ptr absloc) :
@@ -77,7 +78,7 @@ class OperationNode : public PhysicalNode {
 };
 
 
-class BlockNode : public PhysicalNode {
+class BlockNode : public Node {
 
  typedef BPatch_basicBlock Block;
 
@@ -95,6 +96,11 @@ class BlockNode : public PhysicalNode {
     bool isVirtual() const { return false; }
 
     virtual ~BlockNode() {};
+    
+    virtual Address addr() const;
+    
+    virtual Block *block() { return block_; }
+    virtual Node::Ptr copy();
     
  private:
     BlockNode(Block *b);
@@ -139,6 +145,7 @@ class FormalParamNode : public FormalNode {
     virtual std::string format() const;
     
     virtual ~FormalParamNode() {};
+    virtual Node::Ptr copy();
     
  private:
     FormalParamNode(Absloc::Ptr a) :
@@ -157,6 +164,7 @@ class FormalReturnNode : public FormalNode {
     virtual std::string format() const;
     
     virtual ~FormalReturnNode() {};
+    virtual Node::Ptr copy();
     
  private:
     FormalReturnNode(Absloc::Ptr a) :
@@ -203,7 +211,7 @@ class ActualParamNode : public ActualNode {
     
     virtual std::string format() const;
     virtual ~ActualParamNode() {};
-    
+    virtual Node::Ptr copy();
  private:
     ActualParamNode(Address addr, 
                     Function *func,
@@ -220,7 +228,7 @@ class ActualReturnNode : public ActualNode {
     
     virtual std::string format() const;
     virtual ~ActualReturnNode() {};
-    
+    virtual Node::Ptr copy();
  private:
     ActualReturnNode(Address addr, 
                      Function *func,
@@ -239,7 +247,8 @@ class CallNode : public Node {
     virtual std::string format() const;
     virtual bool isVirtual() const { return true; }
     virtual ~CallNode() {};
-    
+    Function *func() const { return func_; }    
+    virtual Node::Ptr copy();
  private:
     CallNode(Function *func) : 
         func_(func) {};

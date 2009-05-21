@@ -39,89 +39,56 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef CONTROLFLOWFIXER_H_
-#define CONTROLFLOWFIXER_H_
+#ifndef INTRAFUNCTIONXPDGCREATOR_H_
+#define INTRAFUNCTIONXPDGCREATOR_H_
 
 #include <map>
-
 #include "Node.h"
-#include "FDG.h"
+#include "xPDG.h"
 
-#include "Operation.h"
-
-class BPatch_basicBlock;
 class BPatch_function;
+
+using namespace std;
 
 namespace Dyninst {
 namespace DepGraphAPI {
 
 /**
- * The tool that creates the Flow Dependence Graph (FDG) associated with a given 
- * function (currently BPatch_function).
+ * The tool that creates the Extended Program Dependence Graph (xPDG) associated with a given 
+ * function (currently BPatch_function). It creates a Program Dependency Graph (PDG)
+ * and a Flow Dependency Graph (FDG) using a PDGAnalyzer and
+ * an FDGAnalyzer. These graphs are merged to create an xPDG.
  */
-class FDGAnalyzer {
-    friend class xPDGAnalyzer;
+class xPDGAnalyzer {
+    typedef BPatch_function Function;
+
 public:
     typedef BPatch_basicBlock Block;
-    typedef std::set<Block*> BlockSet;
     typedef Node::Ptr NodePtr;
-    typedef std::set<NodePtr> NodeSet;
+    typedef map<Node*, NodePtr> NodeMap;
 
 private:
-    typedef BPatch_function Function;
-    typedef std::map<Block*, Node::Ptr> NodeMap;
-    typedef std::map<Block*, BlockSet> DependenceMap;
-  
-  /**
-   * Analyzed function
-   */
-  Function *func_;
-  
-  /**
-   * The Flow Dependence Graph
-   */
-  FDG::Ptr fdg;
-  
-  /**
-   * Maps each block A to a set of Block S which A depends on (for all S, A depends on S). 
-   */
-  DependenceMap blockToJumps;
-  
-  /**
-   * Set of blocks which ends with a jump/branch/return instruction.
-   */
-  BlockSet markedBlocks;
+    // Extended Program Dependence Graph.
+    xPDG::Ptr xpdg;
+
+    // Function  to be analyzed.
+    Function *func_;
+
+    // Gets the PDG for this function and copies it into xPDG.
+    void mergeWithPDG();
+    
+    // Gets the FDG for this function, converts it into sub-instruction level, and merges with the xPDG.
+    void mergeWithFDG();
 
 public:
-  FDGAnalyzer(Function *f) : func_(f) {};
+    // Creates an xPDGAnalyzer object that will be used to create an xPDG for the given function.
+    xPDGAnalyzer(Function *f);
 
-  /**
-   * Returns the FDG created by this intraFunctionCDGCreator object.
-   */
-  FDG::Ptr analyze();
-
-  ~FDGAnalyzer();
-
-protected:
-  /**
-   * Returns true iff this operation is a return or exit operation.
-   */
-  static bool isReturnOp(const Dyninst::InstructionAPI::Operation& opType);
-
-  /**
-   * Returns true iff this operation is a branch operation (including jumps) such as jnz, jnle, etc.
-   */
-  static bool isBranchOp(const Dyninst::InstructionAPI::Operation& opType);
-  
-private:
-  void createNodes(BlockSet &blocks);
-  Node::Ptr makeNode(NodeMap& nodeMap, Block* block);
-  void markBlocksWithJump(BlockSet &blocks);
-  void findDependencies(BlockSet &blocks);
-  void findBlocksRecursive(BlockSet& needThese, BlockSet& visited, Block* givenBlock);
+    // Analyze the function fed to the constructor and return its Extended Program Dependence Graph.
+    xPDG::Ptr analyze();
 };
 
 };
 };
 
-#endif /* CONTROLFLOWFIXER_H_ */
+#endif /* INTRAFUNCTIONXPDGCREATOR_H_ */
