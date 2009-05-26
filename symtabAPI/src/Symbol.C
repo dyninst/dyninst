@@ -470,6 +470,4 @@ Symbol::Symbol(const std::string name,
   index_(index),
   strindex_(strindex)
 {
-   if (region_)
-      getpid();
 }

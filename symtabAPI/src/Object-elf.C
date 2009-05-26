@@ -244,6 +244,8 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags){
     return Region::RT_DYNAMIC;
   case SHT_HASH:
     return Region::RT_HASH;
+  case SHT_NOBITS:
+    return Region::RT_BSS;
 #if !defined(os_solaris)            
   case SHT_GNU_versym:
     return Region::RT_SYMVERSIONS;
@@ -584,23 +586,23 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     //otherwise this is zero and sh_offset() gives the offset to the first byte 
     // in section.
     if (!scnp->isFromDebugFile()) {
-      allRegionHdrs.push_back( scnp );
-      if(scnp->sh_flags() & SHF_ALLOC) {
-	Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 
-				 scnp->sh_addr(), scnp->sh_size(), 
-				 (mem_image()+scnp->sh_offset()), 
-				 getRegionPerms(scnp->sh_flags()), 
-				 getRegionType(scnp->sh_type(), scnp->sh_flags()));
-            
-	regions_.push_back(reg);
-      }
-      else {
-	Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, 
-				 (mem_image()+scnp->sh_offset()), 
-				 getRegionPerms(scnp->sh_flags()), 
-				 getRegionType(scnp->sh_type(), scnp->sh_flags()));
-	regions_.push_back(reg);
-      }
+       allRegionHdrs.push_back( scnp );
+       if(scnp->sh_flags() & SHF_ALLOC) {
+          Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 
+                                   scnp->sh_addr(), scnp->sh_size(), 
+                                   (mem_image()+scnp->sh_offset()), 
+                                   getRegionPerms(scnp->sh_flags()), 
+                                   getRegionType(scnp->sh_type(), scnp->sh_flags()));
+          
+          regions_.push_back(reg);
+       }
+       else {
+          Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, 
+                                   (mem_image()+scnp->sh_offset()), 
+                                   getRegionPerms(scnp->sh_flags()), 
+                                   getRegionType(scnp->sh_type(), scnp->sh_flags()));
+          regions_.push_back(reg);
+       }
     }
 
     // section-specific processing
@@ -1641,10 +1643,10 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
       Region *sec;
       if(secNumber >= 1 && secNumber <= regions_.size())
-	sec = regions_[secNumber];
+         sec = regions_[secNumber];
       else
-	sec = NULL;
-         
+         sec = NULL;
+
       int ind = int (i);
       int strindex = syms.st_name(i);
       Symbol *newsym = new Symbol(sname, 
