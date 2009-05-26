@@ -197,6 +197,33 @@ Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr)
   return NULL;
 }
 
+/* binary search to find the index into the RegionHdrs vector
+   of the section starting at a partidular address*/
+int Object::getRegionHdrIndexByAddr(Offset addr) 
+{
+  int end = allRegionHdrs.size() - 1, start = 0;
+  int mid = 0; 
+  while(start < end) {
+    mid = start + (end-start)/2;
+    if(allRegionHdrs[mid]->sh_addr() == addr)
+      return mid;
+    else if(allRegionHdrs[mid]->sh_addr() < addr)
+      start = mid + 1;
+    else
+      end = mid;
+  }
+  if(allRegionHdrs[start]->sh_addr() == addr)
+    return start;
+  return -1;
+}
+
+Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index) 
+{
+  if (index >= allRegionHdrs.size())
+    return NULL;
+  return allRegionHdrs[index];
+}
+
 /* Check if there is a section which belongs to the segment and update permissions of that section.
  * Return value indicates whether the segment has to be added to the list of regions*/
 bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
@@ -676,7 +703,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     } 
 #if !defined(os_solaris)
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
-	       secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
+	     secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
       rel_plt_scnp = scnp;
       rel_plt_addr_ = scnp->sh_addr();
       rel_plt_size_ = scnp->sh_size();
@@ -876,13 +903,14 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
 {
   Elf_X_Data data = dyn_scnp->get_data();
   Elf_X_Dyn dyns = data.get_dyn();
-  Elf_X_Shdr *rel_scnp = NULL;
+  int rel_scnp_index = -1;
+
   for (unsigned i = 0; i < dyns.count(); ++i) {
     switch(dyns.d_tag(i)) {
     case DT_REL:
     case DT_RELA:
       /*found Relocation section*/
-      rel_scnp = getRegionHdrByAddr(dyns.d_ptr(i));
+      rel_scnp_index = getRegionHdrIndexByAddr(dyns.d_ptr(i));
       break;
     case DT_RELSZ:
     case DT_RELASZ:
@@ -896,8 +924,8 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
       break;
     }
   }
-  if (rel_scnp  != NULL)
-    get_relocationDyn_entries(rel_scnp, dynsym_scnp, dynstr_scnp);
+  if (rel_scnp_index  != -1)
+    get_relocationDyn_entries(rel_scnp_index, dynsym_scnp, dynstr_scnp);
 }
 #else
 void Object::parseDynamic(Elf_X_Shdr *&, Elf_X_Shdr *&,
@@ -909,23 +937,32 @@ void Object::parseDynamic(Elf_X_Shdr *&, Elf_X_Shdr *&,
 /* parse relocations for the sections represented by DT_REL/DT_RELA in
  * the dynamic section. This section is the one we would want to emit
  */
-bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
+bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
 					Elf_X_Shdr *&dynsym_scnp, 
 					Elf_X_Shdr *&dynstr_scnp )
 {
-  Elf_X_Data reldata = rel_scnp->get_data();
   Elf_X_Data symdata = dynsym_scnp->get_data();
   Elf_X_Data strdata = dynstr_scnp->get_data();
-	
-  if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
-    Elf_X_Sym sym = symdata.get_sym();
+  Elf_X_Shdr* rel_scnp = NULL;
+  if( !symdata.isValid() || !strdata.isValid()) 
+    return false;
+  const char *strs = strdata.get_string();
+  Elf_X_Sym sym = symdata.get_sym();
+
+  unsigned num_rel_entries_found = 0;
+
+  while (num_rel_entries_found != rel_size_/rel_entry_size_) {
+    rel_scnp = getRegionHdrByIndex(rel_scnp_index++);
+    Elf_X_Data reldata = rel_scnp->get_data();
+
+    if( ! reldata.isValid()) return false;
     Elf_X_Rel rel = reldata.get_rel();
     Elf_X_Rela rela = reldata.get_rela();
-    const char *strs = strdata.get_string();
 
     if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
       /* Iterate over the entries. */
-      for( u_int i = 0; i < (rel_size_/rel_entry_size_); ++i ) {
+      for( u_int i = 0; i < (reldata.d_size()/rel_entry_size_); ++i ) {
+	num_rel_entries_found++;
 	long offset;
 	long addend;
 	long index;
@@ -939,7 +976,7 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
 	  index = rel.R_SYM(i);
 	  type = rel.R_TYPE(i);
 	  break;
-
+	
 	case ELF_T_RELA:
 	  offset = rela.r_offset(i);
 	  addend = rela.r_addend(i);
@@ -963,10 +1000,12 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
 
 	relocation_table_.push_back(re);
       }
-      return true;
+    } else {
+      return false;
     }
+    
   }
-  return false;
+  return true;
 }
 
 bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
@@ -1604,7 +1643,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
       Offset soffset;
       if (symscnp->isFromDebugFile()) {
 	Offset soffset_dbg = syms.st_value(i);
-   soffset = soffset_dbg;
+	soffset = soffset_dbg;
 	if (soffset_dbg) {
 	  bool result = convertDebugOffset(soffset_dbg, soffset);
 	  if (!result) {
