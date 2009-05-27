@@ -300,46 +300,17 @@ void DDGAnalyzer::summarizeCallGenKill(const Insn &,
     
     Address placeholder = addr;
 
-    AbslocSet abslocs; 
+    // This will eventually make the decision of which mechanism to use to 
+    // summarize the call. 
 
     Function *callee = getCallee(addr);
-    //if (!callee) {
-        getABIDefinedAbslocs(abslocs);
-        //}
-        //else {
-        //assert(0);
-        //}
 
-    for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
-        Absloc::Ptr D = *iter;
-        // We need to make a virtual node on our side
-        // representing the definition made by the child.
-        // For now, that's a cNode...
+    summarizeABIGenKill(placeholder, callee, gens, kills);
 
-        // If we're not precise assume there is no overlap
-        // with the current function. 
-        if (!D->isPrecise())
-            continue;
+    // summarizeConservativeGenKill(gens, kills);
+    // summarizeScanGenKill(callee, gens, kills);
+    // summarizeAnalyzeGenKill(callee, gen, kills);
 
-        // If we're a stack slot then do some impedance matching magic...
-        StackLoc::Ptr SD = dyn_detail::boost::dynamic_pointer_cast<StackLoc>(D);
-        if (SD) {
-            int slot = SD->slot();
-            int height;
-            if (getCurrentStackHeight(addr, height)) {
-                D = StackLoc::getStackLoc(slot + height);
-            }
-            else {
-                D = StackLoc::getStackLoc();
-            }
-        }
-        
-        cNode cnode(placeholder, D, actualReturn, callee);
-
-        updateDefSet(D, gens, cnode);
-        updateKillSet(D, kills);
-    }
 }
 
 /**********************************************************************
@@ -665,44 +636,9 @@ void DDGAnalyzer::createCallNodes(const Address &A,
 
     Address placeholder = A+1;
 
-    AbslocSet abslocs;
- 
     Function *callee = getCallee(A);
-    //if (!callee) {
-        getABIUsedAbslocs(abslocs);
-        //    }
-        //    else {
-        //        assert(0);
-        //    }
 
-    for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end(); iter++) {
-        // Create an actualParameterNode for each absloc and hook up edges
-        // according to reachingDefs...
-        cNode cnode(placeholder, (*iter), actualParam); 
-        
-        Node::Ptr T = makeNode(cnode);
-        
-        // Okay, now we need to find reaching defs to this one
-        DefMap::const_iterator tmp = reachingDefs.find(*iter);
-        if (tmp != reachingDefs.end()) {
-            for (cNodeSet::const_iterator c_iter = tmp->second.begin();
-                 c_iter != tmp->second.end(); c_iter++) {
-                NodePtr S = makeNode(*c_iter);
-                // By definition we know S is in nodes
-                ddg->insertPair(S,T);
-                //fprintf(stderr, "\t\t\t\t ... from local definition %s/0x%lx\n",
-                //c_iter->first->name().c_str(),
-                //c_iter->second.addr);
-            }
-        }
-        else { 
-            // It's entirely possible we haven't seen it yet at all. 
-            // Just go ahead and parameter node it. 
-            cNode fp(0, *iter, formalParam);
-            NodePtr S = makeNode(fp);
-            ddg->insertPair(S,T);
-        }
-    }
+    summarizeABIUsed(placeholder, callee, reachingDefs);
 }
 
 void DDGAnalyzer::createReturnNodes(const Address &,
@@ -1169,74 +1105,6 @@ InstructionAPI::RegisterAST::Ptr DDGAnalyzer::makeRegister(int id) {
     return InstructionAPI::RegisterAST::Ptr(new InstructionAPI::RegisterAST(id));
 }
 
-
-void DDGAnalyzer::getABIDefinedAbslocs(AbslocSet &abslocs) {
-    // Figure out what platform we're on...
-    if (addr_width == 0) {
-        std::vector<DDGAnalyzer::Block *> entry;
-        func_->getCFG()->getEntryBasicBlock(entry);    
-        addr_width = entry[0]->lowlevel_block()->proc()->getAddressWidth();
-    }
-
-    if (addr_width == 4) {
-        // x86...
-        
-        // Callee preserves ebp, ebx, edi, esi, esp
-        // All others are clobbered
-
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EAX)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_ECX)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EDX)));
-
-        for (unsigned i = r_OF; i <= r_RF; i++) {
-            abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
-        }
-    }
-    else {
-        // amd-64...
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RAX)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RCX)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RDX)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R8)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R9)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R10)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R11)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RDI)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RSI)));
-        for (unsigned i = r_OF; i <= r_RF; i++) {
-            abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
-        }
-    }
-}
-
-void DDGAnalyzer::getABIUsedAbslocs(AbslocSet &abslocs) {
-    // Figure out what platform we're on...
-    if (addr_width == 0) {
-        std::vector<DDGAnalyzer::Block *> entry;
-        func_->getCFG()->getEntryBasicBlock(entry);    
-        addr_width = entry[0]->lowlevel_block()->proc()->getAddressWidth();
-    }
-
-    if (addr_width == 4) {
-        // x86...
-        
-        // Parameters go on the stack. Anyone know how many of those there are?
-        // For now, just alias that to "the stack" and see if it works...
-        abslocs.insert(StackLoc::getStackLoc());
-    }
-    else {
-        // amd-64...
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RCX)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RDX)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R8)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R9)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RDI)));
-        abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RSI)));
-    }
-}
-
-
-
 void DDGAnalyzer::debugLocalSet(const DefMap &s,
                                 char *str) {
     for (DefMap::const_iterator iter = s.begin();
@@ -1289,3 +1157,4 @@ void DDGAnalyzer::debugDefMap(const DefMap &d,
         }
     }
 }
+

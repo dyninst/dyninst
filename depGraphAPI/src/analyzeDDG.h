@@ -244,8 +244,6 @@ class DDGAnalyzer {
                                  Address addr);
     Absloc::Ptr getAbsloc(const InstructionAPI::RegisterAST::Ptr reg);
 
-    void getABIDefinedAbslocs(AbslocSet &abslocs);
-    void getABIUsedAbslocs(AbslocSet &abslocs);
     
     const AbslocSet &getDefinedAbslocs(const Insn &insn, const Address &a);
     const AbslocSet &getUsedAbslocs(const Insn &insn, const Address &a);
@@ -270,6 +268,28 @@ class DDGAnalyzer {
     bool getCurrentStackHeight(Address addr, int &height);
 
     InstructionAPI::RegisterAST::Ptr makeRegister(int id);
+
+    //////////////////////
+    // Handling callees
+    //////////////////////
+    //
+    // Option 1: trust the ABI 
+    void summarizeABIGenKill(Address, Function *, DefMap &, KillMap &);
+    void summarizeABIUsed(Address, Function *, const DefMap &);
+
+    // Option 2: conservative
+    void summarizeConservativeGenKill(Address, Function *, DefMap &, KillMap &);
+    void summarizeConservativeUsed(Address, Function *, const DefMap &);
+    
+    // Option 3: linear scan
+    void summarizeLinearGenKill(Address, Function *, int, DefMap &, KillMap &);
+    void summarizeLinearUsed(Address, Function *, int, const DefMap &);
+
+    // Option 4: recursive
+    void summarizeAnalyzeGenKill(Address, Function *, int, DefMap &, KillMap &);
+    void summarizeAnalyzeUsed(Address, Function *, int, const DefMap &);
+
+
  private:
 
     ReachingDefsGlobal allGens;
