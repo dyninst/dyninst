@@ -89,10 +89,11 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EAX)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_ECX)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EDX)));
-
+        /*
         for (unsigned i = r_OF; i <= r_RF; i++) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
+        */
     }
     else {
         // amd-64...
@@ -105,9 +106,11 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R11)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RDI)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RSI)));
+        /*
         for (unsigned i = r_OF; i <= r_RF; i++) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
+        */
     }
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
@@ -120,7 +123,13 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         cNode cnode(placeholder, D, actualReturn, callee);
 
         updateDefSet(D, gens, cnode);
+
+        // Unlike the other versions of this, we can trust the ABI with
+        // kill information.
         updateKillSet(D, kills);
+
+        actualReturnMap_[placeholder].push_back(cnode);
+
     }
 
 }
@@ -190,6 +199,9 @@ void DDGAnalyzer::summarizeConservativeGenKill(Address placeholder,
         // We explicitly do not add a kill set here. Thus these definitions
         // will be treated as possible-defines.
         //updateKillSet(D, kills);
+
+        actualReturnMap_[placeholder].push_back(cnode);
+
     }
 
 }
@@ -251,6 +263,9 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
         // Again, we can't categorically state that the absloc was killed. So
         // we don't update the kill set and leave it as a possibly-defined.
         //updateKillSet(D, kills);
+
+        actualReturnMap_[placeholder].push_back(cnode);
+
     }
 
 }
@@ -306,12 +321,18 @@ void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
         // and move on. 
         
         //updateKillSet(D, kills);
+
+        actualReturnMap_[placeholder].push_back(cnode);
+
     }
 
 }
 
 
-void DDGAnalyzer::summarizeABIUsed(Address placeholder, Function *callee, const DefMap &reachingDefs) {
+void DDGAnalyzer::summarizeABIUsed(Address placeholder, 
+                                   Function *callee, 
+                                   const DefMap &reachingDefs,
+                                   NodeVec &actualParams) {
     AbslocSet abslocs;
 
     // Figure out what platform we're on...
@@ -350,7 +371,8 @@ void DDGAnalyzer::summarizeABIUsed(Address placeholder, Function *callee, const 
         cNode cnode(placeholder, U, actualParam, callee); 
         
         Node::Ptr T = makeNode(cnode);
-        
+        actualParams.push_back(T);
+
         // Okay, now we need to find reaching defs to this one
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
         if (tmp != reachingDefs.end()) {
@@ -369,6 +391,7 @@ void DDGAnalyzer::summarizeABIUsed(Address placeholder, Function *callee, const 
             // Just go ahead and parameter node it. 
             cNode fp(0, *iter, formalParam);
             NodePtr S = makeNode(fp);
+            ddg->insertEntryNode(S);
             ddg->insertPair(S,T);
         }
     }
@@ -377,7 +400,8 @@ void DDGAnalyzer::summarizeABIUsed(Address placeholder, Function *callee, const 
 
 void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
                                             Function *callee,
-                                            const DefMap &reachingDefs) {
+                                            const DefMap &reachingDefs,
+                                            NodeVec &actualParams) {
     AbslocSet abslocs;
     // Figure out what platform we're on...
     if (addr_width == 0) {
@@ -434,6 +458,7 @@ void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
         cNode cnode(placeholder, U, actualParam, callee); 
         
         Node::Ptr T = makeNode(cnode);
+        actualParams.push_back(T);
         
         // Okay, now we need to find reaching defs to this one
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
@@ -453,6 +478,7 @@ void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
             // Just go ahead and parameter node it. 
             cNode fp(0, *iter, formalParam);
             NodePtr S = makeNode(fp);
+            ddg->insertEntryNode(S);
             ddg->insertPair(S,T);
         }
     }
@@ -461,7 +487,8 @@ void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
 void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
                                       Function *callee,
                                       int height,
-                                      const DefMap &reachingDefs) {
+                                      const DefMap &reachingDefs,
+                                      NodeVec &actualParams) {
     AbslocSet abslocs;
 
     // We assume this function defines anything it... well, defines.
@@ -508,6 +535,7 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
         cNode cnode(placeholder, U, actualParam, callee); 
         
         Node::Ptr T = makeNode(cnode);
+        actualParams.push_back(T);
         
         // Okay, now we need to find reaching defs to this one
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
@@ -527,6 +555,7 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
             // Just go ahead and parameter node it. 
             cNode fp(0, *iter, formalParam);
             NodePtr S = makeNode(fp);
+            ddg->insertEntryNode(S);
             ddg->insertPair(S,T);
         }
     }
@@ -536,7 +565,8 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
 void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
                                        Function *callee,
                                        int height,
-                                       const DefMap &reachingDefs) {
+                                       const DefMap &reachingDefs,
+                                       NodeVec &actualParams) {
     AbslocSet abslocs;
 
     DDG::Ptr cDDG = DDG::analyze(callee); 
@@ -572,6 +602,7 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
         cNode cnode(placeholder, U, actualParam, callee); 
         
         Node::Ptr T = makeNode(cnode);
+        actualParams.push_back(T);
         
         // Okay, now we need to find reaching defs to this one
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
@@ -591,6 +622,7 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
             // Just go ahead and parameter node it. 
             cNode fp(0, *iter, formalParam);
             NodePtr S = makeNode(fp);
+            ddg->insertEntryNode(S);
             ddg->insertPair(S,T);
         }
     }

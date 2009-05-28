@@ -37,6 +37,7 @@
 
 #include "Absloc.h"
 #include "Instruction.h"
+#include "Operation.h"
 
 #include "BPatch_basicBlock.h"
 #include "BPatch_edge.h"
@@ -298,7 +299,7 @@ void DDGAnalyzer::summarizeCallGenKill(const Insn &,
     // I know of no architecture where the call instruction is 1 byte. 
     // So let's use call+1 as a placeholder for the effects of the call.
     
-    Address placeholder = addr;
+    Address placeholder = addr+1;
 
     // This will eventually make the decision of which mechanism to use to 
     // summarize the call. 
@@ -501,15 +502,14 @@ void DDGAnalyzer::generateBlockNodes(Block *B) {
         Address addr = insns[i].second;
         //fprintf(stderr, "\t\t Insn at 0x%lx\n", addr); 
         
-        AbslocSet used = getUsedAbslocs(I, addr);
         AbslocSet def = getDefinedAbslocs(I, addr);
 
-        createInsnNodes(addr, 
-                        used, def,
+        createInsnNodes(I, addr, 
+                        def,
                         localReachingDefs);
 
         updateReachingDefs(addr, 
-                           used, def,
+                           def,
                            localReachingDefs);
         
         if (isCall(I)) {
@@ -525,15 +525,19 @@ void DDGAnalyzer::generateBlockNodes(Block *B) {
     }
 }
 
-void DDGAnalyzer::createInsnNodes(const Address &addr,
-                                  const AbslocSet &used, const AbslocSet &def,
+void DDGAnalyzer::createInsnNodes(const Insn &I, 
+                                  const Address &addr,
+                                  const AbslocSet &def,
                                   DefMap &localReachingDefs) {
     for (AbslocSet::const_iterator d_iter = def.begin();
          d_iter != def.end(); d_iter++) {
         AbslocPtr D = *d_iter;
         NodePtr T = makeNode(cNode(addr, D)); 
+
+        AbslocSet used;
+        getUsedToDefine(I, addr, D, used);
         
-        //fprintf(stderr, "\t\t\t Defines %s\n", D->name().c_str());
+        //fprintf(stderr, "\t\t\t Defines %s\n", D->format().c_str());
         
         // Get the set of abslocs we have to care about here..
         
@@ -551,7 +555,7 @@ void DDGAnalyzer::createInsnNodes(const Address &addr,
             for (AbslocSet::const_iterator u_iter = used.begin();
                  u_iter != used.end(); u_iter++) {
                 AbslocPtr U = *u_iter;
-                //fprintf(stderr, "\t\t\t\t Uses %s...\n", U->name().c_str());
+                //fprintf(stderr, "\t\t\t\t Uses %s...\n", U->format().c_str());
 
                 if (localReachingDefs[U].empty()) {
                     // Not sure this can actually happen...
@@ -573,7 +577,7 @@ void DDGAnalyzer::createInsnNodes(const Address &addr,
 
                         ddg->insertPair(S,T);
                         //fprintf(stderr, "\t\t\t\t ... from local definition %s/0x%lx\n",
-                        //c_iter->first->name().c_str(),
+                        //c_iter->first->format().c_str(),
                         //c_iter->second.addr);
                     }
                 }
@@ -583,7 +587,7 @@ void DDGAnalyzer::createInsnNodes(const Address &addr,
 }
 
 void DDGAnalyzer::updateReachingDefs(const Address &addr,
-                                     const AbslocSet &, const AbslocSet &def,
+                                     const AbslocSet &def,
                                      DefMap &localReachingDefs) {
     // We now update localReachingDefs. If we do it in the previous
     // loop we can get errors. Consider this example:
@@ -638,7 +642,31 @@ void DDGAnalyzer::createCallNodes(const Address &A,
 
     Function *callee = getCallee(A);
 
-    summarizeABIUsed(placeholder, callee, reachingDefs);
+    NodeVec actualParams;
+
+    summarizeABIUsed(placeholder, callee, reachingDefs, actualParams);
+
+    // That created all of the used nodes. Now we need to add all defined
+    // nodes. 
+    
+    // We can ignore updating reachingDefs because we are guaranteeing we're
+    // at the end of the block. So we want to look up (or just re-create)
+    // actualReturn nodes for each of these...
+    
+    // So that we don't work too hard, just cache actualReturnNodes when they're
+    // created and re-use them here. 
+
+    for (cNodeSet::iterator i = actualReturnMap_[placeholder].begin(); 
+         i != actualReturnMap_[placeholder].end(); 
+         i++) {
+        Node::Ptr T = makeNode(*i);
+
+        for (NodeVec::iterator j = actualParams.begin(); 
+             j != actualParams.end(); j++) {
+            Node::Ptr S = *j;
+            ddg->insertPair(S, T);
+        }
+    }
 }
 
 void DDGAnalyzer::createReturnNodes(const Address &,
@@ -769,8 +797,8 @@ Absloc::Ptr DDGAnalyzer::getAbsloc(const InstructionAPI::RegisterAST::Ptr reg) {
 }
 
 void DDGAnalyzer::getUsedAbslocs(const InstructionAPI::Instruction insn,
-                            Address addr,
-                            AbslocSet &uses) {
+                                 Address addr,
+                                 AbslocSet &uses) {
     std::set<RegisterAST::Ptr> regReads;
     insn.getReadSet(regReads);
 
@@ -781,7 +809,7 @@ void DDGAnalyzer::getUsedAbslocs(const InstructionAPI::Instruction insn,
          r != regReads.end();
          r++) {
         // We have 'used' this Absloc
-                uses.insert(getAbsloc(*r));
+        uses.insert(getAbsloc(*r));
     }
 
     // Also handle memory writes
@@ -797,8 +825,8 @@ void DDGAnalyzer::getUsedAbslocs(const InstructionAPI::Instruction insn,
 }
 
 void DDGAnalyzer::getDefinedAbslocs(const InstructionAPI::Instruction insn,
-                               Address addr,
-                               AbslocSet &defs) {
+                                    Address addr,
+                                    AbslocSet &defs) {
     std::set<RegisterAST::Ptr> regWrites;
     insn.getWriteSet(regWrites);            
 
@@ -809,10 +837,6 @@ void DDGAnalyzer::getDefinedAbslocs(const InstructionAPI::Instruction insn,
          w != regWrites.end();
          w++) {
         // We have 'defined' this Absloc
-#if 0
-        if (((*w)->getID() >= 80) &&
-            ((*w)->getID() <= 100)) continue;
-#endif
         defs.insert(getAbsloc(*w));
     }
 
@@ -1079,10 +1103,6 @@ const DDGAnalyzer::AbslocSet &DDGAnalyzer::getDefinedAbslocs(const Insn &insn,
 const DDGAnalyzer::AbslocSet &DDGAnalyzer::getUsedAbslocs(const Insn &insn,
                                                           const Address &a) {
     if (globalUsed.find(a) == globalUsed.end()) {
-        if (isCall(insn)) {
-            // Handle call used/defined specially
-        }
-
         getUsedAbslocs(insn, a, globalUsed[a]);
     }
     return globalUsed[a];
@@ -1110,7 +1130,7 @@ void DDGAnalyzer::debugLocalSet(const DefMap &s,
     for (DefMap::const_iterator iter = s.begin();
          iter != s.end(); 
          iter++) {
-        fprintf(stderr, "%s Absloc: %s\n", str, (*iter).first->name().c_str());
+        fprintf(stderr, "%s Absloc: %s\n", str, (*iter).first->format().c_str());
         for (cNodeSet::const_iterator iter2 = (*iter).second.begin();
              iter2 != (*iter).second.end();
              iter2++) {
@@ -1119,7 +1139,7 @@ void DDGAnalyzer::debugLocalSet(const DefMap &s,
             fprintf(stderr, "%s\t insn addr 0x%lx, Absloc %s\n", 
                     str, 
                     addr,
-                    absloc->name().c_str());
+                    absloc->format().c_str());
         }
     }
 }
@@ -1134,7 +1154,7 @@ void DDGAnalyzer::debugAbslocSet(const AbslocSet &a,
     for (AbslocSet::const_iterator iter = a.begin();
          iter != a.end();
          iter++) {
-        fprintf(stderr, "%s\t %s\n", str, (*iter)->name().c_str());
+        fprintf(stderr, "%s\t %s\n", str, (*iter)->format().c_str());
     }
 }
 
@@ -1146,15 +1166,80 @@ void DDGAnalyzer::debugDefMap(const DefMap &d,
          i++) {
         fprintf(stderr, "%s\t%s\n", 
                 str, 
-                (*i).first->name().c_str());
+                (*i).first->format().c_str());
         for (cNodeSet::const_iterator j = (*i).second.begin();
              j != (*i).second.end(); j++) {
             const cNode &c = (*j);
             fprintf(stderr, "%s\t\t%s, 0x%lx\n",
                     str,
-                    c.absloc->name().c_str(),
+                    c.absloc->format().c_str(),
                     c.addr);
         }
     }
 }
 
+void DDGAnalyzer::getUsedToDefine(const Insn &I, 
+                                  const Address &addr,
+                                  AbslocPtr D,
+                                  AbslocSet &used) {
+    // This is _very_ tightly tied to the current InstructionAPI implementation. 
+    // If that changes, THIS MUST BE CHANGED AS WELL.
+
+    switch (I.getOperation().getID()) {
+    case e_push: {
+        // Push defines a stack location and ESP. 
+        // It uses * to define the stack location
+        // It uses ESP to define ESP
+        RegisterLoc::Ptr reg = dyn_detail::boost::dynamic_pointer_cast<RegisterLoc>(D);
+        if (reg) {
+            assert(reg->isStackPointer());
+            used.insert(reg);
+        }
+        else {
+            used = getUsedAbslocs(I, addr);
+        }
+        break;
+    }
+    case e_pop: {
+        // Pop defines a non-ESP register and ESP.
+        // It uses * to define the non-ESP register.
+        // It uses ESP to define ESP. 
+        RegisterLoc::Ptr reg = dyn_detail::boost::dynamic_pointer_cast<RegisterLoc>(D);
+        if (reg && reg->isStackPointer()) {
+            used.insert(reg);
+        }
+        else {
+            used = getUsedAbslocs(I, addr);
+        }
+        break;
+    }
+    case e_call: {
+        // Call operates similarly to a push; it defines the top of the stack
+        RegisterLoc::Ptr reg = dyn_detail::boost::dynamic_pointer_cast<RegisterLoc>(D);
+        if (reg && reg->isStackPointer()) {
+            used.insert(reg);
+        }
+        else {
+            used = getUsedAbslocs(I, addr); 
+        }
+    }
+    case e_ret_near: {
+    case e_ret_far: {
+        // Aaaand pop equivalents
+        RegisterLoc::Ptr reg = dyn_detail::boost::dynamic_pointer_cast<RegisterLoc>(D);
+        if (reg && reg->isStackPointer()) {
+            used.insert(reg);
+        }
+        else {
+            used = getUsedAbslocs(I, addr);
+        }
+    }
+    }
+
+    case e_cmpxch:
+        // TODO...
+    default:
+        used = getUsedAbslocs(I, addr);
+        break;
+    }
+}

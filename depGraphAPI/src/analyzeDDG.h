@@ -164,6 +164,10 @@ class DDGAnalyzer {
 
     typedef std::map<Absloc::Ptr, Node::Ptr> NodeCache;
 
+    typedef std::map<Address, cNodeSet> ActualReturnMap;
+
+    typedef std::vector<Node::Ptr> NodeVec;
+
  public:
     DDG::Ptr analyze();
     DDGAnalyzer(Function *f);
@@ -198,11 +202,12 @@ class DDGAnalyzer {
     void generateNodes(const BlockSet &blocks);
     void generateBlockNodes(Block *block);
 
-    void createInsnNodes(const Address &addr,
-                         const AbslocSet &used, const AbslocSet &def,
+    void createInsnNodes(const Insn &I, 
+                         const Address &addr,
+                         const AbslocSet &def,
                          DefMap &localReachingDefs);
     void updateReachingDefs(const Address &addr,
-                            const AbslocSet &used, const AbslocSet &def,
+                            const AbslocSet &def,
                             DefMap &localReachingDefs);
     void createCallNodes(const Address &addr,
                          const DefMap &localReachingDefs);
@@ -275,20 +280,26 @@ class DDGAnalyzer {
     //
     // Option 1: trust the ABI 
     void summarizeABIGenKill(Address, Function *, DefMap &, KillMap &);
-    void summarizeABIUsed(Address, Function *, const DefMap &);
+    void summarizeABIUsed(Address, Function *, const DefMap &, NodeVec &);
 
     // Option 2: conservative
     void summarizeConservativeGenKill(Address, Function *, DefMap &, KillMap &);
-    void summarizeConservativeUsed(Address, Function *, const DefMap &);
+    void summarizeConservativeUsed(Address, Function *, const DefMap &, NodeVec &);
     
     // Option 3: linear scan
     void summarizeLinearGenKill(Address, Function *, int, DefMap &, KillMap &);
-    void summarizeLinearUsed(Address, Function *, int, const DefMap &);
+    void summarizeLinearUsed(Address, Function *, int, const DefMap &, NodeVec &);
 
     // Option 4: recursive
     void summarizeAnalyzeGenKill(Address, Function *, int, DefMap &, KillMap &);
-    void summarizeAnalyzeUsed(Address, Function *, int, const DefMap &);
+    void summarizeAnalyzeUsed(Address, Function *, int, const DefMap &, NodeVec &);
 
+    
+    ///////////////////////////
+    void getUsedToDefine(const Insn &I, 
+                         const Address &addr, 
+                         AbslocPtr D,
+                         AbslocSet &used);
 
  private:
 
@@ -313,6 +324,7 @@ class DDGAnalyzer {
 
     unsigned addr_width;
 
+    ActualReturnMap actualReturnMap_;
 };
 
 
