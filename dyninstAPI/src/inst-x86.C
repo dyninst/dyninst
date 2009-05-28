@@ -1014,7 +1014,7 @@ void emitMovPCRMToReg(Register dest, int offset, codeGen &gen, bool deref_result
 
     if (deref_result) {
        // move from IP+offset into register
-       emitMovIRegToReg(dest, dest, gen);                    // mov e_x, (e_x)
+       emitMovIRegToReg(dest, dest, gen);                    // mov e_x, (e_x)+
     }
 }
 

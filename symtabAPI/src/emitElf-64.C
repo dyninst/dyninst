@@ -387,15 +387,16 @@ bool emitElf64::driver(Symtab *obj, string fName){
     // resolve section name
     const char *name = &shnames[shdr->sh_name];
     obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    sectionNumber++;
-    changeMapping[sectionNumber] = 0;
-    oldIndexNameMapping[scncount+1] = string(name);
-    newNameIndexMapping[string(name)] = sectionNumber;
 
 
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
       continue;
+
+    sectionNumber++;
+    changeMapping[sectionNumber] = 0;
+    oldIndexNameMapping[scncount+1] = string(name);
+    newNameIndexMapping[string(name)] = sectionNumber;
 
     newscn = elf_newscn(newElf);
     newshdr = elf64_getshdr(newscn);
@@ -631,6 +632,11 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	  }	
       }    
       if(addNewSegmentFlag) {
+	if((tmp->p_type == PT_LOAD) && (newPhdr->p_align > pgSize)) {
+	  newPhdr->p_align = pgSize;
+	  
+	}
+	
 	if(tmp->p_type == PT_LOAD && tmp->p_flags == 5)
 	  {
 	    if (tmp->p_vaddr > pgSize) {
@@ -663,7 +669,7 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	    newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
 	    newSeg.p_memsz = newSeg.p_filesz;
 	    newSeg.p_flags = PF_R+PF_W+PF_X;
-	    newSeg.p_align = tmp->p_align;
+	    newSeg.p_align = pgSize;
 	    memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
 	    added_new_sec = true;
 	    newPhdr++;
@@ -1630,7 +1636,9 @@ void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSiz
   hashsecData[0] = (Elf64_Word)nbuckets;
   hashsecData[1] = (Elf64_Word)nchains;
   i = 0;
-  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
+  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
+    if((*iter)->getName().empty()) continue;
+    if((*iter)->getRegion() == NULL) continue;    
     key = elfHash((*iter)->getName().c_str()) % nbuckets;
     //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
     if (lastHash.find(key) != lastHash.end()) {
@@ -1641,7 +1649,6 @@ void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSiz
     }
     lastHash[key] = i;
     hashsecData[2+nbuckets+i] = STN_UNDEF;
-    i++;
   }
 }
 

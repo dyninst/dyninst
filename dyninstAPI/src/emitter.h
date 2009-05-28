@@ -80,7 +80,7 @@ class Emitter {
     virtual bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen) = 0;
     virtual bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen) = 0;
 
-    virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen) = 0;
+    virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset) = 0;
 
     virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
 
