@@ -201,7 +201,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return false;
+      return !m_InsnOp.getImplicitMemReads().empty();
     }
     
     INSTRUCTION_EXPORT bool Instruction::writesMemory() const
@@ -215,7 +215,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return false;
+      return !m_InsnOp.getImplicitMemWrites().empty();
     }
     
     INSTRUCTION_EXPORT void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const

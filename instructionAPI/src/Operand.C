@@ -53,7 +53,8 @@ namespace Dyninst
 	RegisterAST::Ptr tmp = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(*curUse);
 	if(tmp) 
 	{
-	  regsRead.insert(tmp);
+            if(m_isRead || !(*tmp == *op_value))
+                regsRead.insert(tmp);
 	}
       }
     }
