@@ -408,6 +408,8 @@ class Object : public AObject {
 
 	bool is_offset_in_plt(Offset offset) const;
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
+    int getRegionHdrIndexByAddr(Offset addr);
+    Elf_X_Shdr *getRegionHdrByIndex(unsigned index);
     bool isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned newPerms);
 
     bool getRegValueAtFrame(Address pc, 
@@ -543,7 +545,7 @@ class Object : public AObject {
 			      Elf_X_Shdr *&dynsym_scnp, 
 			      Elf_X_Shdr *&dynstr_scnp);
 
-  bool get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
+  bool get_relocationDyn_entries( unsigned rel_index,
                      Elf_X_Shdr *&dynsym_scnp,
                      Elf_X_Shdr *&dynstr_scnp );
   
