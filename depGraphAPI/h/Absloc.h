@@ -80,7 +80,7 @@ class Absloc : public AnnotatableSparse {
 
     static void getAbslocs(AbslocSet &locs);
     
-    virtual std::string name() const = 0;
+    virtual std::string format() const = 0;
 
     virtual ~Absloc() {};
 
@@ -104,7 +104,7 @@ class RegisterLoc : public Absloc {
     
 
     virtual ~RegisterLoc() {};
-    virtual std::string name() const { return reg_->format(); }
+    virtual std::string format() const { return reg_->format(); }
     static void getRegisterLocs(AbslocSet &locs);
 
     static Absloc::Ptr getRegLoc(const InstructionAPI::RegisterAST::Ptr reg);
@@ -113,6 +113,13 @@ class RegisterLoc : public Absloc {
     virtual AbslocSet getAliases() const { return AbslocSet(); }
     virtual bool isPrecise() const { return true; }
     const InstructionAPI::RegisterAST::Ptr getReg() { return reg_; }
+
+    // Convenience methods
+    bool isStackPointer() const;
+    bool isPC() const; 
+    bool isFlag() const;
+    
+
  private:
     RegisterLoc(const InstructionAPI::RegisterAST::Ptr reg) : reg_(reg) {};
     
@@ -128,7 +135,7 @@ class StackLoc : public Absloc {
     int slot() const { return slot_; }
 
     virtual ~StackLoc() {};
-    virtual std::string name() const;
+    virtual std::string format() const;
 
     static void getStackLocs(AbslocSet &locs);
 
@@ -155,7 +162,7 @@ class MemLoc : public Absloc {
     typedef std::set<MemLoc::Ptr> MemSet;
 
     virtual ~MemLoc() {};
-    virtual std::string name() const;
+    virtual std::string format() const;
     static void getMemLocs(AbslocSet &locs);
 
     // A specific word in memory
@@ -192,7 +199,7 @@ class ImmLoc : public Absloc {
     typedef dyn_detail::boost::shared_ptr<ImmLoc> Ptr;
     
     virtual ~ImmLoc() {};
-    virtual std::string name() const;
+    virtual std::string format() const;
     static void getImmLocs(AbslocSet &) {};
 
     static Absloc::Ptr getImmLoc();
