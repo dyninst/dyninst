@@ -13,10 +13,10 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
-LDFLAGS         += -shared -nostdlib
+LDFLAGS         += -shared
 
 # Automatic init routine
-LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init -m64
+LDFLAGS		+= -m64
 CFLAGS		+= -Wall -m64 -DMUTATEE64
 
 # if we want to produce a shared object...

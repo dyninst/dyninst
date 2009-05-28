@@ -997,7 +997,7 @@ void emitMovIRegToReg(Register dest, Register src,
 }
 
 // emit MOV reg, (offset(%eip))
-void emitMovPCRMToReg(Register dest, int offset, codeGen &gen)
+void emitMovPCRMToReg(Register dest, int offset, codeGen &gen, bool deref_result)
 {
     // call next instruction (relative 0x0) and pop PC (EIP) into register
     GET_PTR(insn, gen);
@@ -1012,8 +1012,10 @@ void emitMovPCRMToReg(Register dest, int offset, codeGen &gen)
     // add the offset
     emitAddRegImm32(dest, offset-5, gen);                   // add e_x, offset
 
-    // move from IP+offset into register
-    emitMovIRegToReg(dest, dest, gen);                    // mov e_x, (e_x)
+    if (deref_result) {
+       // move from IP+offset into register
+       emitMovIRegToReg(dest, dest, gen);                    // mov e_x, (e_x)
+    }
 }
 
 // emit MOV reg, r/m

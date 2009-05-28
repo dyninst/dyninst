@@ -2699,7 +2699,7 @@ void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, c
   }
   else
   {
-    gen.codeEmitter()->emitLoadShared(dest, oVar, size, gen);
+     gen.codeEmitter()->emitLoadShared(op, dest, oVar, (var != NULL), size, gen);
   }  
 }
 
@@ -2715,6 +2715,6 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
   }
   else
   {
-    gen.codeEmitter()->emitStoreShared(src1, oVar, size, gen);
+     gen.codeEmitter()->emitStoreShared(src1, oVar, (var != NULL), size, gen);
   }  
 }

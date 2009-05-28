@@ -65,7 +65,7 @@ int DYNINSTdebugRTlib;
 dyninst_thread_t *DYNINST_thread_structs;
 int *DYNINST_thread_hash;
 unsigned DYNINST_thread_hash_size;
-
+int DYNINSTstaticMode = 1;
 
 /**
  * Allocate the Dyninst heaps
@@ -126,6 +126,9 @@ int DYNINSTdebugPrintRT = 0;
 int isMutatedExec = 0;
 
 unsigned *DYNINST_tramp_guards;
+
+#define MAX_THREADS 32 //Should match MAX_THREADS in process.h
+unsigned DYNINST_default_tramp_guards[MAX_THREADS+1];
 
 #if defined(os_linux)
 void DYNINSTlinuxBreakPoint();
@@ -192,13 +195,33 @@ static void initTrampGuards(unsigned maxthreads)
    /*We allocate maxthreads+1 because maxthreads is sometimes used as an*/
    /*error value to mean we don't know what thread this is.  Sometimes used*/
    /*during the early setup phases.*/
-   DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
+   if (maxthreads <= MAX_THREADS) {
+      DYNINST_tramp_guards = DYNINST_default_tramp_guards;
+   }
+   else {
+      DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
+   }
 #endif
    for (i=0; i<maxthreads; i++)
    {
       DYNINST_tramp_guards[i] = 1;
    }
+}
 
+/**
+ * This function is called in both static and dynamic rewriting, on
+ * all platforms that support binary rewriting, but before DYNINSTinit
+ **/
+void DYNINSTBaseInit()
+{
+   unsigned i;
+   DYNINST_max_num_threads = MAX_THREADS;
+   DYNINST_tramp_guards = DYNINST_default_tramp_guards;
+   for (i=0; i<DYNINST_max_num_threads; i++)
+      DYNINST_tramp_guards[i] = 1;
+#if defined(cap_mutatee_traps)
+   DYNINSTinitializeTrapHandler();
+#endif
 }
 
 /**
@@ -210,13 +233,17 @@ static void initTrampGuards(unsigned maxthreads)
  *    Solaris: ld with -z initarray=libdyninstAPI_RT_init
  *    Linux: ld with -init libdyninstAPI_RT_init
  *           gcc with -Wl,-init -Wl,...
+ *
+ * This is only called in the Dynamic instrumentation case.  Static
+ * libraries don't call this.
  **/
 void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
 {
+   initFPU();
    int calledByFork = 0, calledByAttach = 0;
    rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to DYNINSTinit()\n", __FILE__, __LINE__);
-   initFPU();
 
+   DYNINSTstaticMode = 0;
    tc_lock_init(&DYNINST_trace_lock);
    DYNINST_mutatorPid = pid;
    
@@ -230,7 +257,6 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    DYNINSThasInitialized = 1;
    DYNINST_max_num_threads = maxthreads;
    DYNINSTdebugRTlib = debug_flag; /* set by mutator on request */
-
    rtdebug_printf("%s[%d]:  welcome to DYNINSTinit\n", __FILE__, __LINE__);
 
    /* sanity check */
@@ -239,15 +265,8 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    
    initTrampGuards(DYNINST_max_num_threads);
 
-#if defined(cap_async_events)
-   /* Done mutator-side to remove race */
-   /*DYNINSTasyncConnect(DYNINST_mutatorPid);*/
-#endif
    DYNINSTos_init(calledByFork, calledByAttach);
    DYNINST_initialize_index_list();
-#if defined(cap_mutatee_traps)
-   DYNINSTinitializeTrapHandler();
-#endif
 
    DYNINST_bootstrap_info.pid = dyn_pid_self();
    DYNINST_bootstrap_info.ppid = pid;    
@@ -409,6 +428,9 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
   rtBPatch_asyncEventRecord ev;
   BPatch_dynamicCallRecord call_ev;
 
+  if (DYNINSTstaticMode)
+     return 0;
+
   rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDynFuncCall\n", __FILE__, __LINE__);
   result = tc_lock_lock(&DYNINST_trace_lock);
   if (result == DYNINST_DEAD_LOCK)
@@ -450,6 +472,9 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size)
 {
   int err = 0, result;
   rtBPatch_asyncEventRecord ev;
+
+  if (DYNINSTstaticMode)
+     return 0;
 
   rtdebug_printf("%s[%d]:  welcome to DYNINSTuserMessage\n", __FILE__, __LINE__);
   result = tc_lock_lock(&DYNINST_trace_lock);
@@ -580,21 +605,25 @@ volatile unsigned long dyninstTrapTableVersion;
 volatile trapMapping_t *dyninstTrapTable;
 volatile unsigned long dyninstTrapTableIsSorted;
 
-void* dyninstTrapTranslate(void *source)
+void* dyninstTrapTranslate(void *source, 
+                           volatile unsigned long *table_used,
+                           volatile unsigned long *table_version,
+                           volatile trapMapping_t **trap_table,
+                           volatile unsigned long *is_sorted)
 {
    volatile unsigned local_version;
    unsigned i;
    void *target;
 
    do {
-      local_version = dyninstTrapTableVersion;
+      local_version = *table_version;
       target = NULL;
 
-      if (dyninstTrapTableIsSorted) 
+      if (*is_sorted) 
       {
          unsigned min = 0;
          unsigned mid = 0;
-         unsigned max = dyninstTrapTableUsed;
+         unsigned max = *table_used;
          unsigned prev = max+1;
          
          for (;;) {
@@ -603,26 +632,27 @@ void* dyninstTrapTranslate(void *source)
                break;
             prev = mid;
             
-            if (dyninstTrapTable[mid].source < source)
+            if ((*trap_table)[mid].source < source)
                min = mid;
-            else if (dyninstTrapTable[mid].source > source)
+            else if ((*trap_table)[mid].source > source)
                max = mid;
             else {
-               target = dyninstTrapTable[mid].target;
+               target = (*trap_table)[mid].target;
                break;
             }
          }
       } 
       else { /*!dyninstTrapTableIsSorted*/
-         for (i = 0; i<dyninstTrapTableUsed; i++) {
-            if (dyninstTrapTable[i].source == source) {
-               target = dyninstTrapTable[i].target;
+         for (i = 0; i<*table_used; i++) {
+            if ((*trap_table)[i].source == source) {
+               target = (*trap_table)[i].target;
                break;
             }
          }
       }         
-   } while (local_version != dyninstTrapTableVersion);
+   } while (local_version != *table_version);
 
    /*   fprintf(stderr, "Mapped %p to %p\n", source, target);*/
    return target;
 }
+

@@ -109,8 +109,6 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      creation_error = true;
      return;
   }
-  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
-  
   llBinEdits[path] = origBinEdit;
   
   std::queue<std::string> files;
@@ -136,18 +134,32 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
         lib->getAllDependencies(files);
      }
   }
-  
+
+  origBinEdit->getDyninstRTLibName();
+  std::string rt_name = origBinEdit->dyninstRT_name;
+  rtLib = BinaryEdit::openFile(rt_name);
+  if (!rtLib) {
+     startup_printf("[%s:%u] - ERROR.  Could not open RT library\n",
+                    __FILE__, __LINE__);
+     creation_error = true;
+     return;
+  }
+
   std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
   for(; i != llBinEdits.end(); i++) {
+     (*i).second->setupRTLibrary(rtLib);
+  }
+
+  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
+  assert(masterTrampGuard);
+  
+  for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      BinaryEdit *llBinEdit = (*i).second;
      llBinEdit->registerFunctionCallback(createBPFuncCB);
      llBinEdit->registerInstPointCallback(createBPPointCB);
      llBinEdit->set_up_ptr(this);
-     if(llBinEdit != origBinEdit)
-     {
-       llBinEdit->setTrampGuard(masterTrampGuard);
-     }
-     
+     llBinEdit->setupRTLibrary(rtLib);
+     llBinEdit->setTrampGuard(masterTrampGuard);
   }
 
   image = new BPatch_image(this);

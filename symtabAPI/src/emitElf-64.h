@@ -80,6 +80,7 @@ class emitElf64{
 #if !defined(os_solaris)
     std::map<unsigned, std::vector<Elf64_Dyn *> > dynamicSecData;
     std::vector<std::string> DT_NEEDEDEntries;
+    std::vector<std::pair<long, long> > new_dynamic_entries;    
     std::vector<std::string> unversionedNeededEntries;
 #endif
 

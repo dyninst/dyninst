@@ -2888,6 +2888,26 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 #endif
 }
 
+SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
+{
+#if defined(os_linux)
+   getObject()->insertPrereqLibrary(name);
+   return true;
+#else
+   return false;
+#endif
+}
+
+SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
+{
+#if defined(os_linux)
+   getObject()->insertDynamicEntry(name, value);
+   return true;
+#else
+   return false;
+#endif
+}
+
 } // namespace SymtabAPI
 } // namespace Dyninst
 

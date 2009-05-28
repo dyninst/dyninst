@@ -444,7 +444,7 @@ void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
 /* FIXME: this almost certainly NOT the Right Place to keep this. */
 Address savedPC;
 
-bool process::getDyninstRTLibName() {
+bool AddressSpace::getDyninstRTLibName() {
    if (dyninstRT_name.length() == 0) {
       // Get env variable
       if (getenv("DYNINSTAPI_RT_LIB") != NULL) {

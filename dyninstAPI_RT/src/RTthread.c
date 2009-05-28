@@ -145,8 +145,8 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    
  done:
    tc_lock_unlock(&DYNINST_trace_lock);
-  rtdebug_printf("%s[%d]:  leaving asyncSendThreadEvent: status = %s\n", 
-                 __FILE__, __LINE__, result ? "error" : "ok");
+   rtdebug_printf("%s[%d]:  leaving asyncSendThreadEvent: status = %s\n", 
+                  __FILE__, __LINE__, result ? "error" : "ok");
    return result;
 }
 
@@ -190,13 +190,15 @@ static unsigned threadCreate(dyntid_t tid)
       rt_newthr_cb(index);
    }
 
-   /*Only async for now.  We should parameterize this function to also have a*/
-   /* sync option.*/
-   asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
-                        sizeof(BPatch_newThreadEventRecord));
-   rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
-                 __FILE__, __LINE__, index);
-
+   if (!DYNINSTstaticMode)
+   {
+      /*Only async for now.  We should parameterize this function to also 
+        have a sync option.*/
+      asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
+                           sizeof(BPatch_newThreadEventRecord));
+      rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
+                     __FILE__, __LINE__, index);
+   }
    return index;
 }
 

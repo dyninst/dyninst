@@ -1321,7 +1321,7 @@ bool process::insertTrapAtEntryPointOfMain()
     return true;
 }
 
-bool process::getDyninstRTLibName() 
+bool AddressSpace::getDyninstRTLibName() 
 {
     if (dyninstRT_name.length() == 0) {
         // Get env variable

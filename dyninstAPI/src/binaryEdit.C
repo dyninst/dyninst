@@ -604,12 +604,14 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
 
 
 bool BinaryEdit::initialize() {
-    // Create the tramp guard
-
-    // Initialization. For now we're skipping threads, since we can't
-    // get the functions we need. However, we kinda need the recursion
-    // guard. This is an integer (one per thread, for now - 1) that 
-    // begins initialized to 1.
+   //Load the RT library
+   
+   // Create the tramp guard
+   
+   // Initialization. For now we're skipping threads, since we can't
+   // get the functions we need. However, we kinda need the recursion
+   // guard. This is an integer (one per thread, for now - 1) that 
+   // begins initialized to 1.
 
     return true;
 }
@@ -733,4 +735,31 @@ bool BinaryEdit::isDirty()
 mapped_object *BinaryEdit::getMappedObject()
 {
    return mobj;
+}
+
+void BinaryEdit::setupRTLibrary(BinaryEdit *r)
+{
+   rtlib = r;
+   runtime_lib = rtlib->getMappedObject();
+   assert(rtlib);
+}
+
+void BinaryEdit::setTrampGuard(int_variable* tg)
+{
+  trampGuardBase_ = tg;
+}
+
+
+int_variable* BinaryEdit::createTrampGuard()
+{
+  // If we have one, just return it
+  if(trampGuardBase_) return trampGuardBase_;
+  assert(rtlib);
+
+  mapped_object *mobj = rtlib->getMappedObject();
+  const int_variable *var = mobj->getVariable("DYNINST_tramp_guards");
+  assert(var);
+  trampGuardBase_ = const_cast<int_variable *>(var);
+  
+  return trampGuardBase_;
 }

@@ -4877,3 +4877,13 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
   }
 
 }
+
+void Object::insertPrereqLibrary(std::string libname)
+{
+   prereq_libs.insert(libname);
+}
+
+void Object::insertDynamicEntry(long name, long value)
+{
+   new_dynamic_entries.push_back(std::pair<long, long>(name, value));
+}

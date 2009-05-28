@@ -57,9 +57,12 @@ int DYNINSTwriteEvent(void *ev, size_t sz);
 int DYNINSTasyncConnect(int pid);
 
 int DYNINSTinitializeTrapHandler();
-void* dyninstTrapTranslate(void *source);
+void* dyninstTrapTranslate(void *source, 
+                           volatile unsigned long *table_used,
+                           volatile unsigned long *table_version,
+                           volatile trapMapping_t **trap_table,
+                           volatile unsigned long *is_sorted);
 
-extern int DYNINSTdebuPrintRT;
 extern int DYNINST_mutatorPid;
 extern int libdyninstAPI_RT_init_localCause;
 extern int libdyninstAPI_RT_init_localPid;
@@ -73,6 +76,9 @@ extern int unmap_region(void *addr, int len);
 extern void mark_heaps_exec(void);
 
 extern int DYNINSTdebugRTlib;
+
+extern int DYNINSTstaticMode;
+
 #if (os_solaris == 8)
 /*  solaris 2.8 is having some trouble with varargs... */  
 #define rtdebug_printf if (DYNINSTdebugPrintRT) printf

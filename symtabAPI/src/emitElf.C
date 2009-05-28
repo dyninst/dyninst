@@ -1335,6 +1335,13 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
+  //Initialize the list of new prereq libraries
+  set<string> &plibs = obj->getObject()->prereq_libs;
+  for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
+     DT_NEEDEDEntries.push_back(*i);
+  }
+  new_dynamic_entries = obj->getObject()->new_dynamic_entries;
+
   // recreate a "dummy symbol"
   Elf32_Sym *sym = new Elf32_Sym();
   symbolStrs.push_back("");
@@ -1813,7 +1820,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
   dynamicSecData.clear();
   Elf32_Dyn *dyns = (Elf32_Dyn *)dynData;
   unsigned count = size/sizeof(Elf32_Dyn);
-  dynsecSize = 2*count+ DT_NEEDEDEntries.size();    //We don't know the size before hand. So allocate the maximum possible size;
+  dynsecSize = 2*(count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
   dynsecData = (Elf32_Dyn *)malloc(dynsecSize*sizeof(Elf32_Dyn));
   unsigned curpos = 0;
   string rpathstr;
@@ -1822,6 +1829,14 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
     dynsecData[curpos].d_un.d_val = versionNames[DT_NEEDEDEntries[i]];
     dynamicSecData[DT_NEEDED].push_back(dynsecData+curpos);
     curpos++;
+  }
+  for (unsigned i = 0; i<new_dynamic_entries.size(); i++) {
+     long name = new_dynamic_entries[i].first;
+     long value = new_dynamic_entries[i].second;
+     dynsecData[curpos].d_tag = name;
+     dynsecData[curpos].d_un.d_val = value;
+     dynamicSecData[name].push_back(dynsecData+curpos);
+     curpos++;
   }
   for(unsigned i = 0; i< count;i++){
     switch(dyns[i].d_tag){

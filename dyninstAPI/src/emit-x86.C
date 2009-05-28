@@ -1370,7 +1370,7 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     return true;
 }
 
-void EmitterAMD64::emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen)
+void EmitterAMD64::emitLoadShared(opCode /*op*/, Register dest, const image_variable *var, bool /*is_local*/, int /*size*/, codeGen &gen)
 {
     // create or retrieve jump slot
     Address addr = getInterModuleVarAddr(var, gen);
@@ -1384,7 +1384,7 @@ void EmitterAMD64::emitLoadShared(Register dest, const image_variable *var, int 
     emitLoadIndir(dest, dest, gen);
 }
 
-void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen)
+void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, bool /*is_local*/, int /*size*/, codeGen &gen)
 {
     // create or retrieve jump slot
     Address addr = getInterModuleVarAddr(var, gen);
@@ -2084,38 +2084,60 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     return true;
 }
 
-void EmitterIA32::emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen)
+void EmitterIA32::emitLoadShared(opCode op, Register dest, 
+                                 const image_variable *var, bool is_local, 
+                                 int size, codeGen &gen)
 {
-    // create or retrieve jump slot
-    Address addr = getInterModuleVarAddr(var, gen);
-
-    //fprintf(stderr, "Emitting inter-module load for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
-
-    // load register with address from jump slot
-    emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen);
+  // create or retrieve jump slot
+  Address addr;
+  if(!is_local)
+  {
+    addr = getInterModuleVarAddr(var, gen);
+  }  
+  else
+  {
+      addr = (Address)var ->getOffset();
+  }
+  
+  // load register with address from jump slot
+  
+  if(!is_local && (var != NULL)){
+   // get the variable with an indirect load
+    emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen, true);
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-
-    // get the variable with an indirect load
-    emitLoadIndir(dest, dest, gen);
+    if(op == loadOp) {
+      emitLoadIndir(dest, dest, gen);
+    }
+  }
+  else
+  {
+    if(var != NULL)
+    emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen, false);
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
+    if(op == loadOp) {
+      emitLoadIndir(dest, dest, gen);
+    }
+  }
 }
 
-void EmitterIA32::emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen)
+void EmitterIA32::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen)
 {
     // create or retrieve jump slot
-    Address addr = getInterModuleVarAddr(var, gen);
-
-    //fprintf(stderr, "Emitting inter-module store for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
+    //Address addr = getInterModuleVarAddr(var, gen);
+  Address addr;
+  if(!is_local)
+    addr = getInterModuleVarAddr(var, gen);
+  else
+    addr = (Address)var->getOffset();
     
-    // temporary virtual register for storing destination address
-    Register dest = gen.rs()->allocateRegister(gen, false);
+  // temporary virtual register for storing destination address
+  Register dest = gen.rs()->allocateRegister(gen, false);
+  
+  // load register with address from jump slot
+  emitMovPCRMToReg(REGNUM_EAX, addr-gen.currAddr(), gen, !is_local);
+  emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 
-    // load register with address from jump slot
-    emitMovPCRMToReg(REGNUM_EAX, addr-gen.currAddr(), gen);
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-
-    // get the variable with an indirect load
-    emitStoreIndir(dest, source, gen);
-
-    gen.rs()->freeRegister(dest);
+  // get the variable with an indirect load
+  emitStoreIndir(dest, source, gen);
+  gen.rs()->freeRegister(dest);
 }
-

@@ -136,7 +136,7 @@ class BinaryEdit : public AddressSpace {
 
     bool writeFile(const std::string &newFileName);
     
-    virtual bool canUseTraps() { return false; }
+    virtual bool canUseTraps() { return true; }
 
     // resolve a dynamic library name to a full path
     // returns NULL if the library cannot be found
@@ -151,12 +151,17 @@ class BinaryEdit : public AddressSpace {
     // search for a shared library relocation
 	Address getDependentRelocationAddr(Symbol *referring);
 
+   void setupRTLibrary(BinaryEdit *r);
    bool getAllDependencies(std::queue<std::string> &deps);
 
    void markDirty();
    bool isDirty();
 
    mapped_object *getMappedObject();
+   
+   int_variable* createTrampGuard();
+   void setTrampGuard(int_variable* tg); 
+
  private:
 
     Address highWaterMark_;
@@ -182,6 +187,7 @@ class BinaryEdit : public AddressSpace {
                              Region *newSec,
                              Module *mod);
     mapped_object *mobj;
+    BinaryEdit *rtlib;
 };
 
 class depRelocation {

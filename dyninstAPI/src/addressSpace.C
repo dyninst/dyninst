@@ -63,8 +63,9 @@
 // Implementations of non-virtual functions in the address space
 // class.
 
-AddressSpace::AddressSpace() :
+AddressSpace::AddressSpace () :
     trapMapping(this),
+    runtime_lib(NULL),
     multiTrampsById_(intHash),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
@@ -1288,16 +1289,7 @@ void trampTrapMappings::flush() {
    if (!needs_updating)
       return;
 
-   process *p = dynamic_cast<process *>(proc());
-   mapped_object *rtlib = NULL;
-   if (p) {
-      rtlib = p->runtime_lib;
-   }
-   else {
-      //Binary rewritter needs RT library loaded before this will work.
-      // Set rtlib when this becomes possible.
-      assert(0);
-   }
+   mapped_object *rtlib = proc()->runtime_lib;
 
    //We'll sort addresses in the binary rewritter (when writting only happens
    // once and we may do frequent lookups)
@@ -1360,24 +1352,9 @@ void trampTrapMappings::flush() {
    //Each table entry has two pointers.
    unsigned entry_size = proc()->getAddressWidth() * 2;
 
-   //Allocate the space for the tramp mapping table, or make sure that enough
-   // space already exists.
    Address write_addr = 0x0;
-   if (table_mutatee_size > table_allocated) {
-      //Free old table
-      if (current_table) {
-         proc()->inferiorFree(current_table);
-      }
-      
-      //Calculate size of new table
-      table_allocated = (unsigned long) (table_mutatee_size * 1.5);
-      if (table_allocated < MIN_TRAP_TABLE_SIZE)
-         table_allocated = MIN_TRAP_TABLE_SIZE;
-      
-      //allocate
-      current_table = proc()->inferiorMalloc(table_allocated * entry_size);
-      assert(current_table);
-   }
+
+   allocateTable();
 
    //Add any new entries to the table
    unsigned char *buffer = NULL;
@@ -1436,29 +1413,88 @@ void trampTrapMappings::flush() {
 
    //This function just keeps going... Now we need to take all of those 
    // mutatee side variables and update them.
-   if (!trapTable) {
-      //Lookup all variables that are in the rtlib
-      assert(rtlib);
-      trapTableUsed = rtlib->getVariable("dyninstTrapTableUsed");
-      trapTableVersion = rtlib->getVariable("dyninstTrapTableVersion");
-      trapTable = rtlib->getVariable("dyninstTrapTable");
-      trapTableSorted = rtlib->getVariable("dyninstTrapTableIsSorted");
-
-      if (!trapTableUsed) {
-         fprintf(stderr, "Dyninst is about to crash with an assert.  Either your dyninstAPI_RT library is stripped, or you're using an older version of dyninstAPI_RT with a newer version of dyninst.  Check your DYNINSTAPI_RT_LIB enviroment variable.\n");
+   if (dynamic_cast<process *>(proc())) 
+   {
+      if (!trapTable) {
+         //Lookup all variables that are in the rtlib
+         assert(rtlib);
+         trapTableUsed = rtlib->getVariable("dyninstTrapTableUsed");
+         trapTableVersion = rtlib->getVariable("dyninstTrapTableVersion");
+         trapTable = rtlib->getVariable("dyninstTrapTable");
+         trapTableSorted = rtlib->getVariable("dyninstTrapTableIsSorted");
+         
+         if (!trapTableUsed) {
+            fprintf(stderr, "Dyninst is about to crash with an assert.  Either your dyninstAPI_RT library is stripped, or you're using an older version of dyninstAPI_RT with a newer version of dyninst.  Check your DYNINSTAPI_RT_LIB enviroment variable.\n");
+         }
+         assert(trapTableUsed);
+         assert(trapTableVersion);
+         assert(trapTable);
+         assert(trapTableSorted);
       }
-      assert(trapTableUsed);
-      assert(trapTableVersion);
-      assert(trapTable);
-      assert(trapTableSorted);
-   }
    
-   writeTrampVariable(trapTableUsed, table_used);
-   writeTrampVariable(trapTableVersion, ++table_version);
-   writeTrampVariable(trapTable, (unsigned long) current_table);
-   writeTrampVariable(trapTableSorted, should_sort ? 1 : 0);
+      writeTrampVariable(trapTableUsed, table_used);
+      writeTrampVariable(trapTableVersion, ++table_version);
+      writeTrampVariable(trapTable, (unsigned long) current_table);
+      writeTrampVariable(trapTableSorted, should_sort ? 1 : 0);
+   }
 
    needs_updating = false;
+}
+
+void trampTrapMappings::allocateTable()
+{
+   unsigned entry_size = proc()->getAddressWidth() * 2;
+
+   if (dynamic_cast<process *>(proc()))
+   {
+      //Dynamic rewriting
+
+      //Allocate the space for the tramp mapping table, or make sure that enough
+      // space already exists.
+      if (table_mutatee_size > table_allocated) {
+         //Free old table
+         if (current_table) {
+            proc()->inferiorFree(current_table);
+         }
+         
+         //Calculate size of new table
+         table_allocated = (unsigned long) (table_mutatee_size * 1.5);
+         if (table_allocated < MIN_TRAP_TABLE_SIZE)
+            table_allocated = MIN_TRAP_TABLE_SIZE;
+         
+         //allocate
+         current_table = proc()->inferiorMalloc(table_allocated * entry_size);
+         assert(current_table);
+      }
+      return;
+   }
+
+   //Static rewriting
+   BinaryEdit *binedit = dynamic_cast<BinaryEdit *>(proc());
+   assert(!current_table);
+   assert(binedit);
+   
+   table_allocated = (unsigned long) table_mutatee_size;
+   table_header = proc()->inferiorMalloc(table_allocated * entry_size + 
+                                         sizeof(trap_mapping_header));
+   trap_mapping_header header;
+   header.signature = TRAP_HEADER_SIG;
+   header.num_entries = table_mutatee_size;
+   header.pos = -1;
+   header.low_entry = 0;
+   header.high_entry = 0;
+
+   bool result = proc()->writeDataSpace((void *) table_header, 
+                                        sizeof(trap_mapping_header),
+                                        &header);
+   assert(result);   
+   current_table = table_header + sizeof(trap_mapping_header);
+
+   Symtab *symtab = binedit->getMappedObject()->parse_img()->getObject();
+   symtab->addSysVDynamic(DT_DYNINST, table_header);
+
+   std::string rt_lib_name = proc()->runtime_lib->fileName();
+   symtab->addLibraryPrereq(rt_lib_name);
 }
 
 bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &funcs)
@@ -1514,23 +1550,4 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
    assert(!range->is_function());
    return false;
    
-}
-
-void AddressSpace::setTrampGuard(int_variable* tg)
-{
-  trampGuardBase_ = tg;
-}
-
-
-int_variable* AddressSpace::createTrampGuard()
-{
-  // If we have one, just return it
-  if(trampGuardBase_) return trampGuardBase_;
-  Address base = inferiorMalloc(getAddressWidth());
-  trampGuardBase_ = getAOut()->getDefaultModule()->createVariable("DYNINST_tramp_guard", base, getAddressWidth());
-  int trampInit = 1;
-  // And make a range for it.
-  writeDataSpace((void *)base, sizeof(unsigned), &trampInit);    
-  inst_printf("Tramp guard created at address 0x%lx\n", base);
-  return trampGuardBase_;
 }

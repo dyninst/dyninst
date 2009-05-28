@@ -64,7 +64,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include <set>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -354,6 +354,9 @@ class Object : public AObject {
   // To be changed later - Giri
   Offset getBaseAddress() const { return 0; }
   static bool truncateLineFilenames;
+
+  void insertPrereqLibrary(std::string libname);
+  void insertDynamicEntry(long name, long value);
  
   virtual char *mem_image() const 
   {
@@ -592,6 +595,10 @@ class Object : public AObject {
  private:
   bool DbgSectionMapSorted;
   std::vector<DbgAddrConversion_t> DebugSectionMap;
+
+ public:  
+  std::set<std::string> prereq_libs;
+  std::vector<std::pair<long, long> > new_dynamic_entries;
 };
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);
