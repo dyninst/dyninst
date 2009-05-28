@@ -1385,7 +1385,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        else
        {
-	 fprintf(stderr, "Emitting load for string at: %x\n", addr);
+	 fprintf(stderr, "Emitting load for string at: %x, address size %d\n", addr, size);
 	 gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
 	 
        }
@@ -2718,6 +2718,6 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
   }
   else
   {
-    gen.codeEmitter()->emitStoreShared(op, src1, oVar, (var!=NULL), size, gen);
+    gen.codeEmitter()->emitStoreShared(src1, oVar, (var!=NULL), size, gen);
   }  
 }
