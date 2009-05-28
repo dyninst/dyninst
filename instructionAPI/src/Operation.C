@@ -176,13 +176,9 @@ namespace Dyninst
       e->flagsUsed(flagsRead, flagsWritten, l);
       if(p && p->getCount())
       {
-	for(unsigned i = 0; i < p->getCount(); i++)
-	{
-	  if(p->getPrefix(i) == PREFIX_REP || p->getPrefix(i) == PREFIX_REPNZ)
+	if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
 	  {
 	    flagsRead.insert(r_DF);
-	    break;
-	  }
 	}
       }
 
@@ -262,6 +258,15 @@ namespace Dyninst
       }
       return false;
     }
+    const Operation::VCSet& Operation::getImplicitMemReads() const
+    {
+      return otherEffAddrsRead;
+    }
+    const Operation::VCSet& Operation::getImplicitMemWrites() const
+    {
+      return otherEffAddrsWritten;
+    }
+
     bool Operation::isWritten(Expression::Ptr candidate) const
     {
       for(std::set<RegisterAST::Ptr>::const_iterator r = otherWritten.begin();
@@ -304,6 +309,7 @@ namespace Dyninst
 	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
 	
 	stackPointer.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	stackPointerAsExpr.insert(Expression::Ptr(new RegisterAST(r_eSP)));
 	framePointer.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
 	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
 	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
@@ -346,10 +352,13 @@ namespace Dyninst
 	(e_jp, thePC)
 	(e_js, thePC)
 	(e_jz, thePC);
+	nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
+	nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
       }
       std::set<RegisterAST::Ptr> thePC;
       std::set<RegisterAST::Ptr> pcAndSP;
       std::set<RegisterAST::Ptr> stackPointer;
+      std::set<Expression::Ptr> stackPointerAsExpr;
       std::set<RegisterAST::Ptr> framePointer;
       std::set<RegisterAST::Ptr> spAndBP;
       std::map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;

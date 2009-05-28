@@ -29,28 +29,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "CDG.h"
+#include "xPDG.h"
 
-#include "Node.h" // for VirtualNode
-#include "analyzeCDG.h"
-
-#include "BPatch_basicBlock.h"
+#include "Node.h"
+#include "analyzeXPDG.h"
 
 class BPatch_function;
 
 using namespace Dyninst::DepGraphAPI;
 
-CDG::CDG() :
+xPDG::xPDG() :
         virtEntryNode_(VirtualNode::createNode()) {
     insertEntryNode(virtEntryNode_);
 }
 
-CDG::Ptr CDG::analyze(Function *func) {
-    CDGAnalyzer cdgA(func);
-    CDG::Ptr cdg = cdgA.analyze();
-    return cdg;
-}
-
-bool CDG::findBlock(BPatch_basicBlock *block, NodeIterator &begin, NodeIterator &end) {
-    return find((Address) block->getStartAddress(), begin, end);
+xPDG::Ptr xPDG::analyze(Function *func) {
+    xPDGAnalyzer xpdgA(func);
+    xPDG::Ptr xpdg = xpdgA.analyze();
+    return xpdg;
 }

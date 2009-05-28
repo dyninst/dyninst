@@ -204,15 +204,13 @@ class InstrucIter {
    * multi branch instruction
    */
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0)
+#if defined(arch_x86) || defined(arch_x86_64)
   bool getMultipleJumpTargets( BPatch_Set< Address >& result, 
                                instruction& tableInsn, 
                                instruction& maxSwitchInsn, 
                                instruction& branchInsn,
                                bool isAddressInJmp,
+                               bool foundJccAlongTaken,
 			       Address tableOffsetFromThunk = 0);
 #else
   

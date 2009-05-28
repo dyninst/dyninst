@@ -28,60 +28,50 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
- 
+
 #if !defined(CDG_GRAPH_H)
 #define CDG_GRAPH_H
 
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include <set>
-#include <list>
-#include <queue>
-#include "Annotatable.h"
-#include "Instruction.h"
 #include "Node.h"
-#include "Absloc.h"
 #include "Graph.h"
 
-#include "DepGraphNode.h"
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 class BPatch_function;
+class BPatch_basicBlock;
 
 namespace Dyninst {
-    class InstructionAPI::Instruction;
-    class Edge;
-    class Graph;
-    class Node;
 
 namespace DepGraphAPI {
 
-    class Absloc;
-
+// This class represents a Control Dependence Graph for a given function.
 class CDG : public Graph {
- public:
+public:
     typedef dyn_detail::boost::shared_ptr<CDG> Ptr;
 
- private:
+private:
     typedef BPatch_function Function;
+    typedef BPatch_basicBlock Block;
 
-    typedef std::map<Address, NodeSet> AddrMap;
-    
-    typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
-    typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
-
-    typedef std::set<ActualParamNode::Ptr> ActualParamNodeSet;
-    typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
-
- public:
-
+public:
+    // Creates and returns the CDG for the given function.
     static CDG::Ptr analyze(Function *func);
-    
+
     virtual ~CDG() {};
 
+    // Returns the entry node for the CDG.
+    Node::Ptr virtualEntryNode() { return virtEntryNode_; }
+
+    // Creates an empty CDG and returns.
     static Ptr createGraph() { return CDG::Ptr(new CDG()); }
 
- private:
+    // Finds the BlockNode that contains the given basic block.
+    virtual bool findBlock(BPatch_basicBlock *block, NodeIterator &begin, NodeIterator &end);
+private:
+    CDG();
 
-    CDG() {};
+    // Node to make sure everyone is reachable...
+    Node::Ptr virtEntryNode_;
 };
 
 };

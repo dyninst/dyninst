@@ -484,7 +484,7 @@ class ia32_prefixes
   unsigned char opcode_prefix;
  public:
   unsigned int getCount() const { return count; }
-  unsigned char getPrefix(unsigned char group) const { return prfx[group]; }
+  unsigned char getPrefix(unsigned char group) const { assert(group <= 4); return prfx[group]; }
   bool rexW() const { return prfx[4] & 0x8; }
   bool rexR() const { return prfx[4] & 0x4; }
   bool rexX() const { return prfx[4] & 0x2; }

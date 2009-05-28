@@ -28,64 +28,48 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
- 
+
 #if !defined(PDG_GRAPH_H)
 #define PDG_GRAPH_H
 
-#include "dyn_detail/boost/shared_ptr.hpp"
-#include <set>
-#include <list>
-#include <queue>
-#include "Annotatable.h"
-#include "Instruction.h"
 #include "Node.h"
-#include "Absloc.h"
 #include "Graph.h"
 
-#include "DepGraphNode.h"
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 class BPatch_function;
 
 namespace Dyninst {
-    class InstructionAPI::Instruction;
-    class Edge;
-    class Graph;
-    class Node;
 
 namespace DepGraphAPI {
 
-    class Absloc;
-
+// This class represents a Program Dependence Graph for a given function.
 class PDG : public Graph {
- public:
+public:
     typedef dyn_detail::boost::shared_ptr<PDG> Ptr;
 
- private:
+private:
     typedef BPatch_function Function;
 
-    typedef std::map<Address, NodeSet> AddrMap;
-    
-    typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
-    typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
-
-    typedef std::set<ActualParamNode::Ptr> ActualParamNodeSet;
-    typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
- public:
-
+public:
+    // Creates and returns the PDG for the given function.
     static PDG::Ptr analyze(Function *func);
-    
+
     virtual ~PDG() {};
 
+    // Returns the entry node for the PDG.
+    Node::Ptr virtualEntryNode() { return virtEntryNode_; }
+
+    // Creates an empty PDG and returns.
     static Ptr createGraph() { return PDG::Ptr(new PDG()); }
 
- private:
+private:
+    // default constructor.
+    PDG();
 
-    PDG() {};
-
-    CDG::Ptr cdg_;
-    DDG::Ptr ddg_;
+    // Node to make sure everyone is reachable...
+    Node::Ptr virtEntryNode_;
 };
-
 };
 }
 #endif

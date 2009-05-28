@@ -43,135 +43,53 @@
 #define INTRAFUNCTIONPDGCREATOR_H_
 
 #include <map>
-#include <set>
-#include "Absloc.h"
-#include "Edge.h"
 #include "Graph.h"
 #include "Node.h"
-#include "DDG.h"
-#include "DepGraphNode.h"
-
-#include "boost/tuple/tuple.hpp"
+#include "PDG.h"
 
 class BPatch_function;
-
-using namespace std;
 
 namespace Dyninst {
 namespace DepGraphAPI {
 
-#if 0
-    // Let's just use the extended version, since the DDG + CDG seems to be incomplete...
-/**
- * The tool that creates the Program Dependence Graph (PDG) associated with a given 
- * function (currently BPatch_function). It creates a Data Dependency Graph (DDG)
- * and a Control Dependency Graph (CDG) using a intraFunctionDDGCreator and
- * a intraFunctionCDGCreator. These graphs are merged to create a PDG.
- */
+// The tool that creates the Program Dependence Graph (PDG) associated with a given 
+// function (currently BPatch_function). It creates a Data Dependency Graph (DDG)
+// and a Control Dependency Graph (CDG). These graphs are merged to create an PDG. 
 class PDGAnalyzer {
+    friend class xPDGAnalyzer;
+
 private:
-  typedef BPatch_function Function;
-  typedef Node::Ptr NodePtr;
-  typedef set<NodePtr> NodeSet;
-  typedef NodeSet::iterator NodeIter;
-  typedef Edge::Ptr EdgePtr;
-  typedef set<EdgePtr> EdgeSet;
-  typedef Graph::Ptr GraphPtr;
-  typedef dyn_detail::boost::shared_ptr<Absloc> AbslocPtr;
-  typedef map<AbslocPtr, NodePtr> AbslocMap;
-
-  /**
-   * The function whose PDG is being created.
-   */
-  Function* func;
-  
-  /**
-   * Program Dependence Graph.
-   */
-  GraphPtr PDG;
-
+    typedef BPatch_function Function;
+    typedef BPatch_basicBlock Block;
+    typedef std::set<Block *> BlockSet;
 public:
-  /**
-   * Creates an PDGAnalyzer object associated with the given function.
-   */
-  static PDGAnalyzer create(Function *func);
-  
-  /**
-   * Returns the PDG created by this PDGAnalyzer object.
-   */
-  Graph::Ptr getPDG();
+    typedef Node::Ptr NodePtr;
+    typedef std::map<Node*, NodePtr> NodeMap;
 
 private:
-  PDGAnalyzer(Function *f) : func(f) {};
-  void analyze();
-  // Creates a CDG and merges it with the DDG that *must* be contained in the graph pointed by PDG.
-  void mergeCDG();
+    // Program Dependence Graph.
+    PDG::Ptr pdg;
+    
+    // Function to be analyzed.
+    Function *func_;
 
-  // Inserts all outgoing edges from the given node into the given graph. Since the given node is
-  // not part of this graph, first associated node(s) in this graph have to be found (say, N nodes).
-  // Similarly, nodes associated with the target node(s) have to be found (say, M nodes). Then
-  // N x M edges are created and inserted into this graph.
-  static void addCdgEdgesToGraph(GraphPtr graph, NodePtr node);
-};
+    // Gets the DDG for this function and copies it into PDG.
+    void mergeWithDDG();
 
-#endif
+    // Gets the CDG for this function, converts it into sub-instruction level, and merges with the PDG.
+    void mergeWithCDG();
 
-/**
- * The tool that creates the Extended Program Dependence Graph (xPDG) associated with a given 
- * function (currently BPatch_function). It creates a Program Dependency Graph (PDG)
- * and a Flow Dependency Graph (FDG) using a PDGAnalyzer and
- * a intraFunctionFDGCreator. These graphs are merged to create an xPDG.
- */
-class PDGAnalyzer {
-
-private:
-  typedef BPatch_function Function;
-  typedef Node::Ptr NodePtr;
-  typedef set<NodePtr> NodeSet;
-  typedef NodeSet::iterator NodeIter;
-  typedef Edge::Ptr EdgePtr;
-  typedef set<EdgePtr> EdgeSet;
-  typedef Graph::Ptr GraphPtr;
-
-  typedef dyn_detail::boost::shared_ptr<Absloc> AbslocPtr;
-  typedef map<AbslocPtr, NodePtr> AbslocMap;
-  typedef map<Address, AbslocMap> NodeMap;
-
-  /**
-   * Inputs to the PDG
-   */
-  DDG::Ptr ddg_;
-  Graph::Ptr cdg_;
-  Graph::Ptr fdg_;
-
-  
-  /**
-   * Extended Program Dependence Graph.
-   */
-  GraphPtr xPDG;
-
+protected:
+    
+    // Creates edges from given source to all nodes between targetsBegin and targetsEnd
+    static void createEdges(Graph::Ptr graph, Node::Ptr source,
+            NodeIterator targetsBegin, NodeIterator targetsEnd);
 public:
-  /**
-   * Creates an intraFunctionXPDGCreator object associated with the given function.
-   */
-  PDGAnalyzer(DDG::Ptr ddg, 
-              Graph::Ptr cdg,
-              Graph::Ptr fdg) :
-      ddg_(ddg),
-      cdg_(cdg),
-      fdg_(fdg) {};
+    // Creates a PDGAnalyzer object that will be used to create a PDG for the given function.
+    PDGAnalyzer(Function *f);
 
-  /**
-   * Merges FDG with the PDG to create an xPDG.
-   */
-  DDG::Ptr analyze();
-
-private:
-  
-  /**
-   * Given a PDG that is copied into an xPDG, inserts FDG edges into the xPDG.
-   */
-  void mergeFDG();
+    // Analyze the function fed to the constructor and return its Program Dependence Graph. 
+    PDG::Ptr analyze();
 };
 
 };

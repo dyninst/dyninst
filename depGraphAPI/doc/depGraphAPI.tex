@@ -9,16 +9,59 @@
 \section{Introduction}
 
 The DepGraphAPI is a multi-platform library for creating and analyzing
-dependence graph representations of binary code. These graph
-representations include data dependence graph (DDG), control
-dependence graph (CDG), program dependence graph (PDG), and extended program
-dependence graph (xPDG). A data dependence graph provides information about
-use-define chains in a function. A control dependence graph is composed of
-edges where the execution of the source determines whether the target of this
-edge will be executed. A program dependence graph is simply the
-combination of this two graphs. Finally, an extended program dependence graph
-is an extension to the PDG with extra dependencies used for creating executable
-slices.
+dependence graph representations of binary code. A dependence graph is
+a representation of must-happen-before and must-happen-after
+relationships between program elements (e.g., instructions and basic
+blocks). A program may consist of several logically separate streams
+of execution that are interleaved by the compiler; these
+representations undo this interleaving. We represent these
+relationships in terms of a \emph{graph}, a data structure that
+consists of nodes connected by directed edges. Nodes in the graph
+represent program elements and edges represent \emph{dependences}
+(must-happen-before or must-happen-after) relationships between
+elements.
+
+The DepGraphAPI currently provides four types of graph representation:
+\begin{description}
+\item[Data Dependence Graph (DDG)] This graph represents the relations
+between instructions that define and instructions that use registers
+and memory. Nodes in this graph represent instructions, and edges
+connect definitions of a particular location to its uses.
+\item[Control Dependence Graph (CDG)] This graph represents conditional execution of basic blocks in the program. 
+\item[Program Dependence Graph (PDG)] This graph is the union of the DDG and CDG. 
+\item[Extended Program Dependence Graph (xPDG)] This graph is the PDG
+augmented with additional nodes and edges necessary for forming an
+executable slice (defined below).
+\end{description}
+
+The main goal of this API is to provide the user with abstractions
+representing the logical dependencies between instructions in a
+program. An abstract interface provides two benefits: it simplifies
+the development of a tool since the complexity of a particular
+architecture is hidden, and it allows tools to easily be ported
+between platforms. Using a dependence graph representation of a
+program allows the user to focus on a particular aspect of program
+behavior and ignore program elements that do not affect that aspect of
+behavior.
+
+An excellent example is the \emph{slice}, a common use of program
+dependence. Intuitively, a slice of a program from a particular point
+is the sub-program that affects that point (a backwards slice) or is
+affected by that point (a forwards slice). Let $i$ represent an
+instruction in the program and $a$ some location that $i$ defines
+(writes a value into). A forward slice from $(i,a)$ are all
+instructions (and defined locations) that are affected by the
+definition of $a$ by $i$. Similarly, the backwards slice from $(i,a)$
+are all instructions (and defined locations) that may affect the value
+written into $a$ by $i$.
+
+A future goal of this library is to allow users to improve these graph
+representations through the use of additional analyses. The included
+analyses used to generate these graph representations are
+conservative, and may overapproximate the actual dependences between
+instructions. A future release will provide an API for updating these
+graph structures, either with information known to the user directly
+or with the results of more sophisticated analysis.
 
 The current beta of the DepGraphAPI depends on the InstructionAPI library
 and the DyninstAPI; future versions will depend only on the
@@ -29,88 +72,35 @@ InstructionAPI. Future architecture support includes PPC, IA-64, and
 SPARC; the DepGraphAPI has no file format or operating system
 constraints.
 
-The main goal of this API is to provide the user with abstractions
-representing the logical dependencies between instructions in a
-program. An abstract interface provides two benefits: it simplifies
-the development of a tool since the complexity of a particular
-architecture is hidden, and it allows tools to easily be ported
-between platforms. We use graphs to represent fundamental
-must-happen-before and must-happen-after relationships between
-instructions. These graphs represent:
-\begin{description}
-\item[DDG] The set of instructions that define a value used by a
-particular target instruction, or the set of instructions that use the
-value defined by a particular source instruction.
-\item[CDG] The instruction whose execution determines whether a
-particular target instruction is executed, or the set of instructions
-whose execution is determined by a particular source instruction.
-\item[PDG] The union of the data dependence graph and control
-dependence graph.
-\item[xPDG] An extension to the program dependence graph that contains extra
-dependecy edges and is suitable for generating executable slices.
-\end{description}
-
-A future goal of this library is to allow users to improve these graph
-representations through the use of additional analyses. The included
-analyses used to generate these graph representations are
-conservative, and may overapproximate the actual dependences between
-instructions. Afuture release will provide an API for updating these
-graph structures, either with information known to the user directly
-or with the results of more sophisticated analysis.
-
-This document describes the DepGraphAPI, an Application Program
-Interface (API) for analyzing and representing dependence graphs from
-binary code.
-
-\section{What is Program Dependence?}
-
-Program dependence is a representation of the binary in terms of two
-types of relationships: data dependence and control dependence. Data
-dependence models the flow of data between instructions, and control
-dependence models which instructions control the execution path
-through the program. Together they allow the user to model the program
-as a set of relationships between instructions instead of as an
-instruction stream.  
-
-The primary benefit of using program dependence as the view of the
-binary is the ability to focus on an interesting subset of
-instructions. Programs often perform several logical streams of
-computation, and the user may wish to focus on a particular
-stream. However, these streams are often interleaved in the binary. A
-program dependent view separates these streams and allows the user to
-visualize each individually.
-
-An excellent example is the slice, a common use of program
-dependence. Let i represent an instruction in the program and a some
-location that i defines (writes a value into). A forward slice from
-(i,a) are all instructions (and defined locations) that are affected
-by the definition of a by i. Similarly, the backwards slice from (i,a)
-are all instructions (and defined locations) that may affect the value
-written into a by i. In effect, slicing allows the user to decompose
-the binary into a series of sub-programs.  
-
 \section{Abstractions}
 
 DepGraphAPI provides a simple set of abstractions over complicated
-data structures to make it easy to use. The DepGraphAPI provides four
-graph variants: the data dependence graph (DDG), control dependence
-graph (CDG), program dependence graph (PDG), and extended program dependence
-graph (xPDG).
-
-The fundamental representation used by this library is the graph. A
-graph is a set of nodes connected by directed edges; each edge has a
-distinct (and unique) source and target. A node may be physical or
-virtual. Physical nodes represent objects within the code, such as an
-instruction, a combination of an instruction and the register or
-memory location that instruction defines (referred to collectively as
-abstract locations), or a basic block. Virtual nodes are added to the
-graph to represent dependences between the graph and code external to
-the graph (e.g., parameters of a called function).
+data structures to make it easy to use. The fundamental representation
+used by this library is the graph. A graph is a set of nodes connected
+by directed edges; each edge has a distinct (and unique) source and
+target. Nodes represent logical elements of the program. We define two
+classes of nodes: physical and virtual. Physical nodes that represent
+a particular instruction, basic block, or function. Virtual nodes
+represent a summary of the behavior of code that is not contained
+within the graph, such as a called function or the inputs to a
+function. We provide a set of methods for operating on Graphs, Nodes,
+and Edges; these methods provide a common interface to all four
+dependence graph types provided by the DepGraphAPI.
 
 Figure \ref{inheritance} shows the
 inheritance hierarchy for the DepGraphAPI classes. All references to
 DepGraphAPI classes are internally reference counted; we do not
 require the user to perform any manual memory allocation or deletion.
+
+\begin{figure}
+\begin{center}
+\epsfig{file=Inheritance,width=6in}
+\caption{Inheritance diagram for the DepGraphAPI. The Graph, Node, and
+  Edge classes provide a common interface specification. The DDG, CDG,
+  PDG, and xPDG graphs customize these three classes as necessary.}
+\end{center}
+\label{inheritance}
+\end{figure}
 
 \subsection{Shared Abstractions}
 
@@ -119,12 +109,12 @@ require the user to perform any manual memory allocation or deletion.
 function.
 \item[Node] The Node represents an element within the graph. Nodes are
 connected by edges and are labelled with information.
-\item[Physical Node] These Nodes represent an object  (instruction, basic
-block, etc.) within the program. They are labelled with the starting address
+\item[Physical Node] These Nodes represent an element (instruction, basic
+block, etc.) of the program. They are labelled with the starting address
 of that object.
-\item[Virtual Node] These Nodes represent behavior that does not
-directly correspond to an object within the program. Virtual nodes do not have
-an address associated with them.
+\item[Virtual Node] These Nodes represent summaries of program
+behavior not contained within the graph. Virtual nodes do not have an
+address associated with them.
 \item[Edge] Edges connect Nodes. Edges are directed and have a source
 and target.
 \end{description}
@@ -161,8 +151,9 @@ node in the CDG represents a block.
 
 \subsection{Program Dependence Graph}
 The Program Dependence Graph is the union of the DDG and CDG and is
-constructed from the same abstractions. The block-level information in
-the CDG is automatically converted to OperationNodes.
+constructed from the same abstractions used by the DDG. The
+block-level information in the CDG is automatically converted to
+OperationNodes.
 
 \subsection{Extended Program Dependence Graph}
 Although users can use PDGs to slice programs, the slices obtained through PDGs
@@ -172,8 +163,8 @@ given slicing criteria. Binary slices obtained through a PDG do not always
 include all necessary branch and return instructions that make the slice follow
 the flow of control of the original program due to fallthroughs. Therefore, an
 Extended Program Dependence Graph contains dependencies between an instruction
-\emph{i} and all instructions that are required to satisfy correct control flow
-in case \emph{i} appears in a slice. An xPDG also contains all nodes and edges
+$i$ and all instructions that are required to satisfy correct control flow
+in case $i$ appears in a slice. An xPDG also contains all nodes and edges
 that are parts of a regular PDG.
 
 \subsection{Annotations} 
@@ -190,7 +181,7 @@ using the appropriate methods on the Graph class.
 
 \section{Examples} 
 
-To illustrate the ideas in the API, this section presents several
+To illustrate the ideas in the API, this section presents
 short examples that demonstrate how the API can be used.  
 
 The first example demonstrates how to access the PDG for a particular
@@ -214,11 +205,12 @@ example is shown in Figure \ref{example1}. Lines of interest are:
   dereferencing the iterator: \texttt{*sliceBegin}.
 \end{itemize}
 
-\begin{figure}\label{example1}
+\begin{figure}
 \include{example1}
 \caption{Slicing example. This code fragment identifies the nodes
   reachable by following edges forward from the node with address
   \texttt{insnAddr}.}
+\label{example1}
 \end{figure}
 
 
@@ -243,10 +235,11 @@ iteration variable. The code for this example is shown in Figure
   nodes that define themselves. 
 \end{itemize}
 
-\begin{figure}\label{example2}
+\begin{figure}
 \include{example2}
 \caption{DDG traversal example. This code fragment identifies nodes
   within a basic block that define themselves.}
+\label{example2}
 \end{figure}
 
 
@@ -303,13 +296,13 @@ typedef\ \textbf{unsigned}\ \textbf{long}\ Address\\
 All objects returned to users are transparently wrapped with a
 reference counted pointer implementation. This smart pointer
 automatically handles deallocation and garbage collection. These
-pointers are referred to by the ::Ptr suffix (e.g., Graph::Ptr,
-Node::Ptr, etc.). Our implementation is derived from the Boost
-shared\_ptr implementation; for more information, please visit
+pointers are referred to by the \texttt{::Ptr} suffix (e.g., \texttt{Graph::Ptr},
+\texttt{Node::Ptr}, etc.). Our implementation is derived from the Boost
+\texttt{shared\_ptr} implementation; for more information, please visit
 www.boost.org. Shared pointers have some limitations when compared
-with standard pointers. In particular, dynamic\_cast (as well as other
+with standard pointers. In particular, \texttt{dynamic\_cast} (as well as other
 casting operators) are not defined on shared pointers. Performing such
-a cast must be done with the dynamic\_pointer\_cast method. For example:
+a cast must be done with the \texttt{dynamic\_pointer\_cast} method. For example:
 
 \indent {\ttfamily \raggedright \small
 VirtualNode::Ptr\ virt\ =\ dynamic\underline\ pointer\underline\ cast<{}VirtualNode>{}(nodePtr);\\
@@ -321,11 +314,11 @@ VirtualNode::Ptr\ virt\ =\ dynamic\underline\ pointer\underline\ cast<{}VirtualN
 The DepGraphAPI uses an iterator-based interface in favor of a
 collection-based interface. This is done to reduce copying and improve
 efficiency. Any method that returns a range of types (e.g.,
-Graph::allNodes) takes as arguments two iterators that are updated to
+\texttt{Graph::allNodes}) takes as arguments two iterators that are updated to
 point to the beginning and end of the range. The user can then use
 standard iterator methods (e.g., a for loop) to examine each element
-in the range. We define two types of iterators: NodeIterator and
-EdgeIterator.
+in the range. We define two types of iterators: \texttt{NodeIterator} and
+\texttt{EdgeIterator}.
 
 \subsection{Operation-Level Data Dependence}
 
@@ -342,31 +335,33 @@ DepGraphAPI DDG consists of an operation; an (instruction, abstract
 location) pair. We show an example of the use of instructions and
 operations in Figure \ref{Operations}.
 
-\begin{figure}\label{Operations}
+\begin{figure}
 \begin{center}
 \epsfig{file=Operations_example,width=4in}
 \caption{Example of DDG operations.  Two data dependence
 graphs. Figure a) provides an example of the problems of representing
 instructions as single nodes. In this graph it is possible for paths
-to "cross" definitions; for example, there is a path from the
-definition of r0 by i0 to the definition of sp (the stack pointer) by
-i3, when in the actual program there is no such dependence. The DDG
+to ``cross'' definitions; for example, there is a path from the
+definition of $r_0$ by $i_0$ to the definition of $sp$ (the stack pointer) by
+$i_3$, when in the actual program there is no such dependence. The DDG
 shown in figure b) makes the intra-instruction data dependencies
 explicit and thus removes the possibility of erroneous paths.}
 \end{center}
+\label{Operations}
 \end{figure}
 
 \section{Namespaces}
 
-The classes described below are defined in the Dyninst:: and
-Dyninst::DepGraphAPI:: namespaces. The Graph, Node, and Edge classes
-are contained in the Dyninst:: namespace.  To access them a user
-should refer to them using the Dyninst:: prefix (e.g.,
-Dyninst::Graph). Alternatively, a user can add the C++ using keyword
-above any reference to such objects (e.g., "using namespace
-Dyninst;"). All other classes are defined under the
-Dyninst::DepGraphAPI namespace and should be referred to
-appropriately.
+The classes described below are defined in the \texttt{Dyninst::} and
+\texttt{Dyninst::DepGraphAPI::} namespaces. The Graph, Node, and Edge
+classes are contained in the \texttt{Dyninst::} namespace.  To access
+them a user should refer to them using the \texttt{Dyninst::} prefix
+(e.g., \texttt{Dyninst::Graph} or
+\texttt{Dyninst::DepGraphAPI::DDG}). Alternatively, a user can add the
+C++ \texttt{using} keyword above any reference to such objects (e.g.,
+"\texttt{using namespace Dyninst;}"). All other classes are defined
+under the \texttt{Dyninst::DepGraphAPI} namespace and should be
+referred to appropriately.
 
 \section{API Reference}
 
@@ -375,7 +370,7 @@ subsections represents a different interface.
         
 \subsection{Shared Classes}
 
-The Graph, Node, and Edge classes are written to be generic and
+The \texttt{Graph}, \texttt{Node}, and \texttt{Edge} classes are written to be generic and
 shareable between DyninstAPI components. We include the API for these
 classes here.
 
@@ -383,9 +378,16 @@ classes here.
 
 \begin{description}
 
-\item[void entryNodes(NodeIterator \&begin, NodeIterator \&end)] This method returns a range of nodes (defined by begin and end) such that 1) all nodes in the graph are reachable from the nodes in this range by traversing out-edges and 2) the range is minimal. The nodes included in this range may be virtual. 
-\item[void exitNodes(NodeIterator \&begin, NodeIterator \&end)]
-This method returns a range of nodes (defined by begin and end) such that 1) all nodes in the graph are reachable from the nodes in this range by traversing in-edges and 2) the range is minimal. The nodes included in this range may be virtual.
+\item[void entryNodes(NodeIterator \&begin, NodeIterator \&end)] This
+method returns a range of nodes (defined by \texttt{begin} and
+\texttt{end}) such that 1) all nodes in the graph are reachable from
+the nodes in this range by traversing out-edges and 2) the range is
+minimal. The nodes included in this range may be virtual.
+\item[void exitNodes(NodeIterator \&begin, NodeIterator \&end)] This
+method returns a range of nodes (defined by \texttt{begin} and
+\texttt{end}) such that 1) all nodes in the graph are reachable from
+the nodes in this range by traversing in-edges and 2) the range is
+minimal. The nodes included in this range may be virtual.
 \item[void allNodes (NodeIterator \&begin, NodeIterator \&end)]
 This method returns the range of all nodes in the graph.
 \item[void printDOT(std::string fileName)]
@@ -394,8 +396,9 @@ This method generates a representation of the graph in DOT format.
 This method sets \texttt{begin} and \texttt{end} to point to a range
 representing the nodes with a particular address. It returns true if
 the range is non-empty. 
-\item[void removeAnnotation()]
-This method removes the graph from internal storage. Once all user handles to the graph are discarded the graph will be destroyed.
+\item[void removeAnnotation()] This method removes the graph from
+internal storage. Once all user handles to the graph are discarded the
+graph will be destroyed.
 \end{description}
 
 \subsubsection{Node}
@@ -527,7 +530,7 @@ address. It returns true if the range is non-empty and false
 otherwise.
 \end{description}
 
-\subsubsection{BlockNode : PhysicalNode}
+\subsubsection{BlockNode : Node}
 \begin{description}
 \item[BPatch\_basicBlock *block() ]
 This method returns the basic block represented by this node. 

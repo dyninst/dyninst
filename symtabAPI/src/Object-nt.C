@@ -159,7 +159,7 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
 struct	CompareSymAddresses: public binary_function<const Object::intSymbol*, const Object::intSymbol*, bool> 
 {
 	bool operator()(const Object::intSymbol *s1, const Object::intSymbol* s2) {
-		bool ret = true;
+		bool ret = false;
 		// first try comparing by address
 		if( s1->GetAddr() < s2->GetAddr() ) 
 		{

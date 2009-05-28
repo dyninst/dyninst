@@ -35,6 +35,8 @@
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
 
+#pragma warning( disable : 4996 )
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>

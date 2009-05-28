@@ -525,8 +525,10 @@ void registerSpace::initialize64() {
 #if defined(cap_liveness)
     returnRead64_ = getBitArray();
     returnRead64_[REGNUM_RAX] = true;
+    returnRead64_[REGNUM_RCX] = true; //Not correct, temporary
     // Returns also "read" any callee-saved registers
     returnRead64_[REGNUM_RBX] = true;
+    returnRead64_[REGNUM_RDX] = true;
     returnRead64_[REGNUM_R12] = true;
     returnRead64_[REGNUM_R13] = true;
     returnRead64_[REGNUM_R14] = true;

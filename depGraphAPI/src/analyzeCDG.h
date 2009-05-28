@@ -36,70 +36,55 @@
 #include <set>
 
 #include "Node.h"
-#include "Graph.h"
-#include "DepGraphNode.h"
 #include "CDG.h"
 
 class BPatch_basicBlock;
-class BPatch_flowGraph;
 class BPatch_function;
-
-using namespace std;
 
 namespace Dyninst {
 namespace DepGraphAPI {
 
-
-/**
- * The tool that creates the Control Dependence Graph (CDG) associated with a given 
- * function (currently BPatch_function). It uses Dominator Analysis provided by
- * Dyninst. The algorithm is borrowed from Ferrante et. al.
- */
+// The tool that creates the Control Dependence Graph (CDG) associated with a given 
+// function (currently BPatch_function). It uses Dominator Analysis provided by
+// Dyninst. The algorithm is borrowed from Ferrante et. al.
 class CDGAnalyzer {
-
+private:
     typedef BPatch_function Function;
+    // TODO: replace this with ParsingAPI concepts.
+    // Right now we use BPatch_basicBlock since it has
+    // dominator info
+    typedef BPatch_basicBlock Block;
 
- public:
-  
-  // TODO: replace this with ParsingAPI concepts.
-  // Right now we use BPatch_basicBlock since it has
-  // dominator info
-  typedef BPatch_basicBlock Block;
-  
-  typedef std::set<Block *> BlockSet;
-
-  typedef map<Block *, BlockSet> BlockMap;
-
-  typedef Node::Ptr NodePtr;
-
-  typedef map<Block *, NodePtr> NodeMap;
-
- private:
-  // Temporary structure to hold nodes we've already
-  // created
-  NodeMap nodeMap;
-
-  /**
-   * Control Dependence Graph.
-   */
-  CDG::Ptr cdg;
-
-  /*
-   * Function 
-   */
-  Function *func_;
-
-  void createDependencies(BlockSet &blocks);
-
-  Node::Ptr makeNode(Block *);
-  
 public:
-  CDGAnalyzer(Function *f);
-  
-  CDG::Ptr analyze();
+    typedef std::set<Block*> BlockSet;
+    typedef Node::Ptr NodePtr;
+    typedef std::map<Block*, NodePtr> NodeMap;
+
+private:
+    // Temporary structure to hold nodes we've already created
+    NodeMap nodeMap;
+
+    // Control Dependence Graph.
+    CDG::Ptr cdg;
+
+    // Function that will de processed to create CDG. 
+    Function *func_;
+
+    // Create dependencies between blocks.
+    void createDependencies(BlockSet &blocks);
+
+	// Create and return a BlockNode.
+    Node::Ptr makeNode(Block*);
+
+public:
+    // Constructs a CDGAnalyzer with the given function.
+    CDGAnalyzer(Function *f);
+
+    // Creates and returns the CDG for the associated function. Note that the CDG
+    // that is returned is at basic block-level
+    CDG::Ptr analyze();
+};
 
 };
-
 };
-};
-#endif /* INTRACDGCREATOR_H_ */
+#endif /* CDG_ANALYZER_H */

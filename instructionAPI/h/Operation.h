@@ -128,7 +128,8 @@ namespace Dyninst
       }
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
-      
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() const;
+      INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
 
     private:
       void SetUpNonOperandData();

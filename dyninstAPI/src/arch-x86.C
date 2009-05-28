@@ -5122,6 +5122,16 @@ bool instruction::generate(codeGen &gen,
       orig_target = origAddr + size() + get_disp(this);
    }
    
+#if defined(arch_x86_64)
+   if (insnType & REL_D_DATA) {
+      // Create pcRelRegion that eventually will call pcRelData::apply
+      pcRelData *pcr_data = new pcRelData(orig_target, *this);
+      assert(pcr_data);
+      gen.addPCRelRegion(pcr_data);
+      goto done;
+   }
+#endif
+   
    if (insnType & IS_JUMP) {
      // Create pcRelRegion that eventually will call pcRelJump::apply
      pcRelJump *pcr_jump;
@@ -5163,16 +5173,6 @@ bool instruction::generate(codeGen &gen,
      gen.addPCRelRegion(pcr_call);
      goto done;
    }
-
-#if defined(arch_x86_64)
-   if (insnType & REL_D_DATA) {
-      // Create pcRelRegion that eventually will call pcRelData::apply
-      pcRelData *pcr_data = new pcRelData(orig_target, *this);
-      assert(pcr_data);
-      gen.addPCRelRegion(pcr_data);
-      goto done;
-   }
-#endif
 
    //If we get here, then we either didn't handle a case of PC-relative instructions,
    // or we mis-identified an instruction as PC-relative.
