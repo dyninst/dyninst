@@ -114,10 +114,10 @@ void DDG::entryNodes(NodeIterator &begin, NodeIterator &end) {
     NodeIterator paramBegin(new FormalParamSetIter(formalParamNodes_.begin()));
     NodeIterator paramEnd(new FormalParamSetIter(formalParamNodes_.end()));
 
-    begin = NodeIterator(new DDGEntryIter(paramBegin, paramEnd,
-                                          virtBegin, virtEnd));
-    end = NodeIterator(new DDGEntryIter(paramEnd, paramEnd,
-                                        virtEnd, virtEnd));
+    begin = NodeIterator(new DDGEntryIter(paramBegin, paramBegin, paramEnd,
+                                          virtBegin, virtBegin, virtEnd));
+    end = NodeIterator(new DDGEntryIter(paramBegin, paramEnd, paramEnd,
+                                        virtBegin, virtEnd, virtEnd));
 
     
 

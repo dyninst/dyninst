@@ -97,6 +97,7 @@ class DDGEntryIter : public NodeIteratorImpl {
  public:
     virtual void inc() {
         if (paramsCur_ == paramsEnd_) {
+            assert(virtualsCur_ != virtualsEnd_);
             ++virtualsCur_;
         }
         else {
@@ -105,6 +106,7 @@ class DDGEntryIter : public NodeIteratorImpl {
     }
     virtual void dec() {
         if (virtualsCur_ == virtualsBegin_) {
+            assert(paramsCur_ != paramsBegin_); 
             --paramsCur_;
         }
         else {
@@ -114,6 +116,7 @@ class DDGEntryIter : public NodeIteratorImpl {
             
     virtual Node::Ptr get() {
         if (paramsCur_ == paramsEnd_) {
+            assert(virtualsCur_ != virtualsEnd_);
             return *virtualsCur_;
         }
         else {
@@ -125,15 +128,17 @@ class DDGEntryIter : public NodeIteratorImpl {
         DDGEntryIter *tmp = dynamic_cast<DDGEntryIter *>(rhs);
         if (tmp == NULL) return false;
         
-        return ((paramsCur_ == tmp->paramsCur_) &&
+        return ((paramsBegin_ == tmp->paramsBegin_) &&
+                (paramsCur_ == tmp->paramsCur_) &&
                 (paramsEnd_ == tmp->paramsEnd_) &&
                 (virtualsBegin_ == tmp->virtualsBegin_) &&
-                (virtualsCur_ == tmp->virtualsCur_));
+                (virtualsCur_ == tmp->virtualsCur_) &&
+                (virtualsEnd_ == tmp->virtualsEnd_));
     }
-
+    
     virtual NodeIteratorImpl *copy() {
-        NodeIteratorImpl *tmp =  new DDGEntryIter(paramsCur_, paramsEnd_,
-                                                  virtualsBegin_, virtualsCur_);
+        NodeIteratorImpl *tmp =  new DDGEntryIter(paramsBegin_, paramsCur_, paramsEnd_,
+                                                  virtualsBegin_, virtualsCur_, virtualsEnd_);
         return tmp;
     }
     
@@ -141,15 +146,23 @@ class DDGEntryIter : public NodeIteratorImpl {
         // Nothing to do
     }
     
-    DDGEntryIter(NodeIterator &paramsCur, NodeIterator &paramsEnd,
-                 NodeIterator &virtualsBegin, NodeIterator &virtualsCur) :
+    DDGEntryIter(NodeIterator &paramsBegin, 
+                 NodeIterator &paramsCur, 
+                 NodeIterator &paramsEnd,
+                 NodeIterator &virtualsBegin, 
+                 NodeIterator &virtualsCur, 
+                 NodeIterator &virtualsEnd) :
+        paramsBegin_(paramsBegin),
         paramsCur_(paramsCur),
         paramsEnd_(paramsEnd),
         virtualsBegin_(virtualsBegin),
-        virtualsCur_(virtualsCur) {};
+        virtualsCur_(virtualsCur),
+        virtualsEnd_(virtualsEnd)
+        {};
 
  private:
     // The set of parameter nodes...
+    NodeIterator paramsBegin_;
     NodeIterator paramsCur_;
     NodeIterator paramsEnd_;
 
@@ -158,6 +171,7 @@ class DDGEntryIter : public NodeIteratorImpl {
     // over virtualNode.outs...
     NodeIterator virtualsBegin_;
     NodeIterator virtualsCur_;
+    NodeIterator virtualsEnd_;
 };
 
 }
