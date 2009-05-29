@@ -316,7 +316,7 @@ namespace Dyninst
 	
 	nonOperandRegisterReads = 
 	map_list_of
-	(e_call, thePC)
+        (e_call, pcAndSP)
 	(e_ret_near, stackPointer)
 	(e_ret_far, stackPointer)
 	(e_leave, framePointer)
@@ -354,6 +354,9 @@ namespace Dyninst
 	(e_jz, thePC);
 	nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
 	nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
+        nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
+        nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
+        nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
       }
       std::set<RegisterAST::Ptr> thePC;
       std::set<RegisterAST::Ptr> pcAndSP;
