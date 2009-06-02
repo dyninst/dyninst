@@ -1,6 +1,6 @@
 #include "ParseThat.h"
 #include "util.h"
-
+#include "dyninst_comp.h"
 using namespace Dyninst;
 
 ParseThat::ParseThat() :
@@ -139,6 +139,17 @@ test_results_t ParseThat::pt_execute(std::vector<std::string> &pt_args)
 test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::string> &mutatee_args)
 {
 	
+	struct stat statbuf;
+	int result = stat(BINEDIT_DIR, &statbuf);
+	if (-1 == result)
+	{
+		result = mkdir(BINEDIT_DIR, 0700);
+		if (result == -1) {
+			perror("Could not mkdir " BINEDIT_DIR);
+			return FAILED;
+		}
+	}
+
 	std::vector<std::string> pt_args;
 	if (!setup_args(pt_args))
 	{
