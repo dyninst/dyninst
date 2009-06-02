@@ -87,6 +87,7 @@ class trampTrapMappings {
    unsigned long table_mutatee_size;
    Address current_table;
    Address table_header;
+   bool blockFlushes;
    
  public:
    trampTrapMappings(AddressSpace *a);
@@ -99,6 +100,7 @@ class trampTrapMappings {
    bool needsUpdating();
    void flush();
    void allocateTable();
+   void shouldBlockFlushes(bool b) { blockFlushes = b; }
 
    AddressSpace *proc() const;
 };

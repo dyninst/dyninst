@@ -64,6 +64,9 @@ static int first_deleted;
 static int num_free;
 static int num_deleted;
 
+static dyninst_thread_t default_thread_structs[MAX_THREADS];
+static int default_thread_hash[(int) (MAX_THREADS * 1.25)];
+
 DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free); }
 
 dyntid_t DYNINST_getThreadFromIndex(unsigned index)
@@ -79,12 +82,21 @@ void DYNINST_initialize_index_list()
   if (init_index_done) return;
   init_index_done = 1;
 
-  DYNINST_thread_structs = (dyninst_thread_t *) malloc((DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
+  if (DYNINST_max_num_threads == MAX_THREADS)
+     DYNINST_thread_structs = default_thread_structs;
+  else
+     DYNINST_thread_structs = (dyninst_thread_t *) malloc((DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
   assert( DYNINST_thread_structs != NULL );
   memset(DYNINST_thread_structs, 0, (DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
 
-  DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
-  DYNINST_thread_hash = (int *) malloc(DYNINST_thread_hash_size * sizeof(int));
+  if (DYNINST_max_num_threads == MAX_THREADS) {
+     DYNINST_thread_hash_size = (int) (MAX_THREADS * 1.25);
+     DYNINST_thread_hash = default_thread_hash;
+  }
+  else {
+     DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
+     DYNINST_thread_hash = (int *) malloc(DYNINST_thread_hash_size * sizeof(int));
+  }
   assert( DYNINST_thread_hash != NULL );
 
   for (i=0; i < DYNINST_thread_hash_size; i++)

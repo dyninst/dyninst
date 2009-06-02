@@ -79,6 +79,8 @@ extern int DYNINSTdebugRTlib;
 
 extern int DYNINSTstaticMode;
 
+#define MAX_THREADS 32 //Should match MAX_THREADS in process.h
+
 #if (os_solaris == 8)
 /*  solaris 2.8 is having some trouble with varargs... */  
 #define rtdebug_printf if (DYNINSTdebugPrintRT) printf

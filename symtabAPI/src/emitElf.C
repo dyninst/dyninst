@@ -1864,7 +1864,9 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
   string rpathstr;
   for(unsigned i = 0; i< DT_NEEDEDEntries.size(); i++){
     dynsecData[curpos].d_tag = DT_NEEDED;
-    dynsecData[curpos].d_un.d_val = versionNames[DT_NEEDEDEntries[i]];
+    dynStrs.push_back(DT_NEEDEDEntries[i]);
+    dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
+    dynSymbolNamesLength += DT_NEEDEDEntries[i].size()+1;
     dynamicSecData[DT_NEEDED].push_back(dynsecData+curpos);
     curpos++;
   }

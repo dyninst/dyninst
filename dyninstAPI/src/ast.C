@@ -1385,9 +1385,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        else
        {
-	 fprintf(stderr, "Emitting load for string at: %x, address size %d\n", addr, size);
-	 gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
-	 
+          gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
        }
        
        break;

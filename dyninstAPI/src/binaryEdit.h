@@ -142,6 +142,10 @@ class BinaryEdit : public AddressSpace {
     // returns NULL if the library cannot be found
     std::string resolveLibraryName(std::string filename);
 
+    virtual int_function *findOnlyOneFunction(const std::string &name,
+                                              const std::string &libname = "",
+                                              bool search_rt_lib = true);
+
     // open a shared library and (optionally) all its dependencies
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
 
@@ -152,6 +156,7 @@ class BinaryEdit : public AddressSpace {
 	Address getDependentRelocationAddr(Symbol *referring);
 
    void setupRTLibrary(BinaryEdit *r);
+   BinaryEdit *rtLibrary();
    bool getAllDependencies(std::queue<std::string> &deps);
 
    void markDirty();
@@ -161,6 +166,8 @@ class BinaryEdit : public AddressSpace {
    
    int_variable* createTrampGuard();
    void setTrampGuard(int_variable* tg); 
+
+   void setMultiThreadCapable(bool b);
 
  private:
 
@@ -188,6 +195,7 @@ class BinaryEdit : public AddressSpace {
                              Module *mod);
     mapped_object *mobj;
     BinaryEdit *rtlib;
+    bool multithread_capable_;
 };
 
 class depRelocation {

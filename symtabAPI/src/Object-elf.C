@@ -233,6 +233,8 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags){
     return Region::RT_REL;
   case SHT_RELA:
     return Region::RT_RELA;
+  case SHT_NOBITS:
+    return Region::RT_BSS;
   case SHT_PROGBITS:
     if((flags & SHF_EXECINSTR) && (flags & SHF_WRITE))
       return Region::RT_TEXTDATA;

@@ -59,6 +59,7 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <link.h>
+#include <pthread.h>
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
@@ -317,12 +318,6 @@ int dyn_lwp_self()
 int dyn_pid_self()
 {
    return getpid();
-}
-
-pthread_t pthread_self(void) __attribute__ ((weak));
-pthread_t pthread_self(void)
-{
-   return DYNINST_SINGLETHREADED;
 }
 
 dyntid_t (*DYNINST_pthread_self)(void);
@@ -644,24 +639,32 @@ static void clear_bitmask(unsigned *bit_mask);
 static unsigned get_next_free_bitmask(unsigned *bit_mask, int last_pos);
 static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos);
 
+static tc_lock_t trap_mapping_lock;
+
 static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
 {
    struct trap_mapping_header *header;
    int i;
    
+   tc_lock_lock(&trap_mapping_lock);
    parse_libs();
 
    i = -1;
    for (;;) {
       i = get_next_set_bitmask(all_headers_current, i);
       assert(i >= 0 && i <= NUM_LIBRARIES);
-      if (i == NUM_LIBRARIES)
-         return NULL;
-
+      if (i == NUM_LIBRARIES) {
+         header = NULL;
+         goto done;
+      }
       header = all_headers[i];
-      if (addr >= header->low_entry && addr <= header->high_entry)
-         return header;
+      if (addr >= header->low_entry && addr <= header->high_entry) {
+         goto done;
+      }
    }  
+ done:
+   tc_lock_unlock(&trap_mapping_lock);
+   return header;
 }
 
 static int parse_libs()
@@ -824,6 +827,7 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 
 #endif /* cap_mutatee_traps */
 
+int dyn_var = 0;
 
 #if defined(cap_binary_rewriter)
 extern void DYNINSTBaseInit();

@@ -70,15 +70,15 @@ int DYNINSTthreadIndex()
    unsigned curr_index;
 
    rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
-   if (!DYNINSThasInitialized) 
+   if (!DYNINSThasInitialized && !DYNINSTstaticMode) 
    {
-       return 0;
+      return 0;
    }
    
    tid = dyn_pthread_self();
    rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", __FILE__, __LINE__, (unsigned long) tid);
    if (tid == (dyntid_t) DYNINST_SINGLETHREADED) {
-       return 0;
+      return 0;
    }
 
    curr_index = DYNINSTthreadIndexFAST();
@@ -102,7 +102,8 @@ int DYNINSTthreadIndex()
       can do about it at the moment, so just return it
       and let the mutatee scribble into the so-allocated memory. */
 
-   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  __FILE__, __LINE__, curr_index);
+   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  
+                  __FILE__, __LINE__, curr_index);
    return curr_index;
 }
 
@@ -161,7 +162,7 @@ static unsigned threadCreate(dyntid_t tid)
 
    rtdebug_printf("%s[%d]:  welcome to threadCreate\n", 
                  __FILE__, __LINE__);
-   if (!DYNINSThasInitialized)
+   if (!DYNINSThasInitialized && !DYNINSTstaticMode)
    {
       return DYNINST_max_num_threads;
    }

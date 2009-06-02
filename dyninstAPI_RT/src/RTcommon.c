@@ -127,7 +127,6 @@ int isMutatedExec = 0;
 
 unsigned *DYNINST_tramp_guards;
 
-#define MAX_THREADS 32 //Should match MAX_THREADS in process.h
 unsigned DYNINST_default_tramp_guards[MAX_THREADS+1];
 
 #if defined(os_linux)
@@ -222,6 +221,7 @@ void DYNINSTBaseInit()
 #if defined(cap_mutatee_traps)
    DYNINSTinitializeTrapHandler();
 #endif
+   DYNINST_initialize_index_list();
 }
 
 /**

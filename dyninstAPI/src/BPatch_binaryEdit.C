@@ -93,6 +93,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
    creation_error(false)
 {
+  bool has_thread_lib = false;
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
  
   pdvector<std::string> argv_vec;
@@ -112,27 +113,33 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
   llBinEdits[path] = origBinEdit;
   
   std::queue<std::string> files;
-  if (openDependencies) {
-     origBinEdit->getAllDependencies(files);
-     
-     while (files.size()) {
-        string s = files.front(); 
-        files.pop();
+  origBinEdit->getAllDependencies(files);
 
-        if (llBinEdits.count(s))
-           continue;
-        startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                       FILE__, __LINE__, s.c_str());
-        BinaryEdit *lib = BinaryEdit::openFile(s);
-        if (!lib) {
-           startup_printf("[%s:%u] - Creation error opening %s\n", 
-                          FILE__, __LINE__, s.c_str());
-           creation_error = true;
-           return;
-        }
-        llBinEdits[s] = lib;
-        lib->getAllDependencies(files);
+  while (files.size()) {
+     string s = files.front(); 
+     files.pop();
+
+     if (strstr(s.c_str(), "libpthread") ||
+         strstr(s.c_str(), "libthread")) {
+        has_thread_lib = true;
      }
+
+     if (llBinEdits.count(s))
+        continue;
+     if (!openDependencies)
+        continue;
+     
+     startup_printf("[%s:%u] - Opening dependant file %s\n", 
+                    FILE__, __LINE__, s.c_str());
+     BinaryEdit *lib = BinaryEdit::openFile(s);
+     if (!lib) {
+        startup_printf("[%s:%u] - Creation error opening %s\n", 
+                       FILE__, __LINE__, s.c_str());
+        creation_error = true;
+        return;
+     }
+     llBinEdits[s] = lib;
+     lib->getAllDependencies(files);
   }
 
   origBinEdit->getDyninstRTLibName();
@@ -160,6 +167,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      llBinEdit->set_up_ptr(this);
      llBinEdit->setupRTLibrary(rtLib);
      llBinEdit->setTrampGuard(masterTrampGuard);
+     llBinEdit->setMultiThreadCapable(has_thread_lib);
   }
 
   image = new BPatch_image(this);

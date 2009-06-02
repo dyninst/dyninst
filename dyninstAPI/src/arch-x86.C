@@ -4993,41 +4993,41 @@ bool instruction::generate(codeGen &gen,
       // TODO: label in parsing (once)
         
       if (target == (origAddr + size())) {
-	if(addrSpace->proc())
-	{
-	  *newInsn = 0x68; // Push; we're replacing "call 0" with "push original IP"
-	  newInsn++;	  
-	  Address EIP = origAddr + size();
-	  unsigned int *temp = (unsigned int *) newInsn;
-	  *temp = EIP;
-	  // No 9-byte jumps...
-	  assert(sizeof(unsigned int) == 4); // should be a compile-time assert
-	  newInsn += sizeof(unsigned int);
-	  assert((newInsn - insnBuf) == 5);
-	  SET_PTR(newInsn, gen);
-	  goto done;
-	}
-	else
-	{
-	  *newInsn = 0xE8;
-	  newInsn++;
-	  unsigned int *temp = (uint32_t *) newInsn;
-	  *temp = 0;
-	  newInsn += sizeof(uint32_t);
-	  Address offset = origAddr - newAddr;
-	  *newInsn = 0x81;
-	  newInsn++;
-	  *newInsn = 0x04;
-	  newInsn++;
-	  *newInsn = 0x24;
-	  newInsn++;
-	  temp =  (uint32_t *) newInsn;
-	  *temp = offset;
-	  newInsn += sizeof(uint32_t);	  
-	  assert((newInsn - insnBuf) == 11);
-	  SET_PTR(newInsn, gen);
-	  goto done;	  
-	}	
+         if(addrSpace->proc())
+         {
+            *newInsn = 0x68; // Push; we're replacing "call 0" with "push original IP"
+            newInsn++;	  
+            Address EIP = origAddr + size();
+            unsigned int *temp = (unsigned int *) newInsn;
+            *temp = EIP;
+            // No 9-byte jumps...
+            assert(sizeof(unsigned int) == 4); // should be a compile-time assert
+            newInsn += sizeof(unsigned int);
+            assert((newInsn - insnBuf) == 5);
+            SET_PTR(newInsn, gen);
+            goto done;
+         }
+         else
+         {
+            *newInsn = 0xE8;
+            newInsn++;
+            unsigned int *temp = (uint32_t *) newInsn;
+            *temp = 0;
+            newInsn += sizeof(uint32_t);
+            Address offset = origAddr - newAddr;
+            *newInsn = 0x81;
+            newInsn++;
+            *newInsn = 0x04;
+            newInsn++;
+            *newInsn = 0x24;
+            newInsn++;
+            temp =  (uint32_t *) newInsn;
+            *temp = offset;
+            newInsn += sizeof(uint32_t);	  
+            assert((newInsn - insnBuf) == 12);
+            SET_PTR(newInsn, gen);
+            goto done;	  
+         }	
       }
       else if (addrSpace->isValidAddress(target)) {
          // Get us an instrucIter

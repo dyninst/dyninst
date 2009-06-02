@@ -845,7 +845,8 @@ bool AddressSpace::findFuncsByMangled(const std::string &funcname,
 }
 
 int_function *AddressSpace::findOnlyOneFunction(const string &name,
-                                           const string &lib) 
+                                                const string &lib,
+                                                bool /*search_rt_lib*/) 
 {
     assert(mapped_objects.size());
 
@@ -1153,7 +1154,9 @@ trampTrapMappings::trampTrapMappings(AddressSpace *a) :
    table_used(0),
    table_allocated(0),
    table_mutatee_size(0),
-   current_table(0x0)
+   current_table(0x0),
+   table_header(0x0),
+   blockFlushes(false)
 {
 }
 
@@ -1286,7 +1289,7 @@ void trampTrapMappings::arrange_mapping(tramp_mapping_t &m, bool should_sort,
 }
 
 void trampTrapMappings::flush() {
-   if (!needs_updating)
+   if (!needs_updating || blockFlushes)
       return;
 
    mapped_object *rtlib = proc()->runtime_lib;

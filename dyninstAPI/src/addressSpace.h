@@ -215,8 +215,9 @@ class AddressSpace : public InstructionSource {
     
     // And we often internally want to wrap the above to return one
     // and only one func...
-    int_function *findOnlyOneFunction(const std::string &name,
-                                      const std::string &libname = "");
+    virtual int_function *findOnlyOneFunction(const std::string &name,
+                                              const std::string &libname = "",
+                                              bool search_rt_lib = true);
 
 
     // This will find the named symbol in the image or in a shared object

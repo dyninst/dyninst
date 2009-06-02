@@ -14,8 +14,6 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
 LDFLAGS         += -shared
-
-# Automatic init routine
 LDFLAGS		+= -m64
 CFLAGS		+= -Wall -m64 -DMUTATEE64
 
