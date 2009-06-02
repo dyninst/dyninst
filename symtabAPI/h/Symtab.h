@@ -161,6 +161,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool getAllNewRegions(std::vector<Region *>&ret);
    //  change me to use a hash
    SYMTAB_EXPORT bool findRegion(Region *&ret, std::string regname);
+   SYMTAB_EXPORT bool findRegion(Region *&ret, const Offset addr, const unsigned long size);
    SYMTAB_EXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
    SYMTAB_EXPORT Region *findEnclosingRegion(const Offset offset);
 
@@ -338,6 +339,11 @@ class Symtab : public LookupInterface,
  public:
    SYMTAB_EXPORT Module *getOrCreateModule(const std::string &modName, 
                                            const Offset modAddr);
+
+ public:
+   //Only valid on ELF formats
+   SYMTAB_EXPORT Offset getElfDynamicOffset();
+   
  private:
    void createDefaultModule();
 

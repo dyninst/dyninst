@@ -129,6 +129,11 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
    //adr, insn.getTarget(adr));
    // calls to adr+5 are not really calls, they are used in 
    // dynamically linked libraries to get the address of the code.
+   if (ah.isADynamicCallInstruction()) {
+     parsing_printf("... Call 0x%lx is indirect\n", adr);
+     validTarget = false;
+     return true;
+   }
    if (insn.getTarget(adr) == adr + 5) {
        parsing_printf("... getting PC\n");
        // XXX we can do this like on sparc, but we don't need to: we do it
@@ -162,7 +167,7 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
    Address targetOffset = insn.getTarget(adr);
  
    if ( !img()->isValidAddress(targetOffset) ) {
-       parsing_printf("... Call to 0x%x is invalid (outside code or data)\n",
+       parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
        targetOffset);
        validTarget = false;
        return false;
@@ -287,14 +292,15 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
 }
 
 bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
-                       instruction &branchInsn, 
+                       instruction &branchInsn, bool &found_along_taken_br,
                        const std::set<Dyninst::InstructionAPI::RegisterAST::Ptr>& /*regsRead*/)
 {
-using namespace Dyninst::InstructionAPI;
+   using namespace Dyninst::InstructionAPI;
 
     BPatch_Set<image_basicBlock *> visited;
     pdvector<image_basicBlock *> WL;
     pdvector<image_edge *> sources;
+   pdvector<image_edge *> targets;
     image_basicBlock *curBlk;
     int depth = 0;
 
@@ -348,25 +354,45 @@ using namespace Dyninst::InstructionAPI;
                             }
                     }
 #else
+            parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
+                           *iter);
                 maxSwitch = iter.getInstruction();
                 maxSwitchAddr = *iter;
                 foundMaxSwitch = true;
 #endif
             }
-            if( iter.getInstruction().type() & IS_JCC ) {
+         if (iter.getInstruction().type() & IS_JCC) {
                 parsing_printf("\tFound jmp table cond br instruction at 0x%lx\n",
                     *iter);
                 branchInsn = iter.getInstruction();
                 foundCondBranch = true;
+
+            targets.clear();
+            curBlk->getTargets(targets);
+            bool taken_hit = false;
+            bool fallthrough_hit = false;
+            for (unsigned i=0; i<targets.size(); i++) {
+               if (targets[i]->getType() == ET_COND_TAKEN &&
+                   visited.contains(targets[i]->getTarget()))
+               {
+                  taken_hit = true;
+               }
+               if ((targets[i]->getType() == ET_COND_NOT_TAKEN ||
+                    targets[i]->getType() == ET_FALLTHROUGH) &&
+                   visited.contains(targets[i]->getTarget()))
+               {
+                  taken_hit = true;
+               }
+            }
+            found_along_taken_br = taken_hit && !fallthrough_hit;
                 break;
             }
             iter++;
         }
 
-        if(foundMaxSwitch && foundCondBranch) {
-            // done
-            break; 
-        } else {
+      if(foundMaxSwitch && foundCondBranch)
+         break; // done
+
             // look further back
             sources.clear();
             curBlk->getSources( sources );
@@ -385,7 +411,6 @@ using namespace Dyninst::InstructionAPI;
                 }
             }
         }
-    }
 #if defined (cap_use_pdvector)
     WL.zap();
 #else
@@ -403,24 +428,6 @@ bool leadsToVisitedBlock(image_edge* e, const std::set<image_basicBlock*>& visit
   image_basicBlock* src = e->getSource();
   return visited.find(src) != visited.end();
 }
-
-struct copyToWorkList
-{
-  copyToWorkList(std::deque<image_basicBlock*>& wl, 
-		      const std::set<image_basicBlock*>& v) :
-  worklist(wl), visited(v)
-  {
-  }
-  std::deque<image_basicBlock*>& worklist;
-  const std::set<image_basicBlock*>& visited;
-  void operator()(image_edge* e)
-  {
-    if(isNonCallEdge(e) && !leadsToVisitedBlock(e, visited))
-    {
-      worklist.push_back(e->getSource());
-    }
-  }
-};
 
 bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkOffset)
 {
@@ -511,20 +518,25 @@ bool findThunkAndOffset(image_func* f, image_basicBlock* start, Address& thunkOf
   pdvector<image_edge*> sources;
   image_basicBlock* curBlock;
   worklist.insert(worklist.begin(), start);
+  visited.insert(start);
   while(!worklist.empty())
   {
     curBlock = worklist.front();
     worklist.pop_front();
-    visited.insert(curBlock);
     if(findThunkInBlock(f, curBlock, thunkOffset))
     {
       return true;
     }
-    else
-    {
+
       sources.clear();
       curBlock->getSources(sources);
-      std::for_each(sources.begin(), sources.end(), copyToWorkList(worklist, visited));
+    for (unsigned i=0; i<sources.size(); i++) {
+       image_edge *e = sources[i];
+       if(isNonCallEdge(e) && !leadsToVisitedBlock(e, visited))
+       {
+          worklist.push_back(e->getSource());
+          visited.insert(e->getSource());
+       }
     }
   }
   return false;
@@ -575,17 +587,22 @@ bool image_func::archGetMultipleJumpTargets(
     pdvector< image_edge* > in;
     currBlk->getSources( in );
 
+   if (archIsIPRelativeBranch(ah)) {
+      return false;
+   }
+     
     Address tableInsnAddr;
+   Address jumpAddr = *ah;
 
     if( in.size() < 1 )
     {
       return false;
     }
-    else {
         // Assume that the table base address is calculated in the
         // branch instruction (encoded using SIB)
         instruction tableInsn = ah.getInstruction();
         bool isAddInJmp = true;
+   bool foundJccAlongTaken;
         tableInsnAddr = *ah;
 
         // branchInsn refers to the conditional branch that guards
@@ -640,8 +657,68 @@ bool image_func::archGetMultipleJumpTargets(
         }
 
 #if defined(cap_instruction_api)
+   {
+      /** 
+       * AMD-64 gcc emits a re-accuring idiom of: 
+       *         jmpq   *%r8
+       *         movaps %xmm7,-0xf(%rax)
+       *         movaps %xmm6,-0x1f(%rax)
+       *         movaps %xmm5,-0x2f(%rax)
+       *         movaps %xmm4,-0x3f(%rax)
+       *         movaps %xmm3,-0x4f(%rax)
+       *         movaps %xmm2,-0x5f(%rax)
+       *         movaps %xmm1,-0x6f(%rax)
+       *         movaps %xmm0,-0x7f(%rax)
+       *         <other>
+       *
+       * The jump register is calculated in such a way that it'll be difficult
+       * for our analysis to figure it out.  Instead we'll recognize the pattern
+       * of the 'movaps'.  Note that the following instruction is also a valid jump
+       * target
+       **/
+      std::set<Address> found;
+      unsigned num_movaps_found = 0;
+      InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(jumpAddr),
+                           (img()->imageOffset() + img()->imageLength()) - jumpAddr);
+      d.setMode(img()->getAddressWidth() == 8);
+      Address cur = jumpAddr;
+      unsigned last_insn_size = 0;
+      InstructionAPI::Instruction i = d.decode();
+      cur += i.size();
+      for (;;) {
+         InstructionAPI::Instruction insn = d.decode();
+         //All insns in sequence are movaps
+         if (insn.getOperation().getID() != e_movapd &&
+             insn.getOperation().getID() != e_movaps) 
+         {
+            found.insert(cur);
+            break;
+         }
+         //All insns are same size
+         if (last_insn_size == 0)
+            last_insn_size = insn.size();
+         else if (last_insn_size != insn.size())
+            break;
+
+         num_movaps_found++;
+         found.insert(cur);
+
+         cur += insn.size();
+      }
+      if (num_movaps_found == 8) {
+         //It's a match
+         for (std::set<Address>::iterator i=found.begin(); i != found.end(); i++) {
+            targets.insert(*i);
+         }
+         return true;
+      }
+   }
+#endif
+
+#if defined(cap_instruction_api)
 		InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(tableInsnAddr), 
                              tableInsn.size());
+   d.setMode(img()->getAddressWidth() == 8);
         Instruction tableInsn_iapi = d.decode();
         std::set<RegisterAST::Ptr> regsRead;
         tableInsn_iapi.getReadSet(regsRead);
@@ -659,7 +736,7 @@ bool image_func::archGetMultipleJumpTargets(
            This routine finds the comparison & conditional branch that guard
            the jump table.
         */
-        bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn, regsRead);
+   bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn, foundJccAlongTaken, regsRead);
 
         // Searches for a thunk (call-thunk or rip-relative LEA as one
         // sees on x86-64). thunkOffset is filled in with the /base address
@@ -671,7 +748,7 @@ bool image_func::archGetMultipleJumpTargets(
             parsing_printf("\tunable to fix max switch size\n");
             return false;
         }
-        else {
+ 
             parsing_printf("\ttableInsn at 0x%lx\n",tableInsnAddr);
             if(thunkOffset) {
                 parsing_printf("\tThunk-calculated table base address: 0x%lx\n",
@@ -690,7 +767,8 @@ bool image_func::archGetMultipleJumpTargets(
             //     thunkOffset to the base from tableInsn). This path
             //     of code is probably a bug but I don't know for sure.
             if( !ah.getMultipleJumpTargets( targets, tableInsn, 
-					  maxSwitch, branchInsn, isAddInJmp, thunkOffset ))
+                                   maxSwitch, branchInsn, isAddInJmp, 
+                                   foundJccAlongTaken, thunkOffset))
             {
                 return false;
             }
@@ -698,14 +776,12 @@ bool image_func::archGetMultipleJumpTargets(
             {
                 return targets.size() > 0;
             }
-        }
-    }
 }
 
 bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 {
    ExceptionBlock b;
-//    Symtab obj = img()->getObject();
+  //    Symtab obj = img()->getObject();
     if (img()->getObject()->findCatchBlock(b,a)) {
         catchStart = b.catchStart();
         return true;

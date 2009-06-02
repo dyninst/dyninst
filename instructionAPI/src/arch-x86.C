@@ -2612,8 +2612,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	  if(capa & IA32_DECODE_CONDITION) {
         ; // FIXME: translation to tttn & set it
 	  }
-      instruct = ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
-      return instruct;
+     ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
+     return instruct;
     case t_3dnow:
       // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
       // Right now we don't care what the actual opcode is, so there's no table
@@ -3695,7 +3695,19 @@ int displacement(const unsigned char *instr, unsigned type) {
   //skip prefix
   instr = skip_headers( instr );
 
-  if (type & IS_JUMP) {
+  if (type & REL_D_DATA) {
+    // Some SIMD instructions have a mandatory 0xf2 prefix; the call to skip_headers
+    // doesn't skip it and I don't feel confident in changing that - bernat, 22MAY06
+      // 0xf3 as well...
+      // Some 3-byte opcodes start with 0x66... skip
+      if (*instr == 0x66) instr++;
+      if (*instr == 0xf2) instr++;
+      else if (*instr == 0xf3) instr++;
+    // And the "0x0f is a 2-byte opcode" skip
+    if (*instr == 0x0F) instr++;
+    // Skip the instr opcode and the MOD/RM byte
+    disp = *(const int *)(instr+2);
+  } else if (type & IS_JUMP) {
     if (type & REL_B) {
       disp = *(const char *)(instr+1);
     } else if (type & REL_W) {
@@ -3717,18 +3729,6 @@ int displacement(const unsigned char *instr, unsigned type) {
     } else if (type & REL_D) {
       disp = *(const int *)(instr+1);
     }
-  } else if (type & REL_D_DATA) {
-    // Some SIMD instructions have a mandatory 0xf2 prefix; the call to skip_headers
-    // doesn't skip it and I don't feel confident in changing that - bernat, 22MAY06
-      // 0xf3 as well...
-      // Some 3-byte opcodes start with 0x66... skip
-      if (*instr == 0x66) instr++;
-      if (*instr == 0xf2) instr++;
-      else if (*instr == 0xf3) instr++;
-    // And the "0x0f is a 2-byte opcode" skip
-    if (*instr == 0x0F) instr++;
-    // Skip the instr opcode and the MOD/RM byte
-    disp = *(const int *)(instr+2);
   }  
 
   return disp;

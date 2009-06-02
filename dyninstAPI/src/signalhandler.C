@@ -297,6 +297,12 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
        }
 #endif
        if (dyn_debug_crash_debugger) {
+	 if (strcmp(dyn_debug_crash_debugger, "sleep") == 0) {
+	   static volatile int spin = 0;
+	   while (!spin) {
+	     sleep(1);
+	   }
+	 }
           bool result = ev.proc->detachForDebugger(ev);
           if (result) {
              ev.proc->startDebugger();

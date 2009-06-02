@@ -207,6 +207,7 @@ class generatedCodeObject : public codeRange {
         target_(NULL)// These must be set later
         {}
 
+      virtual ~generatedCodeObject() { }
     // These form mini-CFGs. These pointers allow
     // us to walk 'em safely.
 

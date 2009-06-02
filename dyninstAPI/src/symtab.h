@@ -127,11 +127,13 @@ class fileDescriptor {
 
     // Some platforms have split code and data. If yours is not one of them,
     // hand in the same address for code and data.
-    fileDescriptor(string file, Address code, Address data, bool isShared=false) :
+    fileDescriptor(string file, Address code, Address data, 
+                   bool isShared=false, Address dynamic=0) :
         file_(file),
         member_(emptyString),
         code_(code),
         data_(data),
+        dynamic_(dynamic),
         shared_(isShared),
         pid_(0),
         loadAddr_(0)
@@ -162,8 +164,10 @@ class fileDescriptor {
      bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
      Address loadAddr() const { return loadAddr_; }
-     
+     Address dynamic() const { return dynamic_; }
      void setLoadAddr(Address a);
+     void setCode(Address c) { code_ = c; }
+     void setData(Address d) { data_ = d; }
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
      void setIsShared(bool shared) { shared_ = shared; }
@@ -192,6 +196,7 @@ class fileDescriptor {
      string member_;
      Address code_;
      Address data_;
+     Address dynamic_; //Used on Linux, address of dynamic section.
      bool shared_;      // TODO: Why is this here? We should probably use the image version instead...
      int pid_;
      Address loadAddr_;

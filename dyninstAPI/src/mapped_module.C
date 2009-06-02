@@ -67,7 +67,8 @@ const pdvector<int_function *> &mapped_module::getAllFunctions()
    // FIXME this is debugging code that should be removed
    if(everyUniqueFunction.size() != pdfuncs.size()) {
     fprintf(stderr,"[%s:%u] EUF.size %u != pdfuncs.size %u\n",
-     FILE__,__LINE__,everyUniqueFunction.size(),pdfuncs.size());
+            FILE__,__LINE__, (unsigned) everyUniqueFunction.size(),
+            (unsigned) pdfuncs.size());
 
         fprintf(stderr,"everyUniqueFunction[]:\n");
         for(unsigned i=0;i<everyUniqueFunction.size();++i){

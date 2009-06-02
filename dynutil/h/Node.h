@@ -76,7 +76,7 @@ class Node : public AnnotatableSparse {
     
     virtual std::string format() const = 0;
 
-    //virtual Node::Ptr copyTo(GraphPtr graph) = 0;
+    virtual Node::Ptr copy() = 0;
     
     virtual bool isVirtual() const = 0;
     
@@ -95,9 +95,9 @@ class Node : public AnnotatableSparse {
 };
  
 class PhysicalNode : public Node {
+public:
     typedef dyn_detail::boost::shared_ptr<PhysicalNode> Ptr;
-    
- public:
+     
     static Node::Ptr createNode(Address addr);
     
     virtual Address addr() const { return addr_; }
@@ -108,7 +108,7 @@ class PhysicalNode : public Node {
     
     virtual ~PhysicalNode() {};
     
-    // virtual Node::Ptr copyTo(GraphPtr graph);
+    virtual Node::Ptr copy();
 
  protected:
     PhysicalNode(Address addr) : addr_(addr) {};
@@ -126,7 +126,7 @@ class VirtualNode : public Node {
     static Node::Ptr createNode();
     
     virtual std::string format() const;
-    //Node::Ptr copyTo(GraphPtr graph);
+    virtual Node::Ptr copy();
     
     virtual bool isVirtual() const { return true; }
     

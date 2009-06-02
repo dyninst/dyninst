@@ -49,15 +49,23 @@ Node::Ptr OperationNode::createNode(Address addr, Absloc::Ptr absloc) {
     return Node::Ptr(new OperationNode(addr, absloc)); 
 }
 
+Node::Ptr OperationNode::copy() {
+    return Node::Ptr(new OperationNode(addr(), absloc()));
+}
+
 std::string OperationNode::format() const {
     char buf[256];
     sprintf(buf,"N_0x%lx_%s_",
-            addr(), absloc()->name().c_str());
+            addr(), absloc()->format().c_str());
     return std::string(buf);
 }
 
 Node::Ptr BlockNode::createNode(Block *b) {
     return Node::Ptr(new BlockNode(b));
+}
+
+Node::Ptr BlockNode::copy() {
+    return Node::Ptr(new BlockNode(block()));
 }
 
 std::string BlockNode::format() const {
@@ -67,17 +75,24 @@ std::string BlockNode::format() const {
     return std::string(buf);
 }
 
-BlockNode::BlockNode(Block *b) : PhysicalNode(b->getStartAddress()), block_(b) {};
+BlockNode::BlockNode(Block *b) : Node(), block_(b) {};
 
+Address BlockNode::addr() const {
+    return (block_ != NULL ? (Address) block_->getStartAddress() : INVALID_ADDR);
+}
 
 Node::Ptr FormalParamNode::createNode(Absloc::Ptr absloc) {
     return Node::Ptr(new FormalParamNode(absloc)); 
 }
 
+Node::Ptr FormalParamNode::copy() {
+    return Node::Ptr(new FormalParamNode(absloc()));
+}
+
 std::string FormalParamNode::format() const {
     char buf[256];
     sprintf(buf, "N_Param_%s_",
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -85,10 +100,14 @@ Node::Ptr FormalReturnNode::createNode(Absloc::Ptr absloc) {
     return Node::Ptr(new FormalReturnNode(absloc)); 
 }
 
+Node::Ptr FormalReturnNode::copy() {
+    return Node::Ptr(new FormalReturnNode(absloc()));
+}
+
 std::string FormalReturnNode::format() const {
     char buf[256];
     sprintf(buf, "N_Return_%s_",
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -97,6 +116,10 @@ Node::Ptr ActualParamNode::createNode(Address addr,
                                       Function *func,
                                       Absloc::Ptr a) {
     return Node::Ptr(new ActualParamNode(addr, func, a));
+}
+
+Node::Ptr ActualParamNode::copy() {
+    return Node::Ptr(new ActualParamNode(addr(), func(), absloc()));
 }
 
 std::string ActualParamNode::format() const {
@@ -110,7 +133,7 @@ std::string ActualParamNode::format() const {
 
     sprintf(buf, "N_%s_Arg_%s_",
             funcname,
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -118,6 +141,10 @@ Node::Ptr ActualReturnNode::createNode(Address addr,
                                       Function *func,
                                       Absloc::Ptr a) {
     return Node::Ptr(new ActualReturnNode(addr, func, a));
+}
+
+Node::Ptr ActualReturnNode::copy() {
+    return Node::Ptr(new ActualReturnNode(addr(), func(), absloc()));
 }
 
 std::string ActualReturnNode::format() const {
@@ -130,7 +157,7 @@ std::string ActualReturnNode::format() const {
 
     sprintf(buf, "N_%s_Ret_%s_",
             funcname,
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -138,7 +165,9 @@ Node::Ptr CallNode::createNode(Function *func) {
     return Node::Ptr(new CallNode(func));
 }
 
-
+Node::Ptr CallNode::copy() {
+    return Node::Ptr(new CallNode(func()));
+}
 
 std::string CallNode::format() const {
     char buf[512];

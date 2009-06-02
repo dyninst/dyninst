@@ -418,3 +418,56 @@ bool Symbol::operator==(const Symbol& s) const
 Symtab *Symbol::getSymtab() const { 
    return module_->exec(); 
 }
+
+Symbol::Symbol () :
+  module_(NULL),
+  type_(ST_NOTYPE),
+  linkage_(SL_UNKNOWN),
+  visibility_(SV_UNKNOWN),
+  offset_(0),
+  ptr_offset_(0),
+  region_(NULL),
+  size_(0),
+  isDynamic_(false),
+  isAbsolute_(false),
+  aggregate_(NULL),
+  mangledName_(Symbol::emptyString),
+  prettyName_(Symbol::emptyString),
+  typedName_(Symbol::emptyString),
+  tag_(TAG_UNKNOWN) ,
+  index_(-1),
+  strindex_(-1) 
+{
+}
+
+Symbol::Symbol(const std::string name,
+	       SymbolType t,
+	       SymbolLinkage l,
+	       SymbolVisibility v,
+	       Offset o,
+	       Module *module,
+	       Region *r,
+	       unsigned s,
+	       bool d,
+	       bool a,
+	       int index,
+	       int strindex):
+  module_(module),
+  type_(t),
+  linkage_(l),
+  visibility_(v),
+  offset_(o),
+  ptr_offset_(0),
+  region_(r),
+  size_(s),
+  isDynamic_(d),
+  isAbsolute_(a),
+  aggregate_(NULL),
+  mangledName_(name),
+  prettyName_(name),
+  typedName_(name),
+  tag_(TAG_UNKNOWN),
+  index_(index),
+  strindex_(strindex)
+{
+}

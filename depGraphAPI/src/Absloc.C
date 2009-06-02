@@ -89,7 +89,7 @@ const int StackLoc::STACK_GLOBAL = MININT;
 
 StackLoc::StackMap StackLoc::stackLocs_;
 
-std::string StackLoc::name() const {
+std::string StackLoc::format() const {
     if (slot_ == STACK_GLOBAL) {
         return std::string("STACK");
     }
@@ -169,7 +169,7 @@ HeapLoc::AbslocSet HeapLoc::getAliases() {
 const Address MemLoc::MEM_GLOBAL = (Address) -1;
 MemLoc::MemMap MemLoc::memLocs_;
 
-std::string MemLoc::name() const { 
+std::string MemLoc::format() const { 
     if (addr_ == MEM_GLOBAL) {
         return "Mem_UNKNOWN_";
     }
@@ -223,7 +223,7 @@ MemLoc::AbslocSet MemLoc::getAliases() const {
 
 ImmLoc::Ptr ImmLoc::immLoc_; 
 
-std::string ImmLoc::name() const { 
+std::string ImmLoc::format() const { 
     return "Immediate";
 }
 
@@ -233,4 +233,16 @@ Absloc::Ptr ImmLoc::getImmLoc() {
     immLoc_ = ImmLoc::Ptr(new ImmLoc());
 
     return immLoc_;
+}
+
+bool RegisterLoc::isStackPointer() const { 
+    return ((reg_->getID() == r_ESP) || (reg_->getID() == r_RSP)); 
+}
+
+bool RegisterLoc::isPC() const {
+    return ((reg_->getID() == r_EIP) || (reg_->getID() == r_RIP));
+}
+
+bool RegisterLoc::isFlag() const {
+    return ((reg_->getID() >= r_OF) && (reg_->getID() <= r_RF));
 }

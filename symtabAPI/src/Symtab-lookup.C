@@ -551,6 +551,20 @@ bool Symtab::findRegion(Region *&ret, const std::string secName)
 }
 
 
+bool Symtab::findRegion(Region *&ret, const Offset addr, const unsigned long size)
+{
+    for(unsigned index=0;index<regions_.size();index++)
+    {
+        if(regions_[index]->getRegionAddr() == addr && regions_[index]->getRegionSize() == size)
+        {
+            ret = regions_[index];
+            return true;
+        }
+    }
+    serr = No_Such_Region;
+    return false;
+}
+
 ///////////////////////// REGEX //////////////////////
 
 // Use POSIX regular expression pattern matching to check if std::string s matches

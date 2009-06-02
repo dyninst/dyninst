@@ -73,204 +73,249 @@
 
 struct link_map_dyn32
 {
-  /* These first few members are part of the protocol with the debugger.
-     This is the same format used in SVR4.  */
+   /* These first few members are part of the protocol with the debugger.
+      This is the same format used in SVR4.  */
 
-    Elf32_Addr l_addr;          /* Base address shared object is loaded at.  */
+   Elf32_Addr l_addr;          /* Base address shared object is loaded at.  */
 
-    //char *l_name;               /* Absolute file name object was found in.  */
-    uint32_t l_name;
+   //char *l_name;               /* Absolute file name object was found in.  */
+   uint32_t l_name;
 
-    //Elf32_Dyn *l_ld;            /* Dynamic section of the shared object.  */
-    uint32_t l_ld;
+   //Elf32_Dyn *l_ld;            /* Dynamic section of the shared object.  */
+   uint32_t l_ld;
 
-    //struct link_map_32 *l_next, *l_prev; /* Chain of loaded objects.  */
-    uint32_t l_next, l_prev;
+   //struct link_map_32 *l_next, *l_prev; /* Chain of loaded objects.  */
+   uint32_t l_next, l_prev;
 };
 
 class link_map_x {
 public:
-    link_map_x(process *proc_) : proc(proc_), loaded_name(false) {}
-    virtual ~link_map_x() {}
-    virtual size_t size() = 0;
-    virtual uint64_t l_addr() = 0;
-    virtual char *l_name() = 0;
-    virtual void *l_ld() = 0;
-    virtual bool is_last() = 0;
-    virtual bool load_next() = 0;
+   link_map_x(process *proc_) : proc(proc_), loaded_name(false) {}
+   virtual ~link_map_x() {}
+   virtual size_t size() = 0;
+   virtual uint64_t l_addr() = 0;
+   virtual char *l_name() = 0;
+   virtual uint64_t l_ld() = 0;
+   virtual bool is_last() = 0;
+   virtual bool load_next() = 0;
 
-    bool is_valid() { return valid; }
+   bool is_valid() { return valid; }
 
 protected:
-    process *proc;
-    char link_name[256];
-    bool loaded_name;
-    bool valid;
+   process *proc;
+   char link_name[256];
+   bool loaded_name;
+   bool valid;
 };
 
 class link_map_32 : public link_map_x {
 public:
-    link_map_32(process *proc_, void *addr_)
-	: link_map_x(proc_) { valid = load_link(addr_); }
+   link_map_32(process *proc_, void *addr_)
+      : link_map_x(proc_) { 
+      valid = load_link(addr_); 
+   }
 
-    size_t size() { return sizeof(link_elm); }
-    uint64_t l_addr() { return link_elm.l_addr; }
-    char *l_name() {
-	if (loaded_name) return link_name;
+   size_t size() { 
+      return sizeof(link_elm); 
+   }
 
-	for (unsigned int i = 0; i < sizeof(link_name); ++i) {
-	    if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
-				     sizeof(char), (caddr_t)(link_name + i), true)) {
-		valid = false;
-		link_name[0] = '\0';
-                assert(0);
-		return link_name;
-	    }
-	    if (link_name[i] == '\0') break;
-	}
-	link_name[sizeof(link_name) - 1] = '\0';
-	loaded_name = true;
+   uint64_t l_addr() { 
+      return link_elm.l_addr; 
+   }
+   
+   char *l_name() {
+      if (loaded_name) return link_name;
+      
+      for (unsigned int i = 0; i < sizeof(link_name); ++i) {
+         if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
+                                  sizeof(char), (caddr_t)(link_name + i), true)) {
+            valid = false;
+            link_name[0] = '\0';
+            assert(0);
+            return link_name;
+         }
+         if (link_name[i] == '\0') break;
+      }
+      link_name[sizeof(link_name) - 1] = '\0';
+      loaded_name = true;
 
-	return link_name;
-    }
-    void *l_ld() { return reinterpret_cast<void *>(link_elm.l_ld); }
+      return link_name;
+   }
 
-    bool is_last() { return (link_elm.l_next == 0); }
-    bool load_next() {
-	if (is_last()) {
-            return false;
-        }
-	if (load_link(reinterpret_cast<void *>(link_elm.l_next))) {
-	    loaded_name = false;
-	    return true;
-	}
-	return false;
-    }
+   uint64_t l_ld() { 
+      return static_cast<uint64_t>(link_elm.l_ld); 
+   }
+
+   bool is_last() {
+      return (link_elm.l_next == 0); 
+   }
+
+   bool load_next() {
+      if (is_last()) {
+         return false;
+      }
+      if (load_link(reinterpret_cast<void *>(link_elm.l_next))) {
+         loaded_name = false;
+         return true;
+      }
+      return false;
+   }
 
 private:
-    bool load_link(void *addr) {
-	bool ret =  proc->readDataSpace((caddr_t)addr, sizeof(link_elm),
-				   (caddr_t)&link_elm, true);
-        return ret;
-    }
-    link_map_dyn32 link_elm;
+   bool load_link(void *addr) {
+      bool ret =  proc->readDataSpace((caddr_t)addr, sizeof(link_elm),
+                                      (caddr_t)&link_elm, true);
+      loaded_name = false;
+      return ret;
+   }
+   link_map_dyn32 link_elm;
 };
 
 class link_map_64 : public link_map_x {
 public:
-    link_map_64(process *proc_, void *addr_)
-	: link_map_x(proc_) { valid = load_link(addr_); }
+   link_map_64(process *proc_, void *addr_)
+      : link_map_x(proc_) { valid = load_link(addr_); }
 
-    size_t size() { return sizeof(link_elm); }
-    uint64_t l_addr() { return link_elm.l_addr; }
-    char *l_name() {
-	if (loaded_name) return link_name;
+   size_t size() { 
+      return sizeof(link_elm); 
+   }
 
-	for (unsigned int i = 0; i < sizeof(link_name); ++i) {
-	    if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
-				     sizeof(char), ((caddr_t)link_name + i), true)) {
-		valid = false;
-		link_name[0] = '\0';
-		return link_name;
-	    }
-	    if (link_name[i] == '\0') break;
-	}
-	link_name[sizeof(link_name) - 1] = '\0';
-	loaded_name = true;
+   uint64_t l_addr() { 
+      return link_elm.l_addr; 
+   }
 
-	return link_name;
-    }
-    void *l_ld() { return reinterpret_cast<void *>(link_elm.l_ld); }
+   char *l_name() {
+      if (loaded_name) return link_name;
 
-    bool is_last() { return (link_elm.l_next == 0); }
-    bool load_next() {
-	if (is_last()) return false;
+      for (unsigned int i = 0; i < sizeof(link_name); ++i) {
+         if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
+                                  sizeof(char), ((caddr_t)link_name + i), true)) {
+            valid = false;
+            link_name[0] = '\0';
+            return link_name;
+         }
+         if (link_name[i] == '\0') break;
+      }
+      link_name[sizeof(link_name) - 1] = '\0';
+      loaded_name = true;
 
-	if (load_link(link_elm.l_next)) {
-	    loaded_name = false;
-	    return true;
-	}
-	return false;
-    }
+      return link_name;
+   }
+
+   uint64_t l_ld() { 
+      return reinterpret_cast<uint64_t>(link_elm.l_ld); 
+   }
+
+   bool is_last() { 
+      return (link_elm.l_next == 0); 
+   }
+
+   bool load_next() {
+      if (is_last()) return false;
+
+      if (load_link(link_elm.l_next)) {
+         loaded_name = false;
+         return true;
+      }
+      return false;
+   }
 
 private:
-    bool load_link(void *addr) {
-	return proc->readDataSpace((caddr_t)addr, sizeof(link_elm),
-				   (caddr_t)&link_elm, true);
-    }
-    link_map link_elm;
+   bool load_link(void *addr) {
+      return proc->readDataSpace((caddr_t)addr, sizeof(link_elm),
+                                 (caddr_t)&link_elm, true);
+   }
+   link_map link_elm;
 };
 
 struct r_debug_dyn32
 {
-    int r_version;              /* Version number for this protocol.  */
+   int r_version;              /* Version number for this protocol.  */
 
-    //struct link_map_32 *r_map;     /* Head of the chain of loaded objects.  */
-    uint32_t r_map;
+   //struct link_map_32 *r_map;     /* Head of the chain of loaded objects.  */
+   uint32_t r_map;
 
-    /* This is the address of a function internal to the run-time linker,
-       that will always be called when the linker begins to map in a
-       library or unmap it, and again when the mapping change is complete.
-       The debugger can set a breakpoint at this address if it wants to
-       notice shared object mapping changes.  */
-    Elf32_Addr r_brk;
-    enum
-    {
-        /* This state value describes the mapping change taking place when
-	   the `r_brk' address is called.  */
-        RT_CONSISTENT,          /* Mapping change is complete.  */
-        RT_ADD,                 /* Beginning to add a new object.  */
-        RT_DELETE               /* Beginning to remove an object mapping.  */
-    } r_state;
+   /* This is the address of a function internal to the run-time linker,
+      that will always be called when the linker begins to map in a
+      library or unmap it, and again when the mapping change is complete.
+      The debugger can set a breakpoint at this address if it wants to
+      notice shared object mapping changes.  */
+   Elf32_Addr r_brk;
+   enum
+   {
+      /* This state value describes the mapping change taking place when
+         the `r_brk' address is called.  */
+      RT_CONSISTENT,          /* Mapping change is complete.  */
+      RT_ADD,                 /* Beginning to add a new object.  */
+      RT_DELETE               /* Beginning to remove an object mapping.  */
+   } r_state;
 
-    Elf32_Addr r_ldbase;        /* Base address the linker is loaded at.  */
+   Elf32_Addr r_ldbase;        /* Base address the linker is loaded at.  */
 };
 
 class r_debug_x {
 public:
-    r_debug_x(process *proc_) : proc(proc_) {}
-    virtual ~r_debug_x() {}
-    virtual link_map_x *r_map() = 0;
-    virtual void *r_brk() = 0;
-    virtual int r_state() = 0;
+   r_debug_x(process *proc_) : proc(proc_) {}
+   virtual ~r_debug_x() {}
+   virtual link_map_x *r_map() = 0;
+   virtual void *r_brk() = 0;
+   virtual int r_state() = 0;
 
-    bool is_valid() { return valid; }
+   bool is_valid() { return valid; }
 
 protected:
-    process *proc;
-    bool valid;
+   process *proc;
+   bool valid;
 };
 
 class r_debug_32 : public r_debug_x {
 public:
-    r_debug_32(process *proc_, Address addr) : r_debug_x(proc_) {
-	valid = proc->readDataSpace((caddr_t)addr, sizeof(debug_elm),
-				    (caddr_t)&debug_elm, true);
-    }
-    link_map_x *r_map() {
-	return new link_map_32(proc, reinterpret_cast<void *>(debug_elm.r_map));
-    }
-    void *r_brk() { return reinterpret_cast<void *>(debug_elm.r_brk); }
-    int r_state() { return (int)debug_elm.r_state; }
+   r_debug_32(process *proc_, Address addr) :
+      r_debug_x(proc_) 
+   {
+      valid = proc->readDataSpace((caddr_t)addr, sizeof(debug_elm),
+                                  (caddr_t)&debug_elm, true);
+   }
+
+   link_map_x *r_map() {
+      return new link_map_32(proc, reinterpret_cast<void *>(debug_elm.r_map));
+   }
+
+   void *r_brk() { 
+      return reinterpret_cast<void *>(debug_elm.r_brk);
+   }
+
+   int r_state() {
+      return (int)debug_elm.r_state; 
+   }
 
 private:
-    r_debug_dyn32 debug_elm;
+   r_debug_dyn32 debug_elm;
 };
 
 class r_debug_64 : public r_debug_x {
 public:
-    r_debug_64(process *proc_, Address addr) : r_debug_x(proc_) {
-	valid = proc->readDataSpace((caddr_t)addr, sizeof(debug_elm),
-				    (caddr_t)&debug_elm, true);
-    }
-    link_map_x *r_map() {
-	return new link_map_64(proc, reinterpret_cast<void *>(debug_elm.r_map));
-    }
-    void *r_brk() { return reinterpret_cast<void *>(debug_elm.r_brk); }
-    int r_state() { return (int)debug_elm.r_state; }
+   r_debug_64(process *proc_, Address addr) : 
+      r_debug_x(proc_) 
+   {
+      valid = proc->readDataSpace((caddr_t)addr, sizeof(debug_elm),
+                                  (caddr_t)&debug_elm, true);
+   }
+
+   link_map_x *r_map() {
+      return new link_map_64(proc, reinterpret_cast<void *>(debug_elm.r_map));
+   }
+
+   void *r_brk() { 
+      return reinterpret_cast<void *>(debug_elm.r_brk);
+   }
+
+   int r_state() {
+      return (int)debug_elm.r_state; 
+   }
 
 private:
-    r_debug debug_elm;
+   r_debug debug_elm;
 };
 
 //
@@ -476,11 +521,12 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
    /*
    if (maps) {
       for (unsigned i = 0; i < maps_size; i++) {
+	fprintf(stderr, "[%s:%u] - \n", __FILE__, __LINE__);
          if (maps[i].prems & PREMS_EXEC &&
              strlen(maps[i].path) &&
              aout != maps[i].path) {
 
-            descs.push_back(fileDescriptor(maps[i].path,
+	     descs.push_back(fileDescriptor(maps[i].path,
                                            maps[i].start,
                                            maps[i].start,
                                            true));
@@ -570,7 +616,8 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
                      FILE__, __LINE__, obj_name.c_str(), text, text);
       descs.push_back(fileDescriptor(obj_name, 
                                      text, text,
-                                     true));
+                                     true, 
+                                     static_cast<Address>(link_elm->l_ld())));
    } while (link_elm->load_next());
     
    delete link_elm;
@@ -686,23 +733,7 @@ bool dynamic_linking::initialize() {
     r_debug_addr += ld_base;
 
     assert( r_debug_addr );
-    
-    /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
-    vector<Function *> funcs;
 
-    if (!ldsoOne->findFunctionsByName(funcs, "_dl_map_object")) {
-        startup_printf("Failed to find _dl_map_object, ret false from dyn::init\n");
-        return false;
-    }
-
-    if (funcs.size() != 1) {
-        startup_printf("Found %d symbols for _dl_map_object, expecting 1, ret false from dyn::init\n", funcs.size());
-        return false;
-    }
-    
-    dlopen_addr = funcs[0]->getOffset() + ld_base;
-    assert( dlopen_addr );
-    
     dynlinked = true;
 
     return true;

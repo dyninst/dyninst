@@ -45,19 +45,15 @@
 #include <set>
 #include <vector>
 
-// DDG
-#include "Absloc.h"
-#include "Graph.h"
+// depGraphAPI
 #include "Node.h"
+#include "DepGraphNode.h" // for BlockNode
 
 // Dyninst
 #include "BPatch_basicBlock.h"
 #include "BPatch_edge.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_function.h"
-
-// InstructionAPI
-#include "Instruction.h"
 
 // Annotation interface
 #include "Annotatable.h"
@@ -67,25 +63,16 @@ using namespace Dyninst;
 using namespace Dyninst::DepGraphAPI;
 using namespace Dyninst::InstructionAPI;
 
-static AnnotationClass <Graph::Ptr> FDGAnno(std::string("FDGAnno"));
+static AnnotationClass <FDG::Ptr> FDGAnno(std::string("FDGAnno"));
 
-FDGAnalyzer::~FDGAnalyzer() {
-  for (InstWithAddrList::iterator iter = lastInstInBlock.begin();
-      iter != lastInstInBlock.end();
-      iter++) {
-    InstWithAddr* item = *iter;
-    if (item) {
-      delete item;
-    }
-  }
-}
+FDGAnalyzer::~FDGAnalyzer() {}
 
-Graph::Ptr FDGAnalyzer::analyze() {
+FDG::Ptr FDGAnalyzer::analyze() {
     if (fdg) return fdg;
 
-    if (func_ == NULL) return Graph::Ptr();
+    if (func_ == NULL) return FDG::Ptr();
 
-    Graph::Ptr *ret;
+    FDG::Ptr *ret;
     func_->getAnnotation(ret, FDGAnno);
     if (ret) {
         fdg = *ret;
@@ -98,18 +85,19 @@ Graph::Ptr FDGAnalyzer::analyze() {
     func_->getCFG()->getAllBasicBlocks(blocks);
 
     // Create a graph
-    fdg = Graph::createGraph();
-    
-    // create an array of <instruction, address> pairs indexed by block number.
-    lastInstInBlock.resize(blocks.size());
+    fdg = FDG::createGraph();
     
     // mark blocks that end with a jump/return/branch instruction.
     markBlocksWithJump(blocks);
     // find the dependencies between blocks.
     findDependencies(blocks);
     
-    // finally, create instruction level nodes.
+    // finally, create block level nodes.
     createNodes(blocks);
+    
+    // Store as an annotation and return
+    FDG::Ptr *ptr = new FDG::Ptr(fdg);
+    func_->addAnnotation(ptr, FDGAnno);
 
     return fdg;
 }
@@ -131,17 +119,6 @@ void FDGAnalyzer::markBlocksWithJump(BlockSet &blocks) {
     
     if (isReturnOp(opType) || isBranchOp(opType)) {
       markedBlocks.insert(block);
-      lastInstInBlock[ block->getBlockNumber() ] =
-          new InstWithAddr(lastInst, (Address) (block->getEndAddress() - lastInst.size()));
-    }
-    else {
-      lastInstInBlock[ block->getBlockNumber() ] = NULL;
-    }
-    
-    Address address = (Address) block->getStartAddress();
-    for (unsigned i = 0; i < instructions.size(); i++) {
-      addrToBlock[address] = block;
-      address += instructions[i].size();
     }
   }
 }
@@ -151,18 +128,9 @@ void FDGAnalyzer::findDependencies(BlockSet &blocks) {
     Block* block = *blockIter;
     BlockSet blocksWithJumps;
     BlockSet visited;
-    findBlocksOnWay(blocksWithJumps, visited, block);
+    findBlocksRecursive(blocksWithJumps, visited, block);
     blockToJumps[block] = blocksWithJumps;
   }
-}
-
-void FDGAnalyzer::findBlocksOnWay(BlockSet& needThese, 
-                                  BlockSet& visited, 
-                                  Block* givenBlock) {
-  if (markedBlocks.find(givenBlock) != markedBlocks.end()) {
-    needThese.insert(givenBlock);
-  }
-  findBlocksRecursive(needThese, visited, givenBlock);
 }
 
 void FDGAnalyzer::findBlocksRecursive(BlockSet& needThese, 
@@ -188,67 +156,32 @@ void FDGAnalyzer::findBlocksRecursive(BlockSet& needThese,
   }
 }
 
-void FDGAnalyzer::createDepToOtherBlocks(NodeSet& nodes, 
-                                         NodePtr target) {
-  if (nodes.find(target) != nodes.end()) {
-    return;
-  }
-  nodes.insert(target);
-  Block* curBlock = addrToBlock[ target->addr() ];
-  assert(curBlock);
-  BlockSet& targets = blockToJumps[curBlock];
-  for (BlockSet::iterator blIter = targets.begin(); blIter != targets.end(); blIter++) {
-    InstWithAddr* targetInst = lastInstInBlock[ (*blIter)->getBlockNumber() ];
-    assert (targetInst);
-    if (targetInst->second == target->addr()) {
-      continue;
+Node::Ptr FDGAnalyzer::makeNode(NodeMap& nodeMap, Block* block) {
+    if (nodeMap[block]) {
+        return nodeMap[block];
     }
-    NodePtr source = PhysicalNode::createNode(targetInst->second);
-    fdg->insertPair(source, target);
-    
-    createDepToOtherBlocks(nodes, source);
-  }
-}
-
-bool FDGAnalyzer::createDepWithinBlock(NodeSet& nodes, 
-                                       NodePtr target) {
-  if (nodes.find(target) != nodes.end()) {
-    return true;
-  }
-  Block* curBlock = addrToBlock[ target->addr() ];
-  assert(curBlock);
-  InstWithAddr* inst = lastInstInBlock[ curBlock->getBlockNumber() ];
-  if (inst && inst->second != target->addr()) {
-    nodes.insert(target);
-    NodePtr source = PhysicalNode::createNode(inst->second);
-    fdg->insertPair(source, target);
-    
-    // since I am doing it for every instruction, I don't need to go any further now.    
-    return true;
-  }
-  return false;
+    Node::Ptr blockNode = BlockNode::createNode(block);
+    nodeMap[block] = blockNode;
+    return blockNode;
 }
 
 void FDGAnalyzer::createNodes(BlockSet &blocks) {
-  NodePtr virtNode = VirtualNode::createNode();
-  NodeSet processedNodes;
-  for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
-    Block* block = *blockIter;
-    vector<Instruction> instructions;
-    block->getInstructions(instructions);
-    
-    Address address = (Address) block->getStartAddress();
-    for (unsigned i = 0; i < instructions.size(); i++) {
-      NodePtr node = PhysicalNode::createNode(address);
-      fdg->insertPair(virtNode, node);
-      address += instructions[i].size();
-      
-      bool success = createDepWithinBlock(processedNodes, node);
-      if (!success) {
-        createDepToOtherBlocks(processedNodes, node);
-      }
+    NodePtr virtNode = fdg->virtualEntryNode();
+    NodeMap nodeMap;
+    for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
+        Block* block = *blockIter;
+        
+        Node::Ptr blockNode = makeNode(nodeMap, block);
+        fdg->addNode(blockNode);
+        fdg->insertPair(virtNode, blockNode);
+        
+        BlockSet& targets = blockToJumps[block];
+        for (BlockSet::iterator blIter = targets.begin(); blIter != targets.end(); blIter++) {
+            Node::Ptr source = makeNode(nodeMap, *blIter);
+            fdg->addNode(source);
+            fdg->insertPair(source, blockNode);
+        }
     }
-  }
 }
 /**************************************************************************************************/
 /****************************   static functions   ************************************************/

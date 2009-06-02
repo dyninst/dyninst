@@ -43,7 +43,7 @@
 #include "libdwarf.h"
 #endif
 
-
+#include<vector>
 #include "common/h/headers.h"
 #include "common/h/Types.h"
 #include "common/h/MappedFile.h"
@@ -408,6 +408,8 @@ class Object : public AObject {
 
 	bool is_offset_in_plt(Offset offset) const;
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
+    int getRegionHdrIndexByAddr(Offset addr);
+    Elf_X_Shdr *getRegionHdrByIndex(unsigned index);
     bool isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned newPerms);
 
     bool getRegValueAtFrame(Address pc, 
@@ -417,16 +419,45 @@ class Object : public AObject {
     bool hasFrameDebugInfo();
 
     bool convertDebugOffset(Offset off, Offset &new_off);
- private:
+
+    std::vector< std::vector<Offset> > getMoveSecAddrRange() const {return moveSecAddrRange;};
+    dyn_hash_map<int, Region*> getTagRegionMapping() const { return secTagRegionMapping;}
+
+    bool hasReldyn() const {return hasReldyn_;}
+    bool hasReladyn() const {return hasReladyn_;}
+    bool hasRelplt() const {return hasRelplt_;}
+    bool hasRelaplt() const {return hasRelaplt_;}
+
+    Offset getTextAddr() const {return text_addr_;}
+    Offset getSymtabAddr() const {return symtab_addr_;}
+    Offset getStrtabAddr() const {return strtab_addr_;}
+    Offset getDynamicAddr() const {return dynamic_addr_;}
+
+
+  private:
   static void log_elferror (void (*)(const char *), const char *);
     
   Elf_X    elfHdr;
 
   Elf_X    elfHdrForDebugInfo;
-  
+ 
+  std::vector< std::vector<Offset> > moveSecAddrRange;
+  dyn_hash_map<Offset, int> secAddrTagMapping;
+  dyn_hash_map<int, unsigned long> secTagSizeMapping;
+  dyn_hash_map<int, Region*> secTagRegionMapping;
+
+  bool hasReldyn_;
+  bool hasReladyn_;
+  bool hasRelplt_;
+  bool hasRelaplt_;
+
+  Offset   dynamic_offset_;
+  size_t   dynamic_size_;
   Offset   fini_addr_;
   Offset   text_addr_; 	 //.text section 
   Offset   text_size_; 	 //.text section size
+  Offset   symtab_addr_;
+  Offset   strtab_addr_;
   Offset   dynamic_addr_;	 //.dynamic section
   Offset   dynsym_addr_;        // .dynsym section
   Offset   dynstr_addr_;        // .dynstr section
@@ -514,7 +545,7 @@ class Object : public AObject {
 			      Elf_X_Shdr *&dynsym_scnp, 
 			      Elf_X_Shdr *&dynstr_scnp);
 
-  bool get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
+  bool get_relocationDyn_entries( unsigned rel_index,
                      Elf_X_Shdr *&dynsym_scnp,
                      Elf_X_Shdr *&dynstr_scnp );
   
@@ -564,7 +595,6 @@ class Object : public AObject {
   bool DbgSectionMapSorted;
   std::vector<DbgAddrConversion_t> DebugSectionMap;
 };
-
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);
 

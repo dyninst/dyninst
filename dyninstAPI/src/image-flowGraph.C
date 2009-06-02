@@ -934,14 +934,6 @@ bool image_func::buildCFG(
 
                 BPatch_Set< Address > targets;
                 BPatch_Set< Address >::iterator iter;
-				if( archIsIPRelativeBranch(ah))
-				{
-					processJump(ah, currBlk, 
-						funcBegin, funcEnd, allInstructions, leaders, worklist,
-						leadersToBlock, pltFuncs);
-					break;
-				}
-
                
                 // get the list of targets
                 if(!archGetMultipleJumpTargets(targets,currBlk,ah,
@@ -982,20 +974,20 @@ bool image_func::buildCFG(
                         continue;
                     }
 
-                    if(*iter < funcBegin) {
+                    /*if(*iter < funcBegin) {
                         // FIXME see cond branch note, above
                         currBlk->isExitBlock_ = true;
                         // FIXME if this stays an exit block, it needs an exit
                         // point
                     }
-                    else { 
+                    else { */
                         addBasicBlock(*iter,
                                       currBlk,
                                       leaders,
                                       leadersToBlock,
                                       ET_INDIR,
                                       worklist);
-                    }
+                   // }
                 }
 
                 break;
@@ -1287,6 +1279,7 @@ bool image_func::buildCFG(
     if(retStatus_ == RS_UNSET)
         retStatus_ = RS_NORETURN;
 
+    parsing_printf("Setting %s retStatus_ to %d \n", prettyName().c_str(), retStatus_); 
     return true;
 }
 
@@ -1361,6 +1354,8 @@ image_func * image_func::bindCallTarget(
                 FILE__,__LINE__,targetFunc->getOffset());
 
             targetFunc->img()->recordFunction(targetFunc);
+    	     parsing_printf("[%s:%u] call target at 0x%lx parsed - return value %d \n",
+		FILE__,__LINE__,targetFunc->getOffset(), targetFunc->returnStatus());
         } else {
             parsing_printf("[%s:%u] recursive parsing of 0x%lx failed\n",
                 FILE__,__LINE__,targetFunc->getOffset());
@@ -1380,8 +1375,11 @@ image_func * image_func::bindCallTarget(
 
         parsing_printf("[%s:%u] resuming parsing of %s\n",
             FILE__,__LINE__,prettyName().c_str());
+    } 
+    else { 
+    	parsing_printf("[%s:%u] call target at 0x%lx is already parsed - return value %d \n",
+		FILE__,__LINE__,targetFunc->getOffset(), targetFunc->returnStatus());
     }
-                
     return targetFunc;
 }
 

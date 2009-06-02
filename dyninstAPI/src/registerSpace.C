@@ -181,25 +181,6 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP,
     if (BPatch::bpatch->livenessAnalysisOn()) {
         assert(iP);
         registerSpace *ret = NULL;
-        /*
-#if defined(arch_power)
-        // Power has some serious problems right now with GPR/FPR
-        // liveness. Disabling.
-        if ((iP->getPointType() == functionEntry) ||
-            (iP->getPointType() == functionExit) ||
-            (iP->getPointType() == callSite))
-            ret = optimisticRegSpace(iP->proc());
-        else
-            ret = conservativeRegSpace(iP->proc());
-        
-        // Listen to the MQ register setting
-        if ((iP->liveRegisters(when))[mq]) {
-            ret->registers_[mq]->liveState = registerSlot::live;
-        }
-        else {
-            ret->registers_[mq]->liveState = registerSlot::dead;
-        }
-        */
 
         liveness_printf("%s[%d] Asking for actualRegSpace for iP at 0x%lx, dumping info:\n",
                         FILE__, __LINE__, iP->addr());
@@ -208,19 +189,18 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP,
         ret = getRegisterSpace(iP->proc());
         ret->specializeSpace(iP->liveRegisters(when));
 
-        //#endif
         ret->cleanSpace();
         return ret;
     }
 #endif
     // Use one of the other registerSpaces...
     // If we're entry/exit/call site, return the optimistic version
-    if (iP->getPointType() == functionEntry)
+    /*    if (iP->getPointType() == functionEntry)
         return optimisticRegSpace(iP->proc());
     if (iP->getPointType() == functionExit)
         return optimisticRegSpace(iP->proc());
     if (iP->getPointType() == callSite)
-        return optimisticRegSpace(iP->proc());
+    return optimisticRegSpace(iP->proc());*/
     
     return conservativeRegSpace(iP->proc());
 }

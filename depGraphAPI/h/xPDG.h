@@ -29,28 +29,44 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "CDG.h"
+#if !defined(xPDG_GRAPH_H)
+#define xPDG_GRAPH_H
 
-#include "Node.h" // for VirtualNode
-#include "analyzeCDG.h"
+#include "Node.h"
+#include "Graph.h"
 
-#include "BPatch_basicBlock.h"
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 class BPatch_function;
 
-using namespace Dyninst::DepGraphAPI;
+namespace Dyninst {
 
-CDG::CDG() :
-        virtEntryNode_(VirtualNode::createNode()) {
-    insertEntryNode(virtEntryNode_);
-}
+namespace DepGraphAPI {
 
-CDG::Ptr CDG::analyze(Function *func) {
-    CDGAnalyzer cdgA(func);
-    CDG::Ptr cdg = cdgA.analyze();
-    return cdg;
-}
+// This class represents an Extended Program Dependence Graph for a given function.
+class xPDG : public Graph {
+public:
+    typedef dyn_detail::boost::shared_ptr<xPDG> Ptr;
 
-bool CDG::findBlock(BPatch_basicBlock *block, NodeIterator &begin, NodeIterator &end) {
-    return find((Address) block->getStartAddress(), begin, end);
+private:
+    typedef BPatch_function Function;
+public:
+    // Creates and returns the xPDG for the given function.
+    static xPDG::Ptr analyze(Function *func);
+
+    virtual ~xPDG() {};
+
+    // Returns the entry node for the xPDG.
+    Node::Ptr virtualEntryNode() { return virtEntryNode_; }
+
+    // Creates an empty xPDG and returns.
+    static Ptr createGraph() { return xPDG::Ptr(new xPDG()); }
+private:
+    xPDG();
+
+    // Node to make sure everyone is reachable...
+    Node::Ptr virtEntryNode_;
+};
+};
 }
+#endif

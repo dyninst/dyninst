@@ -109,9 +109,10 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
         file_match_ = true;
     }
 #endif  
+    bool addr_match = ((code_ == fd.code_ && data_ == fd.data_) ||
+                       (dynamic_ && dynamic_ == fd.dynamic_));
     if (file_match_ &&
-        (code_ == fd.code_) &&
-        (data_ == fd.data_) &&
+        (addr_match) &&
         (member_ == fd.member_) &&
         (pid_ == fd.pid_))
         return true;

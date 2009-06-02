@@ -1195,27 +1195,14 @@ bool Symtab::extractInfo(Object *linkedFile)
         {
             hasRela_ = true;
         }
-    
-        if (!regions_[index]->getRegionName().compare(".rel.dyn"))
-        {
-            hasReldyn_ = true;
-        }
 
-	if( !regions_[index]->getRegionName().compare(".rela.dyn") ) 
-	{
-	    hasReladyn_ = true;
-	}
+#if defined(os_linux) || defined(os_solaris)
+        hasReldyn_ = linkedFile->hasReldyn();
+	hasReladyn_ = linkedFile->hasReladyn();
+        hasRelplt_ = linkedFile->hasRelplt();
+        hasRelaplt_ = linkedFile->hasRelaplt();
+#endif	
 
-        if (!regions_[index]->getRegionName().compare(".rel.plt"))
-        {
-            hasRelplt_ = true;
-        }
-
-	if( !regions_[index]->getRegionName().compare(".rela.plt") ) 
-        {
-            hasRelaplt_ = true;
-        }
-        
     }
     // sort regions_ & codeRegions_ vectors
 
@@ -1449,6 +1436,8 @@ bool Symtab::isCode(const Offset where)  const
             && where < (curreg->getRegionAddr()
                + curreg->getDiskSize())) 
       {
+         if (curreg->getRegionType() == Region::RT_BSS)
+            return false;
          return true;
       }
       else if (where < curreg->getRegionAddr()) 
@@ -2724,7 +2713,7 @@ void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC 
 				  if (possible_syms.size())
 				  {
 					  fprintf(stderr, "%s[%d]:  WARN: found %d syms for dynref in ord index\n", 
-							  FILE__, __LINE__, possible_syms.size());
+                         FILE__, __LINE__, (int) possible_syms.size());
 					  for (unsigned int i = 0; i < possible_syms.size(); ++i)
 					  {
 						  Symbol *s = possible_syms[i];
@@ -2891,6 +2880,16 @@ SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 
 }
+
+SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
+{
+#if defined(os_linux)
+   return getObject()->getDynamicAddr();
+#else
+   return 0;
+#endif
+}
+
 } // namespace SymtabAPI
 } // namespace Dyninst
 

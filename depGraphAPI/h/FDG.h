@@ -29,28 +29,51 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "CDG.h"
+#if !defined(FDG_GRAPH_H)
+#define FDG_GRAPH_H
 
-#include "Node.h" // for VirtualNode
-#include "analyzeCDG.h"
+#include "Node.h"
+#include "Graph.h"
 
-#include "BPatch_basicBlock.h"
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 class BPatch_function;
+class BPatch_basicBlock;
 
-using namespace Dyninst::DepGraphAPI;
+namespace Dyninst {
 
-CDG::CDG() :
-        virtEntryNode_(VirtualNode::createNode()) {
-    insertEntryNode(virtEntryNode_);
+namespace DepGraphAPI {
+
+// This class represents a Flow Dependence Graph for a given function.
+class FDG : public Graph {
+public:
+    typedef dyn_detail::boost::shared_ptr<FDG> Ptr;
+
+private:
+    typedef BPatch_function Function;
+    typedef BPatch_basicBlock Block;
+    
+public:
+    // Creates and returns the FDG for the given function.
+    static FDG::Ptr analyze(Function *func);
+
+    virtual ~FDG() {};
+
+    // Returns the entry node for the FDG.
+    Node::Ptr virtualEntryNode() { return virtEntryNode_; }
+
+    // Creates an empty FDG and returns.
+    static Ptr createGraph() { return FDG::Ptr(new FDG()); }
+
+    // Finds the BlockNode that contains the given basic block.
+    virtual bool findBlock(BPatch_basicBlock *block, NodeIterator &begin, NodeIterator &end);
+private:
+    FDG();
+
+    // Node to make sure everyone is reachable...
+    Node::Ptr virtEntryNode_;
+};
+
+};
 }
-
-CDG::Ptr CDG::analyze(Function *func) {
-    CDGAnalyzer cdgA(func);
-    CDG::Ptr cdg = cdgA.analyze();
-    return cdg;
-}
-
-bool CDG::findBlock(BPatch_basicBlock *block, NodeIterator &begin, NodeIterator &end) {
-    return find((Address) block->getStartAddress(), begin, end);
-}
+#endif
