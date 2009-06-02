@@ -35,13 +35,13 @@ endif
 
 ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += newtestsuite parseThat
-allSubdirs_noinstall += newtestsuite parseThat
+allSubdirs_noinstall += newtestsuite 
 fullSystem += newtestsuite parseThat
 Build_list += newtestsuite parseThat
 endif
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI depGraphAPI
-allSubdirs	= $(allCoreSubdirs) testsuites valueAdded/sharedMem
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem
 
 # We're not building the new test suite on all platforms yet
 

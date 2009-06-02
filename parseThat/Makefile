@@ -1,5 +1,5 @@
 
-all: parsethat
+all: parsethat 
 parsethat: $(PLATFORM)/Makefile
 	cd $(PLATFORM); $(MAKE);
 $(PLATFORM)/Makefile: $(PLATFORM)
