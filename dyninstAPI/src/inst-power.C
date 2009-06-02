@@ -2907,3 +2907,16 @@ bool EmitterPOWER::emitMoveRegToReg(registerSlot *src,
     }
     return true;
 }
+
+void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset)
+{
+  assert(!"Not implemented!");
+  return;
+}
+
+void EmitterPOWER::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen)
+{
+  assert(!"Not implemented!");
+  return;
+}
+
