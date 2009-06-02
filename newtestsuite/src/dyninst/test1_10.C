@@ -53,21 +53,20 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
 #include "dyninst_comp.h"
 
 class test1_10_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_10_factory() {
-  return new test1_10_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_10_factory() 
+{
+	return new test1_10_Mutator();
 }
 
 //
 // Start Test Case #10 - mutator side (insert snippet order)
 //
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
 
 test_results_t test1_10_Mutator::executeTest() 
 {
@@ -142,18 +141,18 @@ test_results_t test1_10_Mutator::executeTest()
 	dprintf("%s[%d]:  before insertSnippet 1\n", FILE__, __LINE__);
 
 	checkCost(call10_2Expr);
-	appThread->insertSnippet( call10_2Expr, *point10_1);
+	appAddrSpace->insertSnippet( call10_2Expr, *point10_1);
 
 	dprintf("%s[%d]:  before insertSnippet 2\n", FILE__, __LINE__);
 
 	checkCost(call10_1Expr);
-	appThread->insertSnippet( call10_1Expr, *point10_1, BPatch_callBefore, 
+	appAddrSpace->insertSnippet( call10_1Expr, *point10_1, BPatch_callBefore, 
 			BPatch_firstSnippet);
 
 	dprintf("%s[%d]:  before insertSnippet 3\n", FILE__, __LINE__);
 
 	checkCost(call10_3Expr);
-	appThread->insertSnippet( call10_3Expr, *point10_1, BPatch_callBefore, 
+	appAddrSpace->insertSnippet( call10_3Expr, *point10_1, BPatch_callBefore, 
 			BPatch_lastSnippet);
 
 	dprintf("%s[%d]:  leaving  test1_10\n", FILE__, __LINE__);

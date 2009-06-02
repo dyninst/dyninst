@@ -595,11 +595,13 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
             fprintf(stderr, "Error duplicating log fd(2)\n");
          }
       }
+	  fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
       execvp(pathname, (char * const *)attach_argv);
       char *newname = (char *) malloc(strlen(pathname) + 3);
       strcpy(newname, "./");
       strcat(newname, pathname);
       execvp(newname, (char * const *)attach_argv);
+	  fprintf(stderr, "%s[%d]:  Exec failed!\n", FILE__, __LINE__);
       exit(-1);
    } else if (pid < 0) {
       return -1;

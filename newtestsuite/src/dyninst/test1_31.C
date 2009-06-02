@@ -54,81 +54,86 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
 #include "dyninst_comp.h"
+
 class test1_31_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_31_factory() {
-  return new test1_31_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_31_factory() 
+{
+	return new test1_31_Mutator();
 }
 
 //
 // Start Test Case #31 - (non-recursive base tramp)
 //
-// static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
-// {
-test_results_t test1_31_Mutator::executeTest() {
-   const char * func31_2_name = "test1_31_func2";
-   const char * func31_3_name = "test1_31_func3";
-   const char * func31_4_name = "test1_31_func4";
 
-   BPatch_image * app_image = appImage;
-   BPatch_thread * app_thread = appThread;
-  
-   BPatch_Vector<BPatch_function *> bpfv;
-   if (NULL == appImage->findFunction(func31_2_name, bpfv) || !bpfv.size()
-       || NULL == bpfv[0]){
-     logerror("    Unable to find function %s\n", func31_2_name);
-     return FAILED;
-   }
-	
-   BPatch_function *func31_2_function = bpfv[0];
+test_results_t test1_31_Mutator::executeTest() 
+{
+	const char * func31_2_name = "test1_31_func2";
+	const char * func31_3_name = "test1_31_func3";
+	const char * func31_4_name = "test1_31_func4";
 
-   bpfv.clear();
+	BPatch_image * app_image = appImage;
 
-   if (NULL == appImage->findFunction(func31_3_name, bpfv) || !bpfv.size()
-       || NULL == bpfv[0]){
-     logerror("    Unable to find function %s\n", func31_3_name);
-     return FAILED;
-   }
-   
-   BPatch_function *func31_3_function = bpfv[0];
+	BPatch_Vector<BPatch_function *> bpfv;
 
-   bpfv.clear();
-   
-   if (NULL == appImage->findFunction(func31_4_name, bpfv) || !bpfv.size()
-       || NULL == bpfv[0]){
-     logerror("    Unable to find function %s\n", func31_4_name);
-     return FAILED;
-   }
-   
-   BPatch_function *func31_4_function = bpfv[0];
-   
-   bool old_value = BPatch::bpatch->isTrampRecursive();
-   BPatch::bpatch->setTrampRecursive( false );
-   
-   BPatch_Vector<BPatch_snippet *> func31_2_args;
-   BPatch_snippet * func31_2_snippet =
-      new BPatch_funcCallExpr( * func31_3_function,
-                               func31_2_args );
-   instrument_entry_points( app_thread, app_image, func31_2_function, func31_2_snippet );
-   
-   BPatch_Vector<BPatch_snippet *> func31_3_args_1;
-   func31_3_args_1.push_back( new BPatch_constExpr( 1 ) );
-   BPatch_snippet * func31_3_snippet_1 =
-      new BPatch_funcCallExpr( * func31_4_function,
-                               func31_3_args_1 );
-   instrument_entry_points(app_thread, app_image, func31_3_function, func31_3_snippet_1);
+	if (NULL == appImage->findFunction(func31_2_name, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", func31_2_name);
+		return FAILED;
+	}
 
-   BPatch_Vector<BPatch_snippet *> bar_args_2;
-   bar_args_2.push_back( new BPatch_constExpr( 2 ) );
-   BPatch_snippet * bar_snippet_2 =
-      new BPatch_funcCallExpr( * func31_4_function,
-                               bar_args_2 );
-   instrument_exit_points(app_thread, app_image, func31_3_function, bar_snippet_2);
-   
-   BPatch::bpatch->setTrampRecursive( old_value );
+	BPatch_function *func31_2_function = bpfv[0];
 
-   return PASSED;
+	bpfv.clear();
+
+	if (NULL == appImage->findFunction(func31_3_name, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", func31_3_name);
+		return FAILED;
+	}
+
+	BPatch_function *func31_3_function = bpfv[0];
+
+	bpfv.clear();
+
+	if (NULL == appImage->findFunction(func31_4_name, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", func31_4_name);
+		return FAILED;
+	}
+
+	BPatch_function *func31_4_function = bpfv[0];
+
+	bool old_value = BPatch::bpatch->isTrampRecursive();
+	BPatch::bpatch->setTrampRecursive( false );
+
+	BPatch_Vector<BPatch_snippet *> func31_2_args;
+	BPatch_snippet * func31_2_snippet =
+		new BPatch_funcCallExpr( * func31_3_function,
+				func31_2_args );
+	instrument_entry_points( appAddrSpace, app_image, func31_2_function, func31_2_snippet );
+
+	BPatch_Vector<BPatch_snippet *> func31_3_args_1;
+	func31_3_args_1.push_back( new BPatch_constExpr( 1 ) );
+	BPatch_snippet * func31_3_snippet_1 =
+		new BPatch_funcCallExpr( * func31_4_function,
+				func31_3_args_1 );
+	instrument_entry_points(appAddrSpace, app_image, func31_3_function, func31_3_snippet_1);
+
+	BPatch_Vector<BPatch_snippet *> bar_args_2;
+	bar_args_2.push_back( new BPatch_constExpr( 2 ) );
+	BPatch_snippet * bar_snippet_2 =
+		new BPatch_funcCallExpr( * func31_4_function,
+				bar_args_2 );
+	instrument_exit_points(appAddrSpace, app_image, func31_3_function, bar_snippet_2);
+
+	BPatch::bpatch->setTrampRecursive( old_value );
+
+	return PASSED;
 }

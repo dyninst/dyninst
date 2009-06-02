@@ -50,21 +50,20 @@
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
-#include "BPatch_thread.h"
+#include "BPatch_addressSpace.h"
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
 #include "Callbacks.h"
-
-// static int mutateeFortran;
-// static BPatch *bpatch;
-
 #include "dyninst_comp.h"
+
 class test1_37_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_37_factory() {
-  return new test1_37_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_37_factory() 
+{
+	return new test1_37_Mutator();
 }
 
 //
@@ -72,15 +71,18 @@ extern "C" DLLEXPORT  TestMutator *test1_37_factory() {
 //
 
 // sort basic blocks ascending by block number
-static void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) {
-    for (int i=0; i<n-1; i++) {
-	for (int j=0; j<n-1-i; j++)
-	    if (a[j+1]->getBlockNumber() < a[j]->getBlockNumber()) {    
-		BPatch_basicBlock* tmp = a[j]; 
-		a[j] = a[j+1];
-		a[j+1] = tmp;
-	    }
-    }
+static void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) 
+{
+	for (int i=0; i<n-1; i++) 
+	{
+		for (int j=0; j<n-1-i; j++)
+			if (a[j+1]->getBlockNumber() < a[j]->getBlockNumber()) 
+			{
+				BPatch_basicBlock* tmp = a[j]; 
+				a[j] = a[j+1];
+				a[j+1] = tmp;
+			}
+	}
 }
 
 /* This method instruments the entry and exit edges of a loop with 
@@ -89,161 +91,147 @@ static void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) {
    or target other blocks in the loop (respectively), and instrumenting
    those edges. So effectively, this is a test of both our loop detection
    and edge instrumentation facilities. Two for one, yay!
-*/
-static void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
-             BPatch_Vector<BPatch_basicBlockLoop*> &loops,
-             BPatch_funcCallExpr &callInc) 
+ */
+
+static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *appImage,
+		BPatch_Vector<BPatch_basicBlockLoop*> &loops,
+		BPatch_funcCallExpr &callInc) 
 {            
-    // for each loop (set of basic blocks)
-    for (unsigned int i = 0; i < loops.size(); i++) {
-        BPatch_flowGraph *cfg; 
-        BPatch_Vector<BPatch_point*> * exits;
-        BPatch_Vector<BPatch_point*> * entries;
-        
-        cfg = loops[i]->getFlowGraph();
-        
-        // Find loop entry and exit points
-        entries = cfg->findLoopInstPoints(BPatch_locLoopEntry,
-                                          loops[i]);
-        exits = cfg->findLoopInstPoints(BPatch_locLoopExit,
-                                        loops[i]);
-        // instrument those points      
-        
-        if(entries->size() == 0) {
-            logerror("**Failed** test #37 (instrument loops)\n");
-            logerror("   Unable to find loop entry inst point.\n");
-        }
-        if(exits->size() == 0) {
-            logerror("**Failed** test #37 (instrument loops)\n");
-            logerror("   Unable to find loop exit inst point.\n");
-        }
+	// for each loop (set of basic blocks)
+	for (unsigned int i = 0; i < loops.size(); i++) 
+	{
+		BPatch_flowGraph *cfg; 
+		BPatch_Vector<BPatch_point*> * exits;
+		BPatch_Vector<BPatch_point*> * entries;
 
-        unsigned int j;
-        BPatch_point *p = NULL;
-        for(j=0;j<entries->size();j++) {
-            p = (*entries)[j];
+		cfg = loops[i]->getFlowGraph();
 
-            BPatchSnippetHandle * han =
-            appThread->insertSnippet(callInc, *p, BPatch_callBefore);
+		// Find loop entry and exit points
+		entries = cfg->findLoopInstPoints(BPatch_locLoopEntry,
+				loops[i]);
+		exits = cfg->findLoopInstPoints(BPatch_locLoopExit,
+				loops[i]);
+		// instrument those points      
 
-            // did we insert the snippet?
-            if (han == NULL) {
-                logerror("**Failed** test #37 (instrument loops)\n");
-                logerror("   Unable to insert snippet at loop entry.\n");
-            }
-        }
-        for(j=0;j<exits->size();j++) {
-            p = (*exits)[j];
+		if (entries->size() == 0) 
+		{
+			logerror("**Failed** test #37 (instrument loops)\n");
+			logerror("   Unable to find loop entry inst point.\n");
+		}
 
-            BPatchSnippetHandle * han =
-            appThread->insertSnippet(callInc, *p, BPatch_callBefore);
+		if (exits->size() == 0) 
+		{
+			logerror("**Failed** test #37 (instrument loops)\n");
+			logerror("   Unable to find loop exit inst point.\n");
+		}
 
-            // did we insert the snippet?
-            if (han == NULL) {
-                logerror("**Failed** test #37 (instrument loops)\n");
-                logerror("   Unable to insert snippet at loop exit.\n");
-            }
-        }
+		unsigned int j;
+		BPatch_point *p = NULL;
 
-        // we are responsible for releasing the point vectors
-        delete entries;
-        delete exits;
+		for (j=0;j<entries->size();j++) 
+		{
+			p = (*entries)[j];
 
-        BPatch_Vector<BPatch_basicBlockLoop*> lps;
-        loops[i]->getOuterLoops(lps);
+			BPatchSnippetHandle * han =
+				appAddrSpace->insertSnippet(callInc, *p, BPatch_callBefore);
 
-        // recur with this loop's outer loops
-        instrumentLoops(appThread, appImage, lps, callInc);
-    }
+			// did we insert the snippet?
+			if (han == NULL) 
+			{
+				logerror("**Failed** test #37 (instrument loops)\n");
+				logerror("   Unable to insert snippet at loop entry.\n");
+			}
+		}
+		for (j=0;j<exits->size();j++) 
+		{
+			p = (*exits)[j];
+
+			BPatchSnippetHandle * han =
+				appAddrSpace->insertSnippet(callInc, *p, BPatch_callBefore);
+
+			// did we insert the snippet?
+			if (han == NULL) 
+			{
+				logerror("**Failed** test #37 (instrument loops)\n");
+				logerror("   Unable to insert snippet at loop exit.\n");
+			}
+		}
+
+		// we are responsible for releasing the point vectors
+		delete entries;
+		delete exits;
+
+		BPatch_Vector<BPatch_basicBlockLoop*> lps;
+		loops[i]->getOuterLoops(lps);
+
+		// recur with this loop's outer loops
+		instrumentLoops(appAddrSpace, appImage, lps, callInc);
+	}
 }
 
-static int instrumentFuncLoopsWithCall(BPatch_thread *appThread, 
-				 BPatch_image *appImage,
-				 char *call_func,
-				 char *inc_func)
+static int instrumentFuncLoopsWithCall(BPatch_addressSpace *appAddrSpace, 
+		BPatch_image *appImage,
+		char *call_func,
+		char *inc_func)
 {
-    // get function * for call_func
-    BPatch_Vector<BPatch_function *> funcs;
+	// get function * for call_func
+	BPatch_Vector<BPatch_function *> funcs;
 
-    appImage->findFunction(call_func, funcs);
-    BPatch_function *func = funcs[0];
+	appImage->findFunction(call_func, funcs);
+	BPatch_function *func = funcs[0];
 
-    // get function * for inc_func
-    BPatch_Vector<BPatch_function *> funcs2;
-    appImage->findFunction(inc_func, funcs2);
-    BPatch_function *incVar = funcs2[0];
+	// get function * for inc_func
+	BPatch_Vector<BPatch_function *> funcs2;
+	appImage->findFunction(inc_func, funcs2);
+	BPatch_function *incVar = funcs2[0];
 
-    if (func == NULL || incVar == NULL) {
-	logerror("**Failed** test #37 (instrument loops)\n");
-	logerror("    Unable to get funcions.\n");
-        return -1;
-    }
+	if (func == NULL || incVar == NULL) 
+	{
+		logerror("**Failed** test #37 (instrument loops)\n");
+		logerror("    Unable to get funcions.\n");
+		return -1;
+	}
 
-    // create func expr for incVar
-    BPatch_Vector<BPatch_snippet *> nullArgs;
-    BPatch_funcCallExpr callInc(*incVar, nullArgs);
-    checkCost(callInc);
+	// create func expr for incVar
+	BPatch_Vector<BPatch_snippet *> nullArgs;
+	BPatch_funcCallExpr callInc(*incVar, nullArgs);
+	checkCost(callInc);
 
-    // instrument the function's loops
-    BPatch_flowGraph *cfg = func->getCFG();
-    BPatch_Vector<BPatch_basicBlockLoop*> loops;
-    cfg->getOuterLoops(loops);
+	// instrument the function's loops
+	BPatch_flowGraph *cfg = func->getCFG();
+	BPatch_Vector<BPatch_basicBlockLoop*> loops;
+	cfg->getOuterLoops(loops);
 
-    instrumentLoops(appThread, appImage, loops, callInc);
+	instrumentLoops(appAddrSpace, appImage, loops, callInc);
 
-    return 0;
+	return 0;
 }
 
+test_results_t test1_37_Mutator::executeTest() 
+{
+	if (isMutateeFortran(appImage)) 
+	{
+		return SKIPPED;
+	} 
 
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
-test_results_t test1_37_Mutator::executeTest() {
-    if (isMutateeFortran(appImage)) {
-	return SKIPPED;
-    } 
+	if (instrumentFuncLoopsWithCall(appAddrSpace, appImage,
+				"test1_37_call1", "test1_37_inc1") < 0) 
+	{
+		return FAILED;
+	}
 
-    if (instrumentFuncLoopsWithCall(appThread, appImage,
-				    "test1_37_call1", "test1_37_inc1") < 0) {
-      return FAILED;
-    }
+	if (instrumentFuncLoopsWithCall(appAddrSpace, appImage,
+				"test1_37_call2", "test1_37_inc2") < 0) 
+	{
+		return FAILED;
+	}
 
-    if (instrumentFuncLoopsWithCall(appThread, appImage,
-				    "test1_37_call2", "test1_37_inc2") < 0) {
-      return FAILED;
-    }
+	if (instrumentFuncLoopsWithCall(appAddrSpace, appImage,
+				"test1_37_call3", "test1_37_inc3") < 0) 
+	{
+		return FAILED;
+	}
 
-    if (instrumentFuncLoopsWithCall(appThread, appImage,
-				    "test1_37_call3", "test1_37_inc3") < 0) {
-      return FAILED;
-    }
-
-    return PASSED;
+	return PASSED;
 }
 
-// External Interface
-// extern "C" TEST_DLL_EXPORT int test1_37_mutatorMAIN(ParameterDict &param)
-// {
-//     bool useAttach = param["useAttach"]->getInt();
-//     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     if ( useAttach )
-//     {
-//       if ( ! signalAttached(appThread, appImage) )
-//          return -1;
-//     }
-
-//     mutateeFortran = isMutateeFortran(appImage);
-
-//     // Run mutator code
-//     return mutatorTest(appThread, appImage);
-// }

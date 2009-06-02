@@ -53,123 +53,138 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
-// static int mutateeFortran;
-
 #include "dyninst_comp.h"
 
 class test1_13_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_13_factory() {
-  return new test1_13_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_13_factory() 
+{
+	return new test1_13_Mutator();
 }
 
 //
 // Start Test Case #13 - mutator side (paramExpr,retExpr,nullExpr)
 //
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
-test_results_t test1_13_Mutator::executeTest() {
-    // Find the entry point to the procedure "func13_1"
-  const char *funcName = "test1_13_func1";
-  BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) {
-      logerror("    Unable to find function %s\n", funcName);
-      return FAILED;
-    }
 
-    if (1 < found_funcs.size()) {
-      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), funcName);
-    }
+test_results_t test1_13_Mutator::executeTest() 
+{
+	// Find the entry point to the procedure "func13_1"
+	const char *funcName = "test1_13_func1";
+	BPatch_Vector<BPatch_function *> found_funcs;
 
-    BPatch_Vector<BPatch_point *> *point13_1 = found_funcs[0]->findPoint(BPatch_entry);
+	if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) 
+	{
+		logerror("    Unable to find function %s\n", funcName);
+		return FAILED;
+	}
 
-    if (!point13_1 || (point13_1->size() < 1)) {
-	logerror("Unable to find point %s - entry.\n", funcName);
-	return FAILED;
-    }
+	if (1 < found_funcs.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs.size(), funcName);
+	}
 
-    BPatch_Vector<BPatch_function *> bpfv;
-    char *fn = "test1_13_call1";
-    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
-      logerror("    Unable to find function %s\n", fn);
-      return FAILED;
-    }
+	BPatch_Vector<BPatch_point *> *point13_1 = found_funcs[0]->findPoint(BPatch_entry);
 
-    BPatch_function *call13_1_func = bpfv[0];
+	if (!point13_1 || (point13_1->size() < 1)) 
+	{
+		logerror("Unable to find point %s - entry.\n", funcName);
+		return FAILED;
+	}
 
-    BPatch_Vector<BPatch_snippet *> funcArgs;
+	BPatch_Vector<BPatch_function *> bpfv;
+	char *fn = "test1_13_call1";
 
-    funcArgs.push_back(new BPatch_paramExpr(0));
-    funcArgs.push_back(new BPatch_paramExpr(1));
-    funcArgs.push_back(new BPatch_paramExpr(2));
-    funcArgs.push_back(new BPatch_paramExpr(3));
-    funcArgs.push_back(new BPatch_paramExpr(4));
-    BPatch_funcCallExpr call13_1Expr(*call13_1_func, funcArgs);
+	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", fn);
+		return FAILED;
+	}
 
-    checkCost(call13_1Expr);
-    appThread->insertSnippet(call13_1Expr, *point13_1);
+	BPatch_function *call13_1_func = bpfv[0];
 
-    BPatch_nullExpr call13_2Expr;
-    checkCost(call13_2Expr);
-    appThread->insertSnippet(call13_2Expr, *point13_1);
+	BPatch_Vector<BPatch_snippet *> funcArgs;
 
-    // now test that a return value can be read.
-    const char *funcName2 = "test1_13_func2";
-    BPatch_Vector<BPatch_function *> found_funcs2;
-    if ((NULL == appImage->findFunction(funcName2, found_funcs2)) || !found_funcs2.size()) {
-        logerror("    Unable to find function %s\n", funcName2);
-      return FAILED;
-    }
+	funcArgs.push_back(new BPatch_paramExpr(0));
+	funcArgs.push_back(new BPatch_paramExpr(1));
+	funcArgs.push_back(new BPatch_paramExpr(2));
+	funcArgs.push_back(new BPatch_paramExpr(3));
+	funcArgs.push_back(new BPatch_paramExpr(4));
+	BPatch_funcCallExpr call13_1Expr(*call13_1_func, funcArgs);
 
-    if (1 < found_funcs2.size()) {
-      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs2.size(), funcName2);
-    }
+	checkCost(call13_1Expr);
+	appAddrSpace->insertSnippet(call13_1Expr, *point13_1);
 
-    BPatch_Vector<BPatch_point *> *point13_2 = found_funcs2[0]->findPoint(BPatch_exit);
+	BPatch_nullExpr call13_2Expr;
+	checkCost(call13_2Expr);
+	appAddrSpace->insertSnippet(call13_2Expr, *point13_1);
 
-    if (!point13_2 || (point13_2->size() < 1)) {
-	logerror("Unable to find point %s - exit.\n", funcName2);
-	return FAILED;
-    }
+	// now test that a return value can be read.
+	const char *funcName2 = "test1_13_func2";
+	BPatch_Vector<BPatch_function *> found_funcs2;
 
-    bpfv.clear();
+	if ((NULL == appImage->findFunction(funcName2, found_funcs2)) || !found_funcs2.size()) 
+	{
+		logerror("    Unable to find function %s\n", funcName2);
+		return FAILED;
+	}
 
-   char *fn2 = "test1_13_call2";
-    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
-      logerror("    Unable to find function %s\n", fn2);
-      return FAILED;
-    }
+	if (1 < found_funcs2.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs2.size(), funcName2);
+	}
 
-    BPatch_function *call13_2_func = bpfv[0];
+	BPatch_Vector<BPatch_point *> *point13_2 = found_funcs2[0]->findPoint(BPatch_exit);
 
-    BPatch_Vector<BPatch_snippet *> funcArgs2;
+	if (!point13_2 || (point13_2->size() < 1)) 
+	{
+		logerror("Unable to find point %s - exit.\n", funcName2);
+		return FAILED;
+	}
 
-    BPatch_variableExpr *expr13_1;
-    BPatch_retExpr *ret_var;
-    BPatch_constExpr expr13_2 (0);
-    
-    int mutateeFortran = isMutateeFortran(appImage);
-    if (mutateeFortran) {
-        expr13_1 = appThread->malloc (*appImage->findType ("int"));
-        ret_var = new BPatch_retExpr();
-        BPatch_arithExpr test_arith (BPatch_assign, *expr13_1, *ret_var);
-        appThread->insertSnippet (test_arith, *point13_2);
-        expr13_2 = expr13_1->getBaseAddr ();
-        funcArgs2.push_back (&expr13_2);
-    } else {
-        funcArgs2.push_back(new BPatch_retExpr());
-    }
+	bpfv.clear();
 
-    BPatch_funcCallExpr call13_3Expr(*call13_2_func, funcArgs2);
+	char *fn2 = "test1_13_call2";
 
-    checkCost(call13_1Expr);
-    appThread->insertSnippet(call13_3Expr, *point13_2, BPatch_callAfter, BPatch_lastSnippet);
+	if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", fn2);
+		return FAILED;
+	}
 
-    return PASSED;
+	BPatch_function *call13_2_func = bpfv[0];
+
+	BPatch_Vector<BPatch_snippet *> funcArgs2;
+
+	BPatch_variableExpr *expr13_1;
+	BPatch_retExpr *ret_var;
+	BPatch_constExpr expr13_2 (0);
+
+	int mutateeFortran = isMutateeFortran(appImage);
+
+	if (mutateeFortran) 
+	{
+		expr13_1 = appAddrSpace->malloc (*appImage->findType ("int"));
+		ret_var = new BPatch_retExpr();
+		BPatch_arithExpr test_arith (BPatch_assign, *expr13_1, *ret_var);
+		appAddrSpace->insertSnippet (test_arith, *point13_2);
+		expr13_2 = expr13_1->getBaseAddr ();
+		funcArgs2.push_back (&expr13_2);
+	} 
+	else 
+	{
+		funcArgs2.push_back(new BPatch_retExpr());
+	}
+
+	BPatch_funcCallExpr call13_3Expr(*call13_2_func, funcArgs2);
+
+	checkCost(call13_1Expr);
+	appAddrSpace->insertSnippet(call13_3Expr, *point13_2, BPatch_callAfter, BPatch_lastSnippet);
+
+	return PASSED;
 } // test1_13_Mutator::executeTest()

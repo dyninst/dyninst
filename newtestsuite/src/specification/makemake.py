@@ -835,7 +835,7 @@ def accumulate_groups_if_equal(acc, g):
 
 def write_group_mutatee_boilerplate(filename_pre, filename_post, tuplefile):
    read_tuples(tuplefile)
-   groups = filter(lambda g: len(g['tests']) > 1, info['rungroups'])
+   groups = filter(lambda g: len(g['tests']) > 25, info['rungroups'])
    groups = reduce(accumulate_groups_if_equal, groups, [])
    map(lambda g: write_group_mutatee_boilerplate_file(filename_pre + g['mutatee'] + filename_post, g), groups) 
 

@@ -49,8 +49,30 @@
 #endif
 
 #if defined(os_windows_test) && defined(__cplusplus)
-extern "C" {
+extern "C" 
+{
 #endif
+int snip_change_shlib_var = 20;
+
+int snip_ref_shlib_var1 = 5;
+long snip_ref_shlib_var2 = 5L;
+char snip_ref_shlib_var3 = 'e';
+char * snip_ref_shlib_var4 = 0x5;
+float snip_ref_shlib_var5 = 5.5e5;
+double snip_ref_shlib_var6 = 5.5e50;
+
+DLLEXPORT int check_snip_change_shlib_var()
+{
+	if (snip_change_shlib_var == 777)
+		return 1;
+	else
+	{
+		fprintf(stderr, "%s[%d]:  bad value for check_snip_change_shlib_var = %d, not 777\n",
+				__FILE__, __LINE__, snip_change_shlib_var);
+	}
+	return 0;
+}
+	
 
 /* These are copied in test1.mutatee.c and libtestA.c */
 #define MAGIC22_1   2200100

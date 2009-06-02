@@ -53,95 +53,99 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
-// static int mutateeFortran;
-
 #include "dyninst_comp.h"
+
 class test1_23_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_23_factory() {
-  return new test1_23_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_23_factory() 
+{
+	return new test1_23_Mutator();
 }
 
 //
 // Start Test Case #23 - local variables
 //
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
-test_results_t test1_23_Mutator::executeTest() {
-  const char *funcName = "test1_23_call1";
-  BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction(funcName, found_funcs, 1)) 
-      || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n", funcName);
-    return FAILED;
-  }
 
-  if (1 < found_funcs.size()) {
-    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	     __FILE__, __LINE__, found_funcs.size(), funcName);
+test_results_t test1_23_Mutator::executeTest() 
+{
+	const char *funcName = "test1_23_call1";
+	BPatch_Vector<BPatch_function *> found_funcs;
 
-  }
-
-  BPatch_Vector<BPatch_point *> *point23_calls = found_funcs[0]->findPoint(BPatch_subroutine);    
-  if (!point23_calls || (point23_calls->size() < 1)) {
-    logerror("**Failed** test #23 (local variables)\n");
-    logerror("  Unable to find point %s - subroutine calls\n", funcName);
-    return FAILED;
-  }
-
-  /* We only want the first one... */
-  BPatch_Vector<BPatch_point *> point23_1;
-  point23_1.push_back((*point23_calls)[0]);
-
-  BPatch_variableExpr *var1 = appImage->findVariable(*(point23_1[0]),
-						     "localVariable23_1");
-  BPatch_variableExpr *var2 = appImage->findVariable(*(point23_1[0]),
-						     "test1_23_shadowVariable1");
-  BPatch_variableExpr *var3 = appImage->findVariable("test1_23_shadowVariable2");
-  BPatch_variableExpr *var4 = appImage->findVariable("test1_23_globalVariable1");
-    
-  if (!var1 || !var2 || !var3 || !var4) {
-    logerror("**Failed** test #23 (local variables)\n");
-    if (!var1)
+	if ((NULL == appImage->findFunction(funcName, found_funcs, 1)) 
+			|| !found_funcs.size()) 
 	{
-      logerror("  can't find local variable localVariable23_1\n");
-	  BPatch_function *f = point23_1[0]->getCalledFunction();
-	  assert(f);
-	  BPatch_Vector<BPatch_localVar *> *lvars = f->getVars();
-	  assert(lvars);
-	  fprintf(stderr, "%s[%d]:  have vars\n", FILE__, __LINE__);
-	  for (unsigned int i = 0; i < lvars->size(); ++i)
-	  {
-		  fprintf(stderr, "\t%s\n", (*lvars)[i]->getName());
-	  }
+		logerror("    Unable to find function %s\n", funcName);
+		return FAILED;
 	}
-    if (!var2)
-      logerror("  can't find local variable test1_23_shadowVariable1\n");
-    if (!var3)
-      logerror("  can't find global variable test1_23_shadowVariable2\n");
-    return FAILED;
-  }
-    
-  BPatch_arithExpr expr23_1(BPatch_assign, *var1, BPatch_constExpr(2300001));
-  BPatch_arithExpr expr23_2(BPatch_assign, *var2, BPatch_constExpr(2300012));
-  BPatch_arithExpr expr23_3(BPatch_assign, *var3, BPatch_constExpr(2300023));
-  BPatch_arithExpr expr23_4(BPatch_assign, *var4, *var1);
-    
-  BPatch_Vector<BPatch_snippet *> exprs;
-    
-  exprs.push_back(&expr23_1);
-  exprs.push_back(&expr23_2);
-  exprs.push_back(&expr23_3);
-  exprs.push_back(&expr23_4);
-    
-  BPatch_sequence allParts(exprs);
-    
-  // this should not be needed???  JAW
-  //BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
-    
-  appThread->insertSnippet(allParts, point23_1);
 
-    return PASSED;
+	if (1 < found_funcs.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs.size(), funcName);
+	}
+
+	BPatch_Vector<BPatch_point *> *point23_calls = found_funcs[0]->findPoint(BPatch_subroutine);    
+
+	if (!point23_calls || (point23_calls->size() < 1)) 
+	{
+		logerror("**Failed** test #23 (local variables)\n");
+		logerror("  Unable to find point %s - subroutine calls\n", funcName);
+		return FAILED;
+	}
+
+	/* We only want the first one... */
+	BPatch_Vector<BPatch_point *> point23_1;
+	point23_1.push_back((*point23_calls)[0]);
+
+	BPatch_variableExpr *var1 = appImage->findVariable(*(point23_1[0]),
+			"localVariable23_1");
+	BPatch_variableExpr *var2 = appImage->findVariable(*(point23_1[0]),
+			"test1_23_shadowVariable1");
+	BPatch_variableExpr *var3 = appImage->findVariable("test1_23_shadowVariable2");
+	BPatch_variableExpr *var4 = appImage->findVariable("test1_23_globalVariable1");
+
+	if (!var1 || !var2 || !var3 || !var4) 
+	{
+		logerror("**Failed** test #23 (local variables)\n");
+
+		if (!var1)
+		{
+			logerror("  can't find local variable localVariable23_1\n");
+			BPatch_function *f = point23_1[0]->getCalledFunction();
+			assert(f);
+			BPatch_Vector<BPatch_localVar *> *lvars = f->getVars();
+			assert(lvars);
+			fprintf(stderr, "%s[%d]:  have vars\n", FILE__, __LINE__);
+			for (unsigned int i = 0; i < lvars->size(); ++i)
+			{
+				fprintf(stderr, "\t%s\n", (*lvars)[i]->getName());
+			}
+		}
+		if (!var2)
+			logerror("  can't find local variable test1_23_shadowVariable1\n");
+		if (!var3)
+			logerror("  can't find global variable test1_23_shadowVariable2\n");
+		return FAILED;
+	}
+
+	BPatch_arithExpr expr23_1(BPatch_assign, *var1, BPatch_constExpr(2300001));
+	BPatch_arithExpr expr23_2(BPatch_assign, *var2, BPatch_constExpr(2300012));
+	BPatch_arithExpr expr23_3(BPatch_assign, *var3, BPatch_constExpr(2300023));
+	BPatch_arithExpr expr23_4(BPatch_assign, *var4, *var1);
+
+	BPatch_Vector<BPatch_snippet *> exprs;
+
+	exprs.push_back(&expr23_1);
+	exprs.push_back(&expr23_2);
+	exprs.push_back(&expr23_3);
+	exprs.push_back(&expr23_4);
+
+	BPatch_sequence allParts(exprs);
+
+
+	appAddrSpace->insertSnippet(allParts, point23_1);
+
+	return PASSED;
 }

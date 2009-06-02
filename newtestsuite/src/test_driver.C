@@ -418,7 +418,10 @@ int numUnreportedTests(RunGroup *group)
    for (unsigned i=0; i<group->tests.size(); i++)
    {
       if (shouldRunTest(group, group->tests[i]))
+	  {
+		  fprintf(stderr, "%s[%d]:  test %s is unreported\n", FILE__, __LINE__, group->tests[i]->name);
          num_unreported++;
+	  }
    }
 
    return num_unreported;
@@ -668,7 +671,13 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
          log_teststart(groupnum, i, test_init_rs);
 		 if(group->tests[i]->mutator)
 		 {
-	         group->tests[i]->results[test_init_rs] = group->tests[i]->mutator->setup(param);
+			 test_results_t setup_res = group->tests[i]->mutator->setup(param);
+	         group->tests[i]->results[test_init_rs] = setup_res;
+			 if (setup_res != PASSED)
+			 {
+				 logerror("%s[%d]:  setup failed (%d) for test %s\n", 
+						 FILE__, __LINE__, (int) setup_res, group->tests[i]->name);
+			 }
 		 }
 		 else
 		 {
@@ -1047,6 +1056,7 @@ void updateSearchPaths(const char *filename) {
    strcat(envCopy, execpath);
    assert(!putenv(envCopy));
 
+   //fprintf(stderr, "%s[%d]:  set LD_LIBRARY_PATH to %s\n", FILE__, __LINE__, getenv("LD_LIBRARY_PATH"));
    ::free(execpath);
 #endif
 }
@@ -1290,6 +1300,7 @@ int parseArgs(int argc, char *argv[])
          runCreate = true;
          runAttach = true;
          runDeserialize = true;
+         runRewriter = false;
          runDefaultStarts = false;
       }
       else if (strcmp(argv[i], "-all") == 0)
@@ -1297,6 +1308,7 @@ int parseArgs(int argc, char *argv[])
          runCreate = true;
          runAttach = true;
          runDeserialize = true;
+         runRewriter = true;
          runAllCompilers = true;
          runAllComps = true;
       }
@@ -1306,6 +1318,7 @@ int parseArgs(int argc, char *argv[])
          runCreate = true;
          runAttach = true;
          runDeserialize = true;
+         runRewriter = true;
          runAllCompilers = true;
          runAllComps = true;
          optLevel = opt_all;

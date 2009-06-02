@@ -53,72 +53,87 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
-// static int mutateeFortran;
-
 #include "dyninst_comp.h"
 
 class test1_18_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_18_factory() {
-  return new test1_18_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_18_factory() 
+{
+	return new test1_18_Mutator();
 }
 
 //
 // Start Test Case #18 - mutator side (read/write a variable in the mutatee)
 //
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
-test_results_t test1_18_Mutator::executeTest() {
-  const char *funcName = "test1_18_func1";
-  BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) {
-      logerror("    Unable to find function %s\n", funcName);
-      return FAILED;
-    }
 
-    if (1 < found_funcs.size()) {
-      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), funcName);
-    }
+test_results_t test1_18_Mutator::executeTest() 
+{
+	const char *funcName = "test1_18_func1";
+	BPatch_Vector<BPatch_function *> found_funcs;
 
-    BPatch_Vector<BPatch_point *> *func18_1 = found_funcs[0]->findPoint(BPatch_subroutine);
+	if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) 
+	{
+		logerror("    Unable to find function %s\n", funcName);
+		return FAILED;
+	}
 
-    if (!func18_1 || ((*func18_1).size() == 0)) {
-	logerror("Unable to find entry point to \"%s\".\n", funcName);
-	return FAILED;
-    }
+	if (1 < found_funcs.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs.size(), funcName);
+	}
 
-    const char *varName = "test1_18_globalVariable1";
-    BPatch_variableExpr *expr18_1 = findVariable(appImage, varName, func18_1);
+	BPatch_Vector<BPatch_point *> *func18_1 = found_funcs[0]->findPoint(BPatch_subroutine);
 
-/* Initialization must be done, because C would have done initialization at declaration */
+	if (!func18_1 || ((*func18_1).size() == 0)) 
+	{
+		logerror("Unable to find entry point to \"%s\".\n", funcName);
+		return FAILED;
+	}
 
-    if (expr18_1 == NULL) {
-	logerror("**Failed** test #18 (read/write a variable in the mutatee)\n");
-	logerror("    Unable to locate %s\n", varName);
-	return FAILED;
-    }
+	const char *varName = "test1_18_globalVariable1";
+	BPatch_variableExpr *expr18_1 = findVariable(appImage, varName, func18_1);
 
-    int mutateeFortran = isMutateeFortran(appImage);
-    if (mutateeFortran) {
-        BPatch_arithExpr arith18_1 (BPatch_assign, *expr18_1, BPatch_constExpr (42));
-        appThread->oneTimeCode (arith18_1);
-    }
+	/* Initialization must be done, because C would have done initialization at declaration */
 
-    int n;
-    expr18_1->readValue(&n);
+	if (expr18_1 == NULL) 
+	{
+		logerror("**Failed** test #18 (read/write a variable in the mutatee)\n");
+		logerror("    Unable to locate %s\n", varName);
+		return FAILED;
+	}
 
-    if (n != 42) {
-	logerror("**Failed** test #18 (read/write a variable in the mutatee)\n");
-	logerror("    value read from %s was %d, not 42 as expected\n",
-		 varName, n);
-	return FAILED;
-    }
+	int mutateeFortran = isMutateeFortran(appImage);
 
-    n = 17;
-    expr18_1->writeValue(&n,true); //ccw 31 jul 2002
+	if (mutateeFortran) 
+	{
+		BPatch_arithExpr arith18_1 (BPatch_assign, *expr18_1, BPatch_constExpr (42));
+		BPatch_process *proc = dynamic_cast<BPatch_process *>(appAddrSpace);
 
-    return PASSED;
+		if (!proc) return FAILED;
+
+		proc->oneTimeCode (arith18_1);
+	}
+
+	int n;
+	expr18_1->readValue(&n);
+
+	if (n != 42) 
+	{
+		logerror("**Failed** test #18 (read/write a variable in the mutatee)\n");
+		logerror("    value read from %s was %d, not 42 as expected\n",
+				varName, n);
+		return FAILED;
+	}
+
+	n = 17;
+	if (!expr18_1->writeValue(&n,true))
+	{
+		logerror("%s[%]:  failed to writeValue()\n", FILE__, __LINE__);
+		return FAILED;
+	}
+
+	return PASSED;
 } // test1_18_Mutator::executeTest()

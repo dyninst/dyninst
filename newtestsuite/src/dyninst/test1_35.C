@@ -54,120 +54,96 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
-//static int mutateeFortran;
-
 #include "dyninst_comp.h"
+
 class test1_35_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_35_factory() {
-  return new test1_35_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_35_factory() 
+{
+	return new test1_35_Mutator();
 }
 
 // Start Test Case #35 - (function relocation)
-// static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
-// {
-test_results_t test1_35_Mutator::executeTest() {
+
+test_results_t test1_35_Mutator::executeTest() 
+{
 #if defined(i386_unknown_solaris2_5_test) \
- || defined(i386_unknown_linux2_0_test) \
- || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4_test)
+	|| defined(i386_unknown_linux2_0_test) \
+	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+	|| defined(sparc_sun_solaris2_4_test)
 
-  // Only on Solaris and i386 and AMD64 Linux
-  // All of these platforms have assembly versions of call35_1
+	// Only on Solaris and i386 and AMD64 Linux
+	// All of these platforms have assembly versions of call35_1
 
-  if (isMutateeFortran(appImage)) {
-    return SKIPPED;
-  }
+	if (isMutateeFortran(appImage)) 
+	{
+		return SKIPPED;
+	}
 
-    BPatch_Vector<BPatch_function *> bpfv;
-    char *fn = "test1_35_call1";
-    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
-      logerror("**Failed** test #35 (function relocation)\n");
-      logerror("    Unable to find function %s\n", fn);
-      return FAILED;
-    }
-    
-    BPatch_function *foo_function = bpfv[0];
+	BPatch_Vector<BPatch_function *> bpfv;
+	char *fn = "test1_35_call1";
 
-    BPatch_Vector<BPatch_point *> *point35_1 =  
-	foo_function->findPoint(BPatch_subroutine);
+	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("**Failed** test #35 (function relocation)\n");
+		logerror("    Unable to find function %s\n", fn);
+		return FAILED;
+	}
 
-    assert(point35_1);
+	BPatch_function *foo_function = bpfv[0];
 
-    BPatch_variableExpr *var1 = appImage->findVariable(*(*point35_1)[0], 
-	"localVariable35_1");
-    BPatch_variableExpr *var2 = appImage->findVariable(*(*point35_1)[0], 
-	"localVariable35_2");
-    BPatch_variableExpr *var3 = appImage->findVariable(*(*point35_1)[0], 
-	"total35_1");
-    BPatch_variableExpr *var4 = appImage->findVariable(*(*point35_1)[0], 
-	"total35_2");
+	BPatch_Vector<BPatch_point *> *point35_1 =  
+		foo_function->findPoint(BPatch_subroutine);
 
-    if (!var1 || !var2 || !var3 || !var4 ) {
-	logerror("**Failed** test #35 (function relocation)\n");
-	if (!var1) 
-	    logerror("  can't find local variable localVariable35_1\n");
-	if (!var2) 
-	    logerror("  can't find local variable localVariable35_2\n");
-        if (!var3) 
-	    logerror("  can't find local variable total35_1\n");
-        if (!var4) 
-	    logerror("  can't find local variable total35_2\n");
-	return FAILED;
-    }
+	assert(point35_1);
 
-    BPatch_snippet * snippet35_1 = 
-      new BPatch_arithExpr(BPatch_assign, *var1, BPatch_constExpr(7));
+	BPatch_variableExpr *var1 = appImage->findVariable(*(*point35_1)[0], 
+			"localVariable35_1");
+	BPatch_variableExpr *var2 = appImage->findVariable(*(*point35_1)[0], 
+			"localVariable35_2");
+	BPatch_variableExpr *var3 = appImage->findVariable(*(*point35_1)[0], 
+			"total35_1");
+	BPatch_variableExpr *var4 = appImage->findVariable(*(*point35_1)[0], 
+			"total35_2");
 
-    BPatch_snippet * snippet35_2 = 
-      new BPatch_arithExpr(BPatch_assign, *var2, BPatch_constExpr(5));
+	if (!var1 || !var2 || !var3 || !var4 ) 
+	{
+		logerror("**Failed** test #35 (function relocation)\n");
+		if (!var1) 
+			logerror("  can't find local variable localVariable35_1\n");
+		if (!var2) 
+			logerror("  can't find local variable localVariable35_2\n");
+		if (!var3) 
+			logerror("  can't find local variable total35_1\n");
+		if (!var4) 
+			logerror("  can't find local variable total35_2\n");
+		return FAILED;
+	}
 
-    BPatch_snippet * snippet35_3 = 
-      new BPatch_arithExpr(BPatch_assign, *var4, *var3);
+	BPatch_snippet * snippet35_1 = 
+		new BPatch_arithExpr(BPatch_assign, *var1, BPatch_constExpr(7));
 
-    BPatch_point * call_1 = ( (* point35_1)[0] );
-    assert( call_1 != 0 );
-    
-    BPatch_point * call_2 = ( (* point35_1)[2] );
-    assert( call_2 != 0 );
-    
-    appThread->insertSnippet( * snippet35_3, * call_2, BPatch_callAfter, BPatch_firstSnippet );
-    appThread->insertSnippet( * snippet35_2, * call_1, BPatch_callBefore, BPatch_firstSnippet );
-    appThread->insertSnippet( * snippet35_1, * call_1, BPatch_callBefore, BPatch_firstSnippet );
+	BPatch_snippet * snippet35_2 = 
+		new BPatch_arithExpr(BPatch_assign, *var2, BPatch_constExpr(5));
+
+	BPatch_snippet * snippet35_3 = 
+		new BPatch_arithExpr(BPatch_assign, *var4, *var3);
+
+	BPatch_point * call_1 = ( (* point35_1)[0] );
+	assert( call_1 != 0 );
+
+	BPatch_point * call_2 = ( (* point35_1)[2] );
+	assert( call_2 != 0 );
+
+	appAddrSpace->insertSnippet( * snippet35_3, * call_2, BPatch_callAfter, BPatch_firstSnippet );
+	appAddrSpace->insertSnippet( * snippet35_2, * call_1, BPatch_callBefore, BPatch_firstSnippet );
+	appAddrSpace->insertSnippet( * snippet35_1, * call_1, BPatch_callBefore, BPatch_firstSnippet );
 
 #endif   
 
-    return PASSED;
+	return PASSED;
 }    
 
-// External Interface
-// extern "C" TEST_DLL_EXPORT int test1_35_mutatorMAIN(ParameterDict &param)
-// {
-//     BPatch *bpatch;
-//     bool useAttach = param["useAttach"]->getInt();
-//     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     if ( useAttach )
-//     {
-//       if ( ! signalAttached(appThread, appImage) )
-//          return -1;
-//     }
-
-//     mutateeFortran = isMutateeFortran(appImage);
-
-//     // Run mutator code
-//     return mutatorTest(appThread, appImage);
-// }

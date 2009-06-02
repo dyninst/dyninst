@@ -66,15 +66,15 @@ extern "C" DLLEXPORT  TestMutator *test1_14_factory() {
 //
 // Start Test Case #14 - mutator side (replace function call)
 //
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+// static int mutatorTest(BPatch_thread *appAddrSpace, BPatch_image *appImage)
 // {
 test_results_t test1_14_Mutator::executeTest() {
-    if ( replaceFunctionCalls(appThread, appImage, "test1_14_func1",
+    if ( replaceFunctionCalls(appAddrSpace, appImage, "test1_14_func1",
 			      "test1_14_func2", "test1_14_call1", 
 			      14, "replace/remove function call", 1) < 0 ) {
        return FAILED;
     }
-    if ( replaceFunctionCalls(appThread, appImage, "test1_14_func1",
+    if ( replaceFunctionCalls(appAddrSpace, appImage, "test1_14_func1",
 			      "test1_14_func3", NULL,
 			      14, "replace/remove function call", 1) < 0 ) {
        return FAILED;

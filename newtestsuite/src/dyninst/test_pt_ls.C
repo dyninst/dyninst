@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_4.C,v 1.1 2008/10/30 19:19:34 legendre Exp $
+// $Id: test2_1.C,v 1.1 2008/10/30 19:20:09 legendre Exp $
 /*
- * #Name: test1_4
- * #Desc: Mutator Side (Sequence) Use the BPatch sequence operation to glue expressions together.  The test is constructed to verify the correct execution order.
- * #Arch: all
+ * #Name: test_pt_ls
+ * #Desc: Run parseThat on ls
  * #Dep: 
+ * #Arch: all but windows
+ * #Notes:
  */
 
 #include "BPatch.h"
@@ -53,72 +54,71 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
+#include "Callbacks.h"
 #include "dyninst_comp.h"
+#include "ParseThat.h"
 
-class test1_4_Mutator : public DyninstMutator {
-	virtual test_results_t executeTest();
+class test_pt_ls_Mutator : public DyninstMutator 
+{
+  virtual bool hasCustomExecutionPath() { return true; }
+
+  virtual test_results_t setup(ParameterDict &param)
+  {
+	  runmode = (create_mode_t) param["useAttach"]->getInt();
+	  return PASSED;
+  }
+
+  virtual test_results_t executeTest();
 };
 
-extern "C" DLLEXPORT  TestMutator *test1_4_factory() 
+extern "C" DLLEXPORT TestMutator *test_pt_ls_factory() 
 {
-	return new test1_4_Mutator();
+  return new test_pt_ls_Mutator();
 }
 
-//
-// Start Test Case #4 - mutator side (sequence)
-//	Use the BPatch sequence operation to glue to expressions togehter.
-//	The test is constructed to verify the correct execution order.
-//
-
-test_results_t test1_4_Mutator::executeTest() 
+test_results_t test_pt_ls_Mutator::executeTest() 
 {
-	// Find the entry point to the procedure "func4_1"
-	const char *funcName = "test1_4_func1";
-	BPatch_Vector<BPatch_function *> found_funcs;
 
-	if ((NULL == appImage->findFunction(funcName, found_funcs))
-			|| !found_funcs.size()) 
+	std::string prefix = std::string(BINEDIT_DIR) + std::string("/test_pt_ls");
+	std::string bin_outfile;
+	ParseThat parseThat;
+	parseThat.pt_output_redirect(prefix + std::string("_output1"));
+	parseThat.cmd_stdout_redirect(prefix + std::string("_stdout1"));
+	parseThat.cmd_stderr_redirect(prefix + std::string("_stderr1"));
+
+	ParseThat parseThat2;
+	parseThat2.pt_output_redirect(prefix + std::string("_output2"));
+	parseThat2.cmd_stdout_redirect(prefix + std::string("_stdout2"));
+	parseThat2.cmd_stderr_redirect(prefix + std::string("_stderr2"));
+
+	switch (runmode)
 	{
-		logerror("    Unable to find function %s\n",
-				funcName);
-		return FAILED;
-	}
+		case CREATE:
+			break;
+		case USEATTACH:
+			return SKIPPED;
+		case DISK:
+			bin_outfile = prefix + std::string("_mutatee_out");
+			parseThat2.use_rewriter(bin_outfile);
+			break;
+		default:
+			fprintf(stderr, "%s[%d]:  bad runmode %s\n", FILE__, __LINE__, runmode);
+			return FAILED;
+	};
 
-	if (1 < found_funcs.size()) 
-	{
-		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-				__FILE__, __LINE__, found_funcs.size(), funcName);
-	}
+	std::string cmd("/bin/ls");
 
-	BPatch_Vector<BPatch_point *> *point4_1 = found_funcs[0]->findPoint(BPatch_entry);
+	std::vector<std::string> args;
+	args.push_back(std::string("/"));
 
-	if (!point4_1 || ((*point4_1).size() == 0)) 
-	{
-		logerror("Unable to find entry point to \"%s\".\n", funcName);
-		return FAILED;
-	}
+	test_results_t res = parseThat(cmd, args);
 
-	const char *globalVar = "test1_4_globalVariable4_1";
-	BPatch_variableExpr *expr4_1 = findVariable (appImage, globalVar, point4_1);
+	if (res != PASSED)
+		return res;
 
-	if (!expr4_1) 
-	{
-		logerror("**Failed** test #4 (sequence)\n");
-		logerror("    Unable to locate variable %s\n", globalVar);
-		return FAILED;
-	}
+	if (runmode == DISK)
+		res = parseThat2(cmd, args);
 
-	BPatch_arithExpr expr4_2(BPatch_assign, *expr4_1, BPatch_constExpr(42));
-	BPatch_arithExpr expr4_3(BPatch_assign, *expr4_1, BPatch_constExpr(43));
-
-	BPatch_Vector<BPatch_snippet*> vect4_1;
-	vect4_1.push_back(&expr4_2);
-	vect4_1.push_back(&expr4_3);
-
-	BPatch_sequence expr4_4(vect4_1);
-	checkCost(expr4_4);
-	appAddrSpace->insertSnippet(expr4_4, *point4_1);
-
-	return PASSED;
+	return res;
 }
 

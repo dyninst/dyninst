@@ -115,8 +115,9 @@ void setRunTest(const char *testname) {
       break;
     }
   }
-  if (i >= max_tests) {
-    output->log(STDERR, "%s is not a valid test for this mutatee\n", testname);
+  if (i >= max_tests) 
+  {
+    output->log(STDERR, "%s is not a valid test for this mutatee: %s, max_tests = %d\n", testname, gargv[0], max_tests);
   }
 } /* setRunTest() */
 

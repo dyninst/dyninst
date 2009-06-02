@@ -35,5 +35,5 @@ AC_CHECK_HEADERS([BPatch_process.h],
 # Find appropriate install program
 AC_PROG_INSTALL()
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([pMakefile])
 AC_OUTPUT()

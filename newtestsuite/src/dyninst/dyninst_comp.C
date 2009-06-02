@@ -387,13 +387,19 @@ DyninstMutator::~DyninstMutator() {
 // "Simple" tests are tests that only perform any processing in the executeTest
 // stage.  Most just do some lookup in the mutatee and then optionally insert
 // instrumentation and let the mutatee do its thing.
-test_results_t DyninstMutator::setup(ParameterDict &param) {
+
+test_results_t DyninstMutator::setup(ParameterDict &param) 
+{
+  runmode = (create_mode_t) param["useAttach"]->getInt();
+
   bool useAttach = param["useAttach"]->getInt() == USEATTACH;
-  if(param["appThread"] == NULL)
+
+  if (param["appThread"] == NULL)
   {
 	  logerror("No app thread found.  Check test groups.\n");
 	  return FAILED;
   }
+
   appThread = (BPatch_thread *)(param["appThread"]->getPtr());
   appProc = (BPatch_process *)(param["appProcess"]->getPtr());
   appBinEdit = (BPatch_binaryEdit *)(param["appBinaryEdit"]->getPtr());
@@ -401,8 +407,11 @@ test_results_t DyninstMutator::setup(ParameterDict &param) {
 
   // Read the program's image and get an associated image object
   appImage = appAddrSpace->getImage();
-  if ( useAttach ) {
-	  if ( ! signalAttached(appThread, appImage) ) {
+
+  if ( useAttach ) 
+  {
+	  if ( ! signalAttached(appThread, appImage) ) 
+	  {
 		  return FAILED;
 	  }
   }
@@ -540,7 +549,7 @@ int functionNameMatch(const char *gotName, const char *targetName)
 //
 // TODO Fix error messages and refactor out the testNo parameter.  It's
 // unnecessary in the new test suite structure.
-int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
+int replaceFunctionCalls(BPatch_addressSpace *appAddrSpace, BPatch_image *appImage,
                          const char *inFunction, const char *callTo, 
                          const char *replacement, int testNo, 
                          const char *testName, int callsExpected = -1)
@@ -598,10 +607,10 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
       }
       if (functionNameMatch(fn, callTo) == 0) {
          if (replacement == NULL)
-            appThread->removeFunctionCall(*((*points)[n]));
+            appAddrSpace->removeFunctionCall(*((*points)[n]));
          else {
             assert(call_replacement);
-            appThread->replaceFunctionCall(*((*points)[n]),
+            appAddrSpace->replaceFunctionCall(*((*points)[n]),
                                            *call_replacement);
          }
          numReplaced++;
@@ -645,7 +654,7 @@ const char *locationName(BPatch_procedureLocation l)
 // Insert "snippet" at the location "loc" in the function "inFunction."
 // Returns the value returned by BPatch_thread::insertSnippet.
 //
-BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
+BPatchSnippetHandle *insertSnippetAt(BPatch_addressSpace *appAddrSpace,
                                BPatch_image *appImage, const char *inFunction, 
                                BPatch_procedureLocation loc, 
                                BPatch_snippet &snippet,
@@ -676,7 +685,7 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
     }
 
     checkCost(snippet);
-    return appThread->insertSnippet(snippet, *points);
+    return appAddrSpace->insertSnippet(snippet, *points);
 }
 
 //
@@ -711,7 +720,7 @@ BPatch_snippet *makeCallSnippet(BPatch_image *appImage, const char *funcName,
 // Insert a snippet to call function "funcName" with no arguments into the
 // procedure "inFunction" at the points given by "loc."
 //
-int insertCallSnippetAt(BPatch_thread *appThread,
+int insertCallSnippetAt(BPatch_addressSpace *appAddrSpace,
                             BPatch_image *appImage, const char *inFunction,
                             BPatch_procedureLocation loc, const char *funcName,
                             int testNo, const char *testName)
@@ -720,7 +729,7 @@ int insertCallSnippetAt(BPatch_thread *appThread,
        makeCallSnippet(appImage, funcName, testNo, testName);
     RETURNONNULL(call_expr);
 
-    BPatchSnippetHandle *ret = insertSnippetAt(appThread, appImage,
+    BPatchSnippetHandle *ret = insertSnippetAt(appAddrSpace, appImage,
 					       inFunction, loc, *call_expr,
 					       testNo, testName);
     if (ret == NULL) {
@@ -800,6 +809,7 @@ int pointerSize(BPatch_image *img) {
 #endif
 }
 
+#if 0
 int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB,
       int mutateeFortran)
 {
@@ -820,213 +830,202 @@ int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB,
     }
     return 0;
 }
+#endif
 
 typedef BPatch_Vector<BPatch_point * > point_vector;
-// typedef vector<BPatchSnippetHandle * > handle_vector;
 
-void instrument_entry_points( BPatch_thread * app_thread,
-                              BPatch_image * ,
-                              BPatch_function * func,
-                              BPatch_snippet * code )
+void instrument_entry_points( BPatch_addressSpace * app_thread,
+		BPatch_image * ,
+		BPatch_function * func,
+		BPatch_snippet * code )
 {
-  assert( func != 0 );
-  assert( code != 0 );
+	assert( func != 0 );
+	assert( code != 0 );
 
-//   handle_vector * list_of_handles = new handle_vector;
+	//   handle_vector * list_of_handles = new handle_vector;
 
-  int null_entry_point_count = 0;
-  int failed_snippet_insertion_count = 0;
+	int null_entry_point_count = 0;
+	int failed_snippet_insertion_count = 0;
 
-  point_vector * entries = func->findPoint( BPatch_entry );
-  assert( entries != 0 );
+	point_vector * entries = func->findPoint( BPatch_entry );
+	assert( entries != 0 );
 
-  for( unsigned int i = 0; i < entries->size(); i++ )
-    {
-      BPatch_point * point = ( * entries )[ i ];
-      if( point == 0 )
-        {
-          null_entry_point_count++;
-        }
-      else
-        {
-          BPatchSnippetHandle * result =
-            app_thread->insertSnippet( * code,
-                                       * point, BPatch_callBefore, BPatch_firstSnippet );
-          if( result == 0 )
-            {
-              failed_snippet_insertion_count++;
-            }
-//        else
-//          {
-//            list_of_handles->push_back( result );
-//          }
-        }
-    }
+	for( unsigned int i = 0; i < entries->size(); i++ )
+	{
+		BPatch_point * point = ( * entries )[ i ];
+		if( point == 0 )
+		{
+			null_entry_point_count++;
+		}
+		else
+		{
+			BPatchSnippetHandle * result =
+				app_thread->insertSnippet( * code,
+						* point, BPatch_callBefore, BPatch_firstSnippet );
+			if( result == 0 )
+			{
+				failed_snippet_insertion_count++;
+			}
+		}
+	}
 
-  delete code;
-
-//   return * list_of_handles;
+	delete code;
 }
 
-void instrument_exit_points( BPatch_thread * app_thread,
-			     BPatch_image * ,
-			     BPatch_function * func,
-			     BPatch_snippet * code )
+void instrument_exit_points( BPatch_addressSpace * app_thread,
+		BPatch_image * ,
+		BPatch_function * func,
+		BPatch_snippet * code )
 {
-  assert( func != 0 );
-  assert( code != 0 );
+	assert( func != 0 );
+	assert( code != 0 );
 
-//   handle_vector * list_of_handles = new handle_vector;
+	//   handle_vector * list_of_handles = new handle_vector;
 
-  int null_exit_point_count = 0;
-  int failed_snippet_insertion_count = 0;
+	int null_exit_point_count = 0;
+	int failed_snippet_insertion_count = 0;
 
-  point_vector * exits = func->findPoint( BPatch_exit );
-  assert( exits != 0 );
+	point_vector * exits = func->findPoint( BPatch_exit );
+	assert( exits != 0 );
 
-  for( unsigned int i = 0; i < exits->size(); i++ )
-    {
-      BPatch_point * point = ( * exits )[ i ];
-      if( point == 0 )
+	for( unsigned int i = 0; i < exits->size(); i++ )
 	{
-	  null_exit_point_count++;
+		BPatch_point * point = ( * exits )[ i ];
+		if( point == 0 )
+		{
+			null_exit_point_count++;
+		}
+		else
+		{
+			BPatchSnippetHandle * result =
+				app_thread->insertSnippet( * code,
+						* point, BPatch_callAfter, BPatch_firstSnippet );
+			if( result == 0 )
+			{
+				failed_snippet_insertion_count++;
+			}
+		}
 	}
-      else
-	{
-	  BPatchSnippetHandle * result =
-	    app_thread->insertSnippet( * code,
-				       * point, BPatch_callAfter, BPatch_firstSnippet );
-	  if( result == 0 )
-	    {
-	      failed_snippet_insertion_count++;
-	    }
-// 	  else
-// 	    {
-// 	      list_of_handles->push_back( result );
-// 	    }
-	}
-    }
 
-  delete code;
-
-//   return * list_of_handles;
+	delete code;
 }
 
 // NOTE: What are the benefits of this over appThread->terminateProcess?
 void killMutatee(BPatch_thread *appThread)
 {
-   int pid = appThread->getPid();
-   
-   appThread->terminateExecution();
-   dprintf("Mutatee process %d killed.\n", pid);
-   return;
+	int pid = appThread->getPid();
+
+	appThread->terminateExecution();
+	dprintf("Mutatee process %d killed.\n", pid);
+	return;
 }
 
 // Tests to see if the mutatee has defined the mutateeCplusplus flag
-int isMutateeCxx(BPatch_image *appImage) {
-    // determine whether mutatee is C or C++
-    BPatch_variableExpr *isCxx = appImage->findVariable("mutateeCplusplus");
-    if (isCxx == NULL) {
-	dprintf("  Unable to locate variable \"mutateeCplusplus\""
-                 " -- assuming 0!\n");
-        return 0;
-    } else {
-        int mutateeCplusplus;
-        isCxx->readValue(&mutateeCplusplus);
-        dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
-        return mutateeCplusplus;
-    }
+int isMutateeCxx(BPatch_image *appImage) 
+{
+	// determine whether mutatee is C or C++
+	BPatch_variableExpr *isCxx = appImage->findVariable("mutateeCplusplus");
+	if (isCxx == NULL) {
+		dprintf("  Unable to locate variable \"mutateeCplusplus\""
+				" -- assuming 0!\n");
+		return 0;
+	} else {
+		int mutateeCplusplus;
+		isCxx->readValue(&mutateeCplusplus);
+		dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
+		return mutateeCplusplus;
+	}
 }
 // Tests to see if the mutatee has defined the mutateeFortran flag
 int isMutateeFortran(BPatch_image *appImage) {
-    // determine whether mutatee is Fortran
-    BPatch_variableExpr *isF = appImage->findVariable("mutateeFortran");
-    if (isF == NULL) {
-	dprintf("  Unable to locate variable \"mutateeFortran\""
-                 " -- assuming 0!\n");
-        return 0;
-    } else {
-        int mutateeFortran;
-        isF->readValue(&mutateeFortran);
-        dprintf("Mutatee is %s.\n", mutateeFortran ? "Fortran" : "C/C++");
-        return mutateeFortran;
-    }
+	// determine whether mutatee is Fortran
+	BPatch_variableExpr *isF = appImage->findVariable("mutateeFortran");
+	if (isF == NULL) {
+		dprintf("  Unable to locate variable \"mutateeFortran\""
+				" -- assuming 0!\n");
+		return 0;
+	} else {
+		int mutateeFortran;
+		isF->readValue(&mutateeFortran);
+		dprintf("Mutatee is %s.\n", mutateeFortran ? "Fortran" : "C/C++");
+		return mutateeFortran;
+	}
 
 }
 
 // Tests to see if the mutatee has defined the mutateeF77 flag
 int isMutateeF77(BPatch_image *appImage) {
-    // determine whether mutatee is F77
-    BPatch_variableExpr *isF77 = appImage->findVariable("mutateeF77");
-    if (isF77 == NULL) {
-	dprintf("  Unable to locate variable \"mutateeF77\""
-                 " -- assuming 0!\n");
-        return 0;
-    } else {
-        int mutateeF77;
-        isF77->readValue(&mutateeF77);
-        dprintf("Mutatee is %s.\n", mutateeF77 ? "F77" : "not F77");
-        return mutateeF77;
-    }
+	// determine whether mutatee is F77
+	BPatch_variableExpr *isF77 = appImage->findVariable("mutateeF77");
+	if (isF77 == NULL) {
+		dprintf("  Unable to locate variable \"mutateeF77\""
+				" -- assuming 0!\n");
+		return 0;
+	} else {
+		int mutateeF77;
+		isF77->readValue(&mutateeF77);
+		dprintf("Mutatee is %s.\n", mutateeF77 ? "F77" : "not F77");
+		return mutateeF77;
+	}
 }
 
 
 void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
 {
-    unsigned int n=0;
-    dprintf("MopUpMutatees(%d)\n", mutatees);
-    for (n=0; n<mutatees; n++) {
-        if (appThread[n]) {
-            if (appThread[n]->terminateExecution()) {
-                assert(appThread[n]->terminationStatus() == ExitedViaSignal);
-                int signalNum = appThread[n]->getExitSignal();
-                dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
-            } else {
-                fprintf(stderr, "Failed to mop up mutatee %d (pid=%d)!\n",
-                        n, appThread[n]->getPid());
-            }
-        } else {
-            fprintf(stderr, "Mutatee %d already terminated?\n", n);
-        }
-    }
-    dprintf("MopUpMutatees(%d) done\n", mutatees);
+	unsigned int n=0;
+	dprintf("MopUpMutatees(%d)\n", mutatees);
+	for (n=0; n<mutatees; n++) {
+		if (appThread[n]) {
+			if (appThread[n]->terminateExecution()) {
+				assert(appThread[n]->terminationStatus() == ExitedViaSignal);
+				int signalNum = appThread[n]->getExitSignal();
+				dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
+			} else {
+				fprintf(stderr, "Failed to mop up mutatee %d (pid=%d)!\n",
+						n, appThread[n]->getPid());
+			}
+		} else {
+			fprintf(stderr, "Mutatee %d already terminated?\n", n);
+		}
+	}
+	dprintf("MopUpMutatees(%d) done\n", mutatees);
 }
 
 TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
-      BPatch_thread **mythreads, int *threadCount)
+		BPatch_thread **mythreads, int *threadCount)
 {
 
-  dprintf("Thread %d is pointer %p\n", *threadCount, appThread);
-  mythreads[(*threadCount)++] = appThread;
-   appThread->continueExecution();
+	dprintf("Thread %d is pointer %p\n", *threadCount, appThread);
+	mythreads[(*threadCount)++] = appThread;
+	appThread->continueExecution();
 
-   while (1) {
-      int i;
-      dprintf("Checking %d threads for terminated status\n", *threadCount);
-      for (i=0; i < *threadCount; i++) {
-	if (!mythreads[i]->isTerminated()) {
-	  dprintf("Thread %d is not terminated\n", i);
-            break;
-         }
-      }
+	while (1) {
+		int i;
+		dprintf("Checking %d threads for terminated status\n", *threadCount);
+		for (i=0; i < *threadCount; i++) {
+			if (!mythreads[i]->isTerminated()) {
+				dprintf("Thread %d is not terminated\n", i);
+				break;
+			}
+		}
 
-      // see if all exited
-      if (i== *threadCount) {
-	dprintf("All threads terminated\n");
-	break;
-      }
+		// see if all exited
+		if (i== *threadCount) {
+			dprintf("All threads terminated\n");
+			break;
+		}
 
-      bpatch->waitForStatusChange();
+		bpatch->waitForStatusChange();
 
-      for (i=0; i < *threadCount; i++) {
-         if (mythreads[i]->isStopped()) {
-	   dprintf("Thread %d marked stopped, continuing\n", i);
-	   mythreads[i]->continueExecution();
-         }
-      }
-   }
+		for (i=0; i < *threadCount; i++) {
+			if (mythreads[i]->isStopped()) {
+				dprintf("Thread %d marked stopped, continuing\n", i);
+				mythreads[i]->continueExecution();
+			}
+		}
+	}
 
-   *threadCount = 0;
+	*threadCount = 0;
 }
 
 /*
@@ -1035,116 +1034,116 @@ TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *app
  *
  */
 bool verifyChildMemory(BPatch_thread *appThread, 
-                       const char *name, int expectedVal)
+		const char *name, int expectedVal)
 {
-     BPatch_image *appImage = appThread->getImage();
+	BPatch_image *appImage = appThread->getImage();
 
-     if (!appImage) {
-	 dprintf("unable to locate image for %d\n", appThread->getPid());
-	 return false;
-     }
+	if (!appImage) {
+		dprintf("unable to locate image for %d\n", appThread->getPid());
+		return false;
+	}
 
-     BPatch_variableExpr *var = appImage->findVariable(name);
-     if (!var) {
-	 dprintf("unable to located variable %s in child\n", name);
-	 return false;
-     }
+	BPatch_variableExpr *var = appImage->findVariable(name);
+	if (!var) {
+		dprintf("unable to located variable %s in child\n", name);
+		return false;
+	}
 
-     int actualVal;
-     var->readValue(&actualVal);
+	int actualVal;
+	var->readValue(&actualVal);
 
-     if (expectedVal != actualVal) {
-	 logerror("*** for %s, expected val = %d, but actual was %d\n",
-		name, expectedVal, actualVal);
-	 return false;
-     } else {
-	 dprintf("verified %s was = %d\n", name, actualVal);
-	 return true;
-     }
+	if (expectedVal != actualVal) {
+		logerror("*** for %s, expected val = %d, but actual was %d\n",
+				name, expectedVal, actualVal);
+		return false;
+	} else {
+		dprintf("verified %s was = %d\n", name, actualVal);
+		return true;
+	}
 }
 
 
 void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
 {
-  if(!debugPrint)
-    return;
+	if(!debugPrint)
+		return;
 
-  printf("%s: %d\n", msg, res->size());
-  for(unsigned int i=0; i<res->size(); ++i) {
-    BPatch_point *bpp = (*res)[i];
-    const BPatch_memoryAccess* ma = bpp->getMemoryAccess();
-    const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
-    const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
-    if(ma->getNumberOfAccesses() == 1) {
-      if(ma->isConditional_NP())
-        printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] ?[%X]\n", msg, i+1,
-               as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-               cs.getReg(0), cs.getReg(1), cs.getImm(), ma->conditionCode_NP());
-        else
-          printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-                 as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-                 cs.getReg(0), cs.getReg(1), cs.getImm());
-    }
-    else {
-      const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
-      const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-             cs.getReg(0), cs.getReg(1), cs.getImm(),
-             as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
-             cs2.getReg(0), cs2.getReg(1), cs2.getImm());
-    }
-  }
+	printf("%s: %d\n", msg, res->size());
+	for(unsigned int i=0; i<res->size(); ++i) {
+		BPatch_point *bpp = (*res)[i];
+		const BPatch_memoryAccess* ma = bpp->getMemoryAccess();
+		const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
+		const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
+		if(ma->getNumberOfAccesses() == 1) {
+			if(ma->isConditional_NP())
+				printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] ?[%X]\n", msg, i+1,
+						as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+						cs.getReg(0), cs.getReg(1), cs.getImm(), ma->conditionCode_NP());
+			else
+				printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+						as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+						cs.getReg(0), cs.getReg(1), cs.getImm());
+		}
+		else {
+			const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
+			const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
+			printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
+					"@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+					as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+					cs.getReg(0), cs.getReg(1), cs.getImm(),
+					as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
+					cs2.getReg(0), cs2.getReg(1), cs2.getImm());
+		}
+	}
 }
 
 static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
 {
-  if(!debugPrint)
-    return;
-           
-  printf("%s: %d\n", msg, size);
+	if(!debugPrint)
+		return;
 
-  for(unsigned int i=0; i<size; ++i) {
-    const BPatch_memoryAccess* ma = exp[i];
-    if(!ma)
-      continue;
-    const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
-    const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
-    if(ma->getNumberOfAccesses() == 1)
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-             cs.getReg(0), cs.getReg(1), cs.getImm());
-    else {
-      const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
-      const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-             cs.getReg(0), cs.getReg(1), cs.getImm(),
-             as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
-             cs2.getReg(0), cs2.getReg(1), cs2.getImm());
-    }
-  }
+	printf("%s: %d\n", msg, size);
+
+	for(unsigned int i=0; i<size; ++i) {
+		const BPatch_memoryAccess* ma = exp[i];
+		if(!ma)
+			continue;
+		const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
+		const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
+		if(ma->getNumberOfAccesses() == 1)
+			printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+					as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+					cs.getReg(0), cs.getReg(1), cs.getImm());
+		else {
+			const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
+			const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
+			printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
+					"@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+					as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
+					cs.getReg(0), cs.getReg(1), cs.getImm(),
+					as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
+					cs2.getReg(0), cs2.getReg(1), cs2.getImm());
+		}
+	}
 }
 
 bool validate(BPatch_Vector<BPatch_point*>* res,
-                            BPatch_memoryAccess* acc[], const char* msg)
+		BPatch_memoryAccess* acc[], const char* msg)
 {
-  bool ok = true;
+	bool ok = true;
 
-  for(unsigned int i=0; i<res->size(); ++i) {
-    if (acc[i] != NULL) {
-      BPatch_point* bpoint = (*res)[i];
-      ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
-      if(!ok) {
-	logerror("Validation failed at %s #%d.\n", msg, i+1);
-        dumpxpct(acc, res->size(), "Expected");
-        return ok;
-      }
-    }
-  }
-  return ok;
+	for(unsigned int i=0; i<res->size(); ++i) {
+		if (acc[i] != NULL) {
+			BPatch_point* bpoint = (*res)[i];
+			ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
+			if(!ok) {
+				logerror("Validation failed at %s #%d.\n", msg, i+1);
+				dumpxpct(acc, res->size(), "Expected");
+				return ok;
+			}
+		}
+	}
+	return ok;
 }
 
 BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess){
@@ -1167,207 +1166,207 @@ BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess){
 }
 
 int instCall(BPatch_thread* bpthr, const char* fname,
-              const BPatch_Vector<BPatch_point*>* res)
+		const BPatch_Vector<BPatch_point*>* res)
 {
-  char buf[256];
+	char buf[256];
 	BPatch_callWhen whenToCall = BPatch_callBefore;
 
-  snprintf(buf, 256, "count%s", fname);
+	snprintf(buf, 256, "count%s", fname);
 
-  BPatch_Vector<BPatch_snippet*> callArgs;
-  BPatch_image *appImage = bpthr->getImage();
+	BPatch_Vector<BPatch_snippet*> callArgs;
+	BPatch_image *appImage = bpthr->getImage();
 
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("    Unable to find function %s\n", buf);
-    return -1;
-  }
-  BPatch_function *countXXXFunc = bpfv[0];  
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0]){
+		logerror("    Unable to find function %s\n", buf);
+		return -1;
+	}
+	BPatch_function *countXXXFunc = bpfv[0];  
 
-  BPatch_funcCallExpr countXXXCall(*countXXXFunc, callArgs);
+	BPatch_funcCallExpr countXXXCall(*countXXXFunc, callArgs);
 
-  for(unsigned int i=0;i<(*res).size();i++){
+	for(unsigned int i=0;i<(*res).size();i++){
 
 #if defined(os_aix_test)
-  	const BPatch_memoryAccess* memAccess;
-	memAccess = (*res)[i]->getMemoryAccess() ;
+		const BPatch_memoryAccess* memAccess;
+		memAccess = (*res)[i]->getMemoryAccess() ;
 
-	whenToCall = instrumentWhere( memAccess);
+		whenToCall = instrumentWhere( memAccess);
 
 #endif
-	bpthr->insertSnippet(countXXXCall, *((*res)[i]),whenToCall);
-  }
+		bpthr->insertSnippet(countXXXCall, *((*res)[i]),whenToCall);
+	}
 
-  return 0;
+	return 0;
 }
 
 int instEffAddr(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res,
-                 bool conditional)
+		const BPatch_Vector<BPatch_point*>* res,
+		bool conditional)
 {
-  char buf[30];
-  snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
-  dprintf("CALLING: %s\n", buf);
+	char buf[30];
+	snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
+	dprintf("CALLING: %s\n", buf);
 
-  BPatch_Vector<BPatch_snippet*> listArgs;
-  BPatch_effectiveAddressExpr eae;
-  listArgs.push_back(&eae);
+	BPatch_Vector<BPatch_snippet*> listArgs;
+	BPatch_effectiveAddressExpr eae;
+	listArgs.push_back(&eae);
 
-  BPatch_image *appImage = bpthr->getImage();
+	BPatch_image *appImage = bpthr->getImage();
 
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("    Unable to find function %s\n", buf);
-    return -1;
-  }
-  BPatch_function *listXXXFunc = bpfv[0];  
-  BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0]){
+		logerror("    Unable to find function %s\n", buf);
+		return -1;
+	}
+	BPatch_function *listXXXFunc = bpfv[0];  
+	BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
 
 
-  BPatch_callWhen whenToCall = BPatch_callBefore;
-  for(unsigned int i=0;i<(*res).size();i++){
+	BPatch_callWhen whenToCall = BPatch_callBefore;
+	for(unsigned int i=0;i<(*res).size();i++){
 #if defined(os_aix_test)
-  	const BPatch_memoryAccess* memAccess;
+		const BPatch_memoryAccess* memAccess;
 
-	memAccess = (*res)[i]->getMemoryAccess() ;
+		memAccess = (*res)[i]->getMemoryAccess() ;
 
-	whenToCall = instrumentWhere( memAccess);
+		whenToCall = instrumentWhere( memAccess);
 #endif
-  	if(!conditional)
-	    bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  else {
-	    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-	    bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  }
-  }
+		if(!conditional)
+			bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+		else {
+			BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
+			bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+		}
+	}
 
 #if defined(i386_unknown_linux2_0_test) \
- || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0_test)
-  BPatch_effectiveAddressExpr eae2(1);
-  BPatch_Vector<BPatch_snippet*> listArgs2;
-  listArgs2.push_back(&eae2);
+	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+	|| defined(i386_unknown_nt4_0_test)
+	BPatch_effectiveAddressExpr eae2(1);
+	BPatch_Vector<BPatch_snippet*> listArgs2;
+	listArgs2.push_back(&eae2);
 
-  BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
-  
-  const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
+	BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
 
-  if(!conditional)
-    bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
-  else {
-    BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
-    bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);    
-  }
+	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
+
+	if(!conditional)
+		bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+	else {
+		BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
+		bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);    
+	}
 #endif
 
-  return 0;
+	return 0;
 }
 
 
 int instByteCnt(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res,
-                 bool conditional)
+		const BPatch_Vector<BPatch_point*>* res,
+		bool conditional)
 {
-  char buf[30];
-  snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
-  dprintf("CALLING: %s\n", buf);
+	char buf[30];
+	snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
+	dprintf("CALLING: %s\n", buf);
 
-  BPatch_Vector<BPatch_snippet*> listArgs;
-  BPatch_bytesAccessedExpr bae;
-  listArgs.push_back(&bae);
+	BPatch_Vector<BPatch_snippet*> listArgs;
+	BPatch_bytesAccessedExpr bae;
+	listArgs.push_back(&bae);
 
-  BPatch_image *appImage = bpthr->getImage();
+	BPatch_image *appImage = bpthr->getImage();
 
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("    Unable to find function %s\n", buf);
-    return -1;
-  }
-  BPatch_function *listXXXFunc = bpfv[0];  
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0]){
+		logerror("    Unable to find function %s\n", buf);
+		return -1;
+	}
+	BPatch_function *listXXXFunc = bpfv[0];  
 
-  BPatch_callWhen whenToCall = BPatch_callBefore;
+	BPatch_callWhen whenToCall = BPatch_callBefore;
 
-  for(unsigned int i=0;i<(*res).size();i++){
+	for(unsigned int i=0;i<(*res).size();i++){
 
 #if defined(os_aix_test)
-  	const BPatch_memoryAccess* memAccess;
-	memAccess = (*res)[i]->getMemoryAccess() ;
+		const BPatch_memoryAccess* memAccess;
+		memAccess = (*res)[i]->getMemoryAccess() ;
 
-	whenToCall = instrumentWhere( memAccess);
+		whenToCall = instrumentWhere( memAccess);
 
 #endif
-  	BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
-	  if(!conditional)
-	    bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  else {
-	    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-	    bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  }
-  }
+		BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
+		if(!conditional)
+			bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+		else {
+			BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
+			bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+		}
+	}
 
 #if defined(i386_unknown_linux2_0_test) \
- || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0_test)
-  BPatch_bytesAccessedExpr bae2(1);
-  BPatch_Vector<BPatch_snippet*> listArgs2;
-  listArgs2.push_back(&bae2);
+	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
+	|| defined(i386_unknown_nt4_0_test)
+	BPatch_bytesAccessedExpr bae2(1);
+	BPatch_Vector<BPatch_snippet*> listArgs2;
+	listArgs2.push_back(&bae2);
 
-  BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
-  
-  const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
-  if(!conditional)
-    bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
-  else {
-    BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
-    bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);
-  }
+	BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
+
+	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
+	if(!conditional)
+		bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+	else {
+		BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
+		bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);
+	}
 #endif
 
-  return 0;
+	return 0;
 }
 
 // From Test8
 const char *frameTypeString(BPatch_frameType frameType)
 {
-    switch (frameType) {
-      case BPatch_frameNormal:
-	return "BPatch_frameNormal";
-      case BPatch_frameSignal:
-	return "BPatch_frameSignal";
-      case BPatch_frameTrampoline:
-	return "BPatch_frameTrampoline";
-      default:
-	break;
-    };
+	switch (frameType) {
+		case BPatch_frameNormal:
+			return "BPatch_frameNormal";
+		case BPatch_frameSignal:
+			return "BPatch_frameSignal";
+		case BPatch_frameTrampoline:
+			return "BPatch_frameTrampoline";
+		default:
+			break;
+	};
 
-    return "UNKNOWN";
+	return "UNKNOWN";
 }
 
 bool hasExtraUnderscores(const char *str)
 {
-    assert( str );
-    int len = strlen(str) - 1;
-    return (str[0] == '_' || str[len] == '_');
+	assert( str );
+	int len = strlen(str) - 1;
+	return (str[0] == '_' || str[len] == '_');
 }
 
 /* WARNING: This function is not thread safe. */
 const char *fixUnderscores(const char *str)
 {
-    static char buf[256];
+	static char buf[256];
 
-    assert( str );
-    assert( strlen(str) < sizeof(buf) );
+	assert( str );
+	assert( strlen(str) < sizeof(buf) );
 
-    while (*str == '_') ++str;
-    strncpy(buf, str, 256);
+	while (*str == '_') ++str;
+	strncpy(buf, str, 256);
 
-    char *ptr = buf + strlen(buf) - 1;
-    while (ptr > buf && *ptr == '_') *(ptr--) = 0;
+	char *ptr = buf + strlen(buf) - 1;
+	while (ptr > buf && *ptr == '_') *(ptr--) = 0;
 
-    return buf;
+	return buf;
 }
 
 bool checkStack(BPatch_thread *appThread,
@@ -1375,118 +1374,118 @@ bool checkStack(BPatch_thread *appThread,
 		unsigned num_correct_names,
 		int test_num, const char *test_name)
 {
-    unsigned i, j;
+	unsigned i, j;
 
-    const int name_max = 256;
-    bool failed = false;
+	const int name_max = 256;
+	bool failed = false;
 
-    BPatch_Vector<BPatch_frame> stack;
-    appThread->getCallStack(stack);
+	BPatch_Vector<BPatch_frame> stack;
+	appThread->getCallStack(stack);
 
-    if (debugPrint) {
-	dprintf("Stack in test %d (%s):\n", test_num, test_name);
-	for( unsigned i = 0; i < stack.size(); i++) {
-	    char name[name_max];
-	    BPatch_function *func = stack[i].findFunction();
-	    if (func == NULL)
-		strcpy(name, "[UNKNOWN]");
-	    else
-		func->getName(name, name_max);
-	    dprintf("  %10p: %s, fp = %p, type %s\n",
-               stack[i].getPC(),
-               name,
-               stack[i].getFP(),
-               frameTypeString(stack[i].getFrameType()));
-        
+	if (debugPrint) {
+		dprintf("Stack in test %d (%s):\n", test_num, test_name);
+		for( unsigned i = 0; i < stack.size(); i++) {
+			char name[name_max];
+			BPatch_function *func = stack[i].findFunction();
+			if (func == NULL)
+				strcpy(name, "[UNKNOWN]");
+			else
+				func->getName(name, name_max);
+			dprintf("  %10p: %s, fp = %p, type %s\n",
+					stack[i].getPC(),
+					name,
+					stack[i].getFP(),
+					frameTypeString(stack[i].getFrameType()));
+
+		}
+		dprintf("End of stack dump.\n");
 	}
-	dprintf("End of stack dump.\n");
-    }
 
-    if (stack.size() < num_correct_names) {
-	logerror("**Failed** test %d (%s)\n", test_num, test_name);
-	logerror("    Stack trace should contain more frames.\n");
-	failed = true;
-    }
+	if (stack.size() < num_correct_names) {
+		logerror("**Failed** test %d (%s)\n", test_num, test_name);
+		logerror("    Stack trace should contain more frames.\n");
+		failed = true;
+	}
 
-    for (i = 0, j = 0; i < num_correct_names; i++, j++) {
+	for (i = 0, j = 0; i < num_correct_names; i++, j++) {
 #if !defined(i386_unknown_nt4_0_test)
-        if (stack.size() && j < stack.size()-1 && stack[j].getFP() == 0) {
-	    logerror("**Failed** test %d (%s)\n", test_num, test_name);
-	    logerror("    A stack frame other than the lowest has a null FP.\n");
-	    failed = true;
-	    break;
-	}
-#endif
-
-    if (stack.size() >= j)
-        break;
-	if (correct_frame_info[i].valid) {
-	    char name[name_max], name2[name_max];
-
-	    BPatch_function *func = stack[j].findFunction();
-	    if (func != NULL)
-		func->getName(name, name_max);
-
-	    BPatch_function *func2 =
-		appThread->findFunctionByAddr(stack[j].getPC());
-	    if (func2 != NULL)
-		func2->getName(name2, name_max);
-
-	    if ((func == NULL && func2 != NULL) ||
-		(func != NULL && func2 == NULL)) {
-		logerror("**Failed** test %d (%s)\n", test_num, test_name);
-		logerror("    frame->findFunction() disagrees with thread->findFunctionByAddr()\n");
-		logerror("    frame->findFunction() returns %s\n",
-			name);
-		logerror("    thread->findFunctionByAddr() return %s\n",
-			name2);
-		failed = true;
-		break;
-	    } else if (func!=NULL && func2!=NULL && strcmp(name, name2)!=0) {
-		logerror("**Failed** test %d (%s)\n", test_num, test_name);
-		logerror("    BPatch_frame::findFunction disagrees with BPatch_thread::findFunctionByAddr\n");
-		failed = true;
-		break;
-	    }
-
-	    if (correct_frame_info[i].type != stack[j].getFrameType()) {
-		logerror("**Failed** test %d (%s)\n", test_num, test_name);
-		logerror("    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
-		logerror("    Stack frame 0x%lx, 0x%lx\n", stack[i].getPC(), stack[i].getFP() );
-		failed = true;
-		break;
-	    }
-
-	    if (stack[j].getFrameType() == BPatch_frameSignal ||
-		stack[j].getFrameType() == BPatch_frameTrampoline) {
-		// No further checking for these types right now
-	    } else {
-		if (func == NULL) {
-		    logerror("**Failed** test %d (%s)\n",
-			    test_num, test_name);
-		    logerror("    Stack frame #%d refers to an unknown function, should refer to %s\n", j+1, correct_frame_info[i].function_name);
-		    failed = true;
-		    break;
-		} else { /* func != NULL */
-		    if (!hasExtraUnderscores(correct_frame_info[i].function_name))
-			strncpy(name, fixUnderscores(name), name_max);
-
-		    if (strcmp(name, correct_frame_info[i].function_name) != 0) {
-		        if (correct_frame_info[i].optional) {
-			    j--;
-                            continue;
-			}
+		if (stack.size() && j < stack.size()-1 && stack[j].getFP() == 0) {
 			logerror("**Failed** test %d (%s)\n", test_num, test_name);
-			logerror("    Stack frame #%d refers to function %s, should be %s\n", j+1, name, correct_frame_info[i].function_name);
+			logerror("    A stack frame other than the lowest has a null FP.\n");
 			failed = true;
 			break;
-		    }
 		}
-	    }
-	}
-    }
+#endif
 
-    return !failed;
+		if (stack.size() >= j)
+			break;
+		if (correct_frame_info[i].valid) {
+			char name[name_max], name2[name_max];
+
+			BPatch_function *func = stack[j].findFunction();
+			if (func != NULL)
+				func->getName(name, name_max);
+
+			BPatch_function *func2 =
+				appThread->findFunctionByAddr(stack[j].getPC());
+			if (func2 != NULL)
+				func2->getName(name2, name_max);
+
+			if ((func == NULL && func2 != NULL) ||
+					(func != NULL && func2 == NULL)) {
+				logerror("**Failed** test %d (%s)\n", test_num, test_name);
+				logerror("    frame->findFunction() disagrees with thread->findFunctionByAddr()\n");
+				logerror("    frame->findFunction() returns %s\n",
+						name);
+				logerror("    thread->findFunctionByAddr() return %s\n",
+						name2);
+				failed = true;
+				break;
+			} else if (func!=NULL && func2!=NULL && strcmp(name, name2)!=0) {
+				logerror("**Failed** test %d (%s)\n", test_num, test_name);
+				logerror("    BPatch_frame::findFunction disagrees with BPatch_thread::findFunctionByAddr\n");
+				failed = true;
+				break;
+			}
+
+			if (correct_frame_info[i].type != stack[j].getFrameType()) {
+				logerror("**Failed** test %d (%s)\n", test_num, test_name);
+				logerror("    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
+				logerror("    Stack frame 0x%lx, 0x%lx\n", stack[i].getPC(), stack[i].getFP() );
+				failed = true;
+				break;
+			}
+
+			if (stack[j].getFrameType() == BPatch_frameSignal ||
+					stack[j].getFrameType() == BPatch_frameTrampoline) {
+				// No further checking for these types right now
+			} else {
+				if (func == NULL) {
+					logerror("**Failed** test %d (%s)\n",
+							test_num, test_name);
+					logerror("    Stack frame #%d refers to an unknown function, should refer to %s\n", j+1, correct_frame_info[i].function_name);
+					failed = true;
+					break;
+				} else { /* func != NULL */
+					if (!hasExtraUnderscores(correct_frame_info[i].function_name))
+						strncpy(name, fixUnderscores(name), name_max);
+
+					if (strcmp(name, correct_frame_info[i].function_name) != 0) {
+						if (correct_frame_info[i].optional) {
+							j--;
+							continue;
+						}
+						logerror("**Failed** test %d (%s)\n", test_num, test_name);
+						logerror("    Stack frame #%d refers to function %s, should be %s\n", j+1, name, correct_frame_info[i].function_name);
+						failed = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	return !failed;
 }
 
 /* End Test8 Specific */
@@ -1501,75 +1500,75 @@ void buildArgs(const char** child_argv, char *pathname, int testNo){
 	}
 	child_argv[n++] = const_cast<char*>("-orig"); 
 
-        child_argv[n++] = const_cast<char*>("-run");
-       	char str[16];
-       	snprintf(str, 16, "test_stw_%d",testNo);
-       	child_argv[n++] = strdup(str);
-	
+	child_argv[n++] = const_cast<char*>("-run");
+	char str[16];
+	snprintf(str, 16, "test_stw_%d",testNo);
+	child_argv[n++] = strdup(str);
+
 	child_argv[n] = NULL;
 
 }
 
 
 bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
-      char *pathname, const char** child_argv)
+		char *pathname, const char** child_argv)
 {
 
 
-    appThread = bpatch->createProcess(pathname, child_argv,NULL);
+	appThread = bpatch->createProcess(pathname, child_argv,NULL);
 
-    if (appThread == NULL) {
-	fprintf(stderr, "Unable to run test program.\n");
-        return false;
-    }
-    appThread->enableDumpPatchedImage();
+	if (appThread == NULL) {
+		fprintf(stderr, "Unable to run test program.\n");
+		return false;
+	}
+	appThread->enableDumpPatchedImage();
 
-    // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
+	// Read the program's image and get an associated image object
+	appImage = appThread->getImage();
 
-    return true;
+	return true;
 }
 
 
 int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, char *instrumentee, char*patch, int testNo, char *testName){
 
-  BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n",instrumentee);
-    return -1;
-  }
-  
-  if (1 < found_funcs.size()) {
-    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	    __FILE__, __LINE__, found_funcs.size(), instrumentee);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point1_1 = found_funcs[0]->findPoint(BPatch_entry);
+	BPatch_Vector<BPatch_function *> found_funcs;
+	if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
+		logerror("    Unable to find function %s\n",instrumentee);
+		return -1;
+	}
+
+	if (1 < found_funcs.size()) {
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs.size(), instrumentee);
+	}
+
+	BPatch_Vector<BPatch_point *> *point1_1 = found_funcs[0]->findPoint(BPatch_entry);
 
 
-  if (!point1_1 || ((*point1_1).size() == 0)) {
-    logerror("**Failed** test #%d (%s)\n", testNo,testName);
-    logerror("    Unable to find entry point to \"%s.\"\n",instrumentee);
-    return -1;
-  }
+	if (!point1_1 || ((*point1_1).size() == 0)) {
+		logerror("**Failed** test #%d (%s)\n", testNo,testName);
+		logerror("    Unable to find entry point to \"%s.\"\n",instrumentee);
+		return -1;
+	}
 
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(patch, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("**Failed** test #%d (%s)\n", testNo, testName);
-    logerror("    Unable to find function %s\n", patch);
-    return -1;
-  }
-  BPatch_function *call1_func = bpfv[0];
-  
-  BPatch_Vector<BPatch_snippet *> call1_args;
-  BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
-  
-  dprintf("Inserted snippet2\n");
-  checkCost(call1Expr);
-  appThread->insertSnippet(call1Expr, *point1_1);
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == appImage->findFunction(patch, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0]){
+		logerror("**Failed** test #%d (%s)\n", testNo, testName);
+		logerror("    Unable to find function %s\n", patch);
+		return -1;
+	}
+	BPatch_function *call1_func = bpfv[0];
 
-  return 0;
+	BPatch_Vector<BPatch_snippet *> call1_args;
+	BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
+
+	dprintf("Inserted snippet2\n");
+	checkCost(call1Expr);
+	appThread->insertSnippet(call1Expr, *point1_1);
+
+	return 0;
 }
 
 char* saveWorld(BPatch_thread *appThread){
@@ -1588,9 +1587,9 @@ char* saveWorld(BPatch_thread *appThread){
 
 int letOriginalMutateeFinish(BPatch_thread *appThread){
 	/* finish original mutatee to see if it runs */
-	
+
 	/*fprintf(stderr,"\n************************\n");	
-	fprintf(stderr,"Running the original mutatee\n\n");*/
+	  fprintf(stderr,"Running the original mutatee\n\n");*/
 	appThread->continueExecution();
 
 	while( !appThread->isTerminated());
@@ -1604,11 +1603,11 @@ int letOriginalMutateeFinish(BPatch_thread *appThread){
 		if (signalNum){
 			logerror("Mutatee exited from signal 0x%x\n", signalNum);
 		}
-	       	retVal = signalNum;
-    	}
+		retVal = signalNum;
+	}
 
 
-//	fprintf(stderr,"Original mutatee has terminated\n\************************\n\n");
+	//	fprintf(stderr,"Original mutatee has terminated\n\************************\n\n");
 
 	return retVal;
 }
@@ -1617,79 +1616,79 @@ int letOriginalMutateeFinish(BPatch_thread *appThread){
 
 BPatch_function *findFunction(const char *fname, BPatch_image *appImage, int testno, const char *testname)
 {
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == appImage->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
 
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  Expected 1 functions matching %s, got %d\n",
-              fname, bpfv.size());
-      return NULL;
-  }
-  return bpfv[0];
+		logerror("**Failed test #%d (%s)\n", testno, testname);
+		logerror("  Expected 1 functions matching %s, got %d\n",
+				fname, bpfv.size());
+		return NULL;
+	}
+	return bpfv[0];
 }
 
 BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testno, const char *testname)
 {
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == inmod->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == inmod->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
 
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  Expected 1 functions matching %s, got %d\n",
-              fname, bpfv.size());
-      return NULL;
-  }
-  return bpfv[0];
+		logerror("**Failed test #%d (%s)\n", testno, testname);
+		logerror("  Expected 1 functions matching %s, got %d\n",
+				fname, bpfv.size());
+		return NULL;
+	}
+	return bpfv[0];
 }
 
 // Internal Function for setVar and getVar
 void dumpVars(BPatch_image *appImage)
 {
-  BPatch_Vector<BPatch_variableExpr *> vars;
-  appImage->getVariables(vars);
-  for (unsigned int i = 0; i < vars.size(); ++i) {
-    fprintf(stderr, "\t%s\n", vars[i]->getName());
-  }
+	BPatch_Vector<BPatch_variableExpr *> vars;
+	appImage->getVariables(vars);
+	for (unsigned int i = 0; i < vars.size(); ++i) {
+		fprintf(stderr, "\t%s\n", vars[i]->getName());
+	}
 }
 
 bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
 {
-   BPatch_variableExpr *v;
-   int addr_size = appImage->getProcess()->getAddressWidth();
-   void *buf = addr;
-   if (NULL == (v = appImage->findVariable(vname))) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  cannot find variable %s, avail vars:\n", vname);
-      dumpVars(appImage);
-      return false;
-   }
+	BPatch_variableExpr *v;
+	int addr_size = appImage->getProcess()->getAddressWidth();
+	void *buf = addr;
+	if (NULL == (v = appImage->findVariable(vname))) {
+		logerror("**Failed test #%d (%s)\n", testno, testname);
+		logerror("  cannot find variable %s, avail vars:\n", vname);
+		dumpVars(appImage);
+		return false;
+	}
 
-   if (! v->writeValue(buf, addr_size, true)) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  failed to write call site var to mutatee\n");
-      return false;
-   }
+	if (! v->writeValue(buf, addr_size, true)) {
+		logerror("**Failed test #%d (%s)\n", testno, testname);
+		logerror("  failed to write call site var to mutatee\n");
+		return false;
+	}
 
-   return true;
+	return true;
 }
 
 bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
 {
-   BPatch_variableExpr *v;
-   int addr_size = appImage->getProcess()->getAddressWidth();
-   if (NULL == (v = appImage->findVariable(vname))) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  cannot find variable %s: avail vars:\n", vname);
-      dumpVars(appImage);
-      return false;
-   }
+	BPatch_variableExpr *v;
+	int addr_size = appImage->getProcess()->getAddressWidth();
+	if (NULL == (v = appImage->findVariable(vname))) {
+		logerror("**Failed test #%d (%s)\n", testno, testname);
+		logerror("  cannot find variable %s: avail vars:\n", vname);
+		dumpVars(appImage);
+		return false;
+	}
 
-   if (! v->readValue(addr, addr_size)) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  failed to read var in mutatee\n");
-      return false;
-   }
+	if (! v->readValue(addr, addr_size)) {
+		logerror("**Failed test #%d (%s)\n", testno, testname);
+		logerror("  failed to read var in mutatee\n");
+		return false;
+	}
 
-   return true;
+	return true;
 }
 
 
