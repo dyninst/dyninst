@@ -93,6 +93,11 @@ std::string StackLoc::format() const {
     if (slot_ == STACK_GLOBAL) {
         return std::string("STACK");
     }
+    else if (slot_ < 0) {
+        char buf[256];
+        sprintf(buf, "STACK_NEG_%d", -1 * slot_);
+        return std::string(buf);
+    }
     else {
         char buf[256];
         sprintf(buf, "STACK_%d", slot_);
@@ -235,7 +240,7 @@ Absloc::Ptr ImmLoc::getImmLoc() {
     return immLoc_;
 }
 
-bool RegisterLoc::isStackPointer() const { 
+bool RegisterLoc::isSP() const { 
     return ((reg_->getID() == r_ESP) || (reg_->getID() == r_RSP)); 
 }
 
@@ -245,4 +250,22 @@ bool RegisterLoc::isPC() const {
 
 bool RegisterLoc::isFlag() const {
     return ((reg_->getID() >= r_OF) && (reg_->getID() <= r_RF));
+}
+
+bool RegisterLoc::isSP(RegisterAST::Ptr reg) { 
+    RegisterAST::Ptr reg_ = dynamic_pointer_cast<RegisterAST>(RegisterAST::promote(reg));
+    return ((reg_->getID() == r_ESP) ||
+            (reg_->getID() == r_RSP)); 
+}
+
+bool RegisterLoc::isPC(RegisterAST::Ptr reg) {
+    RegisterAST::Ptr reg_ = dynamic_pointer_cast<RegisterAST>(RegisterAST::promote(reg));
+    return ((reg_->getID() == r_EIP) || 
+            (reg_->getID() == r_RIP));
+}
+
+bool RegisterLoc::isFlag(RegisterAST::Ptr reg) {
+    RegisterAST::Ptr reg_ = dynamic_pointer_cast<RegisterAST>(RegisterAST::promote(reg));
+    return ((reg_->getID() >= r_OF) && 
+            (reg_->getID() <= r_RF));
 }

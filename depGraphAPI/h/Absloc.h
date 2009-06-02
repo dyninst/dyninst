@@ -115,10 +115,13 @@ class RegisterLoc : public Absloc {
     const InstructionAPI::RegisterAST::Ptr getReg() { return reg_; }
 
     // Convenience methods
-    bool isStackPointer() const;
+    bool isSP() const;
     bool isPC() const; 
     bool isFlag() const;
-    
+
+    static bool isSP(InstructionAPI::RegisterAST::Ptr reg);
+    static bool isPC(InstructionAPI::RegisterAST::Ptr reg);
+    static bool isFlag(InstructionAPI::RegisterAST::Ptr reg);
 
  private:
     RegisterLoc(const InstructionAPI::RegisterAST::Ptr reg) : reg_(reg) {};

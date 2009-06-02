@@ -82,6 +82,11 @@ class Node : public AnnotatableSparse {
     
     virtual ~Node() {};
 
+    // DOT output methods...
+    virtual std::string DOTshape() const;
+    virtual std::string DOTrank() const;
+    virtual std::string DOTname() const;
+
  protected:
     Node() {};
 
@@ -134,6 +139,8 @@ class VirtualNode : public Node {
 
     VirtualNode() {};
 
+    // DOT output methods...
+    virtual std::string DOTshape() const;
  private:
 };
 
