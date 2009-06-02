@@ -197,6 +197,33 @@ Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr)
   return NULL;
 }
 
+/* binary search to find the index into the RegionHdrs vector
+   of the section starting at a partidular address*/
+int Object::getRegionHdrIndexByAddr(Offset addr) 
+{
+  int end = allRegionHdrs.size() - 1, start = 0;
+  int mid = 0; 
+  while(start < end) {
+    mid = start + (end-start)/2;
+    if(allRegionHdrs[mid]->sh_addr() == addr)
+      return mid;
+    else if(allRegionHdrs[mid]->sh_addr() < addr)
+      start = mid + 1;
+    else
+      end = mid;
+  }
+  if(allRegionHdrs[start]->sh_addr() == addr)
+    return start;
+  return -1;
+}
+
+Elf_X_Shdr *Object::getRegionHdrByIndex(unsigned index) 
+{
+  if (index >= allRegionHdrs.size())
+    return NULL;
+  return allRegionHdrs[index];
+}
+
 /* Check if there is a section which belongs to the segment and update permissions of that section.
  * Return value indicates whether the segment has to be added to the list of regions*/
 bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
@@ -246,6 +273,8 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags){
     return Region::RT_DYNAMIC;
   case SHT_HASH:
     return Region::RT_HASH;
+  case SHT_NOBITS:
+    return Region::RT_BSS;
 #if !defined(os_solaris)            
   case SHT_GNU_versym:
     return Region::RT_SYMVERSIONS;
@@ -421,8 +450,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   Elf_X_Shdr *scnp;
    
   foundDynamicSection = false;
-  int dynamic_section_index = 0;
-  unsigned int dynamic_section_type;
+  int dynamic_section_index = -1;
+  unsigned int dynamic_section_type = 0;
   size_t dynamic_section_size = 0;
   for (int i = 0; i < elfHdr.e_shnum();++i) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
@@ -451,7 +480,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     }	
   }
 
-  if (dynamic_section_index != 0) {
+#if !defined(os_solaris)
+  if (dynamic_section_index != -1) {
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(dynamic_section_index) );
     Elf_X_Data data = scnp->get_data();
     Elf_X_Dyn dynsecData = data.get_dyn();
@@ -534,6 +564,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       it++;
     }
   }
+#endif 
     
   for (int i = 0; i < elfHdr.e_shnum() + elfHdrForDebugInfo.e_shnum(); ++i) {
     const char *name;
@@ -584,23 +615,23 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     //otherwise this is zero and sh_offset() gives the offset to the first byte 
     // in section.
     if (!scnp->isFromDebugFile()) {
-      allRegionHdrs.push_back( scnp );
-      if(scnp->sh_flags() & SHF_ALLOC) {
-	Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 
-				 scnp->sh_addr(), scnp->sh_size(), 
-				 (mem_image()+scnp->sh_offset()), 
-				 getRegionPerms(scnp->sh_flags()), 
-				 getRegionType(scnp->sh_type(), scnp->sh_flags()));
-            
-	regions_.push_back(reg);
-      }
-      else {
-	Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, 
-				 (mem_image()+scnp->sh_offset()), 
-				 getRegionPerms(scnp->sh_flags()), 
-				 getRegionType(scnp->sh_type(), scnp->sh_flags()));
-	regions_.push_back(reg);
-      }
+       allRegionHdrs.push_back( scnp );
+       if(scnp->sh_flags() & SHF_ALLOC) {
+          Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 
+                                   scnp->sh_addr(), scnp->sh_size(), 
+                                   (mem_image()+scnp->sh_offset()), 
+                                   getRegionPerms(scnp->sh_flags()), 
+                                   getRegionType(scnp->sh_type(), scnp->sh_flags()));
+          
+          regions_.push_back(reg);
+       }
+       else {
+          Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, 
+                                   (mem_image()+scnp->sh_offset()), 
+                                   getRegionPerms(scnp->sh_flags()), 
+                                   getRegionType(scnp->sh_type(), scnp->sh_flags()));
+          regions_.push_back(reg);
+       }
     }
 
     // section-specific processing
@@ -673,13 +704,24 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     } else if (strcmp(name, STABSTR_NAME) == 0) {
       stabstrscnp = scnp;
       stabstr_off_ = scnp->sh_offset();
-    } else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
-	       secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
+    } 
+#if !defined(os_solaris)
+    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
+	     secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
       rel_plt_scnp = scnp;
       rel_plt_addr_ = scnp->sh_addr();
       rel_plt_size_ = scnp->sh_size();
       rel_plt_entry_size_ = scnp->sh_entsize();
     }
+#else
+    else if ((strcmp(name, REL_PLT_NAME) == 0) || 
+             (strcmp(name, REL_PLT_NAME2) == 0)) {
+      rel_plt_scnp = scnp;
+      rel_plt_addr_ = scnp->sh_addr();
+      rel_plt_size_ = scnp->sh_size();
+      rel_plt_entry_size_ = scnp->sh_entsize();
+    }
+#endif
     else if (strcmp(name, PLT_NAME) == 0) {
       plt_scnp = scnp;
       plt_addr_ = scnp->sh_addr();
@@ -733,6 +775,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
 #endif
     }
+#if !defined(os_solaris)
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
 	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {
       is_dynamic_ = true;
@@ -744,6 +787,17 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       dynstr_scnp = scnp;
       dynstr_addr_ = scnp->sh_addr();
     }
+#else
+    else if (strcmp(name, DYNSYM_NAME) == 0) {
+      is_dynamic_ = true;
+      dynsym_scnp = scnp;
+      dynsym_addr_ = scnp->sh_addr();
+    } else if (strcmp(name, DYNSTR_NAME) == 0) {
+      dynstr_scnp = scnp;
+      dynstr_addr_ = scnp->sh_addr();
+    }
+
+#endif
     else if (strcmp(name, ".debug_info") == 0) {
       dwarvenDebugInfo = true;
     }
@@ -814,11 +868,13 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   // sort the section headers by base address
   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 
+#if !defined(os_solaris)
   for (unsigned j = 0 ; j < regions_.size() ; j++) {
     if (secAddrTagMapping.find(regions_[j]->getRegionAddr()) != secAddrTagMapping.end()) {
       secTagRegionMapping[secAddrTagMapping[regions_[j]->getRegionAddr()]] = regions_[j];
     }
   }
+#endif
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -851,13 +907,14 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
 {
   Elf_X_Data data = dyn_scnp->get_data();
   Elf_X_Dyn dyns = data.get_dyn();
-  Elf_X_Shdr *rel_scnp = NULL;
+  int rel_scnp_index = -1;
+
   for (unsigned i = 0; i < dyns.count(); ++i) {
     switch(dyns.d_tag(i)) {
     case DT_REL:
     case DT_RELA:
       /*found Relocation section*/
-      rel_scnp = getRegionHdrByAddr(dyns.d_ptr(i));
+      rel_scnp_index = getRegionHdrIndexByAddr(dyns.d_ptr(i));
       break;
     case DT_RELSZ:
     case DT_RELASZ:
@@ -871,8 +928,8 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
       break;
     }
   }
-  if (rel_scnp  != NULL)
-    get_relocationDyn_entries(rel_scnp, dynsym_scnp, dynstr_scnp);
+  if (rel_scnp_index  != -1)
+    get_relocationDyn_entries(rel_scnp_index, dynsym_scnp, dynstr_scnp);
 }
 #else
 void Object::parseDynamic(Elf_X_Shdr *&, Elf_X_Shdr *&,
@@ -884,23 +941,32 @@ void Object::parseDynamic(Elf_X_Shdr *&, Elf_X_Shdr *&,
 /* parse relocations for the sections represented by DT_REL/DT_RELA in
  * the dynamic section. This section is the one we would want to emit
  */
-bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
+bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
 					Elf_X_Shdr *&dynsym_scnp, 
 					Elf_X_Shdr *&dynstr_scnp )
 {
-  Elf_X_Data reldata = rel_scnp->get_data();
   Elf_X_Data symdata = dynsym_scnp->get_data();
   Elf_X_Data strdata = dynstr_scnp->get_data();
-	
-  if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
-    Elf_X_Sym sym = symdata.get_sym();
+  Elf_X_Shdr* rel_scnp = NULL;
+  if( !symdata.isValid() || !strdata.isValid()) 
+    return false;
+  const char *strs = strdata.get_string();
+  Elf_X_Sym sym = symdata.get_sym();
+
+  unsigned num_rel_entries_found = 0;
+
+  while (num_rel_entries_found != rel_size_/rel_entry_size_) {
+    rel_scnp = getRegionHdrByIndex(rel_scnp_index++);
+    Elf_X_Data reldata = rel_scnp->get_data();
+
+    if( ! reldata.isValid()) return false;
     Elf_X_Rel rel = reldata.get_rel();
     Elf_X_Rela rela = reldata.get_rela();
-    const char *strs = strdata.get_string();
 
     if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
       /* Iterate over the entries. */
-      for( u_int i = 0; i < (rel_size_/rel_entry_size_); ++i ) {
+      for( u_int i = 0; i < (reldata.d_size()/rel_entry_size_); ++i ) {
+	num_rel_entries_found++;
 	long offset;
 	long addend;
 	long index;
@@ -914,7 +980,7 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
 	  index = rel.R_SYM(i);
 	  type = rel.R_TYPE(i);
 	  break;
-
+	
 	case ELF_T_RELA:
 	  offset = rela.r_offset(i);
 	  addend = rela.r_addend(i);
@@ -938,10 +1004,12 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
 
 	relocation_table_.push_back(re);
       }
-      return true;
+    } else {
+      return false;
     }
+    
   }
-  return false;
+  return true;
 }
 
 bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
@@ -1579,7 +1647,7 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
       Offset soffset;
       if (symscnp->isFromDebugFile()) {
 	Offset soffset_dbg = syms.st_value(i);
-   soffset = soffset_dbg;
+	soffset = soffset_dbg;
 	if (soffset_dbg) {
 	  bool result = convertDebugOffset(soffset_dbg, soffset);
 	  if (!result) {
@@ -1616,10 +1684,10 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
       Region *sec;
       if(secNumber >= 1 && secNumber <= regions_.size())
-	sec = regions_[secNumber];
+         sec = regions_[secNumber];
       else
-	sec = NULL;
-         
+         sec = NULL;
+
       int ind = int (i);
       int strindex = syms.st_name(i);
       Symbol *newsym = new Symbol(sname, 

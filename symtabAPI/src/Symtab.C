@@ -1436,6 +1436,8 @@ bool Symtab::isCode(const Offset where)  const
             && where < (curreg->getRegionAddr()
                + curreg->getDiskSize())) 
       {
+         if (curreg->getRegionType() == Region::RT_BSS)
+            return false;
          return true;
       }
       else if (where < curreg->getRegionAddr()) 
