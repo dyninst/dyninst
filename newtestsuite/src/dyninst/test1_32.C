@@ -57,107 +57,131 @@
 
 #include "dyninst_comp.h"
 class test1_32_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_32_factory() {
-  return new test1_32_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_32_factory() 
+{
+	return new test1_32_Mutator();
 }
 
 //
 // Start Test Case #32 - (recursive base tramp)
 //
-test_results_t test1_32_Mutator::executeTest() {
-  const char * func32_2_name = "test1_32_func2";
-  const char * func32_3_name = "test1_32_func3";
-  const char * func32_4_name = "test1_32_func4";
 
-  BPatch_image * app_image = appImage;
-  BPatch_thread * app_thread = appThread;
+test_results_t test1_32_Mutator::executeTest() 
+{
+	const char * func32_2_name = "test1_32_func2";
+	const char * func32_3_name = "test1_32_func3";
+	const char * func32_4_name = "test1_32_func4";
 
+	BPatch_image * app_image = appImage;
 
-   BPatch_Vector<BPatch_function *> bpfv;
-   if (NULL == appImage->findFunction(func32_2_name, bpfv) || !bpfv.size()
-       || NULL == bpfv[0]){
-     logerror("    Unable to find function %s\n", func32_2_name);
-     return FAILED;
-   }
-	
-   BPatch_function *foo_function = bpfv[0];
+	BPatch_Vector<BPatch_function *> bpfv;
 
-   bpfv.clear();
+	if (NULL == appImage->findFunction(func32_2_name, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", func32_2_name);
+		return FAILED;
+	}
 
-   if (NULL == appImage->findFunction(func32_3_name, bpfv) || !bpfv.size()
-       || NULL == bpfv[0]){
-     logerror("    Unable to find function %s\n", func32_3_name);
-     return FAILED;
-   }
-   
-   BPatch_function *bar_function = bpfv[0];
+	BPatch_function *foo_function = bpfv[0];
 
-   bpfv.clear();
-   
-   if (NULL == appImage->findFunction(func32_4_name, bpfv) || !bpfv.size()
-       || NULL == bpfv[0]){
-     logerror("    Unable to find function %s\n", func32_4_name);
-     return FAILED;
-   }
-   
-   BPatch_function *baz_function = bpfv[0];
+	bpfv.clear();
 
-  bool old_value = BPatch::bpatch->isTrampRecursive();
-  BPatch::bpatch->setTrampRecursive( true );
+	if (NULL == appImage->findFunction(func32_3_name, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", func32_3_name);
+		return FAILED;
+	}
 
-  BPatch_Vector<BPatch_snippet *> foo_args;
-  BPatch_snippet * foo_snippet =
-    new BPatch_funcCallExpr( * bar_function,
-			     foo_args );
-  instrument_entry_points( app_thread, app_image, foo_function, foo_snippet );
+	BPatch_function *bar_function = bpfv[0];
 
-  BPatch_Vector<BPatch_snippet *> bar_args_1;
+	bpfv.clear();
 
-  bool mutateeFortran = isMutateeFortran(appImage);
-  BPatch_constExpr expr32_2;
+	if (NULL == appImage->findFunction(func32_4_name, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("    Unable to find function %s\n", func32_4_name);
+		return FAILED;
+	}
 
-  if (mutateeFortran) {
-      BPatch_variableExpr *expr32_1 = appThread->malloc (*appImage->findType ("int"));
-      expr32_2 = BPatch_constExpr(expr32_1->getBaseAddr ());
-      
-      BPatch_arithExpr oneTimeCodeExpr (BPatch_assign, *expr32_1, BPatch_constExpr(1));      
-      appThread->oneTimeCode (oneTimeCodeExpr);
-  } else {
-      expr32_2 = BPatch_constExpr(1);
-  }
+	BPatch_function *baz_function = bpfv[0];
 
-  bar_args_1.push_back (&expr32_2);
+	bool old_value = BPatch::bpatch->isTrampRecursive();
+	BPatch::bpatch->setTrampRecursive( true );
 
-  BPatch_snippet * bar_snippet_1 =
-    new BPatch_funcCallExpr( * baz_function,
-			     bar_args_1 );
-  instrument_entry_points( app_thread, app_image, bar_function, bar_snippet_1 );
+	BPatch_Vector<BPatch_snippet *> foo_args;
+	BPatch_snippet * foo_snippet =
+		new BPatch_funcCallExpr( * bar_function,
+				foo_args );
+	instrument_entry_points( appAddrSpace, app_image, foo_function, foo_snippet );
 
-  BPatch_Vector<BPatch_snippet *> bar_args_2;
+	BPatch_Vector<BPatch_snippet *> bar_args_1;
 
-  BPatch_constExpr expr32_5;
+	bool mutateeFortran = isMutateeFortran(appImage);
+	BPatch_constExpr expr32_2;
 
-  if (mutateeFortran) {
-    BPatch_variableExpr *expr32_4 = appThread->malloc (*appImage->findType ("int"));
-    expr32_5 = BPatch_constExpr(expr32_4->getBaseAddr());
+	if (mutateeFortran) 
+	{
+		BPatch_process *p = dynamic_cast<BPatch_process *>(appAddrSpace);
+		if (!p)
+		{
+			fprintf(stderr, "%s[%d]:  error:  address space is not process\n", FILE__, __LINE__);
+			abort();
+		}
+		BPatch_variableExpr *expr32_1 = appAddrSpace->malloc (*appImage->findType ("int"));
+		expr32_2 = BPatch_constExpr(expr32_1->getBaseAddr ());
 
-    BPatch_arithExpr expr32_6 (BPatch_assign, *expr32_4, BPatch_constExpr (2));
-    appThread->oneTimeCode (expr32_6);
+		BPatch_arithExpr oneTimeCodeExpr (BPatch_assign, *expr32_1, BPatch_constExpr(1));      
+		p->oneTimeCode (oneTimeCodeExpr);
+	} 
+	else 
+	{
+		expr32_2 = BPatch_constExpr(1);
+	}
 
-  } else {
-      expr32_5 = BPatch_constExpr(2);
-  }
+	bar_args_1.push_back (&expr32_2);
 
-  bar_args_2.push_back(&expr32_5);
+	BPatch_snippet * bar_snippet_1 =
+		new BPatch_funcCallExpr( * baz_function,
+				bar_args_1 );
+	instrument_entry_points( appAddrSpace, app_image, bar_function, bar_snippet_1 );
 
-  BPatch_snippet * bar_snippet_2 =
-    new BPatch_funcCallExpr( * baz_function,
-			     bar_args_2 );
-  instrument_exit_points( app_thread, app_image, bar_function, bar_snippet_2 );
+	BPatch_Vector<BPatch_snippet *> bar_args_2;
 
-  BPatch::bpatch->setTrampRecursive( old_value );
+	BPatch_constExpr expr32_5;
 
-  return PASSED;
+	if (mutateeFortran) 
+	{
+		BPatch_process *p = dynamic_cast<BPatch_process *>(appAddrSpace);
+		if (!p)
+		{
+			fprintf(stderr, "%s[%d]:  error:  address space is not process\n", FILE__, __LINE__);
+			abort();
+		}
+		BPatch_variableExpr *expr32_4 = appAddrSpace->malloc (*appImage->findType ("int"));
+		expr32_5 = BPatch_constExpr(expr32_4->getBaseAddr());
+
+		BPatch_arithExpr expr32_6 (BPatch_assign, *expr32_4, BPatch_constExpr (2));
+		p->oneTimeCode (expr32_6);
+
+	} 
+	else 
+	{
+		expr32_5 = BPatch_constExpr(2);
+	}
+
+	bar_args_2.push_back(&expr32_5);
+
+	BPatch_snippet * bar_snippet_2 =
+		new BPatch_funcCallExpr( * baz_function,
+				bar_args_2 );
+	instrument_exit_points( appAddrSpace, app_image, bar_function, bar_snippet_2 );
+
+	BPatch::bpatch->setTrampRecursive( old_value );
+
+	return PASSED;
 }

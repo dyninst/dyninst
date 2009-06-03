@@ -56,6 +56,7 @@
 #define snprintf _snprintf
 #else
 #include <unistd.h>
+#include <sys/time.h>
 #endif
 
 #ifdef __cplusplus
@@ -115,8 +116,9 @@ void setRunTest(const char *testname) {
       break;
     }
   }
-  if (i >= max_tests) {
-    output->log(STDERR, "%s is not a valid test for this mutatee\n", testname);
+  if (i >= max_tests) 
+  {
+    output->log(STDERR, "%s is not a valid test for this mutatee: %s, max_tests = %d\n", testname, gargv[0], max_tests);
   }
 } /* setRunTest() */
 
@@ -349,9 +351,37 @@ int main(int iargc, char *argv[])
 	   CloseHandle(signalPipe);
 #endif
       setUseAttach(TRUE);
-      logstatus("Waiting for mutator to attach...\n");
+#if defined (os_windows_test)
+      logstatus("mutatee: Waiting for mutator to attach...\n");
+#else
+      logstatus("mutatee %d: Waiting for mutator to attach...\n", getpid());
+	  struct timeval start_time;
+	  gettimeofday(&start_time, NULL);
+#endif
       flushOutputLog();
+
       while (!checkIfAttached()) {
+#if !defined(os_windows_test)
+		  struct timeval present_time;
+		  gettimeofday(&present_time, NULL);
+		  if (present_time.tv_sec > (start_time.tv_sec + 30))
+		  {
+			  logstatus("mutatee: mutator attach problem, failing...\n");
+			  exit(-1);
+		  }
+#endif
+#if 0
+		  struct timeval slp;
+		  slp.tv_sec = 1;
+		  slp.tv_usec = 0;
+		  select(0, NULL, NULL, NULL, &slp);
+
+		  elapsed++;
+		  if (elapsed > 60) {
+			  logstatus("mutatee %d: mutator attach problem, failing...\n", getpid());
+			  exit(-1);
+		  }
+#endif
          /* Do nothing */
       }
       fflush(stderr);

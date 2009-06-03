@@ -442,12 +442,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("", SELFSTART, CREATE, true, "dyninst", "", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_pt_ls", "test_pt_ls", "test_pt_ls.so", false, "{test: test_pt_ls, mutator: test_pt_ls, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("", SELFSTART, CREATE, true, "dyninst", "", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_1", "test2_1", "test2_1.so", false, "{test: test2_1, mutator: test2_1, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("", SELFSTART, CREATE, true, "dyninst", "", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test2_2", "test2_2", "test2_2.so", false, "{test: test2_2, mutator: test2_2, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("", SELFSTART, USEATTACH, true, "dyninst", "", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_pt_ls", "test_pt_ls", "test_pt_ls.so", false, "{test: test_pt_ls, mutator: test_pt_ls, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -462,6 +472,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_none", STOPPED, CREATE, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -504,6 +516,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_none", STOPPED, USEATTACH, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
@@ -546,6 +560,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_low", STOPPED, CREATE, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
@@ -588,6 +604,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_low", STOPPED, USEATTACH, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
@@ -630,6 +648,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_high", STOPPED, CREATE, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
@@ -672,6 +692,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_high", STOPPED, USEATTACH, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
@@ -714,6 +736,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_max", STOPPED, CREATE, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
@@ -756,6 +780,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_gcc_32_max", STOPPED, USEATTACH, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
@@ -798,6 +824,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -840,6 +868,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_none", STOPPED, USEATTACH, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
@@ -882,6 +912,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_low", STOPPED, CREATE, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
@@ -924,6 +956,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_low", STOPPED, USEATTACH, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
@@ -966,6 +1000,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_high", STOPPED, CREATE, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
@@ -1008,6 +1044,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_high", STOPPED, USEATTACH, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
@@ -1050,6 +1088,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_max", STOPPED, CREATE, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
@@ -1092,6 +1132,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_g++_32_max", STOPPED, USEATTACH, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));

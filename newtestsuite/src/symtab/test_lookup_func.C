@@ -173,16 +173,6 @@ test_results_t test_lookup_func_Mutator::executeTest()
                __FILE__, __LINE__, param->getName().c_str());
       return FAILED;
    }
-#if 0
-   Function *func = funcs[0];
-
-   if (func->getType() != Symbol::ST_FUNCTION)
-   {
-      logerror("[%s:%u] - Symbol test_lookup_func was not a function\n", 
-               __FILE__, __LINE__);
-      return FAILED;
-   }
-#endif
 
    return PASSED;
 }

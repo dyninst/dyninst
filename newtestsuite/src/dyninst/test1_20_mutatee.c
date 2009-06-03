@@ -45,12 +45,15 @@ static double globalVariable20_2 = 0.0;
  * Test #20 - instrumentation at arbitrary points
  */
 
-int test1_20_mutatee() {
+int test1_20_mutatee() 
+{
   int retval;
   int ret = 0;
   int int_val = 0;
   double double_val = 0.0;
+
   ret = test1_20_func2(&int_val, &double_val);
+
   if (globalVariable20_1 == (TEST20_A * TEST20_TIMES) &&
       eq_doubles(globalVariable20_2, (TEST20_B * (double)TEST20_TIMES)) &&
       int_val == (TEST20_C * TEST20_TIMES) &&
@@ -59,7 +62,9 @@ int test1_20_mutatee() {
     logerror("Passed test #20 (instrument arbitrary points)\n");
     test_passes(testname);
     retval = 0; /* Test passed */
-  } else {
+  } 
+  else 
+  {
     logerror("**Failed test #20 (instrument arbitrary points)\n");
     if (globalVariable20_1 != (TEST20_A * TEST20_TIMES))
       logerror("    globalVariable20_1 contained %d, not %d as expected\n",
@@ -116,7 +121,10 @@ int func20_3()
     return n++;
 }
 
-void test1_20_call1() {
+void test1_20_call1() 
+{
+	if (debugPrint)
+		fprintf(stderr, "%s[%d]:  welcome to test1_20_call1\n", __FILE__, __LINE__);
     globalVariable20_1 = ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+
 			 (ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+
 			 (ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+

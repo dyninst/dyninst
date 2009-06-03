@@ -54,191 +54,194 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
 #include "dyninst_comp.h"
+
 class test1_34_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_34_factory() {
-  return new test1_34_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_34_factory() 
+{
+	return new test1_34_Mutator();
 }
 
 static int numContainedLoops(BPatch_basicBlockLoop *loop)
 {
-    BPatch_Vector<BPatch_basicBlockLoop*> containedLoops;
-    loop->getContainedLoops(containedLoops);
+	BPatch_Vector<BPatch_basicBlockLoop*> containedLoops;
+	loop->getContainedLoops(containedLoops);
 
-    return containedLoops.size();
+	return containedLoops.size();
 }
 
 //
 // Start Test Case #34 - (loop information)
 //
-// static int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage)
-// {
-test_results_t test1_34_Mutator::executeTest() {
+
+test_results_t test1_34_Mutator::executeTest() 
+{
 #if !defined(os_windows_test)
-    unsigned int i;
+	unsigned int i;
 
-    BPatch_Vector<BPatch_function *> bpfv;
-    char *fn = "test1_34_func2";
-    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
-      logerror("**Failed** test #34 (loop information)\n");
-      logerror("    Unable to find function %s\n", fn);
-      return FAILED;
-    }
-    
-    BPatch_function *func2 = bpfv[0];
+	BPatch_Vector<BPatch_function *> bpfv;
+	char *fn = "test1_34_func2";
 
-    BPatch_flowGraph *cfg = func2->getCFG();
-    if (cfg == NULL) {
-	logerror("**Failed** test #34 (loop information)\n");
-	logerror("  Unable to get control flow graph of %s\n", fn);
-	return FAILED;
-    }
-
-    BPatch_Vector<BPatch_basicBlockLoop*> loops;
-    cfg->getLoops(loops);
-    if (loops.size() != 4) {
-	logerror("**Failed** test #34 (loop information)\n");
-	logerror("  Detected %d loops, should have been four.\n",
-		loops.size());
-	return FAILED;
-    }
-
-    /*
-     * Find the loop that contains two loops (that should be the outermost
-     * one).
-     */
-    BPatch_basicBlockLoop *outerLoop = NULL;
-    for (i = 0; i < loops.size(); i++) {
-	if (numContainedLoops(loops[i]) == 3) {
-	    outerLoop = loops[i];
-	    break;
+	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
+			|| NULL == bpfv[0])
+	{
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("    Unable to find function %s\n", fn);
+		return FAILED;
 	}
-    }
 
-    if (outerLoop == NULL) {
-	logerror("**Failed** test #34 (loop information)\n");
-	logerror("  Unable to find a loop containing two other loops.\n");
-	return FAILED;
-    }
+	BPatch_function *func2 = bpfv[0];
 
-//     if (numBackEdges(outerLoop) != 1) {
-// 	logerror("**Failed** test #34 (loop information)\n");
-// 	logerror("  There should be exactly one backedge in the outer loops, but there are %d\n", numBackEdges(outerLoop));
-// 	return FAILED;
-//     }
+	BPatch_flowGraph *cfg = func2->getCFG();
 
-    BPatch_Vector<BPatch_basicBlockLoop*> insideOuterLoop;
-    outerLoop->getContainedLoops(insideOuterLoop);
-    assert(insideOuterLoop.size() == 3);
-
-    bool foundFirstLoop = false;
-    int deepestLoops = 0;
-    for (i = 0; i < insideOuterLoop.size(); i++) {
-	BPatch_Vector<BPatch_basicBlockLoop*> tmpLoops;
-	insideOuterLoop[i]->getContainedLoops(tmpLoops);
-
-	if (tmpLoops.size() == 1) { /* The first loop has one nested inside. */
-	    if (foundFirstLoop) {
+	if (cfg == NULL) 
+	{
 		logerror("**Failed** test #34 (loop information)\n");
-		logerror("  Found more than one second-level loop with one nested inside.\n");
+		logerror("  Unable to get control flow graph of %s\n", fn);
 		return FAILED;
-	    }
-	    foundFirstLoop = true;
-
-// 	    if (numBackEdges(insideOuterLoop[i]) != 1) {
-// 		logerror("**Failed** test #34 (loop information)\n");
-// 		logerror("  There should be exactly one backedge in the first inner loop, but there are %d\n", numBackEdges(tmpLoops[0]));
-// 		return FAILED;
-// 	    }
-
-// 	    if (numBackEdges(tmpLoops[0]) != 1) {
-// 		logerror("**Failed** test #34 (loop information)\n");
-// 		logerror("  There should be exactly one backedge in the third level loop, but there are %d\n", numBackEdges(tmpLoops[0]));
-// 		return FAILED;
-// 	    }
-
-	    if (numContainedLoops(tmpLoops[0]) != 0) {
-		logerror("**Failed** test #34 (loop information)\n");
-		logerror("  The first loop at the third level should not have any loops nested inside,\n");
-		logerror("  but %d were detected.\n",
-			numContainedLoops(tmpLoops[0]));
-		return FAILED;
-	    }
-
-	} else if(tmpLoops.size() == 0) { /* The second loop has none nested. */
-	    if (deepestLoops >= 2) {
-		logerror("**Failed** test #34 (loop information)\n");
-		logerror("  Found more than two loops without any nested inside.\n");
-		return FAILED;
-	    }
-	    deepestLoops++;
-
-// 	    if (numBackEdges(insideOuterLoop[i]) != 1) {
-// 		logerror("**Failed** test #34 (loop information)\n");
-// 		logerror("  Unexpected number of backedges in loop (%d)\n", numBackEdges(insideOuterLoop[i]));
-// 		return FAILED;
-// 	    }
-	} else { /* All loops should be recognized above. */
-	    logerror("**Failed** test #34 (loop information)\n");
-	    logerror("  Found a loop containing %d loops, should be one or  none.\n", tmpLoops.size());
-	    return FAILED;
 	}
-    }
 
-    if (!foundFirstLoop || deepestLoops < 2) {
-	/* We shouldn't be able to get here. */
-	logerror("**Failed** test #34 (loop information)\n");
-	if (!foundFirstLoop)
-	    logerror("  Could not find the first nested loop.\n");
-	if (deepestLoops < 2)
-	    logerror("  Could not find all the deepest level loops.\n");
-	return FAILED;
-    }
+	BPatch_Vector<BPatch_basicBlockLoop*> loops;
+	cfg->getLoops(loops);
 
-    // test getOuterLoops
-    // i'd like to be able to swap the order of BPatch_flowGraph::loops
-    // around so that the hasAncestor code is tested
+	if (loops.size() != 4) 
+	{
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  Detected %d loops, should have been four.\n",
+				loops.size());
+		return FAILED;
+	}
 
-    BPatch_Vector<BPatch_basicBlockLoop*> outerLoops;
-    cfg->getOuterLoops(outerLoops);
+	/*
+	 * Find the loop that contains two loops (that should be the outermost
+	 * one).
+	 */
+	BPatch_basicBlockLoop *outerLoop = NULL;
 
-    if (outerLoops.size() != 1) {
-	logerror("**Failed** test #34 (loop information)\n");
-	logerror("  Detected %d outer loops, should have been one.\n",
-		outerLoops.size());
-	return FAILED;
-    }
+	for (i = 0; i < loops.size(); i++) 
+	{
+		if (numContainedLoops(loops[i]) == 3) 
+		{
+			outerLoop = loops[i];
+			break;
+		}
+	}
 
-    BPatch_Vector<BPatch_basicBlockLoop*> outerLoopChildren;
-    outerLoops[0]->getOuterLoops(outerLoopChildren);
+	if (outerLoop == NULL) 
+	{
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  Unable to find a loop containing two other loops.\n");
+		return FAILED;
+	}
 
-    if (outerLoopChildren.size() != 2) {
-	logerror("**Failed** test #34 (loop information)\n");
-	logerror("  Detected %d outer loops, should have been two.\n",
-		outerLoopChildren.size());
-	return FAILED;
-    }
+	BPatch_Vector<BPatch_basicBlockLoop*> insideOuterLoop;
+	outerLoop->getContainedLoops(insideOuterLoop);
+	assert(insideOuterLoop.size() == 3);
 
-    BPatch_Vector<BPatch_basicBlockLoop*> outerLoopGrandChildren0;
-    outerLoopChildren[0]->getOuterLoops(outerLoopGrandChildren0);
+	bool foundFirstLoop = false;
+	int deepestLoops = 0;
 
-    BPatch_Vector<BPatch_basicBlockLoop*> outerLoopGrandChildren1;
-    outerLoopChildren[1]->getOuterLoops(outerLoopGrandChildren1);
+	for (i = 0; i < insideOuterLoop.size(); i++) 
+	{
+		BPatch_Vector<BPatch_basicBlockLoop*> tmpLoops;
+		insideOuterLoop[i]->getContainedLoops(tmpLoops);
 
-    // one has no children, the other has 1 child
-    if (!((outerLoopGrandChildren0.size() == 0 || 
-	   outerLoopGrandChildren1.size() == 0) &&
-	  (outerLoopGrandChildren0.size() == 1 || 
-	   outerLoopGrandChildren1.size() == 1))) {
-	logerror("**Failed** test #34 (loop information)\n");
-	logerror("  Detected %d and %d outer loops, should have been zero and one.\n",
-		outerLoopGrandChildren0.size(), 
-		outerLoopGrandChildren1.size());
-	return FAILED;
+		if (tmpLoops.size() == 1)  /* The first loop has one nested inside. */
+		{
+			if (foundFirstLoop) 
+			{
+				logerror("**Failed** test #34 (loop information)\n");
+				logerror("  Found more than one second-level loop with one nested inside.\n");
+				return FAILED;
+			}
+			foundFirstLoop = true;
+
+			if (numContainedLoops(tmpLoops[0]) != 0) 
+			{
+				logerror("**Failed** test #34 (loop information)\n");
+				logerror("  The first loop at the third level should not have any loops nested inside,\n");
+				logerror("  but %d were detected.\n",
+						numContainedLoops(tmpLoops[0]));
+				return FAILED;
+			}
+
+		} 
+		else if (tmpLoops.size() == 0)  /* The second loop has none nested. */
+		{
+			if (deepestLoops >= 2) 
+			{
+				logerror("**Failed** test #34 (loop information)\n");
+				logerror("  Found more than two loops without any nested inside.\n");
+				return FAILED;
+			}
+			deepestLoops++;
+
+		} 
+		else 
+		{ /* All loops should be recognized above. */
+			logerror("**Failed** test #34 (loop information)\n");
+			logerror("  Found a loop containing %d loops, should be one or  none.\n", tmpLoops.size());
+			return FAILED;
+		}
+	}
+
+	if (!foundFirstLoop || deepestLoops < 2) 
+	{
+		/* We shouldn't be able to get here. */
+		logerror("**Failed** test #34 (loop information)\n");
+		if (!foundFirstLoop)
+			logerror("  Could not find the first nested loop.\n");
+		if (deepestLoops < 2)
+			logerror("  Could not find all the deepest level loops.\n");
+		return FAILED;
+	}
+
+	// test getOuterLoops
+	// i'd like to be able to swap the order of BPatch_flowGraph::loops
+	// around so that the hasAncestor code is tested
+
+	BPatch_Vector<BPatch_basicBlockLoop*> outerLoops;
+	cfg->getOuterLoops(outerLoops);
+
+	if (outerLoops.size() != 1) 
+	{
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  Detected %d outer loops, should have been one.\n",
+				outerLoops.size());
+		return FAILED;
+	}
+
+	BPatch_Vector<BPatch_basicBlockLoop*> outerLoopChildren;
+	outerLoops[0]->getOuterLoops(outerLoopChildren);
+
+	if (outerLoopChildren.size() != 2) 
+	{
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  Detected %d outer loops, should have been two.\n",
+				outerLoopChildren.size());
+		return FAILED;
+	}
+
+	BPatch_Vector<BPatch_basicBlockLoop*> outerLoopGrandChildren0;
+	outerLoopChildren[0]->getOuterLoops(outerLoopGrandChildren0);
+
+	BPatch_Vector<BPatch_basicBlockLoop*> outerLoopGrandChildren1;
+	outerLoopChildren[1]->getOuterLoops(outerLoopGrandChildren1);
+
+	// one has no children, the other has 1 child
+	if (!((outerLoopGrandChildren0.size() == 0 || 
+					outerLoopGrandChildren1.size() == 0) &&
+				(outerLoopGrandChildren0.size() == 1 || 
+				 outerLoopGrandChildren1.size() == 1))) 
+	{
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  Detected %d and %d outer loops, should have been zero and one.\n",
+				outerLoopGrandChildren0.size(), 
+				outerLoopGrandChildren1.size());
+		return FAILED;
     }
 
     return PASSED;

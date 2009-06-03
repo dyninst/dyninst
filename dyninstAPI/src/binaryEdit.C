@@ -517,6 +517,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             //inst_printf("Data not equivalent, %d, %s  load=0x%lx\n", 
             //i, oldSegs[i].name.c_str(), oldSegs[i].loadaddr);
             if (oldSegs[i].name == ".text") {
+            //if ((oldSegs[i].name == ".text") 
+             //|| (oldSegs[i].name == ".data")) {
                //inst_printf("  TEXT SEGMENT: old-base=0x%lx  old-size=%d  new-base=0x%lx  new-size=%d\n",
                //oldSegs[i].data, oldSegs[i].size, newSegs[i].data, newSegs[i].size);
                symObj->updateCode(newSegs[i].data,

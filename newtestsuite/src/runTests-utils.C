@@ -12,7 +12,7 @@
 
 extern string pdscrdir;
 
-int timeout = 600; /* seconds */
+int timeout = 1200; /* seconds */
 
 void initPIDFilename(char *buffer, size_t len) {
   snprintf(buffer, len, "pids.%d", getpid());
@@ -84,6 +84,7 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
       execvp("./test_driver", exec_args);
       exit(-4);
    } else {
+	  // fprintf(stderr, "%s[%d]:  forked new process %d\n", __FILE__, __LINE__, child_pid);
       // Parent
       // Install signal handler for a timer
       struct sigaction sigalrm_a;
@@ -114,6 +115,7 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
          // Wait for child to exit
          pid_t waiting_pid;
          int child_status;
+		 //fprintf(stderr, "%s[%d]:  before waitpid(%d)\n", __FILE__, __LINE__, child_pid);
          if (!timed_out && !interrupted) {
             // BUG I fear there's a race condition here, where I may not catch a
             // timeout if it occurs between the timed_out check and the call to
@@ -121,8 +123,16 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
             waiting_pid = waitpid(child_pid, &child_status, 0);
          }
 
-         if (timed_out) {
-            // Timed out..  timer.pl sets the return value to -1 for this case
+#if 0
+		 fprintf(stderr, "%s[%d]:  waitpid (%d): %s with %d\n", __FILE__, __LINE__, child_pid,
+				 WIFEXITED(child_status) ? "exited" : 
+				 WIFSIGNALED(child_status) ? "signaled" : "unknown",
+				 WIFEXITED(child_status) ? WEXITSTATUS(child_status) : 
+				 WIFSIGNALED(child_status) ? WTERMSIG(child_status) : -1);
+#endif
+
+		 if (timed_out) {
+			 // Timed out..  timer.pl sets the return value to -1 for this case
             fprintf(stderr,
                     "*** Process exceeded time limit.  Reaping children.\n");
             kill(child_pid, SIGKILL);
@@ -138,8 +148,8 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
          } else {
             // Do something with child_status
             if (WIFSIGNALED(child_status)) {
-               //fprintf(stderr, "*** Child terminated abnormally via signal %d.\n",
-               //WTERMSIG(child_status));
+               fprintf(stderr, "*** Child terminated abnormally via signal %d.\n",
+               WTERMSIG(child_status));
                retval = -2;
                break;
             } else if (WIFEXITED(child_status)) {
@@ -155,7 +165,11 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
       sigaction(SIGINT, &old_sigint_a, NULL);
 
       //Clean-up process group
-      kill(-1 * child_pid, SIGKILL);
+      if (-1 == kill(-1 * child_pid, SIGKILL))
+	  {
+		  //fprintf(stderr, "%s[%d]:  ERROR:  failed to kill %d: %s\n", 
+		//		  __FILE__, __LINE__, child_pid, strerror(errno));
+	  }
    }
 
    return retval; // FIXME Return the real return value

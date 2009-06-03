@@ -49,6 +49,7 @@ int test1_18_mutatee() {
     test_passes(testname);
     return 0; /* Test passed */
   } else {
+	  fprintf(stderr, "%s[%d]:  failing test1_18\n", __FILE__, __LINE__);
     return -1; /* Test failed */
   }
 }

@@ -98,6 +98,8 @@ mutatee('dyninst_group_test', ['test1_1_mutatee.c',
 	'test1_20_mutatee.c',
 	'test1_21_mutatee.c',
 	'test1_22_mutatee.c',
+	'snip_ref_shlib_var_mutatee.c',
+	'snip_change_shlib_var_mutatee.c',
 	'test1_23_mutatee.c',
 	'test1_24_mutatee.c',
 	'test1_25_mutatee.c',
@@ -173,7 +175,7 @@ mutator('test1_2', ['test1_2.C']).
 mutatee('test1_2', ['test1_2_mutatee.c']).
 compiler_for_mutatee('test1_2', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_2', 'dynamic').
+test_runmode('test1_2', 'staticdynamic').
 test_start_state('test1_2', 'stopped').
 tests_module('test1_2', 'dyninst').
 
@@ -182,7 +184,7 @@ test_description('test1_3', 'passing variables to a function').
 test_runs_everywhere('test1_3').
 groupable_test('test1_3').
 mutator('test1_3', ['test1_3.C']).
-test_runmode('test1_3', 'dynamic').
+test_runmode('test1_3', 'staticdynamic').
 test_start_state('test1_3', 'stopped').
 tests_module('test1_3', 'dyninst').
 
@@ -191,7 +193,7 @@ test_description('test1_4', 'instrument with a sequence').
 test_runs_everywhere('test1_4').
 groupable_test('test1_4').
 mutator('test1_4', ['test1_4.C']).
-test_runmode('test1_4', 'dynamic').
+test_runmode('test1_4', 'staticdynamic').
 test_start_state('test1_4', 'stopped').
 tests_module('test1_4', 'dyninst').
 
@@ -200,7 +202,7 @@ test_description('test1_5', 'instrument with if clause (no else)').
 test_runs_everywhere('test1_5').
 groupable_test('test1_5').
 mutator('test1_5', ['test1_5.C']).
-test_runmode('test1_5', 'dynamic').
+test_runmode('test1_5', 'staticdynamic').
 test_start_state('test1_5', 'stopped').
 tests_module('test1_5', 'dyninst').
 
@@ -209,7 +211,7 @@ test_description('test1_6', 'arithmetic operators').
 test_runs_everywhere('test1_6').
 groupable_test('test1_6').
 mutator('test1_6', ['test1_6.C']).
-test_runmode('test1_6', 'dynamic').
+test_runmode('test1_6', 'staticdynamic').
 test_start_state('test1_6', 'stopped').
 tests_module('test1_6', 'dyninst').
 
@@ -218,7 +220,7 @@ test_description('test1_7', 'relational operators').
 test_runs_everywhere('test1_7').
 groupable_test('test1_7').
 mutator('test1_7', ['test1_7.C']).
-test_runmode('test1_7', 'dynamic').
+test_runmode('test1_7', 'staticdynamic').
 test_start_state('test1_7', 'stopped').
 tests_module('test1_7', 'dyninst').
 
@@ -227,7 +229,7 @@ test_description('test1_8', 'verify that registers are preserved across inserted
 test_runs_everywhere('test1_8').
 groupable_test('test1_8').
 mutator('test1_8', ['test1_8.C']).
-test_runmode('test1_8', 'dynamic').
+test_runmode('test1_8', 'staticdynamic').
 test_start_state('test1_8', 'stopped').
 tests_module('test1_8', 'dyninst').
 
@@ -236,7 +238,7 @@ test_description('test1_9', 'verify that registers are preserved across inserted
 test_runs_everywhere('test1_9').
 groupable_test('test1_9').
 mutator('test1_9', ['test1_9.C']).
-test_runmode('test1_9', 'dynamic').
+test_runmode('test1_9', 'staticdynamic').
 test_start_state('test1_9', 'stopped').
 tests_module('test1_9', 'dyninst').
 
@@ -245,7 +247,7 @@ test_description('test1_10', 'inserted snippet order').
 test_runs_everywhere('test1_10').
 groupable_test('test1_10').
 mutator('test1_10', ['test1_10.C']).
-test_runmode('test1_10', 'dynamic').
+test_runmode('test1_10', 'staticdynamic').
 test_start_state('test1_10', 'stopped').
 tests_module('test1_10', 'dyninst').
 
@@ -254,7 +256,7 @@ test_description('test1_11', 'insert snippets at entry, exit, and call points').
 test_runs_everywhere('test1_11').
 groupable_test('test1_11').
 mutator('test1_11', ['test1_11.C']).
-test_runmode('test1_11', 'dynamic').
+test_runmode('test1_11', 'staticdynamic').
 test_start_state('test1_11', 'stopped').
 tests_module('test1_11', 'dyninst').
 
@@ -274,7 +276,7 @@ test_description('test1_13', 'paramExpr,retExpr,nullExpr').
 test_runs_everywhere('test1_13').
 groupable_test('test1_13').
 mutator('test1_13', ['test1_13.C']).
-test_runmode('test1_13', 'dynamic').
+test_runmode('test1_13', 'staticdynamic').
 test_start_state('test1_13', 'stopped').
 tests_module('test1_13', 'dyninst').
 
@@ -286,7 +288,7 @@ mutatee('test1_14', ['test1_14_mutatee.c']).
 % test1_14s mutatee can be compiled with any C or Fortran compiler
 compiler_for_mutatee('test1_14', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_14', 'dynamic').
+test_runmode('test1_14', 'staticdynamic').
 test_start_state('test1_14', 'stopped').
 tests_module('test1_14', 'dyninst').
 
@@ -306,7 +308,7 @@ test_description('test1_16', 'If else').
 test_runs_everywhere('test1_16').
 groupable_test('test1_16').
 mutator('test1_16', ['test1_16.C']).
-test_runmode('test1_16', 'dynamic').
+test_runmode('test1_16', 'staticdynamic').
 test_start_state('test1_16', 'stopped').
 tests_module('test1_16', 'dyninst').
 
@@ -315,7 +317,7 @@ test_description('test1_17', 'Verifies that instrumentation inserted at exit poi
 test_runs_everywhere('test1_17').
 groupable_test('test1_17').
 mutator('test1_17', ['test1_17.C']).
-test_runmode('test1_17', 'dynamic').
+test_runmode('test1_17', 'staticdynamic').
 test_start_state('test1_17', 'stopped').
 tests_module('test1_17', 'dyninst').
 
@@ -344,7 +346,7 @@ test_description('test1_20', 'Instrumentation at arbitrary points').
 test_runs_everywhere('test1_20').
 groupable_test('test1_20').
 mutator('test1_20', ['test1_20.C']).
-test_runmode('test1_20', 'dynamic').
+test_runmode('test1_20', 'staticdynamic').
 test_start_state('test1_20', 'stopped').
 tests_module('test1_20', 'dyninst').
 
@@ -353,7 +355,7 @@ test_description('test1_21', 'findFunction in module').
 test_runs_everywhere('test1_21').
 groupable_test('test1_21').
 mutator('test1_21', ['test1_21.C']).
-test_runmode('test1_21', 'dynamic').
+test_runmode('test1_21', 'staticdynamic').
 test_start_state('test1_21', 'stopped').
 tests_module('test1_21', 'dyninst').
 
@@ -367,12 +369,30 @@ test_runmode('test1_22', 'dynamic').
 test_start_state('test1_22', 'stopped').
 tests_module('test1_22', 'dyninst').
 
+test('snip_ref_shlib_var', 'snip_ref_shlib_var', 'dyninst_group_test').
+test_description('snip_ref_shlib_var', 'Inst references variable in shared lib').
+test_runs_everywhere('snip_ref_shlib_var').
+groupable_test('snip_ref_shlib_var').
+mutator('snip_ref_shlib_var', ['snip_ref_shlib_var.C']).
+test_runmode('snip_ref_shlib_var', 'staticdynamic').
+test_start_state('snip_ref_shlib_var', 'stopped').
+tests_module('snip_ref_shlib_var', 'dyninst').
+
+test('snip_change_shlib_var', 'snip_change_shlib_var', 'dyninst_group_test').
+test_description('snip_change_shlib_var', 'Inst modifies variable in shared lib').
+test_runs_everywhere('snip_change_shlib_var').
+groupable_test('snip_change_shlib_var').
+mutator('snip_change_shlib_var', ['snip_change_shlib_var.C']).
+test_runmode('snip_change_shlib_var', 'staticdynamic').
+test_start_state('snip_change_shlib_var', 'stopped').
+tests_module('snip_change_shlib_var', 'dyninst').
+
 test('test1_23', 'test1_23', 'dyninst_group_test').
 test_description('test1_23', 'Local Variables').
 test_runs_everywhere('test1_23').
 groupable_test('test1_23').
 mutator('test1_23', ['test1_23.C']).
-test_runmode('test1_23', 'dynamic').
+test_runmode('test1_23', 'staticdynamic').
 test_start_state('test1_23', 'stopped').
 tests_module('test1_23', 'dyninst').
 
@@ -381,7 +401,7 @@ test_description('test1_24', 'Array Variables').
 test_runs_everywhere('test1_24').
 groupable_test('test1_24').
 mutator('test1_24', ['test1_24.C']).
-test_runmode('test1_24', 'dynamic').
+test_runmode('test1_24', 'staticdynamic').
 test_start_state('test1_24', 'stopped').
 tests_module('test1_24', 'dyninst').
 
@@ -399,7 +419,7 @@ test_description('test1_26', 'Struct Elements').
 test_runs_everywhere('test1_26').
 groupable_test('test1_26').
 mutator('test1_26', ['test1_26.C']).
-test_runmode('test1_26', 'dynamic').
+test_runmode('test1_26', 'staticdynamic').
 test_start_state('test1_26', 'stopped').
 tests_module('test1_26', 'dyninst').
 
@@ -448,7 +468,7 @@ test_description('test1_31', 'Non-Recursive Base Tramp').
 test_runs_everywhere('test1_31').
 groupable_test('test1_31').
 mutator('test1_31', ['test1_31.C']).
-test_runmode('test1_31', 'dynamic').
+test_runmode('test1_31', 'staticdynamic').
 test_start_state('test1_31', 'stopped').
 tests_module('test1_31', 'dyninst').
 
@@ -457,7 +477,7 @@ test_description('test1_32', 'Recursive Base Tramp').
 test_runs_everywhere('test1_32').
 groupable_test('test1_32').
 mutator('test1_32', ['test1_32.C']).
-test_runmode('test1_32', 'dynamic').
+test_runmode('test1_32', 'staticdynamic').
 test_start_state('test1_32', 'stopped').
 tests_module('test1_32', 'dyninst').
 
@@ -513,7 +533,7 @@ spec_object_file(OFile, 'gcc',
 % test1_35s mutatee can be compiled with any C compiler
 compiler_for_mutatee('test1_35', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_35', 'dynamic').
+test_runmode('test1_35', 'staticdynamic').
 test_start_state('test1_35', 'stopped').
 restricted_amd64_abi('test1_35').
 tests_module('test1_35', 'dyninst').
@@ -523,7 +543,7 @@ test_description('test1_36', 'Callsite Parameter Referencing').
 test_runs_everywhere('test1_36').
 groupable_test('test1_36').
 mutator('test1_36', ['test1_36.C']).
-test_runmode('test1_36', 'dynamic').
+test_runmode('test1_36', 'staticdynamic').
 test_start_state('test1_36', 'stopped').
 tests_module('test1_36', 'dyninst').
 
@@ -532,7 +552,7 @@ test_description('test1_37', 'Instrument Loops').
 test_runs_everywhere('test1_37').
 groupable_test('test1_37').
 mutator('test1_37', ['test1_37.C']).
-test_runmode('test1_37', 'dynamic').
+test_runmode('test1_37', 'staticdynamic').
 test_start_state('test1_37', 'stopped').
 tests_module('test1_37', 'dyninst').
 
@@ -589,6 +609,17 @@ compiler_for_mutatee('test1_41', Compiler) :-
 test_runmode('test1_41', 'createProcess').
 test_start_state('test1_41', 'selfstart').
 tests_module('test1_41', 'dyninst').
+
+test('test_pt_ls', 'test_pt_ls', none).
+test_description('test_pt_ls', 'Run parseThat on ls').
+% test_pt_ls doesnt run on Windows
+test_platform('test_pt_ls', Platform) :-
+    platform(_, OS, _, Platform),
+    OS \= 'windows'.
+mutator('test_pt_ls', ['test_pt_ls.C']).
+test_runmode('test_pt_ls', 'staticdynamic').
+test_start_state('test_pt_ls', 'selfstart').
+tests_module('test_pt_ls', 'dyninst').
 
 test('test2_1', 'test2_1', none).
 test_description('test2_1', 'Run an executable that does not exist').
@@ -2809,9 +2840,9 @@ runmode('deserialize').
 % or createProcess mode.
 test_runmode(Test, 'useAttach') :- test_runmode(Test, 'dynamic').
 test_runmode(Test, 'createProcess') :- test_runmode(Test, 'dynamic').
+test_runmode(Test, 'binary') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'useAttach') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'createProcess') :- test_runmode(Test, 'staticdynamic').
-test_runmode(Test, 'binary') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'deserialize') :- test_serializable(Test).
 
 % runmode_platform/2

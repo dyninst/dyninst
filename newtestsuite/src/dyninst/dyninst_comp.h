@@ -49,6 +49,8 @@
 #include "BPatch_process.h"
 #include "BPatch_function.h"
 
+#define BINEDIT_DIR "./binaries"
+
 // Base class for the mutator part of a test
 class COMPLIB_DLL_EXPORT DyninstMutator : public TestMutator {
 public:
@@ -59,6 +61,8 @@ public:
   // FIXME This field (appImage) probably isn't necessary.  It looks looks like
   // appImage is easily derivable from appThread.
   BPatch_image *appImage;
+
+  create_mode_t runmode;
 
   DyninstMutator();
   virtual test_results_t setup(ParameterDict &param);
@@ -88,7 +92,7 @@ COMPLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage,
 // replaceFunctionCall.
 // Returns the number of replacements that were performed.
 //
-COMPLIB_DLL_EXPORT int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
+COMPLIB_DLL_EXPORT int replaceFunctionCalls(BPatch_addressSpace *appAddrSpace, BPatch_image *appImage,
                          const char *inFunction, const char *callTo, 
                          const char *replacement, int testNo, 
                          const char *testName, int callsExpected);
@@ -97,7 +101,7 @@ COMPLIB_DLL_EXPORT int replaceFunctionCalls(BPatch_thread *appThread, BPatch_ima
 // Insert "snippet" at the location "loc" in the function "inFunction."
 // Returns the value returned by BPatch_thread::insertSnippet.
 //
-COMPLIB_DLL_EXPORT BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
+COMPLIB_DLL_EXPORT BPatchSnippetHandle *insertSnippetAt(BPatch_addressSpace *appThread,
                                BPatch_image *appImage, const char *inFunction, 
                                BPatch_procedureLocation loc, 
                                BPatch_snippet &snippet,
@@ -107,7 +111,7 @@ COMPLIB_DLL_EXPORT BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread
 // Insert a snippet to call function "funcName" with no arguments into the
 // procedure "inFunction" at the points given by "loc."
 //
-COMPLIB_DLL_EXPORT int insertCallSnippetAt(BPatch_thread *appThread,
+COMPLIB_DLL_EXPORT int insertCallSnippetAt(BPatch_addressSpace *appAddrSpace,
                             BPatch_image *appImage, const char *inFunction,
                             BPatch_procedureLocation loc, const char *funcName,
                             int testNo, const char *testName);
@@ -123,13 +127,13 @@ COMPLIB_DLL_EXPORT int readyTest21or22(BPatch_thread *appThread,
 
 COMPLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);
 
-COMPLIB_DLL_EXPORT void instrument_entry_points( BPatch_thread * app_thread,
+COMPLIB_DLL_EXPORT void instrument_entry_points( BPatch_addressSpace * app_thread,
 			      BPatch_image * ,
 			      BPatch_function * func,
 			      BPatch_snippet * code );
 
 
-COMPLIB_DLL_EXPORT void instrument_exit_points( BPatch_thread * app_thread,
+COMPLIB_DLL_EXPORT void instrument_exit_points( BPatch_addressSpace * app_thread,
 			     BPatch_image * ,
 			     BPatch_function * func,
 			     BPatch_snippet * code );
