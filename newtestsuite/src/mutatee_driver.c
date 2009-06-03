@@ -360,7 +360,6 @@ int main(int iargc, char *argv[])
 #endif
       flushOutputLog();
 
-	  int elapsed = 0;
       while (!checkIfAttached()) {
 #if !defined(os_windows_test)
 		  struct timeval present_time;
