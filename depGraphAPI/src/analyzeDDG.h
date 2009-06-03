@@ -142,11 +142,14 @@ class DDGAnalyzer {
     // We need a data structure to represent definitions, since we need to handle
     // flags and the PC separately from anything else...
 
-    typedef struct {
+    class DefSet {
+public:
         AbslocSet gprs;
         AbslocSet flags;
         AbslocSet sprs;
         AbslocSet mem;
+
+        bool defPC_;
 
         class iterator {
             AbslocSet::iterator gI;
@@ -283,11 +286,12 @@ class DDGAnalyzer {
                                                      flags.end(), flags.end(),
                                                      sprs.begin(), sprs.end(),
                                                      mem.end(), mem.end()); }
-        
-    } DefSet;
+        DefSet() : defPC_(false) {};
+        bool defPC() const { return defPC_; };
+    };
 
 
-    typedef std::vector<cNode> cNodeSet;
+    typedef std::set<cNode> cNodeSet;
 
     // Temporary use: a data type for summarizing the definitions of Abslocs
     // from a particular block.
@@ -456,7 +460,7 @@ class DDGAnalyzer {
                          AbslocSet &used);
 
     void handlePushEquivalent(Address addr,
-                              InstructionAPI::RegisterAST::Ptr readReg,
+                              Absloc::Ptr read,
                               InstructionAPI::RegisterAST::Ptr SP,
                               NodeMap &worklist);
 

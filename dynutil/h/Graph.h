@@ -41,6 +41,7 @@
 #include <queue>
 
 #include "Annotatable.h"
+#include "Node.h"
 
 namespace Dyninst {
 class Edge;
@@ -90,6 +91,8 @@ class Graph : public AnnotatableSparse {
     virtual void insertEntryNode(NodePtr entry);
 
     void addNode(NodePtr node);
+
+    virtual void removeAnnotation() {};
 
  protected:
      

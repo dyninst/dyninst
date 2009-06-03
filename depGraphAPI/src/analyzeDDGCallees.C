@@ -71,7 +71,7 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
                                       Function *callee,
                                       DefMap &gens,
                                       KillMap &kills) {
-    assert(callee);
+    //assert(callee);
     AbslocSet abslocs;
 
     // Figure out what platform we're on...
@@ -90,11 +90,11 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EAX)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_ECX)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EDX)));
-
+#if 0
         for (unsigned i = r_OF; i <= r_RF; i++) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
-
+#endif
     }
     else {
         // amd-64...
@@ -129,7 +129,7 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         // kill information.
         updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 
@@ -201,7 +201,7 @@ void DDGAnalyzer::summarizeConservativeGenKill(Address placeholder,
         // will be treated as possible-defines.
         //updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 
@@ -265,7 +265,7 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
         // we don't update the kill set and leave it as a possibly-defined.
         //updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 
@@ -323,7 +323,7 @@ void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
         
         //updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 

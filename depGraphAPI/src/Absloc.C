@@ -60,6 +60,7 @@ void Absloc::getAbslocs(AbslocSet &locs) {
 }
 
 RegisterLoc::RegisterMap RegisterLoc::allRegLocs_;
+Absloc::Ptr RegisterLoc::pc_;
 
 void RegisterLoc::getRegisterLocs(AbslocSet &locs) {
     for (RegisterMap::iterator iter = allRegLocs_.begin(); iter != allRegLocs_.end(); iter++) {
@@ -78,11 +79,25 @@ Absloc::Ptr RegisterLoc::getRegLoc(const InstructionAPI::RegisterAST::Ptr reg) {
     // Look up by name and return    
     if (allRegLocs_.find(*container) == allRegLocs_.end()) {
         RegisterLoc::Ptr rP = RegisterLoc::Ptr(new RegisterLoc(container));
-
         allRegLocs_[*container] = rP;
+// Make sure we have a canonical PC, since < on a shared pointer is only
+// pointer uniqueness and nothing else...
+        if (rP->isPC())
+            pc_ = rP;
+
     }
     
     return allRegLocs_[*container];
+}
+
+Absloc::Ptr RegisterLoc::makePC() {
+    if (pc_) return pc_;
+    
+    // Make the register...
+    RegisterAST rPC = RegisterAST::makePC();
+    RegisterAST::Ptr rpPC = RegisterAST::Ptr(new RegisterAST(rPC));
+    pc_ = RegisterLoc::Ptr(new RegisterLoc(rpPC));
+    return pc_;
 }
 
 const int StackLoc::STACK_GLOBAL = MININT;

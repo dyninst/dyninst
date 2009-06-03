@@ -159,7 +159,7 @@ DDG::Ptr DDGAnalyzer::analyze() {
     // all points (instructions) and program variables. 
 
     // Create us a DDG
-    ddg = DDG::createGraph();
+    ddg = DDG::createGraph(func_);
 
     // For complexity and efficiency, we perform the initial analysis on
     // basic blocks and then do intra-block analysis to build the insn-level
@@ -175,7 +175,7 @@ DDG::Ptr DDGAnalyzer::analyze() {
     // Generate the reaching defs for each block
     generateInterBlockReachingDefs(entry[0]);
 
-    debugBlockDefs();
+    //debugBlockDefs();
 
     // inSets now contains the following:
     // FOR EACH Absloc A,
@@ -233,14 +233,14 @@ void DDGAnalyzer::summarizeBlockGenKill(Block *curBlock) {
          ++i) {
         const DefSet &writtenAbslocs = getDefinedAbslocs(i->first, i->second);
 
-        fprintf(stderr, "Insn at 0x%lx\n", i->second);
+        //fprintf(stderr, "Insn at 0x%lx\n", i->second);
         
         for (DefSet::iterator iter = writtenAbslocs.begin();
              iter != writtenAbslocs.end();
              ++iter) {                
             // We have two cases: if the absloc is precise or an alias (S_i vs S above)
             AbslocPtr D = *iter;
-            fprintf(stderr, "\t%s, %d\n", D->format().c_str(), allKills[curBlock][D]);
+            //fprintf(stderr, "\t%s, %d\n", D->format().c_str(), allKills[curBlock][D]);
             if (allKills[curBlock][D]) {
                 // We have already definitely defined
                 // this absloc (as it was killed), so
@@ -273,14 +273,14 @@ void DDGAnalyzer::updateDefSet(const AbslocPtr D,
                                cNode &cnode) {
     AbslocSet aliases = D->getAliases();
 
-    defMap[D].push_back(cnode);
+    defMap[D].insert(cnode);
 
     for (AbslocSet::iterator al = aliases.begin();
          al != aliases.end(); ++al) {
         // This handles both the S case if we have a precise
         // absloc, as well as S_1, ..., S_n if we have an imprecise
         // absloc. 
-        defMap[*al].push_back(cnode);
+        defMap[*al].insert(cnode);
     }
 }
 
@@ -333,7 +333,7 @@ void DDGAnalyzer::generateInterBlockReachingDefs(Block *entry) {
         Block *working = worklist.front();
         worklist.pop();
 
-        fprintf(stderr, "Considering block 0x%lx\n", working->getStartAddress());
+        //fprintf(stderr, "Considering block 0x%lx\n", working->getStartAddress());
 
         // Calculate the new in set 
 
@@ -345,8 +345,8 @@ void DDGAnalyzer::generateInterBlockReachingDefs(Block *entry) {
         
         merge(inSets[working], preds);
 
-        fprintf(stderr, "New in set:\n");
-        debugDefMap(inSets[working], "\t");
+        //fprintf(stderr, "New in set:\n");
+        //debugDefMap(inSets[working], "\t");
 
         // Now: newIn = U (j \in pred) OUT(j)
         
@@ -356,8 +356,11 @@ void DDGAnalyzer::generateInterBlockReachingDefs(Block *entry) {
                    allGens[working], 
                    allKills[working],
                    inSets[working]);
-        fprintf(stderr, "New out set: \n");
-        debugDefMap(newOut, "\t");
+        //fprintf(stderr, "Old out set: \n");
+        //debugDefMap(outSets[working], "\t");
+
+        //fprintf(stderr, "New out set: \n");
+        //debugDefMap(newOut, "\t");
 
         if (newOut != outSets[working]) {
             outSets[working] = newOut;
@@ -383,8 +386,6 @@ void DDGAnalyzer::generateInterBlockReachingDefs(Block *entry) {
 
 void DDGAnalyzer::merge(DefMap &target,
                         const BlockSet &preds) {
-    fprintf(stderr, "Merge over %d blocks\n", preds.size());
-
     std::map<Absloc::Ptr, unsigned> beenDefined;
 
     for (BlockSet::const_iterator iter = preds.begin(); iter != preds.end(); ++iter) {
@@ -394,7 +395,7 @@ void DDGAnalyzer::merge(DefMap &target,
              iter != source.end(); ++iter) {
             const Absloc::Ptr A = (*iter).first;
             
-            target[A].insert(target[A].end(), source[A].begin(), source[A].end());
+            target[A].insert(source[A].begin(), source[A].end());
             beenDefined[A]++;
             
             if (!A->isPrecise()) {
@@ -404,8 +405,7 @@ void DDGAnalyzer::merge(DefMap &target,
                      a_iter != aliases.end(); ++a_iter) {
                     
                     if (source.find(*a_iter) == source.end()) {
-                        target[*a_iter].insert(target[*a_iter].end(),
-                                               source[A].begin(), 
+                        target[*a_iter].insert(source[A].begin(), 
                                                source[A].end());
                     }
                 }
@@ -415,7 +415,7 @@ void DDGAnalyzer::merge(DefMap &target,
     for (std::map<Absloc::Ptr, unsigned>::const_iterator iter = beenDefined.begin();
          iter != beenDefined.end(); ++iter) {
         if (iter->second != preds.size())
-            target[iter->first].push_back(cNode(0, iter->first, formalParam));
+            target[iter->first].insert(cNode(0, iter->first, formalParam));
     }
 
 }
@@ -456,8 +456,7 @@ void DDGAnalyzer::calcNewOut(DefMap &out,
             // We don't explicitly kill this, so take the union
             // of local generation with the INs. 
             out[A] = gens[A];
-            out[A].insert(out[A].end(),
-                          in[A].begin(), 
+            out[A].insert(in[A].begin(), 
                           in[A].end());
         }
     }
@@ -526,9 +525,9 @@ void DDGAnalyzer::generateBlockNodes(Block *B) {
                            def,
                            localReachingDefs);
 
-        fprintf(stderr, "After 0x%lx, localReachingDefs:\n",
-                addr);
-        debugDefMap(localReachingDefs, "\t");
+        //fprintf(stderr, "After 0x%lx, localReachingDefs:\n",
+        //        addr);
+        //debugDefMap(localReachingDefs, "\t");
         
         if (isCall(I)) {
             // Therefore we don't need to care about localReachingDefs
@@ -578,10 +577,6 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
     // This is a map from <used absloc> to <nodes that use that absloc>
     NodeMap worklist;
 
-    bool hasExplicitlyDefinedPC = false;
-
-    
-
     // Non-PC handling section
     switch(I.getOperation().getID()) {
     case e_push: {
@@ -591,18 +586,33 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         std::vector<Operand> operands;
         I.getOperands(operands);
 
-        // According to the InstructionAPI, the first operand will be the explicit register, the second will be ESP.
+        // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
         assert(operands.size() == 2);
 
-        std::set<RegisterAST::Ptr> readRegs;
-        operands[0].getReadSet(readRegs);
-        RegisterAST::Ptr reg = *(readRegs.begin());
+        // The argument can be any of the following:
+        // 1) a register (push eax);
+        // 2) an immediate value (push $deadbeef)
+        // 3) a memory location. 
+        Absloc::Ptr arg;
+        if (operands[0].readsMemory()) {
+            // Evaluate 
+        }
+        else {
+            std::set<RegisterAST::Ptr> readRegs;
+            operands[0].getReadSet(readRegs);
+            if (!readRegs.empty()) {
+                RegisterAST::Ptr reg = *(readRegs.begin());
+                arg = getAbsloc(reg);
+            }
+        }
+        // Otherwise arg defaults to NULL
 
-        readRegs.clear();
-        operands[1].getReadSet(readRegs);
-        RegisterAST::Ptr sp = *(readRegs.begin());
+        std::set<RegisterAST::Ptr> spRegs;
+        operands[1].getReadSet(spRegs);
+        assert(!spRegs.empty());
+        RegisterAST::Ptr sp = *(spRegs.begin());
 
-        handlePushEquivalent(addr, reg, sp, worklist);
+        handlePushEquivalent(addr, arg, sp, worklist);
         
     }
         break;
@@ -620,7 +630,8 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
                 pc = *iter;
             else assert(0);
         }
-        handlePushEquivalent(addr, pc, sp, worklist);
+        Absloc::Ptr aPC = getAbsloc(pc);
+        handlePushEquivalent(addr, aPC, sp, worklist);
         break;
     }
     case e_pop: {
@@ -690,7 +701,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         // This works because leave has a size of 1. It's ugly. I should fix this...
         Absloc::Ptr aStack = getAbsloc(*(memReads.begin()), addr+1);
 
-        fprintf(stderr, "%s, %s, %s\n", aSP->format().c_str(), aBP->format().c_str(), aStack->format().c_str());
+        //fprintf(stderr, "%s, %s, %s\n", aSP->format().c_str(), aBP->format().c_str(), aStack->format().c_str());
 
         Node::Ptr nSP = makeNode(cNode(addr, aSP));
         Node::Ptr nBP = makeNode(cNode(addr, aBP));
@@ -737,7 +748,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
             }
         }
     }
-
+#if 0
     // Now for flags...
     // According to Matt, the easiest way to represent dependencies for flags on 
     // IA-32/AMD-64 is to have them depend on the inputs to the instruction and 
@@ -752,16 +763,61 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
             worklist[U].push_back(T);
         }
     }
-
+#endif
     // PC-handling section
-    // TODO FIXME
-    fprintf(stderr, "Creating nodes for addr 0x%lx\n", addr);
+// Most instructions use the PC to set the PC. This includes calls, relative branches,
+// and the like. So we're basically looking for indirect branches or absolute branches.
+// (are there absolutes on IA-32?).
+// Also, conditional branches and the flag registers they use. 
+
+    if (def.defPC()) {
+    // We're some sort of branch...
+        switch(I.getOperation().getID()) {
+            case e_ret_near:
+            case e_ret_far: {
+                // Read top of stack, define PC
+                std::set<RegisterAST::Ptr> regs = I.getOperation().implicitReads();
+// Only one thing read...
+                RegisterAST::Ptr sp = *(regs.begin());
+                Absloc::Ptr aStack = getAbsloc(sp, addr); 
+
+                Absloc::Ptr aPC = RegisterLoc::makePC();
+                NodePtr T = makeNode(cNode(addr, aPC));
+                worklist[aStack].push_back(T);
+                break;
+            }
+            default:
+                  // Whatever is in the operands gets used... PC gets written
+                   Absloc::Ptr aPC = RegisterLoc::makePC();
+                   NodePtr T = makeNode(cNode(addr, aPC));
+                   std::vector<Operand> operands;
+                   I.getOperands(operands);
+                   for (unsigned i = 0; i < operands.size(); ++i) {
+                       std::set<RegisterAST::Ptr> regs;
+                       operands[i].getWriteSet(regs);
+                       for (std::set<RegisterAST::Ptr>::iterator r_iter = regs.begin();
+                       r_iter != regs.end(); r_iter++) {
+                           Absloc::Ptr a_r = getAbsloc(*r_iter);
+                           worklist[a_r].push_back(T);
+                       }
+                   }
+        }
+    }
+    else {
+        Absloc::Ptr aPC = RegisterLoc::makePC();
+        NodePtr T = makeNode(cNode(addr, aPC));
+        worklist[aPC].push_back(T);
+    }
+
+    
+    
+    //fprintf(stderr, "Creating nodes for addr 0x%lx\n", addr);
     // And now hook up reaching definitions
     for (NodeMap::iterator e_iter = worklist.begin(); e_iter != worklist.end(); ++e_iter) {
         for (NodeVec::iterator n_iter = e_iter->second.begin();
              n_iter != e_iter->second.end(); ++n_iter) {
              NodePtr T = *n_iter;
-             fprintf(stderr, "\tNode %s\n", T->format().c_str());
+             //fprintf(stderr, "\tNode %s\n", T->format().c_str());
              AbslocPtr U = e_iter->first;
 
             if (localReachingDefs[U].empty()) {
@@ -771,14 +827,14 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
                 NodePtr S = makeNode(tmp);
                 ddg->insertEntryNode(S);
                 ddg->insertPair(S, T);
-                fprintf(stderr, "\t\t from parameter node %s\n", S->format().c_str());
+                //fprintf(stderr, "\t\t from parameter node %s\n", S->format().c_str());
             }
             else {
                 for (cNodeSet::iterator c_iter = localReachingDefs[U].begin();
                      c_iter != localReachingDefs[U].end(); ++c_iter) {
                     NodePtr S = makeNode(*c_iter);
 
-                    fprintf(stderr, "\t\t %s\n", S->format().c_str());
+                    //fprintf(stderr, "\t\t %s\n", S->format().c_str());
                     
                     // Sidestep: if S is a formal parameter node ensure that it's in the
                     // set of entry nodes.
@@ -795,9 +851,9 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
     }
 }
 
-void DDGAnalyzer::updateReachingDefs(const Address &addr,
-                                     const DefSet &def,
-                                     DefMap &localReachingDefs) {
+void DDGAnalyzer::updateReachingDefs(const Address &addr, 
+                                     const DefSet &def, 
+                                     DefMap &localReachingDefs) { 
     // We now update localReachingDefs. If we do it in the previous
     // loop we can get errors. Consider this example:
     // 
@@ -983,15 +1039,15 @@ Absloc::Ptr DDGAnalyzer::getAbsloc(const InstructionAPI::Expression::Ptr exp,
         if (isStack) {
             Result res = exp->eval();
 
-            fprintf(stderr, "Evaluating stack height for addr 0x%lx: ", addr);
+            //fprintf(stderr, "Evaluating stack height for addr 0x%lx: ", addr);
 
             int slot;
             if (res.defined && convertResultToSlot(res, slot)) {
-                fprintf(stderr, "%d\n", slot);
+                //fprintf(stderr, "%d\n", slot);
                 return StackLoc::getStackLoc(slot);
             }
             else {
-                fprintf(stderr, "%s\n", "???");
+                //fprintf(stderr, "%s\n", "???");
                 return StackLoc::getStackLoc();
             }
         }
@@ -1045,7 +1101,7 @@ void DDGAnalyzer::getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
 
     // Registers are nice and easy. The next clause is for memory... now
     // that sucks.
-
+    
     for (std::set<RegisterAST::Ptr>::const_iterator w = regWrites.begin();
          w != regWrites.end();
          ++w) {
@@ -1053,10 +1109,18 @@ void DDGAnalyzer::getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
         RegisterLoc::Ptr r = dynamic_pointer_cast<RegisterLoc>(a);
         if (r->isFlag())
             defs.flags.insert(a);
-        else if (r->isPC()) 
+        else if (r->isPC()) {
             defs.sprs.insert(a);
+            defs.defPC_ = true;
+        }
         else 
             defs.gprs.insert(a);
+    }
+
+    if (!defs.defPC_) {
+// InstructionAPI doesn't explicitly present PC writes in normal fall-through
+// execution. We can safely assume that all instructions update the PC, though...
+        defs.sprs.insert(RegisterLoc::makePC());
     }
 
     // Also handle memory writes
@@ -1352,7 +1416,7 @@ InstructionAPI::RegisterAST::Ptr DDGAnalyzer::makeRegister(int id) {
  **********************************************************/
 
 void DDGAnalyzer::debugAbslocSet(const AbslocSet &a,
-                                             char *str) {
+                                 char *str) {
     fprintf(stderr, "%s Abslocs:\n", str);
     for (AbslocSet::const_iterator iter = a.begin();
          iter != a.end();
@@ -1415,13 +1479,12 @@ void DDGAnalyzer::debugBlockDefs() {
 //
 
 void DDGAnalyzer::handlePushEquivalent(Address addr,
-                                       RegisterAST::Ptr readReg,
+                                       Absloc::Ptr read,
                                        RegisterAST::Ptr sp,
                                        NodeMap &worklist) {
+    assert(sp);
     // Stack pointer...
     AbslocPtr aSP = getAbsloc(sp);
-    // Read register...
-    AbslocPtr aReg = getAbsloc(readReg);
     // And top of the stack. 
     Absloc::Ptr aStack = getAbsloc(sp, addr);
     
@@ -1437,7 +1500,10 @@ void DDGAnalyzer::handlePushEquivalent(Address addr,
     Node::Ptr nStack = makeNode(cNode(addr, aStack));
     
     worklist[aSP].push_back(nSP);
-    worklist[aReg].push_back(nStack);
+    if (read) {
+        // If we push an immediate this may be nothing...
+        worklist[read].push_back(nStack);
+    }
     ddg->insertPair(nSP, nStack);
 }
 
