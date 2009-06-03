@@ -57,13 +57,13 @@
 #include "dyninst_comp.h"
 
 class test1_19_Mutator : public DyninstMutator {
-  BPatch *bpatch;
 
   virtual bool hasCustomExecutionPath() { return true; }
-  virtual test_results_t setup(ParameterDict &param);
   virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_19_factory() {
+
+extern "C" DLLEXPORT  TestMutator *test1_19_factory() 
+{
   return new test1_19_Mutator();
 }
 
@@ -77,24 +77,29 @@ static void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
 //
 // Start Test Case #19 - mutator side (oneTimeCode)
 //
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
-test_results_t test1_19_Mutator::executeTest() {
+
+test_results_t test1_19_Mutator::executeTest() 
+{
     // Avoid a race condition in fast & loose mode
-    while (!appThread->isStopped()) {
-      bpatch->waitForStatusChange();
+
+    while (!appThread->isStopped()) 
+	{
+		BPatch::bpatch->waitForStatusChange();
     }
 
     appThread->continueExecution();
-    // RETURNONFAIL(waitUntilStopped(bpatch, appThread, 19, "oneTimeCode"));
-    if (waitUntilStopped(bpatch, appThread, 19, "oneTimeCode") < 0) {
+
+    if (waitUntilStopped(BPatch::bpatch, appThread, 19, "oneTimeCode") < 0) 
+	{
       return FAILED;
     }
 
     BPatch_Vector<BPatch_function *> bpfv;
     char *fn = "test1_19_call1";
+
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
+	|| NULL == bpfv[0])
+	{
       logerror("    Unable to find function %s\n", fn);
       return FAILED;
     }
@@ -111,15 +116,18 @@ test_results_t test1_19_Mutator::executeTest() {
     appThread->continueExecution();
 
     // Wait for the next test
-    // RETURNONFAIL(waitUntilStopped(bpatch, appThread, 19, "oneTimeCode"));
-    if (waitUntilStopped(bpatch, appThread, 19, "oneTimeCode") < 0) {
+
+    if (waitUntilStopped(BPatch::bpatch, appThread, 19, "oneTimeCode") < 0) 
+	{
       return FAILED;
     }
 
     bpfv.clear();
     char *fn2 = "test1_19_call2";
+
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
+	|| NULL == bpfv[0])
+	{
       logerror("    Unable to find function %s\n", fn2);
       return FAILED;
     }
@@ -133,13 +141,13 @@ test_results_t test1_19_Mutator::executeTest() {
 
     // Register a callback that will set the flag callbackFlag
     BPatchOneTimeCodeCallback oldCallback = 
-       bpatch->registerOneTimeCodeCallback(test19_oneTimeCodeCallback);
+       BPatch::bpatch->registerOneTimeCodeCallback(test19_oneTimeCodeCallback);
 
     appThread->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
 
     while (!appThread->isTerminated() && !appThread->isStopped() )
     {
-       bpatch->waitForStatusChange();
+		BPatch::bpatch->waitForStatusChange();
     }
     
     // Continue mutatee after one-time code runs
@@ -149,27 +157,8 @@ test_results_t test1_19_Mutator::executeTest() {
     while (!appThread->isTerminated() && !callbackFlag) ;
 
     // Restore old callback (if there was one)
-    bpatch->registerOneTimeCodeCallback(oldCallback);
+	BPatch::bpatch->registerOneTimeCodeCallback(oldCallback);
 
     return PASSED;
 } // test1_19_Mutator::executeTest()
 
-// External Interface
-// extern "C" TEST_DLL_EXPORT int test1_19_mutatorMAIN(ParameterDict &param)
-// {
-test_results_t test1_19_Mutator::setup(ParameterDict &param) {
-    bool useAttach = param["useAttach"]->getInt();
-    bpatch = (BPatch *)(param["bpatch"]->getPtr());
-    appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-    // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
-
-    if ( useAttach )
-    {
-      if ( ! signalAttached(appThread, appImage) )
-         return FAILED;
-    }
-
-    return PASSED;
-}

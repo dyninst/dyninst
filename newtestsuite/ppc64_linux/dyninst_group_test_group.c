@@ -3,6 +3,8 @@ extern "C" {
 #endif
 #include "../src/mutatee_call_info.h"
 
+extern int snip_change_shlib_var_mutatee();
+extern int snip_ref_shlib_var_mutatee();
 extern int test1_1_mutatee();
 extern int test1_10_mutatee();
 extern int test1_11_mutatee();
@@ -43,6 +45,8 @@ extern int test2_5_mutatee();
 extern int test2_7_mutatee();
 
 mutatee_call_info_t mutatee_funcs[] = {
+  {"snip_change_shlib_var", snip_change_shlib_var_mutatee, GROUPED, "snip_change_shlib_var"},
+  {"snip_ref_shlib_var", snip_ref_shlib_var_mutatee, GROUPED, "snip_ref_shlib_var"},
   {"test1_1", test1_1_mutatee, GROUPED, "test1_1"},
   {"test1_10", test1_10_mutatee, GROUPED, "test1_10"},
   {"test1_11", test1_11_mutatee, GROUPED, "test1_11"},
@@ -83,9 +87,9 @@ mutatee_call_info_t mutatee_funcs[] = {
   {"test2_7", test2_7_mutatee, GROUPED, "test2_7"}
 };
 
-int max_tests = 38;
-int runTest[38];
-int passedTest[38];
+int max_tests = 40;
+int runTest[40];
+int passedTest[40];
 #ifdef __cplusplus
 }
 #endif

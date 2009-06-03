@@ -53,86 +53,76 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
-// static BPatch *bpatch;
-
 #include "dyninst_comp.h"
 
 class test1_15_Mutator : public DyninstMutator {
-  BPatch *bpatch;
 
-  virtual bool hasCustomExecutionPath() { return true; }
-  virtual test_results_t setup(ParameterDict &param);
-  virtual test_results_t executeTest();
-  int mutatorTest15a();
-  int mutatorTest15b();
+	virtual bool hasCustomExecutionPath() { return true; }
+	virtual test_results_t executeTest();
+	int mutatorTest15a();
+	int mutatorTest15b();
 };
-extern "C" DLLEXPORT  TestMutator *test1_15_factory() {
-  return new test1_15_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_15_factory() 
+{
+	return new test1_15_Mutator();
 }
 
 //
 // Start Test Case #15 - mutator side (setMutationsActive)
 //
-int test1_15_Mutator::mutatorTest15a() {
-    RETURNONFAIL(insertCallSnippetAt(appThread, appImage, "test1_15_func2",
-				     BPatch_entry, "test1_15_call1", 15,
-				     "setMutationsActive"));
 
-    RETURNONFAIL(replaceFunctionCalls(appThread, appImage, "test1_15_func4",
-				      "test1_15_func3",	"test1_15_call3", 15,
-				      "setMutationsActive", 1));
+int test1_15_Mutator::mutatorTest15a() 
+{
+	BPatch_process *proc = appThread->getProcess();
+	assert(proc);
 
-    return 0;
+	RETURNONFAIL(insertCallSnippetAt(proc, appImage, "test1_15_func2",
+				BPatch_entry, "test1_15_call1", 15,
+				"setMutationsActive"));
+
+	RETURNONFAIL(replaceFunctionCalls(proc, appImage, "test1_15_func4",
+				"test1_15_func3",	"test1_15_call3", 15,
+				"setMutationsActive", 1));
+
+	return 0;
 }
 
-// static int mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
-// {
-int test1_15_Mutator::mutatorTest15b() {
-    RETURNONFAIL(waitUntilStopped(bpatch, appThread, 15, "setMutationsActive"));
+int test1_15_Mutator::mutatorTest15b() 
+{
+	RETURNONFAIL(waitUntilStopped(BPatch::bpatch, appThread, 15, "setMutationsActive"));
 
-    // disable mutations and continue process
-    appThread->setMutationsActive(false);
-    appThread->continueExecution();
-    
-    RETURNONFAIL(waitUntilStopped(bpatch, appThread, 15, "setMutationsActive"));
+	// disable mutations and continue process
+	appThread->setMutationsActive(false);
+	appThread->continueExecution();
 
-    // re-enable mutations and continue process
-    appThread->setMutationsActive(true);
-    appThread->continueExecution();
+	RETURNONFAIL(waitUntilStopped(BPatch::bpatch, appThread, 15, "setMutationsActive"));
 
-    return 0;
+	// re-enable mutations and continue process
+	appThread->setMutationsActive(true);
+	appThread->continueExecution();
+
+	return 0;
 }
 
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
-test_results_t test1_15_Mutator::executeTest() {
-  if (mutatorTest15a() != 0) {
-    return FAILED;
-  }
-  while (!appThread->isStopped()) { 
-    bpatch->waitForStatusChange();
-  }
-  appThread->continueExecution();
-  if (mutatorTest15b() != 0) {
-    return FAILED;
-  }
-  return PASSED;
-}
+test_results_t test1_15_Mutator::executeTest() 
+{
+	if (mutatorTest15a() != 0) 
+	{
+		return FAILED;
+	}
 
-test_results_t test1_15_Mutator::setup(ParameterDict &param) {
-    bool useAttach = param["useAttach"]->getInt();
-    bpatch = (BPatch *)(param["bpatch"]->getPtr());
-    appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+	while (!appThread->isStopped()) 
+	{
+		BPatch::bpatch->waitForStatusChange();
+	}
 
-    // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
+	appThread->continueExecution();
 
-    if ( useAttach )
-    {
-      if ( ! signalAttached(appThread, appImage) )
-         return FAILED;
-    }
+	if (mutatorTest15b() != 0) 
+	{
+		return FAILED;
+	}
 
-    return PASSED;
+	return PASSED;
 }

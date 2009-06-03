@@ -34,14 +34,14 @@ fullSystem	+= dyninstAPI/tests
 endif
 
 ifndef DONT_BUILD_NEWTESTSUITE
-testsuites += newtestsuite
-allSubdirs_noinstall += newtestsuite
-fullSystem += newtestsuite
-Build_list += newtestsuite
+testsuites += newtestsuite parseThat
+allSubdirs_noinstall += newtestsuite 
+fullSystem += newtestsuite parseThat
+Build_list += newtestsuite parseThat
 endif
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI depGraphAPI
-allSubdirs	= $(allCoreSubdirs) testsuites valueAdded/sharedMem
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem
 
 # We're not building the new test suite on all platforms yet
 
@@ -163,13 +163,13 @@ $(allSubdirs):
 	fi
 
 $(allSubdirs_noinstall):
-	@echo "***allSubdirs_noinstall***"
+	echo "***allSubdirs_noinstall***"
 	+@if [ -f $@/$(PLATFORM)/Makefile ]; then \
 		$(MAKE) -C $@/$(PLATFORM); \
 	elif [ -f $@/Makefile ]; then \
 		$(MAKE) -C $@; \
 	else \
-		@echo $@ has no Makefile; \
+		echo $@ has no Makefile; \
 		false; \
 	fi
 
@@ -180,11 +180,11 @@ coreSubdirs_explicitInstall = $(patsubst %,install_%,$(allCoreSubdirs))
 
 $(allSubdirs_explicitInstall): install_%: %
 	+@if [ -f $(@:install_%=%)/$(PLATFORM)/Makefile ]; then \
-		$(MAKE) -C $(@:install_%=%)/$(PLATFORM) install \
+		$(MAKE) -C $(@:install_%=%)/$(PLATFORM) install; \
 	elif [ -f $(@:install_%=%)/Makefile ]; then \
 		$(MAKE) -C $(@:install_%=%) install; \
 	else \
-		@echo $(@:install_%=%) has no Makefile; \
+		echo $(@:install_%=%) has no Makefile; \
 		true; \
 	fi
 
@@ -195,7 +195,7 @@ $(coreSubdirs_explicitInstall): install_%: %
 	elif [ -f $(@:install_%=%)/Makefile ]; then \
 		$(MAKE) -C $(@:install_%=%) install; \
 	else \
-		@echo $(@:install_%=%) has no Makefiles; \
+		echo $(@:install_%=%) has no Makefiles; \
 		true; \
 	fi
 # dependencies -- keep parallel make from building out of order
@@ -205,6 +205,8 @@ dyninstAPI: symtabAPI instructionAPI
 symtabAPI dyninstAPI: dynutil
 dyner codeCoverage dyninstAPI/tests testsuite newtestsuite: dyninstAPI
 newtestsuite: $(coreSubdirs_explicitInstall)
+newtestsuite: parseThat
+parseThat: $(coreSubdirs_explicitInstall)
 depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 

@@ -54,93 +54,105 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-
 #include "dyninst_comp.h"
+
 class test1_5_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_5_factory() {
-  return new test1_5_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_5_factory() 
+{
+	return new test1_5_Mutator();
 }
 
 //
 // Start Test Case #5 - mutator side (if w.o. else)
 //
-test_results_t test1_5_Mutator::executeTest() {
-  // Find the entry point to the procedure "func5_2"
-  const char *funcName = "test1_5_func2";
 
-  BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction(funcName, found_funcs))
-      || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n", funcName);
-    return FAILED;
-  }
-  
-  if (1 < found_funcs.size()) {
-    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	     __FILE__, __LINE__, found_funcs.size(), funcName);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point5_1 = found_funcs[0]->findPoint(BPatch_entry);  
+test_results_t test1_5_Mutator::executeTest() 
+{
+	// Find the entry point to the procedure "func5_2"
+	const char *funcName = "test1_5_func2";
 
-  if (!point5_1 || ((*point5_1).size() == 0)) {
-    logerror("Unable to find entry point to \"%s\".\n", funcName);
-    return FAILED;
-  }
+	BPatch_Vector<BPatch_function *> found_funcs;
+	if ((NULL == appImage->findFunction(funcName, found_funcs))
+			|| !found_funcs.size()) 
+	{
+		logerror("    Unable to find function %s\n", funcName);
+		return FAILED;
+	}
 
-  const char *funcName2 = "test1_5_func1";
-  BPatch_Vector<BPatch_function *> found_funcs2;
-  if ((NULL == appImage->findFunction(funcName2, found_funcs2))
-      || !found_funcs2.size()) {
-    logerror("    Unable to find function %s\n", funcName2);
-    return FAILED;
-  }
-  
-  if (1 < found_funcs2.size()) {
-    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	     __FILE__, __LINE__, found_funcs2.size(), funcName2);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point5_2 = found_funcs2[0]->findPoint(BPatch_subroutine);  
-    
-  if (!point5_2 || ((*point5_2).size() == 0)) {
-    logerror("Unable to find subroutine call points in \"%s\".\n", funcName2);
-    return FAILED;
-  }
-  
-  const char *globalVar1 = "test1_5_globalVariable5_1";
-  const char *globalVar2 = "test1_5_globalVariable5_2";
-  BPatch_variableExpr *expr5_1 = findVariable (appImage, globalVar1, point5_2);
-  BPatch_variableExpr *expr5_2 = findVariable (appImage, globalVar2, point5_2);
+	if (1 < found_funcs.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs.size(), funcName);
+	}
 
-  if (!expr5_1 || !expr5_2) {
-    logerror("**Failed** test #5 (1f w.o. else)\n");
-    logerror("    Unable to locate variable %s or ", globalVar1);
-    logerror("    variable %s\n", globalVar2);
-    return FAILED;
-  }
+	BPatch_Vector<BPatch_point *> *point5_1 = found_funcs[0]->findPoint(BPatch_entry);  
 
-  BPatch_Vector<BPatch_snippet*> vect5_1;
+	if (!point5_1 || ((*point5_1).size() == 0)) 
+	{
+		logerror("Unable to find entry point to \"%s\".\n", funcName);
+		return FAILED;
+	}
 
-  // if (0 == 1) globalVariable5_1 = 52;
-  BPatch_ifExpr expr5_3(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0),
-					BPatch_constExpr(1)), 
+	const char *funcName2 = "test1_5_func1";
+	BPatch_Vector<BPatch_function *> found_funcs2;
+
+	if ((NULL == appImage->findFunction(funcName2, found_funcs2))
+			|| !found_funcs2.size()) 
+	{
+		logerror("    Unable to find function %s\n", funcName2);
+		return FAILED;
+	}
+
+	if (1 < found_funcs2.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs2.size(), funcName2);
+	}
+
+	BPatch_Vector<BPatch_point *> *point5_2 = found_funcs2[0]->findPoint(BPatch_subroutine);  
+
+	if (!point5_2 || ((*point5_2).size() == 0)) 
+	{
+		logerror("Unable to find subroutine call points in \"%s\".\n", funcName2);
+		return FAILED;
+	}
+
+	const char *globalVar1 = "test1_5_globalVariable5_1";
+	const char *globalVar2 = "test1_5_globalVariable5_2";
+	BPatch_variableExpr *expr5_1 = findVariable (appImage, globalVar1, point5_2);
+	BPatch_variableExpr *expr5_2 = findVariable (appImage, globalVar2, point5_2);
+
+	if (!expr5_1 || !expr5_2) 
+	{
+		logerror("**Failed** test #5 (1f w.o. else)\n");
+		logerror("    Unable to locate variable %s or ", globalVar1);
+		logerror("    variable %s\n", globalVar2);
+		return FAILED;
+	}
+
+	BPatch_Vector<BPatch_snippet*> vect5_1;
+
+	// if (0 == 1) globalVariable5_1 = 52;
+	BPatch_ifExpr expr5_3(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(0),
+				BPatch_constExpr(1)), 
 			BPatch_arithExpr(BPatch_assign, *expr5_1,
-					 BPatch_constExpr(52)));
+				BPatch_constExpr(52)));
 
-  // if (1 == 1) globalVariable5_2 = 53;
-  BPatch_ifExpr expr5_4(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(1),
-					BPatch_constExpr(1)), 
+	// if (1 == 1) globalVariable5_2 = 53;
+	BPatch_ifExpr expr5_4(BPatch_boolExpr(BPatch_eq, BPatch_constExpr(1),
+				BPatch_constExpr(1)), 
 			BPatch_arithExpr(BPatch_assign, *expr5_2,
-					 BPatch_constExpr(53)));
+				BPatch_constExpr(53)));
 
-  vect5_1.push_back(&expr5_3);
-  vect5_1.push_back(&expr5_4);
+	vect5_1.push_back(&expr5_3);
+	vect5_1.push_back(&expr5_4);
 
-  BPatch_sequence expr5_5(vect5_1);
-  checkCost(expr5_5);
-  appThread->insertSnippet(expr5_5, *point5_1);
+	BPatch_sequence expr5_5(vect5_1);
+	checkCost(expr5_5);
+	appAddrSpace->insertSnippet(expr5_5, *point5_1);
 
-  return PASSED;
+	return PASSED;
 }
