@@ -40,8 +40,8 @@ int srsv1(int x)
 int snip_ref_shlib_var_mutatee()
 {
 	int failed = 0;
-	//  mutator instruments srsv1 entry with assignments from variables in 
-	//  a shared library (libtestB)
+	/*  mutator instruments srsv1 entry with assignments from variables in 
+	    a shared library (libtestB) */
 
 	int dont_care = 0;
 	dont_care = srsv1(5);
