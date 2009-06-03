@@ -24,10 +24,10 @@ int scsv1(int x)
 
 int snip_change_shlib_var_mutatee()
 {
-	//  mutator instruments scsv1 entry and exit to (1) modify a global variable
-	//  in a shared library (libtestB), and (2) to call a function in that library
-	//  that returns 1 if the change was successful and 0 otherwise.  The result
-	//  of this function call is put in gv_scsv1;
+	/*  mutator instruments scsv1 entry and exit to (1) modify a global variable
+       in a shared library (libtestB), and (2) to call a function in that library
+       that returns 1 if the change was successful and 0 otherwise.  The result
+       of this function call is put in gv_scsv1; */
 
 	int dont_care = 0;
 	dont_care = scsv1(5);

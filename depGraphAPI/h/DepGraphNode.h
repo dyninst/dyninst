@@ -67,7 +67,8 @@ class OperationNode : public PhysicalNode {
 
     virtual ~OperationNode() {};
     virtual Node::Ptr copy();
-    
+
+ 
  private:
     OperationNode(Address addr, Absloc::Ptr absloc) :
         PhysicalNode(addr), absloc_(absloc) {};
@@ -101,7 +102,8 @@ class BlockNode : public Node {
     
     virtual Block *block() { return block_; }
     virtual Node::Ptr copy();
-    
+
+
  private:
     BlockNode(Block *b);
     
@@ -109,7 +111,7 @@ class BlockNode : public Node {
  };
 
 
-class FormalNode : public Node {
+class FormalNode : public VirtualNode {
     
     
  public:
@@ -122,9 +124,7 @@ class FormalNode : public Node {
     //bool isVirtual() const { return insn(); }
     
     virtual std::string format() const = 0;
-    
-    virtual bool isVirtual() const { return true; } 
-    
+        
     virtual ~FormalNode() {};
     
  protected:
@@ -146,6 +146,7 @@ class FormalParamNode : public FormalNode {
     
     virtual ~FormalParamNode() {};
     virtual Node::Ptr copy();
+
     
  private:
     FormalParamNode(Absloc::Ptr a) :
@@ -165,6 +166,7 @@ class FormalReturnNode : public FormalNode {
     
     virtual ~FormalReturnNode() {};
     virtual Node::Ptr copy();
+
     
  private:
     FormalReturnNode(Absloc::Ptr a) :
@@ -172,7 +174,7 @@ class FormalReturnNode : public FormalNode {
 };
 
 
-class ActualNode : public Node {
+class ActualNode : public VirtualNode {
     
     
  public:
@@ -212,6 +214,7 @@ class ActualParamNode : public ActualNode {
     virtual std::string format() const;
     virtual ~ActualParamNode() {};
     virtual Node::Ptr copy();
+
  private:
     ActualParamNode(Address addr, 
                     Function *func,
@@ -229,6 +232,8 @@ class ActualReturnNode : public ActualNode {
     virtual std::string format() const;
     virtual ~ActualReturnNode() {};
     virtual Node::Ptr copy();
+
+
  private:
     ActualReturnNode(Address addr, 
                      Function *func,
@@ -249,6 +254,8 @@ class CallNode : public Node {
     virtual ~CallNode() {};
     Function *func() const { return func_; }    
     virtual Node::Ptr copy();
+
+
  private:
     CallNode(Function *func) : 
         func_(func) {};

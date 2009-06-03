@@ -71,6 +71,7 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
                                       Function *callee,
                                       DefMap &gens,
                                       KillMap &kills) {
+    //assert(callee);
     AbslocSet abslocs;
 
     // Figure out what platform we're on...
@@ -89,11 +90,11 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EAX)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_ECX)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_EDX)));
-        /*
+#if 0
         for (unsigned i = r_OF; i <= r_RF; i++) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
-        */
+#endif
     }
     else {
         // amd-64...
@@ -106,15 +107,15 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_R11)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RDI)));
         abslocs.insert(RegisterLoc::getRegLoc(makeRegister(r_RSI)));
-        /*
+
         for (unsigned i = r_OF; i <= r_RF; i++) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
-        */
+
     }
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
+         ++iter) {
         Absloc::Ptr D = *iter;
         // We need to make a virtual node on our side
         // representing the definition made by the child.
@@ -128,7 +129,7 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
         // kill information.
         updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 
@@ -153,15 +154,15 @@ void DDGAnalyzer::summarizeConservativeGenKill(Address placeholder,
         
         // Defines everything (but doesn't kill)
         
-        for (unsigned i = r_EAX; i <= r_EDI; i++) {
+        for (unsigned i = r_EAX; i <= r_EDI; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_ESP; i <= r_EBP; i++) {
+        for (unsigned i = r_ESP; i <= r_EBP; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_OF; i <= r_RF; i++) {
+        for (unsigned i = r_OF; i <= r_RF; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
@@ -169,19 +170,19 @@ void DDGAnalyzer::summarizeConservativeGenKill(Address placeholder,
 
     }
     else {
-        for (unsigned i = r_RAX; i <= r_RDI; i++) {
+        for (unsigned i = r_RAX; i <= r_RDI; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_RSP; i <= r_RBP; i++) {
+        for (unsigned i = r_RSP; i <= r_RBP; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_R8; i <= r_R15; i++) {
+        for (unsigned i = r_R8; i <= r_R15; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_OF; i <= r_RF; i++) {
+        for (unsigned i = r_OF; i <= r_RF; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
     }
@@ -200,7 +201,7 @@ void DDGAnalyzer::summarizeConservativeGenKill(Address placeholder,
         // will be treated as possible-defines.
         //updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 
@@ -225,9 +226,9 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
         for (std::vector<std::pair<Insn,Address> >::iterator j = insns.begin();
              j != insns.end(); 
              j++) {
-            AbslocSet writtenAbslocs = getDefinedAbslocs(j->first, j->second);
+            DefSet writtenAbslocs = getDefinedAbslocs(j->first, j->second);
 
-            for (AbslocSet::iterator k = writtenAbslocs.begin(); k != writtenAbslocs.end(); k++) {
+            for (DefSet::iterator k = writtenAbslocs.begin(); k != writtenAbslocs.end(); ++k) {
                 Absloc::Ptr D = *k;
                 // We need to make a virtual node on our side
                 // representing the definition made by the child.
@@ -250,7 +251,7 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
     }
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
+         ++iter) {
         Absloc::Ptr D = *iter;
         // We need to make a virtual node on our side
         // representing the definition made by the child.
@@ -264,7 +265,7 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
         // we don't update the kill set and leave it as a possibly-defined.
         //updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 
@@ -283,7 +284,7 @@ void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
     NodeIterator begin, end;
     cDDG->formalReturnNodes(begin, end);
 
-    for (; begin != end; begin++) {
+    for (; begin != end; ++begin) {
         FormalReturnNode::Ptr p = dyn_detail::boost::dynamic_pointer_cast<FormalReturnNode> (*begin);
         if (!p) continue;
         Absloc::Ptr D = p->absloc();
@@ -303,7 +304,7 @@ void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
     }
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
+         ++iter) {
         Absloc::Ptr D = *iter;
         // We need to make a virtual node on our side
         // representing the definition made by the child.
@@ -322,7 +323,7 @@ void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
         
         //updateKillSet(D, kills);
 
-        actualReturnMap_[placeholder].push_back(cnode);
+        actualReturnMap_[placeholder].insert(cnode);
 
     }
 
@@ -363,7 +364,7 @@ void DDGAnalyzer::summarizeABIUsed(Address placeholder,
     }
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
+         ++iter) {
         Absloc::Ptr U = *iter;
 
         // Create an actualParameterNode for each absloc and hook up edges
@@ -377,7 +378,7 @@ void DDGAnalyzer::summarizeABIUsed(Address placeholder,
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
         if (tmp != reachingDefs.end()) {
             for (cNodeSet::const_iterator c_iter = tmp->second.begin();
-                 c_iter != tmp->second.end(); c_iter++) {
+                 c_iter != tmp->second.end(); ++c_iter) {
                 NodePtr S = makeNode(*c_iter);
                 // By definition we know S is in nodes
                 ddg->insertPair(S,T);
@@ -415,34 +416,34 @@ void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
         
         // Defines everything (but doesn't kill)
         
-        for (unsigned i = r_EAX; i <= r_EDI; i++) {
+        for (unsigned i = r_EAX; i <= r_EDI; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_ESP; i <= r_EBP; i++) {
+        for (unsigned i = r_ESP; i <= r_EBP; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_OF; i <= r_RF; i++) {
+        for (unsigned i = r_OF; i <= r_RF; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
         
         abslocs.insert(StackLoc::getStackLoc());
     }
     else {
-        for (unsigned i = r_RAX; i <= r_RDI; i++) {
+        for (unsigned i = r_RAX; i <= r_RDI; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_RSP; i <= r_RBP; i++) {
+        for (unsigned i = r_RSP; i <= r_RBP; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_R8; i <= r_R15; i++) {
+        for (unsigned i = r_R8; i <= r_R15; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
-        for (unsigned i = r_OF; i <= r_RF; i++) {
+        for (unsigned i = r_OF; i <= r_RF; ++i) {
             abslocs.insert(RegisterLoc::getRegLoc(makeRegister(i)));
         }
 
@@ -450,7 +451,7 @@ void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
     }
 
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
+         ++iter) {
         Absloc::Ptr U = *iter;
 
         // Create an actualParameterNode for each absloc and hook up edges
@@ -464,7 +465,7 @@ void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
         if (tmp != reachingDefs.end()) {
             for (cNodeSet::const_iterator c_iter = tmp->second.begin();
-                 c_iter != tmp->second.end(); c_iter++) {
+                 c_iter != tmp->second.end(); ++c_iter) {
                 NodePtr S = makeNode(*c_iter);
                 // By definition we know S is in nodes
                 ddg->insertPair(S,T);
@@ -495,16 +496,16 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
     BlockSet blocks;
     callee->getCFG()->getAllBasicBlocks(blocks);
 
-    for (BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
+    for (BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
         std::vector<std::pair<Insn, Address> > insns;
         (*iter)->getInstructions(insns);
 
         for (std::vector<std::pair<Insn,Address> >::iterator j = insns.begin();
              j != insns.end(); 
-             j++) {
+             ++j) {
             AbslocSet readAbslocs = getUsedAbslocs(j->first, j->second);
 
-            for (AbslocSet::iterator k = readAbslocs.begin(); k != readAbslocs.end(); k++) {
+            for (AbslocSet::iterator k = readAbslocs.begin(); k != readAbslocs.end(); ++k) {
                 Absloc::Ptr U = *k;
                 // We need to make a virtual node on our side
                 // representing the definition made by the child.
@@ -527,7 +528,7 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
     }
     
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
+         ++iter) {
         Absloc::Ptr U = *iter;
 
         // Create an actualParameterNode for each absloc and hook up edges
@@ -541,7 +542,7 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
         if (tmp != reachingDefs.end()) {
             for (cNodeSet::const_iterator c_iter = tmp->second.begin();
-                 c_iter != tmp->second.end(); c_iter++) {
+                 c_iter != tmp->second.end(); ++c_iter) {
                 NodePtr S = makeNode(*c_iter);
                 // By definition we know S is in nodes
                 ddg->insertPair(S,T);
@@ -574,7 +575,7 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
     NodeIterator begin, end;
     cDDG->formalParameterNodes(begin, end);
     
-    for (; begin != end; begin++) {
+    for (; begin != end; ++begin) {
         FormalParamNode::Ptr p = dyn_detail::boost::dynamic_pointer_cast<FormalParamNode> (*begin);
         if (!p) continue;
         Absloc::Ptr U = p->absloc();
@@ -594,7 +595,7 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
     }
     
     for (AbslocSet::iterator iter = abslocs.begin(); iter != abslocs.end();
-         iter++) {
+         ++iter) {
         Absloc::Ptr U = *iter;
 
         // Create an actualParameterNode for each absloc and hook up edges
@@ -608,7 +609,7 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
         DefMap::const_iterator tmp = reachingDefs.find(*iter);
         if (tmp != reachingDefs.end()) {
             for (cNodeSet::const_iterator c_iter = tmp->second.begin();
-                 c_iter != tmp->second.end(); c_iter++) {
+                 c_iter != tmp->second.end(); ++c_iter) {
                 NodePtr S = makeNode(*c_iter);
                 // By definition we know S is in nodes
                 ddg->insertPair(S,T);

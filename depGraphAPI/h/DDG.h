@@ -82,15 +82,17 @@ class DDG : public Graph {
     bool actualParamNodes(Address call, NodeIterator &begin, NodeIterator &end);
     bool actualReturnNodes(Address call, NodeIterator &begin, NodeIterator &end);
 
-    static Ptr createGraph() { return DDG::Ptr(new DDG()); }
+    static Ptr createGraph(Function *func) { return DDG::Ptr(new DDG(func)); }
 
     Node::Ptr virtualEntryNode() { return virtEntryNode_; }
 
     virtual void insertEntryNode(NodePtr entry);
+
+    virtual void removeAnnotation();
     
  private:
 
-    DDG();
+    DDG(Function *func);
 
     // Assertion: only parameter nodes will have no in-edges,
     // by definition.
@@ -104,6 +106,8 @@ class DDG : public Graph {
 
     NodeMap callParamNodes_;
     NodeMap callReturnNodes_;
+
+    Function *func_;
 };
 
 };

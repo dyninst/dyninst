@@ -89,6 +89,7 @@ Node::Ptr FormalParamNode::copy() {
     return Node::Ptr(new FormalParamNode(absloc()));
 }
 
+
 std::string FormalParamNode::format() const {
     char buf[256];
     sprintf(buf, "N_Param_%s_",
@@ -103,6 +104,7 @@ Node::Ptr FormalReturnNode::createNode(Absloc::Ptr absloc) {
 Node::Ptr FormalReturnNode::copy() {
     return Node::Ptr(new FormalReturnNode(absloc()));
 }
+
 
 std::string FormalReturnNode::format() const {
     char buf[256];
