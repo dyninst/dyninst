@@ -89,7 +89,7 @@ BPatch_snippet * snip_ref_shlib_var_Mutator::doVarAssign(const char *to, const c
 
 	if (!to_v)
 	{
-		fprintf(stderr, "%s[%d]:  failed to find var %s\n", FILE__, __LINE__, to);
+		logerror("%s[%d]:  failed to find var %s\n", FILE__, __LINE__, to);
 		return NULL;
 	}
 
@@ -97,7 +97,7 @@ BPatch_snippet * snip_ref_shlib_var_Mutator::doVarAssign(const char *to, const c
 
 	if (!from_v)
 	{
-		fprintf(stderr, "%s[%d]:  failed to find var %s\n", FILE__, __LINE__, from);
+		logerror("%s[%d]:  failed to find var %s\n", FILE__, __LINE__, from);
 		return NULL;
 	}
 
@@ -119,7 +119,7 @@ test_results_t snip_ref_shlib_var_Mutator::mutatorTest()
 
 	if (!funcs.size())
 	{
-		fprintf(stderr, "%s[%d]:  failed to find function %s\n", 
+		logerror("%s[%d]:  failed to find function %s\n", 
 				FILE__, __LINE__, inst_func_name);
 		return FAILED;
 	}
@@ -130,7 +130,7 @@ test_results_t snip_ref_shlib_var_Mutator::mutatorTest()
 
 	if (!pts || !pts->size())
 	{
-		fprintf(stderr, "%s[%d]:   failed to find entry point to %s\n", 
+		logerror("%s[%d]:   failed to find entry point to %s\n", 
 				FILE__, __LINE__, inst_func_name);
 		return FAILED;
 	}
@@ -170,7 +170,7 @@ test_results_t snip_ref_shlib_var_Mutator::mutatorTest()
 
 	if (!appAddrSpace->insertSnippet(my_ass, *entry_point))
 	{
-		fprintf(stderr, "%s[%d]:  failed to insert snippet\n", FILE__, __LINE__);
+		logerror("%s[%d]:  failed to insert snippet\n", FILE__, __LINE__);
 		return FAILED;
 	}
 

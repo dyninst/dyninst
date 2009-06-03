@@ -94,8 +94,15 @@ UNCOMMON_INSTALL=true
 
 install: all
 
+# try not to have clean remove dbghelp.dll
 clean: 
-	$(RM) *.ilk *.exp *.lib *.obj *.dll *.exe *.pdb
+	$(RM) *.ilk
+	$(RM) *.exp 
+	$(RM) *.lib 
+	$(RM) *.obj 
+	$(RM)	$(TESTDRIVER_LIBS) libtestA.dll libtestB.dll
+	$(RM) *.exe 
+	$(RM) *.pdb
 
 # Old Install commands if we actually want to install
 # -$(MKDIR) $(DEST)

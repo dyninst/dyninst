@@ -211,10 +211,10 @@ test_results_t test1_21_Mutator::executeTest()
 
 	pointer_size = pointerSize(appImage);
 #endif
-	strncpy(libNameA, libNameAroot, 128);
-	addLibArchExt(libNameA,128, pointer_size);
-	strncpy(libNameB, libNameBroot, 128);
-	addLibArchExt(libNameB,128, pointer_size);
+	strncpy(libNameA, libNameAroot, 127);
+	addLibArchExt(libNameA,127, pointer_size);
+	strncpy(libNameB, libNameBroot, 127);
+	addLibArchExt(libNameB,127, pointer_size);
 
 	char libA[128], libB[128];
 	snprintf(libA, 128, "./%s", libNameA);

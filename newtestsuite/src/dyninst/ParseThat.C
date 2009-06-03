@@ -93,7 +93,7 @@ test_results_t ParseThat::pt_execute(std::vector<std::string> &pt_args)
 
 #if defined (os_windows_test)
 	
-	fprintf(stderr, "%s[%d]:  skipping parseThat test for this platform for now\n", 
+	logerror("%s[%d]:  skipping parseThat test for this platform for now\n", 
 			FILE__, __LINE__);
 	return SKIPPED;
 	
@@ -107,7 +107,7 @@ test_results_t ParseThat::pt_execute(std::vector<std::string> &pt_args)
 		sprintf(cmdbuf, "%s %s", cmdbuf, pt_args[i].c_str());
 	}
 
-	fprintf(stderr, "%s[%d]:  about to issue parseThat command: \n\t\t'%s'\n", 
+	logerror("%s[%d]:  about to issue parseThat command: \n\t\t'%s'\n", 
 			FILE__, __LINE__, cmdbuf);
 
 	int res = system(cmdbuf);
@@ -117,17 +117,17 @@ test_results_t ParseThat::pt_execute(std::vector<std::string> &pt_args)
 		short status = WEXITSTATUS(res);
 		if (0 != status)
 		{
-			fprintf(stderr, "%s[%d]:  parseThat cmd failed with code %d\n", 
+			logerror("%s[%d]:  parseThat cmd failed with code %d\n", 
 					FILE__, __LINE__, status);
 			return FAILED;
 		}
 	}
 	else
 	{
-		fprintf(stderr, "%s[%d]:  parseThat cmd failed\n", FILE__, __LINE__);
+		logerror("%s[%d]:  parseThat cmd failed\n", FILE__, __LINE__);
 		if (WIFSIGNALED(res))
 		{
-			fprintf(stderr, "%s[%d]:  received signal %d\n", FILE__, __LINE__, WTERMSIG(res));
+			logerror("%s[%d]:  received signal %d\n", FILE__, __LINE__, WTERMSIG(res));
 		}
 		return FAILED;
 	}
@@ -145,7 +145,7 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 	{
 		result = mkdir(BINEDIT_DIR, 0700);
 		if (result == -1) {
-			perror("Could not mkdir " BINEDIT_DIR);
+			logerror("%s[%d]: Could not mkdir %s: %s\n ", FILE__, __LINE__, BINEDIT_DIR,strerror(errno) );
 			return FAILED;
 		}
 	}
@@ -153,7 +153,7 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 	std::vector<std::string> pt_args;
 	if (!setup_args(pt_args))
 	{
-		fprintf(stderr, "%s[%d]:  failed to setup parseThat args\n", FILE__, __LINE__);
+		logerror("%s[%d]:  failed to setup parseThat args\n", FILE__, __LINE__);
 		return FAILED;
 	}
 
@@ -190,7 +190,7 @@ test_results_t ParseThat::operator()(int pid)
 	std::vector<std::string> pt_args;
 	if (!setup_args(pt_args))
 	{
-		fprintf(stderr, "%s[%d]:  failed to setup parseThat args\n", FILE__, __LINE__);
+		logerror("%s[%d]:  failed to setup parseThat args\n", FILE__, __LINE__);
 		return FAILED;
 	}
 

@@ -117,10 +117,10 @@ test_results_t test1_23_Mutator::executeTest()
 			assert(f);
 			BPatch_Vector<BPatch_localVar *> *lvars = f->getVars();
 			assert(lvars);
-			fprintf(stderr, "%s[%d]:  have vars\n", FILE__, __LINE__);
+			logerror("%s[%d]:  have vars\n", FILE__, __LINE__);
 			for (unsigned int i = 0; i < lvars->size(); ++i)
 			{
-				fprintf(stderr, "\t%s\n", (*lvars)[i]->getName());
+				logerror("\t%s\n", (*lvars)[i]->getName());
 			}
 		}
 		if (!var2)

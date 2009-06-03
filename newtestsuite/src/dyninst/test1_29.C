@@ -145,7 +145,8 @@ test_results_t test1_29_Mutator::executeTest()
 
 	assert (point29_1);
 
-	BPatch_variableExpr *expr29_1 = findVariable(appImage, "test1_29_globalVariable1", point29_1);
+	//BPatch_variableExpr *expr29_1 = findVariable(appImage, "test1_29_globalVariable1", point29_1);
+	BPatch_variableExpr *expr29_1 = appImage->findVariable("test1_29_globalVariable1");
 
 	if (expr29_1 == NULL) 
 	{
@@ -156,6 +157,12 @@ test_results_t test1_29_Mutator::executeTest()
 	setExpectError(DYNINST_NO_ERROR);
 
 	int n = 1;
-	expr29_1->writeValue(&n,true);
+	if (!expr29_1->writeValue(&n,true))
+	{
+		logerror("**Failed** test #29 (class BPatch_srcObj)\n");
+		logerror("    Unable to write test1_29_globalVariable1\n");
+		return FAILED;
+	}
+
 	return PASSED;
 }
