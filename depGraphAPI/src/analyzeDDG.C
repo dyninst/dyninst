@@ -732,9 +732,22 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         handlePopEquivalent(addr, pc, sp, worklist);
     }
         break;
-        // Mass register save instructions...
-        // pusha
-        // popa...
+    case e_xchg: {
+        // xchg defines two abslocs, and uses them as appropriate...
+        AbslocSet::iterator iter = def.gprs.begin(); 
+        AbslocPtr D1 = *iter;
+        iter++;
+        AbslocPtr D2 = *iter;
+        assert(D1);
+        assert(D2);
+        
+        NodePtr T1 = makeNode(cNode(addr, D1));
+        NodePtr T2 = makeNode(cNode(addr, D2));
+        worklist[D1].push_back(T2);
+        worklist[D2].push_back(T1);
+        break;
+        }
+        
     default:
         // Assume full intra-dependence of non-flag and non-pc registers. 
         const AbslocSet &used = getUsedAbslocs(I, addr);
