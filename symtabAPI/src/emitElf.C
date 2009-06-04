@@ -1370,13 +1370,14 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
+#if !defined(os_solaris)
   //Initialize the list of new prereq libraries
   set<string> &plibs = obj->getObject()->prereq_libs;
   for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
      DT_NEEDEDEntries.push_back(*i);
   }
   new_dynamic_entries = obj->getObject()->new_dynamic_entries;
-
+#endif
   // recreate a "dummy symbol"
   Elf32_Sym *sym = new Elf32_Sym();
   symbolStrs.push_back("");
