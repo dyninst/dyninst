@@ -2,10 +2,13 @@
 .type dyninstTrapHandler, @function
 dyninstTrapHandler:
         pushf
-        pushl %ebp    
+        pushl %ebp
         movl %esp, %ebp
+        call __i686.get_pc_thunk.bx
+        addl $_GLOBAL_OFFSET_TABLE_, %ebx
         call .Lnext_insn
 .Lnext_insn:
+        movl (%esp),%ebx
         addl $.Lret_point-.Lnext_insn,(%esp)
         pushl 0x4(%ebp) 
         pushl 0x14(%ebp)

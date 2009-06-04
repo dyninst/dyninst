@@ -29,6 +29,7 @@ install: $(INSTALL_TARGETS)
 $(LOCAL_INCLUDE_DEST)/%.h: $(TO_INC)/%.h
 	mkdir -p $(LOCAL_INCLUDE_DEST)
 	$(CP) $^ $@
+
 $(LOCAL_INCLUDE_DEST)/dyn_detail: $(TO_INC)/dyn_detail
 	mkdir -p $(LOCAL_INCLUDE_DEST)
 	$(CP_DIR) $^ $@

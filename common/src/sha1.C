@@ -74,22 +74,7 @@ A million repetitions of "a"
 #include <stdio.h>
 #include <string.h>
 
-#if defined(HAVE_INTTYPES_H)
-#include <inttypes.h>
-
-#else
-#if defined(HAVE_STDINT_H)
-#include <stdint.h>
-
-#else
-typedef          long long int int64_t;
-typedef unsigned long long int uint64_t;
-typedef          int int32_t;
-typedef unsigned int uint32_t;
-
-#endif
-#endif
-
+#include "common/h/Types.h"
 #include "common/h/sha1.h"
 /* #include <process.h> */	/* prototype for exit() - JHB */
 /* Using return() instead of exit() - SWR */
@@ -109,7 +94,7 @@ void SHA1Final(unsigned char digest[20], SHA1_CTX* context);
 
 /* blk0() and blk() perform the initial expand. */
 /* I got the idea of expanding during the round function from SSLeay */
-#if defined(WORDS_BIGENDIAN)
+#if defined(arch_sparc) || defined(arch_power) //Big Endian
 #define blk0(i) block->l[i]
 #else
 #define blk0(i) (block->l[i] = (rol(block->l[i],24)&0xFF00FF00) \

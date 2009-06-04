@@ -157,6 +157,8 @@ class AddressSpace : public InstructionSource {
     codeRange *findOrigByAddr(Address addr);
     codeRange *findModByAddr(Address addr);
 
+    bool getDyninstRTLibName();
+
     virtual void *getPtrToInstruction(Address) const;
     virtual bool isValidAddress(const Address &) const;
     virtual bool isExecutableAddress(const Address &) const;
@@ -213,8 +215,9 @@ class AddressSpace : public InstructionSource {
     
     // And we often internally want to wrap the above to return one
     // and only one func...
-    int_function *findOnlyOneFunction(const std::string &name,
-                                      const std::string &libname = "");
+    virtual int_function *findOnlyOneFunction(const std::string &name,
+                                              const std::string &libname = "",
+                                              bool search_rt_lib = true);
 
 
     // This will find the named symbol in the image or in a shared object
@@ -264,6 +267,11 @@ class AddressSpace : public InstructionSource {
 
     // return the list of dynamically linked libs
     const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
+
+    // And a shortcut pointer
+    mapped_object *runtime_lib;
+    // ... and keep the name around
+    std::string dyninstRT_name;
     
     // If true is passed for ignore_if_mt_not_set, then an error won't be
     // initiated if we're unable to determine if the program is multi-threaded.
@@ -299,9 +307,6 @@ class AddressSpace : public InstructionSource {
     // Trampoline guard get/set functions
     int_variable* trampGuardBase(void) { return trampGuardBase_; }
     AstNodePtr trampGuardAST(void);
-    virtual int_variable* createTrampGuard();
-    void setTrampGuard(int_variable* tg);
-    
 
     // Get the current code generator (or emitter)
     Emitter *getEmitter();

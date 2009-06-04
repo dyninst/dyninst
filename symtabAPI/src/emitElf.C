@@ -434,15 +434,15 @@ bool emitElf::driver(Symtab *obj, string fName){
     // resolve section name
     const char *name = &shnames[shdr->sh_name];
     obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    sectionNumber++;
-    changeMapping[sectionNumber] = 0;
-    oldIndexNameMapping[scncount+1] = string(name);
-    newNameIndexMapping[string(name)] = sectionNumber;
-
 
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
       continue;
+
+    sectionNumber++;
+    changeMapping[sectionNumber] = 0;
+    oldIndexNameMapping[scncount+1] = string(name);
+    newNameIndexMapping[string(name)] = sectionNumber;
 
     newscn = elf_newscn(newElf);
     newshdr = elf32_getshdr(newscn);
@@ -560,7 +560,7 @@ bool emitElf::driver(Symtab *obj, string fName){
       extraAlignSize += newOff - newshdr->sh_offset;
       newshdr->sh_offset = newOff;
     }
-	
+    
     secLinkMapping[sectionNumber] = shdr->sh_link; 
     secInfoMapping[sectionNumber] = shdr->sh_info; 
 
@@ -569,6 +569,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     if (shdr->sh_addr+shdr->sh_size == dataSegEnd && !createdLoadableSections) {
       createdLoadableSections = true;
       insertPoint = scncount;
+      
       if(!createLoadableSections(newshdr, loadSecTotalSize, extraAlignSize, newNameIndexMapping, sectionNumber))
 	return false;
     }
@@ -586,8 +587,41 @@ bool emitElf::driver(Symtab *obj, string fName){
   // Second iteration to fix the link fields to point to the correct section
   scn = NULL;
 
+  //fprintf(stderr, "======== changeMapping ===========\n");
+  
+  for(dyn_hash_map<unsigned, unsigned>::iterator current = changeMapping.begin();
+      current != changeMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%d => %d\n", current->first, current->second);
+  }
+  //fprintf(stderr, "======== secLinkMapping ===========\n");
+  
+  for(dyn_hash_map<unsigned, unsigned>::iterator current = secLinkMapping.begin();
+      current != secLinkMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%d => %d\n", current->first, current->second);
+  }
+  //fprintf(stderr, "======== oldIndexNameMapping ===========\n");
+  
+  for(dyn_hash_map<unsigned, string>::iterator current = oldIndexNameMapping.begin();
+      current != oldIndexNameMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%d => %s\n", current->first, current->second.c_str());
+  }
+  //fprintf(stderr, "======== newNameIndexMapping ===========\n");
+  
+  for(dyn_hash_map<string, unsigned>::iterator current = newNameIndexMapping.begin();
+      current != newNameIndexMapping.end();
+      ++current)
+  {
+    //fprintf(stderr, "%s => %d\n", current->first.c_str(), current->second);
+  }  
   for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++){
     shdr = elf32_getshdr(scn);
+    
     if (changeMapping[scncount+1] == 0 && secLinkMapping[scncount+1] != 0) {
       unsigned linkIndex = secLinkMapping[scncount+1];
       string secName = oldIndexNameMapping[linkIndex];
@@ -1244,6 +1278,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
 	    newdata64->d_type = ELF_T_SYM;
 	  else
 	    newdata->d_type = ELF_T_SYM;
+	  
 	  newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab 
 	  newshdr->sh_flags=  0;
 	}
@@ -1335,6 +1370,14 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
+#if !defined(os_solaris)
+  //Initialize the list of new prereq libraries
+  set<string> &plibs = obj->getObject()->prereq_libs;
+  for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
+     DT_NEEDEDEntries.push_back(*i);
+  }
+  new_dynamic_entries = obj->getObject()->new_dynamic_entries;
+#endif
   // recreate a "dummy symbol"
   Elf32_Sym *sym = new Elf32_Sym();
   symbolStrs.push_back("");
@@ -1372,9 +1415,9 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
 
     if (allDynSymbols[i]->getStrIndex() == -1) {
       // New Symbol - append to the list of strings
-      dynsymbolStrs.push_back( allDynSymbols[i]->getName().c_str());
+      dynsymbolStrs.push_back( allDynSymbols[i]->getMangledName().c_str());
       allDynSymbols[i]->setStrIndex(dynsymbolNamesLength);
-      dynsymbolNamesLength += allDynSymbols[i]->getName().length() + 1;
+      dynsymbolNamesLength += allDynSymbols[i]->getMangledName().length() + 1;
     } 
 
   }	
@@ -1794,18 +1837,21 @@ void emitElf::createHashSection(Elf32_Word *&hashsecData, unsigned &hashsecSize,
   hashsecData[0] = (Elf32_Word)nbuckets;
   hashsecData[1] = (Elf32_Word)nchains;
   i = 0;
-  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
+  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
+    if((*iter)->getName().empty()) continue;
+    if((*iter)->getRegion() == NULL) continue;
+    
     key = elfHash((*iter)->getName().c_str()) % nbuckets;
-    //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
     if (lastHash.find(key) != lastHash.end()) {
       hashsecData[2+nbuckets+lastHash[key]] = i;
+      //printf("hash entry:  %d: %s  =>  %u (%u)\n", (*iter)->getIndex(), (*iter)->getName().c_str(), key, nbuckets+lastHash[key]);
     }
     else {
       hashsecData[2+key] = i;
+      //printf("hash entry:  %d: %s  =>  %u (directly in bucket)\n", (*iter)->getIndex(), (*iter)->getName().c_str(), key);
     }
     lastHash[key] = i;
     hashsecData[2+nbuckets+i] = STN_UNDEF;
-    i++;
   }
 }
 
@@ -1813,15 +1859,25 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
   dynamicSecData.clear();
   Elf32_Dyn *dyns = (Elf32_Dyn *)dynData;
   unsigned count = size/sizeof(Elf32_Dyn);
-  dynsecSize = 2*count+ DT_NEEDEDEntries.size();    //We don't know the size before hand. So allocate the maximum possible size;
+  dynsecSize = 2*(count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
   dynsecData = (Elf32_Dyn *)malloc(dynsecSize*sizeof(Elf32_Dyn));
   unsigned curpos = 0;
   string rpathstr;
   for(unsigned i = 0; i< DT_NEEDEDEntries.size(); i++){
     dynsecData[curpos].d_tag = DT_NEEDED;
-    dynsecData[curpos].d_un.d_val = versionNames[DT_NEEDEDEntries[i]];
+    dynStrs.push_back(DT_NEEDEDEntries[i]);
+    dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
+    dynSymbolNamesLength += DT_NEEDEDEntries[i].size()+1;
     dynamicSecData[DT_NEEDED].push_back(dynsecData+curpos);
     curpos++;
+  }
+  for (unsigned i = 0; i<new_dynamic_entries.size(); i++) {
+     long name = new_dynamic_entries[i].first;
+     long value = new_dynamic_entries[i].second;
+     dynsecData[curpos].d_tag = name;
+     dynsecData[curpos].d_un.d_val = value;
+     dynamicSecData[name].push_back(dynsecData+curpos);
+     curpos++;
   }
   for(unsigned i = 0; i< count;i++){
     switch(dyns[i].d_tag){

@@ -75,7 +75,7 @@ void RTmutatedBinary_init()
 }
 #endif
 
-#ifdef __GNUC
+#if defined(__GNUC) || defined(__GNUC__)
 void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
 #endif
 
@@ -123,7 +123,8 @@ static char socket_path[255];
 
 int DYNINSTasyncConnect(int pid)
 {
-  
+   if (DYNINSTstaticMode)
+      return 0;
 #if defined (cap_async_events)
 
   int sock_fd;
@@ -198,26 +199,6 @@ int DYNINSTasyncConnect(int pid)
 
   async_socket = sock_fd;
 
-#if 0
-  /* after connecting, we need to send along our pid */
-  ev.type = rtBPatch_newConnectionEvent;
-  ev.pid = getpid();
-
-  rtdebug_printf("%s[%d]:  sending new connection info to mutator\n", __FILE__, __LINE__);
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
-  rtdebug_printf("%s[%d]:  sent new connection info to mutator\n", __FILE__, __LINE__);
-
-
- /* unlink(path); */
-
-  if (err) 
-  {
-    fprintf(stderr, "%s[%d]:  report new connection failed\n", __FILE__, __LINE__);
-    return 0;
-  }
-  /* initialize spinlock */
-#endif
-  
   needToDisconnect = 1;
 
  /* atexit(exit_func); */
@@ -232,19 +213,23 @@ int DYNINSTasyncConnect(int pid)
 
 int DYNINSTasyncDisconnect()
 {
-    rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDisconnect\n", __FILE__, __LINE__);
-    if (needToDisconnect) {
-        close (async_socket);
-        needToDisconnect = 0;
-    }
-    async_socket = -1;
-    return 0;
+   if (DYNINSTstaticMode)
+      return 0;
+   rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDisconnect\n", __FILE__, __LINE__);
+   if (needToDisconnect) {
+      close (async_socket);
+      needToDisconnect = 0;
+   }
+   async_socket = -1;
+   return 0;
 }
 
 int DYNINSTwriteEvent(void *ev, size_t sz)
 {
   int res;
 
+  if (DYNINSTstaticMode)
+     return 0;
   
     rtdebug_printf("%s[%d]:  welcome to DYNINSTwriteEvent: %d bytes\n", __FILE__, __LINE__, sz);
   if (-1 == async_socket)
@@ -265,13 +250,8 @@ try_again:
   }
   if (res != sz) {
     /*  maybe we need logic to handle partial writes? */
-#if defined(os_linux)
-    fprintf(stderr, "%s[%d]:  partial ? write error, %d bytes, should be %zd\n",
-            __FILE__, __LINE__, res, sz);
-#else
     fprintf(stderr, "%s[%d]:  partial ? write error, %d bytes, should be %d\n",
-            __FILE__, __LINE__, res, sz);
-#endif
+            __FILE__, __LINE__, res, (int) sz);
     return -1;
   }
   return 0;

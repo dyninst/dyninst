@@ -826,27 +826,25 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
     current_r_state = debug_elm->r_state();
     
     delete debug_elm; 
-    if (current_r_state == r_debug::RT_CONSISTENT) {
-      // figure out how link maps have changed, and then create
-      // a list of all the changes in shared object mappings
-      bool res = findChangeToLinkMaps(changed_objects, is_new_object);
-      if (!res) {
-          return false;
-      }
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-      // SAVE THE WORLD
-      if (previous_r_state == r_debug::RT_ADD) {
-	for(unsigned int index = 0; index < changed_objects.size(); index++){
-	  if (changed_objects[index]->fileName() == "libdyninstAPI_RT.so")
-	    continue; // Don't want 
-	  if (changed_objects[index]->fileName() == "libelf.so")
-	    continue; // Don't want 
-	  setlowestSObaseaddr(changed_objects[index]->getBaseAddress());
-	}	
-      }
-#endif
+    // figure out how link maps have changed, and then create
+    // a list of all the changes in shared object mappings
+    bool res = findChangeToLinkMaps(changed_objects, is_new_object);
+    if (!res) {
+       return false;
     }
+#if defined(i386_unknown_linux2_0)                                   \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+    // SAVE THE WORLD
+    if (previous_r_state == r_debug::RT_ADD) {
+       for(unsigned int index = 0; index < changed_objects.size(); index++){
+          if (changed_objects[index]->fileName() == "libdyninstAPI_RT.so")
+             continue; // Don't want 
+          if (changed_objects[index]->fileName() == "libelf.so")
+             continue; // Don't want 
+          setlowestSObaseaddr(changed_objects[index]->getBaseAddress());
+       }	
+    }
+#endif
     
     // Now to clean up.
     

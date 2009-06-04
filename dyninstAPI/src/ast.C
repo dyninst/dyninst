@@ -1375,16 +1375,19 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        // to make it less of a hack, we'll need to change this.
        len = strlen((char *)oValue) + 1;
        
-#if defined(rs6000_ibm_aix4_1) //ccw 30 jul 2002
        addr = (Address) gen.addrSpace()->inferiorMalloc(len, dataHeap); //dataheap
-#else
-       addr = (Address) gen.addrSpace()->inferiorMalloc(len, dataHeap); //dataheap
-#endif
        
        if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue))
            perror("ast.C(1351): writing string value");
+       if(gen.addrSpace()->proc())
+       {
+	 emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+       }
+       else
+       {
+          gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
+       }
        
-       emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    default:
        fprintf(stderr, "[%s:%d] ERROR: Unknown operand type %d in AstOperandNode generation\n",
@@ -2692,14 +2695,13 @@ void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, c
 				      int size, const instPoint* point, AddressSpace* as)
 {
   int_variable* var = lookUpVar(as);
-  if(var)
+  if(as->proc())
   {
-    //fprintf(stderr, "Emitting load for %s at 0x%lx\n", var->symTabName().c_str(), var->getAddress());
     emitVload(op, var->getAddress(), src2, dest, gen, noCost, rs, size, point, as);
   }
   else
   {
-    gen.codeEmitter()->emitLoadShared(dest, oVar, size, gen);
+    gen.codeEmitter()->emitLoadShared(op, dest, oVar, (var!=NULL),size, gen, 0);
   }  
 }
 
@@ -2708,13 +2710,12 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
 				      int size, const instPoint* point, AddressSpace* as)
 {
   int_variable* var = lookUpVar(as);
-  if(var)
+  if(as->proc())
   {
-    //fprintf(stderr, "Emitting store for %s at 0x%lx\n", var->symTabName().c_str(), var->getAddress());
     emitVstore(op, src1, src2, var->getAddress(), gen, noCost, rs, size, point, as);
   }
   else
   {
-    gen.codeEmitter()->emitStoreShared(src1, oVar, size, gen);
+    gen.codeEmitter()->emitStoreShared(src1, oVar, (var!=NULL), size, gen);
   }  
 }

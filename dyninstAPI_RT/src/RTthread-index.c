@@ -64,6 +64,9 @@ static int first_deleted;
 static int num_free;
 static int num_deleted;
 
+static dyninst_thread_t default_thread_structs[MAX_THREADS];
+static int default_thread_hash[(int) (MAX_THREADS * 1.25)];
+
 DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free); }
 
 dyntid_t DYNINST_getThreadFromIndex(unsigned index)
@@ -79,12 +82,21 @@ void DYNINST_initialize_index_list()
   if (init_index_done) return;
   init_index_done = 1;
 
-  DYNINST_thread_structs = (dyninst_thread_t *) malloc((DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
+  if (DYNINST_max_num_threads == MAX_THREADS)
+     DYNINST_thread_structs = default_thread_structs;
+  else
+     DYNINST_thread_structs = (dyninst_thread_t *) malloc((DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
   assert( DYNINST_thread_structs != NULL );
   memset(DYNINST_thread_structs, 0, (DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
 
-  DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
-  DYNINST_thread_hash = (int *) malloc(DYNINST_thread_hash_size * sizeof(int));
+  if (DYNINST_max_num_threads == MAX_THREADS) {
+     DYNINST_thread_hash_size = (int) (MAX_THREADS * 1.25);
+     DYNINST_thread_hash = default_thread_hash;
+  }
+  else {
+     DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
+     DYNINST_thread_hash = (int *) malloc(DYNINST_thread_hash_size * sizeof(int));
+  }
   assert( DYNINST_thread_hash != NULL );
 
   for (i=0; i < DYNINST_thread_hash_size; i++)
@@ -116,7 +128,6 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK) {
        rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
-       fprintf(stderr," %s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
       /* We specifically return DYNINST_max_num_threads so that instrumentation has someplace safe to scribble
          in case of an error. */
        /* DO NOT USE print statements here. That's horribly unsafe if we've instrumented
@@ -126,6 +137,10 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    /**
     * Search the hash table
     **/
+   if (!DYNINST_thread_hash_size) {
+      //Uninitialized tramp guard.
+      return DYNINST_max_num_threads;
+   }
 
    hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;
