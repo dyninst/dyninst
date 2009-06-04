@@ -452,7 +452,7 @@ bool AddressSpace::getDyninstRTLibName() {
       }
       else {
          std::string msg = std::string( "Environment variable " + std::string( "DYNINSTAPI_RT_LIB" )
-               + " has not been defined for process " ) + utos( getPid() );
+               + " has not been defined");
          showErrorCallback(101, msg);
          return false;
       }

@@ -128,7 +128,6 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK) {
        rtdebug_printf("%s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
-       fprintf(stderr," %s[%d]:  DEADLOCK HERE tid %lu \n", __FILE__, __LINE__, dyn_pthread_self());
       /* We specifically return DYNINST_max_num_threads so that instrumentation has someplace safe to scribble
          in case of an error. */
        /* DO NOT USE print statements here. That's horribly unsafe if we've instrumented
@@ -138,6 +137,10 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    /**
     * Search the hash table
     **/
+   if (!DYNINST_thread_hash_size) {
+      //Uninitialized tramp guard.
+      return DYNINST_max_num_threads;
+   }
 
    hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;
