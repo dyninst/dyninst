@@ -775,19 +775,37 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
 {
    //Recognize the common case of 'a = a op constant' and try to 
    // generate optimized code for this case.
-
-   if (loperand->getoType() != DataAddr) {
-      //Deal with global writes for now.
-      return false;
-   }
-   Address laddr = (Address) loperand->getOValue();
-   
-   // If lvalue has no address, we're in the image_variable case; don't do optimized yet.
-   if(loperand->getOVar() != NULL || roperand->getOVar() != NULL)
+  Address laddr;
+  
+   if (loperand->getoType() == DataAddr)
    {
-     return false;
+     laddr = (Address) loperand->getOValue();
    }
-
+   else
+   {
+     if(loperand->getoType() == variableValue)
+     {
+       if(gen.as()->proc())
+       {
+	 int_variable var = loperand->lookUpVar(as);
+	 if(var)
+	   laddr = var->getAddress();
+	 else
+	   return false;
+       }
+       else
+       {
+	 return false;
+       }
+       
+     }
+     else
+     {
+       //Deal with global writes for now.
+       return false;
+     }
+     
+   }
 
    if (roperand->getoType() == Constant) {
       //Looks like 'global = constant'
