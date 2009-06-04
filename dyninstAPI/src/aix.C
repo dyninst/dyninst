@@ -1321,7 +1321,7 @@ bool process::insertTrapAtEntryPointOfMain()
     return true;
 }
 
-bool process::getDyninstRTLibName() 
+bool AddressSpace::getDyninstRTLibName() 
 {
     if (dyninstRT_name.length() == 0) {
         // Get env variable
@@ -1331,8 +1331,7 @@ bool process::getDyninstRTLibName()
         else {
            std::string msg = std::string("Environment variable ")
               + std::string("DYNINSTAPI_RT_LIB")
-              + std::string(" has not been defined for process ")
-              + utos(getPid());
+              + std::string(" has not been defined");
            showErrorCallback(101, msg);
            return false;
         }

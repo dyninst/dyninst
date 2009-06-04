@@ -1626,7 +1626,6 @@ process::process(SignalGenerator *sh_) :
     cached_result(not_cached), // MOVE ME
     parent(NULL),
     sh(sh_),
-    runtime_lib(NULL),
     creationMechanism_(unknown_cm),
     stateWhenAttached_(unknown_ps),
     main_function(NULL),
@@ -2128,8 +2127,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     cached_result(parentProc->cached_result), // MOVE ME
     parent(parentProc),
     sh(sg_),
-    runtime_lib(NULL), // Set later
-    dyninstRT_name(parentProc->dyninstRT_name),
     creationMechanism_(parentProc->creationMechanism_),
     stateWhenAttached_(parentProc->stateWhenAttached_),
     main_function(NULL), // Set later
@@ -2179,6 +2176,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_obj(parentProc->vsyscall_obj)
 #endif
 {
+   dyninstRT_name = parentProc->dyninstRT_name;
 }
 
 static void cleanupBPatchHandle(int pid)
@@ -2622,33 +2620,33 @@ bool process::setDyninstLibInitParams()
    if (!findVarsByAll("libdyninstAPI_RT_init_localCause",
                       vars,
                       dyninstRT_name))
-       if (!findVarsByAll("_libdyninstAPI_RT_init_localCause",
-                          vars))
-          if (!findVarsByAll("libdyninstAPI_RT_init_localCause",
-                              vars))
-
-           assert(0 && "Could not find necessary internal variable");
+      if (!findVarsByAll("_libdyninstAPI_RT_init_localCause",
+                         vars))
+         if (!findVarsByAll("libdyninstAPI_RT_init_localCause",
+                            vars))
+            
+            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
    if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();
-
+   
    if (!findVarsByAll("libdyninstAPI_RT_init_localPid", vars))
-       if (!findVarsByAll("_libdyninstAPI_RT_init_localPid", vars))
-           assert(0 && "Could not find necessary internal variable");
+      if (!findVarsByAll("_libdyninstAPI_RT_init_localPid", vars))
+         assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
    if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&pid))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();   
-
+   
    if (!findVarsByAll("libdyninstAPI_RT_init_maxthreads", vars))
-       if (!findVarsByAll("_libdyninstAPI_RT_init_maxthreads", vars))
-           assert(0 && "Could not find necessary internal variable");
+      if (!findVarsByAll("_libdyninstAPI_RT_init_maxthreads", vars))
+         assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
    if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &max_number_of_threads))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();   
-
+   
    extern int dyn_debug_rtlib;
    if (!findVarsByAll("libdyninstAPI_RT_init_debug_flag", vars))
        if (!findVarsByAll("_libdyninstAPI_RT_init_debug_flag", vars))

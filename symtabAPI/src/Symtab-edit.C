@@ -383,9 +383,9 @@ Variable *Symtab::createVariable(std::string name,
                                  Module *mod)
 {
     Region *reg = NULL;
-    
-    if (!findRegion(reg, ".data")) {
-        fprintf(stderr, "%s[%d]:  could not find data region\n", FILE__, __LINE__);
+#if 0    
+    if (!findRegion(reg, ".data") {
+        fprintf(stderr, "%s[%d]:  could not find %s region\n", FILE__, __LINE__, regionName.c_str());
         return NULL;
     }
     
@@ -393,7 +393,7 @@ Variable *Symtab::createVariable(std::string name,
         fprintf(stderr, "%s[%d]:  could not find data region\n", FILE__, __LINE__);
         return NULL;
     }
-    
+#endif    
     // Let's get the module hammered out. 
     if (mod == NULL) {
         mod = getDefaultModule();

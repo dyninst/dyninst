@@ -70,15 +70,15 @@ int DYNINSTthreadIndex()
    unsigned curr_index;
 
    rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
-   if (!DYNINSThasInitialized) 
+   if (!DYNINSThasInitialized && !DYNINSTstaticMode) 
    {
-       return 0;
+      return 0;
    }
    
    tid = dyn_pthread_self();
    rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", __FILE__, __LINE__, (unsigned long) tid);
    if (tid == (dyntid_t) DYNINST_SINGLETHREADED) {
-       return 0;
+      return 0;
    }
 
    curr_index = DYNINSTthreadIndexFAST();
@@ -102,7 +102,8 @@ int DYNINSTthreadIndex()
       can do about it at the moment, so just return it
       and let the mutatee scribble into the so-allocated memory. */
 
-   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  __FILE__, __LINE__, curr_index);
+   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  
+                  __FILE__, __LINE__, curr_index);
    return curr_index;
 }
 
@@ -145,8 +146,8 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    
  done:
    tc_lock_unlock(&DYNINST_trace_lock);
-  rtdebug_printf("%s[%d]:  leaving asyncSendThreadEvent: status = %s\n", 
-                 __FILE__, __LINE__, result ? "error" : "ok");
+   rtdebug_printf("%s[%d]:  leaving asyncSendThreadEvent: status = %s\n", 
+                  __FILE__, __LINE__, result ? "error" : "ok");
    return result;
 }
 
@@ -161,7 +162,7 @@ static unsigned threadCreate(dyntid_t tid)
 
    rtdebug_printf("%s[%d]:  welcome to threadCreate\n", 
                  __FILE__, __LINE__);
-   if (!DYNINSThasInitialized)
+   if (!DYNINSThasInitialized && !DYNINSTstaticMode)
    {
       return DYNINST_max_num_threads;
    }
@@ -190,13 +191,15 @@ static unsigned threadCreate(dyntid_t tid)
       rt_newthr_cb(index);
    }
 
-   /*Only async for now.  We should parameterize this function to also have a*/
-   /* sync option.*/
-   asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
-                        sizeof(BPatch_newThreadEventRecord));
-   rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
-                 __FILE__, __LINE__, index);
-
+   if (!DYNINSTstaticMode)
+   {
+      /*Only async for now.  We should parameterize this function to also 
+        have a sync option.*/
+      asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
+                           sizeof(BPatch_newThreadEventRecord));
+      rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
+                     __FILE__, __LINE__, index);
+   }
    return index;
 }
 

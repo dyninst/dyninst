@@ -1578,7 +1578,7 @@ bool process::isMmapSysCall(int) { assert(0); return false; }
 Offset process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0; }
 Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0; }
 
-bool process::getDyninstRTLibName() {
+bool AddressSpace::getDyninstRTLibName() {
     // Set the name of the dyninst RT lib
     if (dyninstRT_name.length() == 0) {
         // Get env variable

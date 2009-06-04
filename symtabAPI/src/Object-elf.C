@@ -249,7 +249,7 @@ Region::perm_t getRegionPerms(unsigned long flags){
     return Region::RP_R;
 }
 
-Region::RegionType getRegionType(unsigned long type, unsigned long flags){
+Region::RegionType getRegionType(unsigned long type, unsigned long flags, const char *reg_name){
   switch(type){
   case SHT_SYMTAB:
   case SHT_DYNSYM:
@@ -260,6 +260,13 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags){
     return Region::RT_REL;
   case SHT_RELA:
     return Region::RT_RELA;
+  case SHT_NOBITS:
+     //Darn it, Linux/PPC has the PLT as a NOBITS.  Can't just default
+     // call this bss
+     if (strcmp(reg_name, ".plt") == 0)
+        return Region::RT_OTHER;
+     else
+        return Region::RT_BSS;
   case SHT_PROGBITS:
     if((flags & SHF_EXECINSTR) && (flags & SHF_WRITE))
       return Region::RT_TEXTDATA;
@@ -271,8 +278,6 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags){
     return Region::RT_DYNAMIC;
   case SHT_HASH:
     return Region::RT_HASH;
-  case SHT_NOBITS:
-    return Region::RT_BSS;
 #if !defined(os_solaris)            
   case SHT_GNU_versym:
     return Region::RT_SYMVERSIONS;
@@ -619,7 +624,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                                    scnp->sh_addr(), scnp->sh_size(), 
                                    (mem_image()+scnp->sh_offset()), 
                                    getRegionPerms(scnp->sh_flags()), 
-                                   getRegionType(scnp->sh_type(), scnp->sh_flags()));
+                                   getRegionType(scnp->sh_type(), 
+                                                 scnp->sh_flags(),
+                                                 name));
           
           regions_.push_back(reg);
        }
@@ -627,7 +634,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
           Region *reg = new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, 
                                    (mem_image()+scnp->sh_offset()), 
                                    getRegionPerms(scnp->sh_flags()), 
-                                   getRegionType(scnp->sh_type(), scnp->sh_flags()));
+                                   getRegionType(scnp->sh_type(), 
+                                                 scnp->sh_flags(),
+                                                 name));
           regions_.push_back(reg);
        }
     }
@@ -4944,4 +4953,14 @@ bool Object::convertDebugOffset(Offset off, Offset &new_off)
       }
   }
 
+}
+
+void Object::insertPrereqLibrary(std::string libname)
+{
+   prereq_libs.insert(libname);
+}
+
+void Object::insertDynamicEntry(long name, long value)
+{
+   new_dynamic_entries.push_back(std::pair<long, long>(name, value));
 }

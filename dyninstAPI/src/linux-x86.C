@@ -1207,7 +1207,7 @@ bool process::hasBeenBound(const relocationEntry &entry,
     return false;
 }
 
-bool process::getDyninstRTLibName() {
+bool AddressSpace::getDyninstRTLibName() {
    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
     if (dyninstRT_name.length() == 0) {
         // Get env variable
@@ -1215,12 +1215,21 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            std::string msg = std::string("Environment variable ") +
-                            std::string("DYNINSTAPI_RT_LIB") +
-                            std::string(" has not been defined for process ")
-                            + utos(getPid());
-            showErrorCallback(101, msg);
-            return false;
+           std::string msg;
+           process *proc;
+           if ((proc = dynamic_cast<process *>(this)) != NULL) {
+              msg = std::string("Environment variable ") +
+                 std::string("DYNINSTAPI_RT_LIB") +
+                 std::string(" has not been defined for process ") +
+                 utos(proc->getPid());
+           }
+           else {
+              msg = std::string("Environment variable ") +
+                 std::string("DYNINSTAPI_RT_LIB") +
+                 std::string(" has not been defined");
+           }           
+           showErrorCallback(101, msg);
+           return false;
         }
     }
 
