@@ -1,4 +1,6 @@
 # pick up INCLUDE_DEST
+TO_CORE = ..
+
 include ../make.config
 
 LOCAL_INCLUDE_DEST = ../../include
