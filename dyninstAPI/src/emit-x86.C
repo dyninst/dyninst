@@ -2075,7 +2075,6 @@ void EmitterIA32::emitLoadShared(opCode op, Register dest, const image_variable 
   // load register with address from jump slot
   
   if(!is_local && (var != NULL)){
-    fprintf(stderr, "Emitting inter-module load for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
    // get the variable with an indirect load
     emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen, true);
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
@@ -2085,13 +2084,9 @@ void EmitterIA32::emitLoadShared(opCode op, Register dest, const image_variable 
   }
   else
   {
-    if(var != NULL)
-      fprintf(stderr, "Emitting intra-module PIC load for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
     emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen, false);
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
     if(op == loadOp) {
-      fprintf(stderr, "Variable value case\n");
-      
       emitLoadIndir(dest, dest, gen);
     }
   }
@@ -2138,7 +2133,6 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
   }
   
   if(op == loadConstOp) {
-    fprintf(stderr, "Emitting inter-module load for %x (size=%d) at 0x%lx\n", /*var->symTabName().c_str()*/ var, size, addr);
     int offset = addr - gen.currAddr();
     // Brutal hack for IP-relative: displacement operand on 32-bit = IP-relative on 64-bit.
     if(is_local || !var)
@@ -2154,8 +2148,6 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
     //emitMovPCRMToReg(dest, addr - gen.currAddr(), gen, !is_local);
     return;
   }
-  
-  fprintf(stderr, "Emitting inter-module load for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
   
   // load register with address from jump slot
   emitMovPCRMToReg64(dest, addr - gen.currAddr(), gen);
@@ -2176,7 +2168,6 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
   {
     addr = getInterModuleVarAddr(var, gen);
   }
-  //fprintf(stderr, "Emitting inter-module store for %s (size=%d) at 0x%lx\n", var->symTabName().c_str(), size, addr);
   
   // temporary virtual register for storing destination address
   Register dest = gen.rs()->allocateRegister(gen, false);

@@ -1324,8 +1324,6 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 	   long low_conv = strtol(low, NULL, 10);
 	   if (errno)
 	   {
-		   fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
-				   FILE__, __LINE__, low, strerror(errno));
 		   low_conv = LONG_MIN;
 	   }
 
@@ -1333,8 +1331,6 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 	   long hi_conv = strtol(hi, NULL, 10);
 	   if (errno)
 	   {
-		   fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n", 
-				   FILE__, __LINE__, hi, strerror(errno));
 		   hi_conv = LONG_MAX;
 	   }
 

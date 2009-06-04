@@ -55,191 +55,220 @@
 
 #include "test_lib.h"
 #include "Callbacks.h"
-
 #include "dyninst_comp.h"
+
 class test1_26_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_26_factory() {
-  return new test1_26_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_26_factory() 
+{
+	return new test1_26_Mutator();
 }
 
 //
 // Start Test Case #26 - struct elements
 //
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
-// {
-test_results_t test1_26_Mutator::executeTest() {
-  if (appImage == NULL)
-    return SKIPPED;
-  
-  if (isMutateeFortran(appImage)) {
-    return SKIPPED;
-  }
 
-  //     First verify that we can find a local variable in call26_1
-  const char *funcName = "test1_26_call1";
-  BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction(funcName, found_funcs, 1)) || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n", funcName);
-    return FAILED;
-  }
+test_results_t test1_26_Mutator::executeTest() 
+{
+	if (appImage == NULL)
+		return SKIPPED;
 
-  if (1 < found_funcs.size()) {
-    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	     __FILE__, __LINE__, found_funcs.size(), funcName);
-  }
+	if (isMutateeFortran(appImage)) 
+	{
+		return SKIPPED;
+	}
 
-  BPatch_Vector<BPatch_point *> *point26_1 = found_funcs[0]->findPoint(BPatch_subroutine);
-  BPatch_Vector<BPatch_point *> *point26_2 = found_funcs[0]->findPoint(BPatch_subroutine);
+	//     First verify that we can find a local variable in call26_1
+	const char *funcName = "test1_26_call1";
+	BPatch_Vector<BPatch_function *> found_funcs;
 
-  if ( !(point26_1 && (point26_1->size() == 1)) )
-    {
-      logerror("**Failed** test #26 (struct elements)\n");
-      logerror("  point26_1 incorrect\n");
-      return FAILED;
-    }
-  if ( ! point26_2 )
-    {
-      logerror("**Failed** test #26 (struct elements)\n");
-      logerror("  point26_2 NULL\n");
-      return FAILED;
-    }
-        
+	if ((NULL == appImage->findFunction(funcName, found_funcs, 1)) || !found_funcs.size()) 
+	{
+		logerror("    Unable to find function %s\n", funcName);
+		return FAILED;
+	}
 
-  BPatch_variableExpr *lvar;
-  BPatch_variableExpr *gvar[14];
+	if (1 < found_funcs.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs.size(), funcName);
+	}
 
-  int i;
-  for (i=1; i <= 13; i++) {
-    char name[80];
+	BPatch_Vector<BPatch_point *> *point26_1 = found_funcs[0]->findPoint(BPatch_subroutine);
+	BPatch_Vector<BPatch_point *> *point26_2 = found_funcs[0]->findPoint(BPatch_subroutine);
 
-    sprintf (name, "test1_26_globalVariable%d", i);
-    gvar [i] = findVariable(appImage, name, point26_2);
+	if ( !(point26_1 && (point26_1->size() == 1)) )
+	{
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  point26_1 incorrect\n");
+		return FAILED;
+	}
 
-    if (!gvar[i]) {
-      logerror("**Failed** test #26 (struct elements)\n");
-      logerror("  can't find variable %s\n", name);
-      return FAILED;
-    }
-  }
+	if ( ! point26_2 )
+	{
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  point26_2 NULL\n");
+		return FAILED;
+	}
 
-  // start of code for globalVariable26_1
-  BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
-  if (!fields) {
-    logerror("**Failed** test #26 (struct elements)\n");
-    logerror("  struct lacked correct number of elements\n");
-    return FAILED;
-  }
 
-  for (i=0; i < 4; i++) {
-    char fieldName[80];
-    sprintf(fieldName, "field%d", i+1);
-    if (!(*fields)[i]->getName())
-      logerror("NULL NAME!\n");
-    if (strcmp(fieldName, (*fields)[i]->getName())) {
-      logerror("field %d of the struct is %s, not %s\n",
-	       i+1, fieldName, (*fields)[i]->getName());
-      return FAILED;
-    }
-  }
+	BPatch_variableExpr *lvar;
+	BPatch_variableExpr *gvar[14];
 
-  // 	   globalVariable26_2 = globalVariable26_1.field1
-  BPatch_arithExpr assignment1(BPatch_assign, *gvar[2], *((*fields)[0]));
-  appThread->insertSnippet(assignment1, *point26_2);
+	int i;
+	for (i=1; i <= 13; i++) 
+	{
+		char name[80];
 
-  // 	   globalVariable26_3 = globalVariable26_1.field2
-  BPatch_arithExpr assignment2(BPatch_assign, *gvar[3], *((*fields)[1]));
-  appThread->insertSnippet(assignment2, *point26_2);
+		sprintf (name, "test1_26_globalVariable%d", i);
+		gvar [i] = findVariable(appImage, name, point26_2);
 
-  // 	   globalVariable26_4 = globalVariable26_1.field3[0]
-  BPatch_arithExpr assignment3(BPatch_assign, *gvar[4],
-			       BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
-  appThread->insertSnippet(assignment3, *point26_2);
+		if (!gvar[i]) 
+		{
+			logerror("**Failed** test #26 (struct elements)\n");
+			logerror("  can't find variable %s\n", name);
+			return FAILED;
+		}
+	}
 
-  // 	   globalVariable26_5 = globalVariable26_1.field3[5]
-  BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
-			       BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
-  appThread->insertSnippet(assignment4, *point26_2);
+	// start of code for globalVariable26_1
+	BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
 
-  BPatch_Vector<BPatch_variableExpr *> *subfields =
-    (*fields)[3]->getComponents();
-  if (subfields == NULL) {
-    logerror("**Failed** test #26 (struct elements)\n");
-    logerror("  struct lacked correct number of elements\n");
-    return FAILED;
-  }
-    	
+	if (!fields) 
+	{
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  struct lacked correct number of elements\n");
+		return FAILED;
+	}
 
-  // 	   globalVariable26_6 = globalVariable26_1.field4.field1
-  BPatch_arithExpr assignment5(BPatch_assign, *gvar[6], *((*subfields)[0]));
-  appThread->insertSnippet(assignment5, *point26_2);
+	for (i=0; i < 4; i++) {
+		char fieldName[80];
+		sprintf(fieldName, "field%d", i+1);
+		if (!(*fields)[i]->getName())
+			logerror("NULL NAME!\n");
+		if (strcmp(fieldName, (*fields)[i]->getName())) {
+			logerror("field %d of the struct is %s, not %s\n",
+					i+1, fieldName, (*fields)[i]->getName());
+			return FAILED;
+		}
+	}
 
-  // 	   globalVariable26_7 = globalVariable26_1.field4.field2
-  BPatch_arithExpr assignment6(BPatch_assign, *gvar[7], *((*subfields)[1]));
-  appThread->insertSnippet(assignment6, *point26_2);
+	// 	   globalVariable26_2 = globalVariable26_1.field1
+	BPatch_arithExpr assignment1(BPatch_assign, *gvar[2], *((*fields)[0]));
+	appAddrSpace->insertSnippet(assignment1, *point26_2);
 
-  // start of code for localVariable26_1
-  setExpectError(100);
-  lvar = appImage->findVariable(*(*point26_1) [0], "localVariable26_1");
-  if (!lvar)
-    lvar = appImage->findVariable(*(*point26_1) [0], "localvariable26_1");
-  if (!lvar) {
-    logerror("**Failed** test #26 (struct elements)\n");
-    logerror("  could not find localVariable26_1\n");
-    return FAILED;
-  }
-  setExpectError(DYNINST_NO_ERROR);
+	// 	   globalVariable26_3 = globalVariable26_1.field2
+	BPatch_arithExpr assignment2(BPatch_assign, *gvar[3], *((*fields)[1]));
+	appAddrSpace->insertSnippet(assignment2, *point26_2);
 
-  fields = lvar->getComponents();
-  if (!fields || (fields->size() < 4)) {
-    logerror("**Failed** test #26 (struct elements)\n");
-    logerror("  struct lacked correct number of elements\n");
-    return FAILED;
-  }
+	// 	   globalVariable26_4 = globalVariable26_1.field3[0]
+	BPatch_arithExpr assignment3(BPatch_assign, *gvar[4],
+			BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+	appAddrSpace->insertSnippet(assignment3, *point26_2);
 
-  for (i=0; i < 4; i++) {
-    char fieldName[80];
-    sprintf(fieldName, "field%d", i+1);
-    if (strcmp(fieldName, (*fields)[i]->getName())) {
-      logerror("field %d of the local struct is %s, not %s\n",
-	       i+1, fieldName, (*fields)[i]->getName());
-      return FAILED;
-    }
-  }
+	// 	   globalVariable26_5 = globalVariable26_1.field3[5]
+	BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
+			BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+	appAddrSpace->insertSnippet(assignment4, *point26_2);
 
-  // 	   globalVariable26_8 = localVariable26_1.field1
-  BPatch_arithExpr assignment7(BPatch_assign, *gvar[8], *((*fields)[0]));
-  appThread->insertSnippet(assignment7, *point26_1);
+	BPatch_Vector<BPatch_variableExpr *> *subfields =
+		(*fields)[3]->getComponents();
 
-  // 	   globalVariable26_9 = localVariable26_1.field2
-  BPatch_arithExpr assignment8(BPatch_assign, *gvar[9], *((*fields)[1]));
-  appThread->insertSnippet(assignment8, *point26_1);
+	if (subfields == NULL) 
+	{
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  struct lacked correct number of elements\n");
+		return FAILED;
+	}
 
-  // 	   globalVariable26_10 = localVariable26_1.field3[0]
-  BPatch_arithExpr assignment9(BPatch_assign, *gvar[10],
-			       BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
-  appThread->insertSnippet(assignment9, *point26_1);
 
-  // 	   globalVariable26_11 = localVariable26_1.field3[5]
-  BPatch_arithExpr assignment10(BPatch_assign, *gvar[11],
-				BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
-  appThread->insertSnippet(assignment10, *point26_1);
+	// 	   globalVariable26_6 = globalVariable26_1.field4.field1
+	BPatch_arithExpr assignment5(BPatch_assign, *gvar[6], *((*subfields)[0]));
+	appAddrSpace->insertSnippet(assignment5, *point26_2);
 
-  subfields = (*fields)[3]->getComponents();
-  if (subfields == NULL) {
-    logerror("**Failed** test #26 (struct elements)\n");
-    logerror("  subfields NULL \n");
-    return FAILED;
-  }
+	// 	   globalVariable26_7 = globalVariable26_1.field4.field2
+	BPatch_arithExpr assignment6(BPatch_assign, *gvar[7], *((*subfields)[1]));
+	appAddrSpace->insertSnippet(assignment6, *point26_2);
 
-  // 	   globalVariable26_12 = localVariable26_1.field4.field1
-  BPatch_arithExpr assignment11(BPatch_assign, *gvar[12], *((*subfields)[0]));
-  appThread->insertSnippet(assignment11, *point26_1);
+	// start of code for localVariable26_1
+	setExpectError(100);
 
-  // 	   globalVariable26_13 = localVariable26_1.field4.field2
-  BPatch_arithExpr assignment12(BPatch_assign, *gvar[13], *((*subfields)[1]));
-  appThread->insertSnippet(assignment12, *point26_1);
+	lvar = appImage->findVariable(*(*point26_1) [0], "localVariable26_1");
+	if (!lvar)
+		lvar = appImage->findVariable(*(*point26_1) [0], "localvariable26_1");
 
-  return PASSED;
+	if (!lvar) 
+	{
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  could not find localVariable26_1\n");
+		return FAILED;
+	}
+
+	setExpectError(DYNINST_NO_ERROR);
+
+	fields = lvar->getComponents();
+
+	if (!fields || (fields->size() < 4)) 
+	{
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  struct lacked correct number of elements\n");
+		return FAILED;
+	}
+
+	for (i=0; i < 4; i++) 
+	{
+		char fieldName[80];
+		sprintf(fieldName, "field%d", i+1);
+		if (strcmp(fieldName, (*fields)[i]->getName())) 
+		{
+			logerror("field %d of the local struct is %s, not %s\n",
+					i+1, fieldName, (*fields)[i]->getName());
+			return FAILED;
+		}
+	}
+
+	// 	   globalVariable26_8 = localVariable26_1.field1
+
+	BPatch_arithExpr assignment7(BPatch_assign, *gvar[8], *((*fields)[0]));
+	appAddrSpace->insertSnippet(assignment7, *point26_1);
+
+	// 	   globalVariable26_9 = localVariable26_1.field2
+
+	BPatch_arithExpr assignment8(BPatch_assign, *gvar[9], *((*fields)[1]));
+	appAddrSpace->insertSnippet(assignment8, *point26_1);
+
+	// 	   globalVariable26_10 = localVariable26_1.field3[0]
+
+	BPatch_arithExpr assignment9(BPatch_assign, *gvar[10],
+			BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(0)));
+	appAddrSpace->insertSnippet(assignment9, *point26_1);
+
+	// 	   globalVariable26_11 = localVariable26_1.field3[5]
+
+	BPatch_arithExpr assignment10(BPatch_assign, *gvar[11],
+			BPatch_arithExpr(BPatch_ref, *((*fields)[2]), BPatch_constExpr(5)));
+	appAddrSpace->insertSnippet(assignment10, *point26_1);
+
+	subfields = (*fields)[3]->getComponents();
+
+	if (subfields == NULL) 
+	{
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  subfields NULL \n");
+		return FAILED;
+	}
+
+	// 	   globalVariable26_12 = localVariable26_1.field4.field1
+
+	BPatch_arithExpr assignment11(BPatch_assign, *gvar[12], *((*subfields)[0]));
+	appAddrSpace->insertSnippet(assignment11, *point26_1);
+
+	// 	   globalVariable26_13 = localVariable26_1.field4.field2
+
+	BPatch_arithExpr assignment12(BPatch_assign, *gvar[13], *((*subfields)[1]));
+	appAddrSpace->insertSnippet(assignment12, *point26_1);
+
+	return PASSED;
 }

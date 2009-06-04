@@ -56,7 +56,7 @@ Node::Ptr OperationNode::copy() {
 std::string OperationNode::format() const {
     char buf[256];
     sprintf(buf,"N_0x%lx_%s_",
-            addr(), absloc()->name().c_str());
+            addr(), absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -89,10 +89,11 @@ Node::Ptr FormalParamNode::copy() {
     return Node::Ptr(new FormalParamNode(absloc()));
 }
 
+
 std::string FormalParamNode::format() const {
     char buf[256];
     sprintf(buf, "N_Param_%s_",
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -104,10 +105,11 @@ Node::Ptr FormalReturnNode::copy() {
     return Node::Ptr(new FormalReturnNode(absloc()));
 }
 
+
 std::string FormalReturnNode::format() const {
     char buf[256];
     sprintf(buf, "N_Return_%s_",
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -133,7 +135,7 @@ std::string ActualParamNode::format() const {
 
     sprintf(buf, "N_%s_Arg_%s_",
             funcname,
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 
@@ -157,7 +159,7 @@ std::string ActualReturnNode::format() const {
 
     sprintf(buf, "N_%s_Ret_%s_",
             funcname,
-            absloc()->name().c_str());
+            absloc()->format().c_str());
     return std::string(buf);
 }
 

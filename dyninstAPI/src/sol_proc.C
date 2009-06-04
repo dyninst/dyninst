@@ -643,17 +643,25 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includ
    memcpy(regbufptr, &(regs.theIntRegs), sizeof(prgregset_t));
    int writesize;
 try_again:
+   int timeout = 2 * 1000; /*ms*/
+   int elapsed = 0;
    errno = 0;
    writesize = write(ctl_fd(), regbuf, regbufsize);
 
    if (writesize != regbufsize) {
       if (errno == EBUSY) {
-         fprintf(stderr, "%s[%d]:  busy fd\n", FILE__, __LINE__);
+         //fprintf(stderr, "%s[%d]:  busy fd\n", FILE__, __LINE__);
 
          struct timeval slp;
          slp.tv_sec = 0;
          slp.tv_usec = 1 /*ms*/ *1000;
          select(0, NULL, NULL, NULL, &slp);
+		 elapsed += 1;
+		 if (elapsed > timeout)
+		 {
+			 fprintf(stderr, "%s[%d]:  failed to access process ctl fd\n", FILE__, __LINE__);
+			 return false;
+		 }
          goto try_again;
       }
       //If this fails, we may be attaching to a mutatee in a system call

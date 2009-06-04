@@ -60,6 +60,7 @@ void Absloc::getAbslocs(AbslocSet &locs) {
 }
 
 RegisterLoc::RegisterMap RegisterLoc::allRegLocs_;
+Absloc::Ptr RegisterLoc::pc_;
 
 void RegisterLoc::getRegisterLocs(AbslocSet &locs) {
     for (RegisterMap::iterator iter = allRegLocs_.begin(); iter != allRegLocs_.end(); iter++) {
@@ -78,20 +79,39 @@ Absloc::Ptr RegisterLoc::getRegLoc(const InstructionAPI::RegisterAST::Ptr reg) {
     // Look up by name and return    
     if (allRegLocs_.find(*container) == allRegLocs_.end()) {
         RegisterLoc::Ptr rP = RegisterLoc::Ptr(new RegisterLoc(container));
-
         allRegLocs_[*container] = rP;
+// Make sure we have a canonical PC, since < on a shared pointer is only
+// pointer uniqueness and nothing else...
+        if (rP->isPC())
+            pc_ = rP;
+
     }
     
     return allRegLocs_[*container];
+}
+
+Absloc::Ptr RegisterLoc::makePC() {
+    if (pc_) return pc_;
+    
+    // Make the register...
+    RegisterAST rPC = RegisterAST::makePC();
+    RegisterAST::Ptr rpPC = RegisterAST::Ptr(new RegisterAST(rPC));
+    pc_ = RegisterLoc::Ptr(new RegisterLoc(rpPC));
+    return pc_;
 }
 
 const int StackLoc::STACK_GLOBAL = MININT;
 
 StackLoc::StackMap StackLoc::stackLocs_;
 
-std::string StackLoc::name() const {
+std::string StackLoc::format() const {
     if (slot_ == STACK_GLOBAL) {
         return std::string("STACK");
+    }
+    else if (slot_ < 0) {
+        char buf[256];
+        sprintf(buf, "STACK_NEG_%d", -1 * slot_);
+        return std::string(buf);
     }
     else {
         char buf[256];
@@ -169,7 +189,7 @@ HeapLoc::AbslocSet HeapLoc::getAliases() {
 const Address MemLoc::MEM_GLOBAL = (Address) -1;
 MemLoc::MemMap MemLoc::memLocs_;
 
-std::string MemLoc::name() const { 
+std::string MemLoc::format() const { 
     if (addr_ == MEM_GLOBAL) {
         return "Mem_UNKNOWN_";
     }
@@ -223,7 +243,7 @@ MemLoc::AbslocSet MemLoc::getAliases() const {
 
 ImmLoc::Ptr ImmLoc::immLoc_; 
 
-std::string ImmLoc::name() const { 
+std::string ImmLoc::format() const { 
     return "Immediate";
 }
 
@@ -233,4 +253,34 @@ Absloc::Ptr ImmLoc::getImmLoc() {
     immLoc_ = ImmLoc::Ptr(new ImmLoc());
 
     return immLoc_;
+}
+
+bool RegisterLoc::isSP() const { 
+    return ((reg_->getID() == r_ESP) || (reg_->getID() == r_RSP)); 
+}
+
+bool RegisterLoc::isPC() const {
+    return ((reg_->getID() == r_EIP) || (reg_->getID() == r_RIP));
+}
+
+bool RegisterLoc::isFlag() const {
+    return ((reg_->getID() >= r_OF) && (reg_->getID() <= r_RF));
+}
+
+bool RegisterLoc::isSP(RegisterAST::Ptr reg) { 
+    RegisterAST::Ptr reg_ = dynamic_pointer_cast<RegisterAST>(RegisterAST::promote(reg));
+    return ((reg_->getID() == r_ESP) ||
+            (reg_->getID() == r_RSP)); 
+}
+
+bool RegisterLoc::isPC(RegisterAST::Ptr reg) {
+    RegisterAST::Ptr reg_ = dynamic_pointer_cast<RegisterAST>(RegisterAST::promote(reg));
+    return ((reg_->getID() == r_EIP) || 
+            (reg_->getID() == r_RIP));
+}
+
+bool RegisterLoc::isFlag(RegisterAST::Ptr reg) {
+    RegisterAST::Ptr reg_ = dynamic_pointer_cast<RegisterAST>(RegisterAST::promote(reg));
+    return ((reg_->getID() >= r_OF) && 
+            (reg_->getID() <= r_RF));
 }

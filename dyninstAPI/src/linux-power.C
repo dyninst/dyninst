@@ -685,7 +685,7 @@ bool Frame::setPC(Address newpc) {
    return false;
 }
 
-bool process::getDyninstRTLibName() {
+bool AddressSpace::getDyninstRTLibName() {
 //full path to libdyninstAPI_RT (used an _m32 suffix for 32-bit version)
     startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
     if (dyninstRT_name.length() == 0) {
@@ -696,8 +696,7 @@ bool process::getDyninstRTLibName() {
         else {
             std::string msg = std::string("Environment variable ") +
                 std::string("DYNINSTAPI_RT_LIB") +
-                std::string(" has not been defined for process ")
-                + utos(getPid());
+               std::string(" has not been defined");
             showErrorCallback(101, msg);
             return false;
         }

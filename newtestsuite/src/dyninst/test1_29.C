@@ -55,97 +55,114 @@
 
 #include "test_lib.h"
 #include "Callbacks.h"
-
 #include "dyninst_comp.h"
+
 class test1_29_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+	virtual test_results_t executeTest();
 };
-extern "C" DLLEXPORT  TestMutator *test1_29_factory() {
-  return new test1_29_Mutator();
+
+extern "C" DLLEXPORT  TestMutator *test1_29_factory() 
+{
+	return new test1_29_Mutator();
 }
 
 static bool printSrcObj(BPatch_sourceObj *p, int level)
 {
-    unsigned int i;
-    bool ret = true;
+	unsigned int i;
+	bool ret = true;
 
-    BPatch_Vector<BPatch_sourceObj *> curr;
+	BPatch_Vector<BPatch_sourceObj *> curr;
 
-    if (!p) return(true);
+	if (!p) return(true);
 
-    switch (p->getSrcType()) {
-	case BPatch_sourceProgram:
-	    if (level != 0) ret = false;
-	    break;
+	switch (p->getSrcType()) 
+	{
+		case BPatch_sourceProgram:
+			if (level != 0) ret = false;
+			break;
 
-	case BPatch_sourceModule: 
-	    if (level != 1) ret = false;
-	    break;
+		case BPatch_sourceModule: 
+			if (level != 1) ret = false;
+			break;
 
-	case BPatch_sourceFunction: 
-	    if (level != 2) ret = false;
-	    break;
+		case BPatch_sourceFunction: 
+			if (level != 2) ret = false;
+			break;
 
-	default:
-	    logerror("<unknown type>");
-    }
+		default:
+			logerror("<unknown type>");
+	}
 
-    if (!p->getSourceObj(curr)) {
-	// eveything down to functions should have something
-	return((level == 2) ? true : false);
-    }
+	if (!p->getSourceObj(curr)) 
+	{
+		// eveything down to functions should have something
+		return((level == 2) ? true : false);
+	}
 
-    for (i=0; i < curr.size(); i++) {
-	p = curr[i];
-	ret = printSrcObj(p, level+1) && ret;
-    }
+	for (i=0; i < curr.size(); i++) 
+	{
+		p = curr[i];
+		ret = printSrcObj(p, level+1) && ret;
+	}
 
-    return ret;
+	return ret;
 }
 
 //
 // Start Test Case #29 - getParent/Child
 //
-// static int mutatorTest(BPatch_thread *, BPatch_image *appImage)
-// {
-test_results_t test1_29_Mutator::executeTest() {
-    BPatch_sourceObj *p;
-    bool passedTest;
 
-    p = (BPatch_sourceObj *) appImage;
-    passedTest = printSrcObj(p, 0);
+test_results_t test1_29_Mutator::executeTest() 
+{
+	BPatch_sourceObj *p;
+	bool passedTest;
 
-    if (!passedTest) {
-	logerror("**Failed** test #29 (class BPatch_srcObj)\n");
-	return FAILED;
-    }
+	p = (BPatch_sourceObj *) appImage;
+	passedTest = printSrcObj(p, 0);
 
-    const char *funcName = "test1_29_func1";
-  BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) {
-      logerror("    Unable to find function %s\n", funcName);
-      return FAILED;
-    }
+	if (!passedTest) 
+	{
+		logerror("**Failed** test #29 (class BPatch_srcObj)\n");
+		return FAILED;
+	}
 
-    if (1 < found_funcs.size()) {
-      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), funcName);
-    }
+	const char *funcName = "test1_29_func1";
+	BPatch_Vector<BPatch_function *> found_funcs;
 
-    BPatch_Vector<BPatch_point *> *point29_1 = found_funcs[0]->findPoint(BPatch_entry);
+	if ((NULL == appImage->findFunction(funcName, found_funcs)) || !found_funcs.size()) 
+	{
+		logerror("    Unable to find function %s\n", funcName);
+		return FAILED;
+	}
 
-    assert (point29_1);
+	if (1 < found_funcs.size()) 
+	{
+		logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+				__FILE__, __LINE__, found_funcs.size(), funcName);
+	}
 
-    BPatch_variableExpr *expr29_1 = findVariable(appImage, "test1_29_globalVariable1", point29_1);
+	BPatch_Vector<BPatch_point *> *point29_1 = found_funcs[0]->findPoint(BPatch_entry);
 
-    if (expr29_1 == NULL) {
-	logerror("**Failed** test #29 (class BPatch_srcObj)\n");
-	logerror("    Unable to locate test1_29_globalVariable1\n");
-	return FAILED;
-    }
-    setExpectError(DYNINST_NO_ERROR);
+	assert (point29_1);
 
-    int n = 1;
-    expr29_1->writeValue(&n,true);
-    return PASSED;
+	//BPatch_variableExpr *expr29_1 = findVariable(appImage, "test1_29_globalVariable1", point29_1);
+	BPatch_variableExpr *expr29_1 = appImage->findVariable("test1_29_globalVariable1");
+
+	if (expr29_1 == NULL) 
+	{
+		logerror("**Failed** test #29 (class BPatch_srcObj)\n");
+		logerror("    Unable to locate test1_29_globalVariable1\n");
+		return FAILED;
+	}
+	setExpectError(DYNINST_NO_ERROR);
+
+	int n = 1;
+	if (!expr29_1->writeValue(&n,true))
+	{
+		logerror("**Failed** test #29 (class BPatch_srcObj)\n");
+		logerror("    Unable to write test1_29_globalVariable1\n");
+		return FAILED;
+	}
+
+	return PASSED;
 }

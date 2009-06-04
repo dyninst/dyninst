@@ -40,8 +40,7 @@ ifeq ($(DYNINST_VER), 4)
 SRCS        += dyninstCompat.v4.C
 endif
 
-OBJDIR       = $(PLATFORM)
-OBJS         = $(addprefix $(OBJDIR)/, $(SRCS:%.C=%.o))
+OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
 LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty
@@ -58,25 +57,25 @@ ifneq (, $(findstring ia64, $(PLATFORM)))
 LIBS        += -ldl
 endif
 
-all: ready $(OBJDIR)/parseThat
+all: ready parseThat
 
-install: $(OBJDIR)/parseThat
+install: parseThat
 	$(INSTALL) -d $(prefix)
-	$(INSTALL) $(OBJDIR)/parseThat $(prefix)/parseThat
+	$(INSTALL) parseThat $(prefix)/parseThat
 
 clean:
 	rm -rf $(OBJDIR)
 
 distclean: clean
-	rm -rf config.log config.status $(OBJDIR) Makefile
+	rm -rf *
 
 ready:
-	$(INSTALL) -d $(OBJDIR)
+	@echo "Begin parseThat build for %(PLATFORM)"
 
-$(OBJDIR)/parseThat: $(OBJS)
+parseThat: $(OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
 
-$(OBJS): $(OBJDIR)/%.o: %.C
+$(OBJS): %.o: %.C
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(DEFINES) $^ -c -o $@
 
 alarm: alarm.c liblib.so

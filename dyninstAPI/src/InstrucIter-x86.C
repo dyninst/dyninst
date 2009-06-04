@@ -469,7 +469,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   if (((*p & 0x0f) == 0x06 || (*p & 0x0f) == 0x0e) && foundJccAlongTaken) {
     maxSwitch++;
   } 
-
+  maxSwitch++;
   parsing_printf("\tmaxSwitch set to %d\n",maxSwitch);
 
 

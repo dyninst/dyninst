@@ -10,14 +10,11 @@ instrumentation bugs, in the rare instance when they occur.
 CONFIGURATION
 
 Autoconf scripts are used to gather information about the target platform
-before building.  Run the script "configure" to initiate the process:
+before building.  The top level Makefile, however, will issue configure commands.
+If a custom configuration is desired, first do a top-level build (to ensure that 
+the build directory is created).  Then "cd $PLATFORM" and issue the command:
 
-	./configure
-
-Building outside of the source tree is possible as well:
-
-	mkdir ${OBJ_DIR}; cd ${OBJ_DIR}
-	/path/to/parseThat/configure
+	../configure <custom config options here>
 
 By default, the parseThat binary will be placed in the build directory.
 Use the --prefix flag to install it somewhere else.  For example, to
@@ -42,11 +39,10 @@ built.
 
 BUILDING & INSTALLING
 
-Once configured, you can build parseThat by simply invoking GNU make in the
-base directory.  To build parseThat for multiple platforms simultaneously
-with the same source tree, you must create a seperate object directory for
-each platform.  See instructions under CONFIGURATION for details on building
-outside the source tree.
+To build parseThat from scratch, issue the make command.  This will create
+a platform-specific build directory, configure the Makefile, and build 
+parseThat.  The top level Makefile (not platform specific) just relays make
+commands to the platform specific Makefile in the $PLATFORM directory.
 
 Once successfully built, invoking GNU make with the "install" target will
 copy the binary to its final destination.

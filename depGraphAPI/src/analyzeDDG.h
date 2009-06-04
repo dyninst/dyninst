@@ -139,7 +139,159 @@ class DDGAnalyzer {
         Function *func;
     };
 
-    typedef std::vector<cNode> cNodeSet;
+    // We need a data structure to represent definitions, since we need to handle
+    // flags and the PC separately from anything else...
+
+    class DefSet {
+public:
+        AbslocSet gprs;
+        AbslocSet flags;
+        AbslocSet sprs;
+        AbslocSet mem;
+
+        bool defPC_;
+
+        class iterator {
+            AbslocSet::iterator gI;
+            AbslocSet::iterator fI;
+            AbslocSet::iterator sI;
+            AbslocSet::iterator mI;
+
+            AbslocSet::iterator gE;
+            AbslocSet::iterator fE;
+            AbslocSet::iterator sE;
+            AbslocSet::iterator mE;
+
+            // I'm going to gine these inline so that 
+            // we don't have enormous :: nesting in a .C file...
+        public:
+
+            iterator &operator++() {
+                if (gI != gE) {
+                    gI++; 
+                    return *this;
+                }
+                else if (fI != fE) {
+                    fI++;
+                    return *this;
+                }
+                else if (sI != sE) {
+                    sI++;
+                    return *this;
+                }
+                else {
+                    mI++;
+                    return *this;
+                }
+            }
+
+            bool operator==(const iterator &rhs) const {
+                return ((rhs.gI == gI) &&
+                        (rhs.fI == fI) &&
+                        (rhs.sI == sI) &&
+                        (rhs.mI == mI) &&
+                        (rhs.gE == gE) &&
+                        (rhs.fE == fE) &&
+                        (rhs.sE == sE) &&
+                        (rhs.mE == mE));
+            }
+
+            bool operator!=(const iterator &rhs) const {
+                return ((rhs.gI != gI) ||
+                        (rhs.fI != fI) ||
+                        (rhs.sI != sI) ||
+                        (rhs.mI != mI) ||
+                        (rhs.gE != gE) ||
+                        (rhs.fE != fE) ||
+                        (rhs.sE != sE) ||
+                        (rhs.mE != mE));
+            }
+
+            iterator &operator=(const iterator &rhs) {
+                gI = rhs.gI;
+                fI = rhs.fI;
+                sI = rhs.sI;
+                mI = rhs.mI;
+                gE = rhs.gE;
+                fE = rhs.fE;
+                sE = rhs.sE;
+                mE = rhs.mE;
+                return *this;
+            }
+
+            const Absloc::Ptr &operator*() const {
+                if (gI != gE) {
+                    return *gI;
+                }
+                else if (fI != fE) {
+                    return *fI;
+                }
+                else if (sI != sE) {
+                    return *sI;
+                }
+                else return *mI;
+            }
+
+            iterator() {};
+                
+            iterator(const iterator &rhs) :
+                gI(rhs.gI),
+                fI(rhs.fI),
+                sI(rhs.sI),
+                mI(rhs.mI),
+                gE(rhs.gE),
+                fE(rhs.fE),
+                sE(rhs.sE),
+                mE(rhs.mE) {};
+
+            iterator(AbslocSet::iterator g1,
+                     AbslocSet::iterator g2,
+                     AbslocSet::iterator f1,
+                     AbslocSet::iterator f2,
+                     AbslocSet::iterator s1,
+                     AbslocSet::iterator s2,
+                     AbslocSet::iterator m1,
+                     AbslocSet::iterator m2) :
+                gI(g1),
+                fI(f1),
+                sI(s1),
+                mI(m1),
+                gE(g2), 
+                fE(f2),
+                sE(s2),
+                mE(m2) {};
+        };
+        
+        iterator begin() const { return iterator(gprs.begin(), gprs.end(),
+                                                 flags.begin(), flags.end(),
+                                                 sprs.begin(), sprs.end(),
+                                                 mem.begin(), mem.end()); }
+        
+        iterator end() const { return iterator(gprs.end(), gprs.end(), 
+                                               flags.end(), flags.end(),
+                                               sprs.end(), sprs.end(),
+                                               mem.end(), mem.end());}
+
+        iterator beginGprsMem() const { return iterator(gprs.begin(), gprs.end(),
+                                                        flags.end(), flags.end(),
+                                                        sprs.end(), sprs.end(),
+                                                        mem.begin(), mem.end()); }
+        iterator beginFlags() const {
+            return iterator(gprs.end(), gprs.end(),
+                            flags.begin(), flags.end(),
+                            sprs.end(), sprs.end(),
+                            mem.end(), mem.end());
+        }
+        iterator beginSprs() const { return iterator(gprs.end(), gprs.end(),
+                                                     flags.end(), flags.end(),
+                                                     sprs.begin(), sprs.end(),
+                                                     mem.end(), mem.end()); }
+        DefSet() : defPC_(false) {};
+        bool defPC() const { return defPC_; };
+    };
+
+
+    typedef std::set<cNode> cNodeSet;
 
     // Temporary use: a data type for summarizing the definitions of Abslocs
     // from a particular block.
@@ -160,9 +312,17 @@ class DDGAnalyzer {
     typedef dyn_hash_map<Address, AbslocSet> AbslocMap;
 
     // Keep a map of nodes we have already built so we don't re-create them
-    typedef std::map<cNode, Node::Ptr> NodeMap;
+    typedef std::map<cNode, Node::Ptr> CNodeMap;
 
     typedef std::map<Absloc::Ptr, Node::Ptr> NodeCache;
+
+    typedef std::map<Address, cNodeSet> ActualReturnMap;
+
+    typedef std::vector<Node::Ptr> NodeVec;
+
+    typedef std::map<Absloc::Ptr, NodeVec> NodeMap;
+
+    typedef std::map<Address, DefSet> DefCache;
 
  public:
     DDG::Ptr analyze();
@@ -198,11 +358,12 @@ class DDGAnalyzer {
     void generateNodes(const BlockSet &blocks);
     void generateBlockNodes(Block *block);
 
-    void createInsnNodes(const Address &addr,
-                         const AbslocSet &used, const AbslocSet &def,
+    void createInsnNodes(const Insn &I, 
+                         const Address &addr,
+                         const DefSet &def,
                          DefMap &localReachingDefs);
     void updateReachingDefs(const Address &addr,
-                            const AbslocSet &used, const AbslocSet &def,
+                            const DefSet &def,
                             DefMap &localReachingDefs);
     void createCallNodes(const Address &addr,
                          const DefMap &localReachingDefs);
@@ -229,6 +390,7 @@ class DDGAnalyzer {
     void debugLocalSet(const DefMap &set, char *str);
     void debugAbslocSet(const AbslocSet &a, char *str);
     void debugDefMap(const DefMap &d, char *str);
+    void debugBlockDefs();
 
     // Absloc related
 
@@ -244,18 +406,17 @@ class DDGAnalyzer {
                                  Address addr);
     Absloc::Ptr getAbsloc(const InstructionAPI::RegisterAST::Ptr reg);
 
-    void getABIDefinedAbslocs(AbslocSet &abslocs);
-    void getABIUsedAbslocs(AbslocSet &abslocs);
+
     
-    const AbslocSet &getDefinedAbslocs(const Insn &insn, const Address &a);
+    const DefSet &getDefinedAbslocs(const Insn &insn, const Address &a);
     const AbslocSet &getUsedAbslocs(const Insn &insn, const Address &a);
 
     void getUsedAbslocs(const InstructionAPI::Instruction insn,
-                               Address addr,
-                               AbslocSet &uses);
-    void getDefinedAbslocs(const InstructionAPI::Instruction insn,
-                                  Address addr,
-                                  AbslocSet &defs);
+                        Address addr,
+                        AbslocSet &uses);
+    void getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
+                              Address addr,
+                              DefSet &defs);
 
     static bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
     static bool convertResultToSlot(const InstructionAPI::Result &res, int &slot);
@@ -270,6 +431,44 @@ class DDGAnalyzer {
     bool getCurrentStackHeight(Address addr, int &height);
 
     InstructionAPI::RegisterAST::Ptr makeRegister(int id);
+
+    //////////////////////
+    // Handling callees
+    //////////////////////
+    //
+    // Option 1: trust the ABI 
+    void summarizeABIGenKill(Address, Function *, DefMap &, KillMap &);
+    void summarizeABIUsed(Address, Function *, const DefMap &, NodeVec &);
+
+    // Option 2: conservative
+    void summarizeConservativeGenKill(Address, Function *, DefMap &, KillMap &);
+    void summarizeConservativeUsed(Address, Function *, const DefMap &, NodeVec &);
+    
+    // Option 3: linear scan
+    void summarizeLinearGenKill(Address, Function *, int, DefMap &, KillMap &);
+    void summarizeLinearUsed(Address, Function *, int, const DefMap &, NodeVec &);
+
+    // Option 4: recursive
+    void summarizeAnalyzeGenKill(Address, Function *, int, DefMap &, KillMap &);
+    void summarizeAnalyzeUsed(Address, Function *, int, const DefMap &, NodeVec &);
+
+    
+    ///////////////////////////
+    void getUsedToDefine(const Insn &I, 
+                         const Address &addr, 
+                         AbslocPtr D,
+                         AbslocSet &used);
+
+    void handlePushEquivalent(Address addr,
+                              Absloc::Ptr read,
+                              InstructionAPI::RegisterAST::Ptr SP,
+                              NodeMap &worklist);
+
+    void handlePopEquivalent(Address addr,
+                             InstructionAPI::RegisterAST::Ptr readReg,
+                             InstructionAPI::RegisterAST::Ptr SP,
+                             NodeMap &worklist);
+
  private:
 
     ReachingDefsGlobal allGens;
@@ -280,19 +479,20 @@ class DDGAnalyzer {
     ReachingDefsGlobal outSets;
 
     AbslocMap globalUsed;
-    AbslocMap globalDef;
-
+    DefCache defCache;
+    
     DDG::Ptr ddg;
     
     Function *func_;
 
-    NodeMap nodeMap;
+    CNodeMap nodeMap;
 
     NodeCache formalParamNodes_;
     NodeCache formalReturnNodes_;
 
     unsigned addr_width;
 
+    ActualReturnMap actualReturnMap_;
 };
 
 

@@ -444,7 +444,7 @@ void printBinary( unsigned long long word, int start = 0, int end = 63 ) {
 /* FIXME: this almost certainly NOT the Right Place to keep this. */
 Address savedPC;
 
-bool process::getDyninstRTLibName() {
+bool AddressSpace::getDyninstRTLibName() {
    if (dyninstRT_name.length() == 0) {
       // Get env variable
       if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
@@ -452,7 +452,7 @@ bool process::getDyninstRTLibName() {
       }
       else {
          std::string msg = std::string( "Environment variable " + std::string( "DYNINSTAPI_RT_LIB" )
-               + " has not been defined for process " ) + utos( getPid() );
+               + " has not been defined");
          showErrorCallback(101, msg);
          return false;
       }

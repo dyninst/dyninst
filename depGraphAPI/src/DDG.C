@@ -50,8 +50,9 @@
 using namespace Dyninst;
 using namespace DepGraphAPI;
 
-DDG::DDG() :
-    virtEntryNode_(VirtualNode::createNode())
+DDG::DDG(Function *func) :
+    virtEntryNode_(VirtualNode::createNode()),
+    func_(func)
 {}
 
 
@@ -61,6 +62,22 @@ DDG::Ptr DDG::analyze(BPatch_function *func) {
     DDG::Ptr ddg = ddgA.analyze();
 
     return ddg;
+}
+
+extern AnnotationClass <DDG::Ptr> DDGAnno;
+
+void DDG::removeAnnotation() {
+    assert(func_);
+    
+    // Note: removeAnnotation just NULLs it out, leading
+    // to wasted memory...
+    
+    DDG::Ptr *ret;
+    func_->getAnnotation(ret, DDGAnno);
+    if (ret) {
+        delete ret;
+        func_->removeAnnotation(DDGAnno);
+    }
 }
 
 void DDG::insertEntryNode(NodePtr entry) {
@@ -114,10 +131,10 @@ void DDG::entryNodes(NodeIterator &begin, NodeIterator &end) {
     NodeIterator paramBegin(new FormalParamSetIter(formalParamNodes_.begin()));
     NodeIterator paramEnd(new FormalParamSetIter(formalParamNodes_.end()));
 
-    begin = NodeIterator(new DDGEntryIter(paramBegin, paramEnd,
-                                          virtBegin, virtEnd));
-    end = NodeIterator(new DDGEntryIter(paramEnd, paramEnd,
-                                        virtEnd, virtEnd));
+    begin = NodeIterator(new DDGEntryIter(paramBegin, paramBegin, paramEnd,
+                                          virtBegin, virtBegin, virtEnd));
+    end = NodeIterator(new DDGEntryIter(paramBegin, paramEnd, paramEnd,
+                                        virtBegin, virtEnd, virtEnd));
 
     
 

@@ -148,9 +148,24 @@ void StackAnalysis::summarizeBlockDeltas() {
 
             // Can go top...
             StackHeight delta;
-            computeInsnEffects(block, insn, off, delta, stackPresence);
+            bool reset = false;
+            computeInsnEffects(block, insn, off, delta, stackPresence, reset);
             blockToInsnDeltas[block][off] = delta;
             blockToInsnPresence[block][off] = stackPresence;
+
+
+            if (reset) {
+                // This means we've encountered something that nulls out the 
+                // stack. For now, assume we *do* have a frame and 
+                // zero out the current stack growth.
+                heightChange = 0;
+                blockStackReset[block] = true;
+                insnStackReset[off] = true;
+                // We will now record any further movement in the stack frame. 
+                // When we do the fixpoint, we will key off stackReset[block];
+                // if true, we will disregard the input height and
+                // force the output height.
+            }
 
             heightChange += delta;
         }
@@ -208,7 +223,20 @@ void StackAnalysis::calculateInterBlockDepth() {
         // Step 3: calculate our new out height
 
         inBlockHeights[block] = newInHeight;
-        outBlockHeights[block] = newInHeight + blockHeightDeltas[block];
+
+        if (blockStackReset[block]) {
+            // We've reset the stack...
+            outBlockHeights[block] = blockHeightDeltas[block];
+        }
+        else {
+            outBlockHeights[block] = newInHeight + blockHeightDeltas[block];
+        }
+
+        stackanalysis_printf("\t\t Block iteration: block 0x%lx, in height %s, out height %s\n",
+                             block->firstInsnOffset(), newInHeight.getString().c_str(),
+                             outBlockHeights[block].getString().c_str());
+
+        // Step 4: calculate our new stack presence
 
         inBlockPresences[block] = newInPresence;
         // If there was no change in the block then use the in presence; otherwise
@@ -253,8 +281,11 @@ void StackAnalysis::createIntervals() {
         for (InsnDeltas::iterator iter = blockToInsnDeltas[block].begin();
              iter != blockToInsnDeltas[block].end(); 
              iter++) {
+            Offset curOff = iter->first;
+
             // Now create extents for instructions within this block.
-            if ((*iter).second == StackHeight(0)) {
+            if (((*iter).second == StackHeight(0)) &&
+                !(insnStackReset[curOff])) {
                 continue;
             }
             
@@ -278,7 +309,12 @@ void StackAnalysis::createIntervals() {
             // Start a new one
             curLB = curUB;
             curUB = 0;
-            curHeight += (*iter).second;
+            if (insnStackReset[curOff]) {
+                curHeight = StackHeight(0);
+            }
+            else {
+                curHeight += (*iter).second;
+            }
 
         }
         
@@ -349,7 +385,8 @@ void StackAnalysis::computeInsnEffects(const Block *block,
                                        const Instruction &insn,
                                        Offset off,
                                        StackHeight &height,
-                                       StackPresence &pres) 
+                                       StackPresence &pres,
+                                       bool &reset) 
 {
     stackanalysis_printf("\t\tInsn at 0x%lx\n", off); 
     Expression::Ptr theStackPtr(new RegisterAST(r_eSP));
@@ -421,6 +458,12 @@ void StackAnalysis::computeInsnEffects(const Block *block,
        stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %s\n", height.getString().c_str());
        return;
    }
+   case e_ret_near:
+   case e_ret_far:
+       height = StackHeight(word_size);
+       stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", height.getString().c_str());
+       return;
+
    case e_sub:
        sign = -1;
    case e_add: {
@@ -467,10 +510,9 @@ void StackAnalysis::computeInsnEffects(const Block *block,
        stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", height.getString().c_str());
        return;
        // We treat return as zero-modification right now
-   case e_ret_near:
-   case e_ret_far:
-       height = StackHeight(0);
-       stackanalysis_printf("\t\t\t Stack height changed by ret_near/ret_far %s\n", height.getString().c_str());
+   case e_leave:
+       reset = true;
+       stackanalysis_printf("\t\t\t Stack height reset by leave\n");
        return;
    default:
        stackanalysis_printf("\t\t\t Stack height changed by unhandled insn %s: %s\n", 

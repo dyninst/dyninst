@@ -248,6 +248,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool updateData(void *buffer, unsigned size);
    SYMTAB_EXPORT Offset getFreeOffset(unsigned size);
 
+   SYMTAB_EXPORT bool addLibraryPrereq(std::string libname);
+   SYMTAB_EXPORT bool addSysVDynamic(long name, long value);
    /***** Data Member Access *****/
    SYMTAB_EXPORT std::string file() const;
    SYMTAB_EXPORT std::string name() const;

@@ -208,7 +208,6 @@ public:
     void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
     void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
-
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // See comment on 32-bit emitCall

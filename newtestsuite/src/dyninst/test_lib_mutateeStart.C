@@ -193,7 +193,6 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
    return binEdit;
 }
 
-#define BINEDIT_DIR "./binaries"
 
 #if defined(os_linux_test)
 #include <dirent.h>
@@ -221,7 +220,11 @@ static void clearBinEditFiles()
       }
       std::string full_file = std::string(BINEDIT_DIR) + std::string("/") +
          std::string(files[i]->d_name);
-      unlink(full_file.c_str());
+	  if (!getenv("DYNINST_REWRITER_NO_UNLINK"))
+	  {
+		  dprintf("%s[%d]:  unlinking %s\n", FILE__, __LINE__, full_file.c_str());
+		  unlink(full_file.c_str());
+	  }
       free(files[i]);
    }
    free(files);
@@ -350,13 +353,20 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 
    clearBinEditFiles();
 
+#if 0
+   //  runTests is clobbering (perhaps intentionally?) the user's LD_LIBRARY_PATH
+   //  which means that if we cd to the bin dir, and any rewritten binary depends
+   //  on a library in the test directory (one level up), the library will no
+   //  be found.  So rather than cd to the directory, keep the CWD in the test 
+   //  directory and generate and execute the rewritten binary via relative path
    result = cdBinDir();
    if (!result) {
       goto done;
    }
    cd_done = true;
+#endif
    
-   outfile = std::string("rewritten_") + std::string(group->mutatee);
+   outfile = std::string(BINEDIT_DIR) + std::string("/rewritten_") + std::string(group->mutatee);
    result = binEdit->writeFile(outfile.c_str());
    if (!result) {
       goto done;
@@ -367,6 +377,19 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
                           verboseFormat, printLabels, 
                           debugPrint, pidfilename);
    
+   dprintf("%s[%d]:  starting rewritten process '%s ", FILE__, __LINE__, outfile.c_str());
+   if (child_argv)
+   {
+	   const char **argv_iter = child_argv;
+	   while(argv_iter)
+	   {
+		   const char *arg = *argv_iter;
+		   if (arg) dprintf("%s ", arg);
+		   else break;
+		   argv_iter++;
+	   }
+   }
+   dprintf("'...\n\n\n");
    pid = startNewProcessForAttach(outfile.c_str(), child_argv,
                                   NULL, NULL, false);
    if (pid == -1) {
@@ -383,7 +406,10 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       test_result = CRASHED;
    }
    else if (app_return != 0) {
-      test_result = FAILED;
+	   //  return unknown here because some tests may have passed, some may
+	   //  have failed...  if we return failed, all tests in the group get
+	   //  marked as failed
+      test_result = UNKNOWN;
    }
    else {
       test_result = PASSED;

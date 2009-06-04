@@ -184,5 +184,17 @@ typedef struct {
    void *target;
 } trapMapping_t;
 
+#define TRAP_HEADER_SIG 0x759191D6
+#define DT_DYNINST 0x6D191957
+
+struct trap_mapping_header {
+   uint32_t signature;
+   uint32_t num_entries;
+   int32_t pos;
+   uint64_t low_entry;
+   uint64_t high_entry;
+   trapMapping_t traps[];
+};
+
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */
