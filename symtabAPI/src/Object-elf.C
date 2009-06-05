@@ -2840,6 +2840,10 @@ stab_entry *Object::get_stab_info() const
 Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
 	       bool alloc_syms) :
   AObject(mf_, mfd, err_func), 
+  hasReldyn_(false),
+  hasReladyn_(false),
+  hasRelplt_(false),
+  hasRelaplt_(false),
   dwarf(this),
   EEL(false),
   DbgSectionMapSorted(false)
