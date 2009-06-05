@@ -5,7 +5,7 @@ To build the test programs, cd into the subdirectory of this directory that
 is named after the platform you are running on, and type "make."  If you are
 using the source distribution of the Dyninst API, you will need to make the
 API libraries before making the tests; see the README file in the
-core/dyninstAPI directory for how to do this.
+dyninst/dyninstAPI directory for how to do this.
 
 Before you can run the test programs you will need to set up your
 environment to use the Dyninst API library, as described in the

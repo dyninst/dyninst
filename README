@@ -1,8 +1,8 @@
 
-        README for common Paradyn/DyninstAPI core directory hierarchy
-        =============================================================
+          README for common Paradyn/DyninstAPI directory hierarchy
+          =========================================================
 
-This directory contains the "core" source code for both the Paradyn
+This directory contains the "dyninst" source code for both the Paradyn
 parallel performance tools and the distinct DyninstAPI library for building
 tools based on dynamic instrumentation.  It is divided into subdirectories
 that represent major functional units of the system -- DyninstAPI-only
@@ -61,8 +61,9 @@ configuation and appropriately edit make.config before building.
 See the README file in the dyninstAPI subdirectory for further information
 about building/installing the API library.
 
-Subdirectories of the "core" directory are organized to promote modularity and
-support compiling the system for multiple platforms in a single source tree.
+Subdirectories of the "dyninst" directory are organized to promote 
+modularity and support compiling the system for multiple platforms 
+in a single source tree.
 
 Each directory contains the following files:
         h       - a directory describing the exported interface of this 
@@ -90,4 +91,3 @@ Each directory contains the following files:
                   files (.o's).
 
 ==============================================================================
-$Id: README,v 1.7 2000/07/30 21:39:59 paradyn Exp $
