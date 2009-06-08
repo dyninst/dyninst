@@ -1,13 +1,16 @@
-
-all: parsethat 
-parsethat: $(PLATFORM)/Makefile
-	cd $(PLATFORM); $(MAKE);
-$(PLATFORM)/Makefile: $(PLATFORM)
+VPATH = $(PLATFORM)
+all:  $(PLATFORM)/parseThat
+$(PLATFORM)/parseThat: $(PLATFORM)/Makefile
+	$(MAKE) -C $(PLATFORM)
+$(PLATFORM)/Makefile: pMakefile.in
+	@if [ -d $(PLATFORM) ]; then \
+		echo "directory $(PLATFORM) exists"; \
+	else \
+		mkdir $(PLATFORM); \
+	fi
 	cd $(PLATFORM); \
 	../configure --prefix=$(DYNINST_ROOT)/$(PLATFORM)/bin; \
 	mv pMakefile Makefile
-$(PLATFORM):
-	mkdir $(PLATFORM);
 clean:
 	cd $(PLATFORM); $(MAKE) clean;
 distclean:
