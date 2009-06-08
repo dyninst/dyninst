@@ -65,7 +65,7 @@ static int num_free;
 static int num_deleted;
 
 static dyninst_thread_t default_thread_structs[MAX_THREADS];
-static int default_thread_hash[(int) (MAX_THREADS * 1.25)];
+static int default_thread_hash[THREADS_HASH_SIZE];
 
 DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free); }
 
@@ -90,7 +90,7 @@ void DYNINST_initialize_index_list()
   memset(DYNINST_thread_structs, 0, (DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
 
   if (DYNINST_max_num_threads == MAX_THREADS) {
-     DYNINST_thread_hash_size = (int) (MAX_THREADS * 1.25);
+     DYNINST_thread_hash_size = THREADS_HASH_SIZE;
      DYNINST_thread_hash = default_thread_hash;
   }
   else {

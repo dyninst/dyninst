@@ -5073,7 +5073,6 @@ bool instruction::generate(codeGen &gen,
 		   *temp = 0;
 		   newInsn += sizeof(unsigned int);
 		   Address offset = origAddr - newAddr;
-		   fprintf(stderr, "Relocating thunk from %x to %x, offset is %x\n", origAddr, newAddr, offset);
 		   *newInsn = 0x81;
 		   newInsn++;
 		   *newInsn = 0x04;

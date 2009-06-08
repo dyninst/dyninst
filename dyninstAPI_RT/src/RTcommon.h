@@ -80,6 +80,7 @@ extern int DYNINSTdebugRTlib;
 extern int DYNINSTstaticMode;
 
 #define MAX_THREADS 32 //Should match MAX_THREADS in process.h
+#define THREADS_HASH_SIZE 40 //MAX_THREADS*1.25
 
 #if (os_solaris == 8)
 /*  solaris 2.8 is having some trouble with varargs... */  

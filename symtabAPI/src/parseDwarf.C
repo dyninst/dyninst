@@ -1358,7 +1358,13 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		/* Find its return type. */
 
 		Dwarf_Attribute typeAttribute;
-		status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+		if (hasSpecification) {
+			status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
+		}
+
+		if ((!hasSpecification) || (status == DW_DLV_NO_ENTRY)) {
+			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
+		}
 
 		DWARF_NEXT_IF( status == DW_DLV_ERROR, 
 				"%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );

@@ -1,5 +1,5 @@
 
-This is the version 5.0 release of the Dyninst API.  Currently, the API
+This is the version 6.0 release of the Dyninst API.  Currently, the API
 library is available for the Sparc/Solaris, POWER/AIX, x86/Linux,
 x86/Windows XP/2000/2003, Alpha/Tru64 Unix, ia64/Linux, and x86_64/Linux 
 platforms.
@@ -8,7 +8,7 @@ Documentation for the API can be found at:
 
     http://www.dyninst.org/
 
-The core/dyninstAPI/tests directory contains the source code for programs
+The dyninst/dyninstAPI/tests directory contains the source code for programs
 that test the API functions.  These programs are useful as examples of how
 to use the API.  See the README file in that directory for how to run or
 rebuild them.
@@ -63,7 +63,7 @@ Building the Dyninst API from source
 ------------------------------------
 
 If you downloaded the source distribution of this package, you can build the
-Dyninst API libraries by running "make" in the core directory (one level up
+Dyninst API libraries by running "make" in the dyninst directory (one level up
 from where this README file is located), assuming your environment is set up
 as described above.  On Unix platforms, you must use GNU make.  The top-level
 makefile contains directives for compiling the Paradyn parallel performance
@@ -71,7 +71,7 @@ tool, from which the Dyninst API was derived.  If you have downloaded only the
 Dyninst API, you will see a number of messages about missing directories.
 These directories are needed only for making Paradyn, so you should ignore
 these messages.  If you downloaded the entire Paradyn distribution, you can
-make only the API libraries by running "make DyninstAPI" in the core
+make only the API libraries by running "make DyninstAPI" in the dyninst  
 directory.
 
 -----------------------------------------------------------------------------
