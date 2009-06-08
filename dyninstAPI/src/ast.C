@@ -785,9 +785,12 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    {
      if(loperand->getoType() == variableValue)
      {
-       if(gen.as()->proc())
+       dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
+       dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+       
+       int_variable* var = lnode->lookUpVar(gen.addrSpace());
+       if(gen.addrSpace()->proc())
        {
-	 int_variable var = loperand->lookUpVar(as);
 	 if(var)
 	   laddr = var->getAddress();
 	 else
@@ -795,6 +798,11 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
        }
        else
        {
+	 // Rewriter algorithm:
+	 // allocate temp register
+	 // EmitLoadShared with a loadConstOp to get the variable address into a temp register
+	 // Proceed with the below, using the temp register instead of an immediate
+	 // deallocate temp register
 	 return false;
        }
        
@@ -1403,9 +1411,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        else
        {
-          gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
+	 gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
        }
-       
        break;
    default:
        fprintf(stderr, "[%s:%d] ERROR: Unknown operand type %d in AstOperandNode generation\n",
