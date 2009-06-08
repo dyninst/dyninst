@@ -717,6 +717,8 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 #define JUMP_SZ (5)
 // Size of a call rel32 instruction
 #define CALL_REL32_SZ (5)
+// Max size of a relocated thunk call
+#define CALL_RELOC_THUNK (13)
 
 #if defined(arch_x86_64)
 // size of instruction seqeunce to get anywhere in address space
