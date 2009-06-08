@@ -114,6 +114,23 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
   {
     logerror("FAILED: instruction %s, expected %d regs read, %d regs written, actual %d read, %d written\n",
 	     i.format().c_str(), expectedRead.size(), expectedWritten.size(), actualRead.size(), actualWritten.size());
+    logerror("Expected read:\n");
+    for (registerSet::iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
+        logerror("\t%s\n", (*iter)->format().c_str());
+    }
+    logerror("Expected written:\n");
+    for (registerSet::iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
+        logerror("\t%s\n", (*iter)->format().c_str());
+    }
+    logerror("Actual read:\n");
+    for (registerSet::iterator iter = actualRead.begin(); iter != actualRead.end(); iter++) {
+        logerror("\t%s\n", (*iter)->format().c_str());
+    }
+    logerror("Actual written:\n");
+    for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
+        logerror("\t%s\n", (*iter)->format().c_str());
+    }
+
     return FAILED;
   }
   registerSet::const_iterator safety;
@@ -288,7 +305,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(ip);
+  expectedRead = list_of(esp)(ip);
   expectedWritten = list_of(esp)(ip);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[3], expectedRead, expectedWritten));
 

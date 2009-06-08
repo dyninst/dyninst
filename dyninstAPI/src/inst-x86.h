@@ -248,7 +248,7 @@ void emitOpRMReg(unsigned opcode, Register base, int disp,
 
 void emitMovRegToReg(Register dest, Register src, codeGen &gen);
 void emitMovIRegToReg(Register dest, Register src, codeGen &gen);
-void emitMovPCRMToReg(Register dest, int offset, codeGen &gen);
+void emitMovPCRMToReg(Register dest, int offset, codeGen &gen, bool deref_result = true);
 void emitMovMToReg(Register dest, int disp, codeGen &gen);
 void emitMovMBToReg(Register dest, int disp, codeGen &gen);
 void emitMovMWToReg(Register dest, int disp, codeGen &gen);

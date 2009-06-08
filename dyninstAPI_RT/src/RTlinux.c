@@ -58,11 +58,15 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <link.h>
+#include <pthread.h>
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
 extern unsigned long sizeOfLowMemHeap1;
 extern unsigned long sizeOfAnyHeap1;
+
+static struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
 
 #if defined(arch_power) && defined(arch_64bit) && defined(os_linux)
 unsigned long DYNINSTlinkSave;
@@ -80,6 +84,9 @@ void DYNINSTbreakPoint()
    /* We set a global flag here so that we can tell
       if we're ever in a call to this when we get a 
       SIGBUS */
+   if (DYNINSTstaticMode)
+      return;
+
    DYNINST_break_point_event = 1;
    while (DYNINST_break_point_event)  {
       kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
@@ -98,6 +105,9 @@ void DYNINSTlinuxBreakPoint()
    struct sigaction act, oldact;
    int result;
    
+   if (DYNINSTstaticMode)
+      return;
+
    memset(&oldact, 0, sizeof(struct sigaction));
    memset(&act, 0, sizeof(struct sigaction));
 
@@ -131,6 +141,9 @@ void DYNINSTlinuxBreakPoint()
 
 void DYNINSTsafeBreakPoint()
 {
+   if (DYNINSTstaticMode)
+      return;
+
     DYNINST_break_point_event = 2; /* Not the same as above */
     //    while (DYNINST_break_point_event)
         kill(dyn_lwp_self(), SIGSTOP);
@@ -192,7 +205,6 @@ int DYNINST_sysEntry;
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
    RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-
 #if defined(arch_x86)
    /**
     * The following line reads the vsyscall entry point directly from
@@ -309,17 +321,19 @@ int dyn_pid_self()
 }
 
 dyntid_t (*DYNINST_pthread_self)(void);
+
 dyntid_t dyn_pthread_self()
 {
    dyntid_t me;
+   if (DYNINSTstaticMode) {
+      return (dyntid_t) pthread_self();
+   }
    if (!DYNINST_pthread_self) {
       return (dyntid_t) DYNINST_SINGLETHREADED;
    }
    me = (*DYNINST_pthread_self)();
    return (dyntid_t) me;
 }
-
-
 
 /* 
    We reserve index 0 for the initial thread. This value varies by
@@ -502,6 +516,10 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 #endif
 
 extern void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint);
+extern unsigned long dyninstTrapTableUsed;
+extern unsigned long dyninstTrapTableVersion;
+extern trapMapping_t *dyninstTrapTable;
+extern unsigned long dyninstTrapTableIsSorted;
 
 /**
  * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is 
@@ -531,6 +549,7 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
    unsigned i;
    unsigned long *orig_sp;
    void *orig_ip;
+   void *trap_to;
 
    getcontext(&newcontext);
    
@@ -550,7 +569,27 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
 
    //simulate a "push" of the flags and instrumentation entry points onto
    // the stack.
-   *(orig_sp - 1) = (unsigned long) dyninstTrapTranslate(orig_ip);
+   if (DYNINSTstaticMode) {
+      unsigned long zero = 0;
+      unsigned long one = 1;
+      struct trap_mapping_header *hdr = getStaticTrapMap((unsigned long) orig_ip);
+      trapMapping_t *mapping = &(hdr->traps[0]);
+      assert(hdr);
+      trap_to = dyninstTrapTranslate(orig_ip, 
+                                     (unsigned long *) &hdr->num_entries, 
+                                     &zero, 
+                                     (volatile trapMapping_t **) &mapping,
+                                     &one);
+   }
+   else {
+      trap_to = dyninstTrapTranslate(orig_ip, 
+                                     &dyninstTrapTableUsed,
+                                     &dyninstTrapTableVersion,
+                                     (volatile trapMapping_t **) &dyninstTrapTable,
+                                     &dyninstTrapTableIsSorted);
+                                     
+   }
+   *(orig_sp - 1) = (unsigned long) trap_to;
    *(orig_sp - 2) = flags;
    unsigned shift = 2;
 #if defined(arch_x86_64) && !defined(MUTATEE_32)
@@ -568,7 +607,237 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
    assert(0);
 }
 
+#if defined(cap_binary_rewriter)
+
+extern struct r_debug _r_debug;
+struct r_debug _r_debug __attribute__ ((weak));
+
+#define NUM_LIBRARIES 512 //Important, max number of rewritten libraries
+
+#define WORD_SIZE (8 * sizeof(unsigned))
+#define NUM_LIBRARIES_BITMASK_SIZE (1 + NUM_LIBRARIES / WORD_SIZE)
+struct trap_mapping_header *all_headers[NUM_LIBRARIES];
+
+static unsigned all_headers_current[NUM_LIBRARIES_BITMASK_SIZE];
+static unsigned all_headers_last[NUM_LIBRARIES_BITMASK_SIZE];
+
+#if !defined(arch_x86_64) || defined(MUTATEE_32)
+typedef Elf32_Dyn ElfX_Dyn;
+#else
+typedef Elf64_Dyn ElfX_Dyn;
+#endif
+
+struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
+
+static int parse_libs();
+static int parse_link_map(struct link_map *l);
+static void clear_unloaded_libs();
+
+static void set_bit(unsigned *bit_mask, int bit, char value);
+//static char get_bit(unsigned *bit_mask, int bit);
+static void clear_bitmask(unsigned *bit_mask);
+static unsigned get_next_free_bitmask(unsigned *bit_mask, int last_pos);
+static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos);
+
+static tc_lock_t trap_mapping_lock;
+
+static struct trap_mapping_header *getStaticTrapMap(unsigned long addr)
+{
+   struct trap_mapping_header *header;
+   int i;
+   
+   tc_lock_lock(&trap_mapping_lock);
+   parse_libs();
+
+   i = -1;
+   for (;;) {
+      i = get_next_set_bitmask(all_headers_current, i);
+      assert(i >= 0 && i <= NUM_LIBRARIES);
+      if (i == NUM_LIBRARIES) {
+         header = NULL;
+         goto done;
+      }
+      header = all_headers[i];
+      if (addr >= header->low_entry && addr <= header->high_entry) {
+         goto done;
+      }
+   }  
+ done:
+   tc_lock_unlock(&trap_mapping_lock);
+   return header;
+}
+
+static int parse_libs()
+{
+   struct link_map *l_current;
+
+   l_current = _r_debug.r_map;
+   if (!l_current)
+      return -1;
+
+   clear_bitmask(all_headers_current);
+   while (l_current) {
+      parse_link_map(l_current);
+      l_current = l_current->l_next;
+   }
+   clear_unloaded_libs();
+
+   return 0;
+}
+
+//parse_link_map return values
+#define PARSED 0
+#define NOT_REWRITTEN 1
+#define ALREADY_PARSED 2
+#define ERROR_INTERNAL -1
+#define ERROR_FULL -2
+static int parse_link_map(struct link_map *l) 
+{
+   ElfX_Dyn *dynamic_ptr;
+   struct trap_mapping_header *header;
+   unsigned int i, new_pos;
+
+   dynamic_ptr = (ElfX_Dyn *) l->l_ld;
+   if (!dynamic_ptr)
+      return -1;
+
+   assert(sizeof(dynamic_ptr->d_un.d_ptr) == sizeof(void *));
+   for (; dynamic_ptr->d_tag != DT_NULL && dynamic_ptr->d_tag != DT_DYNINST; dynamic_ptr++);
+   if (dynamic_ptr->d_tag == DT_NULL) {
+      return NOT_REWRITTEN;
+   }
+
+   header = (struct trap_mapping_header *) (dynamic_ptr->d_un.d_val + l->l_addr);
+   
+   if (header->signature != TRAP_HEADER_SIG)
+      return ERROR_INTERNAL;
+   if (header->pos != -1) {
+      set_bit(all_headers_current, header->pos, 1);
+      assert(all_headers[header->pos] == header);
+      return ALREADY_PARSED;
+   }
+ 
+   for (i = 0; i < header->num_entries; i++)
+   {
+      header->traps[i].source = (void *) (((unsigned long) header->traps[i].source) + l->l_addr);
+      header->traps[i].target = (void *) (((unsigned long) header->traps[i].target) + l->l_addr);
+      if (!header->low_entry || header->low_entry > (unsigned long) header->traps[i].source)
+         header->low_entry = (unsigned long) header->traps[i].source;
+      if (!header->high_entry || header->high_entry < (unsigned long) header->traps[i].source)
+         header->high_entry = (unsigned long) header->traps[i].source;
+   }
+
+   new_pos = get_next_free_bitmask(all_headers_last, -1);
+   assert(new_pos >= 0 && new_pos < NUM_LIBRARIES);
+   if (new_pos == NUM_LIBRARIES)
+      return ERROR_FULL;
+
+   header->pos = new_pos;
+   all_headers[new_pos] = header;
+   set_bit(all_headers_current, new_pos, 1);
+   set_bit(all_headers_last, new_pos, 1);
+
+   return PARSED;
+}
+
+static void clear_unloaded_libs()
+{
+   unsigned i;
+   for (i = 0; i<NUM_LIBRARIES_BITMASK_SIZE; i++)
+   {
+      all_headers_last[i] = all_headers_current[i];
+   }
+}
+
+static void set_bit(unsigned *bit_mask, int bit, char value) {
+   assert(bit < NUM_LIBRARIES);
+   unsigned *word = bit_mask + bit / WORD_SIZE;
+   unsigned shift = bit % WORD_SIZE;
+   if (value) {
+      *word |= (1 << shift);
+   }
+   else {
+      *word &= ~(1 << shift);
+   }
+}
+
+//Wasn't actually needed
+/*
+static char get_bit(unsigned *bit_mask, int bit) {
+   assert(bit < NUM_LIBRARIES);
+   unsigned *word = bit_mask + bit / WORD_SIZE;
+   unsigned shift = bit % WORD_SIZE;
+   return (*word & (1 << shift)) ? 1 : 0;
+}
+*/
+
+static void clear_bitmask(unsigned *bit_mask) {
+   unsigned i;
+   for (i = 0; i < NUM_LIBRARIES_BITMASK_SIZE; i++) {
+      bit_mask[i] = 0;
+   }
+}
+
+static unsigned get_next_free_bitmask(unsigned *bit_mask, int last_pos) {
+   unsigned i, j;
+   j = last_pos+1;
+   i = j / WORD_SIZE;
+   for (; j < NUM_LIBRARIES; i++) {
+      if (bit_mask[i] == (unsigned) -1) {
+         j += WORD_SIZE;
+         continue;
+      }
+      for (;;) {
+         if (!((1 << (j % WORD_SIZE) & bit_mask[i]))) {
+            return j;
+         }
+         j++;
+         if (j % WORD_SIZE == 0) {
+            break;
+         }
+      }
+   }
+   return NUM_LIBRARIES;
+}
+
+static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
+   unsigned i, j;
+   j = last_pos+1;
+   i = j / WORD_SIZE;
+   for (; j < NUM_LIBRARIES; i++) {
+      if (bit_mask[i] == (unsigned) 0) {
+         j += WORD_SIZE;
+         continue;
+      }
+      for (;;) {
+         if ((1 << (j % WORD_SIZE) & bit_mask[i])) {
+            return j;
+         }
+         j++;
+         if (j % WORD_SIZE == 0) {
+            break;
+         }
+      }
+   }
+   return NUM_LIBRARIES;
+}
+
+#endif
+
+
 #endif /* cap_mutatee_traps */
+
+int dyn_var = 0;
+
+#if defined(cap_binary_rewriter)
+extern void DYNINSTBaseInit();
+void runDYNINSTBaseInit() __attribute__((constructor));
+void runDYNINSTBaseInit()
+{
+   DYNINSTBaseInit();
+}
+#endif
+
 
 /*
 //Small program for finding the correct values to fill in pos_in_pthreadt

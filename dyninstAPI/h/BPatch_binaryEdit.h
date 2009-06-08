@@ -93,6 +93,8 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     std::map<std::string, BinaryEdit *> llBinEdits;
     BinaryEdit *origBinEdit;
 
+    BinaryEdit *rtLib;
+
     BPatch_binaryEdit(const char *path, bool openDependencies);
     bool creation_error;
 

@@ -1663,9 +1663,8 @@ bool dyn_lwp::representativeLWP_attach_()
       if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, 
                           address_width, __FILE__, __LINE__) )
       {
-         startup_printf("%s[%d]:  ptrace attach to pid %d failing\n", 
-                        FILE__, __LINE__, getPid());
-         perror( "dyn_lwp::representativeLWP_attach_() - PTRACE_ATTACH" );
+         startup_printf("%s[%d]:  ptrace attach to pid %d failing: %s\n", 
+                        FILE__, __LINE__, getPid(), strerror(ptrace_errno));
          return false;
       }
       startup_printf("%s[%d]: attached via DBI\n", FILE__, __LINE__);
@@ -2583,12 +2582,13 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
    }
 
    // search paths from environment variables
-   libPathStr = getenv("LD_LIBRARY_PATH");
+   libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
    libPath = strtok(libPathStr, ":");
    while (libPath != NULL) {
       libPaths.push_back(std::string(libPath));
       libPath = strtok(NULL, ":");
    }
+   free(libPathStr);
    //libPaths.push_back(std::string(getenv("PWD")));
    for (unsigned int i = 0; i < libPaths.size(); i++) {
       std::string str = libPaths[i] + "/" + filename;

@@ -75,11 +75,11 @@ class EmitterPOWER : public Emitter {
     virtual void emitDivImm(Register, Register, RegValue, codeGen &) { assert(0); }
     virtual void emitLoad(Register, Address, int, codeGen &) { assert(0); }
     virtual void emitLoadConst(Register, Address, codeGen &) { assert(0); }
-    virtual void emitLoadIndir(Register, Register, codeGen &) { assert(0); }
+    virtual void emitLoadIndir(Register, Register, int, codeGen &) { assert(0); }
     virtual bool emitLoadRelative(Register, Address, Register, codeGen &) { assert(0); return true;}
     virtual bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
-    virtual void emitLoadShared(Register, const image_variable *, int, codeGen &) { assert(0); }
-
+    // Not implemented yet
+    virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset);
     virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
 
     // These implicitly use the stored original/non-inst value
@@ -88,11 +88,13 @@ class EmitterPOWER : public Emitter {
     virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
 
     virtual void emitStore(Address, Register, int, codeGen &) { assert(0); }
-    virtual void emitStoreIndir(Register, Register, codeGen &) { assert(0); }
+    virtual void emitStoreIndir(Register, Register, int, codeGen &) { assert(0); }
     virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
     virtual void emitStoreRelative(Register, Address, Register, codeGen &) { assert(0); }
     virtual void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
-    virtual void emitStoreShared(Register, const image_variable *, int, codeGen &) { assert(0); }
+    // Not implemented yet
+    virtual void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen);
+
 
     virtual void emitStoreOrigRegister(Address, Register, codeGen &) { assert(0); }
 

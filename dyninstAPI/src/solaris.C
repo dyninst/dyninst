@@ -678,7 +678,7 @@ bool process::isMmapSysCall(int) { assert(0); return false; }
 Offset process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
 Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0;}
 
-bool process::getDyninstRTLibName() {
+bool AddressSpace::getDyninstRTLibName() {
    if (dyninstRT_name.length() == 0) {
       // Get env variable
       if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
@@ -687,8 +687,7 @@ bool process::getDyninstRTLibName() {
       else {
          std::string msg = std::string("Environment variable ") +
                         std::string("DYNINSTAPI_RT_LIB") +
-                        std::string(" has not been defined for process ") +
-                        utos(getPid());
+                        std::string(" has not been defined.");
          showErrorCallback(101, msg);
          return false;
       }

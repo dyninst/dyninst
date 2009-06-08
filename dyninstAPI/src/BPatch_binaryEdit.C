@@ -93,6 +93,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
    creation_error(false)
 {
+  bool has_thread_lib = false;
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
  
   pdvector<std::string> argv_vec;
@@ -109,45 +110,64 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      creation_error = true;
      return;
   }
-  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
-  
   llBinEdits[path] = origBinEdit;
   
   std::queue<std::string> files;
-  if (openDependencies) {
-     origBinEdit->getAllDependencies(files);
-     
-     while (files.size()) {
-        string s = files.front(); 
-        files.pop();
+  origBinEdit->getAllDependencies(files);
 
-        if (llBinEdits.count(s))
-           continue;
-        startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                       FILE__, __LINE__, s.c_str());
-        BinaryEdit *lib = BinaryEdit::openFile(s);
-        if (!lib) {
-           startup_printf("[%s:%u] - Creation error opening %s\n", 
-                          FILE__, __LINE__, s.c_str());
-           creation_error = true;
-           return;
-        }
-        llBinEdits[s] = lib;
-        lib->getAllDependencies(files);
+  while (files.size()) {
+     string s = files.front(); 
+     files.pop();
+
+     if (strstr(s.c_str(), "libpthread") ||
+         strstr(s.c_str(), "libthread")) {
+        has_thread_lib = true;
      }
+
+     if (llBinEdits.count(s))
+        continue;
+     if (!openDependencies)
+        continue;
+     
+     startup_printf("[%s:%u] - Opening dependant file %s\n", 
+                    FILE__, __LINE__, s.c_str());
+     BinaryEdit *lib = BinaryEdit::openFile(s);
+     if (!lib) {
+        startup_printf("[%s:%u] - Creation error opening %s\n", 
+                       FILE__, __LINE__, s.c_str());
+        creation_error = true;
+        return;
+     }
+     llBinEdits[s] = lib;
+     lib->getAllDependencies(files);
   }
-  
+
+  origBinEdit->getDyninstRTLibName();
+  std::string rt_name = origBinEdit->dyninstRT_name;
+  rtLib = BinaryEdit::openFile(rt_name);
+  if (!rtLib) {
+     startup_printf("[%s:%u] - ERROR.  Could not open RT library\n",
+                    __FILE__, __LINE__);
+     creation_error = true;
+     return;
+  }
+
   std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
   for(; i != llBinEdits.end(); i++) {
+     (*i).second->setupRTLibrary(rtLib);
+  }
+
+  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
+  assert(masterTrampGuard);
+  
+  for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      BinaryEdit *llBinEdit = (*i).second;
      llBinEdit->registerFunctionCallback(createBPFuncCB);
      llBinEdit->registerInstPointCallback(createBPPointCB);
      llBinEdit->set_up_ptr(this);
-     if(llBinEdit != origBinEdit)
-     {
-       llBinEdit->setTrampGuard(masterTrampGuard);
-     }
-     
+     llBinEdit->setupRTLibrary(rtLib);
+     llBinEdit->setTrampGuard(masterTrampGuard);
+     llBinEdit->setMultiThreadCapable(has_thread_lib);
   }
 
   image = new BPatch_image(this);

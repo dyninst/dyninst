@@ -272,6 +272,9 @@ namespace Dyninst {
         typedef std::map<Block *, StackPresence> BlockPresence;
         typedef std::map<Offset, StackPresence> InsnPresence;
         typedef std::map<Block *, InsnPresence> BlockToInsnPresence;
+        
+        typedef std::map<Block *, bool> BlockStackReset;
+        typedef std::map<Offset, bool> InsnStackReset;
 
         StackAnalysis() : func(NULL), heightIntervals_(NULL), presenceIntervals_(NULL) {};
         StackAnalysis(Function *f);
@@ -293,7 +296,8 @@ namespace Dyninst {
                                 const InstructionAPI::Instruction &insn,
                                 Offset off,
                                 StackHeight &height,
-                                StackPresence &pres);
+                                StackPresence &pres,
+                                bool &reset);
         StackHeight getStackCleanAmount(Function *func);
 
         Block::blockSet blocks;
@@ -314,6 +318,9 @@ namespace Dyninst {
         PresenceTree *presenceIntervals_;
 
         FuncCleanAmounts funcCleanAmounts;
+
+        BlockStackReset blockStackReset;
+        InsnStackReset insnStackReset;
 
     };
 };

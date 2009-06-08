@@ -232,8 +232,7 @@ unsigned BinaryEdit::getAddressWidth() const {
 }
 
 bool BinaryEdit::multithread_capable(bool) {
-    // TODO
-    return false;
+   return multithread_capable_;
 }
 
 bool BinaryEdit::multithread_ready(bool) {
@@ -254,8 +253,10 @@ BinaryEdit::BinaryEdit() :
    highWaterMark_(0),
    lowWaterMark_(0),
    isDirty_(false),
-   memoryTracker_(NULL) 
+   memoryTracker_(NULL),
+   multithread_capable_(false)
 {
+   trapMapping.shouldBlockFlushes(true);
 }
 
 BinaryEdit::~BinaryEdit() 
@@ -376,6 +377,10 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       symObj->getSegments(oldSegs);
 
       vector<Segment> newSegs = oldSegs;
+
+      //Write any traps to the mutatee
+      trapMapping.shouldBlockFlushes(false);
+      trapMapping.flush();
 
       // Now, we need to copy in the memory of the new segments
       for (unsigned i = 0; i < newSegs.size(); i++) {
@@ -583,35 +588,37 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
 	vector<Region*> regs;
 	symObj->getAllRegions(regs);
 
-    for (unsigned i = 0; i < regs.size(); i++) {
-        memoryTracker *newTracker = NULL;
-        if (regs[i]->getRegionName() == ".bss") {
-            continue;
-        }
-        else {
-	  newTracker = new memoryTracker(regs[i]->getRegionAddr(),
-					 regs[i]->getDiskSize(),
-					 regs[i]->getPtrToRawData());
-	  
-	}
-        newTracker->alloced = false;
-        if (!memoryTracker_)
-	  memoryTracker_ = new codeRangeTree();
-        memoryTracker_->insert(newTracker);
-    }
+   for (unsigned i = 0; i < regs.size(); i++) {
+      memoryTracker *newTracker = NULL;
+      if (regs[i]->getRegionType() == Region::RT_BSS) {
+         continue;
+      }
+      else {
+         newTracker = new memoryTracker(regs[i]->getRegionAddr(),
+                                        regs[i]->getDiskSize(),
+                                        regs[i]->getPtrToRawData());
+         
+      }
+      newTracker->alloced = false;
+      if (!memoryTracker_)
+         memoryTracker_ = new codeRangeTree();
+      memoryTracker_->insert(newTracker);
+   }
 
     
-    return true;
+   return true;
 }
 
 
 bool BinaryEdit::initialize() {
-    // Create the tramp guard
-
-    // Initialization. For now we're skipping threads, since we can't
-    // get the functions we need. However, we kinda need the recursion
-    // guard. This is an integer (one per thread, for now - 1) that 
-    // begins initialized to 1.
+   //Load the RT library
+   
+   // Create the tramp guard
+   
+   // Initialization. For now we're skipping threads, since we can't
+   // get the functions we need. However, we kinda need the recursion
+   // guard. This is an integer (one per thread, for now - 1) that 
+   // begins initialized to 1.
 
     return true;
 }
@@ -735,4 +742,52 @@ bool BinaryEdit::isDirty()
 mapped_object *BinaryEdit::getMappedObject()
 {
    return mobj;
+}
+
+void BinaryEdit::setupRTLibrary(BinaryEdit *r)
+{
+   rtlib = r;
+   runtime_lib = rtlib->getMappedObject();
+   assert(rtlib);
+}
+
+void BinaryEdit::setTrampGuard(int_variable* tg)
+{
+  trampGuardBase_ = tg;
+}
+
+
+int_variable* BinaryEdit::createTrampGuard()
+{
+  // If we have one, just return it
+  if(trampGuardBase_) return trampGuardBase_;
+  assert(rtlib);
+
+  mapped_object *mobj = rtlib->getMappedObject();
+  const int_variable *var = mobj->getVariable("DYNINST_default_tramp_guards");
+  assert(var);
+  trampGuardBase_ = const_cast<int_variable *>(var);
+  
+  return trampGuardBase_;
+}
+
+BinaryEdit *BinaryEdit::rtLibrary()
+{
+   return rtlib;
+}
+
+int_function *BinaryEdit::findOnlyOneFunction(const std::string &name,
+                                              const std::string &libname,
+                                              bool search_rt_lib)
+{
+   int_function *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
+   if (!f && search_rt_lib) {
+      f = rtLibrary()->findOnlyOneFunction(name, libname, false);
+   }
+   return f;
+}
+
+void BinaryEdit::setMultiThreadCapable(bool b)
+{
+   multithread_capable_ = b;
 }

@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <stdio.h>
 #include <stdint.h>
@@ -39,7 +38,14 @@ int main(int argc, const char** argv)
   appImage->getProcedures(function);
 
   for (unsigned i = 0; i < function.size(); i++) {
+      char buffer[256];
+      char libbuf[256];
+      function[i]->getName(buffer, 256);
+      function[i]->getModule()->getName(libbuf, 256);
+      fprintf(stderr, "analyzing %s (%s)\n", buffer, libbuf);
       DDG::Ptr ddg = DDG::analyze(function[i]);
+      fprintf(stderr, "... done\n");
+      ddg->removeAnnotation();
   }
 
   return EXIT_SUCCESS;

@@ -77,12 +77,11 @@ public:
     void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
-    void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
+    void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
     bool emitLoadRelative(registerSlot* /*dest*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); return true; }
-    void emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen);
+    void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local,int size, codeGen &gen, Address offset);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
-    
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
     void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
@@ -90,13 +89,13 @@ public:
     void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
 
     void emitStore(Address addr, Register src, int size, codeGen &gen);
-    void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
+    void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
 
     void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
     void emitStoreRelative(registerSlot* /*source*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); }
 
-    void emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen);
+    void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
@@ -163,7 +162,7 @@ extern EmitterIA32Stat emitterIA32Stat;
 
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
-void emitMovPCRMToReg64(Register dest, int offset, codeGen &gen);
+void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);
@@ -189,26 +188,25 @@ public:
     void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
-    void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
+    void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
     bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
-    void emitLoadShared(Register dest, const image_variable *var, int size, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
     void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
+    void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local,int size, codeGen &gen, Address offset);
 
     void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
 
     void emitStore(Address addr, Register src, int size, codeGen &gen);
-    void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
+    void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
     void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
 
     void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
-
-    void emitStoreShared(Register source, const image_variable *var, int size, codeGen &gen);
+    void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);

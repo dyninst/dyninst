@@ -997,7 +997,7 @@ void emitMovIRegToReg(Register dest, Register src,
 }
 
 // emit MOV reg, (offset(%eip))
-void emitMovPCRMToReg(Register dest, int offset, codeGen &gen)
+void emitMovPCRMToReg(Register dest, int offset, codeGen &gen, bool deref_result)
 {
     // call next instruction (relative 0x0) and pop PC (EIP) into register
     GET_PTR(insn, gen);
@@ -1012,8 +1012,10 @@ void emitMovPCRMToReg(Register dest, int offset, codeGen &gen)
     // add the offset
     emitAddRegImm32(dest, offset-5, gen);                   // add e_x, offset
 
-    // move from IP+offset into register
-    emitMovIRegToReg(dest, dest, gen);                    // mov e_x, (e_x)
+    if (deref_result) {
+       // move from IP+offset into register
+       emitMovIRegToReg(dest, dest, gen);                    // mov e_x, (e_x)+
+    }
 }
 
 // emit MOV reg, r/m
@@ -1657,7 +1659,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 
 void emitV(opCode op, Register src1, Register src2, Register dest, 
            codeGen &gen, bool /*noCost*/, 
-           registerSpace * /*rs*/, int /* size */,
+           registerSpace * /*rs*/, int size,
            const instPoint * /* location */, AddressSpace * /* proc */)
 {
     //bperr( "emitV(op=%d,src1=%d,src2=%d,dest=%d)\n", op, src1,
@@ -1672,12 +1674,12 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     
     if (op ==  loadIndirOp) {
         // same as loadOp, but the value to load is already in a register
-        gen.codeEmitter()->emitLoadIndir(dest, src1, gen);
+       gen.codeEmitter()->emitLoadIndir(dest, src1, size, gen);
     } 
     else if (op ==  storeIndirOp) {
         // same as storeOp, but the address where to store is already in a
         // register
-        gen.codeEmitter()->emitStoreIndir(dest, src1, gen);
+       gen.codeEmitter()->emitStoreIndir(dest, src1, size, gen);
     } else if (op == noOp) {
         emitSimpleInsn(NOP, gen); // nop
     } else if (op == saveRegOp) {

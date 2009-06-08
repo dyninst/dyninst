@@ -104,7 +104,7 @@
 extern unsigned SHARED_SEGMENT_SIZE;
 #endif
 
-#define MAX_THREADS 32
+#define MAX_THREADS 32 //Should match MAX_THREADS in RTcommon.c
 extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
    // a (static) member vrble of class process
@@ -556,7 +556,6 @@ class process : public AddressSpace {
  public:
 
 
-  bool getDyninstRTLibName();
   bool loadDYNINSTlib();
 #if defined(os_linux)
   // If dlopen is present, use it. Otherwise, call a libc-internal function
@@ -859,10 +858,6 @@ private:
 
   // And deleted...
   pdvector<mapped_object *> deleted_objects;
-  // And a shortcut pointer
-  mapped_object *runtime_lib;
-  // ... and keep the name around
-  std::string dyninstRT_name;
 
   // We have to perform particular steps based on how we were started.
   typedef enum { unknown_cm, 

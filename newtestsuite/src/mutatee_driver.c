@@ -181,6 +181,7 @@ int main(int iargc, char *argv[])
    unsigned int label_count = 0;
    int print_labels = FALSE;
    int has_pidfile = 0;
+   struct timeval start_time;
 
    gargc = argc;
    gargv = argv;
@@ -355,7 +356,6 @@ int main(int iargc, char *argv[])
       logstatus("mutatee: Waiting for mutator to attach...\n");
 #else
       logstatus("mutatee %d: Waiting for mutator to attach...\n", getpid());
-	  struct timeval start_time;
 	  gettimeofday(&start_time, NULL);
 #endif
       flushOutputLog();

@@ -357,6 +357,7 @@ namespace Dyninst
         nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
+	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;
       }
       std::set<RegisterAST::Ptr> thePC;
       std::set<RegisterAST::Ptr> pcAndSP;

@@ -29,7 +29,7 @@ built.
 	The configuration scripts will attempt to guess your target
 	platform, but it's sometime helpful to specify your build
 	platform manually.  See the documentation for DyninstAPI in
-	core/dyninstAPI/README for valid values of this variable.
+	dyninst/dyninstAPI/README for valid values of this variable.
 
 	DYNINST_ROOT
 	The various headers and libraries for DyninstAPI may not be

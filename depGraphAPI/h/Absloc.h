@@ -115,16 +115,25 @@ class RegisterLoc : public Absloc {
     const InstructionAPI::RegisterAST::Ptr getReg() { return reg_; }
 
     // Convenience methods
-    bool isStackPointer() const;
+    bool isSP() const;
     bool isPC() const; 
     bool isFlag() const;
-    
+
+    static bool isSP(InstructionAPI::RegisterAST::Ptr reg);
+    static bool isPC(InstructionAPI::RegisterAST::Ptr reg);
+    static bool isFlag(InstructionAPI::RegisterAST::Ptr reg);
+
+    // More convenience functions. InstructionAPI doesn't mention the
+    // PC unless it's explicitly set (branch) or used (call)... thus,
+    // we need to fake it. 
+    static Absloc::Ptr makePC();
 
  private:
     RegisterLoc(const InstructionAPI::RegisterAST::Ptr reg) : reg_(reg) {};
     
     const InstructionAPI::RegisterAST::Ptr reg_;
     static RegisterMap allRegLocs_;
+    static Absloc::Ptr pc_;
 };
 
 class StackLoc : public Absloc {

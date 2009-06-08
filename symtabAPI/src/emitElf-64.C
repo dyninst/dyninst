@@ -387,15 +387,16 @@ bool emitElf64::driver(Symtab *obj, string fName){
     // resolve section name
     const char *name = &shnames[shdr->sh_name];
     obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-    sectionNumber++;
-    changeMapping[sectionNumber] = 0;
-    oldIndexNameMapping[scncount+1] = string(name);
-    newNameIndexMapping[string(name)] = sectionNumber;
 
 
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
       continue;
+
+    sectionNumber++;
+    changeMapping[sectionNumber] = 0;
+    oldIndexNameMapping[scncount+1] = string(name);
+    newNameIndexMapping[string(name)] = sectionNumber;
 
     newscn = elf_newscn(newElf);
     newshdr = elf64_getshdr(newscn);
@@ -631,6 +632,11 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	  }	
       }    
       if(addNewSegmentFlag) {
+	if((tmp->p_type == PT_LOAD) && (newPhdr->p_align > pgSize)) {
+	  newPhdr->p_align = pgSize;
+	  
+	}
+	
 	if(tmp->p_type == PT_LOAD && tmp->p_flags == 5)
 	  {
 	    if (tmp->p_vaddr > pgSize) {
@@ -663,7 +669,7 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	    newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
 	    newSeg.p_memsz = newSeg.p_filesz;
 	    newSeg.p_flags = PF_R+PF_W+PF_X;
-	    newSeg.p_align = tmp->p_align;
+	    newSeg.p_align = pgSize;
 	    memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
 	    added_new_sec = true;
 	    newPhdr++;
@@ -1176,6 +1182,13 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
     dynsymbolNamesLength = olddynStrSize+1;
   }
 
+  //Initialize the list of new prereq libraries
+  set<string> &plibs = obj->getObject()->prereq_libs;
+  for (set<string>::iterator i = plibs.begin(); i != plibs.end(); i++) {
+     DT_NEEDEDEntries.push_back(*i);
+  }
+  new_dynamic_entries = obj->getObject()->new_dynamic_entries;
+
   // recreate a "dummy symbol"
   Elf64_Sym *sym = new Elf64_Sym();
   symbolStrs.push_back("");
@@ -1623,7 +1636,9 @@ void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSiz
   hashsecData[0] = (Elf64_Word)nbuckets;
   hashsecData[1] = (Elf64_Word)nchains;
   i = 0;
-  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++) {
+  for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
+    if((*iter)->getName().empty()) continue;
+    if((*iter)->getRegion() == NULL) continue;    
     key = elfHash((*iter)->getName().c_str()) % nbuckets;
     //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
     if (lastHash.find(key) != lastHash.end()) {
@@ -1634,7 +1649,6 @@ void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSiz
     }
     lastHash[key] = i;
     hashsecData[2+nbuckets+i] = STN_UNDEF;
-    i++;
   }
 }
 
@@ -1642,7 +1656,7 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
   dynamicSecData.clear();
   Elf64_Dyn *dyns = (Elf64_Dyn *)dynData;
   unsigned count = size/sizeof(Elf64_Dyn);
-  dynsecSize = 2*count+ DT_NEEDEDEntries.size();    //We don't know the size before hand. So allocate the maximum possible size;
+  dynsecSize = 2*(count + DT_NEEDEDEntries.size() + new_dynamic_entries.size());
   dynsecData = (Elf64_Dyn *)malloc(dynsecSize*sizeof(Elf64_Dyn));
   unsigned curpos = 0;
   string rpathstr;
@@ -1651,6 +1665,14 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
     dynsecData[curpos].d_un.d_val = versionNames[DT_NEEDEDEntries[i]];
     dynamicSecData[DT_NEEDED].push_back(dynsecData+curpos);
     curpos++;
+  }
+  for (unsigned i = 0; i<new_dynamic_entries.size(); i++) {
+     long name = new_dynamic_entries[i].first;
+     long value = new_dynamic_entries[i].second;
+     dynsecData[curpos].d_tag = name;
+     dynsecData[curpos].d_un.d_val = value;
+     dynamicSecData[name].push_back(dynsecData+curpos);
+     curpos++;
   }
   for(unsigned i = 0; i< count;i++){
     switch(dyns[i].d_tag){
