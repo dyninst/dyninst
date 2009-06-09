@@ -1,2 +1,0 @@
-V_*.c *.pdb test?.exe test*.mutatee.exe test*.dll test*.lib test*.exp 
-libtestSuite.* test6LS-x86.lst
