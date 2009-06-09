@@ -1,9 +1,12 @@
 #include "ParseThat.h"
 #include "util.h"
 #include "dyninst_comp.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 using namespace Dyninst;
 
 ParseThat::ParseThat() :
+	pt_path("parseThat"),
 	trans(T_None),
 	suppress_ipc(false),
 	nofork(false),
@@ -17,7 +20,133 @@ ParseThat::ParseThat() :
 	merge_tramps(false),
 	inst_level_(IL_FuncEntry),
 	include_libs_(false)
-{}
+{
+#if defined (os_windows_test)
+	char slashc = '\\';
+#else
+	char slashc = '/';
+#endif
+	char slashbuf[3];
+	sprintf(slashbuf, "%c", slashc);
+	std::string slash(slashbuf);
+
+	//  try to resolve the full path of the parseThat command
+	//  first look in the user's PATH
+	//  If not found, try looking in $DYNINST_ROOT/$PLATFORM/bin
+
+	const char *path_var = getenv("PATH");
+	if (path_var)
+	{
+		char *fullpath = searchPath(path_var, "parseThat");
+		if (fullpath)
+		{
+			pt_path = std::string(fullpath);
+			::free(fullpath);
+			logerror("%s[%d]:  resolved parseThat to %s\n", FILE__, __LINE__, pt_path.c_str());
+			return;
+		}
+	}
+
+	//  If we get here, we didn't find it
+	const char *dyn_root_env = getenv("DYNINST_ROOT");
+	const char *plat_env = getenv("PLATFORM");
+
+	if (!plat_env)
+	{
+#if defined (os_windows_test)
+		plat_env = "i386-unknown-nt4.0";
+#elif defined (os_linux_test)
+#if defined (arch_x86_test)
+		plat_env = "i386-unknown-linux2.4";
+#elif defined (arch_ia64_test)
+		plat_env = "ia64-unknown-linux2.4";
+#elif defined (arch_x86_64_test)
+		plat_env = "x86_64-unknown-linux2.4";
+#elif defined (arch_power_test)
+#if defined (arch_64bit_test)
+		plat_env = "ppc64_linux";
+#else
+		plat_env = "ppc32_linux";
+#endif
+#endif
+#elif defined (os_aix_test)
+		plat_env = "rs6000-ibm-aix5.1";
+#elif defined (os_solaris_test)
+		//  annoyingly we don't seem to maintain an arch def that specifies
+		//  solaris version through the build defines
+		plat_env = "sparc-sun-solaris2.9";
+#endif
+	}
+
+	if (dyn_root_env &&  plat_env)
+	{
+		std::string expect_pt_loc = std::string(dyn_root_env) + slash 
+			+ std::string(plat_env) + slash + std::string("bin") 
+			+ slash +std::string("parseThat");
+
+		struct stat statbuf;
+		if (!stat(expect_pt_loc.c_str(), &statbuf))
+		{
+			pt_path = expect_pt_loc;
+			logerror("%s[%d]:  resolved parseThat to %s\n", FILE__, __LINE__, pt_path.c_str());
+			return;
+		}
+		else
+		{
+			logerror("%s[%d]:  cannot resolve pt path '%s'\n", FILE__, __LINE__, 
+					expect_pt_loc.c_str());
+		}
+	}
+	else
+	{
+		logerror("%s[%d]:  DYNINST_ROOT %s, PLATFORM %s, can't resolve canonical parseThat loc\n",
+				FILE__, __LINE__, dyn_root_env ? "set" : "not set", plat_env ? "set" : "not set");
+	}
+
+	//  try looking at relative paths
+	//  (1) assume we are in $DYNINST_ROOT/dyninst/newtestsuite/$PLATFORM
+	//  so look in ../../../$PLATFORM/bin
+
+	if (plat_env)
+	{
+		char cwdbuf[1024];
+		char *last_slash = NULL;
+		const char * cwd = getcwd(cwdbuf, 1024);
+
+		if (cwd)
+			last_slash = strrchr(cwd, slashc);
+
+		if (last_slash) 
+		{
+			*last_slash = '\0';
+			last_slash = strrchr(cwd, slashc);
+			if (last_slash) 
+			{
+				*last_slash = '\0';
+				last_slash = strrchr(cwd, slashc);
+				if (last_slash) 
+				{
+					*last_slash = '\0';
+					std::string expected_pt_path = std::string(cwd) + slash 
+						+ std::string(plat_env) + slash + std::string("bin") 
+						+ slash + std::string("parseThat");
+
+					struct stat statbuf;
+					if (!stat(expected_pt_path.c_str(), &statbuf))
+					{
+						pt_path = expected_pt_path;
+						logerror("%s[%d]:  resolved parseThat to %s\n", FILE__, __LINE__, pt_path.c_str());
+						return;
+					}
+
+					logerror("%s[%d]: could not find parseThat at loc: '%s'\n", 
+							FILE__, __LINE__, expected_pt_path.c_str());
+				}
+			}
+		}
+
+	}
+}
 
 ParseThat::~ParseThat()
 {
@@ -99,8 +228,11 @@ test_results_t ParseThat::pt_execute(std::vector<std::string> &pt_args)
 	
 #else
 
+	if (!pt_path.length()) pt_path = std::string("parseThat");
+
 	char cmdbuf[2048];
-	sprintf(cmdbuf, "parseThat ");
+	sprintf(cmdbuf, "%s", pt_path.c_str());
+	logerror("%s[%d]:  parseThat: %s\n", FILE__, __LINE__, pt_path.c_str());
 
 	for (unsigned int i = 0; i < pt_args.size(); ++i)
 	{

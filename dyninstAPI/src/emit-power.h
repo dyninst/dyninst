@@ -75,7 +75,7 @@ class EmitterPOWER : public Emitter {
     virtual void emitDivImm(Register, Register, RegValue, codeGen &) { assert(0); }
     virtual void emitLoad(Register, Address, int, codeGen &) { assert(0); }
     virtual void emitLoadConst(Register, Address, codeGen &) { assert(0); }
-    virtual void emitLoadIndir(Register, Register, codeGen &) { assert(0); }
+    virtual void emitLoadIndir(Register, Register, int, codeGen &) { assert(0); }
     virtual bool emitLoadRelative(Register, Address, Register, codeGen &) { assert(0); return true;}
     virtual bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
     // Not implemented yet
@@ -88,7 +88,7 @@ class EmitterPOWER : public Emitter {
     virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
 
     virtual void emitStore(Address, Register, int, codeGen &) { assert(0); }
-    virtual void emitStoreIndir(Register, Register, codeGen &) { assert(0); }
+    virtual void emitStoreIndir(Register, Register, int, codeGen &) { assert(0); }
     virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
     virtual void emitStoreRelative(Register, Address, Register, codeGen &) { assert(0); }
     virtual void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);

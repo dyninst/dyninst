@@ -64,10 +64,10 @@ install: parseThat
 	$(INSTALL) parseThat $(prefix)/parseThat
 
 clean:
-	rm -rf $(OBJDIR)
+	rm -f parseThat *.o *.so
 
 distclean: clean
-	rm -rf *
+	rm -f *
 
 ready:
 	@echo "Begin parseThat build for %(PLATFORM)"

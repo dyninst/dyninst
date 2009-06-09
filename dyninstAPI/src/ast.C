@@ -775,19 +775,45 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
 {
    //Recognize the common case of 'a = a op constant' and try to 
    // generate optimized code for this case.
-
-   if (loperand->getoType() != DataAddr) {
-      //Deal with global writes for now.
-      return false;
-   }
-   Address laddr = (Address) loperand->getOValue();
-   
-   // If lvalue has no address, we're in the image_variable case; don't do optimized yet.
-   if(loperand->getOVar() != NULL || roperand->getOVar() != NULL)
+  Address laddr;
+  
+   if (loperand->getoType() == DataAddr)
    {
-     return false;
+     laddr = (Address) loperand->getOValue();
    }
-
+   else
+   {
+     if(loperand->getoType() == variableValue)
+     {
+       dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
+       dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+       
+       int_variable* var = lnode->lookUpVar(gen.addrSpace());
+       if(gen.addrSpace()->proc())
+       {
+	 if(var)
+	   laddr = var->getAddress();
+	 else
+	   return false;
+       }
+       else
+       {
+	 // Rewriter algorithm:
+	 // allocate temp register
+	 // EmitLoadShared with a loadConstOp to get the variable address into a temp register
+	 // Proceed with the below, using the temp register instead of an immediate
+	 // deallocate temp register
+	 return false;
+       }
+       
+     }
+     else
+     {
+       //Deal with global writes for now.
+       return false;
+     }
+     
+   }
 
    if (roperand->getoType() == Constant) {
       //Looks like 'global = constant'
@@ -1385,9 +1411,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        }
        else
        {
-          gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
+	 gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
        }
-       
        break;
    default:
        fprintf(stderr, "[%s:%d] ERROR: Unknown operand type %d in AstOperandNode generation\n",

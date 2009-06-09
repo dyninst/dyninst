@@ -64,6 +64,7 @@ class ParseThat {
 	TESTLIB_DLL_EXPORT test_results_t operator()(int pid);
 
 	private:
+	std::string pt_path;
 	std::string cmd_stdout_name;
 	std::string cmd_stderr_name;
 	std::string pt_out_name;

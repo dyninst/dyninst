@@ -2582,12 +2582,13 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
    }
 
    // search paths from environment variables
-   libPathStr = getenv("LD_LIBRARY_PATH");
+   libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
    libPath = strtok(libPathStr, ":");
    while (libPath != NULL) {
       libPaths.push_back(std::string(libPath));
       libPath = strtok(NULL, ":");
    }
+   free(libPathStr);
    //libPaths.push_back(std::string(getenv("PWD")));
    for (unsigned int i = 0; i < libPaths.size(); i++) {
       std::string str = libPaths[i] + "/" + filename;

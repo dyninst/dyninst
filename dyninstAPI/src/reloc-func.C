@@ -210,7 +210,6 @@ bool int_function::relocBlocks(Address baseInMutatee,
          }
 
          Address newBlockEndAddr = addrs[i] + bbl->getSize();
-         assert(newBlockEndAddr <= addrs[i+1]);
          
          if (newBlockEndAddr > addrs[i+1])
          {

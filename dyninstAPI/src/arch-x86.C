@@ -4463,11 +4463,14 @@ unsigned instruction::spaceToRelocate() const {
     }
     if (type() & IS_CALL) {
       // Worst case is approximated by two long jumps (AMD64) or a REL32 (x86)
+      unsigned size;
 #if defined(arch_x86_64)
-      return 2*JUMP_ABS64_SZ+count_prefixes(type());
+      size = 2*JUMP_ABS64_SZ+count_prefixes(type());
 #else
-      return JUMP_SZ+count_prefixes(type());
+      size = JUMP_SZ+count_prefixes(type());
 #endif
+      size = (size > CALL_RELOC_THUNK) ? size : CALL_RELOC_THUNK;
+      return size;
     }
 #if defined(arch_x86_64)
     if (type() & REL_D_DATA) {
@@ -5073,7 +5076,6 @@ bool instruction::generate(codeGen &gen,
 		   *temp = 0;
 		   newInsn += sizeof(unsigned int);
 		   Address offset = origAddr - newAddr;
-		   fprintf(stderr, "Relocating thunk from %x to %x, offset is %x\n", origAddr, newAddr, offset);
 		   *newInsn = 0x81;
 		   newInsn++;
 		   *newInsn = 0x04;
