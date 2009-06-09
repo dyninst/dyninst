@@ -48,6 +48,12 @@ void Graph::entryNodes(NodeIterator &begin, NodeIterator &end) {
     return;
 }
 
+void Graph::exitNodes(NodeIterator &begin, NodeIterator &end) {
+    begin = NodeIterator(new NodeIteratorSet(exitNodes_.begin()));
+    end = NodeIterator(new NodeIteratorSet(exitNodes_.end()));
+    return;
+}
+
 void Graph::allNodes(NodeIterator &begin, NodeIterator &end) {
     begin = NodeIterator(new NodeIteratorSet(nodes_.begin()));
     end = NodeIterator(new NodeIteratorSet(nodes_.end()));
@@ -86,6 +92,11 @@ void Graph::insertEntryNode(NodePtr entry) {
     entryNodes_.insert(entry);
 }
 
+void Graph::insertExitNode(NodePtr exit) {
+    addNode(exit);
+    exitNodes_.insert(exit);
+}
+
 void Graph::addNode(Node::Ptr node) {
     if (node->hasInEdges() || node->hasOutEdges()) return;
     nodes_.insert(node);
@@ -94,3 +105,29 @@ void Graph::addNode(Node::Ptr node) {
     }        
 }
 
+
+// Fancy-shmancy predicate based search methods...
+
+bool Graph::find(NodePredicate::Ptr pred, NodeIterator &begin, NodeIterator &end) {
+    // We could try to be lazy here, but you have a hard time determining if you're
+    // done a priori. So instead we pre-look-up and hand that set into a copy-based
+    // set iterator. 
+    NodeIterator allBegin, allEnd;
+    allNodes(allBegin, allEnd);
+    begin = NodeIterator(new NodeIteratorPredicateObj(pred, allBegin, allEnd));
+    end = NodeIterator(new NodeIteratorPredicateObj(pred, allEnd, allEnd));
+    return (begin != end);
+}
+                         
+bool Graph::find(NodePredicateFunc pred, void *user_arg, NodeIterator &begin, NodeIterator &end) {
+    // We could try to be lazy here, but you have a hard time determining if you're
+    // done a priori. So instead we pre-look-up and hand that set into a copy-based
+    // set iterator. 
+    NodeIterator allBegin, allEnd;
+    allNodes(allBegin, allEnd);
+    begin = NodeIterator(new NodeIteratorPredicateFunc(pred, user_arg, allBegin, allEnd));
+    end = NodeIterator(new NodeIteratorPredicateFunc(pred, user_arg, allEnd, allEnd));
+    return (begin != end);
+}
+
+                         

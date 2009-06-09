@@ -16,7 +16,7 @@ SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI instructionAPI dyninstAPI_RT dyninstAPI dynutil
 InstructionAPI	= ready common instructionAPI dynutil
-DepGraphAPI = DyninstAPI depGraphAPI
+DepGraphAPI = depGraphAPI
 ValueAdded = valueAdded/sharedMem
 
 
@@ -35,8 +35,8 @@ fullSystem += testsuite parseThat
 Build_list += testsuite parseThat
 endif
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI depGraphAPI
-allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI
 
 # We're not building the new test suite on all platforms yet
 

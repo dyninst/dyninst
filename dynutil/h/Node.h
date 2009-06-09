@@ -55,6 +55,7 @@ class Node : public AnnotatableSparse {
     friend class Graph;
     
     typedef dyn_detail::boost::shared_ptr<Edge> EdgePtr;
+    typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
     typedef std::set<EdgePtr> EdgeSet;
 
  public:
@@ -71,6 +72,9 @@ class Node : public AnnotatableSparse {
 
     void forwardClosure(NodeIterator &begin, NodeIterator &end);
     void backwardClosure(NodeIterator &begin, NodeIterator &end);
+
+    GraphPtr forwardSubgraph();
+    GraphPtr backwardSubgraph();
     
     virtual Address addr() const { return INVALID_ADDR; }
     
@@ -86,6 +90,7 @@ class Node : public AnnotatableSparse {
     virtual std::string DOTshape() const;
     virtual std::string DOTrank() const;
     virtual std::string DOTname() const;
+    virtual bool DOTinclude() const { return true; }
 
  protected:
     Node() {};
@@ -129,7 +134,8 @@ class VirtualNode : public Node {
     typedef dyn_detail::boost::shared_ptr<VirtualNode> Ptr;
     
     static Node::Ptr createNode();
-    
+    static Node::Ptr createNode(std::string name); 
+
     virtual std::string format() const;
     virtual Node::Ptr copy();
     
@@ -137,11 +143,15 @@ class VirtualNode : public Node {
     
     virtual ~VirtualNode() {};
 
-    VirtualNode() {};
+    VirtualNode(std::string name) : name_(name) {};
+    VirtualNode() : name_(defaultName) {};
+
+    static std::string defaultName;
 
     // DOT output methods...
     virtual std::string DOTshape() const;
  private:
+    std::string name_;
 };
 
  class NodeIteratorImpl;
