@@ -44,6 +44,12 @@ int main(int argc, const char** argv)
   str += ".dot";
   ddg->printDOT(str);
   
+  fprintf(stderr, "Prepping pruned DDG\n");
+  DDG::Ptr pruned = ddg->removeDeadNodes();
+  std::string str2(argv[2]);
+  str2 += ".pruned.dot";
+  pruned->printDOT(str2);
+
 
   return EXIT_SUCCESS;
 }

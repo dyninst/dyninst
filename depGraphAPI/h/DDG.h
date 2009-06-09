@@ -55,8 +55,10 @@ namespace Dyninst {
 namespace DepGraphAPI {
 
     class Absloc;
+    class DDGAnalyzer;
 
 class DDG : public Graph {
+    friend class DDGAnalyzer;
  public:
     typedef dyn_detail::boost::shared_ptr<DDG> Ptr;
 
@@ -66,31 +68,41 @@ class DDG : public Graph {
     typedef std::set<FormalReturnNode::Ptr> FormalReturnNodeSet;
     typedef std::set<FormalParamNode::Ptr> FormalParamNodeSet;
 
-    typedef std::set<ActualParamNode::Ptr> ActualParamNodeSet;
-    typedef std::set<ActualReturnNode::Ptr> ActualReturnNodeSet;
+    typedef std::map<Address, std::set<Node::Ptr> > ActualParamNodeMap;
+    typedef std::map<Address, std::set<Node::Ptr> > ActualReturnNodeMap;
+
  public:
 
     static DDG::Ptr analyze(Function *func);
     
     virtual ~DDG() {};
 
-    void formalParameterNodes(NodeIterator &begin, NodeIterator &end);
+    void formalParamNodes(NodeIterator &begin, NodeIterator &end);
     void formalReturnNodes(NodeIterator &begin, NodeIterator &end);
 
+    void immediateDefinitions(NodeIterator &begin, NodeIterator &end);
+    void deadDefinitions(NodeIterator &begin, NodeIterator &end);
+
     virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
+    virtual void exitNodes(NodeIterator &begin, NodeIterator &end);
 
     bool actualParamNodes(Address call, NodeIterator &begin, NodeIterator &end);
     bool actualReturnNodes(Address call, NodeIterator &begin, NodeIterator &end);
 
     static Ptr createGraph(Function *func) { return DDG::Ptr(new DDG(func)); }
 
-    Node::Ptr virtualEntryNode() { return virtEntryNode_; }
-
-    virtual void insertEntryNode(NodePtr entry);
-
     virtual void removeAnnotation();
+
+    DDG::Ptr removeDeadNodes();
     
  private:
+
+    void insertFormalParamNode(Node::Ptr node);
+    void insertFormalReturnNode(Node::Ptr node);
+    void insertActualParamNode(Node::Ptr node);
+    void insertActualReturnNode(Node::Ptr node);
+
+    void insertVirtualEdges();
 
     DDG(Function *func);
 
@@ -101,11 +113,16 @@ class DDG : public Graph {
     // Virtual nodes to represent locations defined by the function.
     FormalReturnNodeSet formalReturnNodes_;
 
-    // Node to make sure everyone is reachable...
-    Node::Ptr virtEntryNode_;
+    // Definitions that use nothing (and therefore don't have a path
+    // to a formal parameter)
+    NodeSet immediateDefinitions_;
 
-    NodeMap callParamNodes_;
-    NodeMap callReturnNodes_;
+    // Definitions that are killed before any uses
+    NodeSet deadDefinitions_;
+
+    ActualParamNodeMap actualParamNodes_;
+    ActualReturnNodeMap actualReturnNodes_;
+
 
     Function *func_;
 };
