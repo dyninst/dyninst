@@ -463,13 +463,13 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   // our switch statement along a taken or not-taken branch.  If we're
   // reached along the taken branch (the less common case) then we
   // want to test jbe or jle.
-  if (((*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f) && !foundJccAlongTaken) {
+    if (((*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f) && !foundJccAlongTaken) {
      maxSwitch++;
   }
   if (((*p & 0x0f) == 0x06 || (*p & 0x0f) == 0x0e) && foundJccAlongTaken) {
     maxSwitch++;
-  } 
-  maxSwitch++;
+    }
+
   parsing_printf("\tmaxSwitch set to %d\n",maxSwitch);
 
 
@@ -583,7 +583,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     result += backupAddress;
     return false;
   }
-  for(unsigned int i=0;i<maxSwitch;i++)
+  for(unsigned int i=0; i<maxSwitch; i++)
   {
     Address tableEntry = jumpTable + (i * addrWidth);
     Address jumpAddress = 0;
