@@ -1,0 +1,430 @@
+#include <errno.h>
+#include <iostream>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <sstream>
+#include <string>
+#include <cstring>
+
+#include "runTests-utils.h"
+
+extern string pdscrdir;
+
+int timeout = 1200; /* seconds */
+
+void initPIDFilename(char *buffer, size_t len) {
+  snprintf(buffer, len, "pids.%d", getpid());
+}
+
+void cleanupMutatees(char *pidFilename) {
+   if (!pidFilename)
+      return;
+   FILE *pidFile = fopen(pidFilename, "r");
+   if (NULL == pidFile) 
+      return;
+   for (;;) {
+      int pid, count;
+      count = fscanf(pidFile, "%d\n", &pid);
+      if (count != 1) 
+         break;
+      
+      if (pid < 1) {
+         fprintf(stderr, "[%s:%u] - Read a negative PID (%d).  Something's weird.\n", __FILE__, __LINE__);
+         continue;
+      } 
+      
+      int status = kill(pid, SIGKILL);
+      if ((status != 0) && (errno != ESRCH)) {
+         // FIXME the call to strerror() is not thread-safe
+         // We don't care if the process is already dead, so we're ignoring
+         // ESRCH
+         fprintf(stderr, "[%s:%u] - INFO: %s\n", __FILE__, __LINE__, strerror(errno));
+      }
+   }
+   fclose(pidFile);
+   unlink(pidFilename);
+}
+
+static bool timed_out;
+static void sigalrm_action(int sig, siginfo_t *siginfo, void *context) {
+  // Note that the child has timed out and return
+  timed_out = true;
+}
+
+static bool interrupted;
+static void sigint_action(int sig, siginfo_t *siginfo, void *context) {
+  interrupted = true;
+}
+
+void generateTestArgs(char **exec_args[], bool resume, bool useLog,
+		      bool staticTests, string &logfile, int testLimit,
+            vector<char *> &child_argv, char *pidFilename,
+            const char *memcpu_name);
+
+int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+            string logfile, int testLimit, vector<char *> child_argv,
+            char *pidFilename, const char *memcpu_name) {
+   // TODO Fill in this function
+   int retval = -1;
+
+   char **exec_args = NULL;
+
+   generateTestArgs(&exec_args, iteration > 0, useLog, staticTests, logfile,
+                    testLimit, child_argv, pidFilename, memcpu_name);
+
+   // Fork and execute test_driver in the child process
+   int child_pid = fork();
+   if (-1 == child_pid) {
+      return -4;
+   } else if (0 == child_pid) {
+      // Child
+      execvp("test_driver", exec_args);
+      execvp("./test_driver", exec_args);
+      exit(-4);
+   } else {
+	  // fprintf(stderr, "%s[%d]:  forked new process %d\n", __FILE__, __LINE__, child_pid);
+      // Parent
+      // Install signal handler for a timer
+      struct sigaction sigalrm_a;
+      struct sigaction old_sigalrm_a;
+      struct sigaction sigint_a;
+      struct sigaction old_sigint_a;
+
+      timed_out = false;
+      sigalrm_a.sa_sigaction = sigalrm_action;
+      sigemptyset(&(sigalrm_a.sa_mask));
+      sigalrm_a.sa_flags = SA_SIGINFO;
+      sigaction(SIGALRM, &sigalrm_a, &old_sigalrm_a);
+      alarm(timeout);
+
+      interrupted = false;
+      sigint_a.sa_sigaction = sigint_action;
+      sigemptyset(&(sigint_a.sa_mask));
+      sigint_a.sa_flags = SA_SIGINFO;
+      sigaction(SIGINT, &sigint_a, &old_sigint_a);
+
+      // I think I want to use wait() here instead of using a sleep loop
+      // - There are issues with using sleep() and alarm()..
+      // - I'll wait() and if the alarm goes off it will interrupt the waiting,
+      //   so the end result should be the same
+
+      // Wait for one of the signals to fire
+      do {
+         // Wait for child to exit
+         pid_t waiting_pid;
+         int child_status;
+		 //fprintf(stderr, "%s[%d]:  before waitpid(%d)\n", __FILE__, __LINE__, child_pid);
+         if (!timed_out && !interrupted) {
+            // BUG I fear there's a race condition here, where I may not catch a
+            // timeout if it occurs between the timed_out check and the call to
+            // waitpid().  I'm not sure what to do about that.
+            waiting_pid = waitpid(child_pid, &child_status, 0);
+         }
+
+#if 0
+		 fprintf(stderr, "%s[%d]:  waitpid (%d): %s with %d\n", __FILE__, __LINE__, child_pid,
+				 WIFEXITED(child_status) ? "exited" : 
+				 WIFSIGNALED(child_status) ? "signaled" : "unknown",
+				 WIFEXITED(child_status) ? WEXITSTATUS(child_status) : 
+				 WIFSIGNALED(child_status) ? WTERMSIG(child_status) : -1);
+#endif
+
+		 if (timed_out) {
+			 // Timed out..  timer.pl sets the return value to -1 for this case
+            fprintf(stderr,
+                    "*** Process exceeded time limit.  Reaping children.\n");
+            kill(child_pid, SIGKILL);
+            // I need to call waitpid also, so we don't leave zombie processes
+            // around
+            wait(NULL);
+            retval = -1;
+         } else if (interrupted) {
+            fprintf(stderr, "*** SIGINT received.  Reaping children.\n");
+            kill(child_pid, SIGKILL);
+            wait(NULL);
+            retval = -3;
+         } else {
+            // Do something with child_status
+            if (WIFSIGNALED(child_status)) {
+               fprintf(stderr, "*** Child terminated abnormally via signal %d.\n",
+               WTERMSIG(child_status));
+               retval = -2;
+               break;
+            } else if (WIFEXITED(child_status)) {
+               retval = WEXITSTATUS(child_status);
+               break;
+            } // I don't care about stops or continues
+         }
+      } while (!timed_out && !interrupted);
+      alarm(0); // Cancel alarm
+
+      // Uninstall handlers
+      sigaction(SIGALRM, &old_sigalrm_a, NULL);
+      sigaction(SIGINT, &old_sigint_a, NULL);
+
+      //Clean-up process group
+      if (-1 == kill(-1 * child_pid, SIGKILL))
+	  {
+		  //fprintf(stderr, "%s[%d]:  ERROR:  failed to kill %d: %s\n", 
+		//		  __FILE__, __LINE__, child_pid, strerror(errno));
+	  }
+   }
+
+   return retval; // FIXME Return the real return value
+}
+
+string ReplaceAllWith(const string &in, const string &replace, const string &with);
+
+void generateTestArgs(char **exec_args[], bool resume, bool useLog,
+		      bool staticTests, string &logfile, int testLimit,
+            vector<char *> &child_argv, char *pidFilename,
+            const char *memcpu_name) {
+  vector<const char *> args;
+
+  if (staticTests) {
+    args.push_back("test_driver_static");
+  } else {
+    args.push_back("test_driver");
+  }
+  args.push_back("-under-runtests");
+  args.push_back("-enable-resume");
+  args.push_back("-limit");
+  char *limit_str = new char[12];
+  snprintf(limit_str, 12, "%d", testLimit);
+  args.push_back(limit_str);
+  if (pidFilename != NULL) {
+    args.push_back("-pidfile");
+    args.push_back(pidFilename);
+  }
+  if (memcpu_name)
+  {
+     args.push_back("-memcpu");
+     args.push_back(memcpu_name);
+  }
+  if (resume) {
+    args.push_back("-use-resume");
+  }
+  if (useLog) {
+    args.push_back("-log");
+    args.push_back("-logfile");
+    args.push_back(const_cast<char *>(logfile.c_str()));
+  }
+  for (unsigned int i = 0; i < child_argv.size(); i++) {
+     if ((strcmp(child_argv[i], "-memcpu") == 0) ||
+         (strcmp(child_argv[i], "-cpumem") == 0))
+     {
+        if ((child_argv[i+1][0] != '-') || 
+            (child_argv[i+1][1] == '\0'))
+        {
+           i++;
+        }
+        continue;
+     }
+     args.push_back(child_argv[i]);
+  }
+
+  // Copy the arguments from the vector to a new array
+  // BUG limit_str leaks here.  I'm not sure how to clean up this leak
+  int exec_argc = args.size();
+  *exec_args = new char *[exec_argc + 1];
+  for (unsigned int i = 0; i < args.size(); i++) {
+     (*exec_args)[i] = const_cast<char *>(args[i]);
+  }
+  (*exec_args)[exec_argc] = NULL;
+}
+
+void generateTestString(bool resume, bool useLog, bool staticTests,
+			string &logfile, int testLimit,
+			vector<char *>& child_argv, string& shellString,
+			char *pidFilename)
+{
+   stringstream testString;
+   if (staticTests) {
+     testString << "test_driver_static";
+   } else {
+     testString << "test_driver";
+   }
+   testString << " -under-runtests -enable-resume -limit " << testLimit;
+   testString << " -pidfile " << pidFilename;
+
+   if ( resume )
+   {
+      testString << " -use-resume";
+   }
+   if ( useLog )
+   {
+      testString << " -log";
+   }
+   if (useLog) {
+     testString << " -logfile " << logfile;
+   }
+
+   // Add child's arguments
+   for ( unsigned int i = 0; i < child_argv.size(); i++ )
+   {
+      testString << " " << child_argv[i];
+   }
+   
+   stringstream timerString;
+   timerString << pdscrdir << "/timer.pl -t " << timeout;
+   shellString = timerString.str() + " " + testString.str();
+   
+}
+
+char *setResumeEnv()
+{
+   if ( getenv("RESUMELOG") != NULL )
+      return NULL;
+
+   stringstream tmp;
+   tmp << "RESUMELOG=";
+   if ( getenv("TMP") )
+   {
+      tmp << getenv("TMP") << "/";
+   }
+   else
+   {
+      tmp << "/tmp/";
+   }
+
+   tmp << "test_driver.resumelog." << getpid();
+
+   char *r_tmp = strdup(tmp.str().c_str());
+   putenv(r_tmp);
+
+   return r_tmp;
+}
+
+char *setLibPath()
+{
+   stringstream tmp;
+   tmp << "LD_LIBRARY_PATH=.:";
+
+   if ( getenv("LD_LIBRARY_PATH") )
+   {
+      tmp << getenv("LD_LIBRARY_PATH");
+   }
+
+   char *l_tmp = strdup(tmp.str().c_str());
+   putenv(l_tmp);
+
+   // And add LIBPATH for AIX if necessary
+   stringstream AIXtmp;
+   AIXtmp << "LIBPATH=.:";
+   if ( getenv("LIBPATH") ) {
+       AIXtmp << getenv("LIBPATH");
+   }
+   char *a_tmp = strdup(AIXtmp.str().c_str());
+   putenv(a_tmp);
+
+   return l_tmp;
+}
+
+void setupVars(bool useLog, string &logfile)
+{
+   string base_dir, tlog_dir;
+
+#if defined(m_abi)
+   if ( getenv("DYNINSTAPI_RT_LIB") )
+   {
+      char *rtlib = getenv("DYNINSTAPI_RT_LIB");
+
+      string temp = ReplaceAllWith(rtlib, "libdyninstAPI_RT.so", "libdyninstAPI_RT_m32.so");
+      char *rtlib_mabi = strdup(temp.c_str());
+      setenv("DYNINSTAPI_RT_LIB_MABI", rtlib_mabi, 0);
+   }
+#endif
+  
+   // Determine Base Dir
+   if ( getenv("PARADYN_BASE") == NULL )
+   {
+      if ( getenv("DYNINST_ROOT") == NULL )
+      {
+	base_dir = string("../../..");
+      }
+      else
+      {
+         base_dir = getenv("DYNINST_ROOT");
+      }
+   } else
+   {
+      base_dir = getenv("PARADYN_BASE");
+   }
+
+   pdscrdir = base_dir + "/scripts";
+   if ( ! isDir(pdscrdir) )
+   {
+      cerr << pdscrdir << " does not exist.  Paradyn scripts dir required." 
+         << endl;
+      exit(1);
+   }
+
+   // Determine Test log dir
+   char *pdtst = getenv("PDTST");
+   if ( pdtst == NULL )
+   {
+      tlog_dir = base_dir + "/log/tests";
+   } else
+   {
+      tlog_dir = pdtst;
+   }
+   tlog_dir += "2";
+
+   // Determin Test log file
+   string buildnum, build_id;
+   buildnum = pdscrdir + "/buildnum";
+   if ( getenv("PARADYN_BASE") != NULL && isRegFile(buildnum) )
+   {
+      getInput(buildnum.c_str(), build_id); 
+   } else
+   {
+      getInput("date '+%Y-%m-%d'", build_id);
+   }
+
+   if ( useLog ) 
+   {
+
+      if ( logfile == "" )
+      {
+         logfile = tlog_dir + "/" + getenv("PLATFORM") + "/" + build_id;
+      }
+
+      cout << "   ... output to " << logfile << endl;
+
+      string testslogdir, cmd;
+      cmd = "dirname " + logfile;
+      getInput(cmd.c_str(), testslogdir);
+   
+      if ( ! isDir(testslogdir) )
+      {
+         cout << testslogdir << "does not exist (yet)!" << endl;
+         cmd = "mkdir -p " + testslogdir;
+         system(cmd.c_str());
+         if ( ! isDir(testslogdir) )
+         {
+            cout << testslogdir << " creation failed - aborting!" << endl;
+            exit(1);
+         } else {
+            cout << testslogdir << " create for test logs!" << endl;
+         }
+      }
+
+      if ( isRegFile(logfile) )
+      {
+         cout << "File exists" << endl;
+      }
+      else
+      {
+         cmd = "touch " + logfile;
+         system(cmd.c_str());
+      }
+   
+      cmd = logfile + ".gz";
+      if ( isRegFile(cmd) )
+      {
+         cout << "File.gz exists" << endl;
+      }
+   }
+}
