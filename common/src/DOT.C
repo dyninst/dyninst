@@ -64,6 +64,17 @@ bool Graph::printDOT(const std::string fileName) {
     }
     fprintf(file, "}\n");
 
+    NodeIterator exitBegin, exitEnd;
+    exitNodes(exitBegin, exitEnd);
+
+    // Put the entry nodes on their own (minimum) rank
+    fprintf(file, "  { rank = max;");
+    for (NodeIterator iter = exitBegin; iter != exitEnd; iter++) {
+        fprintf(file, "%s; ", (*iter)->DOTname().c_str());
+    }
+    fprintf(file, "}\n");
+    
+
     while (!worklist.empty()) {
         Node::Ptr source = worklist.front();
 
@@ -87,6 +98,7 @@ bool Graph::printDOT(const std::string fileName) {
 
         for (; outBegin != outEnd; outBegin++) {
             Node::Ptr target = *outBegin;
+            if (!target->DOTinclude()) continue;
             fprintf(file, "\t %s -> %s;\n", source->DOTname().c_str(), target->DOTname().c_str());
             if (visited.find(target) == visited.end()) {
                  //fprintf(stderr, "\t\t adding child %s\n", target->format().c_str());

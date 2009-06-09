@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParameterDict.C,v 1.2 2008/04/11 23:31:03 legendre Exp $
+// $Id: ParameterDict.C,v 1.3 2008/10/20 20:35:43 legendre Exp $
 #include "ParameterDict.h"
 #include <stdio.h>
 #include <string.h>
@@ -55,7 +55,7 @@ Parameter::~Parameter()
 }
 
 // Error functions, in proper operation these will be overidden in a subclass
-void Parameter::setString(char *str)
+void Parameter::setString(const char *str)
 {
    fprintf(stderr, "Warning: Setting a string for a non-string Parameter, ignored\n");
 }
@@ -95,7 +95,7 @@ ParamString::ParamString()
    data = NULL;
 }
 
-ParamString::ParamString(char *str)
+ParamString::ParamString(const char *str)
 {
    if ( str != NULL )
    {
@@ -116,7 +116,7 @@ ParamString::~ParamString()
    }
 }
 
-void ParamString::setString(char *str)
+void ParamString::setString(const char *str)
 {
    // Free old string
    if ( data != NULL )

@@ -184,6 +184,9 @@ DDG::Ptr DDGAnalyzer::analyze() {
     // We want to build the subnode-level graph.
     generateNodes(blocks);
 
+    // And do a final pass over to ensure all nodes are reachable...
+    ddg->insertVirtualEdges();
+
     return ddg;
 }
 
@@ -734,13 +737,29 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         break;
     case e_xchg: {
         // xchg defines two abslocs, and uses them as appropriate...
+        AbslocPtr D1;
+        AbslocPtr D2;
+        
+        if (addr == 0x9124d2) {
+            fprintf(stderr, "Here!\n");
+        }
+
         AbslocSet::iterator iter = def.gprs.begin(); 
-        AbslocPtr D1 = *iter;
+        D1 = *iter;
         iter++;
-        AbslocPtr D2 = *iter;
+        if (iter != def.gprs.end()) {
+            D2 = *iter;
+        }
+        else {
+            // Check memory
+            assert(!def.mem.empty());
+            AbslocSet::iterator iter2 = def.mem.begin();
+            D2 = *iter2;
+        }
+                
         assert(D1);
         assert(D2);
-        
+            
         NodePtr T1 = makeNode(cNode(addr, D1));
         NodePtr T2 = makeNode(cNode(addr, D2));
         worklist[D1].push_back(T2);
@@ -761,7 +780,6 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
             }
         }
     }
-#if 0
     // Now for flags...
     // According to Matt, the easiest way to represent dependencies for flags on 
     // IA-32/AMD-64 is to have them depend on the inputs to the instruction and 
@@ -776,12 +794,12 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
             worklist[U].push_back(T);
         }
     }
-#endif
+
     // PC-handling section
-// Most instructions use the PC to set the PC. This includes calls, relative branches,
-// and the like. So we're basically looking for indirect branches or absolute branches.
-// (are there absolutes on IA-32?).
-// Also, conditional branches and the flag registers they use. 
+    // Most instructions use the PC to set the PC. This includes calls, relative branches,
+    // and the like. So we're basically looking for indirect branches or absolute branches.
+    // (are there absolutes on IA-32?).
+    // Also, conditional branches and the flag registers they use. 
 
     if (def.defPC()) {
     // We're some sort of branch...
@@ -790,7 +808,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
             case e_ret_far: {
                 // Read top of stack, define PC
                 std::set<RegisterAST::Ptr> regs = I.getOperation().implicitReads();
-// Only one thing read...
+                // Only one thing read...
                 RegisterAST::Ptr sp = *(regs.begin());
                 Absloc::Ptr aStack = getAbsloc(sp, addr); 
 
@@ -833,12 +851,11 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
              //fprintf(stderr, "\tNode %s\n", T->format().c_str());
              AbslocPtr U = e_iter->first;
 
-            if (localReachingDefs[U].empty()) {
+             if (localReachingDefs[U].empty()) {
                 // Not sure this can actually happen...
                 // Just build a parameter node
                 cNode tmp(0, U, formalParam);
                 NodePtr S = makeNode(tmp);
-                ddg->insertEntryNode(S);
                 ddg->insertPair(S, T);
                 //fprintf(stderr, "\t\t from parameter node %s\n", S->format().c_str());
             }
@@ -848,11 +865,6 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
                     NodePtr S = makeNode(*c_iter);
 
                     //fprintf(stderr, "\t\t %s\n", S->format().c_str());
-                    
-                    // Sidestep: if S is a formal parameter node ensure that it's in the
-                    // set of entry nodes.
-                    if (c_iter->type == formalParam)
-                        ddg->insertEntryNode(S);
                     
                     ddg->insertPair(S,T);
                     //fprintf(stderr, "\t\t\t\t ... from local definition %s/0x%lx\n",
@@ -1112,6 +1124,10 @@ void DDGAnalyzer::getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
     std::set<RegisterAST::Ptr> regWrites;
     insn.getWriteSet(regWrites);            
 
+    if (addr == 0x9124d2) {
+        fprintf(stderr, "Here!\n");
+    }
+
     // Registers are nice and easy. The next clause is for memory... now
     // that sucks.
     
@@ -1144,7 +1160,8 @@ void DDGAnalyzer::getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
              w != memWrites.end();
              ++w) {
             // A memory write. Who knew?
-            defs.mem.insert(getAbsloc(*w, addr));
+            Absloc::Ptr A = getAbsloc(*w, addr);
+            defs.mem.insert(A);
         }
     }
 }
@@ -1358,18 +1375,30 @@ Node::Ptr DDGAnalyzer::makeNode(const cNode &cnode) {
         case normal:
             nodeMap[cnode] = OperationNode::createNode(cnode.addr, cnode.absloc);
             break;
-        case formalParam:
-            nodeMap[cnode] = FormalParamNode::createNode(cnode.absloc);
+        case formalParam: {
+            Node::Ptr n = FormalParamNode::createNode(cnode.absloc);
+            nodeMap[cnode] = n;
+            ddg->insertFormalParamNode(n);
             break;
-        case formalReturn:
-            nodeMap[cnode] = FormalReturnNode::createNode(cnode.absloc);
+        }
+        case formalReturn: {
+            Node::Ptr n = FormalReturnNode::createNode(cnode.absloc);
+            nodeMap[cnode] = n;
+            ddg->insertFormalReturnNode(n);
             break;
-        case actualParam:
-            nodeMap[cnode] = ActualParamNode::createNode(cnode.addr, cnode.func, cnode.absloc);
+        }
+        case actualParam: {
+            Node::Ptr n = ActualParamNode::createNode(cnode.addr, cnode.func, cnode.absloc);
+            nodeMap[cnode] = n;
+            ddg->insertActualParamNode(n);
             break;
-        case actualReturn:
-            nodeMap[cnode] = ActualReturnNode::createNode(cnode.addr, cnode.func, cnode.absloc);
+        }
+        case actualReturn: {
+            Node::Ptr n = ActualReturnNode::createNode(cnode.addr, cnode.func, cnode.absloc);
+            nodeMap[cnode] = n;
+            ddg->insertActualReturnNode(n);
             break;
+        }
         default:
             assert(0);
             break;

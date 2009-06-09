@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -42,18 +42,23 @@
 #ifndef _test_lib_h_
 #define _test_lib_h_
 
-#include "BPatch.h"
-#include "BPatch_thread.h"
-#include "BPatch_image.h"
-#include "BPatch_function.h"
-#include "Process_data.h"
+#include <iostream>
+#include <typeinfo>
+#include <stdexcept>
 #include "ParameterDict.h"
 #include "TestData.h"
+#include "test_info_new.h"
 #include "test_lib_dll.h"
-
+#include "util.h"
+#include <errno.h>
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #if !defined(P_sleep)
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define P_sleep(sec) Sleep(1000*(sec))
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -63,204 +68,119 @@
 #endif
 #endif
 
+#if defined(os_windows_test)
+#include <direct.h>
+#endif
 #define DYNINST_NO_ERROR -1
 
-#define RETURNONFAIL(x) if ( x < 0 ) return -1;
-#define RETURNONNULL(x) if ( x == NULL ) return -1;
+#include "test_results.h"
+#include "TestMutator.h"
+#include "TestOutputDriver.h"
+#include "comptester.h"
+
+#define RETURNONFAIL(x) if ( x < 0 ) return FAILED;
+#define RETURNONNULL(x) if ( x == NULL ) return FAILED;
 #define PASS 0
 #define FAIL -1
 
-// Functions in test_lib.C
-
-TESTLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
-                      int testnum, const char *testname);
-TESTLIB_DLL_EXPORT bool signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
-TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[], FILE *outlog, FILE *errlog);
-
-
-TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
-
-TESTLIB_DLL_EXPORT void checkCost(BPatch_snippet snippet);
-
-// Wrapper function to find variables
-// For Fortran, will look for lowercase variable, if mixed case not found
-TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage, 
-                                  const char* var,
-                                  BPatch_Vector <BPatch_point *> *point);
-
-
-TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
-
+// New logging system
+TESTLIB_DLL_EXPORT TestOutputDriver * getOutput();
+TESTLIB_DLL_EXPORT void setOutput(TestOutputDriver * new_output);
 // Set up the log files for test library output
 TESTLIB_DLL_EXPORT void setOutputLog(FILE *log_fp);
 TESTLIB_DLL_EXPORT void setErrorLog(FILE *log_fp);
+TESTLIB_DLL_EXPORT FILE *getOutputLog();
+TESTLIB_DLL_EXPORT FILE *getErrorLog();
+TESTLIB_DLL_EXPORT void setOutputLogFilename(char *log_fn);
+TESTLIB_DLL_EXPORT void setErrorLogFilename(char *log_fn);
+TESTLIB_DLL_EXPORT const char *getOutputLogFilename();
+TESTLIB_DLL_EXPORT const char *getErrorLogFilename();
+
 // Functions to print messages to the log files
-TESTLIB_DLL_EXPORT int logstatus(const char *fmt, ...);
-TESTLIB_DLL_EXPORT int logerror(const char *fmt, ...);
+TESTLIB_DLL_EXPORT void logstatus(const char *fmt, ...);
+TESTLIB_DLL_EXPORT void logerror(const char *fmt, ...);
 TESTLIB_DLL_EXPORT void flushOutputLog();
 TESTLIB_DLL_EXPORT void flushErrorLog();
 
-//
-//
-// Replace all calls in "inFunction" to "callTo" with calls to "replacement."
-// If "replacement" is NULL, them use removeFunctionCall instead of
-// replaceFunctionCall.
-// Returns the number of replacements that were performed.
-//
-TESTLIB_DLL_EXPORT int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
-                         const char *inFunction, const char *callTo, 
-                         const char *replacement, int testNo, 
-                         const char *testName, int callsExpected);
-//
-//
-// Insert "snippet" at the location "loc" in the function "inFunction."
-// Returns the value returned by BPatch_thread::insertSnippet.
-//
-TESTLIB_DLL_EXPORT BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
-                               BPatch_image *appImage, const char *inFunction, 
-                               BPatch_procedureLocation loc, 
-                               BPatch_snippet &snippet,
-                               int testNo, const char *testName);
-
-//
-// Insert a snippet to call function "funcName" with no arguments into the
-// procedure "inFunction" at the points given by "loc."
-//
-TESTLIB_DLL_EXPORT int insertCallSnippetAt(BPatch_thread *appThread,
-                            BPatch_image *appImage, const char *inFunction,
-                            BPatch_procedureLocation loc, const char *funcName,
-                            int testNo, const char *testName);
+// TODO Implement this function for Windows   
+TESTLIB_DLL_EXPORT int setupMutatorsForRunGroup (RunGroup *group);
 
 
-TESTLIB_DLL_EXPORT BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail);
+// Mutatee PID registration, for cleaning up hung mutatees
+// TODO Check if these make any sense on Windows.  I suspect I'll need to
+// change them.
+TESTLIB_DLL_EXPORT void setPIDFilename(char *pfn);
+TESTLIB_DLL_EXPORT char *getPIDFilename();
+TESTLIB_DLL_EXPORT void registerPID(int pid);
+TESTLIB_DLL_EXPORT void cleanPIDFile();
 
-
-
+TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
+TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);
+TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[], FILE *outlog, FILE *errlog, bool attach);
+TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
 TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len, int psize);
-
-// Function to preload some libraries for test1_21 and test1_22
-TESTLIB_DLL_EXPORT int readyTest21or22(BPatch_thread *appThread, 
-      char *libNameA, char *libNameB, int mutateeFortran);
-
 TESTLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);
-
-TESTLIB_DLL_EXPORT void instrument_entry_points( BPatch_thread * app_thread,
-			      BPatch_image * ,
-			      BPatch_function * func,
-			      BPatch_snippet * code );
-
-
-TESTLIB_DLL_EXPORT void instrument_exit_points( BPatch_thread * app_thread,
-			     BPatch_image * ,
-			     BPatch_function * func,
-			     BPatch_snippet * code );
-
-// Tests to see if the mutatee has defined the mutateeCplusplus flag
-int isMutateeCxx(BPatch_image *appImage);
-// Tests to see if the mutatee has defined the mutateeFortran flag
-TESTLIB_DLL_EXPORT int isMutateeFortran(BPatch_image *appImage);
-// Tests to see if the mutatee has defined the mutateeF77 flag
-int isMutateeF77(BPatch_image *appImage);
-
-TESTLIB_DLL_EXPORT void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[]);
-
-TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
-      BPatch_thread **mythreads, int *threadCount);
-
-/*
- * Given a string variable name and an expected value, lookup the varaible
- *    in the child process, and verify that the value matches.
- *
- */
-TESTLIB_DLL_EXPORT bool verifyChildMemory(BPatch_thread *appThread, 
-                       const char *name, int expectedVal);
-
-
-TESTLIB_DLL_EXPORT void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg);
-
-TESTLIB_DLL_EXPORT bool validate(BPatch_Vector<BPatch_point*>* res,
-                            BPatch_memoryAccess* acc[], const char* msg);
-
-BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess);
-
-TESTLIB_DLL_EXPORT int instCall(BPatch_thread* bpthr, const char* fname,
-              const BPatch_Vector<BPatch_point*>* res);
-
-
-TESTLIB_DLL_EXPORT int instEffAddr(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res,
-                 bool conditional);
-
-TESTLIB_DLL_EXPORT int instByteCnt(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res,
-                 bool conditional);
-
-TESTLIB_DLL_EXPORT int pointerSize(BPatch_image *img);
-
-typedef struct {
-    bool             valid;
-    bool             optional;
-    BPatch_frameType type;
-    const char      *function_name;
-} frameInfo_t;
-
-TESTLIB_DLL_EXPORT bool checkStack(BPatch_thread *appThread,
-		const frameInfo_t correct_frame_info[],
-		unsigned num_correct_names,
-		int test_num, const char *test_name);
-
-void buildArgs(const char** child_argv, char *pathname, int testNo);
-
-
-bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
-      char *pathname, const char** child_argv);
-
-
-int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, char *instrumentee, char*patch, int testNo, char *testName);
-
-
-char* saveWorld(BPatch_thread *appThread);
-
-int letOriginalMutateeFinish(BPatch_thread *appThread);
-
-BPatch_function *findFunction(const char *fname, BPatch_image *appImage, int testno, const char *testname);
-BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testno, const char *testname);
-
-bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
-bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
-
 char *searchPath(const char *path, const char *file);
 
-// Functions in test_lib_soExecution.C below
-//           or test_lib_dllExecution.C
+TESTLIB_DLL_EXPORT bool shouldRunTest(RunGroup *group, TestInfo *test);
+TESTLIB_DLL_EXPORT void reportTestResult(RunGroup *group, TestInfo *test);
 
-TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);
-   
-TESTLIB_DLL_EXPORT int loadLibRunTest(test_data_t &testLib, ParameterDict &param);
+// loadOutputDriver loads an output driver plug-in and returns a pointer to
+// the output driver implemented by it.
+TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data);
 
-// Function in MutateeStart.C
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach, char *logfilename);
+// Functions used for redirecting output e.g. to a temp file for entering into
+// the database after running a test
+TESTLIB_DLL_EXPORT int printout(char *fmt, ...);
+TESTLIB_DLL_EXPORT int printerr(char *fmt, ...);
+TESTLIB_DLL_EXPORT int printhuman(char *fmt, ...);
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestAll(BPatch *bpatch, char *pathname, bool useAttach, ProcessList &procList, char *logfilename);
+// Functions related to database output
+TESTLIB_DLL_EXPORT void enableDBLog(TestInfo *test, RunGroup *runGroup);
+TESTLIB_DLL_EXPORT void clearDBLog();
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
-      bool useAttach, char *logfilename);
+TESTLIB_DLL_EXPORT ComponentTester *getComponentTester();
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
-      bool useAttach, ProcessList &procList, char *logfilename);
+#define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
+#define REPORT_EFAIL catch(const LocErr &err) { \
+	   err.print(stderr); \
+	   return FAILED; }
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestSet(BPatch *bpatch, char *pathname, 
-				   test_data_t tests[],
-				   int first_test, int last_test,
-				   bool useAttach, ProcessList &procList,
-				   char *logfilename, bool runAllTests,
-				   std::vector<char *> test_list);
+class LocErr : public std::runtime_error 
+{
+	std::string file__;
+	int line__;
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool useAttach, test_data_t tests[], unsigned int num_tests, int oldtest, char *logfilename);
+	public:
 
-TESTLIB_DLL_EXPORT void killMutatee(BPatch_thread *appThread);
+	TESTLIB_DLL_EXPORT LocErr(const char * __file__,
+			const int __line__,
+			const std::string msg); 
 
+	TESTLIB_DLL_EXPORT virtual ~LocErr() THROW; 
 
+	TESTLIB_DLL_EXPORT std::string file() const;
+
+	TESTLIB_DLL_EXPORT int line() const;
+
+	TESTLIB_DLL_EXPORT void print(FILE * stream)  const;
+};
+
+class Tempfile {
+
+	//  file paths should be generalized to work on windows
+	char *fname;
+#if !defined (os_windows_test)
+	int fd;
+#else
+	HANDLE fd;
 #endif
 
+	public:
 
+	TESTLIB_DLL_EXPORT Tempfile();
+	TESTLIB_DLL_EXPORT ~Tempfile();
+	TESTLIB_DLL_EXPORT const char *getName();
+};
+
+#endif

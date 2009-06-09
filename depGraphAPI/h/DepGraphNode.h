@@ -135,8 +135,6 @@ class FormalNode : public VirtualNode {
 };
 
 class FormalParamNode : public FormalNode {
-    
-    
  public:
     typedef dyn_detail::boost::shared_ptr<FormalParamNode> Ptr;
     
@@ -155,8 +153,6 @@ class FormalParamNode : public FormalNode {
 
 
 class FormalReturnNode : public FormalNode {
-    
-    
  public:
     typedef dyn_detail::boost::shared_ptr<FormalReturnNode> Ptr;
 
@@ -175,8 +171,7 @@ class FormalReturnNode : public FormalNode {
 
 
 class ActualNode : public VirtualNode {
-    
-    
+
  public:
     typedef dyn_detail::boost::shared_ptr<ActualNode> Ptr;
     
@@ -241,16 +236,13 @@ class ActualReturnNode : public ActualNode {
         ActualNode(addr, func, a) {};
 };
 
-class CallNode : public Node {
-    
-
+class CallNode : public VirtualNode {
  public:
     typedef dyn_detail::boost::shared_ptr<CallNode> Ptr;
 
     static Node::Ptr createNode(Function *func);
     
     virtual std::string format() const;
-    virtual bool isVirtual() const { return true; }
     virtual ~CallNode() {};
     Function *func() const { return func_; }    
     virtual Node::Ptr copy();

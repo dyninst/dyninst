@@ -118,16 +118,22 @@ std::string PhysicalNode::format() const {
     return std::string(buf);
 }
 
+std::string VirtualNode::defaultName("N_VIRTUAL");
+
 Node::Ptr VirtualNode::createNode() {
     return Node::Ptr(new VirtualNode());
 }
 
+Node::Ptr VirtualNode::createNode(std::string name) {
+    return Node::Ptr(new VirtualNode(name));
+}
+
 Node::Ptr VirtualNode::copy() {
-    return Node::Ptr(new VirtualNode());
+    return Node::Ptr(new VirtualNode(name_));
 }
 
 std::string VirtualNode::format() const {
-    return std::string("N_VIRTUAL");
+    return name_;
 }
 
 // Prefix...
@@ -205,4 +211,101 @@ NodeIterator::~NodeIterator() {
 NodeIteratorImpl *NodeIterator::copy() const {
     if (iter_ == NULL) return NULL;
     return iter_->copy();
+}
+
+Graph::Ptr Node::forwardSubgraph() {
+    // We want to copy this node and every node reachable from
+    // it along a forward direction. This node will become the
+    // entry for a new subgraph. 
+
+    // TODO: this is a generic graph by definition, as nodes
+    // have no idea what type of graph they belong to. Is that
+    // the right thing? 
+
+    Graph::Ptr ret = Graph::createGraph();
+    
+    Node::Ptr newEntry = copy();
+    ret->insertEntryNode(newEntry);
+    
+    std::set<Node::Ptr> visited;
+    std::queue<std::pair<Node::Ptr, Node::Ptr> > worklist;
+
+    // We don't have a shared pointer to the current node. 
+    // However, we do have an edge, which has a weak pointer. 
+
+    if (outs_.empty()) return ret;
+    Node::Ptr thisPtr = (*outs_.begin())->source();
+
+    worklist.push(std::make_pair(thisPtr, newEntry));
+
+    while (!worklist.empty()) {
+        // First is the original node, second the copy
+        std::pair<Node::Ptr, Node::Ptr> src = worklist.front(); 
+        worklist.pop();
+
+        if (visited.find(src.first) != visited.end()) continue;
+        visited.insert(src.first);
+
+        NodeIterator b, e;
+        src.first->outs(b, e);
+
+        if (b == e) {
+            ret->insertExitNode(src.second);
+        }
+
+        for (; b != e; ++b) {
+            std::pair<Node::Ptr, Node::Ptr> targ = std::make_pair(*b, (*b)->copy());
+            ret->insertPair(src.second, targ.second);
+            worklist.push(targ);
+        } 
+    }
+    return ret;
+}
+
+Graph::Ptr Node::backwardSubgraph() {
+    // We want to copy this node and every node reachable from
+    // it along a forward direction. This node will become the
+    // entry for a new subgraph. 
+
+    // TODO: this is a generic graph by definition, as nodes
+    // have no idea what type of graph they belong to. Is that
+    // the right thing? 
+
+    Graph::Ptr ret = Graph::createGraph();
+    
+    Node::Ptr newExit = copy();
+    ret->insertExitNode(newExit);
+    
+    std::set<Node::Ptr> visited;
+    std::queue<std::pair<Node::Ptr, Node::Ptr> > worklist;
+    
+    // See comment in nearly-identical code above...
+    if (ins_.empty()) return ret;
+    Node::Ptr thisPtr = (*ins_.begin())->target();
+
+    worklist.push(std::make_pair(thisPtr, newExit));
+
+    while (!worklist.empty()) {
+        // First is the original node, second the copy
+        std::pair<Node::Ptr, Node::Ptr> targ = worklist.front(); 
+        worklist.pop();
+
+        if (visited.find(targ.first) != visited.end()) continue;
+        visited.insert(targ.first);
+
+        NodeIterator b, e;
+
+        targ.first->ins(b, e);
+
+        if (b == e) {
+            ret->insertEntryNode(targ.second);
+        }
+
+        for (; b != e; ++b) {
+            std::pair<Node::Ptr, Node::Ptr> src = std::make_pair(*b, (*b)->copy());
+            ret->insertPair(src.second, targ.second);
+            worklist.push(src);
+        } 
+    }
+    return ret;
 }

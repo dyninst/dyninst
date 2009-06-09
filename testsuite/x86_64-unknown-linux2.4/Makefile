@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2008/09/15 18:37:50 jaw Exp $
+# $Id: Makefile,v 1.1 2008/05/08 20:53:53 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,8 +8,11 @@ NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-DEBUG_FLAG = -g
+DEBUG_FLAG = -g 
 
+CC = gcc
+CXX = g++
+PLATFORM_CXXFLAGS = 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 include $(TO_CORE)/make.config 
@@ -34,7 +37,8 @@ M_ABI_FLAG = -m32 -Di386_unknown_linux2_4 -Dm32_test
 #endif
 
 GNU_WARNING_FLAGS = -W -Wall
-MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
+#MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS) -fpe
+MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS) 
 MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 
@@ -51,7 +55,7 @@ MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templates -c
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
-MUTATOR_LIBS += -liberty -linstructionAPI
+MUTATOR_LIBS += -liberty
 MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF)
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
 
@@ -75,6 +79,8 @@ MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 MUTATEE_TEST9_EXTRA_LIB_ABI = 9.-L./ 9.-lInstMe_$(M_ABI)
 
 LIBS_LIBTESTSUITE = -ldl
+
+TESTDRIVER_LDFLAGS = -liberty
 
 include ../make.module.tmpl
 

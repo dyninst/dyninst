@@ -420,6 +420,12 @@ This method is similar to the previous, but automatically traverses the edges an
 This method returns all nodes reachable from this node in the forward direction (by traversing out-edges).
 \item[void backwardsClosure(NodeIterator \&begin, NodeIterator \&end)]
 This method returns all nodes reachable from this node by traversing in-edges.
+\item[Graph::Ptr forwardSubgraph()]
+This method constructs and returns the subgraph that includes all
+nodes reachable from the current node along forward edges.
+\item[Graph::Ptr backwardSubgraph()]
+This method constructs and returns the subgraph that includes all
+nodes reachable from the current node along forward edges.
 \item[std::string format()]
 This method returns a textual representation of the node.
 \item[bool isVirtual() ]
@@ -453,11 +459,11 @@ This method returns the target node of an edge.
 \begin{description}
 \item[DDG::Ptr analyze(BPatch\_function *func)]
 This method creates and returns a DDG for the provided function.
-\item[void formalParameterNodes(NodeIterator \&begin, NodeIterator \&end) ]
+\item[void formalParamNodes(NodeIterator \&begin, NodeIterator \&end) ]
 This method returns the range of all formal parameters to the function.
 \item[void formalReturnNodes(NodeIterator \&begin, NodeIterator \&end)]
 This method returns the range of all formal returns from the function.
-\item[void actualParameterNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end) ]
+\item[void actualParamNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end) ]
 This method returns the range of all actual parameters for the call instruction
 at the given address.
 \item[void actualReturnNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end)]
@@ -468,6 +474,21 @@ This method returns the range of nodes that fit the specific address
 and absloc requirements. This range will contain at most one
 element. It returns true if the range is non-empty, and false
 otherwise. 
+\item[DDG::Ptr removeDeadNodes()] This method constructs a derived DDG
+  that contains no dead nodes. All nodes that cannot reach a
+  formal return node are removed. This includes definitions to
+  abstract locations that are redefined before being used. 
+\item[void immediateDefinitions(NodeIterator \&begin, NodeIterator
+  \&end)] This method returns the range of non-formal-parameter nodes
+  that have no in-edges. This occurs when an instruction defines an
+  abstract location without using any other abstract location; for
+  example, \texttt{mov \$42, eax}. Using this in combination with
+  \texttt{formalParamNodes} will give the set of entry nodes to the DDG.
+\item[void deadDefinitions{NodeIterator \&begin, NodeIterator \&end}]
+  This method gives the range of non-formal-return nodes that have no
+  out-edges. This occurs when a node defines an abstract location that
+  is redefined before being used. These dead definitions are commonly
+  instruction side-effects (e.g., ignored writes to the flags). 
 \end{description}
 
 \subsubsection{Absloc}

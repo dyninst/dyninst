@@ -573,7 +573,7 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
     DDG::Ptr cDDG = DDG::analyze(callee); 
 
     NodeIterator begin, end;
-    cDDG->formalParameterNodes(begin, end);
+    cDDG->formalParamNodes(begin, end);
     
     for (; begin != end; ++begin) {
         FormalParamNode::Ptr p = dyn_detail::boost::dynamic_pointer_cast<FormalParamNode> (*begin);

@@ -174,6 +174,88 @@ class DDGEntryIter : public NodeIteratorImpl {
     NodeIterator virtualsEnd_;
 };
 
+
+class DDGExitIter : public NodeIteratorImpl {
+ public:
+    virtual void inc() {
+        if (returnsCur_ == returnsEnd_) {
+            assert(virtualsCur_ != virtualsEnd_);
+            ++virtualsCur_;
+        }
+        else {
+            ++returnsCur_;
+        }
+    }
+    virtual void dec() {
+        if (virtualsCur_ == virtualsBegin_) {
+            assert(returnsCur_ != returnsBegin_); 
+            --returnsCur_;
+        }
+        else {
+            --virtualsCur_;
+        }
+    }
+            
+    virtual Node::Ptr get() {
+        if (returnsCur_ == returnsEnd_) {
+            assert(virtualsCur_ != virtualsEnd_);
+            return *virtualsCur_;
+        }
+        else {
+            return *returnsCur_;
+        }
+    }
+
+    virtual bool equals(NodeIteratorImpl *rhs) {
+        DDGExitIter *tmp = dynamic_cast<DDGExitIter *>(rhs);
+        if (tmp == NULL) return false;
+        
+        return ((returnsBegin_ == tmp->returnsBegin_) &&
+                (returnsCur_ == tmp->returnsCur_) &&
+                (returnsEnd_ == tmp->returnsEnd_) &&
+                (virtualsBegin_ == tmp->virtualsBegin_) &&
+                (virtualsCur_ == tmp->virtualsCur_) &&
+                (virtualsEnd_ == tmp->virtualsEnd_));
+    }
+    
+    virtual NodeIteratorImpl *copy() {
+        NodeIteratorImpl *tmp =  new DDGExitIter(returnsBegin_, returnsCur_, returnsEnd_,
+                                                  virtualsBegin_, virtualsCur_, virtualsEnd_);
+        return tmp;
+    }
+    
+    virtual ~DDGExitIter() {
+        // Nothing to do
+    }
+    
+    DDGExitIter(NodeIterator &returnsBegin, 
+                 NodeIterator &returnsCur, 
+                 NodeIterator &returnsEnd,
+                 NodeIterator &virtualsBegin, 
+                 NodeIterator &virtualsCur, 
+                 NodeIterator &virtualsEnd) :
+        returnsBegin_(returnsBegin),
+        returnsCur_(returnsCur),
+        returnsEnd_(returnsEnd),
+        virtualsBegin_(virtualsBegin),
+        virtualsCur_(virtualsCur),
+        virtualsEnd_(virtualsEnd)
+        {};
+
+ private:
+    // The set of parameter nodes...
+    NodeIterator returnsBegin_;
+    NodeIterator returnsCur_;
+    NodeIterator returnsEnd_;
+
+    // The next thing we want is the children (if any)
+    // of the virtual node. That's, amusingly, a NodeIterator
+    // over virtualNode.outs...
+    NodeIterator virtualsBegin_;
+    NodeIterator virtualsCur_;
+    NodeIterator virtualsEnd_;
+};
+
 }
 }
 

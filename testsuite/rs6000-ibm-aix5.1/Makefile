@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2008/09/03 06:08:50 jaw Exp $
+# $Id: Makefile,v 1.1 2008/05/08 20:53:35 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,18 +17,18 @@ include $(TO_CORE)/make.config
 # Uncomment M_G77 (at yr own risk) to do g77 build
 #M_G77 = g77
 
-CC = gcc
-CXX = g++
-NATIVE_FC = xlf90
+#NATIVE_FC = xlf90
 NATIVE_FORTRAN_CC = gcc
-NATIVE_CC = xlc
-NATIVE_CXX = xlC
-NATIVE_CXX_OMP = xlC_r
+#NATIVE_CC = xlc
+#NATIVE_CXX = xlC
+#NATIVE_CXX_OMP = xlC_r
+CC = gcc
+
 
 COMMA=,
 
-CXXFLAGS +=   -DAIX5 -Wa,-many
-CFLAGS +=   -DAIX5 -Wa,-many
+CXXFLAGS += -g -DAIX5 -Wa,-many
+CFLAGS += -g -DAIX5 -Wa,-many
 
 MUTATEE_NATIVE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5,-DXLF
 MUTATEE_NATIVE_FC_LDFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
@@ -52,43 +52,28 @@ versionArray += unknown
 COMPILERT_NATIVE_CC = $(NATIVE_CC) version $(firstword $(versionArray))
 COMPILERT_NATIVE_CXX = $(COMPILERT_NATIVE_CC)
 
--include $(TO_CORE)/make.config.local
-MUTATEE_CXXFLAGS_COMMON = $(FIRST_INCLUDE) -I$(TO_CORE)
-
-MUTATEE_CFLAGS_NATIVE =  -g $(UNIFIED_DEF) 
+MUTATEE_CFLAGS_NATIVE = $(UNIFIED_DEF) 
 MUTATEE_CFLAGS_NATIVE += -D__XLC__ -qnoinline -qnooptimize 
-MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CXXFLAGS_COMMON) $(MUTATEE_CFLAGS_NATIVE) -+
+MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CFLAGS_NATIVE) -+
 MUTATEE_CFLAGS_NATIVE += -qcpluscmt
 MUTATEE_NATIVE_FC_CFLAGS = $(MUTATEE_CFLAGS_NATIVE) -DXLF
 MUTATEE_NATIVE_CXX_CFLAGS = -qsmp=omp 
 
 MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
 
-MUTATEE_CFLAGS_GNU = -g $(UNIFIED_DEF)
-MUTATEE_LDFLAGS_GNU += -Wl,-bgcbypass:3  -Wl,-bnoobjreorder 
-MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CXXFLAGS_COMMON) $(MUTATEE_CFLAGS_GNU)
+MUTATEE_CFLAGS_GNU = $(UNIFIED_DEF)
+MUTATEE_LDFLAGS_GNU += -Wl,-bexpall -Wl,-bnoobjreorder -Wl,-bdynamic -Wl,-brtl
+MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
-MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -g -ldl -lpthread -lxlsmp
-
-#Check for viable OpenMP Compiler
-HPC_V = $(shell $(NATIVE_CXX_OMP) -qversion)
-ifeq (V8,$(findstring V8,$(HPC_V)))
-	HPC_COMPILER_EXISTS=1
-endif 
-ifeq (V7,$(findstring V7,$(HPC_V)))
-	HPC_COMPILER_EXISTS=1
-endif 
-ifeq (V9,$(findstring V9,$(HPC_V)))
-	HPC_COMPILER_EXISTS=1
-endif 
-
-
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -ldl -lpthread -lxlsmp
 
 CFLAGS_TESTLIBS = -I../src -I$(TO_CORE)/dyninstAPI_RT/h
-TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
-LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -lc -L$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) -ldyninstAPI_RT -lpthread
-MAKE_SHARED_LIB = ld
+#TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
+TESTLIB_FLAGS = -shared -Wl,-bexpall -L$(TO_CORE)/../$(PLATFORM)/lib -pthread -ldyninstAPI_RT
+#LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -lc -L$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) -ldyninstAPI_RT -lpthread
+LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -pthread -ldyninstAPI_RT
+MAKE_SHARED_LIB = gcc
 
 TESTSUITE_FLAGS += -Wl,-bexpall   
 

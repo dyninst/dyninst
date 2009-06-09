@@ -3,12 +3,31 @@ AC_INIT([parseThat], [1.0])
 AC_CONFIG_SRCDIR([src/config.C])
 AC_PREFIX_DEFAULT([.])
 
+AC_ARG_WITH(dyninst,
+            [AS_HELP_STRING([--with-dyninst],[Base directory to look for dyninst headers and libraries])],
+            [DYNINST_LIB="${withval}/${PLATFORM}/lib"
+             DYNINST_INC="${withval}/include"],)
+
+AC_ARG_WITH(dyninst-lib,
+            [AS_HELP_STRING([--with-dyninst-lib],[Directory to look for dyninst libraries])],
+            [DYNINST_LIB="${withval}"],)
+
+AC_ARG_WITH(dyninst-include,
+            [AS_HELP_STRING([--with-dyninst-include],[Directory to look for dyninst headers])],
+            [DYNINST_INC="${withval}"],)
+
 if test -n ${DYNINST_ROOT}; then
    # Add search paths to CPPFLAGS and LDFLAGS.
-   #AC_SUBST([CPPFLAGS], ["-I${DYNINST_ROOT}/core -I${DYNINST_ROOT}/core/dyninstAPI/h -I${DYNINST_ROOT}/core/symtabAPI/h -I${DYNINST_ROOT}/core/dynutil/h ${CPPFLAGS}"])
-   AC_SUBST([CPPFLAGS], ["-I${DYNINST_ROOT}/dyninst -I${DYNINST_ROOT}/dyninst/dyninstAPI/h -I${DYNINST_ROOT}/dyninst/symtabAPI/h -I${DYNINST_ROOT}/dyninst/instructionAPI/h -I${DYNINST_ROOT}/dyninst/common/h -I${DYNINST_ROOT}/dyninst/dynutil/h -I${DYNINST_ROOT}/dyninst/external ${CPPFLAGS}"])
-   AC_SUBST([LDFLAGS],  ["-L${DYNINST_ROOT}/${PLATFORM}/lib ${LDFLAGS}"])
+   if test -z ${DYNINST_LIB}; then
+      DYNINST_LIB="${DYNINST_ROOT}/${PLATFORM}/lib"
+   fi
+   if test -z ${DYNINST_INC}; then
+      DYNINST_INC="${DYNINST_ROOT}/include"
+   fi
 fi
+
+AC_SUBST([LDFLAGS], ["-L${DYNINST_LIB} ${LDFLAGS}"])
+AC_SUBST([CPPFLAGS], ["-I${DYNINST_INC} ${CPPFLAGS}"])
 
 # Generate host string.
 AC_CANONICAL_HOST()
@@ -35,5 +54,5 @@ AC_CHECK_HEADERS([BPatch_process.h],
 # Find appropriate install program
 AC_PROG_INSTALL()
 
-AC_CONFIG_FILES([pMakefile])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT()
