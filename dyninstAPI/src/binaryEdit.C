@@ -791,3 +791,15 @@ void BinaryEdit::setMultiThreadCapable(bool b)
 {
    multithread_capable_ = b;
 }
+
+void BinaryEdit::addSibling(BinaryEdit *be)
+{
+   if (this != be) {
+      siblings.push_back(be);
+   }
+}
+
+std::vector<BinaryEdit *> &BinaryEdit::getSiblings()
+{
+   return siblings;
+}

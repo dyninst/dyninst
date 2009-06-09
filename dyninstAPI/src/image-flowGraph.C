@@ -634,6 +634,7 @@ bool image_func::buildCFG(
 
     Address funcEnd = funcBegin;
     Address currAddr = funcBegin;
+    isPLTFunction_ = false;
 
     // The reverse ordering here is to make things easier on
     // alpha. Indeed, the only reason funcEntries would ever
@@ -644,6 +645,10 @@ bool image_func::buildCFG(
         leaders += a;
         leadersToBlock[a] = funcEntries[j];
         worklist.push_back(a);
+
+        if (pltFuncs->defines(a)) {
+           isPLTFunction_ = true;
+        }
     }
 
     for(unsigned i=0; i < worklist.size(); i++)

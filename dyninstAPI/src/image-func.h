@@ -544,6 +544,7 @@ class image_func : public codeRange,
    bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
    void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
    bool OMPparsed() { return OMPparsed_; }
+   bool isPLTFunction() { return isPLTFunction_; }
    /****************************************/
 
    bool parsed() { return parsed_; }
@@ -649,6 +650,7 @@ class image_func : public codeRange,
 #if defined(cap_liveness)
    bool livenessCalculated_;
 #endif
+   bool isPLTFunction_;
 
    // How we discovered this function (e.g., from symbol, RT, etc)
    FuncSource howDiscovered_;
