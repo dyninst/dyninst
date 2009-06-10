@@ -323,6 +323,7 @@ void DatabaseOutputDriver::writeSQLLog() {
 	if (buf.rfind("RESULT:") == std::string::npos)
 		out << "\nRESULT: " << result;
 	out << "\n\n";
+   out.flush();
 	out.close();
 
 	// Clear the old dblog file
