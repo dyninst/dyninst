@@ -381,9 +381,10 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
                     targets[i]->getType() == ET_FALLTHROUGH) &&
                    visited.contains(targets[i]->getTarget()))
                {
-                  taken_hit = true;
+                  fallthrough_hit = true;
                }
             }
+	    parsing_printf("\tfindMaxSwitchInsn: taken_hit: %d, fallthrough_hit: %d\n", taken_hit, fallthrough_hit);
             found_along_taken_br = taken_hit && !fallthrough_hit;
                 break;
             }
@@ -416,6 +417,8 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
 #else
     WL.clear();
 #endif
+    parsing_printf("\tfindMaxSwitchInsn: table on taken branch: %d, returning: %d\n", found_along_taken_br, foundMaxSwitch && foundCondBranch);
+    
     return foundMaxSwitch && foundCondBranch;
 }
 
