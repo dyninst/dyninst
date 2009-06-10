@@ -169,6 +169,9 @@ class BinaryEdit : public AddressSpace {
 
    void setMultiThreadCapable(bool b);
 
+   void addSibling(BinaryEdit *);
+   std::vector<BinaryEdit *> &getSiblings();
+
  private:
 
     Address highWaterMark_;
@@ -195,6 +198,7 @@ class BinaryEdit : public AddressSpace {
                              Module *mod);
     mapped_object *mobj;
     BinaryEdit *rtlib;
+    std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
 };
 

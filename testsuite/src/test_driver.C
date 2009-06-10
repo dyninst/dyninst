@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,58 +39,121 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.44 2008/04/11 23:31:26 legendre Exp $
+// $Id: test_driver.C,v 1.7 2008/10/30 19:16:50 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <string>
 #include <errno.h>
 #include <vector>
 #include <iostream>
-
+#include <sstream>
+#include <assert.h>
+#include <algorithm>
 #include <sys/stat.h>
+#include <time.h>
 
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows_test)
 #define vsnprintf _vsnprintf
 #define snprintf _snprintf
 #pragma warning(disable:4786)
+#include <direct.h>
 #else
 #include <fnmatch.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <sys/times.h>
+#include <strings.h>
 #endif
 
 #include "ParameterDict.h"
 #include "test_lib.h"
-#include "Callbacks.h"
 #include "error.h"
-#include "BPatch.h"
+#include "ResumeLog.h"
+#include "TestOutputDriver.h"
+#include "StdOutputDriver.h"
+#include "comptester.h"
+#include "help.h"
 
-#if defined(STATIC_TEST_DRIVER)
-#include "static_test.h"
-#endif
+#define opt_none 1<<0
+#define opt_low 1<<1
+#define opt_high 1<<2
+#define opt_max 1<<3
+#define opt_all (opt_none|opt_low|opt_high|opt_max)
 
-// Globals, should be eventually set by commandline options
-bool forceRelocation = false; // force relocation of functions
-bool delayedParse = false;
-bool enableLogging = true;
+struct compiler_t {
+   const char *option;
+   const char *mutatee_str;
+   bool enabled;
+};
+
+#define NUM_COMPILERS 19
+compiler_t compilers[] = {
+   { "-gcc", "gcc", false },
+   { "-g++", "g++", true },
+   { "-g77", "g77", true },
+   { "-icc", "icc", false },
+   { "-icpc", "icpc", false },
+   { "-pgcc", "pgcc", false },
+   { "-pgCC", "pgCC", false },
+   { "-cc", "cc", false },
+   { "-CC", "CC", false },
+   { "-cxx", "cxx", false },
+   { "-VC", "VC", false },
+   { "-VC++", "VC++", true },
+   { "-suncc", "suncc", false },
+   { "-xlc", "xlc", false },
+   { "-xlC", "xlC", false },
+   { "-ibmas", "ibmas", false },
+   { "-masm", "masm", false },
+   { "-nasm", "nasm", false },
+   { "-nocompiler", "nocompiler", true }
+};
+   
+// These determine the defaults when test driver is invoked with no options
+int optLevel = opt_none;
+bool runDefaultOpts = true;
 bool runAllTests = true;
+bool ranLastTest = false;
 bool runAllMutatees = true;
-bool runAllOptions = true;
-bool runCreate = false;
+bool runDefaultCompilers = true;
+bool runAllCompilers = false;
+bool runDefaultStarts = true;
+bool runCreate = true;
 bool runAttach = false;
-bool resumeLog = false;
-bool useResume = false;
+bool runRewriter = false;
+bool runDeserialize = false;
 bool useHumanLog = true;
+bool enableLogging = true;
+bool printLabels = false;
+bool shouldDebugBreak = false;
+bool called_from_runTests = false;
+bool quietFormat = false;
+bool runDyninst = false;
+bool runSymtab = false;
+bool runInstruction = false;
+bool runAllComps = true;
+bool printMutateeLogHeader = false;
+bool measureMEMCPU = false;
+bool runAllABIs = true;
+bool runABI_32 = false;
+bool runABI_64 = false;
 int skipToTest = 0;
 int skipToMutatee = 0;
 int skipToOption = 0;
 int testLimit = 0;
-bool fastAndLoose = false; // don't use a clean mutatee for each test
+int testsRun = 0;
+int errorPrint = 0;
+int debugPrint = 0;
 char *resumelog_name = "resumelog";
 char *humanlog_name = "-";
+char *crashlog_name = "crashlog";
+char *measureFileName = "-";
+std::vector<char *> mutatee_list;
 std::vector<char *> test_list;
 
-#if defined(os_windows)
+#if defined(os_windows_test)
 char *logfilename = "NUL";
 #else
 char *logfilename = "/dev/null";
@@ -102,1300 +165,765 @@ char *pdscrdir = NULL;
 char *uw_pdscrdir = "/p/paradyn/builds/scripts";
 char *umd_pdscrdir = "/fs/dyninst/dyninst/current/scripts";
 
-char *libRTname;
-#if defined(m_abi)
-char *libRTname_m_abi;
-#endif
-
-int saveTheWorld = 0;
-int mergeTramp = 1;
-int debugPrint = 0;
-int errorPrint = 0;
-
-/* */
+int parseArgs(int argc, char *argv[]);
+int setupLogs();
 
 // Include test setup data
-#include "test_info.h"
+#include "test_info_new.h"
 
-bool isNameExt(char *name, char *ext, int ext_len)
-{
-  int name_len = strlen(name);
-
-  // Can't match
-  if ( name_len < ext_len )
-  {
-    return false;
-  }
-
-  // If the last 4 characters match _xlc or _xlC
-  // return true
-  if ( strcmp(name + name_len - ext_len, ext) == 0 )
-  {
-    return true;
-  } else
-  {
-    return false;
-  }
-}
-
-bool isMutateeXLC(char *name)
-{
-  return isNameExt(name, "_xlc", 4) || isNameExt(name, "_xlC", 4);
-}
-
-bool isMutateeMABI32(char *name)
-{
-  return isNameExt(name, "_m32", 4);
-}
-
-#if !defined(os_windows)
+#if !defined(os_windows_test)
 int runScript(const char *name, ...)
 {
-  char test[1024];
-  int result;
-  va_list ap;
-  va_start(ap, name);
-  vsnprintf(test, 1024, name, ap);
-  va_end(ap);
+   char test[1024];
+   int result;
+   va_list ap;
+   va_start(ap, name);
+   vsnprintf(test, 1024, name, ap);
+   va_end(ap);
 
-  char test2[1024];
-  if ((outlog != NULL) && (outlog != stdout)) {
-    snprintf(test2, 1024, "sh -c \"%s\" >>%s 2>&1", test, logfilename);
-  } else {
-    snprintf(test2, 1024, "%s", test);
-  }
+   char test2[1024];
+   if ((outlog != NULL) && (outlog != stdout)) {
+      snprintf(test2, 1024, "sh -c \"%s\" >>%s 2>&1", test, logfilename);
+   } else {
+      snprintf(test2, 1024, "%s", test);
+   }
 
-  // Flush before/after script run
-  flushOutputLog();
-  flushErrorLog();
-  result = system(test2);
-  flushOutputLog();
-  flushErrorLog();
+   // Flush before/after script run
+   flushOutputLog();
+   flushErrorLog();
+   result = system(test2);
+   flushOutputLog();
+   flushErrorLog();
 
-  return result;
+   return result;
 }
 #else
 int runScript(const char *name, ...) {
-  fprintf(stderr, "runScript not implemented on Windows\n");
-  assert(0);
-  return -1;
+   getOutput()->log(STDERR, "runScript not implemented on Windows\n");
+   assert(0);
+   return -1;
 }
 #endif
 
-bool runOnThisPlatform(test_data_t &test)
+#if !defined(os_windows_test)
+static void *mem_start;
+static struct tms start_time;
+
+#include <unistd.h>
+
+void measureStart()
 {
-#if defined(alpha_dec_osf4_0)
-  return test.platforms.alpha_dec_osf5_1;
-#elif defined(i386_unknown_linux2_0)
-  return test.platforms.i386_unknown_linux2_4;
-#elif defined(i386_unknown_nt4_0)
-  return test.platforms._i386_unknown_nt4_0;
-#elif defined(ia64_unknown_linux2_4) 
-  return test.platforms._ia64_unknown_linux2_4;
-#elif defined(x86_64_unknown_linux2_4)
-  return test.platforms._x86_64_unknown_linux2_4;
-#elif defined(mips_sgi_irix6_5)
-  return test.platforms.mips_sgi_irix6_5;
-#elif defined(rs6000_ibm_aix5_1) 
-  return test.platforms._rs6000_ibm_aix5_1;
-#elif defined(sparc_sun_solaris2_4)
-  return test.platforms.sparc_sun_solaris2_8;
+   if (!measureMEMCPU)
+      return;
+
+   mem_start = sbrk(0);
+   times(&start_time);
+}
+
+void measureEnd()
+{
+   if (!measureMEMCPU)
+      return;
+
+   void *mem_end = sbrk(0);
+   struct tms end_time;
+   times(&end_time);
+
+   signed long mem_diff = ((char *) mem_end) - ((char *) mem_start);
+   clock_t utime = end_time.tms_utime - start_time.tms_utime;
+   clock_t stime = end_time.tms_stime - start_time.tms_stime;
+
+   FILE *measure_file = NULL;
+   bool using_stdout;
+   if (strcmp(measureFileName, "-") == 0) {
+      using_stdout = true;
+      measure_file = stdout;
+   }
+   else {
+      using_stdout = false;
+      measure_file = fopen(measureFileName, "a");
+   }
+   if (!measure_file)
+   {
+      perror("Unable to open file for CPU/MEM measurement");
+      return;
+   }
+
+   fprintf(measure_file, "mem=%ld\tutime=%ld\tstime=%ld\n",
+           mem_diff, utime, stime);
+   if (!using_stdout)
+      fclose(measure_file);
+}
+
+void setupProcessGroup()
+{
+   if (!called_from_runTests)
+      return;
+
+   setpgrp();
+}
+
 #else
-  return true;
-#endif
+
+void measureStart()
+{
 }
 
-// Test Functions
-int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, ProcessList &proc_list, int result)
+void measureEnd()
 {
-  if ( test.cleanup == COLLECT_EXITCODE ) 
-  {
-    if ( result < 0 ) {
-      // Test failed in the mutator
-      // Terminate the mutatees
-      dprintf("Test failed, calling cleanup\n");
+}
 
-      // Reset Error callback
-      //bpatch->registerErrorCallback(errorFunc);
+void setupProcessGroup()
+{
+}
 
-      proc_list.terminateAllThreads();
-      return result;
-    }
-    else
-    {
-      // The mutator did not detect a failure.
-      // The next step is to pull the result from the mutatee
-       
-      // Start of code to continue the process.  All mutations made
-      // above will be in place before the mutatee begins its tests.
-      if ( test.state != SELFSTART )
-      {
-	dprintf("starting program execution.\n");
+#endif
 
-	// Reset Error callback
-	//bpatch->registerErrorCallback(errorFunc);
-
-	// Test poll for status change
-	while (!appThread->isTerminated()) {
-	  appThread->continueExecution();
-	  bpatch->waitForStatusChange();
-	}
-
-	int retVal;
-	if(appThread->terminationStatus() == ExitedNormally) {
-	  int exitCode = appThread->getExitCode();
-	  if (exitCode || debugPrint)
-	    logstatus("Mutatee exit code 0x%x\n", exitCode);
-	  retVal = exitCode;
-	} else if(appThread->terminationStatus() == ExitedViaSignal) {
-	  int signalNum = appThread->getExitSignal();
-	  if (signalNum || debugPrint)
-	    logstatus("Mutatee exited from signal 0x%x\n", signalNum);
-
-	  retVal = signalNum;
-	}
-	return retVal;
+void printLogMutateeHeader(const char *mutatee)
+{
+   if (!enableLogging)
+      return;
+   flushOutputLog();
+   flushErrorLog();
+   // Mutatee Description
+   // Mutatee Info
+   if ( (mutatee != NULL) && (strcmp(mutatee, "") != 0) ) {
+      getOutput()->log(LOGINFO, "[Tests with %s]\n", mutatee);
+#if !defined(os_windows_test)
+      if ( pdscrdir ) {
+         runScript("ls -lLF %s", mutatee);
+         runScript("%s/ldd_PD %s", pdscrdir, mutatee);
       }
-    }
-  }
-  else if ( test.cleanup == KILL_MUTATEE )
-  {
-    if ( !appThread->isTerminated() )
-    {
-      int pid = appThread->getPid();
-      appThread->terminateExecution();
-      dprintf("Mutatee process %d killed.\n", pid);
-    }
-
-  }
-
-  return result;
-}
-
-void setupSaveTheWorld(BPatch_thread *appThread, int saveTheWorld)
-{
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-  /* this is only supported on sparc solaris  and linux*/
-  /* this call tells the process to collect data for the 
-     save the world functionality
-  */	
-  if(saveTheWorld){
-    appThread->enableDumpPatchedImage();
-  }
 #endif
+   } else {
+      getOutput()->log(LOGINFO, "[Tests with none]\n");
+   }
+
+   getOutput()->log(LOGINFO, "\n");
+   flushOutputLog();
+   flushErrorLog();
 }
 
-void executeSaveTheWorld(BPatch_thread *appThread, int saveTheWorld, char *pathname)
+void printLogOptionHeader(TestInfo *tinfo)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-  char *dirName;
-  /* this is only supported on sparc solaris and linux*/
-
-  if( saveTheWorld ) {
-    char *mutatedName = new char[strlen(pathname) + strlen("_mutated") +1];
-    strcpy(mutatedName, pathname);
-    strcat(mutatedName, "_mutated");
-    dirName = appThread->dumpPatchedImage(mutatedName);
-    delete mutatedName;
-    if(dirName){
-      logstatus(" The mutated binary is stored in: %s\n",dirName);
-      delete [] dirName;
-    }else{
-      logstatus("Error: No directory name returned\n");
-    }
-    //appThread->detach(false);
-  }
-#endif
-}
-
-
-void printLogTestHeader(char *name)
-{
-  flushOutputLog();
-  flushErrorLog();
-  // Test Header
-  logstatus("*** dyninstAPI %s...\n", name);
-  flushOutputLog();
-  flushErrorLog();
-}
-
-void printLogMutateeHeader(char *mutatee)
-{
-  flushOutputLog();
-  flushErrorLog();
-  // Mutatee Description
-  // Mutatee Info
-  if ( mutatee != "" )
-  {
-    logstatus("[Tests with %s]\n", mutatee);
-#if !defined(os_windows)
-    if ( pdscrdir )
-    {
-      runScript("ls -lLF %s", mutatee);
-      runScript("%s/ldd_PD %s", pdscrdir, mutatee);
-    }
-#endif
-  }
-  else
-  {
-    logstatus("[Tests with none]\n");
-  }
-
-
-  logstatus("\n");
-  flushOutputLog();
-  flushErrorLog();
-}
-   
-void printLogOptionHeader(test_data_t &test, char *mutatee, bool useAttach)
-{
-  flushOutputLog();
-  flushErrorLog();
-  // Full test description
-  logstatus("\"%s", test.name);
-  if ( strcmp(mutatee, "") != 0 )
-  {
-    logstatus(" -mutatee %s", mutatee);
-  }
-  else
-  {
-    logstatus(" -mutatee none");
-  }
-  if ( useAttach == USEATTACH )
-  {
-    logstatus(" -attach");
-  }
-  logstatus("\"\n");
-  flushOutputLog();
-  flushErrorLog();
+   if (!printMutateeLogHeader)
+      return;
+   flushOutputLog();
+   flushErrorLog();
+   // Full test description
+   getOutput()->log(LOGINFO, "test-info: %s\n", tinfo->label);
+   flushOutputLog();
+   flushErrorLog();
 }
 
 void printHumanTestHeader(test_data_t &test, char *mutatee, bool useAttach)
 {
-  flushOutputLog();
-  flushErrorLog();
-  // Test Header
-  logstatus("Running: %s", test.name);
-  if ( strcmp(mutatee, "") != 0 )
-  {
-    logstatus(" with mutatee: %s", mutatee);
-  }
-  if ( useAttach )
-  {
-    logstatus(" in attach mode");
-  }
-  logstatus(".\n");
+   flushOutputLog();
+   flushErrorLog();
+   // Test Header
+   getOutput()->log(LOGINFO, "Running: %s", test.name);
+   if ( strcmp(mutatee, "") != 0 )
+   {
+      getOutput()->log(LOGINFO, " with mutatee: %s", mutatee);
+   }
+   if ( useAttach )
+   {
+      getOutput()->log(LOGINFO, " in attach mode");
+   }
+   getOutput()->log(LOGINFO, ".\n");
 
 
-  flushOutputLog();
-  flushErrorLog();
+   flushOutputLog();
+   flushErrorLog();
 }
-
-void setupGeneralTest(BPatch *bpatch)
-{
-  // Set Test Library flags
-  setBPatch(bpatch);
-  setDebugPrint(debugPrint);
-
-  // Register a callback function that prints any error messages
-  bpatch->registerErrorCallback(errorFunc);
-
-  setErrorPrint(errorPrint);
-  setExpectErrors(false);
-
-  // Force functions to be relocated
-  if (forceRelocation) {
-    bpatch->setForcedRelocation_NP(true);
-  }
-  if (delayedParse) {
-    bpatch->setDelayedParsing(true);
-  }
-
-  if (mergeTramp)
-    bpatch->setMergeTramp(true);
-  else
-    bpatch->setMergeTramp(false);
-
-}
-
-#if defined(STATIC_TEST_DRIVER)
-int runStaticTest(test_data_t &test, ParameterDict &param) {
-  int result = -1;
-  /* Find the test in the static_mutators array */
-  int i;
-  for(i = 0; i < static_mutators_count; i++) {
-    if (strcmp(test.name, static_mutators[i].test_name) == 0) {
-      break;
-    }
-  }
-  if (i < static_mutators_count) {
-    // Found the test
-    int (*mutatorMAIN)(ParameterDict &) = static_mutators[i].mutator;
-    result = mutatorMAIN(param);
-  } else {
-    fprintf(stderr, "Error finding function: %s\n", test.name);
-  }
-  return result;
-}
-#endif
-
-int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t attachMode, ParameterDict &param)
-{
-  BPatch_thread *appThread = NULL;
-  ProcessList proc_list;
-  bool useAttach;
-
-#if defined(m_abi)
-  // Set correct runtime lib
-  if ( isMutateeMABI32(mutatee) )
-  {
-    if ( libRTname_m_abi == NULL )
-      return -1;
-    setenv("DYNINSTAPI_RT_LIB", libRTname_m_abi, 1);
-  }
-  else
-  {
-    setenv("DYNINSTAPI_RT_LIB", libRTname, 1);
-  }
-#endif
-
-  if ( attachMode == CREATE )
-    useAttach = false;
-  else
-    useAttach = true;
-   
-  // Print Per Test Header
-  if ( enableLogging )
-  {
-    printLogOptionHeader(test, mutatee, useAttach);
-  }
-  else
-  {
-    printHumanTestHeader(test, mutatee, useAttach);
-  }
-   
-  /* Setup */
-  setupGeneralTest(bpatch);
-
-  // Add bpatch pointer to test parameter's
-  ParamPtr bp_ptr(bpatch);
-  param["bpatch"] = &bp_ptr;
-  ParamPtr bp_appThread;
-  param["appThread"] = &bp_appThread;
-
-
-  // If test requires a mutatee start it up for the test
-  if ( test.state != SELFSTART )
-  {
-    appThread = startMutateeTest(bpatch, mutatee, test.subtest, useAttach, proc_list, logfilename);
-    if (appThread == NULL) {
-
-      logerror("Unable to run test program: %s\n", mutatee);
-      return -1;
-    }
-  }
-
-  // Set up Test Specific parameters
-  param["pathname"]->setString(mutatee);
-  param["appThread"]->setPtr(appThread);
-  param["useAttach"]->setInt(useAttach); 
-
-  if ( isMutateeXLC(mutatee) ) {
-    param["mutateeXLC"]->setInt(1);
-  } else {
-    param["mutateeXLC"]->setInt(0);
-  }
-
-  // Try to pass the output and error log files to the test mutator
-  ParamPtr outlog_p(outlog);
-  ParamPtr errlog_p(errlog);
-  param["outlog"] = &outlog_p;
-  param["errlog"] = &errlog_p;
-  char logfile2[256];
-  strncpy(logfile2, logfilename, 256);
-  param["logfilename"]->setString(logfile2);
-
-  // If mutatee needs to be run before the test is start, begin it
-  if ( test.state == RUNNING )
-  {
-    appThread->continueExecution();
-  }
-
-  // Setup save the world
-  setupSaveTheWorld(appThread, saveTheWorld);
-
-  // Let's try to profile memory usage
-#if defined(PROFILE_MEM_USAGE)
-  void *mem_usage = sbrk(0);
-  logerror("pre %s: sbrk %p\n", test.soname, mem_usage);
-#endif
-
-#if defined(STATIC_TEST_DRIVER)
-  // Run the test
-  int result = runStaticTest(test, param);
-#else
-  // Run the test
-  // result will hold the value of mutator success
-  int result = loadLibRunTest(test, param);
-#endif
-  dprintf("Mutator result = %d\n", result);
-   
-  // Execute save the world
-  executeSaveTheWorld(appThread, saveTheWorld, mutatee);
-   
-  // Cleanup
-  // result will hold the value of the complete test's success
-  result = cleanup(bpatch, appThread, test, proc_list, result);
-
-  // Test Exit Status Log
-  if ( enableLogging && result != 0 )
-  {
-    int pos_result = result;
-    if ( result < 0 )
-    {
-      pos_result = -result;
-    }
-    flushOutputLog();
-    flushErrorLog();
-    logstatus("=========================================================\n");
-    logstatus("=== Exit code 0x%02x: %s\n", pos_result, test.name);
-    logstatus("=========================================================\n");
-    flushOutputLog();
-    flushErrorLog();
-  }
-  // This is the string that the summary script uses to tell if a script passed
-  // or not.  Some mutatees currently print this, so in some cases this will
-  // cause a redundant print.
-  if ( enableLogging && result == 0 )
-  {
-    flushOutputLog();
-    flushErrorLog();
-    logstatus("All tests passed\n");
-    flushOutputLog();
-    flushErrorLog();
-  }
-
-  //delete bpatch;
-  return result;
-}
-
-bool inMutateeList(char *mutatee, std::vector<char *> &mutatee_list)
-{
-  for (unsigned int i = 0; i < mutatee_list.size(); i++ )
-  {
-#if defined(i386_unknown_nt4_0)
-    if ( strcmp(mutatee_list[i], mutatee) == 0 )
-#else
-      if ( fnmatch(mutatee_list[i], mutatee, 0) == 0 )
-#endif
-      {
-	return true;
-      }
-  }
-
-  return false;
-}
-
-
-// Human Readable Log Editing Functions
-// void printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm)
-// {
-//    FILE *human;
-
-//    struct stat file_info;
-   
-//    if (!strcmp(humanlog_name, "-")) {
-//      human = stdout;
-//    } else {
-//      if ( stat(humanlog_name, &file_info) != 0 )
-//        {
-// 	 // File doesn't exist, so it has length 0
-// 	 if ( errno == ENOENT )
-// 	   {
-// 	     *init_pos = 0;
-// 	   } else {
-// 	     logerror("stat failed\n");
-// 	     exit(1);
-// 	   }
-//        } else {
-// 	 // Set inital position to the current file size
-// 	 *init_pos = file_info.st_size;
-//        }
-   
-//      human = fopen(humanlog_name, "a");
-//      if (NULL == human) { // "handle" the error
-//        human = stdout;
-//      }
-//    }
-
-//    fprintf(human, "%s: mutatee: %s create_mode: ", test.name, mutatee);
-//    if ( cm == CREATE )
-//       fprintf(human, "create\tresult: ");
-//    else
-//       fprintf(human, "attach\tresult: ");
-
-//    fprintf(human, "CRASHED\n");
-//    if ((human != NULL) && (human != stdout)) {
-//      fclose(human);
-//    }
-// }
-
-#include <string>
 
 struct formatStrings
 {
-  formatStrings(const std::string& pass, const std::string& fail, const std::string& crash, 
-		const std::string& create, const std::string& attach, const std::string& testNameFormat) :
-    passStr(pass), failStr(fail), crashStr(crash), createStr(create), attachStr(attach), testNameFormatStr(testNameFormat) 
-  {
-  }
-  formatStrings() 
-  {
-  }
+   formatStrings(const std::string& pass, const std::string& skip, const std::string& fail, const std::string& crash, 
+                 const std::string& create, const std::string& attach, const std::string& testNameFormat) :
+      passStr(pass), skipStr(skip), failStr(fail), crashStr(crash), createStr(create), attachStr(attach), testNameFormatStr(testNameFormat) 
+   {
+   }
+   formatStrings() 
+   {
+   }
   
-  std::string passStr;
-  std::string failStr;
-  std::string crashStr;
-  std::string createStr;
-  std::string attachStr;
-  std::string testNameFormatStr;
+   std::string passStr;
+   std::string skipStr;
+   std::string failStr;
+   std::string crashStr;
+   std::string createStr;
+   std::string attachStr;
+   std::string testNameFormatStr;
 };
 
-static formatStrings verboseStrings("PASSED\n", "FAILED\n", "CRASHED\n", "create\tresult: ", "attach\tresult: ", "%s: mutatee: %s create_mode: ");
-static formatStrings compactStrings(".", "F", "C", "", "", "");
+static formatStrings verboseStrings("PASSED\n", "SKIPPED\n", "FAILED\n", "CRASHED\n", "create\tresult: ", "attach\tresult: ", "%s: mutatee: %s create_mode: ");
+static formatStrings compactStrings(".", "S", "F", "C", "", "", "");
 
 struct failureInfo
 {
-  std::string testName;
-  bool createMode;
-  bool wasCrash;
+   std::string testName;
+   bool createMode;
+   bool wasCrash;
 };
 
-std::vector< failureInfo > gFailureReport;
-
-// Human Readable Log Editing Functions
-void printCrashHumanLog(test_data_t tests[], 
-			int first_test, int last_test,
-			char *mutatee, create_mode_t cm, bool useVerbose) {
-  FILE *human;
-
-  struct stat file_info;
-   
-  if (!strcmp(humanlog_name, "-")) {
-    human = stdout;
-  } else {
-    human = fopen(humanlog_name, "a");
-    if (NULL == human) { // "handle" the error
-      human = stdout;
-    }
-  }
-   
-  formatStrings& outputFormat = useVerbose ? verboseStrings : compactStrings;
-
-     
-  for (int i = first_test; i < last_test; i++) {
-    if (!runAllTests && !inTestList(tests[i], test_list)) {
-      continue;
-    }
-    fprintf(human, outputFormat.testNameFormatStr.c_str(), tests[i].name, mutatee);
-    if ( cm == CREATE ) {
-      fprintf(human, outputFormat.createStr.c_str());
-    } else {
-      fprintf(human, outputFormat.attachStr.c_str());
-    }
-    fprintf(human, outputFormat.crashStr.c_str());
-    failureInfo myCrash;
-    myCrash.testName += tests[i].name;
-    myCrash.testName += ": mutatee : ";
-    myCrash.testName += mutatee;
-    myCrash.testName += " ";
-    myCrash.createMode = (cm == CREATE);
-    myCrash.wasCrash = true;
-    gFailureReport.push_back(myCrash);
-     
-  }
-  if ((human != NULL) && (human != stdout)) {
-    fclose(human);
-  }
-}
-
-void printResultHumanLog(test_data_t tests[], int first_test, int last_test,
-			 char *mutatee, create_mode_t cm, int result, bool useVerbose)
-{
-  FILE *human;
-  if (!strcmp(humanlog_name, "-")) {
-    human = stdout;
-  } else {
-    human = fopen(humanlog_name, "a");
-  }
-   
-  formatStrings& outputFormat = useVerbose ? verboseStrings : compactStrings;
-
-  for (int i = first_test; i < last_test; i++) {
-    if (!runAllTests && !inTestList(tests[i], test_list)) {
-      continue;
-    }
-    fprintf(human, outputFormat.testNameFormatStr.c_str(), tests[i].name, mutatee);
-    if ( cm == CREATE ) {
-      fprintf(human, outputFormat.createStr.c_str());
-    } else {
-      fprintf(human, outputFormat.attachStr.c_str());
-    }
-
-    if ( result == 0 ) {
-      fprintf(human, outputFormat.passStr.c_str());
-    } else {
-      fprintf(human, outputFormat.failStr.c_str());
-      failureInfo myFailure;
-      myFailure.testName += tests[i].name;
-      myFailure.testName += ": mutatee : ";
-      myFailure.testName += mutatee;
-      myFailure.testName += " ";
-      myFailure.createMode = (cm == CREATE);
-      myFailure.wasCrash = false;
-      gFailureReport.push_back(myFailure);
-    }
-  }
-}
-
-void updateResumeLog(int testnum, int mutateenum, int optionnum)
-{
-  FILE *resume;
-  resume = fopen(resumelog_name, "w");
-  if ( resume == NULL )
-  {
-    perror("Failed to update the resume log");
-    exit(NOTESTS);
-  }
-  fprintf(resume, "%d,%d,%d\n", testnum,mutateenum,optionnum);
-
-  fclose(resume);
-}
-
-void updateResumeLogFastAndLoose(int first_test, int last_test,
-				 int mutateenum, int optionnum) {
-  FILE *resume;
-  resume = fopen(resumelog_name, "w");
-  if ( resume == NULL )
-  {
-    perror("Failed to update the resume log");
-    exit(NOTESTS);
-  }
-  fprintf(resume, "f%d, %d, %d, %d\n", first_test, last_test,
-	  mutateenum, optionnum);
-  
-  fclose(resume);
-}
-
-void updateResumeLogCompleted() {
-  FILE *resume;
-  resume = fopen(resumelog_name, "a");
-  if (NULL == resume) {
-    fprintf(stderr, "Failed to update the resume log");
-    return;
-  }
-  fprintf(resume, "+\n");
-  fclose(resume);
-}
-
-int getResumeLog(int *testnum, int *mutateenum, int *optionnum, bool verboseFormat)
-{
-  FILE *resume;
-  resume = fopen(resumelog_name, "r");
-  if (!resume) {
-    return -1;
-  }
-  if ( fscanf(resume, "%d,%d,%d\n", testnum, mutateenum, optionnum) != 3 )
-  {
-    fprintf(stderr, "Unable to parse entry in the resume log\n");
-    exit(NOTESTS);
-  }
-  char completed = '\0';
-  if (fscanf(resume, "%c\n", &completed) != 1) {
-    // TODO Print crashed message for the listed test
-    printCrashHumanLog(tests, *testnum, *testnum + 1,
-		       tests[*testnum].mutatee[*mutateenum],
-		       *optionnum ? USEATTACH : CREATE, verboseFormat);
-  } else {
-    if (completed != '+') {
-      fprintf(stderr,
-	      "Unable to parse (completed) entry in the resume log: '%c'\n",
-	      completed);
-    }
-  }
-  fclose(resume);
-
-  // Update number to the next test
-  (*optionnum)++;
-  if ( *optionnum >= 2 )
-  {
-    *optionnum = 0;
-    (*mutateenum)++;
-  }
-  if ( (unsigned int) *mutateenum >= tests[*testnum].mutatee.size() )
-  {
-    *mutateenum = 0;
-    (*testnum)++;
-  }
-
-  return 0;
-}
-
-int getResumeLogFastAndLoose(int *first_test, int *last_test,
-			     int *mutateenum, int *optionnum, bool verboseFormat) {
-  FILE *resume;
-  resume = fopen(resumelog_name, "r");
-  if (!resume) {
-    return -1;
-  }
-  if (fscanf(resume, "f %d, %d, %d, %d\n", first_test, last_test,
-	     mutateenum, optionnum) != 4)
-  {
-    fprintf(stderr, "Unable to parse entry in the resume log\n");
-    exit(NOTESTS);
-  }
-  char completed = '\0';
-  if (fscanf(resume, "%c\n", &completed) != 1) {
-    // TODO Print crashed message for the listed test
-    printCrashHumanLog(tests, *first_test, *last_test,
-		       tests[*first_test].mutatee[*mutateenum],
-		       *optionnum ? USEATTACH : CREATE, verboseFormat);
-  } else {
-    if (completed != '+') {
-      fprintf(stderr,
-	      "Unable to parse (completed) entry in the resume log: '%c'\n",
-	      completed);
-    }
-  }
-  fclose(resume);
-
-  // Update number to the next test
-  (*optionnum)++;
-  if ( *optionnum >= 2 )
-  {
-    *optionnum = 0;
-    (*mutateenum)++;
-  }
-  if ( (unsigned int) *mutateenum >= tests[*first_test].mutatee.size() )
-  {
-    *mutateenum = 0;
-    *first_test = *last_test;
-  }
-
-  return 0;
-}
-
-int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> mutatee_list, bool verboseFormat)
-{
-  BPatch *bpatch;
-  // Create an instance of the BPatch library
-  bpatch = new BPatch;
-
-  // Begin setting up test parameters
-  //ParameterDict param(pdstring::hash);
-  ParameterDict param;
-  // Setup parameters
-  ParamInt attach(0);
-  ParamInt errorp(errorPrint);
-  ParamInt debugp(debugPrint);
-  ParamInt merget(mergeTramp);
-  ParamInt mutXLC(0);
-  ParamString pathname;
-  ParamString logfile_p;
-
-  param["pathname"] = &pathname;
-  param["useAttach"] = &attach;
-  param["errorPrint"] = &errorp;
-  param["debugPrint"] = &debugp;
-  param["mutateeXLC"] = &mutXLC;
-  param["mergeTramp"] = &merget;
-  param["logfilename"] = &logfile_p;
-
-  // Print Test Log Header
-  if ( enableLogging && skipToTest == 0 && skipToMutatee == 0 && skipToOption == 0 ) {
-    logstatus("Commencing DyninstAPI test(s) ...\n");
-#if !defined(os_windows)
-    if ( pdscrdir )
-    {
-      runScript("date");
-      runScript("uname -a");
-    }
-#endif
-    logstatus("TESTDIR=%s\n", getenv("PWD"));
-  }
-
-  int result = SUCCESS;
-  int testsRun = 0;
-  // Initial loop values for resume
-  int i_init = skipToTest;
-  int j_init = skipToMutatee;
-  int k_init = skipToOption;
-  // Loop over list of tests
-
-  unsigned count = 0;
-  for (unsigned int i = i_init; i < n_tests; i++ )
-  {
-    // Skip test if disabled on current platform
-    if ( !tests[i].enabled || !runOnThisPlatform(tests[i]) )
-      continue;
-    // Skip if we specified a list of tests to run and this test
-    // is not in it.
-    if ( !runAllTests && !inTestList(tests[i], test_list) )
-      continue;
-
-    if ( enableLogging && j_init == 0 )
-    {
-      printLogTestHeader(tests[i].name);
-    }
-    // Run test over list of mutatees
-    dprintf("%s has %d mutatees.\n", tests[i].name, tests[i].mutatee.size());
-    //for (unsigned int j = j_init; j < tests[i].mutatee.size(); j++ )
-    for (unsigned int j = j_init; j < tests[i].mutatee.size(); j++ )
-    {
-      if ( !runAllMutatees && !inMutateeList(tests[i].mutatee[j], mutatee_list) )
-	continue;
-      if ( enableLogging && k_init == 0 )
-      {
-	printLogMutateeHeader(tests[i].mutatee[j]);
-      }
-
-      // Iterate through useAttach options
-      for (unsigned int k = k_init; k < 2; k++ )
-      {
-	// Skip if this test should not be run in CREATE mode
-	if ( k == 0 )
-	{
-	  if ( !runAllOptions && !runCreate )
-	    continue;
-	  if ( tests[i].useAttach == USEATTACH )
-	    continue;
-	}
-	// Skip if this test should not be run in USEATTACH mode
-	if ( k == 1 )
-	{
-	  if ( !runAllOptions && !runAttach )
-	    continue;
-	  if ( tests[i].useAttach == CREATE )
-	    continue;
-	}
-
-	if ( resumeLog)
-	{
-	  updateResumeLog(i,j,k);
-	}
-
-	create_mode_t cm;
-	if ( k == 0 )
-	{
-	  cm = CREATE;
-	} else if ( k == 1 )
-	{
-	  cm = USEATTACH;
-	}
-            
-	// Execute the test
-	result = executeTest(bpatch, tests[i], tests[i].mutatee[j], cm, param);
-	if (resumeLog) {
-	  updateResumeLogCompleted();
-	}
-
-	if ( useHumanLog )
-	{
-	  printResultHumanLog(tests, i, i + 1, tests[i].mutatee[j],
-			      cm, result, verboseFormat);
-	}
-	// End execution if we've set a limit and reached it
-	testsRun++;
-	if (count == 5)
-	  goto END_OF_TESTS;
-	if ( testLimit != 0 && testsRun >= testLimit )
-	{
-	  // Break out of all loops
-	  goto END_OF_TESTS;
-	}
-      }
-      // On next iteration begin at the start regardless of resume settings
-      k_init = 0;
-    }
-    j_init = 0;
-  }
-  // Target for inner break
- END_OF_TESTS:
-
-  dprintf("Done.\n");
-
-  //   fprintf(stderr, "/startTests logfilename = '%s', param[\"logfilename\"] = '%s'\n",
-  //	   logfilename, param["logfilename"]);
-   
-  // We delay this; other threads can be running at this point.
-  //delete bpatch;
-  if ( testsRun == 0 )
-  {
-    // Return special code if no tests were run
-    return -NOTESTS;
-  }
-  else
-  {
-    return result;
-  }
-}
-
-int startTestFastAndLoose(test_data_t tests[], unsigned int n_tests,
-			  std::vector<char *> mutatee_list, bool verboseFormat) {
-  BPatch *bpatch;
-  // Create an instance of the BPatch library
-  bpatch = new BPatch;
-
-  // Begin setting up test parameters
-  //ParameterDict param(pdstring::hash);
-  ParameterDict param;
-  // Setup parameters
-  ParamInt attach(0);
-  ParamInt errorp(errorPrint);
-  ParamInt debugp(debugPrint);
-  ParamInt merget(mergeTramp);
-  ParamInt mutXLC(0);
-  ParamString pathname;
-  ParamString logfile_p;
-
-  param["pathname"] = &pathname;
-  param["useAttach"] = &attach;
-  param["errorPrint"] = &errorp;
-  param["debugPrint"] = &debugp;
-  param["mutateeXLC"] = &mutXLC;
-  param["mergeTramp"] = &merget;
-  param["logfilename"] = &logfile_p;
-
-  // Print Test Log Header
-  if (enableLogging && skipToTest == 0 && skipToMutatee == 0
-      && skipToOption == 0 ) {
-    logstatus("Commencing DyninstAPI test(s) ...\n");
-#if !defined(os_windows)
-    if ( pdscrdir ) {
-      runScript("date");
-      runScript("uname -a");
-    }
-#endif
-    logstatus("TESTDIR=%s\n", getenv("PWD"));
-  }
-
-  int result = SUCCESS;
-  // Initial loop values for resume
-  int i_init = skipToTest;
-  int j_init = skipToMutatee;
-  int k_init = skipToOption;
-   
-  int tests_run = 0;
-
-  // Loop over list of tests
-
-  //   unsigned count = 0;
-  // I need to pick a test and run all the other tests that use the same
-  // mutatee..
-  unsigned int first_test = skipToTest;
-  unsigned int last_test = first_test;
-  while (first_test < num_tests) {
-    // If there are no tests to run in the range [first_test, num_tests) then
-    // I need to break out of this loop.
-    if (!runAllTests) {
-      int i;
-      for (i = first_test; i < num_tests; i++) {
-	if (inTestList(tests[i], test_list))
-	  break;
-      }
-      if (num_tests == i) {
-	// Didn't find any tests to run
-	break; // out of the while loop
-      }
-    }
-    // This for loop find a contiguous set of tests that we can run in a
-    // group.  All the mutations will be applied to the mutatee before
-    // starting it.
-    if ((SOLO == tests[first_test].grouped)
-	|| (SELFSTART == tests[first_test].state)) {
-      // Run SELFSTART tests in their own groups
-      last_test = first_test + 1;
-    } else {
-      for (last_test = first_test; last_test < num_tests; last_test++) {
-	if (&(tests[last_test].mutatee) != &(tests[first_test].mutatee)) {
-	  // last_test uses a different set of mutatees, so it can't run in
-	  // the same group as first_test
-	  break;
-	}
-	if (tests[last_test].state != tests[first_test].state) {
-	  // last_test uses a different state as first_test, so it can't run
-	  // in the same group as first_test
-	  // Is that correct?
-	  break;
-	}
-	if (tests[last_test].useAttach != tests[first_test].useAttach) {
-	  // Don't run last_test in the same group as first_test if they use
-	  // different attach modes
-	  break;
-	}
-	if (tests[last_test].cleanup != tests[first_test].cleanup) {
-	  // Don't run tests with different cleanup modes in the same group;
-	  // the test driver will probably crash if you do
-	  break;
-	}
-      }
-    }
-    // I need to confirm that I'm actually going to run a test in the range
-    // [first_test, last_test)..
-    if (!runAllTests) {
-      int i;
-      for (i = first_test; i < last_test; i++) {
-	if (inTestList(tests[i], test_list)) {
-	  break;
-	}
-      }
-      if (i == last_test) {
-	// I'm not running any tests in this group; so skip the group
-	first_test = last_test;
-	continue;
-      }
-    }
-
-    // Now I've found the right value for last_test
-    for (unsigned int j = j_init; j < tests[first_test].mutatee.size(); j++) {
-      // Run the tests in [first_test, last_test) on each mutatee
-      if (!runAllMutatees
-	  && !inMutateeList(tests[first_test].mutatee[j], mutatee_list)) {
-	continue;
-      }
-      if (enableLogging && k_init == 0) {
-	printLogMutateeHeader(tests[first_test].mutatee[j]);
-      }
-      char *mutatee = tests[first_test].mutatee[j];
-      BPatch_thread *appThread = NULL;
-
-      for (int k = k_init; k < 2; k++) {
-	create_mode_t cm;
-	if (0 == k) {
-	  if (!runAllOptions && !runCreate) {
-	    continue;
-	  }
-	  if (USEATTACH == tests[first_test].useAttach) {
-	    continue;
-	  }
-	  cm = CREATE;
-	} else if (1 == k) {
-	  if (!runAllOptions && !runAttach) {
-	    continue;
-	  }
-	  if (CREATE == tests[first_test].useAttach) {
-	    continue;
-	  }
-	  cm = USEATTACH;
-	}
-
-	/* Setup */
-	setupGeneralTest(bpatch);
-
-	// Add bpatch pointer to test parameter's
-	ParamPtr bp_ptr(bpatch);
-	param["bpatch"] = &bp_ptr;
-	ParamPtr bp_appThread;
-	param["appThread"] = &bp_appThread;
-
-	ProcessList proc_list;
-
-	// If test requires a mutatee start it up for the test
-	// TODO Figure out how to deal with this (SELFSTART)
-	if ( tests[first_test].state != SELFSTART )
-	{
-	  // I need to change the invocation below to start the mutatee and
-	  // tell it to run the correct set of tests..
-	  appThread = startMutateeTestSet(bpatch, mutatee, tests,
-					  first_test, last_test,
-					  cm, proc_list, logfilename,
-					  runAllTests, test_list);
-	  if (appThread == NULL) {
-	    logerror("Unable to run test program: %s\n", mutatee);
-	    return -1;
-	  }
-	}
-
-	// Setup save the world
-	setupSaveTheWorld(appThread, saveTheWorld);
-
-	if (resumeLog) {
-	  updateResumeLogFastAndLoose(first_test, last_test, j, k);
-	}
-
-	// Apply the tests in [first_test, last_test) to the mutatee
-	for (unsigned int i = first_test; i < last_test; i++) {
-	  if (!tests[i].enabled || !runOnThisPlatform(tests[i])) {
-	    continue;
-	  }
-	  if (!runAllTests && !inTestList(tests[i], test_list)) {
-	    continue;
-	  }
-
-	  // Set up Test Specific parameters
-	  param["pathname"]->setString(mutatee);
-	  param["appThread"]->setPtr(appThread);
-	  param["useAttach"]->setInt(cm); 
-
-	  if ( isMutateeXLC(mutatee) ) {
-	    param["mutateeXLC"]->setInt(1);
-	  } else {
-	    param["mutateeXLC"]->setInt(0);
-	  }
-
-	  // Try to pass the output and error log files to the test mutator
-	  ParamPtr outlog_p(outlog);
-	  ParamPtr errlog_p(errlog);
-	  param["outlog"] = &outlog_p;
-	  param["errlog"] = &errlog_p;
-	  param["logfilename"]->setString(logfilename);
-
-	  if (enableLogging) {
-	    printLogTestHeader(tests[i].name);
-	  }
-
-	  test_data_t test = tests[i];
-
-#if defined(m_abi)
-	  // Set correct runtime lib
-	  if ( isMutateeMABI32(mutatee) )
-	  {
-	    if ( libRTname_m_abi == NULL ) {
-	      fprintf(stderr, "test_driver: exiting because libRTname_m_abi == NULL\n");
-	      return -1;
-	    }
-	    setenv("DYNINSTAPI_RT_LIB", libRTname_m_abi, 1);
-	  }
-	  else
-	  {
-	    setenv("DYNINSTAPI_RT_LIB", libRTname, 1);
-	  }
-#endif
-
-	  // Print Per Test Header
-	  if ( enableLogging ) {
-	    printLogOptionHeader(test, mutatee, cm);
-	  } else {
-	    printHumanTestHeader(test, mutatee, cm);
-	  }
-
-	  // If mutatee needs to be run before the test is start, begin it
-	  // 	 if ( test.state == RUNNING ) {
-	  // 	   dprintf("Running mutatee as per test.state RUNNING\n");
-	  // 	   appThread->continueExecution();
-	  // 	 }
-   
-	  // Let's try to profile memory usage
-#if defined(PROFILE_MEM_USAGE)
-	  void *mem_usage = sbrk(0);
-	  logerror("pre %s: sbrk %p\n", test.soname, mem_usage);
-#endif
-
-	  // FIXME I need to loop through all the tests I'm running right here.
-	  // Once I get to the cleanup function below, that's where it checks
-	  // to see whether or not the tests worked.
-#if defined(STATIC_TEST_DRIVER)
-	  // Run the test
-	  result = runStaticTest(test, param);
+// Performs a wildcard string match on Unix-like systems, and a standard string
+// match on Windows
+// Returns true for match found, false for no match
+bool nameMatches(const char *wcname, const char *tomatch) {
+#if defined(os_windows_test)
+   // Sadly, we can't assume the presence of fnmatch on Windows
+   return (strcmp(wcname, tomatch) == 0);
 #else
-	  // Run the test
-	  // result will hold the value of mutator success
-	  result = loadLibRunTest(test, param);
+   // The other systems we support are unix-based and should provide fnmatch (?)
+   return (fnmatch(wcname, tomatch, 0) == 0);
 #endif
-	  dprintf("Mutator result = %d\n", result);
-	   
-	  tests_run += 1;
-	} // for (each mutator)
+}
 
-	// Execute save the world
-	executeSaveTheWorld(appThread, saveTheWorld, mutatee);
-	// Run the mutatee and collect results
+// Returns true if the vector mutatee_list contains the string mutatee, and
+// returns false if it does not
+bool mutateeListContains(std::vector<char *> mutatee_list, const char *mutatee) {
+   if (NULL == mutatee) {
+      return false;
+   }
+   for (size_t i = 0; i < mutatee_list.size(); i++) {
+      if (nameMatches(mutatee_list[i], mutatee)) {
+         return true;
+      }
+   }
+   return false;
+}
 
-	// Cleanup
-	// result will hold the value of the complete test's success
-	result = cleanup(bpatch, appThread, tests[first_test],
-			 proc_list, result);
+// Runs through all the test names in testsn, and enables any matching tests
+// in testsv.  If any tests matched, returns true.  If there were no matching
+// tests, returns false
+// Okay, we don't actually enable any tests here; we just disable tests that
+// don't match.  All tests start out enabled, and we previously disabled any
+// that are crashing while we were parsing the resume log.
+bool testListContains(TestInfo * test,
+                      std::vector<char *> &testsn) {
+   bool match_found = false;
 
-	// Test Exit Status Log
-	if ( enableLogging && result != 0 )
-	{
-	  int pos_result = result;
-	  if ( result < 0 )
+   for (size_t i = 0; i < testsn.size(); i++) {
+      if (nameMatches(testsn[i], test->name))
+         return true;
+   }
+   return false;
+}
+
+int numUnreportedTests(RunGroup *group)
+{
+   int num_unreported = 0;
+
+   for (unsigned i=0; i<group->tests.size(); i++)
+   {
+      if (shouldRunTest(group, group->tests[i]))
 	  {
-	    pos_result = -result;
+		  fprintf(stderr, "%s[%d]:  test %s is unreported\n", FILE__, __LINE__, group->tests[i]->name);
+         num_unreported++;
 	  }
-	  flushOutputLog();
-	  flushErrorLog();
-	  logstatus("=========================================================\n");
-	  logstatus("=== Exit code 0x%02x: %s\n", pos_result,
-		    tests[first_test].name);
-	  logstatus("=========================================================\n");
-	  flushOutputLog();
-	  flushErrorLog();
-	}
-	// This is the string that the summary script uses to tell if a script passed
-	// or not.  Some mutatees currently print this, so in some cases this will
-	// cause a redundant print.
-	if ( enableLogging && result == 0 )
-	{
-	  flushOutputLog();
-	  flushErrorLog();
-	  logstatus("All tests passed\n");
-	  flushOutputLog();
-	  flushErrorLog();
-	}
+   }
 
-	if (resumeLog) {
-	  // TODO I need to change updateResumeLogCompleted to take the last,
-	  // test run as a parameter..  Or rather, it needs to write enough
-	  // information to the resume log for me to resume testing at the
-	  // correct point.
-	  updateResumeLogCompleted();
-	}
-	if (useHumanLog) {
-	  // TODO Change the human log mechanisms to output useful information
-	  // for fast & loose mode.
-	  printResultHumanLog(tests, first_test, last_test,
-			      tests[first_test].mutatee[j], cm, result, verboseFormat);
-	}
-	// Since we're going for speed here, we won't check whether or not
-	// we've reached our test limit until we're out of the innermost
-	// (test) loop
-	// TODO Add a check for how many tests we've run
-	if (testLimit != 0 && (tests_run >= testLimit)) {
-	  goto END_OF_TESTS_FL;
-	}
+   return num_unreported;
+}
 
-      } // for (each attach mode)
-      // The next mutatee should start k at 0 rather than the resume log value
-      k_init = 0;
-    } // for (each mutatee)
-    first_test = last_test;
-    // The next time 'round should start with the first mutatee, not the
-    // resumelog value (?)
-    j_init = 0;
-  } // while (first_test < num_tests)
- END_OF_TESTS_FL:
-  // FIXME this computation doesn't say how many tests we actually ran..
-  if (0 == tests_run) {
-    return -NOTESTS;
-  } else {
-    return result;
-  }
-} // startTestFastAndLoose()
+void executeTest(ComponentTester *tester,
+                 RunGroup *group, TestInfo *test, 
+                 ParameterDict param)
+{
+   std::map<std::string, std::string> attrs;
+   TestOutputDriver::getAttributesMap(test, group, attrs);
+
+   std::vector<ParamString*> new_params;
+   int group_num = group->index;
+   int test_num = test->index;
+
+   std::map<std::string, std::string>::iterator i = attrs.begin();
+   for (; i != attrs.end(); i++)
+   {
+      ParamString *pstr = new ParamString((*i).second.c_str());
+      param[(*i).first] = pstr;
+      new_params.push_back(pstr);
+   }
+
+   if (shouldRunTest(group, test))
+   {
+      log_teststart(group_num, test_num, test_setup_rs);
+      test->results[test_setup_rs] = tester->test_setup(test, param);
+      log_testresult(test->results[test_setup_rs]);
+   }
+
+   if (shouldRunTest(group, test))
+   {
+      log_teststart(group_num, test_num, test_execute_rs);
+      test->results[test_execute_rs] = test->mutator->executeTest();
+      log_testresult(test->results[test_execute_rs]);
+   }
+
+   if (shouldRunTest(group, test))
+   {
+      log_teststart(group_num, test_num, test_teardown_rs);
+      test->results[test_teardown_rs] = tester->test_teardown(test, param);
+      log_testresult(test->results[test_teardown_rs]);
+   }
+
+   for (unsigned j=0; j<new_params.size(); j++)
+      delete new_params[j];
+}
+
+void disableUnwantedTests(std::vector<RunGroup *> groups)
+{
+   if (!runCreate || !runAttach || !runRewriter || !runDeserialize) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (((groups[i]->useAttach == CREATE) && !runCreate) ||
+             ((groups[i]->useAttach == USEATTACH) && !runAttach) ||
+             ((groups[i]->useAttach == DISK) && !runRewriter) ||
+             ((groups[i]->useAttach == DESERIALIZE) && !runDeserialize))
+         {
+            for (unsigned j=0; j<groups[i]->tests.size(); j++)
+               groups[i]->tests[j]->disabled = true;
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runAllTests)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+            if (!testListContains(groups[i]->tests[j], test_list)) {
+               groups[i]->tests[j]->disabled = true;
+            }
+         }
+      }
+   }
+   if (!runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (!mutateeListContains(mutatee_list, groups[i]->mutatee))
+         {
+            for (unsigned j=0; j<groups[i]->tests.size(); j++)
+               groups[i]->tests[j]->disabled = true;
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runAllComps && runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (!groups[i]->mod || 
+             (!runDyninst && groups[i]->mod->name == std::string("dyninst")) ||
+             (!runSymtab && groups[i]->mod->name == std::string("symtab")) ||
+	     (!runInstruction && groups[i]->mod->name == std::string("instruction")))
+         {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   else 
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (!groups[i]->mod)
+            groups[i]->disabled = true;
+      }
+   }
+   if (!runAllCompilers && runAllMutatees)
+   {
+      for (unsigned i=0; i<groups.size(); i++)
+      {
+         if (groups[i]->disabled)
+            continue;
+         bool compiler_enabled = false;
+         const char *compiler_name;
+         if (!groups[i]->mutatee || strlen(groups[i]->mutatee) == 0)
+            compiler_name = "nocompiler";
+         else {
+            compiler_name = groups[i]->compiler;
+         }
+         for (unsigned j=0; j<NUM_COMPILERS; j++)
+         {
+            if (strcmp(compiler_name, compilers[j].mutatee_str) == 0)
+            {
+               compiler_enabled = compilers[j].enabled;
+               break;
+            }
+         }
+         if (!compiler_enabled)
+            groups[i]->disabled = true;
+      }
+   }
+   if (optLevel != opt_all && runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->disabled)
+            continue;
+         if (!groups[i]->optlevel)
+            continue;
+         if ((optLevel&opt_none) && (strcmp(groups[i]->optlevel, "none")==0))
+            continue;
+         if ((optLevel&opt_low) && (strcmp(groups[i]->optlevel, "low")==0))
+            continue;
+         if ((optLevel&opt_high) && (strcmp(groups[i]->optlevel, "high")==0))
+            continue;
+         if ((optLevel&opt_max) && (strcmp(groups[i]->optlevel, "max")==0))
+            continue;
+         groups[i]->disabled = true;
+      }      
+   }
+#if defined(cap_32_64_test)
+   if (!runAllABIs && runAllMutatees)
+   {
+      for (unsigned  i = 0; i < groups.size(); i++) 
+      {
+         if (groups[i]->disabled)
+            continue;
+         if (runABI_32 && strcmp(groups[i]->abi, "32") == 0)
+            continue;
+         if (runABI_64 && strcmp(groups[i]->abi, "64") == 0)
+            continue;
+         groups[i]->disabled = true;            
+      }
+   }
+#endif
+
+   parse_resumelog(groups);
+   for (unsigned  i = 0; i < groups.size(); i++) {
+      if (groups[i]->disabled)
+         continue;
+      groups[i]->disabled = true;
+      if (groups[i]->mod) {
+         for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+            if (!groups[i]->tests[j]->disabled)
+               groups[i]->disabled = false;
+         }
+      }
+   }
+}
+
+void setIndexes(std::vector<RunGroup *> groups)
+{
+   for (unsigned  i = 0; i < groups.size(); i++) {
+      groups[i]->index = i;
+      for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+         groups[i]->tests[j]->index = j;
+      }
+   }
+}   
+
+volatile int dont_optimize = 0;
+void tests_breakpoint()
+{
+  dont_optimize++;
+  //Breakpoint here to get a binary with test libraries loaded.
+}
+
+void executeGroup(ComponentTester *tester, RunGroup *group, 
+                  ParameterDict param)
+{
+   test_results_t result;
+   // setupMutatorsForRunGroup creates TestMutator objects and
+   // sets a pointer in the TestInfo object to point to the TestMutator for
+   // each test.
+   int tests_found = setupMutatorsForRunGroup(group);
+   if (tests_found <= 0)
+      return;
+   tests_breakpoint();
+
+   int groupnum = group->index;
+
+   ParamString mutatee_prm(group->mutatee);
+   ParamInt startstate_prm((int) group->state);
+   ParamInt createmode_prm((int) group->useAttach);
+   ParamInt customexecution_prm((int) group->customExecution);
+   ParamInt selfstart_prm((int) group->selfStart);
+   param["pathname"] = &mutatee_prm;
+   param["startState"] = &startstate_prm;
+   param["useAttach"] = &createmode_prm;
+   param["customExecution"] = &customexecution_prm;
+   param["selfStart"] = &selfstart_prm;
+   
+
+   for (unsigned i=0; i<group->tests.size(); i++)
+   {
+      if (shouldRunTest(group, group->tests[i]))
+         testsRun++;
+   }
+
+   log_teststart(groupnum, 0, group_setup_rs);
+   result = tester->group_setup(group, param);
+   log_testresult(result);
+   if (result != PASSED && result != SKIPPED && result != UNKNOWN) {
+      getOutput()->log(LOGERR, "Group setup failed: %s\n", 
+                       tester->getLastErrorMsg().c_str());
+   }
+   if (result != UNKNOWN) {
+      for (unsigned int i = 0; i < group->tests.size(); i++) {
+         group->tests[i]->results[group_setup_rs] = result;
+      }
+   }
+
+   for(unsigned i = 0; i < group->tests.size(); i++)
+   {
+      // Print mutator log header
+	  assert(group->tests[i]);
+      printLogOptionHeader(group->tests[i]);
+
+      if (shouldRunTest(group, group->tests[i])) {
+         log_teststart(groupnum, i, test_init_rs);
+		 if(group->tests[i]->mutator)
+		 {
+			 test_results_t setup_res = group->tests[i]->mutator->setup(param);
+	         group->tests[i]->results[test_init_rs] = setup_res;
+			 if (setup_res != PASSED)
+			 {
+				 logerror("%s[%d]:  setup failed (%d) for test %s\n", 
+						 FILE__, __LINE__, (int) setup_res, group->tests[i]->name);
+			 }
+		 }
+		 else
+		 {
+			 logerror("No mutator object found for test: %s\n", group->tests[i]->name);
+			group->tests[i]->results[test_init_rs] = FAILED;
+		 }
+         log_testresult(group->tests[i]->results[test_init_rs]);
+      }
+   }
+      
+   for (size_t i = 0; i < group->tests.size(); i++) {
+      executeTest(tester, group, group->tests[i], param);
+   }
+
+   log_teststart(groupnum, 0, group_teardown_rs);
+   result = tester->group_teardown(group, param);
+   log_testresult(result);
+   if (result != PASSED && result != SKIPPED && result != UNKNOWN) {
+      getOutput()->log(LOGERR, "Group teardown failed: %s\n", 
+                       tester->getLastErrorMsg().c_str());
+   }
+   if (result != UNKNOWN) {
+      for (unsigned int i = 0; i < group->tests.size(); i++) {
+         group->tests[i]->results[group_teardown_rs] = result;
+      }
+   }
+
+   for (int i = 0; i < group->tests.size(); i++) {
+      reportTestResult(group, group->tests[i]);
+   }
+}
+
+#define is_int(x) (x >= '0' && x <= '9')
+bool strint_lt(const char *lv, const char *rv)
+{
+   int i = 0;
+   while (lv[i] != '\0' && rv[i] != '\0')
+   {
+      if (lv[i] == rv[i]) {
+         i++;
+         continue;
+      }
+
+      bool lint = is_int(lv[i]);
+      bool rint = is_int(rv[i]);
+
+      if (lint && !rint)
+         return true;
+      else if (!lint && rint)
+         return false;
+      else if (!lint && !rint)
+         return (lv[i] < rv[i]);
+      else {
+         return atoi(lv+i) < atoi(rv+i);
+      }
+   }
+   if (lv[i] == '\0' && rv[i] != '\0')
+      return true;
+   return false;
+}
+
+struct groupcmp 
+{
+   bool operator()(const RunGroup* lv, const RunGroup* rv)
+   {
+      if (!lv->mod)
+         return false;
+      if (!rv->mod)
+         return true;
+      if (lv->mod == rv->mod)
+      {
+         return strint_lt(lv->mutatee, rv->mutatee);
+      }
+      return std::string(lv->mod->name).compare(rv->mod->name) == -1;
+   }
+};
+
+struct testcmp 
+{
+   bool operator()(const TestInfo* lv, const TestInfo* rv)
+   {
+      return strint_lt(lv->name, rv->name);
+   }
+};
+
+void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
+                           ParameterDict &params)
+{
+   bool initModule = false;
+   if (group->disabled)
+      return;
+   for (unsigned j=0; j<group->tests.size(); j++)
+   {
+      if (group->mod && !group->mod->setupRun() && !group->tests[j]->disabled)
+         initModule = true;
+   }
+   if (!initModule)
+      return;
+
+   log_teststart(group->index, 0, program_setup_rs);
+   test_results_t result = group->mod->tester->program_setup(params);
+   log_testresult(result);
+
+   group->mod->setSetupRun(true);
+
+   for (unsigned i=0; i<groups.size(); i++) {
+      if (groups[i]->disabled || groups[i]->mod != group->mod)
+         continue;
+      for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+         if (groups[i]->tests[j]->disabled)
+            continue;
+         groups[i]->tests[j]->results[program_setup_rs] = result;
+         if (result != PASSED)
+            reportTestResult(groups[i], groups[i]->tests[j]);
+      }
+   }
+}
+         
+
+void startAllTests(std::vector<RunGroup *> &groups,
+                   std::vector<char *> mutatee_list)
+{
+   // Begin setting up test parameters
+   ParameterDict param;
+   unsigned i;
+
+   ParamString logfile_p(logfilename);
+   ParamInt verbose_p((int) !quietFormat);
+   ParamInt usehuman_p((int) useHumanLog);
+   ParamInt printlabels_p((int) printLabels);
+   ParamInt debugprint_p((int) debugPrint);
+   ParamString humanname_p(humanlog_name);
+
+   param["logfilename"] = &logfile_p;
+   param["verbose"] = &verbose_p;
+   param["usehumanlog"] = &usehuman_p;
+   param["humanlogname"] = &humanname_p;
+   param["printlabels"] = &printlabels_p;
+   param["debugPrint"] = &debugprint_p;
+
+   // Print Test Log Header
+   getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
+#if !defined(os_windows_test)
+   if ( pdscrdir )
+   {
+      runScript("date");
+      runScript("uname -a");
+   }
+   getOutput()->log(LOGINFO, "TESTDIR=%s\n", getenv("PWD"));
+#else
+	char* cwd = _getcwd(NULL, 0);
+	if(cwd) {
+	   getOutput()->log(LOGINFO, "TESTDIR=%s\n", cwd);
+	} else {
+		getOutput()->log(LOGERR, "Couldn't get working directory!\n");
+	}
+	free(cwd);
+#endif
+   // Sets the disable flag on groups and tests that weren't selected by
+   // options or have alread been passed according to the resumelog
+   std::sort(groups.begin(), groups.end(), groupcmp());
+   for (i=0; i<groups.size(); i++)
+      std::sort(groups[i]->tests.begin(), groups[i]->tests.end(), testcmp());
+
+   setIndexes(groups);
+   disableUnwantedTests(groups);
+
+   std::vector<Module *> modules;
+   Module::getAllModules(modules);
+
+   measureStart();
+
+   for (i = 0; i < groups.size(); i++) {
+      if (groups[i]->disabled)
+         continue;
+
+      //If we fail then have the log resume us at this group
+      log_resumepoint(i, 0);
+
+      if (testLimit && testsRun >= testLimit) {
+         break;
+      }
+
+      initModuleIfNecessary(groups[i], groups, param);
+
+      // Print mutatee (run group) header
+      printLogMutateeHeader(groups[i]->mutatee);
+
+      executeGroup(groups[i]->mod->tester, groups[i], param);
+       
+      if (numUnreportedTests(groups[i])) {
+         //This should be uncommon.  We have tests in this group that didn't
+         // complete (neither failure nor success), mark these as failures.
+         for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+            if (shouldRunTest(groups[i], groups[i]->tests[j]))
+            {
+               //Just pick a result to set as failed
+               getOutput()->log(STDERR, "Unreported tests found, marking group as failed\n");
+               groups[i]->tests[j]->results[group_teardown_rs] = FAILED;
+               reportTestResult(groups[i], groups[i]->tests[j]);
+            }
+         }
+      }
+   }
+   if (i==groups.size())
+      ranLastTest = true;
+   unsigned final_group = i;
+   
+   for (i = 0; i < final_group; i++) {
+     Module *mod = groups[i]->mod;
+     if (!mod || !mod->isInitialized() || groups[i]->disabled)
+       continue;
+     
+     log_teststart(groups[i]->index, 0, program_teardown_rs);
+     test_results_t result = mod->tester->program_teardown(param);
+     log_testresult(result);
+
+     for (unsigned j=0; j < groups[i]->tests.size(); j++)
+     {
+       if (!groups[i]->tests[j]->disabled) {
+          groups[i]->tests[j]->results[program_teardown_rs] = result;
+       }
+       reportTestResult(groups[i], groups[i]->tests[j]);
+     }
+     mod->setInitialized(false);
+   }
+
+   if (ranLastTest)
+      log_clear();
+   else 
+      log_resumepoint(final_group, 0);   
+
+   measureEnd();
+
+   cleanPIDFile();
+   return;
+} // startAllTests()
 
 void DebugPause() {
-  fprintf(stderr, "Waiting for attach by debugger\n");
-#if defined(i386_unknown_nt4_0)
-  DebugBreak();
+   getOutput()->log(STDERR, "Waiting for attach by debugger\n");
+#if defined(os_windows_test)
+   DebugBreak();
 #else
-  sleep(10);
+   static volatile int set_me = 0;
+   while (!set_me)
+     P_sleep(1);
 #endif
 }
 
@@ -1403,401 +931,593 @@ void DebugPause() {
 // variable 'PDSCRDIR', or we pick up a default location for the UW and UMD
 // sites, or we generate a default based on the DYNINST_ROOT directory, or
 // we use a default '../../../scripts'.
-void setPDScriptDir(bool /*skip_warning*/)
+void setPDScriptDir(bool skip_warning)
 {
-  pdscrdir = getenv("PDSCRDIR");
-  if ( pdscrdir == NULL )
-  {
-#if !defined(os_windows)
-     // Environment variable not set, try default wisc/umd directories
-     DIR *dir;
-     dir = opendir(uw_pdscrdir);
-     if ( dir != NULL ) {
-        closedir(dir);
-        pdscrdir = uw_pdscrdir;
-        return;
-     }
-     dir = opendir(umd_pdscrdir);
-     if ( dir != NULL ) {
-        closedir(dir);
-        pdscrdir = umd_pdscrdir;
-        return;
-     }
-     
-     // Environment variable not set and default UW/UMD directories missing.
-     // Derive default from DYNINST_ROOT
-     char *basedir = getenv("DYNINST_ROOT");
-     if (NULL == basedir) {
-        basedir = "../../..";
-     }
-     int basedir_len = strlen(basedir);
-     int pdscrdir_len = basedir_len + strlen("/scripts") + 1;
-     // BUG This allocated array lasts for the lifetime of the program, so it's
-     // currently not worth worrying about freeing the memory.
-     pdscrdir = new char[pdscrdir_len];
-     strncpy(pdscrdir, basedir, basedir_len + 1);
-     strcat(pdscrdir, "/scripts");
+   pdscrdir = getenv("PDSCRDIR");
+   if ( pdscrdir == NULL )
+   {
+#if !defined(os_windows_test)
+      // Environment variable not set, try default wisc/umd directories
+      DIR *dir;
+      dir = opendir(uw_pdscrdir);
+      if ( dir != NULL ) {
+         closedir(dir);
+         pdscrdir = uw_pdscrdir;
+         return;
+      }
+      dir = opendir(umd_pdscrdir);
+      if ( dir != NULL ) {
+         closedir(dir);
+         pdscrdir = umd_pdscrdir;
+         return;
+      }
 
-     dir = opendir(pdscrdir);
-     if ( !dir ) {
-        pdscrdir = NULL;
-     }
-     else {
-        closedir(dir);
-     }
+      // Environment variable not set and default UW/UMD directories missing.
+      // Derive default from DYNINST_ROOT
+      char *basedir = getenv("DYNINST_ROOT");
+      if (NULL == basedir) {
+         // DYNINST_ROOT not set.  Print a warning, and default it to "../../.."
+         if (!skip_warning) {
+            getOutput()->log(STDERR, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
+            getOutput()->log(STDERR, "\tto the path for the top of the Dyninst library installation.\n");
+            getOutput()->log(STDERR, "\tUsing default: '../../..'\n");
+         }
+         basedir = "../../..";
+      }
+      int basedir_len = strlen(basedir);
+      int pdscrdir_len = basedir_len + strlen("/scripts") + 1;
+      // BUG This allocated array lasts for the lifetime of the program, so it's
+      // currently not worth worrying about freeing the memory.
+      pdscrdir = new char[pdscrdir_len];
+      strncpy(pdscrdir, basedir, basedir_len + 1);
+      strcat(pdscrdir, "/scripts");
+
+      dir = opendir(pdscrdir);
+      if (!dir) {
+         pdscrdir = NULL;
+      } else {
+         closedir(dir);
+      }
 
 #endif
-  }
+   }
 }
    
 void updateSearchPaths(const char *filename) {
-#if !defined(os_windows)
-  // First, find the directory we reside in
+#if !defined(os_windows_test)
+   // First, find the directory we reside in
 
-  char *execpath;
-  char pathname[PATH_MAX];
-  getcwd(pathname, PATH_MAX);
+    bool include_cwd_always = false;
+#if defined(os_aix_test)
+    // AIX strips a ./ from the start of argv[0], so
+    // we will execute ./test_driver and see test_driver
 
-  if (filename[0] == '/') {
-    // If it begins with a slash, it's an absolute path
-    execpath = strdup(filename);
-  } else if (strchr(filename,'/')) {
-    // If it contains slashes, it's a relative path
-    char *filename_copy = strdup(filename);
+    include_cwd_always = true;
+#endif
+
+   char *execpath;
+   char pathname[PATH_MAX];
+   getcwd(pathname, PATH_MAX);
+
+   if (filename[0] == '/') {
+      // If it begins with a slash, it's an absolute path
+      execpath = strdup(filename);
+   } else if (strchr(filename,'/') || include_cwd_always) {
+      // If it contains slashes, it's a relative path
+      char *filename_copy = strdup(filename);
       
-    execpath = (char *) ::malloc(strlen(pathname) + strlen(filename_copy) + 2);
-    strcpy(execpath,pathname);
-    strcat(execpath,"/");
-    strcat(execpath,filename_copy);
-    ::free(filename_copy);
-  } else {
-    // If it's just a name, it was found in PATH
-    const char *pathenv = getenv("PATH");
-    execpath = searchPath(pathenv, filename);
-    if(execpath == NULL) {
-      //  Not found in PATH - we'll assume it should be in CWD
-      return;
-    }
-  }
+      execpath = (char *) ::malloc(strlen(pathname) + strlen(filename_copy) + 2);
+      strcpy(execpath,pathname);
+      strcat(execpath,"/");
+      strcat(execpath,filename_copy);
+      ::free(filename_copy);
+   } else {
+      // If it's just a name, it was found in PATH
+      const char *pathenv = getenv("PATH");
+      execpath = searchPath(pathenv, filename);
+      if(execpath == NULL) {
+         //  Not found in PATH - we'll assume it should be in CWD
+         return;
+      }
+   }
 
-  *strrchr(execpath, '/') = '\0';
-  // Now update PATH and LD_LIBRARY_PATH/LIBPATH
+   *strrchr(execpath, '/') = '\0';
+   // Now update PATH and LD_LIBRARY_PATH/LIBPATH
 
-  char *envCopy;
+   char *envCopy;
 
-  char *envPath = getenv("PATH");
-  envCopy = (char *) ::malloc(((envPath && strlen(envPath)) ? strlen(envPath) + 1 : 0) + strlen(execpath) + 6);
-  strcpy(envCopy, "PATH=");
-  if (envPath && strlen(envPath)) {
-    strcat(envCopy, envPath);
-    strcat(envCopy, ":");
-  }
-  strcat(envCopy, execpath);
-  assert(!putenv(envCopy));
+   char *envPath = getenv("PATH");
+   envCopy = (char *) ::malloc(((envPath && strlen(envPath)) ? strlen(envPath) + 1 : 0) + strlen(execpath) + 6);
+   strcpy(envCopy, "PATH=");
+   if (envPath && strlen(envPath)) {
+      strcat(envCopy, envPath);
+      strcat(envCopy, ":");
+   }
+   strcat(envCopy, execpath);
+   assert(!putenv(envCopy));
     
-  char *envLibPath;
-#if defined(os_aix)
-  envLibPath = getenv("LIBPATH");
+   char *envLibPath;
+#if defined(os_aix_test)
+   envLibPath = getenv("LIBPATH");
 #else
-  envLibPath = getenv("LD_LIBRARY_PATH");
+   envLibPath = getenv("LD_LIBRARY_PATH");
 #endif
     
-  envCopy = (char *) ::malloc(((envLibPath && strlen(envLibPath)) ? strlen(envLibPath) + 1 : 0) + strlen(execpath) + 17);
-#if defined(os_aix)
-  strcpy(envCopy, "LIBPATH=");
+   envCopy = (char *) ::malloc(((envLibPath && strlen(envLibPath)) ? strlen(envLibPath) + 1 : 0) + strlen(execpath) + 17);
+#if defined(os_aix_test)
+   strcpy(envCopy, "LIBPATH=");
 #else
-  strcpy(envCopy, "LD_LIBRARY_PATH=");
+   strcpy(envCopy, "LD_LIBRARY_PATH=");
 #endif
-  if (envLibPath && strlen(envLibPath)) {
-    strcat(envCopy, envLibPath);
-    strcat(envCopy, ":");
-  }
-  strcat(envCopy, execpath);
-  assert(!putenv(envCopy));
+   if (envLibPath && strlen(envLibPath)) {
+      strcat(envCopy, envLibPath);
+      strcat(envCopy, ":");
+   }
+   strcat(envCopy, execpath);
+   assert(!putenv(envCopy));
 
-  ::free(execpath);
+   //fprintf(stderr, "%s[%d]:  set LD_LIBRARY_PATH to %s\n", FILE__, __LINE__, getenv("LD_LIBRARY_PATH"));
+   ::free(execpath);
 #endif
 }
 
 int main(int argc, char *argv[]) {
-  unsigned int i;
-  bool shouldDebugBreak = false;
-  bool called_from_runTests = false;
-  std::vector<char *> mutatee_list;
-  bool quietFormat = false;
-  bool logfile_found = false;
-    
-  updateSearchPaths(argv[0]);
-    
-  for (i=1; i < argc; i++ )
-  {
-       
-    if (strncmp(argv[i], "-v+", 3) == 0)
-      errorPrint++;
-    if (strncmp(argv[i], "-v++", 4) == 0)   
-      errorPrint++;
-    if (strncmp(argv[i], "-verbose", 2) == 0) 
-      debugPrint = 1;
-    // skip to test i+1
-    else if (strcmp(argv[i], "-q") == 0)
-    {
-      quietFormat = true;
-    }       
-    else if ( strcmp(argv[i], "-skipTo")==0)
-    {
-      skipToTest = atoi(argv[++i]);
-    }
-    else if ( strcmp(argv[i], "-log")==0)
-    {
-      enableLogging = true;
-      if (!logfile_found)
+   updateSearchPaths(argv[0]);
+
+   setOutput(new StdOutputDriver(NULL));
+   
+   int result = parseArgs(argc, argv);
+   if (result)
+      exit(result);
+
+   // Fill in tests vector with lists of test to run
+   std::vector<RunGroup *> tests;
+   initialize_mutatees(tests);  
+
+   result = setupLogs();
+   if (result)
+      exit(result);
+
+   setupProcessGroup();
+
+   // Set the resume log name
+   if ( getenv("RESUMELOG") ) {
+      resumelog_name = getenv("RESUMELOG");
+   }
+
+   if ( shouldDebugBreak ) {
+      DebugPause();
+   }
+
+   startAllTests(tests, mutatee_list);
+
+   if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+   }
+   fflush(stdout);
+
+   if (testsRun == 0 || ranLastTest)
+      return NOTESTS;
+   return 0;
+}
+
+int setupLogs()
+{
+   // Set the script dir if we require scripts
+   if ( enableLogging )
+   {
+     setPDScriptDir(true);
+   }
+
+   // Set up the logging file..
+   if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+         getOutput()->log(STDERR, "Error opening log file '%s'\n", logfilename);
+         return NOTESTS;
+      }
+      errlog = outlog;
+   } else {
+      outlog = stdout;
+      errlog = stderr;
+   }
+   setOutputLog(outlog);
+   setErrorLog(errlog);
+   setOutputLogFilename(logfilename);
+   setErrorLogFilename(logfilename);
+
+   if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      getOutput()->redirectStream(LOGINFO, logfilename);
+      getOutput()->redirectStream(LOGERR, logfilename);
+   }
+   if (useHumanLog) {
+      getOutput()->redirectStream(HUMAN, humanlog_name);
+   } else {
+      getOutput()->redirectStream(HUMAN, NULL);
+   }
+   return 0;
+}
+
+int parseArgs(int argc, char *argv[])
+{
+   for (unsigned i=1; i < argc; i++ )
+   {
+
+      if (strncmp(argv[i], "-v+", 3) == 0)
+         errorPrint++;
+      if (strncmp(argv[i], "-v++", 4) == 0)
+         errorPrint++;
+      if (strncmp(argv[i], "-verbose", 2) == 0)
+         debugPrint = 1;
+      else if (strcmp(argv[i], "-q") == 0)
+      {
+         getOutput()->log(STDERR, "[%s:%u] - Quiet format not yet enabled\n");
+         quietFormat = true;
+      }
+      else if ( strcmp(argv[i], "-skipTo")==0)
+      {
+         // skip to test i+1
+         skipToTest = atoi(argv[++i]);
+      }
+      else if ( strcmp(argv[i], "-log")==0)
+      {
          logfilename = "-";
-    }
-    else if ( strcmp(argv[i], "-logfile") == 0) {
-      /* Store the log file name */
-      if ((i + 1) >= argc) {
-         fprintf(stderr, "Missing log file name\n");
-         exit(NOTESTS);
+         if ((i + 1) < argc) {
+            if ((argv[i + 1][0] != '-') || (argv[i + 1][1] != '\0')) {
+               i += 1;
+               logfilename = argv[i];
+            }
+         }
       }
-      i += 1;
-      logfilename = argv[i];
-      enableLogging = true;
-      logfile_found = true;
-    }
-    else if ( strcmp(argv[i], "-debug")==0)
-    {
-      shouldDebugBreak = true;
-    }
-    else if ( strcmp(argv[i], "-test") == 0)
-    {
-      char *tests;
-      char *name;
-
-      runAllTests = false;
-      if ( i + 1 >= argc )
+      else if ( strcmp(argv[i], "-logfile") == 0) {
+         getOutput()->log(STDERR, "WARNING: -logfile is a deprecated option; use -log instead\n");
+         /* Store the log file name */
+         if ((i + 1) >= argc) {
+            getOutput()->log(STDERR, "Missing log file name\n");
+            return NOTESTS;
+         }
+         i += 1;
+         logfilename = argv[i];
+      }
+      else if ( strcmp(argv[i], "-debug")==0)
       {
-	fprintf(stderr, "-test must be followed by a testname\n");
-	exit(NOTESTS);
+         shouldDebugBreak = true;
       }
-
-      tests = strdup(argv[++i]);
-
-      name = strtok(tests, ",");
-      test_list.push_back(name);
-      while ( name != NULL )
+      else if ( strcmp(argv[i], "-test") == 0)
       {
-	name = strtok(NULL, ",");
-	if ( name != NULL )
-	{
-	  test_list.push_back(name);
-	}
-      }
-    }
-    else if ( strcmp(argv[i], "-mutatee") == 0)
-    {
-      char *mutatees;
-      char *name;
+         char *tests;
+         char *name;
 
-      runAllMutatees = false;
-      if ( i + 1 >= argc )
+         runAllTests = false;
+         if ( i + 1 >= argc )
+         {
+            getOutput()->log(STDERR, "-test must be followed by a testname\n");
+            return NOTESTS;
+         }
+
+         tests = strdup(argv[++i]);
+
+         name = strtok(tests, ","); // FIXME Use strtok_r()
+         test_list.push_back(name);
+         while ( name != NULL )
+         {
+            name = strtok(NULL, ",");
+            if ( name != NULL )
+            {
+               test_list.push_back(name);
+            }
+         }
+      }
+      else if ( strcmp(argv[i], "-mutatee") == 0)
       {
-	fprintf(stderr, "-mutatee must be followed by mutatee names\n");
-	exit(NOTESTS);
+         char *mutatees;
+         char *name;
+
+         runAllMutatees = false;
+         if ( i + 1 >= argc )
+         {
+            getOutput()->log(STDERR, "-mutatee must be followed by mutatee names\n");
+            return NOTESTS;
+         }
+
+         mutatees = strdup(argv[++i]);
+
+         name = strtok(mutatees, ","); // FIXME Use strtok_r()
+         if (NULL == name) {
+            // Special handling for a "" mutatee specified on the command line
+            mutatee_list.push_back("");
+         } else {
+            mutatee_list.push_back(name);
+         }
+         while ( name != NULL )
+         {
+            name = strtok(NULL, ","); // FIXME Use strtok_r()
+            if ( name != NULL )
+            {
+               mutatee_list.push_back(name);
+            }
+         }
       }
-
-      mutatees = strdup(argv[++i]);
-
-      name = strtok(mutatees, ",");
-      mutatee_list.push_back(name);
-      while ( name != NULL )
+      // TODO: Remove the -run option, it is replaced by the -test option
+      else if ( strcmp(argv[i], "-run") == 0)
       {
-	name = strtok(NULL, ",");
-	if ( name != NULL )
-	{
-	  mutatee_list.push_back(name);
-	}
+         unsigned int j;
+         runAllTests = false;
+         for ( j = i+1; j < argc; j++ )
+         {
+            if ( argv[j][0] == '-' )
+            {
+               // end of test list
+               break;
+            }
+            else
+            {
+               test_list.push_back(argv[j]);
+            }
+         }
+         i = j - 1;
       }
-    }
-    // TODO: Remove the -run option, it is replaced by the -test option
-    else if ( strcmp(argv[i], "-run") == 0)
-    {
-      unsigned int j;
-      runAllTests = false;
-      for ( j = i+1; j < argc; j++ )
+      // TODO -attach and -create are DyninstAPI specific
+      else if ( strcmp(argv[i], "-attach") == 0 )
       {
-	if ( argv[j][0] == '-' )
-	{
-	  // end of test list
-	  break;
-	} 
-	else
-	{
-	  test_list.push_back(argv[j]);
-	}
+         if (runDefaultStarts)
+         {
+            runCreate = false;
+            runRewriter = false;
+         }
+         runAttach = true;
+         runDefaultStarts = false;
       }
-      i = j - 1;
-    }
-    else if ( strcmp(argv[i], "-attach") == 0 )
-    {
-      runAllOptions = false;
-      runAttach = true;
-    }
-    else if ( strcmp(argv[i], "-create") == 0 )
-    {
-      runAllOptions = false;
-      runCreate = true;
-    }
-    else if ( strcmp(argv[i], "-enable-resume") == 0 )
-    {
-      resumeLog = true;
-    } else if ( strcmp(argv[i], "-use-resume") == 0 )
-    {
-      useResume = true;
-    } else if ( strcmp(argv[i], "-limit") == 0 )
-    {
-      if ( i + 1 >= argc )
+      else if ( strcmp(argv[i], "-create") == 0 )
       {
-	fprintf(stderr, "-limit must be followed by an integer limit\n");
-	exit(NOTESTS);
+         if (runDefaultStarts)
+         {
+            runAttach = false;
+            runRewriter = false;
+         }
+         runCreate = true;
+         runDefaultStarts = false;
       }
-      testLimit = atoi(argv[++i]);
-    } 
-    else if ( strcmp(argv[i], "-humanlog") == 0 )
-    {
-      // Verify that the following argument exists
-      if ( i + 1 >= argc ) 
+      else if ( strcmp(argv[i], "-rewriter") == 0 )
       {
-	fprintf(stderr, "-humanlog must by followed by a filename\n");
-	exit(NOTESTS);
+         if (runDefaultStarts)
+         {
+            runCreate = false;
+            runAttach = false;
+         }
+         runRewriter = true;
+         runDefaultStarts = false;
       }
+      else if ( strcmp(argv[i], "-serialize") == 0 )
+      {
+         runDefaultStarts = false;
+         runCreate = true;
+         runAttach = false;
+         runDeserialize = true;
+      }
+      else if (strcmp(argv[i], "-allmode") == 0)
+      {
+         runCreate = true;
+         runAttach = true;
+         runDeserialize = true;
+         runRewriter = false;
+         runDefaultStarts = false;
+      }
+      else if (strcmp(argv[i], "-all") == 0)
+      {
+         runCreate = true;
+         runAttach = true;
+         runDeserialize = true;
+         runRewriter = true;
+         runAllCompilers = true;
+         runAllComps = true;
+      }
+      else if (strcmp(argv[i], "-full") == 0)
+      {
+         //Like -all, but with full optimization levels
+         runCreate = true;
+         runAttach = true;
+         runDeserialize = true;
+         runRewriter = true;
+         runAllCompilers = true;
+         runAllComps = true;
+         optLevel = opt_all;
+      }
+      else if ( strcmp(argv[i], "-dyninst") == 0)
+      {
+         runDyninst = true;
+         runAllComps = false;
+      }
+      else if ( strcmp(argv[i], "-symtab") == 0)
+      {
+         runSymtab = true;
+         runAllComps = false;
+      }
+      else if (strcmp(argv[i], "-instruction") == 0)
+      {
+	runInstruction = true;
+	runAllComps = false;
+      }
+      else if (strcmp(argv[i], "-allcomp") == 0)
+      {
+         runSymtab = true;
+         runDyninst = true;
+	 runInstruction = true;
+         runAllComps = true;
+      }
+      else if (strcmp(argv[i], "-max") == 0)
+      {
+         if (runDefaultOpts)
+            optLevel = 0;
+         runDefaultOpts = false;
+         optLevel |= opt_max;
+      }
+      else if (strcmp(argv[i], "-high") == 0)
+      {
+         if (runDefaultOpts)
+            optLevel = 0;
+         runDefaultOpts = false;
+         optLevel |= opt_high;
+      }
+      else if (strcmp(argv[i], "-low") == 0)
+      {
+         if (runDefaultOpts)
+            optLevel = 0;
+         runDefaultOpts = false;
+         optLevel |= opt_low;
+      }
+      else if (strcmp(argv[i], "-none") == 0)
+      {
+         if (runDefaultOpts)
+            optLevel = 0;
+         runDefaultOpts = false;
+         optLevel |= opt_none;
+      }
+      else if (strcmp(argv[i], "-allopt") == 0)
+      {
+         runDefaultOpts = false;
+         optLevel |= opt_all;
+      }
+      else if (strcmp(argv[i], "-32") == 0)
+      {
+         runAllABIs = false;
+         runABI_32 = true;
+      }
+      else if (strcmp(argv[i], "-64") == 0)
+      {
+         runAllABIs = false;
+         runABI_64 = true;
+      }
+      else if ((strcmp(argv[i], "-cpumem") == 0) ||
+               (strcmp(argv[i], "-memcpu") == 0))
+      {
+         measureMEMCPU = true;
+         if (i+1 < argc)
+         {
+            if (argv[i+1][0] != '-')
+            {
+               i++;
+               measureFileName = argv[i];
+            }
+            else if (argv[i+1][1] == '\0')
+            {
+               i++;
+               measureFileName = "-";
+            }
+         }
+      }
+      else if ((strcmp(argv[i], "-enable-resume") == 0) ||
+               (strcmp(argv[i], "-use-resume") == 0)) {
+         enableResumeLog();
+      } else if ( strcmp(argv[i], "-header") == 0 ) {
+         printMutateeLogHeader = true;
+      } else if ( strcmp(argv[i], "-limit") == 0 ) {
+         if ( i + 1 >= argc ) {
+            getOutput()->log(STDERR, "-limit must be followed by an integer limit\n");
+            return NOTESTS;
+         }
+         testLimit = strtol(argv[++i], NULL, 10);
+         if ((0 == testLimit) && (EINVAL == errno)) {
+            getOutput()->log(STDERR, "-limit must be followed by an integer limit\n");
+            return NOTESTS;
+         }
+      }
+      else if ( strcmp(argv[i], "-humanlog") == 0 ) {
+         // Verify that the following argument exists
+         if ( i + 1 >= argc )
+         {
+            getOutput()->log(STDERR, "-humanlog must by followed by a filename\n");
+            return NOTESTS;
+         }
 
-      useHumanLog = true;
-      humanlog_name = argv[++i];
-    } else if (strcmp(argv[i], "-under-runtests") == 0) {
-      called_from_runTests = true;
-    }
-    else if ( strcmp(argv[i], "-help") == 0)
-    {
-      printf("Usage: %s [-skipTo <test_num>] [-humanlog filename] [-verbose]\n", argv[0]);
-      printf("       [-log] [-test <name> ...]\n", argv[0]);
-      exit(SUCCESS);
-    } else if (strcmp(argv[i], "-fast") == 0) {
-      fastAndLoose = true;
-    }
-    else
-    {
-      printf("Unrecognized option: %s\n", argv[i]);
-      exit(NOTESTS);
-    }
-  }
+         useHumanLog = true;
+         humanlog_name = argv[++i];
+      } else if (strcmp(argv[i], "-under-runtests") == 0) {
+         called_from_runTests = true;
+      }
+      else if ((strcmp(argv[i], "-help") == 0) ||
+               (strcmp(argv[i], "--help") == 0)) {
+         print_help();
+         exit(-5);
+      }
+      else if (strcmp(argv[i], "-pidfile") == 0) {
+         char *pidFilename = NULL;
+         if (i + 1 >= argc) {
+            getOutput()->log(STDERR, "-pidfile must be followed by a filename\n");
+            return NOTESTS;
+         }
+         i += 1;
+         pidFilename = argv[i];
+         setPIDFilename(pidFilename);
+      }
+      else if (strcmp(argv[i], "-dboutput") == 0) {
+         char * failedOutputFile = NULL;
+         //check if a failed output file is specified
+         if ((i + 1) < argc) {
+            if (argv[i+1][0] != '-' || argv[i+1][1] == '\0') {
+               //either it doesn't start with - or it's exactly -
+               i++;
+               failedOutputFile = argv[i];
+            }
+         }
 
-  // Set up mutatees
-  initialize_mutatees();
+         if (NULL == failedOutputFile) {
+            //TODO insert proper value
+            time_t rawtime;
+            struct tm * timeinfo = (tm *)malloc(sizeof(struct tm));
 
-  // Set the script dir if we require scripts
-  if ( enableLogging )
-  {
-    setPDScriptDir(called_from_runTests);
-  }
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
 
-  // Set up the logging file..
-  if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
-    outlog = fopen(logfilename, "a");
-    if (NULL == outlog) {
-      fprintf(stderr, "Error opening log file '%s'\n", logfilename);
-      exit(NOTESTS);
-    }
-    errlog = outlog;
-  } else {
-    outlog = stdout;
-    errlog = stderr;
-  }
-  setOutputLog(outlog);
-  setErrorLog(errlog);
+            failedOutputFile = (char*)malloc(sizeof(char) * strlen("sql_dblog-xxxx-xx-xx0"));
+            if (failedOutputFile == NULL) {
+               fprintf(stderr, "[%s:%u] - Out of memory!\n", __FILE__, __LINE__);
+               // TODO Handle error;
+            }
+            sprintf(failedOutputFile, "sql_dblog-%4d-%02d-%02d",
+                    timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday);
 
-  // Set the resume log name
-  if ( getenv("RESUMELOG") )
-  {
-    resumelog_name = getenv("RESUMELOG");
-  }
+            getOutput()->log(STDERR, "No 'SQL log file' found, using default %s\n", failedOutputFile);
+         }
 
-  if ( shouldDebugBreak )
-  {
-    DebugPause();
-  }
+         std::string s_failedOutputFile (failedOutputFile);
+         TestOutputDriver *newoutput = loadOutputDriver("DatabaseOutputDriver", &s_failedOutputFile);
 
-  // Set the initial test to the value in the resume log
-  if ( useResume )
-  {
-    if (fastAndLoose) {
-      int garbage;
-      getResumeLogFastAndLoose(&skipToTest, &garbage,
-			       &skipToMutatee, &skipToOption, !quietFormat);
-    } else {
-      getResumeLog(&skipToTest,&skipToMutatee,&skipToOption, !quietFormat);
-    }
-  }
+         //make sure it loaded correctly before replacing default output
+         if (newoutput != NULL) {
+            setOutput(newoutput);
+         }
+      }
+      else if (strcmp(argv[i], "-allcompilers") == 0)
+      {
+         runDefaultCompilers = false;
+         runAllCompilers = true;
+      }
+      else
+      {
+         bool found_compiler_option = false;
+         for (unsigned j=0; j<NUM_COMPILERS; j++)
+         {
+            if (runDefaultCompilers)
+            {
+               //The first time we see a compiler option, disable the
+               // ones that are default on.
+               compilers[j].enabled = false;
+            }
+            if (strcmp(argv[i], compilers[j].option) == 0)
+            {
+               compilers[j].enabled = true;
+               found_compiler_option = true;
+            }
+         }
+         runDefaultCompilers = false;
 
-  if ( getenv("DYNINSTAPI_RT_LIB") ) 
-  {
-    char *temp = getenv("DYNINSTAPI_RT_LIB");
-    int len = strlen(temp);
-    libRTname = (char *) malloc(len+1);
-    strncpy(libRTname, temp, len);
-    libRTname[len] = '\0';
-  }
-  else {
-    fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
-#if defined(i386_unknown_nt4_0)
-	    "    using standard search strategy for libdyninstAPI_RT.dll\n");
-#else
-    "    set it to the full pathname of libdyninstAPI_RT\n");
-  exit(-1);
-#endif
-}
-
-#if defined(m_abi)
-if ( getenv("DYNINSTAPI_RT_LIB_MABI") )
-{
-  char *temp = getenv("DYNINSTAPI_RT_LIB_MABI");
-  int len = strlen(temp);
-  libRTname_m_abi = (char *) malloc(len+1);
-  strncpy(libRTname_m_abi, temp, len);
-  libRTname_m_abi[len] = '\0';
-} else
-{
-  fprintf(stderr,"Warning: Environment variable DYNINSTAPI_RT_LIB_MABI undefined:\n"
-	  "32 mutatees will not run\n");
-}
-#endif
-
-int return_code;
-if (fastAndLoose) {
-  return_code = -startTestFastAndLoose(tests, num_tests, mutatee_list, !quietFormat);
-} else {
-  return_code = -startTest(tests, num_tests, mutatee_list, !quietFormat);
-}
-
-if ((outlog != NULL) && (outlog != stdout)) {
-  fclose(outlog);
-}
-if(quietFormat)
-{
-  if(!gFailureReport.empty()) 
-  {
-    fprintf(stdout, "\nFAILURES:\n");
-  
-    for(int i = 0; i < gFailureReport.size(); i++)
-    {
-      fprintf(stdout, "Failure: %s, create mode: %s, %s\n", gFailureReport[i].testName.c_str(), gFailureReport[i].createMode ? "create" : "attach",
-	      gFailureReport[i].wasCrash ? "crashed" : "failed");
-    }
-  }
-  
-}
-fflush(stdout);
-
-
-return return_code;
+         if (!found_compiler_option) {
+            getOutput()->log(STDOUT, "Unrecognized option: '%s'\n", argv[i]);
+            return NOTESTS;
+         }
+      }
+   }
+   return 0;
 }
 

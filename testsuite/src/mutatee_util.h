@@ -44,7 +44,13 @@
 #ifndef _mutatee_util_h_
 #define _mutatee_util_h_
 
-#if defined(os_windows)
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdio.h>
+
+#if defined(os_windows_test)
 
 #include <windows.h>
 
@@ -67,14 +73,123 @@ typedef pthread_t thread_t;
 
 #endif
 
+#include <stdarg.h>
+
+#define TRUE 1
+#define FALSE 0
+
+#include "test_results.h"
+
+/* Include mutatee_glue.h as a convenience to the user, so they don't need
+ * to
+ */
+/* Not using this any more; using sed to preprocess again */
+/* #include "mutatee_glue.h" */
+
+extern int debugPrint;
+/* control debug printf statements */
+#define dprintf	if (debugPrint) printf
+
+/* Empty functions are sometimes compiled too tight for entry and exit
+   points.  The following macro is used to flesh out these
+   functions. (expanded to use on all platforms for non-gcc compilers jkh 10/99)
+ */
+static volatile int dummy3__;
+#define DUMMY_FN_BODY \
+  int dummy1__ = 1; \
+  int dummy2__ = 2; \
+  dummy3__ = dummy1__ + dummy2__
+
+#include "mutatee_call_info.h"
+extern mutatee_info_t g_info;
+
+/* mutatee_driver.c defines these two; they're just copies of main()'s argc
+ * and argv.
+ */
+extern int gargc;
+extern char **gargv;
+
+/* New logging system */
+typedef enum {
+  STDOUT,
+  STDERR,
+  LOGINFO,
+  LOGERR,
+  HUMAN
+} output_stream_t;
+typedef void (*log_f)(output_stream_t, const char *, ...);
+typedef void (*vlog_f)(output_stream_t, const char *, va_list);
+typedef void (*log_result_f)(test_results_t);
+typedef void (*redirect_stream_f)(output_stream_t, const char *);
+typedef void (*set_testname_f)(const char *);
+typedef struct {
+  log_f log;
+  vlog_f vlog;
+  redirect_stream_f redirectStream;
+  log_result_f logResult;
+  set_testname_f setTestName;
+} output_t;
+extern output_t *output;
+
+/* This guy initializes the output object with pointers to the correct
+ * functions
+ */
+extern void initOutputDriver();
+extern void stdOutputLog(output_stream_t stream, const char *fmt, ...);
+extern void stdOutputVLog(output_stream_t stream, const char *fmt, va_list args);
+extern void redirectStream(output_stream_t stream, const char *filename);
+extern void setTestName(const char *name);
+
+/* Support functions for the database output driver */
+extern void initDatabaseOutputDriver();
+extern void dbOutputLog(output_stream_t stream, const char *fmt, ...);
+extern void dbOutputVLog(output_stream_t stream, const char *fmt, va_list args);
+extern void dbRedirectStream(output_stream_t stream, const char *filename);
+extern void dbLogResult(test_results_t result);
+extern void dbSetTestName(const char *name);
+extern void closeDatabaseOutputDriver();
+
 extern FILE *outlog;
 extern FILE *errlog;
-extern int logstatus(const char *fmt, ...);
-extern int logerror(const char *fmt, ...);
+extern void logstatus(const char *fmt, ...);
+extern void logerror(const char *fmt, ...);
 extern void flushOutputLog();
 extern void flushErrorLog();
 
-extern int fastAndLoose;
+extern void log_testrun(char *testname);
+extern void log_testresult(int passed);
+
+/* Mutatee cleanup: PID registration */
+extern void setPIDFilename(char *pfn);
+extern char *getPIDFilename();
+extern void registerPID(int pid);
+
+
+extern int setupFortranOutput();
+extern int cleanupFortranOutput();
+
+extern char *executable_name;
+extern void setExecutableName(const char *new_name);
+extern int use_attach;
+extern void setUseAttach(int v);
+extern char *humanlog_name;
+extern int use_humanlog;
+extern void setHumanLog(const char *new_name);
+extern void printResultHumanLog(const char *testname, test_results_t result);
+
+/* Each mutatee defines testname as a global variable */
+#define REPORT_TEST_PASSED() \
+  do { \
+    if (use_humanlog) printResultHumanLog(testname, PASSED); \
+  } while (0)
+#define REPORT_TEST_SKIPPED() \
+  do { \
+    if (use_humanlog) printResultHumanLog(testname, SKIPPED); \
+  } while (0)
+#define REPORT_TEST_FAILED() \
+  do { \
+    if (use_humanlog) printResultHumanLog(testname, FAILED); \
+  } while (0)
 
 extern void stop_process_();
 
@@ -93,12 +208,21 @@ extern void schedYield();
 extern void *loadDynamicLibrary(char *name);
 extern void *getFuncFromDLL(void *libhandle, char *func_name);
 
+extern void test_passes(const char *testname);
+extern void test_fails(const char *testname);
+extern int verifyScalarValue(const char *name, int a, int value,
+			     const char *testName, const char *testDesc);
+
 #if !defined(P_sleep)
-#if defined(os_windows)
+#if defined(os_windows_test)
 #define P_sleep(sec) Sleep(1000*(sec))
 #else
 #define P_sleep(sec) sleep(sec)
 #endif
+#endif
+
+#ifdef __cplusplus
+} /* terminate extern "C" */
 #endif
 
 #endif /* _mutatee_util_h_ */

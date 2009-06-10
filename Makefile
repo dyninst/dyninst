@@ -23,21 +23,16 @@ ValueAdded = valueAdded/sharedMem
 testsuites = dyninstAPI/tests 
 allSubdirs_noinstall =
 
-
 ifndef DONT_BUILD_DYNINST
 fullSystem	+= $(DyninstAPI)
 Build_list	+= DyninstAPI
 endif
 
-ifndef DONT_BUILD_OLDTESTSUITE
-fullSystem	+= dyninstAPI/tests
-endif
-
 ifndef DONT_BUILD_NEWTESTSUITE
-testsuites += newtestsuite parseThat
-allSubdirs_noinstall += newtestsuite 
-fullSystem += newtestsuite parseThat
-Build_list += newtestsuite parseThat
+testsuites += testsuite parseThat
+allSubdirs_noinstall += testsuite 
+fullSystem += testsuite parseThat
+Build_list += testsuite parseThat
 endif
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI
@@ -163,7 +158,6 @@ $(allSubdirs):
 	fi
 
 $(allSubdirs_noinstall):
-	echo "***allSubdirs_noinstall***"
 	+@if [ -f $@/$(PLATFORM)/Makefile ]; then \
 		$(MAKE) -C $@/$(PLATFORM); \
 	elif [ -f $@/Makefile ]; then \
@@ -203,9 +197,9 @@ symtabAPI igen: common
 stackwalk: symtabAPI dynutil
 dyninstAPI: symtabAPI instructionAPI
 symtabAPI dyninstAPI: dynutil
-dyner codeCoverage dyninstAPI/tests testsuite newtestsuite: dyninstAPI
-newtestsuite: $(coreSubdirs_explicitInstall)
-newtestsuite: parseThat
+dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
+testsuite: $(coreSubdirs_explicitInstall)
+testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
 depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
@@ -236,9 +230,9 @@ umd-nightly:
 	$(MAKE) clean
 	$(MAKE) DyninstAPI ValueAdded
 
-# Used for nightly builds
+# Used for UW nightly builds
 nightly: DyninstAPI ValueAdded
-	$(MAKE) -C newtestsuite/$(PLATFORM) all
+	$(MAKE) -C testsuite/$(PLATFORM) all
 
 #nightly:
 #	$(MAKE) clean

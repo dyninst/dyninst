@@ -4,10 +4,7 @@
 #pragma implementation "Dictionary.h"
 #endif
 
-#include "Process_data.h"
 #include <vector>
-
-template class std::vector<Process_data>;
 
 // Templates used in test1_30.C
 template class std::vector<std::pair< unsigned long, unsigned long > >;

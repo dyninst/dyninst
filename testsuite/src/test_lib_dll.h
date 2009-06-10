@@ -14,6 +14,12 @@
 #pragma warning(disable:4275)
 #pragma warning(disable:4786)
 
+#ifdef COMPLIB_DLL_BUILD
+#define COMPLIB_DLL_EXPORT __declspec(dllexport)
+#else
+#define COMPLIB_DLL_EXPORT __declspec(dllimport)
+#endif
+
 #ifdef TESTLIB_DLL_BUILD
 // we are building the Testsuite DLL
 #define TESTLIB_DLL_EXPORT __declspec(dllexport)
@@ -22,12 +28,20 @@
 #define TESTLIB_DLL_EXPORT __declspec(dllimport)
 #define TEST_DLL_EXPORT __declspec(dllimport)
 
+
 #endif /* TESTLIB_DLL_BUILD */
+// Individual mutators should never be importing/imported
+#if !defined(DLLEXPORT)
+#define DLLEXPORT __declspec(dllexport)
+#endif
+
 #else
 
 // we are not building for a Windows target 
 #define TESTLIB_DLL_EXPORT
 #define TEST_DLL_EXPORT
+#define COMPLIB_DLL_EXPORT
+#define DLLEXPORT
 #endif /* _MSC_VER */
 
 #endif /* TEST_LIB_DLL_H */

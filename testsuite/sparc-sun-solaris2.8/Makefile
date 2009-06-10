@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.12 2007/08/08 03:04:01 rutar Exp $
+# $Id: Makefile,v 1.1 2008/05/08 20:53:41 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -82,24 +82,24 @@ endif
 endif
 endif
 
-TEST6_AS_GNU = gcc -c 
-TEST6_AS_SRC = test6LS-sparc.S
-TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
-TEST6_ASFLAGS_GNU = -P -Wa,-xarch=v8plus
+# TEST6_AS_GNU = gcc -c 
+# TEST6_AS_SRC = test6LS-sparc.S
+# TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
+# TEST6_ASFLAGS_GNU = -P -Wa,-xarch=v8plus
 
-CALL35_1_SRC = call35_1_sparc_solaris.s
+# CALL35_1_SRC = call35_1_sparc_solaris.s
 
 # see make.module.tmpl for a description of how this var is formatted
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 
 ifdef NATIVE_CC
 COMPILERT_NATIVE = $(shell $(NATIVE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS_NATIVE = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -Wa,-xarch=v8plus
+MUTATEE_CFLAGS_NATIVE = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -Wa,-xarch=v8plus -I../src
 endif
 
 ifdef NATIVE_CXX
 COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>&1 | head -1)
-MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -instances=static
+MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -instances=static -I../src
 endif
 
 MUTATEE_CFLAGS_GNU = $(MODCFLAGS) $(DEBUG_FLAG)
@@ -111,8 +111,10 @@ LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
 
+TESTDRIVER_LDFLAGS = -liberty
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBELF_LIB) -lelf -lstdc++ -lsocket -lrt -liberty -L$(LIBDWARF_LIB) -ldwarf 
+MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBELF_LIB) -lelf -lstdc++ -lsocket -lrt -L$(LIBDWARF_LIB) -ldwarf 
+

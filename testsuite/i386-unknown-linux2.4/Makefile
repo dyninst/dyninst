@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2008/09/15 18:37:50 jaw Exp $
+# $Id: Makefile,v 1.4 2008/05/30 20:29:28 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -10,8 +10,6 @@ USES_DWARF_DEBUG = true
 USES_LIBELF = true
 DEBUG_FLAG = -g
 
-CC = $(GCC)
-
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 include $(TO_CORE)/make.config 
@@ -21,6 +19,8 @@ include $(TO_CORE)/make.config
 #if M_G77 is defined, g77 mutatees will be built
 M_G77 = g77
 
+NATIVE_CC = gcc
+NATIVE_CXX = g++ 
 # there is no "native" or OS-provided compiler for Linux!
 # we use the Portland Group compilers, as that's what we've currently got
 # (in future we probably also want to test with the KAI/Intel compilers)
@@ -47,33 +47,31 @@ MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 COMMA=,
 MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
 MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
-MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c
+MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c -I../src
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
-MUTATOR_LIBS += -liberty -linstructionAPI
-MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF) -g 
-MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g
+MUTATOR_LIBS += -liberty
+MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF) -g -I../src
+MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g -I../src
 
 # Definitions used for test1 assembly
-TEST1_AS = gcc -c
-TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
-CALL35_1_SRC = call35_1_x86_linux.s
-
-# Definition used for test6 assembly
-NASM ?= nasm
-TEST6_AS_GNU = $(NASM)
-TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
-TEST6_AS_SRC = test6LS-x86.asm
-TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
+# TEST1_AS = gcc -c
+# TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
+# CALL35_1_SRC = call35_1_x86_linux.s
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 
-LIBS_LIBTESTSUITE = -ldl
+LIBS_LIBTESTSUITE = -ldl -lstdc++
 
 STRIP_SO = strip -g
 
-include ../make.module.tmpl
+# .PHONY: force_default
+# force_default: make.vars.gen all
+# force_default: solo_mutatees # FIXME This is a temporary entry
 
+TESTDRIVER_LDFLAGS = -liberty
+
+include ../make.module.tmpl

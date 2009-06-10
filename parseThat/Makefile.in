@@ -67,10 +67,10 @@ clean:
 	rm -f parseThat *.o *.so
 
 distclean: clean
-	rm -f *
+	rm Makefile
 
 ready:
-	@echo "Begin parseThat build for %(PLATFORM)"
+	@echo "Begin parseThat build for $(PLATFORM)"
 
 parseThat: $(OBJS)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)

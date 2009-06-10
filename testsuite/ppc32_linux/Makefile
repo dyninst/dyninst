@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/08/01 18:47:42 ssuen Exp $
+# $Id: Makefile,v 1.1 2008/05/08 20:53:29 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -83,6 +83,8 @@ MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
+
+TESTDRIVER_LDFLAGS = -liberty
 
 include ../make.module.tmpl
 
