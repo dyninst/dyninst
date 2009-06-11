@@ -262,73 +262,75 @@ void DatabaseOutputDriver::finalizeOutput() {
 // It writes the test results to a log file that can be read or later
 // resubmitted to the database
 void DatabaseOutputDriver::writeSQLLog() {
-	std::ofstream out;
-	out.open(sqlLogFilename.c_str(), std::ios::app);
+   static volatile int recursion_guard = 0;
+   assert(!recursion_guard);
+   recursion_guard = 1;
 
-	// 1. Write a test label to the file
+   FILE *out;
+   out = fopen(sqlLogFilename.c_str(), "a");
+
+   // 1. Write a test label to the file
 	time_t rawtime;
 	struct tm * timeinfo;
 
 	time(&rawtime);
 	timeinfo = localtime(&rawtime);
 
-	char * sqldate = new char[20];
-	//TODO handle malloc failure
-	sprintf(sqldate, "%4d-%02d-%02d %02d:%02d:%02d", timeinfo->tm_year + 1900,
-			timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour,
-			timeinfo->tm_min, timeinfo->tm_sec);
+   fprintf(out, "BEGIN TEST\n");
+	fprintf(out, "%4d-%02d-%02d %02d:%02d:%02d\n", timeinfo->tm_year + 1900,
+           timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour,
+           timeinfo->tm_min, timeinfo->tm_sec);
 
-	out << "BEGIN TEST\n" << sqldate << "\n{";
-
-	delete [] sqldate;
-
+   fprintf(out, "{");
 	std::map<std::string, std::string>::iterator iter;
 	for (iter = attributes->begin(); iter != attributes->end(); iter++) {
-		out << iter->first << ": " << iter->second;
+      fprintf(out, "%s: %s", iter->first.c_str(), iter->second.c_str());
 		std::map<std::string, std::string>::iterator testiter = iter;
 		if (++testiter != attributes->end()) {
-			out << ", ";
+			fprintf(out, ", ");
 		}
 	}
-	out << "}\n";
+	fprintf(out, "}\n");
 
-	// 2. Copy the contents of the dblog to the file
-	// open in 'b' mode has no effect on POSIX, only for windows to avoid ignoring \r
-	FILE * fh = fopen(dblogFilename.c_str(), "rb");
-	if (NULL == fh) {
-		fprintf(stderr, "[%s:%u] - Error opening file: %s\n", __FILE__, __LINE__, dblogFilename.c_str());
-		// TODO Handle error
+   std::string buf;
+	FILE *fh = fopen(dblogFilename.c_str(), "rb");
+	if (!fh) {
+		fprintf(stderr, "[%s:%u] - Error opening file: %s\n", 
+              __FILE__, __LINE__, dblogFilename.c_str());
 	}
-	fseek(fh, 0, SEEK_END);
-	long size = ftell(fh);
-	fseek(fh, 0, SEEK_SET);
-	char *buffer = new char[size + 1];
-	fread(buffer, sizeof(char), size, fh);
-	fclose(fh);
-	buffer[size] = '\0';
+   else {
+      fseek(fh, 0, SEEK_END);
+      long size = ftell(fh);
+      fseek(fh, 0, SEEK_SET);
+      char *buffer = new char[size + 1];
+      fread(buffer, sizeof(char), size, fh);
+      fclose(fh);
+      buffer[size] = '\0';
 
-	//remove trailing whitespace from buffer
-	std::string buf (buffer);
-	size_t found = buf.find_last_not_of(" \t\f\v\n\r");
-	
-	if (found != std::string::npos)
-		buf.erase(found + 1);
-	else
-		buf.clear();			//all whitespace
+      //remove trailing whitespace from buffer
+      buf = std::string(buffer);
+      size_t found = buf.find_last_not_of(" \t\f\v\n\r");
+      if (found != std::string::npos)
+         buf.erase(found + 1);
+      else
+         buf.clear();
 
-	out.write(buf.c_str(), buf.size());
-	delete [] buffer;
+      fprintf(out, buf.c_str());
+      delete [] buffer;
+   }
+   if (buf.rfind("RESULT:") == std::string::npos)
+      fprintf(out, "\nRESULT: %d", result);
+   fprintf(out, "\n\n");
+   
+   fflush(out);
+#if !defined(os_windows_test)
+   fsync(fileno(out)); //AIX is being stubborn about flushing
+#endif
+   fclose(out);
 
-	// 3. Write a result code to the file if one doesn't already exist
-	if (buf.rfind("RESULT:") == std::string::npos)
-		out << "\nRESULT: " << result;
-	out << "\n\n";
-   out.flush();
-	out.close();
-
-	// Clear the old dblog file
-	unlink(dblogFilename.c_str());
-	dblogFilename.clear();
+   unlink(dblogFilename.c_str());
+   dblogFilename.clear();
+   recursion_guard = 0;
 }
 
 void DatabaseOutputDriver::getMutateeArgs(std::vector<std::string> &args) {
