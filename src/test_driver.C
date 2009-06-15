@@ -115,7 +115,6 @@ compiler_t compilers[] = {
 int optLevel = opt_none;
 bool runDefaultOpts = true;
 bool runAllTests = true;
-bool ranLastTest = false;
 bool runAllMutatees = true;
 bool runDefaultCompilers = true;
 bool runAllCompilers = false;
@@ -139,6 +138,9 @@ bool measureMEMCPU = false;
 bool runAllABIs = true;
 bool runABI_32 = false;
 bool runABI_64 = false;
+bool limitSkippedTests = false;
+int limitResumeGroup = -1;
+int limitResumeTest = -1;
 int skipToTest = 0;
 int skipToMutatee = 0;
 int skipToOption = 0;
@@ -586,6 +588,32 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
 #endif
 
    parse_resumelog(groups);
+
+   if (testLimit) {
+      int test_run = 0;
+      for (unsigned  i = 0; i < groups.size(); i++) 
+      {
+         if (groups[i]->disabled)
+            continue;
+         for (unsigned j=0; j<groups[i]->tests.size(); j++) 
+         {
+            if (groups[i]->tests[j]->disabled)
+               continue;
+            if (test_run < testLimit) {
+               test_run++;
+               continue;
+            }
+
+            groups[i]->tests[j]->disabled = true;
+            if (!limitSkippedTests) {
+               limitSkippedTests = true;
+               limitResumeGroup = i;
+               limitResumeTest = j;
+            }
+         }      
+      }
+   }
+
    for (unsigned  i = 0; i < groups.size(); i++) {
       if (groups[i]->disabled)
          continue;
@@ -640,7 +668,6 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    param["useAttach"] = &createmode_prm;
    param["customExecution"] = &customexecution_prm;
    param["selfStart"] = &selfstart_prm;
-   
 
    for (unsigned i=0; i<group->tests.size(); i++)
    {
@@ -857,10 +884,6 @@ void startAllTests(std::vector<RunGroup *> &groups,
       //If we fail then have the log resume us at this group
       log_resumepoint(i, 0);
 
-      if (testLimit && testsRun >= testLimit) {
-         break;
-      }
-
       initModuleIfNecessary(groups[i], groups, param);
 
       // Print mutatee (run group) header
@@ -882,8 +905,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
          }
       }
    }
-   if (i==groups.size())
-      ranLastTest = true;
+
    unsigned final_group = i;
    
    for (i = 0; i < final_group; i++) {
@@ -905,10 +927,12 @@ void startAllTests(std::vector<RunGroup *> &groups,
      mod->setInitialized(false);
    }
 
-   if (ranLastTest)
+   if (limitSkippedTests) {
+      log_resumepoint(limitResumeGroup, limitResumeTest);
+   } else {
       log_clear();
-   else 
-      log_resumepoint(final_group, 0);   
+   }
+      
 
    measureEnd();
 
@@ -1061,6 +1085,19 @@ void updateSearchPaths(const char *filename) {
 #endif
 }
 
+bool testsRemain(std::vector<RunGroup *> &groups)
+{
+   for (unsigned  i = 0; i < groups.size(); i++) {
+      if (groups[i]->disabled)
+         continue;
+      for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+         if (shouldRunTest(groups[i], groups[i]->tests[j]))
+            return true;
+      }
+   }
+   return false;
+}
+
 int main(int argc, char *argv[]) {
    updateSearchPaths(argv[0]);
 
@@ -1096,7 +1133,7 @@ int main(int argc, char *argv[]) {
    }
    fflush(stdout);
 
-   if (testsRun == 0 || ranLastTest)
+   if (!testsRemain(tests) && !limitSkippedTests)
       return NOTESTS;
    return 0;
 }
