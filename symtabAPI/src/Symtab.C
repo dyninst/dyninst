@@ -2276,11 +2276,11 @@ SYMTAB_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) c
    return false;
 }
 
-SYMTAB_EXPORT bool Symtab::updateCode(void *buffer, unsigned size)
+SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)
 {
    Region *sec;
 
-   if (!findRegion(sec, ".text"))
+   if (!findRegion(sec, name))
       return false;
 
    sec->setPtrToRawData(buffer, size);
@@ -2288,16 +2288,14 @@ SYMTAB_EXPORT bool Symtab::updateCode(void *buffer, unsigned size)
    return true;
 }
 
+SYMTAB_EXPORT bool Symtab::updateCode(void *buffer, unsigned size)
+{
+  return updateRegion(".text", buffer, size);
+}
+
 SYMTAB_EXPORT bool Symtab::updateData(void *buffer, unsigned size)
 {
-   Region *sec;
-
-   if (!findRegion(sec, ".data"))
-      return false;
-
-   sec->setPtrToRawData(buffer, size);
-
-   return true;
+  return updateRegion(".data", buffer, size);
 }
 
 SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size) 

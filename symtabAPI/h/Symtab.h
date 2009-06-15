@@ -244,6 +244,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT std::string getDynLibSubstitution(std::string name);
 
    SYMTAB_EXPORT bool getSegments(std::vector<Segment> &segs) const;
+   SYMTAB_EXPORT bool updateRegion(const char* name, void *buffer, unsigned size);
    SYMTAB_EXPORT bool updateCode(void *buffer, unsigned size);
    SYMTAB_EXPORT bool updateData(void *buffer, unsigned size);
    SYMTAB_EXPORT Offset getFreeOffset(unsigned size);
