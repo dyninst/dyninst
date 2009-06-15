@@ -2075,33 +2075,22 @@ void Object::parseTypeInfo(Symtab *obj)
             }
          }
          currentSourceFile = std::string(moduleName);
-         if(!obj->findModuleByName(mod, currentSourceFile))
-         {
-	   if(!obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile))) {
-               parseActive = false;
-	   }else{
-               parseActive = true;
-               // Clear out old types
-               mod->getModuleTypesPrivate()->clearNumberedTypes();
-            }
+         mod->getModuleTypesPrivate()->clearNumberedTypes();
+         if(!obj->findModuleByName(mod, currentSourceFile) && 
+            !obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile)))
+         {            
+               mod = NULL;
          }
-         else{
-            parseActive = true;
-            // Clear out old types
-            mod->getModuleTypesPrivate()->clearNumberedTypes();
-         }
-
-         //TODO? check for process directories??
-         //currentSourceFile = mod->processDirectories(currentSourceFile);
-
       }
-      if (!parseActive) continue;
+
+      if (!mod)
+         mod = obj->getDefaultModule();
 
       //num_active++;
       char *nmPtr;
       if (!sym->n_zeroes32 && ((sym->n_sclass & DBXMASK) ||
-               (sym->n_sclass == C_BINCL) ||
-               (sym->n_sclass == C_EINCL))) {
+                               (sym->n_sclass == C_BINCL) ||
+                               (sym->n_sclass == C_EINCL))) {
          long sym_offset = (is64_ ? sym->n_offset64 : sym->n_offset32);
 
          // Symbol name stored in STABS, not string pool.
