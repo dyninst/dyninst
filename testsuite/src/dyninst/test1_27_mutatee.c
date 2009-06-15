@@ -80,7 +80,7 @@ test1_27_type2 test1_27_dummy2;
 test1_27_type3 test1_27_dummy3;
 test1_27_type4 test1_27_dummy4;
 
-int test1_27_globalVariable1 = 0;
+int test1_27_globalVariable1 = -1;
 
 /* Note for future reference: -Wl,-bgcbypass:3 is NECESSARY for
    compilation (gcc) on AIX. Damn efficient linkers. */

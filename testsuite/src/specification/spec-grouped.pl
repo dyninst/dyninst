@@ -424,7 +424,7 @@ test_description('test1_27', 'Type compatibility').
 test_runs_everywhere('test1_27').
 groupable_test('test1_27').
 mutator('test1_27', ['test1_27.C']).
-test_runmode('test1_27', 'dynamic').
+test_runmode('test1_27', 'staticdynamic').
 test_start_state('test1_27', 'stopped').
 tests_module('test1_27', 'dyninst').
 
