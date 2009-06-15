@@ -17,7 +17,7 @@ bool getNext_BatchFile();
 
 void configInit()
 {
-    const char *homedir;
+    const char *outdir;
 
     /* Propogate config structure with default values. */
     config.transMode = TRANS_NONE;
@@ -64,19 +64,11 @@ void configInit()
 
     config.binary_args = NULL;
 
-    homedir = getenv("HOME");
-    if (!homedir) {
-	config.record_dir[0] = '\0';
-	config.pipe_filename[0] = '\0';
-    } else {
-	if (homedir[ strlen(homedir) - 1 ] == '/') {
-	    snprintf(config.record_dir, sizeof(config.record_dir), "%s%s", homedir, HISTORY_RECORD_DIR_DEFAULT);
-	    snprintf(config.pipe_filename, sizeof(config.pipe_filename), "%spipe-%d", homedir, (int)getpid());
-	} else {
-	    snprintf(config.record_dir, sizeof(config.record_dir), "%s/%s", homedir, HISTORY_RECORD_DIR_DEFAULT);
-	    snprintf(config.pipe_filename, sizeof(config.pipe_filename), "%s/pipe-%d", homedir, (int)getpid());
-	}
-    }
+    outdir = "/tmp";
+    snprintf(config.record_dir, sizeof(config.record_dir), "%s/%s", 
+             outdir, HISTORY_RECORD_DIR_DEFAULT);
+    snprintf(config.pipe_filename, sizeof(config.pipe_filename), "%s/pipe-%d", 
+             outdir, (int)getpid());
     config.curr_rec = record_init();
 }
 
