@@ -1017,8 +1017,6 @@ private:
   traceState_t getTraceState() { return traceState_; }
   Address getlibcstartmain_brk_addr() { return libcstartmain_brk_addr; }
 
-  virtual bool canUseTraps() { return true; }
-
  private:
   bool getSysCallParameters(dyn_saved_regs *regs, long *params, int numparams);
   int getSysCallNumber(dyn_saved_regs *regs);

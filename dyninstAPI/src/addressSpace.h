@@ -367,7 +367,8 @@ class AddressSpace : public InstructionSource {
     void updateObservedCostAddr(Address addr) { costAddr_ = addr;}
 
     // Can we use traps if necessary?
-    virtual bool canUseTraps() = 0;
+    bool canUseTraps();
+    void setUseTraps(bool usetraps);
 
  protected:
 
@@ -383,6 +384,7 @@ class AddressSpace : public InstructionSource {
     void inferiorMallocAlign(unsigned &size);
 
     bool heapInitialized_;
+    bool useTraps_;
     inferiorHeap heap_;
 
     // Text sections (including added - instrumentation)

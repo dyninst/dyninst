@@ -136,8 +136,6 @@ class BinaryEdit : public AddressSpace {
 
     bool writeFile(const std::string &newFileName);
     
-    virtual bool canUseTraps() { return true; }
-
     // resolve a dynamic library name to a full path
     // returns NULL if the library cannot be found
     std::string resolveLibraryName(std::string filename);
