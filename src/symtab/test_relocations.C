@@ -271,8 +271,6 @@ test_results_t test_relocations_Mutator::executeTest()
 		{
 			if (relocs[j].name() == expected_relocs[i])
 			{
-				fprintf(stderr, "%s[%d]:  found expected reloc %s\n", FILE__, __LINE__, 
-						relocs[j].name().c_str());
 				foundit = true;
 				num_found++;
 				break;
