@@ -151,10 +151,6 @@ mutatee('symtab_group_test', [
    ]).
 compiler_for_mutatee('symtab_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
-
-mutatee('symtab_cxx_group_test', [
-	'test_exception_mutatee.C'
-   ]).
 compiler_for_mutatee('symtab_cxx_group_test', Compiler) :-
     comp_lang(Compiler, 'c++').
 
@@ -2140,7 +2136,9 @@ tests_module('test_module', 'symtab').
 
 test('test_relocations', 'test_relocations', 'symtab_group_test').
 test_description('test_relocations', 'SymtabAPI relocation table parsing').
-test_runs_everywhere('test_relocations').
+test_platform('test_symtab_ser_funcs', Platform) :-
+    platform(_, OS, _, Platform),
+    member(OS, ['linux']).
 groupable_test('test_relocations').
 mutator('test_relocations', ['test_relocations.C']).
 test_runmode('test_relocations', 'createProcess').
@@ -2159,7 +2157,9 @@ tests_module('test_type_info', 'symtab').
 
 test('test_symtab_ser_funcs', 'test_symtab_ser_funcs', 'symtab_group_test').
 test_description('test_symtab_ser_funcs', 'Base SymtabAPI seialization function sanity checks').
-test_runs_everywhere('test_symtab_ser_funcs').
+test_platform('test_symtab_ser_funcs', Platform) :-
+    platform(_, OS, _, Platform),
+    member(OS, ['linux']).
 groupable_test('test_symtab_ser_funcs').
 mutator('test_symtab_ser_funcs', ['test_symtab_ser_funcs.C']).
 test_runmode('test_symtab_ser_funcs', 'createProcess').
@@ -2176,9 +2176,8 @@ test_runmode('test_anno_basic_types', 'createProcess').
 test_start_state('test_anno_basic_types', 'stopped').
 tests_module('test_anno_basic_types', 'symtab').
 
-test('test_exception', 'test_exception', 'symtab_cxx_group_test').
+test('test_exception', 'test_exception', 'test_exception').
 test_description('test_exception', 'SymtabAPI C++ Exception detection and sanity checks').
-%test_runs_everywhere('test_exception').
 groupable_test('test_exception').
 mutator('test_exception', ['test_exception.C']).
 test_runmode('test_exception', 'createProcess').
@@ -2187,6 +2186,9 @@ tests_module('test_exception', 'symtab').
 test_platform('test_exception', 'i386-unknown-linux2.4').
 test_platform('test_exception', 'i386-unknown-linux2.6').
 test_platform('test_exception', 'x86_64-unknown-linux2.4').
+mutatee('test_exception', ['test_exception_mutatee.C']).
+compiler_for_mutatee('test_exception', Compiler) :-
+   member(Compiler, ['g++', 'iCC']).
 
 % instructionAPI tests
 test('test_instruction_read_write', 'test_instruction_read_write', none).
@@ -2772,7 +2774,7 @@ module_requires_libs(Modules, Output) :-
 % Those with no specific requirements dont require specific libraries
 mutator_requires_libs(Mutator, []) :-
 	mutator(Mutator, _),
-	test(Name, Mutator, _),
+	test(_, Mutator, _),
 	\+ mutator_requires_libs(Mutator, [_|_]).
 
 % Mutatee Defns
@@ -2878,7 +2880,7 @@ mutatee_peers(M, P) :-
 %
 test_platform_abi(Test, Platform, ABI) :-
     test_platform(Test, Platform), platform_abi(Platform, ABI),
-        platform(Arch, OS, _, Platform),
+        platform(Arch, _, _, Platform),
         (
         % If restricted_abi_for_arch is specified, follow its restrictions
             restricted_abi_for_arch(Test, Arch, ABI);
