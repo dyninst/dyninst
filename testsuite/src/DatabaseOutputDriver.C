@@ -143,52 +143,6 @@ void DatabaseOutputDriver::finalizeOutput() {
 		return; // Only submit results for a test once
 	}
 
-
-
-/*	// Read result text from database log
-	std::stringstream resultStream;
-	std::ifstream logFile;
-	// enforce binary read mode for windows' carriage returns
-	logFile.open(dblogFilename.c_str(), std::ifstream::in & std::ifstream::binary);
-	long count;
-
-	logFile.seekg(0, std::ifstream::end);
-	count = logFile.tellg();
-	logFile.seekg(0);
-	char *buffer = new char[count];
-	if (NULL == buffer) {
-		fprintf(stderr, "[%s:%u] - Out of memory!\n", __FILE__, __LINE__);
-		// TODO Handle error;
-	}
-	logFile.read(buffer, count);
-	resultStream.write(buffer, count);
-	delete [] buffer;
-	buffer = NULL;
-	logFile.close();
-
-	// If result == UNKNOWN, there may be a line in the database log of the form
-	// RESULT: <code>
-	// with the results of this test.
-	// This would be the case when the mutatee writes to the log file and
-	// test_driver has no knowledge of the result
-	if (UNKNOWN == result) {
-		// Find RESULT: text
-		std::string::size_type index =
-			resultStream.str().rfind("RESULT: ", resultStream.str().size());
-		if (index != std::string::npos) {
-			// Found it.  Now I need to extract the result code
-			const char *resultString = resultStream.str().substr(index).c_str();
-			test_results_t res;
-			int count;
-			count = sscanf(resultString, "RESULT: %d", &res);
-			if (count != 1) {
-				// TODO Handle error reading result
-			} else {
-				result = res;
-			}
-		}
-	}*/
-
 	//write the header if necessary
 	if (!wroteLogHeader) {
 		// get hostname and username for log header
@@ -268,6 +222,7 @@ void DatabaseOutputDriver::writeSQLLog() {
 
    FILE *out;
    out = fopen(sqlLogFilename.c_str(), "a");
+   assert(out);
 
    // 1. Write a test label to the file
 	time_t rawtime;
@@ -323,9 +278,6 @@ void DatabaseOutputDriver::writeSQLLog() {
    fprintf(out, "\n\n");
    
    fflush(out);
-#if !defined(os_windows_test)
-   fsync(fileno(out)); //AIX is being stubborn about flushing
-#endif
    fclose(out);
 
    unlink(dblogFilename.c_str());
