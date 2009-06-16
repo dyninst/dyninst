@@ -214,12 +214,12 @@ class depRelocation {
 class memoryTracker : public codeRange {
  public:
     memoryTracker(Address a, unsigned s) :
-        alloced(false), a_(a), s_(s) {
+        alloced(false),  dirty(false), a_(a), s_(s) {
         b_ = malloc(s_);
     }
 
     memoryTracker(Address a, unsigned s, void *b) :
-        alloced(false), a_(a), s_(s) 
+    alloced(false), dirty(false), a_(a), s_(s)
         {
             b_ = malloc(s_);
             memcpy(b_, b, s_);
@@ -236,11 +236,13 @@ class memoryTracker : public codeRange {
     }
 
     bool alloced;
+    bool dirty;
 
  private:
     Address a_;
     unsigned s_;
     void *b_;
+    
 };
 
 #endif // BINARY_H

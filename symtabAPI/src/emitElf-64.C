@@ -454,7 +454,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
 	}
 
     }
-		
+
     if(obj->getObject()->getStrtabAddr() != 0 &&
        obj->getObject()->getStrtabAddr() == shdr->sh_addr)
       {
@@ -1323,7 +1323,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
   // build new .hash section
   Elf64_Word *hashsecData;
   unsigned hashsecSize = 0;
-  createHashSection(hashsecData, hashsecSize, dynsymVector);
+  createHashSection(obj, hashsecData, hashsecSize, dynsymVector);
   if(hashsecSize) {
     string name; 
     if (secTagRegionMapping.find(DT_HASH) != secTagRegionMapping.end()) {
@@ -1617,8 +1617,45 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
   return;
 }
 
-void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
+void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
 {
+
+  /* Save the original hash table entries */
+  std::vector<unsigned> originalHashEntries;
+  unsigned dynsymSize = obj->getObject()->getDynsymSize();
+  
+  Elf_Scn *scn = NULL;
+  Elf64_Shdr *shdr = NULL;
+  for (unsigned scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+    shdr = elf64_getshdr(scn);
+    if(obj->getObject()->getElfHashAddr() != 0 &&
+       obj->getObject()->getElfHashAddr() == shdr->sh_addr){
+      Elf_Data *hashData = elf_getdata(scn,NULL);
+      Elf64_Word *oldHashSec = (Elf64_Word *) hashData->d_buf;
+      unsigned original_nbuckets, original_nchains;
+      original_nbuckets =  oldHashSec[0];
+      original_nchains = oldHashSec[1];
+      for (unsigned i = 0; i < original_nbuckets+original_nchains; i++) {
+	if ( oldHashSec[2+i] != 0) {
+		originalHashEntries.push_back( oldHashSec[2+i]);
+		//printf(" ELF HASH pushing hash entry %d \n", oldHashSec[2+i] );
+	}
+      }
+    }
+
+    if(obj->getObject()->getGnuHashAddr() != 0 &&
+       obj->getObject()->getGnuHashAddr() == shdr->sh_addr){
+      Elf_Data *hashData = elf_getdata(scn,NULL);
+      Elf64_Word *oldHashSec = (Elf64_Word *) hashData->d_buf;
+      unsigned symndx = oldHashSec[1];
+      if (dynsymSize != 0)
+      	for (unsigned i = symndx; i < dynsymSize ; i++) {
+		originalHashEntries.push_back(i);
+		//printf(" GNU HASH pushing hash entry %d \n", i);
+	}
+      }
+  }
+
   vector<Symbol *>::iterator iter;
   dyn_hash_map<unsigned, unsigned> lastHash; // bucket number to symbol index
   unsigned nbuckets = (unsigned)dynSymbols.size()*2/3;
@@ -1638,7 +1675,11 @@ void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSiz
   i = 0;
   for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
     if((*iter)->getName().empty()) continue;
-    if((*iter)->getRegion() == NULL) continue;    
+    unsigned index = (*iter)->getIndex();
+    if ((find(originalHashEntries.begin(),originalHashEntries.end(),index) == originalHashEntries.end()) && 
+	(index < obj->getObject()->getDynsymSize())) {
+	continue;
+    }
     key = elfHash((*iter)->getName().c_str()) % nbuckets;
     //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
     if (lastHash.find(key) != lastHash.end()) {
