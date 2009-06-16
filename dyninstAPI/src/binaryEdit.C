@@ -95,8 +95,6 @@ bool BinaryEdit::writeTextSpace(void *inOther,
        // Look up this address in the code range tree of memory
        codeRange *range = NULL;
        if (!memoryTracker_->find(addr, range)) {
-	 fprintf(stderr, "Couldn't find address %x in memory tracker, aborting\n", addr);
-          assert(0);
           return false;
        }
        
