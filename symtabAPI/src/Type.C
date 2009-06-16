@@ -1057,8 +1057,8 @@ void typeUnion::merge(Type *other) {
       return;
    }
 
-   // Merging is only for forward references
-   assert(!fieldList.size());
+   if (!fieldList.size())
+      return;
 
    if (otherunion->name_ != "")
       name_ = std::string(otherunion->name_);
