@@ -802,8 +802,7 @@ def format_test_defines(test):
    line = 'extern int ' + test + '_mutatee();\n'
    return line
 
-def write_group_mutatee_boilerplate_file(filename, group):
-   tests = group['tests']
+def write_group_mutatee_boilerplate_file(filename, tests):
    out = open(filename, "w")
    out.write("#ifdef __cplusplus\n")
    out.write('extern "C" {\n')
@@ -825,19 +824,20 @@ def write_group_mutatee_boilerplate_file(filename, group):
    out.close()
 
 
-def accumulate_groups_if_equal(acc, g):
-   if(acc == []):
-      return [g]
-   duplicates = filter(lambda x: x['mutatee'] == g['mutatee'] and x['tests'] == g['tests'], acc)   
-   if(duplicates == []):
-      acc.append(g)
+def accumulate_tests_by_mutatee(acc, g):
+   if g['mutatee'] in acc:
+      acc[g['mutatee']] = acc[g['mutatee']] | set(g['tests']);
+   else:
+      acc.update([(g['mutatee'], set(g['tests']))])
    return acc
+
 
 def write_group_mutatee_boilerplate(filename_pre, filename_post, tuplefile):
    read_tuples(tuplefile)
    groups = filter(lambda g: len(g['tests']) > 25, info['rungroups'])
-   groups = reduce(accumulate_groups_if_equal, groups, [])
-   map(lambda g: write_group_mutatee_boilerplate_file(filename_pre + g['mutatee'] + filename_post, g), groups) 
+   tests_by_group = reduce(accumulate_tests_by_mutatee, groups, {})
+   for mutatee, tests in tests_by_group.iteritems():
+      write_group_mutatee_boilerplate_file(filename_pre + mutatee + filename_post, tests)
 
 
 # Main function for generating make.solo_mutatee.gen
