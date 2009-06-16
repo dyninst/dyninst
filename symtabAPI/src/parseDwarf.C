@@ -2657,9 +2657,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
 
 				if (!objFile->findModuleByName(mod, modName)) 
 				{
-					dwarf_printf("%s[%d]: could not find module by name %s or %s, skipping...\n",
-							__FILE__, __LINE__, modName.c_str(), fName.c_str());
-					continue;
+               mod = objFile->getDefaultModule();
 				}
 			}
 		}
