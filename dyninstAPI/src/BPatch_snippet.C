@@ -1452,7 +1452,10 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
 
   if (size) {
       if (!lladdrSpace->writeDataSpace(address, size, src)) {
-          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+	std::stringstream errorMsg;
+	errorMsg << "variable " << name << " in .bss section, cannot write";
+	BPatch_reportError(BPatchWarning, 109, errorMsg.str().c_str());
+	return false;
       }          
       return true;
   }
@@ -1481,7 +1484,10 @@ bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /*
   }
 
   if (!lladdrSpace->writeDataSpace(address, len, src)) {
-      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+    std::stringstream errorMsg;
+    errorMsg << "variable " << name << " in .bss section, cannot write";
+    BPatch_reportError(BPatchWarning, 109, errorMsg.str().c_str());
+    return false;
   }          
   return true;
 }

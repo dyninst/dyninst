@@ -246,6 +246,9 @@ namespace Dyninst
       },
       {
 	r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15
+      },
+      {
+       r_AL, r_CL, r_DL, r_BL, r_SPL, r_BPL, r_SIL, r_DIL
       }
       
     };
@@ -265,10 +268,14 @@ namespace Dyninst
       switch(opType)
       {
       case op_b:
-	return IntelRegTable[0][intelReg];
-	  case op_q:
+     	if (locs->rex_position == -1) {
+		 return IntelRegTable[0][intelReg];
+	} else {
+		return IntelRegTable[11][intelReg];
+	}	
+      case op_q:
 	return IntelRegTable[4][intelReg];
-	  case op_d:
+      case op_d:
       case op_si:
       case op_w:
       default:

@@ -129,6 +129,10 @@ namespace Dyninst
       (r_R13, RegInfo(u64, "R13"))
       (r_R14, RegInfo(u64, "R14"))
       (r_R15, RegInfo(u64, "R15"))
+      (r_SPL, RegInfo(u8, "SPL"))
+      (r_BPL, RegInfo(u8, "BPL"))
+      (r_SIL, RegInfo(u8, "SIL"))
+      (r_DIL, RegInfo(u8, "DIL"))
 #endif
       (r_EFLAGS, RegInfo(u32, "EFLAGS"))
       (r_ALLGPRS, RegInfo(u32, "ALLGPRS_PSEUDOREGISTER"));

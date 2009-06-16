@@ -796,3 +796,13 @@ bool BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload
 	return false;
 }
 
+void BPatch_addressSpace::allowTrapsInt(bool allowtraps)
+{
+   std::vector<AddressSpace *> as;
+   getAS(as);
+   
+   for (std::vector<AddressSpace *>::iterator i = as.begin(); i != as.end(); i++)
+   {
+      (*i)->setUseTraps(allowtraps);
+   }
+}

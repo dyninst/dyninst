@@ -8,14 +8,9 @@
  * keyword static so they don't interfere with other mutatees in the group.
  */
 
-/* Global variables used internally by the mutatee.  These should be declared
- * with the keyword static so they don't interfere with other mutatees in the
- * group.
- */
-
 static volatile int _unused; /* move decl here to dump compiler warning - jkh */
 
-static volatile int gv_scsv1 = 0;
+volatile int gv_scsv1 = 0;
 
 int scsv1(int x)
 {

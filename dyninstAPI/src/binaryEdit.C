@@ -96,7 +96,6 @@ bool BinaryEdit::writeTextSpace(void *inOther,
        // Look up this address in the code range tree of memory
        codeRange *range = NULL;
        if (!memoryTracker_->find(addr, range)) {
-          assert(0);
           return false;
        }
        
@@ -120,10 +119,14 @@ bool BinaryEdit::writeTextSpace(void *inOther,
        assert(offset < range->get_size());
        
        void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
-       //inst_printf("Copying to 0x%lx [base=0x%lx] from 0x%lx (%d bytes)  target=0x%lx  offset=0x%lx\n", 
-              //local_ptr, range->get_local_ptr(), local, chunk_size, addr, offset);
+       inst_printf("Copying to 0x%lx [base=0x%lx] from 0x%lx (%d bytes)  target=0x%lx  offset=0x%lx\n", 
+              local_ptr, range->get_local_ptr(), local, chunk_size, addr, offset);
        //range->print_range();
        memcpy(local_ptr, (void *)local, chunk_size);
+       memoryTracker* mt = dynamic_cast<memoryTracker*>(range);
+       assert(mt);
+       mt->dirty = true;
+       
        to_do -= chunk_size;
        addr += chunk_size;
        local += chunk_size;
@@ -376,28 +379,36 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 
       Symtab *symObj = mobj->parse_img()->getObject();
 
-      vector<Segment> oldSegs;
-      symObj->getSegments(oldSegs);
+      vector<Region*> oldSegs;
+      symObj->getAllRegions(oldSegs);
 
-      vector<Segment> newSegs = oldSegs;
+      //vector<Region*> newSegs = oldSegs;
 
       //Write any traps to the mutatee
       trapMapping.shouldBlockFlushes(false);
       trapMapping.flush();
 
       // Now, we need to copy in the memory of the new segments
-      for (unsigned i = 0; i < newSegs.size(); i++) {
+      for (unsigned i = 0; i < oldSegs.size(); i++) {
          codeRange *segRange = NULL;
-         if (!memoryTracker_->find(newSegs[i].loadaddr, segRange)) {
+         if (!memoryTracker_->find(oldSegs[i]->getRegionAddr(), segRange)) {
+#if 0
             // Looks like BSS
             if (newSegs[i].name == ".bss")
+#endif
                continue;
             //inst_printf (" segment name: %s\n", newSegs[i].name.c_str());
-            assert(0);
+            //assert(0);
          }
          //inst_printf(" ==> memtracker: Copying to 0x%lx from 0x%lx\n", 
          //newSegs[i].loadaddr, segRange->get_local_ptr());
-         newSegs[i].data = segRange->get_local_ptr();
+	 memoryTracker* mt = dynamic_cast<memoryTracker*>(segRange);
+	 assert(mt);
+	 if(mt->dirty) {
+	   oldSegs[i]->setPtrToRawData(segRange->get_local_ptr(), oldSegs[i]->getRegionSize());
+	 }
+	 
+         //newSegs[i].data = segRange->get_local_ptr();
       }
 
       // Okay, that does it for the old stuff.
@@ -515,21 +526,24 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // First, text
       assert(symObj);
         
+#if 0
       for (unsigned i = 0; i < oldSegs.size(); i++) {
          if (oldSegs[i].data != newSegs[i].data) {
-            //inst_printf("Data not equivalent, %d, %s  load=0x%lx\n", 
-            //i, oldSegs[i].name.c_str(), oldSegs[i].loadaddr);
-            if (oldSegs[i].name == ".text") {
+            inst_printf("Data not equivalent, %d, %s  load=0x%lx\n", 
+			i, oldSegs[i].name.c_str(), oldSegs[i].loadaddr);
+	    
+            if (oldSegs[i].name == ".text" || 
+		memcmp(oldSegs[i].data, newSegs[i].data, oldSegs[i].size < newSegs[i].size ? oldSegs[i].size : newSegs[i].size)) {
             //if ((oldSegs[i].name == ".text") 
              //|| (oldSegs[i].name == ".data")) {
                //inst_printf("  TEXT SEGMENT: old-base=0x%lx  old-size=%d  new-base=0x%lx  new-size=%d\n",
                //oldSegs[i].data, oldSegs[i].size, newSegs[i].data, newSegs[i].size);
-               symObj->updateCode(newSegs[i].data,
+               symObj->updateRegion(oldSegs[i].name.c_str(), newSegs[i].data,
                                   newSegs[i].size);
             }
          }
       }
-        
+#endif        
 
       // And now we generate the new binary
       //if (!symObj->emit(newFileName.c_str())) {
@@ -585,11 +599,8 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
     // binary so that we can store updates.
 
     Symtab *symObj = obj->parse_img()->getObject();
-    /*
-    vector<Segment> segs;
-    symObj->getSegments(segs);*/
-	vector<Region*> regs;
-	symObj->getAllRegions(regs);
+    vector<Region*> regs;
+    symObj->getAllRegions(regs);
 
    for (unsigned i = 0; i < regs.size(); i++) {
       memoryTracker *newTracker = NULL;

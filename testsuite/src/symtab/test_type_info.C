@@ -62,8 +62,9 @@ class test_type_info_Mutator : public SymtabMutator {
    bool verify_type_subrange(typeSubrange *t);
    bool verify_type_array(typeArray *t, int * = NULL, int * = NULL, std::string * = NULL);
    bool verify_type_struct(typeStruct *t, 
-		   std::vector<std::pair<std::string, std::string> > * = NULL, 
-		   std::vector<std::pair<std::string, std::string> > * = NULL);
+             std::vector<std::pair<std::string, std::string> > * = NULL, 
+             std::vector<std::pair<std::string, std::string> > * = NULL,
+             std::vector<std::pair<std::string, std::string> > * = NULL);
    bool verify_type_union(typeUnion *t, 
 		   std::vector<std::pair<std::string, std::string> > * = NULL, 
 		   std::vector<std::pair<std::string, std::string> > * = NULL);
@@ -72,6 +73,7 @@ class test_type_info_Mutator : public SymtabMutator {
    bool verify_field(Field *f);
    bool verify_field_list(fieldListType *t, 
 		   std::vector<std::pair<std::string, std::string> > * = NULL, 
+         std::vector<std::pair<std::string, std::string> > * = NULL,
 		   std::vector<std::pair<std::string, std::string> > * = NULL);
 
    bool got_type_enum;
@@ -404,7 +406,8 @@ bool test_type_info_Mutator::verify_field(Field *f)
 
 bool test_type_info_Mutator::verify_field_list(fieldListType *t, 
 		std::vector<std::pair<std::string, std::string> > *comps, 
-		std::vector<std::pair<std::string, std::string> > *efields)
+      std::vector<std::pair<std::string, std::string> > *efields,
+      std::vector<std::pair<std::string, std::string> > *afields)
 {
 	std::string &tn = t->getName();
 
@@ -520,19 +523,26 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 				//}
 
 				std::string expected_fieldname = 
-					(expected_fields.size() > i) ? expected_fields[i].first 
-					: std::string("range_error");
-				std::string expected_fieldtypename = 
 					(expected_fields.size() > i) ? expected_fields[i].second 
 					: std::string("range_error");
-				if (fieldtypename != expected_fieldname)
+				std::string expected_fieldtypename = 
+					(expected_fields.size() > i) ? expected_fields[i].first 
+					: std::string("range_error");
+            std::string alternate_fieldname = 
+               (afields && afields->size() > i) ? (*afields)[i].second : "range_error";
+            std::string alternate_fieldtypename = 
+               (afields && afields->size() > i) ? (*afields)[i].first : "range_error";
+
+				if (fieldtypename != expected_fieldtypename &&
+                fieldtypename != alternate_fieldtypename)
 				{
 					fprintf(stderr, "%s[%d]:  Field type '%s', not expected '%s'\n", FILE__,
 							__LINE__, fieldtypename.c_str(), expected_fieldname.c_str());
 					err = true;
 				}
 
-				if (fieldname != expected_fieldtypename)
+				if (fieldname != expected_fieldname &&
+                fieldname != alternate_fieldname)
 				{
 					fprintf(stderr, "%s[%d]:  Field type '%s' not expected '%s'\n", FILE__,
 							__LINE__, fieldname.c_str(), expected_fieldtypename.c_str());
@@ -550,14 +560,15 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 
 bool test_type_info_Mutator::verify_type_struct(typeStruct *t, 
 		std::vector<std::pair<std::string, std::string> > *ecomps, 
-		std::vector<std::pair<std::string, std::string> > *efields)
+      std::vector<std::pair<std::string, std::string> > *efields,
+      std::vector<std::pair<std::string, std::string> > *afields)
 {
 	got_type_struct = true;
 	std::string &tn = t->getName();
 
 	//std::cerr << "verify_struct for " << tn << std::endl;
 
-	if (!verify_field_list(t, ecomps, efields))
+	if (!verify_field_list(t, ecomps, efields, afields))
 	{
 		fprintf(stderr, "%s[%d]:  verify struct %s failing\n", FILE__, __LINE__, tn.c_str());
 		return false;
@@ -754,8 +765,10 @@ bool test_type_info_Mutator::specific_type_tests()
 	expected_union_fields.push_back(std::pair<std::string, std::string>("float", "my_float"));
 	expected_union_fields.push_back(std::pair<std::string, std::string>("int", "my_int"));
 
-	if (!verify_type_union(tu, NULL, &expected_union_fields)) 
+	if (!verify_type_union(tu, NULL, &expected_union_fields)) {
+		fprintf(stderr, "%s[%d]:  could not verify union\n", FILE__, __LINE__);
 		return false;
+   }
 
 	tname = "mystruct";
 	if (!symtab->findType(t, tname) || (NULL == t))
@@ -772,23 +785,21 @@ bool test_type_info_Mutator::specific_type_tests()
 	}
 
 	std::vector<std::pair<std::string, std::string> > expected_struct_fields;
+	std::vector<std::pair<std::string, std::string> > alternate_struct_fields;
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("int", "elem1"));
-#if 0
-#if defined (os_aix_test)
-	//  this is kludgy and probably not general enough
-	expected_struct_fields.push_back(std::pair<std::string, std::string>("long", "elem2"));
-#else
-	expected_struct_fields.push_back(std::pair<std::string, std::string>("long int", "elem2"));
-#endif
-#endif
-	//  using long here can be confused if the compiler emits "long int"
+	alternate_struct_fields.push_back(std::pair<std::string, std::string>("int", "elem1"));
+   
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("double", "elem2"));
+	alternate_struct_fields.push_back(std::pair<std::string, std::string>("double", "elem2"));
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("char", "elem3"));
+	alternate_struct_fields.push_back(std::pair<std::string, std::string>("signed char", "elem3"));
 	expected_struct_fields.push_back(std::pair<std::string, std::string>("float", "elem4"));
+	alternate_struct_fields.push_back(std::pair<std::string, std::string>("float", "elem4"));
 
-	if (!verify_type_struct(ts, NULL, &expected_struct_fields)) 
+	if (!verify_type_struct(ts, NULL, &expected_struct_fields, &alternate_struct_fields)) {
+      fprintf(stderr, "[%s:%u] - Could not verify struct\n");
 		return false;
-
+   }
 	tname = "int_alias_t";
 	if (!symtab->findType(t, tname) || (NULL == t))
 	{

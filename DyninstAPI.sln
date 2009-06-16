@@ -25,7 +25,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "instructionAPI", "instructi
 		{197E213A-6900-4D09-B280-109A0D02DF36} = {197E213A-6900-4D09-B280-109A0D02DF36}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "newtestsuite", "newtestsuite\i386-unknown-nt4.0\newtestsuite.vcproj", "{73BD9B12-EDAE-48F5-9118-250FF506ED16}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "newtestsuite", "testsuite\i386-unknown-nt4.0\newtestsuite.vcproj", "{73BD9B12-EDAE-48F5-9118-250FF506ED16}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject

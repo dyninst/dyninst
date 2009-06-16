@@ -320,7 +320,7 @@ class SerDesBin : public SerDes {
    typedef struct {
       unsigned int cache_magic;
       unsigned int source_file_size; //  if size is different, don't bother with checksum
-      char sha1[SHA1_DIGEST_LEN];
+      char sha1[SHA1_DIGEST_LEN*2];
    } cache_header_t;
 
    FILE *f;

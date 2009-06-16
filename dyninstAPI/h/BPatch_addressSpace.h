@@ -333,6 +333,9 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (regName, reg),
     bool, createRegister_NP, (std::string regName, BPatch_register &reg)); 
 
+    API_EXPORT_V(Int, (allowtraps),
+               void, allowTraps, (bool allowtraps));
+
     //  BPatch_addressSpace::loadLibrary
     //  
     //  Load a shared library into the mutatee's address space

@@ -66,6 +66,7 @@
 AddressSpace::AddressSpace () :
     trapMapping(this),
     runtime_lib(NULL),
+    useTraps_(true),
     multiTrampsById_(intHash),
     trampGuardBase_(NULL),
     up_ptr_(NULL),
@@ -1559,4 +1560,14 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
    assert(!range->is_function());
    return false;
    
+}
+
+bool AddressSpace::canUseTraps()
+{
+   return useTraps_;
+}
+
+void AddressSpace::setUseTraps(bool usetraps)
+{
+   useTraps_ = usetraps;
 }

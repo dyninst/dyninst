@@ -316,6 +316,7 @@ int launch_mutator()
             config.pipefd = -1;
 	      
          } else {
+            unlink(config.pipe_filename);
             sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1, ID_PASS);
 	      
             // Run mutatee side of trace initialization.

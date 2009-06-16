@@ -646,14 +646,10 @@ bool Object::fillExceptionTable(struct exceptab *etab, unsigned int etab_size, b
 				int symindex = tabentry->_u._s64._addr64.e_symndx;
 				struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
 				const char *name =  &stringPool[ sym->n_offset64 ];
-				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%s\n", 
-						FILE__, __LINE__, lang, reason,  name ? name : "no_name");
 			}
 			else
 			{
 				uint64_t addr = tabentry->_u._s64._addr64.e_paddr;
-				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%p\n", 
-						FILE__, __LINE__, lang, reason, addr);
 			}
 			//catch_addrs_.push_back(new ExceptionBlock(addr));
 		}
@@ -670,14 +666,10 @@ bool Object::fillExceptionTable(struct exceptab *etab, unsigned int etab_size, b
 				int symindex = tabentry->_u._s32._addr32.e_symndx;
 				struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
 				const char *name =  &stringPool[ sym->n_offset32 ] ;
-				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%s\n", 
-						FILE__, __LINE__, lang, reason, name ? name : "no_name");
 			}
 			else
 			{
 				uint32_t addr = tabentry->_u._s32._addr32.e_paddr;
-				fprintf(stderr, "%s[%d]:  have exception entry: %d:%d:%p\n", 
-						FILE__, __LINE__, lang, reason, addr);
 			}
 		}
 	}
@@ -1267,8 +1259,8 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
          else
             sec = NULL;
 
-         object_printf("Creating new symbol: %s, %s, %d, %d, 0x%lx, %d, %d\n",
-                       name.c_str(), modName.c_str(), type, linkage, value, sec, size);
+         //fprintf(stderr, "Creating new symbol: %s, %s, %d, %d, 0x%lx, %d, %d\n",
+         //name.c_str(), modName.c_str(), type, linkage, value, sec, size);
 
          Symbol *sym = new Symbol(name, 
                                   type, 
@@ -2050,7 +2042,6 @@ void Object::parseTypeInfo(Symtab *obj)
    syms = (SYMENT *) syms_void;
 
    bool parseActive = true;
-   //fprintf(stderr, "%s[%d]:  parseTypes for module %s: nstabs = %d\n", FILE__, __LINE__,mod->fileName().c_str(),nstabs);
    //int num_active = 0;
    //
 
@@ -2084,33 +2075,22 @@ void Object::parseTypeInfo(Symtab *obj)
             }
          }
          currentSourceFile = std::string(moduleName);
-         if(!obj->findModuleByName(mod, currentSourceFile))
-         {
-	   if(!obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile))) {
-               parseActive = false;
-	   }else{
-               parseActive = true;
-               // Clear out old types
-               mod->getModuleTypesPrivate()->clearNumberedTypes();
-            }
+         mod->getModuleTypesPrivate()->clearNumberedTypes();
+         if(!obj->findModuleByName(mod, currentSourceFile) && 
+            !obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile)))
+         {            
+               mod = NULL;
          }
-         else{
-            parseActive = true;
-            // Clear out old types
-            mod->getModuleTypesPrivate()->clearNumberedTypes();
-         }
-
-         //TODO? check for process directories??
-         //currentSourceFile = mod->processDirectories(currentSourceFile);
-
       }
-      if (!parseActive) continue;
+
+      if (!mod)
+         mod = obj->getDefaultModule();
 
       //num_active++;
       char *nmPtr;
       if (!sym->n_zeroes32 && ((sym->n_sclass & DBXMASK) ||
-               (sym->n_sclass == C_BINCL) ||
-               (sym->n_sclass == C_EINCL))) {
+                               (sym->n_sclass == C_BINCL) ||
+                               (sym->n_sclass == C_EINCL))) {
          long sym_offset = (is64_ ? sym->n_offset64 : sym->n_offset32);
 
          // Symbol name stored in STABS, not string pool.

@@ -25,12 +25,12 @@ float snip_ref_shlib_var5 = 5.5e5;
 double snip_ref_shlib_var6 = 5.5e50;
 #endif
 
-static volatile int gv_srsv1 = 0;
-static volatile long gv_srsv2 = 0L;
-static volatile char gv_srsv3 = '\0';
-static volatile char *gv_srsv4 = NULL;
-static volatile float gv_srsv5 = 0.0;
-static volatile double gv_srsv6 = 0.0;
+volatile int gv_srsv1 = 0;
+volatile long gv_srsv2 = 0L;
+volatile char gv_srsv3 = '\0';
+volatile char *gv_srsv4 = NULL;
+volatile float gv_srsv5 = 0.0;
+volatile double gv_srsv6 = 0.0;
 
 int srsv1(int x)
 {

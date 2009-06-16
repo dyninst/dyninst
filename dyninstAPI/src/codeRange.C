@@ -415,8 +415,10 @@ bool codeRangeTree::find(Address key, codeRange *& value) const{
         return false;
     }
     // We can also underflow
-    if (key < value->get_address())
-        return false;
+    if (key < value->get_address()) {
+      return false;
+    }
+    
     return true;
 #if 0
     fprintf(stderr, "codeRangeTree::find for 0x%x\n", key);
