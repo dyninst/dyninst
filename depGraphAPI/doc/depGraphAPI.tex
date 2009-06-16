@@ -3,7 +3,7 @@
 \usepackage{epsfig}
 \usepackage{subfigure}
 \begin{document}
-\title{DepGraphAPI Programmer's Guide \\ Release 0.9b}
+\title{Dependence Graph API (DepGraphAPI) Programmer's Guide \\ Release 0.9b}
 \author{Paradyn Parallel Performance Tools}
 \maketitle
 \tableofcontents
@@ -12,17 +12,17 @@
 The DepGraphAPI is a multi-platform library for creating and analyzing
 dependence graph representations of binary code. A dependence graph is
 a representation of must-happen-before and must-happen-after
-relationships between program elements (e.g., instructions and basic
-blocks). A program may consist of several logically separate streams
-of execution that are interleaved by the compiler; these
-representations undo this interleaving. We represent these
+relationships between program elements such as instructions and basic
+blocks. A program may consist of several logically separate streams
+of execution that are interleaved by the compiler; dependence graph
+representations undo this interleaving. We represent
 relationships in terms of a \emph{graph}, a data structure that
 consists of nodes connected by directed edges. Nodes in the graph
 represent program elements and edges represent \emph{dependences}
-(must-happen-before or must-happen-after) relationships between
+(must-happen-before or must-happen-after) between
 elements.
 
-The DepGraphAPI currently provides four types of graph representation:
+The DepGraphAPI currently provides four graph representations:
 \begin{description}
 \item[Data Dependence Graph (DDG)] This graph represents the relations
 between instructions that define and instructions that use registers
@@ -31,70 +31,181 @@ connect definitions of a particular location to its uses.
 \item[Control Dependence Graph (CDG)] This graph represents
 conditional execution of basic blocks in the program.
 \item[Program Dependence Graph (PDG)] This graph is the union of the
-DDG and CDG.
+DDG and CDG, used to compute a \emph{program slice} (defined below).
 \item[Extended Program Dependence Graph (xPDG)] This graph is the PDG
 augmented with additional nodes and edges necessary for forming an
-executable slice (defined below).
+\emph{executable slice} (defined in Section \ref{ExecutableSlice}.
 \end{description}
 
 The main goal of this API is to provide the user with abstractions
-representing the logical dependencies between instructions in a
+representing the logical dependencies between code elements in a
 program. An abstract interface provides two benefits: it simplifies
-the development of tools since the complexity of a particular
-architecture is hidden, and it allows tools to easily be ported
+the development of tools by hiding the complexity of a particular
+architecture, and it allows tools to easily be ported
 between platforms. Using a dependence graph representation of a
 program allows the user to focus on a particular aspect of program
 behavior and ignore program elements that do not affect that aspect of
 behavior.
 
-An excellent example is the \emph{slice}, a common use of program
-dependence. Intuitively, a slice of a program from a particular point
-is the sub-program that affects that point (a backwards slice) or is
-affected by that point (a forwards slice). Formally, we define slices
+\textbf{Program Slice}: An excellent example of the use of the program
+dependence graph is the \emph{program slice}, or more commonly just
+``slice''. Intuitively, a slice of a program from a particular point
+is the sub-program that affects that point (a backward slice) or is
+affected by that point (a forward slice). Formally, we define slices
 as follows. Let $i$ represent an instruction in the program and $a$
-some location that $i$ defines (writes a value into). A forward slice
-from $(i,a)$ are all instructions (and defined locations) that are
-affected by the definition of $a$ by $i$. Similarly, the backwards
+some location that $i$ defines (writes a value into).  The backward
 slice from $(i,a)$ are all instructions (and defined locations) that
-may affect the value written into $a$ by $i$.
+may affect the value written into $a$ by $i$.  A forward slice from
+$(i,a)$ are all instructions (and defined locations) that may be
+affected by the definition of $a$ by $i$.
 
-A future goal of this library is to allow users to improve these graph
-representations through the use of additional analyses. The included
-analyses used to generate these graph representations are
-conservative, and may overapproximate the actual dependences between
-instructions. A future release will provide an API for updating these
-graph structures, either with information known to the user directly
-or with the results of more sophisticated analysis.
+A future goal of this library is to allow users to improve the
+precision of these graph representations through the use of additional
+analyses. The included analyses used to generate these graph
+representations are conservative, and may overapproximate the actual
+dependences between instructions. A future release will provide API
+extensions for updating these graph structures, either with
+information known to the user directly, with the results of more
+sophisticated static analysis, or with dynamic analysis results.
 
-The current beta of the DepGraphAPI depends on the InstructionAPI library
-and the DyninstAPI; future versions will depend only on the
+The current beta of the DepGraphAPI depends on the InstructionAPI
+library and the DyninstAPI; future versions will depend only on the
 InstructionAPI and ParsingAPI libraries released as part of the
 DyninstAPI. Currently we support the IA-32 and AMD-64 architectures as
 these are the only architectures supported by the
-InstructionAPI. Future architecture support includes PPC, IA-64, and
-SPARC; the DepGraphAPI has no file format or operating system
+InstructionAPI. Future architecture support will include PowerPC, IA-64,
+and SPARC. The DepGraphAPI has no file format or operating system
 constraints.
+
+\section{Definitions}
+
+\begin{description}
+\item[Instruction] An instruction represents a single machine
+instruction with a unique starting offset. Instruction instances are
+identified by this offset.
+\item[Basic Block] A basic block is a contiguous sequence of
+  instructions with the property that if the first instruction in the
+  block is executed all other instructions will be executed before the
+  block is exited.
+\item[Function] A function is a collection of basic blocks with a
+  single entry block. Functions are frequently reached by call
+  instructions, although this may not be the case due to compiler
+  optimizations. Similarly, functions are frequently exited via return
+  instructions, but other exit methods may be used by the compiler.
+\item[Abstract Location] An abstract location represents a machine
+register, memory location, or set of memory locations. Registers are
+referred to by their InstructionAPI representation. Memory locations
+consist of a region and an optional offset within that region. Regions
+include the stack, the heap, and global memory. Stack locations are
+assumed to be relative from the top of the stack at the beginning of
+the function. Our current implementation assumes a single heap
+location; this may change in future releases. Finally, offsets into
+global memory are absolute addresses from a base of zero.
+\item[Operation] An operation is a pair of an instruction and an
+abstract location defined by that instruction. An instruction may
+define more than one abstract location, particularly on CISC
+architectures. If we represent data dependence at the instruction
+level we may overapproximate dependences between instructions; we
+describe an example of this occurrence in Section
+\ref{OperationJustification}. Instead we represent dependences at the
+operation level.
+\item[Parameters] The parameters to a function consist of all abstract
+  locations that may be used by an instruction in the function without
+  having been defined by an instruction in the function.
+\item[Results] The results of a function consist of all abstract
+  locations that are defined by that function.
+\item[Data Dependence] In general, instruction $j$ is data dependent
+  on an instruction $i$ if $i$ defines some abstract location $a$, $j$
+  uses $a$, and there is an execution path from $i$ to $j$ along which
+  $a$ is not redefined. We use a more precise definition that uses
+  operations instead of instructions. Let $m = (i,a)$ be an operation
+  representing the definition of $a$ by $i$, and similarly for $n =
+  (j, b)$. Then $n$ is data dependent on $m$ if $i$ defines $a$, $j$
+  uses $a$ to define $b$, and there exists a path as above. Note that
+  $j$ may define other abstract locations, but no data dependence will
+  exist if $a$ is not used in these other definitions.
+\item[Control Dependence] An instruction $j$ is control dependent on
+  an instruction $i$ if $i$ has multiple successors and $j$ is
+  executed along at least one, but not all, possible execution paths
+  from $i$.
+
+\end{description}
+
+\begin{figure}
+\begin{center}
+  \subfigure[Instruction nodes]{\label{ddg-a}\includegraphics[scale=0.75]{figs/DDG-a.pdf}}
+  \subfigure[Operation
+  nodes]{\label{ddg-b}\includegraphics[scale=0.75]{figs/DDG-b.pdf}}
+\end{center}
+\caption{Example of instruction vs. operation-based DDG. Figure a)
+provides an example of the problems of representing instructions as
+single nodes. In this graph it is possible for paths to ``cross''
+definitions; for example, there is a path from the definition of $r_0$
+by $i_0$ to the definition of $sp$ (the stack pointer) by $i_3$, when
+in the actual program there is no such dependence. The DDG shown in
+figure b) makes the intra-instruction data dependencies explicit and
+thus removes the possibility of erroneous paths.}
+\label{OperationsGraph}
+\end{figure}
+
+
+\subsection{Operation-Level Data Dependence}\label{OperationJustification}
+
+The conventional definition of the DDG (in which nodes represent
+instructions) may over-approximate the data dependencies within a
+binary. This occurs when an instruction defines multiple abstract
+locations and uses different sets of abstract locations for each
+definition. For example, consider the IA-32 instruction xchng which
+exchanges the contents of two registers. From an instruction
+perspective, this instruction uses and defines two registers. However,
+there is no dependence between the use and definition of the same
+registers. To avoid this over-approximation, each node in the
+DepGraphAPI DDG consists of an operation; an (instruction, abstract
+location) pair. We show an example of the use of instructions and
+operations in Figure \ref{OperationsGraph}.
+
 
 \section{Abstractions}
 
 DepGraphAPI provides a simple set of abstractions over complicated
-data structures to make the API easy to use. The fundamental
-representation used by this library is the graph. A graph is a set of
-nodes connected by directed edges; each edge has a distinct (and
-unique) source and target. Nodes represent logical elements of the
-program. We define two classes of nodes: physical and
-virtual. Physical nodes represent a particular instruction, basic
-block, or function. Virtual nodes represent a summary of the behavior
-of code that is not contained within the graph, such as a called
-function or the inputs to a function. We provide a set of methods for
-operating on Graphs, Nodes, and Edges; these methods provide a common
-interface to all four dependence graph types provided by the
-DepGraphAPI.
+data structures to make the API easy to use. We first define these
+abstractions in terms of concepts; the classes that implement these
+concepts are defined below. The fundamental representation used by
+this library is the directed graph (or digraph). A digraph is a set of
+nodes connected by directed edges; each edge has a single source and
+target. Nodes represent logical elements of the program. We define two
+types of nodes: \emph{physical} and \emph{virtual}.  We provide a set
+of methods for operating on Graphs, Nodes, and Edges; these methods
+provide a common interface to all four dependence graph types provided
+by the DepGraphAPI.
 
-Figure \ref{inheritance} shows the
-inheritance hierarchy for the DepGraphAPI classes. All references to
-DepGraphAPI classes are internally reference counted; we do not
-require the user to perform any manual memory allocation or deletion.
+\subsection{Graph Abstractions}
+\begin{description}
+\item[Graph] A graph is a collection of nodes connected by directed
+  edges; each edge has a unique source and target node. Graphs have a
+  set of entry nodes, from which all nodes are reachable by following
+  edges forward, and exit nodes, from which all nodes are reachable by
+  following edges backward.
+\item[Node] We define two types of nodes: physical and
+  virtual. Physical nodes represent a particular instruction, basic
+  block, or function. Virtual nodes represent the behavior of code
+  that is not directly represented by a physical node. Virtual nodes
+  represent a summary of the behavior of code that is not contained
+  within the graph, such as the behavior of a called function, the
+  assignment of values to the parameters of a function, or the use of
+  values returned from a function. For example, let \texttt{foo} be a
+  function that calls \texttt{bar}. A DDG for function \texttt{foo}
+  would include physical nodes for the code within \texttt{foo}, but
+  not for the code in \texttt{bar}. Instead, the behavior of
+  \texttt{bar} would be represented by one or more virtual nodes.
+\item[Edge] Edges connect nodes and represent a dependence between the
+  two connected nodes.
+\end{description}
+
+Figure \ref{inheritance} shows the inheritance hierarchy for the
+DepGraphAPI classes. All references to DepGraphAPI classes are
+internally reference counted; we do not require the user to perform
+any manual memory allocation or deletion.
 
 \begin{figure}
 \begin{center}
@@ -106,41 +217,46 @@ require the user to perform any manual memory allocation or deletion.
 \label{inheritance}
 \end{figure}
 
-\subsection{Shared Abstractions}
+\subsection{Shared Class}
 
 \begin{description}
 \item[Graph] The Graph represents a dependence graph for a particular
 function.
 \item[Node] The Node represents an element within the graph. Nodes are
 connected by edges and are labelled with information.
-\item[Physical Node] These Nodes represent an element (instruction, basic
-block, or function) of the program. They are labelled with the starting address
-of that object.
-\item[Virtual Node] These Nodes represent summaries of program
-behavior not contained within the graph. Virtual nodes do not have an
-address associated with them.
+\item[PhysicalNode] These Nodes represent an element (instruction,
+basic block, or function) of the program. They are labelled with the
+starting address of that object.
+\item[VirtualNode] These Nodes represent summaries of program behavior
+not contained within the graph. Virtual nodes do not have an address
+associated with them.
 \item[Edge] Edges connect Nodes. Edges are directed and have a source
 and target.
 \end{description}
 
 \subsection{Data Dependence Graph}
 
-The data dependence graph adds several specialized node types.
+The data dependence graph adds five specialized node types. 
 
 \begin{description}
-\item[OperationNode] Each physical
-DDG node represents an operation (a definition of an abstract location
-by an instruction). We describe operations and our justification of
-this abstraction below.  
-\item[FormalParameterNode] These virtual nodes
-represent input parameters to a function. An input parameter is a
-definition of an abstract location before the function is executed.
-\item[FormalReturnNode] These virtual nodes represent definitions that
-persist after the function returns.  
-\item[ActualParameterNode] These
-virtual nodes represent arguments to a called function.
-\item[ActualReturnNode] These virtual nodes represent definitions made by a
-called function. 
+\item[OperationNode] Each physical DDG node represents an operation (a
+definition of an abstract location by an instruction). We describe
+operations and our justification of this abstraction in Section
+\ref{OperationJustification}.
+\item[FormalParameterNode] A formal parameter node represents the
+  input parameters to a function. One of these nodes will exist in the
+  graph for each abstract location that is used without having first
+  been defined by the function. These are virtual nodes, and form a
+  subset of the entry nodes of the DDG.
+\item[FormalReturnNode] A formal return node represents the values
+  returned by the function; this includes any explicit return result
+  register as well as all other definitions that may persist after the
+  function returns. These are virtual nodes, and form a subset of the
+  exit nodes of the DDG.
+\item[ActualParameterNode] These virtual nodes represent abstract
+  locations used by a callee function.
+\item[ActualReturnNode] These virtual nodes represent abstract
+  locations defined by a callee function.
 \end{description}
 
 \subsection{Control Dependence Graph}
@@ -149,44 +265,33 @@ The control dependence graph adds one new specialized node type:
 
 \begin{description}
 \item[BlockNode] We represent
-control dependence at the block level for efficiency. Therefore, each
+control dependence at the basic block level for efficiency. Therefore, each
 node in the CDG represents a block. 
 \end{description}
 
 \subsection{Program Dependence Graph}
 The Program Dependence Graph is the union of the DDG and CDG and is
-constructed from the same abstractions used by the DDG. The
+constructed from the same abstractions used by the DDG. The basic
 block-level information in the CDG is automatically converted to
 OperationNodes.
 
 \subsection{Extended Program Dependence Graph}
-Although users can use PDGs to slice programs, the slices obtained through PDGs
-are not always executable slices. An executable slice is a slice of a program that
-can be executed without any change in program behavior with respect to the
-given slicing criteria. Binary slices obtained through a PDG do not always
-include all necessary branch and return instructions that make the slice follow
-the flow of control of the original program due to fallthroughs. Therefore, an
-Extended Program Dependence Graph contains dependencies between an instruction
-$i$ and all instructions that are required to satisfy correct control flow
-in case $i$ appears in a slice. An xPDG also contains all nodes and edges
-that are parts of a regular PDG.
-
-\subsection{Annotations} 
-
-The DepGraphAPI makes use of the Annotation infrastructure in the
-DyninstAPI classes. First, all DepGraphAPI abstractions are
-annotatable. The internal implementation of the annotation
-infrastructure is optimized for sparse annotation; that is, when the
-majority of abstractions are not annotated. Currently this cannot be
-tuned by the user. Second, the function abstractions are annotated
-with the completed graphs. Therefore, the user does not need to keep a
-reference to an analyzed graph. This annotation can be discarded by
-using the appropriate methods on the Graph class.
+Although users can use PDGs to slice programs, the slices obtained
+through PDGs are not always executable slices due to the presence of
+unconditional branches. An executable slice is a slice of a program
+that can be executed without any change in program behavior with
+respect to the given slicing criteria. Program slices obtained through
+the PDG will not include branch instructions that do not depend on the
+slicing target; however, these branch instructions are necessary to
+ensure proper control flow. Therefore, we augment the PDG to create
+the Extended Program Dependence Graph (xPDG). The xPDG adds
+dependence edges between branches and and all other instructions in
+the basic block that ends at the branch. 
 
 \section{Examples} 
 
-To illustrate the ideas in the API, this section presents
-short examples that demonstrate how the API can be used.  
+To illustrate the ideas in the API, we present two short examples that
+demonstrate how the API can be used.
 
 \begin{figure}
 \include{include/example1}
@@ -196,9 +301,9 @@ short examples that demonstrate how the API can be used.
 \label{example1}
 \end{figure}
 
-The first example demonstrates how to access the PDG for a particular
-function and take a slice from a known instruction (identified by
-address) and register that instruction defines. The code for this
+Our first example demonstrates how to access the PDG for a particular
+function and take a slice from a known instruction (identified by its
+address) and register that the instruction defines. The code for this
 example is shown in Figure \ref{example1}. Lines of interest are:
 \begin{itemize}
 \item Line 16 identifies all nodes with a particular address
@@ -212,22 +317,24 @@ example is shown in Figure \ref{example1}. Lines of interest are:
   in line 16. As before, the closure is represented by an iterator
   pair \texttt{sliceBegin, sliceEnd}. 
 \item Line 28 shows how to iterate over the forward closure. The
-  iterator \texttt{sliceBegin} will represent each such node; the
-  sequence of the nodes is undefined. Each node can be accessed by
-  dereferencing the iterator: \texttt{*sliceBegin}.
+  iterator \texttt{sliceBegin} will represent each node in the
+  closure; the sequence in which the nodes are returned is
+  undefined. Each node can be accessed by dereferencing the iterator:
+  \texttt{*sliceBegin}.
 \end{itemize}
 
 \begin{figure}
 \include{include/example2}
 \caption{DDG traversal example. This code fragment identifies nodes
-  within a basic block that define themselves.}
+  within a basic block that have a data dependence to themselves.}
 \label{example2}
 \end{figure}
 
 The second example shows how to determine which instructions in a
-basic block define themselves. This is one method to identify a loop
-iteration variable. The code for this example is shown in Figure
-\ref{example2}. Lines of interest are:
+basic block that have a data dependence to themselves; that is, they
+define and use the same abstract location. This is one method to
+identify a loop iteration variable. The code for this example is shown
+in Figure \ref{example2}. Lines of interest are:
 \begin{itemize}
 \item Line 15 shows how to access the instructions in a basic
   block. The \texttt{InsnInstance} typedef consists of an
@@ -253,48 +360,14 @@ these forms of dependence here, along with definitions of the
 underlying concepts. The following definitions and basic types are
 referenced throughout the rest of the document.
 
-\subsection{Definitions}
-\begin{description}
-\item[Instruction] An instruction represents a single machine
-instruction with a unique starting offset. Instruction instances are
-identified by this offset.
-\item[Abstract Location] An abstract location represents a machine
-register, memory location, or set of memory locations. Registers are
-referred to by their InstructionAPI representation. Memory locations
-consist of a region and an optional offset within that region. Regions
-include the stack, the heap, and global memory. Stack locations are
-assumed to be relative from the top of the stack at the beginning of
-the function. Our current implementation assumes a single heap
-location; this may change in future releases. Finally, offsets into
-global memory represent absolute addresses.
-\item[Operation] An operation is a pair of an instruction and an
-abstract location defined by that instruction. An instruction may
-define more than one abstract location, particularly on CISC
-architectures. If we represent data dependence at the instruction
-level we may overapproximate dependences between instructions; we
-describe an example of this occurrence below. Instead we represent
-dependences at the operation level.
-\item[Data Dependence] In general instruction j is data dependent on i
-if i defines an abstract location j uses and there is an execution path
-from i to j along which a is not redefined. We use a more precise
-definition that uses operations as nodes. Let m = (i,a) be an
-operation representing the definition of a by i, and similarly for n =
-(j, b). Then n is data dependent on m if i defines a, j uses a to
-define b, and there exists a path as above.
-\item[Control Dependence] - An instruction j is control dependent on i
-if i has multiple successors and j is executed along at least one, but
-not all, possible execution paths from i.
-\end{description}
-
 \subsection{Basic Types}
 
 {\ttfamily \raggedright \small
 typedef\ \textbf{unsigned}\ \textbf{long}\ Address\\
  }
 \normalfont\normalsize
-\indent An integer value that represents a unique location in memory.
-
-\noindent Smart/shared pointers
+\indent An integer value that represents a unique location in memory.\\[\baselineskip]
+\noindent \textbf{Smart/shared pointers}
 
 All objects returned to users are transparently wrapped with a
 reference counted pointer implementation. This smart pointer
@@ -305,75 +378,36 @@ pointers are referred to by the \texttt{::Ptr} suffix (e.g., \texttt{Graph::Ptr}
 www.boost.org. Shared pointers have some limitations when compared
 with standard pointers. In particular, \texttt{dynamic\_cast} (as well as other
 casting operators) are not defined on shared pointers. Performing such
-a cast must be done with the \texttt{dynamic\_pointer\_cast} method. For example:
-
-\indent {\ttfamily \raggedright \small
-VirtualNode::Ptr\ virt\ =\ dynamic\underline\ pointer\underline\ cast<{}VirtualNode>{}(nodePtr);\\
-}
-\normalfont\normalsize
-
-\noindent Iterators 
+a cast must be done with the \texttt{dynamic\_pointer\_cast}
+method. For example: \indent {\ttfamily \raggedright \small
+VirtualNode::Ptr\ virt\ =\ dynamic\underline\ pointer\underline\ cast<{}VirtualNode>{}(nodePtr);} \\[\baselineskip]
+\normalfont\normalsize 
+\noindent \textbf{Iterators}
 
 The DepGraphAPI uses an iterator-based interface in favor of a
 collection-based interface. This is done to reduce copying and improve
-efficiency. Any method that returns a range of types (e.g.,
+efficiency. Any method that returns a range of objects (e.g.,
 \texttt{Graph::allNodes}) takes as arguments two iterators that are updated to
 point to the beginning and end of the range. The user can then use
 standard iterator methods (e.g., a for loop) to examine each element
 in the range. We define two types of iterators: \texttt{NodeIterator} and
 \texttt{EdgeIterator}.
 
-\begin{figure}
-\begin{center}
-  \subfigure[Instruction nodes]{\label{ddg-a}\includegraphics[scale=0.75]{figs/DDG-a.pdf}}
-  \subfigure[Operation
-  nodes]{\label{ddg-b}\includegraphics[scale=0.75]{figs/DDG-b.pdf}}
-\end{center}
-\caption{Example of DDG operations.  Two data dependence
-graphs. Figure a) provides an example of the problems of representing
-instructions as single nodes. In this graph it is possible for paths
-to ``cross'' definitions; for example, there is a path from the
-definition of $r_0$ by $i_0$ to the definition of $sp$ (the stack pointer) by
-$i_3$, when in the actual program there is no such dependence. The DDG
-shown in figure b) makes the intra-instruction data dependencies
-explicit and thus removes the possibility of erroneous paths.}
-\label{OperationsGraph}
-\end{figure}
-
-
-\subsection{Operation-Level Data Dependence}
-
-The conventional definition of the DDG (in which nodes represent
-instructions) may over-approximate the data dependencies within a
-binary. This occurs when an instruction defines multiple abstract
-locations and uses different sets of abstract locations for each
-definition. For example, consider the IA-32 instruction xchng which
-exchanges the contents of two registers. From an instruction
-perspective, this instruction uses and defines two registers. However,
-there is no dependence between the use and definition of the same
-registers. To avoid this over-approximation, each node in the
-DepGraphAPI DDG consists of an operation; an (instruction, abstract
-location) pair. We show an example of the use of instructions and
-operations in Figure \ref{OperationsGraph}.
-
-
-\section{Namespaces}
-
-The classes described below are defined in the \texttt{Dyninst::} and
-\texttt{Dyninst::DepGraphAPI::} namespaces. The Graph, Node, and Edge
-classes are contained in the \texttt{Dyninst::} namespace.  To access
-them a user should refer to them using the \texttt{Dyninst::} prefix
-(e.g., \texttt{Dyninst::Graph} or
-\texttt{Dyninst::DepGraphAPI::DDG}). Alternatively, a user can add the
-C++ \texttt{using} keyword above any reference to such objects (e.g.,
-"\texttt{using namespace Dyninst;}"). All other classes are defined
-under the \texttt{Dyninst::DepGraphAPI} namespace and should be
-referred to appropriately.
-
 \section{API Reference}
 
 This section describes the interface of the DepGraphAPI. Each of the
 subsections represents a different interface.
+
+The classes described in this section are defined in the \texttt{Dyninst::} and
+\texttt{Dyninst::DepGraphAPI::} namespaces.  To access them a user
+should refer to them using the appropriate prefix (e.g.,
+\texttt{Dyninst::Graph} or
+\texttt{Dyninst::DepGraphAPI::DDG}). Alternatively, a user can add the
+C++ \texttt{using} keyword above any reference to such objects (e.g.,
+"\texttt{using namespace Dyninst;}").  The Graph, Node, and Edge
+classes are contained in the \texttt{Dyninst::} namespace.  All other
+classes are defined under the \texttt{Dyninst::DepGraphAPI} namespace.
+
         
 \subsection{Shared Classes}
 
@@ -491,7 +525,7 @@ otherwise.
   abstract location without using any other abstract location; for
   example, \texttt{mov \$42, eax}. Using this in combination with
   \texttt{formalParamNodes} will give the set of entry nodes to the DDG.
-\item[void deadDefinitions{NodeIterator \&begin, NodeIterator \&end}]
+\item[void deadDefinitions(NodeIterator \&begin, NodeIterator \&end)]
   This method gives the range of non-formal-return nodes that have no
   out-edges. This occurs when a node defines an abstract location that
   is redefined before being used. These dead definitions are commonly
@@ -589,10 +623,6 @@ follows:
 \begin{itemize}
 \item Platforms: the DepGraphAPI is implemented for IA-32 and
   x86-64. This is primarily due to a dependence on the InstructionAPI.
-\item Limited operator node support. We currently do not identify
-  intra-instruction dependences between used and defined abstract
-  locations. Instead, there is a complete interconnection between
-  these. 
 \end{itemize}
 
 
