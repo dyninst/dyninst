@@ -1477,8 +1477,10 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
   if(!isStripped)
     {
       Region *sec;
-      obj->findRegion(sec,".symtab");
-      sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf32_Sym));
+      if (obj->findRegion(sec,".symtab"))
+	      sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf32_Sym));
+      else
+              obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
     }
   else
     obj->addRegion(0, syms, symbols.size()*sizeof(Elf32_Sym), ".symtab", Region::RT_SYMTAB);
@@ -1487,8 +1489,10 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
   if(!isStripped)
     {
       Region *sec;
-      obj->findRegion(sec,".strtab");
-      sec->setPtrToRawData(str, symbolNamesLength);
+      if (obj->findRegion(sec,".strtab"))
+	      sec->setPtrToRawData(str, symbolNamesLength);
+      else
+    	      obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
     }
   else
     obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
@@ -1919,21 +1923,32 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
      dynamicSecData[name].push_back(dynsecData+curpos);
      curpos++;
   }
+  
+  // There may be multiple HASH (ELF, GNU etc) sections in the original binary. We consolidate all of them into one.
+  bool foundHashSection = false; 
+
   for(unsigned i = 0; i< count;i++){
     switch(dyns[i].d_tag){
     case DT_NULL:
       break;
     case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
-      dynsecData[curpos].d_tag = DT_HASH;
-      dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
-      dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
-      curpos++;
+      if (!foundHashSection) {
+      	dynsecData[curpos].d_tag = DT_HASH;
+      	dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
+	dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
+      	curpos++;
+      	foundHashSection = true;
+      }
       break;
     case DT_HASH: 
-      dynsecData[curpos].d_tag = dyns[i].d_tag;
-      dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
-      dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
-      curpos++;
+      if (!foundHashSection) {
+      	dynsecData[curpos].d_tag = dyns[i].d_tag;
+      	dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
+      	dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
+      	curpos++;
+      	foundHashSection = true;
+      }
+
       break;
     case DT_NEEDED:
       rpathstr = &olddynStrData[dyns[i].d_un.d_val];
