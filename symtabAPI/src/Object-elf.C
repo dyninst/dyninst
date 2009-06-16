@@ -361,9 +361,13 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   //falls within the text section 
   //of a shared library
 
+  elf_hash_addr_ = 0;
+  gnu_hash_addr_ = 0;
+
   dynamic_offset_ = 0;
   dynamic_addr_ = 0;
   dynsym_addr_ = 0;
+  dynsym_size_ = 0;
   dynstr_addr_ = 0;
   fini_addr_ = 0;
   opd_addr_ = 0;
@@ -505,12 +509,16 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       case DT_STRTAB:
       case DT_VERSYM:
       case DT_VERNEED:
+	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	break;
       case DT_HASH:
 	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
+	elf_hash_addr_ = dynsecData.d_ptr(j);
 	break;
       case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
 	// We generate ELF HASH entries and not GNU_HASH - so implicitely change it here.
 	secAddrTagMapping[dynsecData.d_ptr(j)] = DT_HASH; 
+	gnu_hash_addr_ = dynsecData.d_ptr(j);
 	break;
       case DT_PLTGOT:
 	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
@@ -788,6 +796,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       is_dynamic_ = true;
       dynsym_scnp = scnp;
       dynsym_addr_ = scnp->sh_addr();
+      dynsym_size_ = scnp->sh_size()/scnp->sh_entsize();
     }
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
 	     secAddrTagMapping[scnp->sh_addr()] == DT_STRTAB ) {
@@ -799,6 +808,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       is_dynamic_ = true;
       dynsym_scnp = scnp;
       dynsym_addr_ = scnp->sh_addr();
+      dynsym_size_ = scnp->sh_size()/scnp->sh_entsize();
     } else if (strcmp(name, DYNSTR_NAME) == 0) {
       dynstr_scnp = scnp;
       dynstr_addr_ = scnp->sh_addr();
@@ -1690,11 +1700,11 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 	continue;
 
       Region *sec;
-      if(secNumber >= 1 && secNumber <= regions_.size())
+      if(secNumber >= 1 && secNumber <= regions_.size()) {
          sec = regions_[secNumber];
-      else
+      } else {
          sec = NULL;
-
+      }
       int ind = int (i);
       int strindex = syms.st_name(i);
       Symbol *newsym = new Symbol(sname, 
@@ -1869,14 +1879,14 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 #endif
      
       Region *sec;
-      if(secNumber >= 1 && secNumber <= regions_.size())
+      if(secNumber >= 1 && secNumber <= regions_.size()) {
 	sec = regions_[secNumber];
-      else
+      } else{
 	sec = NULL;		
-
+      }
       int ind = int (i);
       int strindex = syms.st_name(i);
-	
+
       Symbol *newsym = new Symbol(sname, 
                                   stype, 
                                   slinkage, 

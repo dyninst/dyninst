@@ -435,6 +435,9 @@ class Object : public AObject {
     Offset getSymtabAddr() const {return symtab_addr_;}
     Offset getStrtabAddr() const {return strtab_addr_;}
     Offset getDynamicAddr() const {return dynamic_addr_;}
+    Offset getDynsymSize() const {return dynsym_size_;}
+    Offset getElfHashAddr() const {return elf_hash_addr_;}
+    Offset getGnuHashAddr() const {return gnu_hash_addr_;}
 
 
   private:
@@ -454,8 +457,12 @@ class Object : public AObject {
   bool hasRelplt_;
   bool hasRelaplt_;
 
+  Offset   elf_hash_addr_; 	 //.hash section 
+  Offset   gnu_hash_addr_; 	 //.gnu.hash section 
+
   Offset   dynamic_offset_;
   size_t   dynamic_size_;
+  size_t   dynsym_size_;
   Offset   fini_addr_;
   Offset   text_addr_; 	 //.text section 
   Offset   text_size_; 	 //.text section size
