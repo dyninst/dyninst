@@ -98,6 +98,8 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     BPatch_binaryEdit(const char *path, bool openDependencies);
     bool creation_error;
 
+    bool replaceTrapHandler();
+
     protected:
     void getAS(std::vector<AddressSpace *> &as);
 

@@ -102,6 +102,8 @@ class trampTrapMappings {
    void allocateTable();
    void shouldBlockFlushes(bool b) { blockFlushes = b; }
 
+   bool empty();
+
    AddressSpace *proc() const;
 };
 

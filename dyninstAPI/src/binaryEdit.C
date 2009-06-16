@@ -48,6 +48,7 @@
 #include "multiTramp.h"
 #include "debug.h"
 #include "os.h"
+#include "instPoint.h"
 
 // #define USE_ADDRESS_MAPS
 
@@ -354,6 +355,8 @@ bool BinaryEdit::getAllDependencies(std::queue<std::string> &deps)
 
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
+    fprintf(stderr, "writeFile!!!\n");
+
    // We've made a bunch of changes and additions to the
    // mapped object.
    //   Changes: modifiedRanges_
@@ -802,4 +805,69 @@ void BinaryEdit::addSibling(BinaryEdit *be)
 std::vector<BinaryEdit *> &BinaryEdit::getSiblings()
 {
    return siblings;
+}
+
+
+
+// Here's the story. We may need to install a trap handler for instrumentation
+// to work in the rewritten binary. This doesn't play nicely with trap handlers
+// that the binary itself registers. So we're going to replace every call to
+// sigaction in the binary with a call to our wrapper. This wrapper:
+//   1) Ignores attempts to register a SIGTRAP
+//   2) Passes everything else through to sigaction
+// It's called "dyn_sigaction".
+
+bool BinaryEdit::usedATrap() {
+    return (!trapMapping.empty());
+}
+
+bool BinaryEdit::replaceTrapHandler() {
+    // Find all calls to sigaction and replace with
+    // calls to dyn_sigaction. 
+
+    // We haven't code generated yet, so we're working 
+    // with addInst.
+
+    int_function *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
+    assert(dyn_sigaction);
+
+    bool success = true;
+    
+    pdvector<int_function *> allFuncs;
+    getAllFunctions(allFuncs);
+
+    for (unsigned i = 0; i < allFuncs.size(); i++) {
+        int_function *func = allFuncs[i];
+        
+        assert(func);
+        const pdvector<instPoint *> &calls = func->funcCalls();
+
+        for (unsigned j = 0; j < calls.size(); j++) {
+            instPoint *point = calls[j];
+            
+            int_function *callee = point->findCallee();
+
+            if (!callee) {
+                fprintf(stderr, "Failed to find callee at 0x%lx\n", point->addr());
+                continue;
+            }
+            fprintf(stderr, "Found callee %s at addr 0x%lx\n", callee->symTabName().c_str(), point->addr());
+
+            if ((callee->symTabName() == "sigaction") ||
+                (callee->symTabName() == "_sigaction") ||
+                (callee->symTabName() == "__sigaction")) {
+                if (!replaceFunctionCall(point, 
+                                         dyn_sigaction)) {
+                    fprintf(stderr, "Failed to replace sigaction at 0x%lx\n",
+                            point->addr());
+                    success = false;
+                }
+                else {
+                    fprintf(stderr, "Replaced call to sigaction\n");
+                }
+            }
+        }
+    }
+    
+    return success;
 }

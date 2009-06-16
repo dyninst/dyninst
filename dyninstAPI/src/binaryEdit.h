@@ -172,6 +172,9 @@ class BinaryEdit : public AddressSpace {
    void addSibling(BinaryEdit *);
    std::vector<BinaryEdit *> &getSiblings();
 
+   bool replaceTrapHandler();
+   bool usedATrap();
+
  private:
 
     Address highWaterMark_;
