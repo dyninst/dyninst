@@ -59,7 +59,6 @@ typedef void (*func_ptr_typedef_t)(int);
 
 const char * my_string = "my_string";
 typedef int int_array_t [256];
-int_array_t my_array;
 
 typedef int * my_intptr_t;
 
@@ -72,6 +71,7 @@ union my_union{
 
 void my_test_type_info_func(int foo)
 {
+	int_array_t my_array;
 	int rr =0;
 	my_intptr_t ip = &rr;
 	int_alias_t r = fprintf(stderr, "booga booga: %d: %s\n", foo, my_string);

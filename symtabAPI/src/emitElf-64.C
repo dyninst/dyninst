@@ -420,8 +420,19 @@ bool emitElf64::driver(Symtab *obj, string fName){
       {
 	newdata->d_buf = (char *)malloc(olddata->d_size);
 	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-      }
+	  }
 	
+	if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
+	{
+		fprintf(stderr, "%s[%d]:  ERROR:  size is nonmultiple of entsize, sec %s: %lu/%lu\n", 
+				FILE__, __LINE__, name, newshdr->sh_size, newshdr->sh_entsize);
+
+		newshdr->sh_size += newshdr->sh_entsize - (newshdr->sh_size % newshdr->sh_entsize);
+
+		fprintf(stderr, "%s[%d]:  trying to fix??: %lu/%lu\n", FILE__, __LINE__, 
+				newshdr->sh_size, newshdr->sh_entsize);
+	}
+
     if(BSSExpandFlag) {
       // Add the expanded SHT_NOBITS section size if the section comes after those sections 
       if(scncount > NOBITSstartPoint)
@@ -511,6 +522,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
       newshdr->sh_offset = newOff;
     }
 	
+
     secLinkMapping[sectionNumber] = shdr->sh_link; 
     secInfoMapping[sectionNumber] = shdr->sh_info; 
 
@@ -523,7 +535,11 @@ bool emitElf64::driver(Symtab *obj, string fName){
 	return false;
     }
 
-    elf_update(newElf, ELF_C_NULL);
+    if ( 0 >  elf_update(newElf, ELF_C_NULL))
+	{
+		fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
+		return false;
+	}
   }
 
   // Add non-loadable sections at the end of object file
@@ -958,7 +974,14 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &loadSecTotal
 	    
 	  newdata->d_version = 1;
 
-	  elf_update(newElf, ELF_C_NULL);
+	  if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
+		fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, newSecs[i]->getRegionName().c_str(), newshdr->sh_size, newshdr->sh_entsize);
+
+	  if (0 > elf_update(newElf, ELF_C_NULL))
+	{
+		fprintf(stderr, "%s[%d]:  elf_update failed\n", FILE__, __LINE__);
+		return false;
+	}
 
 	  shdr = newshdr;
 	  if(!firstNewLoadSec)
@@ -1039,6 +1062,8 @@ bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
    
   newdata->d_align = 4;
   newdata->d_version = 1;
+	if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
+		fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, ".shstrtab", newshdr->sh_size, newshdr->sh_entsize);
   return true;
 }
 
@@ -1141,6 +1166,9 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
       fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
 	      nonLoadableSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
 #endif
+
+	if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
+		fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, nonLoadableSecs[i]->getRegionName().c_str(), newshdr->sh_size, newshdr->sh_entsize);
 
       prevshdr = newshdr;
     }	

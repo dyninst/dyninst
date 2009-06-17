@@ -253,7 +253,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
       {
          /* More Stuff to parse, call parseTypeDef */
 
-         stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
+		  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
          cnt = 0;
          ptrType = mod->getModuleTypesPrivate()->findOrCreateType(ID);
          if (!symt_current_func) 
@@ -658,9 +658,11 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             if (stabstr[cnt] == '=') 
             {
                /* More Stuff to parse, call parseTypeDef */
-               //char *oldStr = stabstr;
-               stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
+               //char *oldstabstr = stabstr;
+				stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
                cnt = 0;
+
+
                // AIX seems to append an semi at the end of these
                if (stabstr[0] && strcmp(stabstr, ";")) 
                {
@@ -685,9 +687,9 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                if (newType) 
                {
-                  mod->getModuleTypesPrivate()->addOrUpdateType(newType);
-               }
-            }
+				   mod->getModuleTypesPrivate()->addOrUpdateType(newType);
+			   }
+			}
             break;
 
          case ':':	// :T... - skip ":" and parse 'T'
@@ -1155,39 +1157,47 @@ static Type *parseArrayDef(Module *mod, const char *name,
        cnt++; /* skip semicolon */
        elementType = parseSymDesc(stabstr, cnt);
        
-       if (stabstr[cnt] == 'a') {
-          /* multi dimensional array - Fortran style */
-          /* it has no valid id, so we give it a known duplicate */
-          ptrType = parseArrayDef(mod, name, 0, stabstr, cnt, sizeHint);
-       } else { 
-          if (stabstr[cnt] == '=') {
-             /* multi dimensional array */
-             char *temp;
-             temp = parseTypeDef(mod, &(stabstr[cnt+1]), NULL, elementType);
-             /* parseTypeDef uses old style of returning updated stabstr,
-                but parseArrayDef function needs to return an updated cnt.  
-                This simple hack updates cnt based on how far parseTypDef 
-                advances it.  jkh 12/4/00 */
-             cnt = temp-stabstr;
-             if (stabstr[cnt] == ':') {
-		//C++ stuff
-		////bperr("Skipping C++ rest of array def:  %s\n",name );
-		while (stabstr[cnt] != ';') cnt++;
-             }
-          }
-          ptrType = mod->getModuleTypesPrivate()->findOrCreateType(elementType);
-       }
-    }
+	   if (stabstr[cnt] == 'a') 
+	   {
+		   /* multi dimensional array - Fortran style */
+		   /* it has no valid id, so we give it a known duplicate */
+		   //fprintf(stderr, "%s[%d]:  parseArrayDef(...'%s'...)\n", FILE__, __LINE__, stabstr);
+		   ptrType = parseArrayDef(mod, name, 0, stabstr, cnt, sizeHint);
+	   } 
+	   else 
+	   { 
+		   if (stabstr[cnt] == '=') 
+		   {
+			   /* multi dimensional array */
+			   char *temp;
+			   temp = parseTypeDef(mod, &(stabstr[cnt+1]), NULL, elementType);
+			   /* parseTypeDef uses old style of returning updated stabstr,
+				  but parseArrayDef function needs to return an updated cnt.  
+				  This simple hack updates cnt based on how far parseTypDef 
+				  advances it.  jkh 12/4/00 */
+			   cnt = temp-stabstr;
+			   if (stabstr[cnt] == ':') {
+				   //C++ stuff
+				   ////bperr("Skipping C++ rest of array def:  %s\n",name );
+				   while (stabstr[cnt] != ';') cnt++;
+			   }
+		   }
+		   ptrType = mod->getModuleTypesPrivate()->findOrCreateType(elementType);
+	   }
+	}
 
-    //  //bperr("Symbol Desriptor: %s Descriptor ID: %d Type: %d, Low Bound: %d, Hi Bound: %d,\n", symdesc, symdescID, elementType, lowbound, hibound);
+	//  //bperr("Symbol Desriptor: %s Descriptor ID: %d Type: %d, Low Bound: %d, Hi Bound: %d,\n", symdesc, symdescID, elementType, lowbound, hibound);
 
 
-    if (ptrType) {
-        // Create new type - field in a struct or union
-        std::string tName = convertCharToString(name);
-        newType = new typeArray(ID, ptrType, lowbound, hibound, tName, sizeHint);
-	// Add to Collection
-	newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeArray *) newType);
+	if (ptrType) {
+		// Create new type - field in a struct or union
+		std::string tName = convertCharToString(name);
+
+		typeArray *newAType = new typeArray(ID, ptrType, lowbound, hibound, tName, sizeHint);
+		// Add to Collection
+		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeArray *) newAType);
+
+		return newAType;
     }
 	    
     // //bperr( "parsed array def to %d, remaining %s\n", cnt, &stabstr[cnt]);
@@ -2127,27 +2137,27 @@ static char *parseTypeDef(Module *mod, char *stabstr,
     int structsize;
     int type;
     cnt = i = j = k = 0;
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-    //bperr( "%s[%d]:  inside parseTypeDef, stabstr = %s\n", __FILE__, __LINE__, 
-	//    (stabstr == NULL) ? "NULL" : stabstr);
-#endif
 
     assert (stabstr[0] != '=');
 
     // //bperr( "parsing %s\n", stabstr);
-    if (isSymId(stabstr[0])) {
+    if (isSymId(stabstr[0])) 
+	{
 	typdescr = dataScalar;
 	type = parseSymDesc(stabstr, cnt);
 	 	    
-    if (ID == type) {
+    if (ID == type) 
+	{
         // Type:tFOO = FOO
         // as far as I can tell, this only happens when defining an empty
         // type (i.e. void)
 
         std::string tName = convertCharToString(name);
         newType = new typeScalar(ID, 0, tName);
-	newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType); 
-    } else if (stabstr[cnt] == '=') {
+		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType); 
+    } 
+	else if (stabstr[cnt] == '=') 
+	{
         // XXX - in the new type t(0,1)=(0,2)=s... is possible
         // 	     skip the second id for now -- jkh 3/21/99
         stabstr = parseTypeDef(mod, &(stabstr[cnt+i+1]), name, type);
@@ -2155,13 +2165,15 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         Type *oldType;
 
         oldType = mod->getModuleTypesPrivate()->findOrCreateType(type);
-        if(!oldType) oldType = mod->exec()->type_Untyped;
+        if (!oldType) oldType = mod->exec()->type_Untyped;
         std::string tName = convertCharToString(name);
         newType = new typeTypedef(ID, oldType, tName, sizeHint);
-	mod->getModuleTypesPrivate()->addOrUpdateType((typeTypedef *) newType);
+		mod->getModuleTypesPrivate()->addOrUpdateType((typeTypedef *) newType);
 
-    } else {
-        Type *oldType;
+	} 
+	else 
+	{
+		Type *oldType;
         std::string tName = convertCharToString(name);
         oldType = mod->getModuleTypesPrivate()->findOrCreateType(type);
         newType = new typeTypedef(ID, oldType, tName, sizeHint);
@@ -2283,8 +2295,9 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		    ptrType = mod->getModuleTypesPrivate()->findOrCreateType(baseType);
 		    std::string tName = convertCharToString(name);
-		    newType = new typeArray(ID, ptrType, 1, size, tName);
-		    newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeArray* ) newType);
+
+		    Type *newAType = new typeArray(ID, ptrType, 1, size, tName);
+		    newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeArray* ) newAType);
 		}
 		break;
 
