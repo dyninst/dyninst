@@ -6722,415 +6722,415 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
 #endif // defined(ICC)
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_none", STOPPED, CREATE, true, "dyninst", "gcc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_none", STOPPED, CREATE, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_none", STOPPED, USEATTACH, true, "dyninst", "gcc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_none", STOPPED, USEATTACH, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_none", STOPPED, DISK, true, "dyninst", "gcc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_none", STOPPED, DISK, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: gcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_low", STOPPED, CREATE, true, "dyninst", "gcc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_low", STOPPED, CREATE, false, "dyninst", "gcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_low", STOPPED, USEATTACH, true, "dyninst", "gcc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_low", STOPPED, USEATTACH, false, "dyninst", "gcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_low", STOPPED, DISK, true, "dyninst", "gcc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_low", STOPPED, DISK, false, "dyninst", "gcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: gcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_high", STOPPED, CREATE, true, "dyninst", "gcc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_high", STOPPED, CREATE, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_high", STOPPED, USEATTACH, true, "dyninst", "gcc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_high", STOPPED, USEATTACH, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_high", STOPPED, DISK, true, "dyninst", "gcc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_high", STOPPED, DISK, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: gcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_max", STOPPED, CREATE, true, "dyninst", "gcc", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_max", STOPPED, CREATE, false, "dyninst", "gcc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_max", STOPPED, USEATTACH, true, "dyninst", "gcc", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_max", STOPPED, USEATTACH, false, "dyninst", "gcc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_max", STOPPED, DISK, true, "dyninst", "gcc", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_gcc_32_max", STOPPED, DISK, false, "dyninst", "gcc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: gcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_none", STOPPED, CREATE, true, "dyninst", "pgcc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_none", STOPPED, CREATE, false, "dyninst", "pgcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: pgcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_none", STOPPED, USEATTACH, true, "dyninst", "pgcc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_none", STOPPED, USEATTACH, false, "dyninst", "pgcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: pgcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_none", STOPPED, DISK, true, "dyninst", "pgcc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_none", STOPPED, DISK, false, "dyninst", "pgcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: pgcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_low", STOPPED, CREATE, true, "dyninst", "pgcc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_low", STOPPED, CREATE, false, "dyninst", "pgcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: pgcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_low", STOPPED, USEATTACH, true, "dyninst", "pgcc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_low", STOPPED, USEATTACH, false, "dyninst", "pgcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: pgcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_low", STOPPED, DISK, true, "dyninst", "pgcc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_low", STOPPED, DISK, false, "dyninst", "pgcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: pgcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_high", STOPPED, CREATE, true, "dyninst", "pgcc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_high", STOPPED, CREATE, false, "dyninst", "pgcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: pgcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_high", STOPPED, USEATTACH, true, "dyninst", "pgcc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_high", STOPPED, USEATTACH, false, "dyninst", "pgcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: pgcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_high", STOPPED, DISK, true, "dyninst", "pgcc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgcc_32_high", STOPPED, DISK, false, "dyninst", "pgcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: pgcc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_none", STOPPED, CREATE, true, "dyninst", "icc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_none", STOPPED, CREATE, false, "dyninst", "icc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_none", STOPPED, USEATTACH, true, "dyninst", "icc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_none", STOPPED, USEATTACH, false, "dyninst", "icc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: icc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_none", STOPPED, DISK, true, "dyninst", "icc", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_none", STOPPED, DISK, false, "dyninst", "icc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: icc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_low", STOPPED, CREATE, true, "dyninst", "icc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_low", STOPPED, CREATE, false, "dyninst", "icc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_low", STOPPED, USEATTACH, true, "dyninst", "icc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_low", STOPPED, USEATTACH, false, "dyninst", "icc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: icc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_low", STOPPED, DISK, true, "dyninst", "icc", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_low", STOPPED, DISK, false, "dyninst", "icc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: icc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_high", STOPPED, CREATE, true, "dyninst", "icc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_high", STOPPED, CREATE, false, "dyninst", "icc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_high", STOPPED, USEATTACH, true, "dyninst", "icc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_high", STOPPED, USEATTACH, false, "dyninst", "icc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: icc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_high", STOPPED, DISK, true, "dyninst", "icc", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_high", STOPPED, DISK, false, "dyninst", "icc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: icc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_max", STOPPED, CREATE, true, "dyninst", "icc", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_max", STOPPED, CREATE, false, "dyninst", "icc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: icc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_max", STOPPED, USEATTACH, true, "dyninst", "icc", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_max", STOPPED, USEATTACH, false, "dyninst", "icc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: icc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icc_32_max", STOPPED, DISK, true, "dyninst", "icc", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icc_32_max", STOPPED, DISK, false, "dyninst", "icc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: icc, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_none", STOPPED, CREATE, true, "dyninst", "g++", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_none", STOPPED, CREATE, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_none", STOPPED, USEATTACH, true, "dyninst", "g++", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_none", STOPPED, USEATTACH, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_none", STOPPED, DISK, true, "dyninst", "g++", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_none", STOPPED, DISK, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: g++, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_low", STOPPED, CREATE, true, "dyninst", "g++", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_low", STOPPED, CREATE, false, "dyninst", "g++", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_low", STOPPED, USEATTACH, true, "dyninst", "g++", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_low", STOPPED, USEATTACH, false, "dyninst", "g++", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_low", STOPPED, DISK, true, "dyninst", "g++", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_low", STOPPED, DISK, false, "dyninst", "g++", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: g++, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_high", STOPPED, CREATE, true, "dyninst", "g++", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_high", STOPPED, CREATE, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_high", STOPPED, USEATTACH, true, "dyninst", "g++", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_high", STOPPED, USEATTACH, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_high", STOPPED, DISK, true, "dyninst", "g++", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_high", STOPPED, DISK, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: g++, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_max", STOPPED, CREATE, true, "dyninst", "g++", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_max", STOPPED, CREATE, false, "dyninst", "g++", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_max", STOPPED, USEATTACH, true, "dyninst", "g++", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_max", STOPPED, USEATTACH, false, "dyninst", "g++", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_g++_32_max", STOPPED, DISK, true, "dyninst", "g++", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_g++_32_max", STOPPED, DISK, false, "dyninst", "g++", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: g++, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_none", STOPPED, CREATE, true, "dyninst", "pgCC", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_none", STOPPED, CREATE, false, "dyninst", "pgCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: pgCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_none", STOPPED, USEATTACH, true, "dyninst", "pgCC", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_none", STOPPED, USEATTACH, false, "dyninst", "pgCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: pgCC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_none", STOPPED, DISK, true, "dyninst", "pgCC", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_none", STOPPED, DISK, false, "dyninst", "pgCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: pgCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_low", STOPPED, CREATE, true, "dyninst", "pgCC", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_low", STOPPED, CREATE, false, "dyninst", "pgCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: pgCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_low", STOPPED, USEATTACH, true, "dyninst", "pgCC", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_low", STOPPED, USEATTACH, false, "dyninst", "pgCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: pgCC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_low", STOPPED, DISK, true, "dyninst", "pgCC", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_low", STOPPED, DISK, false, "dyninst", "pgCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: pgCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_high", STOPPED, CREATE, true, "dyninst", "pgCC", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_high", STOPPED, CREATE, false, "dyninst", "pgCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: pgCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_high", STOPPED, USEATTACH, true, "dyninst", "pgCC", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_high", STOPPED, USEATTACH, false, "dyninst", "pgCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: pgCC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef PGI
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_high", STOPPED, DISK, true, "dyninst", "pgCC", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_pgCC_32_high", STOPPED, DISK, false, "dyninst", "pgCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: pgCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(PGI)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_none", STOPPED, CREATE, true, "dyninst", "iCC", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_none", STOPPED, CREATE, false, "dyninst", "iCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_none", STOPPED, USEATTACH, true, "dyninst", "iCC", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_none", STOPPED, USEATTACH, false, "dyninst", "iCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: iCC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_none", STOPPED, DISK, true, "dyninst", "iCC", "none", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_none", STOPPED, DISK, false, "dyninst", "iCC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: none, compiler: iCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_low", STOPPED, CREATE, true, "dyninst", "iCC", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_low", STOPPED, CREATE, false, "dyninst", "iCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_low", STOPPED, USEATTACH, true, "dyninst", "iCC", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_low", STOPPED, USEATTACH, false, "dyninst", "iCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: iCC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_low", STOPPED, DISK, true, "dyninst", "iCC", "low", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_low", STOPPED, DISK, false, "dyninst", "iCC", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: low, compiler: iCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_high", STOPPED, CREATE, true, "dyninst", "iCC", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_high", STOPPED, CREATE, false, "dyninst", "iCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_high", STOPPED, USEATTACH, true, "dyninst", "iCC", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_high", STOPPED, USEATTACH, false, "dyninst", "iCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: iCC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_high", STOPPED, DISK, true, "dyninst", "iCC", "high", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_high", STOPPED, DISK, false, "dyninst", "iCC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: high, compiler: iCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_max", STOPPED, CREATE, true, "dyninst", "iCC", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_max", STOPPED, CREATE, false, "dyninst", "iCC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: iCC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_max", STOPPED, USEATTACH, true, "dyninst", "iCC", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_max", STOPPED, USEATTACH, false, "dyninst", "iCC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: iCC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(ICC)
 #ifdef ICC
   test_count = 0;
-  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_max", STOPPED, DISK, true, "dyninst", "iCC", "max", "32");
+  rg = new RunGroup("test1_14.mutatee_solo_icpc_32_max", STOPPED, DISK, false, "dyninst", "iCC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test1_14", "test1_14", "test1_14.so", false, "{test: test1_14, mutator: test1_14, grouped: false, start_state: stopped, abi: 32, mutatee: test1_14, optimization: max, compiler: iCC, run_mode: binary}"));
   rg->index = group_count++;
   tests.push_back(rg);
