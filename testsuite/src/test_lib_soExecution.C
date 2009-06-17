@@ -39,56 +39,132 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.5 2006/12/01 01:33:34 legendre Exp $
+// $Id: test_lib_soExecution.C,v 1.5 2008/10/30 19:16:58 legendre Exp $
 
+#include <sstream>
+
+#include <dlfcn.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "test_lib.h"
 #include "ParameterDict.h"
-#include "dlfcn.h"
 
+#include "TestOutputDriver.h"
+#include "TestMutator.h"
+#include "test_info_new.h"
+#include "comptester.h"
 
-int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
+TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
+  std::stringstream fname;
+  fname << odname << ".so";
+
+  void *odhandle = dlopen(fname.str().c_str(), RTLD_NOW);
+  if (NULL == odhandle) {
+    fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, dlerror());
+    return NULL;
+  }
+
+  TestOutputDriver *(*factory)(void *);
+  dlerror();
+  factory = (TestOutputDriver *(*)(void *)) dlsym(odhandle, "outputDriver_factory");
+  char *errmsg = dlerror();
+  if (errmsg != NULL) {
+    // TODO Handle error
+    fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, errmsg);
+    return NULL;
+  }
+
+  TestOutputDriver *retval = factory(data);
+
+  return retval;
+}
+
+static void* openSO(const char *soname)
 {
-   //printf("Loading test: %s\n", testLib.soname);
    char *fullSoPath;
-#if defined(os_aix)
-   fullSoPath = searchPath(getenv("LIBPATH"), testLib.soname);
+#if defined(os_aix_test)
+   fullSoPath = searchPath(getenv("LIBPATH"), soname);
 #else
-   fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), testLib.soname);
+   fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
 #endif
+   
    if (!fullSoPath) {
-      printf("Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n");
-      return -1;
+      return NULL; // Error
    }
    void *handle = dlopen(fullSoPath, RTLD_NOW);
    ::free(fullSoPath);
-
-   if (!handle)
-   {
-      printf("Error opening lib: %s\n", testLib.soname);
-      printf("%s\n", dlerror());
-      return -1;
+   if (!handle) {
+       fprintf(stderr, "Error opening lib: %s\n", soname);
+      fprintf(stderr, "%s\n", dlerror());
+      return NULL; //Error
    }
+   return handle;
+}
 
-   typedef int (*mutatorM_t)(ParameterDict &);
-   char mutator_name[256];
-   snprintf(mutator_name, 256, "%s_mutatorMAIN", testLib.name); 
-   mutatorM_t mutTest = (mutatorM_t) dlsym(handle, mutator_name);
-   if ( !mutTest )
-   {
-      printf("Error finding function: %s, in %s\n", mutator_name, 
-             testLib.soname);
-      printf("%s\n", dlerror());
+int setupMutatorsForRunGroup(RunGroup *group)
+{
+  int tests_found = 0;
+  for (int i = 0; i < group->tests.size(); i++) {
+    if (group->tests[i]->disabled)
+       continue;
+    TestInfo *test = group->tests[i];
+    const char *soname = test->soname;
+
+    void *handle = openSO(soname);
+    if (!handle) {
+       getOutput()->log(STDERR, "Couldn't open %s\n", soname);
+       return -1;
+    }
+
+    typedef TestMutator *(*mutator_factory_t)();
+    char mutator_name[256];
+    const char *testname = test->mutator_name;
+    snprintf(mutator_name, 256, "%s_factory", testname);
+    mutator_factory_t factory = (mutator_factory_t) dlsym(handle,
+							  mutator_name);
+    if (NULL == factory) {
+      fprintf(stderr, "Error finding function: %s, in %s\n", mutator_name,
+	      soname);
+      fprintf(stderr, "%s\n", dlerror());
       dlclose(handle);
-      return -1;
+      return -1; //Error
+    }
+
+    TestMutator *mutator = factory();
+    if (NULL == mutator) {
+      fprintf(stderr, "Error creating new TestMutator for test %s\n",
+	      test->name);
+    } else {
+      test->mutator = mutator;
+      tests_found++;
+    }
+  }
+  return tests_found; // No error
+} // setupMutatorsForRunGroup
+
+typedef ComponentTester* (*comptester_factory_t)();
+ComponentTester *Module::loadModuleLibrary()
+{
+   libhandle = NULL;
+   char libname[256];
+#if defined(os_aix_test)
+   snprintf(libname, 256, "libtest%s.a", name.c_str());
+#else   
+   snprintf(libname, 256, "libtest%s.so", name.c_str());
+#endif
+   //TODO: Open the so that goes with this group.
+   libhandle = openSO(libname);
+   if (!libhandle)
+      return NULL;
+
+   comptester_factory_t factory;
+   factory = (comptester_factory_t) dlsym(libhandle, "componentTesterFactory");
+   if (!factory)
+   {
+      fprintf(stderr, "Error finding componentTesterFactory\n");
+      return NULL;
    }
 
-   // Call function
-   int result = mutTest(param);
-
-   dlclose(handle);
-
-   //printf("Ran test: %s\n", testLib.soname);
-   return result;
+   return factory();
 }

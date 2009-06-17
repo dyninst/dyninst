@@ -286,6 +286,130 @@ class NodeSearchIterator : public NodeIteratorImpl{
     std::set<Node::Ptr> visited;
 };
 
+// And given a set to hold internally until the iterator goes away
+class NodeIteratorPredicateObj : public NodeIteratorImpl {
+ public:
+    virtual void inc() { 
+        if (cur == end) return;
+        cur = next;
+        setNext();
+    }
+    virtual void dec() {  return; }
+    virtual Node::Ptr get() { return *cur; }
+    virtual bool equals(NodeIteratorImpl *rhs) {
+        NodeIteratorPredicateObj *tmp = dynamic_cast<NodeIteratorPredicateObj *>(rhs);
+        if (tmp == NULL) return false;
+        return ((pred == tmp->pred) &&
+                (cur == tmp->cur) &&
+                (next == tmp->next) &&
+                (end == tmp->end));
+    }
+
+    virtual NodeIteratorImpl *copy() {
+        return new NodeIteratorPredicateObj(pred, cur, next, end);
+    }
+
+    virtual ~NodeIteratorPredicateObj() {
+        // Nothing to do
+    }
+    
+    NodeIteratorPredicateObj(Graph::NodePredicate::Ptr p,
+                    NodeIterator &c,
+                    NodeIterator &n,
+                    NodeIterator &e) :
+        pred(p),
+        cur(c), next(n), end(e) {};
+    NodeIteratorPredicateObj(Graph::NodePredicate::Ptr p,
+                             NodeIterator &b,
+                             NodeIterator &e) :
+        pred(p), cur(b), next(b), end(e) {
+        setNext();
+        // next is now a matching node. If the start wasn't,
+        // then we need to increment...
+        if ((cur != end) && !pred->predicate(*cur)) {
+            inc();
+        }
+    }
+    void setNext() {
+        // Set next to the, well, next match
+        if (next == end) return;
+        do {
+            ++next; 
+        } while (next != end && !(pred->predicate(*next)));
+    }
+
+ private:
+    Graph::NodePredicate::Ptr pred;
+    // We're not allowing reverse iteration over this, since we really
+    // don't want to suffer copy overhead. 
+    NodeIterator cur, next, end;
+};
+
+// And given a set to hold internally until the iterator goes away
+class NodeIteratorPredicateFunc : public NodeIteratorImpl {
+ public:
+    virtual void inc() { 
+        if (cur == end) return;
+        cur = next;
+        setNext();
+    }
+    virtual void dec() {  return; }
+    virtual Node::Ptr get() { return *cur; }
+    virtual bool equals(NodeIteratorImpl *rhs) {
+        NodeIteratorPredicateFunc *tmp = dynamic_cast<NodeIteratorPredicateFunc *>(rhs);
+        if (tmp == NULL) return false;
+        return ((pred == tmp->pred) &&
+                (user_arg == tmp->user_arg) &&
+                (cur == tmp->cur) &&
+                (next == tmp->next) &&
+                (end == tmp->end));
+    }
+
+    virtual NodeIteratorImpl *copy() {
+        return new NodeIteratorPredicateFunc(pred, user_arg, cur, next, end);
+    }
+
+    virtual ~NodeIteratorPredicateFunc() {
+        // Nothing to do
+    }
+    
+    NodeIteratorPredicateFunc(Graph::NodePredicateFunc p,
+                              void *u, 
+                              NodeIterator &c,
+                              NodeIterator &n,
+                              NodeIterator &e) :
+        pred(p),
+        user_arg(u),
+        cur(c), next(n), end(e) {};
+    NodeIteratorPredicateFunc(Graph::NodePredicateFunc p,
+                              void *u,
+                              NodeIterator &b,
+                              NodeIterator &e) :
+        pred(p), user_arg(u), cur(b), next(b), end(e) {
+        setNext();
+        // next is now a matching node. If the start wasn't,
+        // then we need to increment...
+        if ((cur != end) && !pred(*cur, user_arg)) {
+            inc();
+        }
+    }
+    void setNext() {
+        // Set next to the, well, next match
+        if (next == end) return;
+        ++next;
+        do {
+            ++next; 
+        } while (next != end && !(pred(*next, user_arg)));
+    }
+
+ private:
+    Graph::NodePredicateFunc pred;
+    void *user_arg;
+    // We're not allowing reverse iteration over this, since we really
+    // don't want to suffer copy overhead. 
+    NodeIterator begin, cur, next, end;
+};
+
 }
 
 #endif

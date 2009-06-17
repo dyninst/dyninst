@@ -67,15 +67,37 @@ class Graph : public AnnotatableSparse {
  public:    
     typedef dyn_detail::boost::shared_ptr<Graph> Ptr;
 
+    // Interface class for predicate-based searches. Users
+    // can inherit this class to specify the functor to use
+    // as a predicate...
+    class NodePredicate {
 
+    public:
+        typedef dyn_detail::boost::shared_ptr<NodePredicate> Ptr;
+        virtual ~NodePredicate() {};
+        virtual bool predicate(const NodePtr &node) = 0;
+        static Ptr getPtr(NodePredicate *p) { 
+            return Ptr(p);
+        }
+    };
+
+    typedef bool (*NodePredicateFunc)(const NodePtr &node, void *user_arg);
     
     // If you want to traverse the graph start here.
     virtual void entryNodes(NodeIterator &begin, NodeIterator &end);
+
+    // If you want to traverse the graph backwards start here.
+    virtual void exitNodes(NodeIterator &begin, NodeIterator &end);
     
     // Get all nodes in the graph
     virtual void allNodes(NodeIterator &begin, NodeIterator &end);
 
+    // Get all nodes with a provided address
     virtual bool find(Address addr, NodeIterator &begin, NodeIterator &end);
+
+    // Get all nodes that satisfy the provided predicate
+    virtual bool find(NodePredicate::Ptr, NodeIterator &begin, NodeIterator &end);
+    virtual bool find(NodePredicateFunc, void *user_arg, NodeIterator &begin, NodeIterator &end);
 
     bool printDOT(const std::string fileName);
 
@@ -89,6 +111,8 @@ class Graph : public AnnotatableSparse {
     void insertPair(NodePtr source, NodePtr target);
     
     virtual void insertEntryNode(NodePtr entry);
+    virtual void insertExitNode(NodePtr exit);
+    
 
     void addNode(NodePtr node);
 
@@ -111,6 +135,9 @@ class Graph : public AnnotatableSparse {
     // May be overridden by children; don't assume it exists.
     // Arguably should be removed entirely.
     NodeSet entryNodes_;
+
+    // See the above ;)
+    NodeSet exitNodes_;
 };
 
 }

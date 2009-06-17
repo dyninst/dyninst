@@ -2,7 +2,7 @@
 #define RUNTESTS_UTILS_H
 
 /* Windows Specific Includes and Macros */
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
 // For getpid
 #include <process.h>
 #define popen _popen
@@ -16,11 +16,11 @@
 
 #endif
 
-#if !defined(os_aix) && !defined(os_windows)
+#if !defined(os_aix_test) && !defined(os_windows_test)
 #include <wait.h>
 #endif
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
 #define WEXITSTATUS(x) x
 #endif
 
@@ -29,14 +29,27 @@
 
 using namespace std;
 
+// fills the buffer with the name of a file to use for PID
+// registration for mutatee cleanup
+void initPIDFilename(char *buffer, size_t len);
+
+// Kills any remaining mutatee processes that are listed in the PID file
+void cleanupMutatees(char *pidFilename);
+
+int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+	    string logfile, int testLimit, vector<char *> child_argv,
+            char *pidFilename, const char *memcpu_name);
+
 bool isRegFile(const string& filename);
 
 bool isDir(const string& filename); 
 
 void getInput(const char *filename, string& output);
 
-void generateTestString(bool resume, bool useLog, bool staticTests, string &logfile,
-      int testLimit, vector<char *>& child_argv, string& shellString);
+void generateTestString(bool resume, bool useLog, bool staticTests,
+			string &logfile, int testLimit,
+			vector<char *>& child_argv, string& shellString,
+			char *pidFilename);
 
 char *setResumeEnv();
 

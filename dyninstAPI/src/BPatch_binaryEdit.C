@@ -152,8 +152,8 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      return;
   }
 
-  std::map<std::string, BinaryEdit*>::iterator i = llBinEdits.begin();
-  for(; i != llBinEdits.end(); i++) {
+  std::map<std::string, BinaryEdit*>::iterator i, j;
+  for(i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
      (*i).second->setupRTLibrary(rtLib);
   }
 
@@ -168,6 +168,9 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      llBinEdit->setupRTLibrary(rtLib);
      llBinEdit->setTrampGuard(masterTrampGuard);
      llBinEdit->setMultiThreadCapable(has_thread_lib);
+     for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
+        llBinEdit->addSibling((*j).second);
+     }
   }
 
   image = new BPatch_image(this);

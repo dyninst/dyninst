@@ -266,8 +266,9 @@ void Symbol::serialize(SerializerBase *s, const char *tag) THROW_SPEC (Serialize
 	Region *r = region_;
 	Offset r_off = r ? r->getDiskOffset() : (Offset) 0;
 	std::string modname = "";
-	if (!module_)
-		fprintf(stderr, "%s[%d]:  WARN:  NULL module\n", FILE__, __LINE__);
+	if (!module_) {
+		//fprintf(stderr, "%s[%d]:  WARN:  NULL module\n", FILE__, __LINE__);
+   }
 	else
 	    modname = module_->fullName();
 

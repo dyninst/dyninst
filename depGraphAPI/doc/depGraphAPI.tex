@@ -1,6 +1,7 @@
 \documentclass[12pt,titlepage]{article}
 \usepackage{fullpage}
 \usepackage{epsfig}
+\usepackage{subfigure}
 \begin{document}
 \title{DepGraphAPI Programmer's Guide \\ Release 0.9b}
 \author{Paradyn Parallel Performance Tools}
@@ -27,8 +28,10 @@ The DepGraphAPI currently provides four types of graph representation:
 between instructions that define and instructions that use registers
 and memory. Nodes in this graph represent instructions, and edges
 connect definitions of a particular location to its uses.
-\item[Control Dependence Graph (CDG)] This graph represents conditional execution of basic blocks in the program. 
-\item[Program Dependence Graph (PDG)] This graph is the union of the DDG and CDG. 
+\item[Control Dependence Graph (CDG)] This graph represents
+conditional execution of basic blocks in the program.
+\item[Program Dependence Graph (PDG)] This graph is the union of the
+DDG and CDG.
 \item[Extended Program Dependence Graph (xPDG)] This graph is the PDG
 augmented with additional nodes and edges necessary for forming an
 executable slice (defined below).
@@ -37,7 +40,7 @@ executable slice (defined below).
 The main goal of this API is to provide the user with abstractions
 representing the logical dependencies between instructions in a
 program. An abstract interface provides two benefits: it simplifies
-the development of a tool since the complexity of a particular
+the development of tools since the complexity of a particular
 architecture is hidden, and it allows tools to easily be ported
 between platforms. Using a dependence graph representation of a
 program allows the user to focus on a particular aspect of program
@@ -47,13 +50,13 @@ behavior.
 An excellent example is the \emph{slice}, a common use of program
 dependence. Intuitively, a slice of a program from a particular point
 is the sub-program that affects that point (a backwards slice) or is
-affected by that point (a forwards slice). Let $i$ represent an
-instruction in the program and $a$ some location that $i$ defines
-(writes a value into). A forward slice from $(i,a)$ are all
-instructions (and defined locations) that are affected by the
-definition of $a$ by $i$. Similarly, the backwards slice from $(i,a)$
-are all instructions (and defined locations) that may affect the value
-written into $a$ by $i$.
+affected by that point (a forwards slice). Formally, we define slices
+as follows. Let $i$ represent an instruction in the program and $a$
+some location that $i$ defines (writes a value into). A forward slice
+from $(i,a)$ are all instructions (and defined locations) that are
+affected by the definition of $a$ by $i$. Similarly, the backwards
+slice from $(i,a)$ are all instructions (and defined locations) that
+may affect the value written into $a$ by $i$.
 
 A future goal of this library is to allow users to improve these graph
 representations through the use of additional analyses. The included
@@ -75,17 +78,18 @@ constraints.
 \section{Abstractions}
 
 DepGraphAPI provides a simple set of abstractions over complicated
-data structures to make it easy to use. The fundamental representation
-used by this library is the graph. A graph is a set of nodes connected
-by directed edges; each edge has a distinct (and unique) source and
-target. Nodes represent logical elements of the program. We define two
-classes of nodes: physical and virtual. Physical nodes that represent
-a particular instruction, basic block, or function. Virtual nodes
-represent a summary of the behavior of code that is not contained
-within the graph, such as a called function or the inputs to a
-function. We provide a set of methods for operating on Graphs, Nodes,
-and Edges; these methods provide a common interface to all four
-dependence graph types provided by the DepGraphAPI.
+data structures to make the API easy to use. The fundamental
+representation used by this library is the graph. A graph is a set of
+nodes connected by directed edges; each edge has a distinct (and
+unique) source and target. Nodes represent logical elements of the
+program. We define two classes of nodes: physical and
+virtual. Physical nodes represent a particular instruction, basic
+block, or function. Virtual nodes represent a summary of the behavior
+of code that is not contained within the graph, such as a called
+function or the inputs to a function. We provide a set of methods for
+operating on Graphs, Nodes, and Edges; these methods provide a common
+interface to all four dependence graph types provided by the
+DepGraphAPI.
 
 Figure \ref{inheritance} shows the
 inheritance hierarchy for the DepGraphAPI classes. All references to
@@ -94,7 +98,7 @@ require the user to perform any manual memory allocation or deletion.
 
 \begin{figure}
 \begin{center}
-\epsfig{file=Inheritance,width=6in}
+\includegraphics[scale=0.75]{figs/Inheritance.pdf}
 \caption{Inheritance diagram for the DepGraphAPI. The Graph, Node, and
   Edge classes provide a common interface specification. The DDG, CDG,
   PDG, and xPDG graphs customize these three classes as necessary.}
@@ -110,7 +114,7 @@ function.
 \item[Node] The Node represents an element within the graph. Nodes are
 connected by edges and are labelled with information.
 \item[Physical Node] These Nodes represent an element (instruction, basic
-block, etc.) of the program. They are labelled with the starting address
+block, or function) of the program. They are labelled with the starting address
 of that object.
 \item[Virtual Node] These Nodes represent summaries of program
 behavior not contained within the graph. Virtual nodes do not have an
@@ -184,6 +188,14 @@ using the appropriate methods on the Graph class.
 To illustrate the ideas in the API, this section presents
 short examples that demonstrate how the API can be used.  
 
+\begin{figure}
+\include{include/example1}
+\caption{Slicing example. This code fragment identifies the nodes
+  reachable by following edges forward from the node with address
+  \texttt{insnAddr}.}
+\label{example1}
+\end{figure}
+
 The first example demonstrates how to access the PDG for a particular
 function and take a slice from a known instruction (identified by
 address) and register that instruction defines. The code for this
@@ -206,13 +218,11 @@ example is shown in Figure \ref{example1}. Lines of interest are:
 \end{itemize}
 
 \begin{figure}
-\include{example1}
-\caption{Slicing example. This code fragment identifies the nodes
-  reachable by following edges forward from the node with address
-  \texttt{insnAddr}.}
-\label{example1}
+\include{include/example2}
+\caption{DDG traversal example. This code fragment identifies nodes
+  within a basic block that define themselves.}
+\label{example2}
 \end{figure}
-
 
 The second example shows how to determine which instructions in a
 basic block define themselves. This is one method to identify a loop
@@ -235,17 +245,10 @@ iteration variable. The code for this example is shown in Figure
   nodes that define themselves. 
 \end{itemize}
 
-\begin{figure}
-\include{example2}
-\caption{DDG traversal example. This code fragment identifies nodes
-  within a basic block that define themselves.}
-\label{example2}
-\end{figure}
-
 
 \section{Definitions and Basic Types}
 
-The DepGraphAPI supplies three types of dependence graphs. We define
+The DepGraphAPI supplies four types of dependence graphs. We define
 these forms of dependence here, along with definitions of the
 underlying concepts. The following definitions and basic types are
 referenced throughout the rest of the document.
@@ -272,7 +275,7 @@ level we may overapproximate dependences between instructions; we
 describe an example of this occurrence below. Instead we represent
 dependences at the operation level.
 \item[Data Dependence] In general instruction j is data dependent on i
-if i defines an abstract that j uses and there is an execution path
+if i defines an abstract location j uses and there is an execution path
 from i to j along which a is not redefined. We use a more precise
 definition that uses operations as nodes. Let m = (i,a) be an
 operation representing the definition of a by i, and similarly for n =
@@ -320,6 +323,24 @@ standard iterator methods (e.g., a for loop) to examine each element
 in the range. We define two types of iterators: \texttt{NodeIterator} and
 \texttt{EdgeIterator}.
 
+\begin{figure}
+\begin{center}
+  \subfigure[Instruction nodes]{\label{ddg-a}\includegraphics[scale=0.75]{figs/DDG-a.pdf}}
+  \subfigure[Operation
+  nodes]{\label{ddg-b}\includegraphics[scale=0.75]{figs/DDG-b.pdf}}
+\end{center}
+\caption{Example of DDG operations.  Two data dependence
+graphs. Figure a) provides an example of the problems of representing
+instructions as single nodes. In this graph it is possible for paths
+to ``cross'' definitions; for example, there is a path from the
+definition of $r_0$ by $i_0$ to the definition of $sp$ (the stack pointer) by
+$i_3$, when in the actual program there is no such dependence. The DDG
+shown in figure b) makes the intra-instruction data dependencies
+explicit and thus removes the possibility of erroneous paths.}
+\label{OperationsGraph}
+\end{figure}
+
+
 \subsection{Operation-Level Data Dependence}
 
 The conventional definition of the DDG (in which nodes represent
@@ -333,22 +354,8 @@ there is no dependence between the use and definition of the same
 registers. To avoid this over-approximation, each node in the
 DepGraphAPI DDG consists of an operation; an (instruction, abstract
 location) pair. We show an example of the use of instructions and
-operations in Figure \ref{Operations}.
+operations in Figure \ref{OperationsGraph}.
 
-\begin{figure}
-\begin{center}
-\epsfig{file=Operations_example,width=4in}
-\caption{Example of DDG operations.  Two data dependence
-graphs. Figure a) provides an example of the problems of representing
-instructions as single nodes. In this graph it is possible for paths
-to ``cross'' definitions; for example, there is a path from the
-definition of $r_0$ by $i_0$ to the definition of $sp$ (the stack pointer) by
-$i_3$, when in the actual program there is no such dependence. The DDG
-shown in figure b) makes the intra-instruction data dependencies
-explicit and thus removes the possibility of erroneous paths.}
-\end{center}
-\label{Operations}
-\end{figure}
 
 \section{Namespaces}
 
@@ -420,6 +427,12 @@ This method is similar to the previous, but automatically traverses the edges an
 This method returns all nodes reachable from this node in the forward direction (by traversing out-edges).
 \item[void backwardsClosure(NodeIterator \&begin, NodeIterator \&end)]
 This method returns all nodes reachable from this node by traversing in-edges.
+\item[Graph::Ptr forwardSubgraph()]
+This method constructs and returns the subgraph that includes all
+nodes reachable from the current node along forward edges.
+\item[Graph::Ptr backwardSubgraph()]
+This method constructs and returns the subgraph that includes all
+nodes reachable from the current node along forward edges.
 \item[std::string format()]
 This method returns a textual representation of the node.
 \item[bool isVirtual() ]
@@ -453,11 +466,11 @@ This method returns the target node of an edge.
 \begin{description}
 \item[DDG::Ptr analyze(BPatch\_function *func)]
 This method creates and returns a DDG for the provided function.
-\item[void formalParameterNodes(NodeIterator \&begin, NodeIterator \&end) ]
+\item[void formalParamNodes(NodeIterator \&begin, NodeIterator \&end) ]
 This method returns the range of all formal parameters to the function.
 \item[void formalReturnNodes(NodeIterator \&begin, NodeIterator \&end)]
 This method returns the range of all formal returns from the function.
-\item[void actualParameterNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end) ]
+\item[void actualParamNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end) ]
 This method returns the range of all actual parameters for the call instruction
 at the given address.
 \item[void actualReturnNodes(Address callAddr, NodeIterator \&begin, NodeIterator \&end)]
@@ -468,6 +481,21 @@ This method returns the range of nodes that fit the specific address
 and absloc requirements. This range will contain at most one
 element. It returns true if the range is non-empty, and false
 otherwise. 
+\item[DDG::Ptr removeDeadNodes()] This method constructs a derived DDG
+  that contains no dead nodes. All nodes that cannot reach a
+  formal return node are removed. This includes definitions to
+  abstract locations that are redefined before being used. 
+\item[void immediateDefinitions(NodeIterator \&begin, NodeIterator
+  \&end)] This method returns the range of non-formal-parameter nodes
+  that have no in-edges. This occurs when an instruction defines an
+  abstract location without using any other abstract location; for
+  example, \texttt{mov \$42, eax}. Using this in combination with
+  \texttt{formalParamNodes} will give the set of entry nodes to the DDG.
+\item[void deadDefinitions{NodeIterator \&begin, NodeIterator \&end}]
+  This method gives the range of non-formal-return nodes that have no
+  out-edges. This occurs when a node defines an abstract location that
+  is redefined before being used. These dead definitions are commonly
+  instruction side-effects (e.g., ignored writes to the flags). 
 \end{description}
 
 \subsubsection{Absloc}
@@ -519,7 +547,6 @@ This method returns the callee function whose return is represented by this node
 \begin{description}
 \item[CDG::Ptr analyze(BPatch\_function *func)]
 This method creates and returns a CDG for the provided function.
-<<<<<<< HEAD:depGraphAPI/doc/depGraphAPI.tex
 \item[bool find(BPatch\_basicBlock *block, NodeIterator \&begin, NodeIterator \&end)]
 This method returns the range of nodes representing the provided
 block. This range will have at most one element. It returns true if

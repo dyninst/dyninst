@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2005/11/21 21:13:37 tlmiller Exp $
+# $Id: Makefile,v 1.1 2008/05/08 20:53:23 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -52,21 +52,23 @@ MUTATEE_CFLAGS_NATIVE   = $(UNIFIED_DEF)
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
 
 # Definitions used for test1 assembly
-TEST1_AS = gcc -c
-TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
-CALL35_1_SRC = call35_1.c
+# TEST1_AS = gcc -c
+# TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
+# CALL35_1_SRC = call35_1.c
 
 # Definition used for test6 assembly
-TEST6_AS_GNU = as
-TEST6_ASFLAGS_GNU = 
-TEST6_AS_SRC = test6LS-ia64.s
-TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
+# TEST6_AS_GNU = as
+# TEST6_ASFLAGS_GNU = 
+# TEST6_AS_SRC = test6LS-ia64.s
+# TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 
 LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
+
+TESTDRIVER_LDFLAGS = -liberty
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

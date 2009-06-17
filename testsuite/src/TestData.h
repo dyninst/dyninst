@@ -15,8 +15,9 @@ enum start_state_t {
 
 enum create_mode_t {
    CREATE = 0,
-   USEATTACH = 1,
-   BOTH,
+   USEATTACH,
+   DISK,
+   DESERIALIZE
 };
 
 enum cleanup_mode_t {
@@ -28,7 +29,7 @@ enum cleanup_mode_t {
    // The test contains it's own cleanup code
    NONE,
 };
-      
+
 enum enabled_t {
    DISABLED = 0,
    ENABLED = 1,
@@ -44,7 +45,7 @@ typedef std::vector<char*> mutatee_list_t;
 typedef struct {
    bool alpha_dec_osf5_1;
    bool i386_unknown_linux2_4; 
-   bool _i386_unknown_nt4_0; 
+   bool _i386_unknown_nt4_0_test; 
    bool _ia64_unknown_linux2_4;
    bool _x86_64_unknown_linux2_4;
    bool mips_sgi_irix6_5;

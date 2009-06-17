@@ -239,9 +239,9 @@ void DYNINSTBaseInit()
  **/
 void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
 {
-   initFPU();
    int calledByFork = 0, calledByAttach = 0;
    rtdebug_printf("%s[%d]:  DYNINSTinit:  welcome to DYNINSTinit()\n", __FILE__, __LINE__);
+   initFPU();
 
    DYNINSTstaticMode = 0;
    tc_lock_init(&DYNINST_trace_lock);

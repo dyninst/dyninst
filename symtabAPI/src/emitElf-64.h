@@ -128,7 +128,7 @@ class emitElf64{
 #if !defined(os_solaris)
     void updateDynamic(unsigned tag, Elf64_Addr val);
     void createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
-    void createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
+    void createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
 #endif 
 

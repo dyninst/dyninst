@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.27 2008/04/11 23:31:27 legendre Exp $
+// $Id: test_lib.C,v 1.6 2008/10/30 19:16:54 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -49,13 +49,16 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <errno.h>
+#include <assert.h>
+#include <stdlib.h>
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(i386_unknown_nt4_0_test)
 #include <fnmatch.h>
 #endif
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
-#ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
+#if defined(i386_unknown_nt4_0_test) || defined(mips_unknown_ce2_11_test) //ccw 10 apr 2001 
+#ifndef mips_unknown_ce2_11_test //ccw 10 apr 2001
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <Windows.h>
@@ -68,31 +71,25 @@
 #include <stdarg.h>
 
 // Blind inclusion from test9.C
-#if defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(sparc_sun_solaris2_4)
 #include <sys/types.h>
 #include <sys/wait.h>
 #endif
 
-#if defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4)
 #include <unistd.h>
 #endif
 // end inclusion from test9.C
 
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
 #define snprintf _snprintf
 #endif
 
-
-#include "BPatch.h"
-#include "BPatch_Vector.h"
-#include "BPatch_thread.h"
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM
 #include "test_lib.h"
-
-int expectError = DYNINST_NO_ERROR;
+#include "ResumeLog.h"
 
 /* Control Debug printf statements */
 int debugPrint = 0;
@@ -100,135 +97,269 @@ int debugPrint = 0;
 // output logging
 FILE *outlog = NULL;
 FILE *errlog = NULL;
+const char *outlogname = "-";
+const char *errlogname = "-";
+
+LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
+	runtime_error(msg),
+	file__(std::string(__file__)),
+	line__(__line__)
+{}
+
+LocErr::~LocErr() THROW
+{}
+
+std::string LocErr::file() const
+{
+	return file__;
+}
+
+int LocErr::line() const
+{
+	return line__;
+}
+
+void LocErr::print(FILE *stream) const
+{
+	fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n",
+			file__.c_str(), line__, what());
+}
+
+Tempfile::Tempfile()
+{
+#if defined (os_windows_test)
+	fname = new char[1024];
+	assert(fname);
+	const char *dyninst_root = getenv("DYNINST_ROOT");
+	char tmp_dir[1024];
+	struct stat statbuf;
+
+	if (!dyninst_root)
+	{
+		fprintf(stderr, "%s[%d]:  DYNINST_ROOT not specified\n", __FILE__, __LINE__);
+		abort();
+	}
+
+	sprintf(tmp_dir, "%s\temp", dyninst_root);
+
+	if (0 != stat(tmp_dir, &statbuf))
+	{
+		if (ENOENT == errno)
+		{
+			//  doesn't exist, make it
+			if (0 != _mkdir(tmp_dir))
+			{
+				fprintf(stderr, "%s[%d]:  mkdir(%s): %s\n", __FILE__, __LINE__, tmp_dir, strerror(errno));
+				abort();
+			}
+		}
+		else
+		{
+			fprintf(stderr, "%s[%d]:  FIXME:  unexpected stat result: %s\n",
+					__FILE__, __LINE__, strerror(errno));
+			abort();
+		}
+	}
+
+	if (0 != GetTempFileName(tmp_dir, "tempfile", 0, fname))
+	{
+		fprintf(stderr, "%s[%d]:  failed to create temp file name\n", __FILE__, __LINE__);
+		assert(0);
+	}
+
+	fd = CreateFile(fname,
+			GENERIC_READ | GENERIC_WRITE, // open r-w 
+			0,                    // do not share 
+			NULL,                 // default security 
+			CREATE_ALWAYS,        // overwrite existing
+			FILE_ATTRIBUTE_NORMAL,// normal file 
+			NULL);                // no template 
+
+	if (fd == INVALID_HANDLE_VALUE)
+	{
+		fprintf(stderr, "%s[%d]:  failed to create temp file\n", __FILE__, __LINE__);
+		assert(0);
+	}
+#else
+	fname = strdup("/tmp/tmpfileXXXXXX");
+	fd = mkstemp(fname);
+
+	if (-1 == fd)
+	{
+		fprintf(stderr, "%s[%d]:  failed to make temp file\n", __FILE__, __LINE__);
+		abort();
+	}
+#endif
+}
+
+Tempfile::~Tempfile()
+{
+#if defined (os_windows_test)
+	if (0 == DeleteFile(fname))
+	{
+		fprintf(stderr, "%s[%d]:  DeleteFile failed: %s\n",
+				__FILE__, __LINE__, strerror(errno));
+	}
+	delete [] fname;
+#else
+	if (0 != unlink (fname))
+	{
+		fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
+				__FILE__, __LINE__, strerror(errno));
+	}
+	free (fname);
+#endif
+}
+
+const char *Tempfile::getName()
+{
+	return fname;
+}
+
+
+
+TestOutputDriver * output = NULL;
+
+// windows has strange support for sharing variables across
+// a dll and a program, so here is a simple utility function to do that, since
+// FUNCTION definitions are easily shared.
+TestOutputDriver * getOutput() {
+	return output;
+}
+
+	void setOutput(TestOutputDriver * new_output) {
+		if (output != NULL)
+			delete output;
+		output = new_output;
+	}
 
 void setOutputLog(FILE *log_fp) {
-  if (log_fp != NULL) {
-    outlog = log_fp;
-  } else {
-    outlog = stdout;
-  }
+	if (log_fp != NULL) {
+		outlog = log_fp;
+	} else {
+		outlog = stdout;
+	}
+}
+
+FILE *getOutputLog() {
+	return outlog;
 }
 
 void setErrorLog(FILE *log_fp) {
-  if (log_fp != NULL) {
-    errlog = log_fp;
-  } else {
-    errlog = stderr;
-  }
+	if (log_fp != NULL) {
+		errlog = log_fp;
+	} else {
+		errlog = stderr;
+	}
 }
 
-int logstatus(const char *fmt, ...) {
-  va_list args;
-  int retval;
-  va_start(args, fmt);
-  if (outlog != NULL) {
-    retval = vfprintf(outlog, fmt, args);
-  } else {
-    retval = vprintf(fmt, args);
-  }
-  va_end(args);
-  return retval;
+FILE *getErrorLog() {
+	return errlog;
 }
 
-int logerror(const char *fmt, ...) {
-  va_list args;
-  int retval;
-  va_start(args, fmt);
-  if (errlog != NULL) {
-    retval = vfprintf(errlog, fmt, args);
-  } else {
-    retval = vfprintf(stderr, fmt, args);
-  }
-  va_end(args);
-  return retval;
+void setOutputLogFilename(char *log_fn) {
+	if (log_fn != NULL) {
+		outlogname = log_fn;
+	}
+}
+
+void setErrorLogFilename(char *log_fn) {
+	if (log_fn != NULL) {
+		errlogname = log_fn;
+	}
+}
+
+const char *getOutputLogFilename() {
+	return outlogname;
+}
+
+const char *getErrorLogFilename() {
+	return errlogname;
+}
+
+void logstatus(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	getOutput()->vlog(LOGINFO, fmt, args);
+	va_end(args);
+}
+
+void logerror(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	getOutput()->vlog(LOGERR, fmt, args);
+	va_end(args);
 }
 
 void flushOutputLog() {
-  if (outlog != NULL) {
-    fflush(outlog);
-  }
+	if (outlog != NULL) {
+		fflush(outlog);
+	}
 }
 void flushErrorLog() {
-  if (errlog != NULL) {
-    fflush(errlog);
+	if (errlog != NULL) {
+		fflush(errlog);
+	}
+}
+
+// PID registration for mutatee cleanup
+// TODO Check if these make any sense on Windows.  I suspect I'll need to
+// change them.
+char *pidFilename = NULL;
+void setPIDFilename(char *pfn) {
+	pidFilename = pfn;
+}
+char *getPIDFilename() {
+	return pidFilename;
+}
+void registerPID(int pid) {
+	if (NULL == pidFilename) {
+		return;
+	}
+	FILE *pidFile = fopen(pidFilename, "a");
+	if (NULL == pidFile) {
+		fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
+	} else {
+     fprintf(pidFile, "%d\n", pid);
+     fclose(pidFile);
   }
 }
 
-//
-// Wait for the mutatee to stop.
-//
-int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
-                      const char *testname)
+void cleanPIDFile()
 {
-    while (!appThread->isStopped() && !appThread->isTerminated())
-        bpatch->waitForStatusChange();
-    
-    if (!appThread->isStopped()) {
-        logerror("**Failed test #%d (%s)\n", testnum, testname);
-        logerror("    process did not signal mutator via stop\n");
-        logerror("thread is not stopped\n");
-        return -1;
-    }
-#if defined(os_windows) //ccw 10 apr 2001
-    else if (appThread->stopSignal() != EXCEPTION_BREAKPOINT && appThread->stopSignal() != -1) {
-	logerror("**Failed test #%d (%s)\n", testnum, testname);
-	logerror("    process stopped on signal %d, not SIGTRAP\n", 
-		appThread->stopSignal());
-        return -1;
-    }
+	if(!pidFilename)
+		return;
+   FILE *f = fopen(pidFilename, "r");
+   if (!f)
+      return;
+   for (;;)
+   {
+      int pid;
+      int res = fscanf(f, "%d\n", &pid);
+      if (res != 1)
+         break;
+#if !defined(os_windows_test)
+      kill(pid, SIGKILL);
 #else
-#ifdef DETACH_ON_THE_FLY
-    /* FIXME: Why add SIGILL here? */
-    else if ((appThread->stopSignal() != SIGSTOP) &&
-	     (appThread->stopSignal() != SIGHUP) &&
-	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
-	     (appThread->stopSignal() != SIGILL)) {
-#else
-    else if ((appThread->stopSignal() != SIGSTOP) &&
-	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
-#if defined(bug_irix_broken_sigstop)
-	     (appThread->stopSignal() != SIGEMT) &&
+      HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
+      if (h == NULL) {
+         return;
+      }
+      bool dummy = TerminateProcess(h,0);
+      CloseHandle(h);
 #endif
-	     (appThread->stopSignal() != SIGHUP)) {
-#endif /* DETACH_ON_THE_FLY */
-	logerror("**Failed test #%d (%s)\n", testnum, testname);
-	logerror("    process stopped on signal %d, not SIGSTOP\n", 
-		appThread->stopSignal(), SIGSTOP);
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-
-//
-// Signal the child that we've attached.  The child contains a function
-// "checkIfAttached" which simply returns the value of the global variable
-// "isAttached."  We add instrumentation to "checkIfAttached" to set
-// "isAttached" to 1.
-//
-bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
-{
-  //fprintf(stderr, "test_lib: in signalAttached()\n"); /* *DEBUG* */
-    BPatch_variableExpr *isAttached = appImage->findVariable("isAttached");
-    if (isAttached == NULL) {
-	logerror("*ERROR*: unable to start tests because variable \"isAttached\""
-               " could not be found in the child process\n");
-        return false;
-    }
-
-    int yes = 1;
-    isAttached->writeValue(&yes);
-    //fprintf(stderr, "test_lib: leaving signalAttached()\n"); /* *DEBUG* */
-    return true;
+   }
+   fclose(f);
+   f = fopen(pidFilename, "w");
+   fclose(f);
 }
 
 void setDebugPrint(int debug) {
    debugPrint = debug;
 }
 
-#if !defined(os_windows)
-#if !defined(os_linux)
+#if !defined(os_windows_test)
+#if !defined(os_linux_test)
 pid_t fork_mutatee() {
   return fork();
 }
@@ -251,7 +382,7 @@ pid_t fork_mutatee() {
    pipe(filedes);
 
    child_pid = fork();
-   if (child_pid < 0) {
+   if (child_pid < 0) { // This is an error
       close(filedes[0]);
       close(filedes[1]);
       return child_pid;
@@ -268,11 +399,15 @@ pid_t fork_mutatee() {
 
       int options = 0;
       do {
+		  logerror("%s[%d]:  before waitpid(%d)\n", FILE__, __LINE__, child_pid);
          result = waitpid(child_pid, &status, options);
          if (result != child_pid) {
             perror("Couldn't join child");
             break;
          }
+		 logerror("%s[%d]:  waitpid (%d): %s with %d\n", FILE__, __LINE__, child_pid,
+				 WIFEXITED(status) ? "exited" : WIFSIGNALED(status) ? "signaled" : "unknown",
+				 WIFEXITED(status) ? WEXITSTATUS(status) : WIFSIGNALED(status) ? WTERMSIG(status) : -1);
       } while (!WIFEXITED(status));
       close(filedes[0]);
       close(filedes[1]);
@@ -304,7 +439,7 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 {
    for (unsigned int i = 0; i < test_list.size(); i++ )
    {
-#if defined(i386_unknown_nt4_0)
+#if defined(i386_unknown_nt4_0_test)
       if ( strcmp(test_list[i], test.name) == 0 )
 #else
       if ( fnmatch(test_list[i], test.name, 0) == 0 )
@@ -322,115 +457,200 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 // fails, this function returns -1.
 //
 int startNewProcessForAttach(const char *pathname, const char *argv[],
-			     FILE *outlog, FILE *errlog) {
-#if defined(os_windows)
-      // TODO Fix Windows code to work with log file
-       char child_args[1024];
-       strcpy(child_args, "");
-       if (argv[0] != NULL) {
-          strcpy(child_args, pathname);
-          for (int i = 1; argv[i] != NULL; i++) {
-             strcat(child_args, " ");
-             strcat(child_args, argv[i]);
-          }	    
-          strcat(child_args, " -attach");
-       }
+                             FILE *outlog, FILE *errlog, bool attach) {
+#if defined(os_windows_test)
+   // TODO Fix Windows code to work with log file
+	LPCTSTR pipeName = "\\\\.\\pipe\\mutatee_signal_pipe";
+	HANDLE mutatee_signal_pipe = CreateNamedPipe(pipeName,
+		PIPE_ACCESS_INBOUND,
+		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+		1, // num instances
+		1024, // read buffer
+		1024, // write buffer
+		5000, //timeout
+		NULL); // security descriptor
+	if(mutatee_signal_pipe == INVALID_HANDLE_VALUE)
+	{
+      fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+      return -1;
+	}
+	char child_args[1024];
+   strcpy(child_args, "");
+   if (argv[0] != NULL) {
+      strcpy(child_args, pathname);
+      for (int i = 1; argv[i] != NULL; i++) {
+         strcat(child_args, " ");
+         strcat(child_args, argv[i]);
+      }
+      strcat(child_args, " -attach");
+   }
 
-       STARTUPINFO si;
-       memset(&si, 0, sizeof(STARTUPINFO));
-       si.cb = sizeof(STARTUPINFO);
-       PROCESS_INFORMATION pi;
-       if (!CreateProcess(pathname,	// application name
-                          child_args,	// command line
-                          NULL,		// security attributes
-                          NULL,		// thread security attributes
-                          FALSE,		// inherit handles
-                          0,		// creation flags
-                          NULL,		// environment,
-                          NULL,		// current directory
-                          &si,
-                          &pi)) {
-          return -1;
-       }
+   STARTUPINFO si;
+   memset(&si, 0, sizeof(STARTUPINFO));
+   si.cb = sizeof(STARTUPINFO);
+   PROCESS_INFORMATION pi;
+   if (!CreateProcess(pathname,	// application name
+                      child_args,	// command line
+                      NULL,		// security attributes
+                      NULL,		// thread security attributes
+                      FALSE,		// inherit handles
+                      0,		// creation flags
+                      NULL,		// environment,
+                      NULL,		// current directory
+                      &si,
+                      &pi)) {
+						  LPTSTR lastErrorMsg;
+						  DWORD lastError = GetLastError();
+						  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+							  FORMAT_MESSAGE_FROM_SYSTEM |
+							  FORMAT_MESSAGE_IGNORE_INSERTS,
+							  NULL,
+							  lastError,
+							  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+							  (LPTSTR)&lastErrorMsg,
+							  0, NULL );
+						  fprintf(stderr, "CreateProcess failed: (%d) %s\n",
+							  lastError, lastErrorMsg);
+						  LocalFree(lastErrorMsg);
 
-       return pi.dwProcessId;
+      return -1;
+   }
+
+   registerPID(pi.dwProcessId);
+	// Keep synchronization pattern the same as on Unix...
+	BOOL conn_ok = ConnectNamedPipe(mutatee_signal_pipe, NULL) ?
+		TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
+	if(!conn_ok)
+	{
+		CloseHandle(mutatee_signal_pipe);
+		return -1;
+	}
+	char mutatee_ready = 0x0;
+	DWORD bytes_read;
+	BOOL read_ok = ReadFile(mutatee_signal_pipe,
+		&mutatee_ready, // buffer
+		1,	// size
+		&bytes_read,
+		NULL); // not overlapped I/O
+	if (!read_ok || (bytes_read != 1))
+	{
+		fprintf(stderr, "Couldn't read from mutatee pipe\n");
+		DisconnectNamedPipe(mutatee_signal_pipe);
+		CloseHandle(mutatee_signal_pipe);
+		return -1;
+	}
+	if(mutatee_ready != 'T')
+	{
+		fprintf(stderr, "Got unexpected message from mutatee, aborting\n");
+		DisconnectNamedPipe(mutatee_signal_pipe);
+		CloseHandle(mutatee_signal_pipe);
+		return -1;
+	}
+	DisconnectNamedPipe(mutatee_signal_pipe);
+	CloseHandle(mutatee_signal_pipe);
+   return pi.dwProcessId;
 #else
-       /* Make a pipe that we will use to signal that the mutatee has started. */
-       int fds[2];
-       if (pipe(fds) != 0) {
-	 fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
-          return -1;
-       }
+   /* Make a pipe that we will use to signal that the mutatee has started. */
+   int fds[2];
+   if (attach) {
+      if (pipe(fds) != 0) {
+         fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+         return -1;
+      }
+   }
 
-       /* Create the argv string for the child process. */
-       char fdstr[32];
-       sprintf(fdstr, "%d", fds[1]);
+   /* Create the argv string for the child process. */
+   char fdstr[32];
+   sprintf(fdstr, "%d", fds[1]);
 
-       int i;
-       for (i = 0; argv[i] != NULL; i++) ;
-       const char **attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
+   int i;
+   for (i = 0; argv[i] != NULL; i++) ;
+   // i now contains the count of elements in argv
+   const char **attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
+   // attach_argv is length i + 3 (including space for NULL)
 
-       for (i = 0; argv[i] != NULL; i++)
-          attach_argv[i] = argv[i];
-       attach_argv[i++] = const_cast<char*>("-attach");
-       attach_argv[i++] = fdstr;
-       attach_argv[i++] = NULL;
+   for (i = 0; argv[i] != NULL; i++)
+      attach_argv[i] = argv[i];
+   if (attach)
+   {
+      attach_argv[i++] = const_cast<char*>("-attach");
+      attach_argv[i++] = fdstr;
+   }
+   attach_argv[i++] = NULL;
+   
+   int pid;
+   if (attach)
+      pid = fork_mutatee();
+   else 
+      pid = fork();
+   if (pid == 0) {
+      // child
+      if (attach) 
+         close(fds[0]); // We don't need the read side
+      if (outlog != NULL) {
+         int outlog_fd = fileno(outlog);
+         if (dup2(outlog_fd, 1) == -1) {
+            fprintf(stderr, "Error duplicating log fd(1)\n");
+         }
+      }
+      if (errlog != NULL) {
+         int errlog_fd = fileno(errlog);
+         if (dup2(errlog_fd, 2) == -1) {
+            fprintf(stderr, "Error duplicating log fd(2)\n");
+         }
+      }
 
-       int pid = fork_mutatee();
-       if (pid == 0) {
-          // child
-          close(fds[0]); // We don't need the read side
-	  if (outlog != NULL) {
-	    int outlog_fd = fileno(outlog);
-	    if (dup2(outlog_fd, 1) == -1) {
-	      fprintf(stderr, "Error duplicating log fd(1)\n");
-	    }
-	  }
-	  if (errlog != NULL) {
-	    int errlog_fd = fileno(errlog);
-	    if (dup2(errlog_fd, 2) == -1) {
-	      fprintf(stderr, "Error duplicating log fd(2)\n");
-	    }
-	  }
-          execvp(pathname, (char * const *)attach_argv);
-          return -1;
-       } else if (pid < 0) {
-          return -1;
-       }
+	  //fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", 
+	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
 
-       // parent
-       close(fds[1]);  // We don't need the write side
+      execvp(pathname, (char * const *)attach_argv);
+      char *newname = (char *) malloc(strlen(pathname) + 3);
+      strcpy(newname, "./");
+      strcat(newname, pathname);
+      execvp(newname, (char * const *)attach_argv);
+	  logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
+      exit(-1);
+   } else if (pid < 0) {
+      return -1;
+   }
 
-       // Wait for the child to write to the pipe
-       char ch;
-       if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
-          perror("read");
-          fprintf(stderr, "*ERROR*: Error reading from pipe\n");
-          return -1;
-       }
+   registerPID(pid);
 
-       if (ch != 'T') {
-          fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
-          return -1;
-       }
+   // parent
+   if (attach) {
+      close(fds[1]);  // We don't need the write side
+      
+      // Wait for the child to write to the pipe
+      char ch;
+      if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
+         perror("read");
+         fprintf(stderr, "*ERROR*: Error reading from pipe\n");
+         return -1;
+      }
+
+      if (ch != 'T') {
+         fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
+         return -1;
+      }
        
-#if defined( os_linux )
-       /* Random Linux-ism: it's possible to close the pipe before the 
-          mutatee returns from the write() system call matching the above
-          read().  In this case, rather than ignore the close() because the
-          write() is on its way out the kernel, Linux sends a SIGPIPE
-          to the mutatee, which causes us no end of trouble.  read()ing
-          an EOF from the pipe seems to alleviate this problem, and seems
-          more reliable than a sleep(1).  The condition test if we somehow
-          got any /extra/ bytes on the pipe. */
-       if( read( fds[0], & ch, sizeof( char ) ) != 0 ) {
-          return -1;
-       }
-#endif /* defined( os_linux ) */
-
-       close( fds[0] ); // We're done with the pipe
-
-       return pid;
+#if defined( os_linux_test )
+      /* Random Linux-ism: it's possible to close the pipe before the 
+         mutatee returns from the write() system call matching the above
+         read().  In this case, rather than ignore the close() because the
+         write() is on its way out the kernel, Linux sends a SIGPIPE
+         to the mutatee, which causes us no end of trouble.  read()ing
+         an EOF from the pipe seems to alleviate this problem, and seems
+         more reliable than a sleep(1).  The condition test if we somehow
+         got any /extra/ bytes on the pipe. */
+      if( read( fds[0], & ch, sizeof( char ) ) != 0 ) {
+         fprintf(stderr, "*ERROR*: Shouldn't have read anything here.\n");
+         return -1;
+      }
+#endif /* defined( os_linux_test ) */
+      
+      close( fds[0] ); // We're done with the pipe
+   }
+   return pid;
 #endif
 }
 
@@ -448,278 +668,8 @@ void dprintf(const char *fmt, ...) {
    fflush(stderr);
 }
 
-void checkCost(BPatch_snippet snippet)
-{
-   float cost;
-   BPatch_snippet copy;
-
-   // test copy constructor too.
-   copy = snippet;
-
-   cost = snippet.getCost();
-   dprintf("Snippet cost=%g\n", cost);
-    if (cost < 0.0) {
-        fprintf(stderr, "*Error*: negative snippet cost\n");
-    } else if (cost > 0.01) {
-        fprintf(stderr, "*Error*: snippet cost of %f, exceeds max expected of 0.1",
-            cost);
-    }
-}
-
-// Wrapper function to find variables
-// For Fortran, will look for lowercase variable, if mixed case not found
-BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
-                                  BPatch_Vector <BPatch_point *> *point = NULL)
-{
-  //BPatch_variableExpr *FortVar = NULL;
-    int mutateeFortran = isMutateeFortran(appImage);
-    BPatch_variableExpr *ret = NULL;
-    int i, numchars = strlen (var) + 1; // + 1 corrects for null-termination
-    char *lowercase = new char [numchars];
-    int temp = expectError;
-
-    if (mutateeFortran && point) {
-            strncpy (lowercase, var, numchars);
-            expectError = 100;
-            for (i = 0; i < numchars; i++)
-                lowercase [i] = tolower (lowercase [i]);
-            ret = appImage->findVariable (*(*point) [0], lowercase);
-        if (!ret) {
-            expectError = temp;
-            ret = appImage->findVariable (*(*point) [0], var);
-        }
-    } else {
-        ret = appImage->findVariable (var);
-    }
-
-    expectError = temp;
-    delete [] lowercase;
-    return ret;
-}
-
-
-int functionNameMatch(const char *gotName, const char *targetName) 
-{
-    if (!strcmp(gotName, targetName)) return 0;
-
-    if (!strncmp(gotName, targetName, strlen(targetName)) &&
-	(strlen(targetName) == strlen(gotName)-1) &&
-	(gotName[strlen(targetName)] == '_'))
-	return 0;
-
-    return 1;
-}
-
-//
-// Replace all calls in "inFunction" to "callTo" with calls to "replacement."
-// If "replacement" is NULL, them use removeFunctionCall instead of
-// replaceFunctionCall.
-// Returns the number of replacements that were performed.
-//
-int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
-                         const char *inFunction, const char *callTo, 
-                         const char *replacement, int testNo, 
-                         const char *testName, int callsExpected = -1)
-{
-    int numReplaced = 0;
-
-    BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(inFunction, found_funcs)) || !found_funcs.size()) {
-      logerror("**Failed** test #%d (%s)\n", testNo, testName);
-      logerror("    Unable to find function %s\n",
-	      inFunction);
-      return -1;
-    }
-
-    if (1 < found_funcs.size()) {
-      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), inFunction);
-    }
-
-    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
-
-    if (!points || (!points->size() )) {
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    %s[%d]: Unable to find point in %s - subroutine calls: pts = %p\n",
-		__FILE__, __LINE__, inFunction,points);
-        return -1;
-    }
-
-    BPatch_function *call_replacement = NULL;
-    if (replacement != NULL) {
-      
-      BPatch_Vector<BPatch_function *> bpfv;
-      if (NULL == appImage->findFunction(replacement, bpfv) || !bpfv.size()
-	  || NULL == bpfv[0]){
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    Unable to find function %s\n", replacement);
-        return -1;
-      }
-      call_replacement = bpfv[0];
-    }
-
-    for (unsigned int n = 0; n < points->size(); n++) {
-	BPatch_function *func;
-
-	if ((func = (*points)[n]->getCalledFunction()) == NULL) continue;
-
-	char fn[256];
-	if (func->getName(fn, 256) == NULL) {
-	    logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	    logerror("    Can't get name of called function in %s\n",
-		    inFunction);
-            return -1;
-	}
-	if (functionNameMatch(fn, callTo) == 0) {
-	    if (replacement == NULL)
-		appThread->removeFunctionCall(*((*points)[n]));
-	    else {
-                assert(call_replacement);
-		appThread->replaceFunctionCall(*((*points)[n]),
-					       *call_replacement);
-            }
-	    numReplaced++;
-	}
-    }
-
-    if (callsExpected > 0 && callsExpected != numReplaced) {
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    Expected to find %d %s to %s in %s, found %d\n",
-		callsExpected, callsExpected == 1 ? "call" : "calls",
-		callTo, inFunction, numReplaced);
-        return -1;
-    }
-
-
-    return numReplaced;
-}
-
-//
-// Return a pointer to a string identifying a BPatch_procedureLocation
-//
-const char *locationName(BPatch_procedureLocation l)
-{
-    switch(l) {
-      case BPatch_entry:
-	return "entry";
-      case BPatch_exit:
-	return "exit";
-      case BPatch_subroutine:
-	return "call points";
-      case BPatch_longJump:
-	return "long jump";
-      case BPatch_allLocations:
-	return "all";
-      default:
-	return "<invalid BPatch_procedureLocation>";
-    };
-}
-
-//
-// Insert "snippet" at the location "loc" in the function "inFunction."
-// Returns the value returned by BPatch_thread::insertSnippet.
-//
-BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
-                               BPatch_image *appImage, const char *inFunction, 
-                               BPatch_procedureLocation loc, 
-                               BPatch_snippet &snippet,
-                               int testNo, const char *testName)
-{
-    // Find the point(s) we'll be instrumenting
-
-    BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction(inFunction, found_funcs)) || !found_funcs.size()) {
-      logerror("**Failed** test #%d (%s)\n", testNo, testName);
-      logerror("    Unable to find function %s\n",
-	      inFunction);
-      return NULL;
-    }
-
-    if (1 < found_funcs.size()) {
-      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), inFunction);
-    }
-
-    BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(loc);
-
-    if (!points) {
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    Unable to find point %s - %s\n",
-		inFunction, locationName(loc));
-        return NULL;
-    }
-
-    checkCost(snippet);
-    return appThread->insertSnippet(snippet, *points);
-}
-
-//
-// Create a snippet that calls the function "funcName" with no arguments
-//
-BPatch_snippet *makeCallSnippet(BPatch_image *appImage, const char *funcName,
-                                int testNo, const char *testName)
-{
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(funcName, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("**Failed** test #%d (%s)\n", testNo, testName);
-    logerror("    Unable to find function %s\n", funcName);
-    return NULL;
-  }
-  BPatch_function *call_func = bpfv[0];
- 
-    BPatch_Vector<BPatch_snippet *> nullArgs;
-    BPatch_snippet *ret = new BPatch_funcCallExpr(*call_func, nullArgs);
-
-    if (ret == NULL) {
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    Unable to create snippet to call %s\n", funcName);
-        return NULL;
-    }
-
-    return ret;
-}
-
-
-//
-// Insert a snippet to call function "funcName" with no arguments into the
-// procedure "inFunction" at the points given by "loc."
-//
-int insertCallSnippetAt(BPatch_thread *appThread,
-                            BPatch_image *appImage, const char *inFunction,
-                            BPatch_procedureLocation loc, const char *funcName,
-                            int testNo, const char *testName)
-{
-    BPatch_snippet *call_expr =
-       makeCallSnippet(appImage, funcName, testNo, testName);
-    RETURNONNULL(call_expr);
-
-    BPatchSnippetHandle *ret = insertSnippetAt(appThread, appImage,
-					       inFunction, loc, *call_expr,
-					       testNo, testName);
-    if (ret == NULL) {
-	logerror("**Failed** test #%d (%s)\n", testNo, testName);
-	logerror("    Unable to insert snippet to call function %s\n",
-		funcName);
-        return -1;
-    }
-
-    delete call_expr;
-
-    return 0;
-}
-
-BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
-{
-    BPatch_Vector<BPatch_snippet *> ret;
-    
-    for (int i=0; i < 1000; i++) {
-	ret.push_back(tail);
-    }
-    return ret;
-}
-
 // Build Architecture specific libname
+// FIXME Is this used any more?  Is it necessary?
 void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
 {
    int dest_len;
@@ -727,76 +677,32 @@ void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
    dest_len = strlen(dest);
 
    // Patch up alternate ABI filenames
-#if defined(rs6000_ibm_aix64)
-   if (psize == 4) {
-       strncat(dest, "_32", dest_max_len - dest_len);
-       dest_len += 3;
+#if defined(rs6000_ibm_aix64_test)
+   if(psize == 4) {
+     strncat(dest, "_32", dest_max_len - dest_len);
+     dest_len += 3;
    }
 #endif
 
-#if defined(arch_x86_64)
+#if defined(arch_x86_64_test)
    if (psize == 4) {
       strncat(dest,"_m32", dest_max_len - dest_len);
-      dest_len += 3;   
+      dest_len += 4;   
    }
 #endif
 
-#if defined(mips_sgi_irix6_4)
+#if defined(mips_sgi_irix6_4_test)
    strncat(dest,"_n32", dest_max_len - dest_len);
-   dest_len += 3;
+   dest_len += 4;
 #endif
 
-#if defined(os_windows)
+#if defined(os_windows_test)
    strncat(dest, ".dll", dest_max_len - dest_len);
    dest_len += 4;
 #else
    strncat(dest, ".so", dest_max_len - dest_len);
    dest_len += 3;
 #endif
-}
-
-int pointerSize(BPatch_image *img) {
-#if defined(mips_sgi_irix6_4) || defined(arch_x86_64)
-   BPatch_variableExpr *pointerSizeVar = img->findVariable("pointerSize");
-
-   if (!pointerSizeVar) {
-      logerror("**Failed** test #2 (four parameter function)\n");
-      logerror("    Unable to locate variable pointerSize\n");
-      return -1;
-   }
-
-   int pointerSize;
-   if (!pointerSizeVar->readValue(&pointerSize)) {
-      logerror("**Failed** test #2 (four parameter function)\n");
-      logerror("    Unable to read value of variable pointerSize\n");
-      return -1;
-   }
-
-   return pointerSize;
-#else
-   return sizeof(void*);
-#endif
-}
-
-int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB,
-      int mutateeFortran)
-{
-    char libA[128], libB[128];
-    snprintf(libA, 128, "./%s", libNameA);
-    snprintf(libB, 128, "./%s", libNameB);
-    if (!mutateeFortran) {
-	if (! appThread->loadLibrary(libA)) {
-	     logerror("**Failed test #21 (findFunction in module)\n");
-	     logerror("  Mutator couldn't load %s into mutatee\n", libNameA);
-             return -1;
-	}
-	if (! appThread->loadLibrary(libB)) {
-	     logerror("**Failed test #21 (findFunction in module)\n");
-	     logerror("  Mutator couldn't load %s into mutatee\n", libNameB);
-             return -1;
-	}
-    }
-    return 0;
 }
 
 #define TOLOWER(c) ((c >= 'A' && c <= 'Z') ? c - 'A' + 'a' : c)
@@ -814,854 +720,15 @@ int strcmpcase(char *s1, char *s2) {
     return 0;
 }
 
-typedef BPatch_Vector<BPatch_point * > point_vector;
-// typedef vector<BPatchSnippetHandle * > handle_vector;
 
-void instrument_entry_points( BPatch_thread * app_thread,
-			      BPatch_image * ,
-			      BPatch_function * func,
-			      BPatch_snippet * code )
-{
-  assert( func != 0 );
-  assert( code != 0 );
-
-//   handle_vector * list_of_handles = new handle_vector;
-
-  int null_entry_point_count = 0;
-  int failed_snippet_insertion_count = 0;
-
-  point_vector * entries = func->findPoint( BPatch_entry );
-  assert( entries != 0 );
-
-  for( unsigned int i = 0; i < entries->size(); i++ )
-    {
-      BPatch_point * point = ( * entries )[ i ];
-      if( point == 0 )
-	{
-	  null_entry_point_count++;
-	}
-      else
-	{
-	  BPatchSnippetHandle * result =
-	    app_thread->insertSnippet( * code,
-				       * point, BPatch_callBefore, BPatch_firstSnippet );
-	  if( result == 0 )
-	    {
-	      failed_snippet_insertion_count++;
-	    }
-// 	  else
-// 	    {
-// 	      list_of_handles->push_back( result );
-// 	    }
-	}
-    }
-
-  delete code;
-
-//   return * list_of_handles;
-}
-
-
-void instrument_exit_points( BPatch_thread * app_thread,
-			     BPatch_image * ,
-			     BPatch_function * func,
-			     BPatch_snippet * code )
-{
-  assert( func != 0 );
-  assert( code != 0 );
-
-//   handle_vector * list_of_handles = new handle_vector;
-
-  int null_exit_point_count = 0;
-  int failed_snippet_insertion_count = 0;
-
-  point_vector * exits = func->findPoint( BPatch_exit );
-  assert( exits != 0 );
-
-  for( unsigned int i = 0; i < exits->size(); i++ )
-    {
-      BPatch_point * point = ( * exits )[ i ];
-      if( point == 0 )
-	{
-	  null_exit_point_count++;
-	}
-      else
-	{
-	  BPatchSnippetHandle * result =
-	    app_thread->insertSnippet( * code,
-				       * point, BPatch_callAfter, BPatch_firstSnippet );
-	  if( result == 0 )
-	    {
-	      failed_snippet_insertion_count++;
-	    }
-// 	  else
-// 	    {
-// 	      list_of_handles->push_back( result );
-// 	    }
-	}
-    }
-
-  delete code;
-
-//   return * list_of_handles;
-}
-
-// NOTE: What are the benefits of this over appThread->terminateProcess?
-void killMutatee(BPatch_thread *appThread)
-{
-    int pid = appThread->getPid();
-
-    appThread->terminateExecution();
-    dprintf("Mutatee process %d killed.\n", pid);
-    return;
-
-#if 0
-    // Without the above we were receiving signals after the process
-    // was killed. This means that process::detach may be broken.
-
-#ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
-    dprintf("Detaching from process %d (leaving it running).\n", pid);
-    appThread->detach(true);
-#else
-    fprintf(stderr, "[Process detach not yet implemented.]\n");
-#endif
-
-    // now kill the process.
-#ifdef i386_unknown_nt4_0
-    HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    if (h != NULL) {
-        dprintf("Killing mutatee process %d.\n", pid);
-	TerminateProcess(h, 0);
-	CloseHandle(h);
-    }
-#else
-    int kret;
-
-    // Alpha seems to take two kills to work - jkh 3/13/00
-    while (1) {
-        //dprintf("Killing mutatee process %d.\n", pid);
-	kret = kill(pid, SIGKILL);
-	if (kret) {
-	    if (errno == ESRCH) {
-	       break;
-	    } else {
-	       perror("kill");
-	       break;
-	    }
-	}
-	kret = waitpid(pid, NULL, WNOHANG);
-	if (kret == pid) break;
-    }
-#endif
-
-#endif
-}
-
-// Tests to see if the mutatee has defined the mutateeCplusplus flag
-int isMutateeCxx(BPatch_image *appImage) {
-    // determine whether mutatee is C or C++
-    BPatch_variableExpr *isCxx = appImage->findVariable("mutateeCplusplus");
-    if (isCxx == NULL) {
-	dprintf("  Unable to locate variable \"mutateeCplusplus\""
-                 " -- assuming 0!\n");
-        return 0;
-    } else {
-        int mutateeCplusplus;
-        isCxx->readValue(&mutateeCplusplus);
-        dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
-        return mutateeCplusplus;
-    }
-}
-// Tests to see if the mutatee has defined the mutateeFortran flag
-int isMutateeFortran(BPatch_image *appImage) {
-    // determine whether mutatee is Fortran
-    BPatch_variableExpr *isF = appImage->findVariable("mutateeFortran");
-    if (isF == NULL) {
-	dprintf("  Unable to locate variable \"mutateeFortran\""
-                 " -- assuming 0!\n");
-        return 0;
-    } else {
-        int mutateeFortran;
-        isF->readValue(&mutateeFortran);
-        dprintf("Mutatee is %s.\n", mutateeFortran ? "Fortran" : "C/C++");
-        return mutateeFortran;
-    }
-
-}
-
-// Tests to see if the mutatee has defined the mutateeF77 flag
-int isMutateeF77(BPatch_image *appImage) {
-    // determine whether mutatee is F77
-    BPatch_variableExpr *isF77 = appImage->findVariable("mutateeF77");
-    if (isF77 == NULL) {
-	dprintf("  Unable to locate variable \"mutateeF77\""
-                 " -- assuming 0!\n");
-        return 0;
-    } else {
-        int mutateeF77;
-        isF77->readValue(&mutateeF77);
-        dprintf("Mutatee is %s.\n", mutateeF77 ? "F77" : "not F77");
-        return mutateeF77;
-    }
-}
-
-
-void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
-{
-    unsigned int n=0;
-    dprintf("MopUpMutatees(%d)\n", mutatees);
-    for (n=0; n<mutatees; n++) {
-        if (appThread[n]) {
-            if (appThread[n]->terminateExecution()) {
-                assert(appThread[n]->terminationStatus() == ExitedViaSignal);
-                int signalNum = appThread[n]->getExitSignal();
-                dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
-            } else {
-                fprintf(stderr, "Failed to mop up mutatee %d (pid=%d)!\n",
-                        n, appThread[n]->getPid());
-            }
-        } else {
-            fprintf(stderr, "Mutatee %d already terminated?\n", n);
-        }
-    }
-    dprintf("MopUpMutatees(%d) done\n", mutatees);
-}
-
-TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
-      BPatch_thread **mythreads, int *threadCount)
-{
-
-  dprintf("Thread %d is pointer %p\n", *threadCount, appThread);
-  mythreads[(*threadCount)++] = appThread;
-   appThread->continueExecution();
-
-   while (1) {
-      int i;
-      dprintf("Checking %d threads for terminated status\n", *threadCount);
-      for (i=0; i < *threadCount; i++) {
-	if (!mythreads[i]->isTerminated()) {
-	  dprintf("Thread %d is not terminated\n", i);
-            break;
-         }
-      }
-
-      // see if all exited
-      if (i== *threadCount) {
-	dprintf("All threads terminated\n");
-	break;
-      }
-
-      bpatch->waitForStatusChange();
-
-      for (i=0; i < *threadCount; i++) {
-         if (mythreads[i]->isStopped()) {
-	   dprintf("Thread %d marked stopped, continuing\n", i);
-            mythreads[i]->continueExecution();
-         }
-      }
-   }
-   
-   *threadCount = 0;
-}
-
-/*
- * Given a string variable name and an expected value, lookup the varaible
- *    in the child process, and verify that the value matches.
- *
- */
-bool verifyChildMemory(BPatch_thread *appThread, 
-                       const char *name, int expectedVal)
-{
-     BPatch_image *appImage = appThread->getImage();
-
-     if (!appImage) {
-	 dprintf("unable to locate image for %d\n", appThread->getPid());
-	 return false;
-     }
-
-     BPatch_variableExpr *var = appImage->findVariable(name);
-     if (!var) {
-	 dprintf("unable to located variable %s in child\n", name);
-	 return false;
-     }
-
-     int actualVal;
-     var->readValue(&actualVal);
-
-     if (expectedVal != actualVal) {
-	 logerror("*** for %s, expected val = %d, but actual was %d\n",
-		name, expectedVal, actualVal);
-	 return false;
-     } else {
-	 dprintf("verified %s was = %d\n", name, actualVal);
-	 return true;
-     }
-}
-
-
-void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
-{
-  if(!debugPrint)
-    return;
-
-  printf("%s: %d\n", msg, res->size());
-  for(unsigned int i=0; i<res->size(); ++i) {
-    BPatch_point *bpp = (*res)[i];
-    const BPatch_memoryAccess* ma = bpp->getMemoryAccess();
-    const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
-    const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
-    if(ma->getNumberOfAccesses() == 1) {
-      if(ma->isConditional_NP())
-        printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] ?[%X]\n", msg, i+1,
-               as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-               cs.getReg(0), cs.getReg(1), cs.getImm(), ma->conditionCode_NP());
-        else
-          printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-                 as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-                 cs.getReg(0), cs.getReg(1), cs.getImm());
-    }
-    else {
-      const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
-      const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-             cs.getReg(0), cs.getReg(1), cs.getImm(),
-             as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
-             cs2.getReg(0), cs2.getReg(1), cs2.getImm());
-    }
-  }
-}
-
-static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
-{
-  if(!debugPrint)
-    return;
-           
-  printf("%s: %d\n", msg, size);
-
-  for(unsigned int i=0; i<size; ++i) {
-    const BPatch_memoryAccess* ma = exp[i];
-    if(!ma)
-      continue;
-    const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
-    const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
-    if(ma->getNumberOfAccesses() == 1)
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-             cs.getReg(0), cs.getReg(1), cs.getImm());
-    else {
-      const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
-      const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
-             as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
-             cs.getReg(0), cs.getReg(1), cs.getImm(),
-             as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
-             cs2.getReg(0), cs2.getReg(1), cs2.getImm());
-    }
-  }
-}
-
-bool validate(BPatch_Vector<BPatch_point*>* res,
-                            BPatch_memoryAccess* acc[], const char* msg)
-{
-  bool ok = true;
-
-  for(unsigned int i=0; i<res->size(); ++i) {
-    if (acc[i] != NULL) {
-      BPatch_point* bpoint = (*res)[i];
-      ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
-      if(!ok) {
-	logerror("Validation failed at %s #%d.\n", msg, i+1);
-        dumpxpct(acc, res->size(), "Expected");
-        return ok;
-      }
-    }
-  }
-  return ok;
-}
-
-BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess){
-
-	BPatch_callWhen whenToCall;
-	if(memAccess != NULL){
-		if(memAccess->hasALoad()){
-			whenToCall = BPatch_callBefore;
-		}else if(memAccess->hasAStore()){
-			whenToCall = BPatch_callAfter;
-		}else if(memAccess->hasAPrefetch_NP() ){
-			whenToCall = BPatch_callBefore;
-		}else{
-			whenToCall = BPatch_callBefore;
-		}
-	}else{
-		whenToCall = BPatch_callBefore;
-	}
-	return whenToCall;
-}
-
-int instCall(BPatch_thread* bpthr, const char* fname,
-              const BPatch_Vector<BPatch_point*>* res)
-{
-  char buf[30];
-	BPatch_callWhen whenToCall = BPatch_callBefore;
-
-  snprintf(buf, 30, "count%s", fname);
-
-  BPatch_Vector<BPatch_snippet*> callArgs;
-  BPatch_image *appImage = bpthr->getImage();
-
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("    Unable to find function %s\n", buf);
-    return -1;
-  }
-  BPatch_function *countXXXFunc = bpfv[0];  
-
-  BPatch_funcCallExpr countXXXCall(*countXXXFunc, callArgs);
-
-  for(unsigned int i=0;i<(*res).size();i++){
-
-#if defined(rs6000_ibm_aix4_1) && defined(AIX5)
-  	const BPatch_memoryAccess* memAccess;
-	memAccess = (*res)[i]->getMemoryAccess() ;
-
-	whenToCall = instrumentWhere( memAccess);
-
-#endif
-	bpthr->insertSnippet(countXXXCall, *((*res)[i]),whenToCall);
-  }
-
-  return 0;
-}
-
-int instEffAddr(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res,
-                 bool conditional)
-{
-  char buf[30];
-  snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
-  dprintf("CALLING: %s\n", buf);
-
-  BPatch_Vector<BPatch_snippet*> listArgs;
-  BPatch_effectiveAddressExpr eae;
-  listArgs.push_back(&eae);
-
-  BPatch_image *appImage = bpthr->getImage();
-
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("    Unable to find function %s\n", buf);
-    return -1;
-  }
-  BPatch_function *listXXXFunc = bpfv[0];  
-  BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
-
-
-  BPatch_callWhen whenToCall = BPatch_callBefore;
-  for(unsigned int i=0;i<(*res).size();i++){
-#if defined(rs6000_ibm_aix4_1) && defined(AIX5) 
-  	const BPatch_memoryAccess* memAccess;
-
-	memAccess = (*res)[i]->getMemoryAccess() ;
-
-	whenToCall = instrumentWhere( memAccess);
-#endif
-  	if(!conditional)
-	    bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  else {
-	    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-	    bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  }
-  }
-
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0)
-  BPatch_effectiveAddressExpr eae2(1);
-  BPatch_Vector<BPatch_snippet*> listArgs2;
-  listArgs2.push_back(&eae2);
-
-  BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
-  
-  const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
-
-  if(!conditional)
-    bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
-  else {
-    BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
-    bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);    
-  }
-#endif
-
-  return 0;
-}
-
-
-int instByteCnt(BPatch_thread* bpthr, const char* fname,
-		 const BPatch_Vector<BPatch_point*>* res,
-                 bool conditional)
-{
-  char buf[30];
-  snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
-  dprintf("CALLING: %s\n", buf);
-
-  BPatch_Vector<BPatch_snippet*> listArgs;
-  BPatch_bytesAccessedExpr bae;
-  listArgs.push_back(&bae);
-
-  BPatch_image *appImage = bpthr->getImage();
-
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    logerror("    Unable to find function %s\n", buf);
-    return -1;
-  }
-  BPatch_function *listXXXFunc = bpfv[0];  
-
-  BPatch_callWhen whenToCall = BPatch_callBefore;
-
-  for(unsigned int i=0;i<(*res).size();i++){
-
-#if defined(rs6000_ibm_aix4_1) && defined(AIX5)
-  	const BPatch_memoryAccess* memAccess;
-	memAccess = (*res)[i]->getMemoryAccess() ;
-
-	whenToCall = instrumentWhere( memAccess);
-
-#endif
-  	BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
-	  if(!conditional)
-	    bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  else {
-	    BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-	    bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
-	  }
-  }
-
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0)
-  BPatch_bytesAccessedExpr bae2(1);
-  BPatch_Vector<BPatch_snippet*> listArgs2;
-  listArgs2.push_back(&bae2);
-
-  BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
-  
-  const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
-  if(!conditional)
-    bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
-  else {
-    BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
-    bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);
-  }
-#endif
-
-  return 0;
-}
-
-// From Test8
-const char *frameTypeString(BPatch_frameType frameType)
-{
-    switch (frameType) {
-      case BPatch_frameNormal:
-	return "BPatch_frameNormal";
-      case BPatch_frameSignal:
-	return "BPatch_frameSignal";
-      case BPatch_frameTrampoline:
-	return "BPatch_frameTrampoline";
-      default:
-	break;
-    };
-
-    return "UNKNOWN";
-}
-
-bool hasExtraUnderscores(const char *str)
-{
-    assert( str );
-    int len = strlen(str) - 1;
-    return (str[0] == '_' || str[len] == '_');
-}
-
-/* WARNING: This function is not thread safe. */
-const char *fixUnderscores(const char *str)
-{
-    static char buf[256];
-
-    assert( str );
-    assert( strlen(str) < sizeof(buf) );
-
-    while (*str == '_') ++str;
-    strncpy(buf, str, 256);
-
-    char *ptr = buf + strlen(buf) - 1;
-    while (ptr > buf && *ptr == '_') *(ptr--) = 0;
-
-    return buf;
-}
-
-
-bool checkStack(BPatch_thread *appThread,
-		const frameInfo_t correct_frame_info[],
-		unsigned num_correct_names,
-		int test_num, const char *test_name)
-{
-    unsigned i, j;
-
-    const int name_max = 256;
-    bool failed = false;
-
-    BPatch_Vector<BPatch_frame> stack;
-    appThread->getCallStack(stack);
-
-    if (debugPrint) {
-	dprintf("Stack in test %d (%s):\n", test_num, test_name);
-	for( unsigned i = 0; i < stack.size(); i++) {
-	    char name[name_max];
-	    BPatch_function *func = stack[i].findFunction();
-	    if (func == NULL)
-		strcpy(name, "[UNKNOWN]");
-	    else
-		func->getName(name, name_max);
-	    dprintf("  %10p: %s, fp = %p, type %s\n",
-               stack[i].getPC(),
-               name,
-               stack[i].getFP(),
-               frameTypeString(stack[i].getFrameType()));
-        
-	}
-	dprintf("End of stack dump.\n");
-    }
-
-    if (stack.size() < num_correct_names) {
-	logerror("**Failed** test %d (%s)\n", test_num, test_name);
-	logerror("    Stack trace should contain more frames.\n");
-	failed = true;
-    }
-
-    for (i = 0, j = 0; i < num_correct_names; i++, j++) {
-#if !defined(i386_unknown_nt4_0)
-	if (j < stack.size()-1 && stack[j].getFP() == 0) {
-	    logerror("**Failed** test %d (%s)\n", test_num, test_name);
-	    logerror("    A stack frame other than the lowest has a null FP.\n");
-	    failed = true;
-	    break;
-	}
-#endif
-
-    if (stack.size() >= j)
-        break;
-	if (correct_frame_info[i].valid) {
-	    char name[name_max], name2[name_max];
-
-	    BPatch_function *func = stack[j].findFunction();
-	    if (func != NULL)
-		func->getName(name, name_max);
-
-	    BPatch_function *func2 =
-		appThread->findFunctionByAddr(stack[j].getPC());
-	    if (func2 != NULL)
-		func2->getName(name2, name_max);
-
-	    if ((func == NULL && func2 != NULL) ||
-		(func != NULL && func2 == NULL)) {
-		logerror("**Failed** test %d (%s)\n", test_num, test_name);
-		logerror("    frame->findFunction() disagrees with thread->findFunctionByAddr()\n");
-		logerror("    frame->findFunction() returns %s\n",
-			name);
-		logerror("    thread->findFunctionByAddr() return %s\n",
-			name2);
-		failed = true;
-		break;
-	    } else if (func!=NULL && func2!=NULL && strcmp(name, name2)!=0) {
-		logerror("**Failed** test %d (%s)\n", test_num, test_name);
-		logerror("    BPatch_frame::findFunction disagrees with BPatch_thread::findFunctionByAddr\n");
-		failed = true;
-		break;
-	    }
-
-	    if (correct_frame_info[i].type != stack[j].getFrameType()) {
-		logerror("**Failed** test %d (%s)\n", test_num, test_name);
-		logerror("    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
-		logerror("    Stack frame 0x%lx, 0x%lx\n", stack[i].getPC(), stack[i].getFP() );
-		failed = true;
-		break;
-	    }
-
-	    if (stack[j].getFrameType() == BPatch_frameSignal ||
-		stack[j].getFrameType() == BPatch_frameTrampoline) {
-		// No further checking for these types right now
-	    } else {
-		if (func == NULL) {
-		    logerror("**Failed** test %d (%s)\n",
-			    test_num, test_name);
-		    logerror("    Stack frame #%d refers to an unknown function, should refer to %s\n", j+1, correct_frame_info[i].function_name);
-		    failed = true;
-		    break;
-		} else { /* func != NULL */
-		    if (!hasExtraUnderscores(correct_frame_info[i].function_name))
-			strncpy(name, fixUnderscores(name), name_max);
-
-		    if (strcmp(name, correct_frame_info[i].function_name) != 0) {
-		        if (correct_frame_info[i].optional) {
-			    j--;
-                            continue;
-			}
-			logerror("**Failed** test %d (%s)\n", test_num, test_name);
-			logerror("    Stack frame #%d refers to function %s, should be %s\n", j+1, name, correct_frame_info[i].function_name);
-			failed = true;
-			break;
-		    }
-		}
-	    }
-	}
-    }
-
-    return !failed;
-}
-
-/* End Test8 Specific */
-
-/* Begin Test9 Specific */
-void buildArgs(const char** child_argv, char *pathname, int testNo){
-	int n=0;
-
-	child_argv[n++] = pathname;
-	if (debugPrint){
-		child_argv[n++] = const_cast<char*>("-verbose");
-	}
-	child_argv[n++] = const_cast<char*>("-orig"); 
-
-        child_argv[n++] = const_cast<char*>("-run");
-       	char str[5];
-       	sprintf(str, "%d",testNo);
-       	child_argv[n++] = strdup(str);
-	
-	child_argv[n] = NULL;
-
-}
-
-
-bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
-      char *pathname, const char** child_argv)
-{
-
-
-    appThread = bpatch->createProcess(pathname, child_argv,NULL);
-
-    if (appThread == NULL) {
-	fprintf(stderr, "Unable to run test program.\n");
-        return false;
-    }
-    appThread->enableDumpPatchedImage();
-
-    // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
-
-    return true;
-}
-
-
-int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, 
-      char *instrumentee, char*patch, int testNo, char *testName)
-{
-
-  BPatch_Vector<BPatch_function *> found_funcs;
-  if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
-     fprintf(stderr, "%s[%d]:  cannot find function %s\n", __FILE__, __LINE__, instrumentee);
-    logerror("    Unable to find function %s\n",instrumentee);
-    return -1;
-  }
-  
-  if (1 < found_funcs.size()) {
-    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	    __FILE__, __LINE__, found_funcs.size(), instrumentee);
-  }
-  
-  BPatch_Vector<BPatch_point *> *point1_1 = found_funcs[0]->findPoint(BPatch_entry);
-
-
-  if (!point1_1 || ((*point1_1).size() == 0)) {
-     fprintf(stderr, "%s[%d]:  cannot find entry to function %s\n", __FILE__, __LINE__, instrumentee);
-    logerror("**Failed** test #%d (%s)\n", testNo,testName);
-    logerror("    Unable to find entry point to \"%s.\"\n",instrumentee);
-    return -1;
-  }
-
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(patch, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-     fprintf(stderr, "%s[%d]:  cannot find entry to function %s\n", __FILE__, __LINE__, patch);
-    logerror("**Failed** test #%d (%s)\n", testNo, testName);
-    logerror("    Unable to find function %s\n", patch);
-    return -1;
-  }
-  BPatch_function *call1_func = bpfv[0];
-  
-  BPatch_Vector<BPatch_snippet *> call1_args;
-  BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
-  
-  dprintf("Inserted snippet2\n");
-  checkCost(call1Expr);
-  appThread->insertSnippet(call1Expr, *point1_1);
-
-  return 0;
-}
-
-char* saveWorld(BPatch_thread *appThread){
-
-	char *mutatedName = new char[strlen("test9_mutated") +1];
-	memset(mutatedName, '\0',strlen("test9_mutated") +1);
-	strcat(mutatedName, "test9_mutated");
-	// FIXME dumpPatchedImage returns bool, not char *(?)
-	char* dirName = appThread->dumpPatchedImage(mutatedName);
-	if(!dirName){
-		logerror("Error: No directory name returned\n");
-	}
-
-	return dirName;
-}
-
-int letOriginalMutateeFinish(BPatch_thread *appThread){
-	/* finish original mutatee to see if it runs */
-	
-	/*fprintf(stderr,"\n************************\n");	
-	fprintf(stderr,"Running the original mutatee\n\n");*/
-	appThread->continueExecution();
-
-	while( !appThread->isTerminated());
-
-	int retVal;
-
-	if(appThread->terminationStatus() == ExitedNormally) {
-		retVal = appThread->getExitCode();
-	} else if(appThread->terminationStatus() == ExitedViaSignal) {
-		int signalNum = appThread->getExitSignal();
-		if (signalNum){
-			logerror("Mutatee exited from signal 0x%x\n", signalNum);
-		}
-	       	retVal = signalNum;
-    	}
-
-
-//	fprintf(stderr,"Original mutatee has terminated\n\************************\n\n");
-
-	return retVal;
-}
-
-#if !defined(os_windows)
+#if !defined(os_windows_test)
 char *searchPath(const char *path, const char *file) {
    assert(path);
    assert(file);
 
    char *pathcopy = strdup(path);
    char *fullpath;
-   char *ptr;
+   char *ptr = NULL; // Purify complained that this was read uninitialized
    char *token = strtok_r(pathcopy, ":", &ptr);
 
    while (token) {
@@ -1692,83 +759,99 @@ char *searchPath(const char *path, const char *file) {
 }
 #endif
 
-// Begin Test12 Library functions
-
-BPatch_function *findFunction(const char *fname, BPatch_image *appImage, int testno, const char *testname)
+/**
+ * A test should be run if:
+ *   1) It isn't disabled
+ *   2) It hasn't reported a failure/crash/skip
+ *   3) It hasn't reported final results already
+ **/
+bool shouldRunTest(RunGroup *group, TestInfo *test)
 {
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == appImage->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
-
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  Expected 1 functions matching %s, got %d\n",
-              fname, bpfv.size());
-      return NULL;
-  }
-  return bpfv[0];
-}
-
-BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testno, const char *testname)
-{
-  BPatch_Vector<BPatch_function *> bpfv;
-  if (NULL == inmod->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
-
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  Expected 1 functions matching %s, got %d\n",
-              fname, bpfv.size());
-      return NULL;
-  }
-  return bpfv[0];
-}
-
-// Internal Function for setVar and getVar
-void dumpVars(BPatch_image *appImage)
-{
-  BPatch_Vector<BPatch_variableExpr *> vars;
-  appImage->getVariables(vars);
-  for (unsigned int i = 0; i < vars.size(); ++i) {
-    fprintf(stderr, "\t%s\n", vars[i]->getName());
-  }
-}
-
-bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
-{
-   BPatch_variableExpr *v;
-   int addr_size = appImage->getProcess()->getAddressWidth();
-   void *buf = addr;
-   if (NULL == (v = appImage->findVariable(vname))) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  cannot find variable %s, avail vars:\n", vname);
-      dumpVars(appImage);
+   if (group->disabled || test->disabled)
       return false;
-   }
-
-   if (! v->writeValue(buf, addr_size, true)) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  failed to write call site var to mutatee\n");
+   
+   if (test->result_reported)
       return false;
-   }
 
+   for (unsigned i=0; i<NUM_RUNSTATES; i++)
+   {
+      if (i == program_teardown_rs)
+         continue;
+      if (test->results[i] == FAILED ||
+          test->results[i] == SKIPPED ||
+          test->results[i] == CRASHED)
+      {
+         reportTestResult(group, test);
+         return false;
+      }
+      assert(test->results[i] == UNKNOWN ||
+             test->results[i] == PASSED);
+   }
    return true;
 }
 
-bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
+void reportTestResult(RunGroup *group, TestInfo *test)
 {
-   BPatch_variableExpr *v;
-   int addr_size = appImage->getProcess()->getAddressWidth();
-   if (NULL == (v = appImage->findVariable(vname))) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  cannot find variable %s: avail vars:\n", vname);
-      dumpVars(appImage);
-      return false;
+   if (test->result_reported || test->disabled)
+      return;
+
+   test_results_t result = UNKNOWN;
+   bool has_unknown = false;
+   int failed_state = -1;
+
+   for (unsigned i=0; i<NUM_RUNSTATES; i++)
+   {
+      if (i == program_teardown_rs)
+         continue;
+      if (test->results[i] == FAILED ||
+          test->results[i] == CRASHED || 
+          test->results[i] == SKIPPED) {
+         result = test->results[i];
+         failed_state = i;
+         break;
+      }
+      else if (test->results[i] == PASSED) {
+         result = test->results[i];
+      }
+      else if (test->results[i] == UNKNOWN) {
+         has_unknown = true;
+      }
+      else {
+         assert(0 && "Unknown run state");
+      }
    }
 
-   if (! v->readValue(addr, addr_size)) {
-      logerror("**Failed test #%d (%s)\n", testno, testname);
-      logerror("  failed to read var in mutatee\n");
-      return false;
-   }
+   if (result == PASSED && has_unknown)
+      return;
 
-   return true;
+   std::map<std::string, std::string> attrs;
+   TestOutputDriver::getAttributesMap(test, group, attrs);
+   getOutput()->startNewTest(attrs, test, group);
+   getOutput()->logResult(result, failed_state);
+   getOutput()->finalizeOutput();
+
+   log_testreported(group->index, test->index);
+   test->result_reported = true;
 }
 
-// End Test12 Library functions
+#if defined(os_solaris_test) || defined(os_linux_test)
+
+/**
+ * Many linkers don't want to link the static libiberty.a unless
+ * we have a reference to it.  It's really needed by libtestdyninst.so
+ * and libtestsymtab.so, but we can't link into them because 
+ * most systems only provide a static version of this library.
+ * 
+ * Thus we need libiberty.a linked in with test_driver.  We put a reference
+ * to libiberty in libtestSuite.so here, which causes cplus_demangle to 
+ * be exported for use by libraries in in test_driver.
+ *
+ * This is intentionally unreachable code
+ **/
+extern "C" char *cplus_demangle(char *, int);
+
+void use_liberty()
+{
+   cplus_demangle("a", 0);
+}
+#endif

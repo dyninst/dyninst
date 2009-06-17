@@ -1426,7 +1426,7 @@ int_function *instPoint::findCallee()
 
    assert(img_p_);
    image_func *icallee = img_p_->getCallee(); 
-   if (icallee) {
+   if (icallee && !icallee->isPLTFunction()) {
      callee_ = proc()->findFuncByInternalFunc(icallee);
      //callee_ may be NULL if the function is unloaded
 
@@ -1475,16 +1475,29 @@ int_function *instPoint::findCallee()
             //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
             return callee_;  // target has been bound
          } 
-         else {
-            pdvector<int_function *> pdfv;
-            bool found = proc()->findFuncsByMangled(fbt[i].name().c_str(), pdfv);
+
+         const char *target_name = fbt[i].name().c_str();
+         process *dproc = dynamic_cast<process *>(proc());
+         BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
+         pdvector<int_function *> pdfv;
+         if (dproc) {
+            bool found = proc()->findFuncsByMangled(target_name, pdfv);
             if (found) {
-               assert(pdfv.size());
-               callee_ = pdfv[0];
-               //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-               return callee_;
+               return pdfv[0];
             }
          }
+         else if (bedit) {
+            std::vector<BinaryEdit *>::iterator i;
+            for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
+            {
+               bool found = (*i)->findFuncsByMangled(target_name, pdfv);
+               if (found) {
+                  return pdfv[0];
+               }
+            }
+         }
+         else 
+            assert(0);
          break;
       }
    }

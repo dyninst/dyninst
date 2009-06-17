@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.13 2008/09/03 06:08:50 jaw Exp $
+# $Id: Makefile,v 1.1 2008/05/08 20:53:47 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,6 +14,7 @@ MUTATEE_LIBS = -ldl -lrt
 
 DEBUG_FLAG = -g
 NATIVE_DEBUG_FLAG = -g -xs
+CC = gcc
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -46,8 +47,6 @@ MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -lthread -xopenmp
 # does quick check to see if OpenMP compiler exists, if not, makes native default
 ifneq (,$(findstring Sun C ,$(shell $(NATIVE_CXX_OMP) -V 2>&1)))
 HPC_COMPILER_EXISTS=1
-MUTATOR_CXXFLAGS += -Dhpc_compiler_exists
-MUTATOR_CFLAGS += -Dhpc_compiler_exists
 endif 
 
 
@@ -81,11 +80,6 @@ endif
 endif
 endif
 
-# Include any per-user configuration changes; this "local" config file
-# should *not* be under CVS control, so that it never gets committed.
--include $(TO_CORE)/make.config.local
-
-
 TEST6_AS_GNU = gcc -c 
 TEST6_AS_SRC = test6LS-sparc.S
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
@@ -104,11 +98,8 @@ endif
 ifdef NATIVE_CXX
 COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>&1 | head -1)
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) $(NATIVE_DEBUG_FLAG) -instances=static
-MUTATEE_CXXFLAGS_NATIVE += $(FIRST_INCLUDE) -I$(TO_CORE) -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/common/h/ -I$(TO_CORE)/symtabAPI/h
 endif
 
-MUTATEE_CXXFLAGS_GNU = $(UNIFIED_DEF)
-MUTATEE_CXXFLAGS_GNU += $(FIRST_INCLUDE) -I$(TO_CORE) -I$(TO_CORE)/external -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/common/h/ -I$(TO_CORE)symtabAPI/h
 MUTATEE_CFLAGS_GNU = $(MODCFLAGS) $(DEBUG_FLAG)
 MUTATOR_CXXFLAGS += -W -Wall
 

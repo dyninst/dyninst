@@ -136,8 +136,6 @@ class BinaryEdit : public AddressSpace {
 
     bool writeFile(const std::string &newFileName);
     
-    virtual bool canUseTraps() { return true; }
-
     // resolve a dynamic library name to a full path
     // returns NULL if the library cannot be found
     std::string resolveLibraryName(std::string filename);
@@ -169,6 +167,9 @@ class BinaryEdit : public AddressSpace {
 
    void setMultiThreadCapable(bool b);
 
+   void addSibling(BinaryEdit *);
+   std::vector<BinaryEdit *> &getSiblings();
+
  private:
 
     Address highWaterMark_;
@@ -195,6 +196,7 @@ class BinaryEdit : public AddressSpace {
                              Module *mod);
     mapped_object *mobj;
     BinaryEdit *rtlib;
+    std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
 };
 
@@ -212,12 +214,12 @@ class depRelocation {
 class memoryTracker : public codeRange {
  public:
     memoryTracker(Address a, unsigned s) :
-        alloced(false), a_(a), s_(s) {
+        alloced(false),  dirty(false), a_(a), s_(s) {
         b_ = malloc(s_);
     }
 
     memoryTracker(Address a, unsigned s, void *b) :
-        alloced(false), a_(a), s_(s) 
+    alloced(false), dirty(false), a_(a), s_(s)
         {
             b_ = malloc(s_);
             memcpy(b_, b, s_);
@@ -234,11 +236,13 @@ class memoryTracker : public codeRange {
     }
 
     bool alloced;
+    bool dirty;
 
  private:
     Address a_;
     unsigned s_;
     void *b_;
+    
 };
 
 #endif // BINARY_H

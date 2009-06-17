@@ -412,7 +412,7 @@ bool typeEnum::isCompatible(Type *otype)
 void typeEnum::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	ifxml_start_element(sb, "typeEnum");
-	fprintf(stderr, "%s[%d]:  FIXME: translate consts here\n", FILE__, __LINE__);
+	//fprintf(stderr, "%s[%d]:  FIXME: translate consts here\n", FILE__, __LINE__);
 	//gtranslate(sb, consts, "consts");
 	ifxml_end_element(sb, "typeEnum");
 }
@@ -869,7 +869,7 @@ void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerErro
 
 		if (t_id != 0xdeadbeef)
 		{
-			fprintf(stderr, "%s[%d]:  FIXME:  make this faster\n", FILE__, __LINE__);
+			//fprintf(stderr, "%s[%d]:  FIXME:  make this faster\n", FILE__, __LINE__);
 			arrayElem = st->findType(t_id);
 		}
 
@@ -1072,8 +1072,8 @@ void typeUnion::merge(Type *other) {
       return;
    }
 
-   // Merging is only for forward references
-   assert(!fieldList.size());
+   if (!fieldList.size())
+      return;
 
    if (otherunion->name_ != "")
       name_ = std::string(otherunion->name_);
@@ -1725,7 +1725,7 @@ void derivedType::serialize_derived(SerializerBase *sb, const char *tag) THROW_S
 	ifxml_end_element(sb, tag);
 	if (sb->isInput())
 	{
-		fprintf(stderr, "%s[%d]:  FIXME:  lookup base type by id here\n", FILE__, __LINE__);
+		//fprintf(stderr, "%s[%d]:  FIXME:  lookup base type by id here\n", FILE__, __LINE__);
 	}
 }
 /*
@@ -1926,7 +1926,7 @@ void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Serializer
 
 		if (t_id != 0xdeadbeef)
 		{
-			fprintf(stderr, "%s[%d]:  FIXME:  make this faster\n", FILE__, __LINE__);
+			//fprintf(stderr, "%s[%d]:  FIXME:  make this faster\n", FILE__, __LINE__);
 			type_ = st->findType(t_id);
 		}
 

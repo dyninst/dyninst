@@ -700,17 +700,17 @@ void SerDesBin::writeHeaderPreamble(FILE *f, std::string full_file_path, std::st
 }
 
 bool SerDesBin::verifyChecksum(std::string &full_file_path, 
-      const char comp_checksum[SHA1_DIGEST_LEN])
+      const char comp_checksum[SHA1_DIGEST_LEN*2])
 {
-   char new_checksum[SHA1_DIGEST_LEN]; 
+   char new_checksum[SHA1_DIGEST_LEN*2]; 
    if (NULL == sha1_file(full_file_path.c_str(), new_checksum)) {
       fprintf(stderr, "%s[%d]:  sha1_file(%s) failed \n", 
             FILE__, __LINE__, full_file_path.c_str());
       return false;
    }
 
-   if (strncmp(comp_checksum, new_checksum, SHA1_DIGEST_LEN)) {
-      fprintf(stderr, "%s[%d]:  sha1_file(%s): checksum mismatch: \n\told: %s\n\tnew:%s\n", 
+   if (strncmp(comp_checksum, new_checksum, SHA1_DIGEST_LEN*2)) {
+      fprintf(stderr, "%s[%d]:  sha1_file(%s): checksum mismatch: \n\told:%s\n\tnew:%s\n", 
             FILE__, __LINE__, full_file_path.c_str(), comp_checksum, new_checksum);
       return false;
    }

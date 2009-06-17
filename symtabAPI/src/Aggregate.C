@@ -302,8 +302,8 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 			t = tc->findType(t_id);
 			if (!t)
 			{
-				fprintf(stderr, "%s[%d]: failed to find type in module(%s) collection\n", 
-						FILE__, __LINE__, module_->fileName().c_str());
+				//fprintf(stderr, "%s[%d]: failed to find type in module(%s) collection\n", 
+				//		FILE__, __LINE__, module_->fileName().c_str());
 			}
 		}
 		else

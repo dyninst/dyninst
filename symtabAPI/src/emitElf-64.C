@@ -465,7 +465,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
 	}
 
     }
-		
+
     if(obj->getObject()->getStrtabAddr() != 0 &&
        obj->getObject()->getStrtabAddr() == shdr->sh_addr)
       {
@@ -1351,7 +1351,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
   // build new .hash section
   Elf64_Word *hashsecData;
   unsigned hashsecSize = 0;
-  createHashSection(hashsecData, hashsecSize, dynsymVector);
+  createHashSection(obj, hashsecData, hashsecSize, dynsymVector);
   if(hashsecSize) {
     string name; 
     if (secTagRegionMapping.find(DT_HASH) != secTagRegionMapping.end()) {
@@ -1440,105 +1440,105 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
 }
 
 void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, dyn_hash_map<std::string, unsigned> &dynSymNameMapping) {
-  unsigned i,j,k;
+   unsigned i,j,k;
 
-  vector<relocationEntry> newRels;
-  if(newSecs.size())
-    newRels = newSecs[0]->getRelocations();
+   vector<relocationEntry> newRels;
+   if(newSecs.size())
+      newRels = newSecs[0]->getRelocations();
     
-  Elf64_Rel *rels = (Elf64_Rel *)malloc(sizeof(Elf64_Rel) * (relocation_table.size()+newRels.size()));
-  Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
-  j=0; k=0;
-  //reconstruct .rel
-  for(i=0;i<relocation_table.size();i++) 
-    {
+   Elf64_Rel *rels = (Elf64_Rel *)malloc(sizeof(Elf64_Rel) * (relocation_table.size()+newRels.size()));
+   Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
+   j=0; k=0;
+   //reconstruct .rel
+   for(i=0;i<relocation_table.size();i++) 
+   {
       if (relocation_table[i].regionType() == Region::RT_REL) {
-	rels[j].r_offset = relocation_table[i].rel_addr();
-	if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-	  rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
-	} else {
-	  fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-		  relocation_table[i].name().c_str());
-	}
-	j++;
+         rels[j].r_offset = relocation_table[i].rel_addr();
+         if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
+            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         } else {
+            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    relocation_table[i].name().c_str());
+         }
+         j++;
       } else {
-	relas[k].r_offset = relocation_table[i].rel_addr();
-	relas[k].r_addend = relocation_table[i].addend();
-	if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-	  relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
-	} else {
-	  fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-		  relocation_table[i].name().c_str());
-	}
-	k++;
+         relas[k].r_offset = relocation_table[i].rel_addr();
+         relas[k].r_addend = relocation_table[i].addend();
+         if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
+            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         } else {
+            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    relocation_table[i].name().c_str());
+         }
+         k++;
       }
-    }
-  for(i=0;i<newRels.size();i++) 
-    {
+   }
+   for(i=0;i<newRels.size();i++) 
+   {
       if (newRels[i].regionType() == Region::RT_REL) {
-	rels[j].r_offset = newRels[i].rel_addr();
-	if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
+         rels[j].r_offset = newRels[i].rel_addr();
+         if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)
-	  rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
+            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
 #elif defined(arch_sparc)
-	  //            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
+            //            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
-	  rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
+            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-	  rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
+            rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
-	} else {
-	  fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-		  newRels[i].name().c_str());
-	}
-	j++;
+         } else {
+            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    newRels[i].name().c_str());
+         }
+         j++;
       } else {
-	relas[k].r_offset = newRels[i].rel_addr();
-	relas[k].r_addend = newRels[i].addend();
-	if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
+         relas[k].r_offset = newRels[i].rel_addr();
+         relas[k].r_addend = newRels[i].addend();
+         if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)
-	  relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
+            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
 #elif defined(arch_sparc)
-	  //            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
+            //            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
-	  relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
+            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-	  relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
+            relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
-	} else {
-	  fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-		  newRels[i].name().c_str());
-	}
-	k++;
+         } else {
+            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
+                    newRels[i].name().c_str());
+         }
+         k++;
       }
-    }
+   }
 
 #if defined (os_solaris)
-  fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
+   fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
 #else
-  dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
-  if (obj->hasReldyn()) {
-    string name;
-    if (secTagRegionMapping.find(DT_REL) != secTagRegionMapping.end()) {
-      name = secTagRegionMapping[DT_REL]->getRegionName();
-    } else {
-      name = ".rel.dyn";
-    }
+   dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
+   if (obj->hasReldyn()) {
+      string name;
+      if (secTagRegionMapping.find(DT_REL) != secTagRegionMapping.end()) {
+         name = secTagRegionMapping[DT_REL]->getRegionName();
+      } else {
+         name = ".rel.dyn";
+      }
  
-    obj->addRegion(0, rels, j*sizeof(Elf64_Rel), name, Region::RT_REL, true);
-    updateDynamic(DT_RELSZ, j*sizeof(Elf64_Rel));
-  }
-  if (obj->hasReladyn()) {
-    string name;
-    if (secTagRegionMapping.find(DT_RELA) != secTagRegionMapping.end()) {
-      name = secTagRegionMapping[DT_RELA]->getRegionName();
-    } else {
-      name = ".rela.dyn";
-    }
+      obj->addRegion(0, rels, j*sizeof(Elf64_Rel), name, Region::RT_REL, true);
+      updateDynamic(DT_RELSZ, j*sizeof(Elf64_Rel));
+   }
+   if (obj->hasReladyn()) {
+      string name;
+      if (secTagRegionMapping.find(DT_RELA) != secTagRegionMapping.end()) {
+         name = secTagRegionMapping[DT_RELA]->getRegionName();
+      } else {
+         name = ".rela.dyn";
+      }
  
-    obj->addRegion(0, relas, k*sizeof(Elf64_Rela), name, Region::RT_RELA, true);
-    updateDynamic(DT_RELASZ, k*sizeof(Elf64_Rela));
-  }
+      obj->addRegion(0, relas, k*sizeof(Elf64_Rela), name, Region::RT_RELA, true);
+      updateDynamic(DT_RELASZ, k*sizeof(Elf64_Rela));
+   }
 #endif
 
 }
@@ -1645,8 +1645,45 @@ void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&ve
   return;
 }
 
-void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
+void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
 {
+
+  /* Save the original hash table entries */
+  std::vector<unsigned> originalHashEntries;
+  unsigned dynsymSize = obj->getObject()->getDynsymSize();
+  
+  Elf_Scn *scn = NULL;
+  Elf64_Shdr *shdr = NULL;
+  for (unsigned scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+    shdr = elf64_getshdr(scn);
+    if(obj->getObject()->getElfHashAddr() != 0 &&
+       obj->getObject()->getElfHashAddr() == shdr->sh_addr){
+      Elf_Data *hashData = elf_getdata(scn,NULL);
+      Elf64_Word *oldHashSec = (Elf64_Word *) hashData->d_buf;
+      unsigned original_nbuckets, original_nchains;
+      original_nbuckets =  oldHashSec[0];
+      original_nchains = oldHashSec[1];
+      for (unsigned i = 0; i < original_nbuckets+original_nchains; i++) {
+	if ( oldHashSec[2+i] != 0) {
+		originalHashEntries.push_back( oldHashSec[2+i]);
+		//printf(" ELF HASH pushing hash entry %d \n", oldHashSec[2+i] );
+	}
+      }
+    }
+
+    if(obj->getObject()->getGnuHashAddr() != 0 &&
+       obj->getObject()->getGnuHashAddr() == shdr->sh_addr){
+      Elf_Data *hashData = elf_getdata(scn,NULL);
+      Elf64_Word *oldHashSec = (Elf64_Word *) hashData->d_buf;
+      unsigned symndx = oldHashSec[1];
+      if (dynsymSize != 0)
+      	for (unsigned i = symndx; i < dynsymSize ; i++) {
+		originalHashEntries.push_back(i);
+		//printf(" GNU HASH pushing hash entry %d \n", i);
+	}
+      }
+  }
+
   vector<Symbol *>::iterator iter;
   dyn_hash_map<unsigned, unsigned> lastHash; // bucket number to symbol index
   unsigned nbuckets = (unsigned)dynSymbols.size()*2/3;
@@ -1666,7 +1703,11 @@ void emitElf64::createHashSection(Elf64_Word *&hashsecData, unsigned &hashsecSiz
   i = 0;
   for (iter = dynSymbols.begin(); iter != dynSymbols.end(); iter++, i++) {
     if((*iter)->getName().empty()) continue;
-    if((*iter)->getRegion() == NULL) continue;    
+    unsigned index = (*iter)->getIndex();
+    if ((find(originalHashEntries.begin(),originalHashEntries.end(),index) == originalHashEntries.end()) && 
+	(index < obj->getObject()->getDynsymSize())) {
+	continue;
+    }
     key = elfHash((*iter)->getName().c_str()) % nbuckets;
     //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
     if (lastHash.find(key) != lastHash.end()) {
@@ -1690,7 +1731,9 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
   string rpathstr;
   for(unsigned i = 0; i< DT_NEEDEDEntries.size(); i++){
     dynsecData[curpos].d_tag = DT_NEEDED;
-    dynsecData[curpos].d_un.d_val = versionNames[DT_NEEDEDEntries[i]];
+    dynStrs.push_back(DT_NEEDEDEntries[i]);    
+    dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
+    dynSymbolNamesLength += DT_NEEDEDEntries[i].size()+1;
     dynamicSecData[DT_NEEDED].push_back(dynsecData+curpos);
     curpos++;
   }
@@ -1702,21 +1745,31 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
      dynamicSecData[name].push_back(dynsecData+curpos);
      curpos++;
   }
+
+  // There may be multiple HASH (ELF, GNU etc) sections in the original binary. We consolidate all of them into one.
+  bool foundHashSection = false; 
+
   for(unsigned i = 0; i< count;i++){
     switch(dyns[i].d_tag){
     case DT_NULL:
       break;
     case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
-      dynsecData[curpos].d_tag = DT_HASH;
-      dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
-      dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
-      curpos++;
+      if (!foundHashSection) {
+      	dynsecData[curpos].d_tag = DT_HASH;
+      	dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
+      	dynamicSecData[DT_HASH].push_back(dynsecData+curpos);
+      	curpos++;
+      	foundHashSection = true;
+      }
       break;
     case DT_HASH: 
-      dynsecData[curpos].d_tag = dyns[i].d_tag;
-      dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
-      dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
-      curpos++;
+      if (!foundHashSection) {
+      	dynsecData[curpos].d_tag = dyns[i].d_tag;
+      	dynsecData[curpos].d_un.d_ptr =dyns[i].d_un.d_ptr ;
+      	dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
+      	curpos++;
+      	foundHashSection = true;
+      }
       break;
     case DT_NEEDED:
       rpathstr = &olddynStrData[dyns[i].d_un.d_val];
