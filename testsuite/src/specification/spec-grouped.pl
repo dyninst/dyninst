@@ -287,6 +287,7 @@ compiler_for_mutatee('test1_14', Compiler) :-
 test_runmode('test1_14', 'staticdynamic').
 test_start_state('test1_14', 'stopped').
 tests_module('test1_14', 'dyninst').
+groupable_test('test1_14').
 
 test('test1_15', 'test1_15', 'test1_15').
 test_description('test1_15', 'setMutationsActive').
