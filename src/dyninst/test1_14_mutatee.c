@@ -23,6 +23,7 @@ void test1_14_call1();
 
 static int globalVariable14_1 = 0;
 static int globalVariable14_2 = 0;
+static int globalVariable14_3 = 0;
 
 /* Function definitions follow */
 
@@ -37,16 +38,24 @@ void test1_14_func3() {
     globalVariable14_2 = 1;
 }
 
+void test1_14_func4(int *var) {
+    *var = 3;
+}
+
 int test1_14_func1() {
   int retval;
-  /* kludge = 1; /* Here so that the following function call isn't the first
-		    instruction */
+  /* kludge = 1; */ /* Here so that the following function call isn't the first
+                 instruction */
 
     test1_14_func2();
 
     test1_14_func3();
 
-    if (globalVariable14_1 == 1 && globalVariable14_2 == 0) {
+    test1_14_func4(&globalVariable14_3);
+
+    if ((globalVariable14_1 == 1) &&
+        (globalVariable14_2 == 0) && 
+        (globalVariable14_3 == 2)) {
         logerror("Passed test #14 (replace/remove function call)\n");
 	retval = 0; /* Test passed */
     } else {
@@ -55,12 +64,15 @@ int test1_14_func1() {
     	    logerror("    call to test1_14_func2() was not replaced\n");
 	if (globalVariable14_2 != 0)
 	    logerror("    call to test1_14_func3() was not removed\n");
+        if (globalVariable14_3 != 2) 
+            logerror("    call to test1_14_func4() was not inter-module replaced\n");
 	retval = -1; /* Test failed */
     }
     return retval;
 }
 
 int test1_14_mutatee() {
+
   if (test1_14_func1() == 0) {
     test_passes(testname);
     return 0; /* Test passed */

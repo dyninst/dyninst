@@ -57,11 +57,18 @@
 #include "dyninst_comp.h"
 
 class test1_14_Mutator : public DyninstMutator {
-  virtual test_results_t executeTest();
+    const char *libNameAroot;
+    char libNameA[128];
+public:
+    test1_14_Mutator();
+
+    virtual test_results_t executeTest();
 };
 extern "C" DLLEXPORT  TestMutator *test1_14_factory() {
   return new test1_14_Mutator();
 }
+
+test1_14_Mutator::test1_14_Mutator() : libNameAroot("libtestA") {}
 
 //
 // Start Test Case #14 - mutator side (replace function call)
@@ -72,10 +79,33 @@ test_results_t test1_14_Mutator::executeTest() {
     if ( replaceFunctionCalls(appAddrSpace, appImage, "test1_14_func1",
 			      "test1_14_func2", "test1_14_call1", 
 			      14, "replace/remove function call", 1) < 0 ) {
-       return FAILED;
+        return FAILED;
     }
     if ( replaceFunctionCalls(appAddrSpace, appImage, "test1_14_func1",
 			      "test1_14_func3", NULL,
+			      14, "replace/remove function call", 1) < 0 ) {
+        return FAILED;
+    }
+    
+    int pointer_size = 0;
+#if defined(arch_x86_64_test) || defined(ppc64_linux_test)
+    pointer_size = pointerSize(appImage);
+#endif
+
+    strncpy(libNameA, libNameAroot, 127);
+    addLibArchExt(libNameA,127, pointer_size);
+
+    char libA[128];
+    snprintf(libA, 128, "./%s", libNameA);
+    
+    if (!appAddrSpace->loadLibrary(libA)) {
+        logerror("**Failed test1_14 (replace function call)\n");
+        logerror("  Mutator couldn't load %s into mutatee\n", libNameA);
+        return FAILED;
+    }
+
+    if ( replaceFunctionCalls(appAddrSpace, appImage, "test1_14_func1",
+			      "test1_14_func4", "test1_14_call2_libA",
 			      14, "replace/remove function call", 1) < 0 ) {
        return FAILED;
     }
