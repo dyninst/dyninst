@@ -215,6 +215,7 @@ public:
    SYMTAB_EXPORT typeCommon *getCommonType();
    SYMTAB_EXPORT typeTypedef *getTypedefType();
    SYMTAB_EXPORT typeRef *getRefType();
+   SYMTAB_EXPORT std::string specificType();
 };
 
 // Interfaces to be implemented by intermediate subtypes

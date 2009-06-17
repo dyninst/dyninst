@@ -61,54 +61,67 @@ T *upgradePlaceholder(Type *placeholder, T *new_type)
 }
 
 template<class T>
-T* typeCollection::addOrUpdateType(T *type) {
-    //Instanciating this function for 'Type' would be a mistake, which
-    //the following assert tries to guard against.  If you trigger this,
-    //then a caller to this function is likely using 'Type'.  Change
-    //this to a more specific call, e.g. typeFunction instead of Type
-    BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
+T* typeCollection::addOrUpdateType(T *type) 
+{
+	//Instanciating this function for 'Type' would be a mistake, which
+	//the following assert tries to guard against.  If you trigger this,
+	//then a caller to this function is likely using 'Type'.  Change
+	//this to a more specific call, e.g. typeFunction instead of Type
+	BOOST_STATIC_ASSERT(sizeof(T) != sizeof(Type));
 
-    Type *existingType = findTypeLocal(type->getID());
-    if (!existingType) {
-        if( type->getName() != "" ) {
-            typesByName[ type->getName() ] = type;
+	Type *existingType = findTypeLocal(type->getID());
+	if (!existingType) 
+	{
+		if ( type->getName() != "" ) 
+		{
+			typesByName[ type->getName() ] = type;
+		}
+		typesByID[ type->getID() ] = type;
+		type->incrRefCount();
+		return type;
 	}
-	typesByID[ type->getID() ] = type;
-	type->incrRefCount();
-        return type;
-    }
 
-    /* Multiple inclusions of the same object file can result
-       in us parsing the same module types repeatedly. GCC does this
-       with some of its internal routines */
-    T *existingT = dynamic_cast<T*>(existingType);
-    if (existingT && (*existingT == *type)) {
-      return (T*) existingType;
-    }
+	/* Multiple inclusions of the same object file can result
+	   in us parsing the same module types repeatedly. GCC does this
+	   with some of its internal routines */
 
-    if (existingType->getDataClass() == dataUnknownType) {
-      upgradePlaceholder(existingType, type);
-    } else {
-      /* Merge the type information. */
-      existingType->merge(type);
-    }
-
-    /* The type may have gained a name. */
-    if( existingType->getName() != "") {
-      if (typesByName.find(existingType->getName()) != typesByName.end()) {
-	if (typesByName[ existingType->getName() ] != existingType) {
-	  typesByName[ existingType->getName() ]->decrRefCount();
-	  typesByName[ existingType->getName() ] = existingType;
-	  existingType->incrRefCount();
+	T *existingT = dynamic_cast<T*>(existingType);
+	if (existingT && (*existingT == *type)) 
+	{
+		return (T*) existingType;
 	}
-      } else {
-	typesByName[ existingType->getName() ] = existingType;
-	existingType->incrRefCount();
-      }
-    }
-    
-    /* Tell the parser to update its type pointer. */
-    return (T*) existingType;
+
+	if (existingType->getDataClass() == dataUnknownType) 
+	{
+		upgradePlaceholder(existingType, type);
+	} 
+	else 
+	{
+		/* Merge the type information. */
+		existingType->merge(type);
+	}
+
+	/* The type may have gained a name. */
+	if ( existingType->getName() != "") 
+	{
+		if (typesByName.find(existingType->getName()) != typesByName.end()) 
+		{
+			if (typesByName[ existingType->getName() ] != existingType) 
+			{
+				typesByName[ existingType->getName() ]->decrRefCount();
+				typesByName[ existingType->getName() ] = existingType;
+				existingType->incrRefCount();
+			}
+		} 
+		else 
+		{
+			typesByName[ existingType->getName() ] = existingType;
+			existingType->incrRefCount();
+		}
+	}
+
+	/* Tell the parser to update its type pointer. */
+	return (T*) existingType;
 } /* end addOrUpdateType() */
 
 

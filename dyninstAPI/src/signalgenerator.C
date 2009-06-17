@@ -1530,8 +1530,6 @@ process * SignalGeneratorCommon::newProcess(process *parent, int pid_, int trace
   sg->setProcess(theChild);
   
   if (!sg->createThread()) {
-     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
-             FILE__, __LINE__, getThreadStr(getExecThreadID()));
      delete sg;
      getMailbox()->executeCallbacks(FILE__, __LINE__);
      return NULL;
@@ -1818,8 +1816,6 @@ bool SignalGeneratorCommon::initialize_event_handler()
 
      
      if (!attachProcess()) {
-         fprintf(stderr, "%s[%d]:  failed to attach to process %d\n", FILE__, __LINE__,
-                 getPid());
          delete proc;
          proc = NULL;
          return false;

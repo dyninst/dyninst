@@ -23,9 +23,6 @@
 #include <sys/types.h>
 #include <cstring>
 
-// To prevent run away never run test_driver more the MAX_ITER times
-#define MAX_ITER 1000
-
 // Default name for the resume log file
 #define DEFAULT_RESUMELOG "resumelog"
 // Default name for the crash log file
@@ -243,7 +240,7 @@ int main(int argc, char *argv[])
    char *pidFilename = new char[80];
    initPIDFilename(pidFilename, 80);
    // result == 2 indicates that there are no more tests to run
-   while ( result != NOTESTS && invocation < MAX_ITER )
+   while ( result != NOTESTS )
    {
       result = RunTest(invocation, useLog, staticTests, logfile, testLimit,
                        child_argv, pidFilename, memcpu_name);

@@ -516,8 +516,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	elf_hash_addr_ = dynsecData.d_ptr(j);
 	break;
       case  0x6ffffef5: //DT_GNU_HASH (not defined on all platforms)
-	// We generate ELF HASH entries and not GNU_HASH - so implicitely change it here.
-	secAddrTagMapping[dynsecData.d_ptr(j)] = DT_HASH; 
+	secAddrTagMapping[dynsecData.d_ptr(j)] = dynsecData.d_tag(j);
 	gnu_hash_addr_ = dynsecData.d_ptr(j);
 	break;
       case DT_PLTGOT:

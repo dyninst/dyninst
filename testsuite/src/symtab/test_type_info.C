@@ -55,6 +55,7 @@ class test_type_info_Mutator : public SymtabMutator {
    std::vector<Type *> *std_types;
    std::vector<Type *> *builtin_types;
    test_results_t verify_basic_type_lists();
+   std::string execname;
    bool verify_type(Type *t);
    bool verify_type_enum(typeEnum *t, std::vector<std::pair<std::string, int> > * = NULL);
    bool verify_type_pointer(typePointer *t, std::string * = NULL);
@@ -318,9 +319,15 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *
 
 	if (t->getLow() > t->getHigh())
 	{
-		fprintf(stderr, "%s[%d]:  bad ranges [%lu--%lu] for type %s!\n", 
-				FILE__, __LINE__, t->getLow(), t->getHigh(), tn.c_str());
-		return false;
+		//  special case (encountered w/ sun compilers -- if low bound is zero and
+		//  highbound is -1, the array is not specified with a proper range, so
+		//  ignore
+		if (! (t->getLow() == 0L && t->getHigh() == -1L))
+		{
+			fprintf(stderr, "%s[%d]:  bad ranges [%lu--%lu] for type %s!\n", 
+					FILE__, __LINE__, t->getLow(), t->getHigh(), tn.c_str());
+			return false;
+		}
 	}
 
 	Type *b = t->getBaseType();
@@ -825,27 +832,46 @@ bool test_type_info_Mutator::specific_type_tests()
 		return false;
 	}
 
+	Type *tc = NULL;
 	typeTypedef *tt = t->getTypedefType();
 	if (!tt)
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
-		return false;
+		//  Caveat:  Solaris and gnu compilers differ here in how they emit the stab
+		//  for the typedef array...  while it would be nice to have a consistent representation
+		//  but it would involve creating "fake" placeholder typedefs...  or just
+		//  modifying the test to be OK with either scenario....
+		tc = t->getArrayType();
+		if (NULL == tc)
+		{
+			fprintf(stderr, "%s[%d]:  %s: unexpected variety %s\n", 
+					FILE__, __LINE__, tname.c_str(), t->specificType().c_str());
+			return false;
+		}
 	}
+	else
+	{
+		if (!verify_type_typedef(tt, NULL)) 
+			return false;
 
-	if (!verify_type_typedef(tt, NULL)) 
-		return false;
-
-	Type *tc = tt->getConstituentType();
+		tc = tt->getConstituentType();
+	}
 	if (!tc)
 	{
 		fprintf(stderr, "%s[%d]:  %s: no constituent type\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
+	//fprintf(stderr, "%s[%d]:  typedef %s constituent typename: %s:%s/id %d, typedef id = %d\n", FILE__, __LINE__, tt->getName().c_str(), tc->specificType().c_str(), tc->getName().c_str(), tc->getID(), tt->getID());
 
 	typeArray *ta = tc->getArrayType();
 	if (!ta)
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		fprintf(stderr, "%s[%d]:  %s: unexpected variety: %s--%s\n", FILE__, __LINE__, tname.c_str(), tc->specificType().c_str(), tc->getName().c_str());
+		typeTypedef *ttd = tc->getTypedefType();
+		if (ttd)
+		{
+			Type *ttd_c = ttd->getConstituentType();
+			fprintf(stderr, "%s[%d]:  typedef constituent %s--%s\n", FILE__, __LINE__, ttd_c->getName().c_str(), ttd_c->specificType().c_str());
+					}
 		return false;
 	}
 
@@ -853,43 +879,57 @@ bool test_type_info_Mutator::specific_type_tests()
 	int expected_low = 0;
 	int expected_hi = 255;
 	if (!verify_type_array(ta, &expected_low, &expected_hi, &expected_array_base)) 
-		return false;
-
-	tname = "my_intptr_t";
-	if (!symtab->findType(t, tname) || (NULL == t))
 	{
-		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		fprintf(stderr, "%s[%d]: failed to verify typeArray\n", FILE__, __LINE__);
 		return false;
 	}
 
-	tt = t->getTypedefType();
-	if (!tt)
+	if (std::string::npos == execname.find("CC")) 
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
-		return false;
+		tname = "my_intptr_t";
+		if (!symtab->findType(t, tname) || (NULL == t))
+		{
+			fprintf(stderr, "%s[%d]:  could not find type %s\n", 
+					FILE__, __LINE__, tname.c_str());
+			return false;
+		}
+
+		tt = t->getTypedefType();
+		if (!tt)
+		{
+			fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", 
+					FILE__, __LINE__, tname.c_str());
+			return false;
+		}
+
+		if (!verify_type_typedef(tt, NULL)) 
+			return false;
+
+		tc = tt->getConstituentType();
+		if (!tc)
+		{
+			fprintf(stderr, "%s[%d]:  %s: no constituent type\n", 
+					FILE__, __LINE__, tname.c_str());
+			return false;
+		}
+
+		typePointer *tp = tc->getPointerType();
+		if (!tp)
+		{
+			fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", 
+					FILE__, __LINE__, tname.c_str());
+			return false;
+		}
+
+		std::string expected_pointer_base = "int";
+		if (!verify_type_pointer(tp, &expected_pointer_base)) 
+			return false;
 	}
-
-	if (!verify_type_typedef(tt, NULL)) 
-		return false;
-
-	tc = tt->getConstituentType();
-	if (!tc)
+	else
 	{
-		fprintf(stderr, "%s[%d]:  %s: no constituent type\n", FILE__, __LINE__, tname.c_str());
-		return false;
+		logerror("%s[%d]:  skipped function pointer type verifiction for sun CC compiler\n", 
+				FILE__, __LINE__);
 	}
-
-	typePointer *tp = tc->getPointerType();
-	if (!tp)
-	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
-		return false;
-	}
-
-	std::string expected_pointer_base = "int";
-	if (!verify_type_pointer(tp, &expected_pointer_base)) 
-		return false;
-
 	return true;
 }
 
@@ -996,15 +1036,16 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 	   }
    }
 
-   if (!got_all_types())
-   {
-	   fprintf(stderr, "%s[%d]:  did not test all types...  failing\n", FILE__, __LINE__);
-	   return FAILED;
-   }
 
    if (!specific_type_tests())
    {
 	   fprintf(stderr, "%s[%d]:  specific type test failed... \n", FILE__, __LINE__);
+	   return FAILED;
+   }
+
+   if (!got_all_types())
+   {
+	   fprintf(stderr, "%s[%d]:  did not test all types...  failing\n", FILE__, __LINE__);
 	   return FAILED;
    }
 
@@ -1016,6 +1057,9 @@ test_results_t test_type_info_Mutator::executeTest()
 
 	SymtabAPI::Module *mod = NULL;
 	std::vector<SymtabAPI::Module *> mods;
+
+	execname = symtab->name();
+	
 	if (!symtab->getAllModules(mods))
 	{
 		fprintf(stderr, "%s[%d]:  failed to get all modules\n", FILE__, __LINE__);

@@ -58,7 +58,7 @@ static int findIntrensicType(std::string &name);
 
 // This is the ID that is decremented for each type a user defines. It is
 // Global so that every type that the user defines has a unique ID.
-typeId_t Type::USER_TYPE_ID = -1000;
+typeId_t Type::USER_TYPE_ID = -10000;
 
 namespace Dyninst {
   namespace SymtabAPI {
@@ -298,6 +298,21 @@ typeRef *Type::getRefType(){
     return dynamic_cast<typeRef *>(this);
 }
 
+std::string Type::specificType()
+{
+	if (getEnumType()) return std::string("typeEnum");
+	if (getPointerType()) return std::string("typePointer");
+	if (getFunctionType()) return std::string("typeFunction");
+	if (getSubrangeType()) return std::string("typeSubrange");
+	if (getArrayType()) return std::string("typeArray");
+	if (getStructType()) return std::string("typeStruct");
+	if (getUnionType()) return std::string("typeUnion");
+	if (getScalarType()) return std::string("typeScalar");
+	if (getCommonType()) return std::string("typeCommon");
+	if (getTypedefType()) return std::string("typeTypedef");
+	if (getRefType()) return std::string("typeRef");
+	return std::string("badType");
+}
 bool Type::isCompatible(Type * /*oType*/){
    return true;
 }
@@ -1057,8 +1072,8 @@ void typeUnion::merge(Type *other) {
       return;
    }
 
-   // Merging is only for forward references
-   assert(!fieldList.size());
+   if (!fieldList.size())
+      return;
 
    if (otherunion->name_ != "")
       name_ = std::string(otherunion->name_);
