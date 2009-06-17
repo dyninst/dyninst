@@ -370,7 +370,7 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
 
    BPatch_funcJumpExpr fje(newFunc);
 
-#if defined(cap_instruction_replacement)
+#if defined(cap_instruction_replacement) && defined(arch_power)
    // Replace the first instruction with fje
    for (unsigned i = 0; i < pts->size(); i++) {
        BPatch_point *point = (*pts)[i];
