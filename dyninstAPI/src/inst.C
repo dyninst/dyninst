@@ -259,20 +259,26 @@ void *trampEnd::getPtrToInstruction(Address) const {
 // more complicated
 bool AddressSpace::replaceFunctionCall(instPoint *point,
                                        const int_function *func) {
-#if defined(cap_instruction_replacement) 
-    pdvector<AstNodePtr> emptyArgs;
-    // To do this we must be able to make a non-state-affecting
-    // function call. Currently it's only implemented on POWER, although
-    // it would be easy to do for x86 as well...
-    AstNodePtr call = AstNode::funcCallNode(const_cast<int_function *>(func), emptyArgs);
-    return point->replaceCode(call);
-    
-    
-#else
-
     // Must be a call site
   if (point->getPointType() != callSite)
     return false;
+
+#if defined(cap_instruction_replacement) 
+    if (func) {
+        pdvector<AstNodePtr> emptyArgs;
+        // To do this we must be able to make a non-state-affecting
+        // function call. Currently it's only implemented on POWER, although
+        // it would be easy to do for x86 as well...
+        AstNodePtr call = AstNode::funcCallNode(const_cast<int_function *>(func), emptyArgs);
+        return point->replaceCode(call);
+    }
+    else {
+        // Remove the function call entirely
+        AstNodePtr nullNode = AstNode::nullNode();
+        return point->replaceCode(nullNode);
+    }
+    
+#else
 
   instPointIter ipIter(point);
   instPointInstance *ipInst;
@@ -332,7 +338,7 @@ bool AddressSpace::replaceFunctionCall(instPoint *point,
       newRFC->newCall = gen;
       
       addReplacedCall(newRFC);
-      
+
       writeTextSpace((void *)pointAddr, gen.used(), gen.start_ptr());
   }
   return true;

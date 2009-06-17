@@ -88,10 +88,6 @@ bool replacedInstruction::generateCode(codeGen &gen,
 
     gen.setPoint(point());
 
-    // Build a registerSpace to be used during code generation. For
-    // now, just assume everything is live. TODO: pull out the
-    // instPoint-stored register information
-
     registerSpace *localRegSpace = registerSpace::actualRegSpace(point(), callPreInsn);
     gen.setRegisterSpace(localRegSpace);
 

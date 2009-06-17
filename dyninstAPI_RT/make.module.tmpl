@@ -16,7 +16,8 @@ endif
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 
-SRCS         += ../src/RTcommon.c
+SRCS         += ../src/RTcommon.c \
+                ../src/RTsignal.c
 
 
 ifdef USES_SHM_SAMPLING
