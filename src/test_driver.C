@@ -152,6 +152,7 @@ char *resumelog_name = "resumelog";
 char *humanlog_name = "-";
 char *crashlog_name = "crashlog";
 char *measureFileName = "-";
+int global_max_test_name_length = 10;
 std::vector<char *> mutatee_list;
 std::vector<char *> test_list;
 
@@ -633,6 +634,9 @@ void setIndexes(std::vector<RunGroup *> groups)
       groups[i]->index = i;
       for (unsigned j=0; j<groups[i]->tests.size(); j++) {
          groups[i]->tests[j]->index = j;
+         int namelen = strlen(groups[i]->tests[j]->name);
+		 if (namelen > global_max_test_name_length)
+			 global_max_test_name_length = namelen;
       }
    }
 }   
