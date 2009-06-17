@@ -42,6 +42,7 @@
 #include "test_info_new.h"
 #include <assert.h>
 
+int TestInfo::global_max_test_name_length = 10;
 // The constructor for TestInfo
 TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
                    const char *isoname, bool _serialize_enable, const char *ilabel) :

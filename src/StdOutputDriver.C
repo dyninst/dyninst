@@ -3,6 +3,7 @@
 
 #include "TestOutputDriver.h"
 #include "StdOutputDriver.h"
+#include "test_info_new.h"
 
 #include <map>
 #include <string>
@@ -77,11 +78,10 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       run_mode_str = orig_run_mode_str;
    assert(last_test && last_group);
 
-   extern int global_max_test_name_length;
-   char name_align_buffer[global_max_test_name_length];
+   char name_align_buffer[TestInfo::global_max_test_name_length];
    //  fill name_align_buffer with max_length - test_name->length() spaces.
    unsigned int i = 0;
-   for (; i < (global_max_test_name_length - strlen(last_test->name)); ++i)
+   for (; i < (TestInfo::global_max_test_name_length - strlen(last_test->name)); ++i)
    {
 	   name_align_buffer[i] = ' ';
    }
