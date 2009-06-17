@@ -49,6 +49,9 @@ ParseThat::ParseThat() :
 
 	//  If we get here, we didn't find it
 	const char *dyn_root_env = getenv("DYNINST_ROOT");
+	if (!dyn_root_env) {
+		dyn_root_env = "../../";
+	}	
 	const char *plat_env = getenv("PLATFORM");
 
 	if (!plat_env)
@@ -78,7 +81,7 @@ ParseThat::ParseThat() :
 #endif
 	}
 
-	if (dyn_root_env &&  plat_env)
+	if (plat_env)
 	{
 		std::string expect_pt_loc = std::string(dyn_root_env) + slash 
 			+ std::string(plat_env) + slash + std::string("bin") 
@@ -99,8 +102,8 @@ ParseThat::ParseThat() :
 	}
 	else
 	{
-		logerror("%s[%d]:  DYNINST_ROOT %s, PLATFORM %s, can't resolve canonical parseThat loc\n",
-				FILE__, __LINE__, dyn_root_env ? "set" : "not set", plat_env ? "set" : "not set");
+		logerror("%s[%d]:  PLATFORM %s, can't resolve canonical parseThat loc\n",
+				FILE__, __LINE__, plat_env ? "set" : "not set");
 	}
 
 	//  try looking at relative paths
