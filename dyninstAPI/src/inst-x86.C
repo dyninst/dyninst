@@ -1251,6 +1251,15 @@ Register EmitterIA32::emitCall(opCode op,
                                codeGen &gen,
                                const pdvector<AstNodePtr> &operands, 
                                bool noCost, int_function *callee) {
+    bool inInstrumentation = true;
+    if (gen.obj() &&
+        dynamic_cast<replacedInstruction *>(gen.obj())) {
+        // We're replacing an instruction - so don't do anything
+        // that requires a base tramp.
+        inInstrumentation = false;
+    }
+
+
     assert(op == callOp);
     pdvector <Register> srcs;
     int param_size;
@@ -1283,6 +1292,8 @@ Register EmitterIA32::emitCall(opCode op,
       emitOpRegImm(0, REGNUM_ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
   */
    emitCallCleanup(gen, callee, param_size, saves);
+
+   if (!inInstrumentation) return REG_NULL;
 
    // allocate a (virtual) register to store the return value
    // Virtual register
