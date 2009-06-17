@@ -99,6 +99,10 @@ DLLEXPORT int relocation_test_function2(int x)
     return x * relocation_test_variable2;
 }
 
+DLLEXPORT void test1_14_call2_libA(int *var) {
+    *var = 2;
+}
+
 #if defined(os_windows_test) && defined(__cplusplus)
 }
 #endif
