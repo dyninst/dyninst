@@ -26,6 +26,7 @@ typedef enum {
 
 class TestInfo {
 public:
+	static int global_max_test_name_length;
   const char *name;
   const char *mutator_name;
   const char *soname;
