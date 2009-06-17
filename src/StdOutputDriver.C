@@ -3,6 +3,7 @@
 
 #include "TestOutputDriver.h"
 #include "StdOutputDriver.h"
+#include "test_info_new.h"
 
 #include <map>
 #include <string>
@@ -76,12 +77,21 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    else
       run_mode_str = orig_run_mode_str;
    assert(last_test && last_group);
+
+   char name_align_buffer[TestInfo::global_max_test_name_length];
+   //  fill name_align_buffer with max_length - test_name->length() spaces.
+   unsigned int i = 0;
+   for (; i < (TestInfo::global_max_test_name_length - strlen(last_test->name)); ++i)
+   {
+	   name_align_buffer[i] = ' ';
+   }
+   name_align_buffer[i] = '\0';
 #if defined(cap_32_64_test)
-   fprintf(out, "%s:\tcompiler: %s\topt: %s\tabi: %s\tmode: %s\tresult: ",
-           last_test->name, last_group->compiler, last_group->optlevel, last_group->abi, run_mode_str);
+   fprintf(out, "%s:%s compiler: %s\topt: %s\tabi: %s\tmode: %s\tresult: ",
+           last_test->name, name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, run_mode_str);
 #else
-   fprintf(out, "%s:\tcompiler: %s\topt: %s\tmode: %s\tresult: ",
-           last_test->name, last_group->compiler, last_group->optlevel, run_mode_str);
+   fprintf(out, "%s:%s compiler: %s\topt: %s\tmode: %s\tresult: ",
+           last_test->name, name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str);
 #endif
    switch(result) {
       case PASSED:

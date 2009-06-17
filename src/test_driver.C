@@ -633,6 +633,9 @@ void setIndexes(std::vector<RunGroup *> groups)
       groups[i]->index = i;
       for (unsigned j=0; j<groups[i]->tests.size(); j++) {
          groups[i]->tests[j]->index = j;
+         int namelen = strlen(groups[i]->tests[j]->name);
+		 if (namelen > TestInfo::global_max_test_name_length)
+			 TestInfo::global_max_test_name_length = namelen;
       }
    }
 }   
