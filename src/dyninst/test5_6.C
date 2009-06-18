@@ -120,7 +120,7 @@ test_results_t test5_6_Mutator::executeTest() {
       BPatch_funcCallExpr call6Expr(*call6_func, call6_args);
 
       checkCost(call6Expr);
-      appThread->insertSnippet(call6Expr, *point6_2);
+      appAddrSpace->insertSnippet(call6Expr, *point6_2);
       return PASSED;
     }
     index++;

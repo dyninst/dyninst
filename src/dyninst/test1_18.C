@@ -105,7 +105,7 @@ test_results_t test1_18_Mutator::executeTest()
 		return FAILED;
 	}
 
-	int mutateeFortran = isMutateeFortran(appImage);
+	/*	int mutateeFortran = isMutateeFortran(appImage);
 
 	if (mutateeFortran) 
 	{
@@ -116,7 +116,7 @@ test_results_t test1_18_Mutator::executeTest()
 
 		proc->oneTimeCode (arith18_1);
 	}
-
+	*/
 	int n;
 	expr18_1->readValue(&n);
 
