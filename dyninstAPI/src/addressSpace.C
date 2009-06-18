@@ -1233,7 +1233,6 @@ bool trampTrapMappings::needsUpdating()
 }
 
 bool trampTrapMappings::empty() {
-    fprintf(stderr, "trampTrapMappings: %d, %d\n", mapping.size(), mapping.empty());
     return mapping.empty();
 }
 

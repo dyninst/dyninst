@@ -358,8 +358,6 @@ bool BinaryEdit::getAllDependencies(std::queue<std::string> &deps)
 
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
-    fprintf(stderr, "writeFile!!!\n");
-
    // We've made a bunch of changes and additions to the
    // mapped object.
    //   Changes: modifiedRanges_
@@ -859,10 +857,10 @@ bool BinaryEdit::replaceTrapHandler() {
             int_function *callee = point->findCallee();
 
             if (!callee) {
-                fprintf(stderr, "Failed to find callee at 0x%lx\n", point->addr());
+                //fprintf(stderr, "Failed to find callee at 0x%lx\n", point->addr());
                 continue;
             }
-            fprintf(stderr, "Found callee %s at addr 0x%lx\n", callee->symTabName().c_str(), point->addr());
+            //fprintf(stderr, "Found callee %s at addr 0x%lx\n", callee->symTabName().c_str(), point->addr());
 
             if ((callee->symTabName() == "sigaction") ||
                 (callee->symTabName() == "_sigaction") ||

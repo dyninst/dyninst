@@ -1247,6 +1247,15 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     assert(op == callOp);
     pdvector <Register> srcs;
 
+    bool inInstrumentation = true;
+    if (gen.obj() &&
+        dynamic_cast<replacedInstruction *>(gen.obj())) {
+        // We're replacing an instruction - so don't do anything
+        // that requires a base tramp.
+        inInstrumentation = false;
+    }
+
+
     //  Sanity check for NULL address arg
     if (!callee) {
 	char msg[256];
@@ -1259,32 +1268,34 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     // Before we generate argument code, save any register that's live across
     // the call. 
     pdvector<pair<unsigned,int> > savedRegsToRestore;
-    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
-        registerSlot *reg = gen.rs()->GPRs()[i];
-        regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
-                        FILE__, __LINE__, reg->number,
-                        reg->refCount,
-                        reg->keptValue,
-                        (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
-        if (reg->refCount > 0 ||  // Currently active
-            reg->keptValue || // Has a kept value
-            (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
-            pair<unsigned, unsigned> regToSave;
-            regToSave.first = reg->number;
-            
-            regToSave.second = reg->refCount;
-            // We can have both a keptValue and a refCount - so I invert
-            // the refCount if there's a keptValue
-            if (reg->keptValue)
-                regToSave.second *= -1;
-
-            savedRegsToRestore.push_back(regToSave);
-
-            // The register is live; save it. 
-            emitPushReg64(reg->encoding(), gen);
-            // And now that it's saved, nuke it
-            reg->refCount = 0;
-            reg->keptValue = false;
+    if (inInstrumentation) {
+        for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+            registerSlot *reg = gen.rs()->GPRs()[i];
+            regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
+                            FILE__, __LINE__, reg->number,
+                            reg->refCount,
+                            reg->keptValue,
+                            (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
+            if (reg->refCount > 0 ||  // Currently active
+                reg->keptValue || // Has a kept value
+                (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
+                pair<unsigned, unsigned> regToSave;
+                regToSave.first = reg->number;
+                
+                regToSave.second = reg->refCount;
+                // We can have both a keptValue and a refCount - so I invert
+                // the refCount if there's a keptValue
+                if (reg->keptValue)
+                    regToSave.second *= -1;
+                
+                savedRegsToRestore.push_back(regToSave);
+                
+                // The register is live; save it. 
+                emitPushReg64(reg->encoding(), gen);
+                // And now that it's saved, nuke it
+                reg->refCount = 0;
+                reg->keptValue = false;
+            }
         }
     }
 
@@ -1314,6 +1325,9 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
         gen.rs()->freeRegister(amd64_arg_regs[i]);
     }
 
+    if (!inInstrumentation) return REG_NULL;
+
+
     // We now have a bit of an ordering problem.
     // The RS thinks all registers are free; this is not the case
     // We've saved the incoming registers, and it's likely that
@@ -1330,7 +1344,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
             reg->keptValue = true;
         }
         else
-            reg->refCount = savedRegsToRestore[i].second;
+                reg->refCount = savedRegsToRestore[i].second;
     }
 
     // allocate a (virtual) register to store the return value
@@ -1357,10 +1371,14 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
     //emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
 
     Register ptr = gen.rs()->allocateRegister(gen, false);
+    Register effective = ptr;
     emitMovImmToReg64(ptr, callee->getAddress(), true, gen);
+    if(ptr >= REGNUM_R8) {
+        emitRex(false, NULL, NULL, &effective, gen);
+    }
     GET_PTR(insn, gen);
     *insn++ = 0xFF;
-    *insn++ = static_cast<unsigned char>(0xD0 | ptr);
+    *insn++ = static_cast<unsigned char>(0xD0 | effective);
     SET_PTR(insn, gen);
     gen.rs()->freeRegister(ptr);
 
@@ -1372,7 +1390,6 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     //fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
 
     AddressSpace *addrSpace = gen.addrSpace();
-    BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
 
     // find int_function reference in address space
@@ -1381,8 +1398,8 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     addrSpace->findFuncsByAll(callee->prettyName(), funcs);
 
     // test to see if callee is in a shared module
-    if (callee->obj()->isSharedLib() && binEdit != NULL) {
-
+    assert(gen.func());
+    if (gen.func()->obj() != callee->obj()) {
         // create or retrieve jump slot
         dest = getInterModuleFuncAddr(callee, gen);
 
@@ -2059,7 +2076,6 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     //fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
     
     AddressSpace *addrSpace = gen.addrSpace();
-    BinaryEdit *binEdit = addrSpace->edit();
     Address dest;
 
     // find int_function reference in address space
@@ -2068,8 +2084,7 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     addrSpace->findFuncsByAll(callee->prettyName(), funcs);
 
     // test to see if callee is in a shared module
-    if (callee->obj()->isSharedLib() && binEdit != NULL) {
-
+    if (gen.func()->obj() != callee->obj()) {
         // create or retrieve jump slot
         dest = getInterModuleFuncAddr(callee, gen);
 

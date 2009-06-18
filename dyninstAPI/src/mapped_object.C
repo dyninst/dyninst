@@ -951,7 +951,9 @@ AddressSpace *mapped_object::proc() const { return proc_; }
 
 bool mapped_object::isSharedLib() const 
 {
-    return desc_.isSharedObject();
+    return parse_img()->isSharedObj();
+    // HELL NO
+    //return desc_.isSharedObject();
 }
 
 const std::string mapped_object::debugString() const 
