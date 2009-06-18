@@ -78,10 +78,13 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       run_mode_str = orig_run_mode_str;
    assert(last_test && last_group);
 
-   char name_align_buffer[TestInfo::global_max_test_name_length];
+   int max_name_len = TestInfo::getMaxTestNameLength();
+   if (!max_name_len)
+	   max_name_len = strlen(last_test->name);
+   char *name_align_buffer = (char *) malloc(max_name_len);
    //  fill name_align_buffer with max_length - test_name->length() spaces.
    unsigned int i = 0;
-   for (; i < (TestInfo::global_max_test_name_length - strlen(last_test->name)); ++i)
+   for (; i < (max_name_len - strlen(last_test->name)); ++i)
    {
 	   name_align_buffer[i] = ' ';
    }
@@ -93,6 +96,7 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    fprintf(out, "%s:%s compiler: %s\topt: %s\tmode: %s\tresult: ",
            last_test->name, name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str);
 #endif
+   free(name_align_buffer);
    switch(result) {
       case PASSED:
          fprintf(out, "PASSED");
