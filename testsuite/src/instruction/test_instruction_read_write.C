@@ -115,11 +115,11 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
     logerror("FAILED: instruction %s, expected %d regs read, %d regs written, actual %d read, %d written\n",
 	     i.format().c_str(), expectedRead.size(), expectedWritten.size(), actualRead.size(), actualWritten.size());
     logerror("Expected read:\n");
-    for (registerSet::iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
+    for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
         logerror("\t%s\n", (*iter)->format().c_str());
     }
     logerror("Expected written:\n");
-    for (registerSet::iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
+    for (registerSet::const_iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
         logerror("\t%s\n", (*iter)->format().c_str());
     }
     logerror("Actual read:\n");

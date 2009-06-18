@@ -629,15 +629,17 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
 
 void setIndexes(std::vector<RunGroup *> groups)
 {
+   int maxlen = 0;
    for (unsigned  i = 0; i < groups.size(); i++) {
       groups[i]->index = i;
       for (unsigned j=0; j<groups[i]->tests.size(); j++) {
          groups[i]->tests[j]->index = j;
          int namelen = strlen(groups[i]->tests[j]->name);
-		 if (namelen > TestInfo::global_max_test_name_length)
-			 TestInfo::global_max_test_name_length = namelen;
+		 if (namelen > maxlen)
+			 maxlen = namelen;
       }
    }
+   TestInfo::setMaxTestNameLength(maxlen);
 }   
 
 volatile int dont_optimize = 0;
