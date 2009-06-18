@@ -162,4 +162,15 @@ void Module::setInitialized(bool result)
   initialized = result;
 }
 
+int TestInfo::getMaxTestNameLength()
+{
+	return global_max_test_name_length;
+}
+
+void TestInfo::setMaxTestNameLength(int newlen)
+{
+	global_max_test_name_length = newlen;
+}
+
+
 std::map<std::string, Module *> Module::allmods;
