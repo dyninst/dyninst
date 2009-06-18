@@ -648,20 +648,58 @@ void emitLEA64(Register base, Register index, unsigned int scale, int disp,
     emitLEA(tmp_base, tmp_index, scale, disp, tmp_dest, gen);
 }
 
-static void emitMovRMToReg64(Register dest, Register base, int disp, bool is_64, codeGen &gen)
+static void emitMovRMToReg64(Register dest, Register base, int disp, int size, codeGen &gen)
 {
     Register tmp_dest = dest;
     Register tmp_base = base;
-    emitRex(is_64, &tmp_dest, NULL, &tmp_base, gen);
-    emitMovRMToReg(tmp_dest, tmp_base, disp, gen);
+
+    if (size == 1 || size == 2)
+    {
+       emitRex(true, &tmp_dest, NULL, &tmp_base, gen);
+       GET_PTR(insn, gen);
+       *insn++ = 0x0f;
+       if (size == 1)
+          *insn++ = 0xb6;
+       else if (size == 2)
+          *insn++ = 0xb7;
+       SET_PTR(insn, gen);
+       emitAddressingMode(tmp_base, 0, tmp_dest, gen);
+    }
+    if (size == 4 || size == 8)
+    {
+       emitRex((size == 8), &tmp_dest, NULL, &tmp_base, gen);
+       emitMovRMToReg(tmp_dest, tmp_base, disp, gen);
+    }
 }
 
-static void emitMovRegToRM64(Register base, int disp, Register src, bool is_64, codeGen &gen)
+static void emitMovRegToRM64(Register base, int disp, Register src, int size, codeGen &gen)
 {
     Register tmp_base = base;
     Register tmp_src = src;
-    emitRex(is_64, &tmp_src, NULL, &tmp_base, gen);
-    emitMovRegToRM(tmp_base, disp, tmp_src, gen);
+    Register rax = REGNUM_RAX;
+    if (size == 1 || size == 2) {
+       //mov src, rax
+       //mov a[l/x], (dest)
+       if (tmp_src != REGNUM_RAX) {
+          emitRex(true, &tmp_src, NULL, &rax, gen);
+          emitMovRegToReg(rax, tmp_src, gen);
+       }
+
+       emitRex(false, NULL, NULL, &tmp_base, gen);
+       GET_PTR(insn, gen);       
+       if (size == 1) 
+          *insn++ = 0x88;
+       else if (size == 2)
+          *insn++ = 0x89;
+       SET_PTR(insn, gen);
+       emitAddressingMode(tmp_base, 0, REGNUM_RAX, gen);
+    }
+
+    if (size == 4 || size == 8)
+    {
+      emitRex((size == 8), &tmp_src, NULL, &tmp_base, gen);
+      emitMovRegToRM(tmp_base, disp, tmp_src, gen);
+    }
 }
 
 static void emitOpRegReg64(unsigned opcode, Register dest, Register src, bool is_64, codeGen &gen)
@@ -1021,20 +1059,13 @@ void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, co
 void EmitterAMD64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
 
-    if (size == 1) {
-	assert(0);
-    } else if (size == 2) {
-	assert(0);
-    } else {
-	assert(size == 4 || size == 8);
-	Register scratch = gen.rs()->getScratchRegister(gen);
-
-	// mov $addr, %rax
-	emitMovImmToReg64(scratch, addr, true, gen);
+   Register scratch = gen.rs()->getScratchRegister(gen);
+   
+   // mov $addr, %rax
+   emitMovImmToReg64(scratch, addr, true, gen);
 	
-	// mov (%rax), %dest
-	emitMovRMToReg64(dest, scratch, 0, size == 8, gen);
-    }
+   // mov (%rax), %dest
+   emitMovRMToReg64(dest, scratch, 0, size, gen);
 }
 
 void EmitterAMD64::emitLoadConst(Register dest, Address imm, codeGen &gen)
@@ -1044,24 +1075,24 @@ void EmitterAMD64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 
 void EmitterAMD64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
 {
-   emitMovRMToReg64(dest, addr_src, 0, (size==8), gen);
+   emitMovRMToReg64(dest, addr_src, 0, size, gen);
 }
 
 void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
     // mov (%rbp), %rax
-    emitMovRMToReg64(scratch, REGNUM_RBP, 0, true, gen);
+    emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);
 
     // mov offset(%rax), %dest
-    emitMovRMToReg64(dest, scratch, offset, false, gen);
+    emitMovRMToReg64(dest, scratch, offset, 4, gen);
 }
 
 bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
 {
     // mov offset(%base), %dest
     emitMovRMToReg64(dest, base, offset*gen.addrSpace()->getAddressWidth(), 
-                     (gen.addrSpace()->getAddressWidth() == 8), gen);
+                     gen.addrSpace()->getAddressWidth(), gen);
     return true;
 }
 
@@ -1073,10 +1104,10 @@ bool EmitterAMD64::emitLoadRelative(registerSlot *dest, Address offset, register
 void EmitterAMD64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
     // mov (%rbp), %dest
-    emitMovRMToReg64(dest, REGNUM_RBP, 0, true, gen);
+    emitMovRMToReg64(dest, REGNUM_RBP, 0, 8, gen);
 
     // add $offset, %dest
-    emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
+    emitOpRegImm64(0x81, 0x0, dest, offset, 8, gen);
 }
 
 void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
@@ -1090,7 +1121,7 @@ void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
         // load the stored register 'base' into RAX
         emitLoadOrigRegister(base, scratch, gen);
         // move offset(%rax), %dest
-        emitMovRMToReg64(dest, scratch, offset, false, gen);
+        emitMovRMToReg64(dest, scratch, offset, 4, gen);
     }
     else
     {
@@ -1124,12 +1155,12 @@ void EmitterAMD64::emitStore(Address addr, Register src, int size, codeGen &gen)
     emitMovImmToReg64(scratch, addr, true, gen);
 
     // mov %src, (%rax)
-    emitMovRegToRM64(scratch, 0, src, (size == 8), gen);
+    emitMovRegToRM64(scratch, 0, src, size, gen);
 }
 
 void EmitterAMD64::emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen)
 {
-   emitMovRegToRM64(addr_reg, 0, src, (size == 8), gen);
+   emitMovRegToRM64(addr_reg, 0, src, size, gen);
 }
 
 void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register /*scratch*/, int size, codeGen &gen)
@@ -1138,17 +1169,17 @@ void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register
     // FIXME: we assume int (size == 4) for now
 
     // mov (%rbp), %rax
-    emitMovRMToReg64(scratch, REGNUM_RBP, 0, true, gen);
+    emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);
     
     // mov %src, offset(%rax)
-    emitMovRegToRM64(scratch, offset, src, (size == 8), gen);
+    emitMovRegToRM64(scratch, offset, src, size, gen);
 }
 
 void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, codeGen &gen) {
     emitMovRegToRM64(base, 
                      offset*gen.addrSpace()->getAddressWidth(), 
                      src, 
-                     (gen.addrSpace()->getAddressWidth() == 8),
+                     gen.addrSpace()->getAddressWidth(),
                      gen);
 }
 
