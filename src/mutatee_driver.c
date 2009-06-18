@@ -181,7 +181,9 @@ int main(int iargc, char *argv[])
    unsigned int label_count = 0;
    int print_labels = FALSE;
    int has_pidfile = 0;
+#if !defined(os_windows_test)
    struct timeval start_time;
+#endif
 
    gargc = argc;
    gargv = argv;

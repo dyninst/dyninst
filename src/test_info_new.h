@@ -25,8 +25,9 @@ typedef enum {
 } test_runstate_t;
 
 class TestInfo {
-public:
+private:
 	static int global_max_test_name_length;
+public:
   const char *name;
   const char *mutator_name;
   const char *soname;
@@ -41,7 +42,8 @@ public:
   test_results_t results[NUM_RUNSTATES];
   bool result_reported;
   
-  
+  TESTLIB_DLL_EXPORT static int getMaxTestNameLength();
+  TESTLIB_DLL_EXPORT static void setMaxTestNameLength(int newlen);
   TESTLIB_DLL_EXPORT TestInfo(unsigned int i, const char *iname, const char *mrname,
 	   const char *isoname, bool _serialize_enable, const char *ilabel);
   TESTLIB_DLL_EXPORT ~TestInfo();
