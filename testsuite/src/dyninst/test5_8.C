@@ -150,7 +150,7 @@ test_results_t test5_8_Mutator::executeTest() {
            dprintf("Inserted snippet2\n");
            checkCost(call8Expr);
 	   BPatchSnippetHandle *handle;
-           handle = appThread->insertSnippet(call8Expr, *point8_1);
+           handle = appAddrSpace->insertSnippet(call8Expr, *point8_1);
            return PASSED;
        }
        index ++;

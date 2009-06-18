@@ -129,7 +129,7 @@ test_results_t test1_30_Mutator::executeTest() {
 	BPatch_funcCallExpr call30_1Expr(*call30_1func, nullArgs);
 
 	checkCost(call30_1Expr);
-    	appThread->insertSnippet(call30_1Expr, *point30_1);
+    	appAddrSpace->insertSnippet(call30_1Expr, *point30_1);
 
 	//get the line number of the function call30_1
 	BPatch_variableExpr *expr30_7 = 
@@ -229,7 +229,7 @@ test_results_t test1_30_Mutator::executeTest() {
 
 	//std::vector< std::pair< const char *, unsigned int > > lines;
         BPatch_Vector<BPatch_statement> lines;
-	if (appThread->getSourceLines( lastAddr - 1, lines)) {
+	if (appImage->getSourceLines( lastAddr - 1, lines)) {
 		//n = lines[0].second;
 		n = lines[0].lineNumber();
 		expr30_6->writeValue( & n );

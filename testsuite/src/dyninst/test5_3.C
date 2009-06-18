@@ -137,7 +137,7 @@ test_results_t test5_3_Mutator::executeTest() {
   BPatch_funcCallExpr call3_1Expr(*call3_1, opArgs);
   
   checkCost(call3_1Expr);
-  appThread->insertSnippet(call3_1Expr, *point3_2);
+  appAddrSpace->insertSnippet(call3_1Expr, *point3_2);
   //  int tag = 1;
   //  while (tag != 0) {}
   
