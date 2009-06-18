@@ -1,6 +1,7 @@
 	IMPLICIT NONE
 
-	INTEGER globalVariable14_1, globalVariable14_2, passedTest
+	INTEGER globalVariable14_1, globalVariable14_2, passedTest,
+     & globalVariable14_3
 
 ! **********************************************************************
 ! The following common block (globals) has a corresponding c structure 
@@ -9,5 +10,5 @@
 ! each memeber defined above)
 ! **********************************************************************
 	common /test1_14f_globals/ globalVariable14_1, globalVariable14_2,
-     & passedTest
+     & passedTest, globalVariable14_3
 
