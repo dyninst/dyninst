@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 
 StdOutputDriver::StdOutputDriver(void * data) : attributes(NULL), streams() {
   streams[STDOUT] = std::string("-");
