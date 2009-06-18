@@ -1472,6 +1472,7 @@ int_function *instPoint::findCallee()
          int_function *target_pdf = 0;
          if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
             callee_ = target_pdf;
+            img_p_->setCalleeName(target_pdf->symTabName());
             //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
             return callee_;  // target has been bound
          } 
@@ -1479,6 +1480,7 @@ int_function *instPoint::findCallee()
          const char *target_name = fbt[i].name().c_str();
          process *dproc = dynamic_cast<process *>(proc());
          BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
+         img_p_->setCalleeName(std::string(target_name));
          pdvector<int_function *> pdfv;
          if (dproc) {
             bool found = proc()->findFuncsByMangled(target_name, pdfv);

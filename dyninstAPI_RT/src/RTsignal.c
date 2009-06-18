@@ -47,7 +47,7 @@
 #include <signal.h>
 
 int dyn_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) {
-    if (signum == SIGTRAP) {
+    if (signum != SIGTRAP) {
         return sigaction(signum, act, oldact);
     }
     else {

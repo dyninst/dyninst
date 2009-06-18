@@ -149,6 +149,7 @@ class image_instPoint : public instPointBase {
   // For call-site points:
 
   image_func *callee_;
+  std::string callee_name_;
   Address callTarget_;
   bool targetIsAbsolute_;
   Address callTarget() const { return callTarget_; }
@@ -158,6 +159,9 @@ class image_instPoint : public instPointBase {
 
   image_func *getCallee() const { return callee_; }
   void setCallee(image_func *f) { callee_ = f; }
+  std::string getCalleeName() const { return callee_name_; }
+  void setCalleeName(std::string s) { callee_name_ = s; }
+
 #if defined (cap_use_pdvector)
   static int compare(image_instPoint *&ip1,
                      image_instPoint *&ip2) {
@@ -386,6 +390,7 @@ class instPoint : public instPointBase {
   
   // TODO: fix original comment; callee_ is set, but returned directly.
   int_function *findCallee();
+  std::string getCalleeName();
 
   // Is this the instPoint referred to?
   bool match(Address addr) const;

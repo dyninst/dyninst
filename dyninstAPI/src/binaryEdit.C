@@ -856,19 +856,12 @@ bool BinaryEdit::replaceTrapHandler() {
         for (unsigned j = 0; j < calls.size(); j++) {
             instPoint *point = calls[j];
             
-            int_function *callee = point->findCallee();
+            std::string calleeName = point->getCalleeName();
 
-            if (!callee) {
-                fprintf(stderr, "Failed to find callee at 0x%lx\n", point->addr());
-                continue;
-            }
-            fprintf(stderr, "Found callee %s at addr 0x%lx\n", callee->symTabName().c_str(), point->addr());
-
-            if ((callee->symTabName() == "sigaction") ||
-                (callee->symTabName() == "_sigaction") ||
-                (callee->symTabName() == "__sigaction")) {
-                if (!replaceFunctionCall(point, 
-                                         dyn_sigaction)) {
+            if ((calleeName == "sigaction") ||
+                (calleeName == "_sigaction") ||
+                (calleeName == "__sigaction")) {
+                if (!replaceFunctionCall(point, dyn_sigaction)) {
                     fprintf(stderr, "Failed to replace sigaction at 0x%lx\n",
                             point->addr());
                     success = false;

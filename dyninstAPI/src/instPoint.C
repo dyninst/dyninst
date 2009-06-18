@@ -1206,3 +1206,11 @@ bool instPoint::optimizeBaseTramps(callWhen when)
 
    return false;
 }
+
+std::string instPoint::getCalleeName()
+{
+   int_function *f = findCallee();
+   if (f)
+      return f->symTabName();
+   return img_p_->getCalleeName();
+}
