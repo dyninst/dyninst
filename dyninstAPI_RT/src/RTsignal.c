@@ -46,12 +46,24 @@
 #include <stdio.h>
 #include <signal.h>
 
+typedef void (*dynsighandler_t)(int);
+
 int dyn_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) {
-    if (signum == SIGTRAP) {
+    if (signum != SIGTRAP) {
         return sigaction(signum, act, oldact);
     }
     else {
         fprintf(stderr, "WARNING: skipping installation of trap handler\n");
         return 0;
+    }
+}
+
+dynsighandler_t dyn_signal(int signum, dynsighandler_t handler) {
+    if (signum != SIGTRAP) {
+        return signal(signum, handler);
+    }
+    else {
+        fprintf(stderr, "WARNING: skipping installation of trap handler\n");
+        return SIG_DFL;
     }
 }
