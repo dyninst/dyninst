@@ -126,17 +126,37 @@ bool instPoint::replaceCode(AstNodePtr ast) {
     // data structures and let 'er rip.
 
     replacedCode_ = ast;
-    
-    if (!generateInst())
-        return false;
 
-    if (!installInst())
-        return false;
+    // Set flags appropriately...
+    hasAnyInstrumentation_ = true;
+    hasNewInstrumentation_ = true;
 
-    if (!linkInst())
+    pdvector<instPoint *> dontcare;
+
+    // The better way to do this would be to hand the "go!" logic
+    // back up to BPatch. However, this is a bigger change than I want
+    // to make right now...
+
+    return func()->performInstrumentation(false, dontcare);
+
+#if 0    
+    if (!generateInst()) {
+        fprintf(stderr, "Code generation failed in replaceCode, ret false\n");
         return false;
+    }
+
+    if (!installInst()) {
+        fprintf(stderr, "Code installation failed in replaceCode, ret false\n");
+        return false;
+    }
+
+    if (!linkInst()) {
+        fprintf(stderr, "Code link failed in replaceCode, ret false\n");
+        return false;
+    }
 
     return true;
+#endif
 }
 
 // Get the appropriate base tramp structure. Cannot rely on
