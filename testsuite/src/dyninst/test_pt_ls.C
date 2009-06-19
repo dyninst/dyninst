@@ -102,7 +102,7 @@ test_results_t test_pt_ls_Mutator::executeTest()
 			parseThat2.use_rewriter(bin_outfile);
 			break;
 		default:
-			fprintf(stderr, "%s[%d]:  bad runmode %s\n", FILE__, __LINE__, runmode);
+			fprintf(stderr, "%s[%d]:  bad runmode %d\n", FILE__, __LINE__, runmode);
 			return FAILED;
 	};
 
@@ -117,7 +117,21 @@ test_results_t test_pt_ls_Mutator::executeTest()
 		return res;
 
 	if (runmode == DISK)
+	{
 		res = parseThat2(cmd, args);
+
+		if (res == PASSED)
+		{
+			//  parseThat2 _should_ execute the rewritten binary, but we also want to sanity
+			//  check the execution.  At this (early) point, this is really just a crash detector
+			//  since the parseThat output will not be present in the execution of the cmd
+			//  when run w/out parseThat
+
+			std::string stdout3(prefix + std::string("_stdout3"));
+			std::string stderr3(prefix + std::string("_stderr3"));
+			res = ParseThat::sys_execute(bin_outfile, args, stdout3, stderr3);
+		}
+	}
 
 	return res;
 }
