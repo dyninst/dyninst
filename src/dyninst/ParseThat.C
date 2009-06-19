@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 using namespace Dyninst;
 
+std::string ParseThat::emptyString("");
+
 ParseThat::ParseThat() :
 	pt_path("parseThat"),
 	trans(T_None),
@@ -221,6 +223,7 @@ bool ParseThat::setup_args(std::vector<std::string> &pt_args)
 }
 
 test_results_t ParseThat::pt_execute(std::vector<std::string> &pt_args)
+
 {
 
 #if defined (os_windows_test)
@@ -233,16 +236,45 @@ test_results_t ParseThat::pt_execute(std::vector<std::string> &pt_args)
 
 	if (!pt_path.length()) pt_path = std::string("parseThat");
 
-	char cmdbuf[2048];
-	sprintf(cmdbuf, "%s", pt_path.c_str());
 	logerror("%s[%d]:  parseThat: %s\n", FILE__, __LINE__, pt_path.c_str());
 
-	for (unsigned int i = 0; i < pt_args.size(); ++i)
+	return sys_execute(pt_path, pt_args, cmd_stdout_name, cmd_stderr_name);
+#endif
+}
+
+test_results_t ParseThat::sys_execute(std::string cmd, std::vector<std::string> &args,
+		std::string stdout_redirect, std::string stderr_redirect)
+
+{
+#if defined (os_windows_test)
+	fprintf(stderr, "%s[%d]:  FIXME:  should not be called\n", FILE__, __LINE__);
+#else
+	if (stdout_redirect.length() && stdout_redirect == stderr_redirect)
 	{
-		sprintf(cmdbuf, "%s %s", cmdbuf, pt_args[i].c_str());
+		//  both to same file
+		args.push_back(std::string("&>") + stdout_redirect);
+	}
+	else
+	{
+		if (stdout_redirect.length())
+		{
+			args.push_back(std::string("1>") + stdout_redirect);
+		}
+		if (stderr_redirect.length())
+		{
+			args.push_back(std::string("2>") + stderr_redirect);
+		}
 	}
 
-	logerror("%s[%d]:  about to issue parseThat command: \n\t\t'%s'\n", 
+	char cmdbuf[2048];
+	sprintf(cmdbuf, "%s", cmd.c_str());
+
+	for (unsigned int i = 0; i < args.size(); ++i)
+	{
+		sprintf(cmdbuf, "%s %s", cmdbuf, args[i].c_str());
+	}
+
+	logerror("%s[%d]:  about to issue command: \n\t\t'%s'\n", 
 			FILE__, __LINE__, cmdbuf);
 
 	int res = system(cmdbuf);
@@ -280,7 +312,8 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 	{
 		result = mkdir(BINEDIT_DIR, 0700);
 		if (result == -1) {
-			logerror("%s[%d]: Could not mkdir %s: %s\n ", FILE__, __LINE__, BINEDIT_DIR,strerror(errno) );
+			logerror("%s[%d]: Could not mkdir %s: %s\n ", FILE__, __LINE__, 
+					BINEDIT_DIR,strerror(errno) );
 			return FAILED;
 		}
 	}
@@ -292,29 +325,28 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 		return FAILED;
 	}
 
+	//  Use provided mutatee args to setup arglist for rewritten binary too...
+	std::string newbinary_args = 
+		std::string("--args=") 
+		+ utos(mutatee_args.size()) 
+		+ std::string(":");
+
+	unsigned nargs = mutatee_args.size();
+	for (unsigned int i = 0; i < nargs; ++i)
+	{
+		newbinary_args += mutatee_args[i];
+		if (i < (nargs - 1) )
+			newbinary_args += std::string(",");
+	}
+
+	pt_args.push_back(newbinary_args);
+
 	//  maybe want to check existence of mutatee executable here?
 
 	pt_args.push_back(exec_path);
 	for (unsigned int i = 0; i < mutatee_args.size(); ++i)
 	{
 		pt_args.push_back(mutatee_args[i]);
-	}
-
-	if (cmd_stdout_name.length() && cmd_stdout_name == cmd_stderr_name)
-	{
-		//  both to same file
-		pt_args.push_back(std::string("&>") + cmd_stdout_name);
-	}
-	else
-	{
-		if (cmd_stdout_name.length())
-		{
-			pt_args.push_back(std::string("1>") + cmd_stdout_name);
-		}
-		if (cmd_stderr_name.length())
-		{
-			pt_args.push_back(std::string("2>") + cmd_stderr_name);
-		}
 	}
 
 	return pt_execute(pt_args);
@@ -330,23 +362,6 @@ test_results_t ParseThat::operator()(int pid)
 	}
 
 	pt_args.push_back(std::string("--pid=") + itos(pid));
-
-	if (cmd_stdout_name.length() && cmd_stdout_name == cmd_stderr_name)
-	{
-		//  both to same file
-		pt_args.push_back(std::string("&>") + cmd_stdout_name);
-	}
-	else
-	{
-		if (cmd_stdout_name.length())
-		{
-			pt_args.push_back(std::string("1>") + cmd_stdout_name);
-		}
-		if (cmd_stderr_name.length())
-		{
-			pt_args.push_back(std::string("2>") + cmd_stderr_name);
-		}
-	}
 
 	return pt_execute(pt_args);
 }

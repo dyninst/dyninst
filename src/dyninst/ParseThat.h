@@ -63,6 +63,12 @@ class ParseThat {
 			std::vector<std::string> &args);
 	TESTLIB_DLL_EXPORT test_results_t operator()(int pid);
 
+	TESTLIB_DLL_EXPORT static test_results_t sys_execute(std::string cmd, 
+			std::vector<std::string> &args, 
+			std::string stdout_redirect = emptyString, 
+			std::string stderr_redirect = emptyString);
+
+	static std::string emptyString;
 	private:
 	std::string pt_path;
 	std::string cmd_stdout_name;
