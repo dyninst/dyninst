@@ -53,8 +53,7 @@ int dyn_sigaction(int signum, const struct sigaction *act, struct sigaction *old
         return sigaction(signum, act, oldact);
     }
     else {
-        fprintf(stderr, "WARNING: skipping installation of trap handler\n");
-        return 0;
+       return 0;
     }
 }
 
@@ -63,7 +62,6 @@ dynsighandler_t dyn_signal(int signum, dynsighandler_t handler) {
         return signal(signum, handler);
     }
     else {
-        fprintf(stderr, "WARNING: skipping installation of trap handler\n");
         return SIG_DFL;
     }
 }

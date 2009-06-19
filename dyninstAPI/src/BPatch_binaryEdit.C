@@ -425,7 +425,7 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
         }
     }
 
-    //if (!usedATrap) return true;
+    if (!usedATrap) return true;
 
     // We used a trap, so go through and set up the replacement instrumentation.
     // However, don't let this be the first piece of instrumentation put into
@@ -448,7 +448,6 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
         if (!binEd->replaceTrapHandler()) {
             success = false;
         }
-
     }
     return success;
 }

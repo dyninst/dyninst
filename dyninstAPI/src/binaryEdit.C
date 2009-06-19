@@ -840,6 +840,9 @@ bool BinaryEdit::replaceTrapHandler() {
     int_function *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
     assert(dyn_sigaction);
 
+    int_function *dyn_signal = findOnlyOneFunction("dyn_signal");
+    assert(dyn_signal);
+
     bool success = true;
     
     pdvector<int_function *> allFuncs;
@@ -854,26 +857,22 @@ bool BinaryEdit::replaceTrapHandler() {
         for (unsigned j = 0; j < calls.size(); j++) {
             instPoint *point = calls[j];
             
-            int_function *callee = point->findCallee();
+            std::string calleeName = point->getCalleeName();
 
-            if (!callee) {
-                //fprintf(stderr, "Failed to find callee at 0x%lx\n", point->addr());
-                continue;
-            }
-            //fprintf(stderr, "Found callee %s at addr 0x%lx\n", callee->symTabName().c_str(), point->addr());
-
-            if ((callee->symTabName() == "sigaction") ||
-                (callee->symTabName() == "_sigaction") ||
-                (callee->symTabName() == "__sigaction")) {
-                if (!replaceFunctionCall(point, 
-                                         dyn_sigaction)) {
-                    fprintf(stderr, "Failed to replace sigaction at 0x%lx\n",
-                            point->addr());
+            if ((calleeName == "sigaction") ||
+                (calleeName == "_sigaction") ||
+                (calleeName == "__sigaction")) {
+                if (!replaceFunctionCall(point, dyn_sigaction)) {
                     success = false;
                 }
-                else {
-                    fprintf(stderr, "Replaced call to sigaction\n");
-                }
+            }
+            else if ((calleeName == "signal") ||
+                     (calleeName == "_signal") ||
+                     (calleeName == "__signal"))
+            {
+               if (!replaceFunctionCall(point, dyn_signal)) {
+                  success = false;
+               }
             }
         }
     }
