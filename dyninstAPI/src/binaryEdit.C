@@ -358,8 +358,6 @@ bool BinaryEdit::getAllDependencies(std::queue<std::string> &deps)
 
 bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
-    fprintf(stderr, "writeFile!!!\n");
-
    // We've made a bunch of changes and additions to the
    // mapped object.
    //   Changes: modifiedRanges_
@@ -842,6 +840,9 @@ bool BinaryEdit::replaceTrapHandler() {
     int_function *dyn_sigaction = findOnlyOneFunction("dyn_sigaction");
     assert(dyn_sigaction);
 
+    int_function *dyn_signal = findOnlyOneFunction("dyn_signal");
+    assert(dyn_signal);
+
     bool success = true;
     
     pdvector<int_function *> allFuncs;
@@ -862,13 +863,16 @@ bool BinaryEdit::replaceTrapHandler() {
                 (calleeName == "_sigaction") ||
                 (calleeName == "__sigaction")) {
                 if (!replaceFunctionCall(point, dyn_sigaction)) {
-                    fprintf(stderr, "Failed to replace sigaction at 0x%lx\n",
-                            point->addr());
                     success = false;
                 }
-                else {
-                    fprintf(stderr, "Replaced call to sigaction\n");
-                }
+            }
+            else if ((calleeName == "signal") ||
+                     (calleeName == "_signal") ||
+                     (calleeName == "__signal"))
+            {
+               if (!replaceFunctionCall(point, dyn_signal)) {
+                  success = false;
+               }
             }
         }
     }

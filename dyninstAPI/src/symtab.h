@@ -382,6 +382,8 @@ class image : public codeRange, public InstructionSource {
    bool isDyninstRTLib() const { return is_libdyninstRT; }
 
    bool isAOut() const { return is_a_out; }
+
+   bool isSharedObj() const { return !(getObject()->isExec()); }
  
    bool isCode(const Address &where) const;
    bool isData(const Address &where) const;

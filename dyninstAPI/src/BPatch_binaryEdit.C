@@ -419,7 +419,6 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
 
     std::map<std::string, BinaryEdit *>::iterator iter = llBinEdits.begin();
     for (; iter != llBinEdits.end(); iter++) {
-        fprintf(stderr, "%s...", iter->first.c_str());
         if (iter->second == rtLib) continue;
         if (iter->second->usedATrap()) {
             usedATrap = true;
@@ -427,8 +426,6 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
     }
 
     if (!usedATrap) return true;
-
-    fprintf(stderr, "Going into sigaction replacement...\n");
 
     // We used a trap, so go through and set up the replacement instrumentation.
     // However, don't let this be the first piece of instrumentation put into

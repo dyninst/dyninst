@@ -66,6 +66,7 @@
 
 	globalVariable14_1 = 0
 	globalVariable14_2 = 0
+	globalVariable14_3 = 0
 	END
 
 !------------------------------------------------------------------------------
@@ -77,9 +78,10 @@
 	kludge = 1
 	CALL test1_14_func2
 	CALL test1_14_func3
+	CALL test1_14_func4(globalVariable14_3)
 
 	if (globalVariable14_1 .eq. 1 .and. globalVariable14_2
-     & .eq. 0) then
+     & .eq. 0 .and. globalVariable14_3 .eq. 2) then
 		passedTest = 1
 	else
 		print *, '**Failed test #14 (replace/remove function call)'
@@ -88,6 +90,9 @@
 		endif
 		if (globalVariable14_2 .ne. 0) then
 			print *, '     call to test1_14_func3() was not removed'
+		endif
+		if (globalVariable14_3 .ne. 2) then
+			print *, '     call to test1_14_func4() was not replaced'
 		endif
 	endif
 	END
@@ -114,6 +119,15 @@
 #include "test1_14F_common.h"
 
 	globalVariable14_1 = 1
+	END
+
+!------------------------------------------------------------------------------
+
+	SUBROUTINE test1_14_func4 (p1)
+#include "test1_14F_common.h"
+	INTEGER p1
+
+	p1 = 3;
 	END
 
 !------------------------------------------------------------------------------
