@@ -748,6 +748,25 @@ bool initTraceInMutatee(dynHandle *dh)
    if (value < 0) {
       sendMsg(config.outfd, ID_TRACE_OPEN_WRITER, VERB2, ID_FAIL,
               "Error detected in mutatee's call to open()");
+	  BPatch_variableExpr *errno_var = NULL;
+	  if (NULL == (errno_var = dh->image->findVariable("errno")))
+	  {
+		  sendMsg(config.outfd, ID_TRACE_OPEN_WRITER, VERB2, ID_INFO,
+				  "\tcannot find errno");
+	  }
+	  else
+	  {
+		  int eval;
+		  errno_var->readValue(&eval);
+		  char buf[512];
+		  sprintf(buf, "\terrno %d: %s\n", eval, strerror(eval));
+		  fprintf(stderr, "%s[%d]:  %s\n", __FILE__, __LINE__, buf);
+#if 0
+		  sendMsg(config.outfd, ID_TRACE_OPEN_WRITER, VERB2, ID_FAIL,
+				  buf);
+#endif
+	  }
+			  
       return false;
    }
    sendMsg(config.outfd, ID_TRACE_OPEN_WRITER, VERB2, ID_PASS);

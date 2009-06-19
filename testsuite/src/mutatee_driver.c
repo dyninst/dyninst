@@ -421,6 +421,16 @@ int main(int iargc, char *argv[])
       logstatus("All tests passed.\n");
       retval = 0;
    } else {
+#if 0
+	   unsigned int i;
+	   for (i = 0; i < max_tests; ++i)
+	   {
+		   if (runTest[i])
+			   logstatus("%s[%d]: %s: %s \n", passedTest[i] ? "PASSED" : "FAILED", __FILE__, __LINE__, 
+					   mutatee_funcs[i].testlabel == NULL ? "bad_label" : mutatee_funcs[i].testlabel);
+	   }
+	   logstatus("\n");
+#endif
       retval = -1;
    }
 
@@ -429,5 +439,5 @@ int main(int iargc, char *argv[])
       fclose(outlog);
    }
 
-   return retval;
+   exit( retval);
 }

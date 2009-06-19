@@ -1,4 +1,5 @@
 #include "mutatee_util.h"
+#include <stdlib.h>
 
 /* Externally accessed function prototypes.  These must have globally unique
  * names.  I suggest following the pattern <testname>_<function>
@@ -47,11 +48,13 @@ void test1_1_func1_1() {
     /* test_passes(testname); */
   } else {
     logerror("\n**Failed** test #1 (zero arg function call)\n");
+    logerror("\tglobalVariable1_1 = %d, not 11\n", globalVariable1_1);
   }
   flushOutputLog();
 }
 
 int test1_1_mutatee() {
+	//abort();
   test1_1_func1_1();
   if (11 == globalVariable1_1) {
     test_passes(testname);
