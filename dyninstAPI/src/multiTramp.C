@@ -760,6 +760,12 @@ void multiTramp::updateInstInstances() {
                                                                  this);
             assert(newRI);
 
+            if (obj->previous_ == NULL) {
+               // We were the first thing in the CFG, so 
+               // replace that with newRI
+               generatedCFG_.setStart(newRI);
+            }
+
             // And now swap into line...
             newRI->setPrevious(obj->previous_);
             newRI->setFallthrough(obj->fallthrough_);
@@ -2278,14 +2284,10 @@ void generatedCFG_t::iterator::find(generatedCFG_t &cfg,
 
     generatedCodeObject *tmp = NULL;
 
-    while (cur_ != pointer)
+    while (cur_ != pointer && cur_ != NULL)
         tmp = (*this)++;
     
-    if (!tmp) {
-        // We hit the end and didn't hit the provided pointer
-        assert(0);
-    }
-
+    assert(cur_);
 }
 
 void generatedCFG_t::iterator::initialize(generatedCFG_t &cfg) {
