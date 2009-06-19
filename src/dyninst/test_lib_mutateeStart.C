@@ -46,6 +46,7 @@
 
 #include "dyninst_comp.h"
 #include "test_lib.h"
+#include "util.h"
 #include <stdlib.h>
 
 
@@ -114,6 +115,55 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char 
                                                    useAttach);
    delete [] child_argv;
    return retval;
+}
+
+static const char** parseArgsIndividual(RunGroup *group, TestInfo *test,
+                              char *logfilename, char *humanlogname,
+                              bool verboseFormat, bool printLabels,
+                              int debugPrint, const char *pidfilename)
+{
+   std::vector<std::string> mutateeArgs;
+   getOutput()->getMutateeArgs(mutateeArgs); // mutateeArgs is an output parameter
+   const char **child_argv = new const char *[12 + (4 * group->tests.size()) +
+                                              mutateeArgs.size()];
+   assert(child_argv);
+   int n = 0;
+   child_argv[n++] = group->mutatee;
+   if (logfilename != NULL) {
+      child_argv[n++] = const_cast<char *>("-log");
+      child_argv[n++] = logfilename;
+   }
+   if (humanlogname != NULL) {
+      child_argv[n++] = const_cast<char *>("-humanlog");
+      child_argv[n++] = humanlogname;
+   }
+   if (false == verboseFormat) {
+      child_argv[n++] = const_cast<char *>("-q");
+      // TODO I'll also want to pass a parameter specifying a file to write
+      // postponed messages to
+   }
+   if (debugPrint != 0) {
+      child_argv[n++] = const_cast<char *>("-verbose");
+   }
+   if (pidfilename != NULL) {
+      child_argv[n++] = const_cast<char *>("-pidfile");
+      child_argv[n++] = pidfilename;
+   }
+   if (shouldRunTest(group, test)) {
+         child_argv[n++] = const_cast<char*>("-run");
+         child_argv[n++] = test->name;
+      }
+   if (printLabels) {
+         child_argv[n++] = const_cast<char *>("-label");
+         child_argv[n++] = test->label;
+      child_argv[n++] = const_cast<char *>("-print-labels");
+   }
+   for (int i = 0; i < mutateeArgs.size(); i++) {
+      child_argv[n++] = strdup(mutateeArgs[i].c_str());
+   }
+   child_argv[n] = NULL;   
+
+   return child_argv;
 }
 
 static const char** parseArgs(RunGroup *group,
@@ -331,6 +381,57 @@ static bool waitForCompletion(int, bool &, int &)
 }
 #endif
 
+bool runBinaryTestsIndividually(RunGroup *group, std::string exec_file, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename)
+{
+	for (unsigned int i = 0; i < group->tests.size(); ++i)
+	{
+		int app_return;
+		bool app_crash;
+		bool result;
+		bool file_running = false;
+		TestInfo *subtest = group->tests[i];
+
+		const char **child_argv = parseArgsIndividual(group, subtest, logfilename, 
+				humanlogname,
+				verboseFormat, printLabels, 
+				debugPrint, pidfilename);
+
+		int pid = startNewProcessForAttach(exec_file.c_str(), child_argv,
+				NULL, NULL, false);
+
+		if (-1 == pid) 
+		{
+			subtest->results[group_teardown_rs] = FAILED;
+			goto done_subtest;
+		}
+		file_running = true;
+
+		result = waitForCompletion(pid, app_crash, app_return);
+		if (!result)
+		{
+			//  is this really a crash necessarily?
+			subtest->results[group_teardown_rs] = CRASHED;
+			goto done_subtest;
+		}
+
+		file_running = false;
+
+		if (app_crash)
+			subtest->results[group_teardown_rs] = CRASHED;
+		else if (0 != app_return)
+			subtest->results[group_teardown_rs] = FAILED;
+		else
+			subtest->results[group_teardown_rs] = PASSED;
+done_subtest:
+		if (file_running)
+			killWaywardChild(pid);
+		if (child_argv)
+			delete [] child_argv;
+	}
+
+	return true;
+}
+
 bool runBinaryTest(BPatch *bpatch, RunGroup *group,
                    BPatch_binaryEdit *binEdit,
                    char *logfilename, char *humanlogname,
@@ -367,6 +468,25 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 #endif
    
    outfile = std::string(BINEDIT_DIR) + std::string("/rewritten_") + std::string(group->mutatee);
+
+   if (getenv("DYNINST_REWRITER_NO_UNLINK"))
+   {
+	   //  we may in fact generate several binaries  (one for each rungroup)
+	   //  sequentially rewriting over them.  If DYNINST_REWRITER_NO_UNLINK is
+	   //  set, add a uniqification parameter to the filename, as well as a 
+	   //  report file that indicates which tests are represented in the
+	   //  binary
+
+	   outfile += std::string("_") + Dyninst::utos((unsigned)clock());
+	   std::string reportfile = outfile + std::string(".report");
+	   FILE *myrep = fopen(reportfile.c_str(), "w");
+	   fprintf(myrep, "Test group contains:\n");
+	   for (unsigned int i = 0; i < group->tests.size(); ++i)
+		   if (shouldRunTest(group, group->tests[i])) 
+			   fprintf(myrep, "%s\n", group->tests[i]->name);
+	   fclose(myrep);
+   }
+
    result = binEdit->writeFile(outfile.c_str());
    if (!result) {
       goto done;
@@ -402,10 +522,16 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       goto done;
    file_running = false;
 
-   if (app_crash) {
-      test_result = CRASHED;
-   }
-   else if (app_return != 0) {
+   
+   dprintf("%s[%d]:  after waitForCompletion: %s, result = %d\n", FILE__, __LINE__, app_crash ? "crashed" : "no crash", app_return);
+
+   if ((app_crash)  || (app_return != 0))
+   {
+	   logerror("%s[%d]:  something failed, running tests individually\n", FILE__, __LINE__);
+	   //  Break apart the group and run each subtest individually:
+	   runBinaryTestsIndividually(group, outfile, logfilename, humanlogname, verboseFormat, printLabels,
+			   debugPrint, pidfilename);
+
 	   //  return unknown here because some tests may have passed, some may
 	   //  have failed...  if we return failed, all tests in the group get
 	   //  marked as failed

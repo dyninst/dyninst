@@ -177,6 +177,9 @@ bool ParseThat::setup_args(std::vector<std::string> &pt_args)
 	if (do_recursive) 
 		pt_args.push_back(std::string("-r"));
 
+	if (nofork) 
+		pt_args.push_back(std::string("-S"));
+
 	if (print_summary_) 
 		pt_args.push_back(std::string("--summary"));
 
