@@ -16,11 +16,13 @@ DYNINST_INCDIR = -I../../dyninstAPI/h
 SYMTAB_INCDIR = -I../../symtabAPI/h
 DYNUTIL_INCDIR = -I../../dynutil/h
 INSTRUCTION_INCDIR = -I../../instructionAPI/h
+BOOST_INCDIR = -I../../external/boost
 
 IFLAGS += $(DYNINST_INCDIR)
 IFLAGS += $(DYNUTIL_INCDIR)
 IFLAGS += $(SYMTAB_INCDIR)
 IFLAGS += $(INSTRUCTION_INCDIR)
+IFLAGS += $(BOOST_INCDIR)
 
 #######################################################################
 ### We don't want all of the CFLAGS stuff that came from make.config.
