@@ -54,7 +54,6 @@ void test1_1_func1_1() {
 }
 
 int test1_1_mutatee() {
-	//abort();
   test1_1_func1_1();
   if (11 == globalVariable1_1) {
     test_passes(testname);

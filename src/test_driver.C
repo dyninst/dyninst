@@ -420,10 +420,9 @@ int numUnreportedTests(RunGroup *group)
    for (unsigned i=0; i<group->tests.size(); i++)
    {
       if (shouldRunTest(group, group->tests[i]))
-	  {
-		  fprintf(stderr, "%s[%d]:  test %s is unreported\n", FILE__, __LINE__, group->tests[i]->name);
-         num_unreported++;
-	  }
+      {
+	num_unreported++;
+      }
    }
 
    return num_unreported;
@@ -701,21 +700,21 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
 
       if (shouldRunTest(group, group->tests[i])) {
          log_teststart(groupnum, i, test_init_rs);
-		 if(group->tests[i]->mutator)
-		 {
-			 test_results_t setup_res = group->tests[i]->mutator->setup(param);
-	         group->tests[i]->results[test_init_rs] = setup_res;
-			 if (setup_res != PASSED)
-			 {
-				 logerror("%s[%d]:  setup failed (%d) for test %s\n", 
-						 FILE__, __LINE__, (int) setup_res, group->tests[i]->name);
-			 }
-		 }
-		 else
-		 {
-			 logerror("No mutator object found for test: %s\n", group->tests[i]->name);
-			group->tests[i]->results[test_init_rs] = FAILED;
-		 }
+	 if(group->tests[i]->mutator)
+	   {
+	     test_results_t setup_res = group->tests[i]->mutator->setup(param);
+	     group->tests[i]->results[test_init_rs] = setup_res;
+	     if (setup_res != PASSED)
+	       {
+		 logerror("%s[%d]:  setup failed (%d) for test %s\n", 
+			  FILE__, __LINE__, (int) setup_res, group->tests[i]->name);
+	       }
+	   }
+	 else
+	   {
+	     logerror("No mutator object found for test: %s\n", group->tests[i]->name);
+	     group->tests[i]->results[test_init_rs] = FAILED;
+	   }
          log_testresult(group->tests[i]->results[test_init_rs]);
       }
    }
@@ -835,6 +834,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
    // Begin setting up test parameters
    ParameterDict param;
    unsigned i;
+   bool aborted_group = false;
 
    ParamString logfile_p(logfilename);
    ParamInt verbose_p((int) !quietFormat);
@@ -894,20 +894,26 @@ void startAllTests(std::vector<RunGroup *> &groups,
       // Print mutatee (run group) header
       printLogMutateeHeader(groups[i]->mutatee);
 
+      int before_group = numUnreportedTests(groups[i]);
       executeGroup(groups[i]->mod->tester, groups[i], param);
-       
-      if (numUnreportedTests(groups[i])) {
-         //This should be uncommon.  We have tests in this group that didn't
-         // complete (neither failure nor success), mark these as failures.
-         for (unsigned j=0; j<groups[i]->tests.size(); j++) {
-            if (shouldRunTest(groups[i], groups[i]->tests[j]))
-            {
-               //Just pick a result to set as failed
-               getOutput()->log(STDERR, "Unreported tests found, marking group as failed\n");
-               groups[i]->tests[j]->results[group_teardown_rs] = FAILED;
-               reportTestResult(groups[i], groups[i]->tests[j]);
-            }
-         }
+      int after_group = numUnreportedTests(groups[i]);
+   
+      if (after_group) {
+	if (before_group == after_group) {
+	  //This should be uncommon.  We made no forward progress
+	  // running tests in the group, and we have tests that didn't run.
+	  // Mark the group as failed, as we don't want to just spin here.
+	  for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+	    if (!shouldRunTest(groups[i], groups[i]->tests[j]))
+	      continue;
+	    groups[i]->tests[j]->results[group_teardown_rs] = FAILED;
+	    reportTestResult(groups[i], groups[i]->tests[j]);
+	  }
+	}
+	else {
+	  aborted_group = true;
+	  break;
+	}
       }
    }
 
@@ -932,13 +938,14 @@ void startAllTests(std::vector<RunGroup *> &groups,
      mod->setInitialized(false);
    }
 
-   if (limitSkippedTests) {
-      log_resumepoint(limitResumeGroup, limitResumeTest);
-   } else {
-      log_clear();
+   if (!aborted_group) {
+     if (limitSkippedTests) {
+       log_resumepoint(limitResumeGroup, limitResumeTest);
+     } else {
+       log_clear();
+     }
    }
       
-
    measureEnd();
 
    cleanPIDFile();

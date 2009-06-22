@@ -259,7 +259,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
 
    if (group->useAttach == DISK) {
       if (!someTestPassed)
-         return UNKNOWN;
+         return FAILED;
       char *logfilename = params["logfilename"]->getString();
       bool verboseFormat = (bool) params["verbose"]->getInt();
       bool humanlog = (bool) params["usehumanlog"]->getInt();
@@ -279,12 +279,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       // All tests failed or skipped in executeTest(), so I didn't execute the
       // mutatee.  I should kill it so it doesn't run in attach mode
       appThread->getProcess()->terminateExecution();
-      return UNKNOWN;
+      return FAILED;
    }
    if (appThread == NULL) {
        // I saw this happen during a broken resumeLog cleanup, so handle
        // it as an error... - bernat, 12JAN09
-       return UNKNOWN;
+       return FAILED;
    }
 
    do {
