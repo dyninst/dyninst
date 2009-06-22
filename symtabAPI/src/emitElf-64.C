@@ -381,7 +381,6 @@ bool emitElf64::driver(Symtab *obj, string fName){
   unsigned scncount;
   unsigned sectionNumber = 0;
   for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
-
     //copy sections from oldElf to newElf
     shdr = elf64_getshdr(scn);
     // resolve section name
@@ -410,28 +409,22 @@ bool emitElf64::driver(Symtab *obj, string fName){
     secNameIndex += strlen(name) + 1;
     
     if(foundSec->isDirty())
-      {
-	newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
-	memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
-	newdata->d_size = foundSec->getDiskSize();
-	newshdr->sh_size = foundSec->getDiskSize();
-      }
+    {
+       newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
+       memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
+       newdata->d_size = foundSec->getDiskSize();
+       newshdr->sh_size = foundSec->getDiskSize();
+    }
     else if(olddata->d_buf)     //copy the data buffer from oldElf
-      {
-	newdata->d_buf = (char *)malloc(olddata->d_size);
-	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-	  }
-	
-	if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
-	{
-		fprintf(stderr, "%s[%d]:  ERROR:  size is nonmultiple of entsize, sec %s: %lu/%lu\n", 
-				FILE__, __LINE__, name, newshdr->sh_size, newshdr->sh_entsize);
-
-		newshdr->sh_size += newshdr->sh_entsize - (newshdr->sh_size % newshdr->sh_entsize);
-
-		fprintf(stderr, "%s[%d]:  trying to fix??: %lu/%lu\n", FILE__, __LINE__, 
-				newshdr->sh_size, newshdr->sh_entsize);
-	}
+    {
+       newdata->d_buf = (char *)malloc(olddata->d_size);
+       memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+    }
+    
+    if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
+    {
+       newshdr->sh_entsize = 0x0;
+    }
 
     if(BSSExpandFlag) {
       // Add the expanded SHT_NOBITS section size if the section comes after those sections 

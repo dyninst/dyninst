@@ -408,9 +408,9 @@ bool emitElf::driver(Symtab *obj, string fName){
   unsigned NOBITSstartPoint = oldEhdr->e_shnum;
 
   if(addNewSegmentFlag)
-    {
-      newEhdr->e_phoff = sizeof(Elf32_Ehdr);
-    }
+  {
+     newEhdr->e_phoff = sizeof(Elf32_Ehdr);
+  }
     
   /* flag the file for no auto-layout */
   elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);
@@ -470,6 +470,11 @@ bool emitElf::driver(Symtab *obj, string fName){
 	newdata->d_buf = (char *)malloc(olddata->d_size);
 	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
       }
+
+    if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
+    {
+       newshdr->sh_entsize = 0x0;
+    }
 
     if(BSSExpandFlag) {
       // Add the expanded SHT_NOBITS section size if the section comes after those sections 
