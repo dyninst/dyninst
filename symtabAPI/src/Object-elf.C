@@ -445,7 +445,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   Elf_X_Phdr elfPhdr = elfHdr.get_phdr(phdr_count);
   unsigned phdr_max_count = elfHdr.e_phnum();
 
-  while(!foundDynamicSection || phdr_count == phdr_max_count) {
+  while(!foundDynamicSection && (phdr_count < phdr_max_count)) {
     if(elfPhdr.p_type() == PT_DYNAMIC){
       foundDynamicSection = true;
       dynamic_offset_ = elfPhdr.p_offset();
