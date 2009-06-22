@@ -132,7 +132,7 @@ class test_type_info_Mutator : public SymtabMutator {
 	   if (!got_type_subrange)
 	   {
 		   //  solaris CC does not appear to produce these
-#if !defined(os_solaris_test)
+#if !defined(os_solaris_test) && !defined(os_aix_test)
 		   fprintf(stderr, "%s[%d]:  subrange was missed\n", FILE__, __LINE__);
 		   return false;
 #endif
