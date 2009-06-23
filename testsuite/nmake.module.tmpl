@@ -9,15 +9,15 @@
 SUITE_NAME	= Dyninst
 RELEASE_NUM	= 6.0
 
-DEST		= $(TO_CORE)\$(PROGRAM_DEST)\newtestsuite
+DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testsuite
 
 CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_test -Dcap_dynamic_heap_test \
 	-Dcap_stripped_binaries_test -Dcap_async_events_test -Dcap_threads_test -Di386_unknown_nt4_0_test \
 	-Di386-unknown-nt4.0_test
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
-	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/newtestsuite/src \
+	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/testsuite/src \
 	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi
-CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/newtestsuite/src
+CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib
