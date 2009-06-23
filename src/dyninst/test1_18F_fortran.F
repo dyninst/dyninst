@@ -58,7 +58,8 @@
 #define AND and
 #define OR or
 #endif
-
+	DATA test1_18_globalVariable1/42/
+	END
 !------------------------------------------------------------------------------
 
 	SUBROUTINE test1_18f_init_globals
