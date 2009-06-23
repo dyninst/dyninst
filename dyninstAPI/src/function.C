@@ -1369,6 +1369,16 @@ bool int_function::performInstrumentation(bool stopOnFailure,
     // something interesting going on; that is, that have instrumentation
     // added since the last time something came up. 
 
+  if(proc()->getAddressWidth() == 8)
+  {
+    ia32_set_mode_64(true);
+  }
+  else
+  {
+    ia32_set_mode_64(false);
+  }
+  
+
   if (isBeingInstrumented_) return false;
   isBeingInstrumented_ = true;
 
