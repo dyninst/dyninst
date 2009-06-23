@@ -2451,7 +2451,6 @@ bool Object::fix_global_symbol_modules_static_dwarf()
       if ( status == DW_DLV_NO_ENTRY || dwarfModuleName == NULL ) 
 	{
 	  moduleName = string( "{ANONYMOUS}" );
-	  //assert( moduleName != NULL );
 	}
       else 
 	{

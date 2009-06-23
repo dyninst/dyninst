@@ -390,7 +390,7 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 
 	if (!ssb)
 	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
@@ -398,21 +398,21 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 
 	if (!st)
 	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
 	if (!sym_offsets)
 	{
 		//  can't have any aggregates w/out symbols
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
 	if (!sym_offsets->size())
 	{
 		//  can't have any aggregates w/out symbols
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
@@ -425,13 +425,13 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 		if (!syms)
 		{
 			//  Should throw here, but for now let's just scream
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		}
 		else
 		{
 			if (syms->size() > 1)
 			{
-				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 			}
 
 			symbols_[i] = (*syms)[0];
