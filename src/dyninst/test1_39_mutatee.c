@@ -12,7 +12,7 @@ void test1_39_func1();
  * names.
  */
 
-int test1_39_passed = 0;
+int test1_39_passed = -1;
 
 /* Internally used function prototypes.  These should be declared with the
  * keyword static so they don't interfere with other mutatees in the group.

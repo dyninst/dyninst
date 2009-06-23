@@ -149,7 +149,7 @@ test_results_t test5_9_Mutator::executeTest() {
    BPatch_function *pass_func = passfv[0];
    BPatch_Vector<BPatch_snippet *> pass_args;
    BPatch_funcCallExpr pass_expr(*pass_func, pass_args);
-   appThread->insertSnippet(pass_expr, *point9_1);
+   appAddrSpace->insertSnippet(pass_expr, *point9_1);
    
   return PASSED;
 }

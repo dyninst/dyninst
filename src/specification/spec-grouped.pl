@@ -323,7 +323,7 @@ test_description('test1_18', 'Read/Write a variable in the mutatee').
 test_runs_everywhere('test1_18').
 groupable_test('test1_18').
 mutator('test1_18', ['test1_18.C']).
-test_runmode('test1_18', 'dynamic').
+test_runmode('test1_18', 'staticdynamic').
 test_start_state('test1_18', 'stopped').
 tests_module('test1_18', 'dyninst').
 
@@ -407,7 +407,7 @@ test_description('test1_25', 'Unary Operators').
 test_runs_everywhere('test1_25').
 groupable_test('test1_25').
 mutator('test1_25', ['test1_25.C']).
-test_runmode('test1_25', 'dynamic').
+test_runmode('test1_25', 'staticdynamic').
 test_start_state('test1_25', 'stopped').
 tests_module('test1_25', 'dyninst').
 
@@ -447,7 +447,7 @@ mutatee('test1_29', ['test1_29_mutatee.c']).
 % test1_29s mutatee can be compiled with any C compiler or Fortran compiler
 compiler_for_mutatee('test1_29', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test1_29', 'dynamic').
+test_runmode('test1_29', 'staticdynamic').
 test_start_state('test1_29', 'stopped').
 tests_module('test1_29', 'dyninst').
 
@@ -456,7 +456,7 @@ test_description('test1_30', 'Line Information').
 test_runs_everywhere('test1_30').
 groupable_test('test1_30').
 mutator('test1_30', ['test1_30.C']).
-test_runmode('test1_30', 'dynamic').
+test_runmode('test1_30', 'staticdynamic').
 test_start_state('test1_30', 'stopped').
 tests_module('test1_30', 'dyninst').
 
@@ -559,7 +559,7 @@ test_description('test1_38', 'CFG Loop Callee Tree').
 test_runs_everywhere('test1_38').
 groupable_test('test1_38').
 mutator('test1_38', ['test1_38.C']).
-test_runmode('test1_38', 'dynamic').
+test_runmode('test1_38', 'staticdynamic').
 test_start_state('test1_38', 'stopped').
 tests_module('test1_38', 'dyninst').
 
@@ -571,7 +571,7 @@ test_platform('test1_39', Platform) :-
     OS \= 'windows'.
 groupable_test('test1_39').
 mutator('test1_39', ['test1_39.C']).
-test_runmode('test1_39', 'dynamic').
+test_runmode('test1_39', 'staticdynamic').
 test_start_state('test1_39', 'stopped').
 tests_module('test1_39', 'dyninst').
 
@@ -659,7 +659,7 @@ test_description('test2_5', 'Look up nonexistent function').
 test_runs_everywhere('test2_5').
 groupable_test('test2_5').
 mutator('test2_5', ['test2_5.C']).
-test_runmode('test2_5', 'dynamic').
+test_runmode('test2_5', 'staticdynamic').
 test_start_state('test2_5', 'stopped').
 tests_module('test2_5', 'dyninst').
 
@@ -869,7 +869,7 @@ test_platform('test5_1', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_1', ['test5_1.C']).
-test_runmode('test5_1', 'createProcess').
+test_runmode('test5_1', 'staticdynamic').
 test_start_state('test5_1', 'stopped').
 groupable_test('test5_1').
 restricted_amd64_abi('test5_1').
@@ -881,7 +881,7 @@ test_platform('test5_2', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_2', ['test5_2.C']).
-test_runmode('test5_2', 'createProcess').
+test_runmode('test5_2', 'staticdynamic').
 test_start_state('test5_2', 'stopped').
 groupable_test('test5_2').
 restricted_amd64_abi('test5_2').
@@ -890,7 +890,7 @@ tests_module('test5_2', 'dyninst').
 test('test5_3', 'test5_3', 'dyninst_cxx_group_test').
 test_runs_everywhere('test5_3').
 mutator('test5_3', ['test5_3.C']).
-test_runmode('test5_3', 'createProcess').
+test_runmode('test5_3', 'staticdynamic').
 test_start_state('test5_3', 'stopped').
 groupable_test('test5_3').
 restricted_amd64_abi('test5_3').
@@ -902,7 +902,7 @@ test_platform('test5_4', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_4', ['test5_4.C']).
-test_runmode('test5_4', 'createProcess').
+test_runmode('test5_4', 'staticdynamic').
 test_start_state('test5_4', 'stopped').
 groupable_test('test5_4').
 restricted_amd64_abi('test5_4').
@@ -914,7 +914,7 @@ test_platform('test5_5', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_5', ['test5_5.C']).
-test_runmode('test5_5', 'createProcess').
+test_runmode('test5_5', 'staticdynamic').
 test_start_state('test5_5', 'stopped').
 groupable_test('test5_5').
 restricted_amd64_abi('test5_5').
@@ -925,7 +925,7 @@ test('test5_6', 'test5_6', 'dyninst_cxx_group_test').
 test_platform('test5_6', Platform) :-
     platform('i386', 'linux', _, Platform).
 mutator('test5_6', ['test5_6.C']).
-test_runmode('test5_6', 'createProcess').
+test_runmode('test5_6', 'staticdynamic').
 test_start_state('test5_6', 'stopped').
 groupable_test('test5_6').
 restricted_amd64_abi('test5_6').
@@ -937,7 +937,7 @@ test_platform('test5_7', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_7', ['test5_7.C']).
-test_runmode('test5_7', 'createProcess').
+test_runmode('test5_7', 'staticdynamic').
 test_start_state('test5_7', 'stopped').
 groupable_test('test5_7').
 restricted_amd64_abi('test5_7').
@@ -949,7 +949,7 @@ test_platform('test5_8', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_8', ['test5_8.C']).
-test_runmode('test5_8', 'createProcess').
+test_runmode('test5_8', 'staticdynamic').
 test_start_state('test5_8', 'stopped').
 groupable_test('test5_8').
 restricted_amd64_abi('test5_8').
@@ -961,7 +961,7 @@ test_platform('test5_9', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux', 'solaris', 'windows', 'aix']).
 mutator('test5_9', ['test5_9.C']).
-test_runmode('test5_9', 'createProcess').
+test_runmode('test5_9', 'staticdynamic').
 test_start_state('test5_9', 'stopped').
 groupable_test('test5_9').
 restricted_amd64_abi('test5_9').
