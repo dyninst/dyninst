@@ -108,6 +108,8 @@ public:
     SYMTAB_EXPORT unsigned loader_len() const;
     SYMTAB_EXPORT int getAddressWidth() const;
 
+    bool isStaticBinary() const {return is_static_binary_;}
+
     SYMTAB_EXPORT virtual char *  mem_image() const;
 
     SYMTAB_EXPORT virtual  bool   needs_function_binding()  const;
@@ -175,6 +177,8 @@ protected:
     
     bool is_aout_;
     bool is_dynamic_;
+
+    bool is_static_binary_;
 
     unsigned no_of_sections_;
     unsigned no_of_symbols_;
