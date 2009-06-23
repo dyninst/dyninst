@@ -82,15 +82,6 @@ bool malformed_module(SymtabAPI::Module *mod)
 	  return true;
 	}
 
-	//  Is a zero-offset module indicative of an error ??  Probably
-
-	Offset modoff = mod->addr();
-	if (!modoff)
-	{
-      logerror("%s[%d]: malformed module: zero offset for %s\n", FILE__, __LINE__, modname.c_str());
-	  return true;
-	}
-
 	Symtab *parent = mod->exec();
 	if (!parent)
 	{
