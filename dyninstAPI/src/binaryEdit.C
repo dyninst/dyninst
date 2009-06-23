@@ -470,7 +470,14 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             referring = dependentRelocations[i]->getReferring();
-            newSymbol = new Symbol(referring->getName(), 
+            if (!symObj->hasReldyn() && !symObj->hasReladyn()) {
+	      Address addr = referring->getOffset();
+	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
+	      assert(result);
+	      continue;
+	    }
+	    
+	    newSymbol = new Symbol(referring->getName(), 
                                    Symbol::ST_FUNCTION, 
                                    Symbol::SL_GLOBAL,
                                    Symbol::SV_DEFAULT, 
@@ -481,12 +488,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                                    true, 
                                    false);
             symObj->addSymbol(newSymbol, referring);
-            if (!symObj->hasReldyn() && !symObj->hasReladyn()) {
-               // TODO: probably should add new relocation section and
-               // corresponding .dynamic table entries
-               fprintf(stderr, "ERROR:  binary has no pre-existing relocation sections!\n");
-               return false;
-            } else if (!symObj->hasReldyn() && symObj->hasReladyn()) {
+	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
                newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
             } else {
                if (mobj->isSharedLib()) {

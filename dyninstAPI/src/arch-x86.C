@@ -4374,8 +4374,7 @@ void instruction::generateCall(codeGen &gen,
                                Address from,
                                Address target)
 {
-  // TODO 64bit fixme
-   assert(target);
+  //assert(target);
   long disp = target - (from + CALL_REL32_SZ);
   
   if (is_disp32(disp)) {

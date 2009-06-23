@@ -232,6 +232,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool hasReladyn() const;
    SYMTAB_EXPORT bool hasRelplt() const;
    SYMTAB_EXPORT bool hasRelaplt() const;
+   
+   SYMTAB_EXPORT bool isStaticBinary() const;
 
    /***** Write Back binary functions *****/
    SYMTAB_EXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
@@ -512,6 +514,8 @@ class Symtab : public LookupInterface,
    bool hasReladyn_;
    bool hasRelplt_;
    bool hasRelaplt_;
+
+   bool isStaticBinary_;
 
 
    //Don't use obj_private, use getObject() instead.

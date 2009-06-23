@@ -25,9 +25,13 @@ struct {
     char* optimization;
     char* abi;
   } rungroup_params[] = { {"dyninst_cxx_group_test_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "none", "32"},
+ {"dyninst_cxx_group_test_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "none", "32"},
  {"dyninst_cxx_group_test_mutatee_solo_VC++_32_low.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "low", "32"},
+ {"dyninst_cxx_group_test_mutatee_solo_VC++_32_low.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "low", "32"},
  {"dyninst_cxx_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "high", "32"},
+ {"dyninst_cxx_group_test_mutatee_solo_VC++_32_high.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "high", "32"},
  {"dyninst_cxx_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "max", "32"},
+ {"dyninst_cxx_group_test_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "max", "32"},
  {"test_mem_1_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "none", "32"},
  {"test_mem_1_mutatee_solo_VC_32_low.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "low", "32"},
  {"test_mem_1_mutatee_solo_VC_32_high.exe", STOPPED, CREATE, true, true, "dyninst", "VC", "high", "32"},
@@ -360,6 +364,14 @@ struct {
  {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
  {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {false, "test5_1", "test5_1", "test5_1.dll", false, "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_2", "test5_2", "test5_2.dll", false, "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_3", "test5_3", "test5_3.dll", false, "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_4", "test5_4", "test5_4.dll", false, "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_5", "test5_5", "test5_5.dll", false, "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: none, compiler: VC++, run_mode: useAttach}"},
  {false, "test5_1", "test5_1", "test5_1.dll", false, "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_2", "test5_2", "test5_2.dll", false, "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_3", "test5_3", "test5_3.dll", false, "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
@@ -368,6 +380,14 @@ struct {
  {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
  {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {false, "test5_1", "test5_1", "test5_1.dll", false, "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_2", "test5_2", "test5_2.dll", false, "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_3", "test5_3", "test5_3.dll", false, "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_4", "test5_4", "test5_4.dll", false, "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_5", "test5_5", "test5_5.dll", false, "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: low, compiler: VC++, run_mode: useAttach}"},
  {false, "test5_1", "test5_1", "test5_1.dll", false, "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_2", "test5_2", "test5_2.dll", false, "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_3", "test5_3", "test5_3.dll", false, "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
@@ -376,6 +396,14 @@ struct {
  {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
  {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {false, "test5_1", "test5_1", "test5_1.dll", false, "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_2", "test5_2", "test5_2.dll", false, "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_3", "test5_3", "test5_3.dll", false, "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_4", "test5_4", "test5_4.dll", false, "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_5", "test5_5", "test5_5.dll", false, "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: high, compiler: VC++, run_mode: useAttach}"},
  {false, "test5_1", "test5_1", "test5_1.dll", false, "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_2", "test5_2", "test5_2.dll", false, "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_3", "test5_3", "test5_3.dll", false, "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
@@ -384,6 +412,14 @@ struct {
  {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {false, "test5_1", "test5_1", "test5_1.dll", false, "{test: test5_1, mutator: test5_1, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_2", "test5_2", "test5_2.dll", false, "{test: test5_2, mutator: test5_2, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_3", "test5_3", "test5_3.dll", false, "{test: test5_3, mutator: test5_3, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_4", "test5_4", "test5_4.dll", false, "{test: test5_4, mutator: test5_4, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_5", "test5_5", "test5_5.dll", false, "{test: test5_5, mutator: test5_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_7", "test5_7", "test5_7.dll", false, "{test: test5_7, mutator: test5_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {false, "test5_8", "test5_8", "test5_8.dll", false, "{test: test5_8, mutator: test5_8, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {true, "test5_9", "test5_9", "test5_9.dll", false, "{test: test5_9, mutator: test5_9, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_cxx_group_test, optimization: max, compiler: VC++, run_mode: useAttach}"},
  {true, "test_mem_1", "test_mem_1", "test_mem_1.dll", false, "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: none, compiler: VC, run_mode: createProcess}"},
  {true, "test_mem_1", "test_mem_1", "test_mem_1.dll", false, "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: low, compiler: VC, run_mode: createProcess}"},
  {true, "test_mem_1", "test_mem_1", "test_mem_1.dll", false, "{test: test_mem_1, mutator: test_mem_1, grouped: false, start_state: stopped, abi: 32, mutatee: test_mem_1, optimization: high, compiler: VC, run_mode: createProcess}"},
@@ -1310,7 +1346,7 @@ struct {
  {true, "test_stack_3", "test_stack_3", "test_stack_3.dll", false, "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: max, compiler: VC++, run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 320; i++) {
+  for (int i = 0; i < 324; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
@@ -1319,7 +1355,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 956 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 988 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);
