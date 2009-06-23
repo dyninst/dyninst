@@ -2938,6 +2938,7 @@ DwarfHandle::DwarfHandle(Object *obj_) :
 Dwarf_Debug *DwarfHandle::dbg()
 {
    int status;
+   Dwarf_Error err;
    if (init_dwarf_status == dwarf_status_ok) {
       return &dbg_data;
    }
@@ -2947,7 +2948,7 @@ Dwarf_Debug *DwarfHandle::dbg()
    }
    
    status = dwarf_elf_init(obj->elfHdrForDebugInfo.e_elfp(), DW_DLC_READ, 
-                           &pd_dwarf_handler, obj->getErrFunc(), &dbg_data, NULL);
+                           &pd_dwarf_handler, obj->getErrFunc(), &dbg_data, &err);
    if (status != DW_DLV_OK) {
       init_dwarf_status = dwarf_status_error;
       return NULL;

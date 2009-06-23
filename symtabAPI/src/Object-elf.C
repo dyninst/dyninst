@@ -2508,6 +2508,7 @@ bool Object::fix_global_symbol_modules_static_dwarf()
 	    } /* end if the srcfile information was available */
 	} /* end if code range information unavailable */
 
+      modules_.push_back(std::pair<std::string, Offset>(moduleName, modLowPC));
     } /* end scan over CU headers. */
 
   if (!module_ranges.empty()) {

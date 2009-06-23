@@ -573,6 +573,11 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     for (unsigned i = 0; i < raw_syms.size(); i++) {
         fixSymModule(raw_syms[i]);
     }
+    const std::vector<std::pair<std::string, Offset> > &mods = getObject()->modules_;
+    for (unsigned i=0; i< mods.size(); i++) {
+       getOrCreateModule(mods[i].first, mods[i].second);
+    }
+       
     return true;
 }
 
@@ -1917,12 +1922,11 @@ void Symtab::parseLineInformation()
    for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
    {
       Module *mod = NULL;
-      if (findModuleByName(mod, iter->first))
-      {
-         mod->setLineInfo(&(iter->second));
+      bool result = findModuleByName(mod, iter->first);
+      if (!result) {
+         mod = getDefaultModule();
       }
-      else if (findModuleByName(mod, mf->filename()))
-      {
+
          LineInformation *lineInformation = mod->getLineInformation();
          if (!lineInformation) 
          {
@@ -1934,12 +1938,6 @@ void Symtab::parseLineInformation()
             mod->setLineInfo(lineInformation);
          }
       }
-      else 
-      {
-         object_printf("[%s:%u] - Couldn't find module %s to go with line info\n",
-               __FILE__, __LINE__, iter->first.c_str()); 
-      }
-   }
 }
 
 SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,

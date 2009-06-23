@@ -150,6 +150,7 @@ protected:
     dyn_hash_map< std::string, std::vector< Symbol *> > symbols_;
 	std::map< Symbol *, std::string > symsToModules_;
     dyn_hash_map<Offset, std::vector<Symbol *> > symsByOffset_;
+    std::vector<std::pair<std::string, Offset> > modules_;
 
     char*   code_ptr_;
     Offset code_off_;
