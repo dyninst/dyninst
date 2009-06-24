@@ -93,7 +93,6 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
    BPatch_addressSpace(),
    creation_error(false)
 {
-  bool has_thread_lib = false;
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
  
   pdvector<std::string> argv_vec;
@@ -112,34 +111,8 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
   }
   llBinEdits[path] = origBinEdit;
   
-  std::queue<std::string> files;
-  origBinEdit->getAllDependencies(files);
-
-  while (files.size()) {
-     string s = files.front(); 
-     files.pop();
-
-     if (strstr(s.c_str(), "libpthread") ||
-         strstr(s.c_str(), "libthread")) {
-        has_thread_lib = true;
-     }
-
-     if (llBinEdits.count(s))
-        continue;
-     if (!openDependencies)
-        continue;
-     
-     startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                    FILE__, __LINE__, s.c_str());
-     BinaryEdit *lib = BinaryEdit::openFile(s);
-     if (!lib) {
-        startup_printf("[%s:%u] - Creation error opening %s\n", 
-                       FILE__, __LINE__, s.c_str());
-        creation_error = true;
-        return;
-     }
-     llBinEdits[s] = lib;
-     lib->getAllDependencies(files);
+  if(openDependencies) {
+    origBinEdit->getAllDependencies(llBinEdits); 
   }
 
   origBinEdit->getDyninstRTLibName();
@@ -167,13 +140,18 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
      llBinEdit->set_up_ptr(this);
      llBinEdit->setupRTLibrary(rtLib);
      llBinEdit->setTrampGuard(masterTrampGuard);
-     llBinEdit->setMultiThreadCapable(has_thread_lib);
+     llBinEdit->setMultiThreadCapable(isMultiThreadCapable());
      for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
         llBinEdit->addSibling((*j).second);
      }
   }
 
   image = new BPatch_image(this);
+}
+
+bool BPatch_binaryEdit::isMultiThreadCapable() const
+{
+  return origBinEdit->isMultiThreadCapable();
 }
 
 BPatch_image * BPatch_binaryEdit::getImageInt() {
@@ -373,33 +351,16 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
 
 bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
-   std::queue<std::string> libs;
-   libs.push(libname);
-   std::map<string, BinaryEdit*> newlibs;
-   while (libs.size()) {
-      string s = libs.front(); 
-      libs.pop();
-      
-      if (llBinEdits.count(s) || newlibs.count(s))
-         continue;
-      BinaryEdit *file = BinaryEdit::openFile(s);
-      if (!file) {
-         std::map<string, BinaryEdit*>::iterator i;
-         for (i = newlibs.begin(); i != newlibs.end(); i++)
-            delete (*i).second;
-         return false;
-      }
-      newlibs[s] = file;
+  std::pair<std::string, BinaryEdit*> lib = origBinEdit->openResolvedLibraryName(libname);
+  if(!lib.second)
+    return false;
 
-      if (deps)
-         file->getAllDependencies(libs);
-   }
-   
-   std::map<string, BinaryEdit*>::iterator i;
-   for (i = newlibs.begin(); i != newlibs.end(); i++)
-      llBinEdits[(*i).first] = (*i).second;
-
-   return true;
+  llBinEdits.insert(lib);
+  
+  if (deps)
+    return lib.second->getAllDependencies(llBinEdits);
+  return true;
+  
 }
 
 // Here's the story. We may need to install a trap handler for instrumentation

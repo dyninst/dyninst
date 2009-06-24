@@ -338,20 +338,47 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
 }
 
 #if !defined(cap_binary_rewriter)
-std::string BinaryEdit::resolveLibraryName(std::string)
+std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
 {
-	return NULL;
+  assert(!"Not implemented");
+  return std::make_pair("", static_cast<BinaryEdit*>(NULL));
 }
+
 #endif
 
-bool BinaryEdit::getAllDependencies(std::queue<std::string> &deps)
+bool BinaryEdit::isMultiThreadCapable()
 {
    Symtab *symtab = mobj->parse_img()->getObject();
    std::vector<std::string> depends = symtab->getDependencies();
-   for (unsigned i=0; i<depends.size(); i++) {
-      std::string full_name = resolveLibraryName(depends[i]);
-      if (full_name.length())
-         deps.push(full_name);
+   for (std::vector<std::string>::iterator curDep = depends.begin();
+	curDep != depends.end(); curDep++) {
+     if((curDep->find("libpthread") != std::string::npos) || (curDep->find("libthread") != std::string::npos))
+       return true;
+   }
+   return false;
+}
+
+bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
+{
+   Symtab *symtab = mobj->parse_img()->getObject();
+   std::deque<std::string> depends;
+   std::copy(symtab->getDependencies().begin(), symtab->getDependencies().end(), std::back_inserter(depends));
+   while(!depends.empty())
+   {
+     std::string lib = depends.front();
+     if(deps.find(lib) == deps.end()) {
+       std::pair<std::string, BinaryEdit*> res = openResolvedLibraryName(lib);
+       if (res.second) {
+	 deps.insert(res);
+	 if(!res.second->getAllDependencies(deps))
+	 {
+	   return false;
+	 }
+       } else {
+	 return false;
+       }
+     }
+     depends.pop_front();
    }
    return true;
 }

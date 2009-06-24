@@ -2580,9 +2580,9 @@ bool process::readAuxvInfo()
    
    
 }
-
 #if defined(cap_binary_rewriter)
-std::string BinaryEdit::resolveLibraryName(std::string filename)
+
+std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
 {
    char *libPathStr, *libPath;
    std::vector<std::string> libPaths;
@@ -2593,7 +2593,14 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
     
    // prefer qualified file paths
    if (stat(filename.c_str(), &dummy) == 0) {
-      return std::string(filename);
+	BinaryEdit* temp = BinaryEdit::openFile(filename);
+	startup_printf("[%s:%u] - Opening dependant file %s\n", 
+		       FILE__, __LINE__, filename.c_str());
+	if(temp && temp->getAddressWidth() == getAddressWidth())
+	  return std::make_pair(filename, temp);
+	startup_printf("[%s:%u] - Creation error opening %s\n", 
+		  FILE__, __LINE__, filename.c_str());
+	delete temp;
    }
 
    // search paths from environment variables
@@ -2608,7 +2615,15 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
    for (unsigned int i = 0; i < libPaths.size(); i++) {
       std::string str = libPaths[i] + "/" + filename;
       if (stat(str.c_str(), &dummy) == 0) {
-         return str;
+	BinaryEdit* temp = BinaryEdit::openFile(str);
+	startup_printf("[%s:%u] - Opening dependant file %s\n", 
+		       FILE__, __LINE__, str.c_str());
+	if(temp && temp->getAddressWidth() == getAddressWidth())
+	  return std::make_pair(str, temp);
+	startup_printf("[%s:%u] - Creation error opening %s\n", 
+		  FILE__, __LINE__, str.c_str());
+	delete temp;
+	
       }
    }
 
@@ -2629,8 +2644,17 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
          while (*pos != '\n' && *pos != '\0') pos++;
          *pos = '\0';
          if (strcmp(key, filename.c_str()) == 0) {
-            pclose(ldconfig);
-            return val;
+	   startup_printf("[%s:%u] - Opening dependant file %s\n", 
+		       FILE__, __LINE__, val);
+	   BinaryEdit* temp = BinaryEdit::openFile(val);
+	   if(temp->getAddressWidth() == getAddressWidth()) {
+	     pclose(ldconfig);
+	     return std::make_pair(std::string(val), temp);
+	   }
+	   
+	   startup_printf("[%s:%u] - Creation error opening %s\n", 
+		  FILE__, __LINE__, val);
+	   delete temp;
          }
       }
       pclose(ldconfig);
@@ -2645,11 +2669,21 @@ std::string BinaryEdit::resolveLibraryName(std::string filename)
    for (unsigned int i = 0; i < libPaths.size(); i++) {
       std::string str = libPaths[i] + "/" + filename;
       if (stat(str.c_str(), &dummy) == 0) {
-         return str;
+	startup_printf("[%s:%u] - Opening dependant file %s\n", 
+		       FILE__, __LINE__, str.c_str());
+	BinaryEdit* temp = BinaryEdit::openFile(str);
+	if(temp && temp->getAddressWidth() == getAddressWidth())
+	  return std::make_pair(str, temp);
+	startup_printf("[%s:%u] - Creation error opening %s\n", 
+		  FILE__, __LINE__, str.c_str());
+	delete temp;
       }
    }
-   return std::string("");
+   startup_printf("[%s:%u] - Creation error opening %s\n", 
+		  FILE__, __LINE__, filename.c_str());
+   return std::make_pair("", static_cast<BinaryEdit*>(NULL));
 }
+
 #endif
 
 bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
