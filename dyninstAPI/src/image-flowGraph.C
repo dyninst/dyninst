@@ -768,6 +768,14 @@ bool image_func::buildCFG(
                     currBlk->lastInsnOffset_ = ah.peekPrev();
                     currBlk->blockEndOffset_ = currAddr;
 
+                    //Three blocks involved here, the original block, the new one that we're
+                    //currently parsing and just found to overlap, and the new block we're creating
+                    //at the point where these two blocks overlap.
+                    codeRange *origBlock_CR;
+                    image_->basicBlocksByRange.find(currAddr, origBlock_CR);
+                    image_basicBlock *origBlock = dynamic_cast<image_basicBlock *>(origBlock_CR);
+                    assert(origBlock);
+
                     // The newly created basic block will split
                     // the existing basic block that encompasses this
                     // address.
@@ -777,6 +785,11 @@ bool image_func::buildCFG(
                                   leadersToBlock,
                                   ET_FALLTHROUGH,
                                   worklist);
+                    parsing_printf(" ... Found split instruction stream, currAddr = %lx\n", currAddr);
+                    markAsNeedingRelocation(true);
+
+                    currBlk->markAsNeedingRelocation();
+                    origBlock->markAsNeedingRelocation();
                 } else {
                     parsing_printf(" ... uninstrumentable due to instruction stream overlap\n");
                     currBlk->lastInsnOffset_ = currAddr;

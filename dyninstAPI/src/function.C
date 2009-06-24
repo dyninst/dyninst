@@ -577,7 +577,7 @@ int_basicBlock *int_basicBlock::getFallthrough() const {
 }
 
 bool int_basicBlock::needsRelocation() const {
-    if(ib_->isShared()) {
+   if(ib_->isShared() || ib_->needsRelocation()) {
         // If we've _already_ relocated, then we're no longer shared
         // because we have our own copy.
 

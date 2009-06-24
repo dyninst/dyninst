@@ -229,6 +229,8 @@ class image_basicBlock : public codeRange {
     image_instPoint * getRetInstPoint();
 
     bool canBeRelocated() const { return canBeRelocated_; }
+    bool needsRelocation() const { return needsRelocation_; }
+    void markAsNeedingRelocation() { needsRelocation_ = true; }
 
 #if defined(cap_liveness)
     const bitArray &getLivenessIn();
@@ -251,16 +253,14 @@ class image_basicBlock : public codeRange {
 
     bool isEntryBlock_;
     bool isExitBlock_;
+    bool needsRelocation_;
+    bool isShared_;     // block shared by > 1 functions
 
     int blockNumber_;
 
-    bool isShared_;     // block shared by > 1 functions
-
     bool isStub_;       // used in parsing -- if true, has not been parsed
-
     bool containsRet_; // both of these are tantamount to saying "ends with X"
     bool containsCall_;
-
     bool canBeRelocated_; // some blocks contain uninstrumentable constructs
 
     pdvector<image_edge *> targets_;
