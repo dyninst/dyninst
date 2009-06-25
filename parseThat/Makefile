@@ -1,8 +1,11 @@
-VPATH = $(PLATFORM)
+
+TO_SCRIPTS = ../../scripts
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
 
 include ../make.config
+VPATH = $(PLATFORM)
 
-TO_CORE = ../..
 ABS_PROGRAM_DEST = `cd $(PROGRAM_DEST); pwd`
 
 all:  $(PLATFORM)/parseThat
