@@ -368,7 +368,7 @@ std::vector<Type *> *typeCollection::getAllTypes() {
 	typesVec->push_back(it->second);
    }
    if(!typesVec->size()){
-       free(typesVec);
+       delete typesVec;
        return NULL;
    }
    return typesVec;
@@ -381,7 +381,7 @@ vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
 	varsVec->push_back(pair<string, Type *>(it->first, it->second));
    }	
    if(!varsVec->size()){
-       free(varsVec);
+       delete varsVec;
        return NULL;
    }
    return varsVec;
