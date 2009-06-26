@@ -1429,7 +1429,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
       obj->addRegion(0, verdefSecData, verdefSecSize, ".gnu.version_d", Region::RT_SYMVERDEF, true);
     }
 #endif
-    
+
     createRelocationSections(obj, relocation_table, dynSymNameMapping);
 
 #if !defined(os_solaris)
@@ -1446,11 +1446,11 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
 }
 
 void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, dyn_hash_map<std::string, unsigned> &dynSymNameMapping) {
-   unsigned i,j,k;
+  unsigned i,j,k;
 
-   vector<relocationEntry> newRels;
-   if(newSecs.size())
-      newRels = newSecs[0]->getRelocations();
+  vector<relocationEntry> newRels;
+  if(newSecs.size())
+    newRels = newSecs[0]->getRelocations();
     
    Elf64_Rel *rels = (Elf64_Rel *)malloc(sizeof(Elf64_Rel) * (relocation_table.size()+newRels.size()));
    Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
@@ -1463,8 +1463,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
             rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
          } else {
-            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-                    relocation_table[i].name().c_str());
+            rels[j].r_info = ELF64_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
          }
          j++;
       } else {
@@ -1473,8 +1472,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
          if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
             relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
          } else {
-            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-                    relocation_table[i].name().c_str());
+            relas[k].r_info = ELF64_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
          }
          k++;
       }
@@ -1494,8 +1492,15 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
             rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
          } else {
-            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-                    newRels[i].name().c_str());
+#if defined(arch_x86)
+            rels[j].r_info = ELF64_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
+#elif defined(arch_sparc)
+            //            rels[j].r_info = ELF64_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
+#elif defined(arch_x86_64)
+            rels[j].r_info = ELF64_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
+#elif defined(arch_power)
+            rels[j].r_info = ELF64_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
+#endif
          }
          j++;
       } else {
@@ -1512,8 +1517,15 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
             relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
          } else {
-            fprintf(stderr, "%s[%d]:  relocation symbol not found: %s\n", FILE__, __LINE__,
-                    newRels[i].name().c_str());
+#if defined(arch_x86)
+            relas[k].r_info = ELF64_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
+#elif defined(arch_sparc)
+            //            relas[k].r_info = ELF64_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
+#elif defined(arch_x86_64)
+            relas[k].r_info = ELF64_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
+#elif defined(arch_power)
+            relas[k].r_info = ELF64_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
+#endif
          }
          k++;
       }
