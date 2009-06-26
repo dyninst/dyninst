@@ -16,6 +16,14 @@ AC_ARG_WITH(dyninst-include,
             [AS_HELP_STRING([--with-dyninst-include],[Directory to look for dyninst headers])],
             [DYNINST_INC="${withval}"],)
 
+AC_ARG_WITH(dwarf-lib,
+            [AS_HELP_STRING([--with-dwarf-include],[Directory to look for libdwarf])],
+            [DWARF_LIB="${withval}"],)
+
+AC_ARG_WITH(elf-lib,
+            [AS_HELP_STRING([--with-elf-include],[Directory to look for libelf])],
+            [ELF_LIB="${withval}"],)
+
 if test -n ${DYNINST_ROOT}; then
    # Add search paths to CPPFLAGS and LDFLAGS.
    if test -z ${DYNINST_LIB}; then
@@ -27,6 +35,8 @@ if test -n ${DYNINST_ROOT}; then
 fi
 
 AC_SUBST([LDFLAGS], ["-L${DYNINST_LIB} ${LDFLAGS}"])
+AC_SUBST([DWARFFLAGS], ["-L${DWARF_LIB}"])
+AC_SUBST([ELFFLAGS], ["-L${ELF_LIB}"])
 AC_SUBST([CPPFLAGS], ["-I${DYNINST_INC} ${CPPFLAGS}"])
 
 # Generate host string.
