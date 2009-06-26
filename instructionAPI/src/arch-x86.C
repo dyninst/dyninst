@@ -3221,10 +3221,14 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     }
     case 1:
       if(macadr) {
-        const char *pdisp8 = (const char*)addr;
+         const char *pdisp8 = (const char*)addr;
+         if (loc) { 
+            loc->disp_position = loc->modrm_position + 1;
+            loc->disp_size = 1;
+         }
         switch (rm) {
         case 0:
-	  macadr->set(apply_rex_bit(mEAX, pref->rexB()), *pdisp8, addrSzAttr);
+           macadr->set(apply_rex_bit(mEAX, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         case 1:
           macadr->set(apply_rex_bit(mECX, pref->rexB()), *pdisp8, addrSzAttr);
@@ -3259,6 +3263,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     case 2:
       if(macadr) {
         const int *pdisp32 = (const int*)addr;
+        if (loc) { 
+           loc->disp_position = loc->modrm_position + 1;
+           loc->disp_size = 4;
+        }
         switch (rm) {
         case 0:
           macadr->set(apply_rex_bit(mEAX, pref->rexB()), *pdisp32, addrSzAttr);
