@@ -518,26 +518,6 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
    map_entries *maps= getLinuxMaps(proc->getPid(), maps_size);
    //   std::string aout = process::tryToFindExecutable("", proc->getPid());
 
-   /*
-   if (maps) {
-      for (unsigned i = 0; i < maps_size; i++) {
-	fprintf(stderr, "[%s:%u] - \n", __FILE__, __LINE__);
-         if (maps[i].prems & PREMS_EXEC &&
-             strlen(maps[i].path) &&
-             aout != maps[i].path) {
-
-	     descs.push_back(fileDescriptor(maps[i].path,
-                                           maps[i].start,
-                                           maps[i].start,
-                                           true));
-         }
-      }
-      free(maps);
-      //      return true;
-      descs.clear();
-   }
-   */
-
    assert(r_debug_addr); // needs to be set before we're called
 
    r_debug_x *debug_elm;
@@ -573,7 +553,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
       Address text = static_cast<Address>(link_elm->l_addr());
       startup_printf("%s[%d]: processing element, name %s, text addr 0x%lx\n",
                      FILE__, __LINE__, obj_name.c_str(), text);
-      if (obj_name == "" && text == 0) {
+      if (obj_name == "") {
          continue;
       }
 
@@ -586,20 +566,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
                 break;
             }
          }
-      } /* else if (text == 0) { // Augment using maps
-         // r_debug will show symlinks, but maps shows the actual file
-         char symlink[PATH_MAX];
-         if (realpath(obj_name.c_str(), symlink) != NULL)
-            obj_name = symlink;
-         for (unsigned i = 0; i < maps_size; i++) {
-            if (maps[i].prems & PREMS_EXEC &&
-                !strcmp(symlink,maps[i].path)) {
-               text = maps[i].start;
-               break;
-            }
-         }
-         }*/
-
+      }
       if (obj_name[0] == '[')
          continue;
       if (obj_name == "") {
@@ -612,8 +579,8 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
          startup_printf("Link element invalid! (2)\n");
          return 0;
       }
-      startup_printf("%s[%d]: creating new file descriptor %s/0x%lx/0x%lx\n",
-                     FILE__, __LINE__, obj_name.c_str(), text, text);
+      startup_printf("%s[%d]: creating new file descriptor %s/0x%lx/0x%lx, ld is %lx\n",
+                     FILE__, __LINE__, obj_name.c_str(), text, text, link_elm->l_ld());
       descs.push_back(fileDescriptor(obj_name, 
                                      text, text,
                                      true, 
@@ -955,18 +922,18 @@ bool dynamic_linking::installTracing()
   
   assert(r_debug_addr);
     
-    r_debug_x *debug_elm;
-    if (proc->getAddressWidth() == 4)
-	debug_elm = new r_debug_32(proc, r_debug_addr);
-    else
-	debug_elm = new r_debug_64(proc, r_debug_addr);
-
-    if (!debug_elm->is_valid()) {
-        bperr( "Failed data read\n");
-
-	delete debug_elm;
-	return true;
-    }
+  r_debug_x *debug_elm;
+  if (proc->getAddressWidth() == 4)
+     debug_elm = new r_debug_32(proc, r_debug_addr);
+  else
+     debug_elm = new r_debug_64(proc, r_debug_addr);
+  
+  if (!debug_elm->is_valid()) {
+     bperr( "Failed data read\n");
+     
+     delete debug_elm;
+     return true;
+  }
     Address breakAddr = reinterpret_cast<Address>(debug_elm->r_brk());
     delete debug_elm;
 

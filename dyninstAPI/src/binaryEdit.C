@@ -338,20 +338,47 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
 }
 
 #if !defined(cap_binary_rewriter)
-std::string BinaryEdit::resolveLibraryName(std::string)
+std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
 {
-	return NULL;
+  assert(!"Not implemented");
+  return std::make_pair("", static_cast<BinaryEdit*>(NULL));
 }
+
 #endif
 
-bool BinaryEdit::getAllDependencies(std::queue<std::string> &deps)
+bool BinaryEdit::isMultiThreadCapable()
 {
    Symtab *symtab = mobj->parse_img()->getObject();
    std::vector<std::string> depends = symtab->getDependencies();
-   for (unsigned i=0; i<depends.size(); i++) {
-      std::string full_name = resolveLibraryName(depends[i]);
-      if (full_name.length())
-         deps.push(full_name);
+   for (std::vector<std::string>::iterator curDep = depends.begin();
+	curDep != depends.end(); curDep++) {
+     if((curDep->find("libpthread") != std::string::npos) || (curDep->find("libthread") != std::string::npos))
+       return true;
+   }
+   return false;
+}
+
+bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
+{
+   Symtab *symtab = mobj->parse_img()->getObject();
+   std::deque<std::string> depends;
+   std::copy(symtab->getDependencies().begin(), symtab->getDependencies().end(), std::back_inserter(depends));
+   while(!depends.empty())
+   {
+     std::string lib = depends.front();
+     if(deps.find(lib) == deps.end()) {
+       std::pair<std::string, BinaryEdit*> res = openResolvedLibraryName(lib);
+       if (res.second) {
+	 deps.insert(res);
+	 if(!res.second->getAllDependencies(deps))
+	 {
+	   return false;
+	 }
+       } else {
+	 return false;
+       }
+     }
+     depends.pop_front();
    }
    return true;
 }
@@ -470,7 +497,14 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             referring = dependentRelocations[i]->getReferring();
-            newSymbol = new Symbol(referring->getName(), 
+            if (!symObj->hasReldyn() && !symObj->hasReladyn()) {
+	      Address addr = referring->getOffset();
+	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
+	      assert(result);
+	      continue;
+	    }
+	    
+	    newSymbol = new Symbol(referring->getName(), 
                                    Symbol::ST_FUNCTION, 
                                    Symbol::SL_GLOBAL,
                                    Symbol::SV_DEFAULT, 
@@ -481,12 +515,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                                    true, 
                                    false);
             symObj->addSymbol(newSymbol, referring);
-            if (!symObj->hasReldyn() && !symObj->hasReladyn()) {
-               // TODO: probably should add new relocation section and
-               // corresponding .dynamic table entries
-               fprintf(stderr, "ERROR:  binary has no pre-existing relocation sections!\n");
-               return false;
-            } else if (!symObj->hasReldyn() && symObj->hasReladyn()) {
+	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
                newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
             } else {
                if (mobj->isSharedLib()) {

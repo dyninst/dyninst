@@ -1563,6 +1563,10 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
 
 bool AddressSpace::canUseTraps()
 {
+   BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(this);
+   if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary())
+   	return false;
+   
    return useTraps_;
 }
 

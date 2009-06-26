@@ -151,7 +151,7 @@ test_results_t test5_4_Mutator::executeTest() {
   BPatch_constExpr thisExpr((void *)this2->getBaseAddr());
   call4_args.push_back(&thisExpr);
   checkCost(call4Expr);
-  appThread->insertSnippet(call4Expr, *point4_3);
+  appAddrSpace->insertSnippet(call4Expr, *point4_3);
   
   return PASSED;
 }

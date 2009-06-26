@@ -1,9 +1,16 @@
-VPATH = $(PLATFORM)
+TO_CORE = ../
+TO_SCRIPTS = ../../scripts
+USES_DWARF_DEBUG = true
+USES_LIBELF = true
 
 include ../make.config
+VPATH = $(PLATFORM)
 
-TO_CORE = ../..
-ABS_PROGRAM_DEST = `cd $(PROGRAM_DEST); pwd`
+ABS_PROGRAM_DEST := $(shell cd $(PROGRAM_DEST); pwd)
+ABS_LIBRARY_DEST := $(shell cd $(LIBRARY_DEST); pwd)
+ABS_INCLUDE_DEST := $(shell cd $(INCLUDE_DEST); pwd)
+ABS_LIBDWARF_DEST := $(shell cd $(LIBDWARF_LIB); pwd)
+ABS_LIBELF_DEST := $(shell cd $(LIBELF_LIB); pwd)
 
 all:  $(PLATFORM)/parseThat
 
@@ -18,9 +25,9 @@ $(PLATFORM)/Makefile: Makefile.in
 	fi; \
    cd $(PLATFORM); \
    if [ -d $(ABS_PROGRAM_DEST) ]; then \
-	 	../configure --with-dyninst-lib=$(LIBRARY_DEST) --with-dyninst-include=$(INCLUDE_DEST) --prefix=$(ABS_PROGRAM_DEST); \
+	 	../configure --with-elf-lib=$(ABS_LIBELF_DEST) --with-dwarf-lib=$(ABS_LIBDWARF_DEST) --with-dyninst-lib=$(ABS_LIBRARY_DEST) --with-dyninst-include=$(ABS_INCLUDE_DEST) --prefix=$(ABS_PROGRAM_DEST); \
    else \
-	 	../configure --with-dyninst-lib=$(LIBRARY_DEST) --with-dyninst-include=$(INCLUDE_DEST); \
+	 	../configure --with-elf-lib=$(ABS_LIBELF_DEST) --with-dwarf-lib=$(ABS_LIBDWARF_DEST) --with-dyninst-lib=$(ABS_LIBRARY_DEST) --with-dyninst-include=$(ABS_INCLUDE_DEST); \
    fi; \
 
 clean:

@@ -419,23 +419,24 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 
    outfile = std::string(BINEDIT_DIR) + std::string("/rewritten_") + std::string(group->mutatee);
 
+#if !defined(os_windows_test)
    if (getenv("DYNINST_REWRITER_NO_UNLINK"))
    {
-     //  we may in fact generate several binaries  (one for each rungroup)
-     //  sequentially rewriting over them.  If DYNINST_REWRITER_NO_UNLINK is
-     //  set, add a uniqification parameter to the filename, as well as a 
-     //  report file that indicates which tests are represented in the
-     //  binary
-     
-     outfile += std::string("_") + Dyninst::utos((unsigned)clock());
-     std::string reportfile = outfile + std::string(".report");
-     FILE *myrep = fopen(reportfile.c_str(), "w");
-     fprintf(myrep, "Test group contains:\n");
-     for (unsigned int i = 0; i < group->tests.size(); ++i)
-       if (shouldRunTest(group, group->tests[i])) 
-	 fprintf(myrep, "%s\n", group->tests[i]->name);
-     fclose(myrep);
+      //  we may in fact generate several binaries  (one for each rungroup)
+      //  sequentially rewriting over them.  If DYNINST_REWRITER_NO_UNLINK is
+      //  set, add a uniqification parameter to the filename, as well as a 
+      //  report file that indicates which tests are represented in the
+      //  binary
+      outfile += std::string("_") + Dyninst::utos((unsigned)clock());
+      std::string reportfile = outfile + std::string(".report");
+      FILE *myrep = fopen(reportfile.c_str(), "w");
+      fprintf(myrep, "Test group contains:\n");
+      for (unsigned int i = 0; i < group->tests.size(); ++i)
+         if (shouldRunTest(group, group->tests[i])) 
+            fprintf(myrep, "%s\n", group->tests[i]->name);
+      fclose(myrep);
    }
+#endif
 
    result = binEdit->writeFile(outfile.c_str());
    if (!result) {

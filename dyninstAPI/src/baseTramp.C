@@ -45,6 +45,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/ast.h"
@@ -786,6 +787,13 @@ bool baseTramp::doOptimizations()
 }
 
 void baseTramp::setRecursive(bool trampRecursive, bool force) {
+
+   BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(proc());
+   if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
+   	guardState_ = recursive_BTR;
+	return;
+   }
+
    if (force) {
       guardState_ = trampRecursive ? recursive_BTR : guarded_BTR;
       return;

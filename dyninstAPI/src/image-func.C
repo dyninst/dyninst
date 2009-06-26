@@ -344,6 +344,7 @@ image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
     blockEndOffset_(firstOffset+1),
     isEntryBlock_(false),
     isExitBlock_(false),
+    needsRelocation_(false),
     isShared_(false),
     isStub_(false),
     containsRet_(false),

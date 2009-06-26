@@ -74,8 +74,7 @@ test_results_t test1_38_Mutator::executeTest()
 		return SKIPPED;
 	} 
 
-	BPatch_image *dummy = appThread->getImage();
-	assert (appThread->getImage());
+	assert (appImage);
 
 	const char *funcName = "test1_38_call1";
 	BPatch_Vector<BPatch_function *> funcs0;

@@ -968,12 +968,12 @@ static ia32_entry oneByteMap[256] = {
   { e_mov, t_done, 0, true, { Gb, Eb, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Ew, Sw, Zz }, 0, s1W2R },
-  { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, 0, s1W2R }, // this is just M in the book
+  { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, IS_NOP, s1W2R }, // this is just M in the book
                                                         // AFAICT the 2nd operand is not accessed
   { e_mov, t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
   { e_pop, t_done, 0, true, { Ev, STPv, eSP }, 0, s1W2R3RW },
   /* 90 */
-  { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // actually xchg eax,eax
+  { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, IS_NOP, sNONE }, // actually xchg eax,eax
   { e_xchg, t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
   { e_xchg, t_done, 0, false, { eDX, eAX, Zz }, 0, s1RW2RW },
   { e_xchg, t_done, 0, false, { eBX, eAX, Zz }, 0, s1RW2RW },
@@ -1138,13 +1138,13 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE17, true, { Zz, Zz, Zz }, 0, 0 },
   /* 18 */
   { e_No_Entry, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // I think we can...so nullary operand semantics, but consume the
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // mod/rm byte operand.
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // -- BW 1/08
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // I think we can...so nullary operand semantics, but consume the
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // mod/rm byte operand.
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // -- BW 1/08
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 },
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 },
   /* 20 */
   { e_mov, t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },
@@ -4374,8 +4374,7 @@ void instruction::generateCall(codeGen &gen,
                                Address from,
                                Address target)
 {
-  // TODO 64bit fixme
-   assert(target);
+  //assert(target);
   long disp = target - (from + CALL_REL32_SZ);
   
   if (is_disp32(disp)) {
@@ -5656,3 +5655,74 @@ const char* ia32_entry::name(ia32_locations* loc)
 }
 
 #endif
+bool instruction::isNop() const
+{ 
+
+   int displacement_location = 0;
+   int displacement_size = 0;
+   if (!(type_ & IS_NOP)) //NOP or LEA
+      return false;
+
+   bool result;
+
+   if (*op_ptr_ == NOP) {
+      return true;
+   }
+
+   ia32_memacc mac[3];
+   ia32_condition cnd;
+   ia32_locations loc;
+
+   ia32_instruction instruc(mac, &cnd, &loc);
+
+   ia32_decode(IA32_FULL_DECODER, ptr(), instruc);
+
+
+   if (instruc.getEntry()->id == e_nop) {
+      return true;
+   }
+
+   if (loc.modrm_mod == 3) {
+      return false;
+   }
+   if (loc.modrm_mod == 0 && loc.modrm_rm == 5) {
+      return false;
+   }
+
+   if (loc.rex_x) {
+      return false;
+   }
+   if (loc.rex_r != loc.rex_b) {
+      return false;
+   }
+
+   if (loc.disp_position != -1) {
+      for (unsigned i=0; i<loc.disp_size; i++) {
+         if (ptr_[i + loc.disp_position] != 0) {
+            return false;
+         }
+      }
+      displacement_location = loc.disp_position;
+      displacement_size = loc.disp_size;
+   }
+   
+   if (loc.modrm_rm == 4) {
+      unsigned scale;
+      Register index, base;
+      decode_SIB(loc.sib_byte, scale, index, base);
+      
+      if (index != 4) {
+         return false;
+      }
+
+      if (base != loc.modrm_reg) {
+         return false;
+      }
+   }
+   else if (loc.modrm_reg != loc.modrm_rm) {
+      return false;
+   }
+
+
+   return true;
+}

@@ -1165,6 +1165,8 @@ bool Symtab::extractInfo(Object *linkedFile)
     no_of_sections = linkedFile->no_of_sections();
     newSectionInsertPoint = no_of_sections;
     no_of_symbols = linkedFile->no_of_symbols();
+    
+    isStaticBinary_ = linkedFile->isStaticBinary();
 
     hasRel_ = false;
     hasRela_ = false;
@@ -2188,6 +2190,11 @@ SYMTAB_EXPORT bool Symtab::hasRelplt() const
 SYMTAB_EXPORT bool Symtab::hasRelaplt() const
 {
    return hasRelaplt_;
+}
+
+SYMTAB_EXPORT bool Symtab::isStaticBinary() const
+{
+   return isStaticBinary_;
 }
 
 bool Symtab::setDefaultNamespacePrefix(string &str)

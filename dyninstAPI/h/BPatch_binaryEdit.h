@@ -99,12 +99,14 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     bool creation_error;
 
     bool replaceTrapHandler();
+    
 
     protected:
     void getAS(std::vector<AddressSpace *> &as);
 
     public:
 
+    bool isMultiThreadCapable() const;
     bool getType();
     bool getTerminated() {return false;}
     bool getMutationsActive() {return true;}

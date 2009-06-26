@@ -895,25 +895,28 @@ void startAllTests(std::vector<RunGroup *> &groups,
       printLogMutateeHeader(groups[i]->mutatee);
 
       int before_group = numUnreportedTests(groups[i]);
+      if (!before_group)
+         continue;
+
       executeGroup(groups[i]->mod->tester, groups[i], param);
       int after_group = numUnreportedTests(groups[i]);
    
       if (after_group) {
-	if (before_group == after_group) {
-	  //This should be uncommon.  We made no forward progress
-	  // running tests in the group, and we have tests that didn't run.
-	  // Mark the group as failed, as we don't want to just spin here.
-	  for (unsigned j=0; j<groups[i]->tests.size(); j++) {
-	    if (!shouldRunTest(groups[i], groups[i]->tests[j]))
-	      continue;
-	    groups[i]->tests[j]->results[group_teardown_rs] = FAILED;
-	    reportTestResult(groups[i], groups[i]->tests[j]);
-	  }
-	}
-	else {
-	  aborted_group = true;
-	  break;
-	}
+         if (before_group == after_group) {
+            //This should be uncommon.  We made no forward progress
+            // running tests in the group, and we have tests that didn't run.
+            // Mark the group as failed, as we don't want to just spin here.
+            for (unsigned j=0; j<groups[i]->tests.size(); j++) {
+               if (!shouldRunTest(groups[i], groups[i]->tests[j]))
+                  continue;
+               groups[i]->tests[j]->results[group_teardown_rs] = FAILED;
+               reportTestResult(groups[i], groups[i]->tests[j]);
+            }
+         }
+         else {
+            aborted_group = true;
+            break;
+         }
       }
    }
 

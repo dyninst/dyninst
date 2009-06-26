@@ -368,6 +368,8 @@ int main(int iargc, char *argv[])
 		  gettimeofday(&present_time, NULL);
 		  if (present_time.tv_sec > (start_time.tv_sec + 30))
 		  {
+           if (checkIfAttached())
+              break;
 			  logstatus("mutatee: mutator attach problem, failing...\n");
 			  exit(-1);
 		  }

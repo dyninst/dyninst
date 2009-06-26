@@ -1873,3 +1873,8 @@ bool InstrucIter::usesSPR(std::set<Register> &sprs) {
     
     return false;
 }
+
+bool InstrucIter::isANopInstruction()
+{
+   return false;
+}

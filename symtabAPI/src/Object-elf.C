@@ -439,24 +439,29 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   gettimeofday(&starttime, NULL);
 #endif
 
-  // Find pointer to dynamic section
-  unsigned phdr_count = 0;
-  bool foundDynamicSection = false;
-  Elf_X_Phdr elfPhdr = elfHdr.get_phdr(phdr_count);
+  // Find pointer to dynamic section and interpreter section
+  bool foundInterp = false;
   unsigned phdr_max_count = elfHdr.e_phnum();
 
-  while(!foundDynamicSection && (phdr_count < phdr_max_count)) {
-    if(elfPhdr.p_type() == PT_DYNAMIC){
-      foundDynamicSection = true;
-      dynamic_offset_ = elfPhdr.p_offset();
-      dynamic_size_ = elfPhdr.p_memsz();
-    }
-    elfPhdr = elfHdr.get_phdr(++phdr_count);
+  for (unsigned i = 0; i < phdr_max_count; i++) {
+  	Elf_X_Phdr elfPhdr = elfHdr.get_phdr(i);
+	if(elfPhdr.p_type() == PT_DYNAMIC){
+	      dynamic_offset_ = elfPhdr.p_offset();
+	      dynamic_size_ = elfPhdr.p_memsz();
+    	} else if (elfPhdr.p_type() == PT_INTERP) {
+	      foundInterp = true;
+	}
   }
-   
+
+  if (foundInterp) {
+	is_static_binary_ = false;	
+  } else {
+	is_static_binary_ = true;	
+  }
+
   Elf_X_Shdr *scnp;
    
-  foundDynamicSection = false;
+  bool foundDynamicSection = false;
   int dynamic_section_index = -1;
   unsigned int dynamic_section_type = 0;
   size_t dynamic_section_size = 0;
@@ -464,7 +469,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
     if (! scnp->isValid())  // section is malformed
       continue; 
-    if (dynamic_offset_ !=0 && scnp->sh_offset() == dynamic_offset_) {
+    if ((dynamic_offset_ !=0) && (scnp->sh_offset() == dynamic_offset_)) {
       if (!foundDynamicSection) {
 	dynamic_section_index = i;
 	dynamic_section_size = scnp->sh_size();
@@ -902,12 +907,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
 #endif
 
-  if (!dataddr || !symscnp || !strscnp) {
-    //    fprintf(stderr, "[%s][%d]WARNING: One or more of text/bss/symbol/string sections not found in ELF binary\n",__FILE__,__LINE__);
-    log_elferror(err_func_, "no text/bss/symbol/string section");
-    //return false;
-  }
-
+if (!dataddr || !symscnp || !strscnp) {
+    //log_elferror(err_func_, "no text/bss/symbol/string section");
+}
   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
   return true;
 }

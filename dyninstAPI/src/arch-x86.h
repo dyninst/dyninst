@@ -106,6 +106,7 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define ILLEGAL (1<<6)   /* illegal instruction */
 #define PRVLGD  (1<<7)   /* privileged */
 #define IS_RETC (1<<8)   /* return and pop bytes off of stack*/
+#define IS_NOP  (1<<9)   /* Nop, Lea--lea is only sometime a return, be sure to double check */
 
 /* addressing modes for calls and jumps */
 #define REL_B   (1<<10)  /* relative address, byte offset */
@@ -852,7 +853,7 @@ class instruction {
     { return !(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
   bool isUncondJump() const
     { return ((type_ & IS_JUMP) && !(type_ & IS_JCC)); }
-  bool isNop() const { return *ptr_ == 0x90; }
+  bool isNop() const;
   bool isIndir() const { return type_ & INDIR; }
   bool isIllegal() const { return type_ & ILLEGAL; }
   bool isLeave() const { return *ptr_ == 0xC9; }  

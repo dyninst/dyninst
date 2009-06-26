@@ -577,7 +577,7 @@ int_basicBlock *int_basicBlock::getFallthrough() const {
 }
 
 bool int_basicBlock::needsRelocation() const {
-    if(ib_->isShared()) {
+   if(ib_->isShared() || ib_->needsRelocation()) {
         // If we've _already_ relocated, then we're no longer shared
         // because we have our own copy.
 
@@ -1368,6 +1368,17 @@ bool int_function::performInstrumentation(bool stopOnFailure,
     // Let's avoid a lot of work and collect up all instPoints that have
     // something interesting going on; that is, that have instrumentation
     // added since the last time something came up. 
+
+#if defined(arch_x86_64)
+  if(proc()->getAddressWidth() == 8)
+  {
+    ia32_set_mode_64(true);
+  }
+  else
+  {
+    ia32_set_mode_64(false);
+  }
+#endif  
 
   if (isBeingInstrumented_) return false;
   isBeingInstrumented_ = true;

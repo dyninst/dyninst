@@ -810,3 +810,8 @@ bool InstrucIter::isFramePush()
 {
   return false;
 }
+
+bool InstrucIter::isANopInstruction()
+{
+   return false;
+}

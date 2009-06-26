@@ -1085,41 +1085,6 @@ instPointInstance::result_t instPointInstance::generateInst() {
         return mTrampTooBig;
     }
 
-#if 0
-    if (block_->block()->needsRelocation() ||
-        errCode == multiTramp::mtTryRelocation) 
-    {
-        // We can try to simply shift the entire function nearer
-        // instrumentation. TODO: a funcMod that says "hey, move me to
-        // this address.
-        reloc_printf("Trying relocation in function %s, %d, %d %s\n", 
-                     block_->func()->symTabName().c_str(),
-                     block_->getSize(),
-                     multi()->sizeDesired(),
-                     block_->block()->needsRelocation() ? 
-                     "(block req reloc)" : "");
-        
-        if (block_->getSize() < multi()->sizeDesired()) {
-            // expandForInstrumentation will append to the expand list, so can 
-            // be called multiple times without blowing up
-            if (func()->expandForInstrumentation()) {
-                // and relocationGenerate invalidates old, "in-flight" versions.
-                func()->relocationGenerate(func()->enlargeMods(), 0, 
-                                           force_reloc);
-            }
-        }
-        else {
-            // Use func's enlargeMods so that we don't regress the 
-            // relocated state.
-            func()->relocationGenerate(func()->enlargeMods(), 
-                                       0, force_reloc);
-        }
-
-        reloc_printf("%s[%d]: After generating relocation information for %s, %d also need relocation...\n",
-                     FILE__, __LINE__, func()->prettyName().c_str(), force_reloc.size());
-                
-    }
-#endif
 #endif
 
     return generateSucceeded;

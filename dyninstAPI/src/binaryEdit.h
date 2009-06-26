@@ -136,10 +136,6 @@ class BinaryEdit : public AddressSpace {
 
     bool writeFile(const std::string &newFileName);
     
-    // resolve a dynamic library name to a full path
-    // returns NULL if the library cannot be found
-    std::string resolveLibraryName(std::string filename);
-
     virtual int_function *findOnlyOneFunction(const std::string &name,
                                               const std::string &libname = "",
                                               bool search_rt_lib = true);
@@ -155,7 +151,7 @@ class BinaryEdit : public AddressSpace {
 
    void setupRTLibrary(BinaryEdit *r);
    BinaryEdit *rtLibrary();
-   bool getAllDependencies(std::queue<std::string> &deps);
+   bool getAllDependencies(std::map<std::string, BinaryEdit* > &deps);
 
    void markDirty();
    bool isDirty();
@@ -172,9 +168,10 @@ class BinaryEdit : public AddressSpace {
 
    bool replaceTrapHandler();
    bool usedATrap();
+   bool isMultiThreadCapable();
+   std::pair<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
 
  private:
-
     Address highWaterMark_;
     Address lowWaterMark_;
     bool isDirty_;
