@@ -48,43 +48,39 @@ CXXFLAGS    += -Wall
 LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
-LIBS        += -ldwarf 
+LIBS        += -ldwarf  -lelf
 LDFLAGS += $(DWARFFLAGS)
+LDFLAGS += $(ELFFLAGS)
 endif
 
 ifneq (, $(findstring linux, $(PLATFORM)))
-LIBS        += -ldwarf
+LIBS        += -ldwarf -lelf
 LDFLAGS += $(DWARFFLAGS)
+LDFLAGS += $(ELFFLAGS)
 endif
 
 ifneq (, $(findstring sparc, $(PLATFORM)))
-LIBS        += -lelf -lstdc++ -lsocket -lrt
-LDFLAGS += $(ELFFLAGS)
+LIBS        += -lstdc++ -lsocket -lrt
 endif
 
 ifneq (, $(findstring i386, $(PLATFORM)))
-LIBS        += -linstructionAPI -lelf
-LDFLAGS += $(ELFFLAGS)
+LIBS        += -linstructionAPI
 endif
 
 ifneq (, $(findstring i486, $(PLATFORM)))
-LIBS        += -linstructionAPI -lelf
-LDFLAGS += $(ELFFLAGS)
+LIBS        += -linstructionAPI
 endif
 
 ifneq (, $(findstring i586, $(PLATFORM)))
-LIBS        += -linstructionAPI -lelf
-LDFLAGS += $(ELFFLAGS)
+LIBS        += -linstructionAPI
 endif
 
 ifneq (, $(findstring i686, $(PLATFORM)))
-LIBS        += -linstructionAPI -lelf
-LDFLAGS += $(ELFFLAGS)
+LIBS        += -linstructionAPI 
 endif
 
 ifneq (, $(findstring x86_64, $(PLATFORM)))
-LIBS        += -linstructionAPI -lelf
-LDFLAGS += $(ELFFLAGS)
+LIBS        += -linstructionAPI 
 endif
 
 ifneq (, $(findstring alpha, $(PLATFORM)))
