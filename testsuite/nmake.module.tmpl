@@ -16,8 +16,8 @@ CXXFLAGS     = $(CXXFLAGS) -Dos_windows_test -Darch_x86_test -Dcap_relocation_te
 	-Di386-unknown-nt4.0_test
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 	-I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h -I$(TO_CORE)/testsuite/src \
-	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi
-CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src
+	-I$(TO_CORE)/instructionAPI/h /D_DEBUG /Zi -Dsnprintf=_snprintf
+CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src 
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib
