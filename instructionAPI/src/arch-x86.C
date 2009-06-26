@@ -971,12 +971,12 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_mov, t_done, 0, true, { Gb, Eb, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Ew, Sw, Zz }, 0, s1W2R },
-  { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, 0, s1W2R }, // this is just M in the book
+  { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, IS_NOP, s1W2R }, // this is just M in the book
                                                         // AFAICT the 2nd operand is not accessed
   { e_mov, t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
   { e_pop, t_done, 0, true, { Ev, eSP, Zz }, 0, s1W2RW },
   /* 90 */
-  { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // actually xchg eax,eax
+  { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, IS_NOP, sNONE }, // actually xchg eax,eax
   { e_xchg, t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
   { e_xchg, t_done, 0, false, { eDX, eAX, Zz }, 0, s1RW2RW },
   { e_xchg, t_done, 0, false, { eBX, eAX, Zz }, 0, s1RW2RW },
@@ -1141,13 +1141,13 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE17, true, { Zz, Zz, Zz }, 0, 0 },
   /* 18 */
   { e_No_Entry, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // I think we can...so nullary operand semantics, but consume the
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // mod/rm byte operand.
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // -- BW 1/08
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
-  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // I think we can...so nullary operand semantics, but consume the
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // mod/rm byte operand.
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 }, // -- BW 1/08
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 },
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, IS_NOP, 0 },
   /* 20 */
   { e_mov, t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },

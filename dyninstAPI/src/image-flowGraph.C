@@ -696,6 +696,7 @@ bool image_func::buildCFG(
                 nextExistingBlockAddr = nextExistingBlock->firstInsnOffset_;
             }
         }
+        bool isNopBlock = ah.isANopInstruction();
 
         while(true) // instructions in block
         {
@@ -830,7 +831,31 @@ bool image_func::buildCFG(
             // Special architecture-specific instruction processing
             archInstructionProc( ah );
 
-            if( ah.isACondBranchInstruction() )
+            if (isNopBlock) 
+            {
+               bool nextIsNop = false;
+               Address nextAddr;
+               if (ah.hasMore()) {
+                  ah++;
+                  nextIsNop = ah.isANopInstruction();
+                  ah--;
+               }
+               nextAddr = ah.peekNext();
+               
+               if (!nextIsNop) {
+                  currBlk->lastInsnOffset_ = currAddr;
+                  currBlk->blockEndOffset_ = nextAddr;
+                  
+                  addBasicBlock(nextAddr,
+                                currBlk,
+                                leaders,
+                                leadersToBlock,
+                                ET_FALLTHROUGH,
+                                worklist);
+                  break;
+               }
+            }
+            else if( ah.isACondBranchInstruction() )
             {
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();

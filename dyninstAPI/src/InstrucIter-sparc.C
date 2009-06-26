@@ -724,3 +724,8 @@ int InstrucIter::adjustRegNumbers(int regNum, int window) {
     return regNum + WIN_SIZE*(MAX_SETS - window);
   return regNum;
 }
+
+bool InstrucIter::isANopInstruction()
+{
+   return false;
+}
