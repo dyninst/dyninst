@@ -4,7 +4,7 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-DEBUG_FLAG = -g
+# DEBUG_FLAG = -g
 #NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true

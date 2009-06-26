@@ -6,7 +6,7 @@
 
 #USES_LIBERTY = true
 #NO_OPT_FLAG = true
-DEBUG_FLAG = -g
+# DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything

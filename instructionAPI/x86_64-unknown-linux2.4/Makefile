@@ -4,7 +4,7 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-DEBUG_FLAG = -g
+# DEBUG_FLAG = -g
 AUTO_TEMPLATES= true
 #NO_IMPLICIT_TEMPLATES = true
 USES_BOOST = true
