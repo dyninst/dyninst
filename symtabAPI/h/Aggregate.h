@@ -43,15 +43,7 @@
 #include <iostream>
 #include "Annotatable.h"
 
-//class Aggregate;
-//class Dyninst::SymtabAPI::Aggregate;
-//SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
-#if defined (os_windows)
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
-#else
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
-#endif
-//std::ostream &::operator<<(std::ostream &os, const Aggregate &);
 
 namespace Dyninst{
 namespace SymtabAPI{

@@ -242,9 +242,7 @@ class Symbol : public Serializable,
    int index_;
    int strindex_;
 
-#if !defined (USE_ANNOTATIONS)
    std::vector<std::string> verNames_;
-#endif
 
    void restore_module_and_region(SerializerBase *, 
 		   std::string &, Offset) THROW_SPEC (SerializerError);
