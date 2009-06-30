@@ -62,9 +62,10 @@ class process;
 // DYNINST_MINOR, and DYNINST_SUBMINOR
 #define DYNINST_5_1
 #define DYNINST_5_2
+#define DYNINST_6_0
 
-#define DYNINST_MAJOR 5
-#define DYNINST_MINOR 2
+#define DYNINST_MAJOR 6
+#define DYNINST_MINOR 0
 #define DYNINST_SUBMINOR 0
 
 #ifdef IBM_BPATCH_COMPAT
