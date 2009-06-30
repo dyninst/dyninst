@@ -132,7 +132,7 @@ class test_type_info_Mutator : public SymtabMutator {
 	   if (!got_type_subrange)
 	   {
 		   //  solaris CC does not appear to produce these
-#if !defined(os_solaris_test) && !defined(os_aix_test)
+#if !defined(os_solaris_test) && !defined(os_aix_test) && !defined(os_windows_test)
 		   fprintf(stderr, "%s[%d]:  subrange was missed\n", FILE__, __LINE__);
 		   return false;
 #endif
@@ -164,8 +164,10 @@ class test_type_info_Mutator : public SymtabMutator {
 
 	   if (!got_type_typedef)
 	   {
+#if !defined(os_windows_test)
 		   fprintf(stderr, "%s[%d]:  typedef was missed\n", FILE__, __LINE__);
 		   return false;
+#endif
 	   }
 
 	   return true;
@@ -807,6 +809,7 @@ bool test_type_info_Mutator::specific_type_tests()
       fprintf(stderr, "[%s:%u] - Could not verify struct\n");
 		return false;
    }
+#if !defined(os_windows_test)
 	tname = "int_alias_t";
 	if (!symtab->findType(t, tname) || (NULL == t))
 	{
@@ -930,6 +933,7 @@ bool test_type_info_Mutator::specific_type_tests()
 		logerror("%s[%d]:  skipped function pointer type verifiction for sun CC compiler\n", 
 				FILE__, __LINE__);
 	}
+#endif
 	return true;
 }
 
@@ -1070,11 +1074,12 @@ test_results_t test_type_info_Mutator::executeTest()
 	{
 		std::string mname = mods[i]->fileName();
 		//fprintf(stderr, "%s[%d]:  considering module %s\n", FILE__, __LINE__, mname.c_str());
-		if (!strncmp("solo_mutatee", mname.c_str(), strlen("solo_mutatee")))
+		if (!strncmp("solo_mutatee", mname.c_str(), strlen("solo_mutatee")) ||	
+		    !strncmp("test_type_info_mutatee", mname.c_str(), strlen("test_type_info_mutatee")))
 		{
-			if (mod)
-				fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-			mod = mods[i];
+		   if (mod)
+		      fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		   mod = mods[i];
 		}
 	}
 
