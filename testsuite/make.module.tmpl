@@ -16,7 +16,7 @@ DYNINST_INCDIR = -I../../dyninstAPI/h
 SYMTAB_INCDIR = -I../../symtabAPI/h
 DYNUTIL_INCDIR = -I../../dynutil/h
 INSTRUCTION_INCDIR = -I../../instructionAPI/h
-BOOST_INCDIR = -I../../external/boost
+BOOST_INCDIR = -I../../external
 
 IFLAGS += $(DYNINST_INCDIR)
 IFLAGS += $(DYNUTIL_INCDIR)
@@ -29,7 +29,7 @@ IFLAGS += $(BOOST_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I../../../include -I../src -g
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I../../../include -I../src -g $(BOOST_INCDIR)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
