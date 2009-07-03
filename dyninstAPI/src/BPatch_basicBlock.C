@@ -414,15 +414,17 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 #if defined(cap_instruction_api)
 bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction>& insns) {
   using namespace InstructionAPI;
+
   InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())), size());
-  Instruction curInsn = d.decode();
-  while(curInsn.isValid())
-  {
-    insns.push_back(curInsn);
-    curInsn = d.decode();
-  }
-  return !insns.empty();
-  
+
+  do {
+      insns.push_back(d.decode());
+  } while (insns.back().isValid());
+
+  // Remove final invalid instruction
+  if (!insns.empty()) insns.pop_back();
+
+  return !insns.empty();  
 }
 
 bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction, Address> >& insnInstances) {
@@ -431,12 +433,12 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
   if (ptr == NULL) return false;
   InstructionDecoder d(ptr, size());
-  Instruction curInsn = d.decode();
-  while(curInsn.isValid()) {
-      insnInstances.push_back(std::make_pair(curInsn,addr));
-      addr += curInsn.size();
-      curInsn = d.decode();
+
+  while (addr < getEndAddress()) {
+      insnInstances.push_back(std::make_pair(d.decode(), addr));
+      addr += insnInstances.back().first.size();
   }
+
   return !insnInstances.empty();  
 }
 #else

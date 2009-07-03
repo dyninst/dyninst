@@ -959,11 +959,17 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
     const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
     if (ptr == NULL) return;
     InstructionDecoder d(ptr, getSize());
+#if 0
     Instruction curInsn = d.decode();
     while(curInsn.isValid()) {
         instances.push_back(std::make_pair(curInsn,off));
         off += curInsn.size();
         curInsn = d.decode();
+    }
+#endif
+    while (off < endOffset()) {
+        instances.push_back(std::make_pair(d.decode(), off));
+        off += instances.back().first.size();
     }
 }
 #endif
