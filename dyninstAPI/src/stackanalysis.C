@@ -59,11 +59,25 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
-const StackAnalysis::StackHeight StackAnalysis::StackHeight::bottom(StackAnalysis::StackHeight::notUnique);
-const StackAnalysis::StackHeight StackAnalysis::StackHeight::top(StackAnalysis::StackHeight::uninitialized);
+const StackAnalysis::Height StackAnalysis::Height::bottom(StackAnalysis::Height::notUnique);
+const StackAnalysis::Height StackAnalysis::Height::top(StackAnalysis::Height::uninitialized);
 
-AnnotationClass <StackAnalysis::HeightTree> StackHeightAnno(std::string("StackHeightAnno"));
-AnnotationClass <StackAnalysis::PresenceTree> StackPresenceAnno(std::string("StackPresenceAnno"));
+const StackAnalysis::Presence StackAnalysis::Presence::bottom(StackAnalysis::Presence::bottom_t);
+const StackAnalysis::Presence StackAnalysis::Presence::top(StackAnalysis::Presence::top_t);
+
+const StackAnalysis::InsnTransferFunc StackAnalysis::InsnTransferFunc::bottom(StackAnalysis::InsnTransferFunc::notUnique, false);
+const StackAnalysis::InsnTransferFunc StackAnalysis::InsnTransferFunc::top(StackAnalysis::InsnTransferFunc::uninitialized, false);
+
+const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::bottom(StackAnalysis::BlockTransferFunc::notUnique, false, false);
+const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::top(StackAnalysis::BlockTransferFunc::uninitialized, false, false);
+
+const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::initial(0, true, true);
+
+const StackAnalysis::Range StackAnalysis::defaultRange(std::make_pair(0, 0), 0, 0);
+const StackAnalysis::Range::range_t StackAnalysis::Range::infinite(std::make_pair(MINLONG, MAXLONG));
+
+AnnotationClass <StackAnalysis::HeightTree> HeightAnno(std::string("HeightAnno"));
+AnnotationClass <StackAnalysis::PresenceTree> PresenceAnno(std::string("PresenceAnno"));
 
 
 //
@@ -84,45 +98,53 @@ AnnotationClass <StackAnalysis::PresenceTree> StackPresenceAnno(std::string("Sta
 
 bool StackAnalysis::analyze()
 {
-    stackanalysis_printf("Beginning stack analysis for function %s\n",
-                      func->symTabName().c_str());
+    //stackanalysis_printf("Beginning stack analysis for function %s\n",
+    //func->symTabName().c_str());
     blocks = func->blocks();
     if (blocks.empty()) return false;
-    
+
     blocks = func->blocks();
     
-    stackanalysis_printf("\tSummarizing block effects\n");
-    summarizeBlockDeltas();
+    //stackanalysis_printf("\tSummarizing block effects\n");
+    summarizeBlocks();
     
-    stackanalysis_printf("\tPerforming fixpoint analysis\n");
-    calculateInterBlockDepth();
+    //stackanalysis_printf("\tPerforming fixpoint analysis\n");
+    fixpoint();
 
-    stackanalysis_printf("\tCreating interval trees\n");
-    createIntervals();
+    //stackanalysis_printf("\tCreating interval trees\n");
+    createPresenceIntervals();
+    createHeightIntervals();
 
-    func->addAnnotation(heightIntervals_, StackHeightAnno);
-    func->addAnnotation(presenceIntervals_, StackPresenceAnno);
+    func->addAnnotation(heightIntervals_, HeightAnno);
+    func->addAnnotation(presenceIntervals_, PresenceAnno);
 
     if (dyn_debug_stackanalysis) {
-        debugStackHeights();
-        debugStackPresences();
+        debugHeights();
+        debugPresences();
     }
 
-    stackanalysis_printf("Finished stack analysis for function %s\n",
-                      func->symTabName().c_str());
+    //stackanalysis_printf("Finished stack analysis for function %s\n",
+    //func->symTabName().c_str());
 
     return true;
 }
-   
-void StackAnalysis::summarizeBlockDeltas() {
+
+// We want to create a transfer function for the block as a whole. 
+// This will allow us to perform our fixpoint calculation over
+// blocks (thus, O(B^2)) rather than instructions (thus, O(I^2)). 
+//
+// Handling the stack height is straightforward. We also accumulate
+// region changes in terms of a stack of Region objects.
+
+void StackAnalysis::summarizeBlocks() {
     // STACK HEIGHT:
     // Foreach block B:
-    //   Let acc = 0;
+    //   Let E = block effect
     //   Foreach (insn i, offset o) in B:
-    //     Let d = change in stack height at i;
-    //     Let acc += d;
-    //     blockToInsnDeltas[B][o] = d;
-    //   blockHeightDeltas[B] = acc;
+    //     Let T = transfer function representing i;
+    //     E = T(E);
+    //     blockToInsnFuncs[B][o] = T;
+    //   blockEffects[B] = E;
 
     // STACK PRESENCE:
     // Foreach block B:
@@ -134,114 +156,131 @@ void StackAnalysis::summarizeBlockDeltas() {
 
     for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
         Block *block = *iter;
-        stackanalysis_printf("\t Block starting at 0x%lx\n", block->firstInsnOffset());
 
-        StackHeight heightChange(0);
-        StackPresence stackPresence;
+        // Accumulators. They have the following behavior:
+        // 
+        // New region: add to the end of the regions list
+        // Offset to stack pointer: accumulate to delta.
+        // Setting the stack pointer: zero delta, set set_value.
+        // Creating a stack frame: indicate in presence. 
+        // Destroying a stack frame: indicate in presence. 
+
+        BlockTransferFunc &bFunc = blockEffects[block];
+        Presence &bPresence = blockPresences[block];
+
+        bFunc = BlockTransferFunc::top;
+        bPresence = Presence::top;
+
+        //stackanalysis_printf("\t Block starting at 0x%lx: %s, %s\n", block->firstInsnOffset(),
+        //bPresence.format().c_str(), bFunc.format().c_str());
 
         std::vector<std::pair<InstructionAPI::Instruction, Offset> > instances;
         block->getInsnInstances(instances);
 
         for (unsigned j = 0; j < instances.size(); j++) {
-            InstructionAPI::Instruction insn = instances[j].first;
-            Offset off = instances[j].second;
-
-            // Can go top...
-            StackHeight delta;
-            bool reset = false;
-            computeInsnEffects(block, insn, off, delta, stackPresence, reset);
-            blockToInsnDeltas[block][off] = delta;
-            blockToInsnPresence[block][off] = stackPresence;
-
-
-            if (reset) {
-                // This means we've encountered something that nulls out the 
-                // stack. For now, assume we *do* have a frame and 
-                // zero out the current stack growth.
-                heightChange = 0;
-                blockStackReset[block] = true;
-                insnStackReset[off] = true;
-                // We will now record any further movement in the stack frame. 
-                // When we do the fixpoint, we will key off stackReset[block];
-                // if true, we will disregard the input height and
-                // force the output height.
+            InstructionAPI::Instruction &insn = instances[j].first;
+            Offset &off = instances[j].second;
+            Offset next;
+            if (j < (instances.size() - 1)) {
+                next = instances[j+1].second;
             }
+            else {
+                next = block->endOffset();
+            }
+            
+            InsnTransferFunc iFunc;
+            Presence presence;
 
-            heightChange += delta;
+            computeInsnEffects(block, insn, off, 
+                               iFunc, presence);
+
+            if (iFunc != InsnTransferFunc::top) {
+                iFunc.apply(bFunc);
+                blockToInsnFuncs[block][next] = iFunc;
+            }
+            if (presence != Presence::top) {
+                presence.apply(bPresence); 
+                blockToInsnPresences[block][next] = presence;
+            }
+            //stackanalysis_printf("\t\t\t At 0x%lx: %s, %s\n",
+            //off, bPresence.format().c_str(), bFunc.format().c_str());
         }
-        blockHeightDeltas[block] = heightChange;
-        blockPresenceDeltas[block] = stackPresence;
+        //stackanalysis_printf("\t Block summary for 0x%lx: %s\n", block->firstInsnOffset(), bFunc.format().c_str());
     }
 }
 
-void StackAnalysis::calculateInterBlockDepth() {
+
+void StackAnalysis::fixpoint() {
 
     std::queue<Block *> worklist;
 
     worklist.push(func->entryBlock());
 
-    //BlockHeight_t blockHeights; // This by default initializes all entries to "bottom". 
-
     while (!worklist.empty()) {
         Block *block = worklist.front();
-        stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->firstInsnOffset());
+        //stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->firstInsnOffset());
 
         worklist.pop();
 
         // Step 1: calculate the meet over the heights of all incoming
         // intraprocedural blocks.
 
-        std::set<StackHeight> inHeights;
-        std::set<StackPresence> inPresences;
-
+        std::set<BlockTransferFunc> inEffects;
+        std::set<Presence> inPresences;
+        
         if (block->isEntryBlock(func)) {
             // The in height is 0
-            inHeights.insert(StackHeight(0));
-            inPresences.insert(StackPresence(StackPresence::noFrame));
+            // The set height is... 0
+            // And there is no input region.
+            inEffects.insert(BlockTransferFunc::initial);
+            inPresences.insert(Presence(Presence::noFrame_t));
+            //stackanalysis_printf("\t Primed initial block\n");
         }
         else {
             std::vector<Edge *> inEdges; block->getSources(inEdges);
             for (unsigned i = 0; i < inEdges.size(); i++) {
                 Edge *edge = inEdges[i];
                 if (edge->getType() == ET_CALL) continue;
-                inHeights.insert(outBlockHeights[edge->getSource()]);
+                inEffects.insert(outBlockEffects[edge->getSource()]);
+                //stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", edge->getSource()->firstInsnOffset(),
+                //outBlockEffects[edge->getSource()].format().c_str());
                 inPresences.insert(outBlockPresences[edge->getSource()]);
             }
         }
         
-        StackHeight newInHeight = StackHeight::meet(inHeights);
-        StackPresence newInPresence = StackPresence::meet(inPresences);
+        BlockTransferFunc newInEffect = meet(inEffects);
+        Presence newInPresence = meet(inPresences);
+
+        //stackanalysis_printf("\t New in meet: %s, %s\n",
+        //newInPresence.format().c_str(),
+        //newInEffect.format().c_str());
 
         // Step 2: see if the input has changed
 
-        if ((newInHeight == inBlockHeights[block]) &&
+        if ((newInEffect == inBlockEffects[block]) &&
             (newInPresence == inBlockPresences[block])) {
             // No new work here
+            //stackanalysis_printf("\t ... equal to current, skipping block\n");
             continue;
         }
         
-        // Step 3: calculate our new out height
+        //stackanalysis_printf("\t ... inequal to current %s, %s, analyzing block\n",
+        //inBlockPresences[block].format().c_str(),
+        //inBlockEffects[block].format().c_str());
 
-        inBlockHeights[block] = newInHeight;
-
-        if (blockStackReset[block]) {
-            // We've reset the stack...
-            outBlockHeights[block] = blockHeightDeltas[block];
-        }
-        else {
-            outBlockHeights[block] = newInHeight + blockHeightDeltas[block];
-        }
-
-        stackanalysis_printf("\t\t Block iteration: block 0x%lx, in height %s, out height %s\n",
-                             block->firstInsnOffset(), newInHeight.getString().c_str(),
-                             outBlockHeights[block].getString().c_str());
-
-        // Step 4: calculate our new stack presence
-
+        inBlockEffects[block] = newInEffect;
         inBlockPresences[block] = newInPresence;
-        // If there was no change in the block then use the in presence; otherwise
-        // use the change in the block. Effectively a 2-part meet.
-        outBlockPresences[block] = (blockPresenceDeltas[block].isTop()) ? (newInPresence) : (blockPresenceDeltas[block]);
+        
+        // Step 3: calculate our new outs
+        
+        blockEffects[block].apply(newInEffect, 
+                                  outBlockEffects[block]);
+        blockPresences[block].apply(newInPresence,
+                                    outBlockPresences[block]);
+        
+        //stackanalysis_printf("\t ... output from block: %s, %s\n",
+        //outBlockPresences[block].format().c_str(),
+        //outBlockEffects[block].format().c_str());
 
         // Step 4: push all children on the worklist.
 
@@ -254,122 +293,38 @@ void StackAnalysis::calculateInterBlockDepth() {
     }
 }
 
-void StackAnalysis::createIntervals() {
-    // Use the results summaries to calculate the 
-    // stack heights. We expect that heights will
-    // change infrequently and so summarize them at 
-    // the function level. 
+void StackAnalysis::createPresenceIntervals() {
+    // We now have a summary of the state of the stack at
+    // the entry to each block. We need to push that information
+    // into the block. Assume that frame affecting instructions
+    // are rare, where i_m, i_n affect the stack (m < n). Then
+    // each interval runs from [i_m, i_n) or [i_m, i_{n-1}]. 
 
-    heightIntervals_ = new HeightTree();
     presenceIntervals_ = new PresenceTree();
 
-    StackHeight curHeight;
-    Offset curLB = 0;
-    Offset curUB = 0;
-
     for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
         Block *block = *iter;
 
-        stackanalysis_printf("\t Interval creation: visiting block at 0x%lx\n", block->firstInsnOffset());
+        //stackanalysis_printf("\t Interval creation (P): visiting block at 0x%lx\n", block->firstInsnOffset());
         
-        curLB = block->firstInsnOffset();
-        curUB = 0;
-        curHeight = inBlockHeights[block];
-        
-        // Now create extents for instructions within this block.
-        
-        for (InsnDeltas::iterator iter = blockToInsnDeltas[block].begin();
-             iter != blockToInsnDeltas[block].end(); 
-             iter++) {
-            Offset curOff = iter->first;
+        Offset curLB = block->firstInsnOffset();
+        Offset curUB = 0;
+        Presence curPres = inBlockPresences[block];
 
-            // Now create extents for instructions within this block.
-            if (((*iter).second == StackHeight(0)) &&
-                !(insnStackReset[curOff])) {
-                continue;
-            }
-            
-            // We've changed the height of the stack. End this interval
-            // and start a new one. 
-            //
-            // We need to determine UB. It's defined as the end of the 
-            // current instruction. Therefore there are two cases:
-            // if we're the last insn (take the block end) or not
-            // the last insn (take the start of the next insn)
-            InsnDeltas::iterator iter2 = iter;
-            iter2++;
-            if (iter2 == blockToInsnDeltas[block].end()) {
-                curUB = block->endOffset();
-            }
-            else {
-                curUB = (*iter2).first;
-            }
-            heightIntervals_->insert(curLB, curUB, curHeight);
-            
-            // Start a new one
-            curLB = curUB;
-            curUB = 0;
-            if (insnStackReset[curOff]) {
-                curHeight = StackHeight(0);
-            }
-            else {
-                curHeight += (*iter).second;
-            }
+        // We only cache points where the frame presence changes. 
+        // Therefore, we can simply iterate through them. 
+        for (InsnPresence::iterator iter = blockToInsnPresences[block].begin();
+             iter != blockToInsnPresences[block].end(); iter++) {
 
-        }
-        
-        if (curLB != block->endOffset()) {
-            // Cap off the extent for the current block
-            curUB = block->endOffset();
-            if (curHeight != outBlockHeights[block]) {
-                fprintf(stderr, "ERROR: inconsistency in stack analysis, %s != %s\n",
-                        curHeight.getString().c_str(), outBlockHeights[block].getString().c_str());
-            }
-            assert(curHeight == outBlockHeights[block]);
-            heightIntervals_->insert(curLB, curUB, curHeight);
-        }
-    }
-
-    StackPresence curPres;
-    curUB = 0;
-    curLB = 0;
-    
-    for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
-        Block *block = *iter;
-        
-        curLB = block->firstInsnOffset();
-        curUB = 0;
-        curPres = inBlockPresences[block];
-        
-        for (InsnPresence::iterator iter = blockToInsnPresence[block].begin();
-             iter != blockToInsnPresence[block].end(); 
-             iter++) {
-            
-            if ((*iter).second.isTop())
-                continue;
-            
             // We've changed the state of the stack pointer. End this interval
             // and start a new one. 
-            //
-            // We need to determine UB. It's defined as the end of the 
-            // current instruction. Therefore there are two cases:
-            // if we're the last insn (take the block end) or not
-            // the last insn (take the start of the next insn)
-            InsnPresence::iterator iter2 = iter;
-            iter2++;
-            if (iter2 == blockToInsnPresence[block].end()) {
-                curUB = block->endOffset();
-            }
-            else {
-                curUB = (*iter2).first;
-            }
-            presenceIntervals_->insert(curLB, curUB, curPres);
             
-            // Start a new one
+            curUB = iter->first;
+            presenceIntervals_->insert(curLB, curUB, curPres);
+
             curLB = curUB;
-            curUB = 0;
-            curPres = (*iter).second;
-        }            
+            curPres = iter->second;
+        }
 
         if (curLB != block->endOffset()) {
             // Cap off the extent for the current block
@@ -380,166 +335,228 @@ void StackAnalysis::createIntervals() {
     }
 }
 
+void StackAnalysis::createHeightIntervals() {
+    // We now have a summary of the state of the stack at
+    // the entry to each block. We need to push that information
+    // into the block. Assume that frame affecting instructions
+    // are rare, where i_m, i_n affect the stack (m < n). Then
+    // each interval runs from [i_m, i_n) or [i_m, i_{n-1}]. 
+
+    heightIntervals_ = new HeightTree();
+
+    for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
+        Block *block = *iter;
+
+        //stackanalysis_printf("\t Interval creation (H): visiting block at 0x%lx\n", block->firstInsnOffset());
+        
+        Offset curLB = block->firstInsnOffset();
+        Offset curUB = 0;
+        BlockTransferFunc curHeight = inBlockEffects[block];
+
+        //stackanalysis_printf("\t\t Block starting state: 0x%lx, %s\n", 
+        //curLB, curHeight.format().c_str());
+
+        // We only cache points where the frame height changes. 
+        // Therefore, we can simply iterate through them. 
+        for (InsnFuncs::iterator iter = blockToInsnFuncs[block].begin();
+             iter != blockToInsnFuncs[block].end(); iter++) {
+
+            // We've changed the state of the stack pointer. End this interval
+            // and start a new one. 
+            
+            curUB = iter->first;
+            
+
+            heightIntervals_->insert(curLB, curUB, 
+                                     Height(curHeight.delta(),
+                                            getRegion(curHeight.ranges())));
+
+            curLB = curUB;
+            // Adjust height
+            iter->second.apply(curHeight);
+
+            //stackanalysis_printf("\t\t Block continuing state: 0x%lx, %s\n", 
+            //curLB, curHeight.format().c_str());
+        }
+
+        if (curLB != block->endOffset()) {
+            // Cap off the extent for the current block
+            curUB = block->endOffset();
+            if (curHeight != outBlockEffects[block]) {
+                fprintf(stderr, "ERROR: accumulated state not equal to fixpoint state!\n");
+                fprintf(stderr, "\t %s\n", curHeight.format().c_str());
+                fprintf(stderr, "\t %s\n", outBlockEffects[block].format().c_str());
+            }
+                        
+            assert(curHeight == outBlockEffects[block]);
+
+            heightIntervals_->insert(curLB, curUB, 
+                                     Height(curHeight.delta(),
+                                            getRegion(curHeight.ranges())));
+        }
+    }
+}
+
 
 void StackAnalysis::computeInsnEffects(const Block *block,
                                        const Instruction &insn,
                                        Offset off,
-                                       StackHeight &height,
-                                       StackPresence &pres,
-                                       bool &reset) 
+                                       InsnTransferFunc &iFunc,
+                                       Presence &pres)
 {
-    stackanalysis_printf("\t\tInsn at 0x%lx\n", off); 
-    Expression::Ptr theStackPtr(new RegisterAST(r_eSP));
-    Expression::Ptr stackPtr32(new RegisterAST(r_ESP));
-    Expression::Ptr stackPtr64(new RegisterAST(r_RSP));
+    //stackanalysis_printf("\t\tInsn at 0x%lx\n", off); 
+    static Expression::Ptr theStackPtr(new RegisterAST(r_eSP));
+    static Expression::Ptr stackPtr32(new RegisterAST(r_ESP));
+    static Expression::Ptr stackPtr64(new RegisterAST(r_RSP));
     
-    Expression::Ptr theFramePtr(new RegisterAST(r_eBP));
-    Expression::Ptr framePtr32(new RegisterAST(r_EBP));
-    Expression::Ptr framePtr64(new RegisterAST(r_RBP));
+    static Expression::Ptr theFramePtr(new RegisterAST(r_eBP));
+    static Expression::Ptr framePtr32(new RegisterAST(r_EBP));
+    static Expression::Ptr framePtr64(new RegisterAST(r_RBP));
     
     //TODO: Integrate entire test into analysis lattice
     entryID what = insn.getOperation().getID();
 
     if (insn.isWritten(theFramePtr) || insn.isWritten(framePtr32) || insn.isWritten(framePtr64)) {
-        stackanalysis_printf("\t\t\t FP written\n");
+        //stackanalysis_printf("\t\t\t FP written\n");
         if (what == e_mov &&
             (insn.isRead(theStackPtr) || insn.isRead(stackPtr32) || insn.isRead(stackPtr64))) {
-            pres = StackPresence::frame;
-            stackanalysis_printf("\t\t\t Frame created\n");
+            pres = Presence(Presence::frame_t);
+            //stackanalysis_printf("\t\t\t Frame created\n");
         }
         else {
-            pres = StackPresence::noFrame;
-            stackanalysis_printf("\t\t\t Frame destroyed\n");
+            pres = Presence(Presence::noFrame_t);
+            //stackanalysis_printf("\t\t\t Frame destroyed\n");
         }
     }
+
+    if (what == e_call) {
+        pdvector<image_edge *> outs;
+        block->getTargets(outs);
+        for (unsigned i=0; i<outs.size(); i++) {
+            image_edge *cur_edge = outs[i];
+            if (cur_edge->getType() != ET_CALL) 
+                continue;
+            
+            image_basicBlock *target_bbl = cur_edge->getTarget();
+            image_func *target_func = target_bbl->getEntryFunc();
+            if (!target_func)
+                continue;
+            Height h = getStackCleanAmount(target_func);
+            if (h == Height::bottom) {
+                iFunc == InsnTransferFunc::bottom;
+            }
+            else {
+                iFunc.delta() = h.height();
+            }
+
+            //stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
+            return;
+        }
+        //stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
+        return;
+    }
+
+    int word_size = func->img()->getAddressWidth();
     
-
-   if (what == e_call)
-   {
-      pdvector<image_edge *> outs;
-      block->getTargets(outs);
-      for (unsigned i=0; i<outs.size(); i++) {
-         image_edge *cur_edge = outs[i];
-         if (cur_edge->getType() != ET_CALL) 
-             continue;
-         
-         image_basicBlock *target_bbl = cur_edge->getTarget();
-         image_func *target_func = target_bbl->getEntryFunc();
-         if (!target_func)
-             continue;
-         height = getStackCleanAmount(target_func);
-         stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", height.getString().c_str());
+    if(!insn.isWritten(theStackPtr) && !insn.isWritten(stackPtr32)) {
          return;
-      }
-      height = StackHeight(0);
-      stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
-      return;
-   }
-
-   int word_size = func->img()->getAddressWidth();
-   
-   if(!insn.isWritten(theStackPtr) && !insn.isWritten(stackPtr32)) {
-       height = StackHeight(0);
-       return;
-   }
-   int sign = 1;
-   switch(what)
-   {
-   case e_push:
-       sign = -1;
-   case e_pop: {
-       Operand arg = insn.getOperand(0);
-       if (arg.getValue()->eval().defined) {
-           height = StackHeight(sign * word_size); 
-           stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %s\n", height.getString().c_str());
-           return;
-       }
-       height = StackHeight(sign * arg.getValue()->size());
-       stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %s\n", height.getString().c_str());
-       return;
-   }
-   case e_ret_near:
-   case e_ret_far:
-       height = StackHeight(word_size);
-       stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", height.getString().c_str());
-       return;
-
-   case e_sub:
-       sign = -1;
-   case e_add: {
-       // Add/subtract are op0 += (or -=) op1
-       Operand arg = insn.getOperand(1);
-       Result delta = arg.getValue()->eval();
-       if(delta.defined) {
-           switch(delta.type) {
-           case u8:
-               height = StackHeight(sign * delta.val.u8val);
-               break;
-           case u16:
-               height = StackHeight(sign * delta.val.u16val);
-               break;
-           case u32:
-               height = StackHeight(sign * delta.val.u32val);
-               break;
-           case u64:
-               height = StackHeight(sign * delta.val.u64val);
-               break;
-           case s8:
-               height = StackHeight(sign * delta.val.s8val);
-               break;
-           case s16:
-               height = StackHeight(sign * delta.val.s16val);
-               break;
-           case s32:
-               height = StackHeight(sign * delta.val.s32val);
-               break;
-           case s64:
-               height = StackHeight(sign * delta.val.s64val);
-               break;
-           default:
-               // Add of anything that's not a "normal" integral type
-               // means we don't know what happened
-               height = StackHeight(StackHeight::bottom);
-               break;
-           }
-           stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", height.getString().c_str());
-           return;
-       }
-   }
-       height = StackHeight(StackHeight::bottom);
-       stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", height.getString().c_str());
-       return;
-       // We treat return as zero-modification right now
-   case e_leave:
-       reset = true;
-       stackanalysis_printf("\t\t\t Stack height reset by leave\n");
-       return;
-   default:
-       stackanalysis_printf("\t\t\t Stack height changed by unhandled insn %s: %s\n", 
-                         insn.format().c_str(), height.getString().c_str());
-       height = StackHeight(StackHeight::bottom);
-       return;
-   }
-   assert(0);
-   return;
+    }
+    int sign = 1;
+    switch(what) {
+    case e_push:
+        sign = -1;
+    case e_pop: {
+        Operand arg = insn.getOperand(0);
+        if (arg.getValue()->eval().defined) {
+            iFunc.delta() = sign * word_size;
+            //stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %s\n", iFunc.format().c_str());
+            return;
+        }
+        iFunc.delta() = sign * arg.getValue()->size();
+        //stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %s\n", iFunc.format().c_str());
+        return;
+    }
+    case e_ret_near:
+    case e_ret_far:
+        iFunc.delta() = word_size;
+        //stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
+        return;
+    case e_sub:
+        sign = -1;
+    case e_add: {
+        // Add/subtract are op0 += (or -=) op1
+        Operand arg = insn.getOperand(1);
+        Result delta = arg.getValue()->eval();
+        if(delta.defined) {
+            switch(delta.type) {
+            case u8:
+                iFunc.delta() = (sign * delta.val.u8val);
+                break;
+            case u16:
+                iFunc.delta() = (sign * delta.val.u16val);
+                break;
+            case u32:
+                iFunc.delta() = (sign * delta.val.u32val);
+                break;
+            case u64:
+                iFunc.delta() = (sign * delta.val.u64val);
+                break;
+            case s8:
+                iFunc.delta() = (sign * delta.val.s8val);
+                break;
+            case s16:
+                iFunc.delta() = (sign * delta.val.s16val);
+                break;
+            case s32:
+                iFunc.delta() = (sign * delta.val.s32val);
+                break;
+            case s64:
+                iFunc.delta() = (sign * delta.val.s64val);
+                break;
+            default:
+                // Add of anything that's not a "normal" integral type
+                // means we don't know what happened
+                iFunc = InsnTransferFunc::bottom;
+                break;
+            }
+            //stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
+            return;
+        }
+        iFunc.range() = Range(Range::infinite, 0, off);
+        //stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
+        return;
+    }
+        // We treat return as zero-modification right now
+    case e_leave:
+        iFunc.abs() = true;
+        iFunc.delta() = 0;
+        //stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
+        return;
+    default:
+        iFunc.range() = Range(Range::infinite, 0, off);
+        //stackanalysis_printf("\t\t\t Stack height changed by unhandled insn \"%s\": %s\n", 
+        //insn.format().c_str(), iFunc.format().c_str());
+        return;
+    }
+    assert(0);
+    return;
 }
 
-
-StackAnalysis::StackHeight StackAnalysis::getStackCleanAmount(image_func *func) {
+StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
     // Cache previous work...
     if (funcCleanAmounts.find(func) != funcCleanAmounts.end()) {
         return funcCleanAmounts[func];
     }
 
     if (!func->cleansOwnStack()) {
-        funcCleanAmounts[func] = StackHeight(0);
-        return StackHeight(0);
+        funcCleanAmounts[func] = 0;
+        return funcCleanAmounts[func];
     }
 
     InstructionDecoder decoder;   
     unsigned char *cur;
 
-    std::set<StackHeight> returnCleanVals;
+    std::set<Height> returnCleanVals;
     
     for (unsigned i=0; i < func->funcExits().size(); i++) {
         cur = (unsigned char *) func->getPtrToInstruction(func->funcExits()[i]->offset());
@@ -560,14 +577,21 @@ StackAnalysis::StackHeight StackAnalysis::getStackCleanAmount(image_func *func) 
             assert(imm.defined);
             val = (int) imm.val.s16val;
         }
-        returnCleanVals.insert(StackHeight(val));
+        returnCleanVals.insert(Height(val));
     }
 
-    funcCleanAmounts[func] = StackHeight::meet(returnCleanVals);
+    funcCleanAmounts[func] = meet(returnCleanVals);
     return funcCleanAmounts[func];
 }
 
-StackAnalysis::StackAnalysis(Function *f) : func(f) {
+StackAnalysis::StackAnalysis() :
+    func(NULL), heightIntervals_(NULL), presenceIntervals_(NULL), 
+    rt(new Region()) {};
+    
+
+StackAnalysis::StackAnalysis(Function *f) : func(f),
+                                            rt(new Region()) 
+{
     blocks = func->blocks();
     heightIntervals_ = NULL;
     presenceIntervals_ = NULL;
@@ -578,7 +602,7 @@ const StackAnalysis::HeightTree *StackAnalysis::heightIntervals() {
 
     // Check the annotation
     HeightTree *ret;
-    func->getAnnotation(ret, StackHeightAnno);
+    func->getAnnotation(ret, HeightAnno);
     if (ret) return ret;
     if (heightIntervals_ == NULL) {
         if (!analyze()) return NULL;
@@ -594,7 +618,7 @@ const StackAnalysis::PresenceTree *StackAnalysis::presenceIntervals() {
 
     // Check the annotation
     PresenceTree *ret;
-    func->getAnnotation(ret, StackPresenceAnno);
+    func->getAnnotation(ret, PresenceAnno);
     if (ret) return ret;
 
     if (presenceIntervals_ == NULL) {
@@ -605,30 +629,238 @@ const StackAnalysis::PresenceTree *StackAnalysis::presenceIntervals() {
     return ret;
 }
 
-void StackAnalysis::debugStackHeights() {
+void StackAnalysis::debugHeights() {
     if (!heightIntervals_) return;
-    std::vector<std::pair<std::pair<Offset, Offset>, StackHeight> > elements;
+    std::vector<std::pair<std::pair<Offset, Offset>, Height> > elements;
     heightIntervals_->elements(elements);
 
     for (unsigned i = 0; i < elements.size(); i++) {
         fprintf(stderr, "0x%lx - 0x%lx: %s\n",
                 elements[i].first.first,
                 elements[i].first.second,
-                elements[i].second.getString().c_str());
+                elements[i].second.format().c_str());
     }
 }
 
-void StackAnalysis::debugStackPresences() {
+void StackAnalysis::debugPresences() {
     if (!presenceIntervals_) return;
 
-    std::vector<std::pair<std::pair<Offset, Offset>, StackPresence> > elements;
+    std::vector<std::pair<std::pair<Offset, Offset>, Presence> > elements;
     presenceIntervals_->elements(elements);
 
     for (unsigned i = 0; i < elements.size(); i++) {
         fprintf(stderr, "0x%lx - 0x%lx: %s\n",
                 elements[i].first.first,
                 elements[i].first.second,
-                elements[i].second.getString().c_str());
+                elements[i].second.format().c_str());
     }
 }
-                
+
+
+std::string StackAnalysis::InsnTransferFunc::format() const {
+    char buf[256];
+
+    if (*this == bottom) {
+        sprintf(buf, "<BOTTOM>");
+        return buf;
+    }
+    if (*this == top) {
+        sprintf(buf, "<TOP>");
+        return buf;
+    }
+
+    if (range_ == defaultRange) {
+        if (!abs_) {
+            sprintf(buf, "<%d>", delta_);
+        }
+        else {
+            sprintf(buf, "Abs: %d", delta_);
+        }
+    }
+    else {
+        sprintf(buf, "%s", range_.format().c_str());
+    }
+    return buf;
+}
+
+std::string StackAnalysis::BlockTransferFunc::format() const {
+    if (*this == bottom) {
+        return "<BOTTOM>";
+    }
+    if (*this == top) {
+        return "<TOP>";
+    }
+
+    std::stringstream retVal;
+
+    if (!abs_) {
+        retVal << "<" << delta_ << ">";
+    }
+    else {
+        retVal << "Abs: " << delta_;
+    }
+
+    for (unsigned i = 0; i < ranges_.size(); i++) {
+        retVal << ranges_[i].format();
+    }
+    return retVal.str();
+}
+
+void StackAnalysis::InsnTransferFunc::apply(const BlockTransferFunc &in,
+                                            BlockTransferFunc &out) const {
+    out = in;
+
+    apply(out);
+}
+
+
+void StackAnalysis::InsnTransferFunc::apply(BlockTransferFunc &out) const {
+    if (out == BlockTransferFunc::bottom) return;
+
+    if (*this == bottom) {
+        out = BlockTransferFunc::bottom;
+        return;
+    }
+
+    if (abs_) {
+        out.delta() = 0;
+        out.abs() = true;
+        out.ranges().clear();
+        out.reset() = true;
+    }
+
+    if (delta_ != uninitialized) {
+        if (out.delta() == uninitialized) {
+            out.delta() = 0;
+        }
+        out.delta() += delta_;
+    }
+
+    if (range_ != defaultRange) {
+        out.ranges().push_back(Range(range_, 
+                                     ((out.delta() == uninitialized ) ? 0 : out.delta())));
+        out.reset() = true;
+        out.delta() = 0;
+    }
+}
+
+
+void StackAnalysis::BlockTransferFunc::apply(const BlockTransferFunc &in,
+                                             BlockTransferFunc &out) const {
+    out = in;
+    apply(out);
+}
+
+void StackAnalysis::BlockTransferFunc::apply(BlockTransferFunc &out) const {
+    if (out == bottom) return;
+    if (*this == bottom) {
+        out = bottom;
+        return;
+    }
+
+    // abs: we encountered a leave or somesuch
+    // that rebased the stack pointer
+    if (abs_) {
+        // Any increment will happen below.
+        out.delta() = 0;
+        out.ranges().clear();
+        out.abs() = true;
+    }
+
+    // This just says reset delta to 0;
+    // we've got a new relative origin.
+    if (reset_) {
+        out.delta() = 0;
+        out.reset() = true;
+    }
+
+    if (delta_ != uninitialized) {
+        if (out.delta() == uninitialized) {
+            out.delta() = 0;
+        }
+        out.delta() += delta_;
+    }
+    
+    for (unsigned i = 0; i < ranges_.size(); i++) {
+        out.ranges().push_back(ranges_[i]);
+    }
+}
+
+void StackAnalysis::Presence::apply(const Presence &in, Presence &out) const {
+    out = in;
+    apply(out);
+}
+
+void StackAnalysis::Presence::apply(Presence &out) const {
+    if (presence_ == top_t) return;
+    out.presence_ = presence_;
+}
+
+std::string StackAnalysis::Range::format() const {
+    std::stringstream retVal;
+
+    if (off_ == 0) {
+        return "[NONE]";
+    }
+    else {
+        retVal << "[" << std::hex << off_ 
+               << std::dec
+               << ", " << delta_
+               << ", [";
+        if (range_.first == MINLONG)
+            retVal << "-inf";
+        else
+            retVal << range_.first;
+
+        retVal << ",";
+
+        if (range_.second == MAXLONG)
+            retVal << "+inf";
+        else
+            retVal << range_.second;
+        
+        retVal << "]]";
+        return retVal.str();
+    }
+}
+
+StackAnalysis::Region *StackAnalysis::RangeTree::find(Ranges &str) {
+    if (str.empty()) return root->region;
+
+    Node *cur = root;
+    for (unsigned i = 0; i < str.size(); i++) {
+        std::map<Range, Node *>::iterator iter = cur->children.find(str[i]);
+        if (iter == cur->children.end()) {
+            //stackanalysis_printf("\t Creating new node for range %s\n", 
+            //str[i].format().c_str());
+            // Need to create a new node...
+            Node *newNode = new Node(new Region(getNewRegionID(),
+                                                str[i],
+                                                cur->region));
+            cur->children[str[i]] = newNode;
+            cur = newNode;
+        }
+        else {
+            //stackanalysis_printf("\t Found existing node for range %s\n",
+            //str[i].format().c_str());
+            cur = iter->second;
+        }
+    }
+    //stackanalysis_printf("\t Returning region %s\n", cur->region->format().c_str());
+    return cur->region;
+}
+
+StackAnalysis::Region *StackAnalysis::getRegion(Ranges &ranges) {
+    return rt.find(ranges);
+}
+
+std::string StackAnalysis::Region::format() const {
+    std::stringstream retVal;
+    
+    retVal << "(" << name_ << "," << range_.format() << ") ";
+    if (prev_)
+        retVal << prev_->format();
+
+    return retVal.str();
+}
+
