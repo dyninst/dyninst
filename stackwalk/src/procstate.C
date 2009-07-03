@@ -109,6 +109,16 @@ void ProcessState::postStackwalk(Dyninst::THR_ID)
 {
 }
 
+void ProcessState::setDefaultLibraryTracker()
+{
+  if (library_tracker) return;
+  #if defined(cap_stackwalker_use_symtab)
+    library_tracker = new SymtabLibState(this);
+  #else
+    library_tracker = new DefaultLibState(this);
+  #endif
+}
+
 ProcessState::~ProcessState()
 {
    if (library_tracker)
@@ -149,11 +159,7 @@ bool ProcDebug::create(const string &executable,
 
   setPid(pid);
   initial_thread = ThreadState::createThreadState(this, NULL_THR_ID, true);
-#if defined(cap_stackwalker_use_symtab)
-  library_tracker = new SymtabLibState(this);
-#else
-  library_tracker = new DefaultLibState(this);
-#endif
+
   threads[initial_thread->getTid()] = initial_thread;   
 
   sw_printf("[%s:%u] - Created debugged %s on pid %d\n",
@@ -590,6 +596,11 @@ unsigned ProcSelf::getAddressWidth()
    return sizeof(void *);
 }
 
+bool ProcSelf::isFirstParty()
+{
+  return true;
+}
+
 ProcSelf::~ProcSelf()
 {
 }
@@ -645,6 +656,11 @@ void ProcDebug::postStackwalk(Dyninst::THR_ID tid)
 bool ProcDebug::isTerminated()
 {
    return (state() == ps_exited || state() == ps_errorstate);
+}
+
+bool ProcDebug::isFirstParty()
+{
+  return false;
 }
 
 LibraryState::LibraryState(ProcessState *parent) :

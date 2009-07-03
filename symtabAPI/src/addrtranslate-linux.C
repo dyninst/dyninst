@@ -162,7 +162,8 @@ bool AddressTranslateSysV::setAddressSize()
    if (interpreter)
       address_size = interpreter->getAddrSize();
    else if (pid == getpid()) {
-      return sizeof(void *);
+      address_size = sizeof(void *);
+      return true;
    }
    else {
       char name[64];
@@ -171,7 +172,9 @@ bool AddressTranslateSysV::setAddressSize()
       FCNode *exe = files.getNode(sname);
       if (!exe) 
          return false;
-      return exe->getAddrSize();
+      address_size = exe->getAddrSize();
+      if (!address_size)
+        return false;
    }
       
    return true;

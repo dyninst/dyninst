@@ -114,10 +114,10 @@ SymtabLibState::SymtabLibState(ProcessState *parent) :
 #endif
 {
    PID pid = procstate->getProcessId();
-   if (dynamic_cast<ProcSelf *>(procstate)) {
+   if (procstate->isFirstParty()) {
       lookup = AddressLookup::createAddressLookup(&procreader);
    }
-   else if (dynamic_cast<ProcDebug *>(procstate)) {
+   else {
       lookup = AddressLookup::createAddressLookup(pid, &procreader);
    }
    assert(lookup);

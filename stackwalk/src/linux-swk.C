@@ -121,11 +121,7 @@ ProcSelf::ProcSelf() :
 
 void ProcSelf::initialize()
 {
-#if defined(cap_stackwalker_use_symtab)
-   library_tracker = new SymtabLibState(this);
-#else
-   library_tracker = new DefaultLibState(this);
-#endif
+   setDefaultLibraryTracker();
    assert(library_tracker);
    registerLibSpotterSelf(this);
 }
@@ -492,11 +488,7 @@ bool ProcDebugLinux::debug_post_create()
    sw_printf("[%s:%u] - Post create on %d\n", __FILE__, __LINE__, pid);
    setOptions(pid);
 
-#if defined(cap_stackwalker_use_symtab)
-   library_tracker = new SymtabLibState(this);
-#else
-   library_tracker = new DefaultLibState(this);
-#endif
+   setDefaultLibraryTracker();
    assert(library_tracker);
    registerLibSpotter();
    return true;
@@ -508,11 +500,7 @@ bool ProcDebugLinux::debug_post_attach(ThreadState *thr)
    THR_ID tid = thr->getTid();
    setOptions(tid);
 
-#if defined(cap_stackwalker_use_symtab)
-   library_tracker = new SymtabLibState(this);
-#else
-   library_tracker = new DefaultLibState(this);
-#endif   
+   setDefaultLibraryTracker();
    assert(library_tracker);
    registerLibSpotter();
 

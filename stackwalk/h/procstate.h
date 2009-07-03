@@ -82,11 +82,14 @@ public:
   virtual ~ProcessState();
 
   void setLibraryTracker(LibraryState *);
+  void setDefaultLibraryTracker();
   LibraryState *getLibraryTracker();
 
   //Allow initialization/uninitialization
   virtual void preStackwalk(Dyninst::THR_ID tid);
   virtual void postStackwalk(Dyninst::THR_ID tid);
+
+  virtual bool isFirstParty() = 0;
 };
 
 class ProcSelf : public ProcessState {
@@ -99,6 +102,7 @@ class ProcSelf : public ProcessState {
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
   virtual unsigned getAddressWidth();
+  virtual bool isFirstParty();
   virtual ~ProcSelf();
 };
 
@@ -222,6 +226,8 @@ class ProcDebug : public ProcessState {
 
   static int getNotificationFD();
   static bool handleDebugEvent(bool block = false);
+
+  virtual bool isFirstParty();
  protected:
   ThreadState *initial_thread;
   ThreadState *active_thread;
