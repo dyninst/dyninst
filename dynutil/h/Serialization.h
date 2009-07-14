@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <typeinfo>
 #include <vector>
+#include <map>
 #include <assert.h>
 #include "dyntypes.h"
 #include "util.h"
@@ -195,19 +196,110 @@ void translate_vector(S *ser, std::vector<std::vector<T> > &vec,
 }
 
 template <class S, class K, class V>
+void translate_pair(S *ser, std::pair<K, V> &p,
+		const char *tag = NULL, const char *tag2 = NULL)
+{
+	ser->pair_start();
+
+	gtranslate(ser, p.first, tag);
+	gtranslate(ser, p.second, tag2);
+
+	ser->pair_end();
+}
+
+template <class S, class K, class V>
+void translate_map(S *ser, std::map<K, V> &map,
+		const char *tag = NULL, const char *elem_tag = NULL)
+{
+	unsigned int nelem = map.size();
+	ser->map_start(nelem, tag);
+
+	if (ser->iomode() == sd_deserialize)
+	{
+		if (map.size())
+			SER_ERR("nonempty vector used to create");
+
+		typename std::map<K, V>::iterator lastentry = map.begin();
+		//  cannot do any kind of bulk allocation with maps
+		for (unsigned int i = 0; i < nelem; ++i)
+		{
+			K a_k;
+			V a_v;
+			gtranslate(ser, a_k, elem_tag);
+			gtranslate(ser, a_v, elem_tag);
+			map[a_k] = a_v;
+		}
+
+	}
+	else
+	{
+		assert (ser->iomode() == sd_serialize);
+		typename std::map<K, V>::iterator iter = map.begin();
+		while (iter != map.end())
+		{
+			K &a_k = const_cast<K &>(iter->first);
+			V &a_v = const_cast<V &>(iter->second);
+			gtranslate(ser, a_k, elem_tag);
+			gtranslate(ser, a_v, elem_tag);
+			iter++;
+		}
+	}
+	ser->map_end();
+}
+
+template <class S, class K, class V>
+void translate_multimap(S *ser, std::multimap<K, V> &map,
+		const char *tag = NULL, const char *elem_tag = NULL)
+{
+	unsigned int nelem = map.size();
+	ser->multimap_start(nelem, tag);
+
+	if (ser->iomode() == sd_deserialize)
+	{
+		if (map.size())
+			SER_ERR("nonempty vector used to create");
+
+		typename std::multimap<K, V>::iterator lastentry = map.begin();
+		//  cannot do any kind of bulk allocation with multimaps
+		for (unsigned int i = 0; i < nelem; ++i)
+		{
+			typename std::multimap<K, V>::value_type mapentry;
+			gtranslate(ser, mapentry, elem_tag);
+			//  lastentry serves as a hint as to where the new value goes 
+			//  (presumably near the last value inserted)
+			//  not sure if this really makes things more efficient.
+			lastentry = map.insert(lastentry, mapentry);
+		}
+
+	}
+	else
+	{
+		assert (ser->iomode() == sd_serialize);
+		typename std::multimap<K, V>::iterator iter = map.begin();
+		while (iter != map.end())
+		{
+			gtranslate(ser, *iter, elem_tag);
+			iter++;
+		}
+	}
+
+	ser->multimap_end();
+}
+
+template <class S, class K, class V>
 void translate_hash_map(S *ser, dyn_hash_map<K, V> &hash, 
-      const char *tag = NULL, const char *key_tag = NULL, const char *value_tag = NULL)
+		const char *tag = NULL, const char *key_tag = NULL, const char *value_tag = NULL)
 {   
-   fprintf(stderr, "%s[%d]:  welcome to translate_hash_map<%s, %s>()\n", 
-           __FILE__, __LINE__,
-           typeid(K).name(), typeid(V).name()); 
+	fprintf(stderr, "%s[%d]:  welcome to translate_hash_map<%s, %s>()\n", 
+			__FILE__, __LINE__,
+			typeid(K).name(), typeid(V).name()); 
 
-   unsigned int nelem = hash.size();
-   ser->hash_map_start(nelem, tag);
-   fprintf(stderr, "%s[%d]:  after hash_map start, mode = %sserialize\n", 
-           __FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de"); 
+	unsigned int nelem = hash.size();
+	ser->hash_map_start(nelem, tag);
+	fprintf(stderr, "%s[%d]:  after hash_map start, mode = %sserialize\n", 
+			__FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de"); 
 
-   if (ser->iomode() == sd_serialize) 
+	if (ser->iomode() == sd_serialize) 
    {
       typename dyn_hash_map<K,V>::iterator iter = hash.begin();
       fprintf(stderr, "%s[%d]:  about to serialize hash with %d elements\n", 
@@ -406,11 +498,64 @@ class trans_adaptor<S, std::vector<T *>, TT2>  {
       }
 };
 
+template<class S, class T, class TT2>
+class trans_adaptor<S, std::map<T, TT2> >  {
+	public:
+		trans_adaptor()
+		{
+			serialize_printf("%s[%d]:  trans_adaptor  -- std::map\n", __FILE__, __LINE__);
+		}
+
+		std::map<T, TT2> * operator()(S *ser, std::map<T, TT2> &v, const char *tag = NULL,
+				const char *tag2 = NULL)
+		{
+			translate_map(ser, v, tag, tag2);
+			//  maybe catch errors here?
+			return &v;
+		}
+};
+
+template<class S, class T, class TT2>
+class trans_adaptor<S, std::multimap<T, TT2>, TT2>  {
+	public:
+		trans_adaptor()
+		{
+			serialize_printf("%s[%d]:  trans_adaptor  -- multimap<%s, %s>\n",
+					__FILE__, __LINE__, typeid(T).name(), typeid(TT2).name());
+		}
+
+		std::multimap<T, TT2> * operator()(S *ser, std::multimap<T, TT2> &m, const char *tag = NULL, 
+				const char *tag2 = NULL)
+		{
+			translate_multimap(ser, m, tag, tag2);
+			//  maybe catch errors here?
+			return &m;
+		}
+};
+
+template<class S, class T, class TT2>
+class trans_adaptor<S, std::pair<T, TT2> >  {
+	public:
+		trans_adaptor()
+		{
+			serialize_printf("%s[%d]:  trans_adaptor  -- pair<%s, %s>\n",
+					__FILE__, __LINE__, typeid(T).name(), typeid(TT2).name());
+		}
+
+		std::pair<T, TT2> * operator()(S *ser, std::pair<T, TT2> &p, const char *tag = NULL,
+				const char *tag2 = NULL)
+		{
+			translate_pair(ser, p, tag, tag2);
+			//  maybe catch errors here?
+			return &p;
+		}
+};
+
 #if 0
 template<class T, class ANNO_NAME, bool, annotation_implementation_t>
 class Annotatable<T, ANNO_NAME,bool, annotation_implementation_t>;
 #endif
-   
+
 #if 0
 I really really wish this worked, maybe it still can given some more pounding
 
