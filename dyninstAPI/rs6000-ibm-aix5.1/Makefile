@@ -50,8 +50,6 @@ SRCS = 		../src/aix.C \
 		../src/arch-power.C \
 		../src/InstrucIter-power.C \
 		../src/syscall-solproc.C
-#		../src/addLibraryXCOFF.C 
-#		../src/writeBackXCOFF.C  \
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread

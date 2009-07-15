@@ -615,7 +615,6 @@ class pdmodule {
    const std::set<image_instPoint*> &getUnresolvedControlFlow();
    void addUnresolvedControlFlow(image_instPoint* badPt);
 
-   //LineInformation *getLineInformation();
    Module *mod();
 
    image *imExec() const { return exec_; }

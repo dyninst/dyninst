@@ -1965,7 +1965,7 @@ SYMTAB_EXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&r
    return false;
 }
 
-SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 

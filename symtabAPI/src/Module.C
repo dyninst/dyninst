@@ -36,6 +36,7 @@
 #include "Collections.h"
 #include "Function.h"
 #include "Variable.h"
+#include "LineInformation.h"
 
 #include "common/h/pathName.h"
 #include "common/h/serialize.h"
@@ -149,35 +150,6 @@ bool Module::hasLineInformation()
    return false;
 }
 
-LineInformation *Module::getLineInformation()
-{
-   if (!exec_->isLineInfoValid_)
-      exec_->parseLineInformation();
-
-   if (!exec_->isLineInfoValid_) 
-   {
-      return NULL;
-   }
-
-   LineInformation *li =  NULL;
-   if (getAnnotation(li, ModuleLineInfoAnno)) 
-   {
-      if (!li) 
-      {
-         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
-               FILE__, __LINE__);
-         return NULL;
-      }
-
-      if (!li->getSize())
-      {
-         return NULL;
-      }
-   }
-
-   return li;
-}
-
 bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
@@ -195,7 +167,7 @@ bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
    return false;
 }
 
-bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+bool Module::getSourceLines(std::vector<Statement *> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
@@ -209,30 +181,57 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    return false;
 }
 
+bool Module::getStatements(std::vector<Statement *> &statements)
+{
+	unsigned initial_size = statements.size();
+	LineInformation *li = getLineInformation();
+
+	if (!li) 
+	{
+		return false;
+	}
+
+	statements.resize(initial_size + li->getSize());
+
+	int index = initial_size; 
+
+	for (LineInformation::const_iterator i = li->begin();
+			i != li->end();
+			++i)
+	{ 
+		//statements[index].start_addr = (*i).first.first;
+		//statements[index].end_addr = (*i).first.second;
+		statements[index] = const_cast<Statement *>(&(*i).second);
+		index++;
+	}
+
+	return (statements.size() > initial_size);
+}
+
 vector<Type *> *Module::getAllTypes()
 {
 	exec_->parseTypesNow();
 
-   typeCollection *tc = NULL;
-   if (!getAnnotation(tc, ModuleTypeInfoAnno))
-   {
-      return NULL;
-   }
-   if (!tc)
-   {
-      fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", FILE__, __LINE__);
-      return NULL;
-   }
+	typeCollection *tc = NULL;
+	if (!getAnnotation(tc, ModuleTypeInfoAnno))
+	{
+		return NULL;
+	}
+	if (!tc)
+	{
+		fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", FILE__, __LINE__);
+		return NULL;
+	}
 
-   return tc->getAllTypes();
+	return tc->getAllTypes();
 }
 
 vector<pair<string, Type *> > *Module::getAllGlobalVars()
 {
 	exec_->parseTypesNow();
 
-   typeCollection *tc = NULL;
-   if (!getAnnotation(tc, ModuleTypeInfoAnno))
+	typeCollection *tc = NULL;
+	if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
       return NULL;
    }
@@ -329,26 +328,55 @@ bool Module::setLineInfo(LineInformation *lineInfo)
    return false;
 }
 
+LineInformation *Module::getLineInformation()
+{
+	if (!exec_->isLineInfoValid_)
+		exec_->parseLineInformation();
+
+	if (!exec_->isLineInfoValid_) 
+	{
+		return NULL;
+	}
+
+	LineInformation *li =  NULL;
+	if (getAnnotation(li, ModuleLineInfoAnno))
+	{
+		if (!li) 
+		{
+			fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n",
+					FILE__, __LINE__);
+			return NULL;
+		}
+
+		if (!li->getSize())
+		{
+			return NULL;
+		}
+	}
+
+	return li;
+}
+
 bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
-   std::vector<Function *>mod_funcs;
+	std::vector<Function *>mod_funcs;
 
-   if (!exec_->getAllFunctions(mod_funcs))
-   {
-      return false;
-   }
+	if (!exec_->getAllFunctions(mod_funcs))
+	{
+		return false;
+	}
 
-   unsigned origSize = vars.size();
+	unsigned origSize = vars.size();
 
-   for (unsigned int i = 0; i < mod_funcs.size(); i++)
-   {
-      mod_funcs[i]->findLocalVariable(vars, name);
-   }
+	for (unsigned int i = 0; i < mod_funcs.size(); i++)
+	{
+		mod_funcs[i]->findLocalVariable(vars, name);
+	}
 
-   if (vars.size() > origSize)
-      return true;
+	if (vars.size() > origSize)
+		return true;
 
-   return false;
+	return false;
 }
 
 Module::Module(supportedLanguages lang, Offset adr,

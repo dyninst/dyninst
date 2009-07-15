@@ -46,39 +46,21 @@
 #include "RangeLookup.h"
 #include "Serialization.h"
 #include "Annotatable.h"
+#include "Module.h"
 
 namespace Dyninst{
 namespace SymtabAPI{
-
-/* This is clumsy. */
-
-class LineNoTuple {
-   public:
-      /* Explicit comparison functors seems slightly less confusing than using
-         operator <() via an implicit Less<> template argument to the maps. */
-
-      struct LineNoTupleLess {
-         bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
-      };
-
-      SYMTAB_EXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
-      const char *first; // really file
-      unsigned int second; // really line
-      unsigned int column;
-      SYMTAB_EXPORT bool operator==(const LineNoTuple &cmp) const;
-};
-
 
 class SourceLineInternalTableWrapper;
 
 class LineInformation : public Serializable, 
                         public AnnotatableSparse,
-                        private RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess > 
+                        private RangeLookup< Statement, Statement::StatementLess > 
 {
    public:
       SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "LineInformation") THROW_SPEC (SerializerError);
-      typedef RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::const_iterator const_iterator;
-      typedef RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::AddressRange AddressRange;
+      typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
+      typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;
 
       SYMTAB_EXPORT LineInformation();
 
@@ -98,7 +80,7 @@ class LineInformation : public Serializable,
             unsigned int lineOffset = 0 );
 
       /* You MUST NOT deallocate the strings returned. */
-      SYMTAB_EXPORT bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines );
+      SYMTAB_EXPORT bool getSourceLines( Offset addressInRange, std::vector< Statement *> & lines );
       SYMTAB_EXPORT bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
 
       SYMTAB_EXPORT const_iterator begin() const;

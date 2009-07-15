@@ -62,7 +62,8 @@ class SYMTAB_EXPORT RangeLookupImpl {
   };
 }; /* end class RangeLookupImpl */
 
-template< class Value, class ValueLess > class SYMTAB_EXPORT RangeLookup {
+template< class Value, class ValueLess > 
+class SYMTAB_EXPORT RangeLookup {
  protected:
 	 typedef RangeLookupImpl::AddressRange AddressRange;
 	 typedef RangeLookupImpl::AddressRangeLess AddressRangeLess;
@@ -80,7 +81,7 @@ template< class Value, class ValueLess > class SYMTAB_EXPORT RangeLookup {
   bool addAddressRange( Offset lowInclusiveAddr, Offset highExclusiveAddr, Value v );
 
   /* Likewise, copies of the values are returned. */
-  bool getValues( Offset addressInRange, std::vector< Value > & values );
+  bool getValues( Offset addressInRange, std::vector< Value *> & values );
   bool getAddressRanges( Value v, std::vector< AddressRange > & ranges );
 
   const_iterator begin() const;

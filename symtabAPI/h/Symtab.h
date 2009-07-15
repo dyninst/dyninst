@@ -33,7 +33,7 @@
 #define __SYMTAB_H__
  
 #include "Symbol.h"
-#include "LineInformation.h"
+#include "Module.h"
 #include "Region.h"
 
 #include "Annotatable.h"
@@ -202,7 +202,7 @@ class Symtab : public LookupInterface,
    /***** Line Number Information *****/
    SYMTAB_EXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
          std::string lineSource, unsigned int LineNo);
-   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines, 
+   SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines, 
          Offset addressInRange);
    SYMTAB_EXPORT bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,

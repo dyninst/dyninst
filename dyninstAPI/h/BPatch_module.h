@@ -84,6 +84,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_process;
     friend class BPatch_binaryEdit;
     friend class BPatch_addressSpace;
+    friend class BPatch_statement;
 
     typedef std::map<int_function*, BPatch_function*> BPatch_funcMap;
     typedef std::map<int_variable*, BPatch_variableExpr*> BPatch_varMap;

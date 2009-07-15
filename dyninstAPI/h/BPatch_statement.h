@@ -47,10 +47,11 @@
 
 class BPatch_module;
 
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_statement
+namespace Dyninst {
+namespace SymtabAPI {
+	class Statement;
+}
+}
 
 class BPATCH_DLL_EXPORT BPatch_statement : public BPatch_eventLock
 {
@@ -60,60 +61,40 @@ class BPATCH_DLL_EXPORT BPatch_statement : public BPatch_eventLock
   public:
     //  BPatch_module * getModule()
     //  Return the BPatch_module that contains this statement
-    API_EXPORT(Int, (),
-    BPatch_module *,module,()); 
+    BPatch_module * module(); 
     
     //  int getLineNumber()
     //  return the line number of this statement
-    API_EXPORT(Int, (),
-    int,lineNumber,());
+    int lineNumber();
 
     //  int getLineOffset()
     //  return the line offset of this statement (its start column in the source file)
     //  This may not be supported on all platforms.
     //  Returns -1 if not supported.
-    API_EXPORT(Int, (),
-    int,lineOffset,());
+    int lineOffset();
 
     //  const char * fileName()
     //  return the name of the file that contains this statement
-    API_EXPORT(Int, (),
-    const char *,fileName,());
+    const char * fileName();
 
     //  void * startAddr()
     //  return the starting address of this statement
-    API_EXPORT(Int, (),
-    void *,startAddr,());
+    void *startAddr();
 
     //  void * endAddr()
     //  return the last address associated with this statement
     //  (do we guarantee contiguity of addresses here?  not sure)
-    API_EXPORT(Int, (),
-    void *,endAddr,());
+    void *endAddr();
 
     ~BPatch_statement() {}
 
   private:
 
     //  Full parameter ctor -- can only built by friend classes
-    BPatch_statement(BPatch_module *mod, const char *filename, 
-                     int lineno, int lineoff = -1,
-                     void *startAddr_ = NULL, void *endAddr = NULL); 
-
-    //  same deal -- fields only set by friend classes (not the dyninst user, duh)
-    void setModule(BPatch_module *mod) {module_ = mod;}
-    void setLineNo(int lineno) {lineno_ = lineno;}
-    void setLineoff(int lineoff) {lineoff_ = lineoff;}
-    void setFileName(const char *filename) {file_ = filename;}
-    void setStartAddr(void *addr) {start_addr = addr;}
-    void setEndAddr(void *addr) {end_addr = addr;}
+    BPatch_statement(BPatch_module *mod,  Dyninst::SymtabAPI::Statement *s);
 
     BPatch_module *module_;
-    int lineno_;
-    int lineoff_;
-    const char *file_;
-    void *start_addr;
-    void *end_addr;
+	Dyninst::SymtabAPI::Statement *statement;
 };
 
 #endif 
