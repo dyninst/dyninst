@@ -44,6 +44,7 @@
 
 #include "Symtab.h"
 #include "Symbol.h"
+#include "Aggregate.h"
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -77,7 +78,6 @@ test_results_t test_lookup_func_Mutator::executeTest()
                __FILE__, __LINE__, vars.size());
       return FAILED;
    }
-
 
    return PASSED;
 }

@@ -792,7 +792,6 @@ void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 
 test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 {
-	return SKIPPED;
 
 	try 
 	{

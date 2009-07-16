@@ -149,7 +149,7 @@ bool LineInformation::addLine( const char * lineSource,
    assert( lineSourceInternal != NULL );
    size_++;
 
-   bool ret = addValue( Statement(lineSourceInternal, lineNo, lineOffset), 
+   bool ret = addValue( Statement(lineSourceInternal, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr), 
          lowInclusiveAddr, highExclusiveAddr );
 
    return ret;

@@ -53,7 +53,7 @@ class Statement : public AnnotatableSparse
 	friend class LineInformation;
 	Statement() {}
 	Statement(const char *file, unsigned int line, unsigned int col = 0,
-			Offset start_addr = 0, Offset end_addr = 0):
+			Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L):
 		file_(file),
 		line_(line),
 		column_(col),

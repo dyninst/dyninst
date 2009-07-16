@@ -39,7 +39,27 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-int test_line_info_mutatee() {
+//  NOTE:  the #line preprocessor directive sets line the number for the NEXT 
+//  line of code, not the current textual (preprocessed) line
+
+#line 1000
+int test_line_info_func(int arg1) {
+#line 2000
+	int local_var1;
+	int local_var2;
+	int i;
+	local_var1 = 10;
+	local_var2 = 2;
+	for (i = 0; i < arg1; ++i)
+	{
+		local_var1 += local_var2;
+	}
+	return local_var1;
+}
+
+int test_line_info_mutatee() 
+{
+	test_line_info_func(1000);
    /*If mutatee should run, things go here.*/
    return 0;
 }
