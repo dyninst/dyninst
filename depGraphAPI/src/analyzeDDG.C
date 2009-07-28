@@ -392,7 +392,7 @@ void DDGAnalyzer::merge(DefMap &target,
     std::map<Absloc::Ptr, unsigned> beenDefined;
 
     for (BlockSet::const_iterator iter = preds.begin(); iter != preds.end(); ++iter) {
-        DefMap source = outSets[*iter];
+        DefMap &source = outSets[*iter];
         
         for (DefMap::const_iterator iter = source.begin();
              iter != source.end(); ++iter) {
@@ -401,18 +401,7 @@ void DDGAnalyzer::merge(DefMap &target,
             target[A].insert(source[A].begin(), source[A].end());
             beenDefined[A]++;
             
-            if (!A->isPrecise()) {
-                AbslocSet aliases = A->getAliases();
-                
-                for (AbslocSet::iterator a_iter = aliases.begin(); 
-                     a_iter != aliases.end(); ++a_iter) {
-                    
-                    if (source.find(*a_iter) == source.end()) {
-                        target[*a_iter].insert(source[A].begin(), 
-                                               source[A].end());
-                    }
-                }
-            }
+            mergeAliases(A, source, target);
         }
     }
     for (std::map<Absloc::Ptr, unsigned>::const_iterator iter = beenDefined.begin();
@@ -422,6 +411,24 @@ void DDGAnalyzer::merge(DefMap &target,
     }
 
 }
+
+void DDGAnalyzer::mergeAliases(const Absloc::Ptr &A,
+                               DefMap &source,
+                               DefMap &target) {
+    if (!A->isPrecise()) {
+        AbslocSet aliases(A->getAliases());
+        
+        for (AbslocSet::iterator a_iter = aliases.begin(); 
+             a_iter != aliases.end(); ++a_iter) {
+            
+            if (source.find(*a_iter) == source.end()) {
+                target[*a_iter].insert(source[A].begin(), 
+                                       source[A].end());
+            }
+        }
+    }
+}
+
 
 void DDGAnalyzer::calcNewOut(DefMap &out,
                              DefMap &gens,
@@ -1021,67 +1028,71 @@ Absloc::Ptr DDGAnalyzer::getAbsloc(const InstructionAPI::Expression::Ptr exp,
     //   If a non-stack register is used:
     //     Create a generic MemLoc.
 
-    std::set<InstructionAST::Ptr> regUses;
-    exp->getUses(regUses);
-    
-    // If exp is a register (that is, the original operand was *reg) then 
-    // its use set will currently _not_ include itself. So add it.
-    if (dynamic_pointer_cast<InstructionAPI::RegisterAST>(exp))
-        regUses.insert(exp);
+    long spHeight = 0;
+    int spRegion = 0;
+    bool stackExists = getCurrentStackHeight(addr, spHeight, spRegion);
 
-    if (regUses.empty()) {
-        // Case 1: Immediate only.
-        Result res = exp->eval();
-        Address memAddr;
-        if (res.defined && convertResultToAddr(res, memAddr)) {
-            return MemLoc::getMemLoc(memAddr);
-        }
-        else {
-            // Oops...
-            fprintf(stderr, "Memory addr failed eval (1) %d, %s, 0x%lx\n", res.defined, exp->format().c_str(), addr);
-            return MemLoc::getMemLoc();
+    bool frameExists = getCurrentFrameStatus(addr);
+
+    bool isStack = false;
+    bool isFrame = false;
+
+    static RegisterAST *spRegs32[2] = {NULL, NULL};
+    static RegisterAST *fpRegs32[2] = {NULL, NULL};
+
+    static RegisterAST *spRegs64[2] = {NULL, NULL};
+    static RegisterAST *fpRegs64[2] = {NULL, NULL};
+
+    if (spRegs32[0] == NULL) {
+        spRegs32[0] = new RegisterAST(r_eSP);
+        spRegs32[1] = new RegisterAST(r_ESP);
+
+        spRegs64[0] = new RegisterAST(r_rSP);
+        spRegs64[1] = new RegisterAST(r_RSP);
+
+        fpRegs32[0] = new RegisterAST(r_eBP);
+        fpRegs32[1] = new RegisterAST(r_EBP);
+
+        fpRegs64[0] = new RegisterAST(r_rBP);
+        fpRegs64[1] = new RegisterAST(r_RBP);
+    }
+
+    // We currently have to try and bind _every_ _single_ _alias_
+    // of the stack pointer...
+    if (stackExists) {
+        if (exp->bind(spRegs32[0], Result(u32, spHeight)) ||
+            exp->bind(spRegs32[1], Result(u32, spHeight)) ||
+            exp->bind(spRegs64[0], Result(u64, spHeight)) ||
+            exp->bind(spRegs64[1], Result(u64, spHeight))) {
+            isStack = true;
         }
     }
-    else {
-        // We have register uses...
-        bool isStack = false;
-
-        for (std::set<InstructionAST::Ptr>::iterator iter = regUses.begin();
-             iter != regUses.end();
-             ++iter) {
-            if (isStackPointer(*iter, addr)) {
-                isStack = true;
-                InstructionAST::Ptr sp = *iter;
-                bindSP(sp, addr);
-            }
-            else if (isFramePointer(*iter, addr)) {
-                isStack = true;
-                InstructionAST::Ptr fp = *iter;
-                bindFP(fp, addr);
-            }
+    if (frameExists) {
+        if (exp->bind(fpRegs32[0], Result(u32, 0)) ||
+            exp->bind(fpRegs32[1], Result(u32, 0)) ||
+            exp->bind(fpRegs64[0], Result(u64, 0)) ||
+            exp->bind(fpRegs64[1], Result(u64, 0))) {
+            isFrame = true;
         }
+    }
 
-        if (isStack) {
-            Result res = exp->eval();
+    Result res = exp->eval();
 
-            //fprintf(stderr, "Evaluating stack height for addr 0x%lx: ", addr);
+    if (!res.defined)
+        return MemLoc::getMemLoc();
+    
+    Address resAddr;
+    if (!convertResultToAddr(res, resAddr))
+        return MemLoc::getMemLoc();
 
-            int slot;
-            if (res.defined && convertResultToSlot(res, slot)) {
-                //fprintf(stderr, "%d\n", slot);
-                return StackLoc::getStackLoc(slot);
-            }
-            else {
-                //fprintf(stderr, "%s\n", "???");
-                return StackLoc::getStackLoc();
-            }
-        }
-        else {
-            return MemLoc::getMemLoc();
-        }
-    }    
-    assert(0);
-    return MemLoc::getMemLoc();
+    if (isStack)
+        return StackLoc::getStackLoc(resAddr, spRegion);
+    
+    // Frame-based accesses are always from region 0...
+    if (isFrame)
+        return StackLoc::getStackLoc(resAddr, 0);
+
+    return MemLoc::getMemLoc(resAddr);
 }
 
 
@@ -1166,11 +1177,13 @@ void DDGAnalyzer::getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
     }
 }
 
-bool DDGAnalyzer::getCurrentStackHeight(Address addr, int &height) {
+bool DDGAnalyzer::getCurrentStackHeight(Address addr,
+                                        long &height,
+                                        int &region) {
     StackAnalysis sA(func_->lowlevel_func()->ifunc());
     const Dyninst::StackAnalysis::HeightTree *hT = sA.heightIntervals();
     
-    StackAnalysis::StackHeight heightSA;
+    StackAnalysis::Height heightSA;
     
     Offset off = func_->lowlevel_func()->addrToOffset(addr);
     
@@ -1186,6 +1199,7 @@ bool DDGAnalyzer::getCurrentStackHeight(Address addr, int &height) {
     }
 
     height = heightSA.height();
+    region = heightSA.region()->name();
 
     return true;
 }
@@ -1268,20 +1282,11 @@ bool DDGAnalyzer::convertResultToSlot(const InstructionAPI::Result &res, int &ad
     }
 }
 
-bool DDGAnalyzer::isFramePointer(const InstructionAPI::InstructionAST::Ptr &reg, Address addr) {
-
-    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
-
-    if (!container) return false;
-
-    if ((container->getID() != InstructionAPI::r_EBP) &&
-        (container->getID() != InstructionAPI::r_RBP)) 
-        return false; 
-   
+bool DDGAnalyzer::getCurrentFrameStatus(Address addr) {
     StackAnalysis sA(func_->lowlevel_func()->ifunc()); 
     
     const Dyninst::StackAnalysis::PresenceTree *pT = sA.presenceIntervals();
-    Dyninst::StackAnalysis::StackPresence exists;
+    Dyninst::StackAnalysis::Presence exists;
 
     Offset off = func_->lowlevel_func()->addrToOffset(addr);
 
@@ -1289,60 +1294,8 @@ bool DDGAnalyzer::isFramePointer(const InstructionAPI::InstructionAST::Ptr &reg,
 
     assert(!exists.isTop());
 
-    return (exists.presence() == StackAnalysis::StackPresence::frame);
+    return (exists.presence() == StackAnalysis::Presence::frame_t);
 }
-
-bool DDGAnalyzer::isStackPointer(const InstructionAPI::InstructionAST::Ptr &reg, Address) {
-    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(RegisterAST::promote(reg));
-
-    if (!container) return false;
-
-    if ((container->getID() != InstructionAPI::r_ESP) &&
-        (container->getID() != InstructionAPI::r_RSP)) 
-        return false;
-
-    return true;
-}
-
-// Determine the current value of the FP and "bind" it for later evaluation.
-// We can assert here that we were passed the frame pointer (and, for correctness,
-// that is currently holding the base of the frame) and then bind it to 0.
-void DDGAnalyzer::bindFP(InstructionAPI::InstructionAST::Ptr &reg, Address addr) {
-    assert(isFramePointer(reg, addr));
-    
-    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(reg);
-
-    if (container->getID() == InstructionAPI::r_EBP) {
-        InstructionAPI::Result res(InstructionAPI::s32,0);
-        container->setValue(res);
-    }
-    else {
-        InstructionAPI::Result res(InstructionAPI::s64, 0);
-        container->setValue(res);
-    }
-}
-
-void DDGAnalyzer::bindSP(InstructionAPI::InstructionAST::Ptr &reg, Address addr) {
-    assert(isStackPointer(reg, addr));
-
-    InstructionAPI::RegisterAST::Ptr container = dynamic_pointer_cast<InstructionAPI::RegisterAST>(reg);
-
-    int height = 0;
-    if (getCurrentStackHeight(addr, height)) {
-        if (container->getID() == InstructionAPI::r_EBP) {
-            InstructionAPI::Result res(InstructionAPI::s32, height);
-            container->setValue(res);
-        }
-        else {
-            InstructionAPI::Result res(InstructionAPI::s64, height);
-            container->setValue(res);
-        }
-    }
-    return;
-}
-
-
-
 
 /**********************************************************
  ********* Utility functions ******************************

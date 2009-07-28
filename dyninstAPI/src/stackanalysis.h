@@ -42,6 +42,8 @@
 // for blockSet...
 #include "dyninstAPI/src/image-func.h"
 
+#include "dyn_detail/boost/shared_ptr.hpp"
+
 // These are _NOT_ in the Dyninst namespace...
 class image_func;
 class image_basicBlock;
@@ -184,20 +186,22 @@ class StackAnalysis {
 
     class Region {
     public:
+        typedef dyn_detail::boost::shared_ptr<Region> Ptr;
+
         Region(int n, 
                Range &r,
-               Region *p) : 
+               Region::Ptr p) : 
             name_(n),
             range_(r),
             prev_(p)
             {};
 
-        Region(int n) : name_(n), prev_(NULL) {};
-        Region() : name_(0), prev_(NULL) {};
-        
+        Region(int n) : name_(n) {};
+        Region() : name_(0) {};
+       
         int &name() { return name_; };
         Range &range() { return range_; };
-        Region* &prev() { return prev_; };
+        Ptr prev() { return prev_; };
 
         std::string format() const;
 
@@ -216,8 +220,7 @@ class StackAnalysis {
     private:
         int name_;
         Range range_;
-        Region *prev_;
-
+        Ptr prev_;
     };
 
     class Height {
@@ -230,13 +233,13 @@ class StackAnalysis {
         static const Height bottom;
         static const Height top;
         
-        Height(const Height_t h, Region *r) :
+        Height(const Height_t h, Region::Ptr r) :
             height_(h), region_(r) {};
         Height(const Height_t h) : height_(h) {};
         Height() : height_(uninitialized) {};
 
         Height_t height() const { return height_; }
-        Region *region() const { return region_; }
+        Region::Ptr region() const { return region_; }
         
         
         // FIX THIS!!! if we stop using TOP == MAXINT and
@@ -304,7 +307,7 @@ class StackAnalysis {
     private:
         Height_t height_;
         
-        Region *region_;
+        Region::Ptr region_;
     };
     
     class Presence {
@@ -542,8 +545,8 @@ class StackAnalysis {
     class RangeTree {
     public:
         struct Node {
-            Node() : region(NULL) {};
-            Node(Region *re) :
+            Node() {};
+            Node(Region::Ptr re) :
                 region(re) {};
             ~Node() {
                 for (std::map<Range, Node *>::iterator i = children.begin(); 
@@ -551,17 +554,16 @@ class StackAnalysis {
                     if (i->second)
                         delete i->second;
                 }
-                if (region) delete region;
             }
 
             std::map<Range, Node *> children;
-            Region *region;
+            Region::Ptr region;
         };
 
         // May expand the tree
-        Region *find(Ranges &str);
+        Region::Ptr find(Ranges &str);
 
-        RangeTree(Region *initial) : curRegion(0) {
+        RangeTree(Region::Ptr initial) : curRegion(0) {
             root = new Node(initial);
         };
         ~RangeTree() { 
@@ -630,7 +632,7 @@ class StackAnalysis {
 
     Height getStackCleanAmount(Function *func);
 
-    Region *getRegion(Ranges &ranges);
+    Region::Ptr getRegion(Ranges &ranges);
     
     Block::blockSet blocks;
     Function *func;
