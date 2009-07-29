@@ -125,6 +125,8 @@ void LocErr::print(FILE *stream) const
 			file__.c_str(), line__, what());
 }
 
+std::vector<std::string> Tempfile::all_open_files;
+
 Tempfile::Tempfile()
 {
 #if defined (os_windows_test)
@@ -190,6 +192,7 @@ Tempfile::Tempfile()
 		abort();
 	}
 #endif
+	all_open_files.push_back(std::string(fname));
 }
 
 Tempfile::~Tempfile()
@@ -202,6 +205,7 @@ Tempfile::~Tempfile()
 	}
 	delete [] fname;
 #else
+	fprintf(stderr, "%s[%d]:  unlinking %s\n", FILE__, __LINE__, fname);
 	if (0 != unlink (fname))
 	{
 		fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
@@ -216,7 +220,29 @@ const char *Tempfile::getName()
 	return fname;
 }
 
-
+void Tempfile::deleteAll()
+{
+	for (unsigned int i = (all_open_files.size() - 1); i > 0; --i)
+	{
+		const char *fn = all_open_files[i].c_str();
+		assert(fn);
+#if defined (os_windows_test)
+		if (0 == DeleteFile(fn))
+		{
+			fprintf(stderr, "%s[%d]:  DeleteFile failed: %s\n",
+					__FILE__, __LINE__, strerror(errno));
+		}
+#else
+		fprintf(stderr, "%s[%d]:  unlinking %s\n", FILE__, __LINE__, fn);
+		if (0 != unlink (fn))
+		{
+			fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
+					__FILE__, __LINE__, strerror(errno));
+		}
+#endif
+	}
+	all_open_files.clear();
+}
 
 TestOutputDriver * output = NULL;
 
