@@ -239,7 +239,7 @@ Function::~Function()
 {
 }
 
-void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//fprintf(stderr, "%s[%d]:  welcome to Function::serialize\n", FILE__, __LINE__);
 

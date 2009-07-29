@@ -259,7 +259,7 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
-void Symbol::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
+void Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  Need to serialize regions before symbols
 	//  Use disk offset as unique identifier

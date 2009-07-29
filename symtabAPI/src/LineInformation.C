@@ -273,7 +273,7 @@ LineInformation::~LineInformation()
 } /* end LineInformation destructor */
 
 
-void LineInformation::serialize(SerializerBase *sb, const char *) THROW_SPEC (SerializerError)
+void LineInformation::serialize_impl(SerializerBase *sb, const char *) THROW_SPEC (SerializerError)
 {
    fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
          FILE__, __LINE__, sb);

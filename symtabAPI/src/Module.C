@@ -526,7 +526,7 @@ bool Module::setDefaultNamespacePrefix(string str)
     return exec_->setDefaultNamespacePrefix(str);
 }
 
-void Module::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    ifxml_start_element(sb, tag);
    gtranslate(sb, fileName_, "fileName");

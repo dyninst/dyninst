@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "dynutil/h/dyntypes.h"
+#include "dynutil/h/Annotatable.h"
 #include "common/h/serialize.h"
 #include "common/h/Types.h"
 #include "common/h/headers.h"
@@ -46,6 +47,8 @@ using namespace Dyninst;
 COMMON_EXPORT dyn_hash_map<std::string, SerializerBase::subsystem_serializers_t> SerializerBase::all_serializers;
 
 
+COMMON_EXPORT dyn_hash_map<std::string, AnnoSerFuncBase *> AnnoSerFuncBase::name_to_func_map;
+
 namespace Dyninst {
 bool dyn_debug_serializer = false;
 bool &serializer_debug_flag()
@@ -54,6 +57,16 @@ bool &serializer_debug_flag()
    //  across library boundaries on windows...   there's probably a better way to do this...
    return dyn_debug_serializer;
 }
+
+void ser_func_wrapper(void *it, SerializerBase *sb, 
+		const char *tag)
+{   
+	assert(it);
+	assert(sb);
+	Serializable *s = (Serializable *) (it);
+	s->serialize(sb, tag);
+}   
+
 
 void serialize_debug_init()
 {
@@ -86,6 +99,22 @@ int serializer_printf(const char *format, ...)
    return ret;
 } 
 
+void Serializable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+{
+	//  do base serialization for this class
+	serialize_impl(sb, tag);
+
+	//  then serialize all Annotations for which a serialization function has been provided
+	AnnotatableSparse *as = dynamic_cast<AnnotatableSparse *> (this);
+	if (as)
+		as->serializeAnnotations(sb, tag);
+	AnnotatableDense *ad = dynamic_cast<AnnotatableDense *> (this);
+	if (ad)
+		ad->serializeAnnotations(sb, tag);
+
+
+	
+}
 
 dyn_hash_map<const char*, deserialize_and_annotate_t> annotation_deserializers;
 

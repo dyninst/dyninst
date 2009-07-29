@@ -63,7 +63,7 @@ public:
   SYMTAB_EXPORT localVar * findLocalVar(std::string &name);
   SYMTAB_EXPORT vector<localVar *> *getAllVars();  
 
-  SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
+  SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
   
 
@@ -97,7 +97,7 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     bool dwarfParsed_;
 
 public:
-    SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
+    SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
     SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
     SYMTAB_EXPORT static typeCollection *getModTypeCollection(Module *mod);
     SYMTAB_EXPORT static void freeTypeCollection(typeCollection *tc);

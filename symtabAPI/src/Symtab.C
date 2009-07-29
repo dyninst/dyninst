@@ -2441,7 +2441,7 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
    return true;
 }
 
-void Symtab::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    try 
    {
@@ -2522,7 +2522,7 @@ SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
-void ExceptionBlock::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void ExceptionBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    try 
    {
@@ -2630,7 +2630,7 @@ bool relocationEntry::operator==(const relocationEntry &r) const
 	return true;
 }
 
-void relocationEntry::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  on deserialize need to rebuild symtab::undefDynSyms before deserializing relocations
 

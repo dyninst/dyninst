@@ -73,7 +73,7 @@ Type* Variable::getType()
 	return type_;
 }
 
-void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
 	if (!sb)
@@ -195,7 +195,7 @@ bool VariableLocation::operator==(const VariableLocation &f)
 	if (lowPC != f.lowPC) return false;
 	return true;
 }
-void VariableLocation::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, (int &)stClass, "StorageClass");
@@ -331,7 +331,7 @@ bool localVar::operator==(const localVar &l)
 	return true;
 }
 
-void localVar::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	//  Use typeID as unique identifier
 	//  magic numbers stink, but we use both positive and negative numbers for type ids

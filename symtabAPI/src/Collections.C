@@ -99,7 +99,7 @@ std::vector<localVar *> *localVarCollection::getAllVars() {
     return &localVars;
 }
   
-void localVarCollection::serialize(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+void localVarCollection::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
 }
@@ -387,7 +387,7 @@ vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
    return varsVec;
 }
 
-void typeCollection::serialize(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+void typeCollection::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
 {
    fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
 }

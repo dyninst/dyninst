@@ -58,7 +58,7 @@ class LineInformation : public Serializable,
                         private RangeLookup< Statement, Statement::StatementLess > 
 {
    public:
-      SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "LineInformation") THROW_SPEC (SerializerError);
+      SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "LineInformation") THROW_SPEC (SerializerError);
       typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
       typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;
 

@@ -90,7 +90,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
 
    SYMTAB_EXPORT 
-   void serialize(SerializerBase *sb, const char *tag = "Symtab") THROW_SPEC (SerializerError);
+   void serialize_impl(SerializerBase *sb, const char *tag = "Symtab") THROW_SPEC (SerializerError);
    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
 
@@ -563,7 +563,7 @@ class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
       SYMTAB_EXPORT 
-	  void serialize(SerializerBase *sb, const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
+	  void serialize_impl(SerializerBase *sb, const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
       SYMTAB_EXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb);
@@ -604,7 +604,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
 
-	  SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+	  SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
 			  const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
       SYMTAB_EXPORT Offset target_addr() const;

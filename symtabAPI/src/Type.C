@@ -175,7 +175,7 @@ const char *visibility2Str(visibility_t v)
 }
 }
 
-void Type::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
+void Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
    //  this should no be called directly, but by serialization functions at leaf nodes
    //  of the c++hierarchy (objects that descent from Type)
@@ -1901,7 +1901,7 @@ bool Field::operator==(const Field &f) const
 	return true;
 }
 
-void Field::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	unsigned int t_id = type_ ? type_->getID() : 0xdeadbeef;
 
@@ -1955,7 +1955,7 @@ std::vector<Symbol *> *CBlock::getFunctions()
   return &functions;
 }
 
-void CBlock::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void CBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, fieldList, "fieldList");

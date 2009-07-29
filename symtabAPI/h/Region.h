@@ -124,7 +124,7 @@ class Region : public Serializable, public AnnotatableSparse {
 
    SYMTAB_EXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
 
-   SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+   SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Region") THROW_SPEC (SerializerError);
 
    protected:                     

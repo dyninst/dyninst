@@ -249,7 +249,7 @@ class Symbol : public Serializable,
 
    public:
 
-   SYMTAB_EXPORT void serialize(SerializerBase *, 
+   SYMTAB_EXPORT void serialize_impl(SerializerBase *, 
 		   const char *tag = "Symbol") THROW_SPEC (SerializerError);
 };
 

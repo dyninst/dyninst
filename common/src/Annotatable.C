@@ -49,6 +49,7 @@ using namespace Dyninst;
 
 COMMON_EXPORT AnnotatableSparse::annos_t AnnotatableSparse::annos;
 
+COMMON_EXPORT std::vector< AnnoSerFuncBase *> AnnotatableDense::ser_funcs;
 namespace Dyninst {
 
 COMMON_EXPORT int AnnotationClass_nextId;

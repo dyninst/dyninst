@@ -96,8 +96,9 @@ class Serializable {
       COMMON_EXPORT Serializable() {}
       COMMON_EXPORT virtual ~Serializable() {}
 
+      COMMON_EXPORT virtual void serialize_impl(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
    public:
-      COMMON_EXPORT virtual void serialize(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
+      COMMON_EXPORT virtual void serialize(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError);
 };
 
 
