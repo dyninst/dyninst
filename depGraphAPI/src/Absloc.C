@@ -101,23 +101,20 @@ Absloc::Ptr RegisterLoc::makePC() {
 }
 
 const int StackLoc::STACK_GLOBAL = MININT;
+const int StackLoc::STACK_REGION_DEFAULT = 0;
 
 StackLoc::StackMap StackLoc::stackLocs_;
 
 std::string StackLoc::format() const {
+    std::stringstream ret;
+
     if (slot_ == STACK_GLOBAL) {
         return std::string("STACK");
     }
-    else if (slot_ < 0) {
-        char buf[256];
-        sprintf(buf, "STACK_NEG_%d", -1 * slot_);
-        return std::string(buf);
-    }
-    else {
-        char buf[256];
-        sprintf(buf, "STACK_%d", slot_);
-        return std::string(buf);
-    }
+    
+    ret << "STACK_" << slot_ << "_" << region_;
+
+    return ret.str(); 
 }
 
 void StackLoc::getStackLocs(AbslocSet &locs) {
@@ -126,19 +123,20 @@ void StackLoc::getStackLocs(AbslocSet &locs) {
         locs.insert((*iter).second);
     }
 }
-Absloc::Ptr StackLoc::getStackLoc(int slot) {
-    if (stackLocs_.find(slot) == stackLocs_.end()) {
-        StackLoc::Ptr sP = StackLoc::Ptr(new StackLoc(slot));
+
+Absloc::Ptr StackLoc::getStackLoc(int slot, int region) {
+    if (stackLocs_.find(std::make_pair(slot, region)) == stackLocs_.end()) {
+        StackLoc::Ptr sP = StackLoc::Ptr(new StackLoc(slot, region));
         
-        stackLocs_[slot] = sP;
+        stackLocs_[std::make_pair(slot, region)] = sP;
     }
     
-    return stackLocs_[slot];
+    return stackLocs_[std::make_pair(slot, region)];
 }
 
 Absloc::Ptr StackLoc::getStackLoc() {
     // Look up by name and return    
-    return getStackLoc(STACK_GLOBAL);
+    return getStackLoc(STACK_GLOBAL, STACK_REGION_DEFAULT);
 }
 
 StackLoc::AbslocSet StackLoc::getAliases() const{
@@ -149,7 +147,7 @@ StackLoc::AbslocSet StackLoc::getAliases() const{
     if (slot_ == STACK_GLOBAL) {
         for (StackMap::const_iterator iter = stackLocs_.begin();
              iter != stackLocs_.end(); iter++) {
-            if ((*iter).first != STACK_GLOBAL)
+            if ((*iter).first.first != STACK_GLOBAL)
                 ret.insert((*iter).second);
         }
     } 
@@ -193,11 +191,10 @@ std::string MemLoc::format() const {
     if (addr_ == MEM_GLOBAL) {
         return "Mem_UNKNOWN_";
     }
-    else {
-        char buf[256];
-        sprintf(buf, "Mem_0x%lx_", addr_);
-        return std::string(buf);
-    }
+    std::stringstream ret;
+
+    ret << "Mem_" << std::hex << addr_;
+    return ret.str();
 }
 
 void MemLoc::getMemLocs(AbslocSet &locs) {

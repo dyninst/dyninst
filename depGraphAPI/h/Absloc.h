@@ -138,28 +138,34 @@ class RegisterLoc : public Absloc {
 
 class StackLoc : public Absloc {
  public:
-    typedef std::map<int, StackLoc::Ptr> StackMap;
+    typedef std::map<std::pair<int, int>, StackLoc::Ptr> StackMap;
     typedef dyn_detail::boost::shared_ptr<StackLoc> Ptr;
 
     int slot() const { return slot_; }
+    int region() const { return region_; }
 
     virtual ~StackLoc() {};
     virtual std::string format() const;
 
     static void getStackLocs(AbslocSet &locs);
 
-    static Absloc::Ptr getStackLoc(int slot);
+    static Absloc::Ptr getStackLoc(int slot, int region);
     static Absloc::Ptr getStackLoc();
 
     virtual AbslocSet getAliases() const;
     virtual bool isPrecise() const { return slot_ != STACK_GLOBAL; }
 
     static const int STACK_GLOBAL;
+    static const int STACK_REGION_DEFAULT;
  private:
-    StackLoc(const int stackOffset) : slot_(stackOffset) {};
-    StackLoc() : slot_(STACK_GLOBAL) {};
+    StackLoc(const int stackOffset, const int stackRegion) : 
+        slot_(stackOffset),
+        region_(stackRegion) 
+        {};
+    StackLoc() : slot_(STACK_GLOBAL), region_(STACK_REGION_DEFAULT) {};
 
     const int slot_;
+    const int region_;
 
     static StackMap stackLocs_;
 };

@@ -139,7 +139,7 @@ void DDGAnalyzer::summarizeABIGenKill(Address placeholder,
 void DDGAnalyzer::summarizeConservativeGenKill(Address placeholder,
                                                Function *callee,
                                                DefMap &gens,
-                                               KillMap &kills) {
+                                               KillMap &) {
     AbslocSet abslocs;
     
     // Figure out what platform we're on...
@@ -211,6 +211,7 @@ void DDGAnalyzer::summarizeConservativeGenKill(Address placeholder,
 void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
                                          Function *callee,
                                          int height,
+                                         int region,
                                          DefMap &gens,
                                          KillMap &kills) {
     AbslocSet abslocs;
@@ -239,7 +240,7 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
                 if (SD) {
                     if (height != -1 && SD->isPrecise()) {
                         int slot = SD->slot();
-                        D = StackLoc::getStackLoc(slot + height);
+                        D = StackLoc::getStackLoc(slot + height, region);
                     }
                     else {
                         D = StackLoc::getStackLoc();
@@ -275,6 +276,7 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
 void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
                                           Function *callee,
                                           int height,
+                                          int region,
                                           DefMap &gens,
                                           KillMap &kills) {
     AbslocSet abslocs;
@@ -294,7 +296,7 @@ void DDGAnalyzer::summarizeAnalyzeGenKill(Address placeholder,
         if (SD) {
             if (height != -1 && SD->isPrecise()) {
                 int slot = SD->slot();
-                D = StackLoc::getStackLoc(slot + height);
+                D = StackLoc::getStackLoc(slot + height, region);
             }
             else {
                 D = StackLoc::getStackLoc();
@@ -488,6 +490,7 @@ void DDGAnalyzer::summarizeConservativeUsed(Address placeholder,
 void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
                                       Function *callee,
                                       int height,
+                                      int region,
                                       const DefMap &reachingDefs,
                                       NodeVec &actualParams) {
     AbslocSet abslocs;
@@ -516,7 +519,7 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
                 if (SU) {
                     if (height != -1 && SU->isPrecise()) {
                         int slot = SU->slot();
-                        U = StackLoc::getStackLoc(slot + height);
+                        U = StackLoc::getStackLoc(slot + height, region);
                     }
                     else {
                         U = StackLoc::getStackLoc();
@@ -566,6 +569,7 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
 void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
                                        Function *callee,
                                        int height,
+                                       int region,
                                        const DefMap &reachingDefs,
                                        NodeVec &actualParams) {
     AbslocSet abslocs;
@@ -585,7 +589,7 @@ void DDGAnalyzer::summarizeAnalyzeUsed(Address placeholder,
         if (SU) {
             if (height != -1 && SU->isPrecise()) {
                 int slot = SU->slot();
-                U = StackLoc::getStackLoc(slot + height);
+                U = StackLoc::getStackLoc(slot + height, region);
             }
             else {
                 U = StackLoc::getStackLoc();

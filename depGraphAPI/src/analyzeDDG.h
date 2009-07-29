@@ -297,19 +297,19 @@ public:
     // from a particular block.
     // We use a map of cNodes to handle aliasing issues; see block comment
     // in the source file.
-    typedef dyn_hash_map<AbslocPtr, cNodeSet> DefMap;
+    typedef map<AbslocPtr, cNodeSet> DefMap;
 
     // We also want to keep around kill information so we can efficiently
     // do the interprocedural analysis. This turns into a boolean, as we
     // don't really care _who_ kills (that's summarized in the gen set)
     // so long as _someone_ did.
-    typedef dyn_hash_map<AbslocPtr, bool> KillMap;
-    typedef dyn_hash_map<Block *, KillMap> KillSet;
+    typedef map<AbslocPtr, bool> KillMap;
+    typedef map<Block *, KillMap> KillSet;
 
     // A map from each Block to its DefMap data structure.    
-    typedef dyn_hash_map<Block *, DefMap> ReachingDefsGlobal;
+    typedef map<Block *, DefMap> ReachingDefsGlobal;
 
-    typedef dyn_hash_map<Address, AbslocSet> AbslocMap;
+    typedef map<Address, AbslocSet> AbslocMap;
 
     // Keep a map of nodes we have already built so we don't re-create them
     typedef std::map<cNode, Node::Ptr> CNodeMap;
@@ -348,6 +348,10 @@ public:
     void generateInterBlockReachingDefs(Block *entry);
     void merge(DefMap &target,
                const BlockSet &preds);
+    void mergeAliases(const Absloc::Ptr &A,
+                      DefMap &source,
+                      DefMap &target);
+
     void calcNewOut(DefMap &out,
                     DefMap &gens,
                     KillMap &kills,
@@ -421,14 +425,9 @@ public:
     static bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
     static bool convertResultToSlot(const InstructionAPI::Result &res, int &slot);
 
-    bool isFramePointer(const InstructionAPI::InstructionAST::Ptr &reg, Address addr);
-    bool isStackPointer(const InstructionAPI::InstructionAST::Ptr &reg, Address addr);
-
-    void bindFP(InstructionAPI::InstructionAST::Ptr &reg, Address addr);
-    void bindSP(InstructionAPI::InstructionAST::Ptr &reg, Address addr);
-
     // Returns false if the current height is unknown.
-    bool getCurrentStackHeight(Address addr, int &height);
+    bool getCurrentStackHeight(Address addr, long &height, int &region);
+    bool getCurrentFrameStatus(Address addr);
 
     InstructionAPI::RegisterAST::Ptr makeRegister(int id);
 
@@ -445,12 +444,12 @@ public:
     void summarizeConservativeUsed(Address, Function *, const DefMap &, NodeVec &);
     
     // Option 3: linear scan
-    void summarizeLinearGenKill(Address, Function *, int, DefMap &, KillMap &);
-    void summarizeLinearUsed(Address, Function *, int, const DefMap &, NodeVec &);
+    void summarizeLinearGenKill(Address, Function *, int, int, DefMap &, KillMap &);
+    void summarizeLinearUsed(Address, Function *, int, int, const DefMap &, NodeVec &);
 
     // Option 4: recursive
-    void summarizeAnalyzeGenKill(Address, Function *, int, DefMap &, KillMap &);
-    void summarizeAnalyzeUsed(Address, Function *, int, const DefMap &, NodeVec &);
+    void summarizeAnalyzeGenKill(Address, Function *, int, int, DefMap &, KillMap &);
+    void summarizeAnalyzeUsed(Address, Function *, int, int, const DefMap &, NodeVec &);
 
     
     ///////////////////////////

@@ -586,11 +586,11 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
 
 StackAnalysis::StackAnalysis() :
     func(NULL), heightIntervals_(NULL), presenceIntervals_(NULL), 
-    rt(new Region()) {};
+    rt(Region::Ptr(new Region())) {};
     
 
 StackAnalysis::StackAnalysis(Function *f) : func(f),
-                                            rt(new Region()) 
+                                            rt(Region::Ptr(new Region())) 
 {
     blocks = func->blocks();
     heightIntervals_ = NULL;
@@ -824,7 +824,7 @@ std::string StackAnalysis::Range::format() const {
     }
 }
 
-StackAnalysis::Region *StackAnalysis::RangeTree::find(Ranges &str) {
+StackAnalysis::Region::Ptr StackAnalysis::RangeTree::find(Ranges &str) {
     if (str.empty()) return root->region;
 
     Node *cur = root;
@@ -834,9 +834,9 @@ StackAnalysis::Region *StackAnalysis::RangeTree::find(Ranges &str) {
             //stackanalysis_printf("\t Creating new node for range %s\n", 
             //str[i].format().c_str());
             // Need to create a new node...
-            Node *newNode = new Node(new Region(getNewRegionID(),
-                                                str[i],
-                                                cur->region));
+            Node *newNode = new Node(Region::Ptr(new Region(getNewRegionID(),
+                                                            str[i],
+                                                            cur->region)));
             cur->children[str[i]] = newNode;
             cur = newNode;
         }
@@ -850,7 +850,7 @@ StackAnalysis::Region *StackAnalysis::RangeTree::find(Ranges &str) {
     return cur->region;
 }
 
-StackAnalysis::Region *StackAnalysis::getRegion(Ranges &ranges) {
+StackAnalysis::Region::Ptr StackAnalysis::getRegion(Ranges &ranges) {
     return rt.find(ranges);
 }
 
