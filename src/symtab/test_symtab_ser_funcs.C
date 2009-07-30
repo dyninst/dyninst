@@ -538,6 +538,9 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 		SerializerBase *sb_serializer_ptr;
 		sb_serializer_ptr = nonpublic_make_bin_symtab_serializer(st, file);
+#if 0
+		sb_serializer_ptr = nonpublic_make_bin_serializer<Symtab>(st, file);
+#endif
 		assert(sb_serializer_ptr);
 		SerializerBase &sb_serializer = (SerializerBase &) *sb_serializer_ptr;
 
@@ -558,12 +561,18 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
 		fflush(NULL);
 
+#if 0
+		nonpublic_free_bin_serializer<Symtab>(sb_serializer_ptr);
+#endif
 		nonpublic_free_bin_symtab_serializer(sb_serializer_ptr);
 
 
 		C deserialize_result;
 		SerializerBase *sb_deserializer_ptr;
 		sb_deserializer_ptr = nonpublic_make_bin_symtab_deserializer(st, file);
+#if 0
+		sb_deserializer_ptr = nonpublic_make_bin_deserializer<Symtab>(st, file);
+#endif
 		assert(sb_deserializer_ptr);
 		SerializerBase &sb_deserializer = (SerializerBase &) *sb_deserializer_ptr;
 
@@ -581,6 +590,9 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			EFAIL("serialize failed\n");
 		}
 
+#if 0
+		nonpublic_free_bin_serializer<Symtab>(sb_deserializer_ptr);
+#endif
 		nonpublic_free_bin_symtab_serializer(sb_deserializer_ptr);
 
 		//  First check whether operator== (which must exist) returns equivalence
