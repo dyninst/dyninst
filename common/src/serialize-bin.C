@@ -47,8 +47,6 @@ using namespace Dyninst;
 COMMON_EXPORT dyn_hash_map<std::string, SerializerBase::subsystem_serializers_t> SerializerBase::all_serializers;
 
 
-COMMON_EXPORT dyn_hash_map<std::string, AnnoSerFuncBase *> AnnoSerFuncBase::name_to_func_map;
-
 namespace Dyninst {
 bool dyn_debug_serializer = false;
 bool &serializer_debug_flag()

@@ -2854,6 +2854,7 @@ namespace Dyninst {
 	namespace SymtabAPI {
 
 
+#if 1
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
 {
 	SerializerBin<Symtab> *ser;
@@ -2883,6 +2884,7 @@ SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 
 }
+#endif
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 {

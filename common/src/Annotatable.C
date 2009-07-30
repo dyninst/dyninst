@@ -49,7 +49,6 @@ using namespace Dyninst;
 
 COMMON_EXPORT AnnotatableSparse::annos_t AnnotatableSparse::annos;
 
-COMMON_EXPORT std::vector< AnnoSerFuncBase *> AnnotatableDense::ser_funcs;
 namespace Dyninst {
 
 COMMON_EXPORT int AnnotationClass_nextId;
@@ -64,7 +63,8 @@ std::vector<AnnotationClassBase *> *AnnotationClassBase::annotation_types;
 dyn_hash_map<std::string, AnnotationClassID> *AnnotationClassBase::annotation_ids_by_name;
 
 AnnotationClassBase::AnnotationClassBase(std::string n, anno_cmp_func_t cmp_func_) :
-   name(n)
+   name(n),
+   serialize_func(NULL)
 {
     // Using a static vector led to the following pattern on AIX:
     //   dyninstAPI static initialization
