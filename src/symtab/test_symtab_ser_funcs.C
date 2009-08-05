@@ -536,20 +536,36 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		Tempfile tf;
 		std::string file(tf.getName());
 
-		SerializerBase *sb_serializer_ptr;
+		SerializerBase* sb_serializer_ptr;
+#if 1
+
 		sb_serializer_ptr = nonpublic_make_bin_symtab_serializer(st, file);
-#if 0
+#else
+		SerializerBin<Symtab> *sb_serializer_ptr;
+		sb_serializer_ptr = new SerializerBin<Symtab>(st, "SerializerBin2", file, sd_serialize, true);
+		Symtab *test_st = sb_serializer_ptr->getScope();
+		assert(test_st == st);
+
 		sb_serializer_ptr = nonpublic_make_bin_serializer<Symtab>(st, file);
 #endif
 		assert(sb_serializer_ptr);
-		SerializerBase &sb_serializer = (SerializerBase &) *sb_serializer_ptr;
 
-		dprintf(stderr, "%s[%d]:  before serialize\n", FILE__, __LINE__);
+#if 0
+		Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb_serializer_ptr);
+		if (!ssb)
+			EFAIL("bad c++ inheritance hierarchy");
+		fprintf(stderr, "%s[%d]:  ssb name = %s\n", FILE__, __LINE__, typeid(ssb).name());
+		Dyninst::SerializerBase *sb_serializer2 =  (Dyninst::SerializerBase *) sb_serializer_ptr;
+#endif
+
+		Dyninst::SerializerBase &sb_serializer = * (Dyninst::SerializerBase *) sb_serializer_ptr;
+
+		dprintf(stderr, "%s[%d]:  before serialize: &sb_serializer = %p\n", FILE__, __LINE__, &sb_serializer);
 
 		Serializable *sable = &control;
 		try 
 		{
-			sable->serialize(sb_serializer_ptr, NULL);
+			sable->serialize(&sb_serializer);
 		}
 		catch (const SerializerError &serr)
 		{
@@ -561,19 +577,41 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
 		fflush(NULL);
 
-#if 0
+#if 1
+		nonpublic_free_bin_symtab_serializer(sb_serializer_ptr);
+
+#else
+		SerializerBin<Symtab> *sbin = dynamic_cast<SerializerBin<Symtab> *>(sb_serializer_ptr);
+		if (sbin)
+		{
+			delete(sbin);
+		}
+		else
+			EFAIL("delete serializer");
+
 		nonpublic_free_bin_serializer<Symtab>(sb_serializer_ptr);
 #endif
-		nonpublic_free_bin_symtab_serializer(sb_serializer_ptr);
 
 
 		C deserialize_result;
 		SerializerBase *sb_deserializer_ptr;
+#if 1
 		sb_deserializer_ptr = nonpublic_make_bin_symtab_deserializer(st, file);
-#if 0
+
+#else
+		SerializerBin<Symtab> *sb_deserializer_ptr;
+		sb_deserializer_ptr = new SerializerBin<Symtab>(st, "DeserializerBin", file, sd_deserialize, true);
+		test_st = sb_deserializer_ptr->getScope();
+		assert(test_st == st);
+
 		sb_deserializer_ptr = nonpublic_make_bin_deserializer<Symtab>(st, file);
 #endif
 		assert(sb_deserializer_ptr);
+#if 0
+		ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb_deserializer_ptr);
+		if (!ssb)
+			EFAIL("bad c++ inheritance hierarchy");
+#endif
 		SerializerBase &sb_deserializer = (SerializerBase &) *sb_deserializer_ptr;
 
 		dprintf(stderr, "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
@@ -581,7 +619,9 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 		try
 		{
-			deserialize_result.serialize(sb_deserializer_ptr, NULL);
+			Serializable *des_result_ptr= &deserialize_result;
+			des_result_ptr->serialize(sb_deserializer_ptr, NULL);
+			//deserialize_result.serialize(sb_deserializer_ptr, NULL);
 		}
 		catch (const SerializerError &serr)
 		{
@@ -590,10 +630,20 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			EFAIL("serialize failed\n");
 		}
 
-#if 0
+#if 1
+
+		nonpublic_free_bin_symtab_serializer(sb_deserializer_ptr);
+#else
+		SerializerBin<Symtab> *dbin = dynamic_cast<SerializerBin<Symtab> *>(sb_deserializer_ptr);
+		if (dbin)
+		{
+			delete(dbin);
+		}
+		else
+			EFAIL("delete deserializer");
+
 		nonpublic_free_bin_serializer<Symtab>(sb_deserializer_ptr);
 #endif
-		nonpublic_free_bin_symtab_serializer(sb_deserializer_ptr);
 
 		//  First check whether operator== (which must exist) returns equivalence
 
