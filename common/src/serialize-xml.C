@@ -183,6 +183,8 @@ xmlTextWriterPtr SerDesXML::init(std::string fname, iomode_t /*mode*/, bool /*ve
 
 #endif // defined (cap_have_libxml)
 
+
+namespace Dyninst {
 #if defined (cap_have_libxml)
 //int (*my_xmlTextWriterStartElement)(xmlTextWriterPtr, 
 //      const xmlChar *) = NULL;
@@ -235,6 +237,18 @@ bool write_xml_elem(void * /*writer*/, const char * /*tag*/, const char * /*fmt*
    return false;
 }
 #endif
+}
+
+namespace Dyninst {
+bool start_xml_elem(SerDesXML &s, const char *tag)
+{
+	return start_xml_elem(s.writer, tag);
+}
+bool end_xml_elem(SerDesXML &s)
+{
+	return end_xml_elem(s.writer);
+}
+}
 
 namespace Dyninst {
 bool ifxml_start_element(SerializerBase *sb, const char *tag)

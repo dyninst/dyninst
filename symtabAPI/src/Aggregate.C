@@ -349,7 +349,7 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 			for (unsigned int i = 0; i < mods.size(); ++i)
 			{
 				std::vector<Type *> *modtypes = mods[i]->getAllTypes();
-				fprintf(stderr, "%s[%d]:  module %s has %d types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), modtypes ? modtypes->size() : -1);
+				fprintf(stderr, "%s[%d]:  module %s has %lu types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), modtypes ? modtypes->size() : -1);
 				if (mods[i]->getModuleTypesPrivate()->findType(t_id))
 					fprintf(stderr, "%s[%d]:  found type %d in mod %s\n", FILE__, __LINE__, t_id, mods[i]->fileName().c_str());
 			}
@@ -360,11 +360,18 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 void Aggregate::restore_module_by_name(SerializerBase *sb,  
 		std::string &mname) THROW_SPEC (SerializerError)
 {
-	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+
+	if (!sb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb);
 
 	if (!ssb)
 	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME: %s\n", FILE__, __LINE__, typeid(sb).name());
 		SER_ERR("FIXME");
 	}
 
@@ -502,7 +509,8 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 		gtranslate(sb, sym_offsets, "symbolOffsetList");
 		ifxml_end_element(sb, tag);
 
-		restore_module_by_name(sb, modname);
+		if (sb->isBin() && sb->isInput())
+			restore_module_by_name(sb, modname);
 
 		if (sb->isBin() && sb->isInput())
 			rebuild_symbol_vector(sb, &sym_offsets);

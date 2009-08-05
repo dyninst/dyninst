@@ -321,38 +321,39 @@ void SerializerBase::dumpActiveBinSerializers()
    }
 }
 
+
 #if 0
 template <class T>
 SerializerBin::SerializerBin(const char *name_, std::string filename, 
-      iomode_t dir, bool verbose) :
-   ScopedSerializerBase<T>(name_, filename, dir, verbose) 
+		iomode_t dir, bool verbose) :
+	ScopedSerializerBase<T>(name_, filename, dir, verbose) 
 {
-   if (global_disable) 
-   {
-      fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n", 
-            FILE__, __LINE__);
+	if (global_disable) 
+	{
+		fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n", 
+				FILE__, __LINE__);
 
-      throw SerializerError(FILE__, __LINE__, 
-            std::string("serialization disabled"), 
-            SerializerError::ser_err_disabled);
-   }
+		throw SerializerError(FILE__, __LINE__, 
+				std::string("serialization disabled"), 
+				SerializerError::ser_err_disabled);
+	}
 
-   dyn_hash_map<const char *, SerializerBin *>::iterator iter;
+	dyn_hash_map<const char *, SerializerBin *>::iterator iter;
 
-   iter = active_bin_serializers.find(name_);
+	iter = active_bin_serializers.find(name_);
 
-   if (iter == active_bin_serializers.end()) 
-   {
-      fprintf(stderr, "%s[%d]:  Adding Active serializer for name %s\n", 
-            FILE__, __LINE__, name_);
+	if (iter == active_bin_serializers.end()) 
+	{
+		fprintf(stderr, "%s[%d]:  Adding Active serializer for name %s\n", 
+				FILE__, __LINE__, name_);
 
-      active_bin_serializers[name_] = this;
-   }
-   else
-   {
-      fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n", 
-            FILE__, __LINE__, name_);
-   }
+		active_bin_serializers[name_] = this;
+	}
+	else
+	{
+		fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n", 
+				FILE__, __LINE__, name_);
+	}
 
 }
 #endif

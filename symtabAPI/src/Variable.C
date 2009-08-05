@@ -104,11 +104,16 @@ void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 		} 
 		else
 		{
-			ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+			Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb);
 
 			if (!ssb)
 			{
-				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME, sb is_bin = %s, sb = %p\n", FILE__, __LINE__, sb->isBin() ? "true" : "false", sb);
+				SerializerBin<Symtab> *sbst = dynamic_cast<SerializerBin<Symtab> *> (sb);
+				if (NULL == sbst)
+				{
+					fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				}
 				SER_ERR("FIXME");
 			}
 

@@ -86,6 +86,7 @@ void COMMON_EXPORT serialize_debug_init();
 class SerDes;
 class SerFile;
 
+#if 0
 class SerializerBase {
 
 	public:
@@ -179,6 +180,7 @@ class ScopedSerializerBase : public SerializerBase
 	T *getScope() {return scope;}
 };
 
+#endif
 
 class SerDes {
 
@@ -263,6 +265,8 @@ class SerDesXML : public SerDes {
    friend class SerFile;
    friend bool COMMON_EXPORT ifxml_start_element(SerializerBase *, const char *);
    friend bool COMMON_EXPORT ifxml_end_element(SerializerBase *, const char *);
+   friend bool COMMON_EXPORT start_xml_elem(SerDesXML &, const char *);
+   friend bool COMMON_EXPORT end_xml_elem(SerDesXML &);
 
 
 
@@ -393,6 +397,7 @@ class SerDesBin : public SerDes {
 bool start_xml_elem(void *writer, const char *tag);
 bool end_xml_elem(void *);
 
+#if 0
 template <class T>
 class SerializerXML : public ScopedSerializerBase<T> 
 {
@@ -448,11 +453,13 @@ class SerializerXML : public ScopedSerializerBase<T>
 		  return true;
 	  }
 };
+#endif
 
+
+#if 0
 template <class T>
 class SerializerBin : public ScopedSerializerBase<T> {
    friend class SerDesBin;
-
 
    public:
    virtual bool isXML() {return false;}
@@ -464,7 +471,6 @@ class SerializerBin : public ScopedSerializerBase<T> {
    SerializerBin(T *t, const char *name_, std::string filename, 
          iomode_t dir, bool verbose) :
 	   ScopedSerializerBase<T>(t, name_, filename, dir, verbose)
-
    {
 	   SerializerBase *sb = this;
 	   if (sb->serializationDisabled())
@@ -555,7 +561,7 @@ class SerializerBin : public ScopedSerializerBase<T> {
 
 };
 
-
+#endif
 //COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
 //COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
 

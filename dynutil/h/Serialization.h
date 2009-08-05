@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include <stdexcept>
 #include <typeinfo>
 #include <vector>
@@ -101,73 +102,342 @@ class Serializable {
       COMMON_EXPORT virtual void serialize(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError);
 };
 
+class SerFile;
+class SerDes;
+#if 1
+class SerializerBase {
 
-template <class S, class T>
+	public:
+		//  TODO:  make these private or protected
+		COMMON_EXPORT static dyn_hash_map<std::string, SerializerBase *> active_bin_serializers;
+		static bool global_disable;
+	private:
+
+		SerFile *sf;
+		SerDes *sd;
+
+		std::string serializer_name;
+
+		typedef dyn_hash_map<std::string, SerializerBase *> subsystem_serializers_t;
+		COMMON_EXPORT static dyn_hash_map<std::string, subsystem_serializers_t> all_serializers;
+
+	public:
+		COMMON_EXPORT static void globalDisable()
+		{
+			global_disable = true;
+		}
+		COMMON_EXPORT static bool serializationDisabled()
+		{
+			return global_disable; 
+		}
+
+		COMMON_EXPORT static void globalEnable()
+		{
+			global_disable = false;
+		}
+		COMMON_EXPORT virtual bool isXML() = 0;
+		COMMON_EXPORT virtual bool isBin ()= 0;
+		COMMON_EXPORT bool isInput () {return iomode() == sd_deserialize;}
+		COMMON_EXPORT bool isOutput () {return iomode() == sd_serialize;}
+
+		COMMON_EXPORT static void dumpActiveBinSerializers();
+
+		COMMON_EXPORT SerializerBase(const char *name_, std::string filename, 
+				iomode_t dir, bool verbose); 
+
+		COMMON_EXPORT SerializerBase();
+
+		COMMON_EXPORT virtual ~SerializerBase() 
+		{
+			serialize_printf("%s[%d]:  serializer %p-%sdtor\n", FILE__, __LINE__, 
+					this, serializer_name.c_str());
+		}
+
+		COMMON_EXPORT virtual SerDes &getSD()  { assert(sd); return *sd;}
+		COMMON_EXPORT SerFile &getSF() {assert(sf); return *sf;}
+		COMMON_EXPORT std::string &name() {return serializer_name;}
+		COMMON_EXPORT static SerializerBase *getSerializer(std::string subsystem, std::string fname);
+		COMMON_EXPORT static bool addSerializer(std::string subsystem, std::string fname, SerializerBase *sb);
+
+		COMMON_EXPORT virtual void vector_start(unsigned int &, const char * = NULL);
+		COMMON_EXPORT virtual void vector_end();
+		COMMON_EXPORT virtual void hash_map_start(unsigned int &size, const char *tag = NULL); 
+		COMMON_EXPORT virtual void hash_map_end();
+		COMMON_EXPORT void translate_base(bool &v, const char *&t);
+		COMMON_EXPORT void translate_base(short &v, const char *&t);
+		COMMON_EXPORT void translate_base(char &v, const char *&t);
+		COMMON_EXPORT void translate_base(int &v, const char *&t);
+		COMMON_EXPORT void translate_base(unsigned int &v, const char *&t);
+		COMMON_EXPORT void translate_base(unsigned long &v, const char *&t);
+		COMMON_EXPORT void translate_base(long &v, const char *&t);
+		COMMON_EXPORT void translate_base(float &v, const char *&t);
+		COMMON_EXPORT void translate_base(double &v, const char *&t);
+		COMMON_EXPORT void translate_base(const char * &v, int bufsize, const char *&t);
+		COMMON_EXPORT void translate_base(char * &v, int bufsize, const char *&t);
+		COMMON_EXPORT void translate_base(std::string &v, const char *t);
+
+		COMMON_EXPORT virtual iomode_t iomode(); 
+
+};
+
+template <class T>
+class ScopedSerializerBase : public SerializerBase
+{
+	T *scope;
+	public:
+	ScopedSerializerBase(T *scope_, const char *name_, std::string filename, 
+			iomode_t dir, bool verbose) :
+		SerializerBase(name_, filename, dir, verbose), scope(scope_) {}
+	ScopedSerializerBase(T *scope_) :
+		SerializerBase(), scope(scope_) {}
+	virtual ~ScopedSerializerBase() {}
+	T *getScope() {return scope;}
+};
+
+class SerDesXML;
+
+
+bool start_xml_elem(SerDesXML &, const char *);
+bool end_xml_elem(SerDesXML &);
+
+template <class T>
+class SerializerXML : public ScopedSerializerBase<T>
+{
+	public:
+		COMMON_EXPORT virtual bool isXML() {return true;}
+		COMMON_EXPORT virtual bool isBin () {return false;}
+
+		COMMON_EXPORT SerializerXML(T *t, const char *name_, std::string filename,
+				iomode_t dir, bool verbose) :
+			ScopedSerializerBase<T>(t, name_, filename, dir, verbose) {}
+
+		COMMON_EXPORT virtual ~SerializerXML() {}
+
+		COMMON_EXPORT SerDesXML &getSD_xml()
+		{
+			SerializerBase *sb = this;
+			SerDes &sd = sb->getSD();
+			SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
+			assert(sdxml);
+			return *sdxml;
+		}
+
+		COMMON_EXPORT static bool start_xml_element(SerializerBase *sb, const char *tag)
+		{
+			SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+
+			if (!sxml)
+			{
+				fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+						FILE__, __LINE__);
+				return false;
+			}
+
+			SerDesXML sdxml = sxml->getSD_xml();
+			start_xml_elem(sdxml, tag);
+			return true;
+		}
+
+
+		COMMON_EXPORT static bool end_xml_element(SerializerBase *sb, const char *)
+		{
+			SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+
+			if (!sxml)
+			{
+				fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+						FILE__, __LINE__);
+				return false;
+			}
+
+			SerDesXML sdxml = sxml->getSD_xml();
+			end_xml_elem(sdxml);
+			//end_xml_elem(sdxml.writer);
+
+			return true;
+		}
+};
+
+class SerDesBin;
+
+template <class T>
+class SerializerBin : public ScopedSerializerBase<T> {
+	friend class SerDesBin;
+
+	public:
+	virtual bool isXML() {return false;}
+	virtual bool isBin () {return true;}
+
+	SerializerBin(T *t)  :
+		ScopedSerializerBase<T>(t) {}
+
+
+	SerializerBin(T *t, const char *name_, std::string filename,
+			iomode_t dir, bool verbose) :
+		ScopedSerializerBase<T>(t, name_, filename, dir, verbose)
+	{
+		SerializerBase *sb = this;
+		if (sb->serializationDisabled())
+		{
+			fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n",
+					FILE__, __LINE__);
+
+			throw SerializerError(FILE__, __LINE__,
+					std::string("serialization disabled"),
+					SerializerError::ser_err_disabled);
+		}
+
+		dyn_hash_map<std::string, SerializerBase *>::iterator iter;
+
+		iter = sb->active_bin_serializers.find(std::string(name_));
+
+		if (iter == sb->active_bin_serializers.end())
+		{
+			serialize_printf("%s[%d]:  Adding Active serializer for name %s\n",
+					FILE__, __LINE__, name_);
+
+			sb->active_bin_serializers[std::string(name_)] = this;
+		}
+		else
+		{
+			fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n",
+					FILE__, __LINE__, name_);
+		}
+	}
+
+
+	virtual ~SerializerBin()
+	{
+		serialize_printf("%s[%d]:  WELCOME TO SERIALIZER_BIN dtor\n", FILE__, __LINE__);
+		dyn_hash_map<std::string, SerializerBase *>::iterator iter;
+
+		SerializerBase *sb = this;
+		iter = sb->active_bin_serializers.find(sb->name());
+
+		if (iter == sb->active_bin_serializers.end())
+		{
+			fprintf(stderr, "%s[%d]:  Weird, no static ptr for name %s\n",
+					FILE__, __LINE__, sb->name().c_str());
+		}
+		else
+		{
+			serialize_printf("%s[%d]:  Removing active serializer for name %s\n",
+					FILE__, __LINE__, sb->name().c_str());
+			sb->active_bin_serializers.erase(iter);
+		}
+
+	}
+
+	SerDesBin &getSD_bin()
+	{
+		SerializerBase *sb = this;
+		SerDes &sd = sb->getSD();
+		SerDesBin *sdbin = dynamic_cast<SerDesBin *> (&sd);
+		assert(sdbin);
+		return *sdbin;
+	}
+
+
+
+	static SerializerBin *findSerializerByName(const char *name_)
+	{
+		dyn_hash_map<std::string, SerializerBase *>::iterator iter;
+
+		iter = SerializerBase::active_bin_serializers.find(std::string(name_));
+
+		if (iter == SerializerBase::active_bin_serializers.end())
+		{
+			fprintf(stderr, "%s[%d]:  No static ptr for name %s\n",
+					FILE__, __LINE__, name_);
+			SerializerBase::dumpActiveBinSerializers();
+		}
+		else
+		{
+			fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n",
+					FILE__, __LINE__, name_);
+
+			return iter->second;
+		}
+
+		return NULL;
+	}
+
+
+};
+
+
+
+
+
+
+#endif
+
+	template <class S, class T>
 void translate_vector(S *ser, std::vector<T> &vec,
-      const char *tag = NULL, const char *elem_tag = NULL)
+		const char *tag = NULL, const char *elem_tag = NULL)
 {
-   unsigned int nelem = vec.size();
-   ser->vector_start(nelem, tag);
+	unsigned int nelem = vec.size();
+	ser->vector_start(nelem, tag);
 
-   if (ser->iomode() == sd_deserialize) 
-   {
-      if (vec.size())
-         SER_ERR("nonempty vector used to create");
+	if (ser->iomode() == sd_deserialize) 
+	{
+		if (vec.size())
+			SER_ERR("nonempty vector used to create");
 
-      //  zero size vectors are allowed
-      //  what it T is a complex type (with inheritance info)??
-      //  does resize() call default ctors, or should we do that
-      //  manually here? look this up.
-      if (nelem)
-         vec.resize(nelem);
-   }
+		//  zero size vectors are allowed
+		//  what it T is a complex type (with inheritance info)??
+		//  does resize() call default ctors, or should we do that
+		//  manually here? look this up.
+		if (nelem)
+			vec.resize(nelem);
+	}
 
-   for (unsigned int i = 0; i < vec.size(); ++i) 
-   {
-      T &t = vec[i];
-      gtranslate(ser, t, elem_tag);
-   }
+	for (unsigned int i = 0; i < vec.size(); ++i) 
+	{
+		T &t = vec[i];
+		gtranslate(ser, t, elem_tag);
+	}
 
-   ser->vector_end();
+	ser->vector_end();
 }
 
 
-template <class S, class T>
+	template <class S, class T>
 void translate_vector(S *ser, std::vector<T *> &vec, 
-      const char *tag = NULL, const char *elem_tag = NULL) 
+		const char *tag = NULL, const char *elem_tag = NULL) 
 {
-   unsigned int nelem = vec.size();
-   ser->vector_start(nelem, tag);
+	unsigned int nelem = vec.size();
+	ser->vector_start(nelem, tag);
 
-   if (ser->iomode() == sd_deserialize) 
-   {
-      if (vec.size()) 
-         SER_ERR("nonempty vector used to create");
+	if (ser->iomode() == sd_deserialize) 
+	{
+		if (vec.size()) 
+			SER_ERR("nonempty vector used to create");
 
-      //  zero size vectors are allowed
-      if (nelem) 
-      {
-         //  block-allocate array of underlying type, then assign to our vector
-         //  What happens if an individual elem is later deleted??
-         T *chunk_alloc = new T[nelem];
-         vec.resize(nelem);
-         for (unsigned int i = 0; i < nelem; ++i)
-            vec[i] = &(chunk_alloc[i]);
-      }
-   }
+		//  zero size vectors are allowed
+		if (nelem) 
+		{
+			//  block-allocate array of underlying type, then assign to our vector
+			//  What happens if an individual elem is later deleted??
+			T *chunk_alloc = new T[nelem];
+			vec.resize(nelem);
+			for (unsigned int i = 0; i < nelem; ++i)
+				vec[i] = &(chunk_alloc[i]);
+		}
+	}
 
-   for (unsigned int i = 0; i < vec.size(); ++i) 
-   {
-      T &t = *(vec[i]);
-      gtranslate(ser, t, elem_tag);
-   }
+	for (unsigned int i = 0; i < vec.size(); ++i) 
+	{
+		T &t = *(vec[i]);
+		gtranslate(ser, t, elem_tag);
+	}
 
-   ser->vector_end();
+	ser->vector_end();
 }
 
-template <class S, class T>
+	template <class S, class T>
 void translate_vector(S *ser, std::vector<std::vector<T> > &vec, 
-      const char *tag = NULL, const char *elem_tag = NULL) 
+		const char *tag = NULL, const char *elem_tag = NULL) 
 {
    fprintf(stderr, "%s[%d]:  welcome to translate vector of vectors\n", 
            __FILE__, __LINE__);
