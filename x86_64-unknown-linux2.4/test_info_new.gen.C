@@ -1372,6 +1372,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_instruction_profile", "test_instruction_profile", "test_instruction_profile.so", false, "{test: test_instruction_profile, mutator: test_instruction_profile, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("", SELFSTART, CREATE, true, "dyninst", "", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_pt_ls", "test_pt_ls", "test_pt_ls.so", false, "{test: test_pt_ls, mutator: test_pt_ls, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;
@@ -1399,6 +1404,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_instruction_bind_eval", "test_instruction_bind_eval", "test_instruction_bind_eval.so", false, "{test: test_instruction_bind_eval, mutator: test_instruction_bind_eval, grouped: false, start_state: stopped, abi: 64, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "64");
+  rg->tests.push_back(new TestInfo(test_count++, "test_instruction_profile", "test_instruction_profile", "test_instruction_profile.so", false, "{test: test_instruction_profile, mutator: test_instruction_profile, grouped: false, start_state: stopped, abi: 64, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;

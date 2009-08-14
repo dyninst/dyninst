@@ -49,7 +49,7 @@
 //#include <dyn_detail/boost/iterator/indirect_iterator.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
-
+#include <deque>
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace boost;
@@ -98,13 +98,13 @@ test_results_t failure_accumulator(test_results_t lhs, test_results_t rhs)
   return PASSED;
 }
 
-test_results_t verify_read_write_sets(const Instruction& i, const registerSet& expectedRead,
+test_results_t verify_read_write_sets(const Instruction::Ptr& i, const registerSet& expectedRead,
 				      const registerSet& expectedWritten)
 {
   set<RegisterAST::Ptr> actualRead_uo;
   set<RegisterAST::Ptr> actualWritten_uo;
-  i.getWriteSet(actualWritten_uo);
-  i.getReadSet(actualRead_uo);
+  i->getWriteSet(actualWritten_uo);
+  i->getReadSet(actualRead_uo);
   registerSet actualRead, actualWritten;
   copy(actualRead_uo.begin(), actualRead_uo.end(), inserter(actualRead, actualRead.begin()));
   copy(actualWritten_uo.begin(), actualWritten_uo.end(), inserter(actualWritten, actualWritten.begin()));
@@ -113,7 +113,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
      actualWritten.size() != expectedWritten.size())
   {
     logerror("FAILED: instruction %s, expected %d regs read, %d regs written, actual %d read, %d written\n",
-	     i.format().c_str(), expectedRead.size(), expectedWritten.size(), actualRead.size(), actualWritten.size());
+	     i->format().c_str(), expectedRead.size(), expectedWritten.size(), actualRead.size(), actualWritten.size());
     logerror("Expected read:\n");
     for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
         logerror("\t%s\n", (*iter)->format().c_str());
@@ -140,7 +140,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
   {
     if(!(*safety))
     {
-      logerror("ERROR: null shared pointer in expectedRead for instruction %s\n", i.format().c_str());
+      logerror("ERROR: null shared pointer in expectedRead for instruction %s\n", i->format().c_str());
       return FAILED;
     }
     
@@ -151,7 +151,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
   {
     if(!(*safety))
     {
-      logerror("ERROR: null shared pointer in actualRead for instruction %s\n", i.format().c_str());
+      logerror("ERROR: null shared pointer in actualRead for instruction %s\n", i->format().c_str());
       return FAILED;
     }
     
@@ -165,7 +165,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
 	it != expectedRead.end();
 	++it)
     {
-      if(!i.isRead(*it))
+      if(!i->isRead(*it))
       {
 	logerror("%s was in read set, but isRead(%s) was false\n", (*it)->format().c_str(), (*it)->format().c_str());
 	return FAILED;
@@ -174,7 +174,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
   }
   else
   {
-    logerror("Read set for instruction %s not as expected\n", i.format().c_str());
+    logerror("Read set for instruction %s not as expected\n", i->format().c_str());
     return FAILED;
   }
   
@@ -184,7 +184,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
   {
     if(!(*safety))
     {
-      logerror("ERROR: null shared pointer in expectedWritten for instruction %s\n", i.format().c_str());
+      logerror("ERROR: null shared pointer in expectedWritten for instruction %s\n", i->format().c_str());
       return FAILED;
     }
     
@@ -195,7 +195,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
   {
     if(!(*safety))
     {
-      logerror("ERROR: null shared pointer in actualWritten for instruction %s\n", i.format().c_str());
+      logerror("ERROR: null shared pointer in actualWritten for instruction %s\n", i->format().c_str());
       return FAILED;
     }
     
@@ -208,7 +208,7 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
 	it != expectedWritten.end();
 	++it)
     {
-      if(!i.isWritten(*it))
+      if(!i->isWritten(*it))
       {
 	logerror("%s was in write set, but isWritten(%s) was false\n", (*it)->format().c_str(), (*it)->format().c_str());
 	return FAILED;
@@ -217,10 +217,10 @@ test_results_t verify_read_write_sets(const Instruction& i, const registerSet& e
   }
   else
   {
-    logerror("Write set for instruction %s not as expected\n", i.format().c_str());
+    logerror("Write set for instruction %s not as expected\n", i->format().c_str());
     return FAILED;
   }
-  logerror("PASSED: Instruction %s had read, write sets as expected\n", i.format().c_str());
+  logerror("PASSED: Instruction %s had read, write sets as expected\n", i->format().c_str());
   return PASSED;
 }
 
@@ -246,27 +246,27 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 #if defined(arch_x86_64_test)
   d.setMode(true);
 #endif
-  std::vector<Instruction> decodedInsns;
-  Instruction i;
+  std::deque<Instruction::Ptr> decodedInsns;
+  Instruction::Ptr i;
   do
   {
     i = d.decode();
     decodedInsns.push_back(i);
   }
-  while(i.isValid());
+  while(i && i->isValid());
   if(decodedInsns.size() != expectedInsns)
   {
     logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
-    for(std::vector<Instruction>::iterator curInsn = decodedInsns.begin();
+    for(std::deque<Instruction::Ptr>::iterator curInsn = decodedInsns.begin();
 	curInsn != decodedInsns.end();
 	++curInsn)
     {
-      logerror("\t%s\n", curInsn->format().c_str());
+      logerror("\t%s\n", (*curInsn)->format().c_str());
     }
     
     return FAILED;
   }
-  if(decodedInsns.back().isValid())
+  if(decodedInsns.back() && decodedInsns.back()->isValid())
   {
     logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
     return FAILED;
@@ -284,16 +284,18 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   
   test_results_t retVal = PASSED;
   
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[0], expectedRead, expectedWritten));
-
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
+  decodedInsns.pop_front();
+  
   RegisterAST::Ptr rax(new RegisterAST(r_rAX));
   RegisterAST::Ptr esp(new RegisterAST(r_eSP));
   expectedRead.clear();
   expectedWritten.clear();
   expectedRead = list_of(esp)(rax);
   expectedWritten = list_of(esp);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[1], expectedRead, expectedWritten));
-
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
+  decodedInsns.pop_front();
+  
   expectedRead.clear();
   expectedWritten.clear();
   RegisterAST::Ptr ip(new RegisterAST(r_EIP));
@@ -301,25 +303,34 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   // of these flags
   expectedRead = list_of(zero)(sign)(carry)(parity)(overflow)(ip);
   expectedWritten = list_of(ip);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[2], expectedRead, expectedWritten));
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
+  							      expectedRead, expectedWritten));
+  decodedInsns.pop_front();
   
   expectedRead.clear();
   expectedWritten.clear();
   expectedRead = list_of(esp)(ip);
   expectedWritten = list_of(esp)(ip);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[3], expectedRead, expectedWritten));
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
+							      expectedRead, expectedWritten));
+  Instruction::Ptr callInsn = decodedInsns.front();
+  decodedInsns.pop_front();
 
   expectedRead.clear();
   expectedWritten.clear();
   expectedWritten = list_of(carry);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[4], expectedRead, expectedWritten));
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
+							      expectedRead, expectedWritten));
+  decodedInsns.pop_front();
 
   expectedRead.clear();
   expectedWritten.clear();
   RegisterAST::Ptr al(new RegisterAST(r_AL));
   expectedRead = list_of(al);
   expectedWritten = list_of(al)(zero)(carry)(sign)(overflow)(parity)(adjust);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[5], expectedRead, expectedWritten));
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
+							      expectedRead, expectedWritten));
+  decodedInsns.pop_front();
 
 #if defined(arch_x86_64_test)
   RegisterAST::Ptr bp(new RegisterAST(r_RBP));
@@ -329,13 +340,19 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   expectedRead.clear();
   expectedWritten.clear();
   expectedRead = list_of(bp);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[6], expectedRead, expectedWritten));
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
+							      expectedRead, expectedWritten));
+  decodedInsns.pop_front();
+  
   
   RegisterAST::Ptr dl(new RegisterAST(r_DL));
   expectedRead.clear();
   expectedWritten.clear();
   expectedRead = list_of(bp)(dl);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[7], expectedRead, expectedWritten));
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
+							      expectedRead, expectedWritten));
+  decodedInsns.pop_front();
+  
 
   RegisterAST::Ptr xmm0(new RegisterAST(r_XMM0));
   RegisterAST::Ptr xmm1(new RegisterAST(r_XMM1));
@@ -343,20 +360,25 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   expectedWritten.clear();
   expectedRead = list_of(xmm0);
   expectedWritten = list_of(xmm0);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[8], expectedRead, expectedWritten));
-  if(decodedInsns[8].size() != 4) {
-    logerror("FAILURE: movddup expected size 4, decoded to %s, had size %d\n", decodedInsns[8].format().c_str(), decodedInsns[8].size());
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
+							      expectedRead, expectedWritten));
+  if(decodedInsns.front()->size() != 4) {
+    logerror("FAILURE: movddup expected size 4, decoded to %s, had size %d\n", decodedInsns.front()->format().c_str(), decodedInsns.front()->size());
     retVal = FAILED;
   }
+  decodedInsns.pop_front();
+
   expectedRead.clear();
   expectedWritten.clear();
   expectedRead = list_of(xmm1);
   expectedWritten = list_of(xmm1);
-  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns[9], expectedRead, expectedWritten));
-  if(decodedInsns[9].size() != 4) {
-    logerror("FAILURE: haddpd expected size 4, decoded to %s, had size %d\n", decodedInsns[9].format().c_str(), decodedInsns[9].size());
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
+  if(decodedInsns.front()->size() != 4) {
+    logerror("FAILURE: haddpd expected size 4, decoded to %s, had size %d\n", decodedInsns.front()->format().c_str(), decodedInsns.front()->size());
     retVal = FAILED;
   }  
+  decodedInsns.pop_front();
+
 #if defined(arch_x86_64_test)
   const unsigned char amd64_specific[] = 
   {
@@ -364,7 +386,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   };
   unsigned int amd64_size = 4;
   unsigned int amd64_num_valid_insns = 1;
-  vector<Instruction> amd64Insns;
+  deque<Instruction::Ptr> amd64Insns;
   
   InstructionDecoder amd64_decoder(amd64_specific, amd64_size);
   amd64_decoder.setMode(true);
@@ -374,7 +396,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   {
     tmp = amd64_decoder.decode();
     amd64Insns.push_back(tmp);
-  } while(tmp.isValid());
+  } while(tmp && tmp->isValid());
   amd64Insns.pop_back();
   if(amd64Insns.size() != amd64_num_valid_insns) 
   {
@@ -387,10 +409,12 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   expectedRead = list_of(bp)(r8);
   expectedWritten.clear();
   
-  retVal = failure_accumulator(retVal, verify_read_write_sets(amd64Insns[0], expectedRead, expectedWritten));
+  retVal = failure_accumulator(retVal, verify_read_write_sets(amd64Insns.front(), expectedRead, expectedWritten));
+  amd64Insns.pop_front();
+  
 #endif
 
-  Expression::Ptr cft = decodedInsns[3].getControlFlowTarget();
+  Expression::Ptr cft = callInsn->getControlFlowTarget();
   if(!cft) {
     logerror("FAILED: call had no control flow target\n");
     return FAILED;
@@ -401,7 +425,6 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     logerror("FAILED: bind found no IP in call Jz CFT\n");
     return FAILED;
   }
-  
   Result theTarget = cft->eval();
   if(!theTarget.defined) {
     logerror("FAILED: bind of IP on a Jz operand did not resolve all dependencies\n");
@@ -420,7 +443,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   }
   logerror("PASSED call CFT subtest\n");
   delete the_ip;
-  
+
   return retVal;
 }
 
