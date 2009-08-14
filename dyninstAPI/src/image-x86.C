@@ -339,12 +339,12 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
 
                 InstructionDecoder d((const unsigned char *)curBlk->getFirstFunc()->img()->getPtrToInstruction(*iter), 
                                      iter.getInstruction().size());
-                Instruction cmpInsn = d.decode();
+                Instruction::Ptr cmpInsn = d.decode();
                 for(std::set<RegisterAST::Ptr>::const_iterator curReg = regsRead.begin();
                     curReg != regsRead.end();
                     ++curReg)
                     {
-                        if(cmpInsn.isRead(*curReg))
+                        if(cmpInsn->isRead(*curReg))
                             {
                                 parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
                                                *iter);
@@ -686,27 +686,27 @@ bool image_func::archGetMultipleJumpTargets(
       d.setMode(img()->getAddressWidth() == 8);
       Address cur = jumpAddr;
       unsigned last_insn_size = 0;
-      InstructionAPI::Instruction i = d.decode();
-      cur += i.size();
+      InstructionAPI::Instruction::Ptr i = d.decode();
+      cur += i->size();
       for (;;) {
-         InstructionAPI::Instruction insn = d.decode();
+         InstructionAPI::Instruction::Ptr insn = d.decode();
          //All insns in sequence are movaps
-         if (insn.getOperation().getID() != e_movapd &&
-             insn.getOperation().getID() != e_movaps) 
+         if (insn->getOperation().getID() != e_movapd &&
+             insn->getOperation().getID() != e_movaps) 
          {
             found.insert(cur);
             break;
          }
          //All insns are same size
          if (last_insn_size == 0)
-            last_insn_size = insn.size();
-         else if (last_insn_size != insn.size())
+            last_insn_size = insn->size();
+         else if (last_insn_size != insn->size())
             break;
 
          num_movaps_found++;
          found.insert(cur);
 
-         cur += insn.size();
+         cur += insn->size();
       }
       if (num_movaps_found == 8) {
          //It's a match
@@ -722,9 +722,9 @@ bool image_func::archGetMultipleJumpTargets(
 		InstructionDecoder d((const unsigned char *)img()->getPtrToInstruction(tableInsnAddr), 
                              tableInsn.size());
    d.setMode(img()->getAddressWidth() == 8);
-        Instruction tableInsn_iapi = d.decode();
+        Instruction::Ptr tableInsn_iapi = d.decode();
         std::set<RegisterAST::Ptr> regsRead;
-        tableInsn_iapi.getReadSet(regsRead);
+        tableInsn_iapi->getReadSet(regsRead);
 #else
 		std::set<RegisterAST::Ptr> regsRead;
 #endif

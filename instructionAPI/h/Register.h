@@ -93,8 +93,10 @@ namespace Dyninst
       static InstructionAST::Ptr promote(InstructionAST::Ptr reg);
 
     protected:
-      virtual bool isSameType(const InstructionAST& rhs) const;
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
+      virtual bool isFlag() const;
+      virtual bool checkRegID(unsigned int id) const;
+      
     private:
       unsigned int registerID;
     };

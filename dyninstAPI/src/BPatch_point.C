@@ -306,7 +306,7 @@ InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()
 {
   using namespace InstructionAPI;
   InstructionDecoder d(static_cast<const unsigned char*>(point->proc()->getPtrToInstruction(point->addr())), maxInsnSize);
-  Instruction::Ptr i(new Instruction(d.decode()));
+  Instruction::Ptr i = d.decode();
   return i;
 }
 #else

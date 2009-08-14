@@ -100,7 +100,7 @@ namespace Dyninst
 	{
 	  return arg1 * arg2;
 	}
-      };      
+      };
             
       /// \param arg1 first input to function
       /// \param arg2 second input to function
@@ -118,8 +118,7 @@ namespace Dyninst
       /// as they are necessary for representing address calculations.  Other \c %funcTs may be implemented by the user if desired.
       /// %funcTs have names associated with them for output and debugging purposes.  The addition and multiplication functors
       /// provided with the %Instruction API are named "+" and "*", respectively.
-      template <typename T1, typename T2>
-      BinaryFunction(T1 arg1, T2 arg2, Result_Type result_type,
+      BinaryFunction(Expression::Ptr arg1, Expression::Ptr arg2, Result_Type result_type,
 		     funcT::Ptr func) : 
       Expression(result_type), m_arg1(arg1), m_arg2(arg2), m_funcPtr(func)
       {
@@ -139,7 +138,7 @@ namespace Dyninst
       /// outside information to override the results of the %BinaryFunction's internal computation.
       /// If the cached result exists, it is guaranteed to be returned even if the arguments or the function
       /// are not evaluable.
-      virtual Result eval() const
+      virtual const Result& eval() const
       {
 	Expression::Ptr arg1 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg1);
 	Expression::Ptr arg2 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg2);
@@ -187,10 +186,6 @@ namespace Dyninst
 	return retVal.str();
       }
     protected:
-      virtual bool isSameType(const InstructionAST& rhs) const
-      {
-	return dynamic_cast<const BinaryFunction*>(&rhs) != NULL;
-      }
       virtual bool isStrictEqual(const InstructionAST& rhs) const
       {
 	const BinaryFunction& other(dynamic_cast<const BinaryFunction&>(rhs));
@@ -200,8 +195,8 @@ namespace Dyninst
       }
   
     private:
-      InstructionAST::Ptr m_arg1;
-      InstructionAST::Ptr m_arg2;
+      Expression::Ptr m_arg1;
+      Expression::Ptr m_arg2;
       funcT::Ptr m_funcPtr;
       
     };

@@ -16,9 +16,10 @@
 
 #define DYN_DETAIL_BOOST_EXCEPTION_DISABLE
 
-#if 0 // Kill all config defs
-//#ifndef DYN_DETAIL_BOOST_CONFIG_HPP
+#ifndef DYN_DETAIL_BOOST_CONFIG_HPP
 #define DYN_DETAIL_BOOST_CONFIG_HPP
+
+#if 0 // Kill all config defs
 
 // if we don't have a user config, then use the default location:
 #if !defined(DYN_DETAIL_BOOST_USER_CONFIG) && !defined(DYN_DETAIL_BOOST_NO_USER_CONFIG)
@@ -55,11 +56,12 @@
 #ifdef DYN_DETAIL_BOOST_PLATFORM_CONFIG
 #  include DYN_DETAIL_BOOST_PLATFORM_CONFIG
 #endif
+#endif
 
 // get config suffix code:
 #include <dyn_detail/boost/config/suffix.hpp>
-
 #endif  // DYN_DETAIL_BOOST_CONFIG_HPP
+
 
 
 

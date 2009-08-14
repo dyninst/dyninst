@@ -189,24 +189,20 @@ namespace Dyninst
       
       /// A %Result may be constructed from a type without providing a value.
       /// This constructor creates a %Result of type \c t with undefined contents.
-      Result(Result_Type t)
+      Result(Result_Type t) :
+      type(t), defined(false)
       {
-	type = t;
-	defined = false;
-	val.dblval = 0.0;
-	
       }
+      
       /// A %Result may be constructed from a type and any value convertible to the type that the
       /// tag represents.
       /// This constructor creates a %Result of type \c t and contents \c v for any \c v that is implicitly
       /// convertible to type \c t.  Attempting to construct a %Result with a value that is incompatible with
       /// its type will result in a compile-time error.
       template<typename T>
-      Result(Result_Type t, T v)
+      Result(Result_Type t, T v) :
+      type(t), defined(true)
       {
-	type = t,
-	defined = true;
-	val.dblval = 0.0;
 	switch(type)
 	{
 	case u8:
@@ -256,87 +252,96 @@ namespace Dyninst
 	  break;
 	}
       }
-      Result(Result_Type t, float v)
+      Result(Result_Type t, float v) :
+      type(t), defined(true)
       {
-	type = t,
-	defined = true;
-	val.dblval = v;
 	assert(t == sp_float || t == dp_float);
+	val.dblval = v;
       }
-      Result(Result_Type t, double v)
+      Result(Result_Type t, double v) :
+      type(t), defined(true)
       {
-	type = t,
-	defined = true;
-	val.dblval = v;
 	assert(t == sp_float || t == dp_float);
+	val.dblval = v;
       }      
       ~Result()
       {
       }
-      /// Two %Results are equal if any of the following hold:
-      /// - Both %Results are of the same type and undefined
-      /// - Both %Results are of the same type, defined, and have the same value
-      ///
-      /// Otherwise, they are unequal (due to having different types, an undefined %Result compared to a defined %Result,
-      /// or different values).
-      bool operator==(const Result& o) const
-      {
 
-	if(type != o.type) return false;
-	if(defined != o.defined) return false;
-	if(!defined) return true;
+      bool operator<(const Result& o) const
+      {
+	if(type < o.type) return true;
+	if(!defined) return false;
+	if(!o.defined) return true;
+	
+
 	switch(type)
 	{
 	case u8:
-	  return val.u8val == o.val.u8val;
+	  return val.u8val < o.val.u8val;
 	  break;
 	case s8:
-	  return val.s8val == o.val.s8val;
+	  return val.s8val < o.val.s8val;
 	  break;
 	case u16:
-	  return val.u16val == o.val.u16val;
+	  return val.u16val < o.val.u16val;
 	  break;
 	case s16:
-	  return val.s16val == o.val.s16val;
+	  return val.s16val < o.val.s16val;
 	  break;
 	case u32:
-	  return val.u32val == o.val.u32val;
+	  return val.u32val < o.val.u32val;
 	  break;
 	case s32:
-	  return val.s32val == o.val.s32val;
+	  return val.s32val < o.val.s32val;
 	  break;
 	case u64:
-	  return val.u64val == o.val.u64val;
+	  return val.u64val < o.val.u64val;
 	  break;
 	case s64:
-	  return val.s64val == o.val.s64val;
+	  return val.s64val < o.val.s64val;
 	  break;
 	case sp_float:
-	  return val.floatval == o.val.floatval;
+	  return val.floatval < o.val.floatval;
 	  break;
 	case dp_float:
-	  return val.dblval == o.val.dblval;
+	  return val.dblval < o.val.dblval;
 	  break;
 	case bit_flag:
-	  return val.bitval == o.val.bitval;
+	  return val.bitval < o.val.bitval;
 	  break;
 	case u48:
-	  return val.u48val == o.val.u48val;
+	  return val.u48val < o.val.u48val;
 	  break;
 	case s48:
-	  return val.s48val == o.val.s48val;
+	  return val.s48val < o.val.s48val;
 	  break;
 	case m512:
-	  return memcmp(val.m512val, o.val.m512val, 512) == 0;
+	  return memcmp(val.m512val, o.val.m512val, 512) < 0;
 	  break;
 	case dbl128:
-	  return memcmp(val.dbl128val, o.val.dbl128val, 128) == 0;
+	  return memcmp(val.dbl128val, o.val.dbl128val, 128) < 0;
 	  break;
 	default:
 	  assert(!"Invalid type!");
 	  break;
 	}
 	return false;
+      }
+      
+      /// Two %Results are equal if any of the following hold:
+      /// - Both %Results are of the same type and undefined
+      /// - Both %Results are of the same type, defined, and have the same value
+      ///
+      /// Otherwise, they are unequal (due to having different types, an undefined %Result compared to a defined %Result,
+      /// or different values).
+
+
+      bool operator==(const Result& o) const
+      {
+	return !((*this < o) || (o < *this));
+	
+       
       }
       /// %Results are formatted as strings containing their contents, represented as hexadecimal.
       /// The type of the %Result is not included in the output.

@@ -412,14 +412,14 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
  *
  */
 #if defined(cap_instruction_api)
-bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction>& insns) {
+bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
 
   InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())), size());
 
   do {
       insns.push_back(d.decode());
-  } while (insns.back().isValid());
+  } while (insns.back() && insns.back()->isValid());
 
   // Remove final invalid instruction
   if (!insns.empty()) insns.pop_back();
@@ -427,7 +427,7 @@ bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instructi
   return !insns.empty();  
 }
 
-bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction, Address> >& insnInstances) {
+bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& insnInstances) {
   using namespace InstructionAPI;
   Address addr = getStartAddress();
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
@@ -436,18 +436,18 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
 
   while (addr < getEndAddress()) {
       insnInstances.push_back(std::make_pair(d.decode(), addr));
-      addr += insnInstances.back().first.size();
+      addr += insnInstances.back().first->size();
   }
 
   return !insnInstances.empty();  
 }
 #else
-bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction>& insns)
+bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns)
 {
   return false;
 }
 
-bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction, Address> >& insnInstances)
+bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& insnInstances)
 {
   return false;
 }

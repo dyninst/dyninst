@@ -123,7 +123,7 @@ namespace Dyninst
     public:
       /// \brief A type definition for a reference counted pointer to a %Expression.
       typedef dyn_detail::boost::shared_ptr<Expression> Ptr;
-
+      friend class Operation;
     protected:      
       Expression(Result_Type t);
     public:
@@ -131,11 +131,11 @@ namespace Dyninst
 
       /// \brief If the %Expression can be evaluated, returns a %Result containing its value.
       /// Otherwise returns an undefined %Result.
-      virtual Result eval() const;
+      virtual const Result& eval() const;
   
       /// \param knownValue Sets the result of \c eval for this %Expression
       /// to \c knownValue
-      void setValue(Result knownValue);
+      void setValue(const Result& knownValue);
   
       /// \c clearValue sets the contents of this %Expression to undefined.
       /// The next time \c eval is called, it will recalculate the value of the %Expression.
@@ -153,10 +153,13 @@ namespace Dyninst
       /// the same value.  For example, if a dereference of 0xDEADBEEF is bound to
       /// 0, and a register is bound to 0xDEADBEEF, a dereference of that register is not
       /// bound to 0.
-      bool bind(Expression* expr, Result value);
-  
+      bool bind(Expression* expr, const Result& value);
+
+    protected:
+      virtual bool isFlag() const;
     private:
       Result userSetValue;
+      
     };
 
   };

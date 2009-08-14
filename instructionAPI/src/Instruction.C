@@ -35,57 +35,189 @@
 #include "../h/Instruction.h"
 #include "../h/Register.h"
 #include "../h/Operation.h"
+#include "InstructionDecoder.h"
 #include "Dereference.h"
 #include <boost/iterator/indirect_iterator.hpp>
 #include <iostream>
+#include "arch-x86.h"
 using namespace std;
+
+#include <boost/pool/pool.hpp>
 
 namespace Dyninst
 {
   namespace InstructionAPI
   {
-    INSTRUCTION_EXPORT Instruction::Instruction(const Operation& what, 
-			     const std::vector<Expression::Ptr>& operandSource,
+
+    bool readsOperand(unsigned int opsema, unsigned int i)
+    {
+      switch(opsema) {
+      case s1R2R:
+	return (i == 0 || i == 1);
+      case s1R:
+      case s1RW:
+	return i == 0;
+      case s1W:
+	return false;
+      case s1W2RW:
+      case s1W2R:   // second operand read, first operand written (e.g. mov)
+	return i == 1;
+      case s1RW2R:  // two operands read, first written (e.g. add)
+      case s1RW2RW: // e.g. xchg
+      case s1R2RW:
+	return i == 0 || i == 1;
+      case s1W2R3R: // e.g. imul
+      case s1W2RW3R: // some mul
+      case s1W2R3RW: // (stack) push & pop
+	return i == 1 || i == 2;
+      case s1W2W3R: // e.g. les
+	return i == 2;
+      case s1RW2R3R: // shld/shrd
+      case s1RW2RW3R: // [i]div, cmpxch8b
+	return i == 0 || i == 1 || i == 2;
+	break;
+      case sNONE:
+      default:
+	return false;
+      }
+      
+    }
+      
+    bool writesOperand(unsigned int opsema, unsigned int i)
+    {
+      switch(opsema) {
+      case s1R2R:
+      case s1R:
+	return false;
+      case s1RW:
+      case s1W:
+      case s1W2R:   // second operand read, first operand written (e.g. mov)
+      case s1RW2R:  // two operands read, first written (e.g. add)
+      case s1W2R3R: // e.g. imul
+      case s1RW2R3R: // shld/shrd
+	return i == 0;
+      case s1R2RW:
+	return i == 1;
+      case s1W2RW:
+      case s1RW2RW: // e.g. xchg
+      case s1W2RW3R: // some mul
+      case s1W2W3R: // e.g. les
+      case s1RW2RW3R: // [i]div, cmpxch8b
+	return i == 0 || i == 1;
+      case s1W2R3RW: // (stack) push & pop
+	return i == 0 || i == 2;
+      case sNONE:
+      default:
+	return false;
+      }
+    }    
+
+    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what, 
 			     size_t size, const unsigned char* raw)
       : m_InsnOp(what), m_Valid(true)
     {
-      unsigned int i;
-      std::vector<Expression::Ptr>::const_iterator curVC;
+      copyRaw(size, raw);
       
-      for(i = 0, curVC = operandSource.begin();
-	  (curVC != operandSource.end()) && (i < what.read().size()) && (i < what.written().size());
-	  ++curVC, ++i)
-      {
-	Operand tmp(*curVC, what.read()[i], what.written()[i]);
-	m_Operands.push_back(tmp);
-      }
-      assert(curVC == operandSource.end());
-      assert(i == what.read().size());
-      assert(i == what.written().size());
+    }
+
+    void Instruction::copyRaw(size_t size, const unsigned char* raw)
+    {
       
       if(raw)
       {
-      	for(unsigned int i = 0; i < size; i++)
+	m_size = size;
+	m_RawInsn.small_insn = 0;
+	if(size <= sizeof(unsigned int))
 	{
-	  m_RawInsn.push_back(raw[i]);
+	  memcpy(&m_RawInsn, raw, size);
+	}
+	else
+	{
+	  m_RawInsn.large_insn = new unsigned char[size];
+	  memcpy(m_RawInsn.large_insn, raw, size);
 	}
       }
+      else
+      {
+	m_size = 0;
+	m_RawInsn.small_insn = 0;
+      }
+    }
+    
+    void Instruction::decodeOperands() const
+    {
+      static InstructionDecoder d;
+      const unsigned char* buffer = reinterpret_cast<const unsigned char*>(&(m_RawInsn.small_insn));
+      if(m_size > sizeof(unsigned int)) {
+	buffer = m_RawInsn.large_insn;
+      }
+      std::vector<Expression::Ptr> opSrc;
+      d.resetBuffer(buffer);
+      d.doIA32Decode();
+      d.decodeOperands(opSrc);
+      m_Operands.reserve(opSrc.size());
+      unsigned int opsema = d.decodedInstruction->getEntry()->opsema & 0xFF;
+      
+      for(unsigned int i = 0;
+	  i < opSrc.size();
+	  ++i)
+      {
+	m_Operands.push_back(Operand(opSrc[i], readsOperand(opsema, i), writesOperand(opsema, i)));
+      }      
+    }
+    
+    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what, 
+			     const std::vector<Expression::Ptr>& operandSource,
+			     size_t size, const unsigned char* raw, unsigned int opsema)
+      : m_InsnOp(what), m_Valid(true)
+    {
+      std::vector<Expression::Ptr>::const_iterator curVC;
+      m_Operands.reserve(operandSource.size());
+      
+      for(unsigned int i = 0;
+	  i < operandSource.size();
+	  ++i)
+      {
+	m_Operands.push_back(Operand(operandSource[i], readsOperand(opsema, i), writesOperand(opsema, i)));
+      }
+      copyRaw(size, raw);
+      
     }
     INSTRUCTION_EXPORT Instruction::Instruction() :
-      m_Valid(false)
+      m_Valid(false), m_size(0)
     {
     }
     
     INSTRUCTION_EXPORT Instruction::~Instruction()
     {
+      if(m_size > sizeof(unsigned int))
+      {
+	delete[] m_RawInsn.large_insn;
+      }
+      
     }
 
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o)
     {
       m_Operands.clear();
-      m_RawInsn.clear();
-      std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
-      std::copy(o.m_RawInsn.begin(), o.m_RawInsn.end(), std::back_inserter(m_RawInsn));
+      //m_Operands.reserve(o.m_Operands.size());
+      //std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
+      if(m_size > sizeof(unsigned int)) 
+      {
+	delete[] m_RawInsn.large_insn;
+      }
+      
+      m_size = o.m_size;
+      if(o.m_size > sizeof(unsigned int))
+      {
+	m_RawInsn.large_insn = new unsigned char[o.m_size];
+	memcpy(m_RawInsn.large_insn, o.m_RawInsn.large_insn, m_size);
+      }
+      else
+      {
+	m_RawInsn.small_insn = o.m_RawInsn.small_insn;
+      }
+
       m_InsnOp = o.m_InsnOp;
       m_Valid = o.m_Valid;
     }
@@ -93,9 +225,25 @@ namespace Dyninst
     INSTRUCTION_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs)
     {
       m_Operands.clear();
-      m_RawInsn.clear();
-      std::copy(rhs.m_Operands.begin(), rhs.m_Operands.end(), std::back_inserter(m_Operands));
-      std::copy(rhs.m_RawInsn.begin(), rhs.m_RawInsn.end(), std::back_inserter(m_RawInsn));
+      //m_Operands.reserve(rhs.m_Operands.size());
+      //std::copy(rhs.m_Operands.begin(), rhs.m_Operands.end(), std::back_inserter(m_Operands));
+      if(m_size > sizeof(unsigned int)) 
+      {
+	delete[] m_RawInsn.large_insn;
+      }
+      
+      m_size = rhs.m_size;
+      if(rhs.m_size > sizeof(unsigned int))
+      {
+	m_RawInsn.large_insn = new unsigned char[rhs.m_size];
+	memcpy(m_RawInsn.large_insn, rhs.m_RawInsn.large_insn, m_size);
+      }
+      else
+      {
+	m_RawInsn.small_insn = rhs.m_RawInsn.small_insn;
+      }
+
+
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
       return *this;
@@ -108,16 +256,26 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT const Operation& Instruction::getOperation() const
     {
-      return m_InsnOp;
+      return *m_InsnOp;
     }
     
     INSTRUCTION_EXPORT void Instruction::getOperands(std::vector<Operand>& operands) const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
+      
       std::copy(m_Operands.begin(), m_Operands.end(), std::back_inserter(operands));
     }
     
     INSTRUCTION_EXPORT Operand Instruction::getOperand(int index) const
      {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
+
         if(index < 0 || index >= (int)(m_Operands.size()))
         {
 	  // Out of range = empty operand
@@ -128,42 +286,61 @@ namespace Dyninst
 
     INSTRUCTION_EXPORT unsigned char Instruction::rawByte(unsigned int index) const
     {
-      return m_RawInsn[index];
+      if(index > m_size) return 0;
+      if(m_size > sizeof(unsigned int)) 
+      {
+	return m_RawInsn.large_insn[index];
+      }
+      else
+      {
+	return reinterpret_cast<const unsigned char*>(&m_RawInsn.small_insn)[index];
+      }
     }
     
     INSTRUCTION_EXPORT size_t Instruction::size() const
     {
-      return m_RawInsn.size();
+      return m_size;
+      
     }
     
     INSTRUCTION_EXPORT void Instruction::getReadSet(std::set<RegisterAST::Ptr>& regsRead) const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
 	curOperand->getReadSet(regsRead);
       }
-      std::set<RegisterAST::Ptr> implicitReads = m_InsnOp.implicitReads();
-      std::copy(implicitReads.begin(), implicitReads.end(), std::inserter(regsRead, regsRead.begin()));
+      std::copy(m_InsnOp->implicitReads().begin(), m_InsnOp->implicitReads().end(), std::inserter(regsRead, regsRead.begin()));
       
     }
     
     INSTRUCTION_EXPORT void Instruction::getWriteSet(std::set<RegisterAST::Ptr>& regsWritten) const
-    {
+    { 
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
 	curOperand->getWriteSet(regsWritten);
       }
-      std::set<RegisterAST::Ptr> implicitWrites = m_InsnOp.implicitWrites();
-      std::copy(implicitWrites.begin(), implicitWrites.end(), std::inserter(regsWritten, regsWritten.begin()));
+      std::copy(m_InsnOp->implicitWrites().begin(), m_InsnOp->implicitWrites().end(), std::inserter(regsWritten, regsWritten.begin()));
       
     }
     
     INSTRUCTION_EXPORT bool Instruction::isRead(Expression::Ptr candidate) const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -173,11 +350,15 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return m_InsnOp.isRead(candidate);
+      return m_InsnOp->isRead(candidate);
     }
 
     INSTRUCTION_EXPORT bool Instruction::isWritten(Expression::Ptr candidate) const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -187,11 +368,15 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return m_InsnOp.isWritten(candidate);
+      return m_InsnOp->isWritten(candidate);
     }
     
     INSTRUCTION_EXPORT bool Instruction::readsMemory() const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -201,11 +386,15 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return !m_InsnOp.getImplicitMemReads().empty();
+      return !m_InsnOp->getImplicitMemReads().empty();
     }
     
     INSTRUCTION_EXPORT bool Instruction::writesMemory() const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -215,31 +404,37 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return !m_InsnOp.getImplicitMemWrites().empty();
+      return !m_InsnOp->getImplicitMemWrites().empty();
     }
     
     INSTRUCTION_EXPORT void Instruction::getMemoryReadOperands(std::set<Expression::Ptr>& memAccessors) const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
 	curOperand->addEffectiveReadAddresses(memAccessors);
       }  
-      std::set<Expression::Ptr> implicitReads = m_InsnOp.getImplicitMemReads();
-      std::copy(implicitReads.begin(), implicitReads.end(), std::inserter(memAccessors, memAccessors.begin()));
+      std::copy(m_InsnOp->getImplicitMemReads().begin(), m_InsnOp->getImplicitMemReads().end(), std::inserter(memAccessors, memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
     {
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
 	curOperand->addEffectiveWriteAddresses(memAccessors);
       }  
-      std::set<Expression::Ptr> implicitWrites = m_InsnOp.getImplicitMemWrites();
-      std::copy(implicitWrites.begin(), implicitWrites.end(), std::inserter(memAccessors, memAccessors.begin()));
+      std::copy(m_InsnOp->getImplicitMemWrites().begin(), m_InsnOp->getImplicitMemWrites().end(), std::inserter(memAccessors, memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
@@ -248,19 +443,19 @@ namespace Dyninst
       // an implicit write, and that we have decoded the control flow
       // target's full location as the first and only operand.
       // If this is not the case, we'll squawk for the time being...
-      
-      if(std::find(boost::make_indirect_iterator(m_InsnOp.implicitWrites().begin()),
-		   boost::make_indirect_iterator(m_InsnOp.implicitWrites().end()),
-		   RegisterAST::makePC())
-	 == boost::make_indirect_iterator(m_InsnOp.implicitWrites().end()))
+      static Expression::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
+      if(!m_InsnOp->isWritten(thePC))
       {
 	return Expression::Ptr();
       }
-      if(m_InsnOp.getID() == e_ret_near || m_InsnOp.getID() == e_ret_far)
+      if(m_InsnOp->getID() == e_ret_near || m_InsnOp->getID() == e_ret_far)
       {
 	return makeReturnExpression();
       }
-      Expression::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
       
       if(!(m_Operands[0].isRead(thePC) || m_Operands.size() == 1))
       {
@@ -272,7 +467,11 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT std::string Instruction::format() const
     {
-      std::string retVal = m_InsnOp.format();
+      if(m_Operands.empty())
+      {
+	decodeOperands();
+      }
+      std::string retVal = m_InsnOp->format();
       retVal += " ";
       std::vector<Operand>::const_iterator curOperand;
       for(curOperand = m_Operands.begin();
@@ -292,7 +491,7 @@ namespace Dyninst
     }
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
     {
-      switch(m_InsnOp.getID())
+      switch(m_InsnOp->getID())
       {
       case e_ret_far:
       case e_ret_near:
@@ -309,7 +508,7 @@ namespace Dyninst
     }
     INSTRUCTION_EXPORT bool Instruction::isLegalInsn() const
     {
-      return (m_InsnOp.getID() != e_No_Entry);
+      return (m_InsnOp->getID() != e_No_Entry);
     }
     Expression::Ptr Instruction::makeReturnExpression() const
     {
@@ -317,13 +516,10 @@ namespace Dyninst
       Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
       return retLoc;
     }
-    
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
-      return entryToCategory(m_InsnOp.getID());
+      return entryToCategory(m_InsnOp->getID());
     }
-    
-    
   };
 };
 

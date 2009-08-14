@@ -32,6 +32,8 @@
 #if !defined(ENTRYIDS_IA32_H)
 #define ENTRYIDS_IA32_H
 
+#include "dyntypes.h"
+
 enum entryID {
   e_No_Entry = 0,
   e_aaa,
@@ -428,5 +430,25 @@ enum entryID {
   e_xorps
 };
 
+#if defined(__GNUC__)
+  //***************** GCC ***********************
+   #if !((__GNUC__ > 4) || \
+      (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
+      //**************** GCC < 4.3.0 ************
+      namespace __gnu_cxx {
+ 
+        template<> struct hash<entryID> {
+           hash<unsigned int> h;
+           unsigned operator()(const entryID &e) const 
+	   {
+             return h(static_cast<unsigned int>(e));
+           };
+        };
+      }
+
+   #endif
+#endif
+
+extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
 
 #endif // defined(ENTRYIDS_IA32_H)

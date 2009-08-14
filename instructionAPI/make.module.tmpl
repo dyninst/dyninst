@@ -20,8 +20,8 @@ LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
-CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC $(G_PTHREAD)
+CFLAGS		+= -fPIC -g
+CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
@@ -41,10 +41,11 @@ SRCS +=	../src/Instruction.C \
 	../src/Register.C \
 	../src/Expression.C \
 	../src/BinaryFunction.C \
-	../src/InstructionCategories.C
+	../src/InstructionCategories.C \
+	../src/Immediate.C
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../external
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../common/h -I../../dynutil/h -I../../symtabAPI/h -I../external
 
 DOCDIR	= ../doc
 
@@ -62,7 +63,8 @@ PUBLIC_H =      BinaryFunction.h \
                 Register.h \
                 RegisterIDs-x86.h \
                 Result.h \
-	       InstructionCategories.h
+	       InstructionCategories.h \
+	       singleton_object_pool.h
 
 
 

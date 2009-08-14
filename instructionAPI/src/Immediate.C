@@ -29,62 +29,62 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "Expression.h"
+#include "Immediate.h"
+#include "singleton_object_pool.h"
 
 namespace Dyninst
 {
   namespace InstructionAPI
   {
-    Expression::Expression(Result_Type t) :
-      InstructionAST(), userSetValue(t)
+    Immediate::Ptr Immediate::makeImmediate(const Result& val)
     {
-    } 
-    Expression::~Expression() 
-    {
-    }
-    const Result& Expression::eval() const
-    {
-      return userSetValue;
-    }
-    void Expression::setValue(const Result& knownValue) 
-    {
-      userSetValue = knownValue;
-    }
-    void Expression::clearValue()
-    {
-      userSetValue.defined = false;
-    }
-    int Expression::size() const
-    {
-      return userSetValue.size();
-    }
-    bool Expression::bind(Expression* expr, const Result& value)
-    {
-      bool retVal = false;
-      if(*expr == *this)
-      {
-	setValue(value);
-	return true;
-      }
-      std::vector<InstructionAST::Ptr> children;
-      getChildren(children);
-      for(std::vector<InstructionAST::Ptr>::iterator curChild = children.begin();
-	  curChild != children.end();
-	  ++curChild)
-      {
-	Expression::Ptr curChild_asExpr = 
-	dyn_detail::boost::dynamic_pointer_cast<Expression>(*curChild);
-	if(curChild_asExpr)
-	{
-	  retVal = retVal || curChild_asExpr->bind(expr, value);
-	}
-      }
-      return retVal;
-    }
-    bool Expression::isFlag() const
-    {
-      return false;
+      //static std::map<Result, Immediate::Ptr> builtImmediates;
+      //static int cache_hits = 0;
+      //std::map<Result, Immediate::Ptr>::const_iterator foundIt = builtImmediates.find(val);
+      
+      //if(foundIt == builtImmediates.end())
+      //{
+      Immediate::Ptr ret = make_shared(singleton_object_pool<Immediate>::construct(val));
+	//builtImmediates[val] = ret;
+      return ret;
+	//}
+	//return foundIt->second;
     }
     
+    
+    Immediate::Immediate(const Result& val) : Expression(val.type)
+    {
+      setValue(val);
+    }
+
+    Immediate::~Immediate()
+    {
+    }
+    
+    void Immediate::getChildren(vector<InstructionAST::Ptr>&) const
+    {
+      return;
+    }
+
+    bool Immediate::isUsed(InstructionAST::Ptr findMe) const
+    {
+      return *findMe == *this;
+    }
+    void Immediate::getUses(std::set<InstructionAST::Ptr>&)
+    {
+      return;
+    }
+    
+    std::string Immediate::format() const
+    {
+      return eval().format();
+    }
+    bool Immediate::isStrictEqual(const InstructionAST& rhs) const
+    {
+      return rhs.eval() == eval();
+    }
+    
+  
   };
 };
+

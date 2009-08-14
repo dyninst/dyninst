@@ -66,6 +66,9 @@ namespace Dyninst
       case e_jp:
       case e_js:
       case e_jz:
+      case e_loop:
+      case e_loope:
+      case e_loopn:
 	return c_BranchInsn;
       default:
 	return c_NoCategory;
@@ -73,5 +76,6 @@ namespace Dyninst
       
 
     }
+    
   }
 }

@@ -72,6 +72,13 @@ namespace Dyninst
     ///
     class Instruction
     {
+      union raw_insn_T
+      {
+	unsigned int small_insn;
+	unsigned char* large_insn;
+      };
+      
+      
     public:
       /// \param what Opcode of the instruction
       /// \param operandSource Contains the %Expressions to be transformed into %Operands
@@ -90,8 +97,9 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      INSTRUCTION_EXPORT Instruction(const Operation& what, const std::vector<Expression::Ptr>& operandSource, size_t size,
-		  const unsigned char* raw);
+      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, const std::vector<Expression::Ptr>& operandSource, size_t size,
+		  const unsigned char* raw, unsigned int opsema);
+      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw);
       INSTRUCTION_EXPORT Instruction();
       
       INSTRUCTION_EXPORT virtual ~Instruction();
@@ -231,15 +239,18 @@ namespace Dyninst
       /// in %InstructionCategories.h.
       INSTRUCTION_EXPORT InsnCategory getCategory() const;
       
-      
       typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
       
     private:
+      void decodeOperands() const;
+      void copyRaw(size_t size, const unsigned char* raw);
       Expression::Ptr makeReturnExpression() const;
-      std::vector<Operand> m_Operands;
-      Operation m_InsnOp;
+      mutable std::vector<Operand> m_Operands;
+      Operation::Ptr m_InsnOp;
       bool m_Valid;
-      std::vector<unsigned char> m_RawInsn;
+      raw_insn_T m_RawInsn;
+      unsigned int m_size;
+      
     };
   };
 };

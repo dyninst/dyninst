@@ -633,7 +633,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    size_t offset = 0;
    while(offset < orig->getSize())
    {
-     Instruction tmp = d.decode(buffer + offset);
+     Instruction::Ptr tmp = d.decode(buffer + offset);
      
      reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
 
@@ -648,7 +648,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
      relocs().push_back(reloc);
 
      maxSize() += reloc->origInsn->spaceToRelocate();
-     offset += tmp.size();
+     offset += tmp->size();
    }
    
   

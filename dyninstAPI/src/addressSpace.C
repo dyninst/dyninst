@@ -1097,12 +1097,12 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder;
-    Instruction curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr));
+    Instruction::Ptr curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr));
     
-    Expression::Ptr target = curInsn.getControlFlowTarget();
-	RegisterAST thePC = RegisterAST::makePC();
-	target->bind(&thePC, Result(u32, addr));
-	Result cft = target->eval();
+    Expression::Ptr target = curInsn->getControlFlowTarget();
+    RegisterAST thePC = RegisterAST::makePC();
+    target->bind(&thePC, Result(u32, addr));
+    Result cft = target->eval();
     if(cft.defined)
     {
       switch(cft.type)

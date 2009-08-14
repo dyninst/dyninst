@@ -680,8 +680,8 @@ class ia32_instruction
   const ia32_condition& getCond() const { return *cond; }
   const ia32_locations& getLocationInfo() const { return *loc; }
 
-  static const std::map<entryID, flagInfo>& getFlagTable();
-  static void initFlagTable(std::map<entryID, flagInfo>&);
+  static const dyn_hash_map<entryID, flagInfo>& getFlagTable();
+  static void initFlagTable(dyn_hash_map<entryID, flagInfo>&);
   
 };
 
@@ -788,5 +788,6 @@ inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
 INSTRUCTION_EXPORT bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 INSTRUCTION_EXPORT bool insn_hasDisp8(unsigned ModRM);
 INSTRUCTION_EXPORT bool insn_hasDisp32(unsigned ModRM);
+
 
 #endif

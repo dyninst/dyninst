@@ -36,7 +36,7 @@
 #include "Register.h"
 #include <map>
 #include <boost/assign/list_of.hpp>
-#include <sstream>
+#include "singleton_object_pool.h"
 
 using namespace boost::assign;
 
@@ -46,199 +46,69 @@ namespace Dyninst
   {
     RegisterAST::Ptr makeRegFromID(IA32Regs regID)
     {
-      return RegisterAST::Ptr(new RegisterAST(regID));
+      return make_shared(singleton_object_pool<RegisterAST>::construct(regID));
     }
 
-    Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l)
+    Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l) :
+      doneOtherSetup(false), doneFlagsSetup(false)
+    
     {
-      if(!e)
-      {
-	mnemonic = "[INVALID]";
-	operationID = e_No_Entry;
-	return;
-      }
-      if(e->name(l))
-      {
-	mnemonic = e->name(l);
-      }
       operationID = e->getID(l);
-      if(mnemonic.empty())
-      {
-	std::stringstream tmp;
-	tmp << "[UNKNOWN] (id = " << operationID << ", e->id = " << e->id << ")";
-	mnemonic = tmp.str();
-	
-      }
-      switch(e->opsema & 0xff)
-      {
-      case s1R2R:   // reads two operands, e.g. cmp
-	readOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	writtenOperands.push_back(false);
-	break;
-      case s1R:
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1RW:    // one operand read and written, e.g. inc
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	break;
-      case s1W:
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	break;
-      case s1W2R:   // second operand read, first operand written (e.g. mov)
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1RW2R:  // two operands read, first written (e.g. add)
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1RW2RW: // e.g. xchg
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	break;
-      case s1W2R3R: // e.g. imul
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1W2W3R: // e.g. les
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1W2RW3R: // some mul
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1W2R3RW: // (stack) push & pop
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	break;
-      case s1RW2R3R: // shld/shrd
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1RW2RW3R: // [i]div, cmpxch8b
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	break;
-      case s1R2RW:
-	readOperands.push_back(true);
-	writtenOperands.push_back(false);
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	break;
-      case s1W2RW:
-	readOperands.push_back(false);
-	writtenOperands.push_back(true);
-	readOperands.push_back(true);
-	writtenOperands.push_back(true);
-	break;
-      case sNONE:
-      default:
-	break;
-      }
-      SetUpNonOperandData();
-      std::set<IA32Regs> flagsRead, flagsWritten;
-      e->flagsUsed(flagsRead, flagsWritten, l);
       if(p && p->getCount())
       {
 	if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
-	  {
-	    flagsRead.insert(r_DF);
+	{
+	    otherRead.insert(makeRegFromID(r_DF));
 	}
       }
-
-
-      std::transform(flagsRead.begin(), flagsRead.end(), 
-		     inserter(otherRead, otherRead.begin()), &makeRegFromID);
-      std::transform(flagsWritten.begin(), flagsWritten.end(), 
-		     inserter(otherWritten, otherWritten.begin()), &makeRegFromID);
-
     }
 
     Operation::Operation(const Operation& o)
     {
-      readOperands = o.readOperands;
-      writtenOperands = o.writtenOperands;
       otherRead = o.otherRead;
       otherWritten = o.otherWritten;
-      mnemonic = o.mnemonic;
       otherEffAddrsRead = o.otherEffAddrsRead;
       otherEffAddrsWritten = o.otherEffAddrsWritten;
       operationID = o.operationID;
+      doneOtherSetup = o.doneOtherSetup;
+      doneFlagsSetup = o.doneFlagsSetup;
+      
     }
-    Operation Operation::operator=(const Operation& o)
+    const Operation& Operation::operator=(const Operation& o)
     {
-      readOperands = o.readOperands;
-      writtenOperands = o.writtenOperands;
       otherRead = o.otherRead;
       otherWritten = o.otherWritten;
-      mnemonic = o.mnemonic;
       otherEffAddrsRead = o.otherEffAddrsRead;
       otherEffAddrsWritten = o.otherEffAddrsWritten;
       operationID = o.operationID;
+      doneOtherSetup = o.doneOtherSetup;
+      doneFlagsSetup = o.doneFlagsSetup;
       return *this;
     }
     Operation::Operation()
     {
-      mnemonic = "[INVALID]";
       operationID = e_No_Entry;
     }
-
-    const Operation::bitSet& Operation::read() const
-    {
-      return readOperands;
-    }
-    const Operation::bitSet& Operation::written() const
-    {
-      return writtenOperands;
-    }    
+    
     const Operation::registerSet&  Operation::implicitReads() const
     {
+      if(!doneOtherSetup) SetUpNonOperandData(true);
+      
       return otherRead;
     }
     const Operation::registerSet&  Operation::implicitWrites() const
     {
+      if(!doneOtherSetup) SetUpNonOperandData(true);
 
       return otherWritten;
     }
     bool Operation::isRead(Expression::Ptr candidate) const
     {
-      for(std::set<RegisterAST::Ptr>::const_iterator r = otherRead.begin();
+      if(!doneOtherSetup)
+      {
+	SetUpNonOperandData(candidate->isFlag());
+      }
+      for(registerSet::const_iterator r = otherRead.begin();
 	  r != otherRead.end();
 	  ++r)
       {
@@ -247,7 +117,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      for(std::set<Expression::Ptr>::const_iterator e = otherEffAddrsRead.begin();
+      for(VCSet::const_iterator e = otherEffAddrsRead.begin();
 	  e != otherEffAddrsRead.end();
 	  ++e)
       {
@@ -260,16 +130,22 @@ namespace Dyninst
     }
     const Operation::VCSet& Operation::getImplicitMemReads() const
     {
+      if(!doneOtherSetup) SetUpNonOperandData(true);
       return otherEffAddrsRead;
     }
     const Operation::VCSet& Operation::getImplicitMemWrites() const
     {
+      if(!doneOtherSetup) SetUpNonOperandData(true);
       return otherEffAddrsWritten;
     }
 
     bool Operation::isWritten(Expression::Ptr candidate) const
     {
-      for(std::set<RegisterAST::Ptr>::const_iterator r = otherWritten.begin();
+      if(!doneOtherSetup)
+      {
+	SetUpNonOperandData(candidate->isFlag());
+      }
+      for(registerSet::const_iterator r = otherWritten.begin();
 	  r != otherWritten.end();
 	  ++r)
       {
@@ -278,7 +154,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      for(std::set<Expression::Ptr>::const_iterator e = otherEffAddrsWritten.begin();
+      for(VCSet::const_iterator e = otherEffAddrsWritten.begin();
 	  e != otherEffAddrsWritten.end();
 	  ++e)
       {
@@ -292,19 +168,23 @@ namespace Dyninst
 	  
     std::string Operation::format() const
     {
-      return mnemonic;
+      dyn_hash_map<entryID, std::string>::const_iterator found = entryNames_IAPI.find(operationID);
+      if(found != entryNames_IAPI.end())
+	return found->second;
+      return "[INVALID]";
     }
-    size_t Operation::numOperands() const
-    {
-      return readOperands.size();
 
+    entryID Operation::getID() const
+    {
+      return operationID;
     }
+
     struct OperationMaps
     {
     public:
       OperationMaps()
       {
-	thePC.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
+	thePC.insert(make_shared(singleton_object_pool<RegisterAST>::construct(RegisterAST::makePC())));
 	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
 	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
 	
@@ -359,51 +239,71 @@ namespace Dyninst
         nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
 	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;
       }
-      std::set<RegisterAST::Ptr> thePC;
-      std::set<RegisterAST::Ptr> pcAndSP;
-      std::set<RegisterAST::Ptr> stackPointer;
-      std::set<Expression::Ptr> stackPointerAsExpr;
-      std::set<RegisterAST::Ptr> framePointer;
-      std::set<RegisterAST::Ptr> spAndBP;
-      std::map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterReads;
-      std::map<entryID, std::set<RegisterAST::Ptr> > nonOperandRegisterWrites;
+      Operation::registerSet thePC;
+      Operation::registerSet pcAndSP;
+      Operation::registerSet stackPointer;
+      Operation::VCSet stackPointerAsExpr;
+      Operation::registerSet framePointer;
+      Operation::registerSet spAndBP;
+      dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterReads;
+      dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterWrites;
 
-      std::map<entryID, std::set<Expression::Ptr> > nonOperandMemoryReads;
-      std::map<entryID, std::set<Expression::Ptr> > nonOperandMemoryWrites;
+      dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryReads;
+      dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryWrites;
     };
-    void Operation::SetUpNonOperandData()
+    OperationMaps op_data;
+    void Operation::SetUpNonOperandData(bool needFlags) const
     {
-      otherRead = std::set<RegisterAST::Ptr>();
-      otherWritten = std::set<RegisterAST::Ptr>();
-      otherEffAddrsRead = std::set<Expression::Ptr>();
-      otherEffAddrsWritten = std::set<Expression::Ptr>();
-      typedef Singleton<OperationMaps> DataT;
-      std::map<entryID, std::set<RegisterAST::Ptr> >::const_iterator foundRegs;
-      foundRegs = DataT::getInstance().nonOperandRegisterReads.find(operationID);
-      if(foundRegs != DataT::getInstance().nonOperandRegisterReads.end())
+      
+      dyn_hash_map<entryID, registerSet >::const_iterator foundRegs;
+      foundRegs = op_data.nonOperandRegisterReads.find(operationID);
+      if(foundRegs != op_data.nonOperandRegisterReads.end())
       {
-	std::copy(foundRegs->second.begin(), foundRegs->second.end(),
-		  inserter(otherRead, otherRead.begin()));
+	otherRead = foundRegs->second;
+	//std::copy(foundRegs->second.begin(), foundRegs->second.end(),
+	//	  inserter(otherRead, otherRead.begin()));
       }
-      foundRegs = DataT::getInstance().nonOperandRegisterWrites.find(operationID);
-      if(foundRegs != DataT::getInstance().nonOperandRegisterWrites.end())
+      foundRegs = op_data.nonOperandRegisterWrites.find(operationID);
+      if(foundRegs != op_data.nonOperandRegisterWrites.end())
       {
-	std::copy(foundRegs->second.begin(), foundRegs->second.end(),
-		  inserter(otherWritten, otherWritten.begin()));
+	otherWritten = foundRegs->second;
+	//std::copy(foundRegs->second.begin(), foundRegs->second.end(),
+	//	  inserter(otherWritten, otherWritten.begin()));
       }
-      std::map<entryID, std::set<Expression::Ptr> >::const_iterator foundMem;
-      foundMem = DataT::getInstance().nonOperandMemoryReads.find(operationID);
-      if(foundMem != DataT::getInstance().nonOperandMemoryReads.end())
+      dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
+      foundMem = op_data.nonOperandMemoryReads.find(operationID);
+      if(foundMem != op_data.nonOperandMemoryReads.end())
       {
-	std::copy(foundMem->second.begin(), foundMem->second.end(),
-		  inserter(otherEffAddrsRead, otherEffAddrsRead.begin()));
+	otherEffAddrsRead = foundMem->second;
+	//std::copy(foundMem->second.begin(), foundMem->second.end(),
+	//	  inserter(otherEffAddrsRead, otherEffAddrsRead.begin()));
       }
-      foundMem = DataT::getInstance().nonOperandMemoryWrites.find(operationID);
-      if(foundMem != DataT::getInstance().nonOperandMemoryWrites.end())
+      foundMem = op_data.nonOperandMemoryWrites.find(operationID);
+      if(foundMem != op_data.nonOperandMemoryWrites.end())
       {
-	std::copy(foundMem->second.begin(), foundMem->second.end(),
-		  inserter(otherEffAddrsWritten, otherEffAddrsWritten.begin()));
+	otherEffAddrsWritten = foundMem->second;
+	//std::copy(foundMem->second.begin(), foundMem->second.end(),
+	//	  inserter(otherEffAddrsWritten, otherEffAddrsWritten.begin()));
       }
+      
+      if(needFlags && !doneFlagsSetup)
+      {
+	
+	dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(operationID);
+	if(found != ia32_instruction::getFlagTable().end())
+	{
+	  for(unsigned i = 0; i < found->second.readFlags.size(); i++)
+	  {
+	    otherRead.insert(makeRegFromID(found->second.readFlags[i]));
+	  }
+	  for(unsigned j = 0; j < found->second.writtenFlags.size(); j++)
+	  {
+	    otherWritten.insert(makeRegFromID(found->second.writtenFlags[j]));
+	  }
+	}
+	doneFlagsSetup = true;
+      }
+      doneOtherSetup = true;
     }
   };
 

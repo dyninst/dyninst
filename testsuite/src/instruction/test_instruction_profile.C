@@ -44,84 +44,92 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-
-//#include <dyn_detail/boost/assign.hpp>
-//#include <dyn_detail/boost/iterator/indirect_iterator.hpp>
-#include <boost/assign.hpp>
-#include <boost/iterator/indirect_iterator.hpp>
+#include "Expression.h"
+#include "Symtab.h"
+#include "Region.h"
+#include "BPatch.h"
+#include "BPatch_addressSpace.h"
+#include "BPatch_image.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
-using namespace boost;
+using namespace SymtabAPI;
+
 using namespace std;
 
-class test_instruction_farcall_Mutator : public InstructionMutator {
+class test_instruction_profile_Mutator : public InstructionMutator {
 public:
-   test_instruction_farcall_Mutator() { };
+   test_instruction_profile_Mutator() { };
    virtual test_results_t executeTest();
 };
 
-extern "C" DLLEXPORT TestMutator* test_instruction_farcall_factory()
+extern "C" DLLEXPORT TestMutator* test_instruction_profile_factory()
 {
-   return new test_instruction_farcall_Mutator();
+   return new test_instruction_profile_Mutator();
 }
 
-
-test_results_t test_instruction_farcall_Mutator::executeTest()
+test_results_t test_instruction_profile_Mutator::executeTest()
 {
-  const unsigned char buffer[] = 
+  /*  unsigned char* randomBytes = new unsigned char[100000];
+  for(unsigned i = 0; i < 100000; i++)
   {
-    0x9A, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0xFF, 0xFE // CALL 0504030201, with FF/FE as fenceposts
-  };
-  unsigned int size = 7;
-  unsigned int expectedInsns = 2;
+    randomBytes[i] = rand() % 256;
+  }
+  */
+  Symtab *s;
+  if(!Symtab::openFile(s, "/lib/libc.so.6")) {
+    logerror("FAILED: couldn't open libc for parsing\n");
+    return FAILED;
+  }
   
-  InstructionDecoder d(buffer, size);
-#if defined(arch_x86_64_test)
-  d.setMode(true);
-#endif
-  std::vector<Instruction::Ptr> decodedInsns;
-  Instruction::Ptr i;
-  do
+  std::vector<Region*> codeRegions;
+  s->getCodeRegions(codeRegions);
+  unsigned int cf_count = 0;
+  unsigned int valid_count = 0;
+  unsigned int total_count = 0;
+  
+  for(std::vector<Region*>::iterator curReg = codeRegions.begin();
+      curReg != codeRegions.end();
+      ++curReg)
   {
-    i = d.decode();
-    decodedInsns.push_back(i);
-  }
-  while(i && i->isValid());
-#if defined(arch_x86_64_test)
-  if(decodedInsns.empty() || !decodedInsns[0] || !decodedInsns[0]->isValid() || decodedInsns[0]->isLegalInsn())
-  {
-    logerror("FAILED: %s\n", decodedInsns.empty() ? "no instructions decoded" : "first instruction was valid");
-    return FAILED;
-  }
-  else
-  {
-    logerror("PASSED: far call invalid on AMD64\n");
-    return PASSED;
-  }
-#else
-  if(decodedInsns.size() != expectedInsns) // six valid, one invalid
-  {
-    logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
-    for(std::vector<Instruction::Ptr>::iterator curInsn = decodedInsns.begin();
-	curInsn != decodedInsns.end();
-	++curInsn)
-    {
-      logerror("\t%s\t", (*curInsn)->format().c_str());
-      for(unsigned j = 0; j < (*curInsn)->size(); ++j)
-      {
-	logerror("%x ", (*curInsn)->rawByte(j));
-      }
-      logerror("\n");
-    }
+    const unsigned char* decodeBase = reinterpret_cast<const unsigned char*>((*curReg)->getPtrToRawData());
     
+    std::vector<Instruction::Ptr > decodedInsns;
+    Instruction::Ptr i;
+    InstructionDecoder d;
+    unsigned offset = 0;
+    // simulate parsing via vector-per-basic-block
+    while(offset < (*curReg)->getRegionSize() - 16)
+    {
+      i = d.decode(decodeBase + offset);
+      total_count++;
+      decodedInsns.push_back(i);
+      if(i) {
+	offset += i->size();
+	valid_count++;
+	if((i->getCategory() != c_NoCategory) && i->getControlFlowTarget())
+	{
+	  cf_count++;
+	  decodedInsns.clear();
+	}
+      }
+      else {
+	offset++;
+      }
+    }
+  }
+  fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
+  
+  BPatch bp;
+  BPatch_addressSpace* libc = bp.openBinary("/lib/libc.so.6");
+  if(!libc) {
+    logerror("FAILED: Couldn't open libc for parse\n");
     return FAILED;
   }
-  if(decodedInsns.back() && decodedInsns.back()->isValid())
-  {
-    logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
-    return FAILED;
-  }
+  
+  BPatch_Vector<BPatch_function*> funcs;
+  libc->getImage()->getProcedures(funcs);
+  
   return PASSED;
-#endif
 }
+

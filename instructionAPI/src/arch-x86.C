@@ -60,6 +60,7 @@
 #include "RegisterIDs-x86.h"
 #include <iostream>
 #include "Register.h"
+#include <dynutil/h/dyntypes.h>
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -258,7 +259,7 @@ enum {
   fCMPS
 };
 
-map<entryID, string> entryNames_IAPI = map_list_of
+dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_aaa, "aaa")
   (e_aad, "aad")
   (e_aam, "aam")
@@ -641,9 +642,9 @@ map<entryID, string> entryNames_IAPI = map_list_of
 ;
 
 
-const map<entryID, flagInfo>& ia32_instruction::getFlagTable()
+const dyn_hash_map<entryID, flagInfo>& ia32_instruction::getFlagTable()
 {
-  static map<entryID, flagInfo> flagTable;
+  static dyn_hash_map<entryID, flagInfo> flagTable;
   if(flagTable.empty()) 
   {
     ia32_instruction::initFlagTable(flagTable);
@@ -654,7 +655,7 @@ const map<entryID, flagInfo>& ia32_instruction::getFlagTable()
 const vector<IA32Regs> standardFlags = list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF);
 
   
-void ia32_instruction::initFlagTable(map<entryID, flagInfo>& flagTable)
+void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
 {
   flagTable[e_aaa] = flagInfo(list_of(r_AF), standardFlags);
   flagTable[e_aad] = flagInfo(vector<IA32Regs>(), standardFlags);
@@ -789,16 +790,15 @@ void ia32_instruction::initFlagTable(map<entryID, flagInfo>& flagTable)
 
 bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten, ia32_locations* locs)
 {
-  map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(getID(locs));
+  dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(getID(locs));
   if(found == ia32_instruction::getFlagTable().end())
   {
     return false;
   }
   // No entries for something that touches no flags, so always return true if we had an entry
-  const flagInfo& foundInfo(found->second);
 
-  copy(foundInfo.readFlags.begin(), foundInfo.readFlags.end(), inserter(flagsRead, flagsRead.begin()));
-  copy(foundInfo.writtenFlags.begin(), foundInfo.writtenFlags.end(), inserter(flagsWritten,flagsWritten.begin()));
+  copy((found->second).readFlags.begin(), (found->second).readFlags.end(), inserter(flagsRead, flagsRead.begin()));
+  copy((found->second).writtenFlags.begin(), (found->second).writtenFlags.end(), inserter(flagsWritten,flagsWritten.begin()));
   return true;
 }
 
@@ -3448,7 +3448,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
             if (loc) loc->address_size = mac[i].size;
          }
          else
-            nib += ia32_decode_modrm(addrSzAttr, addr);
+            nib += ia32_decode_modrm(addrSzAttr, addr, NULL, &pref, loc);
          
          // also need to check for AMD64 rip-relative data addressing
          // occurs when mod == 0 and r/m == 101
@@ -4012,7 +4012,7 @@ unsigned char trapRep[1] = {0xCC};
 
 const char* ia32_entry::name(ia32_locations* loc)
 {
-  map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
+  dyn_hash_map<entryID, string>::const_iterator found = entryNames_IAPI.find(id);
   if(found != entryNames_IAPI.end())
   {
     return found->second.c_str();

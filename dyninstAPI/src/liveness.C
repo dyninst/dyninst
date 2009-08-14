@@ -67,7 +67,7 @@ using namespace Dyninst::InstructionAPI;
 #endif
 
 #if defined(cap_instruction_api)
-ReadWriteInfo calcRWSets(Instruction insn, image_basicBlock* blk, unsigned width);
+ReadWriteInfo calcRWSets(Instruction::Ptr insn, image_basicBlock* blk, unsigned width);
 #else
 ReadWriteInfo calcRWSets(InstrucIter ii, image_basicBlock* blk, unsigned width);
 #endif
@@ -305,8 +305,8 @@ void image_basicBlock::summarizeBlockLivenessInfo()
    Address current = firstInsnOffset();
    InstructionDecoder decoder(reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())), 
                               getSize());
-   Instruction curInsn = decoder.decode();
-   while(curInsn.isValid())
+   Instruction::Ptr curInsn = decoder.decode();
+   while(curInsn && curInsn->isValid())
    {
      ReadWriteInfo curInsnRW;
      if(!cachedLivenessInfo.getLivenessInfo(current, getFirstFunc(), curInsnRW))
@@ -327,7 +327,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
      //liveness_cerr << "Used    " << use << endl;
      //liveness_cerr << "Defined " << def << endl;
 
-      current += curInsn.size();
+      current += curInsn->size();
       curInsn = decoder.decode();
    }
 #else    
@@ -472,14 +472,13 @@ void instPoint::calcLiveness() {
       reinterpret_cast<const unsigned char*>(block()->origInstance()->getPtrToInstruction(blockBegin));
     
    InstructionDecoder decoder(insnBuffer, block()->origInstance()->getSize());
-   Instruction tmp;
    Address curInsnAddr = blockBegin;
    do
    {
      ReadWriteInfo rw;
      if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(curInsnAddr, func()->ifunc(), rw))
      {
-       Instruction tmp = decoder.decode(insnBuffer);
+       Instruction::Ptr tmp = decoder.decode(insnBuffer);
        rw = calcRWSets(tmp, block()->llb(), width);
        block()->llb()->cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, func()->ifunc());
      }
@@ -521,7 +520,7 @@ void instPoint::calcLiveness() {
       }
       else
       {
-	Instruction tmp = decoder.decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
+	Instruction::Ptr tmp = decoder.decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
 	rwAtCurrent = calcRWSets(tmp, block()->llb(), width);
 	//assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
 	//liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
@@ -615,7 +614,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
       InstructionDecoder decoder;
       const unsigned char* bufferToDecode = 
       reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
-      Instruction currentInsn = decoder.decode(bufferToDecode);
+      Instruction::Ptr currentInsn = decoder.decode(bufferToDecode);
 
       curInsnRW = calcRWSets(currentInsn, block()->llb(), width);
 
@@ -646,16 +645,16 @@ bitArray instPoint::liveRegisters(callWhen when) {
 
 
 #if defined(cap_instruction_api)
-ReadWriteInfo calcRWSets(Instruction curInsn, image_basicBlock* blk, unsigned int width)
+ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsigned int width)
 {
   ReadWriteInfo ret;
   ret.read = registerSpace::getBitArray();
   ret.written = registerSpace::getBitArray();
-  ret.insnSize = curInsn.size();
+  ret.insnSize = curInsn->size();
   
   std::set<RegisterAST::Ptr> cur_read, cur_written;
-  curInsn.getReadSet(cur_read);
-  curInsn.getWriteSet(cur_written);
+  curInsn->getReadSet(cur_read);
+  curInsn->getWriteSet(cur_written);
   //liveness_printf("Read registers: ");
       
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
@@ -672,7 +671,7 @@ ReadWriteInfo calcRWSets(Instruction curInsn, image_basicBlock* blk, unsigned in
     ret.written[convertRegID(IA32Regs((*i)->getID()))] = true;
   }
   //liveness_printf("\n");
-  InsnCategory category = curInsn.getCategory();
+  InsnCategory category = curInsn->getCategory();
   switch(category)
   {
   case c_CallInsn:
@@ -684,7 +683,7 @@ ReadWriteInfo calcRWSets(Instruction curInsn, image_basicBlock* blk, unsigned in
     // Nothing written implicitly by a return
     break;
   case c_BranchInsn:
-    if(!curInsn.allowsFallThrough() && blk->isExitBlock())
+    if(!curInsn->allowsFallThrough() && blk->isExitBlock())
     {
       //Tail call, union of call and return
       ret.read |= ((registerSpace::getRegisterSpace(width)->getCallReadRegisters()) |
@@ -694,7 +693,7 @@ ReadWriteInfo calcRWSets(Instruction curInsn, image_basicBlock* blk, unsigned in
     break;
   default:
     {
-      entryID cur_op = curInsn.getOperation().getID();
+      entryID cur_op = curInsn->getOperation().getID();
       if(cur_op == e_syscall)
       {
 	ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
