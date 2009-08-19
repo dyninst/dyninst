@@ -146,6 +146,7 @@ mutatee('symtab_group_test', [
 	'test_module_mutatee.c',
 	'test_relocations_mutatee.c',
 	'test_symtab_ser_funcs_mutatee.c',
+	'test_ser_anno_mutatee.c',
 	'test_type_info_mutatee.c',
    'test_anno_basic_types_mutatee.c'
    ]).
@@ -2137,7 +2138,7 @@ tests_module('test_module', 'symtab').
 
 test('test_relocations', 'test_relocations', 'symtab_group_test').
 test_description('test_relocations', 'SymtabAPI relocation table parsing').
-test_platform('test_symtab_ser_funcs', Platform) :-
+test_platform('test_relocations', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux']).
 groupable_test('test_relocations').
@@ -2158,14 +2159,21 @@ tests_module('test_type_info', 'symtab').
 
 test('test_symtab_ser_funcs', 'test_symtab_ser_funcs', 'symtab_group_test').
 test_description('test_symtab_ser_funcs', 'Base SymtabAPI seialization function sanity checks').
-test_platform('test_symtab_ser_funcs', Platform) :-
-    platform(_, OS, _, Platform),
-    member(OS, ['linux']).
+test_runs_everywhere('test_symtab_ser_funcs').
 groupable_test('test_symtab_ser_funcs').
 mutator('test_symtab_ser_funcs', ['test_symtab_ser_funcs.C']).
 test_runmode('test_symtab_ser_funcs', 'createProcess').
 test_start_state('test_symtab_ser_funcs', 'stopped').
 tests_module('test_symtab_ser_funcs', 'symtab').
+
+test('test_ser_anno', 'test_ser_anno', 'symtab_group_test').
+test_description('test_ser_anno', 'Base SymtabAPI seialization function sanity checks').
+test_runs_everywhere('test_ser_anno').
+groupable_test('test_ser_anno').
+mutator('test_ser_anno', ['test_ser_anno.C']).
+test_runmode('test_ser_anno', 'createProcess').
+test_start_state('test_ser_anno', 'stopped').
+tests_module('test_ser_anno', 'symtab').
 
 % should this really be groupable?
 test('test_anno_basic_types', 'test_anno_basic_types', 'symtab_group_test').

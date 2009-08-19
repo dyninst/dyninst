@@ -51,7 +51,7 @@
 #endif
 
 #include "dynutil/h/util.h"
-//#include "dynutil/h/Annotatable.h"
+#include "dynutil/h/Annotatable.h"
 #include "dynutil/h/Serialization.h"
 #include "common/h/Types.h"
 #include "common/h/sha1.h"
@@ -97,6 +97,7 @@ class SerializerBase {
 
    SerFile *sf;
    SerDes *sd;
+   SerContextBase *scon;
 
    std::string serializer_name;
 
@@ -117,6 +118,8 @@ class SerializerBase {
    {
 	   global_disable = false;
    }
+
+   COMMON_EXPORT SerContextBase *getContext() {return scon;}
    COMMON_EXPORT virtual bool isXML() = 0;
    COMMON_EXPORT virtual bool isBin ()= 0;
    COMMON_EXPORT bool isInput () {return iomode() == sd_deserialize;}
@@ -124,7 +127,7 @@ class SerializerBase {
 
    COMMON_EXPORT static void dumpActiveBinSerializers();
 
-   COMMON_EXPORT SerializerBase(const char *name_, std::string filename, 
+   COMMON_EXPORT SerializerBase(SerContextBase *scb, const char *name_, std::string filename, 
          iomode_t dir, bool verbose); 
 
    COMMON_EXPORT SerializerBase();
@@ -156,6 +159,7 @@ class SerializerBase {
    COMMON_EXPORT void translate_base(double &v, const char *&t);
    COMMON_EXPORT void translate_base(const char * &v, int bufsize, const char *&t);
    COMMON_EXPORT void translate_base(char * &v, int bufsize, const char *&t);
+   COMMON_EXPORT void translate_base(void * &v, const char *&t);
    COMMON_EXPORT void translate_base(std::string &v, const char *t);
 
    COMMON_EXPORT virtual iomode_t iomode(); 
@@ -164,22 +168,6 @@ class SerializerBase {
 
 
 };
-
-
-template <class T>
-class ScopedSerializerBase : public SerializerBase
-{
-	T *scope;
-	public:
-	ScopedSerializerBase(T *scope_, const char *name_, std::string filename, 
-			iomode_t dir, bool verbose) :
-		SerializerBase(name_, filename, dir, verbose), scope(scope_) {}
-	ScopedSerializerBase(T *scope_) :
-		SerializerBase(), scope(scope_) {}
-	virtual ~ScopedSerializerBase() {}
-	T *getScope() {return scope;}
-};
-
 #endif
 
 class SerDes {
@@ -235,10 +223,13 @@ class SerDes {
       COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError) = 0;
       COMMON_EXPORT virtual void hash_map_end() = 0;
-      COMMON_EXPORT virtual void annotation_start(const char *string_id, 
-            const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void annotation_start(Dyninst::AnnotationClassID &a_id, const char *string_id, 
+            const char *tag = "Annotation") = 0;
       COMMON_EXPORT virtual void annotation_end() = 0;
 
+      COMMON_EXPORT virtual void annotation_list_start(Address &id, int &nelem,
+            const char *tag = "AnnotationList") = 0;
+      COMMON_EXPORT virtual void annotation_list_end() = 0;
       COMMON_EXPORT virtual void multimap_end() = 0;
 
       COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL) = 0;
@@ -246,10 +237,12 @@ class SerDes {
       COMMON_EXPORT virtual void translate(int &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(long &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(short &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(unsigned short &param, const char *tag = NULL) = 0; 
       COMMON_EXPORT virtual void translate(unsigned int &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(float &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(double &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(Address &param, const char *tag = NULL) = 0;
+      COMMON_EXPORT virtual void translate(void * &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(const char * &param, int bufsize = 0, 
             const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(char * &param, int bufsize = 0, 
@@ -263,6 +256,7 @@ class SerDes {
 
 class SerDesXML : public SerDes {
    friend class SerFile;
+   friend class SerializerXML;
    friend bool COMMON_EXPORT ifxml_start_element(SerializerBase *, const char *);
    friend bool COMMON_EXPORT ifxml_end_element(SerializerBase *, const char *);
    friend bool COMMON_EXPORT start_xml_elem(SerDesXML &, const char *);
@@ -292,17 +286,22 @@ class SerDesXML : public SerDes {
       COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
             const char *tag = NULL) DECLTHROW(SerializerError);
       COMMON_EXPORT virtual void hash_map_end();
-      COMMON_EXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
+      COMMON_EXPORT virtual void annotation_start(Dyninst::AnnotationClassID &a_id, const char *string_id, const char *tag = NULL);
       COMMON_EXPORT virtual void annotation_end();
+      COMMON_EXPORT virtual void annotation_list_start(Address &id, int &nelem,
+            const char *tag = "AnnotationList");
+      COMMON_EXPORT virtual void annotation_list_end();
       COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(char &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(int &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(long &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(short &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(unsigned short &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(float &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(double &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(Address &param, const char *tag = NULL);
+      COMMON_EXPORT virtual void translate(void * &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(const char * &param, int bufsize = 0, 
             const char *tag = NULL);
       COMMON_EXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
@@ -357,17 +356,22 @@ class SerDesBin : public SerDes {
    COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
          const char *tag = NULL) DECLTHROW(SerializerError);
    COMMON_EXPORT virtual void hash_map_end();
-   COMMON_EXPORT virtual void annotation_start(const char *string_id, const char *tag = NULL);
+   COMMON_EXPORT virtual void annotation_start(Dyninst::AnnotationClassID &a_id, const char *string_id, const char *tag = NULL);
    COMMON_EXPORT virtual void annotation_end();
+   COMMON_EXPORT virtual void annotation_list_start(Address &id, int &nelem,
+		   const char *tag = "AnnotationList");
+   COMMON_EXPORT virtual void annotation_list_end();
    COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(char &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(int &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(long &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(short &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(unsigned short &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(unsigned int &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(float &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(double &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(Address &param, const char *tag = NULL);
+   COMMON_EXPORT virtual void translate(void * &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(const char * &param, 
          int bufsize = 0, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(char * &param, int bufsize = 0, const char *tag = NULL);
@@ -398,16 +402,15 @@ bool start_xml_elem(void *writer, const char *tag);
 bool end_xml_elem(void *);
 
 #if 0
-template <class T>
-class SerializerXML : public ScopedSerializerBase<T> 
+class SerializerXML : public  SerializerBase
 {
    public:
    COMMON_EXPORT virtual bool isXML() {return true;}
    COMMON_EXPORT virtual bool isBin () {return false;}
 
-      COMMON_EXPORT SerializerXML(T *t, const char *name_, std::string filename, 
+      COMMON_EXPORT SerializerXML(SerContextBase *scb, const char *name_, std::string filename, 
             iomode_t dir, bool verbose) :
-         ScopedSerializerBase<T>(t, name_, filename, dir, verbose) {}
+         SerializerBase(scb, name_, filename, dir, verbose) {}
 
       COMMON_EXPORT virtual ~SerializerXML() {}
 
@@ -422,7 +425,7 @@ class SerializerXML : public ScopedSerializerBase<T>
 
       COMMON_EXPORT static bool start_xml_element(SerializerBase *sb, const char *tag)
 	  {
-		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+		  SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
 		  if (!sxml)
 		  {
@@ -438,7 +441,7 @@ class SerializerXML : public ScopedSerializerBase<T>
 
       COMMON_EXPORT static bool end_xml_element(SerializerBase *sb, const char *)
 	  {
-		  SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+		  SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
 		  if (!sxml)
 		  {
@@ -457,20 +460,19 @@ class SerializerXML : public ScopedSerializerBase<T>
 
 
 #if 0
-template <class T>
-class SerializerBin : public ScopedSerializerBase<T> {
+class SerializerBin : public SerializerBase {
    friend class SerDesBin;
 
    public:
    virtual bool isXML() {return false;}
    virtual bool isBin () {return true;}
 
-   SerializerBin(T *t)  :
-	   ScopedSerializerBase<T>(t) {}
+   SerializerBin()  :
+	   SerializerBase() {}
 
-   SerializerBin(T *t, const char *name_, std::string filename, 
+   SerializerBin(SerContextBase *scb, const char *name_, std::string filename, 
          iomode_t dir, bool verbose) :
-	   ScopedSerializerBase<T>(t, name_, filename, dir, verbose)
+	   SerializerBase(scb, name_, filename, dir, verbose)
    {
 	   SerializerBase *sb = this;
 	   if (sb->serializationDisabled())
@@ -552,7 +554,7 @@ class SerializerBin : public ScopedSerializerBase<T> {
 		   fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n",
 				   FILE__, __LINE__, name_);
 
-		   return iter->second;
+		   return dynamic_cast<SerializerBin *>(iter->second);
 	   }
 
 	   return NULL;
@@ -560,8 +562,8 @@ class SerializerBin : public ScopedSerializerBase<T> {
 
 
 };
-
 #endif
+
 //COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
 //COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
 
@@ -579,11 +581,15 @@ class SerFile {
 
    public:
 
-   COMMON_EXPORT SerDes *getSD() 
+   COMMON_EXPORT SerDes *getSD();
+#if 0
    {
       return sd;
    }
+#endif
 
+   COMMON_EXPORT SerFile(std::string fname, iomode_t mode, bool verbose = false); 
+#if 0
    COMMON_EXPORT SerFile(std::string fname, iomode_t mode, bool verbose = false) :
       writer (NULL), 
       f(NULL), 
@@ -645,11 +651,14 @@ class SerFile {
          sd = new SerDesBin(f,mode, verbose);
       }
    }
+#endif
 
-   COMMON_EXPORT iomode_t iomode() 
+   COMMON_EXPORT iomode_t iomode();
+#if 0
    {
       return iomode_;
    }
+#endif
 
    static bool validCacheExistsFor(std::string full_file_path);
 

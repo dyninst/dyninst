@@ -45,6 +45,7 @@
 #include "Variable.h"
 #include "Type-mem.h"
 #include <stdarg.h>
+#include "dynutil/h/Annotatable.h"
 
 #ifndef DW_FRAME_CFA_COL3
 //  This is a newer feature of libdwarf (which has been causing some other 

@@ -104,6 +104,7 @@ void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 		} 
 		else
 		{
+#if 0
 			Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb);
 
 			if (!ssb)
@@ -118,6 +119,24 @@ void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 			}
 
 			Symtab *st = ssb->getScope();
+#endif
+			SerContextBase *scb = sb->getContext();
+			if (!scb)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+			if (!scs)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			Symtab *st = scs->getScope();
+
 
 			//  remove this check
 			if ((t_id != 0xdeadbeef) && !st->findType(t_id))
@@ -358,6 +377,7 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 		}
 		else 
 		{
+#if 0
 			ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
 			if (!ssb)
@@ -367,6 +387,24 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 			}
 
 			Symtab *st = ssb->getScope();
+#endif
+
+			SerContextBase *scb = sb->getContext();
+			if (!scb)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+			if (!scs)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			Symtab *st = scs->getScope();
 
 			if (!st)
 			{

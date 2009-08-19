@@ -857,6 +857,7 @@ void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerErro
 
 	if (sb->isInput())
 	{
+#if 0
 		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
 		if (!ssb)
@@ -866,6 +867,24 @@ void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerErro
 		}
 
 		Symtab *st = ssb->getScope();
+#endif
+		SerContextBase *scb = sb->getContext();
+		if (!scb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+		if (!scs)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = scs->getScope();
+
 
 		if (t_id != 0xdeadbeef)
 		{
@@ -1914,6 +1933,7 @@ void Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Seria
 
 	if (sb->isInput())
 	{
+#if 0
 		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
 		if (!ssb)
@@ -1923,6 +1943,25 @@ void Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Seria
 		}
 
 		Symtab *st = ssb->getScope();
+#endif
+
+		SerContextBase *scb = sb->getContext();
+		if (!scb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+		if (!scs)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = scs->getScope();
+
 
 		if (t_id != 0xdeadbeef)
 		{

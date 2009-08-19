@@ -2662,6 +2662,7 @@ void relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_
 						  FILE__, __LINE__);
 			  }
 
+#if 0
 			  ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
 			  if (!ssb)
@@ -2671,6 +2672,24 @@ void relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_
 			  }
 
 			  Symtab *st = ssb->getScope();
+#endif
+			  SerContextBase *scb = sb->getContext();
+			  if (!scb)
+			  {
+				  fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				  SER_ERR("FIXME");
+			  }
+
+			  SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+			  if (!scs)
+			  {
+				  fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				  SER_ERR("FIXME");
+			  }
+
+			  Symtab *st = scs->getScope();
+
 
 			  if (!st)
 			  {
@@ -2857,25 +2876,23 @@ namespace Dyninst {
 #if 1
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
 {
-	SerializerBin<Symtab> *ser;
-	ser = new SerializerBin<Symtab>(t, "SerializerBin", file, sd_serialize, true);
-	Symtab *test_st = ser->getScope();
-	assert(test_st == t);
+	SerializerBin *ser;
+	SerContext<Symtab> *scs = new SerContext<Symtab>(t);
+	ser = new SerializerBin(scs, "SerializerBin", file, sd_serialize, true);
 	return ser;
 }
 
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
 {
-	SerializerBin<Symtab> *ser;
-	ser = new SerializerBin<Symtab>(t, "DeserializerBin", file, sd_deserialize, true);
-	Symtab *test_st = ser->getScope();
-	assert(test_st == t);
+	SerializerBin *ser;
+	SerContext<Symtab> *scs = new SerContext<Symtab>(t);
+	ser = new SerializerBin(scs, "DeserializerBin", file, sd_deserialize, true);
 	return ser;
 }
 
 SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 {
-	SerializerBin<Symtab> *sbin = dynamic_cast<SerializerBin<Symtab> *>(sb);
+	SerializerBin *sbin = dynamic_cast<SerializerBin *>(sb);
 	if (sbin)
 	{
 		delete(sbin);

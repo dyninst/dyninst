@@ -319,6 +319,23 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 
 	if (!t)
 	{
+		SerContextBase *scb = sb->getContext();
+		if (!scb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+		if (!scs)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = scs->getScope();
+#if 0
 		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
 		if (!ssb)
@@ -328,6 +345,7 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 		}
 
 		Symtab *st = ssb->getScope();
+#endif
 
 		if (!st)
 		{
@@ -349,7 +367,7 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 			for (unsigned int i = 0; i < mods.size(); ++i)
 			{
 				std::vector<Type *> *modtypes = mods[i]->getAllTypes();
-				fprintf(stderr, "%s[%d]:  module %s has %lu types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), modtypes ? modtypes->size() : -1);
+				fprintf(stderr, "%s[%d]:  module %s has %lu types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), modtypes ? modtypes->size() : -1UL);
 				if (mods[i]->getModuleTypesPrivate()->findType(t_id))
 					fprintf(stderr, "%s[%d]:  found type %d in mod %s\n", FILE__, __LINE__, t_id, mods[i]->fileName().c_str());
 			}
@@ -367,6 +385,7 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 		SER_ERR("FIXME");
 	}
 
+#if 0
 	Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb);
 
 	if (!ssb)
@@ -374,8 +393,25 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME: %s\n", FILE__, __LINE__, typeid(sb).name());
 		SER_ERR("FIXME");
 	}
-
 	Symtab *st = ssb->getScope();
+#endif
+		SerContextBase *scb = sb->getContext();
+		if (!scb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+		if (!scs)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = scs->getScope();
+
 
 	if (!st)
 	{
@@ -393,6 +429,7 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 void Aggregate::rebuild_symbol_vector(SerializerBase *sb,  
 		std::vector<Offset> *sym_offsets) THROW_SPEC (SerializerError)
 {
+#if 0
 	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 
 	if (!ssb)
@@ -402,6 +439,23 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 	}
 
 	Symtab *st = ssb->getScope();
+#endif
+		SerContextBase *scb = sb->getContext();
+		if (!scb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+		if (!scs)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = scs->getScope();
 
 	if (!st)
 	{

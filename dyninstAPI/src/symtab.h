@@ -206,8 +206,8 @@ class fileDescriptor {
 
 class image_variable {
  private:
-    image_variable() {};
  public:
+    image_variable() {}
     image_variable(Variable *var,
     		   pdmodule *mod);
 

@@ -97,6 +97,80 @@ int serializer_printf(const char *format, ...)
    return ret;
 } 
 
+SerDes *SerFile::getSD()
+{
+	return sd;
+}
+
+SerFile::SerFile(std::string fname, iomode_t mode, bool verbose) :
+	writer (NULL), 
+	f(NULL), 
+	iomode_(mode), 
+	noisy(verbose) 
+{
+	char file_path[PATH_MAX];
+
+	if (!resolve_file_path(fname.c_str(), file_path)) 
+	{
+		char msg[128];
+		sprintf(msg, "failed to resolve path for '%s'\n", fname.c_str());
+		SER_ERR(msg);
+	}
+
+	filename = std::string(file_path);
+	serialize_debug_init();
+
+	if (strstr(filename.c_str(), "xml")) 
+	{
+		fprintf(stderr, "%s[%d]:  opening xml file %s for %s\n", FILE__, __LINE__, 
+				filename.c_str(), mode == sd_serialize ? "output" : "input");
+
+		if (mode == sd_deserialize) 
+		{
+			fprintf(stderr, "%s[%d]:  ERROR:  deserializing xml not supported\n", 
+					FILE__, __LINE__);
+			assert(0);
+		}
+
+#if defined (cap_have_libxml)
+		writer = SerDesXML::init(fname, mode, verbose);
+
+		if (!writer) 
+		{
+			fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
+			assert(0);
+		}
+#else
+
+		writer = NULL;
+#endif
+
+		sd = new SerDesXML(writer, mode);
+
+	}
+	else 
+	{
+		serialize_printf("%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, 
+				filename.c_str(), mode == sd_serialize ? "output" : "input");
+
+		f = SerDesBin::init(fname, mode, verbose);
+
+		if (!f) 
+		{
+			fprintf(stderr, "%s[%d]:  failed to init file i/o\n", FILE__, __LINE__);
+			assert(0);
+		}
+
+		sd = new SerDesBin(f,mode, verbose);
+	}
+}
+
+iomode_t SerFile::iomode()
+{
+	return iomode_;
+}
+
+#if 0
 void Serializable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	//  do base serialization for this class
@@ -104,73 +178,96 @@ void Serializable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Ser
 
 	//  then serialize all Annotations for which a serialization function has been provided
 	AnnotatableSparse *as = dynamic_cast<AnnotatableSparse *> (this);
+	AnnotatableDense *ad = dynamic_cast<AnnotatableDense *> (this);
 	if (as)
 		as->serializeAnnotations(sb, tag);
-	AnnotatableDense *ad = dynamic_cast<AnnotatableDense *> (this);
-	if (ad)
-		ad->serializeAnnotations(sb, tag);
+	else if (ad)
+			ad->serializeAnnotations(sb, tag);
+	else
+		fprintf(stderr, "%s[%d]:  class is not annotatable\n", FILE__, __LINE__);
 
 
-	
+
+}
+#endif
+bool serializeAnnotationsWrapper(AnnotatableSparse *as, SerializerBase *sb, const char *tag)
+{
+	if (!as)
+	{
+		fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
+		return false;
+	}
+	as->serializeAnnotations(sb, tag);
+	return true;
 }
 
+bool serializeAnnotationsWrapper(AnnotatableDense *as, SerializerBase *sb, const char *tag)
+{
+	if (!as)
+	{
+		fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
+		return false;
+	}
+	as->serializeAnnotations(sb, tag);
+	return true;
+}
 dyn_hash_map<const char*, deserialize_and_annotate_t> annotation_deserializers;
 
 bool addDeserializeFuncForType(deserialize_and_annotate_t f, const std::type_info *ti)
 {
-   dyn_hash_map<const char *, deserialize_and_annotate_t>::iterator iter;
-   iter = annotation_deserializers.find(ti->name());
+	dyn_hash_map<const char *, deserialize_and_annotate_t>::iterator iter;
+	iter = annotation_deserializers.find(ti->name());
 
-   if (iter != annotation_deserializers.end())
-   {
-      fprintf(stderr, "%s[%d]:  WARN:  already have deserialization function for type %s\n", 
-            FILE__, __LINE__, ti->name());
-      return false;
-   }
+	if (iter != annotation_deserializers.end())
+	{
+		fprintf(stderr, "%s[%d]:  WARN:  already have deserialization function for type %s\n", 
+				FILE__, __LINE__, ti->name());
+		return false;
+	}
 
-   annotation_deserializers[ti->name()] = f;
-   return true;
+	annotation_deserializers[ti->name()] = f;
+	return true;
 }
 
 deserialize_and_annotate_t getDeserializeFuncForType(const std::type_info *ti)
 {
-   dyn_hash_map<const char *, deserialize_and_annotate_t>::iterator iter;
-   iter = annotation_deserializers.find(ti->name());
+	dyn_hash_map<const char *, deserialize_and_annotate_t>::iterator iter;
+	iter = annotation_deserializers.find(ti->name());
 
-   if (iter == annotation_deserializers.end())
-   {
-      fprintf(stderr, "%s[%d]:  WARN:  no deserialization function for type %s\n", 
-            FILE__, __LINE__, ti->name());
-      return NULL;
-   }
+	if (iter == annotation_deserializers.end())
+	{
+		fprintf(stderr, "%s[%d]:  WARN:  no deserialization function for type %s\n", 
+				FILE__, __LINE__, ti->name());
+		return NULL;
+	}
 
-   return iter->second;
+	return iter->second;
 }
 
 void printSerErr(const SerializerError &err) 
 {
-   fprintf(stderr, "\tserializer exception %s from \n\t%s[%d]\n", 
-         err.what(), err.file().c_str(), err.line());
+	fprintf(stderr, "\tserializer exception %s from \n\t%s[%d]\n", 
+			err.what(), err.file().c_str(), err.line());
 }
 
 
 bool isOutput(Dyninst::SerializerBase *ser)
 {
-   return (ser->iomode() == sd_serialize);
+	return (ser->iomode() == sd_serialize);
 }
 
 bool isBinary(Dyninst::SerializerBase *ser)
 {
 #if 0
-   SerializerBin *sb = dynamic_cast<SerializerBin *>(ser);
-   return (sb != NULL);
+	SerializerBin *sb = dynamic_cast<SerializerBin *>(ser);
+	return (sb != NULL);
 #endif
-   return ser->isBin();
+	return ser->isBin();
 }
 
 void trans_adapt(SerializerBase *ser, Serializable &it, const char *tag)
 {
-   it.serialize(ser, tag);
+	it.serialize(ser, tag);
 }
 
 void trans_adapt(SerializerBase *ser, Serializable  *itp, const char *tag)
@@ -292,15 +389,37 @@ bool sb_is_output(SerializerBase *sb)
 bool SerializerBase::global_disable = false;
 COMMON_EXPORT dyn_hash_map<std::string, SerializerBase *> SerializerBase::active_bin_serializers;
 
-#if 0
 SerDesBin &SerializerBin::getSD_bin()
 {
-   SerDes &sd = getSD();
+	SerializerBase *sb = this;
+   SerDes &sd = sb->getSD();
    SerDesBin *sdbin = dynamic_cast<SerDesBin *> (&sd);
    assert(sdbin);
    return *sdbin;
 }
-#endif
+
+SerializerBin *SerializerBin::findSerializerByName(const char *name_)
+{
+	dyn_hash_map<std::string, SerializerBase *>::iterator iter;
+
+	iter = SerializerBase::active_bin_serializers.find(std::string(name_));
+
+	if (iter == SerializerBase::active_bin_serializers.end())
+	{
+		fprintf(stderr, "%s[%d]:  No static ptr for name %s\n",
+				FILE__, __LINE__, name_);
+		SerializerBase::dumpActiveBinSerializers();
+	}
+	else
+	{
+		fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n",
+				FILE__, __LINE__, name_);
+
+		return dynamic_cast<SerializerBin *>(iter->second);
+	}
+
+	return NULL;
+}
 
 #if 0
 //bool SerializerBin::global_disable = false;
@@ -652,8 +771,8 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
    int rc = fread(&header, sizeof(cache_header_t), 1, f);
    if (1 != rc) {
       char msg[128];
-      sprintf(msg, "%s[%d]:  failed to read header struct for %s: %s\n", 
-            FILE__, __LINE__, cache_name.c_str(), strerror(errno));
+      sprintf(msg, "%s[%d]:  failed to read header struct for %s: %s, rc = %d\n", 
+            FILE__, __LINE__, cache_name.c_str(), strerror(errno), rc);
       SER_ERR(msg);
    }
 
@@ -796,8 +915,11 @@ void SerDesBin::hash_map_end()
 {
 }
 
-void SerDesBin::annotation_start(const char *, const char *)
+void SerDesBin::annotation_start(Dyninst::AnnotationClassID &a_id, const char *, const char *)
 {
+	fprintf(stderr, "%s[%d]:  welcome to annotation_start: id = %d\n", FILE__, __LINE__,a_id);
+	translate(a_id);
+	fprintf(stderr, "%s[%d]:  leaving annotation_start: id = %d\n", FILE__, __LINE__, a_id);
 }
 
 void SerDesBin::annotation_end()
@@ -805,6 +927,18 @@ void SerDesBin::annotation_end()
    //  don't need to do anything
 }
 
+void SerDesBin::annotation_list_start(Address &id, int &nelem, const char *)
+{
+	fprintf(stderr, "%s[%d]: enter annotation_list_start id = %p, nelem = %d\n", FILE__, __LINE__, (void *)id, nelem);
+	translate(id);
+	translate(nelem);
+	fprintf(stderr, "%s[%d]: leave annotation_list_start id = %p, nelem = %d\n", FILE__, __LINE__, (void *)id, nelem);
+}
+
+void SerDesBin::annotation_list_end()
+{
+   //  don't need to do anything
+}
 void SerDesBin::translate(bool &param, const char *tag)
 {
    int rc;
@@ -901,6 +1035,15 @@ void SerDesBin::translate(long &param, const char *tag)
             tag ? tag : "no-tag", param);
 }
 
+void SerDesBin::translate(unsigned short &param, const char *tag)
+{
+	fprintf(stderr, "%s[%d]:  SerDesBin:: translate (short) %d\n", FILE__, __LINE__, param);
+	short lshort = static_cast<short>(param);
+	translate (lshort, tag);
+	param = static_cast<unsigned short>(lshort);
+	fprintf(stderr, "%s[%d]:  leaving SerDesBin:: translate (short) %d\n", FILE__, __LINE__, param);
+}
+
 void SerDesBin::translate(short &param, const char *tag)
 {
    int rc;
@@ -995,6 +1138,27 @@ void SerDesBin::translate(Address &param, const char *tag)
             tag ? tag : "no-tag", param);
 }
 
+void SerDesBin::translate(void * &param, const char *tag)
+{
+   int rc;
+   if (iomode_ == sd_serialize) {
+      rc = fwrite(&param, sizeof(void *), 1, f);
+
+      if (1 != rc) 
+         SER_ERR("fwrite");
+   }
+   else {
+      rc = fread(&param, sizeof(void *), 1, f);
+
+      if (1 != rc) 
+         SER_ERR("fread");
+   }
+
+   if (noisy)
+      serialize_printf("%s[%d]:  %sserialize %s=%p\n", FILE__, __LINE__,
+            iomode_ == sd_serialize ? "" : "de", 
+            tag ? tag : "no-tag", param);
+}
 void SerDesBin::translate(const char * &param, int bufsize, const char *tag)
 {
    //  string output format is
@@ -1143,16 +1307,20 @@ AnnotatableBase *SerDesBin::findAnnotatee(void *id)
 
 
 
-SerializerBase::SerializerBase(const char *name_, 
+SerializerBase::SerializerBase(SerContextBase *scb, const char *name_, 
       std::string filename, 
       iomode_t dir, 
       bool verbose)  :
-   serializer_name(std::string(name_)) 
+  scon(scb), 
+   serializer_name(std::string(name_))
 {
    sf = new SerFile(filename, dir, verbose);
    assert(sf);
    sd = sf->getSD();
-   assert(sd);
+   if (!sd) {
+	   fprintf(stderr, "%s[%d]:  failed to get sd here\n", FILE__, __LINE__);
+   }
+   assert(scb);
 }
 
 SerializerBase::SerializerBase() 
@@ -1230,6 +1398,77 @@ iomode_t SerializerBase::iomode()
    return sd_serialize;
 }
 
+void SerializerBase::serialize_annotations(void *id, std::vector<ser_rec_t> &sers, const char *tag)
+{
+	Address id_add = (Address) id;
+	int nelem = (int) sers.size();
+	getSD().annotation_list_start(id_add, nelem);
+	//getSD().translate(id_add);
+	//getSD().translate(nelem);
+
+	fprintf(stderr, "%s[%d]: serialize_annotations:  %s, id = %p, nelem = %d\n", FILE__, __LINE__, isInput() ? "deserialize" : "serialize", (void *)id_add, nelem);
+
+	for (unsigned int i = 0; i < nelem; ++i)
+	{
+		AnnotationClassBase *acb = NULL;
+		void *my_anno = NULL;
+		AnnotationClassID a_id = (AnnotationClassID) -1;
+
+		if (isOutput())
+		{
+			acb = sers[i].acb;
+			assert(acb);
+			a_id = acb->getID();
+			my_anno = sers[i].data;
+		}
+
+		getSD().annotation_start(a_id, acb ? acb->getName().c_str() : NULL);
+
+		if (isInput())
+		{
+			acb = AnnotationClassBase::findAnnotationClass(a_id);
+
+
+			if (!acb)
+			{
+				AnnotationClassBase::dumpAnnotationClasses();
+				fprintf(stderr, "%s[%d]:  FIXME:  cannot find annotation class for id %d\n", 
+						FILE__, __LINE__, a_id);
+				return;
+			}
+
+			//  when deserializing, we need to allocate an object
+			//  of the type of the annotation before deserializing into it.
+			my_anno = acb->allocate();
+			assert(my_anno);
+
+			ser_rec_t sr;
+			sr.data = my_anno;
+			sr.acb = acb;
+			sers.push_back(sr);
+			fprintf(stderr, "%s[%d]:  created deserialize rec: %p/%p\n", FILE__, __LINE__, my_anno, acb);
+		}
+
+		ser_func_t sf = acb->getSerializeFunc();
+
+		assert(sf);
+		assert(my_anno);
+
+		//  execute the serialization function for this annotation
+		fprintf(stderr, "%s[%d]:  calling serialize func for type %s\n", FILE__, __LINE__, acb->getTypeName());
+		(*sf)(my_anno, this, tag);
+#if 0
+		if (!(*sf)(my_anno, this, tag))
+		{
+			fprintf(stderr, "%s[%d]:  serialization function for annotation failed\n", 
+					FILE__, __LINE__);
+		}
+#endif
+		getSD().annotation_end();
+	}
+	getSD().annotation_list_end();
+}
+
 void SerializerBase::vector_start(unsigned int &size, const char *tag) 
 {
    getSD().vector_start(size, tag);
@@ -1252,6 +1491,10 @@ void SerializerBase::hash_map_end()
 }
 
 void SerializerBase::translate_base(short &v, const char *&t)
+{
+   getSD().translate(v, t);
+}
+void SerializerBase::translate_base(unsigned short &v, const char *&t)
 {
    getSD().translate(v, t);
 }
@@ -1295,7 +1538,10 @@ void SerializerBase::translate_base(char *&v, int bufsize, const char *&t)
 {
    getSD().translate(v, bufsize, t);
 }
-
+void SerializerBase::translate_base(void *&v, const char *&t)
+{
+   getSD().translate(v, t);
+}
 void SerializerBase::translate_base(std::string &v, const char *t)
 {
    getSD().translate(v, t);

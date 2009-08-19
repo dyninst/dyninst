@@ -213,7 +213,7 @@ class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
 
   // Copy constructor
   BPatch_field(BPatch_field &f);
-  BPatch_field(Dyninst::SymtabAPI::Field *fld_, BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, int value_ = 0, int size_ = 0);
+  BPatch_field(Dyninst::SymtabAPI::Field *fld_ = NULL, BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, int value_ = 0, int size_ = 0);
 
   API_EXPORT_DTOR(_dtor,(),
   ~,BPatch_field,());
@@ -269,6 +269,7 @@ private:
   void fixupUnknowns(BPatch_module *);
 public:
   BPatch_cblock(Dyninst::SymtabAPI::CBlock *cBlk_);
+  BPatch_cblock() {}
   
   API_EXPORT(Int, (),
   BPatch_Vector<BPatch_field *> *,getComponents,());
@@ -308,7 +309,6 @@ protected:
  protected:
   // Simple Destructor
   virtual ~BPatch_type();
-  BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
   static BPatch_type *findOrCreateType(Dyninst::SymtabAPI::Type *type);
   
   // A few convenience functions
@@ -321,6 +321,7 @@ protected:
          { return new BPatch_type(_name, _ID, BPatch_dataUnknownType); }
 
 public:
+  BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
   BPatch_type(Dyninst::SymtabAPI::Type *typ_);
   virtual bool operator==(const BPatch_type &) const;
 
@@ -380,6 +381,7 @@ public:
     //  Internal use only
     BPatch_localVar(Dyninst::SymtabAPI::localVar *lVar_);
     ~BPatch_localVar();
+    BPatch_localVar() {}
 
     void fixupUnknown(BPatch_module *);
     Dyninst::SymtabAPI::localVar *getSymtabVar();

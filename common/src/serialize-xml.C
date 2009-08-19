@@ -325,13 +325,29 @@ COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 }
 }
 
+bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
+{
+	SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
+
+	if (!sxml)
+	{
+		fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+				FILE__, __LINE__);
+		return false;
+	}
+
+	SerDesXML sdxml = sxml->getSD_xml();
+	start_xml_elem(sdxml, tag);
+	return true;
+
+}
 #if 0
 bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
 {
-   SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
+	SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
-   if (!sxml) 
-   {
+	if (!sxml) 
+	{
       fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n", 
             FILE__, __LINE__);
       return false;
@@ -348,7 +364,15 @@ bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
 }
 #endif
 
-#if 0
+SerDesXML &SerializerXML::getSD_xml()
+{
+	SerializerBase *sb = this;
+	SerDes &sd = sb->getSD();
+	SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
+	assert(sdxml);
+	return *sdxml;
+}
+
 bool SerializerXML::end_xml_element(SerializerBase * sb, const char  * /*tag*/)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
@@ -361,14 +385,14 @@ bool SerializerXML::end_xml_element(SerializerBase * sb, const char  * /*tag*/)
    }
 
    SerDesXML sdxml = sxml->getSD_xml();
-   end_xml_elem(sdxml.writer);
+   end_xml_elem(sdxml);
 
 #if 0
    sdxml.end_element(); 
 #endif
    return true;
 }
-#endif
+
 SerDesXML::~SerDesXML()
 {
 #if defined (cap_have_libxml)
@@ -474,7 +498,7 @@ void SerDesXML::hash_map_end()
 #endif
 }
 
-void SerDesXML::annotation_start(const char * /*id*/, const char * tag) 
+void SerDesXML::annotation_start(Dyninst::AnnotationClassID &a_id, const char * /*id*/, const char * tag) 
 {
    bool rc = ::start_xml_elem(writer, tag);
 
@@ -482,6 +506,7 @@ void SerDesXML::annotation_start(const char * /*id*/, const char * tag)
    {
         SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
    }
+   translate(a_id, "annotationID");
 }
 
 void SerDesXML::annotation_end()
@@ -495,6 +520,25 @@ void SerDesXML::annotation_end()
 }
 
 
+void SerDesXML::annotation_list_start(Address &/*id*/, int &nelem, const char * tag) 
+{
+   bool rc = ::start_xml_elem(writer, tag);
+
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+}
+
+void SerDesXML::annotation_list_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+}
 void SerDesXML::translate(bool &param, const char *tag)
 {       
    bool rc = write_xml_elem(writer, tag,
@@ -592,6 +636,24 @@ void SerDesXML::translate(short &param, const char *tag)
 #endif
 }
 
+void SerDesXML::translate(unsigned short &param, const char *tag)
+{   
+   bool rc = write_xml_elem(writer, tag,
+         "%h", param);
+
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+    
+#if 0
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%h", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
 void SerDesXML::translate(unsigned int &param, const char *tag)
 {   
   translate( param, tag);
@@ -666,6 +728,24 @@ void SerDesXML::translate(Address &param, const char *tag)
 #endif
 }
 
+void SerDesXML::translate(void * &param, const char *tag)
+{
+   bool rc = write_xml_elem(writer, tag,
+         "%p", param);
+
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+#if 0
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%p", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
 void SerDesXML::translate(const char * &param, int /*bufsize*/, const char *tag)
 {
    bool rc = write_xml_elem(writer, tag,

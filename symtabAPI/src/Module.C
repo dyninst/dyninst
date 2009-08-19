@@ -537,6 +537,7 @@ void Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
 
    if (sb->isInput())
    {
+#if 0
 	   ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 	   if (!ssb)
 	   {
@@ -545,6 +546,25 @@ void Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
 	   }
 
 	   Symtab *st = ssb->getScope();
+#endif
+
+	   SerContextBase *scb = sb->getContext();
+	   if (!scb)
+	   {
+		   fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		   SER_ERR("FIXME");
+	   }
+
+	   SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+	   if (!scs)
+	   {
+		   fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		   SER_ERR("FIXME");
+	   }
+
+	   Symtab *st = scs->getScope();
+
 	   if (!st)
 	   {
 		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);

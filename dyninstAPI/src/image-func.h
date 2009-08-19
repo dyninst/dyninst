@@ -317,6 +317,7 @@ class image_func : public codeRange,
  public:
    static std::string emptyString;
 
+   image_func() {}
    // Almost everything gets filled in later.
    image_func(const std::string &symbol, 
 	      Address offset, 

@@ -299,6 +299,7 @@ void Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (Seri
 
 void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, Offset r_off) THROW_SPEC (SerializerError)
 {
+#if 0
 	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(s);
 
 	if (!ssb)
@@ -308,6 +309,24 @@ void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, 
 	}
 
 	Symtab *st = ssb->getScope();
+#endif
+	SerContextBase *scb = s->getContext();
+	if (!scb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+	if (!scs)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Symtab *st = scs->getScope();
+
 	if (!st)
 	{
 		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);

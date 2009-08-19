@@ -14,6 +14,7 @@
 #include <assert.h>
 #include "dyntypes.h"
 #include "util.h"
+#include "Annotatable.h"
 
 namespace Dyninst {
 //  SER_ERR("msg") -- an attempt at "graceful" failure.  If debug flag is set
@@ -92,6 +93,11 @@ class SerializerError : public std::runtime_error {
 
 COMMON_EXPORT void printSerErr(const SerializerError &err);
 
+class AnnotatableSparse;
+class AnnotatableDense;
+bool serializeAnnotationsWrapper(AnnotatableSparse *, SerializerBase *, const char *);
+bool serializeAnnotationsWrapper(AnnotatableDense *, SerializerBase *, const char *);
+
 class Serializable {
    protected:
       COMMON_EXPORT Serializable() {}
@@ -99,12 +105,50 @@ class Serializable {
 
       COMMON_EXPORT virtual void serialize_impl(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
    public:
-      COMMON_EXPORT virtual void serialize(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError);
+      //COMMON_EXPORT virtual void serialize(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError);
+      COMMON_EXPORT virtual void serialize(SerializerBase *sb,  const char *tag = NULL) THROW_SPEC(SerializerError)
+	  {
+		  //  do base serialization for this class
+		  serialize_impl(sb, tag);
+
+		  //  then serialize all Annotations for which a serialization function has been provided
+		  AnnotatableSparse *as = dynamic_cast<AnnotatableSparse *> (this);
+		  AnnotatableDense *ad = dynamic_cast<AnnotatableDense *> (this);
+		  if (as)
+		  {
+			  as->serializeAnnotations(sb, tag);
+			  //serializeAnnotationsWrapper(as, sb, tag);
+		  }
+		  else if (ad)
+		  {
+			  ad->serializeAnnotations(sb, tag);
+			  //serializeAnnotationsWrapper(ad, sb, tag);
+		  }
+		  else
+			  fprintf(stderr, "%s[%d]:  class is not annotatable\n", FILE__, __LINE__);
+
+	  }
+};
+
+class SerContextBase {
+	public:
+		SerContextBase()  {}
+		virtual ~SerContextBase() {}
+		virtual void *getVoidContext() = 0;
+};
+template <class T>
+class SerContext : public SerContextBase
+{
+	T *scope;
+	public:
+		SerContext(T *scope_) : scope(scope_) {}
+		~SerContext() {}
+		void *getVoidContext() {return (void *) scope;}
+		T *getScope() {return scope;}
 };
 
 class SerFile;
 class SerDes;
-#if 1
 class SerializerBase {
 
 	public:
@@ -115,6 +159,7 @@ class SerializerBase {
 
 		SerFile *sf;
 		SerDes *sd;
+		SerContextBase *scon;
 
 		std::string serializer_name;
 
@@ -135,6 +180,7 @@ class SerializerBase {
 		{
 			global_disable = false;
 		}
+		COMMON_EXPORT SerContextBase *getContext() {return scon;}
 		COMMON_EXPORT virtual bool isXML() = 0;
 		COMMON_EXPORT virtual bool isBin ()= 0;
 		COMMON_EXPORT bool isInput () {return iomode() == sd_deserialize;}
@@ -142,7 +188,7 @@ class SerializerBase {
 
 		COMMON_EXPORT static void dumpActiveBinSerializers();
 
-		COMMON_EXPORT SerializerBase(const char *name_, std::string filename, 
+		COMMON_EXPORT SerializerBase(SerContextBase *scb, const char *name_, std::string filename, 
 				iomode_t dir, bool verbose); 
 
 		COMMON_EXPORT SerializerBase();
@@ -165,6 +211,7 @@ class SerializerBase {
 		COMMON_EXPORT virtual void hash_map_end();
 		COMMON_EXPORT void translate_base(bool &v, const char *&t);
 		COMMON_EXPORT void translate_base(short &v, const char *&t);
+		COMMON_EXPORT void translate_base(unsigned short &v, const char *&t);
 		COMMON_EXPORT void translate_base(char &v, const char *&t);
 		COMMON_EXPORT void translate_base(int &v, const char *&t);
 		COMMON_EXPORT void translate_base(unsigned int &v, const char *&t);
@@ -174,12 +221,15 @@ class SerializerBase {
 		COMMON_EXPORT void translate_base(double &v, const char *&t);
 		COMMON_EXPORT void translate_base(const char * &v, int bufsize, const char *&t);
 		COMMON_EXPORT void translate_base(char * &v, int bufsize, const char *&t);
+		COMMON_EXPORT void translate_base(void * &v, const char *&t);
 		COMMON_EXPORT void translate_base(std::string &v, const char *t);
 
 		COMMON_EXPORT virtual iomode_t iomode(); 
 
+		COMMON_EXPORT void serialize_annotations(void *, std::vector<ser_rec_t> &sers, const char * = NULL);
 };
 
+#if 0
 template <class T>
 class ScopedSerializerBase : public SerializerBase
 {
@@ -193,26 +243,27 @@ class ScopedSerializerBase : public SerializerBase
 	virtual ~ScopedSerializerBase() {}
 	T *getScope() {return scope;}
 };
-
+#endif
 class SerDesXML;
 
 
 bool start_xml_elem(SerDesXML &, const char *);
 bool end_xml_elem(SerDesXML &);
 
-template <class T>
-class SerializerXML : public ScopedSerializerBase<T>
+class SerializerXML : public SerializerBase
 {
 	public:
 		COMMON_EXPORT virtual bool isXML() {return true;}
 		COMMON_EXPORT virtual bool isBin () {return false;}
 
-		COMMON_EXPORT SerializerXML(T *t, const char *name_, std::string filename,
+		COMMON_EXPORT SerializerXML(SerContextBase *sc, const char *name_, std::string filename,
 				iomode_t dir, bool verbose) :
-			ScopedSerializerBase<T>(t, name_, filename, dir, verbose) {}
+			SerializerBase(sc, name_, filename, dir, verbose) {}
 
 		COMMON_EXPORT virtual ~SerializerXML() {}
 
+		COMMON_EXPORT SerDesXML &getSD_xml();
+#if 0
 		COMMON_EXPORT SerDesXML &getSD_xml()
 		{
 			SerializerBase *sb = this;
@@ -221,10 +272,14 @@ class SerializerXML : public ScopedSerializerBase<T>
 			assert(sdxml);
 			return *sdxml;
 		}
+#endif
 
+		COMMON_EXPORT static bool start_xml_element(SerializerBase *sb, const char *tag);
+		COMMON_EXPORT static bool end_xml_element(SerializerBase *sb, const char *);
+#if 0
 		COMMON_EXPORT static bool start_xml_element(SerializerBase *sb, const char *tag)
 		{
-			SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+			SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
 			if (!sxml)
 			{
@@ -241,7 +296,7 @@ class SerializerXML : public ScopedSerializerBase<T>
 
 		COMMON_EXPORT static bool end_xml_element(SerializerBase *sb, const char *)
 		{
-			SerializerXML<T> *sxml = dynamic_cast<SerializerXML<T> *>(sb);
+			SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
 			if (!sxml)
 			{
@@ -256,25 +311,25 @@ class SerializerXML : public ScopedSerializerBase<T>
 
 			return true;
 		}
+#endif
 };
 
 class SerDesBin;
 
-template <class T>
-class SerializerBin : public ScopedSerializerBase<T> {
+class SerializerBin : public SerializerBase {
 	friend class SerDesBin;
 
 	public:
 	virtual bool isXML() {return false;}
 	virtual bool isBin () {return true;}
 
-	SerializerBin(T *t)  :
-		ScopedSerializerBase<T>(t) {}
+	SerializerBin()  :
+		SerializerBase() {}
 
 
-	SerializerBin(T *t, const char *name_, std::string filename,
+	SerializerBin(SerContextBase *s, const char *name_, std::string filename,
 			iomode_t dir, bool verbose) :
-		ScopedSerializerBase<T>(t, name_, filename, dir, verbose)
+		SerializerBase(s, name_, filename, dir, verbose)
 	{
 		SerializerBase *sb = this;
 		if (sb->serializationDisabled())
@@ -328,6 +383,8 @@ class SerializerBin : public ScopedSerializerBase<T> {
 
 	}
 
+	SerDesBin &getSD_bin();
+#if 0
 	SerDesBin &getSD_bin()
 	{
 		SerializerBase *sb = this;
@@ -336,9 +393,12 @@ class SerializerBin : public ScopedSerializerBase<T> {
 		assert(sdbin);
 		return *sdbin;
 	}
+#endif
 
 
 
+	static SerializerBin *findSerializerByName(const char *name_);
+#if 0
 	static SerializerBin *findSerializerByName(const char *name_)
 	{
 		dyn_hash_map<std::string, SerializerBase *>::iterator iter;
@@ -361,18 +421,13 @@ class SerializerBin : public ScopedSerializerBase<T> {
 
 		return NULL;
 	}
+#endif
 
 
 };
 
 
-
-
-
-
-#endif
-
-	template <class S, class T>
+template <class S, class T>
 void translate_vector(S *ser, std::vector<T> &vec,
 		const char *tag = NULL, const char *elem_tag = NULL)
 {

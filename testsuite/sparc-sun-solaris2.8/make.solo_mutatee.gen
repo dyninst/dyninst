@@ -460,13 +460,13 @@ symtab_SOLO_MUTATEES_native_cxx = symtab_group_test.mutatee_solo_CC_32_high symt
 
 # Now a list of rules for compiling the mutatees with CC
 
-symtab_group_test.mutatee_solo_CC_32_high: symtab_group_test_group_CC_32_high.o test_lookup_func_mutatee_solo_CC_32_high.o test_lookup_var_mutatee_solo_CC_32_high.o test_line_info_mutatee_solo_CC_32_high.o test_module_mutatee_solo_CC_32_high.o test_relocations_mutatee_solo_CC_32_high.o test_symtab_ser_funcs_mutatee_solo_CC_32_high.o test_type_info_mutatee_solo_CC_32_high.o test_anno_basic_types_mutatee_solo_CC_32_high.o mutatee_util_CC_32_high.o mutatee_driver_solo_CC_32.o
+symtab_group_test.mutatee_solo_CC_32_high: symtab_group_test_group_CC_32_high.o test_lookup_func_mutatee_solo_CC_32_high.o test_lookup_var_mutatee_solo_CC_32_high.o test_line_info_mutatee_solo_CC_32_high.o test_module_mutatee_solo_CC_32_high.o test_relocations_mutatee_solo_CC_32_high.o test_symtab_ser_funcs_mutatee_solo_CC_32_high.o test_ser_anno_mutatee_solo_CC_32_high.o test_type_info_mutatee_solo_CC_32_high.o test_anno_basic_types_mutatee_solo_CC_32_high.o mutatee_util_CC_32_high.o mutatee_driver_solo_CC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
-symtab_group_test.mutatee_solo_CC_32_low: symtab_group_test_group_CC_32_low.o test_lookup_func_mutatee_solo_CC_32_low.o test_lookup_var_mutatee_solo_CC_32_low.o test_line_info_mutatee_solo_CC_32_low.o test_module_mutatee_solo_CC_32_low.o test_relocations_mutatee_solo_CC_32_low.o test_symtab_ser_funcs_mutatee_solo_CC_32_low.o test_type_info_mutatee_solo_CC_32_low.o test_anno_basic_types_mutatee_solo_CC_32_low.o mutatee_util_CC_32_low.o mutatee_driver_solo_CC_32.o
+symtab_group_test.mutatee_solo_CC_32_low: symtab_group_test_group_CC_32_low.o test_lookup_func_mutatee_solo_CC_32_low.o test_lookup_var_mutatee_solo_CC_32_low.o test_line_info_mutatee_solo_CC_32_low.o test_module_mutatee_solo_CC_32_low.o test_relocations_mutatee_solo_CC_32_low.o test_symtab_ser_funcs_mutatee_solo_CC_32_low.o test_ser_anno_mutatee_solo_CC_32_low.o test_type_info_mutatee_solo_CC_32_low.o test_anno_basic_types_mutatee_solo_CC_32_low.o mutatee_util_CC_32_low.o mutatee_driver_solo_CC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
-symtab_group_test.mutatee_solo_CC_32_max: symtab_group_test_group_CC_32_max.o test_lookup_func_mutatee_solo_CC_32_max.o test_lookup_var_mutatee_solo_CC_32_max.o test_line_info_mutatee_solo_CC_32_max.o test_module_mutatee_solo_CC_32_max.o test_relocations_mutatee_solo_CC_32_max.o test_symtab_ser_funcs_mutatee_solo_CC_32_max.o test_type_info_mutatee_solo_CC_32_max.o test_anno_basic_types_mutatee_solo_CC_32_max.o mutatee_util_CC_32_max.o mutatee_driver_solo_CC_32.o
+symtab_group_test.mutatee_solo_CC_32_max: symtab_group_test_group_CC_32_max.o test_lookup_func_mutatee_solo_CC_32_max.o test_lookup_var_mutatee_solo_CC_32_max.o test_line_info_mutatee_solo_CC_32_max.o test_module_mutatee_solo_CC_32_max.o test_relocations_mutatee_solo_CC_32_max.o test_symtab_ser_funcs_mutatee_solo_CC_32_max.o test_ser_anno_mutatee_solo_CC_32_max.o test_type_info_mutatee_solo_CC_32_max.o test_anno_basic_types_mutatee_solo_CC_32_max.o mutatee_util_CC_32_max.o mutatee_driver_solo_CC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
-symtab_group_test.mutatee_solo_CC_32_none: symtab_group_test_group_CC_32_none.o test_lookup_func_mutatee_solo_CC_32_none.o test_lookup_var_mutatee_solo_CC_32_none.o test_line_info_mutatee_solo_CC_32_none.o test_module_mutatee_solo_CC_32_none.o test_relocations_mutatee_solo_CC_32_none.o test_symtab_ser_funcs_mutatee_solo_CC_32_none.o test_type_info_mutatee_solo_CC_32_none.o test_anno_basic_types_mutatee_solo_CC_32_none.o mutatee_util_CC_32_none.o mutatee_driver_solo_CC_32.o
+symtab_group_test.mutatee_solo_CC_32_none: symtab_group_test_group_CC_32_none.o test_lookup_func_mutatee_solo_CC_32_none.o test_lookup_var_mutatee_solo_CC_32_none.o test_line_info_mutatee_solo_CC_32_none.o test_module_mutatee_solo_CC_32_none.o test_relocations_mutatee_solo_CC_32_none.o test_symtab_ser_funcs_mutatee_solo_CC_32_none.o test_ser_anno_mutatee_solo_CC_32_none.o test_type_info_mutatee_solo_CC_32_none.o test_anno_basic_types_mutatee_solo_CC_32_none.o mutatee_util_CC_32_none.o mutatee_driver_solo_CC_32.o
 	$(M_native_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
 
 # Exceptional rules for mutatees compiled with CC
@@ -1369,14 +1369,16 @@ test_type_info_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_CC_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -1385,14 +1387,16 @@ test_type_info_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_CC_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -1401,14 +1405,16 @@ test_type_info_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_CC_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -1417,14 +1423,16 @@ test_type_info_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_CC_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -1930,13 +1938,13 @@ symtab_SOLO_MUTATEES_gnu_cxx = symtab_group_test.mutatee_solo_g++_32_high symtab
 
 # Now a list of rules for compiling the mutatees with g++
 
-symtab_group_test.mutatee_solo_g++_32_high: symtab_group_test_group_g++_32_high.o test_lookup_func_mutatee_solo_g++_32_high.o test_lookup_var_mutatee_solo_g++_32_high.o test_line_info_mutatee_solo_g++_32_high.o test_module_mutatee_solo_g++_32_high.o test_relocations_mutatee_solo_g++_32_high.o test_symtab_ser_funcs_mutatee_solo_g++_32_high.o test_type_info_mutatee_solo_g++_32_high.o test_anno_basic_types_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o mutatee_driver_solo_g++_32.o
+symtab_group_test.mutatee_solo_g++_32_high: symtab_group_test_group_g++_32_high.o test_lookup_func_mutatee_solo_g++_32_high.o test_lookup_var_mutatee_solo_g++_32_high.o test_line_info_mutatee_solo_g++_32_high.o test_module_mutatee_solo_g++_32_high.o test_relocations_mutatee_solo_g++_32_high.o test_symtab_ser_funcs_mutatee_solo_g++_32_high.o test_ser_anno_mutatee_solo_g++_32_high.o test_type_info_mutatee_solo_g++_32_high.o test_anno_basic_types_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
-symtab_group_test.mutatee_solo_g++_32_low: symtab_group_test_group_g++_32_low.o test_lookup_func_mutatee_solo_g++_32_low.o test_lookup_var_mutatee_solo_g++_32_low.o test_line_info_mutatee_solo_g++_32_low.o test_module_mutatee_solo_g++_32_low.o test_relocations_mutatee_solo_g++_32_low.o test_symtab_ser_funcs_mutatee_solo_g++_32_low.o test_type_info_mutatee_solo_g++_32_low.o test_anno_basic_types_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o mutatee_driver_solo_g++_32.o
+symtab_group_test.mutatee_solo_g++_32_low: symtab_group_test_group_g++_32_low.o test_lookup_func_mutatee_solo_g++_32_low.o test_lookup_var_mutatee_solo_g++_32_low.o test_line_info_mutatee_solo_g++_32_low.o test_module_mutatee_solo_g++_32_low.o test_relocations_mutatee_solo_g++_32_low.o test_symtab_ser_funcs_mutatee_solo_g++_32_low.o test_ser_anno_mutatee_solo_g++_32_low.o test_type_info_mutatee_solo_g++_32_low.o test_anno_basic_types_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
-symtab_group_test.mutatee_solo_g++_32_max: symtab_group_test_group_g++_32_max.o test_lookup_func_mutatee_solo_g++_32_max.o test_lookup_var_mutatee_solo_g++_32_max.o test_line_info_mutatee_solo_g++_32_max.o test_module_mutatee_solo_g++_32_max.o test_relocations_mutatee_solo_g++_32_max.o test_symtab_ser_funcs_mutatee_solo_g++_32_max.o test_type_info_mutatee_solo_g++_32_max.o test_anno_basic_types_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o mutatee_driver_solo_g++_32.o
+symtab_group_test.mutatee_solo_g++_32_max: symtab_group_test_group_g++_32_max.o test_lookup_func_mutatee_solo_g++_32_max.o test_lookup_var_mutatee_solo_g++_32_max.o test_line_info_mutatee_solo_g++_32_max.o test_module_mutatee_solo_g++_32_max.o test_relocations_mutatee_solo_g++_32_max.o test_symtab_ser_funcs_mutatee_solo_g++_32_max.o test_ser_anno_mutatee_solo_g++_32_max.o test_type_info_mutatee_solo_g++_32_max.o test_anno_basic_types_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
-symtab_group_test.mutatee_solo_g++_32_none: symtab_group_test_group_g++_32_none.o test_lookup_func_mutatee_solo_g++_32_none.o test_lookup_var_mutatee_solo_g++_32_none.o test_line_info_mutatee_solo_g++_32_none.o test_module_mutatee_solo_g++_32_none.o test_relocations_mutatee_solo_g++_32_none.o test_symtab_ser_funcs_mutatee_solo_g++_32_none.o test_type_info_mutatee_solo_g++_32_none.o test_anno_basic_types_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o mutatee_driver_solo_g++_32.o
+symtab_group_test.mutatee_solo_g++_32_none: symtab_group_test_group_g++_32_none.o test_lookup_func_mutatee_solo_g++_32_none.o test_lookup_var_mutatee_solo_g++_32_none.o test_line_info_mutatee_solo_g++_32_none.o test_module_mutatee_solo_g++_32_none.o test_relocations_mutatee_solo_g++_32_none.o test_symtab_ser_funcs_mutatee_solo_g++_32_none.o test_ser_anno_mutatee_solo_g++_32_none.o test_type_info_mutatee_solo_g++_32_none.o test_anno_basic_types_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
 
 # Exceptional rules for mutatees compiled with g++
@@ -2839,14 +2847,16 @@ test_type_info_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_g++_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -2855,14 +2865,16 @@ test_type_info_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_g++_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -2871,14 +2883,16 @@ test_type_info_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_g++_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -2887,14 +2901,16 @@ test_type_info_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_g++_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -3400,13 +3416,13 @@ symtab_SOLO_MUTATEES_gnu_cc = symtab_group_test.mutatee_solo_gcc_32_high symtab_
 
 # Now a list of rules for compiling the mutatees with gcc
 
-symtab_group_test.mutatee_solo_gcc_32_high: symtab_group_test_group_gcc_32_high.o test_lookup_func_mutatee_solo_gcc_32_high.o test_lookup_var_mutatee_solo_gcc_32_high.o test_line_info_mutatee_solo_gcc_32_high.o test_module_mutatee_solo_gcc_32_high.o test_relocations_mutatee_solo_gcc_32_high.o test_symtab_ser_funcs_mutatee_solo_gcc_32_high.o test_type_info_mutatee_solo_gcc_32_high.o test_anno_basic_types_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
+symtab_group_test.mutatee_solo_gcc_32_high: symtab_group_test_group_gcc_32_high.o test_lookup_func_mutatee_solo_gcc_32_high.o test_lookup_var_mutatee_solo_gcc_32_high.o test_line_info_mutatee_solo_gcc_32_high.o test_module_mutatee_solo_gcc_32_high.o test_relocations_mutatee_solo_gcc_32_high.o test_symtab_ser_funcs_mutatee_solo_gcc_32_high.o test_ser_anno_mutatee_solo_gcc_32_high.o test_type_info_mutatee_solo_gcc_32_high.o test_anno_basic_types_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
-symtab_group_test.mutatee_solo_gcc_32_low: symtab_group_test_group_gcc_32_low.o test_lookup_func_mutatee_solo_gcc_32_low.o test_lookup_var_mutatee_solo_gcc_32_low.o test_line_info_mutatee_solo_gcc_32_low.o test_module_mutatee_solo_gcc_32_low.o test_relocations_mutatee_solo_gcc_32_low.o test_symtab_ser_funcs_mutatee_solo_gcc_32_low.o test_type_info_mutatee_solo_gcc_32_low.o test_anno_basic_types_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
+symtab_group_test.mutatee_solo_gcc_32_low: symtab_group_test_group_gcc_32_low.o test_lookup_func_mutatee_solo_gcc_32_low.o test_lookup_var_mutatee_solo_gcc_32_low.o test_line_info_mutatee_solo_gcc_32_low.o test_module_mutatee_solo_gcc_32_low.o test_relocations_mutatee_solo_gcc_32_low.o test_symtab_ser_funcs_mutatee_solo_gcc_32_low.o test_ser_anno_mutatee_solo_gcc_32_low.o test_type_info_mutatee_solo_gcc_32_low.o test_anno_basic_types_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
-symtab_group_test.mutatee_solo_gcc_32_max: symtab_group_test_group_gcc_32_max.o test_lookup_func_mutatee_solo_gcc_32_max.o test_lookup_var_mutatee_solo_gcc_32_max.o test_line_info_mutatee_solo_gcc_32_max.o test_module_mutatee_solo_gcc_32_max.o test_relocations_mutatee_solo_gcc_32_max.o test_symtab_ser_funcs_mutatee_solo_gcc_32_max.o test_type_info_mutatee_solo_gcc_32_max.o test_anno_basic_types_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
+symtab_group_test.mutatee_solo_gcc_32_max: symtab_group_test_group_gcc_32_max.o test_lookup_func_mutatee_solo_gcc_32_max.o test_lookup_var_mutatee_solo_gcc_32_max.o test_line_info_mutatee_solo_gcc_32_max.o test_module_mutatee_solo_gcc_32_max.o test_relocations_mutatee_solo_gcc_32_max.o test_symtab_ser_funcs_mutatee_solo_gcc_32_max.o test_ser_anno_mutatee_solo_gcc_32_max.o test_type_info_mutatee_solo_gcc_32_max.o test_anno_basic_types_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
-symtab_group_test.mutatee_solo_gcc_32_none: symtab_group_test_group_gcc_32_none.o test_lookup_func_mutatee_solo_gcc_32_none.o test_lookup_var_mutatee_solo_gcc_32_none.o test_line_info_mutatee_solo_gcc_32_none.o test_module_mutatee_solo_gcc_32_none.o test_relocations_mutatee_solo_gcc_32_none.o test_symtab_ser_funcs_mutatee_solo_gcc_32_none.o test_type_info_mutatee_solo_gcc_32_none.o test_anno_basic_types_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
+symtab_group_test.mutatee_solo_gcc_32_none: symtab_group_test_group_gcc_32_none.o test_lookup_func_mutatee_solo_gcc_32_none.o test_lookup_var_mutatee_solo_gcc_32_none.o test_line_info_mutatee_solo_gcc_32_none.o test_module_mutatee_solo_gcc_32_none.o test_relocations_mutatee_solo_gcc_32_none.o test_symtab_ser_funcs_mutatee_solo_gcc_32_none.o test_ser_anno_mutatee_solo_gcc_32_none.o test_type_info_mutatee_solo_gcc_32_none.o test_anno_basic_types_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
 
 # Exceptional rules for mutatees compiled with gcc
@@ -4385,14 +4401,16 @@ test_type_info_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_gcc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -4401,14 +4419,16 @@ test_type_info_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_gcc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -4417,14 +4437,16 @@ test_type_info_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_gcc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -4433,14 +4455,16 @@ test_type_info_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_gcc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -4956,13 +4980,13 @@ symtab_SOLO_MUTATEES_native_cc = symtab_group_test.mutatee_solo_cc_32_high symta
 
 # Now a list of rules for compiling the mutatees with sun_cc
 
-symtab_group_test.mutatee_solo_cc_32_high: symtab_group_test_group_cc_32_high.o test_lookup_func_mutatee_solo_cc_32_high.o test_lookup_var_mutatee_solo_cc_32_high.o test_line_info_mutatee_solo_cc_32_high.o test_module_mutatee_solo_cc_32_high.o test_relocations_mutatee_solo_cc_32_high.o test_symtab_ser_funcs_mutatee_solo_cc_32_high.o test_type_info_mutatee_solo_cc_32_high.o test_anno_basic_types_mutatee_solo_cc_32_high.o mutatee_util_cc_32_high.o mutatee_driver_solo_cc_32.o
+symtab_group_test.mutatee_solo_cc_32_high: symtab_group_test_group_cc_32_high.o test_lookup_func_mutatee_solo_cc_32_high.o test_lookup_var_mutatee_solo_cc_32_high.o test_line_info_mutatee_solo_cc_32_high.o test_module_mutatee_solo_cc_32_high.o test_relocations_mutatee_solo_cc_32_high.o test_symtab_ser_funcs_mutatee_solo_cc_32_high.o test_ser_anno_mutatee_solo_cc_32_high.o test_type_info_mutatee_solo_cc_32_high.o test_anno_basic_types_mutatee_solo_cc_32_high.o mutatee_util_cc_32_high.o mutatee_driver_solo_cc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
-symtab_group_test.mutatee_solo_cc_32_low: symtab_group_test_group_cc_32_low.o test_lookup_func_mutatee_solo_cc_32_low.o test_lookup_var_mutatee_solo_cc_32_low.o test_line_info_mutatee_solo_cc_32_low.o test_module_mutatee_solo_cc_32_low.o test_relocations_mutatee_solo_cc_32_low.o test_symtab_ser_funcs_mutatee_solo_cc_32_low.o test_type_info_mutatee_solo_cc_32_low.o test_anno_basic_types_mutatee_solo_cc_32_low.o mutatee_util_cc_32_low.o mutatee_driver_solo_cc_32.o
+symtab_group_test.mutatee_solo_cc_32_low: symtab_group_test_group_cc_32_low.o test_lookup_func_mutatee_solo_cc_32_low.o test_lookup_var_mutatee_solo_cc_32_low.o test_line_info_mutatee_solo_cc_32_low.o test_module_mutatee_solo_cc_32_low.o test_relocations_mutatee_solo_cc_32_low.o test_symtab_ser_funcs_mutatee_solo_cc_32_low.o test_ser_anno_mutatee_solo_cc_32_low.o test_type_info_mutatee_solo_cc_32_low.o test_anno_basic_types_mutatee_solo_cc_32_low.o mutatee_util_cc_32_low.o mutatee_driver_solo_cc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
-symtab_group_test.mutatee_solo_cc_32_max: symtab_group_test_group_cc_32_max.o test_lookup_func_mutatee_solo_cc_32_max.o test_lookup_var_mutatee_solo_cc_32_max.o test_line_info_mutatee_solo_cc_32_max.o test_module_mutatee_solo_cc_32_max.o test_relocations_mutatee_solo_cc_32_max.o test_symtab_ser_funcs_mutatee_solo_cc_32_max.o test_type_info_mutatee_solo_cc_32_max.o test_anno_basic_types_mutatee_solo_cc_32_max.o mutatee_util_cc_32_max.o mutatee_driver_solo_cc_32.o
+symtab_group_test.mutatee_solo_cc_32_max: symtab_group_test_group_cc_32_max.o test_lookup_func_mutatee_solo_cc_32_max.o test_lookup_var_mutatee_solo_cc_32_max.o test_line_info_mutatee_solo_cc_32_max.o test_module_mutatee_solo_cc_32_max.o test_relocations_mutatee_solo_cc_32_max.o test_symtab_ser_funcs_mutatee_solo_cc_32_max.o test_ser_anno_mutatee_solo_cc_32_max.o test_type_info_mutatee_solo_cc_32_max.o test_anno_basic_types_mutatee_solo_cc_32_max.o mutatee_util_cc_32_max.o mutatee_driver_solo_cc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
-symtab_group_test.mutatee_solo_cc_32_none: symtab_group_test_group_cc_32_none.o test_lookup_func_mutatee_solo_cc_32_none.o test_lookup_var_mutatee_solo_cc_32_none.o test_line_info_mutatee_solo_cc_32_none.o test_module_mutatee_solo_cc_32_none.o test_relocations_mutatee_solo_cc_32_none.o test_symtab_ser_funcs_mutatee_solo_cc_32_none.o test_type_info_mutatee_solo_cc_32_none.o test_anno_basic_types_mutatee_solo_cc_32_none.o mutatee_util_cc_32_none.o mutatee_driver_solo_cc_32.o
+symtab_group_test.mutatee_solo_cc_32_none: symtab_group_test_group_cc_32_none.o test_lookup_func_mutatee_solo_cc_32_none.o test_lookup_var_mutatee_solo_cc_32_none.o test_line_info_mutatee_solo_cc_32_none.o test_module_mutatee_solo_cc_32_none.o test_relocations_mutatee_solo_cc_32_none.o test_symtab_ser_funcs_mutatee_solo_cc_32_none.o test_ser_anno_mutatee_solo_cc_32_none.o test_type_info_mutatee_solo_cc_32_none.o test_anno_basic_types_mutatee_solo_cc_32_none.o mutatee_util_cc_32_none.o mutatee_driver_solo_cc_32.o
 	$(M_native_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ltestA 
 
 # Exceptional rules for mutatees compiled with sun_cc
@@ -5857,14 +5881,16 @@ test_type_info_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO3 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_cc_32_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -5873,14 +5899,16 @@ test_type_info_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -xO5 -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_cc_32_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -5889,14 +5917,16 @@ test_type_info_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c   -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_cc_32_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
@@ -5905,14 +5935,16 @@ test_type_info_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
 test_lookup_var_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
-test_anno_basic_types_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
-	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
 test_line_info_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
 test_module_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
 test_lookup_func_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
 test_symtab_ser_funcs_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
 	$(M_native_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -I../src -c  -O -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
 test_relocations_mutatee_solo_cc_32_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c

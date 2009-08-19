@@ -86,7 +86,6 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     SYMTAB_EXPORT ~typeCollection();
 
     unsigned refcount;
-    SYMTAB_EXPORT typeCollection();
 
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
@@ -96,6 +95,8 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     // DWARF...
     bool dwarfParsed_;
 
+	public:
+    SYMTAB_EXPORT typeCollection();
 public:
     SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
     SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
