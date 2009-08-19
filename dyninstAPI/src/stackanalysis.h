@@ -50,8 +50,9 @@ class image_basicBlock;
 class image_edge;
 
 namespace Dyninst {
-class InstructionAPI::Instruction;
+class InstructionAPI::Instruction; 
 
+ 
 class StackAnalysis {
  public:
     
@@ -522,6 +523,7 @@ class StackAnalysis {
             return !(*this == rhs);
         }        
 
+
         void apply(const BlockTransferFunc &in, BlockTransferFunc &out) const;
         void apply(BlockTransferFunc &out) const;
 
@@ -625,7 +627,7 @@ class StackAnalysis {
     void createHeightIntervals();
 
     void computeInsnEffects(const Block *block,
-                            const InstructionAPI::Instruction &insn,
+                            const InstructionAPI::Instruction::Ptr &insn,
                             const Offset off,
                             InsnTransferFunc &iFunc,
                             Presence &pres);

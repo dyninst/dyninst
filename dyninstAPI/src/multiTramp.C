@@ -454,7 +454,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 	}
 	reloc->setPrevious(prev);
 	prev = reloc;	
-	offset += decoder.decode().size();
+	offset += decoder.decode()->size();
 	#if defined(arch_sparc)
 	#error "Instruction API not implemented for SPARC yet"
 	// delay slot handling goes here
@@ -609,8 +609,8 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
 #if defined(cap_instruction_api)
 	using namespace Dyninst::InstructionAPI;
 	InstructionDecoder decoder;
-	Instruction instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)));
-	size = instInsn.size();
+	Instruction::Ptr instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)));
+	size = instInsn->size();
 #else
         InstrucIter ah(instAddr,proc);
         size = ah.getInstruction().size();

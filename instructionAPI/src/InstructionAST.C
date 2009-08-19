@@ -48,8 +48,14 @@ namespace Dyninst
     {
       // isStrictEqual assumes rhs and this to be of the same derived type
       // so isSameType enforces this restriction
-      return(isSameType(rhs) && isStrictEqual(rhs));
+      return((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
     }
+    bool InstructionAST::checkRegID(unsigned int) const
+    {
+      return false;
+    }
+    
+
   };
 };
 

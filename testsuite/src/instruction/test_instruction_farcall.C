@@ -80,16 +80,16 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
 #if defined(arch_x86_64_test)
   d.setMode(true);
 #endif
-  std::vector<Instruction> decodedInsns;
-  Instruction i;
+  std::vector<Instruction::Ptr> decodedInsns;
+  Instruction::Ptr i;
   do
   {
     i = d.decode();
     decodedInsns.push_back(i);
   }
-  while(i.isValid());
+  while(i && i->isValid());
 #if defined(arch_x86_64_test)
-  if(decodedInsns.empty() || !decodedInsns[0].isValid() || decodedInsns[0].isLegalInsn())
+  if(decodedInsns.empty() || !decodedInsns[0] || !decodedInsns[0]->isValid() || decodedInsns[0]->isLegalInsn())
   {
     logerror("FAILED: %s\n", decodedInsns.empty() ? "no instructions decoded" : "first instruction was valid");
     return FAILED;
@@ -103,21 +103,21 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
   if(decodedInsns.size() != expectedInsns) // six valid, one invalid
   {
     logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
-    for(std::vector<Instruction>::iterator curInsn = decodedInsns.begin();
+    for(std::vector<Instruction::Ptr>::iterator curInsn = decodedInsns.begin();
 	curInsn != decodedInsns.end();
 	++curInsn)
     {
-      logerror("\t%s\t", curInsn->format().c_str());
-      for(unsigned j = 0; j < curInsn->size(); ++j)
+      logerror("\t%s\t", (*curInsn)->format().c_str());
+      for(unsigned j = 0; j < (*curInsn)->size(); ++j)
       {
-	logerror("%x ", curInsn->rawByte(j));
+	logerror("%x ", (*curInsn)->rawByte(j));
       }
       logerror("\n");
     }
     
     return FAILED;
   }
-  if(decodedInsns.back().isValid())
+  if(decodedInsns.back() && decodedInsns.back()->isValid())
   {
     logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
     return FAILED;

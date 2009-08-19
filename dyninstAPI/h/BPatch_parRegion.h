@@ -96,7 +96,7 @@ class BPATCH_DLL_EXPORT BPatch_parRegion: public BPatch_eventLock{
              BPatch_Vector<BPatch_instruction *> *,getInstructions,());
 
   API_EXPORT(Int, (insns),
-	     bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction>& insns));
+	     bool, getInstructions, (std::vector<Dyninst::InstructionAPI::Instruction::Ptr>& insns));
 
 
   /** BPatch_parRegion::size   */

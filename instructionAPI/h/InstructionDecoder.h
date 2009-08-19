@@ -34,7 +34,6 @@
 
 #include "InstructionAST.h"
 #include "Expression.h"
-#include "BinaryFunction.h"
 #include "Operation.h"
 #include "Operand.h"
 #include "Instruction.h"
@@ -68,36 +67,14 @@ namespace Dyninst
 
     class InstructionDecoder
     {
+      friend class Instruction;
+      
     public:
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
-      INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size) : 
-         locs(NULL),
-         cond(NULL),
-         mac(NULL),
-         decodedInstruction(NULL), 
-         m_Operation(NULL),
-         is32BitMode(true),
-         sizePrefixPresent(false),
-         bufferBegin(buffer),
-         bufferSize(size),
-         rawInstruction(bufferBegin)
-      {
-      }
+      INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size);
       
       /// Construct an %InstructionDecoder object with no buffer specified.
-      INSTRUCTION_EXPORT InstructionDecoder() : 
-         locs(NULL),
-         cond(NULL),
-         mac(NULL),
-         decodedInstruction(NULL), 
-         m_Operation(NULL),
-         is32BitMode(true),
-         sizePrefixPresent(false),
-         bufferBegin(NULL),
-         bufferSize(0),
-         rawInstruction(NULL)
-      {
-      }
+      INSTRUCTION_EXPORT InstructionDecoder();
       
       INSTRUCTION_EXPORT ~InstructionDecoder();
 
@@ -105,16 +82,18 @@ namespace Dyninst
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
-      INSTRUCTION_EXPORT Instruction decode();
+      INSTRUCTION_EXPORT Instruction::Ptr decode();
       /// Decode the instruction at \c buffer, interpreting it as machine language of the type
       /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 
       /// an invalid %Instruction object will be returned.  The %Instruction's \c size field will contain 
       /// the size of the instruction decoded.
-      INSTRUCTION_EXPORT Instruction decode(const unsigned char* buffer);
+      INSTRUCTION_EXPORT Instruction::Ptr decode(const unsigned char* buffer);
       
       INSTRUCTION_EXPORT void setMode(bool is64);
       
     protected:
+      void resetBuffer(const unsigned char* buffer);
+      
       bool decodeOperands(std::vector<Expression::Ptr>& operands);
 
       bool decodeOneOperand(const ia32_operand& operand,
@@ -123,27 +102,21 @@ namespace Dyninst
       
       Expression::Ptr makeSIBExpression(unsigned int opType);
       Expression::Ptr makeModRMExpression(unsigned int opType);
-      template< typename T1, typename T2 >
-      Expression::Ptr makeAddExpression(T1 lhs, T2 rhs, Result_Type resultType)
-      {
-	return Expression::Ptr(new BinaryFunction(lhs, rhs, resultType, BinaryFunction::funcT::Ptr(new BinaryFunction::addResult())));
-      }
-      template< typename T1, typename T2 >
-      Expression::Ptr makeMultiplyExpression(T1 lhs, T2 rhs, Result_Type resultType)
-      {
-	return Expression::Ptr(new BinaryFunction(lhs, rhs, resultType, BinaryFunction::funcT::Ptr(new BinaryFunction::multResult())));
-      } 
+      Expression::Ptr makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
+      Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
       Expression::Ptr getModRMDisplacement();
       int makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);
       Expression::Ptr decodeImmediate(unsigned int opType, unsigned int position);
       Result_Type makeSizeType(unsigned int opType);
       
     private:
+      void doIA32Decode();
+      
       ia32_locations* locs;
       ia32_condition* cond;
       ia32_memacc* mac;
       ia32_instruction* decodedInstruction;
-      Operation m_Operation;
+      Operation::Ptr m_Operation;
       bool is32BitMode;
       bool sizePrefixPresent;
       const unsigned char* bufferBegin;

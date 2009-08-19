@@ -209,7 +209,14 @@ def print_mutators_list(out, mutator_dict, test_dict):
 			raise
 		# FIXME Make this one better too.  Right now it's copied straight from
 		# make.module.tmpl
-		out.write("\t$(CXX) -o $@ -shared $(filter %%%s,$^) $(%s_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS)\n" % (ObjSuffix, module))
+		libstr = ""
+		try:
+			for l in m['libraries']:
+				libstr += ("-l%s " % l)
+		except KeyError:
+			print "Couldn't find libs for mutator " + m['name']
+			raise
+		out.write("\t$(CXX) -o $@ -shared $(filter %%%s,$^) $(%s_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) %s\n" % (ObjSuffix, module, libstr))
 		out.write("ifndef NO_OPT_FLAG\n")
 		out.write("ifdef STRIP_SO\n")
 		out.write("\t$(STRIP_SO) $@\n")

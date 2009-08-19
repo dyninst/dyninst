@@ -42,11 +42,11 @@ namespace Dyninst
     Expression::~Expression() 
     {
     }
-    Result Expression::eval() const
+    const Result& Expression::eval() const
     {
       return userSetValue;
     }
-    void Expression::setValue(Result knownValue) 
+    void Expression::setValue(const Result& knownValue) 
     {
       userSetValue = knownValue;
     }
@@ -58,28 +58,33 @@ namespace Dyninst
     {
       return userSetValue.size();
     }
-	bool Expression::bind(Expression* expr, Result value)
+    bool Expression::bind(Expression* expr, const Result& value)
+    {
+      bool retVal = false;
+      if(*expr == *this)
+      {
+	setValue(value);
+	return true;
+      }
+      std::vector<InstructionAST::Ptr> children;
+      getChildren(children);
+      for(std::vector<InstructionAST::Ptr>::iterator curChild = children.begin();
+	  curChild != children.end();
+	  ++curChild)
+      {
+	Expression::Ptr curChild_asExpr = 
+	dyn_detail::boost::dynamic_pointer_cast<Expression>(*curChild);
+	if(curChild_asExpr)
 	{
-		bool retVal = false;
-		if(*expr == *this)
-		{
-			setValue(value);
-			return true;
-		}
-		std::vector<InstructionAST::Ptr> children;
-		getChildren(children);
-		for(std::vector<InstructionAST::Ptr>::iterator curChild = children.begin();
-			curChild != children.end();
-			++curChild)
-		{
-			Expression::Ptr curChild_asExpr = 
-				dyn_detail::boost::dynamic_pointer_cast<Expression>(*curChild);
-			if(curChild_asExpr)
-			{
-				retVal = retVal || curChild_asExpr->bind(expr, value);
-			}
-		}
-		return retVal;
+	  retVal = retVal || curChild_asExpr->bind(expr, value);
 	}
+      }
+      return retVal;
+    }
+    bool Expression::isFlag() const
+    {
+      return false;
+    }
+    
   };
 };

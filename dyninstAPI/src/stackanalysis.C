@@ -174,11 +174,11 @@ void StackAnalysis::summarizeBlocks() {
         //stackanalysis_printf("\t Block starting at 0x%lx: %s, %s\n", block->firstInsnOffset(),
         //bPresence.format().c_str(), bFunc.format().c_str());
 
-        std::vector<std::pair<InstructionAPI::Instruction, Offset> > instances;
+        std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > instances;
         block->getInsnInstances(instances);
 
         for (unsigned j = 0; j < instances.size(); j++) {
-            InstructionAPI::Instruction &insn = instances[j].first;
+            InstructionAPI::Instruction::Ptr insn = instances[j].first;
             Offset &off = instances[j].second;
             Offset next;
             if (j < (instances.size() - 1)) {
@@ -399,7 +399,7 @@ void StackAnalysis::createHeightIntervals() {
 
 
 void StackAnalysis::computeInsnEffects(const Block *block,
-                                       const Instruction &insn,
+                                       const Instruction::Ptr &insn,
                                        Offset off,
                                        InsnTransferFunc &iFunc,
                                        Presence &pres)
@@ -414,14 +414,14 @@ void StackAnalysis::computeInsnEffects(const Block *block,
     static Expression::Ptr framePtr64(new RegisterAST(r_RBP));
     
     //TODO: Integrate entire test into analysis lattice
-    entryID what = insn.getOperation().getID();
+    entryID what = insn->getOperation().getID();
 
-    if (insn.isWritten(theFramePtr) || insn.isWritten(framePtr32) || insn.isWritten(framePtr64)) {
-        //stackanalysis_printf("\t\t\t FP written\n");
+    if (insn->isWritten(theFramePtr) || insn->isWritten(framePtr32) || insn->isWritten(framePtr64)) {
+      //stackanalysis_printf("\t\t\t FP written\n");
         if (what == e_mov &&
-            (insn.isRead(theStackPtr) || insn.isRead(stackPtr32) || insn.isRead(stackPtr64))) {
-            pres = Presence(Presence::frame_t);
-            //stackanalysis_printf("\t\t\t Frame created\n");
+            (insn->isRead(theStackPtr) || insn->isRead(stackPtr32) || insn->isRead(stackPtr64))) {
+	  pres = Presence(Presence::frame_t);
+	  //stackanalysis_printf("\t\t\t Frame created\n");
         }
         else {
             pres = Presence(Presence::noFrame_t);
@@ -458,7 +458,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 
     int word_size = func->img()->getAddressWidth();
     
-    if(!insn.isWritten(theStackPtr) && !insn.isWritten(stackPtr32)) {
+    if(!insn->isWritten(theStackPtr) && !insn->isWritten(stackPtr32)) {
          return;
     }
     int sign = 1;
@@ -466,7 +466,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
     case e_push:
         sign = -1;
     case e_pop: {
-        Operand arg = insn.getOperand(0);
+        Operand arg = insn->getOperand(0);
         if (arg.getValue()->eval().defined) {
             iFunc.delta() = sign * word_size;
             //stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %s\n", iFunc.format().c_str());
@@ -485,7 +485,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         sign = -1;
     case e_add: {
         // Add/subtract are op0 += (or -=) op1
-        Operand arg = insn.getOperand(1);
+        Operand arg = insn->getOperand(1);
         Result delta = arg.getValue()->eval();
         if(delta.defined) {
             switch(delta.type) {
@@ -535,7 +535,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
     default:
         iFunc.range() = Range(Range::infinite, 0, off);
         //stackanalysis_printf("\t\t\t Stack height changed by unhandled insn \"%s\": %s\n", 
-        //insn.format().c_str(), iFunc.format().c_str());
+        //insn->format().c_str(), iFunc.format().c_str());
         return;
     }
     assert(0);
@@ -560,15 +560,15 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
     
     for (unsigned i=0; i < func->funcExits().size(); i++) {
         cur = (unsigned char *) func->getPtrToInstruction(func->funcExits()[i]->offset());
-        Instruction insn = decoder.decode(cur);
+        Instruction::Ptr insn = decoder.decode(cur);
         
-        entryID what = insn.getOperation().getID();
+        entryID what = insn->getOperation().getID();
         if (what != e_ret_near)
             continue;
         
         int val;
         std::vector<Operand> ops;
-        insn.getOperands(ops);
+        insn->getOperands(ops);
         if (ops.size() == 0) {
             val = 0;
         }

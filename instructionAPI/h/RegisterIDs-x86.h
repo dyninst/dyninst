@@ -36,7 +36,7 @@
 #include <map>
 #include "util.h"
 #include "Result.h"
-
+#include <dyntypes.h>
 namespace Dyninst
 {
   namespace InstructionAPI
@@ -93,17 +93,46 @@ namespace Dyninst
       Result_Type regSize;
       std::string regName;
     };
+  };
+};
+	  
+#if defined(__GNUC__) && ((__GNUC__ < 4) || (__GNUC__ == 4 && __GNUC_MINOR__ < 3))
+namespace __gnu_cxx 
+{
+  template<> struct hash<Dyninst::InstructionAPI::IA32Regs> {
+    hash<unsigned int> h;
+    unsigned operator()(const Dyninst::InstructionAPI::IA32Regs &e) const 
+    {
+      return h(static_cast<unsigned int>(e));
+    };
+  };
+}
+#endif
 	  
 	  
 	  
-	  
-    typedef std::map<IA32Regs, RegInfo> RegTable;
+namespace Dyninst
+{
+  namespace InstructionAPI
+  {
+    typedef dyn_hash_map<IA32Regs, RegInfo> RegTable;
     /// \brief Register names for disassembly and debugging
     struct IA32RegTable
     {
       IA32RegTable();
       RegTable IA32_register_names;
+      Result_Type getSize(int id) 
+      {
+	RegTable::const_iterator found = IA32_register_names.find((IA32Regs)(id));
+	if(found != IA32_register_names.end()) {
+	  return found->second.regSize;
+	}
+	// Sane default
+	return u32;
+      }
+      
     };
+
   };
 };
 

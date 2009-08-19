@@ -90,27 +90,17 @@ namespace Dyninst
     class Operation
     {
     public:
-      typedef std::vector<unsigned char> bitSet;
       typedef std::set<RegisterAST::Ptr> registerSet;
       typedef std::set<Expression::Ptr> VCSet;
-  
+      typedef dyn_detail::boost::shared_ptr<Operation> Ptr;
+      
     public:
       INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL, ia32_locations* l = NULL);
       INSTRUCTION_EXPORT Operation(const Operation& o);
       INSTRUCTION_EXPORT Operation();
       
-      INSTRUCTION_EXPORT Operation operator=(const Operation& o);
+      INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
       
-      /// \brief Return which operands are read
-      /// \return vector such that:
-      ///   - the size of the vector is the number of operands for this operation
-      ///   - each element is true if and only if the corresponding operand is read by the operation
-      INSTRUCTION_EXPORT const bitSet& read() const;
-      /// \brief Return which operands are written
-      /// \return vector such that:
-      ///   - the size of the vector is the number of operands for this operation
-      ///   - each element is true if and only if the corresponding operand is written by the operation
-      INSTRUCTION_EXPORT const bitSet& written() const;
       /// Returns the set of registers implicitly read (i.e. those not included in the operands, but read anyway)
       INSTRUCTION_EXPORT const registerSet& implicitReads() const;
       /// Returns the set of registers implicitly written (i.e. those not included in the operands, but written anyway)
@@ -118,31 +108,26 @@ namespace Dyninst
       /// Returns the mnemonic for the operation.  Like \c instruction::format, this is exposed for debugging
       /// and will be replaced with stream operators in the public interface.
       INSTRUCTION_EXPORT std::string format() const;
-      /// Returns the number of operands accepted by this operation.
-      INSTRUCTION_EXPORT size_t numOperands() const;
       /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
       /// to assembly mnemonics.
-      INSTRUCTION_EXPORT entryID getID() const
-      {
-		return operationID;
-      }
+      INSTRUCTION_EXPORT entryID getID() const;
+
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
       INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() const;
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
 
     private:
-      void SetUpNonOperandData();
+      void SetUpNonOperandData(bool doFlags = false) const;
       
-      std::string mnemonic;
-      // should be dynamic_bitset in future
-      bitSet readOperands;
-      bitSet writtenOperands;
-      registerSet otherRead;
-      registerSet otherWritten;
-      VCSet otherEffAddrsRead;
-      VCSet otherEffAddrsWritten;
+      mutable registerSet otherRead;
+      mutable registerSet otherWritten;
+      mutable VCSet otherEffAddrsRead;
+      mutable VCSet otherEffAddrsWritten;
       entryID operationID;
+      mutable bool doneOtherSetup;
+      mutable bool doneFlagsSetup;
+      
     };
   };
 };

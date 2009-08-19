@@ -44,6 +44,7 @@
 #include <dyn_detail/boost/shared_ptr.hpp>
 #include <iostream>
 #include <dyn_detail/boost/enable_shared_from_this.hpp>
+#include "Result.h"
 
 namespace Dyninst
 {
@@ -109,8 +110,11 @@ namespace Dyninst
       virtual std::string format() const = 0;
   
     protected:
-      virtual bool isSameType(const InstructionAST& rhs) const = 0;
+      friend class RegisterAST;
+      friend class Immediate;
       virtual bool isStrictEqual(const InstructionAST& rhs) const= 0;
+      virtual bool checkRegID(unsigned int id) const;
+      virtual const Result& eval() const = 0;
     };
   };
 };

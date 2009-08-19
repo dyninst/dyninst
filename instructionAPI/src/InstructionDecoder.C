@@ -35,6 +35,8 @@
 #include "../h/Register.h"
 #include "../h/Dereference.h"
 #include "../h/Immediate.h"
+#include "../h/BinaryFunction.h"
+#include "singleton_object_pool.h"
 
 using namespace std;
 namespace Dyninst
@@ -42,13 +44,39 @@ namespace Dyninst
   namespace InstructionAPI
   {
     
+    
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer, size_t size) : 
+      decodedInstruction(NULL), 
+      is32BitMode(true),
+      sizePrefixPresent(false),
+      bufferBegin(buffer),
+      bufferSize(size),
+      rawInstruction(bufferBegin)
+    {
+      locs = new ia32_locations;
+      cond = new ia32_condition;
+      mac = new ia32_memacc[3];
+    }    
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() : 
+      decodedInstruction(NULL), 
+      is32BitMode(true),
+      sizePrefixPresent(false),
+      bufferBegin(NULL),
+      bufferSize(0),
+      rawInstruction(NULL)
+    {
+      locs = new ia32_locations;
+      cond = new ia32_condition;
+      mac = new ia32_memacc[3];
+    }
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
     {
-      delete decodedInstruction;
+      if(decodedInstruction) decodedInstruction->~ia32_instruction();
+      free(decodedInstruction);
+      
       delete cond;
       delete locs;
       delete[] mac;
-      
     }
     static const unsigned char modrm_use_sib = 4;
     
@@ -57,30 +85,35 @@ namespace Dyninst
       ia32_set_mode_64(is64);
     }
     
-    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode()
+    INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode()
     {
-      if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction();
-      vector<Expression::Ptr> operands;
+      if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction::Ptr();
       unsigned int decodedSize = decodeOpcode();
-      if(decodeOperands(operands))
-      {
-	rawInstruction += decodedSize;
-	return Instruction(m_Operation, operands, decodedSize, rawInstruction - decodedSize);      
-      }
-      return Instruction();
+      
+      rawInstruction += decodedSize;
+      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize, 
+									 rawInstruction - decodedSize));
     }
     
-    INSTRUCTION_EXPORT Instruction InstructionDecoder::decode(const unsigned char* buffer)
+    INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode(const unsigned char* buffer)
     {
-      vector<Expression::Ptr> operands;
+      vector<Expression::Ptr, boost::pool_allocator<Expression::Ptr> > operands;
       rawInstruction = buffer;
       unsigned int decodedSize = decodeOpcode();
-      if(decodeOperands(operands)) {
-	return Instruction(m_Operation, operands, decodedSize, rawInstruction);
-      }
-      return Instruction();
+      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize, 
+									 rawInstruction));
     }
-
+    Expression::Ptr InstructionDecoder::makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
+    {
+      static BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+      
+      return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, adder));
+    }
+    Expression::Ptr InstructionDecoder::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
+    {
+      static BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
+      return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
+    } 
     Expression::Ptr InstructionDecoder::makeSIBExpression(unsigned int opType)
     {
       unsigned scale;
@@ -93,13 +126,13 @@ namespace Dyninst
       // rename later
       if(index == modrm_use_sib && (!(ia32_is_mode_64()) || !(locs->rex_x)))
       {
-	return Expression::Ptr(new RegisterAST(makeRegisterID(base, opType, locs->rex_x)));
+	return make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType, locs->rex_x)));
       }
       else
       {
-	Expression::Ptr scaleAST(new Immediate(Result(u8, dword_t(scale))));
-	Expression::Ptr indexAST(new RegisterAST(makeRegisterID(index, opType, locs->rex_x)));
-	Expression::Ptr baseAST(new RegisterAST(makeRegisterID(base, opType, locs->rex_b)));
+	Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
+	Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, opType, locs->rex_x))));
+	Expression::Ptr baseAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType, locs->rex_b))));
 	return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
       }
     }
@@ -110,7 +143,7 @@ namespace Dyninst
       {
 	if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
 	{
-	  return Expression::Ptr(new RegisterAST(r_RIP));
+	  return make_shared(singleton_object_pool<RegisterAST>::construct(r_RIP));
 	}
       }
       
@@ -118,7 +151,7 @@ namespace Dyninst
       // This handles the rm and reg fields; the mod field affects how this expression is wrapped
       if(locs->modrm_rm != modrm_use_sib || locs->modrm_mod == 0x03)
       {
-		return Expression::Ptr(new RegisterAST(makeRegisterID(locs->modrm_rm, opType,
+		return make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, opType,
 								      (locs->rex_b == 1))));
       }
       else
@@ -132,15 +165,15 @@ namespace Dyninst
       switch(opType)
       {
       case op_b:
-	return Expression::Ptr(new Immediate(Result(s8,*(const byte_t*)(rawInstruction + position))));
+	return Immediate::makeImmediate(Result(s8,*(const byte_t*)(rawInstruction + position)));
 	break;
       case op_d:
-	return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
+	return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
       case op_w:
-	return Expression::Ptr(new Immediate(Result(s16, *(const word_t*)(rawInstruction + position))));
+	return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
 	break;
       case op_q:
-	return Expression::Ptr(new Immediate(Result(s64, *(const int64_t*)(rawInstruction + position))));
+	return Immediate::makeImmediate(Result(s64,*(const int64_t*)(rawInstruction + position)));
 	break;
       case op_v:
       case op_z:
@@ -148,11 +181,11 @@ namespace Dyninst
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
 	if(is32BitMode ^ sizePrefixPresent)
 	{
-	  return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
+	  return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
 	}
 	else
 	{
-	  return Expression::Ptr(new Immediate(Result(s16, *(const word_t*)(rawInstruction + position))));
+	  return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -161,11 +194,11 @@ namespace Dyninst
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
 	if(is32BitMode ^ sizePrefixPresent)
 	{
-	  return Expression::Ptr(new Immediate(Result(s48, *(const int64_t*)(rawInstruction + position))));
+	  return Immediate::makeImmediate(Result(s48,*(const int64_t*)(rawInstruction + position)));
 	}
 	else
 	{
-	  return Expression::Ptr(new Immediate(Result(s32, *(const dword_t*)(rawInstruction + position))));
+	  return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -202,13 +235,13 @@ namespace Dyninst
       switch(locs->modrm_mod)
       {
       case 1:
-	return Expression::Ptr(new Immediate(Result(s8, (*(const byte_t*)(rawInstruction + disp_pos)))));
+	return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, (*(const byte_t*)(rawInstruction + disp_pos)))));
 	break;
       case 2:
-	return Expression::Ptr(new Immediate(Result(s32, *((const dword_t*)(rawInstruction + disp_pos)))));
+	return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction + disp_pos)))));
 	break;
       default:
-	return Expression::Ptr(new Immediate(Result(s8, 0)));
+	return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
 	break;
       }
     }
@@ -356,7 +389,7 @@ namespace Dyninst
 	// No operand
 	{
 	  fprintf(stderr, "ERROR: Instruction with mismatched operands.  Raw bytes: ");
-	  for(int i = 0; i < decodedInstruction->getSize(); i++) {
+	  for(unsigned int i = 0; i < decodedInstruction->getSize(); i++) {
 	    fprintf(stderr, "%x ", rawInstruction[i]);
 	  }
 	  fprintf(stderr, "\n");
@@ -367,19 +400,19 @@ namespace Dyninst
 	{
 	  // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
 	  Expression::Ptr addr(decodeImmediate(operand.optype, 1));
-	  Expression::Ptr op(new Dereference(addr, makeSizeType(operand.optype)));
+	  Expression::Ptr op(make_shared(singleton_object_pool<Dereference>::construct(addr, makeSizeType(operand.optype))));
 	  outputOperands.push_back(op);
 	}
 	break;
       case am_C:
 	{
-	  Expression::Ptr op(new RegisterAST(IntelRegTable[7][locs->modrm_reg]));
+	  Expression::Ptr op(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[7][locs->modrm_reg])));
 	  outputOperands.push_back(op);
 	}
 	break;
       case am_D:
 	{
-	  Expression::Ptr op(new RegisterAST(IntelRegTable[8][locs->modrm_reg]));
+	  Expression::Ptr op(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[8][locs->modrm_reg])));
 	  outputOperands.push_back(op);
 	}
 	break;
@@ -395,7 +428,7 @@ namespace Dyninst
 	case 0x00:
 	  if(operand.admet != am_R)
 	  {
-	    Expression::Ptr op(new Dereference(makeModRMExpression(regType), makeSizeType(operand.optype)));
+	    Expression::Ptr op(make_shared(singleton_object_pool<Dereference>::construct(makeModRMExpression(regType), makeSizeType(operand.optype))));
 	    outputOperands.push_back(op);
 	  }
 	  else
@@ -411,7 +444,7 @@ namespace Dyninst
 	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
 								 makeSizeType(regType)));
-	    Expression::Ptr op(new Dereference(RMPlusDisplacement, makeSizeType(operand.optype)));
+	    Expression::Ptr op(make_shared(singleton_object_pool<Dereference>::construct(RMPlusDisplacement, makeSizeType(operand.optype))));
 	    outputOperands.push_back(op);
 	  }
 	  else
@@ -438,13 +471,13 @@ namespace Dyninst
 	break;
       case am_F:
 	{
-	  Expression::Ptr op(new RegisterAST(r_EFLAGS));
+	  Expression::Ptr op(make_shared(singleton_object_pool<RegisterAST>::construct(r_EFLAGS)));
 	  outputOperands.push_back(op);
 	}
 	break;
       case am_G:
 	{
-	  Expression::Ptr op(new RegisterAST(makeRegisterID(locs->modrm_reg, operand.optype, locs->rex_r)));
+	  Expression::Ptr op(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_reg, operand.optype, locs->rex_r))));
 	  outputOperands.push_back(op);
 	}
 	break;
@@ -454,8 +487,8 @@ namespace Dyninst
       case am_J:
 	{
 	  Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position));
-	  Expression::Ptr EIP(new RegisterAST(r_EIP));
-	  Expression::Ptr InsnSize(new Immediate(Result(u8, decodedInstruction->getSize())));
+	  Expression::Ptr EIP(make_shared(singleton_object_pool<RegisterAST>::construct(r_EIP)));
+	  Expression::Ptr InsnSize(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, decodedInstruction->getSize()))));
 	  Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
 	  
 	  Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
@@ -499,13 +532,13 @@ namespace Dyninst
 	    offset_position = locs->sib_position;
 	  }
 	  offset_position++;
-	  outputOperands.push_back(Expression::Ptr(new Dereference(decodeImmediate(pseudoOpType, 
+	  outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(decodeImmediate(pseudoOpType, 
 										   offset_position), 
 								   makeSizeType(operand.optype))));
 	}
 	break;
       case am_P:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[6][locs->modrm_reg])));
+	outputOperands.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[6][locs->modrm_reg])));
 	break;
       case am_Q:
 	switch(locs->modrm_mod)
@@ -513,7 +546,7 @@ namespace Dyninst
 	  // direct dereference
 	case 0x00:
 	  {
-	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(regType), 
+	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(makeModRMExpression(regType), 
 								     makeSizeType(operand.optype)))); 
 	  }
 	  break;
@@ -524,14 +557,14 @@ namespace Dyninst
 	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
 								 makeSizeType(regType)));
-	    outputOperands.push_back(Expression::Ptr(new Dereference(RMPlusDisplacement, 
+	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(RMPlusDisplacement, 
 								     makeSizeType(operand.optype))));
 	    break;
 	  }
 	case 0x03:
 	  // use of actual register
 	  {
-	    outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[6][locs->modrm_rm])));
+	    outputOperands.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[6][locs->modrm_rm])));
 	    break;
 	  }
 	default:
@@ -542,15 +575,15 @@ namespace Dyninst
 	break;
       case am_S:
 	// Segment register in modrm reg field.
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[3][locs->modrm_reg])));
+	outputOperands.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[3][locs->modrm_reg])));
 	break;
       case am_T:
 	// test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
 	// NOTE: this only appears in deprecated opcodes
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[9][locs->modrm_reg])));
+	outputOperands.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[9][locs->modrm_reg])));
 	break;
       case am_V:
-	outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[5][locs->modrm_reg])));
+	outputOperands.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[5][locs->modrm_reg])));
 	break;
       case am_W:
 	switch(locs->modrm_mod)
@@ -558,7 +591,7 @@ namespace Dyninst
 	  // direct dereference
 	case 0x00:
 	  {
-	    outputOperands.push_back(Expression::Ptr(new Dereference(makeModRMExpression(regType), 
+	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(makeModRMExpression(regType), 
 								     makeSizeType(operand.optype)))); 
 	  }
 	  break;
@@ -569,14 +602,14 @@ namespace Dyninst
 	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
 								 getModRMDisplacement(), 
 								 makeSizeType(regType)));
-	    outputOperands.push_back(Expression::Ptr(new Dereference(RMPlusDisplacement, 
+	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(RMPlusDisplacement, 
 								     makeSizeType(operand.optype))));
 	    break;
 	  }
 	case 0x03:
 	  // use of actual register
 	  {
-	    outputOperands.push_back(Expression::Ptr(new RegisterAST(IntelRegTable[5][locs->modrm_rm])));
+	    outputOperands.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[5][locs->modrm_rm])));
 	    break;
 	  }
 	default:
@@ -587,23 +620,23 @@ namespace Dyninst
 	break;
       case am_X:
 	{
-	  Expression::Ptr ds(new RegisterAST(r_DS));
-	  Expression::Ptr si(new RegisterAST(r_SI));
-	  Expression::Ptr segmentOffset(new Immediate(Result(u32, 0x10)));
+	  Expression::Ptr ds(make_shared(singleton_object_pool<RegisterAST>::construct(r_DS)));
+	  Expression::Ptr si(make_shared(singleton_object_pool<RegisterAST>::construct(r_SI)));
+	  Expression::Ptr segmentOffset(make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))));
 	  
 	  Expression::Ptr ds_segment = makeMultiplyExpression(ds, segmentOffset, u32);
 	  Expression::Ptr ds_si = makeAddExpression(ds_segment, si, u32);
-	  outputOperands.push_back(Expression::Ptr(new Dereference(ds_si, makeSizeType(operand.optype))));
+	  outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(ds_si, makeSizeType(operand.optype))));
 	}
 	break;
       case am_Y:
 	{
-	  Expression::Ptr es(new RegisterAST(r_ES));
-	  Expression::Ptr di(new RegisterAST(r_DI));
+	  Expression::Ptr es(make_shared(singleton_object_pool<RegisterAST>::construct(r_ES)));
+	  Expression::Ptr di(make_shared(singleton_object_pool<RegisterAST>::construct(r_DI)));
 	  Expression::Ptr es_segment = 
-	  makeMultiplyExpression(es, Expression::Ptr(new Immediate(Result(u32, 0x10))), u32);
+	  makeMultiplyExpression(es, make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
 	  Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);
-	  outputOperands.push_back(Expression::Ptr(new Dereference(es_di, makeSizeType(operand.optype))));
+	  outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(es_di, makeSizeType(operand.optype))));
 	}
 	break;
       case am_reg:
@@ -675,7 +708,7 @@ namespace Dyninst
 	}
 	
 #endif
-	Expression::Ptr op(new RegisterAST(registerID));
+	Expression::Ptr op(make_shared(singleton_object_pool<RegisterAST>::construct(registerID)));
 	outputOperands.push_back(op);
 	}
 	
@@ -686,7 +719,7 @@ namespace Dyninst
 	break;
       case am_allgprs:
 	{
-	  Expression::Ptr op(new RegisterAST(r_ALLGPRS));
+	  Expression::Ptr op(make_shared(singleton_object_pool<RegisterAST>::construct(r_ALLGPRS)));
 	  outputOperands.push_back(op);
 	}
 	break;
@@ -697,28 +730,39 @@ namespace Dyninst
       return true;
     }
 
+    void InstructionDecoder::doIA32Decode()
+    {
+      if(decodedInstruction == NULL)
+      {
+	decodedInstruction = reinterpret_cast<ia32_instruction*>(malloc(sizeof(ia32_instruction)));
+      }
+      mac = NULL; //new(mac) ia32_memacc[3];
+      cond = NULL; //new(cond) ia32_condition;
+      locs = new(locs) ia32_locations;
+      
+      decodedInstruction = new (decodedInstruction) ia32_instruction(mac, cond, locs);
+
+      ia32_decode(IA32_DECODE_PREFIXES, rawInstruction, *decodedInstruction);
+    }
+    
     unsigned int InstructionDecoder::decodeOpcode()
     {
-      delete decodedInstruction;
-      delete cond;
-      delete locs;
-      delete[] mac;
+      doIA32Decode();
       
-      cond = new ia32_condition;
-      locs = new ia32_locations;
-      mac = new ia32_memacc[3];
-      decodedInstruction = new ia32_instruction(mac, cond, locs);
-      ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION, 
-					   rawInstruction, *decodedInstruction);
-      m_Operation = Operation(decodedInstruction->getEntry(), decodedInstruction->getPrefix(), locs);
+      m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(), decodedInstruction->getPrefix(), locs));
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();
     }
     
-    bool InstructionDecoder::decodeOperands(vector<Expression::Ptr>& operands)
+    bool InstructionDecoder::decodeOperands(std::vector<Expression::Ptr>& operands)
     {
-      for(unsigned i = 0; i < m_Operation.numOperands(); i++)
+      operands.reserve(3);
+      
+      if(!decodedInstruction) return false;
+      
+      for(unsigned i = 0; i < 3; i++)
       {
+	if(decodedInstruction->getEntry()->operands[i].admet == 0 && decodedInstruction->getEntry()->operands[i].optype == 0) return true;
 	if(!decodeOneOperand(decodedInstruction->getEntry()->operands[i], operands))
 	{
 	  return false;
@@ -726,6 +770,13 @@ namespace Dyninst
       }
       return true;
     }
+
+    void InstructionDecoder::resetBuffer(const unsigned char* buffer)
+    {
+      rawInstruction = buffer;
+      bufferBegin = buffer;
+    }
     
   };
 };
+

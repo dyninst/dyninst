@@ -239,7 +239,7 @@ class image_basicBlock : public codeRange {
 #endif
 
 #if defined(cap_instruction_api)
-    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction, Offset> > &instances);
+    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > &instances);
 #endif
 
    private:

@@ -46,7 +46,7 @@ namespace Dyninst
   namespace InstructionAPI
   {
     RegisterAST::RegisterAST(int id) : 
-      Expression(Singleton<IA32RegTable>::getInstance().IA32_register_names[IA32Regs(id)].regSize), registerID(id) 
+      Expression(Singleton<IA32RegTable>::getInstance().getSize(id)), registerID(id) 
     {
     }
     RegisterAST::~RegisterAST()
@@ -78,26 +78,24 @@ namespace Dyninst
     bool RegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
       if(*findMe == *this)
-	  {
-		  return true;
-	  }
-	  if(registerID == r_ALLGPRS)
-	  {
-		  RegisterAST::Ptr asReg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(findMe);
-		  if(!asReg) return false;
-		  if(asReg->registerID == r_EAX ||
-			asReg->registerID == r_EDX ||
-			asReg->registerID == r_ECX ||
-			asReg->registerID == r_EBX ||
-			asReg->registerID == r_ESP ||
-			asReg->registerID == r_EBP ||
-			asReg->registerID == r_ESI ||
-			asReg->registerID == r_EDI)
-		  {
-			  return true;
-		  }
-	  }
-	  return false;
+      {
+	return true;
+      }
+      if(registerID == r_ALLGPRS)
+      {
+	if(findMe->checkRegID(registerID) == r_EAX ||
+	   findMe->checkRegID(registerID) == r_EDX ||
+	   findMe->checkRegID(registerID) == r_ECX ||
+	   findMe->checkRegID(registerID) == r_EBX ||
+	   findMe->checkRegID(registerID) == r_ESP ||
+	   findMe->checkRegID(registerID) == r_EBP ||
+	   findMe->checkRegID(registerID) == r_ESI ||
+	   findMe->checkRegID(registerID) == r_EDI)
+	{
+	  return true;
+	}
+      }
+      return false;
     }
     unsigned int RegisterAST::getID() const
     {
@@ -128,14 +126,9 @@ namespace Dyninst
     {
       return registerID < rhs.registerID;
     }
-    bool RegisterAST::isSameType(const InstructionAST& rhs) const
-    {
-      return dynamic_cast<const RegisterAST*>(&rhs) != NULL;
-    }
     bool RegisterAST::isStrictEqual(const InstructionAST& rhs) const
     {
-      const RegisterAST& otherRegisterAST(dynamic_cast<const RegisterAST&>(rhs));
-      return otherRegisterAST.registerID == registerID;
+      return rhs.checkRegID(registerID);
     }
 
     InstructionAST::Ptr RegisterAST::promote(InstructionAST::Ptr regPtr) {
@@ -194,5 +187,14 @@ namespace Dyninst
         }
         return Ptr(new RegisterAST(convertedID));
     }
+    bool RegisterAST::isFlag() const
+    {
+      return registerID >= r_OF && registerID <= r_RF;
+    }
+    bool RegisterAST::checkRegID(unsigned int id) const
+    {
+      return id == registerID;
+    }
+    
   };
 };

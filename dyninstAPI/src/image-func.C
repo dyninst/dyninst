@@ -483,12 +483,12 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset_));
     InstructionDecoder decoder(buffer, newBlk->firstInsnOffset() -
 			       firstInsnOffset_);
-    Instruction tmp = decoder.decode();
+    Instruction::Ptr tmp = decoder.decode();
     lastInsnOffset_ = firstInsnOffset_;
     
-    while(lastInsnOffset_ + tmp.size() < newBlk->firstInsnOffset())
+    while(lastInsnOffset_ + tmp->size() < newBlk->firstInsnOffset())
     {
-      lastInsnOffset_ += tmp.size();
+      lastInsnOffset_ += tmp->size();
       tmp = decoder.decode();
     }
 #else
@@ -953,23 +953,15 @@ bool image_func::isLeafFunc() {
 
 
 #if defined(cap_instruction_api) 
-void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction, Offset> >&instances) {
+void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
     using namespace InstructionAPI;
     Offset off = firstInsnOffset();
     const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
     if (ptr == NULL) return;
     InstructionDecoder d(ptr, getSize());
-#if 0
-    Instruction curInsn = d.decode();
-    while(curInsn.isValid()) {
-        instances.push_back(std::make_pair(curInsn,off));
-        off += curInsn.size();
-        curInsn = d.decode();
-    }
-#endif
     while (off < endOffset()) {
         instances.push_back(std::make_pair(d.decode(), off));
-        off += instances.back().first.size();
+        off += instances.back().first->size();
     }
 }
 #endif
