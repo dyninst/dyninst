@@ -604,7 +604,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		test_st = sb_deserializer_ptr->getScope();
 		assert(test_st == st);
 
-		sb_deserializer_ptr = nonpublic_make_bin_deserializer<Symtab>(st, file);
+		sb_deserializer_ptr = nonpublic_make_bin_deserializer<Symtab>(&deserialize_result, file);
 #endif
 		assert(sb_deserializer_ptr);
 #if 0
