@@ -2233,6 +2233,19 @@ test_runmode('test_instruction_bind_eval', 'createProcess').
 test_start_state('test_instruction_bind_eval', 'stopped').
 tests_module('test_instruction_bind_eval', 'instruction').
 
+test('test_instruction_profile', 'test_instruction_profile', none).
+test_description('test_instruction_profile', 'Collect profiling data from decoding 1M bytes of random memory.').
+test_platform('test_instruction_profile', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('test_instruction_profile', ['test_instruction_profile.C']).
+test_runmode('test_instruction_profile', 'createProcess').
+test_start_state('test_instruction_profile', 'stopped').
+tests_module('test_instruction_profile', 'instruction').
+mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
+
+
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
 % mutatee in state State, with State in {stopped, running, selfstart}
