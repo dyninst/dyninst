@@ -70,12 +70,6 @@ extern "C" DLLEXPORT TestMutator* test_instruction_profile_factory()
 
 test_results_t test_instruction_profile_Mutator::executeTest()
 {
-  /*  unsigned char* randomBytes = new unsigned char[100000];
-  for(unsigned i = 0; i < 100000; i++)
-  {
-    randomBytes[i] = rand() % 256;
-  }
-  */
   Symtab *s;
   if(!Symtab::openFile(s, "/lib/libc.so.6")) {
     logerror("FAILED: couldn't open libc for parsing\n");
