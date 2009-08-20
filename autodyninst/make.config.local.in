@@ -65,6 +65,12 @@ AC_DEF 	       = @DEFS@
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@/${PLATFORM}
+libdir ?= @prefix@/lib
+bindir ?= @prefix@/bin
+includedir ?= @prefix@/include
+
 LIBRARY_DEST = @libdir@
 PROGRAM_DEST = @bindir@
 INCLUDE_DEST = @includedir@
+
+@TESTSUITE@
