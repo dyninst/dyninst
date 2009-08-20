@@ -210,7 +210,7 @@ class image_basicBlock : public codeRange {
     // convenience method: sometimes any function will do
     image_func * getFirstFunc() const
     {
-        if(funcs_.size() > 0)
+        if(!funcs_.empty())
             return *funcs_.begin();
         else
             return NULL;

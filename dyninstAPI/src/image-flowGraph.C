@@ -1200,7 +1200,8 @@ bool image_func::buildCFG(
                                 targetFunc->symTabName() == "__f90_stop" ||
                                 targetFunc->symTabName() == "fancy_abort" ||
                                 targetFunc->symTabName() == "__stack_chk_fail" ||
-                       		targetFunc->symTabName() == "__assert_fail"))
+                       		targetFunc->symTabName() == "__assert_fail" ||
+                            targetFunc->symTabName() == "ExitProcess"))
               { 
                  parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
                                 targetFunc->symTabName().c_str(),
@@ -1212,7 +1213,8 @@ bool image_func::buildCFG(
                        (*pltFuncs)[target] == "__f90_stop" ||
                        (*pltFuncs)[target] == "fancy_abort" ||
                        (*pltFuncs)[target] == "__stack_chk_fail" ||
-                       (*pltFuncs)[target] == "__assert_fail"))
+                       (*pltFuncs)[target] == "__assert_fail" ||
+                       (*pltFuncs)[target] == "ExitProcess"))
               {
                  parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
                                 (*pltFuncs)[target].c_str(),

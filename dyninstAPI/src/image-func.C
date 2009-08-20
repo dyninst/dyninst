@@ -874,16 +874,20 @@ image_instPoint * image_basicBlock::getCallInstPoint()
     if(!containsCall_ || funcs_.empty())
         return NULL;
 
-    // every function that this block belongs to should have one or
-    // zero call instPoints within this block's range. Select an arbitrary
-    // function.
-
-    image_func * f = *funcs_.begin();
+    // Every function in funcs_ should have the same number (0 or 1)
+    // instpoints within the range of this block. During parsing
+    // some of these functions may not have been fully parsed and had
+    // instpoints created, however. Therefore we look through all
+    // functions until we find an instpoint
+    set<image_func *>::const_iterator fit = funcs_.begin(); 
+    for( ; fit != funcs_.end(); ++fit) {
+    image_func * f = *fit;
     const pdvector<image_instPoint *> & calls = f->funcCalls();
     for(unsigned i=0;i<calls.size();++i) {
         if(calls[i]->offset_ >= firstInsnOffset_ &&
            calls[i]->offset_ <= lastInsnOffset_)
             return calls[i]; 
+    }
     }
 
     return NULL;
@@ -894,12 +898,15 @@ image_instPoint * image_basicBlock::getRetInstPoint()
     if(!containsRet_ || funcs_.empty())
         return NULL;
 
-    image_func * f = *funcs_.begin();
+    set<image_func *>::const_iterator fit = funcs_.begin(); 
+    for( ; fit != funcs_.end(); ++fit) {
+    image_func * f = *fit;
     const pdvector<image_instPoint *> & rets = f->funcExits();
     for(unsigned i=0;i<rets.size();++i) {
         if(rets[i]->offset_ >= firstInsnOffset_ &&
            rets[i]->offset_ <= lastInsnOffset_)
             return rets[i]; 
+    }
     }
 
     return NULL;
