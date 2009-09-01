@@ -357,6 +357,23 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 
   llBinEdits.insert(lib);
   
+  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
+  assert(masterTrampGuard);
+  
+  lib.second->registerFunctionCallback(createBPFuncCB);
+  lib.second->registerInstPointCallback(createBPPointCB);
+  lib.second->set_up_ptr(this);
+  lib.second->setupRTLibrary(rtLib);
+  lib.second->setTrampGuard(masterTrampGuard);
+  lib.second->setMultiThreadCapable(isMultiThreadCapable());
+  /* Do we need to do this? 
+  std::map<std::string, BinaryEdit*>::iterator j;
+  for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
+        lib.second->addSibling((*j).second);
+  }
+  */
+
+   
   if (deps)
     return lib.second->getAllDependencies(llBinEdits);
   return true;

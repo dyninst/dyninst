@@ -256,13 +256,16 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 	      // add an unversioned dependency
 	      if (fileName != "") 
 		{
-		  if (find(unversionedNeededEntries.begin(),
+		  // If the file is not an executable, then add to unversioned entries
+		  if (!symbol->getReferringSymbol()->getSymtab()->isExec()) {
+		  	if (find(unversionedNeededEntries.begin(),
 			   unversionedNeededEntries.end(),
 			   fileName) == unversionedNeededEntries.end()) 
-		    {
-		      mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
-		      unversionedNeededEntries.push_back(fileName);
-		    }
+		    	{
+		      		mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
+		      		unversionedNeededEntries.push_back(fileName);
+		    	}
+		  }
 
 		  if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
 		    mpos += sprintf(mpos, "  global (w/ filename)\n");

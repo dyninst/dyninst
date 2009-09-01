@@ -453,7 +453,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	}
   }
 
-  if (foundInterp) {
+  if (elfHdr.e_type() == ET_DYN || foundInterp) {
 	is_static_binary_ = false;	
   } else {
 	is_static_binary_ = true;	
@@ -534,7 +534,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
 	break;
       case DT_PLTRELSZ:
-	secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
+	//secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
 	break;
       case DT_STRSZ:
 	secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
