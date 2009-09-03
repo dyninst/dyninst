@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "symtabAPI/h/Symtab.h"
-
+#include "InstructionAdapter.h"
 #include "dyninstAPI/src/parRegion.h"
 
 #include <fstream>
@@ -135,8 +135,8 @@ bool image::analyzeImage()
         // Check whether recursive traversal has dealt with a function
         // before proceeding to parse it
         if(!pdf->parsed()) {
-            parsing_printf("[%s:%u] calling parse() at 0x%lx (ptr %p)\n",
-                FILE__,__LINE__,pdf->getOffset(),pdf);
+            parsing_printf("[%s:%u] calling parse() at 0x%lx\n",
+                FILE__,__LINE__,pdf->getOffset());
 
             /** Symtab-defined functions are already so ingrained in our
                 data structures at this point that they must be entered
@@ -462,10 +462,6 @@ bool image_func::parse()
         return false;
     }
 
-    // Some architectures (alpha) have an entry point that is
-    // not the function start; knowing where it is enables
-    // correct instrumentation.
-    archGetFuncEntryAddr(funcEntryAddr);
     ah.setCurrentAddress(funcEntryAddr);
 
     // Define entry point
@@ -619,7 +615,14 @@ bool image_func::buildCFG(
     image_basicBlock *nextExistingBlock = NULL;
 
     // Instructions and InstPoints
+#if defined(use_instruction_api)
+    using namespace InstructionAPI;
+    pdvector< Instruction::Ptr > allInstructions;
+    typedef IA_IAPI InstructionAdapter_t;
+#else
     pdvector< instruction > allInstructions;
+    typedef IA_InstrucIter InstructionAdapter_t;
+#endif
     unsigned numInsns = 0;
     image_instPoint *p;
     int insnSize;
@@ -653,13 +656,19 @@ bool image_func::buildCFG(
 
     for(unsigned i=0; i < worklist.size(); i++)
     {
-        InstrucIter ah(worklist[i],this);
-
+#if defined(use_instruction_api)
+        InstructionDecoder dec(worklist[i], -1);
+        InstructionAdapter_t ah(dec, worklist[i]);
+#else
+        InstrucIter iter(worklist[i],this);
+        InstructionAdapter_t ah(iter);
+#endif
+        
         image_basicBlock* currBlk = leadersToBlock[worklist[i]];
 
-        parsing_printf("[%s:%d] parsing block at 0x%lx, "
+        parsing_printf("[%s] parsing block at 0x%lx, "
                        "first insn offset 0x%lx\n",
-                       FILE__,__LINE__,
+                       FILE__,
                        worklist[i], 
                        currBlk->firstInsnOffset());
 
@@ -688,7 +697,8 @@ bool image_func::buildCFG(
         // Remember where the next block is, so we don't blindly run over
         // the top of it when scanning through instructions.
         nextExistingBlockAddr = ULONG_MAX;
-        if(image_->basicBlocksByRange.successor(ah.peekNext(),tmpRange))
+        if(image_->basicBlocksByRange.successor(ah.getAddr() +
+            ah.getSize(),tmpRange))
         {
             nextExistingBlock = dynamic_cast<image_basicBlock*>(tmpRange);
             if(nextExistingBlock->firstInsnOffset_ > worklist[i])
@@ -696,12 +706,12 @@ bool image_func::buildCFG(
                 nextExistingBlockAddr = nextExistingBlock->firstInsnOffset_;
             }
         }
-        bool isNopBlock = ah.isANopInstruction();
+        bool isNopBlock = ah.isNop();
 
         while(true) // instructions in block
         {
-            currAddr = *ah;
-            insnSize = ah.getInstruction().size();
+            currAddr = ah.getAddr();
+            insnSize = ah.getSize();
 
             // The following three cases ensure that we properly handle
             // situations where our parsing comes across previously
@@ -714,7 +724,7 @@ bool image_func::buildCFG(
                 // end block with previous addr
                 // add edge to to this newly found block
                 // push it on the worklist vector            
-                Address prevAddr = ah.peekPrev();
+                Address prevAddr = ah.getPrevAddr();
                 currBlk->lastInsnOffset_ = prevAddr;
                 currBlk->blockEndOffset_ = currAddr;
 
@@ -766,7 +776,7 @@ bool image_func::buildCFG(
                 // will make the function uninstrumentable.
 
                 if(currAddr > currBlk->firstInsnOffset_) {
-                    currBlk->lastInsnOffset_ = ah.peekPrev();
+                    currBlk->lastInsnOffset_ = ah.getPrevAddr();
                     currBlk->blockEndOffset_ = currAddr;
 
                     //Three blocks involved here, the original block, the new one that we're
@@ -794,7 +804,7 @@ bool image_func::buildCFG(
                 } else {
                     parsing_printf(" ... uninstrumentable due to instruction stream overlap\n");
                     currBlk->lastInsnOffset_ = currAddr;
-                    currBlk->blockEndOffset_ = ah.peekNext();
+                    currBlk->blockEndOffset_ = ah.getNextAddr();
                     instLevel_ = UNINSTRUMENTABLE;
                 }
                 break;
@@ -819,11 +829,9 @@ bool image_func::buildCFG(
             }
 #endif
 
-            allInstructions.push_back( ah.getInstruction() );
-            allInstAddrs += currAddr;
 
             // only ever true on x86
-            if(ah.isFrameSetup() && savesFP_)
+            if(ah.isFrameSetupInsn() && savesFP_)
             {
                 noStackFrame = false;
             }
@@ -833,11 +841,26 @@ bool image_func::buildCFG(
 
             if (isNopBlock) 
             {
+                if(!ah.isNop())
+                {
+                    currBlk->lastInsnOffset_ = ah.getPrevAddr();
+                    currBlk->blockEndOffset_ = currAddr;
+                    addBasicBlock(currAddr,
+                                 currBlk,
+                                 leaders,
+                                 leadersToBlock,
+                                 ET_FALLTHROUGH,
+                                 worklist);
+                    // Start over at currAddr
+                    break;
+                    
+                }
+#if 0
                bool nextIsNop = false;
                Address nextAddr;
                if (ah.hasMore()) {
                   ah++;
-                  nextIsNop = ah.isANopInstruction();
+                  nextIsNop = ah.isNop();
                   ah--;
                }
                nextAddr = ah.peekNext();
@@ -854,15 +877,285 @@ bool image_func::buildCFG(
                                 worklist);
                   break;
                }
+#endif
             }
+            allInstructions.push_back(ah.getInstruction() );
+            allInstAddrs += currAddr;
+
+            if(ah.hasCFT())
+            {
+                markBlockEnd(currBlk, ah, funcEnd);
+                typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
+                typedef std::vector< edge_pair_t > Edges_t;
+                Edges_t edges_out;
+                ah.getNewEdges(edges_out, this, currBlk, allInstructions,
+                               pltFuncs);
+                InstrumentableLevel insnInstLevel = ah.getInstLevel(this,
+                        currBlk, allInstructions);
+                FuncReturnStatus insnRetStatus = ah.getReturnStatus(this,
+                        currBlk, allInstructions);
+                instPointType_t insnPointType = ah.getPointType(this,
+                        allInstructions, pltFuncs);
+                bool isDynamicCall = ah.isDynamicCall(this);
+                bool isAbsoluteCall = ah.isAbsoluteCall();
+                bool hasUnresolvedCF = ah.hasUnresolvedControlFlow(this, currBlk,
+                        allInstructions);
+                if(insnInstLevel >= instLevel_) {
+                    switch(insnInstLevel)
+                    {
+                        case NORMAL: 
+//                                parsing_printf("[%s]: Setting %s to NORMAL at 0x%x\n", FILE__,
+//                                               prettyName().c_str(), currAddr);
+                                break;
+                        case HAS_BR_INDIR:
+                            parsing_printf("[%s]: Setting %s to HAS_BR_INDIR at 0x%x\n", FILE__,
+                                           prettyName().c_str(), currAddr);
+                            break;
+                        case UNINSTRUMENTABLE:
+                            parsing_printf("[%s]: Setting %s to UNINSTRUMENTABLE at 0x%x\n", FILE__,
+                                           prettyName().c_str(), currAddr);
+                            break;
+                        default:
+                            assert(!"Bad inst level enum!\n");
+                            break;
+                    }
+                    
+                    instLevel_ = insnInstLevel;
+                }
+                if(!ah.isRelocatable(this, insnInstLevel))
+                {
+                    currBlk->canBeRelocated_ = false;
+                    canBeRelocated_ = false;
+                }
+                if(insnRetStatus == RS_RETURN)
+                {
+                    parsing_printf("... 0x%x (%d) is a return\n", currAddr, currAddr - getOffset());
+                    if(retStatus_ != RS_UNKNOWN)
+                        retStatus_ = insnRetStatus;
+                }
+                if(insnRetStatus == RS_UNKNOWN)
+                {
+                    parsing_printf("[%s]: Setting return status to RS_UNKNOWN (URCF) at 0x%x\n", FILE__,
+                                   currAddr);
+                    retStatus_ = insnRetStatus;
+                }
+                image_func* targetFunc = NULL;
+                Address fix_cond_branch = 0;
+                for(Edges_t::iterator curEdge = edges_out.begin();
+                    curEdge != edges_out.end();
+                   ++curEdge)
+                {
+                    if(!img()->isValidAddress(curEdge->first) ||
+                        !img()->isCode(curEdge->first))
+                    {
+                        hasUnresolvedCF = true;
+                        if(insnPointType == noneType)
+                        {
+                            insnPointType = otherPoint;
+                        }
+                    }
+                    else
+                    {
+                        if(curEdge->second == ET_NOEDGE)
+                        {
+                            if(!isDynamicCall)
+                            {
+                                parsing_printf("[%s] binding call 0x%lx -> 0x%lx\n",
+                                               FILE__,currAddr, curEdge->first);
+                                targetFunc = bindCallTarget(curEdge->first,currBlk);
+                                if(ah.isTailCall(this, allInstructions))
+                                {
+                                    parsing_printf("%s: tail call %x -> %x inheriting return status of target\n",
+                                            FILE__, currAddr, curEdge->first);
+                                    if(targetFunc && retStatus_ == RS_UNSET &&
+                                       targetFunc->returnStatus() != RS_NORETURN)
+                                    {
+                                        retStatus_ = targetFunc->returnStatus();
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                parsing_printf("[%s] dynamic call 0x%lx -> ?\n", FILE__, currAddr);
+                            }
+                            continue;
+                        }
+                        if(curEdge->second == ET_FUNLINK)
+                        {
+                            Address target = 0;
+                            Edges_t::iterator e = edges_out.begin();
+                            while(e != edges_out.end() && e->second != ET_NOEDGE)
+                            {
+                                ++e;
+                            }
+                            if(e != edges_out.end())
+                            {
+                                target = e->first;
+                            }
+                            bool isInPLT = false;
+                            std::string pltName = "";
+                            if((*pltFuncs).defines(target))
+                            {
+                                isInPLT = true;
+                                pltName = (*pltFuncs)[target];
+                            }
+                            if(isNonReturningCall(targetFunc, isInPLT,
+                                                  pltName, currAddr, target))
+                            {
+                                //parsing_printf("%s: non-returning call detected %x->%x\n",
+                                //               FILE__, currAddr, target);
+                                continue;
+                            }
+                        }
+                        image_basicBlock * real_src = currBlk;
+                        // This breaks on direct edges--why?
+                        if(curEdge->second == ET_COND_TAKEN)
+                        {
+                            if(curEdge->first > currBlk->firstInsnOffset_ &&
+                            curEdge->first <= currAddr) {
+                                fix_cond_branch = curEdge->first;
+                            }
+                        }
+                        if(fix_cond_branch && (curEdge->second == ET_COND_NOT_TAKEN))
+                        {
+                            real_src = leadersToBlock[fix_cond_branch];
+                            assert(real_src);
+                        }
+#ifdef VERBOSE_EDGE_LOG                        
+                        switch(curEdge->second)
+                        {
+                            case ET_FUNLINK:
+                                parsing_printf("%s[%d]: adding function fallthrough edge %x->%x\n",
+                                               FILE__, __LINE__, currAddr, curEdge->first);
+                                break;
+                            case ET_FALLTHROUGH:
+                                parsing_printf("%s[%d]: adding fallthrough edge %x->%x\n",
+                                               FILE__, __LINE__, currAddr, curEdge->first);
+                                break;
+                            case ET_COND_TAKEN:
+                                parsing_printf("%s[%d]: adding conditional taken edge %x->%x\n",
+                                               FILE__, __LINE__, currAddr, curEdge->first);
+                                break;
+                            case ET_COND_NOT_TAKEN:
+                                parsing_printf("%s[%d]: adding conditional not taken edge %x->%x\n",
+                                               FILE__, __LINE__, currAddr, curEdge->first);
+                                break;
+                            case ET_INDIR:
+                                parsing_printf("%s[%d]: adding indirect edge %x->%x\n",
+                                               FILE__, __LINE__, currAddr, curEdge->first);
+                                break;
+                            case ET_DIRECT:
+                                parsing_printf("%s[%d]: adding direct edge %x->%x\n",
+                                               FILE__, __LINE__, currAddr, curEdge->first);
+                                break;
+                            case ET_CATCH:
+                                parsing_printf("%s[%d]: adding catch block edge %x->%x\n",
+                                               FILE__, __LINE__, currAddr, curEdge->first);
+                                break;
+                            default:
+                                parsing_printf("%s[%d]: adding unknown edge type %d edge %x->%x\n",
+                                               FILE__, __LINE__, curEdge->second, currAddr, curEdge->first);
+                                break;
+                        }
+#endif // VERBOSE_EDGE_LOG
+                        addBasicBlock(curEdge->first,
+                                    real_src,
+                                    leaders,
+                                    leadersToBlock,
+                                    curEdge->second,
+                                    worklist);
+                    }
+                }
+                if(insnPointType != noneType)
+                {
+                    Address target = 0;
+                    if(!edges_out.empty() && !isDynamicCall)
+                    {
+                        target = edges_out.begin()->first;
+                    }
+                    p = new image_instPoint( currAddr,
+                                             ah.getInstruction(),
+                                             this,
+                                             target,
+                                             isDynamicCall,
+                                             isAbsoluteCall,
+                                             insnPointType);
+#ifdef VERBOSE_POINT_LOG                    
+                    parsing_printf("%s[%d]: creating inst point at %x...", FILE__, __LINE__, currAddr);
+#endif // VERBOSE_POINT_LOG
+                    if(hasUnresolvedCF)
+                    {
+#ifdef VERBOSE_POINT_LOG
+                        parsing_printf("unresolved control flow, adding to unresolved list\n");
+#endif // VERBOSE_POINT_LOG
+                        pdmod()->addUnresolvedControlFlow(p);
+                        if(!isDynamicCall && (insnRetStatus != RS_UNKNOWN))
+                        {
+                            parsing_printf("[%s] setting return status to RS_UNKNOWN (URCF) at 0x%x\n",
+                                            FILE__, currAddr);
+                            retStatus_ = RS_UNKNOWN;
+                        }
+                    }
+                    switch(insnPointType)
+                    {
+                        case functionExit:
+                            currBlk->isExitBlock_ = true;
+                            if(insnRetStatus == RS_RETURN)
+                            {
+                                parsing_printf("... making new exit point at 0x%x\n", currAddr);
+                                funcReturns.push_back( p );
+                                currBlk->containsRet_ = true;
+                            }
+                            else
+                            {
+                                parsing_printf("... making new exit point at 0x%x\n", currAddr);
+                                //parsing_printf("return status bad, exit point, adding to returns--POSSIBLY WRONG\n");
+                                funcReturns.push_back( p );
+                                currBlk->containsRet_ = true;
+                            }
+                            break;
+                        case callSite:
+#ifdef VERBOSE_POINT_LOG
+                            parsing_printf("call point, adding to calls\n");
+#endif // VERBOSE_POINT_LOG
+                            calls.push_back( p );
+                            currBlk->containsCall_ = true;
+                            break;
+                        case otherPoint:
+#ifdef VERBOSE_POINT_LOG
+                            parsing_printf("other point...");
+#endif // VERBOSE_POINT_LOG
+                            if(hasUnresolvedCF) {
+#ifdef VERBOSE_POINT_LOG
+                                parsing_printf("already in unresolved CF list\n");
+#endif // VERBOSE_POINT_LOG
+                            } else {
+#ifdef VERBOSE_POINT_LOG
+                                parsing_printf("where'd it go?\n");
+#endif // VERBOSE_POINT_LOG
+                            }
+                            break;
+                        default:
+                            assert(!"ERROR: unrecognized inst point type, not handling it correctly\n");
+                            break;
+                                    
+                    };
+                }
+                if(ah.isDelaySlot())
+                {
+                    ah.advance();
+                }
+                break;
+            }
+#if 0
             else if( ah.isACondBranchInstruction() )
             {
                 currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
+                currBlk->blockEndOffset_ = currAddr + ah.getSize();
 
                 if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
-                    //funcEnd = currAddr + insnSize;
+//                    funcEnd = ah.peekNext();
+                    funcEnd = currAddr + ah.getSize();
 
                 Address target = ah.getBranchTargetAddress();
 
@@ -882,7 +1175,7 @@ bool image_func::buildCFG(
                 if(ah.isDelaySlot())
                 {
                     // Skip delay slot (sparc)
-                    ah++;
+                    ah.advance();
                 } 
 
                 // Process target first, to prevent overlap between
@@ -904,7 +1197,7 @@ bool image_func::buildCFG(
                                   worklist);
                 }
 
-                Address t2 = ah.peekNext(); 
+                Address t2 = currAddr + ah.getSize(); 
                
                 // If this branch instruction split the current block,
                 // the fallthrough should be added to the newly created
@@ -928,12 +1221,8 @@ bool image_func::buildCFG(
             }
             else if( ah.isAIndirectJumpInstruction() )
             {
-                currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
                 parsing_printf("... indirect jump at 0x%lx\n", currAddr);
-
-                if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
+                markBlockEnd(currBlk, ah, funcEnd);
     
                 numInsns = allInstructions.size() - 2;
                 if( numInsns == 0 ) {
@@ -1049,11 +1338,11 @@ bool image_func::buildCFG(
                                 currAddr - getOffset());                       
 
                 currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
+                currBlk->blockEndOffset_ = currAddr + ah.getSize();
                 currBlk->isExitBlock_ = true;
                     
                 if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
+                    funcEnd = currAddr + ah.getSize();
                 
                 parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
                 p = new image_instPoint( currAddr, 
@@ -1074,11 +1363,11 @@ bool image_func::buildCFG(
             {
                 parsing_printf("cond ret branch at 0x%lx\n", currAddr);
                 currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
+                currBlk->blockEndOffset_ = currAddr + ah.getSize();
                 currBlk->isExitBlock_ = true;
                   
                 if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
+                    funcEnd = currAddr + ah.getSize();
                   
                 // And make an inst point
                 p = new image_instPoint(currAddr, 
@@ -1102,11 +1391,7 @@ bool image_func::buildCFG(
             else if( ah.isACallInstruction() ||
                      ah.isADynamicCallInstruction() )
             {
-                currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
-
-                if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
+                markBlockEnd(currBlk, ah, funcEnd);
 
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
@@ -1191,7 +1476,7 @@ bool image_func::buildCFG(
 		        if (ah.isDelaySlot()) {
                     // Delay slots get skipped; effectively pinned to 
                     // the prev. insn.
-                    ah++;
+                            ah.advance();
 		        }
 		
 		
@@ -1239,7 +1524,7 @@ bool image_func::buildCFG(
                  }
                  else
                  {
-                    Address next = ah.peekNext();
+                    Address next = ah.getAddr() + ah.getSize();
                     addBasicBlock(next,
                                   currBlk,
                                   leaders,
@@ -1250,25 +1535,20 @@ bool image_func::buildCFG(
               }
               break;
             }
-            else if( ah.isALeaveInstruction() )
+#endif
+            else if( ah.isLeave() )
             {
                 noStackFrame = false;
             }
-            else if( archIsAbortOrInvalid(ah) )
+            else if( ah.isAbortOrInvalidInsn() )
             {
                 // some architectures have invalid instructions, and
                 // all have special 'abort-causing' instructions
-
-                currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
-
-                if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
-
+                markBlockEnd(currBlk, ah, funcEnd);
                 break;
             }
 #if defined(arch_ia64)
-            else if( ah.isAnAllocInstruction() )
+            else if( ah.isAllocInsn()() )
             {
                 // IA64 only, sad to say
                 if( currAddr == currBlk->firstInsnOffset() )
@@ -1277,13 +1557,17 @@ bool image_func::buildCFG(
                 } 
                 else
                 {
-                    currBlk->lastInsnOffset_ = ah.peekPrev();
-                    currBlk->blockEndOffset_ = currAddr;
+                    // We weren't extending the function's end address here.
+                    // That was probably incorrect.
+                    markBlockEnd(currBlk, ah, funcEnd);
+                    //currBlk->lastInsnOffset_ = ah.prevAddr();
+                    //currBlk->blockEndOffset_ = currAddr;
 
                     // remove some cumulative information
+                    
                     allInstAddrs.remove(currAddr);
                     allInstructions.pop_back();
-
+                    parsing_printf("%s[%d]: ending block due to ALLOC at %x\n", FILE__, __LINE__, currAddr);
                     addBasicBlock(currAddr,
                                     currBlk,
                                     leaders,
@@ -1294,18 +1578,14 @@ bool image_func::buildCFG(
                 }
             }
 #endif
-            if (!img()->isValidAddress(ah.peekNext())) {
+            if (!img()->isValidAddress(ah.getAddr() + ah.getSize())) {
                //The next instruction is not in the.text segment.  We'll 
                // abort this basic block as if it were terminating with 
                // an illegal instruction.
                parsing_printf("Next instruction is invalid, ending basic block\n");
                
-               currBlk->lastInsnOffset_ = currAddr;
-               currBlk->blockEndOffset_ = ah.peekNext();
-
-               if( currAddr >= funcEnd )
-                  funcEnd = ah.peekNext();
-                parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
+               markBlockEnd(currBlk, ah, funcEnd);
+                parsing_printf("...making new exit point at 0x%lx\n", currAddr);
                 p = new image_instPoint( currAddr,
                                          ah.getInstruction(),
                                          this,
@@ -1313,7 +1593,7 @@ bool image_func::buildCFG(
                 funcReturns.push_back( p );
                 break;
             }
-            ah++;
+            ah.advance();
         }
     }
 
@@ -1391,19 +1671,19 @@ image_func * image_func::bindCallTarget(
     if(!targetFunc->parsed()) {
         assert( targetFunc->img()->isCode(targetFunc->getOffset()) );
 
-        parsing_printf("[%s:%u] recursive parsing of call target at 0x%lx\n",
-                FILE__,__LINE__,targetFunc->getOffset());
+        parsing_printf("[%s] recursive parsing of call target at 0x%lx\n",
+                FILE__,targetFunc->getOffset());
 
         if(targetFunc->parse()) {
-            parsing_printf("[%s:%u] recursive parsing of 0x%lx complete\n",
-                FILE__,__LINE__,targetFunc->getOffset());
+            parsing_printf("[%s] recursive parsing of 0x%lx complete\n",
+                FILE__,targetFunc->getOffset());
 
             targetFunc->img()->recordFunction(targetFunc);
-    	     parsing_printf("[%s:%u] call target at 0x%lx parsed - return value %d \n",
-		FILE__,__LINE__,targetFunc->getOffset(), targetFunc->returnStatus());
+    	     parsing_printf("[%s] call target at 0x%lx parsed - return value %d \n",
+		FILE__,targetFunc->getOffset(), targetFunc->returnStatus());
         } else {
-            parsing_printf("[%s:%u] recursive parsing of 0x%lx failed\n",
-                FILE__,__LINE__,targetFunc->getOffset());
+            parsing_printf("[%s] recursive parsing of 0x%lx failed\n",
+                FILE__,targetFunc->getOffset());
 
             /* XXX Symtab-declared functions need to be added to the tables
                    to maintain consistency */
@@ -1418,12 +1698,12 @@ image_func * image_func::bindCallTarget(
             targetFunc = NULL;
         }
 
-        parsing_printf("[%s:%u] resuming parsing of %s\n",
-            FILE__,__LINE__,prettyName().c_str());
+        parsing_printf("[%s] resuming parsing of %s\n",
+            FILE__,prettyName().c_str());
     } 
     else { 
-    	parsing_printf("[%s:%u] call target at 0x%lx is already parsed - return value %d \n",
-		FILE__,__LINE__,targetFunc->getOffset(), targetFunc->returnStatus());
+    	parsing_printf("[%s] call target at 0x%lx is already parsed - return value %d \n",
+		FILE__,targetFunc->getOffset(), targetFunc->returnStatus());
     }
     return targetFunc;
 }
@@ -1653,8 +1933,8 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
                       leadersToBlock,   /* unused */
                       endOffset_);
 }
-
-void image_func::processJump(InstrucIter& ah, 
+#if 0
+void image_func::processJump(InstructionAdapter& ah, 
 			     image_basicBlock* currBlk,
 			     Address& funcBegin,
 			     Address& funcEnd,
@@ -1668,11 +1948,7 @@ void image_func::processJump(InstrucIter& ah,
   Address currAddr = *ah;
   image_instPoint* p;
   // delay slots?
-  currBlk->lastInsnOffset_ = currAddr;
-  currBlk->blockEndOffset_ = ah.peekNext();
-  
-  if( currAddr >= funcEnd )
-    funcEnd = ah.peekNext();
+  markBlockEnd(currBlk, ah, funcEnd)
   
   Address target = ah.getBranchTargetAddress();
   
@@ -1762,4 +2038,76 @@ void image_func::processJump(InstrucIter& ah,
 		  ET_DIRECT,
 		  worklist);
   }
+}
+#endif
+
+void image_func::markBlockEnd(image_basicBlock* curBlock, InstructionAdapter& ah,
+                             Address& funcEnd)
+{
+    curBlock->lastInsnOffset_ = ah.getAddr();
+    curBlock->blockEndOffset_ = ah.getAddr() + ah.getSize();
+    if(funcEnd < curBlock->blockEndOffset_)
+    {
+        funcEnd = curBlock->blockEndOffset_;
+        endOffset_ = curBlock->blockEndOffset_;
+    }
+}
+
+
+bool image_func::isNonReturningCall(image_func* targetFunc,
+                                    bool isInPLT,
+                                    std::string pltEntryForTarget,
+                                   Address currAddr,
+                                   Address target)
+{
+    if(targetFunc && (targetFunc->symTabName() == "exit" ||
+       targetFunc->symTabName() == "abort" ||
+       targetFunc->symTabName() == "__f90_stop" ||
+       targetFunc->symTabName() == "fancy_abort" ||
+       targetFunc->symTabName() == "__stack_chk_fail" ||
+       targetFunc->symTabName() == "__assert_fail" ||
+       targetFunc->symTabName() == "ExitProcess"))
+    {
+        parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
+                       targetFunc->symTabName().c_str(),
+                       target, currAddr);
+        return true;
+    }
+    else if(isInPLT &&
+            (pltEntryForTarget == "exit" ||
+            pltEntryForTarget == "abort" ||
+            pltEntryForTarget == "__f90_stop" ||
+            pltEntryForTarget == "fancy_abort" ||
+            pltEntryForTarget == "__stack_chk_fail" ||
+            pltEntryForTarget == "__assert_fail" ||
+            pltEntryForTarget == "ExitProcess"))
+    {
+        parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
+                       pltEntryForTarget.c_str(),
+                       target, currAddr);
+        return true;
+    }
+    // HANDLED ELSEWHERE NOW!             
+    // we don't wire up a fallthrough edge if we're treating
+    // the call insruction as an unconditional branch
+    
+                 
+    // link up the fallthrough edge unless we know for
+    // certain that the target function does not return,
+    // or if the target is an entry in the PLT (and not
+    // one of the special-case non-returning entries above)
+    if(targetFunc && targetFunc->returnStatus() == RS_NORETURN
+       && !(isInPLT))
+    {
+        parsing_printf("[%s] not parsing past non-returning "
+                "call at 0x%lx (to %s)\n",
+        FILE__,currAddr,
+        targetFunc->symTabName().c_str());
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+
 }

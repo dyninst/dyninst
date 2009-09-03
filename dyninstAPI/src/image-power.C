@@ -118,11 +118,6 @@ bool image_func::archAvoidParsing()
     return false;
 }
 
-void image_func::archGetFuncEntryAddr(Address & /* funcEntryAddr */)
-{   
-    return;
-}
-
 // Not used on power
 bool image_func::archNoRelocate()
 {   
@@ -168,10 +163,6 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
     return false;
 }
 
-bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
-{
-    return ah.isAnAbortInstruction();
-}
 
 // not implemented on power
 void image_func::archInstructionProc(InstrucIter & /* ah */)

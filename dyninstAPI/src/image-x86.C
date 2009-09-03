@@ -50,12 +50,14 @@
 #include "instPoint.h"
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
-#include "InstrucIter.h"
+#include "InstructionAdapter.h"
 #include "debug.h"
 #include <deque>
 #include <set>
 #include <algorithm>
 #include "arch.h"
+
+#include "InstructionAdapter.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
@@ -109,8 +111,8 @@ bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
 		ll_insn);
     if(locs.modrm_mod == 0x0 && locs.modrm_rm == 0x05)
     {
-      parsing_printf("%s[%d]: Found RIP-offset indirect branch at 0x%lx\n", FILE__,
-		     __LINE__, *ah);
+      parsing_printf("%s: Found RIP-offset indirect branch at 0x%lx\n", FILE__,
+		     *ah);
       return true;
     }
   }
@@ -269,11 +271,6 @@ bool image_func::archAvoidParsing()
         return false;
 }
 
-void image_func::archGetFuncEntryAddr(Address & /* funcEntryAddr */)
-{
-    return;
-}
-
 // Architecture-specific hack to prevent relocation of certain functions.
 bool image_func::archNoRelocate()
 {   
@@ -286,7 +283,7 @@ void image_func::archSetFrameSize(int /* frameSize */)
     return;
 }
 
-void image_func::archInstructionProc(InstrucIter & /* ah */)
+void image_func::archInstructionProc(InstructionAdapter & /* ah */)
 {
     return;
 }
@@ -434,8 +431,8 @@ bool leadsToVisitedBlock(image_edge* e, const std::set<image_basicBlock*>& visit
 
 bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkOffset)
 {
-  InstrucIter ah(curBlock);
-  bool isValidTarget, dummy;
+    InstrucIter ah(curBlock);
+    bool isValidTarget, dummy;
   
   while(ah.hasMore())
   {
@@ -501,6 +498,7 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
       return true;
 	  break;
 	default:
+            parsing_printf("\tunhandled displacement size %d at %x\n", loc.disp_size, *ah);
 	  thunkOffset = 0;
 	  break;	  
 	  }
@@ -854,11 +852,6 @@ bool image_func::archIsIndirectTailCall(InstrucIter &ah)
   }
 
   return false;
-}
-
-bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
-{
-    return ah.isAnAbortInstruction();
 }
 
 bool image_func::writesFPRs(unsigned level) {

@@ -219,10 +219,6 @@ bool image_func::archAvoidParsing()
     return false;
 }
 
-void image_func::archGetFuncEntryAddr(Address & /* funcEntryAddr */)
-{
-    return;
-}
 
 bool image_func::archNoRelocate()
 {
@@ -281,10 +277,6 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
     return false;
 }
 
-bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
-{
-    return ah.isAnAbortInstruction();
-}
 
 void image_func::archInstructionProc(InstrucIter &ah)
 {

@@ -761,8 +761,8 @@ void image_basicBlock::debugPrint() {
  */
 bool image_func::finalize()
 {
-    parsing_printf("[%s:%u] entering finalize for %p\n",
-        FILE__,__LINE__,this);
+    parsing_printf("[%s:%u] entering finalize for %s\n",
+                   FILE__,__LINE__,symTabName().c_str());
 
     parsing_printf("BASIC BLOCK LIST [%s]\n",symTabName().c_str());
 
