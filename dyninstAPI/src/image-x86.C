@@ -50,13 +50,13 @@
 #include "instPoint.h"
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
-#include "InstructionAdapter.h"
 #include "debug.h"
 #include <deque>
 #include <set>
 #include <algorithm>
 #include "arch.h"
 
+#include "InstrucIter.h"
 #include "InstructionAdapter.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"

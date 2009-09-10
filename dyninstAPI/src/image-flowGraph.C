@@ -53,6 +53,9 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "symtabAPI/h/Symtab.h"
 #include "InstructionAdapter.h"
+#include "IA_IAPI.h"
+#include "IA_InstrucIter.h"
+#include "InstructionAdapter.h"
 #include "dyninstAPI/src/parRegion.h"
 
 #include <fstream>
@@ -656,11 +659,11 @@ bool image_func::buildCFG(
     for(unsigned i=0; i < worklist.size(); i++)
     {
         InstrucIter iter(worklist[i],this);
-        InstructionAdapter_t ah(iter);
+        InstructionAdapter_t ah(iter, this);
         const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i]));
         InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
         dec.setMode(img()->getAddressWidth() == 8);
-        IA_IAPI ah_new(dec, worklist[i]);
+        IA_IAPI ah_new(dec, worklist[i], this);
         
         image_basicBlock* currBlk = leadersToBlock[worklist[i]];
 
@@ -862,17 +865,14 @@ bool image_func::buildCFG(
                 typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
                 typedef std::vector< edge_pair_t > Edges_t;
                 Edges_t edges_out;
-                ah_new.getNewEdges(edges_out, this, currBlk, allInstructions,
+                ah_new.getNewEdges(edges_out, currBlk, allInstructions,
                                pltFuncs);
-                InstrumentableLevel insnInstLevel = ah_new.getInstLevel(this,
-                        currBlk, allInstructions);
-                FuncReturnStatus insnRetStatus = ah_new.getReturnStatus(this,
-                        currBlk, allInstructions);
-                instPointType_t insnPointType = ah_new.getPointType(this,
-                        allInstructions, pltFuncs);
+                InstrumentableLevel insnInstLevel = ah_new.getInstLevel(currBlk, allInstructions);
+                FuncReturnStatus insnRetStatus = ah_new.getReturnStatus(currBlk, allInstructions);
+                instPointType_t insnPointType = ah_new.getPointType(allInstructions, pltFuncs);
                 bool isDynamicCall = ah_new.isDynamicCall();
                 bool isAbsoluteCall = ah_new.isAbsoluteCall();
-                bool hasUnresolvedCF = ah_new.hasUnresolvedControlFlow(this, currBlk,
+                bool hasUnresolvedCF = ah_new.hasUnresolvedControlFlow(currBlk,
                         allInstructions);
                 if(insnInstLevel >= instLevel_) {
                     switch(insnInstLevel)
@@ -894,7 +894,7 @@ bool image_func::buildCFG(
                     
                     instLevel_ = insnInstLevel;
                 }
-                if(!ah_new.isRelocatable(this, insnInstLevel))
+                if(!ah_new.isRelocatable(insnInstLevel))
                 {
                     parsing_printf("%s[%d]: setting relocatable FALSE at 0x%x\n",
                                    FILE__, __LINE__, currAddr);
@@ -937,7 +937,7 @@ bool image_func::buildCFG(
                                 parsing_printf("[%s] binding call 0x%lx -> 0x%lx\n",
                                                FILE__,currAddr, curEdge->first);
                                 targetFunc = bindCallTarget(curEdge->first,currBlk);
-                                if(ah_new.isTailCall(this, allInstructions))
+                                if(ah_new.isTailCall(allInstructions))
                                 {
                                     parsing_printf("%s: tail call %x -> %x inheriting return status of target\n",
                                             FILE__, currAddr, curEdge->first);

@@ -1,0 +1,338 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * This license is for research uses.  For such uses, there is no
+ * charge. We define "research use" to mean you may freely use it
+ * inside your organization for whatever purposes you see fit. But you
+ * may not re-distribute Paradyn or parts of Paradyn, in any form
+ * source or binary (including derivatives), electronic or otherwise,
+ * to any other organization or entity without our permission.
+ * 
+ * (for other uses, please contact us at paradyn@cs.wisc.edu)
+ * 
+ * All warranties, including without limitation, any warranty of
+ * merchantability or fitness for a particular purpose, are hereby
+ * excluded.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * Even if advised of the possibility of such damages, under no
+ * circumstances shall we (or any other person or entity with
+ * proprietary rights in the software licensed hereunder) be liable
+ * to you or any third party for direct, indirect, or consequential
+ * damages of any character regardless of type of action, including,
+ * without limitation, loss of profits, loss of use, loss of good
+ * will, or computer failure or malfunction.  You agree to indemnify
+ * us (and any other person or entity with proprietary rights in the
+ * software licensed hereunder) for any and all liability it may
+ * incur to third parties resulting from your use of Paradyn.
+ */
+
+#include "IA_InstrucIter.h"
+#include "debug.h"
+
+IA_InstrucIter::IA_InstrucIter(InstrucIter from, image_func* f)
+    : InstructionAdapter(*from, f), ii(from)
+{
+}
+
+void IA_InstrucIter::advance()
+{
+    InstructionAdapter::advance();
+    ++ii;
+    current = *ii;
+}
+
+size_t IA_InstrucIter::getSize() const
+{
+    return ii.peekNext() - *ii;
+}
+
+bool IA_InstrucIter::hasCFT() const
+{
+    return ii.isACallInstruction()
+            || ii.isAJumpInstruction()
+            || ii.isAReturnInstruction()
+            || ii.isACondBranchInstruction()
+            || ii.isACondReturnInstruction()
+            || ii.isADynamicCallInstruction()
+            || ii.isAIndirectJumpInstruction();
+}
+
+bool IA_InstrucIter::isAbortOrInvalidInsn() const
+{
+    return ii.isAnAbortInstruction();
+}
+
+bool IA_InstrucIter::isAllocInsn() const
+{
+    return ii.isAnAllocInstruction();
+}
+
+bool IA_InstrucIter::isFrameSetupInsn() const
+{
+    return ii.isFrameSetup();
+}
+
+bool IA_InstrucIter::isNop() const
+{
+    return ii.isANopInstruction();
+}
+
+bool IA_InstrucIter::isDynamicCall() const
+{
+    if(ii.isACallInstruction() &&
+       ii.isADynamicCallInstruction())
+    {
+        return true;
+    }
+    return false;
+}
+
+bool IA_InstrucIter::isAbsoluteCall() const
+{
+    bool isAbsolute = false;
+    if(ii.isACallInstruction())
+    {
+        ii.getBranchTargetAddress(&isAbsolute);
+    }
+    return isAbsolute;
+}
+
+InstrumentableLevel IA_InstrucIter::getInstLevel(image_basicBlock* currBlk,
+        std::vector<instruction>& all_insns) const
+{
+    if(ii.isAIndirectJumpInstruction())
+    {
+        BPatch_Set<Address> targets;
+        if(all_insns.size() == 2)
+        {
+            return UNINSTRUMENTABLE;
+        }
+        else if(context->archIsIndirectTailCall(ii))
+        {
+            return NORMAL;
+        }
+        else if(!parsedJumpTable)
+        {
+            if(!context->archGetMultipleJumpTargets(targets, currBlk, ii,
+                all_insns))
+            {
+                return HAS_BR_INDIR;
+            }
+        }
+        else if(!successfullyParsedJumpTable)
+        {
+            return HAS_BR_INDIR;
+        }
+    }
+    return NORMAL;
+}
+        
+bool IA_InstrucIter::isReturn() const
+{
+    return ii.isACondReturnInstruction() || ii.isAReturnInstruction();
+}
+
+bool IA_InstrucIter::isBranch() const
+{
+    return ii.isAJumpInstruction() || ii.isACondBranchInstruction() ||
+            ii.isAIndirectJumpInstruction();
+}
+
+Address IA_InstrucIter::getCFT() const
+{
+    if(ii.isAIndirectJumpInstruction() ||
+       ii.isADynamicCallInstruction())
+    {
+        return 0;
+    }
+    return ii.getBranchTargetAddress();
+}
+
+bool IA_InstrucIter::isCall() const
+{
+    return ii.isACallInstruction();
+}
+
+void IA_InstrucIter::getNewEdges(
+        std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
+        image_basicBlock* currBlk,
+        std::vector<instruction>& all_insns,
+        dictionary_hash<Address,
+        std::string> *pltFuncs) const
+{
+    if(!hasCFT()) return;
+    if(ii.isACallInstruction())
+    {
+        //validTarget is set to false if the call target is not a
+        //valid address in the applications process space
+        bool validTarget = true;
+        //simulateJump is set to true if the call should be treated
+        //as an unconditional branch for the purposes of parsing
+        //(a special case)
+        bool simulateJump = false;
+
+        Address target = ii.getBranchTargetAddress();
+        if(context->archIsRealCall(ii, validTarget, simulateJump))
+        {
+            outEdges.push_back(std::make_pair(target, ET_NOEDGE));
+        }
+        else
+        {
+            if(validTarget)
+            {
+                if(simulateJump)
+                {
+                    parsing_printf("[%s:%u] call at 0x%lx simulated as "
+                            "jump to 0x%lx\n",
+                    FILE__,__LINE__,getAddr(),target);
+                    outEdges.push_back(std::make_pair(target, ET_DIRECT));
+                    return;
+                }
+            }
+        }
+        outEdges.push_back(std::make_pair(getAddr() + getSize(),
+                           ET_FUNLINK));
+        return;
+    }
+    else if(ii.isACondBranchInstruction())
+    {
+        outEdges.push_back(std::make_pair(ii.getBranchTargetAddress(NULL),
+                           ET_COND_TAKEN));
+        outEdges.push_back(std::make_pair(current + getSize(), ET_COND_NOT_TAKEN));
+        return;
+    }
+    else if(ii.isAIndirectJumpInstruction())
+    {
+        parsing_printf("... indirect jump at 0x%x\n", current);
+        BPatch_Set<Address> targets;
+        if( all_insns.size() == 2 ) {
+            parsing_printf("... uninstrumentable due to 0 size\n");
+            return;
+        }
+        if(!(context->archIsIndirectTailCall(ii)))
+        {
+            successfullyParsedJumpTable = context->archGetMultipleJumpTargets(targets, currBlk, ii,
+                    all_insns);
+            parsedJumpTable = true;
+            if(successfullyParsedJumpTable)
+            {
+                for(BPatch_Set<Address>::iterator it = targets.begin();
+                    it != targets.end();
+                    it++)
+                {
+                    outEdges.push_back(std::make_pair(*it, ET_INDIR));
+                }
+            }
+        }
+        return;
+    }
+    else if(ii.isAJumpInstruction())
+    {
+        Address target = ii.getBranchTargetAddress(NULL);
+        Address catchStart;
+        if(context->archProcExceptionBlock(catchStart, current + getSize()))
+        {
+            outEdges.push_back(std::make_pair(catchStart, ET_CATCH));
+        }
+        
+
+        if(!(context->archIsATailCall( ii, all_insns )))
+        {
+            if(!(*pltFuncs).defines(target))
+            {
+                outEdges.push_back(std::make_pair(target,
+                                   ET_DIRECT));
+            }
+            else
+            {
+                parsing_printf("%s[519]: PLT tail call to %x\n", FILE__, target);
+                outEdges.push_back(std::make_pair(target, ET_NOEDGE));
+            }
+        }
+        else
+        {
+            parsing_printf("%s[%d]: tail call to %x\n", FILE__, __LINE__, target);
+            outEdges.push_back(std::make_pair(target, ET_NOEDGE));
+        }
+        return;
+    }
+    else if(ii.isACondReturnInstruction())
+    {
+        outEdges.push_back(std::make_pair(current + getSize(), ET_FALLTHROUGH));
+        return;
+    }
+    return;
+}
+
+bool IA_InstrucIter::isLeave() const
+{
+    return ii.isALeaveInstruction();
+}
+
+bool IA_InstrucIter::isDelaySlot() const
+{
+    return ii.isDelaySlot();
+}
+
+instruction IA_InstrucIter::getInstruction()
+{
+    return ii.getInstruction();
+}
+
+bool IA_InstrucIter::isRealCall() const
+{
+    bool ignored;
+    return context->archIsRealCall(ii, ignored, ignored);
+}
+
+bool IA_InstrucIter::simulateJump() const
+{
+    bool simulateJump = false;
+    bool ignored;
+    (void) context->archIsRealCall(ii, ignored, simulateJump);
+    return simulateJump;
+}
+
+bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
+{
+    bool valid, simjump;
+    if(!context->archIsRealCall(ii, valid, simjump))
+    {
+        if(!valid)
+        {
+            return false;
+        }
+    }
+    if(lvl == HAS_BR_INDIR)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool IA_InstrucIter::isTailCall(std::vector<instruction>& all_insns) const
+{
+    if(ii.isAJumpInstruction() && context->archIsATailCall(ii, all_insns))
+    {
+        return true;
+    }
+    if(ii.isACallInstruction() && context->archIsIndirectTailCall(ii))
+    {
+        return true;
+    }
+    return false;
+}
+
