@@ -63,9 +63,11 @@ namespace Dyninst
       bool retVal = false;
       if(*expr == *this)
       {
+        //fprintf(stderr, "Binding %s to %ld\n", format().c_str(), value.convert<unsigned long>());
 	setValue(value);
 	return true;
       }
+      //fprintf(stderr, "%s != %s in bind(), checking kids...\n", format().c_str(), expr->format().c_str());
       std::vector<InstructionAST::Ptr> children;
       getChildren(children);
       for(std::vector<InstructionAST::Ptr>::iterator curChild = children.begin();
@@ -76,8 +78,13 @@ namespace Dyninst
 	dyn_detail::boost::dynamic_pointer_cast<Expression>(*curChild);
 	if(curChild_asExpr)
 	{
-	  retVal = retVal || curChild_asExpr->bind(expr, value);
+            bool tmp = curChild_asExpr->bind(expr, value);
+            retVal = retVal || tmp;
 	}
+        else
+        {
+            //fprintf(stderr, "SKIPPING child %s, not an expression!\n", (*curChild)->format().c_str());
+        }
       }
       return retVal;
     }
@@ -85,6 +92,14 @@ namespace Dyninst
     {
       return false;
     }
-    
+    bool DummyExpr::isStrictEqual(const InstructionAST& ) const
+    {
+        return true;
+    }
+    bool DummyExpr::checkRegID(unsigned int ) const
+    {
+        return true;
+    }
+
   };
 };

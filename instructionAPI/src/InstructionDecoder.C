@@ -53,10 +53,8 @@ namespace Dyninst
       bufferSize(size),
       rawInstruction(bufferBegin)
     {
-      locs = new ia32_locations;
-      cond = new ia32_condition;
-      mac = new ia32_memacc[3];
-    }    
+        locs = NULL;
+    }
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() : 
       decodedInstruction(NULL), 
       is32BitMode(true),
@@ -65,18 +63,15 @@ namespace Dyninst
       bufferSize(0),
       rawInstruction(NULL)
     {
-      locs = new ia32_locations;
-      cond = new ia32_condition;
-      mac = new ia32_memacc[3];
+      locs = NULL;
     }
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
     {
       if(decodedInstruction) decodedInstruction->~ia32_instruction();
       free(decodedInstruction);
       
-      delete cond;
-      delete locs;
-      delete[] mac;
+      if(locs) locs->~ia32_locations();
+      free(locs);
     }
     static const unsigned char modrm_use_sib = 4;
     
@@ -130,10 +125,37 @@ namespace Dyninst
       }
       else
       {
-	Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
-	Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, opType, locs->rex_x))));
-	Expression::Ptr baseAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType, locs->rex_b))));
-	return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
+          Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
+          Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, opType,
+                                   locs->rex_x))));
+          Expression::Ptr baseAST;
+          if(base == 0x05)
+          {
+              switch(locs->modrm_mod)
+              {
+                  case 0x00:
+                      baseAST = decodeImmediate(op_d, locs->sib_position + 1);
+                      break;
+                  case 0x01:
+                      baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
+                              make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
+                      break;
+                  case 0x02:
+                      baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
+                              make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
+                      break;
+                  case 0x03:
+                  default:
+                      assert(0);
+                      break;
+              };
+          }
+          else
+          {
+              baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType,
+                                      locs->rex_b)));
+          }
+          return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
       }
     }
      
@@ -162,6 +184,7 @@ namespace Dyninst
 
     Expression::Ptr InstructionDecoder::decodeImmediate(unsigned int opType, unsigned int position)
     {
+        assert(position != (unsigned int)(-1));
       switch(opType)
       {
       case op_b:
@@ -179,7 +202,7 @@ namespace Dyninst
       case op_z:
 	// 32 bit mode & no prefix, or 16 bit mode & prefix => 32 bit
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
-	if(is32BitMode ^ sizePrefixPresent)
+	if(!sizePrefixPresent)
 	{
 	  return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
 	}
@@ -192,7 +215,7 @@ namespace Dyninst
       case op_p:
 	// 32 bit mode & no prefix, or 16 bit mode & prefix => 48 bit
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
-	if(is32BitMode ^ sizePrefixPresent)
+	if(!sizePrefixPresent)
 	{
 	  return Immediate::makeImmediate(Result(s48,*(const int64_t*)(rawInstruction + position)));
 	}
@@ -736,11 +759,13 @@ namespace Dyninst
       {
 	decodedInstruction = reinterpret_cast<ia32_instruction*>(malloc(sizeof(ia32_instruction)));
       }
-      mac = NULL; //new(mac) ia32_memacc[3];
-      cond = NULL; //new(cond) ia32_condition;
-      locs = new(locs) ia32_locations;
+      if(locs == NULL)
+      {
+          locs = reinterpret_cast<ia32_locations*>(malloc(sizeof(ia32_locations)));
+      }
       
-      decodedInstruction = new (decodedInstruction) ia32_instruction(mac, cond, locs);
+      locs = new(locs) ia32_locations();
+      decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
 
       ia32_decode(IA32_DECODE_PREFIXES, rawInstruction, *decodedInstruction);
     }
@@ -748,8 +773,8 @@ namespace Dyninst
     unsigned int InstructionDecoder::decodeOpcode()
     {
       doIA32Decode();
-      
-      m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(), decodedInstruction->getPrefix(), locs));
+      m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
+decodedInstruction->getPrefix(), locs));
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();
     }

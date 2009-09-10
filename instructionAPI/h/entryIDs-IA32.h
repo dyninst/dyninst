@@ -427,7 +427,9 @@ enum entryID {
   e_xlat,
   e_xor,
   e_xorpd,
-  e_xorps
+  e_xorps,
+  e_fp_generic,
+  e_3dnow_generic
 };
 
 #if defined(__GNUC__)

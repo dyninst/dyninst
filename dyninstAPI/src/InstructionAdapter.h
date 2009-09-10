@@ -47,6 +47,7 @@
 #include "InstructionDecoder.h"
 #include "image-func.h"
 #include "instPoint.h"
+#include <boost/tuple/tuple.hpp>
 
 #if !defined(ESSENTIAL_PARSING_ENUMS)
 #define ESSENTIAL_PARSING_ENUMS
@@ -105,7 +106,7 @@ class InstructionAdapter
             std::vector<instruction>& all_insns,
             dictionary_hash<Address, std::string> *pltFuncs) const =
 0;
-    virtual bool isDynamicCall(image_func* context) const = 0;
+    virtual bool isDynamicCall() const = 0;
     virtual bool isAbsoluteCall() const = 0;
     virtual InstrumentableLevel getInstLevel(image_func* context,
                                              image_basicBlock* currBlk,
@@ -122,7 +123,6 @@ all_insns) const = 0;
             virtual bool hasUnresolvedControlFlow(image_func* context,
             image_basicBlock* currBlk, std::vector<instruction>& all_insns)
 const = 0;
-            virtual bool isRealCall(image_func* context) const = 0;
             virtual bool simulateJump(image_func* context) const= 0;
     virtual void advance() = 0;
     virtual bool isNop() const = 0;
@@ -162,7 +162,7 @@ class IA_IAPI : public InstructionAdapter
             outEdges, image_func* context, image_basicBlock* currBlk,
             std::vector<instruction>& all_insns,
             dictionary_hash<Address, std::string> *pltFuncs) const;
-    virtual bool isDynamicCall(image_func* context) const;
+    virtual bool isDynamicCall() const;
     virtual bool isAbsoluteCall() const;
     virtual InstrumentableLevel getInstLevel(image_func* context,
                                              image_basicBlock* currBlk,
@@ -179,7 +179,6 @@ class IA_IAPI : public InstructionAdapter
     virtual bool hasUnresolvedControlFlow(image_func* context,
                                           image_basicBlock* currBlk, std::vector<instruction>& all_insns)
             const;
-    virtual bool isRealCall(image_func* context) const;
     virtual bool simulateJump(image_func* context) const;
     virtual void advance();
     virtual bool isNop() const;
@@ -188,8 +187,43 @@ class IA_IAPI : public InstructionAdapter
     virtual bool isRelocatable(image_func* context, InstrumentableLevel lvl) const;
     virtual bool isTailCall(image_func* context, std::vector<instruction>& all_insns) const;
     private:
-    Dyninst::InstructionAPI::InstructionDecoder dec;
-    Dyninst::InstructionAPI::Instruction::Ptr curInsn;
+        virtual bool isRealCall(image* img) const;
+        bool parseJumpTable(image_func* context,
+                            image_basicBlock* currBlk,
+                            std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
+        bool isIPRelativeBranch() const;
+        bool isMovAPSTable(image* img,
+                                    std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
+        Address findThunkAndOffset(image* img, image_basicBlock* start) const;
+        bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
+        std::pair<Address, Dyninst::InstructionAPI::Instruction::Ptr> findTableInsn() const;
+        boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
+        Dyninst::InstructionAPI::Instruction::Ptr,
+        bool> findMaxSwitchInsn(image* img, image_basicBlock *start) const;
+        bool findThunkInBlock(image* img, image_basicBlock* curBlock, Address& thunkOffset) const;
+        bool computeTableBounds(image* img, Dyninst::InstructionAPI::Instruction::Ptr maxSwitchInsn,
+                                Dyninst::InstructionAPI::Instruction::Ptr branchInsn,
+                                Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
+                                         bool foundJCCAlongTaken,
+                                         unsigned& tableSize,
+                                         unsigned& tableStride) const;
+        bool fillTableEntries(image* img, Address thunkOffset,
+                                       Address tableBase,
+                                       unsigned tableSize,
+                                       unsigned tableStride,
+                                       std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
+        Address getTableAddress(image* img, Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
+                                Address thunkOffset) const;
+
+
+
+
+        Dyninst::InstructionAPI::InstructionDecoder dec;
+    Address getCFT() const;
+    mutable bool validCFT;
+    mutable Address cachedCFT;
+    std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
+    Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
 };
 
 class IA_InstrucIter : public InstructionAdapter
@@ -208,7 +242,7 @@ class IA_InstrucIter : public InstructionAdapter
             outEdges, image_func* context, image_basicBlock* currBlk,
             std::vector<instruction>& all_insns,
             dictionary_hash<Address, std::string> *pltFuncs) const;
-    virtual bool isDynamicCall(image_func* context) const;
+    virtual bool isDynamicCall() const;
     virtual bool isAbsoluteCall() const;
     virtual InstrumentableLevel getInstLevel(image_func* context,
                                              image_basicBlock* currBlk,
@@ -225,7 +259,6 @@ class IA_InstrucIter : public InstructionAdapter
     virtual bool hasUnresolvedControlFlow(image_func* context,
                                           image_basicBlock* currBlk, std::vector<instruction>& all_insns)
             const;
-    virtual bool isRealCall(image_func* context) const;
     virtual bool simulateJump(image_func* context) const;
     virtual bool isRelocatable(image_func* context, InstrumentableLevel lvl) const;
     virtual void advance();
@@ -235,7 +268,8 @@ class IA_InstrucIter : public InstructionAdapter
     virtual bool isTailCall(image_func* context, std::vector<instruction>& all_insns) const;
     
     private:
-    mutable InstrucIter ii;
+        virtual bool isRealCall(image_func* context) const;
+        mutable InstrucIter ii;
         
 };
 #endif // !defined(INSTRUCTION_ADAPTER_H)

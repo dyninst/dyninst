@@ -70,7 +70,17 @@ namespace Dyninst
       case e_loope:
       case e_loopn:
 	return c_BranchInsn;
-      default:
+          case e_cmp:
+          case e_cmppd:
+          case e_cmpps:
+          case e_cmpsb:
+          case e_cmpsd:
+          case e_cmpss:
+          case e_cmpsw:
+          case e_cmpxch:
+          case e_cmpxch8b:
+              return c_CompareInsn;
+          default:
 	return c_NoCategory;
       }
       

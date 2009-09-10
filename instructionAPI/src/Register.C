@@ -90,7 +90,15 @@ namespace Dyninst
 	   findMe->checkRegID(registerID) == r_ESP ||
 	   findMe->checkRegID(registerID) == r_EBP ||
 	   findMe->checkRegID(registerID) == r_ESI ||
-	   findMe->checkRegID(registerID) == r_EDI)
+	   findMe->checkRegID(registerID) == r_EDI ||
+            findMe->checkRegID(registerID) == r_RAX ||
+            findMe->checkRegID(registerID) == r_RDX ||
+            findMe->checkRegID(registerID) == r_RCX ||
+            findMe->checkRegID(registerID) == r_RBX ||
+            findMe->checkRegID(registerID) == r_RSP ||
+            findMe->checkRegID(registerID) == r_RBP ||
+            findMe->checkRegID(registerID) == r_RSI ||
+            findMe->checkRegID(registerID) == r_RDI)
 	{
 	  return true;
 	}
@@ -193,7 +201,51 @@ namespace Dyninst
     }
     bool RegisterAST::checkRegID(unsigned int id) const
     {
-      return id == registerID;
+        if(registerID == r_ALLGPRS)
+        {
+            if(id == r_EAX ||
+               id == r_EDX ||
+               id == r_ECX ||
+               id == r_EBX ||
+               id == r_ESP ||
+               id == r_EBP ||
+               id == r_ESI ||
+               id == r_EDI ||
+               id == r_RAX ||
+               id == r_RDX ||
+               id == r_RCX ||
+               id == r_RBX ||
+               id == r_RSP ||
+               id == r_RBP ||
+               id == r_RSI ||
+               id == r_RDI)
+            {
+                return true;
+            }
+        }
+        if(id == r_ALLGPRS)
+        {
+            if(registerID == r_EAX ||
+               registerID == r_EDX ||
+               registerID == r_ECX ||
+               registerID == r_EBX ||
+               registerID == r_ESP ||
+               registerID == r_EBP ||
+               registerID == r_ESI ||
+               registerID == r_EDI ||
+               registerID == r_RAX ||
+               registerID == r_RDX ||
+               registerID == r_RCX ||
+               registerID == r_RBX ||
+               registerID == r_RSP ||
+               registerID == r_RBP ||
+               registerID == r_RSI ||
+               registerID == r_RDI)
+            {
+                return true;
+            }
+        }
+        return id == registerID;
     }
     
   };

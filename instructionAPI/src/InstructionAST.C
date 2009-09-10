@@ -30,6 +30,7 @@
  */
 
 #include "../h/InstructionAST.h"
+#include "../h/Expression.h"
 #include <string>
 
 namespace Dyninst
@@ -48,13 +49,17 @@ namespace Dyninst
     {
       // isStrictEqual assumes rhs and this to be of the same derived type
       // so isSameType enforces this restriction
-      return((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
+        if(typeid(*this) == typeid(DummyExpr()) ||
+           typeid(rhs) == typeid(DummyExpr()))
+        {
+            return true;
+        }
+        return((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
     }
     bool InstructionAST::checkRegID(unsigned int) const
     {
-      return false;
+        return false;
     }
-    
 
   };
 };

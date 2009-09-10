@@ -639,7 +639,9 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_xor, "xor")
   (e_xorpd, "xorpd")
   (e_xorps, "xorps")
-;
+  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
+  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
+        ;
 
 
 const dyn_hash_map<entryID, flagInfo>& ia32_instruction::getFlagTable()
@@ -4051,7 +4053,11 @@ entryID ia32_entry::getID(ia32_locations* l) const
     default:
       break;
     }
-  default:
+  case t_coprocEsc:
+      return e_fp_generic;
+      case t_3dnow:
+          return e_3dnow_generic;
+      default:
     break;
   }
   return id;
