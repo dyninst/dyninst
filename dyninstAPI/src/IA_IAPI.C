@@ -186,32 +186,6 @@ bool IA_IAPI::isAbsoluteCall() const
     return false;
 }
 
-InstrumentableLevel IA_IAPI::getInstLevel(image_basicBlock* ,
-                                          std::vector<instruction>& all_insns) const
-{
-    if(curInsn()->getCategory() == c_BranchInsn &&
-       getCFT() == 0)
-    {
-        if(all_insns.size() == 2)
-        {
-            return UNINSTRUMENTABLE;
-        }
-        else if(isTailCall(all_insns))
-        {
-            return NORMAL;
-        }
-        else if(!parsedJumpTable)
-        {
-            // check for unparseable    
-            return HAS_BR_INDIR;
-        }
-        else if(!successfullyParsedJumpTable)
-        {
-            return HAS_BR_INDIR;
-        }
-    }
-    return NORMAL;
-}
 
 bool IA_IAPI::isReturn() const
 {

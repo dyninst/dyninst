@@ -66,9 +66,6 @@ class IA_IAPI : public InstructionAdapter
                 dictionary_hash<Address, std::string> *pltFuncs) const;
         virtual bool isDynamicCall() const;
         virtual bool isAbsoluteCall() const;
-        virtual InstrumentableLevel getInstLevel(image_basicBlock* currBlk,
-                std::vector<instruction>&
-                        all_insns) const;
         virtual bool simulateJump() const;
         virtual void advance();
         virtual bool isNop() const;

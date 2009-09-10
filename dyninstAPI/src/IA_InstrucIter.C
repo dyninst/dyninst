@@ -109,37 +109,7 @@ bool IA_InstrucIter::isAbsoluteCall() const
     }
     return isAbsolute;
 }
-
-InstrumentableLevel IA_InstrucIter::getInstLevel(image_basicBlock* currBlk,
-        std::vector<instruction>& all_insns) const
-{
-    if(ii.isAIndirectJumpInstruction())
-    {
-        BPatch_Set<Address> targets;
-        if(all_insns.size() == 2)
-        {
-            return UNINSTRUMENTABLE;
-        }
-        else if(context->archIsIndirectTailCall(ii))
-        {
-            return NORMAL;
-        }
-        else if(!parsedJumpTable)
-        {
-            if(!context->archGetMultipleJumpTargets(targets, currBlk, ii,
-                all_insns))
-            {
-                return HAS_BR_INDIR;
-            }
-        }
-        else if(!successfullyParsedJumpTable)
-        {
-            return HAS_BR_INDIR;
-        }
-    }
-    return NORMAL;
-}
-        
+       
 bool IA_InstrucIter::isReturn() const
 {
     return ii.isACondReturnInstruction() || ii.isAReturnInstruction();

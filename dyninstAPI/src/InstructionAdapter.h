@@ -104,9 +104,8 @@ class InstructionAdapter
 0;
     virtual bool isDynamicCall() const = 0;
     virtual bool isAbsoluteCall() const = 0;
-    virtual InstrumentableLevel getInstLevel(image_basicBlock* currBlk,
-                                             std::vector<instruction>&
-all_insns) const = 0;
+    virtual InstrumentableLevel getInstLevel(std::vector<instruction>&
+all_insns) const;
     virtual FuncReturnStatus getReturnStatus(image_basicBlock* currBlk,
                                              std::vector<instruction>&
 all_insns) const ;

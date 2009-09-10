@@ -63,9 +63,6 @@ class IA_InstrucIter : public InstructionAdapter
                 dictionary_hash<Address, std::string> *pltFuncs) const;
         virtual bool isDynamicCall() const;
         virtual bool isAbsoluteCall() const;
-        virtual InstrumentableLevel getInstLevel(image_basicBlock* currBlk,
-                std::vector<instruction>&
-                        all_insns) const;
         virtual bool simulateJump() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
         virtual void advance();

@@ -867,7 +867,7 @@ bool image_func::buildCFG(
                 Edges_t edges_out;
                 ah_new.getNewEdges(edges_out, currBlk, allInstructions,
                                pltFuncs);
-                InstrumentableLevel insnInstLevel = ah_new.getInstLevel(currBlk, allInstructions);
+                InstrumentableLevel insnInstLevel = ah_new.getInstLevel(allInstructions);
                 FuncReturnStatus insnRetStatus = ah_new.getReturnStatus(currBlk, allInstructions);
                 instPointType_t insnPointType = ah_new.getPointType(allInstructions, pltFuncs);
                 bool isDynamicCall = ah_new.isDynamicCall();

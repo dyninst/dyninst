@@ -168,3 +168,30 @@ instPointType_t InstructionAdapter::getPointType(std::vector<instruction>& all_i
     }
     return noneType;
 }
+
+InstrumentableLevel InstructionAdapter::getInstLevel(std::vector<instruction>& all_insns) const
+{
+    if(isBranch() &&
+       getCFT() == 0)
+    {
+        if(all_insns.size() == 2)
+        {
+            return UNINSTRUMENTABLE;
+        }
+        else if(isTailCall(all_insns))
+        {
+            return NORMAL;
+        }
+        else if(!parsedJumpTable)
+        {
+            assert(0);
+            // check for unparseable    
+            return HAS_BR_INDIR;
+        }
+        else if(!successfullyParsedJumpTable)
+        {
+            return HAS_BR_INDIR;
+        }
+    }
+    return NORMAL;
+}
