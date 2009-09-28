@@ -869,6 +869,8 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
             // When we in-line, this will need to change. For now,
             // we can always fix jumps by hand
             hasChanged_ = true;
+	    //multiT->markChanged(true);
+	    multiT->updateCode(NULL);
         }
     }
     else {
