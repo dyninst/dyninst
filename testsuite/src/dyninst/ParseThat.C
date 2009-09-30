@@ -116,10 +116,10 @@ ParseThat::ParseThat() :
 	{
 		char cwdbuf[1024];
 		char *last_slash = NULL;
-		const char * cwd = getcwd(cwdbuf, 1024);
+		char * cwd = getcwd(cwdbuf, 1024);
 
 		if (cwd)
-			last_slash = strrchr(cwd, slashc);
+		  last_slash = strrchr(cwd, slashc);
 
 		if (last_slash) 
 		{

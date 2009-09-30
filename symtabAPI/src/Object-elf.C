@@ -3743,7 +3743,7 @@ ObjectType Object::objType() const
 void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs)
 { 
   string working_module;
-  char *ptr;
+  const char *ptr;
   // check .stabs section to get language info for modules:
   //   int stab_nsyms;
   //   char *stabstr_nextoffset;
@@ -3832,7 +3832,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
 	    }
 	  else
 	    {
-	      working_name = const_cast<char*>(stabptr->name(i));
+	      working_name = stabptr->name(i);
 	      ptr = strrchr(working_name, '/');
 	      if (ptr)
 		{
