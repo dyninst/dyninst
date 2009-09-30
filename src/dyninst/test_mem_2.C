@@ -164,7 +164,7 @@ static void get_vars_addrs(BPatch_image* bip) // from mutatee
 
 
 #if arch_x86_test
-static const unsigned int nstores = 23;
+static const unsigned int nstores = 27;
 static BPatch_memoryAccess* storeList[nstores];
 
 static void init_test_data()
@@ -183,9 +183,13 @@ static void init_test_data()
   storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4);
   storeList[++k] = MK_ST((long)divarwp,-1,-1,4);   // s10
   storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4);
+  storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
 
   storeList[++k] = MK_STnt((long)divarwp,-1,-1,8); // s12
   //storeList[++k] = MK_ST(0,7,-1,4);
+  storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+  storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
+  storeList[++k] = NULL;//MK_ST(-4,4,-1,4); // call
   storeList[++k] = new BPatch_memoryAccess(NULL,0,
 					   false, true,
                                            0, 7, -1, 0,
@@ -313,8 +317,10 @@ test_results_t test_mem_2_Mutator::executeTest() {
   dumpvect(res1, "Stores");
 
   if((*res1).size() != nstores)
-    failtest(testnum, testdesc, "Number of stores seems wrong in function \"loadsnstores.\"\n");
-
+  {
+      logerror("%s[%d]:  FAILURE: expected %d stores, got %d\n", __FILE__, __LINE__, nstores, (*res1).size());
+      failtest(testnum, testdesc, "Number of stores seems wrong in function \"loadsnstores.\"\n");
+  }
   if(!validate(res1, storeList, "store"))
     failtest(testnum, testdesc, "Store sequence failed validation.\n");
 

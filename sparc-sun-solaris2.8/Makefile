@@ -105,16 +105,16 @@ endif
 MUTATEE_CFLAGS_GNU = $(MODCFLAGS) $(DEBUG_FLAG)
 MUTATOR_CXXFLAGS += -W -Wall
 
-TESTLIB_FLAGS = -shared -fpic
+TESTLIB_FLAGS = -r -Kpic -G
 
 LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
 
-TESTDRIVER_LDFLAGS = -liberty
+TESTDRIVER_LDFLAGS = -liberty -mimpure-text
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBELF_LIB) -lelf -lstdc++ -lsocket -lrt -L$(LIBDWARF_LIB) -ldwarf 
+MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBELF_LIB) -lelf -lstdc++ -lsocket -lrt -L$(LIBDWARF_LIB) -ldwarf -mimpure-text
 
