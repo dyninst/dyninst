@@ -46,7 +46,7 @@ namespace Dyninst
   {
  
     class Expression;
-
+    class Visitor;
     /// An %Expression is an AST representation of how the value of an
     /// operand is computed.
     ///
@@ -153,8 +153,9 @@ namespace Dyninst
       /// the same value.  For example, if a dereference of 0xDEADBEEF is bound to
       /// 0, and a register is bound to 0xDEADBEEF, a dereference of that register is not
       /// bound to 0.
-      bool bind(Expression* expr, const Result& value);
+      virtual bool bind(Expression* expr, const Result& value);
       
+      virtual void apply(Visitor*) {}
 
     protected:
       virtual bool isFlag() const;

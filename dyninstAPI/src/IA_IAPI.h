@@ -72,7 +72,14 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual bool isTailCall(std::vector<instruction>& all_insns) const;
+        virtual bool isTailCall(std::vector<instruction>&) const;
+        virtual bool checkEntry() const;
+        virtual Address getCFT() const;
+        virtual bool isStackFramePreamble(int& frameSize) const;
+        virtual bool savesFP() const;
+        virtual bool cleansStack() const;
+        virtual bool isConditional() const;
+        virtual bool isBranch() const;
     private:
         virtual bool isRealCall() const;
         bool parseJumpTable(image_basicBlock* currBlk,
@@ -99,19 +106,21 @@ class IA_IAPI : public InstructionAdapter
                               std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
         Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
                                 Address thunkOffset) const;
+        bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn() const;
-        virtual bool isBranch() const;
         virtual bool isCall() const;
 
 
 
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
-        Address getCFT() const;
-        mutable bool validCFT;
-        mutable Address cachedCFT;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
+        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator curInsnIter;
+        mutable bool validCFT;
+        mutable Address cachedCFT;
+        mutable std::pair<bool, bool> hascftstatus;
+        mutable std::pair<bool, bool> tailCall;
 };
 
 

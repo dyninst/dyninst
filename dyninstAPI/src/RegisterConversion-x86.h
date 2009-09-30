@@ -39,53 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#if !defined(IA_INSTRUCITER_H)
-#define IA_INSTRUCITER_H
 
-#include "InstructionAdapter.h"
-#include "InstrucIter.h"
+#if !defined(REGISTER_CONVERSION_H)
+#define REGISTER_CONVERSION_H
 
-class IA_InstrucIter : public InstructionAdapter
-{
-    public:
-        instruction getInstruction();
-        IA_InstrucIter(InstrucIter from, image_func* f);
-        virtual bool hasCFT() const;
-        virtual size_t getSize() const;
-        virtual bool isFrameSetupInsn() const;
-        virtual bool isAbortOrInvalidInsn() const;
-        virtual bool isAllocInsn() const;
-    // TODO
-        virtual void
-                getNewEdges(pdvector<std::pair< Address, EdgeTypeEnum> >&
-                outEdges, image_basicBlock* currBlk,
-                pdvector<instruction>& all_insns,
-                dictionary_hash<Address, std::string> *pltFuncs) const;
-        virtual bool isDynamicCall() const;
-        virtual bool isAbsoluteCall() const;
-        virtual bool simulateJump() const;
-        virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual void advance();
-        virtual bool isNop() const;
-        virtual bool isLeave() const;
-        virtual bool isDelaySlot() const;
-        virtual bool isTailCall(pdvector<instruction>& all_insns) const;
-        virtual bool checkEntry() const;
-        virtual Address getCFT() const;
-        virtual bool isStackFramePreamble(int& frameSize) const;
-        virtual bool savesFP() const;
-        virtual bool cleansStack() const;
-        virtual bool isConditional() const;
-        virtual bool isBranch() const;
-   
-    private:
-        virtual bool isRealCall() const;
-        virtual bool isReturn() const;
-        virtual bool isCall() const;
-        
-        mutable InstrucIter ii;
-        
-};
+#include "RegisterIDs-x86.h"
+#include "common/h/Types.h"
 
+Register convertRegID(Dyninst::InstructionAPI::IA32Regs toBeConverted);
 
-#endif // !defined(IA_INSTRUCITER_H)
+#endif //!defined(REGISTER_CONVERSION_H)

@@ -56,22 +56,10 @@
 #include <algorithm>
 #include "arch.h"
 
-#include "InstrucIter.h"
 #include "InstructionAdapter.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-#else
-namespace Dyninst
-{
-	namespace InstructionAPI
-	{
-		struct RegisterAST
-		{
-			typedef boost::shared_ptr<RegisterAST> Ptr;
-		};
-	};
-};
 #endif
 /**************************************************************
  *
@@ -92,6 +80,7 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   }
 }
 
+#if 0
 bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
 {
 	// These don't exist on IA32...
@@ -233,6 +222,7 @@ bool image_func::archCheckEntry( InstrucIter &ah, image_func * /*func*/ )
     }
   return true;
 }
+#endif
 
 // Architecture-specific a-priori determination that we can't
 // parse this function.
@@ -288,6 +278,7 @@ void image_func::archInstructionProc(InstructionAdapter & /* ah */)
     return;
 }
 
+#if 0
 bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
                        instruction &branchInsn, bool &found_along_taken_br,
                        const std::set<Dyninst::InstructionAPI::RegisterAST::Ptr>& /*regsRead*/)
@@ -778,6 +769,7 @@ bool image_func::archGetMultipleJumpTargets(
                 return targets.size() > 0;
             }
 }
+#endif
 
 bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 {
@@ -790,7 +782,7 @@ bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
         return false;
     }
 }
-
+#if 0
 bool image_func::archIsATailCall(InstrucIter &ah, 
                                  pdvector< instruction >& allInstructions)
 {
@@ -853,8 +845,10 @@ bool image_func::archIsIndirectTailCall(InstrucIter &ah)
 
   return false;
 }
+#endif
 
 bool image_func::writesFPRs(unsigned level) {
+    using namespace Dyninst::InstructionAPI;
     // Oh, we should be parsed by now...
     if (!parsed_) image_->analyzeIfNeeded();
 
@@ -885,13 +879,16 @@ bool image_func::writesFPRs(unsigned level) {
         }
 
         // No kids contain writes. See if our code does.
-        InstrucIter ah(this);
-        while (ah.hasMore()) {
-            if (ah.isFPWrite()) {
+        const unsigned char* buf = (const unsigned char*)(img()->getPtrToInstruction(getOffset()));
+        InstructionDecoder d(buf,
+                             endOffset_ - getOffset());
+        Instruction::Ptr i;
+        while (i = d.decode()) {
+            if(i->getOperation().getID() == e_fp_generic)
+            {
                 containsFPRWrites_ = used;
                 return true;
             }
-            ah++;
         }
 
         // No kids do, and we don't. Impressive.

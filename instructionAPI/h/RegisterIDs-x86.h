@@ -75,6 +75,8 @@ namespace Dyninst
 		    r_DR0, r_DR1, r_DR2, r_DR3, r_DR4, r_DR5, r_DR6, r_DR7,
 		    r_TR0, r_TR1, r_TR2, r_TR3, r_TR4, r_TR5, r_TR6, r_TR7,
 		    r_SPL, r_BPL, r_SIL, r_DIL,
+                    // FP Stack
+                    r_ST0, r_ST1, r_ST2, r_ST3, r_ST4, r_ST5, r_ST6, r_ST7,
 		    r_ALLGPRS
     };
 	  

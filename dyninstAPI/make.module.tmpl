@@ -97,7 +97,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/baseTramp.C \
                 ../src/miniTramp.C \
                 ../src/replacedInstruction.C \
-                ../src/InstrucIter-xplat.C \
                 ../src/dyn_thread.C \
                 ../src/addressSpace.C \
                 ../src/process.C \
@@ -132,11 +131,11 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_dependenceGraphEdge.C \
                 ../src/parRegion.C \
                 ../src/liveness.C \
-		../src/InstrucIter-Function.C \
 		../src/InstructionCache.C \
 		../src/InstructionAdapter.C \
-		../src/IA_IAPI.C \
-		../src/IA_InstrucIter.C
+#		../src/IA_InstrucIter.C 
+#		../src/InstrucIter-Function.C
+#                ../src/InstrucIter-xplat.C
 
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \

@@ -77,7 +77,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT InstructionDecoder();
       
       INSTRUCTION_EXPORT ~InstructionDecoder();
-
+      INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object

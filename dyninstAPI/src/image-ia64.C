@@ -140,7 +140,7 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /*ah*/)
 
 
 // Not used on IA64
-void image_func::archInstructionProc(InstrucIter &/*ah*/)
+void image_func::archInstructionProc(InstructionAdapter &/*ah*/)
 {
     return;
 }

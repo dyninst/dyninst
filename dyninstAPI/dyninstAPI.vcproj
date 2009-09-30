@@ -358,7 +358,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						AdditionalOptions="/TP"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -367,7 +367,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						AdditionalOptions="/TP"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -489,6 +489,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_memoryAccessAdapter.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalOptions="/TP"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -843,6 +852,24 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Ia_iapi.c">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalOptions="/TP"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\IAPI_to_AST.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalOptions="/TP"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\common\src\Ident.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1017,6 +1044,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\InstructionAdapter.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalOptions="/TP"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -1216,6 +1252,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\RegisterConversion-x86.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalOptions="/TP"/>
 				</FileConfiguration>
 			</File>
 			<File

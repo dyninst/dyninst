@@ -52,9 +52,11 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "symtabAPI/h/Symtab.h"
-#include "InstructionAdapter.h"
+#if defined(cap_instruction_api)
 #include "IA_IAPI.h"
+#else
 #include "IA_InstrucIter.h"
+#endif
 #include "InstructionAdapter.h"
 #include "dyninstAPI/src/parRegion.h"
 
@@ -62,7 +64,6 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
 
-#include "dyninstAPI/src/InstrucIter.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
@@ -138,8 +139,8 @@ bool image::analyzeImage()
         // Check whether recursive traversal has dealt with a function
         // before proceeding to parse it
         if(!pdf->parsed()) {
-            parsing_printf("[%s:%u] calling parse() at 0x%lx\n",
-                FILE__,__LINE__,pdf->getOffset());
+            parsing_printf("[%s] calling parse() at 0x%lx\n",
+                FILE__,pdf->getOffset());
 
             /** Symtab-defined functions are already so ingrained in our
                 data structures at this point that they must be entered
@@ -149,8 +150,8 @@ bool image::analyzeImage()
             enterFunctionInTables(pdf);
     
             if(!pdf->parse()) {
-                parsing_printf("[%s:%u] symtab-defined function %s at 0x%lx "
-                               "failed to parse\n",FILE__,__LINE__,
+                parsing_printf("[%s] symtab-defined function %s at 0x%lx "
+                               "failed to parse\n",FILE__,
                     pdf->symTabName().c_str(),pdf->getOffset());
             }
         }
@@ -158,8 +159,8 @@ bool image::analyzeImage()
 
     /* Some functions that built their block lists through the
        `shared code' mechanism may be incomplete. Finish them. */
-    parsing_printf("[%s:%u] Completing `shared code' parsing: %u entries\n",
-        FILE__,__LINE__,reparse_shared.size());
+    parsing_printf("[%s] Completing `shared code' parsing: %u entries\n",
+        FILE__,reparse_shared.size());
     for(unsigned i=0;i<reparse_shared.size();++i) {
         pair<image_basicBlock *,image_func*> & p = reparse_shared[i];
         (p.second)->parseSharedBlocks(p.first);
@@ -382,18 +383,18 @@ bool image_func::parse()
 
     if(parsed_)
     {
-        parsing_printf("[%s:%u] multiple call of parse() for %s\n",
+        parsing_printf("[%s] multiple call of parse() for %s\n", FILE__,
                 symTabName().c_str());
         return false;
     }
     parsed_ = true;
 
-    parsing_printf("[%s:%u] parsing %s at 0x%lx\n", FILE__,__LINE__,
+    parsing_printf("[%s] parsing %s at 0x%lx\n", FILE__,
                 symTabName().c_str(), getOffset());
 
     if(!img()->isValidAddress(getOffset())) {
-        parsing_printf("[%s:%u] refusing to parse from invalid address 0x%lx\n",
-            FILE__,__LINE__,getOffset());
+        parsing_printf("[%s] refusing to parse from invalid address 0x%lx\n",
+            FILE__,getOffset());
         return false;
     }
 
@@ -410,8 +411,8 @@ bool image_func::parse()
     if(archIsUnparseable())
     {
         retStatus_ = RS_UNKNOWN;
-        parsing_printf("[%s:%u] archIsUnparseable denied parse at 0x%lx\n",
-            FILE__,__LINE__,getOffset());
+        parsing_printf("[%s] archIsUnparseable denied parse at 0x%lx\n",
+            FILE__,getOffset());
         return false;
     }
 
@@ -425,18 +426,31 @@ bool image_func::parse()
     Address funcBegin = getOffset();
     Address funcEntryAddr = funcBegin;
 
-    InstrucIter ah(funcBegin, this);
+#if defined(cap_instruction_api)
+    using namespace Dyninst::InstructionAPI;
+    typedef IA_IAPI InstructionAdapter_t;
+    const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(funcBegin));
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
+    dec.setMode(img()->getAddressWidth() == 8);
+    IA_IAPI ah(dec, funcBegin, this);
+#else
+    typedef IA_InstrucIter InstructionAdapter_t;
+    InstrucIter ii(funcBegin, this);
+    IA_InstrucIter ah(ii, this);
+#endif
+    
 
     // Test for various reasons we might just give up and die
-    if( !archCheckEntry( ah, this ) )
+    if( !ah.checkEntry() )
     {
         // Check for redirection to another function as first insn.
         // XXX This is a heuristic that we should revisit; is it really
         //     a common idiom for redirection to another function? Why
         //     do we need to treat it that way? -- nate & kevin
+#if 0
         if( ah.isAJumpInstruction() )
         {
-            Address target = ah.getBranchTargetAddress();
+            Address target = ah.getCFT();
 
             parsing_printf("[%s:%u] direct jump to 0x%lx at entry point\n",
                 FILE__,__LINE__,target);
@@ -456,16 +470,36 @@ bool image_func::parse()
                 pdmod()->addUnresolvedControlFlow(p);
             }
         }
-        endOffset_ = ah.peekNext();
-        instLevel_ = UNINSTRUMENTABLE; 
+#endif
+        if(ah.isBranch() && !ah.isConditional())
+        {
+            Address target = ah.getCFT();
+            parsing_printf("[%s] direct jump to 0x%lx at entry point\n",
+                                FILE__,target);
+    
+            if(img()->isCode(target)) {
+            // Recursively parse this function
+                bindCallTarget(target,NULL);
+            } else {
+        // Create instrumentation point for on-demand parsing
+                p = new image_instPoint(ah.getAddr(),
+                                        ah.getInstruction(),
+                                        this,
+                                        target,
+                                        false,
+                                        false,
+                                        otherPoint);
+                pdmod()->addUnresolvedControlFlow(p);
+            }
+            endOffset_ = ah.getNextAddr();
+            instLevel_ = UNINSTRUMENTABLE;
 
-        retStatus_ = RS_UNKNOWN;
-        parsing_printf("[%s:%u] archCheckEntry denied parse at 0x%lx\n",
-            FILE__,__LINE__,getOffset());
-        return false;
+            retStatus_ = RS_UNKNOWN;
+            parsing_printf("[%s] archCheckEntry denied parse at 0x%lx\n",
+                            FILE__,getOffset());
+            return false;
+        }
     }
-
-    ah.setCurrentAddress(funcEntryAddr);
 
     // Define entry point
     p = new image_instPoint(funcEntryAddr,
@@ -475,13 +509,12 @@ bool image_func::parse()
     funcEntries_.push_back(p);
 
     int frameSize;
-    InstrucIter tmp(ah);
-    if(tmp.isStackFramePreamble(frameSize))
+    if(ah.isStackFramePreamble(frameSize))
     {
         archSetFrameSize(frameSize);
         noStackFrame = false;
     }
-    savesFP_ = ah.isFramePush();    // only ever true on x86
+    savesFP_ = ah.savesFP();    // only ever true on x86
 
     // Architecture-specific "do not relocate" list
     if(archNoRelocate())
@@ -534,6 +567,7 @@ bool image_func::parse()
     entryBlock_ = ph_entryBlock;
     entryBlocks_.push_back(ph_entryBlock);
 
+#if 0
     // The "actual" entry block (alpha)
     if(funcEntryAddr != funcBegin)
     {
@@ -565,7 +599,7 @@ bool image_func::parse()
 	    image_->funcsByEntryAddr[funcEntryAddr] = this;
     } 
     // End alpha-specific weirdness
-
+#endif
     // Note that the current function is in-progess to avoid
     // spurious duplication for loops in the call graph
     img()->activelyParsing[getOffset()] = this;
@@ -618,14 +652,16 @@ bool image_func::buildCFG(
     image_basicBlock *nextExistingBlock = NULL;
 
     // Instructions and InstPoints
+#if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
-#if defined(use_instruction_api)
-    pdvector< Instruction::Ptr > allInstructions;
+    pdvector< instruction > allInstructions;
     typedef IA_IAPI InstructionAdapter_t;
 #else
     pdvector< instruction > allInstructions;
     typedef IA_InstrucIter InstructionAdapter_t;
 #endif
+    typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
+    typedef pdvector< edge_pair_t > Edges_t;
     image_instPoint *p;
     int insnSize;
 
@@ -658,13 +694,16 @@ bool image_func::buildCFG(
 
     for(unsigned i=0; i < worklist.size(); i++)
     {
-        InstrucIter iter(worklist[i],this);
-        InstructionAdapter_t ah(iter, this);
+#if defined(cap_instruction_api)
+        using namespace Dyninst::InstructionAPI;
         const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i]));
         InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
         dec.setMode(img()->getAddressWidth() == 8);
-        IA_IAPI ah_new(dec, worklist[i], this);
-        
+        InstructionAdapter_t ah(dec, worklist[i], this);
+#else        
+        InstrucIter iter(worklist[i],this);
+        InstructionAdapter_t ah(iter, this);
+#endif        
         image_basicBlock* currBlk = leadersToBlock[worklist[i]];
 
         parsing_printf("[%s] parsing block at 0x%lx, "
@@ -698,7 +737,7 @@ bool image_func::buildCFG(
         // Remember where the next block is, so we don't blindly run over
         // the top of it when scanning through instructions.
         nextExistingBlockAddr = ULONG_MAX;
-        if(image_->basicBlocksByRange.successor(ah_new.getNextAddr(),tmpRange))
+        if(image_->basicBlocksByRange.successor(ah.getNextAddr(),tmpRange))
         {
             nextExistingBlock = dynamic_cast<image_basicBlock*>(tmpRange);
             if(nextExistingBlock->firstInsnOffset_ > worklist[i])
@@ -710,8 +749,8 @@ bool image_func::buildCFG(
 
         while(true) // instructions in block
         {
-            currAddr = ah_new.getAddr();
-            insnSize = ah_new.getSize();
+            currAddr = ah.getAddr();
+            insnSize = ah.getSize();
 
             // The following three cases ensure that we properly handle
             // situations where our parsing comes across previously
@@ -724,7 +763,7 @@ bool image_func::buildCFG(
                 // end block with previous addr
                 // add edge to to this newly found block
                 // push it on the worklist vector            
-                Address prevAddr = ah_new.getPrevAddr();
+                Address prevAddr = ah.getPrevAddr();
                 currBlk->lastInsnOffset_ = prevAddr;
                 currBlk->blockEndOffset_ = currAddr;
 
@@ -776,7 +815,7 @@ bool image_func::buildCFG(
                 // will make the function uninstrumentable.
 
                 if(currAddr > currBlk->firstInsnOffset_) {
-                    currBlk->lastInsnOffset_ = ah_new.getPrevAddr();
+                    currBlk->lastInsnOffset_ = ah.getPrevAddr();
                     currBlk->blockEndOffset_ = currAddr;
 
                     //Three blocks involved here, the original block, the new one that we're
@@ -804,7 +843,7 @@ bool image_func::buildCFG(
                 } else {
                     parsing_printf(" ... uninstrumentable due to instruction stream overlap\n");
                     currBlk->lastInsnOffset_ = currAddr;
-                    currBlk->blockEndOffset_ = ah_new.getNextAddr();
+                    currBlk->blockEndOffset_ = ah.getNextAddr();
                     instLevel_ = UNINSTRUMENTABLE;
                 }
                 break;
@@ -831,7 +870,7 @@ bool image_func::buildCFG(
 
 
             // only ever true on x86
-            if(ah_new.isFrameSetupInsn() && savesFP_)
+            if(savesFP_ && noStackFrame && ah.isFrameSetupInsn())
             {
                 noStackFrame = false;
             }
@@ -843,7 +882,7 @@ bool image_func::buildCFG(
             {
                 if(!ah.isNop())
                 {
-                    currBlk->lastInsnOffset_ = ah_new.getPrevAddr();
+                    currBlk->lastInsnOffset_ = ah.getPrevAddr();
                     currBlk->blockEndOffset_ = currAddr;
                     addBasicBlock(currAddr,
                                  currBlk,
@@ -856,23 +895,21 @@ bool image_func::buildCFG(
                     
                 }
             }
-            allInstructions.push_back(ah.getInstruction() );
+            allInstructions.push_back(instruction() );
             allInstAddrs += currAddr;
 
-            if(ah_new.hasCFT())
+            if(ah.hasCFT())
             {
-                markBlockEnd(currBlk, ah_new, funcEnd);
-                typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
-                typedef std::vector< edge_pair_t > Edges_t;
+                markBlockEnd(currBlk, ah, funcEnd);
                 Edges_t edges_out;
-                ah_new.getNewEdges(edges_out, currBlk, allInstructions,
+                ah.getNewEdges(edges_out, currBlk, allInstructions,
                                pltFuncs);
-                InstrumentableLevel insnInstLevel = ah_new.getInstLevel(allInstructions);
-                FuncReturnStatus insnRetStatus = ah_new.getReturnStatus(currBlk, allInstructions);
-                instPointType_t insnPointType = ah_new.getPointType(allInstructions, pltFuncs);
-                bool isDynamicCall = ah_new.isDynamicCall();
-                bool isAbsoluteCall = ah_new.isAbsoluteCall();
-                bool hasUnresolvedCF = ah_new.hasUnresolvedControlFlow(currBlk,
+                InstrumentableLevel insnInstLevel = ah.getInstLevel(allInstructions);
+                FuncReturnStatus insnRetStatus = ah.getReturnStatus(currBlk, allInstructions);
+                instPointType_t insnPointType = ah.getPointType(allInstructions, pltFuncs);
+                bool isDynamicCall = ah.isDynamicCall();
+                bool isAbsoluteCall = ah.isAbsoluteCall();
+                bool hasUnresolvedCF = ah.hasUnresolvedControlFlow(currBlk,
                         allInstructions);
                 if(insnInstLevel >= instLevel_) {
                     switch(insnInstLevel)
@@ -880,12 +917,12 @@ bool image_func::buildCFG(
                         case NORMAL: 
                                 break;
                         case HAS_BR_INDIR:
-                            parsing_printf("[%s]: Setting %s to HAS_BR_INDIR at 0x%x\n", FILE__,
-                                           prettyName().c_str(), currAddr);
+                            //parsing_printf("[%s]: Setting %s to HAS_BR_INDIR at 0x%x\n", FILE__,
+                            //               prettyName().c_str(), currAddr);
                             break;
                         case UNINSTRUMENTABLE:
-                            parsing_printf("[%s]: Setting %s to UNINSTRUMENTABLE at 0x%x\n", FILE__,
-                                           prettyName().c_str(), currAddr);
+//                             parsing_printf("[%s]: Setting %s to UNINSTRUMENTABLE at 0x%x\n", FILE__,
+//                                            prettyName().c_str(), currAddr);
                             break;
                         default:
                             assert(!"Bad inst level enum!\n");
@@ -894,10 +931,10 @@ bool image_func::buildCFG(
                     
                     instLevel_ = insnInstLevel;
                 }
-                if(!ah_new.isRelocatable(insnInstLevel))
+                if(!ah.isRelocatable(insnInstLevel))
                 {
-                    parsing_printf("%s[%d]: setting relocatable FALSE at 0x%x\n",
-                                   FILE__, __LINE__, currAddr);
+/*                    parsing_printf("%s[%d]: setting relocatable FALSE at 0x%x\n",
+                                   FILE__, __LINE__, currAddr);*/
                     currBlk->canBeRelocated_ = false;
                     canBeRelocated_ = false;
                 }
@@ -909,8 +946,8 @@ bool image_func::buildCFG(
                 }
                 if(insnRetStatus == RS_UNKNOWN)
                 {
-                    parsing_printf("[%s]: Setting return status to RS_UNKNOWN (URCF) at 0x%x\n", FILE__,
-                                   currAddr);
+/*                    parsing_printf("[%s]: Setting return status to RS_UNKNOWN (URCF) at 0x%x\n", FILE__,
+                                   currAddr);*/
                     retStatus_ = insnRetStatus;
                 }
                 image_func* targetFunc = NULL;
@@ -937,7 +974,7 @@ bool image_func::buildCFG(
                                 parsing_printf("[%s] binding call 0x%lx -> 0x%lx\n",
                                                FILE__,currAddr, curEdge->first);
                                 targetFunc = bindCallTarget(curEdge->first,currBlk);
-                                if(ah_new.isTailCall(allInstructions))
+                                if(ah.isTailCall(allInstructions))
                                 {
                                     parsing_printf("%s: tail call %x -> %x inheriting return status of target\n",
                                             FILE__, currAddr, curEdge->first);
@@ -1043,7 +1080,7 @@ bool image_func::buildCFG(
                 if(insnPointType != noneType)
                 {
                     Address target = 0;
-                    if(!edges_out.empty() && !isDynamicCall)
+                    if(edges_out.size() && !isDynamicCall)
                     {
                         target = edges_out.begin()->first;
                     }
@@ -1054,15 +1091,15 @@ bool image_func::buildCFG(
                                              isDynamicCall,
                                              isAbsoluteCall,
                                              insnPointType);
-                    parsing_printf("%s[%d]: creating inst point at 0x%lx...", FILE__, __LINE__, currAddr);
+/*                    parsing_printf("%s[%d]: creating inst point at 0x%lx...", FILE__, __LINE__, currAddr);*/
                     if(hasUnresolvedCF)
                     {
-                        parsing_printf("unresolved control flow, adding to unresolved list\n");
+/*                        parsing_printf("unresolved control flow, adding to unresolved list\n");*/
                         pdmod()->addUnresolvedControlFlow(p);
                         if(!isDynamicCall && (insnRetStatus != RS_UNKNOWN))
                         {
-                            parsing_printf("[%s] setting return status to RS_UNKNOWN (URCF) at 0x%x\n",
-                                            FILE__, currAddr);
+/*                            parsing_printf("[%s] setting return status to RS_UNKNOWN (URCF) at 0x%x\n",
+                                            FILE__, currAddr);*/
                             retStatus_ = RS_UNKNOWN;
                         }
                     }
@@ -1085,16 +1122,16 @@ bool image_func::buildCFG(
                             }
                             break;
                         case callSite:
-                            parsing_printf("call point, adding to calls\n");
+/*                            parsing_printf("call point, adding to calls\n");*/
                             calls.push_back( p );
                             currBlk->containsCall_ = true;
                             break;
                         case otherPoint:
-                            parsing_printf("other point...");
+/*                            parsing_printf("other point...");*/
                             if(hasUnresolvedCF) {
-                                parsing_printf("already in unresolved CF list\n");
+/*                                parsing_printf("already in unresolved CF list\n");*/
                             } else {
-                                parsing_printf("where'd it go?\n");
+/*                                parsing_printf("where'd it go?\n");*/
                             }
                             break;
                         default:
@@ -1103,26 +1140,29 @@ bool image_func::buildCFG(
                                     
                     };
                 }
-                if(ah_new.isDelaySlot())
+                if(ah.isDelaySlot())
                 {
                     ah.advance();
-                    ah_new.advance();
+                }
+                if(!cleansOwnStack_ && ah.cleansStack())
+                {
+                    cleansOwnStack_ = true;
                 }
                 break;
             }
-            else if( ah_new.isLeave() )
+            else if(noStackFrame && ah.isLeave())
             {
                 noStackFrame = false;
             }
-            else if( ah_new.isAbortOrInvalidInsn() )
+            else if( ah.isAbortOrInvalidInsn() )
             {
                 // some architectures have invalid instructions, and
                 // all have special 'abort-causing' instructions
-                markBlockEnd(currBlk, ah_new, funcEnd);
+                markBlockEnd(currBlk, ah, funcEnd);
                 break;
             }
 #if defined(arch_ia64)
-            else if( ah.isAllocInsn()() )
+            else if( ah.isAllocInsn())
             {
                 // IA64 only, sad to say
                 if( currAddr == currBlk->firstInsnOffset() )
@@ -1133,7 +1173,7 @@ bool image_func::buildCFG(
                 {
                     // We weren't extending the function's end address here.
                     // That was probably incorrect.
-                    markBlockEnd(currBlk, ah_new, funcEnd);
+                    markBlockEnd(currBlk, ah, funcEnd);
                     //currBlk->lastInsnOffset_ = ah.prevAddr();
                     //currBlk->blockEndOffset_ = currAddr;
 
@@ -1152,13 +1192,13 @@ bool image_func::buildCFG(
                 }
             }
 #endif
-            if (!img()->isValidAddress(ah_new.getNextAddr())) {
+            if (!img()->isValidAddress(ah.getNextAddr())) {
                //The next instruction is not in the.text segment.  We'll 
                // abort this basic block as if it were terminating with 
                // an illegal instruction.
                parsing_printf("Next instruction is invalid, ending basic block\n");
                
-               markBlockEnd(currBlk, ah_new, funcEnd);
+               markBlockEnd(currBlk, ah, funcEnd);
                 parsing_printf("...making new exit point at 0x%lx\n", currAddr);
                 p = new image_instPoint( currAddr,
                                          ah.getInstruction(),
@@ -1168,7 +1208,6 @@ bool image_func::buildCFG(
                 break;
             }
             ah.advance();
-            ah_new.advance();
         }
     }
 

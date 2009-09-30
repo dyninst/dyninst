@@ -182,28 +182,48 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 
 #if defined(i386_unknown_linux2_0_test) \
  || defined(i386_unknown_nt4_0_test)
-unsigned int loadExp=65;
-unsigned int storeExp=23;
+unsigned int loadExp=67;
+unsigned int storeExp=27;
 unsigned int prefeExp=2;
-unsigned int accessExp=88;
-unsigned int accessExpCC=87;
+unsigned int accessExp=94;
+unsigned int accessExpCC=93;
 
-const struct reduction mmxRed = { 2, 1, 0, 3, 48 };
-const struct reduction sseRed = { 2, 0, 1, 3, 51 };
-const struct reduction sse2Red = { 2, 0, 0, 2, 54 };
-const struct reduction amdRed = { 2, 0, 1, 3, 56 };
+const struct reduction mmxRed = { 2, 1, 0, 3, 49 };
+const struct reduction sseRed = { 2, 0, 1, 3, 53 };
+const struct reduction sse2Red = { 2, 0, 0, 2, 57 };
+const struct reduction amdRed = { 2, 0, 1, 3, 60 };
 
-const struct reduction ccRed = { 0, 0, 0, 1, 83 };
+const struct reduction ccRed = { 0, 0, 0, 1, 87 };
 
-int eaExpOffset[] =    { 0,0,0,0,  0,0,0,0,0,0,0,  4,8,4,8,4,8,4,  0,
-                         0,4,8,12,0,4,8,  12,0,8,8,8,0,4,8,4,  0,  4,4,4,0,4,0,4,8,0,0,4,0,
-                         0,8,0,  0,0,0,  0,0,  0,8,0,  0,12,0,0,0,44,25,   0,0,0,0,4,8,
-                         0,0,0,2,4,8,  0,0,  0,0,  0,4,8 };
+int eaExpOffset[] =    { /* 0-3 */ 0,0,0,0,
+                         /* 4-10 */ 0,0,0,0,0,0,0,
+                         /* 11-17 */ 4,8,4,8,4,8,4,
+                         /* 18 */ 0,
+                         /* 19-25 */ 0,4,8,12,0,4,8,
+                         /* 26-34 */ 12,0,8,8,8,0,4,8,4,
+                         /* 35 */ 0,
+                         /* 36-47 */ 4,4,4,0,4,0,4,8,0,0,4,0,
+                         /* 48 */ 0,
+                         /* 49 */ 0,
+                         /* 50-51 */ 8,0,
+                         /* 52 */ 0,
+                         /* 53-55 */ 0,0,0,
+                         /* 56 */ 0,
+                         /* 57-58 */ 0,0,
+                         /* 59 */ 0,
+                         /* 60-62 */ 0,8,0,
+                         /* 63-69 */ 0,12,0,0,0,44,25,
+                         /* 70-75 */ 0,0,0,0,4,8,
+                         /* 76-81 */ 0,0,0,2,4,8,
+                         /* 82-83 */ 0,0,
+                         /* 84-85 */ 0,0,
+                         /* 86-88 */ 0,4,8,
+                         /* 89-90 */ 0,0 };
 
 unsigned int bcExp[] = { 4,4,4,4,  4,4,4,4,4,4,4,  4,4,4,4,4,4,4,  4,
-                         4,4,4,4,4,4,4,   4,4,4,4,4,4,4,4,4,   4,  4,4,1,1,4,4,4,4,4,1,4,4,
-                         4,8,8,  16,4,0, 16,8, 8,8,0,  12,4,16,16,49,4,4,  4,8,10,2,4,8,
-                         4,8,10,2,4,8, 2,2,  28,28,  4,4,4,  4,4,4 };
+                         4,4,4,4,4,4,4,   4,4,4,4,4,4,4,4,4,   4,  4,4,1,1,4,4,4,4,4,1,4,4, 4,
+                         4,8,8, 4, 16,4,0, 4, 16,8, 4, 8,8,0,  12,4,16,16,49,4,4,  4,8,10,2,4,8,
+                         4,8,10,2,4,8, 2,2,  28,28,  4,4,4,  4,4,4, 4,4 };
 
 void reduce(const struct reduction x)
 {
@@ -263,43 +283,49 @@ void init_test_data()
   eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
   for(i=28; i<35; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-  for(i=36; i<51; ++i)
+  for(i=36; i<48; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-  for(i=51; i<53; ++i)
+  /* skip call @ i=48 (access 49)*/
+  for(i=49; i<52; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  /* skip call @ i=52 (access 53)*/
+  for(i=53; i<55; ++i)
     eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-  i=53;
+  i=55;
   eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-  for(i=54; i<56; ++i)
+  /* skip call @ i=56 (access 57)*/
+  for(i=57; i<59; ++i)
     eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
-  for(i=56; i<58; ++i)
+  /* skip call @ i = 59 (access 60)*/
+  for(i=60; i<62; ++i)
     eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-  i=58;
+  i=62;
   eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-  for(i=59; i<62; ++i)
+  for(i=63; i<66; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-  i=62; /* 2nd of mov */
+  i=66; /* 2nd of mov */
   eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-  for(i=63; i<66; ++i) /* scas, cmps */
+  for(i=67; i<70; ++i) /* scas, cmps */
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
-  i=66;
+  i=70;
   eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-  i=67;
+  i=71;
   eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
-  i=68;
-  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
-  for(i=69; i<72; ++i)
-    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
   i=72;
-  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
-  i=73;
-  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
-  i=74;
   eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
-  for(i=75; i<80; ++i)
+  for(i=73; i<76; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-  for(i=80; i<82; ++i)
+  i=76;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=77;
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  i=78;
+  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
+  for(i=79; i<84; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=84; i<86; ++i)
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
-  for(i=82; i<85; ++i)
+  for(i=86; i<89; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
 
   /* Duplicate & reduce the stream for cc */
@@ -323,11 +349,17 @@ void init_test_data()
     reduce(sseRed);
   if(!(caps & CAP_MMX))
     reduce(mmxRed);
+
+  /*fprintf(stderr, "eaExp at call 1 (access 49) = 0x%lx\n", eaExp[48]);
+  fprintf(stderr, "eaExp at call 2 (access 53) = 0x%lx\n", eaExp[52]);
+  fprintf(stderr, "eaExp at call 3 (access 56) = 0x%lx\n", eaExp[56]);
+  fprintf(stderr, "eaExp at call 4 (access 60) = 0x%lx\n", eaExp[59]);*/
+
 }
 #endif /* defined(i386_unknown_linux2_0_test) || defined(i386_unknown_nt4_0_test) */
 
 #ifdef x86_64_unknown_linux2_4_test
-unsigned int loadExp = 73;
+unsigned int loadExp = 75;
 unsigned int storeExp = 25;
 unsigned int prefeExp = 2;
 unsigned int accessExp = 98;
@@ -348,7 +380,8 @@ int eaExpOffset[] =    { 0,0,0,0,0,0,0,                             /* 7 initial
 			 0,0,
 			 0,0,
 			 0,4,8,                                     /* conditional moves */
-			 0,0,0,0,0,0                                /* 6 final stack pops */			 
+			 0,0,0,0,0,0,                               /* 6 final stack pops */
+                         0,0                                        /* leave and return */
 };
 
 unsigned int bcExp[] = { 8,8,8,8,8,8,8,                  /* 7 initial stack pushes */
@@ -366,7 +399,8 @@ unsigned int bcExp[] = { 8,8,8,8,8,8,8,                  /* 7 initial stack push
 			 2,2,
                          28,28,
 			 4,4,4,                          /* conditional moves */
-                         8,8,8,8,8,8                     /* 6 final stack pops */
+                         8,8,8,8,8,8,                    /* 6 final stack pops */
+                         8,8                             /* leave and return */
 };
 
 int divarw;
@@ -584,7 +618,7 @@ void listEffAddr(void* addr)
   else
     doomEA = 1;
   accessCntEA++;
-  dprintf("EA[%d]:%p ", accessCntEA, addr);
+  dprintf("EA[%d]:%p\n", accessCntEA, addr);
 }
 
 void listByteCnt(unsigned int count)
@@ -594,7 +628,7 @@ void listByteCnt(unsigned int count)
   else
     doomBC = 1;
   accessCntBC++;
-  dprintf("BC[%d]:%d ", accessCntBC, count);
+  dprintf("BC[%d]:%d\n", accessCntBC, count);
 }
 
 
@@ -605,7 +639,7 @@ void listEffAddrCC(void* addr)
   else
     doomEAcc = 1;
   accessCntEAcc++;
-  dprintf("?A[%d]:%p ", accessCntEAcc, addr);
+  dprintf("?A[%d]:%p\n", accessCntEAcc, addr);
 }
 
 void listByteCntCC(unsigned int count)
@@ -615,5 +649,5 @@ void listByteCntCC(unsigned int count)
   else
     doomBCcc = 1;
   accessCntBCcc++;
-  dprintf("?C[%d]:%d ", accessCntBCcc, count);
+  dprintf("?C[%d]:%\n", accessCntBCcc, count);
 }

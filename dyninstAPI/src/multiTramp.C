@@ -48,7 +48,6 @@
 #include "process.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
-#include "InstrucIter.h"
 #else
 #include "InstrucIter.h"
 #endif // defined(cap_instruction_api)

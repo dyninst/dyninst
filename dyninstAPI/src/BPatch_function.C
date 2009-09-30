@@ -63,7 +63,9 @@
 #include "mapped_module.h"
 
 #include "common/h/Types.h"
+#if !defined(cap_instruction_api)
 #include "InstrucIter-Function.h"
+#endif
 
 #if defined(cap_slicing)
 // #include "BPatch_dependenceGraphNode.h"
@@ -462,14 +464,31 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   if (func == NULL) return NULL;
 
     if (!mod->isValid()) return NULL;
-
+#if defined(cap_instruction_api)
   // function is generally uninstrumentable (with current technology)
   if (func->funcEntries().size() == 0) return NULL;
-  
+
+  BPatch_Set<BPatch_basicBlock*> blocks;
+  BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
+  getCFG()->getAllBasicBlocks(blocks);
+  for(BPatch_Set<BPatch_basicBlock*>::iterator curBlk = blocks.begin();
+      curBlk != blocks.end();
+     curBlk++)
+  {
+      BPatch_Vector<BPatch_point*>* tmp = (*curBlk)->findPoint(ops);
+      for(int i = 0; i < tmp->size(); i++)
+      {
+          ret->push_back((*tmp)[i]);
+      } 
+      
+  }
+  return ret;
+#else  
   // Use an instruction iterator
   InstrucIterFunction ii(func);
     
   return BPatch_point::getPoints(ops, ii, this);
+#endif
 }
 
 /*
@@ -1332,7 +1351,10 @@ bool copyDependenceGraph(BPatch_Vector<BPatch_dependenceGraphNode*> &target, BPa
  */
 BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction* inst) 
 {
-   if (inst == NULL)
+#if !defined(cap_slicing)
+	return NULL;
+#else
+	if (inst == NULL)
       return NULL;
 
    createExtendedProgramDependenceGraph();
@@ -1367,11 +1389,13 @@ BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction* ins
    }
 #endif
    return NULL;
+#endif
 }
 
 /*
  * Creates extended program dependence graph (program dependence graph + another graph which I call helper graph for now)
  */
+#if defined(cap_slicing)
 void BPatch_function::createExtendedProgramDependenceGraph() 
 {
    bool edg_exists = false, dg_exists = false, hg_exists = false;
@@ -1417,10 +1441,11 @@ void BPatch_function::createExtendedProgramDependenceGraph()
    }
 
 }
-
+#endif
 /*
  * Creates program dependence graph (Control dependence Graph + data dependence graph)
  */
+#if defined(cap_slicing)
 void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/) 
 {
    std::vector<BPatch_dependenceGraphNode *> *dgp = NULL;
@@ -1486,7 +1511,7 @@ void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/)
       outputGraph(allNodes);
 #endif
 }
-
+#endif
    /*
     * BPatch_function::getProgramDependenceGraph
  *
@@ -1495,6 +1520,9 @@ void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/)
  */
 BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch_instruction* inst) 
 {
+#if !defined(cap_slicing)
+	return NULL;
+#else
    std::vector<BPatch_dependenceGraphNode *> *dgp = NULL;
 
    bool dg_exists = getAnnotation(dgp, ProgDepGraphAnno);
@@ -1540,6 +1568,7 @@ BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch
    }
 #endif
    return NULL;
+#endif
 }
 
 /*
@@ -1551,6 +1580,9 @@ BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch
  */
 BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch_instruction* inst) 
 {
+#if !defined(cap_slicing)
+	return NULL;
+#else
    std::vector<BPatch_dependenceGraphNode *> *cdgp = NULL;
 
    bool cdg_exists = getAnnotation(cdgp, ControlDepGraphAnno);
@@ -1595,6 +1627,7 @@ BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch
    }
 #endif
    return NULL;
+#endif
 }
 
 /*
@@ -1606,7 +1639,10 @@ BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch
  */
 BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_instruction* inst) 
 {
-   std::vector<BPatch_dependenceGraphNode *> *ddgp = NULL;
+#if !defined(cap_slicing)
+	return NULL;
+#else
+	std::vector<BPatch_dependenceGraphNode *> *ddgp = NULL;
 
    bool ddg_exists = getAnnotation(ddgp, DataDepGraphAnno);
    if (ddg_exists && !ddgp) 
@@ -1639,6 +1675,7 @@ BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_in
    }
 
   return NULL;
+#endif
 }
 
 /*
@@ -1686,6 +1723,7 @@ BPatch_Vector<BPatch_basicBlock*>** createBlockDependency(int num_blocks,
 
 void determineReturnBranchDependencies(BPatch_Vector<BPatch_dependenceGraphNode*>* controlDependenceGraph, BPatch_Vector<BPatch_dependenceGraphNode*>* helperGraph, BPatch_Vector<BPatch_basicBlock*>** dependencies,
       BPatch_Vector<BPatch_basicBlock*>* blockNumbers, BPatch_basicBlock** blocks, int num_blocks,BPatch_dependenceGraphNode** last_inst_in_block,BPatch_dependenceGraphNode** last_inst_helper) {
+#if 0
    unsigned i,j;
    for(i=0; i<(unsigned)num_blocks; i++) {
       BPatch_basicBlock * blck = blocks[i];
@@ -1718,15 +1756,17 @@ void determineReturnBranchDependencies(BPatch_Vector<BPatch_dependenceGraphNode*
       last_inst_helper[blockNum]->addToOutgoing((*helperGraph)[i]);
     }
   }
+#endif
 }
 
 /*
  * Used to create the control dependence graph from the binary.
  * Called only once for each function
  */
+#if 0   
 void BPatch_function::createControlDependenceGraph() 
 {
-   std::vector<BPatch_dependenceGraphNode *> *cdgp = NULL;
+    std::vector<BPatch_dependenceGraphNode *> *cdgp = NULL;
    std::vector<BPatch_dependenceGraphNode *> *dhgp = NULL;
 
    bool cdg_exists = getAnnotation(cdgp, ControlDepGraphAnno);
@@ -1826,13 +1866,16 @@ void BPatch_function::createControlDependenceGraph()
   setAnnotation(getAnnotationType("ControlDependenceGraph"), new Annotation(controlDependenceGraph));
   setAnnotation(getAnnotationType("HelperGraph"), new Annotation(helperGraph));
 #endif
+
+
 } // end of createControlDependenceGraph
+#endif
 
-
-/* find out which instruction last modified the register specified with reg_num 
+/* find out which instruction last modified the register specified with reg_num
  * and add that instruction to predecessor list of this node,
  * and add this node to successor list of that instruction
 */
+#if 0
 void register_check(int reg_num, BPatch_Vector<regUpdate*>* registers, BPatch_dependenceGraphNode* node) {
   unsigned k, l;
   bool found = false;
@@ -1861,10 +1904,11 @@ void register_check(int reg_num, BPatch_Vector<regUpdate*>* registers, BPatch_de
     // printf("\nUninitialized %d!!",reg_num);  
   }
 }
-
+#endif
 /*
  * Find the entry blocks for this function, and put them into the workload after wrapping them with some data structures
  */
+#if 0
 void pushEntryBlocks(BPatch_Vector<entry*>& blocks, BPatch_flowGraph* cfg) {
   // get a handle to entry block(s)
   unsigned i;
@@ -1884,10 +1928,11 @@ void pushEntryBlocks(BPatch_Vector<entry*>& blocks, BPatch_flowGraph* cfg) {
   }
   delete entryBlocks;
 }
-
+#endif
 /*
  * find the node of a graph that contains the given BPatch_instruction
  */
+#if 0
 BPatch_dependenceGraphNode* getNode(BPatch_Vector<BPatch_dependenceGraphNode*>* allNodes, BPatch_instruction* bpins) {
   unsigned j;
   BPatch_dependenceGraphNode * node;
@@ -1907,7 +1952,8 @@ BPatch_dependenceGraphNode* getNode(BPatch_Vector<BPatch_dependenceGraphNode*>* 
   }
   return node;
 }
-
+#endif
+#if 0
 void handleCondBranch(BPatch_dependenceGraphNode* node, InstrucIter* iter, BPatch_Vector<BPatch_dependenceGraphNode*>* allNodes) {
   unsigned i;
   if(iter->hasPrev()) {
@@ -1945,10 +1991,11 @@ void handleCondBranch(BPatch_dependenceGraphNode* node, InstrucIter* iter, BPatc
     }
   }
 }
-
+#endif
 /*
  * If an instruction accesses a memory location, find out which registers/memory locations are affected
  */
+#if 0
 void handleMemoryAccess(BPatch_dependenceGraphNode* node, BPatch_instruction* bpins, BPatch_Vector<regUpdate*>* copy_regs, 
 			BPatch_Vector<memUpdate*>* copy_mems, const BPatch_addrSpec_NP* addrSpec
 #if defined(arch_x86)
@@ -2024,10 +2071,11 @@ void handleMemoryAccess(BPatch_dependenceGraphNode* node, BPatch_instruction* bp
     // Uninitialized
   }
 }
-
+#endif
 /*
  * add new blocks to the workload after one is processed. The blocks that are directly reachable from block blck are added
  */
+#if 0
 void addBlocksToWorkload(BPatch_Vector<entry*>& blocks, BPatch_basicBlock* blck, int* visitedBlocks,
 			 BPatch_Vector<regUpdate*>* copy_regs, BPatch_Vector<memUpdate*>* copy_mems
 #if defined(interprocedural)
@@ -2070,8 +2118,9 @@ void addBlocksToWorkload(BPatch_Vector<entry*>& blocks, BPatch_basicBlock* blck,
     }
   }
 }
-
+#endif
 /* if a register is written by an instruction, store this info since future reads will depend on this write */
+#if 0
 void handleWrittenRegister(BPatch_dependenceGraphNode* node, int rn, BPatch_Vector<regUpdate*>* copy_regs) {
   bool found = false;
   unsigned k;
@@ -2092,7 +2141,7 @@ void handleWrittenRegister(BPatch_dependenceGraphNode* node, int rn, BPatch_Vect
     copy_regs->push_back(reg);
   }
 }
-
+#endif
 #if defined(interprocedural)
  bool isWrittenBefore(int reg_num, BPatch_Vector<regUpdate*>* registers) {
    unsigned i;
@@ -2185,6 +2234,7 @@ int getReadWriteSets(InstrucIter& iter, int** readArr, int** writeArr) {
  * Used to create the data dependence graph from the binary.
  * Called only once for each function
  */
+#if 0
 void BPatch_function::createDataDependenceGraph() 
 {
    std::vector<BPatch_dependenceGraphNode *> *ddgp = NULL;
@@ -2556,6 +2606,7 @@ void BPatch_function::createDataDependenceGraph()
   setAnnotation(getAnnotationType("DataDependenceGraph"), new Annotation(dataDependenceGraph));  
 #endif
 }
+#endif
 #else
 BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction*)
 {

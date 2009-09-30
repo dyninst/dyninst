@@ -454,14 +454,16 @@ class image_func : public codeRange,
              InstrucIter &ah,
              pdvector< instruction >& allInstructions);
     bool archProcExceptionBlock(Address &catchStart, Address a);
+#if !defined(cap_instruction_api)    
     bool archIsATailCall(InstrucIter &ah,
              pdvector< instruction >& allInstructions);
     bool archIsIndirectTailCall(InstrucIter &ah);
     bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool
 &simulateJump);
     bool archCheckEntry(InstrucIter &ah, image_func *func );
-    void archInstructionProc(InstructionAdapter &ah);
     bool archIsIPRelativeBranch(InstrucIter& ah);
+#endif    
+    void archInstructionProc(InstructionAdapter &ah);
     /*void processJump(InstructionAdapter& ah,
 		image_basicBlock* currBlk,
 		Address& funcBegin,

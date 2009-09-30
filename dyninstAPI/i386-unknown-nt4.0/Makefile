@@ -23,11 +23,14 @@ SRCS =		../src/pdwinnt.C \
 		../src/inst-x86.C \
 		../src/emit-x86.C \
 		../src/arch-x86.C \
-		../src/InstrucIter-x86.C \
 		../src/syscall-nt.C \
 		../src/pdwinntDL.C \
 		../src/dynamiclinking.C \
-		../src/image-x86.C 
+		../src/RegisterConversion-x86.C \
+		../src/BPatch_memoryAccessAdapter.C \
+		../src/IA_IAPI.C \
+		../src/IAPI_to_AST.C \
+		../src/image-x86.C
 #		../src/MapSymbols.C 
 # ccw 13 july 2001
 
@@ -36,11 +39,14 @@ OBJS = 		pdwinnt.obj \
 		inst-x86.obj \
 		arch-x86.obj \
 		emit-x86.obj \
-		InstrucIter-x86.obj \
 		codeRange.obj \
 		syscall-nt.obj \
 		pdwinntDL.obj \
 		dynamiclinking.obj \
+		RegisterConversion-x86.obj \
+		BPatch_memoryAccessAdapter.obj \
+		IA_IAPI.obj \
+		IAPI_to_AST.obj \
 		image-x86.obj
 
 #		MapSymbols.obj 

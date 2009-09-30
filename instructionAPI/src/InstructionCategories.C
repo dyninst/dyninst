@@ -80,6 +80,15 @@ namespace Dyninst
           case e_cmpxch:
           case e_cmpxch8b:
               return c_CompareInsn;
+          case e_prefetch:
+          case e_prefetchNTA:
+          case e_prefetchT0:
+          case e_prefetchT1:
+          case e_prefetchT2:
+          case e_prefetch_w:
+          case e_prefetchw:
+              return c_PrefetchInsn;
+                      
           default:
 	return c_NoCategory;
       }

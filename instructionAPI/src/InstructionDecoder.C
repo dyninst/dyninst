@@ -36,7 +36,7 @@
 #include "../h/Dereference.h"
 #include "../h/Immediate.h"
 #include "../h/BinaryFunction.h"
-#include "singleton_object_pool.h"
+#include "../../common/h/singleton_object_pool.h"
 
 using namespace std;
 namespace Dyninst
@@ -45,7 +45,8 @@ namespace Dyninst
   {
     
     
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer, size_t size) : 
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer, size_t size) :
+            locs(NULL),
       decodedInstruction(NULL), 
       is32BitMode(true),
       sizePrefixPresent(false),
@@ -53,9 +54,9 @@ namespace Dyninst
       bufferSize(size),
       rawInstruction(bufferBegin)
     {
-        locs = NULL;
     }
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() : 
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() :
+            locs(NULL),
       decodedInstruction(NULL), 
       is32BitMode(true),
       sizePrefixPresent(false),
@@ -63,7 +64,16 @@ namespace Dyninst
       bufferSize(0),
       rawInstruction(NULL)
     {
-      locs = NULL;
+    }
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const InstructionDecoder& o) :
+            locs(NULL),
+            decodedInstruction(NULL),
+    is32BitMode(o.is32BitMode),
+    sizePrefixPresent(false),
+    bufferBegin(o.bufferBegin),
+    bufferSize(o.bufferSize),
+    rawInstruction(o.rawInstruction)
+    {
     }
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
     {
@@ -117,70 +127,93 @@ namespace Dyninst
       Result_Type aw = ia32_is_mode_64() ? u32 : u64;
       
       decode_SIB(locs->sib_byte, scale, index, base);
-      // 0x04 is both a "use SIB" and a "don't scale, just use the base" code
-      // rename later
-      if(index == modrm_use_sib && (!(ia32_is_mode_64()) || !(locs->rex_x)))
+	
+      Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
+      Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, opType,
+                                   locs->rex_x))));
+      Expression::Ptr baseAST;
+      if(base == 0x05)
       {
-	return make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType, locs->rex_x)));
+	switch(locs->modrm_mod)
+	{
+	case 0x00:
+	  baseAST = decodeImmediate(op_d, locs->sib_position + 1);
+	  break;
+	case 0x01:
+	  baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
+				      make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
+	  break;
+	case 0x02:
+	  baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
+				      make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
+	  break;
+	case 0x03:
+	default:
+	  assert(0);
+	  break;
+	};
       }
       else
       {
-          Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
-          Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, opType,
-                                   locs->rex_x))));
-          Expression::Ptr baseAST;
-          if(base == 0x05)
-          {
-              switch(locs->modrm_mod)
-              {
-                  case 0x00:
-                      baseAST = decodeImmediate(op_d, locs->sib_position + 1);
-                      break;
-                  case 0x01:
-                      baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
-                              make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
-                      break;
-                  case 0x02:
-                      baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
-                              make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
-                      break;
-                  case 0x03:
-                  default:
-                      assert(0);
-                      break;
-              };
-          }
-          else
-          {
-              baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType,
-                                      locs->rex_b)));
-          }
-          return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
+	baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType,
+											   locs->rex_b)));
       }
+      if(index == 0x04 && (!(ia32_is_mode_64()) || !(locs->rex_x)))
+      {
+	return baseAST;
+      }
+      return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
     }
      
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
-      if(ia32_is_mode_64())
+      Result_Type aw = ia32_is_mode_64() ? u32 : u64;
+      Expression::Ptr e = 
+      make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, opType,
+									       (locs->rex_b == 1))));
+      switch(locs->modrm_mod)
       {
-	if((locs->modrm_mod == 0x0) && (locs->modrm_rm == 0x5))
-	{
-	  return make_shared(singleton_object_pool<RegisterAST>::construct(r_RIP));
+      case 0:
+	if(locs->modrm_rm == modrm_use_sib) {
+	  e = makeSIBExpression(opType);
 	}
+	if(locs->modrm_rm == 0x5)
+	{
+	  unsigned char opcode = rawInstruction[locs->opcode_position];
+	  // treat FP decodes as legacy mode since it appears that's what we've got in our 
+	  // old code...
+	  if(ia32_is_mode_64() && (opcode < 0xD8 || opcode > 0xDF))
+	  {
+	    e = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(r_RIP)),
+				   getModRMDisplacement(), aw);
+	}
+	else
+	{
+	  e = getModRMDisplacement();
+	}
+	
       }
       
-      
-      // This handles the rm and reg fields; the mod field affects how this expression is wrapped
-      if(locs->modrm_rm != modrm_use_sib || locs->modrm_mod == 0x03)
-      {
-		return make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, opType,
-								      (locs->rex_b == 1))));
-      }
-      else
-      {
-		return makeSIBExpression(opType);
-      }      
-    }
+	return make_shared(singleton_object_pool<Dereference>::construct(e, makeSizeType(opType)));
+	break;
+      case 1:
+      case 2:
+	{
+	if(locs->modrm_rm == modrm_use_sib) {
+	  e = makeSIBExpression(opType);
+	}
+	Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(), aw);
+	return make_shared(singleton_object_pool<Dereference>::construct(disp_e, makeSizeType(opType)));
+	}
+	break;
+      case 3:
+	return e;
+      default:
+	return Expression::Ptr();
+	
+      };
+	
+    }      
 
     Expression::Ptr InstructionDecoder::decodeImmediate(unsigned int opType, unsigned int position)
     {
@@ -391,6 +424,12 @@ namespace Dyninst
 	return dbl128;
       case op_s:
 	return u48;
+      case op_f:
+	return sp_float;
+      case op_dbl:
+	return dp_float;
+      case op_14:
+	return m14;
       default:
 	assert(!"Can't happen!");
 	return u8;
@@ -445,6 +484,8 @@ namespace Dyninst
       case am_M:
 	// am_R is the inverse of am_M; it should only have a mod of 3
       case am_R:
+	outputOperands.push_back(makeModRMExpression(regType));
+#if 0	
 	switch(locs->modrm_mod)
 	{
 	  // direct dereference
@@ -490,7 +531,7 @@ namespace Dyninst
 	  assert(!"2-bit value modrm_mod out of range");
 	  break;
 	};
-	
+#endif	
 	break;
       case am_F:
 	{
@@ -564,26 +605,15 @@ namespace Dyninst
 	outputOperands.push_back(make_shared(singleton_object_pool<RegisterAST>::construct(IntelRegTable[6][locs->modrm_reg])));
 	break;
       case am_Q:
+
 	switch(locs->modrm_mod)
 	{
 	  // direct dereference
 	case 0x00:
-	  {
-	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(makeModRMExpression(regType), 
-								     makeSizeType(operand.optype)))); 
-	  }
-	  break;
-	  // dereference with 8-bit offset following mod/rm byte
 	case 0x01:
 	case 0x02:
-	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
-								 getModRMDisplacement(), 
-								 makeSizeType(regType)));
-	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(RMPlusDisplacement, 
-								     makeSizeType(operand.optype))));
-	    break;
-	  }
+	  outputOperands.push_back(makeModRMExpression(operand.optype));
+	  break;
 	case 0x03:
 	  // use of actual register
 	  {
@@ -594,7 +624,6 @@ namespace Dyninst
 	  assert(!"2-bit value modrm_mod out of range");
 	  break;
 	};
-	
 	break;
       case am_S:
 	// Segment register in modrm reg field.
@@ -613,22 +642,10 @@ namespace Dyninst
 	{
 	  // direct dereference
 	case 0x00:
-	  {
-	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(makeModRMExpression(regType), 
-								     makeSizeType(operand.optype)))); 
-	  }
-	  break;
-	  // dereference with 8-bit offset following mod/rm byte
 	case 0x01:
 	case 0x02:
-	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
-								 getModRMDisplacement(), 
-								 makeSizeType(regType)));
-	    outputOperands.push_back(make_shared(singleton_object_pool<Dereference>::construct(RMPlusDisplacement, 
-								     makeSizeType(operand.optype))));
-	    break;
-	  }
+	  outputOperands.push_back(makeModRMExpression(makeSizeType(operand.optype)));
+	  break;
 	case 0x03:
 	  // use of actual register
 	  {
@@ -793,6 +810,7 @@ decodedInstruction->getPrefix(), locs));
 	  return false;
 	}
       }
+      
       return true;
     }
 

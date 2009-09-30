@@ -34,6 +34,7 @@
 #include <vector>
 #include <set>
 #include <sstream>
+#include "Visitor.h"
 
 using namespace std;
 using namespace dyn_detail::boost;
@@ -77,12 +78,15 @@ namespace Dyninst
     }
     bool RegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
+  		RegisterAST::Ptr promotedThis = RegisterAST::promote(this);
       if(*findMe == *this)
       {
-	return true;
+		return true;
       }
-      if(registerID == r_ALLGPRS)
+	  return findMe->checkRegID(promotedThis->getID());
+/*      if(registerID == r_ALLGPRS)
       {
+		  if(promotedOther->checkRegisterID(promotedThis->getID())
 	if(findMe->checkRegID(registerID) == r_EAX ||
 	   findMe->checkRegID(registerID) == r_EDX ||
 	   findMe->checkRegID(registerID) == r_ECX ||
@@ -103,7 +107,7 @@ namespace Dyninst
 	  return true;
 	}
       }
-      return false;
+      return false;*/
     }
     unsigned int RegisterAST::getID() const
     {
@@ -138,13 +142,15 @@ namespace Dyninst
     {
       return rhs.checkRegID(registerID);
     }
+    RegisterAST::Ptr RegisterAST::promote(const InstructionAST::Ptr regPtr) {
+        const RegisterAST::Ptr r = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
+        return RegisterAST::promote(r);
+    }
 
-    InstructionAST::Ptr RegisterAST::promote(InstructionAST::Ptr regPtr) {
-        // If this isn't a register, return NULL
-        RegisterAST::Ptr reg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
-        if (!reg) return InstructionAST::Ptr();
+    RegisterAST::Ptr RegisterAST::promote(const RegisterAST* regPtr) {
+        if (!regPtr) return RegisterAST::Ptr();
 
-        unsigned registerID = reg->getID();
+        unsigned registerID = regPtr->getID();
 
         // We want to upconvert the register ID to the maximal containing
         // register for the platform - either EAX or RAX as appropriate.
@@ -247,6 +253,9 @@ namespace Dyninst
         }
         return id == registerID;
     }
-    
+    void RegisterAST::apply(Visitor* v)
+    {
+        v->visit(this);
+    }
   };
 };

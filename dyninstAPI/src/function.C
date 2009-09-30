@@ -359,6 +359,7 @@ const pdvector<instPoint*> &int_function::funcCalls() {
                         getAddress() + getSize_NP(),
                         symTabName().c_str(),
                         obj()->fileName().c_str());
+                debugPrint();
                 
                 continue;
             }
@@ -636,6 +637,14 @@ void int_function::debugPrint() const {
             obj(),
             mod()->fileName().c_str(),
             mod());
+    for(std::vector<int_basicBlock*>::const_iterator cb = blockList.begin();
+        cb != blockList.end();
+        ++cb)
+    {
+        bblInstance* orig = (*cb)->origInstance();
+        fprintf(stderr, "  Block start 0x%lx, end 0x%lx\n", orig->firstInsnAddr(),
+                orig->endAddr());
+    }
 }
 
 // Add to internal

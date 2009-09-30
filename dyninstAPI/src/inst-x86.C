@@ -77,7 +77,9 @@
 //#include "InstrucIter.h"
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-
+#include "IAPI_to_AST.h"
+#include "Expression.h"
+#include "Instruction.h"
 #include <sstream>
 
 class ExpandInstruction;
@@ -2037,7 +2039,9 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
    unsigned scale;
    int addr_mode;
    unsigned Mod;
-
+   
+//#error "Reimplement with IAPI factory"
+#if 0
    const instruction &i = callSite->insn();
 
    if (i.type() & PREFIX_SEG) {
@@ -2177,7 +2181,18 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
    else {
       cerr << "Unexpected instruction in MonitorCallSite()!!!\n";
    }
-   return true;
+#endif
+using namespace Dyninst::InstructionAPI;        
+Expression::Ptr cft = callSite->insn()->getControlFlowTarget();
+    ASTFactory f;
+    cft->apply(&f);
+    assert(f.m_stack.size() == 1);
+    args.push_back(f.m_stack[0]);
+    args.push_back(AstNode::operandNode(AstNode::Constant,
+                   (void *) callSite->addr()));
+    inst_printf("%s[%d]:  UNTESTED, inserting dynamic call site instrumentation for %s\n",
+                FILE__, __LINE__, cft->format().c_str());
+    return true;
 }
 
 

@@ -63,7 +63,9 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
     : InstructionAdapter(where_, f), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
-    allInsns.insert(std::make_pair(current, dec.decode()));
+    hascftstatus.first = false;
+    tailCall.first = false;
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
 }
 
 void IA_IAPI::advance()
@@ -71,8 +73,10 @@ void IA_IAPI::advance()
     if(!curInsn()) return;
     InstructionAdapter::advance();
     current += curInsn()->size();
-    allInsns.insert(std::make_pair(current, dec.decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
     validCFT = false;
+    hascftstatus.first = false;
+    tailCall.first = false;
 }
 
 size_t IA_IAPI::getSize() const
@@ -83,25 +87,31 @@ size_t IA_IAPI::getSize() const
 
 bool IA_IAPI::hasCFT() const
 {
-    if(curInsn()->getCategory() == c_NoCategory ||
-       curInsn()->getCategory() == c_CompareInsn)
+    if(hascftstatus.first) return hascftstatus.second;
+    InsnCategory c = curInsn()->getCategory();
+    if(c != c_BranchInsn &&
+       c != c_CallInsn &&
+       c != c_ReturnInsn)
     {
-        return false;
+        hascftstatus.second = false;
     }
-    return true;
+    else
+    {
+        hascftstatus.second = true;
+    }
+    return hascftstatus.second;
 }
 
 bool IA_IAPI::isAbortOrInvalidInsn() const
 {
-    if(curInsn()->getOperation().getID() == e_No_Entry)
+    entryID e = curInsn()->getOperation().getID();
+    if(e == e_No_Entry)
     {
         parsing_printf("...WARNING: un-decoded instruction at 0x%x\n", current);
     }
-    return curInsn()->getOperation().getID() == e_No_Entry ||
-            curInsn()->getOperation().getID() == e_int ||
-            curInsn()->getOperation().getID() == e_int1 ||
-            curInsn()->getOperation().getID() == e_int3 ||
-            curInsn()->getOperation().getID() == e_hlt;
+    return e == e_No_Entry ||
+            e == e_int3 ||
+            e == e_hlt;
 }
 
 bool IA_IAPI::isAllocInsn() const
@@ -115,24 +125,28 @@ bool IA_IAPI::isAllocInsn() const
 #endif
 }
 
-bool IA_IAPI::isFrameSetupInsn() const
+bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
-    if(curInsn()->getOperation().getID() == e_mov)
+    if(i->getOperation().getID() == e_mov)
     {
-        RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
-        RegisterAST::Ptr esp(new RegisterAST(r_ESP));
-        RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
-        RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
-        if((curInsn()->isRead(ebp) ||
-            curInsn()->isRead(esp)) &&
-            (curInsn()->isWritten(rbp) ||
-            curInsn()->isWritten(rsp)))
+        static RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
+        static RegisterAST::Ptr esp(new RegisterAST(r_ESP));
+        static RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
+        static RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
+        if((i->isRead(ebp) ||
+            i->isRead(esp)) &&
+            (i->isWritten(rbp) ||
+            i->isWritten(rsp)))
         {
             return true;
         }
     }
     return false;
+}
 
+bool IA_IAPI::isFrameSetupInsn() const
+{
+    return isFrameSetupInsn(curInsn());
 }
 
 bool IA_IAPI::isNop() const
@@ -210,7 +224,7 @@ void IA_IAPI::getNewEdges(
         dictionary_hash<Address,
         std::string> *pltFuncs) const
 {
-    if(!hasCFT()) return;
+    // Only call this on control flow instructions!
     if(curInsn()->getCategory() == c_CallInsn)
     {
         Address target = getCFT();
@@ -322,6 +336,7 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
      * of the 'movaps'.  Note that the following instruction is also a valid jump
      * target
      **/
+    parsing_printf("\tChecking for movaps table at 0x%lx...\n", current);
     std::set<Address> found;
     InstructionDecoder d((const unsigned char*)(img->getPtrToInstruction(current)),
                           (img->imageOffset() + img->imageLength()) - current);
@@ -333,10 +348,10 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
     for (;;) {
         InstructionAPI::Instruction::Ptr insn = d.decode();
         //All insns in sequence are movaps
+        parsing_printf("\t\tChecking instruction %s\n", insn->format().c_str());
         if (insn->getOperation().getID() != e_movapd &&
             insn->getOperation().getID() != e_movaps)
         {
-            found.insert(cur);
             break;
         }
         //All insns are same size
@@ -354,8 +369,10 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
         for (std::set<Address>::iterator i=found.begin(); i != found.end(); i++) {
             outEdges.push_back(std::make_pair(*i, ET_INDIR));
         }
+        parsing_printf("\tfound\n");
         return true;
     }
+    parsing_printf("\tnot found (%d insns)\n", found.size());
     return false;
 }
 
@@ -437,7 +454,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
     }
     Instruction::Ptr maxSwitchInsn, branchInsn;
     boost::tie(maxSwitchInsn, branchInsn, foundJCCAlongTaken) = findMaxSwitchInsn(currBlk);
-    if(!maxSwitchInsn)
+    if(!maxSwitchInsn || !branchInsn)
     {
         parsing_printf("\tunable to fix max switch size\n");
         return false;
@@ -667,7 +684,17 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
     Expression::Ptr displacementSrc;
     if(tableInsn->getCategory() == c_BranchInsn)
     {
-        displacementSrc = tableInsn->getOperand(0).getValue();
+        Expression::Ptr op = tableInsn->getOperand(0).getValue();
+        std::vector<InstructionAST::Ptr> tmp;
+        op->getChildren(tmp);
+        if(tmp.empty())
+        {
+            displacementSrc = op;
+        }
+        else
+        {
+            displacementSrc = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+        }
     }
     else
     {
@@ -698,14 +725,13 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
     }
     Address jumpTable = disp.convert<Address>();
 
-    parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
 
     if(!jumpTable && !thunkOffset)
     {
         return 0;
     }
+    parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
     jumpTable += thunkOffset;
-    parsing_printf("\tjumpTable revised to 0x%lx\n",jumpTable);
     // On Windows, all of our other addresses have had the base address
     // of their module subtracted off before we ever use them.  We need to fix this up
     // to conform to that standard so that Symtab actually believes that there's code
@@ -713,6 +739,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
 #if defined(os_windows)
     jumpTable -= img->getObject()->getLoadOffset();
 #endif
+    parsing_printf("\tjumpTable revised to 0x%lx",jumpTable);
     if( !img->isValidAddress(jumpTable) )
 {
         // If the "jump table" has a start address that is outside
@@ -720,8 +747,10 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
         // probability that we have misinterpreted some other
         // construct (such as a function pointer comparison & tail
         // call, for example) as a jump table. Give up now.
+	parsing_printf("...invalid address, bailing\n");
     return 0;
 }
+	parsing_printf("\n");
     return jumpTable;
 }
 
@@ -731,14 +760,8 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
                                unsigned tableStride,
                                std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
-#if defined(os_windows)
-    tableBase -= img->getObject()->getLoadOffset();
-#endif
-    if( !img->isValidAddress(tableBase) )
-{
-    return false;
-}
-    for(unsigned int i=0; i < tableSize; i++)
+	// Table base has been verified or we'd not be here
+	for(unsigned int i=0; i < tableSize; i++)
 {
     Address tableEntry = tableBase + (i * tableStride);
     Address jumpAddress = 0;
@@ -832,8 +855,6 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
 
 Instruction::Ptr IA_IAPI::curInsn() const
 {
-    std::map<Address, Instruction::Ptr>::const_iterator curInsnIter =
-            allInsns.find(current);
     return curInsnIter->second;
 }
 
@@ -887,6 +908,11 @@ bool IA_IAPI::isRealCall() const
         }
     }
     return true;
+}
+
+bool IA_IAPI::isConditional() const
+{
+    return curInsn()->allowsFallThrough();
 }
 
 bool IA_IAPI::simulateJump() const
@@ -945,7 +971,12 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
 }
 bool IA_IAPI::isTailCall(std::vector<instruction>& ) const
 {
-    if(allInsns.size() < 2) return false;
+    if(tailCall.first) return tailCall.second;
+    tailCall.first = true;
+    if(allInsns.size() < 2) {
+        tailCall.second = false;
+        return tailCall.second;
+    }
     if(curInsn()->getCategory() == c_BranchInsn ||
        curInsn()->getCategory() == c_CallInsn)
     {
@@ -955,7 +986,8 @@ bool IA_IAPI::isTailCall(std::vector<instruction>& ) const
         Instruction::Ptr prevInsn = prevIter->second;
         if(prevInsn->getOperation().getID() == e_leave)
         {
-            return true;
+            tailCall.second = true;
+            return tailCall.second;
         }
         if(prevInsn->getOperation().getID() == e_pop)
         {
@@ -963,19 +995,73 @@ bool IA_IAPI::isTailCall(std::vector<instruction>& ) const
             static RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
             if(prevInsn->isWritten(ebp) || prevInsn->isWritten(rbp))
             {
-                return true;
+                tailCall.second = true;
+                return tailCall.second;
             }
         }
         if(curInsn()->getCategory() == c_BranchInsn)
         {
             if(img->findFuncByEntry(getCFT()))
             {
-                return true;
+                tailCall.second = true;
+                return tailCall.second;
             }
         }
         
     }
                   
+    tailCall.second = false;
+    return tailCall.second;
+}
+
+bool IA_IAPI::checkEntry() const
+{
+    if(curInsn()->getCategory() == c_BranchInsn)
+    {
+        // Indirect branches are okay; 
+        if(!curInsn()->allowsFallThrough() && getCFT())
+        {
+            return false;
+        }
+    }
+    if(curInsn()->getCategory() == c_ReturnInsn)
+    {
+        return false;
+    }
+    return true;
+}
+
+bool IA_IAPI::savesFP() const
+{
+    if(curInsn()->getOperation().getID() == e_push)
+    {
+        static RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
+        static RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
+        return(curInsn()->isRead(ebp) || curInsn()->isRead(rbp));
+    }
     return false;
 }
 
+bool IA_IAPI::isStackFramePreamble(int& /*frameSize*/) const
+{
+    if(savesFP())
+    {
+        InstructionDecoder tmp(dec);
+        std::vector<Instruction::Ptr> nextTwoInsns;
+        nextTwoInsns.push_back(tmp.decode());
+        nextTwoInsns.push_back(tmp.decode());
+        if(isFrameSetupInsn(nextTwoInsns[0]) ||
+            isFrameSetupInsn(nextTwoInsns[1]))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool IA_IAPI::cleansStack() const
+{
+    return (curInsn()->getCategory() == c_ReturnInsn) &&
+            curInsn()->getOperand(0).getValue();
+
+}

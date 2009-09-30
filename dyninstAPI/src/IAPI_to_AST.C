@@ -39,53 +39,57 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#if !defined(IA_INSTRUCITER_H)
-#define IA_INSTRUCITER_H
+#include "IAPI_to_AST.h"
+#include "BinaryFunction.h"
+#include "Immediate.h"
+#include "Register.h"
+#include "Dereference.h"
+#include "RegisterConversion-x86.h"
 
-#include "InstructionAdapter.h"
-#include "InstrucIter.h"
+using namespace Dyninst::InstructionAPI;
 
-class IA_InstrucIter : public InstructionAdapter
+void ASTFactory::visit(BinaryFunction* b)
 {
-    public:
-        instruction getInstruction();
-        IA_InstrucIter(InstrucIter from, image_func* f);
-        virtual bool hasCFT() const;
-        virtual size_t getSize() const;
-        virtual bool isFrameSetupInsn() const;
-        virtual bool isAbortOrInvalidInsn() const;
-        virtual bool isAllocInsn() const;
-    // TODO
-        virtual void
-                getNewEdges(pdvector<std::pair< Address, EdgeTypeEnum> >&
-                outEdges, image_basicBlock* currBlk,
-                pdvector<instruction>& all_insns,
-                dictionary_hash<Address, std::string> *pltFuncs) const;
-        virtual bool isDynamicCall() const;
-        virtual bool isAbsoluteCall() const;
-        virtual bool simulateJump() const;
-        virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual void advance();
-        virtual bool isNop() const;
-        virtual bool isLeave() const;
-        virtual bool isDelaySlot() const;
-        virtual bool isTailCall(pdvector<instruction>& all_insns) const;
-        virtual bool checkEntry() const;
-        virtual Address getCFT() const;
-        virtual bool isStackFramePreamble(int& frameSize) const;
-        virtual bool savesFP() const;
-        virtual bool cleansStack() const;
-        virtual bool isConditional() const;
-        virtual bool isBranch() const;
-   
-    private:
-        virtual bool isRealCall() const;
-        virtual bool isReturn() const;
-        virtual bool isCall() const;
-        
-        mutable InstrucIter ii;
-        
-};
+    AstNodePtr rhs = m_stack.back();
+    m_stack.pop_back();
+    AstNodePtr lhs = m_stack.back();
+    m_stack.pop_back();
+    if(b->isAdd())
+    {
+        m_stack.push_back(AstNode::operatorNode(
+                plusOp,
+                lhs,
+                rhs));
+    }
+    else if(b->isMultiply())
+    {
+        m_stack.push_back(AstNode::operatorNode(
+                timesOp,
+        lhs,
+        rhs));
+    }
+    else
+    {
+        assert(0);
+    }
+}
 
+void ASTFactory::visit(Dereference* )
+{
+    AstNodePtr effaddr = m_stack.back();
+    m_stack.pop_back();
+    m_stack.push_back(AstNode::operandNode(AstNode::DataIndir,
+                    effaddr));
+}
 
-#endif // !defined(IA_INSTRUCITER_H)
+void ASTFactory::visit(Immediate* i)
+{
+    m_stack.push_back(AstNode::operandNode(AstNode::Constant,
+                    (void*)(i->eval().convert<long>())));
+}
+
+void ASTFactory::visit(RegisterAST* r)
+{
+    m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
+                      (void*)(convertRegID((IA32Regs)(r->getID())))));
+}

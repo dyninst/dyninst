@@ -200,6 +200,15 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Immediate.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalOptions="/TP"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Instruction.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -215,7 +224,7 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\InstructionCategories.C">
+				RelativePath=".\src\InstructionAST.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -230,7 +239,7 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\InstructionAST.C">
+				RelativePath=".\src\InstructionCategories.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -340,10 +349,10 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 				RelativePath=".\h\Instruction.h">
 			</File>
 			<File
-				RelativePath=".\h\InstructionCategories.h">
+				RelativePath=".\h\InstructionAST.h">
 			</File>
 			<File
-				RelativePath=".\h\InstructionAST.h">
+				RelativePath=".\h\InstructionCategories.h">
 			</File>
 			<File
 				RelativePath=".\h\InstructionDecoder.h">

@@ -305,7 +305,11 @@ bool AddressSpace::replaceFunctionCall(instPoint *point,
               continue; 
           }
       }
+#if defined(cap_instruction_api)      
+      codeGen gen(point->insn()->size());
+#else //defined(cap_instruction_api)
       codeGen gen(point->insn().size());
+#endif //defined(cap_instruction_api)
       gen.setAddrSpace(this);
       gen.setPoint(point);
 
@@ -325,14 +329,23 @@ bool AddressSpace::replaceFunctionCall(instPoint *point,
       // it's really not worth it.
       replacedFunctionCall *newRFC = new replacedFunctionCall();
       newRFC->callAddr = pointAddr;
+#if defined(cap_instruction_api)
+      newRFC->callSize = point->insn()->size();
+#else //defined(cap_instruction_api)
       newRFC->callSize = point->insn().size();
+#endif //defined(cap_instruction_api)
       if (func)
           newRFC->newTargetAddr = func->getAddress();
       else
           newRFC->newTargetAddr = 0;
 
+#if defined(cap_instruction_api)
+      codeGen old(point->insn()->size());
+      old.copy(point->insn()->ptr(), point->insn()->size());
+#else //defined(cap_instruction_api)
       codeGen old(point->insn().size());
       old.copy(point->insn().ptr(), point->insn().size());
+#endif //defined(cap_instruction_api)
       
       newRFC->oldCall = old;
       newRFC->newCall = gen;

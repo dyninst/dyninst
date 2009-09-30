@@ -189,7 +189,6 @@ class mapped_module;
 template class pdvector<mapped_module *>;
 
 
-#include "InstrucIter.h"
 template class std::vector<Address>;
 
 template class pdvector<fileDescriptor>;

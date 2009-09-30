@@ -85,12 +85,8 @@ Address InstructionAdapter::getNextAddr() const
 }
 
 FuncReturnStatus InstructionAdapter::getReturnStatus(image_basicBlock* ,
-                                          std::vector<instruction>& all_insns) const
+        pdvector<instruction>& all_insns) const
 {
-    if(isReturn())
-    {
-        return RS_RETURN;
-    }
     // Branch that's not resolvable by binding IP,
     // therefore indirect...
     if(isBranch() &&
@@ -115,10 +111,14 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(image_basicBlock* ,
         }
             
     }
+    if(isReturn())
+    {
+        return RS_RETURN;
+    }
     return RS_UNSET;
 }
 
-bool InstructionAdapter::hasUnresolvedControlFlow(image_basicBlock* currBlk, std::vector<instruction>& all_insns) const
+bool InstructionAdapter::hasUnresolvedControlFlow(image_basicBlock* currBlk, pdvector<instruction>& all_insns) const
 {
     if(isDynamicCall())
     {
@@ -131,18 +131,18 @@ bool InstructionAdapter::hasUnresolvedControlFlow(image_basicBlock* currBlk, std
     return false;
 }
 
-instPointType_t InstructionAdapter::getPointType(std::vector<instruction>& all_insns,
+instPointType_t InstructionAdapter::getPointType(pdvector<instruction>& all_insns,
                                       dictionary_hash<Address, std::string> *pltFuncs) const
 {
+    if(isBranch() && isTailCall(all_insns))
+    {
+        return functionExit;
+    }
     if(isReturn())
     {
         return functionExit;
     }
-    if(isTailCall(all_insns))
-    {
-        return functionExit;
-    }
-    if((*pltFuncs).defines(getCFT()))
+    if(isBranch() && (*pltFuncs).defines(getCFT()))
     {
         return functionExit;
     }
@@ -152,7 +152,11 @@ instPointType_t InstructionAdapter::getPointType(std::vector<instruction>& all_i
     {
         return functionExit;
     }
-    if(isCall())
+    if(isBranch())
+    {
+        return noneType;
+    }
+    if(isCall() || isDynamicCall())
     {
         if(!isRealCall())
         {
@@ -169,7 +173,7 @@ instPointType_t InstructionAdapter::getPointType(std::vector<instruction>& all_i
     return noneType;
 }
 
-InstrumentableLevel InstructionAdapter::getInstLevel(std::vector<instruction>& all_insns) const
+InstrumentableLevel InstructionAdapter::getInstLevel(pdvector<instruction>& all_insns) const
 {
     if(isBranch() &&
        getCFT() == 0)
@@ -185,7 +189,7 @@ InstrumentableLevel InstructionAdapter::getInstLevel(std::vector<instruction>& a
         else if(!parsedJumpTable)
         {
             assert(0);
-            // check for unparseable    
+            // check for unparseable
             return HAS_BR_INDIR;
         }
         else if(!successfullyParsedJumpTable)

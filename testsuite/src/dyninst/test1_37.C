@@ -140,7 +140,7 @@ static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *app
 			{
 				logerror("**Failed** test #37 (instrument loops)\n");
 				logerror("   Unable to insert snippet at loop entry.\n");
-                                cfg->dump();
+                                //cfg->dump();
                         }
 		}
 		for (j=0;j<exits->size();j++) 
@@ -155,7 +155,7 @@ static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *app
 			{
 				logerror("**Failed** test #37 (instrument loops)\n");
 				logerror("   Unable to insert snippet at loop exit.\n");
-                                cfg->dump();
+                                //cfg->dump();
 			}
 		}
 

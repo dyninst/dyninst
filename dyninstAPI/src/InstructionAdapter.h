@@ -83,7 +83,6 @@ enum InstrumentableLevel {
 };
 #endif //!defined(ESSENTIAL_PARSING_ENUMS)
 
-
 class InstructionAdapter
 {
     public:
@@ -97,22 +96,22 @@ class InstructionAdapter
     virtual bool isAllocInsn() const = 0;
     // TODO
     virtual void
-            getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >&
+            getNewEdges(pdvector<std::pair< Address, EdgeTypeEnum> >&
             outEdges, image_basicBlock* currBlk,
-            std::vector<instruction>& all_insns,
+            pdvector<instruction>& all_insns,
             dictionary_hash<Address, std::string> *pltFuncs) const =
 0;
     virtual bool isDynamicCall() const = 0;
     virtual bool isAbsoluteCall() const = 0;
-    virtual InstrumentableLevel getInstLevel(std::vector<instruction>&
+    virtual InstrumentableLevel getInstLevel(pdvector<instruction>&
 all_insns) const;
     virtual FuncReturnStatus getReturnStatus(image_basicBlock* currBlk,
-                                             std::vector<instruction>&
+                                             pdvector<instruction>&
 all_insns) const ;
-    virtual instPointType_t getPointType(std::vector<instruction>& all_insns,
+    virtual instPointType_t getPointType(pdvector<instruction>& all_insns,
                                          dictionary_hash<Address, std::string>
 *pltFuncs) const;
-            virtual bool hasUnresolvedControlFlow(image_basicBlock* currBlk, std::vector<instruction>& all_insns)
+    virtual bool hasUnresolvedControlFlow(image_basicBlock* currBlk, pdvector<instruction>& all_insns)
 const;
             virtual bool simulateJump() const= 0;
     virtual void advance() = 0;
@@ -123,12 +122,17 @@ const;
     virtual Address getAddr() const;
     virtual Address getPrevAddr() const;
     virtual Address getNextAddr() const;
+    virtual bool checkEntry() const = 0;
+    virtual Address getCFT() const = 0;
+    virtual bool isStackFramePreamble(int& frameSize) const = 0;
+    virtual bool savesFP() const = 0;
+    virtual bool cleansStack() const = 0;
+    virtual bool isConditional() const = 0;
+    virtual bool isBranch() const = 0;
     protected:
         virtual bool isReturn() const = 0;
-        virtual bool isBranch() const = 0;
         virtual bool isCall() const = 0;
-        virtual Address getCFT() const = 0;
-        virtual bool isTailCall(std::vector<instruction>& all_insns) const = 0;
+        virtual bool isTailCall(pdvector<instruction>& all_insns) const = 0;
         virtual bool isRealCall() const = 0;
         Address current;
     Address previous;

@@ -60,13 +60,14 @@ namespace Dyninst
     }
     bool Expression::bind(Expression* expr, const Result& value)
     {
-      bool retVal = false;
+      //bool retVal = false;
       if(*expr == *this)
       {
-        //fprintf(stderr, "Binding %s to %ld\n", format().c_str(), value.convert<unsigned long>());
 	setValue(value);
 	return true;
       }
+      return false;
+#if 0      
       //fprintf(stderr, "%s != %s in bind(), checking kids...\n", format().c_str(), expr->format().c_str());
       std::vector<InstructionAST::Ptr> children;
       getChildren(children);
@@ -87,6 +88,7 @@ namespace Dyninst
         }
       }
       return retVal;
+#endif
     }
     bool Expression::isFlag() const
     {

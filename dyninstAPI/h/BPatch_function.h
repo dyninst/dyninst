@@ -151,11 +151,11 @@ public:
 
     // Linux and Sparc only
     // slicing stuff
-    void createDataDependenceGraph();
-    void createControlDependenceGraph();
-    void createProgramDependenceGraph();
-    void createExtendedProgramDependenceGraph();
-    void identifyDependencies(BPatch_function* callee, void* calleeAddress);
+    //void createDataDependenceGraph();
+    //void createControlDependenceGraph();
+    //void createProgramDependenceGraph();
+    //void createExtendedProgramDependenceGraph();
+    //void identifyDependencies(BPatch_function* callee, void* calleeAddress);
     // End Linux and Sparc only
 
     // End of functions for internal use only

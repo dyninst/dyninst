@@ -165,7 +165,7 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
 
 
 // not implemented on power
-void image_func::archInstructionProc(InstrucIter & /* ah */)
+void image_func::archInstructionProc(InstructionAdapter & /* ah */)
 {
     return;
 }

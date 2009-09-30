@@ -92,16 +92,22 @@ bool IA_InstrucIter::isNop() const
 
 bool IA_InstrucIter::isDynamicCall() const
 {
-    if(ii.isACallInstruction() &&
-       ii.isADynamicCallInstruction())
+    if(ii.isACondBranchInstruction() || ii.isAIndirectJumpInstruction() ||
+      ii.isAJumpInstruction() || ii.isACondReturnInstruction())
+        return false;
+    if(ii.isADynamicCallInstruction())
     {
-        return true;
+            return true;
     }
     return false;
 }
 
 bool IA_InstrucIter::isAbsoluteCall() const
 {
+    if(ii.isACondBranchInstruction() || ii.isAIndirectJumpInstruction() ||
+       ii.isAJumpInstruction() || ii.isACondReturnInstruction() ||
+       ii.isAReturnInstruction())
+        return false;
     bool isAbsolute = false;
     if(ii.isACallInstruction())
     {
@@ -112,15 +118,24 @@ bool IA_InstrucIter::isAbsoluteCall() const
        
 bool IA_InstrucIter::isReturn() const
 {
+    if(ii.isACondBranchInstruction() || ii.isAIndirectJumpInstruction() ||
+       ii.isAJumpInstruction())
+        return false;
     return ii.isACondReturnInstruction() || ii.isAReturnInstruction();
 }
 
 bool IA_InstrucIter::isBranch() const
 {
-    return ii.isAJumpInstruction() || ii.isACondBranchInstruction() ||
-            ii.isAIndirectJumpInstruction();
+    return (ii.isAJumpInstruction() || ii.isACondBranchInstruction() ||
+            ii.isAIndirectJumpInstruction());
 }
 
+bool IA_InstrucIter::isConditional() const
+{
+    return ii.isACondBranchInstruction() ||
+            ii.isACondReturnInstruction();
+}
+        
 Address IA_InstrucIter::getCFT() const
 {
     if(ii.isAIndirectJumpInstruction() ||
@@ -137,46 +152,13 @@ bool IA_InstrucIter::isCall() const
 }
 
 void IA_InstrucIter::getNewEdges(
-        std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
+        pdvector<std::pair< Address, EdgeTypeEnum> >& outEdges,
         image_basicBlock* currBlk,
-        std::vector<instruction>& all_insns,
+        pdvector<instruction>& all_insns,
         dictionary_hash<Address,
         std::string> *pltFuncs) const
 {
     if(!hasCFT()) return;
-    if(ii.isACallInstruction())
-    {
-        //validTarget is set to false if the call target is not a
-        //valid address in the applications process space
-        bool validTarget = true;
-        //simulateJump is set to true if the call should be treated
-        //as an unconditional branch for the purposes of parsing
-        //(a special case)
-        bool simulateJump = false;
-
-        Address target = ii.getBranchTargetAddress();
-        if(context->archIsRealCall(ii, validTarget, simulateJump))
-        {
-            outEdges.push_back(std::make_pair(target, ET_NOEDGE));
-        }
-        else
-        {
-            if(validTarget)
-            {
-                if(simulateJump)
-                {
-                    parsing_printf("[%s:%u] call at 0x%lx simulated as "
-                            "jump to 0x%lx\n",
-                    FILE__,__LINE__,getAddr(),target);
-                    outEdges.push_back(std::make_pair(target, ET_DIRECT));
-                    return;
-                }
-            }
-        }
-        outEdges.push_back(std::make_pair(getAddr() + getSize(),
-                           ET_FUNLINK));
-        return;
-    }
     else if(ii.isACondBranchInstruction())
     {
         outEdges.push_back(std::make_pair(ii.getBranchTargetAddress(NULL),
@@ -244,6 +226,43 @@ void IA_InstrucIter::getNewEdges(
         outEdges.push_back(std::make_pair(current + getSize(), ET_FALLTHROUGH));
         return;
     }
+    else if(ii.isAReturnInstruction())
+    {
+        return;
+    }
+    else if(ii.isACallInstruction() || ii.isADynamicCallInstruction())
+    {
+        //validTarget is set to false if the call target is not a
+        //valid address in the applications process space
+        bool validTarget = true;
+        //simulateJump is set to true if the call should be treated
+        //as an unconditional branch for the purposes of parsing
+        //(a special case)
+        bool simulateJump = false;
+
+        Address target = ii.getBranchTargetAddress();
+        if(context->archIsRealCall(ii, validTarget, simulateJump))
+        {
+            outEdges.push_back(std::make_pair(target, ET_NOEDGE));
+        }
+        else
+        {
+            if(validTarget)
+            {
+                if(simulateJump)
+                {
+                    parsing_printf("[%s:%u] call at 0x%lx simulated as "
+                            "jump to 0x%lx\n",
+                    FILE__,__LINE__,getAddr(),target);
+                    outEdges.push_back(std::make_pair(target, ET_DIRECT));
+                    return;
+                }
+            }
+        }
+        outEdges.push_back(std::make_pair(getAddr() + getSize(),
+                           ET_FUNLINK));
+        return;
+    }
     return;
 }
 
@@ -278,6 +297,14 @@ bool IA_InstrucIter::simulateJump() const
 
 bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
 {
+    if(lvl == HAS_BR_INDIR)
+    {
+        return false;
+    }
+    if(!ii.isACallInstruction())
+    {
+        return true;
+    }
     bool valid, simjump;
     if(!context->archIsRealCall(ii, valid, simjump))
     {
@@ -286,23 +313,43 @@ bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
             return false;
         }
     }
-    if(lvl == HAS_BR_INDIR)
-    {
-        return false;
-    }
     return true;
 }
 
-bool IA_InstrucIter::isTailCall(std::vector<instruction>& all_insns) const
+bool IA_InstrucIter::isTailCall(pdvector<instruction>& all_insns) const
 {
-    if(ii.isAJumpInstruction() && context->archIsATailCall(ii, all_insns))
+    if(ii.isACondBranchInstruction()) return false;
+    if(ii.isAIndirectJumpInstruction() && context->archIsIndirectTailCall(ii))
     {
         return true;
     }
-    if(ii.isACallInstruction() && context->archIsIndirectTailCall(ii))
+    if(ii.isAJumpInstruction() && context->archIsATailCall(ii, all_insns))
     {
         return true;
     }
     return false;
 }
 
+bool IA_InstrucIter::checkEntry() const
+{
+    return context->archCheckEntry(ii, context);
+}
+
+bool IA_InstrucIter::isStackFramePreamble(int& frameSize) const
+{
+    InstrucIter tmp(ii);
+    bool ret = ii.isStackFramePreamble(frameSize);
+    return ret;
+            
+}
+
+bool IA_InstrucIter::savesFP() const
+{
+    return ii.isFramePush();
+}
+
+
+bool IA_InstrucIter::cleansStack() const
+{
+    return ii.getInstruction().isCleaningRet();
+}
