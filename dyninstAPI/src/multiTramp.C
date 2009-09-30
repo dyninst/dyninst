@@ -119,6 +119,60 @@ baseTrampInstance *multiTramp::getBaseTrampInstanceByAddr(Address addr) const {
     return NULL;
 }
 
+void multiTramp::updateCode(generatedCodeObject *subObject) {
+    // One of our baseTramps just went away; let's see what's going on.
+    // Or we're going away from a top level.
+
+    bool doWeDelete = false;
+
+            // There's a baseTrampInstance left. Since we in-lined, this means
+            // we need to regenerate the code. For safety, we make a new multiTramp
+            // in place of this one.
+    multiTramp::replaceMultiTramp(this, doWeDelete);
+        
+    if (doWeDelete) {
+        // We're empty. Time to leave.
+        if (savedCodeBuf_) {
+            // Okay, they're all empty. Overwrite the jump to this guy with the saved buffer.
+            proc()->writeTextSpace((void *)instAddr_,
+                                             instSize_,
+                                             (void *)savedCodeBuf_);
+            // This better work, or we're going to be jumping into all sorts
+            // of hurt.
+
+            free(savedCodeBuf_);
+            savedCodeBuf_ = 0;
+        }
+
+        if (proc()->findMultiTrampById(id()) == this) {
+            // Won't leak as the process knows to delete us
+            proc()->removeMultiTramp(this);
+        }
+        
+        // Move everything else to the deleted list
+        generatedCFG_t::iterator cfgIter(generatedCFG_);
+        generatedCodeObject *obj = NULL;
+
+        while ((obj = cfgIter++)) {
+           int found_index = -1;
+           for (unsigned int i = 0; i <deletedObjs.size(); ++i) {
+              if (obj == deletedObjs[i]) {
+                 found_index = i;
+                 break;
+              }
+           }
+           if (-1 == found_index)  {
+              deletedObjs.push_back(obj);
+              obj->removeCode(this);
+           }
+        }
+        generatedCFG_.setStart(NULL);
+
+        proc()->deleteGeneratedCode(this);
+    }   
+    return;
+}
+
 // Begin the long and arduous task of deleting a multiTramp.
 
 void multiTramp::removeCode(generatedCodeObject *subObject) {
@@ -1815,7 +1869,7 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
     // all we have to do is make sure the data structures are set
     // up right.
 
-    if (!oldMulti->proc()->findMultiTrampById(oldMulti->id()))
+    if (oldMulti->proc()->findMultiTrampById(oldMulti->id())!= oldMulti)
     {
        //The old multitramp has already been unlinked and removed.
        //Don't bother doing the replacement.

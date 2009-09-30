@@ -615,6 +615,7 @@ class multiTramp : public generatedCodeObject {
   void invalidateCode();
   bool linkCode();
   void removeCode(generatedCodeObject *subObject);
+  void updateCode(generatedCodeObject *subObject);
     // STUPID WINDOWS COMPILER
   generatedCodeObject *replaceCode(generatedCodeObject *newParent);
   bool safeToFree(codeRange *range);
