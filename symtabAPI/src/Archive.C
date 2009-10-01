@@ -29,130 +29,249 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 #include "symtabAPI/src/Object.h"
 
+#include <iostream>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-extern char errorLine[];
-
-static SymtabError serr;
-static std::string errMsg;
+/*
+ * A generic interface for handling archives (aka .a files)
+ *
+ * Specifics of the format for the .a files are handled per platform.
+ * See Archive-<platform> files for more info. 
+ *
+ * Saving of errors is also contained in the platform-dependent files.
+ */
 
 std::vector<Archive *> Archive::allArchives;
+std::string Archive::errMsg;
+SymtabError Archive::serr;
 
-bool Archive::openArchive(Archive *&img, std::string filename)
+// Error messages used by printError
+static const std::string PARSE_FAILURE = "Failed to parse the archive: ";
+static const std::string NO_MEMBER = "Member not found: ";
+static const std::string NOT_ARCHIVE = "File is not an archive";
+static const std::string DUPLICATE_SYM = "Duplicate symbol found: ";
+static const std::string UNKNOWN_ERR = "Unknown Error";
+
+// Specific error cases
+static const std::string MEMBER_DNE = "member does not exist";
+
+SymtabError Archive::getLastError()
 {
- 	bool ok = false;
-	for (unsigned i=0;i<allArchives.size();i++)
-	{
-      if (allArchives[i]->mf->pathname() == filename)
-      {
-	    	img = allArchives[i];
-         return true;
-      }
-	}
+    return serr;
+}
 
-	img = new Archive(filename ,ok);
-	if (ok)	// No errors
-		allArchives.push_back(img);	
-	else {
-      //fprintf(stderr, "%s[%d]:  error opening archive for %s\n", 
-      //      FILE__, __LINE__, filename.c_str());
-      if (img)
-         delete img;
-		img = NULL;
+std::string Archive::printError(SymtabError err)
+{
+   switch (err) {
+      case Obj_Parsing:
+         return PARSE_FAILURE + errMsg;
+      case No_Such_Member:
+         return NO_MEMBER + errMsg;
+      case Not_A_File:
+         return errMsg;
+      case Not_An_Archive:
+         return NOT_ARCHIVE;
+      case Duplicate_Symbol:
+         return DUPLICATE_SYM + errMsg;
+      default:
+         return UNKNOWN_ERR;
    }
-	return ok;
 }
 
-#if 0 
-bool Archive::openArchive(Archive *&img, char *mem_image, size_t size)
+bool Archive::openArchive(Archive * &img, std::string filename)
 {
- 	bool err;
-	img = new Archive(mem_image, size, err);
-	if(err == false)
-		img = NULL;
-	return err;
-}
-#endif
+    bool err = false;
 
-bool Archive::getMember(Symtab *&img, std::string member_name)
-{
-   if (membersByName.find(member_name) == membersByName.end())
-   {
-      serr = No_Such_Member;
-      errMsg = "Member Does not exist";
-      return false;
-   }	
+    // Has the archive already been opened?
+    std::vector<Archive *>::iterator ar_it;
+    for (ar_it = allArchives.begin(); ar_it != allArchives.end(); ++ar_it) {
+        assert( *ar_it != NULL );
 
-   img = membersByName[member_name];
-   if (img == NULL) {
-      bool err;
-      if (mf->getFD() == -1) {
-          img = new Symtab((char *)mf->base_addr(),mf->size(), 
-                member_name, memberToOffsetMapping[member_name], err, basePtr);
-      }
-      else {
-         if (!mf) {
-            fprintf(stderr, "%s[%d]:  ERROR: mf has not been set\n", FILE__, __LINE__);
-            return false;
-         }
-         std::string pname = mf->pathname();
-         if (pname.length()) {
-            img = new Symtab(std::string(pname),member_name, memberToOffsetMapping[member_name], 
-                  err, basePtr);
-         }
-         else {
-            fprintf(stderr, "%s[%d]:  WARNING:  got mapped file with non existant path name\n", FILE__, __LINE__);
-            img = new Symtab(std::string(""),member_name, memberToOffsetMapping[member_name], 
-                  err, basePtr);
-         }
-      }
-      membersByName[member_name] = img;
-   }
-   return true;
-}
-
-bool Archive::getAllMembers(std::vector <Symtab *> &members)
-{
-   dyn_hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-   for (; iter!=membersByName.end();iter++) {
-      if (iter->second == NULL) {
-         bool err;
-         string member_name = iter->first;
-         if (mf->getFD() == -1)
-             iter->second = new Symtab((char *)mf->base_addr(), mf->size(), member_name, 
-                   memberToOffsetMapping[iter->first], err, basePtr);
-         else
-             iter->second = new Symtab(mf->pathname(), member_name, memberToOffsetMapping[iter->first], 
-                   err, basePtr);
-      }
-      members.push_back(iter->second);
-   }
-   return true;	
-}
-
-bool Archive::isMemberInArchive(std::string member_name)
-{
-   if(membersByName.find(member_name) != membersByName.end())
-      return true;
-   return false;
-}
-
-bool Archive::findMemberWithDefinition(Symtab *&obj, std::string name){
-    vector<Symtab *>members;
-    getAllMembers(members);
-
-    for(unsigned i=0; i<members.size();i++){
-        vector<Symbol *>syms;
-        if(members[i]->findSymbolByType(syms, name, Symbol::ST_UNKNOWN, true)){
-            obj = members[i];
+        if( (*ar_it)->mf->pathname() == filename ) {
+            img = *ar_it;
             return true;
         }
     }
+
+    img = new Archive(filename, err);
+    if (err) {			
+	allArchives.push_back(img);
+    } else {
+	if (img) {
+            delete img;
+            img = NULL;
+        }
+    }
+
+    return err;
+}
+
+bool Archive::openArchive(Archive * &img, char *mem_image, size_t size)
+{
+    bool err;
+    // Has the archive already been opened?
+    std::vector<Archive *>::iterator ar_it;
+    for (ar_it = allArchives.begin(); ar_it != allArchives.end(); ++ar_it) {
+        assert( *ar_it != NULL );
+
+        if( (*ar_it)->mf->base_addr() == (void *)mem_image ) {
+            img = *ar_it;
+            return true;
+        }
+    }
+
+    img = new Archive(mem_image, size, err);
+    if (err) {
+        allArchives.push_back(img);
+    } else {
+        if (img) {
+            delete img;
+            img = NULL;
+        }
+    }
+
+    return err;
+}
+
+bool Archive::getMember(Symtab *&img, string& member_name) 
+{
+    dyn_hash_map<string, ArchiveMember *>::iterator mem_it;
+    mem_it = membersByName.find(member_name);
+    if ( mem_it == membersByName.end() ) {
+        serr = No_Such_Member;
+        errMsg = MEMBER_DNE;
+        return false;
+    }
+
+    img = mem_it->second->getSymtab();
+    if( img == NULL ) {
+        if( !parseMember(img, mem_it->second) ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Archive::getMemberByOffset(Symtab *&img, Offset memberOffset) 
+{
+    dyn_hash_map<Offset, ArchiveMember *>::iterator off_it;
+    off_it = membersByOffset.find(memberOffset);
+    if( off_it == membersByOffset.end() ) {
+        serr = No_Such_Member;
+        errMsg = MEMBER_DNE;
+        return false;
+    }
+
+    img = off_it->second->getSymtab();
+    if( img == NULL ) {
+        if( !parseMember(img, off_it->second) ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Archive::getMemberByGlobalSymbol(Symtab *&img, string& symbol_name) 
+{
+    if( !symbolTableParsed ) {
+       if( !parseSymbolTable() ) {
+            return false;
+       }
+    }
+
+    dyn_hash_map<string, ArchiveMember *>::iterator mem_it;
+    mem_it = membersBySymbol.find(symbol_name);
+    if( mem_it == membersBySymbol.end() ) {
+        serr = No_Such_Member;
+        errMsg = MEMBER_DNE;
+        return false;
+    }
+
+    img = mem_it->second->getSymtab();
+    if( img == NULL ) {
+        if( !parseMember(img, mem_it->second) ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Archive::getAllMembers(vector<Symtab *> &members) 
+{
+    dyn_hash_map<string, ArchiveMember *>::iterator mem_it;
+    for(mem_it = membersByName.begin(); mem_it != membersByName.end(); ++mem_it) {
+        Symtab *img = mem_it->second->getSymtab();
+        if( img == NULL) {
+            if( !parseMember(img, mem_it->second) ) {
+                return false;
+            }
+        }
+        members.push_back(mem_it->second->getSymtab());
+    }
+    return true;
+}
+
+bool Archive::isMemberInArchive(std::string& member_name) 
+{
+    if (membersByName.count(member_name)) return true;
     return false;
+}
+
+/**
+ * This method differs from getMemberByGlobalSymbol in that it searches the
+ * underlying Symtab objects in the archive for the symbol while
+ * getMemberByGlobalSymbol searches the Archive's symbol table.
+ *
+ * The reasoning behind this is that searching the Archive's symbol table will
+ * be faster than using the Symtab interface because the underlying Symtab
+ * object is only created when the symbol is found in the Archive's symbol table.
+ * Contrary to this, findMemberWithDefinition requires creating Symtab objects
+ * for every member in an Archive and then searching each of these Symtab objects
+ * for the symbol.
+ */
+bool Archive::findMemberWithDefinition(Symtab * &obj, std::string& name)
+{
+    std::vector<Symtab *> members;
+    if( !getAllMembers(members) ) {
+        return false;
+    }
+
+    std::vector<Symtab *>::iterator obj_it;
+    for (obj_it = members.begin(); obj_it != members.end(); ++obj_it) {
+        std::vector<Symbol *> syms;
+	if ((*obj_it)->findSymbol(syms, name, Symbol::ST_UNKNOWN)) {
+            obj = *obj_it;
+            return true;
+	}
+    }
+
+    serr = No_Such_Member;
+    errMsg = MEMBER_DNE;
+    return false;
+}
+
+Archive::~Archive()
+{
+    dyn_hash_map<string, ArchiveMember *>::iterator it;
+    for (it = membersByName.begin(); it != membersByName.end(); ++it) {
+        if (it->second) delete it->second;
+    }
+
+    for (unsigned i = 0; i < allArchives.size(); i++) {
+        if (allArchives[i] == this)
+            allArchives.erase(allArchives.begin()+i);
+    }
+
+    if (mf) {
+      MappedFile::closeMappedFile(mf);
+    }
 }

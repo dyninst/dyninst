@@ -489,11 +489,19 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       assert(newSec);
 
       if (mobj == getAOut()) {
-         // Add dynamic symbol relocations
+         // Add dynamic symbol relocations aka intermodule symbol references
          Symbol *referring, *newSymbol;
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
             referring = dependentRelocations[i]->getReferring();
+
+            // In this case, it would be an intermodule symbol reference
+            // which will require linking in new code
+            if( symObj->isStaticBinary() ) {
+                assert(symObj->addInterModuleSymbolRef(referring, to));
+                continue;
+            }
+
             if (!symObj->hasReldyn() && !symObj->hasReladyn()) {
 	      Address addr = referring->getOffset();
 	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);

@@ -37,7 +37,6 @@
 
 #if !defined(_Object_h_)
 #define _Object_h_
-
 /************************************************************************
  * header files.
 ************************************************************************/
@@ -136,6 +135,8 @@ public:
     SYMTAB_EXPORT void clearSymsToMods();
     SYMTAB_EXPORT bool hasError() const;
 
+    SYMTAB_EXPORT SymtabError getLastError() { return serr_; }
+
 protected:
     SYMTAB_EXPORT virtual ~AObject();
     // explicitly protected
@@ -175,7 +176,9 @@ protected:
 //    Offset loadAddress_;
 //    Offset entryAddress_;
 //    Offset baseAddress_;
-    
+ 
+    SymtabError serr_;
+
     bool is_aout_;
     bool is_dynamic_;
     bool has_error;

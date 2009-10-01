@@ -261,12 +261,17 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool addLibraryPrereq(std::string libname);
    SYMTAB_EXPORT bool addSysVDynamic(long name, long value);
+   SYMTAB_EXPORT bool addInterModuleSymbolRef(Symbol *localModuleSym, 
+           Address relocationAddr);
+
    /***** Data Member Access *****/
    SYMTAB_EXPORT std::string file() const;
    SYMTAB_EXPORT std::string name() const;
+   SYMTAB_EXPORT std::string memberName() const;
 
    SYMTAB_EXPORT char *mem_image() const;
 
+   SYMTAB_EXPORT Offset memberOffset() const;
    SYMTAB_EXPORT Offset imageOffset() const;
    SYMTAB_EXPORT Offset dataOffset() const;
    SYMTAB_EXPORT Offset dataLength() const;
@@ -504,6 +509,13 @@ class Symtab : public LookupInterface,
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
 
+   // START static binary rewriting support
+
+   // intermodule symbol references
+   std::map<Symbol *, std::vector<Address> > interModuleSymRefs_;
+
+   // END static binary rewriting support
+
    std::vector<std::string> deps_;
 
    //Line Information valid flag;
@@ -613,6 +625,9 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
 			  Symbol *dynref = NULL, unsigned long relType = 0);
       SYMTAB_EXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, 
 			  unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
+      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, Offset add,
+                          std::string n, Symbol *dynref = NULL, unsigned long relType = 0,
+                          Region::RegionType rtype = Region::RT_REL);
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
 

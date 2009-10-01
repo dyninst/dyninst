@@ -358,6 +358,11 @@ SYMTAB_EXPORT bool Symtab::isStripped()
 #endif
 }
 
+SYMTAB_EXPORT Offset Symtab::memberOffset() const 
+{
+    return member_offset_;
+}
+
 SYMTAB_EXPORT Offset Symtab::imageOffset() const 
 {
     return imageOffset_;
@@ -997,6 +1002,7 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
 }
 
 Symtab::Symtab(std::string filename,bool &err) :
+   member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
@@ -1031,6 +1037,12 @@ Symtab::Symtab(std::string filename,bool &err) :
      return;
    }
 
+   if( obj_private->getLastError() != No_Error ) {
+       serr = obj_private->getLastError();
+       err = true;
+       return;
+   }
+
    if (!extractInfo(obj_private))
    {
       create_printf("%s[%d]: WARNING: creating symtab for %s, extractInfo() " 
@@ -1038,10 +1050,13 @@ Symtab::Symtab(std::string filename,bool &err) :
       err = true;
    }
 
+   member_name_ = mf->filename();
+
    defaultNamespacePrefix = "";
 }
 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
+   member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false),
@@ -1078,11 +1093,13 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
       err = true;
    }
 
+   member_name_ = mf->filename();
+
    defaultNamespacePrefix = "";
 }
 
 // Symtab constructor for archive members
-#if defined(os_aix) || defined(os_linux) || defined(os_solaris)
+#if defined(os_aix)
 Symtab::Symtab(std::string filename, std::string member_name, Offset offset, 
                bool &err, void *base) :
    member_name_(member_name), 
@@ -1101,7 +1118,7 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
      err = true;
      return;
    }
-   err = extractInfo(obj_private);
+   err = !extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }
 #else
@@ -1111,10 +1128,11 @@ Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
 }
 #endif
 
-#if defined(os_aix) || defined(os_linux) || defined(os_solaris)
+#if defined(os_aix)
 Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
                        Offset offset, bool &err, void *base) :
    member_name_(member_name), 
+   member_offset_(offset),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
@@ -1128,7 +1146,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
      err = true;
      return;
    }
-   err = extractInfo(obj_private);
+   err = !extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }
 #else 
@@ -1390,6 +1408,7 @@ Symtab::Symtab(const Symtab& obj) :
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
     member_name_ = obj.member_name_;
+    member_offset_ = obj.member_offset_;
     imageOffset_ = obj.imageOffset_;
     imageLen_ = obj.imageLen_;
     dataOffset_ = obj.dataOffset_;
@@ -2569,6 +2588,11 @@ SYMTAB_EXPORT std::string Symtab::name() const
    return mf->filename();
 }
 
+SYMTAB_EXPORT std::string Symtab::memberName() const 
+{
+    return member_name_;
+}
+
 SYMTAB_EXPORT unsigned Symtab::getNumberofRegions() const 
 {
    return no_of_sections; 
@@ -2857,7 +2881,19 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n,
    dynref_(dynref), 
    relType_(relType)
 {
-}   
+}
+
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
+        std::string n, Symbol *dynref, unsigned long relType,
+        Region::RegionType rtype) :
+    target_addr_(ta),
+    rel_addr_(ra),
+    addend_(add),
+    rtype_(rtype),
+    name_(n),
+    dynref_(dynref),
+    relType_(relType)
+{}
 
 SYMTAB_EXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
 {
@@ -3267,6 +3303,16 @@ SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 
 }
 
+
+SYMTAB_EXPORT bool Symtab::addInterModuleSymbolRef(Symbol *localModuleSym,
+        Address relocationAddr) {
+#if defined(os_linux)
+    interModuleSymRefs_[localModuleSym].push_back(relocationAddr);
+    return true;
+#else
+    return false;
+#endif
+}
 
 } // namespace SymtabAPI
 } // namespace Dyninst

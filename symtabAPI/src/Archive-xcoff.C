@@ -39,38 +39,21 @@ using namespace Dyninst::SymtabAPI;
 
 extern char errorLine[];
 
-static SymtabError serr;
-static std::string errMsg;
-
-SymtabError Archive::getLastError()
-{
-    return serr;
-}
-
-std::string Archive::printError(SymtabError serr)
-{
-   switch (serr){
-      case Obj_Parsing:
-         return "Failed to parse the Archive"+errMsg;
-      case No_Such_Member:
-	    	return "Member not found" + errMsg;
-      case Not_An_Archive:
-	    	return "File is not an archive";
-      default:
-         return "Unknown Error";
-	}	
-}		
-		       
 Archive::Archive(std::string &filename, bool &ok) :
-   basePtr(NULL)
+   basePtr(NULL), symbolTableParsed(false)
 {
    mf  = MappedFile::createMappedFile(filename);
+   if( mf == NULL ) {
+       serr = Not_A_File;
+       errMsg = "Failed to locate file";
+       ok = false;
+       return;
+   }
    fileOpener *fo_ = fileOpener::openFile(mf->base_addr(), mf->size());
    fo_->set_file(mf->filename());
 
-
-	assert(fo_);
-	unsigned char magic_number[2];
+   assert(fo_);
+    unsigned char magic_number[2];
     
    if (!fo_->set(0)) 
 	{
@@ -185,13 +168,11 @@ Archive::Archive(std::string &filename, bool &ok) :
       if ((len >= 4)&&(member_name.substr(len-4,4) == ".imp" || 
                member_name.substr(len-4,4) == ".exp"))
          continue;
-      memberToOffsetMapping[member_name] = archive->aout_offset;
-      //Do it lazily
-      membersByName[member_name] = NULL;
-      /*        
-                Symtab *memImg = new Symtab(filename ,member_name, archive->aout_offset, err);
-                membersByName[member_name] = memImg;
-       */
+
+      // Member is parsed lazily
+      ArchiveMember *newMember = new ArchiveMember(member_name, archive->aout_offset);
+      membersByOffset[archive->aout_offset] = newMember;
+      membersByName[member_name] = newMember;
    } 	
 
    //  why do we close the file mapping??  I must be missing something
@@ -205,8 +186,8 @@ Archive::Archive(std::string &filename, bool &ok) :
    ok = true;
 }
 
-#if 0
 Archive::Archive(char *mem_image, size_t size, bool &err)
+    : basePtr(NULL), symbolTableParsed(false)
 {
     mf  = MappedFile::createMappedFile(mem_image, size);
     fileOpener *fo_ = fileOpener::openFile(mf->base_addr(), mf->size());
@@ -217,7 +198,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     if (!fo_->set(0)) 
     {
         sprintf(errorLine, "Error reading memory image 0x%x with size %u\n", 
-                mem_image, size);
+                (unsigned int)mem_image, (unsigned int)size);
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -226,7 +207,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     if (!fo_->read((void *)magic_number, 2)) 
     {
         sprintf(errorLine, "Error reading memory image 0x%x with size %u\n", 
-                mem_image, size);
+                (unsigned int)mem_image, (unsigned int)size);
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -247,7 +228,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     else if ( magic_number[0] != '<')
     {
         sprintf(errorLine, "Error reading memory image 0x%x with size %u\n", 
-                mem_image, size);
+                (unsigned int)mem_image, (unsigned int)size);
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -260,7 +241,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     if (!fo_->set(0))
     {
         sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                mem_image, size, "Seeking to file start");
+                (unsigned int)mem_image, (unsigned int)size, "Seeking to file start");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -270,7 +251,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     if (!fo_->read(magicNumber, SAIAMAG))
     {
         sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                mem_image, size, "Reading magic number");
+                (unsigned int)mem_image, (unsigned int)size, "Reading magic number");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -283,7 +264,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     else
     {
         sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                mem_image, size, "Unknown magic number");
+                (unsigned int)mem_image, (unsigned int)size, "Unknown magic number");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -291,7 +272,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     if (archive->read_arhdr())
     {
         sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                mem_image, size, "Reading file header");
+                (unsigned int)mem_image, (unsigned int)size, "Reading file header");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -302,45 +283,62 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
         if (archive->read_mbrhdr())
         {
             sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                    mem_image, size, "Reading memory header");
+                    (unsigned int)mem_image, (unsigned int)size, "Reading memory header");
             serr = Obj_Parsing;
             errMsg = errorLine;
             err = false;
         }	
         std::string member_name = archive->member_name;
-        bool err;
         std::string::size_type len = member_name.length();
         if((len >= 4)&&(member_name.substr(len-4,4) == ".imp" || member_name.substr(len-4,4) == ".exp"))
             continue;
-        memberToOffsetMapping[member_name] = archive->aout_offset;
-        //Do it lazily
-		membersByName[member_name] = NULL;
-/*        
-        Symtab *memImg = new Symtab(mem_image, size,member_name, archive->aout_offset, err);
-        membersByName[member_name] = memImg;
-*/        
-    } 	
+
+        ArchiveMember *newMember = new ArchiveMember(member_name, archive->aout_offset);
+        membersByOffset[archive->aout_offset] = newMember;
+        membersByName[member_name] = newMember;
+    }
+
     fprintf(stderr, "%s[%d]:  deleting archive\n", FILE__, __LINE__);
     delete archive;
     err = true;
 }
-#endif
 
-Archive::~Archive()
+bool Archive::parseMember(Symtab *&img, ArchiveMember *member) 
 {
-   dyn_hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-   for (; iter!=membersByName.end();iter++) {
-      if (iter->second)
-         delete (iter->second);
-   }
-   memberToOffsetMapping.clear();
-   for (unsigned i = 0; i < allArchives.size(); i++) {
-      if (allArchives[i] == this)
-         allArchives.erase(allArchives.begin()+i);
-   }
+    bool err;
+    if (mf->getFD() == -1) {
+        img = new Symtab((char *)mf->base_addr(),mf->size(),
+                         member->getName(), member->getOffset(), err, basePtr);
+    } else {
+        if (!mf) {
+            fprintf(stderr, "%s[%d]:  ERROR: mf has not been set\n", FILE__, __LINE__);
+            return false;
+        }
 
-   if (mf) 
-   {
-      MappedFile::closeMappedFile(mf);
-   }
+        std::string pname = mf->pathname();
+        if (pname.length()) {
+            img = new Symtab(std::string(pname), member->getName(), member->getOffset(),
+                  err, basePtr);
+        } else {
+            fprintf(stderr, "%s[%d]:  WARNING:  got mapped file with non existant path name\n", FILE__, __LINE__);
+            img = new Symtab(std::string(""), member->getName(), member->getOffset(),
+                  err, basePtr);
+        }
+    }
+
+    if( !err ) {
+        img->member_name_ = member->getName();
+        img->member_offset_ = member->getOffset();
+        member->setSymtab(img);
+    }
+
+    return !err;
+}
+
+bool Archive::parseSymbolTable() 
+{
+    //TODO
+    serr = Obj_Parsing;
+    errMsg = "parsing of the global symbol table in a XCOFF archive is currently unimplemented";
+    return false;
 }

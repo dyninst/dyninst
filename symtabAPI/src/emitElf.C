@@ -1829,7 +1829,45 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     //add .dynamic section
     if(dynsecSize)
       obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
-#endif 
+#endif
+
+#if !defined(os_solaris) 
+  }else{
+    // Insert static re-linker code here
+
+    char *data = NULL;
+    std::map<Symbol *, std::vector<Address> >::iterator sym_it;
+    for( sym_it = obj->interModuleSymRefs_.begin(); 
+         sym_it != obj->interModuleSymRefs_.end();
+         ++sym_it) {
+        // Storage allocation
+       fprintf(stderr, "InterSymbolModuleRef: Member: %s Symbol: %s Address: %x\n",
+           sym_it->first->getSymtab()->member_name_.c_str(), sym_it->first->getPrettyName().c_str(),
+           sym_it->second[0]);
+       Symtab *curSymtab = sym_it->first->getSymtab();
+       Region *text;
+       if( !curSymtab->findRegion(text, ".text") ) {
+           fprintf(stderr, "Failed to find .text region\n");
+           continue;
+       }
+
+       obj->addRegion(0, text->getPtrToRawData(),
+               text->getRegionSize(), ".dyninstDep",
+               Region::RT_TEXTDATA, true);
+
+       Region *rodata;
+       if( !curSymtab->findRegion(rodata, ".rodata") ) {
+           fprintf(stderr, "Failed to find .rodata region\n");
+           continue;
+       }
+
+       obj->addRegion(0, rodata->getPtrToRawData(),
+               rodata->getRegionSize(), ".dyninstData",
+               Region::RT_TEXTDATA, true);
+    }
+
+    // Relocation processing
+#endif
   }
 
   if(!obj->getAllNewRegions(newSecs))

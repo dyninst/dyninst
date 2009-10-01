@@ -123,9 +123,15 @@ void (*dwarf_err_func)(const char *);   // error callback for dwarf errors
 static bool pdelf_check_ehdr(Elf_X &elf)
 {
   // Elf header integrity check
-  return ((elf.e_type() == ET_EXEC || elf.e_type() == ET_DYN) &&
-	  (elf.e_phoff() != 0) && (elf.e_shoff() != 0) &&
-	  (elf.e_phnum() != 0) && (elf.e_shnum() != 0)) ;
+
+  // This implies a valid header is a header for an executable, a shared object
+  // or a relocatable file (e.g .o) and it either has section headers or program headers
+
+  return ( (elf.e_type() == ET_EXEC || elf.e_type() == ET_DYN || elf.e_type() == ET_REL ) &&
+           (   ((elf.e_shoff() != 0) && (elf.e_shnum() != 0)) 
+            || ((elf.e_phoff() != 0) && (elf.e_phoff() != 0))
+           )
+         );
 }
 
 const char *pdelf_get_shnames(Elf_X &elf)
@@ -428,7 +434,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     debugInfoValid = false;
   }
 
-
   const char *shnamesForDebugInfo = pdelf_get_shnames(elfHdrForDebugInfo);
   if (shnamesForDebugInfo == NULL) {
     fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
@@ -641,7 +646,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                                    getRegionPerms(scnp->sh_flags()), 
                                    getRegionType(scnp->sh_type(), 
                                                  scnp->sh_flags(),
-                                                 name));
+                                                 name), true);
           
           regions_.push_back(reg);
        }
@@ -667,20 +672,49 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       code_off_ = scnp->sh_addr() - EXTRA_SPACE;
       code_len_ = scnp->sh_size() + EXTRA_SPACE;
     }
+
     if (strcmp(name, TEXT_NAME) == 0) {
       text_addr_ = scnp->sh_addr();
       text_size_ = scnp->sh_size();
 
       if (txtaddr == 0)
 	txtaddr = scnp->sh_addr();
+      
+      // .o's don't have program headers, so these members need
+      // to be populated here
+      if( !elfHdr.e_phnum() ) {
+          // Populate code members
+          code_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
+          code_off_ = scnp->sh_offset();
+          code_len_ = scnp->sh_size();
+      }
     }
     /* The following sections help us find the PH entry that
        encompasses the data region. */
     else if (strcmp(name, DATA_NAME) == 0) {
       dataddr = scnp->sh_addr();
+
+      // .o's don't have program headers, so these members need
+      // to be populated here
+      if( !elfHdr.e_phnum() ) {
+          // Populate data members
+          data_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
+          data_off_ = scnp->sh_offset();
+          data_len_ = scnp->sh_size();
+      }
     }
     else if (strcmp(name, RO_DATA_NAME) == 0) {
-      if (!dataddr) dataddr = scnp->sh_addr();
+      if (!dataddr) {
+          dataddr = scnp->sh_addr();
+          // .o's don't have program headers, so these members need
+          // to be populated here
+          if( !elfHdr.e_phnum() ) {
+              // Populate data members
+              data_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
+              data_off_ = scnp->sh_offset();
+              data_len_ = scnp->sh_size();
+          }
+      }
     }
     else if (strcmp(name, OPD_NAME) == 0) {
       opd_scnp = scnp;
@@ -691,11 +725,31 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       got_scnp = scnp;
       got_addr_ = scnp->sh_addr();
       got_size_ = scnp->sh_size();
-      if (!dataddr) dataddr = scnp->sh_addr();
+      if (!dataddr) {
+          dataddr = scnp->sh_addr();
+          // .o's don't have program headers, so these members need
+          // to be populated here
+          if( !elfHdr.e_phnum() ) {
+              // Populate data members
+              data_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
+              data_off_ = scnp->sh_offset();
+              data_len_ = scnp->sh_size();
+          }
+      }
     }
     else if (strcmp(name, BSS_NAME) == 0) {
       bssscnp = scnp;
-      if (!dataddr) dataddr = scnp->sh_addr();
+      if (!dataddr) {
+          dataddr = scnp->sh_addr();          
+          // .o's don't have program headers, so these members need
+          // to be populated here
+          if( !elfHdr.e_phnum() ) {
+              // Populate data members
+              data_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
+              data_off_ = scnp->sh_offset();
+              data_len_ = scnp->sh_size();
+          }
+      }
     }
     /* End data region search */
     /*else if (strcmp( name, FINI_NAME) == 0) {
@@ -896,6 +950,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   }
 #endif  
   
+  // save a copy of region headers, maintaining order in section header table
+  allRegionHdrsByShndx = allRegionHdrs;
 
   // sort the section headers by base address
   sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
@@ -1519,17 +1575,19 @@ void Object::load_object(bool alloc_syms)
 	  }
       }
 
+    parseELFRelocations(elfHdr, dynsym_scnp, dynstr_scnp,
+            symscnp, strscnp);
+
     //Set object type
     int e_type = elfHdr.e_type();
 
-    if (e_type == ET_DYN) 
-      {
+    if (e_type == ET_DYN) {
 	obj_type_ = obj_SharedLib;
-      }
-    else if (e_type == ET_EXEC) 
-      {
+    }else if (e_type == ET_EXEC) {
 	obj_type_ = obj_Executable;
-      }
+    }else if (e_type == ET_REL) {
+        obj_type_ = obj_ObjectFile;
+    }
 
     return;
   } // end binding contour (for "goto cleanup2")
@@ -1648,6 +1706,9 @@ void Object::load_shared_object(bool alloc_syms)
 	}
       }
     }
+
+    parseELFRelocations(elfHdr, dynsym_scnp, dynstr_scnp,
+            symscnp, strscnp);
 
     //Set object type
     int e_type = elfHdr.e_type();
@@ -2949,6 +3010,12 @@ void Object::find_code_and_data(Elf_X &elf,
 				Offset txtaddr, 
 				Offset dataddr) 
 {
+
+  // .o's don't need to have a program header, so these
+  // fields are populated earlier when the sections are
+  // processed -> see loaded_elf()
+      
+  // Executables and shared libraries have program headers
   for (int i = 0; i < elf.e_phnum(); ++i) {
     Elf_X_Phdr phdr = elf.get_phdr(i);
 
@@ -3059,6 +3126,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
   if (!elfHdr.isValid())  {
     log_elferror(err_func_, "ELF header");
     has_error = true;
+    serr_ = Not_A_File;
     return;
   }
   else if (!pdelf_check_ehdr(elfHdr)) {
@@ -3068,10 +3136,13 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
   }
   mfForDebugInfo = findMappedFileForDebugInfo();
 
-  if( elfHdr.e_type() == 3 )
+  if( elfHdr.e_type() == ET_DYN )
     load_shared_object(alloc_syms);
-  else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
-    is_aout_ = true;
+  else if( elfHdr.e_type() == ET_REL || elfHdr.e_type() == ET_EXEC ) {
+    // Differentiate between an executable and an object file
+    if( elfHdr.e_phnum() ) is_aout_ = true;
+    else is_aout_ = false;
+
     load_object(alloc_syms);
   }    
   else {
@@ -3079,64 +3150,9 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
     has_error = true;
     return;
   }
-#ifdef BINEDIT_DEBUG
-  print_symbol_map(&symbols_);
-#endif
-#if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
-#endif
-}
 
-//Object constructor for archive members
-Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset,	
-               void (*err_func)(const char *), void *base, bool alloc_syms) :
-  AObject(mf_, mfd, err_func), 
-  dwarf(this),
-  EEL(false),
-  DbgSectionMapSorted(false)
-{
-#if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
-#endif
-#if defined(os_solaris)
-  loadNativeDemangler();
-#endif    
-  is_aout_ = false;
-  did_open = false;
-  interpreter_name_ = NULL;
-  isStripped = false;
+  serr_ = No_Error;
 
-  elfHdr = *(((Elf_X *)base)->e_rand(offset));
-  Elf_Arhdr *archdr = elf_getarhdr(elfHdr.e_elfp());
-  assert(member_name == string(archdr->ar_name));
-
-  // ELF header: sanity check
-  //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
-  if (!elfHdr.isValid())  {
-    log_elferror(err_func_, "ELF header");
-    has_error = true;
-    return;
-  }
-  assert(elfHdr.e_type() == ET_REL);
-
-  if( elfHdr.e_type() == 3 )
-    load_shared_object(alloc_syms);
-  else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
-    is_aout_ = true;
-    load_object(alloc_syms);
-  }    
-  else {
-    log_perror(err_func_,"Invalid filetype in Elf header");
-    has_error = true;
-    return;
-  }
 #ifdef BINEDIT_DEBUG
   print_symbol_map(&symbols_);
 #endif
@@ -3168,6 +3184,7 @@ Object::Object(const Object& obj)
   elfHdr = obj.elfHdr;
   deps_ = obj.deps_;
   DbgSectionMapSorted = obj.DbgSectionMapSorted;
+  serr_ = obj.serr_;
 }
 
 Object::~Object()
@@ -3213,6 +3230,10 @@ bool Object::addRelocationEntry(relocationEntry &re)
 {
   relocation_table_.push_back(re);
   return true;
+}
+
+void Object::getELFRelocations(std::map<Symbol *, ELFRelocation> &rels) {
+    rels = elfRelocations;
 }
 
 #ifdef DEBUG
@@ -5189,4 +5210,243 @@ void Object::insertPrereqLibrary(std::string libname)
 void Object::insertDynamicEntry(long name, long value)
 {
    new_dynamic_entries.push_back(std::pair<long, long>(name, value));
+}
+
+ELFRelocation::ELFRelocation() :
+    relocationEntry(),
+    targetRegion_(NULL),
+    symbolShndx_(0)
+{}
+
+ELFRelocation::ELFRelocation(Region * targetRegion, Offset relOffset,
+        std::string symbolName, unsigned long relType,
+        unsigned long symbolShndx,
+        Offset addend, Symbol *dynRef,
+        Region::RegionType regType) :
+    relocationEntry(0, relOffset, addend, symbolName, dynRef,
+            relType, regType),
+    targetRegion_(targetRegion),
+    symbolShndx_(symbolShndx)
+{}
+
+bool ELFRelocation::operator==(const ELFRelocation &rel) const 
+{
+    if( !relocationEntry::operator==(static_cast<relocationEntry>(rel)) )
+        return false;
+
+    if( rel.symbolShndx_ != symbolShndx_ ) return false;
+    if( rel.targetRegion_ != targetRegion_ ) return false;
+
+    return true;
+}
+
+
+unsigned long ELFRelocation::getSymbolShndx() const {
+    return symbolShndx_;
+}
+
+void ELFRelocation::setSymbolShndx(unsigned long val) {
+    symbolShndx_ = val;
+}
+
+Region *ELFRelocation::getTargetRegion() const {
+    return targetRegion_;
+}
+
+void ELFRelocation::setTargetRegion(Region *newRegion) {
+    targetRegion_ = newRegion;
+}
+
+// Parses sections with relocations and links these relocations to
+// existing symbols
+bool Object::parseELFRelocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
+        Elf_X_Shdr *dynstr_scnp, Elf_X_Shdr *symtab_scnp,
+        Elf_X_Shdr *strtab_scnp) {
+
+    const char *shnames = pdelf_get_shnames(elf);
+
+    // Setup symbol table access
+    Offset dynsym_offset = 0;
+    Elf_X_Data dynsym_data, dynstr_data;    
+    Elf_X_Sym dynsym;
+    const char *dynstr;
+    if( dynsym_scnp && dynstr_scnp ) {
+        dynsym_offset = dynsym_scnp->sh_offset();
+        dynsym_data = dynsym_scnp->get_data();
+        dynstr_data = dynstr_scnp->get_data();
+        if( !(dynsym_data.isValid() && dynstr_data.isValid()) ) {
+            return false;
+        }
+        dynsym = dynsym_data.get_sym();
+        dynstr = dynstr_data.get_string();
+    }
+
+    Offset symtab_offset = 0;
+    Elf_X_Data symtab_data, strtab_data;
+    Elf_X_Sym symtab;
+    const char *strtab;
+    if( symtab_scnp && strtab_scnp) {
+       symtab_offset = symtab_scnp->sh_offset();
+       symtab_data = symtab_scnp->get_data();
+       strtab_data = strtab_scnp->get_data();
+       if( !(symtab_data.isValid() && strtab_data.isValid()) ) {
+           return false;
+       }
+       symtab = symtab_data.get_sym();
+       strtab = strtab_data.get_string();
+    }
+
+    for(unsigned i = 0; i < elf.e_shnum(); ++i) {
+        Elf_X_Shdr *shdr = allRegionHdrsByShndx[i];
+        if( shdr->sh_type() != SHT_REL && shdr->sh_type() != SHT_RELA ) continue;
+
+        Elf_X_Data reldata = shdr->get_data();
+        Elf_X_Rel rel = reldata.get_rel();
+        Elf_X_Rela rela = reldata.get_rela();
+
+        Elf_X_Shdr *curSymHdr = allRegionHdrsByShndx[shdr->sh_link()];
+
+        // determine the target section for which the relocation will be applied
+        Elf_X_Shdr *targetHdr = allRegionHdrsByShndx[allRegionHdrsByShndx[i]->sh_info()];
+
+        for(unsigned j = 0; j < (shdr->sh_size() / shdr->sh_entsize()); ++j) {
+            // Relocation entry fields - need to be populated
+            Offset relOff, addend = 0;
+            std::string name;
+            unsigned long relType, symbolShndx;
+            Region::RegionType regType;
+
+            long symbol_index;
+            switch(shdr->sh_type()) {
+                case SHT_REL:
+                    relType = rel.R_TYPE(j);
+                    relOff = rel.r_offset(j);
+                    symbol_index = rel.R_SYM(j);
+                    regType = Region::RT_REL;
+                    break;
+                case SHT_RELA:
+                    relType = rela.R_TYPE(j);
+                    relOff = rela.r_offset(j);
+                    symbol_index = rela.R_SYM(j);
+                    regType = Region::RT_RELA;
+                    addend = rela.r_addend(j);
+                    break;
+                default:
+                    continue;
+            }
+
+            // Determine which symbol table to use
+            bool inDynSymtab = false;
+            if( curSymHdr->sh_offset() == dynsym_offset ) {
+                name = string( &dynstr[dynsym.st_name(symbol_index)] );
+                symbolShndx = dynsym.st_shndx(symbol_index);
+                inDynSymtab = true;
+            }else if( curSymHdr->sh_offset() == symtab_offset ) {
+                name = string( &strtab[symtab.st_name(symbol_index)] );
+                symbolShndx = symtab.st_shndx(symbol_index);
+            }else{
+                fprintf(stderr, "%s[%d]: warning: unknown symbol table "
+                        "referenced in relocation entry: sh_offset = %lu symtab_offset = %lu "
+                        "dynsym_offset = %lu\n", FILE__, __LINE__, curSymHdr->sh_offset(),
+                        symtab_offset, dynsym_offset);
+                continue;
+            }
+
+            // Need to find the exact symbol referred to by this relocation
+            Symbol *sym = NULL;
+            if( symbols_.count(name) ) {
+                std::vector<Symbol *>::iterator sym_it;
+                for(sym_it = symbols_[name].begin(); sym_it != symbols_[name].end();
+                    ++sym_it) {
+                    // The symbol is the correct one if it has the same string index
+                    // and it is in the same symbol table
+                    if(    symbol_index == (*sym_it)->getStrIndex() 
+                        && (inDynSymtab == (*sym_it)->isInDynSymtab()) ) {
+                        sym = *sym_it;
+                        break;
+                    }
+                }
+            }
+
+            // If this remains NULL, it should generate a "link-time" error later on
+            // but not right now
+            Region *targetRegion = NULL;
+            string targetRegionName(&shnames[targetHdr->sh_name()]);
+
+            // Need to find target region TODO efficiency
+            std::vector<Region *>::iterator reg_it;
+            for(reg_it = regions_.begin(); reg_it != regions_.end(); ++reg_it) {
+                // A section is equivalent to a Region if it has the same name
+                if( (*reg_it)->getRegionName() == targetRegionName ) {
+                    targetRegion = *reg_it;
+                    break;
+                }
+            }
+
+            ELFRelocation elfRel(targetRegion, relOff, name, relType, symbolShndx, 
+                    addend, sym, regType);
+
+            // A relocation is somewhat useless unless it is linked to a Symbol
+            if( sym ) elfRelocations.insert(std::make_pair(sym, elfRel));
+
+            ELFRelocation::printELFRel(std::cout, elfRel);
+            std::cout << std::endl;
+        }
+    }
+
+    return true;
+}
+
+// Debugging
+void ELFRelocation::printELFRel(std::ostream& os, const ELFRelocation& r) {
+    if( r.getDynSym() != NULL ) {
+        os << " Name: " << setw(10) << "'" << r.getDynSym()->getName() << "'";
+    }else{
+        os << "Name: " << setw(20) << r.name();
+    }
+
+    if( r.getTargetRegion() != NULL ) {
+        os << " Target Region: " << setw(10) << r.getTargetRegion()->getRegionName();
+    }
+    os << " Offset: " << std::hex << std::setfill('0') << setw(8) << r.rel_addr() << std::dec << std::setfill(' ')
+       << " Addend: " << r.addend()
+       << " Region: " << Region::regionType2Str(r.regionType())
+       << " Type: " << setw(15) << ELFRelocation::relType2Str(r.getRelType())
+       << "(" << r.getRelType() << ")"
+       << " Shndx: " << ELFRelocation::shndx2Str(r.getSymbolShndx())
+       << "(" << r.getSymbolShndx() << ")";
+}
+
+const char* ELFRelocation::relType2Str(unsigned long r) {
+#if defined(arch_x86) 
+    switch(r) {
+        CASE_RETURN_STR(R_386_NONE);
+        CASE_RETURN_STR(R_386_32);
+        CASE_RETURN_STR(R_386_PC32);
+        CASE_RETURN_STR(R_386_GOT32);
+        CASE_RETURN_STR(R_386_PLT32);
+        CASE_RETURN_STR(R_386_COPY);
+        CASE_RETURN_STR(R_386_GLOB_DAT);
+        CASE_RETURN_STR(R_386_JMP_SLOT);
+        CASE_RETURN_STR(R_386_RELATIVE);
+        CASE_RETURN_STR(R_386_GOTOFF);
+        CASE_RETURN_STR(R_386_GOTPC);
+        default:
+            return "?";
+    }
+#else
+    return "?";
+#endif
+}
+
+const char* ELFRelocation::shndx2Str(unsigned long s) {
+    switch(s) {
+        CASE_RETURN_STR(SHN_UNDEF);
+        CASE_RETURN_STR(SHN_BEFORE);
+        CASE_RETURN_STR(SHN_AFTER);
+        CASE_RETURN_STR(SHN_ABS);
+        CASE_RETURN_STR(SHN_COMMON);
+        default:
+            return "?";
+    }
 }
