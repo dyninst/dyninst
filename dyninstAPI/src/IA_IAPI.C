@@ -399,7 +399,7 @@ bool IA_IAPI::isIPRelativeBranch() const
 
 bool IA_IAPI::isTableInsn(Instruction::Ptr i) const
 {
-    if(i->readsMemory() && !i->writesMemory())
+    if(i->getOperation().getID() == e_mov && i->readsMemory() && !i->writesMemory())
     {
         return true;
     }
@@ -472,9 +472,15 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
     {
         return false;
     }
-    Address tableBase = getTableAddress(tableInsn, thunkOffset);
+    bool tableEntriesRelative = false;
+    if(thunkOffset)
+    {
+        // Table contains offsets, not addresses, so assume 4-byte...
+        tableStride = 4;
+    }
+    Address tableBase = getTableAddress(tableInsn, thunkOffset, tableEntriesRelative);
     return fillTableEntries(thunkOffset, tableBase,
-                            tableSize, tableStride, outEdges);
+                            tableSize, tableStride, outEdges, tableEntriesRelative);
 }
 namespace detail
 {
@@ -497,7 +503,7 @@ bool IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffset)
     InstructionDecoder dec(buf, curBlock->getSize());
     dec.setMode(img->getAddressWidth() == 8);
     IA_IAPI block(dec, curBlock->firstInsnOffset(), context);
-    
+    parsing_printf("\tchecking block at 0x%lx for thunk\n", curBlock->firstInsnOffset());
     while(block.getAddr() < curBlock->endOffset())
     {
         if(block.getInstruction()->getCategory() == c_CallInsn && !block.isRealCall())
@@ -524,16 +530,18 @@ bool IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffset)
         else if(block.getInstruction()->getOperation().getID() == e_lea)
             // Look for an AMD64 IP-relative LEA.  If we find one, it should point to the start of a
         {    // relative jump table.
+            parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", block.getInstruction()->format().c_str(),
+                           block.getAddr());
             Expression::Ptr IPRelAddr = block.getInstruction()->getOperand(1).getValue();
             static RegisterAST* eip(new RegisterAST(r_EIP));
             static RegisterAST* rip(new RegisterAST(r_RIP));
-            IPRelAddr->bind(eip, Result(s64, block.getAddr()));
-            IPRelAddr->bind(rip, Result(s64, block.getAddr()));
+            IPRelAddr->bind(eip, Result(s64, block.getNextAddr()));
+            IPRelAddr->bind(rip, Result(s64, block.getNextAddr()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
                 thunkOffset = iprel.convert<Address>();
-                parsing_printf("\tsetting thunkOffset to 0x%lx at 0x%lx (3)\n",thunkOffset, block.getAddr());
+                parsing_printf("\tsetting thunkOffset to 0x%lx at 0x%lx\n",thunkOffset, block.getAddr());
                 return true;
             }
         }
@@ -677,8 +685,9 @@ boost::tuple<Instruction::Ptr,
     
     return boost::make_tuple(compareInsn, condBranchInsn, compareOnTakenBranch);
 }
-
-Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset) const
+ 
+Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset,
+                                                 bool& tableEntriesRelative) const
 {
     // Extract displacement from table insn
     Expression::Ptr displacementSrc;
@@ -706,26 +715,42 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
             parsing_printf("\ttable insn BAD! (no second operand)\n");
             return 0;
         }
-        op->getChildren(tmp);
-        if(tmp.empty())
+        if(tableInsn->getOperation().getID() != e_lea)
         {
-            parsing_printf("\ttable insn BAD! (second operand not a deref)\n");
-            return 0;
+            op->getChildren(tmp);
+            if(tmp.empty())
+            {
+                parsing_printf("\ttable insn BAD! (not LEA, second operand not a deref)\n");
+                return 0;
+            }
+            displacementSrc = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
         }
-        displacementSrc = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+        else
+        {
+            displacementSrc = op;
+            // HACK!!!
+            tableEntriesRelative = true;
+        }            
     }
     static RegisterAST* allGPRs = new RegisterAST(r_ALLGPRS);
     displacementSrc->bind(allGPRs, Result(u32, 0));
+
     Result disp = displacementSrc->eval();
+    Address jumpTable = 0;
     if(!disp.defined)
     {
-        parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
-                       tableInsn->format().c_str(), displacementSrc->format().c_str());
-        return 0;
-    }
-    Address jumpTable = disp.convert<Address>();
-
-    parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
+        if(!tableEntriesRelative)
+        {
+            parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
+                           tableInsn->format().c_str(), displacementSrc->format().c_str());
+            return 0;
+        }
+   }
+   else
+   {
+       jumpTable = disp.convert<Address>();
+   }
+   parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
 
     if(!jumpTable && !thunkOffset)
     {
@@ -756,7 +781,8 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
                                Address tableBase,
                                unsigned tableSize,
                                unsigned tableStride,
-                               std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
+                               std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
+                              bool tableEntriesRelative) const
 {
 #if defined(os_windows)
     tableBase -= img->getObject()->getLoadOffset();
@@ -787,19 +813,17 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
     jumpAddress -= img->getObject()->getLoadOffset();
 }
 #endif
-        if (!img->isExecutableAddress(jumpAddress)) {
-    parsing_printf("\tentry %d [0x%lx] -> 0x%x, invalid, skipping\n",
-                   i, tableEntry, jumpAddress);
-    continue;
-        }
-        // FIXME: this really should go before the isExecutableAddress check.
-        // Replicating previous buggy behavior to get block numbers to match...
         if(thunkOffset)
         {
             jumpAddress += thunkOffset;
         }
+        if (!(img->isExecutableAddress(jumpAddress))) {
+            parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
+                           i, tableEntry, jumpAddress);
+            continue;
+        }
     
-        parsing_printf("\tentry %d [0x%lx] -> 0x%x\n",i,tableEntry,jumpAddress);
+        parsing_printf("\tentry %d [0x%lx] -> 0x%lx\n",i,tableEntry,jumpAddress);
     
         outEdges.push_back(std::make_pair(jumpAddress, ET_INDIR));
         
@@ -820,6 +844,14 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
     Result compareBound = maxSwitchInsn->getOperand(1).getValue()->eval();
     if(!compareBound.defined) return false;
     tableSize = compareBound.convert<unsigned>();
+    // Sanity check the bounds; 32k tables would be an oddity, and larger is almost certainly
+    // a misparse
+    static const int maxTableSize = 32768;
+    if(tableSize > maxTableSize)
+    {
+        parsing_printf("\tmaxSwitch of %d above %d, BAILING OUT\n", tableSize, maxTableSize);
+        return false;
+    }
     if(foundJCCAlongTaken)
     {
         if(branchInsn->getOperation().getID() == e_jbe ||
@@ -1069,3 +1101,4 @@ bool IA_IAPI::cleansStack() const
             curInsn()->getOperand(0).getValue();
 
 }
+

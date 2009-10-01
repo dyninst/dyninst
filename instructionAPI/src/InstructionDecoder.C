@@ -167,9 +167,14 @@ namespace Dyninst
      
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
-      Result_Type aw = ia32_is_mode_64() ? u32 : u64;
+        unsigned int regType = op_d;
+        if(ia32_is_mode_64())
+        {
+            regType = op_q;
+        }
+        Result_Type aw = ia32_is_mode_64() ? u32 : u64;
       Expression::Ptr e = 
-      make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, opType,
+      make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, regType,
 									       (locs->rex_b == 1))));
       switch(locs->modrm_mod)
       {
@@ -186,14 +191,17 @@ namespace Dyninst
 	  {
 	    e = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(r_RIP)),
 				   getModRMDisplacement(), aw);
-	}
-	else
-	{
-	  e = getModRMDisplacement();
-	}
+          }
+          else
+          {
+            e = getModRMDisplacement();
+	  }
 	
       }
-      
+      if(opType == op_lea)
+      {
+          return e;
+      }
 	return make_shared(singleton_object_pool<Dereference>::construct(e, makeSizeType(opType)));
 	break;
       case 1:
@@ -294,9 +302,17 @@ namespace Dyninst
 	return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, (*(const byte_t*)(rawInstruction + disp_pos)))));
 	break;
       case 2:
-	return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction + disp_pos)))));
+	return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction +
+disp_pos)))));
 	break;
-      default:
+          case 0:
+              if(locs->modrm_rm == 5)
+                return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction +
+                        disp_pos)))));
+              else
+                  return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+              break;
+          default:
 	return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
 	break;
       }
@@ -484,7 +500,7 @@ namespace Dyninst
       case am_M:
 	// am_R is the inverse of am_M; it should only have a mod of 3
       case am_R:
-	outputOperands.push_back(makeModRMExpression(regType));
+	outputOperands.push_back(makeModRMExpression(operand.optype));
 #if 0	
 	switch(locs->modrm_mod)
 	{

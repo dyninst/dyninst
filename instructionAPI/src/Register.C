@@ -35,6 +35,7 @@
 #include <set>
 #include <sstream>
 #include "Visitor.h"
+#include "../../common/h/singleton_object_pool.h"
 
 using namespace std;
 using namespace dyn_detail::boost;
@@ -199,7 +200,7 @@ namespace Dyninst
                 convertedID = convertedID - r_RSP + r_ESP;
             }
         }
-        return Ptr(new RegisterAST(convertedID));
+        return make_shared(singleton_object_pool<RegisterAST>::construct(convertedID));
     }
     bool RegisterAST::isFlag() const
     {
@@ -251,7 +252,8 @@ namespace Dyninst
                 return true;
             }
         }
-        return id == registerID;
+        RegisterAST::Ptr promotedThis = RegisterAST::promote(this);
+        return id == promotedThis->getID();
     }
     void RegisterAST::apply(Visitor* v)
     {

@@ -63,32 +63,10 @@ namespace Dyninst
       //bool retVal = false;
       if(*expr == *this)
       {
-	setValue(value);
+          setValue(value);
 	return true;
       }
       return false;
-#if 0      
-      //fprintf(stderr, "%s != %s in bind(), checking kids...\n", format().c_str(), expr->format().c_str());
-      std::vector<InstructionAST::Ptr> children;
-      getChildren(children);
-      for(std::vector<InstructionAST::Ptr>::iterator curChild = children.begin();
-	  curChild != children.end();
-	  ++curChild)
-      {
-	Expression::Ptr curChild_asExpr = 
-	dyn_detail::boost::dynamic_pointer_cast<Expression>(*curChild);
-	if(curChild_asExpr)
-	{
-            bool tmp = curChild_asExpr->bind(expr, value);
-            retVal = retVal || tmp;
-	}
-        else
-        {
-            //fprintf(stderr, "SKIPPING child %s, not an expression!\n", (*curChild)->format().c_str());
-        }
-      }
-      return retVal;
-#endif
     }
     bool Expression::isFlag() const
     {

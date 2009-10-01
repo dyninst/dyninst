@@ -103,9 +103,10 @@ class IA_IAPI : public InstructionAdapter
                               Address tableBase,
                               unsigned tableSize,
                               unsigned tableStride,
-                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
+                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
+                             bool tableEntriesRelative) const;
         Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
-                                Address thunkOffset) const;
+                                Address thunkOffset, bool& tableEntriesRelative) const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn() const;
         virtual bool isCall() const;
