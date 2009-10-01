@@ -96,8 +96,8 @@ const unsigned int naxses = 26;
 const unsigned int naxses = 73;
 #endif
 
-#if defined(arch_x86_test)
-const unsigned int naxses = 94;
+#if defined(i386_unknown_linux2_0_test) || defined(i386_unknown_nt4_0_test)
+const unsigned int naxses = 91;
 #endif
 
 #ifdef ia64_unknown_linux2_4_test

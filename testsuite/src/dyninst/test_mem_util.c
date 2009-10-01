@@ -185,8 +185,8 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 unsigned int loadExp=67;
 unsigned int storeExp=27;
 unsigned int prefeExp=2;
-unsigned int accessExp=94;
-unsigned int accessExpCC=93;
+unsigned int accessExp=91;
+unsigned int accessExpCC=90;
 
 const struct reduction mmxRed = { 2, 1, 0, 3, 49 };
 const struct reduction sseRed = { 2, 0, 1, 3, 53 };

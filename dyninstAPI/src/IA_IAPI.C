@@ -133,10 +133,10 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
         static RegisterAST::Ptr esp(new RegisterAST(r_ESP));
         static RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
         static RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
-        if((i->isRead(ebp) ||
+        if((i->isRead(rsp) ||
             i->isRead(esp)) &&
             (i->isWritten(rbp) ||
-            i->isWritten(rsp)))
+            i->isWritten(ebp)))
         {
             return true;
         }
@@ -725,13 +725,14 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
     }
     Address jumpTable = disp.convert<Address>();
 
+    parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
 
     if(!jumpTable && !thunkOffset)
     {
         return 0;
     }
-    parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
     jumpTable += thunkOffset;
+    parsing_printf("\tjumpTable revised to 0x%lx\n",jumpTable);
     // On Windows, all of our other addresses have had the base address
     // of their module subtracted off before we ever use them.  We need to fix this up
     // to conform to that standard so that Symtab actually believes that there's code
@@ -739,7 +740,6 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
 #if defined(os_windows)
     jumpTable -= img->getObject()->getLoadOffset();
 #endif
-    parsing_printf("\tjumpTable revised to 0x%lx",jumpTable);
     if( !img->isValidAddress(jumpTable) )
 {
         // If the "jump table" has a start address that is outside
@@ -747,10 +747,8 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
         // probability that we have misinterpreted some other
         // construct (such as a function pointer comparison & tail
         // call, for example) as a jump table. Give up now.
-	parsing_printf("...invalid address, bailing\n");
     return 0;
 }
-	parsing_printf("\n");
     return jumpTable;
 }
 
@@ -760,8 +758,14 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
                                unsigned tableStride,
                                std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
-	// Table base has been verified or we'd not be here
-	for(unsigned int i=0; i < tableSize; i++)
+#if defined(os_windows)
+    tableBase -= img->getObject()->getLoadOffset();
+#endif
+    if( !img->isValidAddress(tableBase) )
+{
+    return false;
+}
+    for(unsigned int i=0; i < tableSize; i++)
 {
     Address tableEntry = tableBase + (i * tableStride);
     Address jumpAddress = 0;
