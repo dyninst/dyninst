@@ -431,24 +431,38 @@ enum entryID {
 };
 
 #if defined(__GNUC__)
-  //***************** GCC ***********************
-   #if !((__GNUC__ > 4) || \
-      (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
-      //**************** GCC < 4.3.0 ************
-      namespace __gnu_cxx {
- 
-        template<> struct hash<entryID> {
-           hash<unsigned int> h;
-           unsigned operator()(const entryID &e) const 
-	   {
-             return h(static_cast<unsigned int>(e));
-           };
-        };
-      }
-
-   #endif
+//***************** GCC ***********************
+  #if !defined(cap_tr1)
+  //**************** GCC < 4.3.0 ************
+  namespace __gnu_cxx {
+    
+    template<> struct hash<entryID> {
+      hash<unsigned int> h;
+      unsigned operator()(const entryID &e) const 
+      {
+	return h(static_cast<unsigned int>(e));
+      };
+    };
+  }
+#else
+  namespace std
+  {
+    namespace tr1
+    {
+      template <>
+      struct hash<entryID>
+      {
+	size_t operator()(const entryID &eid) const
+	{
+	  return static_cast<size_t>(eid);
+	}
+      };
+    }
+  }
 #endif
 
 extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
+
+#endif
 
 #endif // defined(ENTRYIDS_IA32_H)

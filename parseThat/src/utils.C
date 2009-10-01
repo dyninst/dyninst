@@ -121,7 +121,7 @@ char *sprintf_static(const char *fmt, ...)
     return buf;
 }
 
-char *strcat_static(char *s1, char *s2)
+char *strcat_static(const char *s1, const char *s2)
 {
     static int len = 0;
     static char *buf = NULL;
@@ -141,6 +141,11 @@ char *strcat_static(char *s1, char *s2)
 
     if (!same_str) strcpy(buf, s1);
     return strcat(buf, s2);
+}
+
+char *strcat_static(char *s1, char *s2)
+{
+  return strcat_static((const char *) s1, (const char *) s2);
 }
 
 bool checkStr(const char *s)

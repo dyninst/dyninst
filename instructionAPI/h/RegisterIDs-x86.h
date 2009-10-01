@@ -96,7 +96,8 @@ namespace Dyninst
   };
 };
 	  
-#if defined(__GNUC__) && ((__GNUC__ < 4) || (__GNUC__ == 4 && __GNUC_MINOR__ < 3))
+#if defined(__GNUC__)
+#if !defined(cap_tr1)
 namespace __gnu_cxx 
 {
   template<> struct hash<Dyninst::InstructionAPI::IA32Regs> {
@@ -107,8 +108,23 @@ namespace __gnu_cxx
     };
   };
 }
+#else
+namespace std 
+{
+  namespace tr1
+  {
+    template <>
+    struct hash<Dyninst::InstructionAPI::IA32Regs>
+    {
+      size_t operator()(const Dyninst::InstructionAPI::IA32Regs &e) const
+      {
+	return static_cast<size_t>(e);
+      };
+    };
+  }   
+}
 #endif
-	  
+#endif
 	  
 	  
 namespace Dyninst

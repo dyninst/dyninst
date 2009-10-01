@@ -308,6 +308,3 @@ namespace Dyninst
   };
 
 };
-
-
-

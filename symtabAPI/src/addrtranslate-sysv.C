@@ -470,7 +470,7 @@ bool AddressTranslateSysV::init()
 
 bool AddressTranslateSysV::refresh()
 {
-   link_map_xplat *link_elm;
+   link_map_xplat *link_elm = NULL;
    r_debug_dyn<r_debug_dyn32> *r_debug_32 = NULL;
    r_debug_dyn<r_debug> *r_debug_native = NULL;
    map_entries *maps = NULL;

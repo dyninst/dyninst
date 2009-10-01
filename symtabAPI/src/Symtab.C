@@ -470,7 +470,7 @@ bool Symtab::buildDemangledName( const std::string &mangled,
 
 #if !defined(os_windows)
 
-   char *atat;
+   const char *atat;
 
    if (NULL != (atat = strstr(mangled.c_str(), "@@"))) 
    {

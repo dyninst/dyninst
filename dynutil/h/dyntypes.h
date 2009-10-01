@@ -59,6 +59,7 @@
       //**************** GCC >= 4.3.0 ***********
       #include <tr1/unordered_set>
       #include <tr1/unordered_map>
+      #define cap_tr1
       #define dyn_hash_set std::tr1::unordered_set
       #define dyn_hash_map std::tr1::unordered_map
    #else
