@@ -163,7 +163,8 @@ r_debug_dyn<r_debug_X>::~r_debug_dyn()
 
 template<class r_debug_X> 
 bool r_debug_dyn<r_debug_X>::is_valid() {
-   return valid;
+   if (0 == r_map()) return false;
+   else return valid;
 }
 
 template<class r_debug_X> 
@@ -501,8 +502,15 @@ bool AddressTranslateSysV::refresh()
 
    if (address_size == sizeof(void*)) {
       r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
-      if (!r_debug_native || !r_debug_native->is_valid())
+      if (!r_debug_native)
       {
+        result = true;
+        goto done;
+      }
+      else if (!r_debug_native->is_valid())
+      {
+         libs.push_back(new LoadedLib(interpreter->getFilename(),
+                                      interpreter_base));
          result = true;
          goto done;
       }
@@ -510,7 +518,15 @@ bool AddressTranslateSysV::refresh()
    }
    else { //64-bit mutator, 32-bit mutatee
       r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
-      if (!r_debug_32 || !r_debug_32->is_valid()) {
+      if (!r_debug_32)
+      {
+         result = true;
+         goto done;
+      }
+      else if (!r_debug_32->is_valid())
+      {
+         libs.push_back(new LoadedLib(interpreter->getFilename(),
+                                      interpreter_base));
          result = true;
          goto done;
       }
