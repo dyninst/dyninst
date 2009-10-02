@@ -1161,19 +1161,15 @@ bool image_func::buildCFG(
                 markBlockEnd(currBlk, ah, funcEnd);
                 break;
             }
-            else if( archIsInterrupt(ah) || ah.isSyscall() )
+            else if( ah.isInterruptOrSyscall() )
             {
                 // interrupt-raising instructions should
                 // end the basic block, but parsing should
                 // continue
 
-                currBlk->lastInsnOffset_ = currAddr;
-                currBlk->blockEndOffset_ = ah.peekNext();
+                markBlockEnd(currBlk, ah, funcEnd);
 
-                if( currAddr >= funcEnd )
-                    funcEnd = ah.peekNext();
-
-                Address nextBlockStart = ah.peekNext(); 
+                Address nextBlockStart = ah.getNextAddr();
 
                 addBasicBlock(nextBlockStart,
                               currBlk,

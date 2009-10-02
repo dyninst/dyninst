@@ -214,6 +214,11 @@ bool IA_IAPI::isCall() const
     return curInsn()->getCategory() == c_CallInsn;
 }
 
+bool IA_IAPI::isInterruptOrSyscall() const
+{
+    return ((curInsn()->getOperation().getID() == e_int) ||
+            (curInsn()->getOperation().getID() == e_int3));
+}
 
 
 
@@ -1069,3 +1074,4 @@ bool IA_IAPI::cleansStack() const
             curInsn()->getOperand(0).getValue();
 
 }
+

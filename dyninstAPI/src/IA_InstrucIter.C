@@ -130,6 +130,11 @@ bool IA_InstrucIter::isBranch() const
             ii.isAIndirectJumpInstruction());
 }
 
+bool IA_InstrucIter::isInterruptOrSyscall() const
+{
+    return (ii.isAnInterruptInstruction() || ii.isSyscall());
+}
+
 bool IA_InstrucIter::isConditional() const
 {
     return ii.isACondBranchInstruction() ||
@@ -353,3 +358,4 @@ bool IA_InstrucIter::cleansStack() const
 {
     return ii.getInstruction().isCleaningRet();
 }
+

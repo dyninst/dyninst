@@ -80,6 +80,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool cleansStack() const;
         virtual bool isConditional() const;
         virtual bool isBranch() const;
+        virtual bool isInterruptOrSyscall() const;
     private:
         virtual bool isRealCall() const;
         bool parseJumpTable(image_basicBlock* currBlk,

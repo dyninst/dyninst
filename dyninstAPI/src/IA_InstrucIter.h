@@ -77,6 +77,7 @@ class IA_InstrucIter : public InstructionAdapter
         virtual bool cleansStack() const;
         virtual bool isConditional() const;
         virtual bool isBranch() const;
+        virtual bool isInterruptOrSyscall() const;
    
     private:
         virtual bool isRealCall() const;

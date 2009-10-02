@@ -163,10 +163,6 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
     return false;
 }
 
-bool image_func::archIsInterrupt(InstrucIter &ah)
-{
-    return ah.isAnInterruptInstruction();
-}
 
 // not implemented on power
 void image_func::archInstructionProc(InstructionAdapter & /* ah */)

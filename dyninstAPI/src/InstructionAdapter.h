@@ -129,6 +129,7 @@ const;
     virtual bool cleansStack() const = 0;
     virtual bool isConditional() const = 0;
     virtual bool isBranch() const = 0;
+    virtual bool isInterruptOrSyscall() const = 0;
     protected:
         virtual bool isReturn() const = 0;
         virtual bool isCall() const = 0;
