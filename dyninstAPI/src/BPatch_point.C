@@ -260,10 +260,6 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
            return NULL;
    }
    }
-
-   if (point->getPointType() != callSite) {
-      return NULL;
-      }
    
    int_function *_func;
    

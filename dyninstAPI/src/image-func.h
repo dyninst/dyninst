@@ -437,6 +437,7 @@ class image_func : public codeRange,
    // Check the targets of _call_ instrumentation points and link up
    // dangling targets, if possible
    void checkCallPoints();
+   void checkCallPoints(pdvector<image_instPoint *> &points);
     
    Address newCallPoint(Address adr, const instruction code, bool &err);
 

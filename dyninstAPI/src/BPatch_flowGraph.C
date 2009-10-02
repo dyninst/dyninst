@@ -890,16 +890,34 @@ void BPatch_flowGraph::createLoopHierarchy()
 
    dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-   const pdvector<instPoint*> &instPs = ll_func()->funcCalls();
-
-   for (unsigned i = 0; i < instPs.size(); i++) {
-      int_function *f = instPs[i]->findCallee();
-
-      if (f != NULL) 
+   //Callees
+   {
+     const pdvector<instPoint*> &instPs = ll_func()->funcCalls();
+     for (unsigned i = 0; i < instPs.size(); i++) {
+       int_function *f = instPs[i]->findCallee();
+       if (f != NULL) 
          insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
-      // 	else 
-      // 	    fprintf(stderr, "BPatch_flowGraph::createLoopHierarchy "
-      //                     "couldn't find callee by inst point.\n");
+     }
+   }
+
+   //Entry points
+   {
+     const pdvector<instPoint*> &instPs = ll_func()->funcEntries();
+     for (unsigned i = 0; i < instPs.size(); i++) {
+       int_function *f = instPs[i]->findCallee();
+       if (f != NULL) 
+         insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
+     }
+   }
+
+   //Exit points
+   {
+     const pdvector<instPoint*> &instPs = ll_func()->funcExits();
+     for (unsigned i = 0; i < instPs.size(); i++) {
+       int_function *f = instPs[i]->findCallee();
+       if (f != NULL) 
+         insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
+     }
    }
 }
 

@@ -810,10 +810,16 @@ bool image_func::finalize()
 // Bind static call points
 
 void image_func::checkCallPoints() {
+  checkCallPoints(calls);
+  checkCallPoints(funcEntries_);
+  checkCallPoints(funcReturns);
+}
+
+void image_func::checkCallPoints(pdvector<image_instPoint *> &points) {
     parsing_printf("%s: checking call points\n", symTabName().c_str());
     // Check if there are any dangling calls
-    for (unsigned c = 0; c < calls.size(); c++) {
-        image_instPoint *p = calls[c];
+    for (unsigned c = 0; c < points.size(); c++) {
+        image_instPoint *p = points[c];
         assert(p);
 
         parsing_printf("... 0x%lx...", p->offset());
@@ -825,12 +831,10 @@ void image_func::checkCallPoints() {
         Address destOffset = p->callTarget();
         if (!destOffset) {
             // Couldn't determine contact; skip
-            parsing_printf(" no destination\n");
             continue;
         }
         
-        image_func *pdf = image_->findFuncByEntry(destOffset);
-        
+        image_func *pdf = image_->findFuncByEntry(destOffset);        
         if (pdf) {
             p->setCallee(pdf);
             parsing_printf(" set to %s\n", pdf->symTabName().c_str());

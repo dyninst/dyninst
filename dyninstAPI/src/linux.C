@@ -1416,10 +1416,10 @@ int_function *instPoint::findCallee()
       return callee_;
    }  
 
-   if (ipType_ != callSite) {
+   /*  if (ipType_ != callSite) {
       // Assert?
       return NULL; 
-   }
+      }*/
    if (isDynamic()) {
       return NULL;
    }
