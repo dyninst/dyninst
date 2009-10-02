@@ -893,6 +893,11 @@ BPatch_Vector<BPatch_point *> *BPatch_module::getUnresolvedControlFlowInt()
     return &unresolvedCF;
 }
 
+Address BPatch_module::getLoadAddrInt()
+{
+   return mod->obj()->codeBase();
+}
+
 #ifdef IBM_BPATCH_COMPAT
 
 bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & endLine )
