@@ -1618,6 +1618,12 @@ bool InstrucIter::isALeaveInstruction()
   return false;
 }
 
+bool InstrucIter::isAnInterruptInstruction()
+{
+    assert(0); // TODO: not implemented
+    return false;
+}
+
 bool InstrucIter::isAnAbortInstruction()
 {
   assert(instPtr);

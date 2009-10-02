@@ -458,6 +458,7 @@ class image_func : public codeRange,
     bool archIsATailCall(InstrucIter &ah,
              pdvector< instruction >& allInstructions);
     bool archIsIndirectTailCall(InstrucIter &ah);
+    bool archIsInterrupt(InstrucIter &ah);
     bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool
 &simulateJump);
     bool archCheckEntry(InstrucIter &ah, image_func *func );

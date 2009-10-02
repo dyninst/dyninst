@@ -847,6 +847,11 @@ bool image_func::archIsIndirectTailCall(InstrucIter &ah)
 }
 #endif
 
+bool image_func::archIsInterrupt(InstrucIter &ah)
+{
+    return ah.isAnInterruptInstruction();
+}
+
 bool image_func::writesFPRs(unsigned level) {
     using namespace Dyninst::InstructionAPI;
     // Oh, we should be parsed by now...

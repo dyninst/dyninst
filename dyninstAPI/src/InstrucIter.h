@@ -287,6 +287,7 @@ class InstrucIter {
   bool isANopInstruction();
   bool isAnAbortInstruction();
   bool isAnAllocInstruction();
+  bool isAnInterruptInstruction(); 
   bool isDelaySlot();
   bool isSyscall();
   

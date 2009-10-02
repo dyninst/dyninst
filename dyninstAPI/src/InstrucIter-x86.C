@@ -189,6 +189,12 @@ bool InstrucIter::isANopInstruction()
   return getInstruction().isNop();
 }
 
+bool  InstrucIter::isAnInterruptInstruction()
+{
+  const unsigned char *ptr = getInstruction().op_ptr();
+  return (*ptr == 0xcc) || (*ptr == 0xcd);
+}
+
 bool InstrucIter::isAnAbortInstruction()
 {
   const unsigned char *ptr = getInstruction().op_ptr();

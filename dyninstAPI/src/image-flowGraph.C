@@ -1161,6 +1161,29 @@ bool image_func::buildCFG(
                 markBlockEnd(currBlk, ah, funcEnd);
                 break;
             }
+            else if( archIsInterrupt(ah) )
+            {
+                // interrupt-raising instructions should
+                // end the basic block, but parsing should
+                // continue
+
+                currBlk->lastInsnOffset_ = currAddr;
+                currBlk->blockEndOffset_ = ah.peekNext();
+
+                if( currAddr >= funcEnd )
+                    funcEnd = ah.peekNext();
+
+                Address nextBlockStart = ah.peekNext(); 
+
+                addBasicBlock(nextBlockStart,
+                              currBlk,
+                              leaders,
+                              leadersToBlock,
+                              ET_FALLTHROUGH,
+                              worklist);
+
+                break;
+            }
 #if defined(arch_ia64)
             else if( ah.isAllocInsn())
             {

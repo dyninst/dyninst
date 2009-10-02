@@ -538,6 +538,12 @@ bool InstrucIter::isAnAllocInstruction()
   return false;
 }
 
+bool isAnInterruptInstruction()
+{
+    assert(0); // TODO: not implemented
+    return false;
+}
+
 bool InstrucIter::isAnAbortInstruction()
 {
   assert(instPtr);
