@@ -1161,7 +1161,7 @@ bool image_func::buildCFG(
                 markBlockEnd(currBlk, ah, funcEnd);
                 break;
             }
-            else if( archIsInterrupt(ah) )
+            else if( archIsInterrupt(ah) || ah.isSyscall() )
             {
                 // interrupt-raising instructions should
                 // end the basic block, but parsing should
