@@ -4149,7 +4149,11 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
             else if(RM == 5){ //The disp32 field from Table 2-2 of IA guide
                displacement = *( ( const unsigned int * ) ptr );
                ptr+= wordSzB;
-               return DISPLACED;
+               #if defined(arch_x86_64)
+                  return IP_INDIRECT_DISPLACED;
+               #else
+                  return DISPLACED;
+               #endif
             }
             else {
                base_reg = (Register) RM;

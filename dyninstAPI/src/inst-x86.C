@@ -2077,6 +2077,13 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                                                          (void *)(long)base_reg))));
             break;
          }
+         case IP_INDIRECT_DISPLACED:
+         {
+            args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                              AstNode::operandNode(AstNode::Constant,
+                                                  (void *) (((long) displacement)+((long)callSite->addr())+i.size()) )));
+            break;
+         }
          case DISPLACED:
          {
             args.push_back(AstNode::operandNode(AstNode::DataIndir,
