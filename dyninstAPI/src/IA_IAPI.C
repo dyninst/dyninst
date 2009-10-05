@@ -410,40 +410,40 @@ bool IA_IAPI::isTableInsn(Instruction::Ptr i) const
     return false;
 }
         
-std::pair<Address, Instruction::Ptr> IA_IAPI::findTableInsn() const
+std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() const
 {
-	// Check whether the jump is our table insn!
-	Expression::Ptr cft = curInsn()->getControlFlowTarget();
-	if(cft)
-	{
-		std::vector<InstructionAST::Ptr> tmp;
-		cft->getChildren(tmp);
-		if(tmp.size() == 1)
-		{
-			Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
-			parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
-			static RegisterAST* allGPRs = new RegisterAST(r_ALLGPRS);
-			cftAddr->bind(allGPRs, Result(u32, 0));
+    // Check whether the jump is our table insn!
+    Expression::Ptr cft = curInsn()->getControlFlowTarget();
+    if(cft)
+    {
+            std::vector<InstructionAST::Ptr> tmp;
+            cft->getChildren(tmp);
+            if(tmp.size() == 1)
+            {
+                    Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+                    parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
+                    static RegisterAST* allGPRs = new RegisterAST(r_ALLGPRS);
+                    cftAddr->bind(allGPRs, Result(u32, 0));
 
-			Result base = cftAddr->eval();
-			if(base.defined && base.convert<Address>())
-			{
-				parsing_printf("\tAddress in jump\n");
-				return std::make_pair(current, curInsn());
-			}
-		}
-	}
-	std::map<Address, Instruction::Ptr>::const_iterator c =
-            allInsns.find(current);
+                    Result base = cftAddr->eval();
+                    if(base.defined && base.convert<Address>())
+                    {
+                            parsing_printf("\tAddress in jump\n");
+                            return allInsns.find(current);
+                    }
+            }
+    }
+    std::map<Address, Instruction::Ptr>::const_iterator c =
+        allInsns.find(current);
     while(!isTableInsn(c->second) && c != allInsns.begin())
     {
         --c;
     }
     if(isTableInsn(c->second))
     {
-        return *c;
+        return c;
     }
-    return std::make_pair(0, Instruction::Ptr());
+    return allInsns.end();
 }
         
 // This should only be called on a known indirect branch...
@@ -467,12 +467,14 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
     bool foundJCCAlongTaken = false;
     Instruction::Ptr tableInsn;
     Address tableInsnAddr;
-    boost::tie(tableInsnAddr, tableInsn) = findTableInsn();
-    if(!tableInsn)
+    std::map<Address, Instruction::Ptr>::const_iterator tableLoc = findTableInsn();
+    if(tableLoc == allInsns.end())
     {
         parsing_printf("\tunable to find table insn\n");
         return false;
     }
+    tableInsnAddr = tableLoc->first;
+    tableInsn = tableLoc->second;
     Instruction::Ptr maxSwitchInsn, branchInsn;
     boost::tie(maxSwitchInsn, branchInsn, foundJCCAlongTaken) = findMaxSwitchInsn(currBlk);
     if(!maxSwitchInsn || !branchInsn)
@@ -493,11 +495,22 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
     {
         return false;
     }
-    if(thunkOffset)
+    std::map<Address, Instruction::Ptr>::const_iterator cur = allInsns.find(current);
+    while(tableLoc != cur)
+    {
+        tableLoc++;
+        if(tableLoc->second->getOperation().getID() == e_movsxd)
+        {
+            parsing_printf("\tFound movsxd (movslq), revising table stride to 4\n");
+            tableStride = 4;
+            break;
+        }
+    }
+/*    if(thunkOffset)
     {
         // Table contains offsets, not addresses, so assume 4-byte...
         tableStride = 4;
-    }
+    }*/
     Address tableBase = getTableAddress(tableInsn, thunkOffset);
     return fillTableEntries(thunkOffset, tableBase,
                             tableSize, tableStride, outEdges);
@@ -756,9 +769,12 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
     Address jumpTable = 0;
     if(!disp.defined)
     {
-        parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
-                        tableInsn->format().c_str(), displacementSrc->format().c_str());
-        return 0;
+        if(!thunkOffset)
+        {
+            parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
+                           tableInsn->format().c_str(), displacementSrc->format().c_str());
+            return 0;
+        }
    }
    else
    {

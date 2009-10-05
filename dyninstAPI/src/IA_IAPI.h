@@ -88,7 +88,7 @@ class IA_IAPI : public InstructionAdapter
         bool isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         Address findThunkAndOffset(image_basicBlock* start) const;
         bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
-        std::pair<Address, Dyninst::InstructionAPI::Instruction::Ptr> findTableInsn() const;
+        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn() const;
         boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
         Dyninst::InstructionAPI::Instruction::Ptr,
         bool> findMaxSwitchInsn(image_basicBlock *start) const;
