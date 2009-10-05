@@ -52,11 +52,9 @@
 #include "common/h/stats.h"
 #include "dyninstAPI/src/instPoint.h"
 
-#if defined(cap_instruction_api)
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
-#endif
 
 #ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
 //defined in inst-mips.C
@@ -144,22 +142,20 @@ int_function *instPoint::findCallee()
       // is eventually called.
       
       // get the target address of the call
-#if defined(cap_instruction_api)
         Expression::Ptr cft = insn()->getControlFlowTarget();
         static Expression* theIP = new RegisterAST(r_EIP);
-        cft->bind(theIP, Result(u64, addr()));
+        cft->bind(theIP, Result(s32, addr()));
         Result r = cft->eval();
 		assert(r.defined);
 		Address callTarget = r.convert<Address>();
+		parsing_printf(" **** instPoint::findCallee() callTarget = 0x%lx, insn = %s\n", callTarget, insn()->format().c_str());
 
-#else
-	   Address callTarget = insn().getTarget(addr());
-#endif      
       // find code range that contains the target address
       // TODO: optimize by checking callsite image first?
       codeRange* cr = proc()->findOrigByAddr(callTarget);
-      if (cr == NULL) 
+	  if (cr == NULL) {
          return NULL;
+	  }
       // if target address is a known function, return it
       int_function* func = cr->is_function();
       if (func != NULL) {
@@ -171,8 +167,7 @@ int_function *instPoint::findCallee()
          return NULL;
       
       // get a "local" pointer to the call target instruction
-#if defined(cap_instruction_api)
-	  static const unsigned max_insn_size = 16; // covers AMD64
+        static const unsigned max_insn_size = 16; // covers AMD64
       const unsigned char *insnLocalAddr =
         (unsigned char *)(proc()->getPtrToInstruction(callTarget));
       InstructionDecoder d(insnLocalAddr, max_insn_size);
@@ -186,6 +181,7 @@ int_function *instPoint::findCallee()
           if(r.defined)
           {
               Address targAddr = r.convert<Address>();
+				parsing_printf(" **** instPoint::findCallee() targAddr = 0x%lx\n", targAddr);
               int_function *target = proc()->findFuncByAddr(targAddr);
               if(target)
               {
@@ -193,26 +189,11 @@ int_function *instPoint::findCallee()
                   return target;
               }
           }
+		  else
+		  {
+			  parsing_printf("WARNING: couldn't evaluate IAT jump at 0x%lx: %s\n", callTarget, insn->format().c_str());
+		  }
       }
-#else
-      const void *insnLocalAddr = proc()->getPtrToInstruction(callTarget);
-      instruction callTargetInst(insnLocalAddr);
-      
-      if( callTargetInst.isJumpDir() ||
-          callTargetInst.isJumpIndir() )
-      {
-         // the instruction is a jmp
-         // get the target address of the jmp
-         Address jmpTargetAddr = callTargetInst.getTarget(callTarget);
-              
-         // see if we know about that target address
-         int_function *target = proc()->findFuncByAddr( jmpTargetAddr );
-         if (target) {
-            callee_ = target;
-            return target;
-         }
-      }
-#endif   
    }
    else
    {
@@ -240,7 +221,6 @@ int_function *instPoint::findCallee()
       //
       // Figure out what type of indirect call instruction this is
       //
-#if defined(cap_instruction_api)
       if(insn() && (insn()->getCategory() == c_CallInsn))
       {
           Expression::Ptr cft = insn()->getControlFlowTarget();
@@ -302,74 +282,5 @@ int_function *instPoint::findCallee()
 		  }
       }
    }
-#else      
-       Register base_reg;
-      Register index_reg;
-      int displacement;
-      unsigned int scale;
-      unsigned int mod;
-      int instMode = get_instruction_operand( insn().ptr(),
-                                              base_reg,
-                                              index_reg,
-                                              displacement,
-                                              scale,
-                                              mod );
-          
-      if( instMode == DISPLACED )
-      {
-          // it is a call through a function pointer in memory
-         Address funcPtrAddress = (Address)displacement;
-         assert( funcPtrAddress != ADDR_NULL );
-                  
-         // obtain the target address from memory if it is available
-         Address targetAddr = ADDR_NULL;
-         proc()->readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
-                                &targetAddr, true );
-         if( targetAddr != ADDR_NULL )
-         {
-            
-            // see whether we already know anything about the target
-            // this may be the case with implicitly-loaded and delay-loaded
-            // DLLs, and it is possible with other types of indirect calls
-            int_function *target = proc()->findFuncByAddr( targetAddr );
-                          
-            // we need to handle the delay-loaded function case specially,
-            // since we want the actual target function, not the temporary
-            // code sequence that handles delay loading
-            if( (target != NULL) &&
-                (!strncmp( target->prettyName().c_str(), "_imp_load_", 10 )) )
-            {
-               // The target is named like a linker-generated
-               // code sequence for a call into a delay-loaded DLL.
-               //
-               // Try to look up the function based on its name
-               // without the 
-                                  
-#if READY
-               // check if the target is in the same module as the function
-               // containing the instPoint
-               // check whether the function pointer is in the IAT
-               if((funcPtrAddress >= something.iatBase) &&
-                  (funcPtrAddress <= (something.iatBase+something.iatLength)))
-               {
-                  // it is a call through the IAT, to a function in our
-                  // own module, so it is a call into a delay-loaded DLL
-                  // ??? how to handle this case
-               }
-#else
-               // until we can detect the actual callee for delay-loaded
-               // DLLs, make sure that we don't report the linker-
-               // generated code sequence as the target
-               target = NULL;
-#endif // READY
-            }
-            else {
-               callee_ = target;
-               return target;
-            }
-         }   
-      }
-   }
-#endif // cap_instruction_api   
    return NULL;
 }
