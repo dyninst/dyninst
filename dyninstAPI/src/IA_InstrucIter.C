@@ -176,7 +176,7 @@ void IA_InstrucIter::getNewEdges(
         }
         if(!(context->archIsIndirectTailCall(ii)))
         {
-            std::vector<instruction> dummy;
+            pdvector<instruction> dummy;
             successfullyParsedJumpTable = context->archGetMultipleJumpTargets(targets, currBlk, ii,
                     dummy);
             parsedJumpTable = true;
@@ -201,7 +201,7 @@ void IA_InstrucIter::getNewEdges(
             outEdges.push_back(std::make_pair(catchStart, ET_CATCH));
         }
         
-        std::vector<instruction> dummy;
+        pdvector<instruction> dummy;
         if(!(context->archIsATailCall( ii, dummy )))
         {
             if(!(*pltFuncs).defines(target))
@@ -324,7 +324,7 @@ bool IA_InstrucIter::isTailCall(unsigned int num_insns) const
     {
         return true;
     }
-    std::vector<instruction> dummy;
+    pdvector<instruction> dummy;
     if(ii.isAJumpInstruction() && context->archIsATailCall(ii, dummy))
     {
         return true;
