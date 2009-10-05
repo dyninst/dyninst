@@ -127,15 +127,15 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/BPatch_instruction.C \
                 ../src/BPatch_asyncEventHandler.C \
                 ../src/BPatch_eventLock.C \
-		../src/BPatch_dependenceGraphNode.C \
-		../src/BPatch_dependenceGraphEdge.C \
                 ../src/parRegion.C \
                 ../src/liveness.C \
 		../src/InstructionCache.C \
-		../src/InstructionAdapter.C \
+		../src/InstructionAdapter.C
 #		../src/IA_InstrucIter.C 
 #		../src/InstrucIter-Function.C
 #                ../src/InstrucIter-xplat.C
+#		../src/BPatch_dependenceGraphNode.C \
+#		../src/BPatch_dependenceGraphEdge.C \
 
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \
@@ -143,8 +143,6 @@ PUBLIC_H = BPatch_addressSpace.h \
            BPatch_basicBlockLoop.h \
            BPatch_binaryEdit.h \
            BPatch_callbacks.h \
-           BPatch_dependenceGraphEdge.h \
-           BPatch_dependenceGraphNode.h \
            BPatch_dll.h \
            BPatch_edge.h \
            BPatch_eventLock.h \
@@ -168,6 +166,8 @@ PUBLIC_H = BPatch_addressSpace.h \
            BPatch_thread.h \
            BPatch_type.h \
            BPatch_Vector.h
+#           BPatch_dependenceGraphEdge.h \
+#           BPatch_dependenceGraphNode.h \
 
 
 #IGEN_GEN_SRCS = 

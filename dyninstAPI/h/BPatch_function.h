@@ -51,7 +51,7 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_memoryAccess_NP.h"
-#include "BPatch_dependenceGraphNode.h"
+//#include "BPatch_dependenceGraphNode.h"
 // class BPatch_dependenceGraphNode;
 
 class int_function;
