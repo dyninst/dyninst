@@ -197,7 +197,8 @@ void registerSpace::initialize32() {
     registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
                                          "virtFPR",
                                          true, // off-limits...
-                                         registerSlot::liveAlways,
+                                         registerSlot::deadAlways, // because we check this via overapproximation and not the
+                                         // regular liveness algorithm, start out *dead* and set live if written
                                          registerSlot::FPR);
     registers.push_back(fpr);
 
@@ -425,7 +426,8 @@ void registerSpace::initialize64() {
     registers.push_back(new registerSlot(REGNUM_DUMMYFPR,
                                          "dummyFPR",
                                          true,
-                                         registerSlot::liveAlways,
+                                         registerSlot::deadAlways, // because we check this via overapproximation and not the
+                                         // regular liveness algorithm, start out *dead* and set live if written
                                          registerSlot::FPR));
     registers.push_back(new registerSlot(REGNUM_MM0,
 					 "MM0/ST(0)",
