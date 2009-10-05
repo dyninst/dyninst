@@ -220,7 +220,7 @@ bool IA_IAPI::isCall() const
 void IA_IAPI::getNewEdges(
         std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
         image_basicBlock* currBlk,
-        std::vector<instruction>& all_insns,
+        unsigned int num_insns,
         dictionary_hash<Address,
         std::string> *pltFuncs) const
 {
@@ -269,7 +269,7 @@ void IA_IAPI::getNewEdges(
             }
         
 
-            if(!isTailCall(all_insns))
+            if(!isTailCall(num_insns))
             {
                 if(!(*pltFuncs).defines(getCFT()))
                 {
@@ -292,11 +292,11 @@ void IA_IAPI::getNewEdges(
         else
         {
             parsing_printf("... indirect jump at 0x%x\n", current);
-            if( all_insns.size() == 2 ) {
+            if( num_insns == 2 ) {
                 parsing_printf("... uninstrumentable due to 0 size\n");
                 return;
             }
-            if(isTailCall(all_insns))
+            if(isTailCall(num_insns))
                 return;
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
@@ -412,7 +412,28 @@ bool IA_IAPI::isTableInsn(Instruction::Ptr i) const
         
 std::pair<Address, Instruction::Ptr> IA_IAPI::findTableInsn() const
 {
-    std::map<Address, Instruction::Ptr>::const_iterator c =
+	// Check whether the jump is our table insn!
+	Expression::Ptr cft = curInsn()->getControlFlowTarget();
+	if(cft)
+	{
+		std::vector<InstructionAST::Ptr> tmp;
+		cft->getChildren(tmp);
+		if(tmp.size() == 1)
+		{
+			Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+			parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
+			static RegisterAST* allGPRs = new RegisterAST(r_ALLGPRS);
+			cftAddr->bind(allGPRs, Result(u32, 0));
+
+			Result base = cftAddr->eval();
+			if(base.defined && base.convert<Address>())
+			{
+				parsing_printf("\tAddress in jump\n");
+				return std::make_pair(current, curInsn());
+			}
+		}
+	}
+	std::map<Address, Instruction::Ptr>::const_iterator c =
             allInsns.find(current);
     while(!isTableInsn(c->second) && c != allInsns.begin())
     {
@@ -460,7 +481,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
         return false;
     }
     Address thunkOffset = findThunkAndOffset(currBlk);
-    parsing_printf("\ttableInsn at 0x%lx\n",tableInsnAddr);
+    parsing_printf("\ttableInsn %s at 0x%lx\n",tableInsn->format().c_str(), tableInsnAddr);
     if(thunkOffset) {
         parsing_printf("\tThunk-calculated table base address: 0x%lx\n",
                        thunkOffset);
@@ -472,15 +493,14 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
     {
         return false;
     }
-    bool tableEntriesRelative = false;
     if(thunkOffset)
     {
         // Table contains offsets, not addresses, so assume 4-byte...
         tableStride = 4;
     }
-    Address tableBase = getTableAddress(tableInsn, thunkOffset, tableEntriesRelative);
+    Address tableBase = getTableAddress(tableInsn, thunkOffset);
     return fillTableEntries(thunkOffset, tableBase,
-                            tableSize, tableStride, outEdges, tableEntriesRelative);
+                            tableSize, tableStride, outEdges);
 }
 namespace detail
 {
@@ -620,8 +640,8 @@ boost::tuple<Instruction::Ptr,
             if(i->getCategory() == c_CompareInsn)
             // check for cmp
             {
-                parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
-                               curAdr);
+                parsing_printf("\tFound jmp table cmp instruction %s at 0x%lx\n",
+                               i->format().c_str(), curAdr);
                 compareInsn = i;
                 maxSwitchAddr = curAdr;
                 foundMaxSwitch = true;
@@ -629,8 +649,8 @@ boost::tuple<Instruction::Ptr,
             if(i->getCategory() == c_BranchInsn &&
                i->allowsFallThrough())
             {
-                parsing_printf("\tFound jmp table cond br instruction at 0x%lx\n",
-                               curAdr);
+                parsing_printf("\tFound jmp table cond br instruction %s at 0x%lx\n",
+                               i->format().c_str(), curAdr);
                 condBranchInsn = i;
                 foundCondBranch = true;
 
@@ -686,8 +706,7 @@ boost::tuple<Instruction::Ptr,
     return boost::make_tuple(compareInsn, condBranchInsn, compareOnTakenBranch);
 }
  
-Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset,
-                                                 bool& tableEntriesRelative) const
+Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset) const
 {
     // Extract displacement from table insn
     Expression::Ptr displacementSrc;
@@ -728,9 +747,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
         else
         {
             displacementSrc = op;
-            // HACK!!!
-            tableEntriesRelative = true;
-        }            
+        }
     }
     static RegisterAST* allGPRs = new RegisterAST(r_ALLGPRS);
     displacementSrc->bind(allGPRs, Result(u32, 0));
@@ -739,12 +756,9 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
     Address jumpTable = 0;
     if(!disp.defined)
     {
-        if(!tableEntriesRelative)
-        {
-            parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
-                           tableInsn->format().c_str(), displacementSrc->format().c_str());
-            return 0;
-        }
+        parsing_printf("\ttable insn: %s, displacement %s, bind of all GPRs FAILED\n",
+                        tableInsn->format().c_str(), displacementSrc->format().c_str());
+        return 0;
    }
    else
    {
@@ -781,53 +795,49 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
                                Address tableBase,
                                unsigned tableSize,
                                unsigned tableStride,
-                               std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
-                              bool tableEntriesRelative) const
+                               std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
-#if defined(os_windows)
-    tableBase -= img->getObject()->getLoadOffset();
-#endif
     if( !img->isValidAddress(tableBase) )
-{
-    return false;
-}
+	{
+	    return false;
+	}
     for(unsigned int i=0; i < tableSize; i++)
-{
-    Address tableEntry = tableBase + (i * tableStride);
-    Address jumpAddress = 0;
-        
-    if(img->isValidAddress(tableEntry))
-    {
-        if(tableStride == sizeof(Address)) {
-                // Unparseable jump table
-            jumpAddress = *(const Address *)img->getPtrToInstruction(tableEntry);
-        }
-        else {
-            assert(img->getPtrToInstruction(tableEntry));
-            jumpAddress = *(const int *)img->getPtrToInstruction(tableEntry);
-        }
-    }
+	{
+		Address tableEntry = tableBase + (i * tableStride);
+		Address jumpAddress = 0;
+	        
+		if(img->isValidAddress(tableEntry))
+		{
+			if(tableStride == sizeof(Address)) {
+					// Unparseable jump table
+				jumpAddress = *(const Address *)img->getPtrToInstruction(tableEntry);
+			}
+			else {
+				assert(img->getPtrToInstruction(tableEntry));
+				jumpAddress = *(const int *)img->getPtrToInstruction(tableEntry);
+			}
+		}
 #if defined(os_windows)
-    if(img)
-{
-    jumpAddress -= img->getObject()->getLoadOffset();
-}
+		if(img)
+		{
+			jumpAddress -= img->getObject()->getLoadOffset();
+		}
 #endif
-        if(thunkOffset)
-        {
-            jumpAddress += thunkOffset;
-        }
-        if (!(img->isExecutableAddress(jumpAddress))) {
-            parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
-                           i, tableEntry, jumpAddress);
-            continue;
-        }
-    
-        parsing_printf("\tentry %d [0x%lx] -> 0x%lx\n",i,tableEntry,jumpAddress);
-    
-        outEdges.push_back(std::make_pair(jumpAddress, ET_INDIR));
-        
-}
+		if(thunkOffset)
+		{
+			jumpAddress += thunkOffset;
+		}
+		if (!(img->isExecutableAddress(jumpAddress))) {
+			parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
+							i, tableEntry, jumpAddress);
+			continue;
+		}
+
+		parsing_printf("\tentry %d [0x%lx] -> 0x%lx\n",i,tableEntry,jumpAddress);
+
+		outEdges.push_back(std::make_pair(jumpAddress, ET_INDIR));
+	        
+	}
     return true;
     
 }
@@ -1005,7 +1015,7 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
     }
     return true;
 }
-bool IA_IAPI::isTailCall(std::vector<instruction>& ) const
+bool IA_IAPI::isTailCall(unsigned int) const
 {
     if(tailCall.first) return tailCall.second;
     tailCall.first = true;

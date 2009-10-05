@@ -154,7 +154,7 @@ bool IA_InstrucIter::isCall() const
 void IA_InstrucIter::getNewEdges(
         pdvector<std::pair< Address, EdgeTypeEnum> >& outEdges,
         image_basicBlock* currBlk,
-        pdvector<instruction>& all_insns,
+        unsigned int num_insns,
         dictionary_hash<Address,
         std::string> *pltFuncs) const
 {
@@ -170,14 +170,15 @@ void IA_InstrucIter::getNewEdges(
     {
         parsing_printf("... indirect jump at 0x%x\n", current);
         BPatch_Set<Address> targets;
-        if( all_insns.size() == 2 ) {
+        if( num_insns == 2 ) {
             parsing_printf("... uninstrumentable due to 0 size\n");
             return;
         }
         if(!(context->archIsIndirectTailCall(ii)))
         {
+            std::vector<instruction> dummy;
             successfullyParsedJumpTable = context->archGetMultipleJumpTargets(targets, currBlk, ii,
-                    all_insns);
+                    dummy);
             parsedJumpTable = true;
             if(successfullyParsedJumpTable)
             {
@@ -200,8 +201,8 @@ void IA_InstrucIter::getNewEdges(
             outEdges.push_back(std::make_pair(catchStart, ET_CATCH));
         }
         
-
-        if(!(context->archIsATailCall( ii, all_insns )))
+        std::vector<instruction> dummy;
+        if(!(context->archIsATailCall( ii, dummy )))
         {
             if(!(*pltFuncs).defines(target))
             {
@@ -316,14 +317,15 @@ bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
     return true;
 }
 
-bool IA_InstrucIter::isTailCall(pdvector<instruction>& all_insns) const
+bool IA_InstrucIter::isTailCall(unsigned int num_insns) const
 {
     if(ii.isACondBranchInstruction()) return false;
     if(ii.isAIndirectJumpInstruction() && context->archIsIndirectTailCall(ii))
     {
         return true;
     }
-    if(ii.isAJumpInstruction() && context->archIsATailCall(ii, all_insns))
+    std::vector<instruction> dummy;
+    if(ii.isAJumpInstruction() && context->archIsATailCall(ii, dummy))
     {
         return true;
     }

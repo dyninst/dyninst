@@ -62,7 +62,7 @@ class IA_IAPI : public InstructionAdapter
         virtual void
                 getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >&
                 outEdges, image_basicBlock* currBlk,
-                std::vector<instruction>& all_insns,
+                unsigned int num_insns,
                 dictionary_hash<Address, std::string> *pltFuncs) const;
         virtual bool isDynamicCall() const;
         virtual bool isAbsoluteCall() const;
@@ -72,7 +72,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual bool isTailCall(std::vector<instruction>&) const;
+        virtual bool isTailCall(unsigned int) const;
         virtual bool checkEntry() const;
         virtual Address getCFT() const;
         virtual bool isStackFramePreamble(int& frameSize) const;
@@ -103,10 +103,9 @@ class IA_IAPI : public InstructionAdapter
                               Address tableBase,
                               unsigned tableSize,
                               unsigned tableStride,
-                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
-                             bool tableEntriesRelative) const;
+                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
         Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
-                                Address thunkOffset, bool& tableEntriesRelative) const;
+                                Address thunkOffset) const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn() const;
         virtual bool isCall() const;

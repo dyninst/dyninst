@@ -654,12 +654,11 @@ bool image_func::buildCFG(
     // Instructions and InstPoints
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
-    pdvector< instruction > allInstructions;
     typedef IA_IAPI InstructionAdapter_t;
 #else
-    pdvector< instruction > allInstructions;
     typedef IA_InstrucIter InstructionAdapter_t;
 #endif
+    unsigned num_insns = 0;
     typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
     typedef pdvector< edge_pair_t > Edges_t;
     image_instPoint *p;
@@ -895,22 +894,22 @@ bool image_func::buildCFG(
                     
                 }
             }
-            allInstructions.push_back(instruction() );
             allInstAddrs += currAddr;
+            ++num_insns;
 
             if(ah.hasCFT())
             {
                 markBlockEnd(currBlk, ah, funcEnd);
                 Edges_t edges_out;
-                ah.getNewEdges(edges_out, currBlk, allInstructions,
+                ah.getNewEdges(edges_out, currBlk, num_insns,
                                pltFuncs);
-                InstrumentableLevel insnInstLevel = ah.getInstLevel(allInstructions);
-                FuncReturnStatus insnRetStatus = ah.getReturnStatus(currBlk, allInstructions);
-                instPointType_t insnPointType = ah.getPointType(allInstructions, pltFuncs);
+                InstrumentableLevel insnInstLevel = ah.getInstLevel(num_insns);
+                FuncReturnStatus insnRetStatus = ah.getReturnStatus(currBlk, num_insns);
+                instPointType_t insnPointType = ah.getPointType(num_insns, pltFuncs);
                 bool isDynamicCall = ah.isDynamicCall();
                 bool isAbsoluteCall = ah.isAbsoluteCall();
                 bool hasUnresolvedCF = ah.hasUnresolvedControlFlow(currBlk,
-                        allInstructions);
+                        num_insns);
                 if(insnInstLevel >= instLevel_) {
                     switch(insnInstLevel)
                     {
@@ -956,7 +955,8 @@ bool image_func::buildCFG(
                     curEdge != edges_out.end();
                    ++curEdge)
                 {
-                    if(!img()->isValidAddress(curEdge->first) ||
+                    // Code is a subset of valid addresses
+                    if(/*!img()->isValidAddress(curEdge->first) ||*/
                         !img()->isCode(curEdge->first))
                     {
                         hasUnresolvedCF = true;
@@ -974,7 +974,7 @@ bool image_func::buildCFG(
                                 parsing_printf("[%s] binding call 0x%lx -> 0x%lx\n",
                                                FILE__,currAddr, curEdge->first);
                                 targetFunc = bindCallTarget(curEdge->first,currBlk);
-                                if(ah.isTailCall(allInstructions))
+                                if(ah.isTailCall(num_insns))
                                 {
                                     parsing_printf("%s: tail call %x -> %x inheriting return status of target\n",
                                             FILE__, currAddr, curEdge->first);
@@ -1091,7 +1091,7 @@ bool image_func::buildCFG(
                                              isDynamicCall,
                                              isAbsoluteCall,
                                              insnPointType);
-/*                    parsing_printf("%s[%d]: creating inst point at 0x%lx...", FILE__, __LINE__, currAddr);*/
+                    parsing_printf("%s[%d]: creating inst point at 0x%lx...", FILE__, __LINE__, currAddr);
                     if(hasUnresolvedCF)
                     {
 /*                        parsing_printf("unresolved control flow, adding to unresolved list\n");*/
@@ -1122,16 +1122,16 @@ bool image_func::buildCFG(
                             }
                             break;
                         case callSite:
-/*                            parsing_printf("call point, adding to calls\n");*/
+                            parsing_printf("call point, adding to calls\n");
                             calls.push_back( p );
                             currBlk->containsCall_ = true;
                             break;
                         case otherPoint:
-/*                            parsing_printf("other point...");*/
+                            parsing_printf("other point...");
                             if(hasUnresolvedCF) {
-/*                                parsing_printf("already in unresolved CF list\n");*/
+                                parsing_printf("already in unresolved CF list\n");
                             } else {
-/*                                parsing_printf("where'd it go?\n");*/
+                                parsing_printf("where'd it go?\n");
                             }
                             break;
                         default:
@@ -1180,7 +1180,7 @@ bool image_func::buildCFG(
                     // remove some cumulative information
                     
                     allInstAddrs.remove(currAddr);
-                    allInstructions.pop_back();
+                    num_insns--;
                     parsing_printf("%s[%d]: ending block due to ALLOC at %x\n", FILE__, __LINE__, currAddr);
                     addBasicBlock(currAddr,
                                     currBlk,

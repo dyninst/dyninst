@@ -1697,8 +1697,9 @@ void *image::getPtrToData(Address offset) const {
 // return a pointer to the instruction at address adr
 void *image::getPtrToInstruction(Address offset) const 
 {
-   if (!isValidAddress(offset))
-      return NULL;
+    // isCode and isData cover this already, no point in duplicating effort
+//   if (!isValidAddress(offset))
+//      return NULL;
 
    if (isCode(offset)) {
       Region *reg = linkedFile->findEnclosingRegion(offset);
