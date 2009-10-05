@@ -152,7 +152,7 @@ namespace Dyninst
 	buffer = m_RawInsn.large_insn;
       }
       std::vector<Expression::Ptr> opSrc;
-      d.resetBuffer(buffer);
+      d.resetBuffer(buffer, size());
       d.doIA32Decode();
       d.decodeOperands(opSrc);
       m_Operands.reserve(opSrc.size());

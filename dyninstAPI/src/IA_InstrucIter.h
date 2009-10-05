@@ -59,7 +59,7 @@ class IA_InstrucIter : public InstructionAdapter
         virtual void
                 getNewEdges(pdvector<std::pair< Address, EdgeTypeEnum> >&
                 outEdges, image_basicBlock* currBlk,
-                pdvector<instruction>& all_insns,
+                unsigned int num_insns,
                 dictionary_hash<Address, std::string> *pltFuncs) const;
         virtual bool isDynamicCall() const;
         virtual bool isAbsoluteCall() const;
@@ -69,7 +69,7 @@ class IA_InstrucIter : public InstructionAdapter
         virtual bool isNop() const;
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
-        virtual bool isTailCall(pdvector<instruction>& all_insns) const;
+        virtual bool isTailCall(unsigned int num_insns) const;
         virtual bool checkEntry() const;
         virtual Address getCFT() const;
         virtual bool isStackFramePreamble(int& frameSize) const;

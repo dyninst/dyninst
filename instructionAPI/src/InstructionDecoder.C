@@ -69,7 +69,7 @@ namespace Dyninst
             locs(NULL),
             decodedInstruction(NULL),
     is32BitMode(o.is32BitMode),
-    sizePrefixPresent(false),
+    sizePrefixPresent(o.sizePrefixPresent),
     bufferBegin(o.bufferBegin),
     bufferSize(o.bufferSize),
     rawInstruction(o.rawInstruction)
@@ -225,19 +225,24 @@ namespace Dyninst
 
     Expression::Ptr InstructionDecoder::decodeImmediate(unsigned int opType, unsigned int position)
     {
+        const unsigned char* bufferEnd = bufferBegin + (bufferSize ? bufferSize : 16);
         assert(position != (unsigned int)(-1));
       switch(opType)
       {
       case op_b:
+          assert(rawInstruction + position < bufferEnd);
 	return Immediate::makeImmediate(Result(s8,*(const byte_t*)(rawInstruction + position)));
 	break;
       case op_d:
-	return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+          assert(rawInstruction + position + 3 < bufferEnd);
+          return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
       case op_w:
-	return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
+          assert(rawInstruction + position + 1 < bufferEnd);
+          return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
 	break;
       case op_q:
-	return Immediate::makeImmediate(Result(s64,*(const int64_t*)(rawInstruction + position)));
+          assert(rawInstruction + position + 7 < bufferEnd);
+          return Immediate::makeImmediate(Result(s64,*(const int64_t*)(rawInstruction + position)));
 	break;
       case op_v:
       case op_z:
@@ -245,11 +250,13 @@ namespace Dyninst
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
 	if(!sizePrefixPresent)
 	{
-	  return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 3 < bufferEnd);
+            return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
 	}
 	else
 	{
-	  return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 1 < bufferEnd);
+            return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -258,11 +265,13 @@ namespace Dyninst
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
 	if(!sizePrefixPresent)
 	{
-	  return Immediate::makeImmediate(Result(s48,*(const int64_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 5< bufferEnd);
+            return Immediate::makeImmediate(Result(s48,*(const int64_t*)(rawInstruction + position)));
 	}
 	else
 	{
-	  return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 3 < bufferEnd);
+            return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -801,6 +810,7 @@ disp_pos)))));
       decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
 
       ia32_decode(IA32_DECODE_PREFIXES, rawInstruction, *decodedInstruction);
+      sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
     }
     
     unsigned int InstructionDecoder::decodeOpcode()
@@ -808,7 +818,6 @@ disp_pos)))));
       doIA32Decode();
       m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
 decodedInstruction->getPrefix(), locs));
-      sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();
     }
     
@@ -830,10 +839,11 @@ decodedInstruction->getPrefix(), locs));
       return true;
     }
 
-    void InstructionDecoder::resetBuffer(const unsigned char* buffer)
+    void InstructionDecoder::resetBuffer(const unsigned char* buffer, unsigned int size = 0)
     {
       rawInstruction = buffer;
       bufferBegin = buffer;
+      bufferSize = size;
     }
     
   };
