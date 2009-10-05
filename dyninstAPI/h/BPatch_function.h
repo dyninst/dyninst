@@ -140,23 +140,12 @@ public:
 //                  BPatch_storageClass _sc = BPatch_storageFrameOffset);
     void fixupUnknown(BPatch_module *);
     
-    // Calculate liveness at a particular address
-    // Deprecated - moved to internals
-    //void calc_liveness(BPatch_point *point);
 
         // This isn't so much for internal use only, but it *should*
         // remain undocumented for now.
     bool containsSharedBlocks();
 
 
-    // Linux and Sparc only
-    // slicing stuff
-    //void createDataDependenceGraph();
-    //void createControlDependenceGraph();
-    //void createProgramDependenceGraph();
-    //void createExtendedProgramDependenceGraph();
-    //void identifyDependencies(BPatch_function* callee, void* calleeAddress);
-    // End Linux and Sparc only
 
     // End of functions for internal use only
     
@@ -178,28 +167,6 @@ public:
 
     char *,getName,(char *s, int len));
 
-    /************************ SLICING *********************************************/
-    // BPatch_function::getSlice
-    // Returns a handle to the BPatch_ dependenceGraphNode object
-    // which is used to navigate through the slice of the function at instruction inst
-    API_EXPORT(Int,(inst),
-    BPatch_dependenceGraphNode*,getSlice,(BPatch_instruction* inst));
-
-    // BPatch_function::getProgramDependenceGraph
-    // Returns the partial Program Dependence graph that includes the instruction inst, its successors, and predecessors
-    API_EXPORT(Int,(inst),
-    BPatch_dependenceGraphNode*,getProgramDependenceGraph,(BPatch_instruction* inst));
-
-    // BPatch_function::getControlDependenceGraph
-    // Returns the partial Control Dependence graph that includes the instruction inst, its successors, and predecessors
-    API_EXPORT(Int,(inst),
-    BPatch_dependenceGraphNode*,getControlDependenceGraph,(BPatch_instruction* inst));
-
-    // BPatch_function::getDataDependenceGraph
-    // Returns the partial Data Dependence graph that includes the instruction inst, its successors, and predecessors.
-    API_EXPORT(Int,(inst),
-    BPatch_dependenceGraphNode*,getDataDependenceGraph,(BPatch_instruction* inst));
-    /************************ END SLICING *****************************************/
 
     //  BPatch_function::getMangledName
     //  Returns mangled name of function, same as getName for non-c++ mutatees
