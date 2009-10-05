@@ -99,6 +99,7 @@ namespace Dyninst
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
       virtual bool isFlag() const;
       virtual bool checkRegID(unsigned int id) const;
+      int getPromotedID() const;
       
     private:
       unsigned int registerID;
