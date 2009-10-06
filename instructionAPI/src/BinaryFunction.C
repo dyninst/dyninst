@@ -31,6 +31,7 @@
 
 #include "../h/BinaryFunction.h"
 #include "Result.h"
+#include "Visitor.h"
 
 namespace Dyninst
 {
@@ -154,6 +155,51 @@ namespace Dyninst
       return doMultiplication(arg1, arg2, ResultT);
 
     }    
+    const Result& BinaryFunction::eval() const
+    {
+        Expression::Ptr arg1 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg1);
+        Expression::Ptr arg2 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg2);
+        if(arg1 && arg2)
+        {
+            Result x = arg1->eval();
+            Result y = arg2->eval();
+            Result oracularResult = Expression::eval();
+            if(x.defined && y.defined && !oracularResult.defined)
+            {
+                Result result = (*m_funcPtr)(x, y);
+                const_cast<BinaryFunction*>(this)->setValue(result);
+            }
+        }
+        return Expression::eval();
+    }  
+    bool BinaryFunction::bind(Expression* expr, const Result& value)
+    {
+        bool retVal = false;
+        if(Expression::bind(expr, value))
+        {
+            return true;
+        }
+        retVal = retVal | m_arg1->bind(expr, value);
+        retVal = retVal | m_arg2->bind(expr, value);
+		if(retVal) clearValue();
+        return retVal;
+    }
+
+    void BinaryFunction::apply(Visitor* v)
+    {
+        m_arg1->apply(v);
+        m_arg2->apply(v);
+        v->visit(this);
+    }
+    bool BinaryFunction::isAdd() const
+    {
+        return typeid(*m_funcPtr) == typeid(addResult);
+    }
+    bool BinaryFunction::isMultiply() const
+    {
+        return typeid(*m_funcPtr) == typeid(multResult);
+
+    }
   };
 };
 

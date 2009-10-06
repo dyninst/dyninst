@@ -315,7 +315,7 @@ loadsnstores:
     saymsg mmx
 
 ; MMX test
-    movd mm0, [divarw]          ; l42 a49
+    movd mm0, [divarw]          ; l42 a50
     pmaddwd mm0, [divarw+8]
     psraw mm0, 2                ; just decoder test for MMX groups
     movntq [divarw], mm0        ; s12, non-temporal
@@ -329,7 +329,7 @@ loadsnstores:
     saymsg sse
 
 ; SSE test    
-    movaps xmm0, [dfvars]       ; book incorrectly tags this as sse2                 - l44 a52
+    movaps xmm0, [dfvars]       ; book incorrectly tags this as sse2                 - l44 a53
     cmpeqss xmm0, [dfvars]
     prefetcht0 [divarw]         ; not sure about this, but seem safe only if CPU knows SSE
 
@@ -434,8 +434,8 @@ loadsnstores:
     pop esi
     pop edi
 
-    leave                       ; FIXME:     this is load too...
-    ret                         ; FIXME:     this is load too...
+    leave                       ; now counts as load! 
+    ret                         ; now counts as load! 
 .end:
 
 

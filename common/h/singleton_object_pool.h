@@ -3,7 +3,7 @@
 
 #include <boost/pool/pool.hpp>
 #include <boost/pool/detail/singleton.hpp>
-#include <pool_allocators.h>
+#include "pool_allocators.h"
 
 #include <dyn_detail/boost/shared_ptr.hpp>
 

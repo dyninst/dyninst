@@ -49,7 +49,13 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
+
+#if defined(cap_instruction_api)
+#include "Instruction.h"
+using namespace Dyninst::InstructionAPI;
+#else
 #include "dyninstAPI/src/InstrucIter.h"
+#endif
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
@@ -1764,9 +1770,13 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
                                             Address & retAddr,
                                             Register &retReg) {
 
+#if defined(cap_instruction_api)
+    if(gen.point()->insn()->getCategory() == c_ReturnInsn) {
+#else
     InstrucIter instruc(gen.point()->addr(), gen.addrSpace());
-    // if this is a return instruction our AST reads the top stack value
     if (instruc.isAReturnInstruction()) {
+#endif        
+    // if this is a return instruction our AST reads the top stack value
         if (retReg == REG_NULL) {
             retReg = allocateAndKeep(gen, noCost);
         }

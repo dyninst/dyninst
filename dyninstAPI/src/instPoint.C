@@ -57,7 +57,6 @@
 #include "dyninstAPI/src/baseTramp.h"
 
 #if defined(cap_instruction_api)
-#include "dyninstAPI/src/InstrucIter.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
 #else
@@ -245,13 +244,14 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
         fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
     }
-#if 0 // defined(cap_instruction_api)
-    Address currentInsn = reinterpret_cast<unsigned char*>(bbl->firstInsnAddr());
-    InstructionDecoder decoder;
-    while(currentInsn < addr)
+#if defined(cap_instruction_api)
+    const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
+    InstructionDecoder decoder (buffer, bbl->getSize());
+    Instruction::Ptr i;
+    Address currentInsn = bbl->firstInsnAddr();
+    while((i = decoder.decode()) && (currentInsn < addr))
     {
-      Instruction tmpInsn = decoder.decode((unsigned char*)(currentInsn), bbl->lastInsnAddr() - currentInsn);
-      currentInsn += tmpInsn.size();
+        currentInsn += i->size();
     }
     if(currentInsn != addr)
     {
@@ -259,6 +259,10 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
       fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
       return NULL; // Not aligned
     }
+    newIP = new instPoint(proc,
+                          i,
+                          addr,
+                          block);
 #if defined(arch_sparc)
 #error "Instruction API not yet implemented for SPARC, cap_instruction_api is illegal"
 #endif // defined(arch_sparc)
@@ -283,11 +287,11 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
       }
     }
 #endif // defined(arch_sparc)
-#endif // defined(cap_instruction_api)
     newIP = new instPoint(proc,
                           newIter.getInstruction(),
                           addr,
                           block);
+#endif // defined(cap_instruction_api)
     
     if (!commonIPCreation(newIP)) {
         delete newIP;
@@ -668,7 +672,11 @@ instPointInstance *instPoint::getInstInstance(Address addr) {
 int instPoint_count = 0;
 
 instPoint::instPoint(AddressSpace *proc,
-                     instruction insn,
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else                     
+                        instruction insn,
+#endif
                      Address addr,
                      int_basicBlock *block) :
     instPointBase(insn, otherPoint),

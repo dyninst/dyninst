@@ -77,7 +77,9 @@
 //#include "InstrucIter.h"
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-
+#include "IAPI_to_AST.h"
+#include "Expression.h"
+#include "Instruction.h"
 #include <sstream>
 
 class ExpandInstruction;
@@ -195,7 +197,8 @@ void registerSpace::initialize32() {
     registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
                                          "virtFPR",
                                          true, // off-limits...
-                                         registerSlot::liveAlways,
+                                         registerSlot::deadAlways, // because we check this via overapproximation and not the
+                                         // regular liveness algorithm, start out *dead* and set live if written
                                          registerSlot::FPR);
     registers.push_back(fpr);
 
@@ -423,7 +426,8 @@ void registerSpace::initialize64() {
     registers.push_back(new registerSlot(REGNUM_DUMMYFPR,
                                          "dummyFPR",
                                          true,
-                                         registerSlot::liveAlways,
+                                         registerSlot::deadAlways, // because we check this via overapproximation and not the
+                                         // regular liveness algorithm, start out *dead* and set live if written
                                          registerSlot::FPR));
     registers.push_back(new registerSlot(REGNUM_MM0,
 					 "MM0/ST(0)",
@@ -2037,7 +2041,9 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
    unsigned scale;
    int addr_mode;
    unsigned Mod;
-
+   
+//#error "Reimplement with IAPI factory"
+#if 0
    const instruction &i = callSite->insn();
 
    if (i.type() & PREFIX_SEG) {
@@ -2177,7 +2183,18 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
    else {
       cerr << "Unexpected instruction in MonitorCallSite()!!!\n";
    }
-   return true;
+#endif
+using namespace Dyninst::InstructionAPI;        
+Expression::Ptr cft = callSite->insn()->getControlFlowTarget();
+    ASTFactory f;
+    cft->apply(&f);
+    assert(f.m_stack.size() == 1);
+    args.push_back(f.m_stack[0]);
+    args.push_back(AstNode::operandNode(AstNode::Constant,
+                   (void *) callSite->addr()));
+    inst_printf("%s[%d]:  UNTESTED, inserting dynamic call site instrumentation for %s\n",
+                FILE__, __LINE__, cft->format().c_str());
+    return true;
 }
 
 

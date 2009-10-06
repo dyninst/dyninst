@@ -44,6 +44,8 @@ namespace Dyninst
       c_CallInsn,
       c_ReturnInsn,
       c_BranchInsn,
+      c_CompareInsn,
+      c_PrefetchInsn,
       c_NoCategory
     };
     INSTRUCTION_EXPORT InsnCategory entryToCategory(entryID e);

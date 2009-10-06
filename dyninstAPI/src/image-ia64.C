@@ -92,11 +92,6 @@ bool image_func::archAvoidParsing()
     return false;
 }
 
-// Not used on IA64
-void image_func::archGetFuncEntryAddr(Address &/* funcEntryAddr */)
-{
-    return;
-}
 
 // Not used on IA64? FIXME -- see above
 bool image_func::archNoRelocate()
@@ -143,13 +138,9 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /*ah*/)
     return false;
 }
 
-bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
-{
-    return ah.isAnAbortInstruction();
-}
 
 // Not used on IA64
-void image_func::archInstructionProc(InstrucIter &/*ah*/)
+void image_func::archInstructionProc(InstructionAdapter &/*ah*/)
 {
     return;
 }

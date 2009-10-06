@@ -438,7 +438,7 @@ int parsing_printf_int(const char *format, ...)
 
   debugPrintLock->_Lock(FILE__, __LINE__);
 
-  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  //fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
 

@@ -50,6 +50,7 @@
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
+#include "IA_InstrucIter.h"
 #include "debug.h"
 #include "arch.h"
 #include "inst-sparc.h" // REG_? should be in arch-sparc, but isn't
@@ -219,10 +220,6 @@ bool image_func::archAvoidParsing()
     return false;
 }
 
-void image_func::archGetFuncEntryAddr(Address & /* funcEntryAddr */)
-{
-    return;
-}
 
 bool image_func::archNoRelocate()
 {
@@ -281,12 +278,8 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
     return false;
 }
 
-bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
-{
-    return ah.isAnAbortInstruction();
-}
 
-void image_func::archInstructionProc(InstrucIter &ah)
+void image_func::archInstructionProc(InstructionAdapter &ah_base)
 {
     // Check whether "07" is live, AKA we can't call safely.
     // Could we just always assume this?
@@ -305,6 +298,7 @@ void image_func::archInstructionProc(InstrucIter &ah)
 	  }
 	}
 #endif
+        IA_InstrucIter& ah = dynamic_cast<IA_InstrucIter&>(ah_base);
         instruction insn = ah.getInstruction();
         insn.get_register_operands();
         std::vector<InsnRegister> *read_regs_p  = NULL;
@@ -329,7 +323,7 @@ void image_func::archInstructionProc(InstrucIter &ah)
 
 	if(o7_live) {	  
             parsing_printf("Setting o7 to live at 0x%x, func %s\n",
-                    *ah, symTabName().c_str());
+                    ah.getAddr(), symTabName().c_str());
         }
     }
 }

@@ -67,7 +67,7 @@ class instruction;
 #define IA32AMDprefetch  100
 #define IA32AMDprefetchw 101
 
-extern void initOpCodeInfo();
+//extern void initOpCodeInfo();
 
 /* This is believed to be machine independent, modulo register numbers of course */
 class BPATCH_DLL_EXPORT BPatch_addrSpec_NP
@@ -95,7 +95,8 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
   friend class BPatch_function;
   friend class InstrucIter;
   friend class AstMemoryNode;
-
+  friend class BPatch_memoryAccessAdapter;
+  
  public:
 
   // Utility function to filter out the points that don't have a 2nd memory 

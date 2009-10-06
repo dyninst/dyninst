@@ -68,6 +68,7 @@ class BPatch_instruction;
 class process;
 class AddressSpace;
 
+
 /*
    VG (02/19/02): New abstraction layer for instruction parsing.
 

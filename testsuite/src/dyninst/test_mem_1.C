@@ -163,7 +163,7 @@ static void init_test_data()
 
 #if defined(i386_unknown_linux2_0_test) \
  || defined(i386_unknown_nt4_0_test)
-static const unsigned int nloads = 65;
+static const unsigned int nloads = 67;
 static BPatch_memoryAccess* loadList[nloads];
 
 static void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
@@ -279,6 +279,8 @@ static void init_test_data()
   loadList[++k] = MK_LD(0,4,-1,4); // final pops
   loadList[++k] = MK_LD(0,4,-1,4);
   loadList[++k] = MK_LD(0,4,-1,4);
+  loadList[++k] = NULL;
+  loadList[++k] = NULL;
 }
 #endif
 
@@ -297,7 +299,7 @@ static void init_test_data() {
 #endif
 
 #ifdef arch_x86_64_test
-static const unsigned int nloads = 73;
+static const unsigned int nloads = 75;
 
 static BPatch_memoryAccess* loadList[nloads];
 
@@ -431,6 +433,9 @@ static void init_test_data()
   loadList[++k] = MK_LD(0,4,-1,8);
   loadList[++k] = MK_LD(0,4,-1,8);
   loadList[++k] = MK_LD(0,4,-1,8);
+  // leave, return now touch memory
+  loadList[++k] = NULL;
+  loadList[++k] = NULL;
 }
 #endif
 

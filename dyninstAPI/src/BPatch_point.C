@@ -64,7 +64,13 @@
 #include "instP.h"
 #include "baseTramp.h"
 #include "miniTramp.h"
+
+#if defined(cap_instruction_api)
+#include "BPatch_memoryAccessAdapter.h"
+#else
 #include "InstrucIter.h"
+#endif
+
 #include "BPatch_edge.h"
 #include "ast.h"
 #include "mapped_module.h"
@@ -285,15 +291,23 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
     if (memacc) { 
         return memacc;
     }
-    fprintf(stderr, "No memory access recorded for 0x%lx, grabbing now...\n",
-            point->addr());
+    //    fprintf(stderr, "No memory access recorded for 0x%lx, grabbing now...\n",
+    //      point->addr());
     assert(point);
     // Try to find it... we do so through an InstrucIter
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr i = getInsnAtPointInt();
+    BPatch_memoryAccessAdapter converter;
+    
+    attachMemAcc(converter.convert(i, point->addr(), point->proc()->getAddressWidth() == 8));
+    return memacc;
+#else
     InstrucIter ii(point->addr(), point->proc());
     BPatch_memoryAccess *ma = ii.isLoadOrStore();
 
     attachMemAcc(ma);
     return ma;
+#endif
 }
 #if defined(cap_instruction_api)
 #if defined(arch_x86)
@@ -528,10 +542,18 @@ int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
     // We overwrite the entire basic block... 
 
     // So, we return the instruction "overwritten". Wrong, but what the heck...
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn = point->insn();
+    unsigned size = (maxSize < (int)insn->size()) ? maxSize : insn->size();
+    unsigned char* tmp = (unsigned char*)(insns);
+    memcpy(insns, (const void *)insn->ptr(), size);
+    return insn->size();
+#else
     const instruction &insn = point->insn();
     unsigned size = (maxSize < (int)insn.size()) ? maxSize : insn.size();
     memcpy(insns, (const void *)insn.ptr(), size);
     return insn.size();
+#endif
 }
 
 // This isn't a point member because it relies on instPoint.h, which
@@ -658,8 +680,10 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
                                                        BPatch_function *bpf) 
 {
 
-    if (!bpf->getModule()->isValid()) return NULL;
-
+    if (!bpf->getModule()->isValid()) {
+        fprintf(stderr, "WARNING: invalid module in createInstructionInstPoint\n");
+        return NULL;
+    }
     // The useful prototype for instPoints:
     // createArbitraryInstPoint(addr, proc);
     
@@ -669,8 +693,10 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
                                                             bpf->lladdSpace,
                                                             bpf->lowlevel_func());
 
-    if (!iPoint)
-       return NULL;
+    if (!iPoint) {
+        fprintf(stderr, "WARNING: instpoint creation failed in createInstructionInstPoint\n");
+        return NULL;
+    }
     
     return addSpace->findOrCreateBPPoint(bpf, iPoint, BPatch_arbitrary);
 }
@@ -679,6 +705,9 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
 BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>& ops,
                                         InstrucIter &ii, 
                                         BPatch_function *bpf) {
+#if defined(cap_instruction_api)
+    return NULL;
+#else
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
     
     int osize = ops.size();
@@ -702,10 +731,13 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
         Address addr = *ii;     // XXX this gives the address *stored* by ii...
         
         BPatch_memoryAccess* ma = ii.isLoadOrStore();
-        ii++;
         
         if(!ma)
+        {
+            //fprintf(stderr, "Nothing at 0x%lx\n", *ii);
+            ii++;
             continue;
+        }
         
         //BPatch_addrSpec_NP start = ma.getStartAddr();
         //BPatch_countSpec_NP count = ma.getByteCount();
@@ -717,14 +749,18 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
         bool add = false;
         
         if(findLoads && ma->hasALoad()) {
+            //fprintf(stderr, "Load at 0x%lx\n", *ii);
             add = true;
         }
         else if (findStores && ma->hasAStore()) {
+            //fprintf(stderr, "Store at 0x%lx\n", *ii);
             add = true;
         }
         else if (findPrefetch && ma->hasAPrefetch_NP()) {
+            //fprintf(stderr, "Prefetch at 0x%lx\n", *ii);
             add = true;
         }
+        ii++;
         
         if (add) {
            BPatch_point *p = BPatch_point::createInstructionInstPoint(//bpf->getProc(),
@@ -741,6 +777,7 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
         }
     }
     return result;
+#endif
 }
                                                           
 /*  BPatch_point::getCFTarget

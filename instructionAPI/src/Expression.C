@@ -60,31 +60,26 @@ namespace Dyninst
     }
     bool Expression::bind(Expression* expr, const Result& value)
     {
-      bool retVal = false;
+      //bool retVal = false;
       if(*expr == *this)
       {
-	setValue(value);
+          setValue(value);
 	return true;
       }
-      std::vector<InstructionAST::Ptr> children;
-      getChildren(children);
-      for(std::vector<InstructionAST::Ptr>::iterator curChild = children.begin();
-	  curChild != children.end();
-	  ++curChild)
-      {
-	Expression::Ptr curChild_asExpr = 
-	dyn_detail::boost::dynamic_pointer_cast<Expression>(*curChild);
-	if(curChild_asExpr)
-	{
-	  retVal = retVal || curChild_asExpr->bind(expr, value);
-	}
-      }
-      return retVal;
+      return false;
     }
     bool Expression::isFlag() const
     {
       return false;
     }
-    
+    bool DummyExpr::isStrictEqual(const InstructionAST& ) const
+    {
+        return true;
+    }
+    bool DummyExpr::checkRegID(unsigned int ) const
+    {
+        return true;
+    }
+
   };
 };

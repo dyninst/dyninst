@@ -70,7 +70,26 @@ namespace Dyninst
       case e_loope:
       case e_loopn:
 	return c_BranchInsn;
-      default:
+          case e_cmp:
+          case e_cmppd:
+          case e_cmpps:
+          case e_cmpsb:
+          case e_cmpsd:
+          case e_cmpss:
+          case e_cmpsw:
+          case e_cmpxch:
+          case e_cmpxch8b:
+              return c_CompareInsn;
+          case e_prefetch:
+          case e_prefetchNTA:
+          case e_prefetchT0:
+          case e_prefetchT1:
+          case e_prefetchT2:
+          case e_prefetch_w:
+          case e_prefetchw:
+              return c_PrefetchInsn;
+                      
+          default:
 	return c_NoCategory;
       }
       

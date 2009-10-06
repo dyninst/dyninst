@@ -151,7 +151,7 @@ else
    AC_SUBST(LIBIBERTY_DYNAMIC)
 fi
 
-if test "$host_cpu" != "ia-64" ; then
+if test "$host_cpu" != "ia64" ; then
    AC_MSG_NOTICE([Not IA-64, skipping libunwind...])
 else
    AC_ARG_WITH(libunwind-incdir,

@@ -512,7 +512,11 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
 int image_instPoint_count = 0;
 
 image_instPoint::image_instPoint(Address offset,
+#if defined(cap_instruction_api)
+                                 Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
                                  instruction insn,
+#endif
                                  image_func *func,
                                  instPointType_t type) :
     instPointBase(insn, type),
@@ -532,7 +536,11 @@ image_instPoint::image_instPoint(Address offset,
 }
 
 image_instPoint::image_instPoint(Address offset,
+#if defined(cap_instruction_api)                                 
+                                 Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
                                  instruction insn,
+#endif
                                  image_func *func,
                                  Address callTarget,
                                  bool isDynamic,
@@ -624,14 +632,14 @@ bool image_func::addBasicBlock(Address newAddr,
                     newBlk->addFunc(this); // see above comment
                 }
                 worklist.push_back(newAddr);
-                parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
-                    FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
+                parsing_printf("[%s] adding block %d (0x%lx) to worklist\n",
+                    FILE__,newBlk->id(),newBlk->firstInsnOffset_);
             }
         }
         else
         {
-            parsing_printf("[%s:%u] block at 0x%lx split at 0x%lx\n", FILE__,
-                __LINE__,splitBlk->firstInsnOffset_,newAddr);
+            parsing_printf("[%s] block at 0x%lx split at 0x%lx\n", FILE__,
+                splitBlk->firstInsnOffset_,newAddr);
             // split
             newBlk = splitBlk->split(newAddr,this);
             // newBlk only goes on the worklist if the block that was split
@@ -639,15 +647,15 @@ bool image_func::addBasicBlock(Address newAddr,
             if(!leaders.contains(splitBlk->firstInsnOffset_))
             {
                 worklist.push_back(newAddr);
-                parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
-                    FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
+                parsing_printf("[%s] adding block %d (0x%lx) to worklist\n",
+                    FILE__,newBlk->id(),newBlk->firstInsnOffset_);
             }
             else if(!leaders.contains(newBlk->firstInsnOffset_))
             {
                 // This is a new (to this function) block that will not be
                 // parsed, and so must be added to the blocklist here.
-                parsing_printf("[%s:%u] adding block %d (0x%lx) to blocklist\n",
-                    FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
+                parsing_printf("[%s] adding block %d (0x%lx) to blocklist\n",
+                    FILE__,newBlk->id(),newBlk->firstInsnOffset_);
                 addToBlocklist(newBlk);
             }
             else
@@ -662,8 +670,8 @@ bool image_func::addBasicBlock(Address newAddr,
         newBlk = new image_basicBlock(this,newAddr);
         newBlk->isStub_ = true;
         image_->basicBlocksByRange.insert(newBlk);
-        parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
-            FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
+        parsing_printf("[%s] adding block %d (0x%lx) to worklist\n",
+            FILE__,newBlk->id(),newBlk->firstInsnOffset_);
         worklist.push_back(newAddr);
     }
 
@@ -761,8 +769,8 @@ void image_basicBlock::debugPrint() {
  */
 bool image_func::finalize()
 {
-    parsing_printf("[%s:%u] entering finalize for %p\n",
-        FILE__,__LINE__,this);
+    parsing_printf("[%s] entering finalize for %s\n",
+                   FILE__,symTabName().c_str());
 
     parsing_printf("BASIC BLOCK LIST [%s]\n",symTabName().c_str());
 

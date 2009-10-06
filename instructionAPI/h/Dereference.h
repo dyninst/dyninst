@@ -35,6 +35,7 @@
 #include "Expression.h"
 #include "Register.h"
 #include <sstream>
+#include "Visitor.h"
 
 namespace Dyninst
 {
@@ -62,7 +63,7 @@ namespace Dyninst
     /// For example, the %Expression shown in Figure 6 could have its root %Dereference, which interprets the memory being dereferenced
     /// as a unsigned 16-bit integer, replaced with a %Dereference that
     /// interprets the memory being dereferenced as any other type.  The remainder of the %Expression tree would, however, remain unchanged.
-    class Dereference : public Expression
+    class INSTRUCTION_EXPORT Dereference : public Expression
     {
 
     public:
@@ -101,6 +102,22 @@ namespace Dyninst
 	retVal << "[" << addressToDereference->format() << "]";
 	return retVal.str();
       }
+
+      virtual bool bind(Expression* expr, const Result& value)
+      {
+          if(Expression::bind(expr, value))
+          {
+              return true;
+          }
+          return addressToDereference->bind(expr, value);
+      }
+      virtual void apply(Visitor* v)
+      {
+          addressToDereference->apply(v);
+          v->visit(this);
+      }
+    
+
     protected:
       virtual bool isSameType(const InstructionAST& rhs) const
       {
@@ -114,7 +131,7 @@ namespace Dyninst
   
   
     private:
-      InstructionAST::Ptr addressToDereference;
+      Expression::Ptr addressToDereference;
   
     };
   };

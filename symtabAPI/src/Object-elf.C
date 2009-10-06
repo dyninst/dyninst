@@ -3634,10 +3634,7 @@ struct  exception_compare: public binary_function<const ExceptionBlock &, const 
   bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
     if (e1.tryStart() < e2.tryStart())
       return true;
-    else if (e1.tryStart() > e2.tryStart())
-      return false;
-    else
-      return true;
+    return false;
   }
 };
 

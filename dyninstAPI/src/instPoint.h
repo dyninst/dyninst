@@ -89,25 +89,42 @@ class multiTramp;
 class instPoint;
 class instruction;
 
+#if defined(cap_instruction_api)
+#include "Instruction.h"
+#endif
 // As above: common class for both parse-time and run-time instPoints
 
 class instPointBase {
  private:
-    instPointBase();
+    instPointBase() ;
 
  public:
   static unsigned int id_ctr;  
   instPointType_t getPointType() const { return ipType_; }
 
   // Single instruction we're instrumenting (if at all)
+#if defined(cap_instruction_api)
+  Dyninst::InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+#else
   const instruction &insn() const { return insn_; }
-  instPointBase(instruction insn,
+#endif
+  instPointBase(
+#if defined(cap_instruction_api)
+          Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
+                                 instruction insn,
+#endif
                 instPointType_t type) :
     ipType_(type),
     insn_(insn)
       { id_ = id_ctr++; }
   // We need to have a manually-set-everything method
-  instPointBase(instruction insn,
+  instPointBase(
+#if defined(cap_instruction_api)
+          Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
+                                 instruction insn,
+#endif
                 instPointType_t type,
                 unsigned int id) :
       id_(id),
@@ -116,11 +133,15 @@ class instPointBase {
       {}
 
   int id() const { return id_; }
-    
+    virtual ~instPointBase() {}
  protected:
   unsigned int id_;
   instPointType_t ipType_;
-  instruction insn_;
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn_;
+#else
+    instruction insn_;
+#endif
 };
 
 class image_instPoint : public instPointBase {
@@ -129,12 +150,20 @@ class image_instPoint : public instPointBase {
  public:
     // Entry/exit
     image_instPoint(Address offset,
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
                   instruction insn,
+#endif
 		  image_func *func,
 		  instPointType_t type);
     // Call site or otherPoint that has a target
     image_instPoint(Address offset,
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
                     instruction insn,
+#endif
                     image_func *func,
                     Address callTarget_,
                     bool isDynamic,
@@ -290,7 +319,11 @@ class instPoint : public instPointBase {
  private:
     // Generic instPoint...
     instPoint(AddressSpace *proc,
-              instruction insn,
+#if defined(cap_instruction_api)
+                                 Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
+                                 instruction insn,
+#endif
               Address addr,
               int_basicBlock *block);
 

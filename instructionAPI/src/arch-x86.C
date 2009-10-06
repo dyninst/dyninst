@@ -101,6 +101,9 @@ enum {
   G14SSE010B, G14SSE011B, G14SSE110B, G14SSE111B,
 };
 
+enum {
+    GrpD8=0, GrpD9, GrpDA, GrpDB, GrpDC, GrpDD, GrpDE, GrpDF
+};
 
 #define Zz   { 0, 0 }
 #define Ap   { am_A, op_p }
@@ -108,6 +111,8 @@ enum {
 #define Dd   { am_D, op_d }
 #define Eb   { am_E, op_b }
 #define Ed   { am_E, op_d }
+#define Ef   { am_E, op_f }
+#define Efd  { am_E, op_dbl }
 #define Ep   { am_E, op_p }
 #define Ev   { am_E, op_v }
 #define Ew   { am_E, op_w }
@@ -132,6 +137,9 @@ enum {
 #define Mq   { am_M, op_q }
 #define Mdq   { am_M, op_dq }
 #define M512 { am_M, op_512 }
+#define Mf   { am_M, op_f }
+#define Mfd  { am_M, op_dbl }
+#define M14  { am_M, op_14 }
 #define Ob   { am_O, op_b }
 #define Ov   { am_O, op_v }
 #define Pd   { am_P, op_d }
@@ -227,6 +235,14 @@ enum {
 #define rBP { am_reg, r_rBP }
 #define rSI { am_reg, r_rSI }
 #define rDI { am_reg, r_rDI }
+#define ST0 { am_reg, r_ST0 }
+#define ST1 { am_reg, r_ST1 }
+#define ST2 { am_reg, r_ST2 }
+#define ST3 { am_reg, r_ST3 }
+#define ST4 { am_reg, r_ST4 }
+#define ST5 { am_reg, r_ST5 }
+#define ST6 { am_reg, r_ST6 }
+#define ST7 { am_reg, r_ST7 }
 #define FPOS 16
 
 enum {
@@ -353,7 +369,41 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_emms, "emms")
   (e_enter, "enter")
   (e_extrq, "extrq")
+  (e_fadd, "fadd")
+  (e_fbld, "fbld")
+  (e_fbstp, "fbstp")
+  (e_fcom, "fcom")
+  (e_fcomp, "fcomp")
+  (e_fdiv, "fdiv")
+  (e_fdivr, "fdivr")
   (e_femms, "femms")
+  (e_fiadd, "fiadd")
+  (e_ficom, "ficom")
+  (e_ficomp, "ficomp")
+  (e_fidiv, "fidiv")
+  (e_fidivr, "fidivr")
+  (e_fild, "fild")
+  (e_fimul, "fimul")
+  (e_fist, "fist")
+  (e_fistp, "fistp")
+  (e_fisttp, "fisttp")
+  (e_fisub, "fisub")
+  (e_fisubr, "fisubr")
+  (e_fld, "fld")
+  (e_fldcw, "fldcw")
+  (e_fldenv, "fldenv")
+  (e_fmul, "fmul")
+  (e_fnop, "fnop")
+  (e_frstor, "frstor")
+  (e_fsave, "fsave")
+  (e_fst, "fst")
+  (e_fstcw, "fstcw")
+  (e_fstenv, "fstenv")
+  (e_fstp, "fstp")
+  (e_fstsw, "fstsw")
+  (e_fsub, "fsub")
+  (e_fsubr, "fsubr")
+  (e_fucomp, "fucomp")
   (e_fxrstor, "fxrstor")
   (e_fxsave, "fxsave")
   (e_haddpd, "haddpd")
@@ -639,7 +689,9 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_xor, "xor")
   (e_xorpd, "xorpd")
   (e_xorps, "xorps")
-;
+  (e_fp_generic, "[FIXME: GENERIC FPU INSN]")
+  (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
+        ;
 
 
 const dyn_hash_map<entryID, flagInfo>& ia32_instruction::getFlagTable()
@@ -1058,14 +1110,14 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_salc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumeted
   { e_xlat, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS }, // scream
   /* D8 */
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpD8, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpD9, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpDA, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpDB, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpDC, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpDD, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpDE, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, GrpDF, true, { Zz, Zz, Zz }, 0, 0 },
   /* E0 */
   { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R }, // aren't these conditional jumps?
   { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
@@ -1403,6 +1455,90 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSEFD, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEFE, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSEFF, false, { Zz, Zz, Zz }, 0, 0 }
+};
+
+static ia32_entry fpuMap[][8] = {
+    { // D8
+        { e_fadd,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fmul,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fcom,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fcomp, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }, // stack pop
+        { e_fsub,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fsubr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fdiv,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+        { e_fdivr, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R }
+    },
+    { // D9 FIXME: mod=3 cases
+        { e_fld,    t_done, 0, true, { ST0, Ef, Zz }, 0, s1W2R }, // stack push
+        { e_fnop,   t_done, 0, true, { Zz,  Zz, Zz }, 0, sNONE },
+        { e_fst,    t_done, 0, true, { Ef, ST0, Zz }, 0, s1W2R },
+        { e_fstp,   t_done, 0, true, { Ef, ST0, Zz }, 0, s1W2R }, // stack pop
+        { e_fldenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1R },
+        { e_fldcw,  t_done, 0, true, { Ew,  Zz, Zz }, 0, s1R },
+        { e_fstenv, t_done, 0, true, { M14, Zz, Zz }, 0, s1W },
+        { e_fstcw,  t_done, 0, true, { Ew,  Zz, Zz }, 0, s1W }
+    },
+    { // DA FIXME: mod=3 cases
+        { e_fiadd,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fimul,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_ficom,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_ficomp, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }, // stack pop
+        { e_fisub,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fisubr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fidiv,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }
+    },
+    { // DB FIXME: semantics, mod = 3
+      { e_fild,   t_done, 0, true, { ST0, Ev, Zz }, 0, s1W2R },
+      { e_fisttp, t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R }, //stack pop
+      { e_fist,   t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R },
+      { e_fistp,  t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R }, // stack pop
+      { e_No_Entry,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+      { e_fld,    t_done, 0, true, { ST0, Ef, Zz }, 0, s1W2R },
+      { e_No_Entry,  t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
+      { e_fstp,   t_done, 0, true, { Ef, ST0, Zz }, 0, s1W2R }
+    },
+    { // DC
+        { e_fadd,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fmul,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fcom,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fcomp, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R }, // stack pop
+        { e_fsub,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fsubr, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fdiv,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
+        { e_fdivr, t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R }
+    },
+    { // DD TODO semantics check
+        { e_fld,    t_done, 0, true, { ST0, Efd, Zz }, 0, s1W2R },
+        { e_fisttp, t_done, 0, true, { Mq, ST0, Zz }, 0, s1W2R },
+        { e_fst,    t_done, 0, true, { Efd, ST0, Zz }, 0, s1W2R },
+        { e_fstp,   t_done, 0, true, { Efd, ST0, Zz }, 0, s1W2R }, // stack pop
+        { e_frstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R },
+        { e_fucomp, t_done, 0, true, { ST0, Efd, Zz }, 0, s1R2R }, // stack pop
+        { e_fsave,  t_done, 0, true, { M512, Zz, Zz }, 0, s1W },
+        { e_fstsw,  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W }
+    },
+    { // DE TODO semantics
+        { e_fiadd,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fimul,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_ficom,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_ficomp, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }, // stack pop
+        { e_fisub,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fisubr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fidiv,  t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R },
+        { e_fidivr, t_done, 0, true, { ST0, Ev, Zz }, 0, s1RW2R }
+    },
+    { // DF TODO semantics/operand sizes
+        { e_fild,   t_done, 0, true, { ST0, Ew, Zz }, 0, s1W2R },
+        { e_fisttp, t_done, 0, true, { Ew, ST0, Zz }, 0, s1W2R },
+        { e_fist,   t_done, 0, true, { Ew, ST0, Zz }, 0, s1W2R },
+        { e_fistp,  t_done, 0, true, { Ew, ST0, Zz }, 0, s1W2R }, // stack pop
+        { e_fbld,   t_done, 0, true, { ST0, Mq, Zz }, 0, s1W2R }, // BCD 80 bit
+        { e_fild,   t_done, 0, true, { ST0, Ev, Zz }, 0, s1W2R },
+        { e_fbstp,  t_done, 0, true, { Mq, ST0, Zz }, 0, s1RW2R },// BCD 80 bit
+        { e_fistp,  t_done, 0, true, { Ev, ST0, Zz }, 0, s1W2R }
+    }
+
 };
 
 static ia32_entry groupMap[][8] = {
@@ -2608,12 +2744,13 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       nxtab = gotit->otable;
       break;
     case t_coprocEsc:
-      instruct.legacy_type = 0;
-	  if(capa & IA32_DECODE_CONDITION) {
-        ; // FIXME: translation to tttn & set it
-	  }
-     ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
-     return instruct;
+      {
+        instruct.legacy_type = 0;
+        unsigned int reg  = (addr[0] >> 3) & 7;
+        gotit = &fpuMap[gotit->tabidx][reg];
+        ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
+        return instruct;
+      }
     case t_3dnow:
       // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
       // Right now we don't care what the actual opcode is, so there's no table
@@ -2986,6 +3123,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
   
   instruct.size += nib;
   instruct.entry = entry;
+  
   
   return instruct;
 }
@@ -3506,6 +3644,33 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     mac[1].set(mESP, 0, addrSzAttr);
     mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
     mac[1].read = true;
+  }
+  if((gotit.id == e_leave) && mac)
+  {
+    // assuming 32-bit (64-bit for AMD64) stack segment
+    // AMD64: push defaults to 64-bit operand size
+    if (mode_64 && operSzAttr == 2)
+      operSzAttr = 4;
+    mac[0].set(mESP, 0, addrSzAttr);
+    mac[0].size = type2size(gotit.operands[0].optype, operSzAttr);
+    mac[0].read = true;
+  }
+  if((gotit.id == e_ret_near || gotit.id == e_ret_far) && mac)
+  {
+    // assuming 32-bit (64-bit for AMD64) stack segment
+    // AMD64: pop defaults to 64-bit operand size
+    if (mode_64 && operSzAttr == 2)
+      operSzAttr = 4;
+    mac[0].set(mESP, 0, addrSzAttr);
+    mac[0].size = type2size(gotit.operands[0].optype, operSzAttr);
+    mac[0].read = true;
+  }
+  if((gotit.id == e_call) && mac)
+  {
+      mac[0].set(mESP, -2 * addrSzAttr, addrSzAttr);
+      mac[0].size = type2size(gotit.operands[0].optype, addrSzAttr);
+      mac[0].write = true;
+            
   }
   
   instruct.size += nib;
@@ -4051,7 +4216,11 @@ entryID ia32_entry::getID(ia32_locations* l) const
     default:
       break;
     }
-  default:
+  case t_coprocEsc:
+      return e_fp_generic;
+      case t_3dnow:
+          return e_3dnow_generic;
+      default:
     break;
   }
   return id;

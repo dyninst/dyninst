@@ -170,6 +170,7 @@ test_results_t test_thread_7_Mutator::executeTest() {
    BPatch_image *image = proc->getImage();
    BPatch_Vector<BPatch_function *> lvl1funcs;
    image->findFunction("test_thread_7_level1", lvl1funcs);
+   logerror("finding level1 function...\n");
    if (lvl1funcs.size() != 1)
    {
       logerror("[%s:%u] - Found %d level1 functions.  Expected 1\n",
@@ -191,12 +192,15 @@ test_results_t test_thread_7_Mutator::executeTest() {
    image->findFunction("test_thread_7_level3", funcs);
    instr_func(funcs[0], lvl1func);
    funcs.clear();
+   logerror("found  level0-level3 functions...\n");
 
    proc->continueExecution();
+   logerror("continued execution OK...\n");
 
    do {
       bpatch->waitForStatusChange();
    } while (!proc->isTerminated());
+   logerror("proc terminated, getting exit code...\n");
 
    int exitCode = proc->getExitCode();
    if (exitCode)

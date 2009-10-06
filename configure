@@ -3643,7 +3643,7 @@ fi
 
 fi
 
-if test "$host_cpu" != "ia-64" ; then
+if test "$host_cpu" != "ia64" ; then
    { echo "$as_me:$LINENO: Not IA-64, skipping libunwind..." >&5
 echo "$as_me: Not IA-64, skipping libunwind..." >&6;}
 else

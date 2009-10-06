@@ -128,6 +128,10 @@ namespace Dyninst
 
       /// Returns the size of the corresponding machine instruction, in bytes.
       INSTRUCTION_EXPORT size_t size() const;
+
+      /// Returns a pointer to the raw byte representation of the corresponding
+      /// machine instruction.
+      INSTRUCTION_EXPORT const void* ptr() const;
   
       /// \param regsWritten Insert the set of registers written by the instruction into \c regsWritten.
       ///
