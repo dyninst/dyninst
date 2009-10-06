@@ -363,98 +363,6 @@ void emitElf::renameSection(const std::string &oldStr, const std::string &newStr
   }
 }
 
-unsigned  next_power_of_2(unsigned orig)
-{
-	unsigned pot_ceil = 1;
-	while (orig)
-	{
-		orig = orig >> 1;
-		pot_ceil  = pot_ceil << 1;
-	}
-	//pot_ceil  = pot_ceil << 1;
-
-	if (!powerof2(pot_ceil))
-		fprintf(stderr, "%s[%d]:  FIXME:  broken algorithm\n", FILE__, __LINE__);
-
-	return pot_ceil;
-}
-
-bool check_before_update(Elf *elf, Elf_X &elfh, bool fixup)
-{
-	Elf_Scn *scn = NULL;
-  unsigned scncount;
-  unsigned sectionNumber = 0;
-  bool err = false;
-
-  for (scncount = 0; (scn = elf_nextscn(elf, scn)); scncount++) {
-    Elf32_Shdr *shdr = elf32_getshdr(scn);
-
-    // resolve section name
-	const char *shnames = pdelf_get_shnames(elfh);
-    const char *name = &shnames[shdr->sh_name];
-
-
-	Elf_Data *data_check = elf_getdata(scn, NULL);
-	unsigned max_align = shdr->sh_addralign ?: 1;
-	do {
-		unsigned cur_align = data_check->d_align;
-		if (!powerof2(cur_align))
-		{
-			//  <sys/param.h> // powerof2
-			fprintf(stderr, "%s[%d]:  WARNING:  data->d_align is not power of 2\n", 
-					FILE__, __LINE__);
-			if (fixup)
-			{
-				unsigned val = cur_align;
-				cur_align = next_power_of_2(val);
-				data_check->d_align = cur_align;
-				fprintf(stderr, "%s[%d]:  \trounding up from %d to %d\n", FILE__, __LINE__, val, data_check->d_align);
-			}
-			else
-			{
-				fprintf(stderr, "\tThis will break elf_update() in some versions of libelf\n");
-			}
-			err = true;
-		}
-		if (cur_align > max_align)
-			max_align = cur_align;
-	} while ( NULL != (data_check = elf_getdata(scn, data_check)));
-
-	if (max_align > shdr->sh_addralign)
-	{
-		fprintf(stderr, "%s[%d]:  WARNING:  shdr->sh_addralign is too small\n", 
-				FILE__, __LINE__);
-		if (fixup)
-		{
-			fprintf(stderr, "%s[%d]:  FIXING up sh->sh_addralign from %d, to %d\n", 
-					FILE__, __LINE__, shdr->sh_addralign, max_align);
-			shdr->sh_addralign = max_align;
-		}
-		else
-			fprintf(stderr, "\tThis will break elf_update() in some versions of libelf\n");
-		err = true;
-	}
-
-	if (!powerof2(shdr->sh_addralign))
-	{
-		//  This case should be precluded by the above checks, but anyways....
-		//  <sys/param.h> // powerof2
-		fprintf(stderr, "%s[%d]:  WARNING:  section '%s': sh_addralign is not power of 2\n", 
-				FILE__, __LINE__, name);
-		if (fixup)
-		{
-			unsigned val = shdr->sh_addralign;
-			shdr->sh_addralign = next_power_of_2(val);
-			fprintf(stderr, "%s[%d]:  \trounding up from %d to %d\n", FILE__, __LINE__, val, shdr->sh_addralign);
-		}
-		else {
-			fprintf(stderr, "\tThis will break elf_update() in some versions of libelf\n");
-		}
-		err = true;
-	}
-  }
-  return !err;
-}
 bool emitElf::driver(Symtab *obj, string fName){
   int newfd;
   Region *foundSec;
@@ -676,10 +584,6 @@ bool emitElf::driver(Symtab *obj, string fName){
 	return false;
     }
 
-	if (!check_before_update(newElf, oldElfHandle, true))
-	{
-		fprintf(stderr, "%s[%d]:  bad elf here\n", FILE__, __LINE__);
-	}
     elf_update(newElf, ELF_C_NULL);
   }
 
@@ -761,10 +665,6 @@ bool emitElf::driver(Symtab *obj, string fName){
   oldPhdr = elf32_getphdr(oldElf);
   fixPhdrs(loadSecTotalSize, extraAlignSize);
 
-	if (!check_before_update(newElf, oldElfHandle, true))
-	{
-		fprintf(stderr, "%s[%d]:  bad elf here\n", FILE__, __LINE__);
-	}
   //Write the new Elf file
   if (elf_update(newElf, ELF_C_WRITE) < 0){
     int err;
@@ -937,26 +837,28 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 
 
   for(unsigned i=0; i < newSecs.size(); i++)
-    {
-      if(newSecs[i]->isLoadable())
-    	{
+  {
+     if(newSecs[i]->isLoadable())
+     {
 	  secNames.push_back(newSecs[i]->getRegionName());
 	  newNameIndexMapping[newSecs[i]->getRegionName()] = secNames.size() -1;
 	  sectionNumber++;
 	  // Add a new loadable section
 	  if((newscn = elf_newscn(newElf)) == NULL)
-    	    {
-	      log_elferror(err_func_, "unable to create new function");	
-	      return false;
-    	    }	
+          {
+             log_elferror(err_func_, "unable to create new function");	
+             return false;
+          }	
 	  if ((newdata = elf_newdata(newscn)) == NULL)
-	    {
-	      log_elferror(err_func_, "unable to create section data");	
-	      return false;
-	    } 
+          {
+             log_elferror(err_func_, "unable to create section data");	
+             return false;
+          } 
 	  memset(newdata, 0, sizeof(Elf_Data));
-	  if(!libelfso0Flag)
-	    newdata64 = (Elf_Data64 *)malloc(sizeof(Elf_Data64));
+	  if(!libelfso0Flag) {
+             newdata64 = (Elf_Data64 *)malloc(sizeof(Elf_Data64));
+             memset(newdata64, 0, sizeof(Elf_Data64));
+          }
 
 	  // Fill out the new section header	
 	  newshdr = elf32_getshdr(newscn);
@@ -1158,34 +1060,34 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 #endif
 
 	  if(addNewSegmentFlag)
-	    {
-	      // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
-	      if(!firstNewLoadSec)
-		{
-		  newSegmentStart = newshdr->sh_addr;
-		  Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-		  if(newoff < newshdr->sh_offset)
-		    newoff += pgSize;
-		  extraAlignSize += newoff - newshdr->sh_offset;
-		  newshdr->sh_offset = newoff;
-
-		  /* // Address or Offset
-		     newSegmentStart = newshdr->sh_addr  - (newshdr->sh_addr & (pgSize-1)) + (newshdr->sh_offset & (pgSize-1));
-		     if(newSegmentStart < newshdr->sh_addr)
-		     {
-		     newSegmentStart += pgSize;
-		     extraAlignSize += newSegmentStart - newshdr->sh_addr;
-		     newshdr->sh_addr = newSegmentStart;
-		     } 
-		  */
-		}    
-    	    }	
+          {
+             // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
+             if(!firstNewLoadSec)
+             {
+                newSegmentStart = newshdr->sh_addr;
+                Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
+                if(newoff < newshdr->sh_offset)
+                   newoff += pgSize;
+                extraAlignSize += newoff - newshdr->sh_offset;
+                newshdr->sh_offset = newoff;
+                
+                /* // Address or Offset
+                   newSegmentStart = newshdr->sh_addr  - (newshdr->sh_addr & (pgSize-1)) + (newshdr->sh_offset & (pgSize-1));
+                   if(newSegmentStart < newshdr->sh_addr)
+                   {
+                   newSegmentStart += pgSize;
+                   extraAlignSize += newSegmentStart - newshdr->sh_addr;
+                   newshdr->sh_addr = newSegmentStart;
+                   } 
+                */
+             }    
+          }	
 	  else{
-	    Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-	    if(newoff < newshdr->sh_offset)
-	      newoff += pgSize;
-	    extraAlignSize += newoff - newshdr->sh_offset;
-	    newshdr->sh_offset = newoff;
+             Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
+             if(newoff < newshdr->sh_offset)
+                newoff += pgSize;
+             extraAlignSize += newoff - newshdr->sh_offset;
+             newshdr->sh_offset = newoff;
 	  }
 	  // Why is this being done -giri??	
 	  // newshdr->sh_offset = shdr->sh_offset;
@@ -1197,6 +1099,8 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 	    newdata64->d_off = 0;
 	    newdata64->d_version = 1;
 	    newdata64->d_size = newSecs[i]->getDiskSize();
+            if (!newdata64->d_align)
+               newdata64->d_align = newshdr->sh_addralign;
 	    newshdr->sh_size = newdata64->d_size;
 	    memcpy(newdata, newdata64, sizeof(Elf_Data));
 	  }
@@ -1206,15 +1110,13 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 	    newdata->d_off = 0;
 	    newdata->d_version = 1;
 	    newdata->d_size = newSecs[i]->getDiskSize();
+            if (!newdata->d_align)
+               newdata->d_align = newshdr->sh_addralign;
 	    newshdr->sh_size = newdata->d_size;
 	  }
 
 	  loadSecTotalSize += newshdr->sh_size;
 
-	if (!check_before_update(newElf, oldElfHandle, true))
-	{
-		fprintf(stderr, "%s[%d]:  bad elf here\n", FILE__, __LINE__);
-	}
 	  elf_update(newElf, ELF_C_NULL);
 
 	  shdr = newshdr;
