@@ -858,10 +858,11 @@ bool image_func::writesFPRs(unsigned level) {
         // check the instPoints; no reason to iterate over.
         // We also cache callee values here for speed.
 
-        if (level >= 3) return true; // Arbitrarily decided level 3 iteration.
-        
+        if (level >= 3) {
+            return true; // Arbitrarily decided level 3 iteration.
+        }        
         for (unsigned i = 0; i < calls.size(); i++) {
-            if (calls[i]->func()) {
+            if (calls[i]->func() && calls[i]->func() != this) {
                 if (calls[i]->func()->writesFPRs(level+1)) {
                     // One of our kids does... if we're top-level, cache it; in 
                     // any case, return
@@ -870,7 +871,7 @@ bool image_func::writesFPRs(unsigned level) {
                     return true;
                 }
             }
-            else {
+            else if(!calls[i]->func()){
                 // Indirect call... oh, yeah. 
                 if (level == 0)
                     containsFPRWrites_ = used;
@@ -903,22 +904,20 @@ bool image_func::writesFPRs(unsigned level) {
               )
             {
                 containsFPRWrites_ = used;
-                ast_printf("\twritesFPRs for function %s found write (%s)\n",
-                           prettyName().c_str(), i->format().c_str());
                 return true;
             }
         }
 
-        ast_printf("\twritesFPRs for function %s found no FP writes\n",
-                   prettyName().c_str());
         // No kids do, and we don't. Impressive.
         containsFPRWrites_ = unused;
         return false;
     }
-    else if (containsFPRWrites_ == used)
+    else if (containsFPRWrites_ == used) {
         return true;
-    else if (containsFPRWrites_ == unused)
+    }
+    else if (containsFPRWrites_ == unused) {
         return false;
+    }
 
     fprintf(stderr, "ERROR: function %s, containsFPRWrites_ is %d (illegal value!)\n", 
 	    symTabName().c_str(), containsFPRWrites_);
