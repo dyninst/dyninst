@@ -540,7 +540,7 @@ bool InstrucIter::isAnAllocInstruction()
 
 bool isAnInterruptInstruction()
 {
-    assert(0); // TODO: not implemented
+    // TODO: not implemented
     return false;
 }
 

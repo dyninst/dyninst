@@ -217,7 +217,8 @@ bool IA_IAPI::isCall() const
 bool IA_IAPI::isInterruptOrSyscall() const
 {
     return ((curInsn()->getOperation().getID() == e_int) ||
-            (curInsn()->getOperation().getID() == e_int3));
+            (curInsn()->getOperation().getID() == e_int3) ||
+            (curInsn()->getOperation().getID() == e_syscall));
 }
 
 

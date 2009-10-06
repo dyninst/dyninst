@@ -1620,7 +1620,7 @@ bool InstrucIter::isALeaveInstruction()
 
 bool InstrucIter::isAnInterruptInstruction()
 {
-    assert(0); // TODO: not implemented
+    // TODO: not implemented
     return false;
 }
 
