@@ -795,6 +795,8 @@ disp_pos)))));
       return true;
     }
 
+    extern ia32_entry invalid;
+    
     void InstructionDecoder::doIA32Decode()
     {
       if(decodedInstruction == NULL)
@@ -815,10 +817,20 @@ disp_pos)))));
     
     unsigned int InstructionDecoder::decodeOpcode()
     {
-      doIA32Decode();
-      m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
-decodedInstruction->getPrefix(), locs));
-      return decodedInstruction->getSize();
+        static ia32_entry invalid = { e_No_Entry, 0, 0, true, { {0,0}, {0,0}, {0,0} }, 0, 0 };
+        doIA32Decode();
+        if(decodedInstruction->getEntry()) {
+            m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
+                                        decodedInstruction->getPrefix(), locs));
+        }
+        else
+        {
+            fprintf(stderr, "WARNING: couldn't decode instruction from 0x%lx, first byte 0x%x\n", rawInstruction,
+                    rawInstruction[0]);
+            m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
+                                        decodedInstruction->getPrefix(), locs));
+        }
+        return decodedInstruction->getSize();
     }
     
     bool InstructionDecoder::decodeOperands(std::vector<Expression::Ptr>& operands)
