@@ -821,3 +821,10 @@ bool InstrucIter::isANopInstruction()
 {
    return false;
 }
+
+bool InstrucIter::isSyscall()
+{
+  // not implemented
+  return false;
+}
+
