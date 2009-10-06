@@ -11,6 +11,7 @@ AC_CONFIG_MACRO_DIR([autodyninst])
 
 AC_PROG_CXX(g++)
 AC_PATH_PROG(_ICC_, icc)
+AC_PATH_PROG(_ICPC_, icpc)
 AC_PATH_PROG(_PGC_, pgcc)
 AC_PATH_PROG(_PGCXX_, pgCC)
 AC_PATH_PROG(_CC_, cc)

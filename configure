@@ -274,7 +274,7 @@ PACKAGE_STRING='Dyninst 6.0'
 PACKAGE_BUGREPORT='bugs@dyninst.org'
 
 ac_default_prefix=`pwd`/..
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1914,6 +1914,45 @@ _ICC_=$ac_cv_path__ICC_
 if test -n "$_ICC_"; then
   echo "$as_me:$LINENO: result: $_ICC_" >&5
 echo "${ECHO_T}$_ICC_" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
+
+# Extract the first word of "icpc", so it can be a program name with args.
+set dummy icpc; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_path__ICPC_+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $_ICPC_ in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path__ICPC_="$_ICPC_" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_path__ICPC_="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+  ;;
+esac
+fi
+_ICPC_=$ac_cv_path__ICPC_
+
+if test -n "$_ICPC_"; then
+  echo "$as_me:$LINENO: result: $_ICPC_" >&5
+echo "${ECHO_T}$_ICPC_" >&6
 else
   echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6
@@ -4746,6 +4785,7 @@ s,@ac_ct_CXX@,$ac_ct_CXX,;t t
 s,@EXEEXT@,$EXEEXT,;t t
 s,@OBJEXT@,$OBJEXT,;t t
 s,@_ICC_@,$_ICC_,;t t
+s,@_ICPC_@,$_ICPC_,;t t
 s,@_PGC_@,$_PGC_,;t t
 s,@_PGCXX_@,$_PGCXX_,;t t
 s,@_CC_@,$_CC_,;t t
