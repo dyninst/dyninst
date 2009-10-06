@@ -98,20 +98,17 @@ class InstructionAdapter
     virtual void
             getNewEdges(pdvector<std::pair< Address, EdgeTypeEnum> >&
             outEdges, image_basicBlock* currBlk,
-            pdvector<instruction>& all_insns,
+            unsigned int num_insns,
             dictionary_hash<Address, std::string> *pltFuncs) const =
 0;
     virtual bool isDynamicCall() const = 0;
     virtual bool isAbsoluteCall() const = 0;
-    virtual InstrumentableLevel getInstLevel(pdvector<instruction>&
-all_insns) const;
-    virtual FuncReturnStatus getReturnStatus(image_basicBlock* currBlk,
-                                             pdvector<instruction>&
-all_insns) const ;
-    virtual instPointType_t getPointType(pdvector<instruction>& all_insns,
+    virtual InstrumentableLevel getInstLevel(unsigned int num_insns) const;
+    virtual FuncReturnStatus getReturnStatus(image_basicBlock* currBlk, unsigned int num_insns) const ;
+    virtual instPointType_t getPointType(unsigned int num_insns,
                                          dictionary_hash<Address, std::string>
 *pltFuncs) const;
-    virtual bool hasUnresolvedControlFlow(image_basicBlock* currBlk, pdvector<instruction>& all_insns)
+    virtual bool hasUnresolvedControlFlow(image_basicBlock* currBlk, unsigned int num_insns)
 const;
             virtual bool simulateJump() const= 0;
     virtual void advance() = 0;
@@ -133,7 +130,7 @@ const;
     protected:
         virtual bool isReturn() const = 0;
         virtual bool isCall() const = 0;
-        virtual bool isTailCall(pdvector<instruction>& all_insns) const = 0;
+        virtual bool isTailCall(unsigned int num_insns) const = 0;
         virtual bool isRealCall() const = 0;
         Address current;
     Address previous;

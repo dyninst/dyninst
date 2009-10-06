@@ -62,7 +62,7 @@ class IA_IAPI : public InstructionAdapter
         virtual void
                 getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >&
                 outEdges, image_basicBlock* currBlk,
-                std::vector<instruction>& all_insns,
+                unsigned int num_insns,
                 dictionary_hash<Address, std::string> *pltFuncs) const;
         virtual bool isDynamicCall() const;
         virtual bool isAbsoluteCall() const;
@@ -72,7 +72,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
         virtual bool isRelocatable(InstrumentableLevel lvl) const;
-        virtual bool isTailCall(std::vector<instruction>&) const;
+        virtual bool isTailCall(unsigned int) const;
         virtual bool checkEntry() const;
         virtual Address getCFT() const;
         virtual bool isStackFramePreamble(int& frameSize) const;
@@ -89,7 +89,7 @@ class IA_IAPI : public InstructionAdapter
         bool isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         Address findThunkAndOffset(image_basicBlock* start) const;
         bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
-        std::pair<Address, Dyninst::InstructionAPI::Instruction::Ptr> findTableInsn() const;
+        std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn() const;
         boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
         Dyninst::InstructionAPI::Instruction::Ptr,
         bool> findMaxSwitchInsn(image_basicBlock *start) const;

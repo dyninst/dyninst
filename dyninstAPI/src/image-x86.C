@@ -883,14 +883,34 @@ bool image_func::writesFPRs(unsigned level) {
         InstructionDecoder d(buf,
                              endOffset_ - getOffset());
         Instruction::Ptr i;
+        static RegisterAST::Ptr st0(new RegisterAST(r_ST0));
+        static RegisterAST::Ptr st1(new RegisterAST(r_ST1));
+        static RegisterAST::Ptr st2(new RegisterAST(r_ST2));
+        static RegisterAST::Ptr st3(new RegisterAST(r_ST3));
+        static RegisterAST::Ptr st4(new RegisterAST(r_ST4));
+        static RegisterAST::Ptr st5(new RegisterAST(r_ST5));
+        static RegisterAST::Ptr st6(new RegisterAST(r_ST6));
+        static RegisterAST::Ptr st7(new RegisterAST(r_ST7));
         while (i = d.decode()) {
-            if(i->getOperation().getID() == e_fp_generic)
+            if(i->isWritten(st0) ||
+               i->isWritten(st1) ||
+               i->isWritten(st2) ||
+               i->isWritten(st3) ||
+               i->isWritten(st4) ||
+               i->isWritten(st5) ||
+               i->isWritten(st6) ||
+               i->isWritten(st7)
+              )
             {
                 containsFPRWrites_ = used;
+                ast_printf("\twritesFPRs for function %s found write (%s)\n",
+                           prettyName().c_str(), i->format().c_str());
                 return true;
             }
         }
 
+        ast_printf("\twritesFPRs for function %s found no FP writes\n",
+                   prettyName().c_str());
         // No kids do, and we don't. Impressive.
         containsFPRWrites_ = unused;
         return false;

@@ -180,20 +180,39 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 }
 #endif /* defined(rs6000_ibm_aix4_1_test) */
 
-#if defined(i386_unknown_linux2_0_test) \
- || defined(i386_unknown_nt4_0_test)
+#if defined(i386_unknown_linux2_0_test)
 unsigned int loadExp=67;
 unsigned int storeExp=27;
 unsigned int prefeExp=2;
 unsigned int accessExp=91;
 unsigned int accessExpCC=90;
-
 const struct reduction mmxRed = { 2, 1, 0, 3, 49 };
 const struct reduction sseRed = { 2, 0, 1, 3, 53 };
 const struct reduction sse2Red = { 2, 0, 0, 2, 57 };
 const struct reduction amdRed = { 2, 0, 1, 3, 60 };
 
 const struct reduction ccRed = { 0, 0, 0, 1, 87 };
+
+#endif
+#if defined(i386_unknown_nt4_0_test)
+unsigned int loadExp=67;
+unsigned int storeExp=31;
+unsigned int prefeExp=2;
+unsigned int accessExp=95;
+unsigned int accessExpCC=94;
+
+const struct reduction mmxRed = { 2, 1, 0, 3, 50 };
+const struct reduction sseRed = { 2, 0, 1, 3, 55 };
+const struct reduction sse2Red = { 2, 0, 0, 2, 60 };
+const struct reduction amdRed = { 2, 0, 1, 3, 64 };
+
+const struct reduction ccRed = { 0, 0, 0, 1, 91 };
+
+#endif
+
+#if defined(i386_unknown_linux2_0_test) \
+ || defined(i386_unknown_nt4_0_test)
+
 
 int eaExpOffset[] =    { /* 0-3 */ 0,0,0,0,
                          /* 4-10 */ 0,0,0,0,0,0,0,
@@ -204,13 +223,25 @@ int eaExpOffset[] =    { /* 0-3 */ 0,0,0,0,
                          /* 35 */ 0,
                          /* 36-47 */ 4,4,4,0,4,0,4,8,0,0,4,0,
                          /* 48 */ 0,
-                         /* 49 */ 0,
+#if defined(i386_unknown_nt4_0_test)
+						0,
+#endif
+						 /* 49 */ 0,
                          /* 50-51 */ 8,0,
                          /* 52 */ 0,
+#if defined(i386_unknown_nt4_0_test)
+						0,
+#endif
                          /* 53-55 */ 0,0,0,
                          /* 56 */ 0,
+#if defined(i386_unknown_nt4_0_test)
+						0,
+#endif
                          /* 57-58 */ 0,0,
                          /* 59 */ 0,
+#if defined(i386_unknown_nt4_0_test)
+						0,
+#endif
                          /* 60-62 */ 0,8,0,
                          /* 63-69 */ 0,12,0,0,0,44,25,
                          /* 70-75 */ 0,0,0,0,4,8,
@@ -222,7 +253,23 @@ int eaExpOffset[] =    { /* 0-3 */ 0,0,0,0,
 
 unsigned int bcExp[] = { 4,4,4,4,  4,4,4,4,4,4,4,  4,4,4,4,4,4,4,  4,
                          4,4,4,4,4,4,4,   4,4,4,4,4,4,4,4,4,   4,  4,4,1,1,4,4,4,4,4,1,4,4, 4,
-                         4,8,8, 4, 16,4,0, 4, 16,8, 4, 8,8,0,  12,4,16,16,49,4,4,  4,8,10,2,4,8,
+#if defined(i386_unknown_nt4_0_test)
+					4,
+#endif
+                         4,8,8, 4, 
+#if defined(i386_unknown_nt4_0_test)
+					4,
+#endif
+						 
+						 16,4,0, 4, 
+#if defined(i386_unknown_nt4_0_test)
+					4,
+#endif
+						 16,8, 4, 
+#if defined(i386_unknown_nt4_0_test)
+					4,
+#endif
+						 8,8,0,  12,4,16,16,49,4,4,  4,8,10,2,4,8,
                          4,8,10,2,4,8, 2,2,  28,28,  4,4,4,  4,4,4, 4,4 };
 
 void reduce(const struct reduction x)
@@ -273,6 +320,66 @@ void init_test_data()
   dprintf("&dfvart = %p\n", &dfvart);
   dprintf("&dlarge = %p\n", &dlarge);
 
+#if defined(i386_unknown_nt4_0_test)
+  for(i=4; i<15; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); /* skip ebp for now */
+  for(i=16; i<18; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=19; i<26; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=26;
+  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=28; i<35; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=36; i<48; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  /* skip call @ i=48 (access 49)*/
+  /* skip call @ i=49 (access 50)*/
+  for(i=50; i<53; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  /* skip call @ i=53 (access 54) */
+  /* skip call @ i=54 (access 55) */
+  for(i=55; i<57; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=57;
+  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  /* skip call @ i=58 (access 59)*/
+  /* skip call @ i=59 (access 60)*/
+  for(i=60; i<62; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  /* skip call @ i = 62 (access 63)*/
+  /* skip call @ i = 63 (access 64)*/
+  for(i=64; i<66; ++i)
+    eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=66;
+  eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=67; i<70; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=70; /* 2nd of mov */
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  for(i=71; i<74; ++i) /* scas, cmps */
+    eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
+  i=74;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=75;
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  i=76;
+  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
+  for(i=77; i<80; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  i=80;
+  eaExp[i] = (void*)((unsigned long)&dfvars + eaExpOffset[i]);
+  i=81;
+  eaExp[i] = (void*)((unsigned long)&dfvard + eaExpOffset[i]);
+  i=82;
+  eaExp[i] = (void*)((unsigned long)&dfvart + eaExpOffset[i]);
+  for(i=83; i<88; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+  for(i=88; i<90; ++i)
+    eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
+  for(i=90; i<93; ++i)
+    eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
+#else
   for(i=4; i<15; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]); /* skip ebp for now */
   for(i=16; i<18; ++i)
@@ -327,9 +434,8 @@ void init_test_data()
     eaExp[i] = (void*)((unsigned long)&dlarge + eaExpOffset[i]);
   for(i=86; i<89; ++i)
     eaExp[i] = (void*)((unsigned long)&divarw + eaExpOffset[i]);
-
   /* Duplicate & reduce the stream for cc */
-
+#endif
   for(i=0; i<accessExp; ++i) {
     eaExpCC[i] = eaExp[i];
     bcExpCC[i] = bcExp[i];

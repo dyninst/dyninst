@@ -92,7 +92,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT void setMode(bool is64);
       
     protected:
-      void resetBuffer(const unsigned char* buffer);
+      void resetBuffer(const unsigned char* buffer, unsigned int size);
       
       bool decodeOperands(std::vector<Expression::Ptr>& operands);
 

@@ -308,14 +308,6 @@ struct {
  {"test3_4_mutatee_solo_VC++_32_low.exe", SELFSTART, CREATE, true, true, "dyninst", "VC++", "low", "32"},
  {"test3_4_mutatee_solo_VC++_32_high.exe", SELFSTART, CREATE, true, true, "dyninst", "VC++", "high", "32"},
  {"test3_4_mutatee_solo_VC++_32_max.exe", SELFSTART, CREATE, true, true, "dyninst", "VC++", "max", "32"},
- {"test3_5_mutatee_solo_VC_32_none.exe", SELFSTART, CREATE, true, true, "dyninst", "VC", "none", "32"},
- {"test3_5_mutatee_solo_VC_32_low.exe", SELFSTART, CREATE, true, true, "dyninst", "VC", "low", "32"},
- {"test3_5_mutatee_solo_VC_32_high.exe", SELFSTART, CREATE, true, true, "dyninst", "VC", "high", "32"},
- {"test3_5_mutatee_solo_VC_32_max.exe", SELFSTART, CREATE, true, true, "dyninst", "VC", "max", "32"},
- {"test3_5_mutatee_solo_VC++_32_none.exe", SELFSTART, CREATE, true, true, "dyninst", "VC++", "none", "32"},
- {"test3_5_mutatee_solo_VC++_32_low.exe", SELFSTART, CREATE, true, true, "dyninst", "VC++", "low", "32"},
- {"test3_5_mutatee_solo_VC++_32_high.exe", SELFSTART, CREATE, true, true, "dyninst", "VC++", "high", "32"},
- {"test3_5_mutatee_solo_VC++_32_max.exe", SELFSTART, CREATE, true, true, "dyninst", "VC++", "max", "32"},
  {"test3_7_mutatee_solo_VC_32_none.exe", SELFSTART, CREATE, true, true, "dyninst", "VC", "none", "32"},
  {"test3_7_mutatee_solo_VC_32_low.exe", SELFSTART, CREATE, true, true, "dyninst", "VC", "low", "32"},
  {"test3_7_mutatee_solo_VC_32_high.exe", SELFSTART, CREATE, true, true, "dyninst", "VC", "high", "32"},
@@ -1304,14 +1296,6 @@ struct {
  {true, "test3_4", "test3_4", "test3_4.dll", false, "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: low, compiler: VC++, run_mode: createProcess}"},
  {true, "test3_4", "test3_4", "test3_4.dll", false, "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: high, compiler: VC++, run_mode: createProcess}"},
  {true, "test3_4", "test3_4", "test3_4.dll", false, "{test: test3_4, mutator: test3_4, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_4, optimization: max, compiler: VC++, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: none, compiler: VC, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: low, compiler: VC, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: high, compiler: VC, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: max, compiler: VC, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: none, compiler: VC++, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: low, compiler: VC++, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: high, compiler: VC++, run_mode: createProcess}"},
- {true, "test3_5", "test3_5", "test3_5.dll", false, "{test: test3_5, mutator: test3_5, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_5, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {true, "test3_7", "test3_7", "test3_7.dll", false, "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: none, compiler: VC, run_mode: createProcess}"},
  {true, "test3_7", "test3_7", "test3_7.dll", false, "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: low, compiler: VC, run_mode: createProcess}"},
  {true, "test3_7", "test3_7", "test3_7.dll", false, "{test: test3_7, mutator: test3_7, grouped: false, start_state: selfstart, abi: 32, mutatee: test3_7, optimization: high, compiler: VC, run_mode: createProcess}"},
@@ -1346,7 +1330,7 @@ struct {
  {true, "test_stack_3", "test_stack_3", "test_stack_3.dll", false, "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: max, compiler: VC++, run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 324; i++) {
+  for (int i = 0; i < 316; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
@@ -1355,7 +1339,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 988 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 980 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);
@@ -1496,7 +1480,6 @@ struct {
     char* abi;
   } rungroup_params[] = { {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"},
- {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"},
  {"", STOPPED, CREATE, true, true, "instruction", "", "none", "32"} };
 
   struct {
@@ -1508,11 +1491,10 @@ struct {
     const char * ilabel;
   } test_params[] = { {true, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.dll", false, "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
  {true, "test_instruction_farcall", "test_instruction_farcall", "test_instruction_farcall.dll", false, "{test: test_instruction_farcall, mutator: test_instruction_farcall, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
- {true, "test_instruction_bind_eval", "test_instruction_bind_eval", "test_instruction_bind_eval.dll", false, "{test: test_instruction_bind_eval, mutator: test_instruction_bind_eval, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"},
- {true, "test_instruction_profile", "test_instruction_profile", "test_instruction_profile.dll", false, "{test: test_instruction_profile, mutator: test_instruction_profile, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
+ {true, "test_instruction_bind_eval", "test_instruction_bind_eval", "test_instruction_bind_eval.dll", false, "{test: test_instruction_bind_eval, mutator: test_instruction_bind_eval, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
@@ -1521,7 +1503,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 4 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 3 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);

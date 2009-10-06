@@ -181,6 +181,7 @@ namespace Dyninst
         }
         retVal = retVal | m_arg1->bind(expr, value);
         retVal = retVal | m_arg2->bind(expr, value);
+		if(retVal) clearValue();
         return retVal;
     }
 

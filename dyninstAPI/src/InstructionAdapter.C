@@ -85,18 +85,18 @@ Address InstructionAdapter::getNextAddr() const
 }
 
 FuncReturnStatus InstructionAdapter::getReturnStatus(image_basicBlock* ,
-        pdvector<instruction>& all_insns) const
+        unsigned int num_insns) const
 {
     // Branch that's not resolvable by binding IP,
     // therefore indirect...
     if(isBranch() &&
        getCFT() == 0)
     {
-        if(all_insns.size() == 2)
+        if(num_insns == 2)
         {
             return RS_UNKNOWN;
         }
-        if(isTailCall(all_insns))
+        if(isTailCall(num_insns))
         {
             return RS_UNKNOWN;
         }
@@ -118,23 +118,23 @@ FuncReturnStatus InstructionAdapter::getReturnStatus(image_basicBlock* ,
     return RS_UNSET;
 }
 
-bool InstructionAdapter::hasUnresolvedControlFlow(image_basicBlock* currBlk, pdvector<instruction>& all_insns) const
+bool InstructionAdapter::hasUnresolvedControlFlow(image_basicBlock* currBlk, unsigned int num_insns) const
 {
     if(isDynamicCall())
     {
         return true;
     }
-    if(getReturnStatus(currBlk, all_insns) == RS_UNKNOWN)
+    if(getReturnStatus(currBlk, num_insns) == RS_UNKNOWN)
     {
         return true;
     }
     return false;
 }
 
-instPointType_t InstructionAdapter::getPointType(pdvector<instruction>& all_insns,
+instPointType_t InstructionAdapter::getPointType(unsigned int num_insns,
                                       dictionary_hash<Address, std::string> *pltFuncs) const
 {
-    if(isBranch() && isTailCall(all_insns))
+    if(isBranch() && isTailCall(num_insns))
     {
         return functionExit;
     }
@@ -148,7 +148,7 @@ instPointType_t InstructionAdapter::getPointType(pdvector<instruction>& all_insn
     }
     if(isBranch() &&
         !getCFT() &&
-        all_insns.size() == 2)
+        num_insns == 2)
     {
         return functionExit;
     }
@@ -173,16 +173,16 @@ instPointType_t InstructionAdapter::getPointType(pdvector<instruction>& all_insn
     return noneType;
 }
 
-InstrumentableLevel InstructionAdapter::getInstLevel(pdvector<instruction>& all_insns) const
+InstrumentableLevel InstructionAdapter::getInstLevel(unsigned int num_insns) const
 {
     if(isBranch() &&
        getCFT() == 0)
     {
-        if(all_insns.size() == 2)
+        if(num_insns == 2)
         {
             return UNINSTRUMENTABLE;
         }
-        else if(isTailCall(all_insns))
+        else if(isTailCall(num_insns))
         {
             return NORMAL;
         }

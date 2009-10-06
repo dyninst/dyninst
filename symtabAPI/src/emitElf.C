@@ -363,6 +363,98 @@ void emitElf::renameSection(const std::string &oldStr, const std::string &newStr
   }
 }
 
+unsigned  next_power_of_2(unsigned orig)
+{
+	unsigned pot_ceil = 1;
+	while (orig)
+	{
+		orig = orig >> 1;
+		pot_ceil  = pot_ceil << 1;
+	}
+	//pot_ceil  = pot_ceil << 1;
+
+	if (!powerof2(pot_ceil))
+		fprintf(stderr, "%s[%d]:  FIXME:  broken algorithm\n", FILE__, __LINE__);
+
+	return pot_ceil;
+}
+
+bool check_before_update(Elf *elf, Elf_X &elfh, bool fixup)
+{
+	Elf_Scn *scn = NULL;
+  unsigned scncount;
+  unsigned sectionNumber = 0;
+  bool err = false;
+
+  for (scncount = 0; (scn = elf_nextscn(elf, scn)); scncount++) {
+    Elf32_Shdr *shdr = elf32_getshdr(scn);
+
+    // resolve section name
+	const char *shnames = pdelf_get_shnames(elfh);
+    const char *name = &shnames[shdr->sh_name];
+
+
+	Elf_Data *data_check = elf_getdata(scn, NULL);
+	unsigned max_align = shdr->sh_addralign ?: 1;
+	do {
+		unsigned cur_align = data_check->d_align;
+		if (!powerof2(cur_align))
+		{
+			//  <sys/param.h> // powerof2
+			fprintf(stderr, "%s[%d]:  WARNING:  data->d_align is not power of 2\n", 
+					FILE__, __LINE__);
+			if (fixup)
+			{
+				unsigned val = cur_align;
+				cur_align = next_power_of_2(val);
+				data_check->d_align = cur_align;
+				fprintf(stderr, "%s[%d]:  \trounding up from %d to %d\n", FILE__, __LINE__, val, data_check->d_align);
+			}
+			else
+			{
+				fprintf(stderr, "\tThis will break elf_update() in some versions of libelf\n");
+			}
+			err = true;
+		}
+		if (cur_align > max_align)
+			max_align = cur_align;
+	} while ( NULL != (data_check = elf_getdata(scn, data_check)));
+
+	if (max_align > shdr->sh_addralign)
+	{
+		fprintf(stderr, "%s[%d]:  WARNING:  shdr->sh_addralign is too small\n", 
+				FILE__, __LINE__);
+		if (fixup)
+		{
+			fprintf(stderr, "%s[%d]:  FIXING up sh->sh_addralign from %d, to %d\n", 
+					FILE__, __LINE__, shdr->sh_addralign, max_align);
+			shdr->sh_addralign = max_align;
+		}
+		else
+			fprintf(stderr, "\tThis will break elf_update() in some versions of libelf\n");
+		err = true;
+	}
+
+	if (!powerof2(shdr->sh_addralign))
+	{
+		//  This case should be precluded by the above checks, but anyways....
+		//  <sys/param.h> // powerof2
+		fprintf(stderr, "%s[%d]:  WARNING:  section '%s': sh_addralign is not power of 2\n", 
+				FILE__, __LINE__, name);
+		if (fixup)
+		{
+			unsigned val = shdr->sh_addralign;
+			shdr->sh_addralign = next_power_of_2(val);
+			fprintf(stderr, "%s[%d]:  \trounding up from %d to %d\n", FILE__, __LINE__, val, shdr->sh_addralign);
+		}
+		else {
+			fprintf(stderr, "\tThis will break elf_update() in some versions of libelf\n");
+		}
+		err = true;
+	}
+  }
+  return !err;
+}
 bool emitElf::driver(Symtab *obj, string fName){
   int newfd;
   Region *foundSec;
@@ -438,6 +530,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     const char *name = &shnames[shdr->sh_name];
     obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
 
+
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
       continue;
@@ -454,8 +547,9 @@ bool emitElf::driver(Symtab *obj, string fName){
     memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
     memcpy(newdata,olddata, sizeof(Elf_Data));
 
-    secNames.push_back(name);
-    newshdr->sh_name = secNameIndex;
+
+	secNames.push_back(name);
+	newshdr->sh_name = secNameIndex;
     secNameIndex += strlen(name) + 1;
     
     if(foundSec->isDirty())
@@ -582,6 +676,10 @@ bool emitElf::driver(Symtab *obj, string fName){
 	return false;
     }
 
+	if (!check_before_update(newElf, oldElfHandle, true))
+	{
+		fprintf(stderr, "%s[%d]:  bad elf here\n", FILE__, __LINE__);
+	}
     elf_update(newElf, ELF_C_NULL);
   }
 
@@ -663,6 +761,10 @@ bool emitElf::driver(Symtab *obj, string fName){
   oldPhdr = elf32_getphdr(oldElf);
   fixPhdrs(loadSecTotalSize, extraAlignSize);
 
+	if (!check_before_update(newElf, oldElfHandle, true))
+	{
+		fprintf(stderr, "%s[%d]:  bad elf here\n", FILE__, __LINE__);
+	}
   //Write the new Elf file
   if (elf_update(newElf, ELF_C_WRITE) < 0){
     int err;
@@ -1108,6 +1210,11 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 	  }
 
 	  loadSecTotalSize += newshdr->sh_size;
+
+	if (!check_before_update(newElf, oldElfHandle, true))
+	{
+		fprintf(stderr, "%s[%d]:  bad elf here\n", FILE__, __LINE__);
+	}
 	  elf_update(newElf, ELF_C_NULL);
 
 	  shdr = newshdr;

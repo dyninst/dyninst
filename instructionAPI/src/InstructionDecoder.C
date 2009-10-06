@@ -69,7 +69,7 @@ namespace Dyninst
             locs(NULL),
             decodedInstruction(NULL),
     is32BitMode(o.is32BitMode),
-    sizePrefixPresent(false),
+    sizePrefixPresent(o.sizePrefixPresent),
     bufferBegin(o.bufferBegin),
     bufferSize(o.bufferSize),
     rawInstruction(o.rawInstruction)
@@ -167,9 +167,14 @@ namespace Dyninst
      
     Expression::Ptr InstructionDecoder::makeModRMExpression(unsigned int opType)
     {
-      Result_Type aw = ia32_is_mode_64() ? u32 : u64;
+        unsigned int regType = op_d;
+        if(ia32_is_mode_64())
+        {
+            regType = op_q;
+        }
+        Result_Type aw = ia32_is_mode_64() ? u32 : u64;
       Expression::Ptr e = 
-      make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, opType,
+      make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, regType,
 									       (locs->rex_b == 1))));
       switch(locs->modrm_mod)
       {
@@ -186,14 +191,17 @@ namespace Dyninst
 	  {
 	    e = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(r_RIP)),
 				   getModRMDisplacement(), aw);
-	}
-	else
-	{
-	  e = getModRMDisplacement();
-	}
+          }
+          else
+          {
+            e = getModRMDisplacement();
+	  }
 	
       }
-      
+      if(opType == op_lea)
+      {
+          return e;
+      }
 	return make_shared(singleton_object_pool<Dereference>::construct(e, makeSizeType(opType)));
 	break;
       case 1:
@@ -217,19 +225,24 @@ namespace Dyninst
 
     Expression::Ptr InstructionDecoder::decodeImmediate(unsigned int opType, unsigned int position)
     {
+        const unsigned char* bufferEnd = bufferBegin + (bufferSize ? bufferSize : 16);
         assert(position != (unsigned int)(-1));
       switch(opType)
       {
       case op_b:
+          assert(rawInstruction + position < bufferEnd);
 	return Immediate::makeImmediate(Result(s8,*(const byte_t*)(rawInstruction + position)));
 	break;
       case op_d:
-	return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+          assert(rawInstruction + position + 3 < bufferEnd);
+          return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
       case op_w:
-	return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
+          assert(rawInstruction + position + 1 < bufferEnd);
+          return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
 	break;
       case op_q:
-	return Immediate::makeImmediate(Result(s64,*(const int64_t*)(rawInstruction + position)));
+          assert(rawInstruction + position + 7 < bufferEnd);
+          return Immediate::makeImmediate(Result(s64,*(const int64_t*)(rawInstruction + position)));
 	break;
       case op_v:
       case op_z:
@@ -237,11 +250,13 @@ namespace Dyninst
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 16 bit
 	if(!sizePrefixPresent)
 	{
-	  return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 3 < bufferEnd);
+            return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
 	}
 	else
 	{
-	  return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 1 < bufferEnd);
+            return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -250,11 +265,13 @@ namespace Dyninst
 	// 16 bit mode, no prefix or 32 bit mode, prefix => 32 bit
 	if(!sizePrefixPresent)
 	{
-	  return Immediate::makeImmediate(Result(s48,*(const int64_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 5< bufferEnd);
+            return Immediate::makeImmediate(Result(s48,*(const int64_t*)(rawInstruction + position)));
 	}
 	else
 	{
-	  return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+            assert(rawInstruction + position + 3 < bufferEnd);
+            return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -294,9 +311,17 @@ namespace Dyninst
 	return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, (*(const byte_t*)(rawInstruction + disp_pos)))));
 	break;
       case 2:
-	return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction + disp_pos)))));
+	return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction +
+disp_pos)))));
 	break;
-      default:
+          case 0:
+              if(locs->modrm_rm == 5)
+                return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction +
+                        disp_pos)))));
+              else
+                  return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+              break;
+          default:
 	return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
 	break;
       }
@@ -484,7 +509,7 @@ namespace Dyninst
       case am_M:
 	// am_R is the inverse of am_M; it should only have a mod of 3
       case am_R:
-	outputOperands.push_back(makeModRMExpression(regType));
+	outputOperands.push_back(makeModRMExpression(operand.optype));
 #if 0	
 	switch(locs->modrm_mod)
 	{
@@ -785,6 +810,7 @@ namespace Dyninst
       decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
 
       ia32_decode(IA32_DECODE_PREFIXES, rawInstruction, *decodedInstruction);
+      sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
     }
     
     unsigned int InstructionDecoder::decodeOpcode()
@@ -792,7 +818,6 @@ namespace Dyninst
       doIA32Decode();
       m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
 decodedInstruction->getPrefix(), locs));
-      sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
       return decodedInstruction->getSize();
     }
     
@@ -814,10 +839,11 @@ decodedInstruction->getPrefix(), locs));
       return true;
     }
 
-    void InstructionDecoder::resetBuffer(const unsigned char* buffer)
+    void InstructionDecoder::resetBuffer(const unsigned char* buffer, unsigned int size = 0)
     {
       rawInstruction = buffer;
       bufferBegin = buffer;
+      bufferSize = size;
     }
     
   };
