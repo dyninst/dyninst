@@ -5,10 +5,12 @@ BUILD_NUM=-576
 
 #Are any alternatives to g++ available?
 
-M_intel_CC = @_ICC_@
+M_intel_cc = @_ICC_@
+M_intel_CC = @_ICPC_@
 
 ifdef M_intel_CC
-ICC = 1
+ICC = @_ICC_@
+ICPC = @_ICPC_@
 endif
 
 M_pg_cc = @_PGC_@
