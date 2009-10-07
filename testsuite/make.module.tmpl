@@ -469,8 +469,8 @@ OUTPUT_DRIVERS = DatabaseOutputDriver.so
 DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
-DatabaseOutputDriver.so: DatabaseOutputDriver.o # $(DEPENDDIR)/DatabaseOutputDriver.dep
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS)
+DatabaseOutputDriver.so: DatabaseOutputDriver.o $(LIBTESTSUITE) # $(DEPENDDIR)/DatabaseOutputDriver.dep
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L. -ltestSuite
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
