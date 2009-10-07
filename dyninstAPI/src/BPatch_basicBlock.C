@@ -453,9 +453,15 @@ BPatch_Vector<BPatch_point*>*
         {
             BPatch_point* tmp = BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*) curInsn->second,
                     flowGraph->getBFunction());
-            if(!tmp) fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch at 0x%lx\n",
-            curInsn->second);
-            ret->push_back(tmp);
+            if(!tmp)
+            {
+                fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
+                    curInsn->first->format().c_str(), curInsn->second);
+            }
+            else
+            {
+                ret->push_back(tmp);
+            }
         }
     }
     return ret;
