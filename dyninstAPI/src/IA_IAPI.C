@@ -176,7 +176,7 @@ bool IA_IAPI::isNop() const
 
 bool IA_IAPI::isDynamicCall() const
 {
-    if(curInsn() && curInsn()->getCategory() == c_CallInsn)
+    if(curInsn() && (curInsn()->getCategory() == c_CallInsn))
     {
         if(getCFT() == 0)
         {
@@ -505,9 +505,10 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
     while(tableLoc != cur)
     {
         tableLoc++;
-        if(tableLoc->second->getOperation().getID() == e_movsxd)
+        if(tableLoc->second->getOperation().getID() == e_movsxd ||
+           tableLoc->second->getOperation().getID() == e_movsx)
         {
-            parsing_printf("\tFound movsxd (movslq), revising table stride to 4\n");
+            parsing_printf("\tFound sign-extending mov, revising table stride to 4\n");
             tableStride = 4;
             break;
         }
@@ -1000,13 +1001,13 @@ Address IA_IAPI::getCFT() const
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!
     callTarget->bind(&thePC, Result(s64, current));
-//    parsing_printf("%s[%d]: binding PC in %s to 0x%x...", FILE__, __LINE__,
-//                   curInsn()->format().c_str(), current);
+    //parsing_printf("%s[%d]: binding PC in %s to 0x%x...", FILE__, __LINE__,
+    //               curInsn()->format().c_str(), current);
     Result actualTarget = callTarget->eval();
     if(actualTarget.defined)
     {
         cachedCFT = actualTarget.convert<Address>();
-//       parsing_printf("SUCCESS (CFT=0x%x)\n", cachedCFT);
+        //parsing_printf("SUCCESS (CFT=0x%x)\n", cachedCFT);
     }
     else
     {
