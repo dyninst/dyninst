@@ -862,8 +862,8 @@ bool image_func::writesFPRs(unsigned level) {
             return true; // Arbitrarily decided level 3 iteration.
         }        
         for (unsigned i = 0; i < calls.size(); i++) {
-            if (calls[i]->func() && calls[i]->func() != this) {
-                if (calls[i]->func()->writesFPRs(level+1)) {
+            if (calls[i]->getCallee() && calls[i]->getCallee() != this) {
+                if (calls[i]->getCallee()->writesFPRs(level+1)) {
                     // One of our kids does... if we're top-level, cache it; in 
                     // any case, return
                     if (level == 0)
@@ -871,7 +871,7 @@ bool image_func::writesFPRs(unsigned level) {
                     return true;
                 }
             }
-            else if(!calls[i]->func()){
+            else if(!calls[i]->getCallee()){
                 // Indirect call... oh, yeah. 
                 if (level == 0)
                     containsFPRWrites_ = used;
