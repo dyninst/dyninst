@@ -538,7 +538,7 @@ bool InstrucIter::isAnAllocInstruction()
   return false;
 }
 
-bool isAnInterruptInstruction()
+bool InstrucIter::isAnInterruptInstruction()
 {
     // TODO: not implemented
     return false;
