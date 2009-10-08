@@ -101,7 +101,7 @@ const char *outlogname = "-";
 const char *errlogname = "-";
 
 LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
-	runtime_error(msg),
+	msg__(msg),
 	file__(std::string(__file__)),
 	line__(__line__)
 {}
@@ -114,6 +114,14 @@ std::string LocErr::file() const
 	return file__;
 }
 
+std::string LocErr::msg() const
+{
+	return msg__;
+}
+const char * LocErr::what() const
+{
+	return msg__.c_str();
+}
 int LocErr::line() const
 {
 	return line__;

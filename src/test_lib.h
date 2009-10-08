@@ -146,8 +146,9 @@ TESTLIB_DLL_EXPORT ComponentTester *getComponentTester();
 	   err.print(stderr); \
 	   return FAILED; }
 
-class LocErr : public std::runtime_error 
+class LocErr  
 {
+	std::string msg__;
 	std::string file__;
 	int line__;
 
@@ -162,6 +163,8 @@ class LocErr : public std::runtime_error
 	TESTLIB_DLL_EXPORT std::string file() const;
 
 	TESTLIB_DLL_EXPORT int line() const;
+	TESTLIB_DLL_EXPORT std::string msg() const;
+	TESTLIB_DLL_EXPORT const char * what() const;
 
 	TESTLIB_DLL_EXPORT void print(FILE * stream)  const;
 };
