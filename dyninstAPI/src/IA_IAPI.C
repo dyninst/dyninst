@@ -371,6 +371,7 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
         cur += insn->size();
     }
     if (found.size() == 8) {
+        found.insert(cur);
         //It's a match
         for (std::set<Address>::iterator i=found.begin(); i != found.end(); i++) {
             outEdges.push_back(std::make_pair(*i, ET_INDIR));
@@ -396,6 +397,7 @@ bool IA_IAPI::isIPRelativeBranch() const
     if(curInsn()->getControlFlowTarget()->isUsed(thePC) ||
        curInsn()->getControlFlowTarget()->isUsed(rip))
     {
+        parsing_printf("\tIP-relative indirect jump at 0x%lx\n", current);
         return true;
     }
 }
@@ -965,6 +967,7 @@ bool IA_IAPI::isRealCall() const
     // We're decoding two instructions: possible move and possible return.
     // Check for move from the stack pointer followed by a return.
     InstructionDecoder targetChecker(target, 32);
+    targetChecker.setMode(img->getAddressWidth() == 8);
     Instruction::Ptr thunkFirst = targetChecker.decode();
     Instruction::Ptr thunkSecond = targetChecker.decode();
     if(thunkFirst && thunkFirst->getOperation().getID() == e_mov)
@@ -993,6 +996,7 @@ bool IA_IAPI::simulateJump() const
 Address IA_IAPI::getCFT() const
 {
     static RegisterAST thePC = RegisterAST::makePC();
+    static RegisterAST* rip = new RegisterAST(r_RIP);
     if(!hasCFT())
     {
         return 0;
@@ -1001,18 +1005,19 @@ Address IA_IAPI::getCFT() const
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!
     callTarget->bind(&thePC, Result(s64, current));
-    //parsing_printf("%s[%d]: binding PC in %s to 0x%x...", FILE__, __LINE__,
-    //               curInsn()->format().c_str(), current);
+    callTarget->bind(rip, Result(s64, current));
+    parsing_printf("%s[%d]: binding PC in %s to 0x%x...", FILE__, __LINE__,
+                   curInsn()->format().c_str(), current);
     Result actualTarget = callTarget->eval();
     if(actualTarget.defined)
     {
         cachedCFT = actualTarget.convert<Address>();
-        //parsing_printf("SUCCESS (CFT=0x%x)\n", cachedCFT);
+        parsing_printf("SUCCESS (CFT=0x%x)\n", cachedCFT);
     }
     else
     {
         cachedCFT = 0;
-//        parsing_printf("FAIL (CFT=0x%x)\n", cachedCFT);
+        parsing_printf("FAIL (CFT=0x%x)\n", cachedCFT);
     }
     validCFT = true;
     return cachedCFT;
