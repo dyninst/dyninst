@@ -391,7 +391,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   InstructionDecoder amd64_decoder(amd64_specific, amd64_size);
   amd64_decoder.setMode(true);
   
-  Instruction tmp;
+  Instruction::Ptr tmp;
   do
   {
     tmp = amd64_decoder.decode();

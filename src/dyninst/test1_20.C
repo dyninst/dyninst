@@ -69,6 +69,10 @@ extern "C" DLLEXPORT  TestMutator *test1_20_factory()
 //
 // Start Test Case #20 - mutator side (instrumentation at arbitrary points)
 //
+bool nullFilter(Dyninst::InstructionAPI::Instruction::Ptr)
+{
+    return true;
+}
 
 test_results_t test1_20_Mutator::executeTest() 
 {
@@ -143,10 +147,43 @@ test_results_t test1_20_Mutator::executeTest()
 		assert(block);
 
 		dprintf("%s[%d]:  inserting arbitrary inst in basic block at addr %p\n", 
-				FILE__, __LINE__, (void *) block->getStartAddress());
+                        FILE__, __LINE__, (void *) block->getStartAddress());
 
-		BPatch_Vector<BPatch_instruction *> *insns = block->getInstructions();
-		assert(insns);
+                
+#if defined(cap_instruction_api_test)
+                BPatch_Vector<BPatch_point*> * points = block->findPoint(nullFilter);
+                assert(points);
+                for(unsigned int i = 0; i < points->size(); i++)
+                {
+                    BPatch_point* pt = (*points)[i];
+                    if(pt)
+                    {
+                        if(pt->getPointType() == BPatch_arbitrary)
+                        {
+                            found_one = true;
+
+                            if (appAddrSpace->insertSnippet(call20_1Expr, *pt) == NULL)
+                            {
+                                logerror("%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
+                                         __FILE__, __LINE__);
+                                return FAILED;
+                            }
+
+                            dprintf("%s[%d]:  SUCCESS installing inst at address %p\n",
+                                    FILE__, __LINE__, pt->getAddress());
+                        }
+                        else
+                            logerror("%s[%d]:  non-arbitrary point (%d) being ignored\n",
+                                     FILE__, __LINE__);
+                    }
+                    else
+                    {
+                        logerror("%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
+                    }
+                }
+#else		
+                BPatch_Vector<BPatch_instruction *> *insns = block->getInstructions();
+                assert(insns);
 
 		for (unsigned int i = 0; i < insns->size(); ++i) 
 		{
@@ -179,7 +216,7 @@ test_results_t test1_20_Mutator::executeTest()
 				logerror("%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
 			}
 		}
-
+#endif
 	}
 
 	appAddrSpace->finalizeInsertionSet(false, NULL);

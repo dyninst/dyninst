@@ -1099,8 +1099,8 @@ void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
 
 static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
 {
-	if(!debugPrint)
-		return;
+  //	if(!debugPrint)
+  //	return;
 
 	printf("%s: %d\n", msg, size);
 
