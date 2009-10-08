@@ -106,7 +106,7 @@ namespace Dyninst
       Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
       Expression::Ptr getModRMDisplacement();
       int makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);
-      Expression::Ptr decodeImmediate(unsigned int opType, unsigned int position);
+      Expression::Ptr decodeImmediate(unsigned int opType, unsigned int position, bool isSigned = false);
       Result_Type makeSizeType(unsigned int opType);
       
     private:
